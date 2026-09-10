@@ -20,12 +20,12 @@ const rows = [
 ];
 const count = {textContent: ''};
 const pairControls = [
-  {dataset: {pairFilter: 'relation'}, value: 'both_fail', addEventListener() {}},
+  {dataset: {pairFilter: 'relation'}, value: 'all_fail', addEventListener() {}},
 ];
 const pairedRows = [
-  {dataset: {relation: 'both_fail'}},
-  {dataset: {relation: 'chromium_only'}},
-  {dataset: {relation: 'moli_only'}},
+  {dataset: {relation: 'all_fail'}},
+  {dataset: {relation: 'all_pass'}},
+  {dataset: {relation: 'mixed'}},
 ];
 const pairCount = {textContent: ''};
 const listeners = {};
@@ -77,12 +77,12 @@ assert.equal(controls[0].value, 'fail');
 assert.deepEqual(rows.map(row => row.hidden), [false, true]);
 assert.equal(count.textContent, '1 / 2');
 assert.deepEqual(pairedRows.map(row => row.hidden), [false, true, true]);
-assert.equal(pairCount.textContent, '找到 1 个配对任务');
+assert.equal(pairCount.textContent, '找到 1 个任务');
 
-pairControls[0].value = 'discordant';
+pairControls[0].value = 'mixed';
 vm.runInContext('pairRows()', context);
-assert.deepEqual(pairedRows.map(row => row.hidden), [true, false, false]);
-assert.match(replaced, /p_relation=discordant/);
+assert.deepEqual(pairedRows.map(row => row.hidden), [true, true, false]);
+assert.match(replaced, /p_relation=mixed/);
 
 controls[0].value = 'pass';
 search.value = '';

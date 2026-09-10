@@ -12,7 +12,7 @@
   "model": "gpt-5.6-sol",
   "reasoning_effort": "low",
   "max_task_executions": 2,
-  "logical_result": "final execution; aggregate all execution latency and cost",
+  "logical_result": "score authority follows the frozen run manifest; aggregate all execution latency and cost",
   "model_transport_retries": 1,
   "scoring_authority": "unmodified official programmatic evaluator",
   "review_kind": "deterministic evidence integrity audit",
@@ -28,7 +28,7 @@
     "base_url": "https://artifact-hub.dev.lexmount.net",
     "site_slug": "28OH4YZkUYF1",
     "share_url": "https://artifact-hub.dev.lexmount.net/v/5Vhnhdc_f8FEM2RzctQm-ChRlXUf174Y",
-    "expected_version": "ver_9427c10f5d424c0abf9d5725433702fe",
+    "expected_version": "ver_2efb75a992784f4e923ca68f1ba42e4d",
     "state": "verified"
   }
 }

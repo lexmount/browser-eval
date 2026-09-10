@@ -58,7 +58,12 @@ def check(
         if attempts_path.is_file()
         else []
     )
-    logical_rows = _logical_results(measured_rows)
+    manifest_for_projection = (
+        json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else {}
+    )
+    logical_rows = _logical_results(
+        measured_rows, manifest_for_projection.get("protocol") or {}
+    )
     result_pages = tuple(
         report_dir
         / "results"
@@ -142,13 +147,27 @@ def check(
         raise ValueError("every Chinese report route must have an English mirror")
     if task_pages and any(
         "Ground truth · 官方验收合同" not in rendered_pages[page]
-        or "参考状态 · 当前环境是否有成功路径证据" not in rendered_pages[page]
-        or "最终结果对照" not in rendered_pages[page]
+        or "查看本题运行结果" not in rendered_pages[page]
+        or "最终结果对照" in rendered_pages[page]
         for page in task_pages
     ):
         raise ValueError(
-            "every task page must publish its contract, solvability status and both results"
+            "task pages must publish frozen contracts without embedding measured comparisons"
         )
+    dataset_index = rendered_pages[report_dir / "datasets/index.html"]
+    if 'data-result=' in dataset_index or "可完成性证据" in dataset_index:
+        raise ValueError("dataset inventory must not mix measured results into task definitions")
+    review_index = rendered_pages[report_dir / "review/index.html"]
+    if "独立结果复核" not in review_index or f"0/{len(logical_rows)}" not in review_index:
+        raise ValueError("report must separate evidence integrity from semantic result review")
+    methodology_index = rendered_pages[report_dir / "methodology/index.html"]
+    for marker in ("192.168.5.2", "Wikipedia", "Map", "当前证据没有独立的逐次环境准备 receipt"):
+        if marker not in methodology_index:
+            raise ValueError(f"methodology is missing deployment evidence boundary: {marker}")
+    analysis_index = rendered_pages[report_dir / "analysis/index.html"]
+    for marker in ("Agent 链路累计耗时", "BrowserTool 累计耗时", "浏览器两两比较"):
+        if marker not in analysis_index:
+            raise ValueError(f"analysis is missing timing or scalable comparison: {marker}")
     if result_pages and any(
         marker not in rendered_pages[page]
         for page in result_pages
@@ -208,7 +227,7 @@ def check(
             raise ValueError(f"formal report contains forbidden notebook or execution-label text: {page}")
     style = (report_dir / "assets/style.css").read_text(encoding="utf-8")
     for required_style in (
-        "#task-table{min-width:1660px}",
+        "#task-table{min-width:1500px}",
         "#failure-table{min-width:1480px}",
         "background:var(--code-bg)!important",
         ".method-figure img{min-width:960px",
@@ -237,6 +256,15 @@ def check(
                 raise ValueError(f"current report profile mismatch for {key}")
         if profile.get("engines") != ["chromium", "moli"]:
             raise ValueError("current report profile must bind the two browser engines")
+        manifest_score_authority = (manifest.get("protocol") or {}).get(
+            "official_score_uses"
+        ) or "final execution for each browser and task"
+        if audit.get("score_authority") != manifest_score_authority:
+            raise ValueError("report renderer changed the frozen score authority")
+        if not str(profile.get("logical_result") or "").startswith(
+            "score authority follows the frozen run manifest"
+        ):
+            raise ValueError("current report profile must defer score authority to the manifest")
         if manifest.get("selection_sha256") != selection.sha256:
             raise ValueError("manifest selection hash differs from the registered cohort")
         if run_config.get("selection_sha256") != selection.sha256:
@@ -297,8 +325,6 @@ def check(
             "admin1234",
             "test1234",
             "hello1234",
-            "host.docker.internal",
-            "192.168.5.2",
         )
         for path in report_dir.rglob("*"):
             if path.is_file() and path.suffix in {".html", ".json", ".jsonl", ".js", ".css"}:

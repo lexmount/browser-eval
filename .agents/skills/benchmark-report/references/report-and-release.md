@@ -20,7 +20,11 @@ For a multilingual report, generate every language from one semantic report mode
 
 Use a compact review page resembling release history: current reviewed coverage and unresolved count, then one card or row per review round with scope, findings, corrections, and remaining work. Do not publish agent work logs, giant execution manifests, or downloads merely because the evidence exists.
 
-Expose one logical result per method and task. A declared second execution after failure is an orchestration detail: preserve its immutable evidence, let the final execution determine the result, and add every execution's latency and cost. Do not split the public result table into first-versus-retry rows unless that distinction is the preregistered research question.
+Expose one logical result per method and task. A declared additional execution is an orchestration detail: preserve its immutable evidence, follow the score authority frozen before the run, and add every execution's latency and cost. Do not split the public result table by execution ordinal unless that distinction is the preregistered research question.
+
+Keep dataset inventory separate from measured results. Dataset pages explain the task, selection, reference and acceptance contract; result pages own method verdicts, timing, trajectories and run-derived solvability observations. Define participants as reproducible method stacks and render comparisons from a registry. With more than two participants, use a task-by-participant matrix plus explicit pairwise comparisons rather than a fixed two-column winner taxonomy.
+
+For self-hosted web environments, include a deployment and network topology, image identities, included/excluded sites and compatibility layers. Distinguish configured preparation from independently bound preparation receipts. Split environment preparation, browser-session setup, agent run, tool-call wall time, evidence finalization and evaluator time at collection; label historical mixed timers by their actual boundaries and never call wrapper/CDP wall time pure browser-core speed.
 
 Never publish user prompts, assistant reasoning, plans, internal notes, conversational back-and-forth, or tool-work narration. A formal report explains the benchmark and evidence; it is not the authoring notebook.
 

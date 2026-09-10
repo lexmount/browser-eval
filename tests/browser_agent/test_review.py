@@ -4,7 +4,9 @@ from pathlib import Path
 from harness.browser_agent.review import review_results, write_review
 
 
-def _write_fixture(root: Path, *, row_score: float = 1.0) -> None:
+def _write_fixture(
+    root: Path, *, row_score: float = 1.0, require_prepare_receipt: bool = False
+) -> None:
     attempt_dir = root / "chromium" / "44" / "attempt-1"
     attempt_dir.mkdir(parents=True)
     response = {"task_type": "NAVIGATE", "status": "SUCCESS", "retrieved_data": None}
@@ -22,11 +24,17 @@ def _write_fixture(root: Path, *, row_score: float = 1.0) -> None:
         "evaluation": attempt_dir / "eval_result.json",
         "events": attempt_dir / "agent_events.json",
     }
+    if require_prepare_receipt:
+        paths["environment_prepare"] = attempt_dir / "environment_prepare.json"
     paths["network_har"].write_text("{}", encoding="utf-8")
     paths["agent_trace"].write_bytes(b"trace")
     paths["response"].write_text(json.dumps(response), encoding="utf-8")
     paths["evaluation"].write_text(json.dumps(evaluation), encoding="utf-8")
     paths["events"].write_text("[]", encoding="utf-8")
+    if require_prepare_receipt:
+        paths["environment_prepare"].write_text(
+            json.dumps({"reset_requested": True, "status": "ready"}), encoding="utf-8"
+        )
     row = {
         "engine": "chromium",
         "task_id": 44,
@@ -43,6 +51,11 @@ def _write_fixture(root: Path, *, row_score: float = 1.0) -> None:
         json.dumps(
             {
                 "selection_sha256": "selection-sha",
+                "protocol": {
+                    "environment_prepare_receipt": "required"
+                    if require_prepare_receipt
+                    else "legacy-unavailable"
+                },
                 "environment": {
                     "official_evaluator": {
                         "evaluator_checksum": "eval-sha",
@@ -82,3 +95,12 @@ def test_review_never_adjudicates_score_disagreement(tmp_path: Path) -> None:
     assert review["attempts"][0]["outcome"] == "unresolved"
     assert review["disagreements"][0]["failed_checks"] == ["score_matches_evaluator"]
     assert review["unresolved"][0]["failed_checks"] == ["score_matches_evaluator"]
+
+
+def test_review_requires_declared_environment_prepare_receipt(tmp_path: Path) -> None:
+    _write_fixture(tmp_path, require_prepare_receipt=True)
+
+    review = review_results(evidence=tmp_path, selection_sha256="selection-sha")
+
+    assert review["unresolved"] == []
+    assert "environment_prepare" in review["attempts"][0]["artifacts"]

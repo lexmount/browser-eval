@@ -48,6 +48,9 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
         raise ValueError("manifest does not match the pre-registered selection")
 
     rows = _read_attempts(attempts_path)
+    required_artifacts = list(REQUIRED_ARTIFACTS)
+    if (manifest.get("protocol") or {}).get("environment_prepare_receipt") == "required":
+        required_artifacts.append("environment_prepare")
     reviewed: list[dict[str, Any]] = []
     disagreements: list[dict[str, Any]] = []
     unresolved: list[dict[str, Any]] = []
@@ -62,7 +65,7 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
         paths = row.get("paths") or {}
         checks: dict[str, bool] = {}
         artifacts: dict[str, dict[str, Any]] = {}
-        for name in REQUIRED_ARTIFACTS:
+        for name in required_artifacts:
             raw_path = paths.get(name)
             path = Path(str(raw_path)) if raw_path else Path()
             exists = bool(raw_path) and path.is_file()

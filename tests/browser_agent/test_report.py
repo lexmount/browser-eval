@@ -26,6 +26,63 @@ def test_paired_summary_uses_final_logical_results() -> None:
     assert summary["mcnemar_exact_p"] == 1.0
 
 
+def test_logical_results_obey_legacy_frozen_score_authority() -> None:
+    rows = [
+        {"engine": "chromium", "task_id": 1, "attempt": 1, "score": 0},
+        {"engine": "chromium", "task_id": 1, "attempt": 2, "score": 1},
+    ]
+
+    result = _logical_results(rows, {"official_score_uses": "primary attempt only"})[0]
+
+    assert result["score"] == 0
+
+
+def test_logical_results_aggregate_browser_tool_wall_time(tmp_path: Path) -> None:
+    event_paths = []
+    for index, seconds in enumerate((0.4, 0.6), start=1):
+        path = tmp_path / f"events-{index}.json"
+        path.write_text(
+            json.dumps(
+                [
+                    {
+                        "type": "tool_execution_start",
+                        "data": {
+                            "tool_call_id": str(index),
+                            "tool_name": "browser",
+                            "arguments": {"action": "click", "ref": index},
+                        },
+                    },
+                    {
+                        "type": "tool_execution_end",
+                        "data": {
+                            "tool_call_id": str(index),
+                            "status": "success",
+                            "execution_time": seconds,
+                        },
+                    },
+                ]
+            ),
+            encoding="utf-8",
+        )
+        event_paths.append(path)
+    rows = [
+        {
+            "engine": "chromium",
+            "task_id": 1,
+            "attempt": index,
+            "score": 0,
+            "paths": {"events": str(path)},
+        }
+        for index, path in enumerate(event_paths, start=1)
+    ]
+
+    result = _logical_results(rows)[0]
+
+    assert result["action_count"] == 2
+    assert result["browser_tool_duration_ms"] == 1000
+    assert result["browser_tool_count_by_action"] == {"click": 2}
+
+
 def test_report_publishes_one_final_logical_result_and_aggregates_cost(tmp_path: Path) -> None:
     evidence = tmp_path / "evidence"
     output = tmp_path / "report"
@@ -72,9 +129,11 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(tmp_path:
     task = (output / "datasets/44.html").read_text(encoding="utf-8")
     assert "Ground truth · 官方验收合同" in task
     assert "没有唯一参考点击路径" in task
-    assert "参考状态 · 当前环境是否有成功路径证据" in task
-    assert "最终结果对照" in task
-    assert "本轮已有成功轨迹" in (output / "datasets/index.html").read_text(encoding="utf-8")
+    assert "查看本题运行结果" in task
+    assert "最终结果对照" not in task
+    dataset = (output / "datasets/index.html").read_text(encoding="utf-8")
+    assert "可完成性证据" not in dataset
+    assert 'data-result=' not in dataset
     attempt = (output / "results/chromium-44.html").read_text(encoding="utf-8")
     for expected in (
         "Agent 实际回答",
@@ -163,7 +222,8 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
     assert "Chromium 与 Moli：Browser Use 能力实测" in home_text
     methodology_text = (output / "methodology/index.html").read_text(encoding="utf-8")
     assert "webarena-autonomous-evaluation-flow.png" in methodology_text
-    assert "ContainerManager.start()" in methodology_text
+    assert "ContainerManager.start(reset=True)" in methodology_text
+    assert "192.168.5.2" in methodology_text
     assert "不含点击序列" in methodology_text
     for name in (
         "guide/index.html",

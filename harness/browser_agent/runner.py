@@ -503,7 +503,30 @@ def _run_attempt(  # noqa: PLR0913
     task = benchmark.get_task(selected.task_id)
     sites = tuple(task.sites)
     start_urls = list(benchmark.config.render_url(list(task.start_urls), list(task.sites)))
-    _prepare_sites(sites)
+
+    attempt_dir = output_dir / engine / str(selected.task_id) / f"attempt-{attempt}"
+    attempt_dir.mkdir(parents=True, exist_ok=True)
+    prepare_path = attempt_dir / "environment_prepare.json"
+    prepare_started = time.perf_counter()
+    prepare_receipt: dict[str, Any] = {
+        "required_sites": [site.value for site in sites],
+        "reset_requested": True,
+        "status": "running",
+    }
+    try:
+        _prepare_sites(sites)
+        prepare_receipt["status"] = "ready"
+    except Exception as exc:
+        prepare_receipt["status"] = "failed"
+        prepare_receipt["error"] = str(exc)
+        raise
+    finally:
+        prepare_receipt["duration_ms"] = round(
+            (time.perf_counter() - prepare_started) * 1000, 3
+        )
+        prepare_path.write_text(
+            json.dumps(prepare_receipt, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
     if str(cowagent_repo) not in sys.path:
         sys.path.insert(0, str(cowagent_repo))
@@ -513,8 +536,6 @@ def _run_attempt(  # noqa: PLR0913
 
     _limit_cowagent_transport_retries(AgentStreamExecutor)
 
-    attempt_dir = output_dir / engine / str(selected.task_id) / f"attempt-{attempt}"
-    attempt_dir.mkdir(parents=True, exist_ok=True)
     trace_path = attempt_dir / "agent_trace.zip"
     har_path = attempt_dir / "network.har"
     response_path = attempt_dir / "agent_response.json"
@@ -538,8 +559,13 @@ def _run_attempt(  # noqa: PLR0913
     prepared = False
     recorder = CdpHarRecorder()
     sampler_started = False
+    browser_session_setup_ms = 0.0
+    agent_run_ms = 0.0
+    evidence_finalize_ms = 0.0
+    evaluation_ms = 0.0
     started = time.perf_counter()
     try:
+        session_setup_started = time.perf_counter()
         model.reset()
         service = tool._get_service()
         service._submit(lambda: None)
@@ -551,6 +577,7 @@ def _run_attempt(  # noqa: PLR0913
             )
         )
         prepared = True
+        browser_session_setup_ms = (time.perf_counter() - session_setup_started) * 1000
         sampler.start()
         sampler_started = True
         agent = Agent(
@@ -566,9 +593,12 @@ def _run_attempt(  # noqa: PLR0913
         # CowAgent rebuilds its base prompt at run time; the suffix is the supported
         # way to retain benchmark-specific completion and output constraints.
         agent.extra_system_suffix = _system_prompt()
+        agent_started = time.perf_counter()
         raw_response = agent.run_stream(
             _user_prompt(task, start_urls), on_event=events.append, clear_history=True
         )
+        agent_run_ms = (time.perf_counter() - agent_started) * 1000
+        finalize_started = time.perf_counter()
         service._submit(
             lambda: (
                 service._page.wait_for_timeout(500),
@@ -576,6 +606,7 @@ def _run_attempt(  # noqa: PLR0913
                 service._context.tracing.stop(path=str(trace_path)),
             )
         )
+        evidence_finalize_ms = (time.perf_counter() - finalize_started) * 1000
     except Exception:
         error = traceback.format_exc()
         try:
@@ -617,12 +648,14 @@ def _run_attempt(  # noqa: PLR0913
     )
     events_path.write_text(json.dumps(events, ensure_ascii=False, indent=2), encoding="utf-8")
     if har_path.exists():
+        evaluation_started = time.perf_counter()
         evaluation = benchmark.evaluate_task(
             task_id=selected.task_id,
             agent_response=parsed_response,
             network_trace=har_path,
         )
         eval_data = evaluation.model_dump(mode="json")
+        evaluation_ms = (time.perf_counter() - evaluation_started) * 1000
     else:
         eval_data = {"status": "error", "score": 0.0, "error_msg": error or "HAR missing"}
     eval_path.write_text(json.dumps(eval_data, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -642,6 +675,14 @@ def _run_attempt(  # noqa: PLR0913
         "status": eval_data.get("status", "error"),
         "score": float(eval_data.get("score") or 0.0),
         "duration_ms": round(duration_ms, 3),
+        "timings": {
+            "environment_prepare_ms": prepare_receipt["duration_ms"],
+            "browser_session_setup_ms": round(browser_session_setup_ms, 3),
+            "agent_run_ms": round(agent_run_ms, 3),
+            "evidence_finalize_ms": round(evidence_finalize_ms, 3),
+            "evaluation_ms": round(evaluation_ms, 3),
+            "measured_run_wall_ms": round(duration_ms, 3),
+        },
         "agent_response": parsed_response,
         "error": error,
         "cleanup_errors": cleanup_errors,
@@ -659,6 +700,7 @@ def _run_attempt(  # noqa: PLR0913
             "response": str(response_path),
             "evaluation": str(eval_path),
             "events": str(events_path),
+            "environment_prepare": str(prepare_path),
         },
     }
 
@@ -910,6 +952,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             "logical_result_cost": "sum of all executions used for each browser and task",
             "evaluator": "official webarena-verified package, unmodified",
             "environment_reset": "official site container reset before every attempt",
+            "environment_prepare_receipt": "required",
             "engine_order": "alternating by task",
             "sites": [site.value for site in SITE_PORTS],
             "official_container_hostname_allowlist": ["host.docker.internal"],
