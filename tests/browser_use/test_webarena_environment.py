@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import json
+import time
 from types import SimpleNamespace
 
 import pytest
 
 from harness.browser_use.suite import BrowserTask
-from harness.browser_use.webarena_environment import WebArenaEnvironment, _DockerClientBackend
+from harness.browser_use.webarena_environment import (
+    WebArenaEnvironment,
+    _DockerClientBackend,
+    _wall_clock_timeout,
+)
 
 
 def _task():
@@ -914,3 +919,9 @@ def test_official_form_login_paths_cover_all_stateful_sites(tmp_path, monkeypatc
     assert pages["shopping_admin"].actions.count(
         ("goto", "http://shopping_admin.test")
     ) == 2
+
+
+def test_reset_wall_clock_timeout_interrupts_blocking_operation():
+    with pytest.raises(TimeoutError, match="wall-clock deadline"):
+        with _wall_clock_timeout(0.01):
+            time.sleep(1)

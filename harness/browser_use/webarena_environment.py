@@ -6,10 +6,13 @@ import hashlib
 import json
 import os
 import re
+import signal
 import socket
+import threading
 import time
 import urllib.error
 import urllib.request
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -36,6 +39,35 @@ _LEGACY_ORIGIN_RE = re.compile(
     r"https?://[a-z0-9.-]+:(?P<port>3000|4399|7770|7780|8023|8888|9999)",
     flags=re.IGNORECASE,
 )
+
+
+@contextmanager
+def _wall_clock_timeout(seconds: float):
+    """Bound a complete reset, including blocking Docker SDK calls, on POSIX."""
+    if seconds <= 0:
+        raise ValueError("wall-clock timeout must be positive")
+    if (
+        threading.current_thread() is not threading.main_thread()
+        or not hasattr(signal, "setitimer")
+    ):
+        raise RuntimeError("WebArena reset wall-clock timeout requires the POSIX main thread")
+    previous_timer = signal.getitimer(signal.ITIMER_REAL)
+    if previous_timer != (0.0, 0.0):
+        raise RuntimeError("WebArena reset refuses to replace an active process timer")
+    previous_handler = signal.getsignal(signal.SIGALRM)
+
+    def expire(_signum: int, _frame: Any) -> None:
+        raise TimeoutError(
+            f"WebArena environment reset exceeded {seconds:g}s wall-clock deadline"
+        )
+
+    signal.signal(signal.SIGALRM, expire)
+    signal.setitimer(signal.ITIMER_REAL, seconds)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous_handler)
 
 
 class _DockerClientBackend:
@@ -375,6 +407,12 @@ class WebArenaEnvironment:
 
     def reset(
         self, task: BrowserTask, docker_client: Any, *, timeout_seconds: float = 900
+    ) -> dict[str, Any]:
+        with _wall_clock_timeout(timeout_seconds):
+            return self._reset_impl(task, docker_client, timeout_seconds=timeout_seconds)
+
+    def _reset_impl(
+        self, task: BrowserTask, docker_client: Any, *, timeout_seconds: float
     ) -> dict[str, Any]:
         sites = list((task.environment or {}).get("sites") or [])
         receipts: dict[str, Any] = {}

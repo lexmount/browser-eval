@@ -150,6 +150,9 @@ accepted as evidence.
 Reset readiness requires both the env-ctrl status and two consecutive successful requests to the
 browser-facing site URL. This warms cold application services and prevents a control-plane-ready but
 unresponsive page from being mislabeled as a trajectory failure.
+The complete reset has one 900-second POSIX wall-clock deadline, including blocking Docker SDK calls;
+the individual readiness checks cannot each restart that budget. A deadline breach is retained as an
+`environment_prepare_failed` attempt and never repaired selectively inside a formal run.
 
 The browser-facing hostname in the runtime config must be reachable from the browser containers and
 must also be passed to the WebArena container manager so generated redirects, cookies, and links use
