@@ -366,6 +366,68 @@ def _run_task(
     }
 
 
+def _environment_failure_row(
+    engine: str,
+    task: BrowserTask,
+    attempt: int,
+    artifact_dir: Path,
+    *,
+    is_retry: bool,
+    duration_ms: float,
+    error: str,
+) -> dict[str, Any]:
+    """Represent reset/prepare failure as a fail-closed physical attempt."""
+    expected_actions = list(task.ground_truth.get("expected_actions") or [])
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    trace = [
+        {
+            "index": 0,
+            "action": "prepare_environment",
+            "arguments": {"environment": (task.environment or {}).get("kind")},
+            "status": "fail",
+            "duration_ms": round(duration_ms, 3),
+            "output": "environment reset or preparation failed before trajectory execution",
+        }
+    ]
+    return {
+        "engine": engine,
+        "task_id": task.task_id,
+        "title": task.title,
+        "complexity": task.complexity,
+        "tags": list(task.tags),
+        "step_count": task.step_count,
+        "attempt": attempt,
+        "is_retry": is_retry,
+        "status": "fail",
+        "result_status": "fail",
+        "process_status": "fail",
+        "combined_status": "fail",
+        "duration_ms": round(duration_ms, 3),
+        "tool_output_tokens": 0,
+        "output_chars": 0,
+        "error": error,
+        "trace": trace,
+        "validation": [],
+        "evaluator": (task.evaluator or {}).get("kind"),
+        "evaluator_status": "not_run",
+        "network_har": {"status": "error", "reason": "environment_prepare_failed"},
+        "final_page_evidence": {
+            "status": "error",
+            "reason": "environment_prepare_failed",
+        },
+        "evidence_status": "fail",
+        "evidence_directory": str(artifact_dir),
+        "process_validation": {
+            "expected_actions": expected_actions,
+            "actual_actions": [],
+            "all_calls_passed": False,
+            "passed": False,
+        },
+        "resource": {},
+        "termination_reason": "environment_prepare_failed",
+    }
+
+
 def _start_browser_container(
     client: Any,
     *,
@@ -745,39 +807,58 @@ def run_evaluation(
             )
             for engine in engine_order:
                 for attempt in range(1, max_retries + 2):
-                    pages[engine] = _prepare_page(
-                        pages[engine],
-                        visited_origins[engine],
-                        settle_ms=settle_ms,
-                        viewport=_task_viewport(task),
+                    artifact_dir = (
+                        output / "tasks" / task.task_id / engine / f"attempt-{attempt}"
                     )
                     environment_reset = None
-                    if (task.environment or {}).get("kind") == "webarena_verified":
-                        assert webarena_environment is not None
-                        task_sites = set((task.environment or {}).get("sites") or [])
-                        if trajectory_authoring_run and task_sites <= authoring_initialized_sites:
-                            environment_reset = {
-                                "diagnostic_only": True,
-                                "mode": "warm_non_mutating_authoring_reuse",
-                                "sites": sorted(task_sites),
-                            }
-                        else:
-                            environment_reset = webarena_environment.reset(task, site_client)
-                            if trajectory_authoring_run:
-                                authoring_initialized_sites.update(task_sites)
-                        pages[engine] = webarena_environment.prepare(task, pages[engine])
-                    row = _run_task(
-                        engine,
-                        pages[engine],
-                        visited_origins[engine],
-                        resources[engine],
-                        task,
-                        attempt,
-                        sample_interval_ms,
-                        evaluator_registry,
-                        output / "tasks" / task.task_id / engine / f"attempt-{attempt}",
-                        is_retry=attempt > 1,
-                    )
+                    prepare_started = time.perf_counter()
+                    try:
+                        pages[engine] = _prepare_page(
+                            pages[engine],
+                            visited_origins[engine],
+                            settle_ms=settle_ms,
+                            viewport=_task_viewport(task),
+                        )
+                        if (task.environment or {}).get("kind") == "webarena_verified":
+                            assert webarena_environment is not None
+                            task_sites = set((task.environment or {}).get("sites") or [])
+                            if (
+                                trajectory_authoring_run
+                                and task_sites <= authoring_initialized_sites
+                            ):
+                                environment_reset = {
+                                    "diagnostic_only": True,
+                                    "mode": "warm_non_mutating_authoring_reuse",
+                                    "sites": sorted(task_sites),
+                                }
+                            else:
+                                environment_reset = webarena_environment.reset(task, site_client)
+                                if trajectory_authoring_run:
+                                    authoring_initialized_sites.update(task_sites)
+                            pages[engine] = webarena_environment.prepare(task, pages[engine])
+                    except Exception:
+                        row = _environment_failure_row(
+                            engine,
+                            task,
+                            attempt,
+                            artifact_dir,
+                            is_retry=attempt > 1,
+                            duration_ms=(time.perf_counter() - prepare_started) * 1000,
+                            error=traceback.format_exc(),
+                        )
+                    else:
+                        row = _run_task(
+                            engine,
+                            pages[engine],
+                            visited_origins[engine],
+                            resources[engine],
+                            task,
+                            attempt,
+                            sample_interval_ms,
+                            evaluator_registry,
+                            artifact_dir,
+                            is_retry=attempt > 1,
+                        )
                     row["run_id"] = run_id
                     row["qualification_run"] = qualification_run
                     row["trajectory_authoring_run"] = trajectory_authoring_run
@@ -792,14 +873,7 @@ def run_evaluation(
                             "ground_truth": task.ground_truth,
                         }
                     )
-                    attempt_path = (
-                        output
-                        / "tasks"
-                        / task.task_id
-                        / engine
-                        / f"attempt-{attempt}"
-                        / "attempt.json"
-                    )
+                    attempt_path = artifact_dir / "attempt.json"
                     attempt_path.parent.mkdir(parents=True, exist_ok=True)
                     attempt_path.write_text(
                         json.dumps(row, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"

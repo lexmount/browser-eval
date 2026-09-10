@@ -14,6 +14,7 @@ from harness.browser_use.runner import (
     ENGINE_PORTS,
     _capture_final_page_evidence,
     _cleanup_runtime,
+    _environment_failure_row,
     _environment,
     _external_websocket_url,
     _http_origin,
@@ -49,6 +50,45 @@ def test_authoring_runtime_caps_ad_hoc_repair_target_waits():
     assert bounded.tool_calls[1]["timeout_ms"] == 5_000
     assert bounded.tool_calls[1]["target_timeout_ms"] == 5_000
     assert bounded.trajectory["actions"] == list(bounded.tool_calls)
+
+
+def test_environment_prepare_failure_is_a_fail_closed_physical_attempt(tmp_path):
+    task = BrowserTask(
+        task_id="webarena-809",
+        title="Environment failure",
+        tool_calls=({"action": "click", "selector": "#target"},),
+        assertions=(),
+        tags=("mutate",),
+        difficulty="simple",
+        ground_truth={"expected_actions": ["click"]},
+        source={},
+        evaluator={"kind": "webarena_verified"},
+        environment={"kind": "webarena_verified", "sites": ["gitlab"]},
+    )
+
+    row = _environment_failure_row(
+        "chromium",
+        task,
+        1,
+        tmp_path / "attempt-1",
+        is_retry=False,
+        duration_ms=123.4,
+        error="reset failed",
+    )
+
+    assert row["status"] == "fail"
+    assert row["process_status"] == "fail"
+    assert row["result_status"] == "fail"
+    assert row["evidence_status"] == "fail"
+    assert row["termination_reason"] == "environment_prepare_failed"
+    assert row["trace"][0]["action"] == "prepare_environment"
+    assert row["process_validation"] == {
+        "expected_actions": ["click"],
+        "actual_actions": [],
+        "all_calls_passed": False,
+        "passed": False,
+    }
+    assert (tmp_path / "attempt-1").is_dir()
 
 
 def test_browser_engines_publish_their_external_cdp_ports():
