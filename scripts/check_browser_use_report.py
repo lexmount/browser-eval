@@ -229,7 +229,7 @@ def check(
     standalone = (report_dir / "guide/article.html").read_text(encoding="utf-8")
     if "<script" in standalone or "assets/" in standalone:
         raise ValueError("standalone article must be self-contained and JavaScript-free")
-    article_heading = "不是“内核等价”：当前样本没有产生分歧"
+    article_heading = "五个共同失败点相同，根因尚未隔离"
     if (
         article_heading not in standalone
         or article_heading not in rendered_pages[report_dir / "guide/index.html"]

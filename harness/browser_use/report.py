@@ -1095,8 +1095,8 @@ def _article_body(
     ]
     return (
         '<article class="publication-article"><header class="essay-head"><div class="eyebrow">Browser Use 实测解读</div>'
-        f"<h1>{chromium['passed']} 比 {moli['passed']} 不是“内核等价”：当前样本没有产生分歧</h1>"
-        f'<p class="lead">同一 CowAgent 与同一模型替换浏览器后，{paired["paired"]} 个配对任务没有一个出现单边胜出。这个结果证明对照流程跑通，却没有为内核优劣提供方向性证据。</p>'
+        f"<h1>{chromium['passed']} 比 {moli['passed']} 的真正含义：五个共同失败点相同，根因尚未隔离</h1>"
+        f'<p class="lead">同一 CowAgent 与同一模型替换浏览器后，{paired["paired"]} 个配对任务没有一个出现单边胜出。四个共同失败止于最终答案或状态协议，一个止于 30 步上限前的结账流程；现有证据可以定位失败点，但不能把隐藏原因单独归给浏览器、模型或 Agent。</p>'
         '<p class="source-note">测量口径：WebArena‑Verified 1.2.3；每题×浏览器一个最终逻辑结果；官方确定性 evaluator；无 LLM judge。</p></header>'
         "<section><h2>一、最重要的结果不是平分，而是零个不一致配对</h2>"
         f"<p>Chromium 与 Moli 分别通过 {chromium['passed']}/{chromium['completed']} 和 {moli['passed']}/{moli['completed']}。逐题配对后，{paired['both_pass']} 题共同通过、{paired['both_fail']} 题共同失败，两个浏览器单边通过都是 0。由于固定样本里没有不一致任务，这批数据不能估计浏览器的方向性效应，也不对 WebArena‑Verified 全集作统计外推。</p>"
@@ -1111,7 +1111,7 @@ def _article_body(
             caption="表 1｜30 个任务的逐题最终结果配对。",
         )
         + f"<p>严谨表述只能是“本轮没有观察到成功率差异”，不能写成“两种内核等价”。{paired['paired']} 题对小效应检出力有限；更关键的是，样本没有诱发内核分歧。</p></section>"
-        "<section><h2>二、五个共同失败，具体失败在哪里</h2>"
+        '<section id="failure-findings"><h2>二、五个共同失败，具体失败在哪里</h2>'
         f"<p>两个浏览器共享 CowAgent、模型、提示与工具合同、站点状态、30 步上限和 evaluator，只有浏览器实现不同。逐条证据只能确认验收链路中的首个失败点；除 506 题明确触发步数上限外，记录不足以把错误进一步归因到模型、CowAgent 策略或提示合同中的某一项。</p>"
         + _table(
             ["任务", "官方判定差异", "已确认失败点", "直接证据", "尚不能判定"],
@@ -1464,6 +1464,13 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         home += _section(
             "先看结论",
             f'<div class="result-grid"><div class="card"><span class="tiny">Chromium 任务通过</span><div class="n">{c["passed"]}/{c["completed"]}</div><p>{_pct(c["score"])}</p></div><div class="card"><span class="tiny">Moli 任务通过</span><div class="n">{m["passed"]}/{m["completed"]}</div><p>{_pct(m["score"])}</p></div><div class="card"><span class="tiny">单边胜出</span><div class="n">{paired["chromium_only"] + paired["moli_only"]}</div><p>{paired["paired"]} 个完整配对</p></div><div class="card"><span class="tiny">共同失败</span><div class="n">{paired["both_fail"]}</div><p>已确认失败点</p></div></div><p class="callout success"><strong>当前结论：</strong>本轮没有观察到浏览器成功率差异；这证明对照流程可比，不证明两个内核等价。</p><p class="callout"><strong>失败结论：</strong>四题的首个可证失败点位于最终答案构造或状态协议，一题在 30 步上限时仍未完成付款提交。现有证据不能把前四题进一步归因到模型、CowAgent 或提示合同中的某一项。</p><p class="fine">这是固定选择的 30 题试验，不是从全部 WebArena‑Verified 任务随机抽样；比例只描述本样本，不外推总体能力。</p>',
+        )
+        home += _section(
+            "共同失败是报告解读的核心证据",
+            '<p>25:25 只说明当前样本没有产生浏览器分歧。理解这个结果必须继续看五个共同失败发生在哪个验收点，而不是把平分直接解释成内核等价。</p>'
+            '<div class="result-grid"><div class="card"><span class="tiny">最终答案数据</span><div class="n">3 题</div><p>#68 漏记录；#124 纳入投影仪；#142 多计发箍</p></div><div class="card"><span class="tiny">最终状态协议</span><div class="n">1 题</div><p>#168 将空结果编码为 SUCCESS</p></div><div class="card"><span class="tiny">任务完成边界</span><div class="n">1 题</div><p>#506 达到 30 步时尚未提交付款</p></div></div>'
+            '<p class="callout"><strong>归因边界：</strong>这些记录确认了失败发生的位置；除 #506 的步数上限外，没有控制变量实验能够继续区分模型判断、CowAgent 策略和提示/响应合同。</p>'
+            '<p><a href="guide/#failure-findings">查看五题逐条直接证据与归因边界 →</a></p>',
         )
         home += _section(
             "任务族覆盖",
