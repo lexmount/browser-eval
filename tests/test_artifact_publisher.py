@@ -4,12 +4,22 @@ import unittest
 import zipfile
 from pathlib import Path
 from unittest.mock import Mock, patch
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 
-from harness.web_fetch.publication import put_file, upload_large_archive
+from harness.web_fetch.publication import put_file, updated_receipt, upload_large_archive
 
 
 class ArtifactPublisherTests(unittest.TestCase):
+    def test_updated_receipt_uses_activated_version_as_next_baseline(self):
+        receipt = updated_receipt(
+            {'slug': 'current', 'versionId': 'ver_stale'},
+            {'slug': 'current', 'versionId': 'ver_new'},
+        )
+        self.assertEqual(receipt['versionId'], 'ver_new')
+        self.assertEqual(receipt['last_update']['versionId'], 'ver_new')
+        with self.assertRaisesRegex(ValueError, 'versionId'):
+            updated_receipt(receipt, {'slug': 'current'})
+
     @patch('harness.web_fetch.publication.time.sleep')
     def test_rate_limit_retries_identical_put(self, sleep):
         request = Mock(side_effect=[HTTPError('https://hub/file', 429, 'limited', {'Retry-After':'2'}, None), (200,b'ok')])
@@ -26,13 +36,28 @@ class ArtifactPublisherTests(unittest.TestCase):
         self.assertEqual(sleep.call_count, 3)
 
     @patch('harness.web_fetch.publication.time.sleep')
-    def test_long_wait_and_other_errors_are_not_retried(self, sleep):
-        for code, header in [(429,'300'), (429,'NaN'), (403,'1'), (500,'1')]:
+    def test_long_wait_and_non_retryable_errors_are_not_retried(self, sleep):
+        for code, header in [(429,'300'), (429,'NaN'), (403,'1')]:
             request = Mock(side_effect=HTTPError('https://hub/file', code, 'error', {'Retry-After':header}, None))
             with self.assertRaises(HTTPError):
                 put_file(request, '/file', b'bytes')
             self.assertEqual(request.call_count, 1)
         sleep.assert_not_called()
+
+    @patch('harness.web_fetch.publication.time.sleep')
+    def test_transient_server_error_retries_once(self, sleep):
+        request=Mock(side_effect=[HTTPError('https://hub/file',500,'error',{},None),(200,b'ok')])
+        self.assertEqual(put_file(request,'/file',b'bytes'),(200,b'ok'))
+        self.assertEqual(request.call_args_list[0],request.call_args_list[1])
+        sleep.assert_called_once_with(1.0)
+
+    @patch('harness.web_fetch.publication.time.sleep')
+    def test_timeout_retries_identical_put_with_bounded_backoff(self, sleep):
+        request=Mock(side_effect=[TimeoutError('lost response'),URLError('network'),(200,b'ok')])
+        self.assertEqual(put_file(request,'/file',b'bytes'),(200,b'ok'))
+        self.assertEqual(request.call_args_list[0],request.call_args_list[1])
+        self.assertEqual(request.call_args_list[1],request.call_args_list[2])
+        self.assertEqual([call.args[0] for call in sleep.call_args_list],[1,2])
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

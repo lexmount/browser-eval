@@ -6,7 +6,8 @@ ROOT=Path(__file__).resolve().parents[1]
 out=Path(sys.argv[1]) if len(sys.argv)>1 else ROOT/'reports/webfetch'
 for path in out.rglob('*.html'):
     soup=BeautifulSoup(path.read_text(),'html.parser')
-    if path==out/'index.html':
+    is_english='en' in path.relative_to(out).parts
+    if path in {out/'index.html',out/'en/index.html'}:
         overview=soup.select_one('.home-overview, #overview')
         assert overview and (overview.name!='details' or not overview.has_attr('open')),path
         panels=soup.select('#home-rankings > [role="tabpanel"]')
@@ -26,7 +27,9 @@ for path in out.rglob('*.html'):
     for table in soup.select('table.ranking'):
         headers=table.select('thead th')
         sort=int(table['data-col'])
-        expected=['命中仓库数'] if path.parent.name=='adoption' else ['任务通过率','正文通过率','综合任务通过率']
+        expected=(['Matched repositories'] if is_english else ['命中仓库数']) if path.parent.name=='adoption' else (
+            ['Task pass rate','Body pass rate','Overall task pass rate'] if is_english else
+            ['任务通过率','正文通过率','综合任务通过率'])
         assert any(label in headers[sort].get_text() for label in expected),(path,sort)
         legend=table.parent.find_previous_sibling('div',class_='metric-help') or table.parent.find_previous_sibling('details',class_='ranking-metric-help')
         assert legend and legend.select('dt'),path
@@ -34,9 +37,11 @@ for path in out.rglob('*.html'):
     if track:assert track.select('option')[0]['value']=='',path
     if path.parent.name in {'providers','analysis'}:
         assert not soup.select('select[data-filter="transport"],select[data-filter="content"],select[data-filter="resources"]'),path
-        assert [x.get_text() for x in soup.select('select[data-filter="result"] option')]==['任务通过','任务失败','全部'],path
+        expected_results=['Pass','Fail','All'] if is_english else ['任务通过','任务失败','全部']
+        assert [x.get_text() for x in soup.select('select[data-filter="result"] option')]==expected_results,path
         assert soup.select_one('select[data-filter="result"] option[selected]')['value']=='fail',path
-        assert '失败分类' in [h.get_text() for h in soup.select('#filtered-table th')],path
+        expected_failure='Failure class' if is_english else '失败分类'
+        assert expected_failure in [h.get_text() for h in soup.select('#filtered-table th')],path
 counts=json.loads((out/'adoption/counts.json').read_text())['methods']
 names={json.loads(line)['provider'] for line in (out/'results.jsonl').read_text().splitlines()}
 sys.path.insert(0,str(ROOT))

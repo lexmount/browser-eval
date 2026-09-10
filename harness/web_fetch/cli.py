@@ -49,6 +49,7 @@ def command_run(args: argparse.Namespace) -> int:
         timeout=args.timeout,
         delay=args.delay,
         provider_concurrency=args.provider_concurrency,
+        max_failure_retries=args.max_failure_retries,
     )
     report_path = build_report(args.output, args.output / 'report')
     print(f"Report: {report_path.resolve()}")
@@ -121,6 +122,10 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--env-file", type=Path)
     run.add_argument("--output", type=Path, default=None)
     run.add_argument("--fail-on-failure", action="store_true")
+    run.add_argument(
+        "--max-failure-retries", type=int, choices=(0, 1), default=0,
+        help="Retry a failed task at most once; the final call is authoritative",
+    )
     run.set_defaults(handler=command_run)
 
     report = sub.add_parser("report", help="Rebuild HTML from an existing run directory")

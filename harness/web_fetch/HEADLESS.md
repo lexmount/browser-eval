@@ -37,9 +37,14 @@ The routes have different completion controls because those controls belong to
 the tested interfaces: Kitesurf uses `networkidle2`, Chromium uses Playwright
 `domcontentloaded`, and each CLI uses its own documented completion behavior.
 No method receives task answers, task-specific selectors, clicks, scrolling,
-personal sessions, stealth fallback or model post-processing. Each method gets
-exactly one provider call per task and run. A failure is retained as measured;
-there is no retry or selection of a more favorable later response.
+personal sessions, stealth fallback or model post-processing. The original
+published matrix used one provider call per task and did not retry; later
+documented corrections may supersede affected logical results while preserving
+the earlier physical evidence.
+Future runs may predeclare `--max-failure-retries 1`: only a failed task may
+receive one additional physical call, both artifacts are retained, total
+logical latency includes the retry path, and the final physical call is always
+authoritative. Choosing the better response after seeing outcomes is forbidden.
 
 ## What is and is not fair
 
@@ -48,11 +53,14 @@ client-observed end-to-end deadline. It does not claim identical internals.
 Forcing native Markdown methods through HTML conversion would replace their
 product advantage with benchmark code and answer a less useful question.
 
-Kitesurf is remote while four methods are local. Its latency includes network
+Kitesurf is remote while the other six methods are local (covering four local
+implementation families). Its latency includes network
 round trips, Cloudflare queueing and remote execution; local measurements
 include local process startup and machine contention. This is a cold-call
-client latency comparison, not an engine-only CPU/RSS benchmark. One invocation
-per method and URL does not establish variance, sustained throughput or SLA.
+client latency comparison, not an engine-only CPU/RSS benchmark. The original
+matrix's single observation per method and URL does not establish variance,
+sustained throughput or SLA. Documented correction calls remain visible and do
+not turn that matrix into a repeated-measures performance study.
 Pairwise latency tables therefore use only URLs passed by both methods and keep
 each pair's denominator visible.
 
@@ -106,6 +114,12 @@ uv run --frozen python scripts/certify_headless_cases.py --run-dir RUN --observa
 uv run --frozen python scripts/review_headless_results.py --evidence EVIDENCE --work REVIEW --batch-cases 1 --workers 4 --model EXACT_AVAILABLE_MODEL --install
 ```
 
+Failure retry is disabled by default. Add `--max-failure-retries 1` only when
+the protocol calls for one retry before measurement begins. This is distinct
+from correcting a proven wrong command, implementation version, scorer or
+reference: a correction explicitly supersedes the affected logical results,
+reruns the complete declared comparison scope and records its score impact.
+
 A failed or incomplete evidence directory is immutable. A reference failure
 suspends that case's new body measurement; it is not a provider failure. A
 replacement cohort must be independently prefrozen and must cover every method
@@ -147,5 +161,18 @@ make report-check
 `.python-version`、`uv.lock`、Makefile 与 CI 共同固定 Python 3.11 和依赖版本。
 正式命令不得改用系统 `python` / `python3`；环境不满足时应立即失败，不能降级执行。
 
-The public destination for this comparison is the separate site
-`bWkRP157EtF6`. Do not update the older report site `UeZE1vfcEOrM`.
+## Cross-session release gates
+
+`evaluation/current-report.json` fixes the current report's dataset ID, task
+count, seven providers, timeout, route description and destination site. Both
+the evidence checker and report builder reject a different complete cohort.
+The report also requires an exact all-attempt review binding, zero unresolved
+judgments, valid reference/scoring receipts and a nonempty top-level review-round
+log. Assembly rebinds inherited scoring history to the final dataset/results
+bytes only after the complete blind review matches those bytes. These checks are
+covered by the repository test suite; a new session must repair the evidence or
+implementation instead of bypassing them.
+
+The public destination for this comparison is the separate Sites project
+`UUAhhQMnrGwm`. Do not update the older report sites `bWkRP157EtF6` or
+`UeZE1vfcEOrM`.

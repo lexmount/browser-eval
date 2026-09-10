@@ -4,6 +4,8 @@ import re
 import unittest
 
 from scripts.run_headless_benchmark import require_expected_provider_versions
+from harness.web_fetch.providers.headless import HEADLESS_CONVERSION
+from harness.web_fetch.publication_target import require_publication_site
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,10 +42,12 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertNotIn("pip install", workflow)
 
     def test_web_fetch_docs_do_not_recommend_system_python(self) -> None:
-        for relative in ("README.md", "harness/web_fetch/HEADLESS.md"):
+        for relative in ("README.md", "harness/web_fetch/README.md", "harness/web_fetch/HEADLESS.md"):
             text = (ROOT / relative).read_text()
             direct = re.findall(r"(?m)^\s*(?:python|python3)(?:\s|$)", text)
             self.assertEqual(direct, [], relative)
+            unfrozen = re.findall(r"(?m)^\s*uv run (?!--frozen\b)", text)
+            self.assertEqual(unfrozen, [], relative)
 
     def test_headless_coverage_declares_all_seven_methods(self) -> None:
         dataset = json.loads((ROOT / "evaluation/dataset.json").read_text())
@@ -52,6 +56,40 @@ class RuntimeEntrypointTests(unittest.TestCase):
         for track, providers in dataset["coverage_plan"].items():
             self.assertEqual(set(providers), expected, track)
             self.assertEqual(len(providers), 7, track)
+
+    def test_current_report_profile_matches_runner_and_canonical_dataset(self) -> None:
+        profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
+        dataset = json.loads((ROOT / 'evaluation/dataset.json').read_text())
+        self.assertEqual(profile['conversion'], HEADLESS_CONVERSION)
+        self.assertEqual(dataset['comparison']['conversion'], HEADLESS_CONVERSION)
+        self.assertEqual(profile['comparison_kind'], dataset['comparison']['kind'])
+        self.assertEqual(set(profile['providers']), set(dataset['coverage_plan']['web']))
+        self.assertEqual(profile['artifact_hub_base_url'], 'https://artifact-hub.app.lexmount.com')
+        self.assertEqual(profile['artifact_hub_site'], 'UUAhhQMnrGwm')
+
+    def test_publication_receipt_must_target_current_site(self) -> None:
+        profile = ROOT / 'evaluation/current-report.json'
+        self.assertEqual(
+            require_publication_site({'slug':'UUAhhQMnrGwm'}, profile,
+                                     'https://artifact-hub.app.lexmount.com'),
+            'UUAhhQMnrGwm',
+        )
+        with self.assertRaisesRegex(ValueError, 'expected'):
+            require_publication_site({'slug':'UeZE1vfcEOrM'}, profile,
+                                     'https://artifact-hub.app.lexmount.com')
+        with self.assertRaisesRegex(ValueError, 'expected'):
+            require_publication_site({'slug':'UUAhhQMnrGwm'}, profile,
+                                     'https://artifact-hub.dev.lexmount.net')
+        with self.assertRaisesRegex(ValueError, 'requested'):
+            require_publication_site(
+                {'slug':'UUAhhQMnrGwm','base_url':'https://artifact-hub.dev.lexmount.net'},
+                profile,'https://artifact-hub.app.lexmount.com')
+
+    def test_publication_scripts_do_not_load_repository_eval_credentials(self) -> None:
+        for relative in ('scripts/publish_artifact_hub.py',
+                         'scripts/verify_artifact_hub.py',
+                         'scripts/rename_artifact_hub.py'):
+            self.assertNotIn('load_runtime_env', (ROOT/relative).read_text(), relative)
 
     def test_dynamic_rendered_references_cannot_fall_back_to_http(self) -> None:
         source = (ROOT / "scripts/freeze_headless_references.py").read_text()

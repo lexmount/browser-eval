@@ -20,6 +20,11 @@ from ..models import EvalCase, ProviderResult
 from ..safety import validate_http_url
 
 ENGINES = ('kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium')
+HEADLESS_CONVERSION = (
+    'Native Markdown for Kitesurf, Lightpanda, Obscura and three measured Moli '
+    'versions; direct Moli documents/media use automatic raw output; Chromium '
+    'whole-DOM HTML via node-html-markdown 2.0.0'
+)
 
 
 def _resolve_binary(engine, configured):

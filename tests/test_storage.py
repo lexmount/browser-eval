@@ -1,4 +1,5 @@
 import os
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,6 +9,7 @@ from harness.web_fetch.storage import (
     current_evidence_dir,
     data_home,
     require_canonical_inputs,
+    require_current_report_profile,
     require_evidence,
     require_selection_history,
     research_evidence_dir,
@@ -82,6 +84,65 @@ class StorageTests(unittest.TestCase):
             (baseline / "results.jsonl").write_text("")
             (baseline / "execution.json").write_text("{}")
             require_selection_history(evidence)
+
+    def test_current_report_profile_rejects_another_complete_cohort(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            evidence = root / 'evidence'
+            evidence.mkdir()
+            profile = {
+                'dataset_id':'current', 'comparison_kind':'headless_markdown',
+                'case_count':1, 'providers':['p'], 'timeout_seconds':45,
+                'runs_per_case':1, 'concurrency':1,
+                'reference_binding_mode':'equivalent_reference_bytes_with_independent_batch_captures',
+                'publication_state':'verified', 'unverified_reference_cases':[],
+                'require_independent_result_review':True, 'conversion':'native',
+            }
+            (root/'profile.json').write_text(json.dumps(profile))
+            dataset = {
+                'id':'current', 'cases':[{'id':'a'}], 'coverage_plan':{'web':['p']},
+                'comparison':{'kind':'headless_markdown','timeout_seconds':45,
+                              'runs_per_case':1,'concurrency':1,'conversion':'native',
+                              'reference_binding_mode':'equivalent_reference_bytes_with_independent_batch_captures',
+                              'publication_state':'verified','unverified_reference_cases':[],
+                              'require_independent_result_review':True},
+            }
+            (evidence/'dataset.json').write_text(json.dumps(dataset))
+            record={'attempt_id':'p__a__r001','provider':'p','case_id':'a'}
+            (evidence/'results.jsonl').write_text(json.dumps(record)+'\n')
+            require_current_report_profile(evidence, root/'profile.json')
+            dataset['comparison']['conversion']='obsolete converter'
+            (evidence/'dataset.json').write_text(json.dumps(dataset))
+            with self.assertRaisesRegex(ValueError, 'conversion'):
+                require_current_report_profile(evidence, root/'profile.json')
+
+    def test_current_report_profile_requires_exact_matrix_and_unique_attempts(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);evidence=root/'evidence';evidence.mkdir()
+            profile={'dataset_id':'current','comparison_kind':'headless_markdown',
+                     'case_count':2,'providers':['p','q'],'timeout_seconds':45,
+                     'runs_per_case':1,'concurrency':2,'conversion':'native',
+                     'reference_binding_mode':'strict','publication_state':'verified',
+                     'unverified_reference_cases':[],
+                     'require_independent_result_review':True}
+            (root/'profile.json').write_text(json.dumps(profile))
+            dataset={'id':'current','cases':[{'id':'a'},{'id':'b'}],
+                     'coverage_plan':{'web':['p','q']},'comparison':{
+                         'kind':'headless_markdown','timeout_seconds':45,'runs_per_case':1,
+                         'concurrency':2,'conversion':'native','reference_binding_mode':'strict',
+                         'publication_state':'verified','unverified_reference_cases':[],
+                         'require_independent_result_review':True}}
+            (evidence/'dataset.json').write_text(json.dumps(dataset))
+            rows=[{'attempt_id':f'id-{index}','provider':provider,'case_id':case}
+                  for index,(provider,case) in enumerate([('p','a'),('p','a'),('q','a'),('q','b')])]
+            (evidence/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+            with self.assertRaisesRegex(ValueError,'provider_case_matrix'):
+                require_current_report_profile(evidence,root/'profile.json')
+            rows=[{'attempt_id':'same','provider':provider,'case_id':case}
+                  for provider in ('p','q') for case in ('a','b')]
+            (evidence/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+            with self.assertRaisesRegex(ValueError,'attempt_ids'):
+                require_current_report_profile(evidence,root/'profile.json')
 
 
 if __name__ == "__main__":

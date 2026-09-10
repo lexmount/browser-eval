@@ -1,7 +1,9 @@
 """Read the existing report export and optionally verify exact uploaded files."""
 import argparse
 import hashlib
+from http.client import IncompleteRead
 import json
+import os
 from pathlib import Path
 import socket
 import sys
@@ -16,11 +18,10 @@ from urllib.error import HTTPError, URLError
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.artifact_auth import load_token
-from harness.web_fetch.config import load_runtime_env
+from harness.web_fetch.publication_target import DEFAULT_BASE
 
 
-def verify_public_files(slug, expected_archive):
-    base='https://artifact-hub.dev.lexmount.net'
+def verify_public_files(slug, expected_archive, base=DEFAULT_BASE):
     endpoint=base+'/api/sites/'+quote(slug,safe='')
     def metadata():
         request=urllib.request.Request(endpoint,headers={'Authorization':'Bearer '+load_token()})
@@ -45,7 +46,7 @@ def verify_public_files(slug, expected_archive):
                 retryable=error.code>=500
                 error.close()
                 if not retryable or attempt==2:raise
-            except (URLError,TimeoutError,socket.timeout):
+            except (URLError,TimeoutError,socket.timeout,IncompleteRead):
                 if attempt==2:raise
             time.sleep(2**attempt)
     with ThreadPoolExecutor(max_workers=2) as pool:
@@ -59,27 +60,50 @@ def verify_public_files(slug, expected_archive):
     return {'version':after['version']['id'],'files':len(actual),'submitted_bytes_verified':True,'method':'public_files_and_original_entry'}
 
 
+def download_export(request, destination, attempts=3):
+    """Download one immutable site export, retrying transient gateway/read failures."""
+    for attempt in range(attempts):
+        path=None
+        complete=False
+        try:
+            with urllib.request.urlopen(request,timeout=180) as response:
+                version=response.headers.get('x-artifact-version')
+                if not version or not version.startswith('ver_'):
+                    raise ValueError('Export omitted version baseline')
+                with tempfile.NamedTemporaryFile(dir=destination,prefix='remote-export-',suffix='.zip',delete=False) as stream:
+                    path=Path(stream.name)
+                    while chunk:=response.read(1024*1024):stream.write(chunk)
+            complete=True
+            return version,path
+        except HTTPError as error:
+            retryable=error.code>=500
+            error.close()
+            if not retryable or attempt==attempts-1:raise
+        except (URLError,TimeoutError,socket.timeout,IncompleteRead):
+            if attempt==attempts-1:raise
+        finally:
+            if path is not None and not complete:
+                path.unlink(missing_ok=True)
+        time.sleep(2**attempt)
+    raise AssertionError('unreachable')
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--expected-archive',type=Path)
-    parser.add_argument('--slug',default='bWkRP157EtF6')
+    parser.add_argument('--slug',required=True)
+    parser.add_argument('--base-url',default=os.environ.get('ARTIFACT_HUB_BASE_URL',DEFAULT_BASE))
     parser.add_argument('--public-files',action='store_true',help='Verify individual served files when ZIP export is unavailable')
     args=parser.parse_args()
-    load_runtime_env()
+    base=args.base_url.rstrip('/')
     if args.public_files:
         if not args.expected_archive:parser.error('--public-files requires --expected-archive')
-        print(json.dumps(verify_public_files(args.slug,args.expected_archive)),flush=True)
+        print(json.dumps(verify_public_files(args.slug,args.expected_archive,base)),flush=True)
         return
-    request=urllib.request.Request('https://artifact-hub.dev.lexmount.net/api/sites/'+quote(args.slug,safe='')+'/export',
+    request=urllib.request.Request(base+'/api/sites/'+quote(args.slug,safe='')+'/export',
         headers={'Authorization':'Bearer '+load_token()})
     (ROOT/'publish').mkdir(exist_ok=True)
-    with urllib.request.urlopen(request,timeout=180) as response:
-        version=response.headers.get('x-artifact-version')
-        if not version or not version.startswith('ver_'):
-            raise ValueError('Export omitted version baseline')
-        with tempfile.NamedTemporaryFile(dir=ROOT/'publish',prefix='remote-export-',suffix='.zip',delete=False) as stream:
-            path=Path(stream.name)
-            while chunk:=response.read(1024*1024):stream.write(chunk)
+    version,path=download_export(request,ROOT/'publish')
     with zipfile.ZipFile(path) as remote:
         actual={x.filename:hashlib.sha256(remote.read(x)).hexdigest() for x in remote.infolist() if not x.is_dir()}
         if args.expected_archive:

@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness.web_fetch.config import load_dataset, load_provider_config, load_runtime_env
 from harness.web_fetch.providers import build_provider
+from harness.web_fetch.providers.headless import HEADLESS_CONVERSION
 from harness.web_fetch.runner import run_evaluation
 
 
@@ -48,6 +49,8 @@ def main():
     parser.add_argument('--tracks', help='Comma-separated task families; default all')
     parser.add_argument('--workers', type=int, default=1)
     parser.add_argument('--timeout', type=float, default=45)
+    parser.add_argument('--max-failure-retries', type=int, choices=(0, 1), default=0,
+                        help='Retry a failed task at most once; the final call is authoritative')
     parser.add_argument('--env-file', type=Path, help='Explicit dotenv file; defaults to repository .env')
     args = parser.parse_args()
     if args.output.exists():
@@ -79,12 +82,15 @@ def main():
                'comparison': {'kind': 'headless_markdown', 'timeout_seconds': args.timeout,
                    'source_dataset_sha256': hashlib.sha256(args.dataset.read_bytes()).hexdigest(),
                    'adapter_input_sha256': hashlib.sha256((ROOT/'scripts/headless_worker.py').read_bytes()).hexdigest(),
-               'conversion': 'Native Markdown for Kitesurf, Lightpanda, Obscura and three measured Moli versions; direct Moli documents/media use automatic raw output; Chromium whole-DOM HTML via node-html-markdown 2.0.0',
-                   'concurrency': args.workers, 'runs_per_case': 1}}
+               'conversion': HEADLESS_CONVERSION,
+                   'concurrency': args.workers, 'runs_per_case': 1,
+                   'max_failure_retries': args.max_failure_retries,
+                   'retry_selection': 'final_physical_attempt_is_authoritative'}}
     records, _ = run_evaluation(output_dir=args.output, dataset_meta=dataset,
         dataset_path=args.dataset, cases=cases, providers=providers,
         provider_config_path=args.config, runs=1, timeout=args.timeout,
-        delay=.5, provider_concurrency=args.workers)
+        delay=.5, provider_concurrency=args.workers,
+        max_failure_retries=args.max_failure_retries)
     if len(records) != len(cases)*len(providers):
         raise ValueError('Incomplete benchmark call count')
     postflight_identities = {provider.name: provider.implementation_identity(refresh=True)
