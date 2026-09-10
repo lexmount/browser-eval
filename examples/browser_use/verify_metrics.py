@@ -24,12 +24,15 @@ pids_current_mean pids_current_p95 pids_current_peak
 
 
 def verify(artifacts: Path) -> dict:
+    artifacts = artifacts.resolve()
     rows = [
         json.loads(line)
         for line in (artifacts / "attempts.jsonl").read_text().splitlines()
         if line.strip()
     ]
     summary = json.loads((artifacts / "summary.json").read_text())
+    manifest_path = artifacts / "manifest.json"
+    manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else None
     primary = {}
     for row in rows:
         if not row.get("is_retry"):
@@ -38,6 +41,42 @@ def verify(artifacts: Path) -> dict:
                 raise ValueError(f"duplicate primary sample: {key}")
             primary[key] = row
     tasks = sorted({r["task_id"] for r in rows})
+    if manifest is not None:
+        engines = tuple((manifest.get("protocol") or {}).get("engines") or ())
+        declared_tasks = [str(row["task_id"]) for row in manifest.get("suite") or []]
+        if not declared_tasks or len(set(declared_tasks)) != len(declared_tasks):
+            raise ValueError("manifest suite is empty or contains duplicate tasks")
+        if set(declared_tasks) != set(tasks):
+            raise ValueError("manifest and attempt task sets differ")
+        expected_primary = {(task, engine) for task in declared_tasks for engine in engines}
+        if set(primary) != expected_primary:
+            raise ValueError("primary task/browser matrix is incomplete")
+        max_retries = int((manifest.get("protocol") or {}).get("max_failure_retries", 0))
+        grouped: dict[tuple[str, str], list[dict]] = {}
+        for row in rows:
+            grouped.setdefault((row["task_id"], row["engine"]), []).append(row)
+        for key, attempts in grouped.items():
+            attempts.sort(key=lambda row: int(row["attempt"]))
+            if attempts[0].get("attempt") != 1 or attempts[0].get("is_retry") is True:
+                raise ValueError(f"invalid primary attempt metadata: {key}")
+            primary_failed = attempts[0].get("status") != "pass"
+            expected_count = 1 + (max_retries if primary_failed else 0)
+            if len(attempts) != expected_count:
+                raise ValueError(f"retry count does not follow first failure: {key}")
+            for index, row in enumerate(attempts, 1):
+                if row.get("attempt") != index or bool(row.get("is_retry")) != (index > 1):
+                    raise ValueError(f"invalid retry sequence: {key}")
+                evidence_dir = Path(str(row.get("evidence_directory") or "")).resolve()
+                if not evidence_dir.is_relative_to(artifacts):
+                    raise ValueError(f"attempt evidence escapes artifact directory: {key}")
+                if row.get("status") == "pass":
+                    if row.get("evidence_status") != "pass":
+                        raise ValueError(f"passing attempt lacks complete evidence: {key}")
+                    for name in (manifest.get("protocol") or {}).get(
+                        "required_attempt_evidence", ()
+                    ):
+                        if not (evidence_dir / name).is_file():
+                            raise ValueError(f"passing attempt is missing {name}: {key}")
     paired_tasks = [
         task
         for task in tasks
@@ -132,6 +171,8 @@ def verify(artifacts: Path) -> dict:
         "raw_attempts": len(rows),
         "paired_tasks": len(paired_tasks),
         "metric_groups_checked": checked,
+        "primary_samples": len(primary),
+        "retry_samples": len(rows) - len(primary),
     }
 
 
