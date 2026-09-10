@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -49,12 +50,24 @@ def build_authoring_suite(
         raise ValueError("no non-mutating trace repairs match the requested authoring scope")
 
     result = build_observation_suite(suite, selected_ids, output_name="authoring_page")
+    source_by_id = {str(task.get("id")): task for task in suite.get("tasks") or []}
     for task in result["tasks"]:
         for action in task["trajectory"]["actions"]:
             if action.get("selector") is not None or isinstance(action.get("target"), dict):
                 action.setdefault("timeout_ms", target_timeout_ms)
             if isinstance(action.get("target"), dict):
                 action.setdefault("target_timeout_ms", target_timeout_ms)
+        if "navigate" in (task.get("tags") or []):
+            source_builder = (
+                source_by_id[task["id"]].get("ground_truth") or {}
+            ).get("response_builder")
+            task["ground_truth"]["response_builder"] = deepcopy(
+                source_builder
+                or {
+                    "kind": "null_after_verified_path",
+                    "task_type": "navigate",
+                }
+            )
     result["benchmark"] = {
         **(result.get("benchmark") or {}),
         "trajectory_authoring": {

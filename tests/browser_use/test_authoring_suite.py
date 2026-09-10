@@ -18,6 +18,10 @@ def _task(task_id: str, task_type: str, site: str) -> dict:
         "ground_truth": {
             "expected_actions": ["click"],
             "qualification": {"status": "pending"},
+            "response_builder": {
+                "kind": "null_after_verified_path",
+                "task_type": task_type,
+            },
         },
     }
 
@@ -118,6 +122,10 @@ def test_authoring_suite_can_explicitly_include_navigation_without_mutation():
     )
 
     assert [task["id"] for task in result["tasks"]] == ["webarena-1"]
+    assert result["tasks"][0]["ground_truth"]["response_builder"] == {
+        "kind": "null_after_verified_path",
+        "task_type": "navigate",
+    }
     assert result["benchmark"]["trajectory_authoring"]["task_types"] == [
         "navigate",
         "retrieve",
