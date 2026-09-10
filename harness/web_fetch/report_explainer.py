@@ -616,6 +616,13 @@ def _render_headless(out, cases, records):
         'moli_rate': f'{totals["moli"]/len(cases):.0%}',
         'delta': str(totals['moli'] - totals['chromium']),
         'ranking': bars([(n, totals[n]) for n in selected], maximum=len(cases)),
+        'overview_ranking': _table(
+            ['浏览器', '综合任务通过率', '普通网页', '动态网页', '热门站点', '文档', '图片', '视频'],
+            [(label(n), f'<strong>{totals[n]/len(cases):.1%}</strong><br>{totals[n]}/{len(cases)}',
+              *(str(data['tracks'][track]['providers'][n]['passed']) + '/' + str(data['tracks'][track]['cases'])
+                for track in ('web', 'dynamic', 'challenge', 'document', 'image', 'video')))
+             for n in sorted(selected, key=lambda n: -totals[n])],
+            '五款浏览器综合通过率。每款执行相同的 150 道任务，每题等权；分组列为通过数 / 本组任务数。'),
         'split': split, 'four': four, 'matrix': matrix,
         'quality': quality, 'speed_main': _render_article_speed(main_speed),
         'speed': _render_article_speed(paired_speed),

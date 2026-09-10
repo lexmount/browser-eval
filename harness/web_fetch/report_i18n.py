@@ -31,6 +31,8 @@ NAV = [
 # Exact editorial translations take priority.  Dynamic evidence (task names,
 # references and provider output) is deliberately absent from this catalog.
 TEXT = {
+    "综合任务通过率": "Overall task pass rate",
+    "五款浏览器综合通过率。每款执行相同的 150 道任务，每题等权；分组列为通过数 / 本组任务数。": "Overall pass rates for five browsers. Each runs the same 150 equally weighted tasks; group columns show tasks passed / tasks in that group.",
     "从输入到交付共 2.44 秒，包含流程开销。本题预先声明为 PDF 文档，未测试未知链接的自动类型识别。": "Input-to-delivery time is 2.44 seconds, including processing overhead. This task is declared as a PDF document in advance; automatic type detection for an unknown URL was not tested.",
     "排除：Just a moment... / Prove your humanity / Access Denied；不得返回安全验证或拒绝访问页": "Exclude: Just a moment... / Prove your humanity / Access Denied; must not return a security-verification or access-denied page",
     "评测集与判定规则": "Dataset and acceptance rules",
@@ -2471,6 +2473,92 @@ REGEX.insert(0, (
     re.compile(r"^(?:.+：)?\d{4}-\d{2}-\d{2}（\d+ 题）(?:、\d{4}-\d{2}-\d{2}（\d+ 题）)*$"),
     lambda m: m.group().replace("：", ": ").replace("（", " (").replace(" 题）", " tasks)").replace("、", "; "),
 ))
+
+
+TEXT.update({
+    "150 道 Web Fetch 任务，Moli 1.1.1 通过 135 道，通过率为 90.0%，比 Chromium 多 10 道。净增来自文档与媒体：取得 PDF 正文、图片和视频资源，也是 AI 读取网络内容的一部分。": "Across 150 Web Fetch tasks, Moli 1.1.1 passes 135, a 90.0% pass rate and 10 more tasks than Chromium. The net gain comes from documents and media: retrieving PDF text, images, and video resources is also part of giving AI access to online content.",
+    "每题等权，失败与超时计入总数；通过表示交付结果满足题目要求。完整报告包含三个 Moli 版本，本文统一采用总通过数最高的 1.1.1。": "Tasks are equally weighted, with failures and timeouts included in the total. A pass means the delivered result meets the task requirements. The full report includes three Moli versions; this article consistently uses 1.1.1, which has the most total passes.",
+    "98 道共同成功任务 · 平均耗时": "98 shared successful tasks · mean latency",
+    "同组 98 道任务 · P50": "The same 98 tasks · P50",
+    "Chromium：4.58 秒": "Chromium: 4.58 seconds",
+    "同组 98 道任务 · P95": "The same 98 tasks · P95",
+    "Chromium：10.83 秒": "Chromium: 10.83 seconds",
+    "耗时来自跨批次采集的主评测记录，包含内容提取和后处理；网络与运行时间不同，不能当作受控条件下的内核速度差异。": "Latencies come from primary evaluation records collected across batches and include content extraction and post-processing. Network conditions and execution times differ, so these are not browser-engine speed differences measured under controlled conditions.",
+    "01 浏览器与 AI": "01 Browsers and AI",
+    "02 结果与速度": "02 Results and latency",
+    "03 任务与验收": "03 Tasks and acceptance",
+    "04 五款浏览器": "04 Five browsers",
+    "05 未完成的任务": "05 Incomplete tasks",
+    "06 总结与后续评测": "06 Findings and future evaluations",
+    "01 浏览器怎样把网页交给 AI": "01 How browsers deliver pages to AI",
+    "02 多通过的 10 道任务，来自文档与媒体": "02 Documents and media account for 10 additional passes",
+    "耗时样本与计算方法": "Latency sample and calculations",
+    "取五款浏览器在 150 道主任务中共同通过的全部 98 道，不混用各自成功的不同任务。均值是全部耗时相加后除以 98；P50 是中间位置的耗时；P95 反映这组记录中较慢的一端。": "The sample includes all 98 tasks passed by all five browsers among the 150 main tasks, without mixing different successful tasks. The mean is the sum of latencies divided by 98; P50 is the middle latency; P95 describes the slower end of these records.",
+    "显示值保留两位小数，差值与百分比使用未舍入值计算。调用跨批次采集，每个配置每题只有一次主结果，尚不能据此估计长期运行波动。": "Displayed values use two decimal places; differences and percentages use unrounded values. Calls were collected across batches, with one primary result per configuration and task. They are not sufficient to estimate variability over long-term operation.",
+    "03 从任务要求到逐项验收": "03 From task requirements to item-level acceptance",
+    "04 五款浏览器的实现与实测差异": "04 Implementations and measured differences across five browsers",
+    "浏览器及定位": "Browser and purpose",
+    "实测长处": "Measured strengths",
+    "未完成或边界": "Failures and scope limits",
+    "面向 AI Agent 的 Rust 浏览器，提供获取与自动化接口": "Rust browser for AI agents, with retrieval and automation interfaces",
+    "本地；原生 Markdown；直接文档与媒体可返回原始响应，PDF 由 pypdf 提取文字": "Local; native Markdown; raw responses for direct documents and media; pypdf extracts PDF text",
+    "文档 7/10、图片 10/10、视频 7/10": "Documents 7/10; images 10/10; videos 7/10",
+    "普通网页 97/100；三份 W3C 标准停在验证页；DOCX 与嵌入式文档查看器未完成": "General pages 97/100; three W3C standards stop at verification pages; DOCX and embedded document viewers are incomplete",
+    "通用开源浏览器，许多浏览器产品以它为基础": "General-purpose open-source browser underlying many browser products",
+    "本地无头模式；读取 DOM 页面结构，经 node-html-markdown 2.0.0 转为 Markdown": "Local headless mode; reads the page DOM and converts it to Markdown with node-html-markdown 2.0.0",
+    "普通网页 99/100；98 道可比正文的平均词语找回比例 99.8%": "General pages 99/100; average reference-word recovery of 99.8% across 98 comparable text tasks",
+    "文档 1/10；该结果对应当前页面转文本路线，增加文件下载与 PDF 解析需重新评测": "Documents 1/10 under the current page-to-text path; adding file downloading and PDF parsing requires reevaluation",
+    "Zig 开发，面向 AI 与自动化的无头浏览器，非 Chromium 分支": "Headless browser written in Zig for AI and automation; not a Chromium fork",
+    "本地；原生 Markdown": "Local; native Markdown",
+    "普通网页 92/100；取得三份 W3C 标准正文；IMDb 题仅它通过": "General pages 92/100; retrieves the three W3C standards; the only browser to pass IMDb",
+    "文档 1/10；动态网页仍有 2/10 未完成": "Documents 1/10; 2/10 dynamic pages remain incomplete",
+    "采用 V8 执行 JavaScript 的 Rust 无头浏览器": "Rust headless browser using V8 to execute JavaScript",
+    "本地标准模式；原生 Markdown": "Local standard mode; native Markdown",
+    "普通网页 90/100、热门站点 5/10；取得 Moli 未交回的 Blender 下载资源入口": "General pages 90/100; popular sites 5/10; retrieves the Blender download link missed by Moli",
+    "未启用 stealth 模式或备用引擎；结果不覆盖这些配置": "Stealth mode and alternative engines were not enabled; results do not cover those configurations",
+    "远端 Browser Run；提交 URL，返回 Markdown": "Remote Browser Run; submit a URL and receive Markdown",
+    "普通网页 88/100、动态网页 8/10；YouTube 题仅它通过": "General pages 88/100; dynamic pages 8/10; the only browser to pass YouTube",
+    "计时包含网络往返；未测试托管成本、扩容和生产并发": "Timing includes network round trips; hosting cost, scaling, and production concurrency were not tested",
+    "这张表比较的是浏览器连同获取、等待和转换步骤的整条路径。选择时，除了看自己的输入类型，也要看是否需要文件解析、远端托管，以及对应任务在哪里失败。": "This table compares complete paths, including each browser’s retrieval, waiting, and conversion steps. When choosing, consider your input types, whether you need file parsing or remote hosting, and where the relevant tasks fail.",
+    "05 尚未完成的网页与文档": "05 Pages and documents still incomplete",
+    "Moli 1.1.1 通过 135/150 道任务，完成率为 90.0%；Chromium 为 125/150、83.3%。这是按题目要求验收的完成率。": "Moli 1.1.1 passes 135/150 tasks, a 90.0% completion rate, versus Chromium’s 125/150 and 83.3%. Completion is assessed against each task’s requirements.",
+    "文档与媒体通过数为 24/30 对 14/30，构成 Moli 多通过的 10 道；120 道网页任务中，两者均为 111/120。": "Document and media passes are 24/30 versus 14/30, accounting for Moli’s 10 additional passes. Across 120 web tasks, both score 111/120.",
+    "98 道共同成功任务中，Moli 的均值、P50、P95 为 3.01、2.44、6.03 秒，Chromium 为 5.27、4.58、10.83 秒。Moli 三项均较低，但这组跨批次记录尚不能隔离网络和运行条件的影响。": "Across 98 shared successful tasks, Moli’s mean, P50, and P95 are 3.01, 2.44, and 6.03 seconds, versus Chromium’s 5.27, 4.58, and 10.83 seconds. Moli is lower on all three, but these records collected across batches cannot isolate network and execution conditions.",
+    "待补的缺口也具体：三份 W3C 标准的验证页、延迟列表、iframe 子页面，以及 DOCX 和嵌入式文档查看器。普通网页的正文词语找回比例，Moli 为 95.3%，Chromium 为 99.8%，还不能称为完全对齐。": "The remaining gaps are specific: verification pages on three W3C standards, delayed lists, iframe content, DOCX, and embedded document viewers. Reference-word recovery on general pages is 95.3% for Moli and 99.8% for Chromium, so they are not yet fully matched.",
+    "接下来验证什么": "What to test next",
+    "增加站点、文档类型和重复次数；在相同运行条件下扩大速度样本，观察热门站点的成功率波动。": "Add sites, document types, and repeated runs; expand the latency sample under the same execution conditions and observe success-rate variability on popular sites.",
+    "跟进版本迭代，复测现有失败任务。Moli 1.1.2、1.1.3、1.1.4 分别于 9 月 4 日、5 日、8 日发布，1.1.4 包含重定向处理修复；能否改善本文中的缺口，仍以同题复测为准。": "Retest current failures as versions change. Moli 1.1.2, 1.1.3, and 1.1.4 were released on 9/4, 5, and 8, respectively. Version 1.1.4 includes redirect-handling fixes; improvements to the gaps in this article still require retesting the same tasks.",
+    "开展 Browser Use 评测，用搜索、点击、翻页和填写等连续操作，比较 Agent 完成整段网页任务的表现。": "Run Browser Use evaluations with sequences of searches, clicks, pagination, and form inputs to compare how agents complete entire web tasks."
+})
+
+
+TEXT.update({
+    "解读开篇增加综合通过率与六类结果": "Interpretation opens with overall pass rates and six task groups",
+    "五浏览器解读先展示综合通过率与六类任务成绩，正文解释差异，结尾归纳结论。浏览器配置改为对照表，章节统一编号。": "The five-browser article opens with overall pass rates and results for six task groups, explains the differences in the body, and closes with findings. Browser configurations use a comparison table, with consistently numbered sections.",
+    "结果展示": "Result presentation",
+    "总通过率与分组结果分散在正文中。": "Overall pass rates and group results were spread throughout the article.",
+    "开篇集中展示五款浏览器的总通过率与六类通过数，随后解释文档、媒体和网页的差异。": "The opening brings together overall pass rates and six group pass counts for the five browsers, followed by explanations of document, media, and web differences.",
+    "沿用同一组 150 道任务和 Moli 1.1.1，评分与通过数不变。": "The same 150 tasks and Moli 1.1.1 are retained; scores and pass counts are unchanged.",
+    "耗时展示": "Latency presentation",
+    "解读同时展开两组不同条件的耗时比较，阅读主线分散。": "The article expanded two latency comparisons under different conditions, dividing the reading flow.",
+    "解读集中展示全部 98 道共同成功主任务的均值、P50、P95，并保留跨批次条件。": "The article focuses on mean latency, P50, and P95 for all 98 shared successful main tasks, retaining the collection-across-batches condition.",
+    "原报告的同窗测速章节与证据继续保留，未删除或改写调用记录。": "The original report retains its same-window latency section and evidence; call records are neither deleted nor rewritten.",
+    "阅读结构": "Reading structure",
+    "章节眉题、副标题和浏览器长段落增加阅读负担。": "Section eyebrows, subtitles, and long browser paragraphs added reading overhead.",
+    "统一编号标题和字号层级，以对照表介绍五款浏览器，增加量化总结与有序后续计划。": "Use consistently numbered headings and type sizes, introduce the five browsers in a comparison table, and add quantified findings and an ordered follow-up plan.",
+    "保留 Web Fetch、Browser Use 背景、五类流程和六组真实案例。": "Retain Web Fetch and Browser Use background, five workflow types, and real examples from six groups."
+})
+
+
+TEXT.update({
+    "综合通过率 90.0%，五款中最高。": "Overall pass rate: 90.0%, the highest of the five.",
+    "Moli 1.1.1 通过 135/150 道任务，Chromium 为 125/150、83.3%。这是按题目要求验收的完成率。": "Moli 1.1.1 passes 135/150 tasks, versus Chromium’s 125/150 and 83.3%. Completion is assessed against each task’s requirements.",
+    "多通过的 10 道，来自文档与媒体。": "Documents and media account for 10 additional passes.",
+    "这 30 道中，Moli 通过 24 道，Chromium 通过 14 道；120 道网页任务中，两者均为 111/120。": "Of these 30 tasks, Moli passes 24 and Chromium passes 14. Across 120 web tasks, both score 111/120.",
+    "98 道共同成功任务，三项耗时均较低。": "Lower on all three latency measures across 98 shared successes.",
+    "Moli 的均值、P50、P95 为 3.01、2.44、6.03 秒，Chromium 为 5.27、4.58、10.83 秒。这组跨批次记录尚不能隔离网络和运行条件的影响。": "Moli’s mean, P50, and P95 are 3.01, 2.44, and 6.03 seconds, versus Chromium’s 5.27, 4.58, and 10.83 seconds. These records collected across batches cannot isolate network and execution conditions.",
+    "仍需改进的任务包括三份 W3C 标准、延迟列表、iframe 子页面、DOCX 和嵌入式文档查看器。普通网页也有正文完整度差距：参考正文词语找回比例为 Moli 95.3%、Chromium 99.8%。": "Tasks still needing improvement include three W3C standards, delayed lists, iframe content, DOCX, and embedded document viewers. General pages also show a gap in text completeness: reference-word recovery is 95.3% for Moli and 99.8% for Chromium."
+})
 
 
 def translate_text(value: str) -> str:
