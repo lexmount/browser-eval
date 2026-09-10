@@ -557,7 +557,10 @@ class WebArenaEnvironment:
             page.get_by_role("button", name="Sign In", exact=True).click(
                 no_wait_after=True, timeout=30_000
             )
-            email.wait_for(state="detached", timeout=120_000)
+            # Do not bind login completion to the old form locator. Magento
+            # can keep that locator's scheduled navigation pending after the
+            # authenticated request completed. The canonical authenticated
+            # page below is the independent success gate.
         page.goto(base_url + "/wishlist/", wait_until="domcontentloaded", timeout=60_000)
         if "/customer/account/login" in page.url:
             raise RuntimeError("WebArena Shopping login failed")
@@ -598,7 +601,9 @@ class WebArenaEnvironment:
             page.get_by_role("button", name="Log in", exact=True).click(
                 no_wait_after=True, timeout=30_000
             )
-            user_field.wait_for(state="detached", timeout=120_000)
+            # As with Magento, supersede the submitted form navigation with a
+            # deterministic authenticated route instead of waiting on the
+            # stale login locator.
         post_login_url = page.url
         messages = page.locator(
             "[role='alert'], .alert, .form-error, .invalid-feedback"

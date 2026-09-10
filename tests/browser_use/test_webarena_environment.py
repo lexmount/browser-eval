@@ -679,6 +679,8 @@ def test_official_form_login_paths_cover_all_stateful_sites(tmp_path, monkeypatc
     ].actions
     assert ("fill", "label:Username", "reddit-user") in pages["reddit"].actions
     assert ("fill", "#user_login", "gitlab-user") in pages["gitlab"].actions
+    assert not any(action[0] == "wait_for" for action in pages["shopping"].actions)
+    assert not any(action[0] == "wait_for" for action in pages["reddit"].actions)
     assert (
         "expect_navigation",
         {"wait_until": "commit", "timeout": 120_000},
