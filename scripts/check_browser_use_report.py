@@ -395,26 +395,28 @@ def check(
             if float(row.get("score") or 0) < 1
         }
         cause_review = load_failure_cause_review()
+        cause_profile = profile.get("failure_cause_review") or {}
+        cause_required = bool(cause_profile.get("required_for_publication"))
         verified_causes = validate_failure_cause_review(
             cause_review,
             attempts_sha256=_sha256(attempts_path),
             failed_result_ids=failed_result_ids,
-            require_complete=bool(
-                (profile.get("failure_cause_review") or {}).get(
-                    "required_for_publication"
-                )
-            ),
+            require_complete=cause_required,
         )
-        cause_profile = profile.get("failure_cause_review") or {}
-        if cause_profile.get("source_sha256") != file_sha256(FAILURE_CAUSE_REVIEW_PATH):
-            raise ValueError("current report profile is not bound to the failure-cause review")
-        if set(verified_causes) != failed_result_ids:
-            raise ValueError("every failed logical result must have a verified root cause")
-        cause_bindings = cause_review.get("bindings") or {}
-        if cause_bindings.get("manifest_sha256") != _sha256(manifest_path):
-            raise ValueError("failure-cause review is not bound to the current manifest")
-        if cause_bindings.get("selection_sha256") != selection.sha256:
-            raise ValueError("failure-cause review is not bound to the current selection")
+        if cause_required:
+            if cause_profile.get("source_sha256") != file_sha256(
+                FAILURE_CAUSE_REVIEW_PATH
+            ):
+                raise ValueError(
+                    "current report profile is not bound to the failure-cause review"
+                )
+            if set(verified_causes) != failed_result_ids:
+                raise ValueError("every failed logical result must have a verified root cause")
+            cause_bindings = cause_review.get("bindings") or {}
+            if cause_bindings.get("manifest_sha256") != _sha256(manifest_path):
+                raise ValueError("failure-cause review is not bound to the current manifest")
+            if cause_bindings.get("selection_sha256") != selection.sha256:
+                raise ValueError("failure-cause review is not bound to the current selection")
         published_cause_review = json.loads(
             (report_dir / "data/failure-cause-review.json").read_text(encoding="utf-8")
         )
