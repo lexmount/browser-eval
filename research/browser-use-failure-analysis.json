@@ -1,37 +1,42 @@
 {
-  "schema": "lex_browser_use_failure_analysis/1",
+  "schema": "lex_browser_use_failure_analysis/2",
   "scope": {
     "benchmark": "WebArena-Verified 1.2.3",
     "task_ids": [68, 124, 142, 168, 506],
     "engines": ["chromium", "moli"],
-    "evidence": "final response, official evaluator output, and autonomous BrowserTool trajectory",
+    "evidence": "final logical response, official evaluator output, and autonomous BrowserTool trajectory",
     "score_effect": "none"
   },
   "tasks": {
     "68": {
-      "mismatch": "两种浏览器都返回《The Hobbit》，遗漏《A Christmas Carol》（作者允许为空）。",
-      "diagnosis": "共享的跨帖聚合与空值处理错误。轨迹已看到两篇符合条件的帖子，说明站点内容存在；失败发生在最终答案整理。",
-      "confidence": "高"
+      "mismatch": "两种浏览器都只返回《The Hobbit》，官方合同还要求《A Christmas Carol》（author=null）。",
+      "confirmed_failure_point": "最终答案少了一条必需记录。",
+      "direct_evidence": "两条最终轨迹都已读取《A Christmas Carol》帖子；官方 evaluator 报告 Matched (1/2)。",
+      "root_cause_boundary": "可确认遗漏发生在页面内容已经进入轨迹之后；现有证据不能判定模型为何丢弃该记录。"
     },
     "124": {
-      "mismatch": "两者都把搜索结果中的无关投影仪计入 wireless earphone 价格范围，最大值报为 17,774.32，官方期望为 298.00。",
-      "diagnosis": "共享的搜索结果相关性过滤错误；站内搜索召回过宽是诱因，但 Agent 仍应按任务语义筛选商品。",
-      "confidence": "中"
+      "mismatch": "两种浏览器都返回 min=0.01、max=17774.32；官方合同要求 max=298.00。",
+      "confirmed_failure_point": "最终价格聚合纳入了不符合 wireless earphone 语义的商品。",
+      "direct_evidence": "轨迹中的 17,774.32 对应 QFWCJ 4K Short Throw Projector，且与最终错误最大值完全相同。",
+      "root_cause_boundary": "可确认错误值来自无关投影仪；现有证据不能区分是模型判断、Agent 策略还是任务提示约束不足导致未过滤。"
     },
     "142": {
-      "mismatch": "两者都汇总为 80.50，官方期望为 68.51；差额来自把水晶发箍计入 hair care/style 商品。",
-      "diagnosis": "共享的商品类别判定错误。订单数据和 evaluator 数值一致，未见站点或计分器异常。",
-      "confidence": "高"
+      "mismatch": "两种浏览器都返回 80.50；官方合同要求 68.51。",
+      "confirmed_failure_point": "最终求和多计入了 11.99 的 Crystal Headband。",
+      "direct_evidence": "轨迹列出 50.52 的 conditioner、11.99 的 headband 和 17.99 的 haircolor；80.50=50.52+11.99+17.99，68.51=50.52+17.99。",
+      "root_cause_boundary": "可确认差额及其来源；现有证据不能判定模型为何把 headband 纳入任务口径。"
     },
     "168": {
-      "mismatch": "两者都正确找到空集合，却返回 SUCCESS + []；合同要求 NOT_FOUND_ERROR + null。",
-      "diagnosis": "共享的最终状态协议错误，不是检索内容错误，也不是浏览器执行错误。",
-      "confidence": "高"
+      "mismatch": "两种浏览器都返回 SUCCESS + []；官方合同要求 NOT_FOUND_ERROR + null。",
+      "confirmed_failure_point": "空结果被编码成错误的最终状态。",
+      "direct_evidence": "官方 evaluator 的唯一失败断言是 Expected not_found_error, got success；检索内容同为空。",
+      "root_cause_boundary": "可确认是最终响应协议不匹配，不是页面导航失败；现有证据不能判定错误映射来自模型还是 Agent 响应封装。"
     },
     "506": {
-      "mismatch": "两者都选中正确商品并清空旧购物车，但未产生付款提交与成功页事件。",
-      "diagnosis": "共享的长链任务完成错误：30 步上限前没有完成结账。两种浏览器路径细节不同，但都未越过同一验收终点。",
-      "confidence": "高"
+      "mismatch": "最终逻辑结果均已添加正确商品，但没有付款提交事件和下单成功页事件。",
+      "confirmed_failure_point": "结账在付款提交之前停止。",
+      "direct_evidence": "官方 evaluator 已确认正确商品加入购物车；付款提交与成功页规则失败，最终响应明确记录达到单次运行最大步骤数。",
+      "root_cause_boundary": "30 步上限是已确认的直接停止条件；现有证据不能进一步量化模型规划、Agent 调度和浏览器工具开销各自消耗了多少不必要步骤。"
     }
   }
 }

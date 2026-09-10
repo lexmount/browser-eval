@@ -271,6 +271,9 @@ def check(
         "后续 179 题",
         "需要注意：",
         "代理实测返回 team_model_access_denied",
+        "证据支持的诊断",
+        "共享链路诊断",
+        "失败归因：",
     )
     for page, text in rendered_pages.items():
         if any(term in text for term in forbidden_report_terms):

@@ -1087,8 +1087,9 @@ def _article_body(
         [
             f"#{task_id}",
             diagnosis["mismatch"],
-            diagnosis["diagnosis"],
-            diagnosis["confidence"],
+            diagnosis["confirmed_failure_point"],
+            diagnosis["direct_evidence"],
+            diagnosis["root_cause_boundary"],
         ]
         for task_id, diagnosis in SHARED_FAILURE_DIAGNOSES.items()
     ]
@@ -1110,14 +1111,14 @@ def _article_body(
             caption="表 1｜30 个任务的逐题最终结果配对。",
         )
         + f"<p>严谨表述只能是“本轮没有观察到成功率差异”，不能写成“两种内核等价”。{paired['paired']} 题对小效应检出力有限；更关键的是，样本没有诱发内核分歧。</p></section>"
-        "<section><h2>二、为什么五个失败任务会完全相同</h2>"
-        f"<p>两个浏览器共享 CowAgent、模型、提示与工具合同、站点状态、30 步上限和 evaluator，只有浏览器实现不同。{paired['both_fail']} 个共同失败都落在共享层，因此结果高度相关并不反常；它更说明这批题没有触发足以改变最终成败的浏览器差异。</p>"
+        "<section><h2>二、五个共同失败，具体失败在哪里</h2>"
+        f"<p>两个浏览器共享 CowAgent、模型、提示与工具合同、站点状态、30 步上限和 evaluator，只有浏览器实现不同。逐条证据只能确认验收链路中的首个失败点；除 506 题明确触发步数上限外，记录不足以把错误进一步归因到模型、CowAgent 策略或提示合同中的某一项。</p>"
         + _table(
-            ["任务", "实际差异", "证据支持的诊断", "置信度"],
+            ["任务", "官方判定差异", "已确认失败点", "直接证据", "尚不能判定"],
             failures,
-            caption="表 2｜诊断来自最终回答、官方 evaluator 与执行轨迹的交叉核对；不修改官方分数。",
+            caption="表 2｜只陈述最终回答、官方 evaluator 与执行轨迹能够直接证明的事实；不修改官方分数。",
         )
-        + "<p><strong>结论：</strong>现有证据不支持“网站本身报错”“官方 evaluator 实现错误”或“标准答案错误”。其中 #124 的站内搜索召回过宽会增加歧义，但返回结果仍需要按任务语义过滤。更准确的归因是：四题属于共享 Agent/模型的语义、聚合或输出协议问题，一题属于共享的长链完成与步数预算问题。这不是对模型通用能力的定论，只描述当前 CowAgent、模型与运行协议。</p></section><section><h2>三、简单、中等、困难都覆盖了，但“难度”只是操作长度</h2><p>WebArena‑Verified 没有官方 easy/medium/hard 三档。本项目在运行前按最少可见 UI 操作数注册为 1–4、5–7、8+ 三档，配额 5/10/15。它控制操作链覆盖，不等同于推理难度。</p>"
+        + "<p><strong>结论：</strong>#68、#124、#142 和 #168 的确定事实是最终答案构造或状态协议错误；#506 的确定事实是达到 30 步上限时尚未产生付款提交和成功页事件。站点错误、evaluator 实现错误、答案合同错误以及模型内部决策原因，在这批证据中均未被证明。因而本轮不能单独判定为“模型能力不行”，只能判定当前 CowAgent、模型、提示与工具合同的组合在这些验收点失败。</p></section><section><h2>三、简单、中等、困难都覆盖了，但“难度”只是操作长度</h2><p>WebArena‑Verified 没有官方 easy/medium/hard 三档。本项目在运行前按最少可见 UI 操作数注册为 1–4、5–7、8+ 三档，配额 5/10/15。它控制操作链覆盖，不等同于推理难度。</p>"
         + _table(
             ["本项目分层", "Chromium", "Moli"],
             _group_rows(attempts, tasks, "tier"),
@@ -1462,7 +1463,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         home += _section(
             "先看结论",
-            f'<div class="result-grid"><div class="card"><span class="tiny">Chromium 任务通过</span><div class="n">{c["passed"]}/{c["completed"]}</div><p>{_pct(c["score"])}</p></div><div class="card"><span class="tiny">Moli 任务通过</span><div class="n">{m["passed"]}/{m["completed"]}</div><p>{_pct(m["score"])}</p></div><div class="card"><span class="tiny">单边胜出</span><div class="n">{paired["chromium_only"] + paired["moli_only"]}</div><p>{paired["paired"]} 个完整配对</p></div><div class="card"><span class="tiny">共同失败</span><div class="n">{paired["both_fail"]}</div><p>共享链路诊断</p></div></div><p class="callout success"><strong>当前结论：</strong>本轮没有观察到浏览器成功率差异；这证明对照流程可比，不证明两个内核等价。</p><p class="callout"><strong>失败归因：</strong>{paired["both_fail"]} 个共同失败中，四题指向共享 Agent/模型的语义、聚合或输出协议，一题指向共享的步数预算与长链完成；没有发现站点、官方 evaluator 或答案合同错误的证据。</p><p class="fine">这是固定选择的 30 题试验，不是从全部 WebArena‑Verified 任务随机抽样；比例只描述本样本，不外推总体能力。</p>',
+            f'<div class="result-grid"><div class="card"><span class="tiny">Chromium 任务通过</span><div class="n">{c["passed"]}/{c["completed"]}</div><p>{_pct(c["score"])}</p></div><div class="card"><span class="tiny">Moli 任务通过</span><div class="n">{m["passed"]}/{m["completed"]}</div><p>{_pct(m["score"])}</p></div><div class="card"><span class="tiny">单边胜出</span><div class="n">{paired["chromium_only"] + paired["moli_only"]}</div><p>{paired["paired"]} 个完整配对</p></div><div class="card"><span class="tiny">共同失败</span><div class="n">{paired["both_fail"]}</div><p>已确认失败点</p></div></div><p class="callout success"><strong>当前结论：</strong>本轮没有观察到浏览器成功率差异；这证明对照流程可比，不证明两个内核等价。</p><p class="callout"><strong>失败结论：</strong>四题的首个可证失败点位于最终答案构造或状态协议，一题在 30 步上限时仍未完成付款提交。现有证据不能把前四题进一步归因到模型、CowAgent 或提示合同中的某一项。</p><p class="fine">这是固定选择的 30 题试验，不是从全部 WebArena‑Verified 任务随机抽样；比例只描述本样本，不外推总体能力。</p>',
         )
         home += _section(
             "任务族覆盖",
@@ -1812,9 +1813,11 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                 "任务要求与验收结果",
                 _verification_html(task, evaluation_record, response_record)
                 + (
-                    '<div class="callout"><strong>证据诊断：</strong>'
-                    + _e(SHARED_FAILURE_DIAGNOSES[public["task_id"]]["diagnosis"])
-                    + " 本诊断不修改官方分数。</div>"
+                    '<div class="callout"><strong>已确认失败点：</strong>'
+                    + _e(SHARED_FAILURE_DIAGNOSES[public["task_id"]]["confirmed_failure_point"])
+                    + " <strong>直接证据：</strong>"
+                    + _e(SHARED_FAILURE_DIAGNOSES[public["task_id"]]["direct_evidence"])
+                    + "</div>"
                     if public["task_id"] in SHARED_FAILURE_DIAGNOSES
                     else ""
                 )
@@ -2050,7 +2053,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             "claims": [
                 {"claim": "当前样本未观察到成功率差异", "basis": paired},
                 {
-                    "claim": "失败任务完全重合，且证据诊断均位于共享链路",
+                    "claim": "失败任务完全重合；证据确认四题止于最终答案或状态协议，一题止于步数上限前的结账流程",
                     "basis": SHARED_FAILURE_DIAGNOSES,
                 },
             ],

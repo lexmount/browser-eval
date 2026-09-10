@@ -283,6 +283,11 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(tmp_path:
     assert "诊断重试" not in "".join(
         path.read_text(encoding="utf-8") for path in output.rglob("*.html")
     )
+    formal_html = "".join(
+        path.read_text(encoding="utf-8") for path in output.rglob("*.html")
+    )
+    for speculative_label in ("证据支持的诊断", "共享链路诊断", "失败归因："):
+        assert speculative_label not in formal_html
     assert not list(output.rglob("*.svg"))
 
 
