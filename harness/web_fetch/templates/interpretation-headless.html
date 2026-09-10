@@ -15,63 +15,65 @@
 @media print{.m-article{--paper:#fff;--surface:#fff;--surface-2:#f1f4f3;--ink:#243940;--muted:#64757a;--line:#d8e1df;--navy:#123e4a;--blue:#14657a;--blue-soft:#edf5f7;--green:#25714f;--rust:#a74e31;max-width:none;margin:0;padding:0;font-size:10pt;background:#fff!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}.standalone-article{background:#fff}.m-article h1{font-size:30pt}.m-article h2{font-size:21pt;break-after:avoid}.m-article h3{font-size:15pt;break-after:avoid}.m-deck{font-size:13pt}.m-hero{padding-top:12px}.m-ledger{grid-template-columns:repeat(3,1fr)}.m-ledger b{font-size:19pt}.m-ledger p{font-size:9pt}.m-section{padding:25px 0}.m-toc,.case-tab-nav,.case-choice,.m-downloads,.sidebar,.topbar{display:none!important}.case-panel{display:block!important;padding:20px 0;break-before:auto}.case-panel+.case-panel{border-top:2px solid var(--line)}.case-workbench{border:0}.case-excerpt{max-height:none;overflow:visible;font-size:9pt}.case-compare{break-inside:avoid}.case-check-wrap,.table-wrap,.editorial-table{overflow:visible}.m-article table{min-width:0;font-size:8pt}.m-article table tr{break-inside:avoid}.m-article table thead{display:table-header-group}.m-article caption{caption-side:top}.m-figure{break-inside:avoid;padding:16px}.m-speed-grid{grid-template-columns:repeat(3,1fr)}.m-details>*{display:block!important}.m-details{font-size:10pt}.m-article p{orphans:3;widows:3}.m-end{font-size:8pt}}
 @page{margin:15mm}
 
-.m-flow-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px 36px;margin:28px 0}.m-flow-grid>div{border-top:2px solid var(--line);padding:18px 0}.m-flow-grid h3{margin:0 0 12px;font-size:22px}.m-flow-grid p{font-size:15px;margin-top:12px}.m-browser-table table{table-layout:fixed}.m-browser-table th:first-child{width:5%}.m-browser-table th:nth-child(2){width:21%}.m-browser-table th:nth-child(3){width:25%}.m-browser-table th:nth-child(4){width:23%}.m-summary-list,.m-next-list{max-width:var(--reading);padding-left:1.5em;margin:0}.m-summary-list li,.m-next-list li{padding-left:.3em;margin:0 0 16px}.m-article .m-scope-note{font-size:14px;line-height:1.8;color:var(--muted);max-width:1080px}.m-hero .editorial-table{margin:28px 0 16px}@media(max-width:700px){.m-flow-grid{grid-template-columns:1fr;gap:12px}.m-flow-grid h3{font-size:22px}.m-browser-table table{min-width:850px}.m-article .m-scope-note{font-size:13px}}@media print{.m-browser-table table{min-width:0}.m-summary-list,.m-next-list{max-width:none}}
+.m-flow-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px 36px;margin:28px 0}.m-flow-grid>div{border-top:2px solid var(--line);padding:18px 0}.m-flow-grid h3{margin:0 0 12px;font-size:22px}.m-flow-grid p{font-size:15px;margin-top:12px}.m-browser-table table{table-layout:fixed}.m-browser-table th:first-child{width:5%}.m-browser-table th:nth-child(2){width:21%}.m-browser-table th:nth-child(3){width:25%}.m-browser-table th:nth-child(4){width:23%}.m-summary-list,.m-next-list,.m-delivery-legend{max-width:var(--reading);padding-left:1.5em;margin:0}.m-summary-list li,.m-next-list li,.m-delivery-legend li{padding-left:.3em;margin:0 0 16px}.m-article .m-scope-note{font-size:14px;line-height:1.8;color:var(--muted);max-width:1080px}.m-hero .editorial-table{margin:28px 0 16px}@media(max-width:700px){.m-flow-grid{grid-template-columns:1fr;gap:12px}.m-flow-grid h3{font-size:22px}.m-browser-table table{min-width:850px}.m-article .m-scope-note{font-size:13px}}@media print{.m-browser-table table{min-width:0}.m-summary-list,.m-next-list,.m-delivery-legend{max-width:none}}
+.m-delivery-legend{display:grid;grid-template-columns:1fr 1fr;gap:0 36px;font-size:15px;margin:20px 0}.m-delivery-legend li{margin-bottom:10px}@media(max-width:700px){.m-delivery-legend{grid-template-columns:1fr;font-size:14px}}
 .m-article .case-checks td.case-fail{color:var(--rust)}
 .m-hero table{min-width:760px}.m-hero td,.m-hero th:first-child,.m-browser-table th:first-child{white-space:nowrap}.m-browser-table th:first-child{width:6%}@media print{.m-hero table{min-width:0}}
 </style>
 <article class="m-article publication-article" aria-labelledby="article-title">
 <header class="m-hero">
 <div class="m-chips"><span>Web Fetch 实测</span><span>Moli 1.1.1</span><span>五款浏览器 · 150 道任务</span></div>
-<h1 id="article-title">Moli 的 Web Fetch 实测：<br>五款浏览器，150 道任务</h1>
-<p class="m-deck">150 道 Web Fetch 任务，Moli 1.1.1 通过 135 道，通过率为 90.0%，比 Chromium 多 10 道。净增来自文档与媒体：取得 PDF 正文、图片和视频资源，也是 AI 读取网络内容的一部分。</p>
+<h1 id="article-title">Moli Web Fetch 实测：<br>五款浏览器，150 道任务</h1>
+<p class="m-deck">Moli 1.1.1 的任务通过率为 90.0%（135/150），比 Chromium 的 83.3% 高 6.7 个百分点。多完成的 10 道来自文档与媒体：取得 PDF 正文、图片和视频资源，也是 AI 读取网络内容的一部分。</p>
 ${overview_ranking}
 <p class="m-scope-note">每题等权，失败与超时计入总数；通过表示交付结果满足题目要求。完整报告包含三个 Moli 版本，本文统一采用总通过数最高的 1.1.1。</p>
-<div class="m-ledger"><div><span>98 道共同成功任务 · 平均耗时</span><b>3.01 秒</b><p>Chromium：5.27 秒</p></div><div><span>同组 98 道任务 · P50</span><b>2.44 秒</b><p>Chromium：4.58 秒</p></div><div><span>同组 98 道任务 · P95</span><b>6.03 秒</b><p>Chromium：10.83 秒</p></div></div>
-<p class="m-scope-note">耗时来自跨批次采集的主评测记录，包含内容提取和后处理；网络与运行时间不同，不能当作受控条件下的内核速度差异。</p>
+<div class="m-ledger"><div><span>平均耗时减少 · 相对 Chromium</span><b>−${mean_reduction}%</b><p>Moli 3.01 秒 / Chromium 5.27 秒</p></div><div><span>P50 耗时减少 · 相对 Chromium</span><b>−${p50_reduction}%</b><p>Moli 2.44 秒 / Chromium 4.58 秒</p></div><div><span>P95 耗时减少 · 相对 Chromium</span><b>−${p95_reduction}%</b><p>Moli 6.03 秒 / Chromium 10.83 秒</p></div></div>
+<p class="m-scope-note">耗时比较取五款共同成功的全部 98 道任务，包含内容提取和后处理。主记录跨批次采集，网络与运行时间不同，不能当作受控条件下的内核速度差异。</p>
 <p class="m-report-link"><a href="${report_url}">阅读完整评测报告 →</a><span>查看全部任务、评分规则与浏览器原始返回</span></p>
-<nav class="m-toc" aria-label="文章目录"><a href="#background">01 浏览器与 AI</a><a href="#results">02 结果与速度</a><a href="#method">03 任务与验收</a><a href="#browsers">04 五款浏览器</a><a href="#limits">05 未完成的任务</a><a href="#outlook">06 总结与后续评测</a></nav>
+<nav class="m-toc" aria-label="文章目录"><a href="#background">01 这次测什么</a><a href="#results">02 通过率与耗时</a><a href="#method">03 测试方法与实例</a><a href="#browsers">04 浏览器与测试配置</a><a href="#limits">05 失败任务与正文缺失</a><a href="#outlook">06 结论与后续测试</a></nav>
 </header>
 <div class="m-body">
-<section class="m-section" id="background"><h2>01 浏览器怎样把网页交给 AI</h2>
-<p>给 AI 一个论文链接，并不等于把论文交给了它。程序需要访问网址、取得响应，再把正文提取出来。遇到动态网页，正文可能要等页面脚本执行后才出现；遇到 PDF，还要从文件里解析文字。这一段从 URL 到所需内容的工作，通常称为 Web Fetch。</p>
-<p>这里比较的是供程序调用的浏览器及其内容提取配置。Moli 面向 AI Agent，Chromium 是通用浏览器，本轮以不显示窗口的无头模式运行。它们通常将网页转换成 Markdown，也就是带少量格式标记的文字，交给 AI 使用。</p>
-<div class="m-verdict-grid"><div><h3>Web Fetch：读取内容</h3><p>输入论文地址，返回可供总结的正文。任务也可以要求商品列表、图片下载地址或原始文件。</p><div class="m-route"><span>给定 URL</span><i>→</i><span>读取与提取</span><i>→</i><span>正文或文件</span></div></div><div><h3>Browser Use：操作网页</h3><p>让 AI 搜索商品、筛选规格，再加入购物车。它需要看当前页面，决定点击或填写什么，操作后再继续观察。</p><div class="m-route"><span>观察页面</span><i>→</i><span>点击或填写</span><i>→</i><span>继续下一步</span></div></div></div>
+<section class="m-section" id="background"><h2>01 这次测什么</h2>
+${browser_modes_figure}
+<p>Web Fetch 从给定网址取得所需内容，例如论文正文或商品列表；输出通常是 Markdown，也就是带少量格式标记的文字，或供后续工具使用的文件。</p>
+<p>Browser Use 则让 AI 根据当前页面决定下一步操作，点击或填写后继续观察，例如搜索商品、筛选规格，再加入购物车。</p>
 <p>这次的 150 道任务评测 Web Fetch：同样的网址、同样的内容要求，每题给 45 秒，检查交回的结果并记录耗时。浏览器是否适合连续操作网页，需要用 Browser Use 任务另外评测。</p>
 
 </section>
-<section class="m-section" id="results"><h2>02 多通过的 10 道任务，来自文档与媒体</h2>
-<p>把 150 道题按内容拆开，净增的 10 道全部来自文档、图片和视频。120 道网页任务中，两者各通过 111 道。</p>
+<section class="m-section" id="results"><h2>02 通过率与耗时</h2>
+<p>文档与媒体的通过率，Moli 为 80.0%（24/30），Chromium 为 46.7%（14/30）。网页类则同为 92.5%（111/120）。</p>
 <figure class="m-figure"><div class="m-split">${split}</div><figcaption>网页类：普通网页 100 道、动态网页 10 道、热门站点 10 道。文档、图片、视频各 10 道。</figcaption></figure>
-<p>其中六道 PDF 题只有 Moli 的本轮配置通过。Moli 先取得 PDF 文件，再交给本地 pypdf 解析器提取正文；其余四款使用本轮配置的 Markdown 输出路线，未能交回合格正文。对需要读论文的 AI 来说，这一步决定了后续有没有内容可读。成绩属于这条完整处理路径，PDF 解析时间也计入耗时。</p>
-<p>网页类的得失则发生在不同站点。普通网页中，Moli 通过 97/100，Chromium 通过 99/100；热门站点中，Moli 为 6/10，Chromium 为 4/10。只看合计的 111 道，会漏掉这两种差异。</p>
+<p>其中六道 PDF 题只有 Moli 的本轮配置通过：先取得文件，再由本地 pypdf 提取正文，解析时间也计入耗时。其余四款的本轮 Markdown 输出路线未交回合格正文。</p>
+<p>相同的网页总分来自不同任务：普通网页为 Moli 97.0%、Chromium 99.0%；热门站点为 60.0% 和 40.0%。每组题数见开头的分项成绩。</p>
 <p>普通网页占题量的三分之二；其余每组只有 10 道，相差一道就是 10 个百分点。这是本轮样本的构成，并不代表全网内容的真实比例。应用以什么内容为主，应当对应看哪一组结果。</p>
-<h3>98 道共同成功任务，Moli 的平均耗时为 3.01 秒</h3>
+<h3>98 道共同成功任务的耗时</h3>
 <p>150 道主任务中，五款浏览器都通过的有 98 道：普通网页 79 道、动态网页 8 道、热门站点 2 道、文档 1 道、图片 5 道、视频 3 道。比较同一组成功任务，能排除“很快返回空内容”或各自只完成简单任务的影响。</p>
 <figure class="m-figure"><h3>主评测：全部 98 道共同成功任务 · 秒</h3>${speed_main}<figcaption>同一任务集合，包含内容提取与后处理。主结果跨批次采集：Lightpanda 的这 98 道调用均在 9 月 8 日，其余四款多数在 9 月 4 日。以下统计反映实际保存的调用耗时，不是同一环境下的纯浏览器内核速度。</figcaption></figure>
-<p>这 98 道中，Moli 的均值为 3.01 秒、P50 为 2.44 秒、P95 为 6.03 秒，三项都是五款中最低。但网络和运行时间不同，不能仅凭这组记录确定差距有多少来自浏览器实现。</p>
+<p>相对 Chromium，Moli 的平均耗时减少 ${mean_reduction}%，P50 减少 ${p50_reduction}%，P95 减少 ${p95_reduction}%。这三项在五款中均最低；跨批次条件下，尚不能确定差距有多少来自浏览器实现。</p>
 <details class="m-details"><summary>耗时样本与计算方法</summary><p>取五款浏览器在 150 道主任务中共同通过的全部 98 道，不混用各自成功的不同任务。均值是全部耗时相加后除以 98；P50 是中间位置的耗时；P95 反映这组记录中较慢的一端。</p><p>显示值保留两位小数，差值与百分比使用未舍入值计算。调用跨批次采集，每个配置每题只有一次主结果，尚不能据此估计长期运行波动。</p></details>
 </section>
-<section class="m-section" id="method"><h2>03 从任务要求到逐项验收</h2>
-<p>Web Fetch 的输入都是地址，交付物却不一样。读论文要正文，整理商品要记录，下载图片可能要地址，也可能要文件本身。五种常见任务分别经过下面的处理步骤；浏览器可以采用不同实现，最后按同样的交付要求验收。</p>
-<div class="m-flow-grid">
-<div><h3>网页正文</h3><div class="m-route"><span>网页 URL</span><i>→</i><span>取页、等待内容</span><i>→</i><span>提取正文</span></div><p>例如 Example Domain：标题、用途说明和更多信息入口都要保留。</p></div>
-<div><h3>文档正文</h3><div class="m-route"><span>PDF URL</span><i>→</i><span>取得文件</span><i>→</i><span>解析文字</span></div><p>例如论文 PDF：正文要覆盖指定区域，只有文件地址不够。</p></div>
-<div><h3>列表记录</h3><div class="m-route"><span>列表页</span><i>→</i><span>提取名称与字段</span><i>→</i><span>检查完整、去重</span></div><p>例如商品页：每条需要名称和详情链接，重复条目不增加数量。</p></div>
-<div><h3>资源地址</h3><div class="m-route"><span>媒体页面</span><i>→</i><span>定位目标资源</span><i>→</i><span>返回可用 URL</span></div><p>例如视频演示页：找到指定视频地址，不能用导航链接代替。</p></div>
-<div><h3>原始文件</h3><div class="m-route"><span>文件直链</span><i>→</i><span>获取字节</span><i>→</i><span>校验并交付</span></div><p>例如 PNG：取得图片文件，后续工具才能识别或保存；图片说明不能代替文件。</p></div>
-</div>
-<h3>六个评测集，各看一道真实任务</h3>
-<p>评测集按内容来源分成六组，和上面的交付类型相互交叉。例如动态网页可能要求列表，视频页面可能要求资源地址。每组取一道实测任务，核对独立参考、浏览器输出和具体判定；动态网页保留了失败例子。</p>
+<section class="m-section" id="method"><h2>03 测试方法与实例</h2>
+<p>输入都是网址，交付内容可以分为五种。浏览器可采用不同实现，最终按同样的任务要求验收。</p>
+${delivery_types_figure}
+<ol class="m-delivery-legend">
+<li>网页正文：保留标题、必要内容和指定链接。</li>
+<li>文档正文：从 PDF 等文件解析文字，覆盖要求的正文区域。</li>
+<li>列表记录：名称与字段完整，重复条目只计一次。</li>
+<li>媒体地址：返回目标图片或视频的可用 URL。</li>
+<li>原始文件：交付实际字节，核对格式、大小和文件指纹。</li>
+</ol>
+<h3>六个评测集的实际结果</h3>
+<p>六个评测集按内容来源分组，与五种交付类型交叉：动态网页可能交付列表，视频页面可能交付资源地址。下面每组一道实测，展示参考内容、真实输出和逐项判定。</p>
 <div class="m-rule-strip"><b>每题只记通过或失败</b><span>共同预算 45 秒</span><span>必需检查全部满足</span><span>失败与超时计入总题数</span></div>
 ${case_workbench}
-<details class="m-details"><summary>评测集与判定规则</summary>
+<details class="m-details"><summary>样本与判定规则</summary>
 <p>150 道任务按来源分为普通网页、动态网页、热门站点、文档、图片、视频六组。同类来源也可能有不同的交付要求：图片页面可以只要求找到原图地址，直接图片链接则可以要求下载原文件。</p>
 <p>正文与文件参考来自独立获取的来源；商品列表检查经独立确认的稳定文字与结构，不把每天变化的商品名单固定成答案。正文覆盖阈值是本评测采用的工程验收下限，尚未通过阈值敏感性实验校准。</p>
 <p>每款配置每题保留一次主结果。参考内容在被测输出之外独立准备，浏览器可以采用不同获取与转换路径，最后按同一题目要求判定。完整报告保留每道题的运行记录、原始输出、文件指纹及逐项判定，可从结论追溯到具体返回内容。</p>
 <p>正文与列表还检查明显乱码：替代字符同时达到 20 个、占输出至少 2%，会导致该文本任务失败。文本规范化、逐项阈值、完整参考与原始返回均保存在完整报告中。</p>
 </details>
 </section>
-<section class="m-section" id="browsers"><h2>04 五款浏览器的实现与实测差异</h2>
+<section class="m-section" id="browsers"><h2>04 浏览器与测试配置</h2>
 <p>浏览器怎样把内容交出来，会直接影响成绩。本轮四款在本地运行，Kitesurf 通过远端服务调用；Chromium 需要将页面结构转换为 Markdown，Moli 的 PDF 路线另有本地解析步骤。</p>
 <div class="editorial-table m-browser-table"><table><thead><tr><th>序号</th><th>浏览器及定位</th><th>本轮交付路径</th><th>实测长处</th><th>未完成或边界</th></tr></thead><tbody>
 <tr><td>1</td><td><a href="https://github.com/lexmount/moli">Moli 1.1.1</a><br>面向 AI Agent 的 Rust 浏览器，提供获取与自动化接口</td><td>本地；原生 Markdown；直接文档与媒体可返回原始响应，PDF 由 pypdf 提取文字</td><td>文档 7/10、图片 10/10、视频 7/10</td><td>普通网页 97/100；三份 W3C 标准停在验证页；DOCX 与嵌入式文档查看器未完成</td></tr>
@@ -82,25 +84,21 @@ ${case_workbench}
 </tbody></table></div>
 <p>这张表比较的是浏览器连同获取、等待和转换步骤的整条路径。选择时，除了看自己的输入类型，也要看是否需要文件解析、远端托管，以及对应任务在哪里失败。</p>
 </section>
-<section class="m-section" id="limits"><h2>05 尚未完成的网页与文档</h2>
-<h3>三份 W3C 标准，返回的都是 475 字符验证页</h3>
+<section class="m-section" id="limits"><h2>05 失败任务与正文缺失</h2>
+<h3>W3C 标准的访问验证</h3>
 <p>Moli 未通过的三个普通网页都是 W3C 长标准：CSS 2.1、WCAG 2.1、XML 1.0。它们返回了同样的 475 字符安全验证页，Chromium 和 Lightpanda 则取到了正文。</p>
 <p>正文质量另看 98 道有完整可比参考的普通网页。这与前面跨类型、共同成功的 98 道耗时样本不是同一集合。在这组普通网页中，Moli 平均找回 95.3% 的参考正文词语，Chromium 为 99.8%。这个比例称为 Recall。另一个指标 Precision 检查输出词语中有多少与参考重合，F1 综合两者；它们衡量文字重合，不判断文字中的事实是否正确。</p>${quality}
 <p>任务通过与正文完整度因此要分开看：结果可以满足题目要求，同时夹带多余导航；也可能找回部分正文，却漏掉必需段落而未通过。只有完整参考可用的任务才参与上表统计，缺少参考的任务不按零分或满分处理。</p>
-<h3>动态内容：延迟出现的列表和 iframe</h3>
+<h3>延迟加载与 iframe</h3>
 <p>五款浏览器的动态任务均通过 8/10，共同未通过的是延迟列表和 iframe 目录。iframe 是嵌在网页里的子页面；主页面读取成功，子页面的内容仍可能缺失。</p>
 <p>网页加载完成的信号也不同：Chromium 使用页面结构就绪事件，Kitesurf 等待网络活动趋于空闲，Moli 与 Lightpanda 使用各自的 done 状态，Obscura 在加载事件后继续等待页面稳定。这些信号不保证目标内容已经出现，因此最终仍要检查实际交回的列表和正文。</p>
 <div class="m-webfail"><div><h4>内容晚 3 秒出现</h4><div class="m-delay"><span>0 秒：页面框架</span><i>→</i><span>3 秒：目标列表</span></div><p>Moli 交回了页面框架，目标列表缺失。对此类页面，读取何时结束会影响最终能否拿到记录。</p></div><div><h4>目录在 iframe 里</h4><div class="m-frame-map">外围页面<div>iframe 子页面：目标目录</div></div><p>Moli 达到 45 秒仍无结果；Chromium、Lightpanda 和 Kitesurf 只取得外围页面。</p></div></div>
 <p>这些样本能告诉我们缺了什么，还不足以将原因完全归于浏览器内核。等待策略、子页面获取和网络条件，需要用受控实验进一步分开。</p>
 </section>
-<section class="m-section" id="outlook"><h2>06 总结与后续评测</h2>
-<ol class="m-summary-list">
-<li><strong>综合通过率 90.0%，五款中最高。</strong>Moli 1.1.1 通过 135/150 道任务，Chromium 为 125/150、83.3%。这是按题目要求验收的完成率。</li>
-<li><strong>多通过的 10 道，来自文档与媒体。</strong>这 30 道中，Moli 通过 24 道，Chromium 通过 14 道；120 道网页任务中，两者均为 111/120。</li>
-<li><strong>98 道共同成功任务，三项耗时均较低。</strong>Moli 的均值、P50、P95 为 3.01、2.44、6.03 秒，Chromium 为 5.27、4.58、10.83 秒。这组跨批次记录尚不能隔离网络和运行条件的影响。</li>
-</ol>
+<section class="m-section" id="outlook"><h2>06 结论与后续测试</h2>
+${overview_figure}
 <p>仍需改进的任务包括三份 W3C 标准、延迟列表、iframe 子页面、DOCX 和嵌入式文档查看器。普通网页也有正文完整度差距：参考正文词语找回比例为 Moli 95.3%、Chromium 99.8%。</p>
-<h3>接下来验证什么</h3>
+<h3>后续测试</h3>
 <ol class="m-next-list">
 <li>增加站点、文档类型和重复次数；在相同运行条件下扩大速度样本，观察热门站点的成功率波动。</li>
 <li>跟进版本迭代，复测现有失败任务。Moli 1.1.2、1.1.3、1.1.4 分别于 9 月 4 日、5 日、8 日发布，1.1.4 包含重定向处理修复；能否改善本文中的缺口，仍以同题复测为准。<a href="https://github.com/lexmount/moli/releases">查看公开版本记录</a>。</li>

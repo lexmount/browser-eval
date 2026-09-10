@@ -83,6 +83,8 @@ make test
 不得改用系统 `python` / `python3`。环境不满足时立即失败，不降级执行。
 构建不调用供应商、不修改当前测量成绩。输出校验失败会中止；重建会替换整个已标记的生成目录，避免旧页面残留。
 
+解读配图保存在数据目录的 `editorial/moli-webfetch/`（默认 `~/.browser-eval/`），不提交 Git。`research/editorial-figures.json` 登记文件指纹、用途及语言版本；构建会核验图片并生成在线资源和内嵌图片的独立文章。变更配图须重新核对图中文字、数字和对应测量记录，再更新指纹。
+
 参考与评分规则更新时，依次执行 `uv run --frozen python scripts/prepare_references.py`、`uv run --frozen python scripts/rescore_content.py`，再构建报告。前者仅规范化评分参考，原始源页快照不改；后者校验每份原始输出的 SHA-256，并仅重新计算机械评分，不调用供应商。零宽排版字符、Unicode 和 Markdown 可见文本规则对所有方法一致；真正缺失的内容不能用模糊相似度放行。运行 ID 根据执行记录及开始时间稳定生成，区别于详情中供应商返回的请求 ID。
 
 采用统计用 `uv run --frozen python research/search_method_adoption.py` 发现候选，再统一核验；`uv run --frozen python research/refresh_adoption_candidates.py` 可复查已有候选。候选文件目录独立保留，暂时未达星数或活跃条件不丢失；只有完整核验成功才原子替换当前统计。原始发现快照仅作候选来源，计数以当前默认分支文件证据为准，不能解释为全网生产用户数。

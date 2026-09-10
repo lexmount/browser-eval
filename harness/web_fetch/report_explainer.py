@@ -17,7 +17,7 @@ from .safety import contained_path, safe_identifier
 
 
 TITLE = '网页抓取成功之后，内容离可用还有多远'
-HEADLESS_TITLE = 'Moli 1.1.1 的 Web Fetch 表现：五款浏览器、150 个任务'
+HEADLESS_TITLE = 'Moli Web Fetch 实测：五款浏览器，150 道任务'
 from .publication_target import HUB
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).parent / 'templates/interpretation.html'
@@ -606,6 +606,10 @@ def _render_headless(out, cases, records):
     cases_links = ' · '.join(_attempt(rows['moli'][cid], name) for cid,name in [('document-01','PDF 正文'),('image-10','PNG 原文件'),('challenge-01','商品列表')] if cid in rows.get('moli',{}))
     from .report_article_cases import render_article_cases
     data['editorial'] = {'providers':selected,'version_selection':'Moli 1.1.1 selected after observing version totals; one complete version, no per-case selection','totals':totals,'groups':group_data,'disagreements':dict(disagreement),'full_reference_quality':quality_data}
+    latency_rows = {row['provider']: row for row in main_speed['rows']}
+    reductions = {metric: (1 - latency_rows['moli'][metric] / latency_rows['chromium'][metric]) * 100
+                  for metric in ('mean_ms', 'p50_ms', 'p95_ms')}
+    data['editorial']['chromium_latency_reduction_pct'] = reductions
     values = {
         'time_window': escape(' 至 '.join(
             datetime.fromisoformat(t).astimezone(timezone.utc).strftime('%Y-%m-%d')
@@ -639,12 +643,18 @@ def _render_headless(out, cases, records):
         'moli_docs': str(data['tracks']['document']['providers']['moli']['passed']),
         'chromium_docs': str(data['tracks']['document']['providers']['chromium']['passed']),
         'quality_count': str(quality_data['moli']['cases']),
+        'mean_reduction': f'{reductions["mean_ms"]:.1f}',
+        'p50_reduction': f'{reductions["p50_ms"]:.1f}',
+        'p95_reduction': f'{reductions["p95_ms"]:.1f}',
     }
+    from .report_article_figures import render_article_figures
+    online_figures, embedded_figures, data['editorial_figures'] = render_article_figures(out)
     template = Template((Path(__file__).parent/'templates/interpretation-headless.html').read_text())
-    body = template.substitute(values)
+    body = template.substitute(values | online_figures)
+    standalone_body = template.substitute(values | embedded_figures)
     contained_path(out,'guide').mkdir(parents=True,exist_ok=True)
     contained_path(out,'guide/interpretation-evidence.json').write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
-    contained_path(out,'guide/article.html').write_text('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+f'<title>{escape(HEADLESS_TITLE)}</title></head><body class="standalone-article">{body}</body></html>')
+    contained_path(out,'guide/article.html').write_text('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+f'<title>{escape(HEADLESS_TITLE)}</title></head><body class="standalone-article">{standalone_body}</body></html>')
     return body + '<aside id="evidence" class="m-downloads"><a href="article.html" download="moli-web-fetch.html">下载独立 HTML</a> · <a href="interpretation-evidence.json" download>本文计算明细</a></aside>'
 
 

@@ -92,7 +92,27 @@ class ReportRevisionTests(unittest.TestCase):
   translated=localize_html(markup,PurePosixPath('guide/article.html'))
   self.assertIn('aria-label="Article contents"',translated)
   self.assertIn('data-evidence="文章目录"',translated)
-  self.assertIn('alt="文章目录"',translated)
+  self.assertIn('alt="Article contents"',translated)
   self.assertIn('src="data:image/png;base64,YQ=="',translated)
   other=localize_html(markup,PurePosixPath('attempts/example.html'))
   self.assertIn('aria-label="文章目录"',other)
+  self.assertIn('alt="文章目录"',other)
+ def test_article_selects_localized_assets_before_rewriting_relative_urls(self):
+  from pathlib import PurePosixPath
+  from harness.web_fetch.report_i18n import localize_html
+  markup='<a href="figures/zh.png" data-en-href="figures/en.png"><img src="figures/zh.png" data-en-src="figures/en.png" alt="文章目录" data-evidence="原始证据"></a>'
+  for route in ('guide/index.html','guide/article.html'):
+   translated=localize_html(markup,PurePosixPath(route))
+   self.assertIn('href="../../guide/figures/en.png"',translated)
+   self.assertIn('src="../../guide/figures/en.png"',translated)
+   self.assertNotIn('data-en-',translated)
+   self.assertIn('data-evidence="原始证据"',translated)
+ def test_article_embedded_assets_and_measured_markup_stay_distinct(self):
+  from pathlib import PurePosixPath
+  from harness.web_fetch.report_i18n import localize_html
+  markup='<img src="data:image/png;base64,YQ==" data-en-src="data:image/png;base64,Yg==" alt="文章目录"><pre><img src="data:image/png;base64,YQ==" alt="文章目录"></pre>'
+  translated=localize_html(markup,PurePosixPath('guide/article.html'))
+  self.assertIn('src="data:image/png;base64,Yg==" alt="Article contents"',translated)
+  self.assertIn('<pre><img src="data:image/png;base64,YQ==" alt="文章目录"></pre>',translated)
+  outside=localize_html(markup,PurePosixPath('attempts/example.html'))
+  self.assertIn('src="data:image/png;base64,YQ==" data-en-src="data:image/png;base64,Yg=="',outside)

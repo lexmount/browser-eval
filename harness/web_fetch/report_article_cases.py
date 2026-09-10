@@ -26,7 +26,7 @@ CASE_TITLES = {
     'document-01': 'Attention Is All You Need 论文',
     'challenge-01': 'Anthropologie 蜡烛列表',
     'image-10': 'httpbin PNG 文件',
-    'video-02': 'MDN 视频播放文件',
+    'video-02': 'MDN 视频链接',
 }
 
 

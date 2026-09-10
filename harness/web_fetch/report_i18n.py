@@ -31,6 +31,8 @@ NAV = [
 # Exact editorial translations take priority.  Dynamic evidence (task names,
 # references and provider output) is deliberately absent from this catalog.
 TEXT = {
+    "打开完整图片": "Open full-size image",
+    "下载图片": "Download image",
     "综合任务通过率": "Overall task pass rate",
     "五款浏览器综合通过率。每款执行相同的 150 道任务，每题等权；分组列为通过数 / 本组任务数。": "Overall pass rates for five browsers. Each runs the same 150 equally weighted tasks; group columns show tasks passed / tasks in that group.",
     "从输入到交付共 2.44 秒，包含流程开销。本题预先声明为 PDF 文档，未测试未知链接的自动类型识别。": "Input-to-delivery time is 2.44 seconds, including processing overhead. This task is declared as a PDF document in advance; automatic type detection for an unknown URL was not tested.",
@@ -2561,6 +2563,60 @@ TEXT.update({
 })
 
 
+TEXT.update({
+    "Moli Web Fetch 实测：": "Moli Web Fetch benchmark:",
+    "Moli 1.1.1 的任务通过率为 90.0%（135/150），比 Chromium 的 83.3% 高 6.7 个百分点。多完成的 10 道来自文档与媒体：取得 PDF 正文、图片和视频资源，也是 AI 读取网络内容的一部分。": "Moli 1.1.1 has a task pass rate of 90.0% (135/150), 6.7 percentage points above Chromium’s 83.3%. The 10 additional passes come from documents and media: retrieving PDF text, images, and video resources is also part of giving AI access to online content.",
+    "平均耗时减少 · 相对 Chromium": "Mean latency reduction · versus Chromium",
+    "Moli 3.01 秒 / Chromium 5.27 秒": "Moli 3.01 seconds / Chromium 5.27 seconds",
+    "P50 耗时减少 · 相对 Chromium": "P50 latency reduction · versus Chromium",
+    "Moli 2.44 秒 / Chromium 4.58 秒": "Moli 2.44 seconds / Chromium 4.58 seconds",
+    "P95 耗时减少 · 相对 Chromium": "P95 latency reduction · versus Chromium",
+    "Moli 6.03 秒 / Chromium 10.83 秒": "Moli 6.03 seconds / Chromium 10.83 seconds",
+    "耗时比较取五款共同成功的全部 98 道任务，包含内容提取和后处理。主记录跨批次采集，网络与运行时间不同，不能当作受控条件下的内核速度差异。": "The latency comparison uses all 98 tasks passed by all five browsers and includes content extraction and post-processing. Primary records were collected across batches with different network conditions and execution times, so these are not browser-engine speed differences measured under controlled conditions.",
+    "01 这次测什么": "01 What was tested",
+    "02 通过率与耗时": "02 Pass rates and latency",
+    "03 测试方法与实例": "03 Methods and examples",
+    "04 浏览器与测试配置": "04 Browsers and test configurations",
+    "05 失败任务与正文缺失": "05 Failed tasks and missing text",
+    "06 结论与后续测试": "06 Findings and further tests",
+    "Web Fetch 从给定网址取得所需内容，例如论文正文或商品列表；输出通常是 Markdown，也就是带少量格式标记的文字，或供后续工具使用的文件。": "Web Fetch retrieves required content from a given URL, such as a paper’s text or a product list. It typically returns Markdown—text with lightweight formatting—or files for downstream tools.",
+    "Browser Use 则让 AI 根据当前页面决定下一步操作，点击或填写后继续观察，例如搜索商品、筛选规格，再加入购物车。": "Browser Use lets AI decide its next action from the current page, then inspect the result after clicking or filling in a field—for example, searching for products, filtering specifications, and adding an item to the cart.",
+    "文档与媒体的通过率，Moli 为 80.0%（24/30），Chromium 为 46.7%（14/30）。网页类则同为 92.5%（111/120）。": "Document and media pass rates are 80.0% (24/30) for Moli and 46.7% (14/30) for Chromium. Both score 92.5% (111/120) on web tasks.",
+    "其中六道 PDF 题只有 Moli 的本轮配置通过：先取得文件，再由本地 pypdf 提取正文，解析时间也计入耗时。其余四款的本轮 Markdown 输出路线未交回合格正文。": "Six PDF tasks pass only with Moli’s tested configuration: retrieve the file, then extract text using local pypdf, with parsing included in latency. The other four browsers’ tested Markdown output paths do not return acceptable text.",
+    "相同的网页总分来自不同任务：普通网页为 Moli 97.0%、Chromium 99.0%；热门站点为 60.0% 和 40.0%。每组题数见开头的分项成绩。": "Equal web totals come from different tasks: general pages score 97.0% for Moli and 99.0% for Chromium; popular sites score 60.0% and 40.0%, respectively. Group task counts appear in the opening results table.",
+    "98 道共同成功任务的耗时": "Latency across 98 shared successful tasks",
+    "输入都是网址，交付内容可以分为五种。浏览器可采用不同实现，最终按同样的任务要求验收。": "All inputs are URLs, but outputs fall into five types. Browsers may use different implementations, with results checked against the same task requirements.",
+    "网页正文：保留标题、必要内容和指定链接。": "Page text: retain the title, required content, and specified links.",
+    "文档正文：从 PDF 等文件解析文字，覆盖要求的正文区域。": "Document text: extract text from files such as PDFs and cover the required body regions.",
+    "列表记录：名称与字段完整，重复条目只计一次。": "List records: include complete names and fields; count duplicates only once.",
+    "媒体地址：返回目标图片或视频的可用 URL。": "Media URLs: return a usable URL for the target image or video.",
+    "原始文件：交付实际字节，核对格式、大小和文件指纹。": "Original files: deliver actual bytes and verify format, size, and file fingerprint.",
+    "六个评测集的实际结果": "Recorded results from six dataset groups",
+    "六个评测集按内容来源分组，与五种交付类型交叉：动态网页可能交付列表，视频页面可能交付资源地址。下面每组一道实测，展示参考内容、真实输出和逐项判定。": "The six dataset groups are organized by content source and overlap with the five output types: a dynamic page may return a list, while a video page may return a resource URL. One recorded task per group below shows reference content, actual output, and item-level verdicts.",
+    "样本与判定规则": "Samples and acceptance rules",
+    "W3C 标准的访问验证": "Access verification on W3C standards",
+    "延迟加载与 iframe": "Delayed loading and iframes",
+    "后续测试": "Further tests",
+    "MDN 视频链接": "MDN video link"
+})
+
+
+REGEX.insert(0, (
+    re.compile(r"^相对 Chromium，Moli 的平均耗时减少 ([\d.]+)%，P50 减少 ([\d.]+)%，P95 减少 ([\d.]+)%。这三项在五款中均最低；跨批次条件下，尚不能确定差距有多少来自浏览器实现。$"),
+    r"Compared with Chromium, Moli reduces mean latency by \1%, P50 by \2%, and P95 by \3%. All three are the lowest of the five; with collection across batches, the share of the difference attributable to browser implementation remains uncertain.",
+))
+
+
+TEXT.update({
+    "五款浏览器的通过率、Moli 相对 Chromium 的耗时减少比例，以及文档与媒体的通过数。": "Pass rates for five browsers, Moli’s latency reductions relative to Chromium, and document and media pass counts.",
+    "本轮结果汇总。耗时减少比例以 Chromium 为基准，取 98 道共同成功任务。": "Results from this run. Latency reductions use Chromium as the baseline across 98 shared successful tasks.",
+    "上方读取论文内容，下方搜索商品、筛选并加入购物车，对比 Web Fetch 与 Browser Use。": "Web Fetch retrieves a paper above; Browser Use searches, filters, and adds a product to the cart below.",
+    "以读论文和购物为例，说明读取内容与连续操作的区别。图中页面为流程示意。": "Reading a paper and shopping illustrate content retrieval versus a sequence of actions. Pages in the image are workflow illustrations.",
+    "五行分别展示网页正文、文档文字、列表记录、媒体地址和原始文件的获取与交付。": "Five rows show retrieval and delivery of page text, document text, list records, media URLs, and original files.",
+    "按最终交付物区分任务；图中页面为流程示意，下面的案例展示实测输出。": "Tasks are distinguished by their final outputs. Pages in the image illustrate workflows; the cases below show recorded outputs."
+})
+
+
 def translate_text(value: str) -> str:
     leading = value[:len(value) - len(value.lstrip())]
     trailing = value[len(value.rstrip()):]
@@ -2596,17 +2652,31 @@ class Localizer(HTMLParser):
 
     def _start_tag(self, attrs) -> str:
         original = self.get_starttag_text()
-        # Article navigation and table descriptions are authored interface text.
-        # Keep every other attribute, including measured evidence, untouched.
         if self.source not in {PurePosixPath("guide/index.html"), PurePosixPath("guide/article.html")}:
             return original
-        label = dict(attrs).get("aria-label")
-        if label not in TEXT:
+        if any(tag in self.stack for tag in ("pre", "code", "script", "style")):
             return original
-        translated = html.escape(TEXT[label], quote=True)
-        return re.sub(r'''(\baria-label\s*=\s*)(["']).*?\2''',
-                      lambda match: match.group(1) + match.group(2) + translated + match.group(2),
-                      original, flags=re.S)
+        values = dict(attrs)
+
+        def replace_attribute(markup, name, value):
+            pattern = re.compile(r'''(?<![\w:-])(''' + re.escape(name)
+                                 + r'''\s*=\s*)(?:"[^"]*"|'[^']*'|[^\s>]+)''', re.S)
+            return pattern.sub(lambda match: match.group(1) + '"'
+                               + html.escape(value, quote=True) + '"', markup)
+
+        # The renderer supplies both language assets. Localization only selects
+        # an existing URL; it never reads files or modifies measured evidence.
+        for name in ("src", "href"):
+            alternate = values.get("data-en-" + name)
+            if alternate is not None:
+                original = replace_attribute(original, name, alternate)
+        original = re.sub(r'''\s+data-en-[\w-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?''',
+                          "", original, flags=re.S)
+        for name in ("aria-label", "alt"):
+            label = values.get(name)
+            if label in TEXT:
+                original = replace_attribute(original, name, TEXT[label])
+        return original
 
     def handle_decl(self, decl: str) -> None:
         self.parts.append(f"<!{decl}>")
