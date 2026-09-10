@@ -156,6 +156,12 @@ def _validate_step(task_id: str, index: int, step: Any) -> dict[str, Any]:
         raise ValueError(f"{task_id}: {action} call {index} requires name")
     if action == "get_table_column" and not str(step.get("header") or "").strip():
         raise ValueError(f"{task_id}: get_table_column call {index} requires header")
+    if action == "get_table_column" and step.get("wait_for_value_regex") is not None:
+        pattern = step["wait_for_value_regex"]
+        if not isinstance(pattern, str) or not pattern:
+            raise ValueError(
+                f"{task_id}: get_table_column call {index} requires a non-empty value regex"
+            )
     if action in {
         "navigate",
         "snapshot",

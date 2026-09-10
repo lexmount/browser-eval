@@ -214,6 +214,51 @@ def test_response_builder_zip_fails_closed_on_unequal_or_non_array_columns():
         )
 
 
+def test_response_builder_filters_aligned_observed_rows_by_requested_value():
+    response = build_agent_response(
+        _task(
+            {
+                "kind": "observed_json_filter_zip",
+                "task_type": "retrieve",
+                "fields": {"name": "names", "email": "emails"},
+                "filter_output": "phones",
+                "filter_regex": r"^8015551212$",
+            }
+        ),
+        {
+            "names": '["Ada", "Grace"]',
+            "emails": '["ada@example.test", "grace@example.test"]',
+            "phones": '["8015551212", "2125550100"]',
+        },
+    )
+
+    assert response is not None
+    assert response["retrieved_data"] == [
+        {"name": "Ada", "email": "ada@example.test"}
+    ]
+
+
+def test_response_builder_ranks_observed_labels_by_numeric_score():
+    response = build_agent_response(
+        _task(
+            {
+                "kind": "observed_ranked_labels",
+                "task_type": "retrieve",
+                "labels_output": "labels",
+                "scores_output": "uses",
+                "limit": 3,
+            }
+        ),
+        {
+            "labels": '["third", "first", "second", "fourth"]',
+            "uses": '["30", "100 uses", "55", "2"]',
+        },
+    )
+
+    assert response is not None
+    assert response["retrieved_data"] == ["first", "second", "third"]
+
+
 def test_response_builder_extracts_authors_only_from_matching_observed_reviews():
     response = build_agent_response(
         _task(

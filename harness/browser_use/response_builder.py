@@ -115,6 +115,64 @@ def build_agent_response(task: BrowserTask, outputs: dict[str, str]) -> dict[str
             {field: values[index] for field, values in columns.items()}
             for index in range(next(iter(lengths)))
         ]
+    elif kind == "observed_json_filter_zip":
+        fields = config.get("fields")
+        filter_output = str(config.get("filter_output") or "")
+        filter_regex = config.get("filter_regex")
+        if (
+            not isinstance(fields, dict)
+            or not fields
+            or filter_output not in outputs
+            or not isinstance(filter_regex, str)
+            or not filter_regex
+        ):
+            raise ValueError(
+                "observed_json_filter_zip requires fields, filter_output and filter_regex"
+            )
+        columns = {}
+        for field, raw_name in fields.items():
+            output_name = str(raw_name)
+            if output_name not in outputs:
+                raise ValueError(f"response builder output is missing: {output_name}")
+            value = json.loads(outputs[output_name])
+            if not isinstance(value, list):
+                raise ValueError("observed_json_filter_zip outputs must contain JSON arrays")
+            columns[str(field)] = value
+        filters = json.loads(outputs[filter_output])
+        if not isinstance(filters, list):
+            raise ValueError("observed_json_filter_zip filter must contain a JSON array")
+        lengths = {len(filters), *(len(value) for value in columns.values())}
+        if len(lengths) != 1:
+            raise ValueError("observed_json_filter_zip columns must have equal lengths")
+        retrieved_data = [
+            {field: values[index] for field, values in columns.items()}
+            for index, filter_value in enumerate(filters)
+            if re.search(filter_regex, str(filter_value), flags=re.IGNORECASE)
+        ]
+        if not retrieved_data:
+            raise ValueError("observed_json_filter_zip found no matching rows")
+    elif kind == "observed_ranked_labels":
+        labels_output = str(config.get("labels_output") or "")
+        scores_output = str(config.get("scores_output") or "")
+        limit = int(config.get("limit") or 0)
+        if labels_output not in outputs or scores_output not in outputs or limit < 1:
+            raise ValueError(
+                "observed_ranked_labels requires labels_output, scores_output and positive limit"
+            )
+        labels = json.loads(outputs[labels_output])
+        scores = json.loads(outputs[scores_output])
+        if not isinstance(labels, list) or not isinstance(scores, list):
+            raise ValueError("observed_ranked_labels outputs must contain JSON arrays")
+        if len(labels) != len(scores):
+            raise ValueError("observed_ranked_labels columns must have equal lengths")
+        ranked: list[tuple[float, int, str]] = []
+        for index, (label, score) in enumerate(zip(labels, scores, strict=True)):
+            match = re.search(r"-?[0-9][0-9,]*(?:\.[0-9]+)?", str(score))
+            if match is None:
+                raise ValueError("observed_ranked_labels score is not numeric")
+            ranked.append((float(match.group(0).replace(",", "")), index, str(label)))
+        ranked.sort(key=lambda row: (-row[0], row[1]))
+        retrieved_data = [label for _, _, label in ranked[:limit]]
     elif kind == "observed_review_authors_matching":
         raw_output_names = config.get("outputs")
         if raw_output_names is None:

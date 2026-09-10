@@ -34,6 +34,21 @@ def _builder_outputs(builder: dict[str, Any]) -> set[str]:
         if not isinstance(fields, dict) or not fields:
             raise ValueError("observed_json_zip requires fields")
         names = {str(value) for value in fields.values()}
+    elif kind == "observed_json_filter_zip":
+        fields = builder.get("fields")
+        if not isinstance(fields, dict) or not fields:
+            raise ValueError("observed_json_filter_zip requires fields")
+        names = {str(value) for value in fields.values()}
+        names.add(str(builder.get("filter_output") or ""))
+        if not isinstance(builder.get("filter_regex"), str) or not builder["filter_regex"]:
+            raise ValueError("observed_json_filter_zip requires filter_regex")
+    elif kind == "observed_ranked_labels":
+        names = {
+            str(builder.get("labels_output") or ""),
+            str(builder.get("scores_output") or ""),
+        }
+        if int(builder.get("limit") or 0) < 1:
+            raise ValueError("observed_ranked_labels requires positive limit")
     elif kind == "observed_review_authors_matching":
         raw_names = builder.get("outputs")
         if raw_names is None:

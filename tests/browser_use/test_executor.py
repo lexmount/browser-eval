@@ -401,6 +401,37 @@ def test_table_column_is_selected_by_visible_header_instead_of_position():
     ) in page.calls
 
 
+def test_table_column_can_wait_for_async_filtered_value(monkeypatch):
+    page = FakePage()
+    values = iter((["Loading"], ["8015551212"]))
+
+    class Locator:
+        def evaluate(self, *_args, **_kwargs):
+            return next(values)
+
+    page.locator = lambda _selector: type(
+        "LegacyLocator", (), {"first": property(lambda self: Locator())}
+    )()
+    monotonic = MagicMock(side_effect=(0, 0, 0.1))
+    monkeypatch.setattr("harness.browser_use.executor.time.monotonic", monotonic)
+    monkeypatch.setattr("harness.browser_use.executor.time.sleep", lambda _: None)
+
+    outputs = execute_steps(
+        page,
+        (
+            {
+                "action": "get_table_column",
+                "selector": "table",
+                "header": "Phone",
+                "wait_for_value_regex": r"^8015551212$",
+                "save_as": "phones",
+            },
+        ),
+    )
+
+    assert outputs["phones"] == '["8015551212"]'
+
+
 def test_exact_ground_truth_judge_reports_expected_and_actual():
     assertions = [{"output": "answer", "equals": "unique-73"}]
 

@@ -12,6 +12,28 @@ from typing import Any
 from .suite import validate_selector
 from .targets import locator_for
 
+TABLE_COLUMN_EXPRESSION = r"""(table, options) => {
+  const normalize = value => (value || '').replace(/\s+/g, ' ').trim();
+  const wanted = normalize(options.header).toLowerCase();
+  const headers = Array.from(table.querySelectorAll('thead th'));
+  const matches = headers
+    .map((element, index) => ({index, text: normalize(element.innerText)}))
+    .filter(item => item.text.toLowerCase() === wanted);
+  if (matches.length !== 1) {
+    throw new Error(`table header ${options.header} matched ${matches.length} columns`);
+  }
+  const index = matches[0].index;
+  return Array.from(table.querySelectorAll('tbody tr'))
+    .slice(0, options.maxItems)
+    .map(row => {
+      const cells = row.querySelectorAll('th, td');
+      if (index >= cells.length) {
+        throw new Error('table row does not contain the requested column');
+      }
+      return normalize(cells[index].innerText);
+    });
+}"""
+
 
 def _completed_action_navigation_timeout(exc: Exception) -> bool:
     message = str(exc).lower()
@@ -210,36 +232,35 @@ def execute_steps(
                 max_chars = int(call.get("max_chars", 40_000))
                 observation = json.dumps(values[:max_items], ensure_ascii=False)[:max_chars]
             elif action == "get_table_column":
-                values = locator_for(action_page, call).evaluate(
-                    r"""(table, options) => {
-                      const normalize = value => (value || '').replace(/\s+/g, ' ').trim();
-                      const wanted = normalize(options.header).toLowerCase();
-                      const headers = Array.from(table.querySelectorAll('thead th'));
-                      const matches = headers
-                        .map((element, index) => ({index, text: normalize(element.innerText)}))
-                        .filter(item => item.text.toLowerCase() === wanted);
-                      if (matches.length !== 1) {
-                        throw new Error(
-                          `table header ${options.header} matched ${matches.length} columns`
-                        );
-                      }
-                      const index = matches[0].index;
-                      return Array.from(table.querySelectorAll('tbody tr'))
-                        .slice(0, options.maxItems)
-                        .map(row => {
-                          const cells = row.querySelectorAll('th, td');
-                          if (index >= cells.length) {
-                            throw new Error('table row does not contain the requested column');
-                          }
-                          return normalize(cells[index].innerText);
-                        });
-                    }""",
-                    {
-                        "header": str(call["header"]),
-                        "maxItems": int(call.get("max_items", 1_000)),
-                    },
-                    timeout=timeout,
+                locator = locator_for(action_page, call)
+                options = {
+                    "header": str(call["header"]),
+                    "maxItems": int(call.get("max_items", 1_000)),
+                }
+                wait_pattern = call.get("wait_for_value_regex")
+                wait_timeout = (
+                    timeout
+                    if wait_pattern is None
+                    else min(timeout, int(call.get("wait_timeout_ms", 10_000)))
                 )
+                deadline = time.monotonic() + wait_timeout / 1000
+                while True:
+                    values = locator.evaluate(
+                        TABLE_COLUMN_EXPRESSION,
+                        options,
+                        timeout=min(timeout, wait_timeout),
+                    )
+                    if wait_pattern is None or any(
+                        re.search(str(wait_pattern), str(value), flags=re.IGNORECASE)
+                        for value in values
+                    ):
+                        break
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError(
+                            f"table column {call['header']!r} did not match value regex "
+                            f"{wait_pattern!r}"
+                        )
+                    time.sleep(0.05)
                 observation = json.dumps(values, ensure_ascii=False)[: int(
                     call.get("max_chars", 40_000)
                 )]
