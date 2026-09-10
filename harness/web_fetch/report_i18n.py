@@ -1696,6 +1696,7 @@ PHRASES = {
     "本地项目内置实现；不需要云端抓取 Key。": "Built into the local project; no cloud-retrieval key is required.",
     "注册或登录 Tavily Platform，从控制台复制 API key。": "Register for or sign in to Tavily Platform and copy an API key from the console.",
     "官方快速开始说明每月有 1,000 免费 API credits，无需绑卡。": "The official quickstart states that 1,000 free API credits are available each month with no card required.",
+    "静态网站正文的分类标签与参考来源不足以逐页证明正文必须执行 JavaScript 后才出现。当前输入没有动态网站正文实测，不能把所有网页称为静态任务，也不能把动态类别标签当作浏览器必需的证据。": "General-web category labels and reference sources are not enough to prove, page by page, that body content appears only after JavaScript executes. The current input contains no measured rendered-web cohort, so it cannot label every webpage as static or treat a dynamic category label as evidence that a browser is required.",
 }
 
 
@@ -1756,10 +1757,10 @@ REGEX = [
      lambda match: f"The evaluation does not cover its plan; {match.group(1)} unplanned calls are present"
                    + (f"; {match.group(2)} calls have no pass/fail judgement" if match.group(2) else "")
                    + ". Rankings on this page must not be used for conclusions or publication."),
-    (re.compile(r"^(\d+) 个案例 · (\d+) 种方法 · (\d+) 类分榜与一个综合通过率总榜。$"), r"\1 tasks · \2 methods · \3 family rankings and one overall coverage ranking."),
-    (re.compile(r"^(\d+) 类任务概览$"), r"\1 task families"),
-    (re.compile(r"^(\d+) 类分榜$"), r"Rankings for \1 task families"),
-    (re.compile(r"^(\d+) 类通过数$"), r"Passes across \1 task families"),
+    (re.compile(r"^(\d+) 个案例 · (\d+) 种方法 · (\d+)\s*类分榜与一个综合通过率总榜。$"), r"\1 tasks · \2 methods · \3 family rankings and one overall coverage ranking."),
+    (re.compile(r"^(\d+)\s*类任务概览$"), r"\1 task families"),
+    (re.compile(r"^(\d+)\s*类分榜$"), r"Rankings for \1 task families"),
+    (re.compile(r"^(\d+)\s*类通过数$"), r"Passes across \1 task families"),
     (re.compile(r"^每种方法都执行当前评测集计划的 (\d+) 个任务，每题计一次通过或失败，直接相加；不把耗时、全文质量或任务类别难度混成加权分。总榜适合看整体交付覆盖，具体能力仍应回到 (\d+) 个分榜。$"), r"Every method runs the current dataset's \1 planned tasks. Each task contributes one pass or fail and the results are summed directly; latency, full-text quality, and family difficulty are not blended into a weighted score. The overall ranking shows delivery coverage, while specific capabilities belong in the \2 family rankings."),
     (re.compile(r"^当前报告共 (\d+) 个案例、(\d+) 种方法和 ([\d,]+) 条权威逻辑结果；其中其他 ([\d,]+) 条未被本次文件补测改写。$"), r"The current report contains \1 tasks, \2 methods, and \3 authoritative logical results; the other \4 results were not changed by this file-task rerun."),
     (re.compile(r"^(\d+) 个任务$"), r"\1 tasks"),

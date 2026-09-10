@@ -1,7 +1,6 @@
 """English translations for the first adoption-page narrative shard."""
 
 TEXT = {
-    "中文": "Chinese",
     "Lexmount 两个区域、Firecrawl、Tavily、Exa、Cloudflare；通过各自 API 调用。":
         "Lexmount in both regions, Firecrawl, Tavily, Exa, and Cloudflare; called through their respective APIs.",
     "CowAgent、OpenClaw、DeepSeek Harness；按本轮保留的实现与配置执行。":
