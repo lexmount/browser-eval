@@ -444,7 +444,9 @@ class WebArenaEnvironment:
         """Wait for the image entrypoint's one-time env-ctrl init to exit."""
         deadline = time.monotonic() + timeout_seconds
         while time.monotonic() < deadline:
-            process_table = container.top(ps_args="-eo args")
+            # Docker's remote ``top`` endpoint requires the PID column to be
+            # present even though we only inspect the command text.
+            process_table = container.top(ps_args="-eo pid,args")
             processes = process_table.get("Processes") or []
             active = any(
                 "environment_control.cli init" in " ".join(map(str, row))

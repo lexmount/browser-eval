@@ -538,18 +538,25 @@ def test_site_readiness_rejects_redirect_to_baked_origin(monkeypatch):
 
 
 def test_waits_for_entrypoint_initialization_to_finish(monkeypatch):
+    top_calls = []
     tables = iter(
         (
-            {"Processes": [["python3 -m environment_control.cli init"]]},
-            {"Processes": [["nginx -g daemon off;"]]},
+            {"Processes": [["123", "python3 -m environment_control.cli init"]]},
+            {"Processes": [["456", "nginx -g daemon off;"]]},
         )
     )
-    container = SimpleNamespace(top=lambda **_kwargs: next(tables))
+
+    def top(**kwargs):
+        top_calls.append(kwargs)
+        return next(tables)
+
+    container = SimpleNamespace(top=top)
     monkeypatch.setattr(
         "harness.browser_use.webarena_environment.time.sleep", lambda *_: None
     )
 
     WebArenaEnvironment._wait_container_initialization(container, timeout_seconds=1)
+    assert top_calls == [{"ps_args": "-eo pid,args"}] * 2
 
 
 def test_credentials_resolve_from_environment_without_persisting_values(tmp_path, monkeypatch):
