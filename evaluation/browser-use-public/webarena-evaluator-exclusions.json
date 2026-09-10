@@ -1,0 +1,56 @@
+{
+  "schema": "lex_webarena_evaluator_exclusions/1",
+  "selection_stage": "before_trajectory_qualification_and_browser_measurement",
+  "engine_independent": true,
+  "upstream": {
+    "package": "webarena-verified",
+    "version": "1.2.3",
+    "wheel_sha256": "91a0297a096a343a13ff5e0ebc35c39b3d926b27c4d5a8a57c833681acbc6b7a",
+    "benchmark_commit": "6473f72db5dcefc97b5725b59e734504edc28a21",
+    "module": "webarena_verified/core/evaluation/evaluators/network_event_evaluator.py",
+    "module_sha256": "74bc94874541192d18c6dd221f26599d5279606effc55cf5c059ddce2516c441"
+  },
+  "defects": [
+    {
+      "kind": "navigate_get_discards_expected_xhr",
+      "implementation_behavior": "For a navigate task whose expected HTTP method is GET, v1.2.3 returns only the last main-frame navigation event before matching the configured URL. Expected GET XHR events are therefore unreachable.",
+      "verification_tests": [
+        "tests/browser_use/test_webarena_evaluator.py::test_official_task_678_has_navigate_get_xhr_evaluator_defect",
+        "tests/browser_use/test_webarena_evaluator.py::test_official_task_760_has_navigate_get_xhr_evaluator_defect"
+      ]
+    },
+    {
+      "kind": "single_item_list_rejected_as_alternatives",
+      "implementation_behavior": "Task 811 expects the JSON array assignee_ids=[2330], but v1.2.3 sends that list through NormalizedString without an array schema and rejects every evaluation as an invalid one-item alternatives list.",
+      "verification_tests": [
+        "tests/browser_use/test_webarena_evaluator.py::test_official_task_811_has_invalid_single_item_alternatives_schema"
+      ]
+    }
+  ],
+  "excluded_tasks": [
+    {
+      "task_id": "webarena-678",
+      "evidence_id": "wv-1.2.3-navigate-get-xhr-678",
+      "source_trace_sha256": "b5868b21a13f89cd512c1a92b12bdb04acca04b8cca0d6d1cfef125226795e7e",
+      "expected_event": "GET __SHOPPING_ADMIN__/mui/index/render/ with sales_order_grid query and sales/order referer",
+      "source_trace_observation": "The hash-matched official trace contains no sales_order_grid network event and its recorded actions navigate Reports > Orders rather than the evaluator's Sales > Orders grid path.",
+      "reason": "WebArena-Verified v1.2.3 discards the expected Magento grid XHR before URL matching because the task is typed as navigate+GET; a correct run cannot satisfy the published evaluator."
+    },
+    {
+      "task_id": "webarena-760",
+      "evidence_id": "wv-1.2.3-navigate-get-xhr-760",
+      "source_trace_sha256": "6f2375f0eecc53780288beb67d1a691fdc89ab5b6502fba5898a34132eb98193",
+      "expected_event": "GET /route/v1/... OSRM route XHR with _osm_directions_engine preference",
+      "source_trace_observation": "The hash-matched official trace requests a route from -75.4712794,40.6022059 instead of the evaluator's -75.4716115,40.6022552. It also creates a third page without a recorded replay action although the task declares only two start URLs, then addresses tab_index 2.",
+      "reason": "WebArena-Verified v1.2.3 discards the expected OSRM route XHR before URL and cookie matching because the task is typed as navigate+GET; a correct run cannot satisfy the published evaluator."
+    },
+    {
+      "task_id": "webarena-811",
+      "evidence_id": "wv-1.2.3-invalid-array-schema-811",
+      "source_trace_sha256": "dd0dea5610fa4c8954a2957ad94e49a8cc49a04eed6e6a3e4401209e123ce9a0",
+      "expected_event": "PUT __GITLAB__/a11yproject/a11yproject.com/-/issues/1478.json with $.issue.assignee_ids=[2330]",
+      "source_trace_observation": "The hash-matched official trace contains a GET for issue 1478 but no expected PUT mutation.",
+      "reason": "WebArena-Verified v1.2.3 rejects the published single-item assignee_ids array as an invalid alternatives list before comparing any trace; every otherwise-correct run receives evaluator error."
+    }
+  ]
+}

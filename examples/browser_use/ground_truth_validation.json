@@ -1,7 +1,7 @@
 {
   "schema": "lex_browser_ground_truth_validation/2",
   "dataset": "tasks.v4.json",
-  "dataset_sha256": "1dfee6873d3f62f52de47392b2ca528ce0c3549e0988e50e66e34c9323d5cc26",
+  "dataset_sha256": "a6d9c02ab5e9dca36fe9b9724a95a8338812ef756ae222a63de1705c627099a9",
   "validator": "Codex Desktop in-app Browser Tool",
   "method": "增量标注复核：25 个定义完全未变的任务沿用 2026-09-01 Codex in-app Browser Tool 已验证的逐字答案；5 个新增任务于 2026-09-02 通过同一浏览器工具执行公开页面交互并读取 DOM 文本。每条记录标明来源与核验日期。标注复核不参与正式评测、打分或统计。",
   "started_at": "2026-09-01T10:10:00+08:00",
@@ -435,5 +435,12 @@
         "verified_at": "2026-09-02T12:07:18+08:00"
       }
     }
-  ]
+  ],
+  "schema_migration": {
+    "from": "lex_browser_use_tasks/3",
+    "to": "lex_browser_use_tasks/4",
+    "legacy_dataset_sha256": "1dfee6873d3f62f52de47392b2ca528ce0c3549e0988e50e66e34c9323d5cc26",
+    "semantic_contract_sha256": "4a942da580591c329cd7c97ee08f75482fafaddb3e0976d64150bd55e5417804",
+    "executable_contract_changed": false
+  }
 }

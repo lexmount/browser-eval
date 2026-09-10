@@ -52,12 +52,20 @@ class FakePage:
                 page.calls.append(("get_text", selector))
                 return "Example Domain"
 
+            def all_text_contents(self):
+                page.calls.append(("get_all_text", selector))
+                return [" First ", "Second"]
+
             def select_option(self, value, **kwargs):
                 page.calls.append(("select", selector, value))
 
             def get_attribute(self, name, **kwargs):
                 page.calls.append(("get_attribute", selector, name))
                 return "redbox"
+
+            def evaluate_all(self, expression, name):
+                page.calls.append(("get_all_attribute", selector, name))
+                return ["one", "two"]
 
             def evaluate(self, expression, name, **kwargs):
                 page.calls.append(("get_property", selector, name))
@@ -150,6 +158,41 @@ def test_trace_has_one_record_per_declared_tool_call():
     assert trace[0]["status"] == "pass"
 
 
+def test_default_action_timeout_is_thirty_seconds():
+    page = FakePage()
+
+    class Locator:
+        @property
+        def first(self):
+            return self
+
+        def click(self, **kwargs):
+            page.calls.append(("timeout", kwargs["timeout"]))
+
+    page.locator = lambda _selector: Locator()
+
+    execute_steps(page, ({"action": "click", "selector": "#target"},))
+
+    assert page.calls == [("timeout", 30_000)]
+
+
+def test_page_observer_runs_before_the_measured_action():
+    page = FakePage()
+
+    def observe(action_page):
+        assert action_page is page
+        page.calls.append(("observe",))
+
+    execute_steps(
+        page,
+        ({"action": "navigate", "url": "https://example.com"},),
+        page_observer=observe,
+    )
+
+    assert page.calls[0] == ("observe",)
+    assert page.calls[1] == ("navigate", "https://example.com")
+
+
 def test_history_steps_wait_for_commit_to_support_bfcache_restores():
     page = FakePage()
 
@@ -180,6 +223,30 @@ def test_attribute_and_property_outputs_are_exact_strings():
     )
 
     assert outputs == {"class_name": "redbox", "checked": "true"}
+
+
+def test_multi_element_observations_are_json_arrays():
+    page = FakePage()
+
+    outputs = execute_steps(
+        page,
+        (
+            {
+                "action": "get_all_text",
+                "selector": ".title",
+                "strip": True,
+                "save_as": "titles",
+            },
+            {
+                "action": "get_all_attribute",
+                "selector": ".item",
+                "name": "data-id",
+                "save_as": "ids",
+            },
+        ),
+    )
+
+    assert outputs == {"titles": '["First", "Second"]', "ids": '["one", "two"]'}
 
 
 def test_exact_ground_truth_judge_reports_expected_and_actual():

@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import time
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from contextlib import nullcontext
 from typing import Any
 
 from .suite import validate_selector
+from .targets import locator_for
 
 
 def _body_text(page: Any, timeout: int, limit: int) -> str:
@@ -40,21 +42,35 @@ def _actionability_probe(page: Any, selector: str) -> dict[str, Any]:
     )
 
 
+def _page_for_tab(page: Any, tab_index: int, timeout: int) -> Any:
+    context = getattr(page, "context", None)
+    pages = getattr(context, "pages", None)
+    if pages is None:
+        if tab_index == 0:
+            return page
+        raise TimeoutError(f"tab {tab_index} did not become available")
+    deadline = time.monotonic() + timeout / 1000
+    while len(context.pages) <= tab_index and time.monotonic() < deadline:
+        page.wait_for_timeout(50)
+    if len(context.pages) <= tab_index:
+        raise TimeoutError(f"tab {tab_index} did not become available")
+    return context.pages[tab_index]
+
+
 def execute_steps(
     page: Any,
     tool_calls: Iterable[dict[str, Any]],
     *,
     trace: list[dict[str, Any]] | None = None,
     outputs: dict[str, str] | None = None,
+    page_observer: Callable[[Any], None] | None = None,
 ) -> dict[str, str]:
     """Execute declared calls; implicit readiness waits are internal and not calls."""
     captured = outputs if outputs is not None else {}
     records = trace if trace is not None else []
     for index, call in enumerate(tool_calls, start=1):
         action = call["action"]
-        default_timeout = (
-            30_000 if action == "navigate" else 10_000 if action in {"back", "forward"} else 5_000
-        )
+        default_timeout = 30_000
         timeout = int(call.get("timeout_ms", default_timeout))
         started = time.perf_counter()
         record = {
@@ -69,53 +85,73 @@ def execute_steps(
         records.append(record)
         try:
             validate_selector(call)
+            tab_index = int(call.get("tab_index", 0))
+            action_page = _page_for_tab(page, tab_index, timeout)
+            if page_observer is not None:
+                page_observer(action_page)
             observation = ""
             if action == "navigate":
-                response = page.goto(
+                response = action_page.goto(
                     call["url"],
                     wait_until=call.get("wait_until", "domcontentloaded"),
                     timeout=timeout,
                 )
                 limit = int(call.get("max_chars", 40_000))
-                title_fn = getattr(page, "title", None)
+                title_fn = getattr(action_page, "title", None)
                 title = title_fn() if callable(title_fn) else ""
                 status = getattr(response, "status", "") if response is not None else ""
-                body = _body_text(page, timeout, limit)
+                body = _body_text(action_page, timeout, limit)
                 observation = (
-                    f"Navigated to: {getattr(page, 'url', call['url'])}\n"
+                    f"Navigated to: {getattr(action_page, 'url', call['url'])}\n"
                     f"Title: {title}\nStatus: {status}\n\n--- Page Snapshot ---\n{body}"
                 )
             elif action == "click":
                 navigation = (
-                    page.expect_navigation(
+                    action_page.expect_navigation(
                         wait_until=call.get("wait_until", "domcontentloaded"), timeout=timeout
                     )
                     if call.get("wait_for_navigation")
                     else nullcontext()
                 )
                 with navigation:
-                    page.locator(call["selector"]).first.click(timeout=timeout)
+                    locator_for(action_page, call).click(timeout=timeout)
                 observation = "Clicked successfully."
+            elif action == "double_click":
+                locator_for(action_page, call).dblclick(timeout=timeout)
+                observation = "Double-clicked successfully."
             elif action == "fill":
-                page.locator(call["selector"]).first.fill(
-                    str(call.get("text", "")), timeout=timeout
-                )
+                if (call.get("source") or {}).get("unresolved_external_input"):
+                    raise ValueError("trajectory contains unresolved external input")
+                locator_for(action_page, call).fill(str(call.get("text", "")), timeout=timeout)
                 observation = "Filled text successfully."
             elif action == "select":
                 navigation = (
-                    page.expect_navigation(
+                    action_page.expect_navigation(
                         wait_until=call.get("wait_until", "domcontentloaded"), timeout=timeout
                     )
                     if call.get("wait_for_navigation")
                     else nullcontext()
                 )
                 with navigation:
-                    page.locator(call["selector"]).first.select_option(
-                        str(call.get("value", "")), timeout=timeout
+                    selected = call.get("value", "")
+                    selected = (
+                        [str(value) for value in selected]
+                        if isinstance(selected, list)
+                        else str(selected)
                     )
+                    locator_for(action_page, call).select_option(selected, timeout=timeout)
                 observation = f"Selected option {call.get('value', '')}."
+            elif action == "check":
+                locator_for(action_page, call).check(timeout=timeout)
+                observation = "Checked successfully."
+            elif action == "uncheck":
+                locator_for(action_page, call).uncheck(timeout=timeout)
+                observation = "Unchecked successfully."
+            elif action == "hover":
+                locator_for(action_page, call).hover(timeout=timeout)
+                observation = "Hovered successfully."
             elif action == "get_text":
-                locator = page.locator(call["selector"]).first
+                locator = locator_for(action_page, call)
                 expected_text = call.get("wait_for_text")
                 if isinstance(expected_text, str):
                     wait_timeout = min(timeout, int(call.get("wait_timeout_ms", 5_000)))
@@ -136,13 +172,28 @@ def execute_steps(
                 if call.get("strip"):
                     observation = observation.strip()
                 observation = observation[: int(call.get("max_chars", 40_000))]
+            elif action == "get_all_text":
+                values = locator_for(action_page, call, all_matches=True).all_text_contents()
+                if call.get("strip"):
+                    values = [value.strip() for value in values]
+                max_items = int(call.get("max_items", 1_000))
+                max_chars = int(call.get("max_chars", 40_000))
+                observation = json.dumps(values[:max_items], ensure_ascii=False)[:max_chars]
             elif action == "get_attribute":
-                value = page.locator(call["selector"]).first.get_attribute(
+                value = locator_for(action_page, call).get_attribute(
                     str(call["name"]), timeout=timeout
                 )
                 observation = "" if value is None else str(value)
+            elif action == "get_all_attribute":
+                values = locator_for(action_page, call, all_matches=True).evaluate_all(
+                    "(elements, name) => elements.map(element => element.getAttribute(name))",
+                    str(call["name"]),
+                )
+                max_items = int(call.get("max_items", 1_000))
+                max_chars = int(call.get("max_chars", 40_000))
+                observation = json.dumps(values[:max_items], ensure_ascii=False)[:max_chars]
             elif action == "get_property":
-                value = page.locator(call["selector"]).first.evaluate(
+                value = locator_for(action_page, call).evaluate(
                     "(element, name) => element[name]", str(call["name"]), timeout=timeout
                 )
                 if isinstance(value, bool):
@@ -153,23 +204,27 @@ def execute_steps(
                     observation = str(value)
             elif action == "snapshot":
                 selector = str(call.get("selector") or "body")
-                observation = page.locator(selector).first.inner_text(timeout=timeout)
+                observation = action_page.locator(selector).first.inner_text(timeout=timeout)
                 observation = observation[: int(call.get("max_chars", 40_000))]
             elif action == "back":
-                page.go_back(wait_until=call.get("wait_until", "commit"), timeout=timeout)
-                observation = f"Navigated back to: {getattr(page, 'url', '')}"
+                action_page.go_back(wait_until=call.get("wait_until", "commit"), timeout=timeout)
+                observation = f"Navigated back to: {getattr(action_page, 'url', '')}"
             elif action == "forward":
-                page.go_forward(wait_until=call.get("wait_until", "commit"), timeout=timeout)
-                observation = f"Navigated forward to: {getattr(page, 'url', '')}"
+                action_page.go_forward(wait_until=call.get("wait_until", "commit"), timeout=timeout)
+                observation = f"Navigated forward to: {getattr(action_page, 'url', '')}"
             elif action == "scroll":
                 direction = str(call.get("direction", "down"))
                 amount = int(call.get("amount", 700))
                 dx = amount if direction == "right" else -amount if direction == "left" else 0
                 dy = amount if direction == "down" else -amount if direction == "up" else 0
-                page.mouse.wheel(dx, dy)
+                action_page.mouse.wheel(dx, dy)
                 observation = f"Scrolled {direction} by {amount}px."
             elif action == "press":
-                page.keyboard.press(str(call["key"]))
+                target = call.get("target") or call.get("selector")
+                if target:
+                    locator_for(action_page, call).press(str(call["key"]), timeout=timeout)
+                else:
+                    action_page.keyboard.press(str(call["key"]))
                 observation = f"Pressed key: {call['key']}"
             else:
                 raise ValueError(f"unsupported action: {action}")
@@ -185,7 +240,7 @@ def execute_steps(
             selector = call.get("selector")
             if action in {"click", "fill", "select"} and isinstance(selector, str):
                 try:
-                    record["actionability_probe"] = _actionability_probe(page, selector)
+                    record["actionability_probe"] = _actionability_probe(action_page, selector)
                 except Exception as probe_exc:
                     record["actionability_probe_error"] = f"{type(probe_exc).__name__}: {probe_exc}"
             raise

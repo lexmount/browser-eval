@@ -22,6 +22,7 @@ browser-use-eval = [
   "docker>=7,<8",
   "playwright>=1.52,<2",
   "tiktoken>=0.7,<1",
+  "webarena-verified==1.2.3",
 ]
 test = [
   "pytest>=8,<10",

@@ -14,6 +14,32 @@ Requirements:
   and Internet access for dependencies, images, and measured public websites
 - Docker access for the current user
 
+Measured runs require Docker to expose the cgroup v2 CPU quota controller. A
+rootless daemon whose `docker info` reports `No cpu cfs quota support` fails
+before creating a measured attempt; the harness does not silently drop the
+configured CPU limit. Operators may set
+`BROWSER_USE_SMOKE_WITHOUT_CPU_LIMIT=1` only with the opt-in real-container
+smoke test to diagnose image, CDP, navigation, and HAR behavior. That mode is
+not a qualification or benchmark run and cannot produce measured results.
+
+For rootless Docker managed by systemd, fix the host rather than weakening the
+run contract. Add a drop-in for the concrete user manager instance (replace
+`<uid>`), then reload and restart it:
+
+    sudo install -d -m 0755 /etc/systemd/system/user@<uid>.service.d
+    printf '[Service]\nDelegate=cpu cpuset io memory pids\n' \
+      | sudo tee /etc/systemd/system/user@<uid>.service.d/50-browser-eval-delegate.conf \
+      >/dev/null
+    sudo systemctl daemon-reload
+    sudo systemctl restart user@<uid>.service
+
+The change is accepted only when both checks pass: `systemctl cat
+user@<uid>.service` lists the drop-in, and `systemctl show user@<uid>.service
+-p DelegateControllers` includes `cpu` and `cpuset`. Finally, `docker info`
+must no longer report missing CPU CFS quota support. Running the commands on a
+different host, or creating a drop-in that `systemctl cat` does not list, does
+not change the evaluation host.
+
 Run:
 
     ./examples/browser_use/run.sh
@@ -35,6 +61,12 @@ Both Dockerfiles pin the same Debian multi-architecture base-image digest. The
 run manifest records the resulting image IDs and browser versions so a
 reproducer can identify binary drift; Debian security packages and public-site
 content remain external variables rather than being silently treated as fixed.
+`DEBIAN_MIRROR` and `DEBIAN_SECURITY_MIRROR` build arguments may select a
+faster signed Debian mirror; their concrete values are embedded as image labels
+and copied into the run manifest. The Moli build may also read a predownloaded
+`moli-<target>-<MOLI_VERSION>.tar.gz` from a read-only build context. It always
+checks the release SHA-256 and the mounted archive is not copied into a separate
+image layer; when absent, the build downloads the same pinned GitHub release.
 
 Outputs:
 
@@ -61,6 +93,11 @@ Neither command invokes Codex or another coding agent for scoring or
 statistics.
 
 ## Protocol
+
+The common task, trajectory, evidence, and evaluator contract is specified in
+[`docs/browser-use-protocol.md`](../../docs/browser-use-protocol.md). It is shared by the existing
+repository-curated suite and the public WebArena trajectory suite; the two suites retain separate
+result denominators.
 
 - Element-targeted calls require a non-empty string `selector`. Snapshot `ref`
   identifiers are not resolved by this deterministic runner.
