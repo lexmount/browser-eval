@@ -3,6 +3,7 @@ from pathlib import Path, PurePosixPath
 
 import harness.browser_use.report as report_module
 from harness.browser_use.report_i18n import localize_html
+from harness.browser_use.selection import load_pilot
 from harness.browser_use.report import (
     _action_duration_cards,
     _best,
@@ -379,7 +380,10 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
         assert page.is_file()
         if name not in {"guide/article.html", "en/index.html"}:
             assert "切换主题" in page.read_text(encoding="utf-8")
-    assert len(list((output / "datasets").glob("[0-9]*.html"))) == 30
+    expected_tasks = len(
+        load_pilot("evaluation/browser-use/webarena-verified-pilot.json").tasks
+    )
+    assert len(list((output / "datasets").glob("[0-9]*.html"))) == expected_tasks
     assert (output / "guide/article.html").read_text(encoding="utf-8").find("<script") == -1
     report_data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
     assert "evidence" not in report_data
