@@ -440,6 +440,35 @@ def _materialize_task(task: BrowserTask, fixture_origin: str) -> BrowserTask:
     )
 
 
+def _bounded_authoring_task(task: BrowserTask, timeout_ms: int = 5_000) -> BrowserTask:
+    """Cap diagnostic target waits even for ad-hoc repaired authoring suites."""
+    calls: list[dict[str, Any]] = []
+    for raw in task.tool_calls:
+        call = dict(raw)
+        if call.get("selector") is not None or isinstance(call.get("target"), dict):
+            call["timeout_ms"] = min(int(call.get("timeout_ms", timeout_ms)), timeout_ms)
+        if isinstance(call.get("target"), dict):
+            call["target_timeout_ms"] = min(
+                int(call.get("target_timeout_ms", timeout_ms)), timeout_ms
+            )
+        calls.append(call)
+    trajectory = dict(task.trajectory or {})
+    trajectory["actions"] = calls
+    return BrowserTask(
+        task_id=task.task_id,
+        title=task.title,
+        tool_calls=tuple(calls),
+        assertions=task.assertions,
+        tags=task.tags,
+        difficulty=task.difficulty,
+        ground_truth=task.ground_truth,
+        source=task.source,
+        evaluator=task.evaluator,
+        environment=task.environment,
+        trajectory=trajectory,
+    )
+
+
 def _environment(client: Any, containers: dict[str, Any]) -> dict[str, Any]:
     info = client.info()
     version_commands = {"chromium": ["chromium", "--version"], "moli": ["moli", "--version"]}
@@ -709,6 +738,8 @@ def run_evaluation(
 
         for task_index, declared_task in enumerate(runnable_tasks):
             task = _materialize_task(declared_task, fixture_origin)
+            if trajectory_authoring_run:
+                task = _bounded_authoring_task(task)
             engine_order = (
                 engines if len(engines) == 1 or task_index % 2 == 0 else tuple(reversed(engines))
             )

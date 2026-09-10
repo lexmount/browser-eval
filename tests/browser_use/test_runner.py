@@ -24,6 +24,33 @@ from harness.browser_use.runner import (
 from harness.browser_use.suite import BrowserTask, TaskSuite
 
 
+def test_authoring_runtime_caps_ad_hoc_repair_target_waits():
+    task = BrowserTask(
+        task_id="webarena-1",
+        title="Task",
+        tool_calls=(
+            {"action": "click", "selector": "#target", "timeout_ms": 30_000},
+            {
+                "action": "click",
+                "target": {"by": "role", "role": "button", "name": "Open"},
+            },
+        ),
+        assertions=(),
+        tags=("retrieve",),
+        difficulty="simple",
+        ground_truth={},
+        source={},
+        trajectory={"schema": "lex_browser_trajectory/1", "actions": []},
+    )
+
+    bounded = runner._bounded_authoring_task(task)
+
+    assert bounded.tool_calls[0]["timeout_ms"] == 5_000
+    assert bounded.tool_calls[1]["timeout_ms"] == 5_000
+    assert bounded.tool_calls[1]["target_timeout_ms"] == 5_000
+    assert bounded.trajectory["actions"] == list(bounded.tool_calls)
+
+
 def test_browser_engines_publish_their_external_cdp_ports():
     assert ENGINE_PORTS == {"chromium": 9223, "moli": 9222}
 
