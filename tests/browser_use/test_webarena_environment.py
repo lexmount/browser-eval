@@ -50,6 +50,9 @@ class _Container:
             output=b'{"success": true, "message": "configured", "details": {}}',
         )
 
+    def top(self, **_kwargs):
+        return {"Processes": []}
+
 
 class _Containers:
     def __init__(self, container, name="webarena_verified_shopping_admin"):
@@ -236,20 +239,10 @@ def test_stateful_reset_recreates_container_from_pinned_image(tmp_path, monkeypa
     assert result["sites"]["shopping_admin"]["reset"] == ("container_recreated_from_pinned_image")
     assert result["sites"]["shopping_admin"]["repo_digests"] == [pinned]
     assert result["sites"]["shopping_admin"]["external_url_configuration"] == {
-        "external_url": "http://host.docker.internal:17780"
+        "external_url": "http://host.docker.internal:17780",
+        "mode": "entrypoint_init_verified",
     }
-    assert docker_client.containers.container.exec_calls == [
-        (
-            [
-                "env-ctrl",
-                "--verbose",
-                "init",
-                "--base-url",
-                "http://host.docker.internal:17780",
-            ],
-            False,
-        )
-    ]
+    assert docker_client.containers.container.exec_calls == []
 
 
 def test_gitlab_reset_preserves_internal_port_and_sets_external_url(tmp_path, monkeypatch):
@@ -315,22 +308,11 @@ def test_gitlab_reset_preserves_internal_port_and_sets_external_url(tmp_path, mo
 
     assert captured["config"].host_port == 18023
     assert captured["config"].container_port == 8023
-    assert docker_client.containers.container.exec_calls == [
-        (
-            [
-                "env-ctrl",
-                "--verbose",
-                "init",
-                "--base-url",
-                "http://10.2.131.41:18023",
-            ],
-            False,
-        )
-    ]
+    assert docker_client.containers.container.exec_calls == []
 
 
 @pytest.mark.parametrize("site", ["shopping_admin", "shopping", "reddit", "gitlab"])
-def test_stateful_backend_disables_duplicate_entrypoint_reconfigure(site):
+def test_stateful_backend_lets_entrypoint_configure_external_origin_once(site):
     calls = []
 
     class Containers:
@@ -350,7 +332,6 @@ def test_stateful_backend_disables_duplicate_entrypoint_reconfigure(site):
     assert calls[0][1]["ports"] == {"8023/tcp": 18023, "8877/tcp": 18024}
     assert calls[0][1]["environment"] == {
         "WA_ENV_CTRL_EXTERNAL_SITE_URL": "http://10.2.131.41:18023",
-        "WA_ENV_CTRL_SKIP_RECONFIGURE": "true",
     }
 
 
@@ -522,6 +503,53 @@ def test_site_readiness_requires_two_successful_browser_facing_requests(monkeypa
     WebArenaEnvironment._wait_site_ready("http://site.test/", timeout_seconds=1)
 
     assert calls == [("http://site.test/", 30), ("http://site.test/", 30)]
+
+
+def test_site_readiness_rejects_redirect_to_baked_origin(monkeypatch):
+    class Response:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def geturl(self):
+            return "http://metis.example:7780/admin"
+
+    ticks = iter((0.0, 0.0, 2.0))
+    monkeypatch.setattr(
+        "harness.browser_use.webarena_environment.urllib.request.urlopen",
+        lambda *_args, **_kwargs: Response(),
+    )
+    monkeypatch.setattr(
+        "harness.browser_use.webarena_environment.time.monotonic",
+        lambda: next(ticks),
+    )
+    monkeypatch.setattr(
+        "harness.browser_use.webarena_environment.time.sleep", lambda *_: None
+    )
+
+    with pytest.raises(RuntimeError, match="unexpected origin"):
+        WebArenaEnvironment._wait_site_ready(
+            "http://site.test:17780/admin", timeout_seconds=1
+        )
+
+
+def test_waits_for_entrypoint_initialization_to_finish(monkeypatch):
+    tables = iter(
+        (
+            {"Processes": [["python3 -m environment_control.cli init"]]},
+            {"Processes": [["nginx -g daemon off;"]]},
+        )
+    )
+    container = SimpleNamespace(top=lambda **_kwargs: next(tables))
+    monkeypatch.setattr(
+        "harness.browser_use.webarena_environment.time.sleep", lambda *_: None
+    )
+
+    WebArenaEnvironment._wait_container_initialization(container, timeout_seconds=1)
 
 
 def test_credentials_resolve_from_environment_without_persisting_values(tmp_path, monkeypatch):

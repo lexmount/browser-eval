@@ -22,9 +22,6 @@ from webarena_verified.types.task import WebArenaSite
 from .suite import BrowserTask
 
 STATEFUL_SITES = frozenset({"shopping_admin", "shopping", "reddit", "gitlab"})
-STATEFUL_CONTAINER_NAMES = frozenset(
-    f"webarena_verified_{site}" for site in STATEFUL_SITES
-)
 LEGACY_PORT_SITES = {
     3000: "map",
     4399: "reddit",
@@ -77,11 +74,6 @@ class _DockerClientBackend:
         env_vars: dict[str, str] | None = None,
     ) -> None:
         environment = dict(env_vars or {})
-        if name in STATEFUL_CONTAINER_NAMES:
-            # Configure the public URL exactly once after internal services are
-            # ready.  This avoids a duplicate, I/O-heavy entrypoint rewrite;
-            # GitLab additionally needs its baked internal 8023 port preserved.
-            environment["WA_ENV_CTRL_SKIP_RECONFIGURE"] = "true"
         self.client.containers.run(
             image,
             detach=True,
@@ -114,38 +106,6 @@ class _DockerClientBackend:
             value.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             value.bind(("", 0))
             return int(value.getsockname()[1])
-
-
-def configure_stateful_external_url(
-    container: Any, *, site: str, external_url: str
-) -> dict[str, Any]:
-    """Apply the browser-facing URL after a stateful fixture becomes ready.
-
-    The images advertise ``WA_ENV_CTRL_EXTERNAL_SITE_URL`` support, but some
-    released Magento/Postmill images can still retain their baked CMU origin.
-    Running the same idempotent env-ctrl initialization explicitly makes the
-    redirect target part of the reset receipt instead of trusting entrypoint
-    behavior that cannot be observed from the outside.
-    """
-    result = container.exec_run(
-        ["env-ctrl", "--verbose", "init", "--base-url", external_url],
-        demux=False,
-    )
-    output = result.output.decode("utf-8", errors="replace") if result.output else ""
-    if result.exit_code != 0:
-        raise RuntimeError(
-            f"{site} external URL configuration failed with exit {result.exit_code}: {output}"
-        )
-    try:
-        payload = json.loads(output)
-    except json.JSONDecodeError as exc:
-        raise RuntimeError(f"{site} external URL configuration returned invalid JSON") from exc
-    if payload.get("success") is not True:
-        raise RuntimeError(f"{site} external URL configuration failed: {payload}")
-    receipt: dict[str, Any] = {"external_url": external_url}
-    if site == "gitlab":
-        receipt["internal_port"] = 8023
-    return receipt
 
 
 class WebArenaEnvironment:
@@ -431,18 +391,18 @@ class WebArenaEnvironment:
                     "image_id": container.image.id,
                     "repo_digests": sorted(container.image.attrs.get("RepoDigests") or []),
                 }
-                # Wait for the image's internal services, then explicitly apply
-                # the browser-facing origin.  This is required for GitLab's
-                # preserved 8023 listener and also guards against Magento or
-                # Postmill retaining a baked metis.lti.cs.cmu.edu redirect.
+                # The official entrypoint already runs env-ctrl init with
+                # WA_ENV_CTRL_EXTERNAL_SITE_URL. A second explicit init can
+                # overlap Magento/GitLab reconfiguration and stall the daemon.
                 self._wait_ready(url, timeout_seconds=timeout_seconds)
-                receipts[site]["external_url_configuration"] = (
-                    configure_stateful_external_url(
-                        container,
-                        site=site,
-                        external_url=started.url,
-                    )
+                self._wait_container_initialization(
+                    container, timeout_seconds=timeout_seconds
                 )
+                receipts[site]["external_url_configuration"] = {
+                    "external_url": started.url,
+                    "mode": "entrypoint_init_verified",
+                    **({"internal_port": 8023} if site == "gitlab" else {}),
+                }
             else:
                 receipts[site] = {
                     "mode": "local_docker",
@@ -480,6 +440,23 @@ class WebArenaEnvironment:
         raise RuntimeError(f"WebArena environment did not become ready: {last_error}")
 
     @staticmethod
+    def _wait_container_initialization(container: Any, *, timeout_seconds: float) -> None:
+        """Wait for the image entrypoint's one-time env-ctrl init to exit."""
+        deadline = time.monotonic() + timeout_seconds
+        while time.monotonic() < deadline:
+            process_table = container.top(ps_args="-eo args")
+            processes = process_table.get("Processes") or []
+            active = any(
+                "environment_control.cli init" in " ".join(map(str, row))
+                or re.search(r"\benv-ctrl\b.*\binit\b", " ".join(map(str, row)))
+                for row in processes
+            )
+            if not active:
+                return
+            time.sleep(0.5)
+        raise RuntimeError("WebArena entrypoint initialization did not finish")
+
+    @staticmethod
     def _wait_site_ready(url: str, *, timeout_seconds: float) -> None:
         """Require two successful public-site responses after control-plane readiness."""
         deadline = time.monotonic() + timeout_seconds
@@ -489,20 +466,44 @@ class WebArenaEnvironment:
             try:
                 request = urllib.request.Request(url, method="GET")
                 with urllib.request.urlopen(request, timeout=30) as response:
-                    if response.status < 500:
+                    expected = urlparse(url)
+                    observed = urlparse(str(getattr(response, "geturl", lambda: url)()))
+                    same_origin = (
+                        expected.scheme,
+                        expected.hostname,
+                        expected.port,
+                    ) == (observed.scheme, observed.hostname, observed.port)
+                    if response.status < 500 and same_origin:
                         consecutive += 1
                         if consecutive == 2:
                             return
                     else:
                         consecutive = 0
+                        if not same_origin:
+                            last_error = RuntimeError(
+                                f"site redirected to unexpected origin: {observed.geturl()}"
+                            )
             except urllib.error.HTTPError as exc:
-                if exc.code < 500:
+                expected = urlparse(url)
+                observed = urlparse(str(exc.geturl()))
+                same_origin = (
+                    expected.scheme,
+                    expected.hostname,
+                    expected.port,
+                ) == (observed.scheme, observed.hostname, observed.port)
+                if exc.code < 500 and same_origin:
                     consecutive += 1
                     if consecutive == 2:
                         return
                 else:
                     consecutive = 0
-                    last_error = exc
+                    last_error = (
+                        exc
+                        if same_origin
+                        else RuntimeError(
+                            f"site redirected to unexpected origin: {observed.geturl()}"
+                        )
+                    )
             except (OSError, urllib.error.URLError, TimeoutError) as exc:
                 consecutive = 0
                 last_error = exc

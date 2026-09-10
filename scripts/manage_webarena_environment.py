@@ -15,9 +15,7 @@ from webarena_verified.environments.setup import setup_init
 from webarena_verified.types.task import WebArenaSite
 
 from harness.browser_use.webarena_environment import (
-    STATEFUL_SITES,
     _DockerClientBackend,
-    configure_stateful_external_url,
 )
 
 
@@ -141,17 +139,6 @@ def main() -> None:
             )
             container = docker.from_env().containers.get(manager.container_name)
             container.reload()
-            external_url_configuration = None
-            if args.site in STATEFUL_SITES:
-                external_url_configuration = configure_stateful_external_url(
-                    container,
-                    site=args.site,
-                    external_url=started.url,
-                )
-                manager._wait_for_ready(
-                    timeout=args.timeout,
-                    health_check_url=f"{started.url}{config.health_check_path}",
-                )
             daemon_architecture = docker.from_env().info().get("Architecture")
             receipt = {
                 "command": "start",
@@ -166,8 +153,6 @@ def main() -> None:
                 "control_url": started.env_ctrl_url,
                 "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             }
-            if external_url_configuration is not None:
-                receipt["external_url_configuration"] = external_url_configuration
         elif args.command == "status":
             receipt = manager.status().model_dump(mode="json")
         else:
