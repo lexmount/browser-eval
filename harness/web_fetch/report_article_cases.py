@@ -59,7 +59,7 @@ def _pre(text, marks=()):
 
 def _row(name, expected, actual, passed):
     return (f'<tr><td class="case-check-name">{escape(str(name))}</td><td>{escape(str(expected))}</td>'
-            f'<td>{escape(str(actual))}</td><td>{"通过" if passed else "未通过"}</td></tr>')
+            f'<td>{escape(str(actual))}</td><td class="{"case-pass" if passed else "case-fail"}">{"通过" if passed else "未通过"}</td></tr>')
 
 
 def _text_example(case, record, output, *, pdf=False):
