@@ -70,6 +70,8 @@ class CdpHarRecorder:
         self._extra_headers: dict[tuple[int, str], list[dict[str, Any]]] = {}
         self._responses: list[tuple[Any, str, dict[str, Any], dict[str, Any]]] = []
         self._finished: set[tuple[int, str]] = set()
+        self._response_bodies: dict[tuple[int, str], dict[str, Any]] = {}
+        self._response_body_errors: dict[tuple[int, str], str] = {}
         self._payload: str | None = None
         self._stopped = False
         self.errors: list[str] = []
@@ -97,8 +99,8 @@ class CdpHarRecorder:
                 )
             }
             for index, (session, request_id, request, response) in enumerate(self._responses):
-                body = None
                 key = (id(session), request_id)
+                body = self._response_bodies.get(key)
                 request = dict(request)
                 ordinal = int(request.pop("__ordinal", 0))
                 extras = self._extra_headers.get(key, [])
@@ -108,20 +110,17 @@ class CdpHarRecorder:
                 if (
                     index == last_response_by_key[key]
                     and key in self._finished
+                    and body is None
                     and (mime_type == "application/json" or mime_type.endswith("+json"))
                 ):
                     try:
                         body = session.send("Network.getResponseBody", {"requestId": request_id})
-                        if body.get("base64Encoded"):
-                            body = {
-                                "body": base64.b64decode(
-                                    body.get("body") or "", validate=True
-                                ).decode("utf-8", errors="replace"),
-                                "base64Encoded": False,
-                            }
+                        body = self._decode_body(body)
                     except Exception as exc:
+                        prior = self._response_body_errors.get(key)
+                        detail = f"{prior}; stop fallback: {exc}" if prior else str(exc)
                         self.errors.append(
-                            f"{request.get('url')}: response body unavailable: {exc}"
+                            f"{request.get('url')}: response body unavailable: {detail}"
                         )
                         body = None
                 entries.append(
@@ -167,7 +166,7 @@ class CdpHarRecorder:
             )
             session.on(
                 "Network.loadingFinished",
-                lambda event: self._finished.add((session_index, str(event["requestId"]))),
+                lambda event: self._record_finished(session, session_index, event),
             )
             session.send("Network.enable")
             self._sessions.append(session)
@@ -193,3 +192,48 @@ class CdpHarRecorder:
         request = self._requests.get((session_index, request_id))
         if request is not None:
             self._responses.append((session, request_id, dict(request), event["response"]))
+
+    @staticmethod
+    def _decode_body(body: dict[str, Any]) -> dict[str, Any]:
+        if body.get("base64Encoded"):
+            return {
+                "body": base64.b64decode(body.get("body") or "", validate=True).decode(
+                    "utf-8", errors="replace"
+                ),
+                "base64Encoded": False,
+            }
+        return body
+
+    def _record_finished(
+        self, session: Any, session_index: int, event: dict[str, Any]
+    ) -> None:
+        """Capture JSON bodies while CDP still retains them.
+
+        Waiting until the whole agent run ends is too late for long tasks: CDP may
+        evict an earlier response body even though the request metadata remains.
+        """
+
+        request_id = str(event["requestId"])
+        key = (session_index, request_id)
+        self._finished.add(key)
+        response = next(
+            (
+                item_response
+                for item_session, item_request_id, _request, item_response in reversed(
+                    self._responses
+                )
+                if id(item_session) == session_index and item_request_id == request_id
+            ),
+            None,
+        )
+        mime_type = str((response or {}).get("mimeType") or "")
+        if mime_type != "application/json" and not mime_type.endswith("+json"):
+            return
+        try:
+            self._response_bodies[key] = self._decode_body(
+                session.send("Network.getResponseBody", {"requestId": request_id})
+            )
+            self._response_body_errors.pop(key, None)
+        except Exception as exc:
+            # stop() retries once before exposing a capture error.
+            self._response_body_errors[key] = str(exc)

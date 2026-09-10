@@ -8,8 +8,10 @@ from harness.browser_use.runner import (
     _allow_official_container_hostname,
     _configure_benchmark,
     _container_host_gateway,
+    _exhausted_agent_steps,
     _limit_cowagent_transport_retries,
     _login_context,
+    _max_steps_response,
     _scheduled_tasks,
     _site_container_manager,
     _site_runtime_compatibility,
@@ -42,6 +44,32 @@ def test_user_prompt_exposes_schema_but_not_reference_answer() -> None:
     assert "task_type: RETRIEVE" in prompt
     assert '"type":"array"' in prompt
     assert "hollister" not in prompt
+
+
+def test_system_contract_fails_empty_retrieve_as_not_found() -> None:
+    from harness.browser_use.runner import _system_prompt
+
+    prompt = _system_prompt()
+    assert "NOT_FOUND_ERROR with retrieved_data null" in prompt
+    assert "search and list pages as candidate sets" in prompt
+    assert "retrieved_data is always a list" not in prompt
+
+
+def test_agent_step_exhaustion_requires_a_final_tool_call() -> None:
+    exhausted = [{"type": "turn_end", "data": {"turn": 40, "has_tool_calls": True}}]
+    completed = [{"type": "turn_end", "data": {"turn": 40, "has_tool_calls": False}}]
+
+    assert _exhausted_agent_steps(exhausted, 40) is True
+    assert _exhausted_agent_steps(completed, 40) is False
+    assert _max_steps_response("retrieve", 40) == {
+        "task_type": "RETRIEVE",
+        "status": "UNKNOWN_ERROR",
+        "retrieved_data": None,
+        "error_details": (
+            "Agent reached the 40-step decision limit before producing "
+            "a tool-free, post-action completion."
+        ),
+    }
 
 
 def test_max_tasks_limits_only_the_current_invocation() -> None:

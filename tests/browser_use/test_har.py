@@ -108,6 +108,49 @@ def test_stop_decodes_base64_json_for_official_har_parser(tmp_path) -> None:
     assert content == {"mimeType": "application/json", "text": '{"items_qty":1}'}
 
 
+def test_recorder_captures_json_body_when_loading_finishes(tmp_path) -> None:
+    class Session:
+        calls = 0
+
+        def send(self, _method, _params):
+            self.calls += 1
+            if self.calls > 1:
+                raise RuntimeError("body already evicted")
+            return {"body": '{"items_qty":1}', "base64Encoded": False}
+
+        def detach(self):
+            pass
+
+    session = Session()
+    recorder = CdpHarRecorder()
+    recorder._sessions.append(session)
+    recorder._record_request(
+        session,
+        id(session),
+        {
+            "requestId": "1",
+            "request": {"method": "GET", "url": "http://example.test/totals"},
+        },
+    )
+    recorder._record_response(
+        session,
+        id(session),
+        {
+            "requestId": "1",
+            "response": {"status": 200, "mimeType": "application/json", "headers": {}},
+        },
+    )
+
+    recorder._record_finished(session, id(session), {"requestId": "1"})
+    path = tmp_path / "network.har"
+    recorder.stop(object(), path)
+
+    content = json.loads(path.read_text())["log"]["entries"][0]["response"]["content"]
+    assert content["text"] == '{"items_qty":1}'
+    assert session.calls == 1
+    assert recorder.errors == []
+
+
 def test_invalid_base64_is_not_written_as_plain_json(tmp_path) -> None:
     class Session:
         def send(self, _method, _params):

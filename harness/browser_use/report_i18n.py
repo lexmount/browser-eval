@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import json
 import posixpath
 import re
 import shutil
@@ -27,6 +28,34 @@ NAV = (
 
 
 TEXT = {
+    "25 比 25 不是同因平局：五个零分包含四类根因": "25 vs. 25 is not a same-cause tie: five zero scores contain four root-cause classes",
+    "同一 CowAgent 与同一模型替换浏览器后，30 个配对任务的官方分数没有出现单边胜出，但逐条追查证明相同分数并不代表相同执行结果。根因分别位于官方任务合同、Agent 完成策略、本项目响应协议和证据采集器；Task 506 的 Chromium 与 Moli 甚至不是同一种失败。": "With the same CowAgent and model and only the browser changed, none of the 30 paired tasks produced a one-sided official-score win. Case-by-case investigation shows that equal scores do not imply equal execution outcomes. Root causes lie in the official task contract, Agent completion policy, this project's response protocol, and the evidence collector; Chromium and Moli did not even fail Task 506 in the same way.",
+    "二、五个零分的根因与修复边界": "2. Root causes and repair boundaries for the five zero scores",
+    "两个浏览器共享 CowAgent、模型、任务合同与 evaluator，但这不意味着共同零分必然来自共同原因。根因审计把“页面上出现了什么”继续追到产生错误的合同、策略或采集实现，并为每项给出必须通过的复测条件。": "The two browsers share CowAgent, the model, task contracts, and evaluator, but shared zero scores do not necessarily share a cause. The root-cause audit traces visible symptoms to the contract, policy, or collection implementation that produced them and defines a required retest gate for each.",
+    "根因": "Root cause",
+    "责任层": "Owning layer",
+    "证据闭环": "Evidence chain",
+    "根治措施": "Corrective action",
+    "复测门槛": "Retest gate",
+    "表 2｜历史官方分数不被人工改写；合同或运行协议修复后必须产生新证据。": "Table 2 | Historical official scores are not manually changed; contract or runtime-protocol fixes require new evidence.",
+    "可执行结论：": "Actionable conclusion:",
+    "#68 因官方 expected 与 schema 冲突而退出下一轮干净 A/B；#142 因类别验收边界未定义而退出，直至补齐可观察口径；#168 修正本项目的空结果状态协议；#124 增加候选语义核验和提交前自检；#506 修复 HAR 即时采集、末步工具调用 fail-closed，并在预注册的 40 步上限下复测。旧的 25/30 仍保留为历史官方分数，但不能再解释成五个同因的 Agent 失败。": "Task 68 leaves the next clean A/B because the official expected value conflicts with its schema. Task 142 leaves until its category acceptance boundary is observable. Task 168 requires the project's zero-result status protocol to be fixed. Task 124 requires candidate-semantic verification and a pre-submit check. Task 506 requires immediate HAR body capture, fail-closed handling of a final-turn tool call, and a retest under a preregistered 40-step ceiling. The old 25/30 remains the historical official score, but it can no longer be interpreted as five same-cause Agent failures.",
+    "根治措施：": "Corrective action:",
+    "共同零分": "Shared zero scores",
+    "不等于共同根因": "Do not imply a shared cause",
+    "根因结论：": "Root-cause conclusion:",
+    "#68 是官方任务合同冲突，#124 是候选语义核验缺失，#142 是类别验收边界未定义，#168 是本项目响应协议错误；#506 的 Chromium 是 HAR 采集误判，Moli 是执行步数与完成确认问题。": "Task 68 is an official task-contract conflict; Task 124 lacks candidate-semantic verification; Task 142 has no defined category acceptance boundary; Task 168 is a response-protocol defect in this project. For Task 506, Chromium was misjudged because of HAR capture, while Moli ran out of decision steps without confirming completion.",
+    "任务合同问题": "Task-contract issues",
+    "2 题": "2 tasks",
+    "#68 schema 冲突；#142 类别口径缺失": "Task 68 has a schema conflict; Task 142 lacks a category criterion.",
+    "Agent 协议与策略": "Agent protocol and policy",
+    "#124 未核验候选；#168 空结果状态错误": "Task 124 did not validate candidates; Task 168 used the wrong zero-result status.",
+    "不同根因的同分": "Equal score, different causes",
+    "1 题": "1 task",
+    "#506：Chromium 采集误判；Moli 未确认完成": "Task 506: Chromium collection false negative; Moli completion was not confirmed.",
+    "处理原则：": "Treatment:",
+    "合同不稳定的任务退出下一轮样本；代码与协议缺陷修复后只通过新执行验证，不覆盖历史官方分数。": "Contract-unstable tasks leave the next cohort. Code and protocol fixes are validated only by new executions and never overwrite historical official scores.",
+    "查看五题根因、证据闭环与复测门槛 →": "View root causes, evidence chains, and retest gates for all five tasks →",
     "首页 · Browser Use 评测": "Home · Browser Use evaluation",
     "Browser Use 评测": "Browser Use evaluation",
     "Chromium 与 Moli：Browser Use 能力实测": "Chromium vs. Moli: a Browser Use capability evaluation",
@@ -388,6 +417,17 @@ TEXT = {
     "中文": "中文",
 }
 
+_FAILURE_ANALYSIS = json.loads(
+    (Path(__file__).parents[2] / "research/browser-use-failure-analysis.json").read_text(
+        encoding="utf-8"
+    )
+)
+for _diagnosis in _FAILURE_ANALYSIS["tasks"].values():
+    for _field in ("root_cause", "owner", "proof", "corrective_action", "verification"):
+        _localized = _diagnosis.get(_field)
+        if isinstance(_localized, dict) and _localized.get("zh") and _localized.get("en"):
+            TEXT[str(_localized["zh"])] = str(_localized["en"])
+
 # Browser Use-specific prose is intentionally translated here rather than in
 # the shared Web Fetch catalog.  Task intent and measured evidence are not
 # listed: unmatched task text stays verbatim, and Localizer preserves pre/code
@@ -445,7 +485,6 @@ TEXT.update(
         "查看任务合同": "View task contract",
         "是": "Yes",
         "否": "No",
-
         # Result-detail information architecture.
         "先看任务目标与验收结论，再按需展开技术明细和 CowAgent 的每一步 BrowserTool 调用。": "Start with the task objective and acceptance outcome, then expand technical evidence and each CowAgent BrowserTool call as needed.",
         "任务与验收": "Task and acceptance",
@@ -489,7 +528,6 @@ TEXT.update(
         "共享的最终状态协议错误，不是检索内容错误，也不是浏览器执行错误。 本诊断不修改官方分数。": "Shared final-status protocol error, not a retrieval-content or browser-execution error. This diagnosis does not change the official score.",
         "共享的长链任务完成错误：30 步上限前没有完成结账。两种浏览器路径细节不同，但都未越过同一验收终点。": "Shared long-horizon completion error: checkout was not completed within the 30-step limit. Browser paths differed in detail, but neither crossed the same acceptance endpoint.",
         "共享的长链任务完成错误：30 步上限前没有完成结账。两种浏览器路径细节不同，但都未越过同一验收终点。 本诊断不修改官方分数。": "Shared long-horizon completion error: checkout was not completed within the 30-step limit. Browser paths differed in detail, but neither crossed the same acceptance endpoint. This diagnosis does not change the official score.",
-
         # Local environment and expansion guidance.
         "Mac 上可以继续扩展哪些实例": "Which environments can be expanded on Mac",
         "环境": "Environment",
@@ -555,7 +593,6 @@ TEXT.update(
         "。后者是 VM 视角下的 macOS 宿主网关，不是虚拟机地址，也不是评测网站。Shopping、Shopping Admin、Reddit、GitLab 四个官方站点镜像通过 Docker 端口发布到这个宿主入口，独立的 Chromium/Moli 浏览器容器据此访问本地站点。": ". The latter is the macOS host gateway from the VM's perspective, not the VM address or an evaluation website. The four official Shopping, Shopping Admin, Reddit, and GitLab images publish Docker ports through that host entry point, which the independent Chromium and Moli browser containers use to reach the local sites.",
         "，只保留该题所需站点；env-ctrl 报告 ready 后，再做连续应用健康检查、清浏览器状态、登录测试账号并打开起始页。当前冻结证据保存了代码提交、运行协议和镜像身份；事件流从环境准备完成后开始，因此逐次 reset、ready 与 health 结果未形成独立绑定的准备回执。新版运行协议已要求保存该回执。": ", retaining only the sites required by the task. After env-ctrl reports ready, the runner performs consecutive application health checks, clears browser state, signs in with test accounts, and opens the start page. The frozen evidence retains the code commit, run protocol, and image identities. Because the event stream begins after preparation, per-run reset, readiness, and health outcomes were not bound into a separate preparation receipt. The new run protocol requires that receipt.",
         "表 1｜30 个任务的逐题最终结果配对。": "Table 1 | Paired final outcomes for 30 tasks.",
-
         # Deployment, timing, browser matrix, and participant framing.
         "图 1 · 从官方站点镜像、逐题隔离与健康检查，到 CowAgent 观察—决策—操作闭环，再到 Chromium/Moli 对照和官方程序化验收。窄屏可横向滚动查看。": "Figure 1. From official site images, per-task isolation, and health checks through CowAgent's observe-decide-act loop, then Chromium/Moli comparison and official programmatic evaluation. Scroll horizontally on narrow screens.",
         "站点确实部署在本机，不是公网代站。": "The sites were deployed locally; they were not public-web substitutes.",
@@ -630,7 +667,6 @@ TEXT.update(
         "Agent 链路耗时包含会话准备、登录、模型推理、调度、工具执行和收尾，不包含 Docker 站点重置；BrowserTool 耗时是全部 browser 工具调用的墙钟时间之和，不等同于纯内核时间。": "Agent-stack latency includes session preparation, sign-in, model inference, orchestration, tool execution, and cleanup, but excludes Docker site reset. BrowserTool latency is the sum of wall-clock time for all browser tool calls and is not pure browser-core time.",
         "执行未完成；错误信息见运行与证据。": "Execution did not complete; see runtime and evidence for the error.",
         "全部官方 evaluator 均通过。": "All official evaluators passed.",
-
         # Result pages and audit boundaries.
         "Agent 端到端耗时包含会话准备、登录、模型推理、调度、工具执行和收尾，不包含 Docker 站点重置；BrowserTool 执行耗时是全部 browser 工具调用的墙钟时间之和，不等同于纯内核时间。": "Agent end-to-end latency includes session preparation, sign-in, model inference, orchestration, tool execution, and cleanup, but excludes Docker site reset. BrowserTool execution latency is the sum of wall-clock time for all browser tool calls and is not pure browser-core time.",
         "公开包包含脱敏的回答、evaluator、事件流与轨迹。原始 HAR 和 Playwright trace 可能携带登录态、Cookie、页面快照或请求正文，因此不公开；其字节数和 SHA-256 保留用于证明证据绑定。": "The public bundle contains sanitized answers, evaluator records, event streams, and trajectories. Raw HAR and Playwright traces may contain authenticated state, cookies, page snapshots, or request bodies, so they are withheld; byte counts and SHA-256 hashes retain the evidence binding.",
@@ -655,7 +691,6 @@ TEXT.update(
         "争议处理": "Dispute handling",
         "任何不一致或缺失证据均阻止发布；人工不得改分": "Any inconsistency or missing evidence blocks release; humans may not change scores",
         "逐结果覆盖": "Per-result coverage",
-
         # Participants, reproduction, and account boundaries.
         "方法介绍 · Browser Use 评测": "Participants · Browser Use evaluation",
         "本轮 A/B 的唯一变化项是浏览器实现；CowAgent、模型、任务、资源上限、站点与 evaluator 都是共同实验条件。": "The browser implementation is the only changed variable in this A/B test. CowAgent, the model, tasks, resource limits, sites, and evaluators are shared experimental conditions.",
@@ -861,7 +896,6 @@ TEXT.update(
         "找到最新完成订单，并规范化、排序多个行项目": "Find the latest completed order, then normalize and sort multiple line items",
         "清空购物车，按预算和评分筛选品类，选择商品并结账": "Empty the cart, filter a category by budget and rating, choose a product, and check out",
         "定位项目文件、修改标题、提交到默认分支并验证": "Locate a project file, change its title, commit to the default branch, and verify",
-
         # Standalone interpretation article.
         "报告解读 · Browser Use 评测": "Interpretation · Browser Use evaluation",
         "从 25 比 25 读出下一轮该怎么做": "What the 25-to-25 result implies for the next run",
@@ -943,7 +977,9 @@ def translate_text(value: str) -> str:
             ),
             (
                 r"最终状态不符：期望 (.+)，实际为 (.+)。",
-                lambda match: f"Final status mismatch: expected {match.group(1)}, observed {match.group(2)}.",
+                lambda match: (
+                    f"Final status mismatch: expected {match.group(1)}, observed {match.group(2)}."
+                ),
             ),
             (
                 r"在同一 CowAgent、同一 (.+?)（reasoning=low）和同一 WebArena‑Verified 30 题样本下，对比两种浏览器完成真实网页任务的能力。",
@@ -1035,7 +1071,7 @@ class Localizer(HTMLParser):
                 value = translate_text(value)
             rendered.append(f'{key}="{html.escape(value, quote=True)}"')
         suffix = " /" if closed else ""
-        return f'<{tag}{(" " + " ".join(rendered)) if rendered else ""}{suffix}>'
+        return f"<{tag}{(' ' + ' '.join(rendered)) if rendered else ''}{suffix}>"
 
     def handle_endtag(self, tag: str) -> None:
         if tag in self.stack:

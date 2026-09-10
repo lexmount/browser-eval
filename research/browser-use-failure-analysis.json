@@ -1,42 +1,52 @@
 {
-  "schema": "lex_browser_use_failure_analysis/2",
+  "schema": "lex_browser_use_failure_analysis/3",
   "scope": {
     "benchmark": "WebArena-Verified 1.2.3",
     "task_ids": [68, 124, 142, 168, 506],
     "engines": ["chromium", "moli"],
-    "evidence": "final logical response, official evaluator output, and autonomous BrowserTool trajectory",
-    "score_effect": "none"
+    "evidence": "score-bearing final response, official evaluator output, HAR, and autonomous BrowserTool event trajectory",
+    "score_effect": "historical official scores are unchanged; corrected protocols require new executions"
   },
   "tasks": {
     "68": {
-      "mismatch": "两种浏览器都只返回《The Hobbit》，官方合同还要求《A Christmas Carol》（author=null）。",
-      "confirmed_failure_point": "最终答案少了一条必需记录。",
-      "direct_evidence": "两条最终轨迹都已读取《A Christmas Carol》帖子；官方 evaluator 报告 Matched (1/2)。",
-      "root_cause_boundary": "可确认遗漏发生在页面内容已经进入轨迹之后；现有证据不能判定模型为何丢弃该记录。"
+      "observed_result": "Both results returned only The Hobbit; the official expected payload also requires A Christmas Carol with author=null.",
+      "root_cause": {"zh": "官方响应合同内部矛盾：expected 中 author 为 null，而公开 results_schema 只允许 string。", "en": "The official response contract is internally inconsistent: the expected payload contains a null author while the published results_schema permits only string for author."},
+      "owner": {"zh": "评测集任务合同", "en": "Benchmark task contract"},
+      "proof": {"zh": "程序化扫描 812 个官方任务，发现 8 个 expected 不符合自身 schema（2、3、6、21、68、69、96、319）；本轮 30 题中只有 #68。两条轨迹都打开过 A Christmas Carol 帖子，页面访问不是阻断点。", "en": "A scan of all 812 official tasks found eight expected payloads that violate their own published schema (2, 3, 6, 21, 68, 69, 96, 319). Task 68 is the only one in this 30-task cohort. Both trajectories opened the A Christmas Carol post, so page access was not the stopping point."},
+      "corrective_action": {"zh": "新运行在调用模型前拒绝合同不一致任务。#68 退出干净浏览器 A/B，除非官方修正 schema，或实验预注册明确的 benchmark 补丁。", "en": "Reject contract-inconsistent tasks during preflight. Exclude task 68 from a clean browser A/B unless the benchmark publishes a corrected schema or the experiment preregisters an explicit benchmark patch."},
+      "verification": {"zh": "准入检查必须在任何模型或浏览器调用前失败，并指出违反 schema 的 expected 字段路径。", "en": "The preflight must fail before any model or browser call and identify the expected-value path that violates the schema."}
     },
     "124": {
-      "mismatch": "两种浏览器都返回 min=0.01、max=17774.32；官方合同要求 max=298.00。",
-      "confirmed_failure_point": "最终价格聚合纳入了不符合 wireless earphone 语义的商品。",
-      "direct_evidence": "轨迹中的 17,774.32 对应 QFWCJ 4K Short Throw Projector，且与最终错误最大值完全相同。",
-      "root_cause_boundary": "可确认错误值来自无关投影仪；现有证据不能区分是模型判断、Agent 策略还是任务提示约束不足导致未过滤。"
+      "observed_result": "Both results used 17774.32 as the maximum instead of the official 298.00.",
+      "root_cause": {"zh": "Agent 把 Magento 全文搜索命中直接当成合格的无线耳机集合，未逐项验证任务语义便聚合页面极值。", "en": "The Agent treated Magento full-text search hits as an already-qualified wireless-earphone set and aggregated page extrema without validating each candidate against the task noun phrase."},
+      "owner": {"zh": "Agent 完成策略", "en": "Agent completion policy"},
+      "proof": {"zh": "两条轨迹中的 17,774.32 都属于 QFWCJ 4K Short Throw Projector，并与最终错误最大值完全一致；两条轨迹都没有打开或以其他方式验证该候选是无线耳机。", "en": "The 17774.32 value in both trajectories belongs to QFWCJ 4K Short Throw Projector; it is exactly the incorrect maximum in both final answers. Neither trajectory opened or otherwise validated that candidate as a wireless earphone."},
+      "corrective_action": {"zh": "把候选语义核验和提交前的完整性检查写入统一 Agent 协议，不增加针对 #124 标准答案的特例。", "en": "Make candidate validation and a pre-submit semantic/completeness check part of the common Agent protocol; do not add a task-specific expected-answer rule."},
+      "verification": {"zh": "按修订协议在两个浏览器重跑 #124，并要求证据证明纳入极值的商品满足全部任务约束。", "en": "Rerun task 124 on both browsers under the revised protocol and require evidence that included extrema satisfy every task constraint."}
     },
     "142": {
-      "mismatch": "两种浏览器都返回 80.50；官方合同要求 68.51。",
-      "confirmed_failure_point": "最终求和多计入了 11.99 的 Crystal Headband。",
-      "direct_evidence": "轨迹列出 50.52 的 conditioner、11.99 的 headband 和 17.99 的 haircolor；80.50=50.52+11.99+17.99，68.51=50.52+17.99。",
-      "root_cause_boundary": "可确认差额及其来源；现有证据不能判定模型为何把 headband 纳入任务口径。"
+      "observed_result": "Both results returned 80.50; the official expected value is 68.51.",
+      "root_cause": {"zh": "任务没有可操作地定义“hair care and hair style”的归类边界。Agent 按商品名归类并纳入 11.99 的 Crystal Headband，官方答案却在未给规则的情况下排除了它。", "en": "The task does not operationally define membership in 'hair care and hair style'. The Agent classified by product name and included a 11.99 Crystal Headband, while the official answer silently excludes it."},
+      "owner": {"zh": "评测集验收边界，叠加 Agent 类别核验不足", "en": "Benchmark acceptance boundary, amplified by Agent category verification"},
+      "proof": {"zh": "轨迹列出 50.52 的 conditioner、11.99 的 headband 和 17.99 的 haircolor，三者合计 80.50；排除 headband 恰为官方 68.51。任务合同只给最终数字，没有类别 taxonomy 或纳入规则。", "en": "The trajectories list 50.52 conditioner, 11.99 headband, and 17.99 haircolor. Their sum is 80.50; excluding the headband yields the expected 68.51. The task contract contains only the final number and no category taxonomy or inclusion rubric."},
+      "corrective_action": {"zh": "#142 退出浏览器 A/B，直至类别归属绑定到站点 taxonomy 等可观察规则；统一 Agent 协议同时要求用站点证据核验类别。", "en": "Exclude task 142 from browser A/B until category membership is bound to an observable rule such as site taxonomy. The generic Agent protocol should also verify category claims against site evidence."},
+      "verification": {"zh": "替代任务必须具有无需查看 expected total、两名独立复核者也能一致执行的客观类别谓词。", "en": "A replacement task must have an objective category predicate that two independent reviewers can apply without seeing the expected total."}
     },
     "168": {
-      "mismatch": "两种浏览器都返回 SUCCESS + []；官方合同要求 NOT_FOUND_ERROR + null。",
-      "confirmed_failure_point": "空结果被编码成错误的最终状态。",
-      "direct_evidence": "官方 evaluator 的唯一失败断言是 Expected not_found_error, got success；检索内容同为空。",
-      "root_cause_boundary": "可确认是最终响应协议不匹配，不是页面导航失败；现有证据不能判定错误映射来自模型还是 Agent 响应封装。"
+      "observed_result": "Both results returned SUCCESS with an empty list; the official contract requires NOT_FOUND_ERROR with null.",
+      "root_cause": {"zh": "本项目 Agent 适配协议错误地规定所有 RETRIEVE 都必须返回列表，并遗漏零结果状态映射，直接违反该题官方 null schema。", "en": "The benchmark adapter's system protocol incorrectly stated that every RETRIEVE result must be a list and omitted the required zero-result status mapping, directly contradicting this task's official null schema."},
+      "owner": {"zh": "browser-eval Agent 适配层", "en": "browser-eval Agent adapter"},
+      "proof": {"zh": "官方 evaluator 唯一失败断言是状态不一致。该题 schema 为 null，而旧 runner 协议写明“For RETRIEVE, retrieved_data is always a list”。两条轨迹均完成搜索且没有匹配项目。", "en": "The official evaluator's only failed assertion is the status mismatch. The task schema is null, while the runner's system protocol said 'For RETRIEVE, retrieved_data is always a list.' Both trajectories completed the search and found no matching project."},
+      "corrective_action": {"zh": "只在成功检索时返回 SUCCESS 加列表；穷尽搜索仍无结果时返回 NOT_FOUND_ERROR 加 null。", "en": "Specify SUCCESS plus list only for successful retrieval and NOT_FOUND_ERROR plus null after an exhaustive zero-result search."},
+      "verification": {"zh": "单测锁定协议，并在两个浏览器重跑 #168；导航行为可以不变，但最终状态合同必须通过。", "en": "Unit-test the protocol and rerun task 168 on both browsers; navigation behavior need not change, but the final status contract must pass."}
     },
     "506": {
-      "mismatch": "最终逻辑结果均已添加正确商品，但没有付款提交事件和下单成功页事件。",
-      "confirmed_failure_point": "结账在付款提交之前停止。",
-      "direct_evidence": "官方 evaluator 已确认正确商品加入购物车；付款提交与成功页规则失败，最终响应明确记录达到单次运行最大步骤数。",
-      "root_cause_boundary": "30 步上限是已确认的直接停止条件；现有证据不能进一步量化模型规划、Agent 调度和浏览器工具开销各自消耗了多少不必要步骤。"
+      "observed_result": "Both official scores are zero, but the score-bearing executions failed for different reasons.",
+      "root_cause": {"zh": "两端根因不同。Chromium 是测量假阴性：结账已完成，但 HAR 在运行结束才取响应体，CDP 已淘汰付款响应。Moli 是执行与完成确认失败：第 30 个决策回合才点击 Place order，没有后续观察，CowAgent 超限总结仍生成了成功形态的回答。", "en": "Chromium is a measurement false negative: checkout completed, but the HAR collector deferred Network.getResponseBody until run end and CDP had already evicted the payment response body. Moli is an execution/completion failure: its 30th decision turn issued Place order, leaving no post-action observation, and CowAgent's max-step fallback still produced a success-shaped answer."},
+      "owner": {"zh": "Chromium：browser-eval HAR 采集器；Moli：运行预算与 CowAgent 完成处理", "en": "Chromium: browser-eval HAR collector; Moli: run budget and CowAgent completion handling"},
+      "proof": {"zh": "Chromium 已到成功页并记录订单号；evaluator 的响应、商品、付款和成功页检查均通过，只有购物车总额规则收到 null body，HAR 同时记录 Network.getResponseBody unavailable。Moli 没有付款信息或成功页事件，最后一回合 has_tool_calls=true 并点击 Place order。", "en": "Chromium reached the success page and recorded an order number; its evaluator passed response, product, payment, and success-page checks, while the cart-total rule alone received a null body and HAR logged Network.getResponseBody unavailable. Moli recorded no payment-information or success-page event; its final turn had has_tool_calls=true and clicked Place order."},
+      "corrective_action": {"zh": "在 CDP loadingFinished 时立即保存 evaluator 所需 JSON 响应体；最后决策回合仍有工具调用时 fail closed；预注册 40 步上限，为最后动作保留观察与验证空间。", "en": "Capture evaluator-relevant JSON bodies immediately on CDP loadingFinished. Fail closed when the final decision turn still contains a tool call, and preregister a 40-turn ceiling so a last action can be observed and verified."},
+      "verification": {"zh": "重跑 Chromium 与 Moli 的 #506。Chromium 必须把付款 JSON 保留到评测；Moli 必须在 40 步内确认成功页，否则返回 UNKNOWN_ERROR，不能报告未核验的成功。", "en": "Rerun Chromium and Moli task 506. Chromium must retain the payment JSON body through evaluation; Moli must either verify the success page within 40 turns or return UNKNOWN_ERROR rather than an unverified success."}
     }
   }
 }

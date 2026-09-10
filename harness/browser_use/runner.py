@@ -208,7 +208,9 @@ def _configure_benchmark(hostname: str = "host.docker.internal") -> WebArenaVeri
             # The gateway IP is active. The official images may redirect to
             # host.docker.internal, so retain that as an equivalent URL for the
             # package's own derendering and NetworkEventEvaluator logic.
-            urls=list(dict.fromkeys([site_url(site, hostname), site_url(site, "host.docker.internal")])),
+            urls=list(
+                dict.fromkeys([site_url(site, hostname), site_url(site, "host.docker.internal")])
+            ),
             credentials=SITE_CREDENTIALS[site],
             use_header_login=site == WebArenaSite.SHOPPING_ADMIN,
         )
@@ -277,9 +279,7 @@ def _verify_arm_php_compatibility(container_name: str) -> None:
     process_table = processes.output.decode(errors="replace")
     qemu = container.exec_run(["test", "-x", QEMU_X86_64_CONTAINER_PATH])
     if processes.exit_code != 0 or "/mnt/lima-rosetta/rosetta" not in process_table:
-        raise RuntimeError(
-            "ARM Docker host must enable Rosetta for official amd64 site images"
-        )
+        raise RuntimeError("ARM Docker host must enable Rosetta for official amd64 site images")
     if qemu.exit_code != 0:
         raise RuntimeError("PHP-FPM QEMU compatibility interpreter was not mounted")
     if f"{QEMU_X86_64_CONTAINER_PATH} /usr/local/sbin/php-fpm" not in process_table:
@@ -293,9 +293,7 @@ def _site_runtime_compatibility(docker_arch: str) -> dict[str, Any]:
         "mode": "rosetta-with-qemu-php-fpm",
         "sites": sorted(site.value for site in AMD64_PHP_SITES),
         "qemu_host_path": QEMU_X86_64_HOST_PATH,
-        "supervisor_config_sha256": hashlib.sha256(
-            PHP_FPM_COMPAT_CONFIG.read_bytes()
-        ).hexdigest(),
+        "supervisor_config_sha256": hashlib.sha256(PHP_FPM_COMPAT_CONFIG.read_bytes()).hexdigest(),
     }
 
 
@@ -388,8 +386,7 @@ def _login_context(
         context.set_extra_http_headers(
             {
                 SITE_AUTH_HEADERS[site]: (
-                    f"{SITE_CREDENTIALS[site]['username']}:"
-                    f"{SITE_CREDENTIALS[site]['password']}"
+                    f"{SITE_CREDENTIALS[site]['username']}:{SITE_CREDENTIALS[site]['password']}"
                 )
                 for site in sites
                 if site in SITE_AUTH_HEADERS
@@ -442,14 +439,44 @@ Complete the objective from the supplied start URLs. Do not ask for help, downlo
 change state unless the objective requires it. When finished, return only one JSON object with
 task_type (RETRIEVE, MUTATE, or NAVIGATE), status (SUCCESS, NOT_FOUND_ERROR,
 ACTION_NOT_ALLOWED_ERROR, PERMISSION_DENIED_ERROR, DATA_VALIDATION_ERROR, or UNKNOWN_ERROR),
-retrieved_data, and error_details. For RETRIEVE, retrieved_data is always a list. For other task
-types it is null."""
+retrieved_data, and error_details. Treat search and list pages as candidate sets, not proof that
+every result satisfies the objective: verify every included item against all stated constraints
+using its title, category, breadcrumb, detail page, or other visible site evidence before sorting,
+aggregating, or mutating. Before returning, check semantic eligibility, completeness, arithmetic,
+and any required saved or submitted state. A successful RETRIEVE returns a list. If an exhaustive
+RETRIEVE finds no matching item, return NOT_FOUND_ERROR with retrieved_data null. For MUTATE and
+NAVIGATE, retrieved_data is null."""
+
+
+def _exhausted_agent_steps(events: list[dict[str, Any]], max_steps: int) -> bool:
+    """Return whether CowAgent used its final decision turn for another tool call.
+
+    CowAgent's max-step fallback asks the model for a prose summary without tools. That
+    fallback is not a benchmark completion and may claim success even though the last
+    browser action has not been observed or verified.
+    """
+
+    turns = [event for event in events if event.get("type") == "turn_end"]
+    if not turns:
+        return False
+    data = turns[-1].get("data") or {}
+    return int(data.get("turn") or 0) >= max_steps and bool(data.get("has_tool_calls"))
+
+
+def _max_steps_response(task_type: str, max_steps: int) -> dict[str, Any]:
+    return {
+        "task_type": task_type.upper(),
+        "status": "UNKNOWN_ERROR",
+        "retrieved_data": None,
+        "error_details": (
+            f"Agent reached the {max_steps}-step decision limit before producing "
+            "a tool-free, post-action completion."
+        ),
+    }
 
 
 def _user_prompt(task: Any, start_urls: list[str]) -> str:
-    response_eval = next(
-        item for item in task.eval if item.evaluator == "AgentResponseEvaluator"
-    )
+    response_eval = next(item for item in task.eval if item.evaluator == "AgentResponseEvaluator")
     return (
         "Task objective:\n"
         + task.intent
@@ -499,6 +526,7 @@ def _run_attempt(  # noqa: PLR0913
     output_dir: Path,
     model: OpenAIResponsesModel,
     sample_interval_ms: int,
+    max_agent_steps: int,
 ) -> dict[str, Any]:
     task = benchmark.get_task(selected.task_id)
     sites = tuple(task.sites)
@@ -521,9 +549,7 @@ def _run_attempt(  # noqa: PLR0913
         prepare_receipt["error"] = str(exc)
         raise
     finally:
-        prepare_receipt["duration_ms"] = round(
-            (time.perf_counter() - prepare_started) * 1000, 3
-        )
+        prepare_receipt["duration_ms"] = round((time.perf_counter() - prepare_started) * 1000, 3)
         prepare_path.write_text(
             json.dumps(prepare_receipt, ensure_ascii=False, indent=2), encoding="utf-8"
         )
@@ -586,7 +612,7 @@ def _run_attempt(  # noqa: PLR0913
             model=model,
             tools=[tool],
             output_mode="logger",
-            max_steps=30,
+            max_steps=max_agent_steps,
             enable_skills=False,
             skip_context_files=True,
         )
@@ -597,6 +623,13 @@ def _run_attempt(  # noqa: PLR0913
         raw_response = agent.run_stream(
             _user_prompt(task, start_urls), on_event=events.append, clear_history=True
         )
+        if _exhausted_agent_steps(events, max_agent_steps):
+            response_eval = next(
+                item for item in task.eval if item.evaluator == "AgentResponseEvaluator"
+            )
+            raw_response = json.dumps(
+                _max_steps_response(str(response_eval.expected.task_type), max_agent_steps)
+            )
         agent_run_ms = (time.perf_counter() - agent_started) * 1000
         finalize_started = time.perf_counter()
         service._submit(
@@ -752,9 +785,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     if not api_key:
         source = env_file or repo_root / ".env"
         raise RuntimeError(f"OPENAI_API_KEY is required in {source}")
-    cowagent_repo = Path(
-        args.cowagent_repo or repo_env.get("COWAGENT_REPO", "")
-    ).resolve()
+    cowagent_repo = Path(args.cowagent_repo or repo_env.get("COWAGENT_REPO", "")).resolve()
     if not (cowagent_repo / "agent/protocol/agent.py").exists():
         raise RuntimeError("--cowagent-repo must point to a CowAgent checkout")
     harness_commit = _require_clean_git_checkout(repo_root)
@@ -821,7 +852,9 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             endpoints[engine] = _wait_cdp(http_endpoint, container=container)
             browser_metadata[engine] = _cdp_metadata(http_endpoint)
 
-        gateway_addresses = {_container_host_gateway(container) for container in containers.values()}
+        gateway_addresses = {
+            _container_host_gateway(container) for container in containers.values()
+        }
         if len(gateway_addresses) != 1:
             raise RuntimeError(f"browser containers disagree on host gateway: {gateway_addresses}")
         site_access_host = gateway_addresses.pop()
@@ -838,9 +871,8 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                 "model": args.model,
                 "reasoning_effort": "low",
                 "model_transport_retries": 1,
-                "provider_base_url": env.get(
-                    "OPENAI_BASE_URL", "https://api.openai.com/v1"
-                ),
+                "max_agent_steps": args.max_agent_steps,
+                "provider_base_url": env.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
                 "browser_images": image_metadata,
                 "site_images": site_image_metadata,
                 "browser_versions": browser_metadata,
@@ -894,6 +926,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                             output_dir=output_dir,
                             model=model,
                             sample_interval_ms=args.sample_interval_ms,
+                            max_agent_steps=args.max_agent_steps,
                         )
                         row["run_id"] = run_id
                         stream.write(json.dumps(row, ensure_ascii=False) + "\n")
@@ -948,6 +981,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             "failure_retries": 1,
             "task_failure_retries": 1,
             "model_transport_retries": 1,
+            "max_agent_steps": args.max_agent_steps,
             "official_score_uses": "final execution for each browser and task",
             "logical_result_cost": "sum of all executions used for each browser and task",
             "evaluator": "official webarena-verified package, unmodified",
@@ -996,6 +1030,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cpus", type=float, default=2.0)
     parser.add_argument("--memory", default="2g")
     parser.add_argument("--sample-interval-ms", type=int, default=100)
+    parser.add_argument(
+        "--max-agent-steps",
+        type=int,
+        default=40,
+        help="maximum CowAgent decision turns; exhaustion fails closed instead of summarizing",
+    )
     parser.add_argument(
         "--max-tasks",
         type=int,

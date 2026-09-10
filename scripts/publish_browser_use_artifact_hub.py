@@ -84,7 +84,7 @@ def request(
 ):
     base, _, _ = publication_target()
     headers = {
-        "Authorization": "Bearer " + load_token(),
+        "Authorization": "Bearer " + load_token(base_url=base),
         "User-Agent": "Browser-Use-Report-Publisher/1.0",
     }
     if content_type:
