@@ -46,6 +46,23 @@ def trajectory_semantic_conflicts(task: dict[str, Any]) -> tuple[str, ...]:
         and requested_name.group(1).strip().casefold() not in project_name_fills
     ):
         conflicts.append("required_project_name_not_filled")
+    requested_file = re.search(r"file named\s+([a-z0-9_.-]+)", title)
+    file_name_fills = [
+        str(action.get("text") or "").casefold()
+        for action in actions
+        if action.get("action") == "fill"
+        and "file name"
+        in json.dumps(action.get("target"), ensure_ascii=False, sort_keys=True).casefold()
+    ]
+    if (
+        requested_file is not None
+        and file_name_fills
+        and not any(
+            value.rsplit("/", 1)[-1] == requested_file.group(1).strip().casefold()
+            for value in file_name_fills
+        )
+    ):
+        conflicts.append("required_file_name_not_filled")
     return tuple(conflicts)
 
 

@@ -341,6 +341,42 @@ def test_project_name_audit_accepts_a_later_corrected_fill():
     assert trajectory_semantic_conflicts(task) == ()
 
 
+def test_declared_file_name_must_appear_as_the_filled_basename():
+    task = {
+        "title": "Create a folder and a file named urls.json inside it",
+        "trajectory": {
+            "actions": [
+                {
+                    "action": "fill",
+                    "target": {"by": "placeholder", "value": "File name"},
+                    "text": "cars/url.txt",
+                }
+            ]
+        },
+    }
+
+    assert trajectory_semantic_conflicts(task) == (
+        "required_file_name_not_filled",
+    )
+
+
+def test_file_name_audit_accepts_the_declared_basename_in_a_folder():
+    task = {
+        "title": "Create a file named urls.json",
+        "trajectory": {
+            "actions": [
+                {
+                    "action": "fill",
+                    "target": {"by": "placeholder", "value": "File name"},
+                    "text": "car/urls.json",
+                }
+            ]
+        },
+    }
+
+    assert trajectory_semantic_conflicts(task) == ()
+
+
 def test_empty_candidate_cannot_be_adjudicated_eligible_without_correction():
     suite = {
         "benchmark": {},
