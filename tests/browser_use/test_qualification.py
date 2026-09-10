@@ -377,6 +377,146 @@ def test_file_name_audit_accepts_the_declared_basename_in_a_folder():
     assert trajectory_semantic_conflicts(task) == ()
 
 
+def test_network_evaluator_values_must_be_filled_into_their_owned_fields():
+    task = {
+        "title": "Create a forum post",
+        "trajectory": {
+            "actions": [
+                {
+                    "action": "fill",
+                    "target": {"by": "label", "value": "Body"},
+                    "text": "Expected title",
+                },
+                {
+                    "action": "fill",
+                    "target": {"by": "label", "value": "Title"},
+                    "text": "Wrong title",
+                },
+            ]
+        },
+        "source": {
+            "verified_evaluators": [
+                {
+                    "evaluator": "NetworkEventEvaluator",
+                    "expected": {
+                        "post_data": {"submission[title]": "Expected title"}
+                    },
+                }
+            ]
+        },
+    }
+
+    assert trajectory_semantic_conflicts(task) == (
+        "evaluator_title_value_not_filled",
+    )
+
+
+def test_network_evaluator_field_audit_accepts_exact_owned_fill():
+    task = {
+        "title": "Create a forum post",
+        "trajectory": {
+            "actions": [
+                {
+                    "action": "fill",
+                    "target": {"by": "label", "value": "Title"},
+                    "text": "Expected title",
+                }
+            ]
+        },
+        "source": {
+            "verified_evaluators": [
+                {
+                    "evaluator": "NetworkEventEvaluator",
+                    "expected": {
+                        "post_data": {"submission[title]": "Expected title"}
+                    },
+                }
+            ]
+        },
+    }
+
+    assert trajectory_semantic_conflicts(task) == ()
+
+
+def test_network_evaluator_field_audit_does_not_guess_hidden_fields():
+    task = {
+        "title": "Subscribe the current account",
+        "trajectory": {"actions": [{"action": "click", "selector": "#subscribe"}]},
+        "source": {
+            "verified_evaluators": [
+                {
+                    "evaluator": "NetworkEventEvaluator",
+                    "expected": {"post_data": {"email": "account@example.com"}},
+                }
+            ]
+        },
+    }
+
+    assert trajectory_semantic_conflicts(task) == ()
+
+
+def test_network_evaluator_field_audit_detects_value_in_wrong_field():
+    task = {
+        "title": "Submit a repository URL",
+        "trajectory": {
+            "actions": [
+                {
+                    "action": "fill",
+                    "target": {"by": "label", "value": "Body"},
+                    "text": "http://old.example:8023/auth0/angular-storage",
+                }
+            ]
+        },
+        "source": {
+            "verified_evaluators": [
+                {
+                    "evaluator": "NetworkEventEvaluator",
+                    "expected": {
+                        "post_data": {
+                            "submission[url]": "__GITLAB__/auth0/angular-storage"
+                        }
+                    },
+                }
+            ]
+        },
+    }
+
+    assert trajectory_semantic_conflicts(task) == (
+        "evaluator_url_value_filled_in_wrong_field",
+    )
+
+
+def test_network_evaluator_url_audit_normalizes_legacy_origin_to_site_token():
+    task = {
+        "title": "Submit a repository URL",
+        "trajectory": {
+            "actions": [
+                {
+                    "action": "fill",
+                    "target": {"by": "label", "value": "URL"},
+                    "text": (
+                        "http://old.example:8023/auth0/angular-storage"
+                    ),
+                }
+            ]
+        },
+        "source": {
+            "verified_evaluators": [
+                {
+                    "evaluator": "NetworkEventEvaluator",
+                    "expected": {
+                        "post_data": {
+                            "submission[url]": "__GITLAB__/auth0/angular-storage"
+                        }
+                    },
+                }
+            ]
+        },
+    }
+
+    assert trajectory_semantic_conflicts(task) == ()
+
+
 def test_empty_candidate_cannot_be_adjudicated_eligible_without_correction():
     suite = {
         "benchmark": {},

@@ -9,11 +9,42 @@ from collections.abc import Iterable
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from .har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
 from .suite import TRAJECTORY_SCHEMA, TaskSuite
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+_LEGACY_URL_PORT_SITES = {
+    3000: "map",
+    4399: "reddit",
+    7770: "shopping",
+    7780: "shopping_admin",
+    8023: "gitlab",
+    8888: "wikipedia",
+    9999: "reddit",
+}
+
+
+def _semantic_field_value(field: str, value: str) -> str:
+    normalized = " ".join(value.strip().casefold().split())
+    if field != "url":
+        return normalized
+    token = re.match(r"^__([a-z_]+)__(/.*)?$", normalized)
+    if token:
+        return f"{token.group(1)}:{token.group(2) or '/'}"
+    try:
+        parsed = urlparse(normalized)
+        site = _LEGACY_URL_PORT_SITES.get(parsed.port or -1)
+    except ValueError:
+        site = None
+        parsed = None
+    if site is not None and parsed is not None:
+        suffix = parsed.path or "/"
+        if parsed.query:
+            suffix += "?" + parsed.query
+        return f"{site}:{suffix}"
+    return normalized
 
 
 def trajectory_semantic_conflicts(task: dict[str, Any]) -> tuple[str, ...]:
@@ -63,6 +94,59 @@ def trajectory_semantic_conflicts(task: dict[str, Any]) -> tuple[str, ...]:
         )
     ):
         conflicts.append("required_file_name_not_filled")
+    field_tokens = {
+        "title": ("title",),
+        "body": ("body",),
+        "comment": ("comment",),
+        "url": ("url",),
+        "email": ("email", "newsletter"),
+    }
+    checked_fields: set[tuple[str, str]] = set()
+    for evaluator in (task.get("source") or {}).get("verified_evaluators") or []:
+        if evaluator.get("evaluator") != "NetworkEventEvaluator":
+            continue
+        post_data = (evaluator.get("expected") or {}).get("post_data") or {}
+        if not isinstance(post_data, dict):
+            continue
+        for key, expected in post_data.items():
+            if not isinstance(expected, str) or not expected.strip():
+                continue
+            key_name = str(key).casefold()
+            field = next(
+                (
+                    name
+                    for name in field_tokens
+                    if key_name == name or key_name.endswith(f"[{name}]")
+                ),
+                None,
+            )
+            if field is None:
+                continue
+            expected_value = _semantic_field_value(field, expected)
+            signature = (field, expected_value)
+            if signature in checked_fields:
+                continue
+            checked_fields.add(signature)
+            fills = [
+                _semantic_field_value(field, str(action.get("text") or ""))
+                for action in actions
+                if action.get("action") == "fill"
+                and any(
+                    token in json.dumps(
+                        action.get("target"), ensure_ascii=False, sort_keys=True
+                    ).casefold()
+                    for token in field_tokens[field]
+                )
+            ]
+            if fills and expected_value not in fills:
+                conflicts.append(f"evaluator_{field}_value_not_filled")
+            elif not fills and any(
+                _semantic_field_value(field, str(action.get("text") or ""))
+                == expected_value
+                for action in actions
+                if action.get("action") == "fill"
+            ):
+                conflicts.append(f"evaluator_{field}_value_filled_in_wrong_field")
     return tuple(conflicts)
 
 
@@ -179,6 +263,7 @@ def build_repair_queue(
             "evaluator": task.evaluator,
             "environment": task.environment,
             "ground_truth": task.ground_truth,
+            "source": task.source,
         }
         contract = task_contract_sha256(task_payload)
         if row.get("task_contract_sha256") != contract:
