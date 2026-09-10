@@ -12,16 +12,25 @@ from typing import Any
 from urllib.parse import urlparse
 
 REPORT_STEM = "browser-use-evaluation-latest"
+ROOT = Path(__file__).resolve().parents[2]
 PAGES = tuple(
     (slug, label, f"{REPORT_STEM}{suffix}.html")
     for slug, label, suffix in (
         ("index", "结论摘要", ""),
+        ("research", "评测集研究", "-research"),
         ("suite", "评测集", "-suite"),
         ("method", "环境与方法", "-method"),
         ("analysis", "逐任务分析", "-analysis"),
         ("appendix", "复现与附录", "-appendix"),
     )
 )
+
+CATEGORY_LABELS = {
+    "end_to_end_browser_use": "端到端 browser-use",
+    "computer_use": "综合 computer-use",
+    "gui_grounding": "GUI grounding",
+    "web_research": "网页搜索与研究",
+}
 
 
 def _e(value: Any) -> str:
@@ -381,6 +390,146 @@ def _is_webarena_manifest(manifest: dict[str, Any]) -> bool:
     return any(
         ((task.get("evaluator") or {}).get("kind") == "webarena_verified")
         for task in manifest.get("suite") or []
+    )
+
+
+def _load_public_research() -> tuple[dict[str, Any], dict[str, Any]]:
+    root = ROOT / "evaluation" / "browser-use-public"
+    adoption = json.loads((root / "adoption-evidence.json").read_text(encoding="utf-8"))
+    catalog = json.loads((root / "benchmark-catalog.json").read_text(encoding="utf-8"))
+    return adoption, catalog
+
+
+def _research_page(manifest: dict[str, Any]) -> str:
+    adoption, catalog = _load_public_research()
+    records = adoption.get("records") or []
+    by_family: dict[str, list[dict[str, Any]]] = {}
+    for record in records:
+        by_family.setdefault(str(record.get("benchmark_family")), []).append(record)
+    tie_order = {"WebArena": 0, "Mind2Web": 1, "WebVoyager": 2, "MiniWoB++": 3}
+    adoption_rows = []
+    for rank, family in enumerate(
+        sorted(by_family, key=lambda name: (-len(by_family[name]), tie_order.get(name, 99))), 1
+    ):
+        family_records = by_family[family]
+        adoption_rows.append(
+            [
+                str(rank),
+                family,
+                str(len(family_records)),
+                "、".join(str(row.get("organization")) for row in family_records),
+                "；".join(
+                    f"{row.get('organization')}: {row.get('benchmark_version')}"
+                    for row in family_records
+                ),
+            ]
+        )
+
+    benchmark_headers = [
+        "Benchmark / 版本",
+        "任务数量",
+        "环境 / 在线",
+        "本地部署 / 账号",
+        "输入与参考轨迹",
+        "最终验收与评分",
+        "难度定义",
+        "许可证",
+        "成本",
+        "稳定性与已知问题",
+    ]
+    benchmark_sections = []
+    benchmarks = catalog.get("benchmarks") or []
+    for category, label in CATEGORY_LABELS.items():
+        selected = [row for row in benchmarks if row.get("category") == category]
+        rows = []
+        for row in selected:
+            rows.append(
+                [
+                    f"{row.get('name')}；{row.get('version')}",
+                    row.get("task_count"),
+                    f"{row.get('environment')}\n在线：{row.get('online')}",
+                    f"本地：{row.get('local_deployment')}\n账号：{row.get('account_requirement')}",
+                    f"{row.get('input_and_trajectory')}\n参考轨迹：{row.get('reference_trajectory')}",
+                    f"验收：{row.get('final_acceptance')}\n评分：{row.get('scoring')}",
+                    row.get("difficulty"),
+                    row.get("license"),
+                    row.get("cost"),
+                    f"{row.get('stability')}\n已知问题：{row.get('known_issues')}",
+                ]
+            )
+        benchmark_sections.append(
+            f'<section class="card"><h2>{_e(label)}</h2>'
+            + _table(benchmark_headers, rows, f"{label}，仅在本类内比较")
+            + "</section>"
+        )
+
+    engineering = sorted(
+        (row for row in benchmarks if isinstance(row.get("engineering_rank"), int)),
+        key=lambda row: int(row["engineering_rank"]),
+    )
+    engineering_rows = [
+        [
+            str(row["engineering_rank"]),
+            row["name"],
+            (
+                "自托管、程序评分，并有公开人类轨迹可做固定重放"
+                if row["name"] == "WebArena-Verified"
+                else "用于第二阶段公开生态对比；真实网站和 judge 漂移不适合做首轮内核隔离"
+                if row["name"] == "Online-Mind2Web"
+                else "用于对照 Browser Use 官方实践；混合任务与 LLM judge 会引入额外变量"
+            ),
+        ]
+        for row in engineering
+    ]
+    source_links = []
+    for record in records:
+        source_links.append(
+            f'<li>{_e(record.get("organization"))} / {_e(record.get("system"))}: '
+            f'<a href="{_e(record.get("url"))}" target="_blank" rel="noopener">'
+            f'{_e(record.get("benchmark_version"))}</a></li>'
+        )
+    benchmark_source_links = []
+    for row in benchmarks:
+        benchmark_source_links.append(
+            '<li>'
+            + _e(row.get("name"))
+            + '：'
+            + " · ".join(
+                f'<a href="{_e(url)}" target="_blank" rel="noopener">来源 {i}</a>'
+                for i, url in enumerate(row.get("source_urls") or [], 1)
+            )
+            + "</li>"
+        )
+    return (
+        '<section class="card note"><h2>选型结论</h2>'
+        '<p><strong>固定轨迹比较浏览器内核，首选 WebArena-Verified。</strong>'
+        '采用次数只能说明公开认可度，不能说明它最适合隔离浏览器变量。WebArena 与 Mind2Web 家族在限定的一方材料中各有 3 家机构采用；工程选择仍由自托管、可重放轨迹和程序化最终状态验收决定。</p>'
+        '<p>本报告把 benchmark 分为四类，不做跨类排名。原始 Mind2Web、Online-Mind2Web 与 Mind2Web 2 也分别统计，因为三者测量对象不同。</p></section>'
+        '<section class="card"><h2>端到端 browser-use 采用 Top 3</h2>'
+        '<p>统计范围只含 OpenAI、Anthropic、Google、DeepSeek、智谱/ChatGLM、Moonshot/Kimi 的模型卡、技术报告和官方仓库。同一机构同一家族只计一次，保留具体版本。采用数相同后依次看最新官方采用、公开获取和可复现性。</p>'
+        + _table(["名次", "Benchmark 家族", "采用机构数", "机构", "具体版本"], adoption_rows[:3], "一方材料采用统计")
+        + '<p class="muted">本次限定的一方材料中没有检出可计入 DeepSeek 或 Moonshot/Kimi 的端到端 browser-use benchmark 记录。这不等于这些机构从未做过内部评测。</p>'
+        + '<details><summary>查看采用证据链接</summary><ul>'
+        + "".join(source_links)
+        + '</ul></details></section>'
+        '<section class="card"><h2>工程适用性 Top 3</h2>'
+        + _table(["名次", "Benchmark", "用于本项目的理由"], engineering_rows, "比较 Chromium 与 Moli 的工程排序")
+        + '<p>WebVoyager 只保留为历史参照。OSWorld 2.0 太宽，ScreenSpot-Pro 只测单步定位；它们都不会进入本轮固定轨迹正式分母。</p></section>'
+        '<section class="card"><h2>Mind2Web 家族不能合并</h2><ul>'
+        '<li>原始 Mind2Web 是离线 HTML 和动作预测数据集。它适合比较元素选择与动作预测，不能真正比较 Chromium 和 Moli。</li>'
+        '<li>Online-Mind2Web 在 300 个真实网站任务上判断最终任务是否完成。截图、URL 和轨迹是 judge 证据，并不要求复现固定动作序列；WebJudge 是 LLM-as-a-judge。</li>'
+        '<li>Online-Mind2Web 的 easy、medium、hard 按人工参考路径长度划分，分别为不超过 5 步、6 到 10 步、至少 11 步。这个标签不是网站难度，也不是 agent 实际执行步数。</li>'
+        '<li>Mind2Web 2 有 130 个长程研究任务，评估实时搜索、综合回答和引用归因，属于网页研究类。</li></ul></section>'
+        '<section class="card"><h2>Browser Use 官方实践怎么借鉴</h2>'
+        '<p>Browser Use 当前公开仓库同时维护 BU Bench V1 和 Online-Mind2Web 运行结果。前者有 100 个经过筛选的混合任务，后者便于与公开生态比较。两者都保留运行轨迹，但都没有可直接当作标准操作路径的 gold trajectory。</p>'
+        '<p>本项目采用它们对任务失效、验证码、外部认证和不可验收任务的处理原则，也保留完整轨迹；不照搬多次采样或 bootstrapping，因为这里测的是固定路径与浏览器兼容性。</p></section>'
+        '<section class="card"><h2>架构结论</h2>'
+        '<p>这些用例不要求 AMD。远端 Intel x86-64 主机可以运行官方 amd64 镜像。179 条官方 WebArena 人类录制中，本项目在运行前排除了 4 条只适配 arm64 Wikipedia 环境的任务，并排除了 3 条已确认的 evaluator 缺陷；172 条进入 amd64 资格验证。最终只有冷 Chromium 重放、程序 evaluator 和证据完整性同时通过的 19 条轨迹进入正式双浏览器分母。</p></section>'
+        + "".join(benchmark_sections)
+        + '<section class="card"><h2>Benchmark 来源</h2><ul>'
+        + "".join(benchmark_source_links)
+        + "</ul></section>"
+        + f'<section class="card"><p class="muted">资料核对日期：{_e(catalog.get("verified_on"))}。表内“成本”只描述成本来源，没有把未实测价格写成数字。</p></section>'
     )
 
 
@@ -1458,6 +1607,7 @@ def write_latest_report(
     )
     renderers = {
         "index": lambda: _summary_page(manifest, summary),
+        "research": lambda: _research_page(manifest),
         "suite": lambda: _suite_page(manifest),
         "method": lambda: _method_page(manifest),
         "analysis": lambda: analysis,

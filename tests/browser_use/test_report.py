@@ -200,13 +200,22 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert "结果重试恢复" not in rendered
     assert "首次结果正确" not in rendered
     assert (reports / "browser-use-evaluation-latest-suite.html").exists()
+    assert (reports / "browser-use-evaluation-latest-research.html").exists()
+    research = (reports / "browser-use-evaluation-latest-research.html").read_text(
+        encoding="utf-8"
+    )
+    assert "端到端 browser-use 采用 Top 3" in research
+    assert "工程适用性 Top 3" in research
+    assert "本报告把 benchmark 分为四类，不做跨类排名" in research
+    assert "原始 Mind2Web 是离线 HTML 和动作预测数据集" in research
+    assert "这些用例不要求 AMD" in research
     assert (reports / "browser-use-evaluation-latest-method.html").exists()
     assert not (reports / "browser-use-evaluation-latest-results.html").exists()
     assert (reports / "browser-use-evaluation-latest-analysis.html").exists()
     assert (reports / "browser-use-evaluation-latest-appendix.html").exists()
     assert (reports / "browser-use-evaluation-latest-data.json").exists()
     assert "总体结果" not in rendered
-    assert "第 1/5 页" in rendered
+    assert "第 1/6 页" in rendered
     suite = (reports / "browser-use-evaluation-latest-suite.html").read_text(encoding="utf-8")
     assert "1</strong><span>公网任务" in suite
     assert "公网测试页面" in suite

@@ -1,6 +1,6 @@
 {
   "schema": "lex_browser_benchmark_adoption/1",
-  "verified_on": "2026-09-09",
+  "verified_on": "2026-09-11",
   "scope": {
     "organizations": [
       "OpenAI",
@@ -21,11 +21,14 @@
   "records": [
     {
       "organization": "OpenAI",
-      "system": "Computer-Using Agent",
+      "system": "GPT-5.4; Computer-Using Agent",
       "benchmark_family": "WebArena",
-      "benchmark_version": "WebArena",
+      "benchmark_version": "WebArena-Verified; WebArena",
       "source_type": "first-party technical page",
-      "url": "https://openai.com/index/computer-using-agent/"
+      "url": "https://openai.com/index/introducing-gpt-5-4/",
+      "secondary_sources": [
+        "https://openai.com/index/computer-using-agent/"
+      ]
     },
     {
       "organization": "OpenAI",
@@ -42,6 +45,14 @@
       "benchmark_version": "WebArena and WebArena-Verified",
       "source_type": "first-party system card",
       "url": "https://www-cdn.anthropic.com/bbd8ef16d70b7a1665f14f306ee88b53f686aa75/Claude%20Sonnet%204.6%20System%20Card.pdf"
+    },
+    {
+      "organization": "OpenAI",
+      "system": "GPT-5.4",
+      "benchmark_family": "Mind2Web",
+      "benchmark_version": "Online-Mind2Web",
+      "source_type": "first-party technical page",
+      "url": "https://openai.com/index/introducing-gpt-5-4/"
     },
     {
       "organization": "Google",
@@ -97,8 +108,8 @@
     },
     {
       "benchmark_family": "Mind2Web",
-      "organization_count": 2,
-      "organizations": ["Google", "Zhipu/ChatGLM"],
+      "organization_count": 3,
+      "organizations": ["OpenAI", "Google", "Zhipu/ChatGLM"],
       "versions": ["Online-Mind2Web", "Mind2Web"]
     },
     {
