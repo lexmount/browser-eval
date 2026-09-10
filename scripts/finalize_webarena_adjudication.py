@@ -100,7 +100,8 @@ def overlay_validated_run(
         if (
             adjudication.get("corrected_trajectory") is not None
             or adjudication.get("response_builder") is not None
-            or decisions[task_id].get("disposition") != "eligible"
+            or decisions[task_id].get("disposition")
+            not in {"eligible", "needs_evidence_revalidation"}
         ):
             if not reason:
                 raise ValueError(f"{task_id}: repaired validated pass lacks reason")

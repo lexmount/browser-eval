@@ -100,3 +100,45 @@ def test_explicit_invalidation_replaces_stale_eligibility():
         "status": "skipped",
         "reason": "Later cold revalidation failed.",
     }
+
+
+def test_evidence_only_revalidation_does_not_invent_a_repair_reason(tmp_path):
+    task = _task("webarena-1")
+    evidence = tmp_path / "task" / "attempt-1"
+    evidence.mkdir(parents=True)
+    attempts = tmp_path / "attempts.jsonl"
+    attempts.write_text(
+        json.dumps(
+            {
+                "task_id": "webarena-1",
+                "engine": "chromium",
+                "qualification_run": True,
+                "is_retry": False,
+                "attempt": 1,
+                "process_status": "pass",
+                "result_status": "pass",
+                "evidence_status": "pass",
+                "evidence_directory": str(evidence),
+                "task_contract_sha256": task_contract_sha256(task),
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = finalize_adjudication(
+        {"tasks": [task]},
+        {
+            "tasks": [
+                {
+                    "task_id": "webarena-1",
+                    "disposition": "needs_evidence_revalidation",
+                }
+            ]
+        },
+        [({"tasks": [task]}, attempts)],
+        {},
+    )
+
+    assert result["tasks"][0]["adjudication"]["status"] == "eligible"
+    assert "reason" not in result["tasks"][0]["adjudication"]
