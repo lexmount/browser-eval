@@ -16,6 +16,7 @@
       "first-party official repository"
     ],
     "counting_rule": "Count one organization at most once per benchmark family; retain the concrete benchmark version in each evidence record.",
+    "ranking_rule": "Sort by organization count, then latest official adoption, public availability, and reproducibility. WebArena precedes Mind2Web on the final criterion because it has a self-hosted deterministic variant while Online-Mind2Web uses changing live sites.",
     "interpretation": "Adoption measures public recognition, not trajectory reliability or fitness for browser-engine isolation."
   },
   "records": [
@@ -102,15 +103,15 @@
       "organizations": ["OpenAI", "Anthropic", "Zhipu/ChatGLM"]
     },
     {
-      "benchmark_family": "WebVoyager",
-      "organization_count": 2,
-      "organizations": ["OpenAI", "Google"]
-    },
-    {
       "benchmark_family": "Mind2Web",
       "organization_count": 3,
       "organizations": ["OpenAI", "Google", "Zhipu/ChatGLM"],
       "versions": ["Online-Mind2Web", "Mind2Web"]
+    },
+    {
+      "benchmark_family": "WebVoyager",
+      "organization_count": 2,
+      "organizations": ["OpenAI", "Google"]
     },
     {
       "benchmark_family": "MiniWoB++",
