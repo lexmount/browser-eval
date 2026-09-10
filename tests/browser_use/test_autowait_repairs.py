@@ -59,3 +59,23 @@ def test_autowait_repair_rejects_an_unproven_timeout():
 
     with pytest.raises(ValueError, match="does not prove"):
         propose_autowait_repair(suite, qualification, "webarena-1")
+
+
+def test_autowait_repair_can_defer_enter_navigation_to_next_declared_target():
+    suite, qualification = _fixtures(
+        'Locator.press timed out; locator resolved; elementHandle.press("Enter")'
+    )
+    suite["tasks"][0]["trajectory"]["actions"] = [
+        {
+            "action": "press",
+            "target": {"by": "label", "value": "Search query"},
+            "key": "Enter",
+        },
+        {"action": "click", "target": {"by": "role", "role": "link", "name": "Result"}},
+    ]
+    qualification["tasks"][0]["failed_step"].update({"index": 1, "action": "press"})
+
+    proposal = propose_autowait_repair(suite, qualification, "webarena-1")
+
+    assert proposal["replace_actions"][0]["no_wait_after"] is True
+    assert "no_wait_after" not in proposal["replace_actions"][1]

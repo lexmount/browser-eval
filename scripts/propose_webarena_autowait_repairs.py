@@ -26,26 +26,43 @@ def propose_autowait_repair(
     actions = deepcopy((task.get("trajectory") or {}).get("actions") or [])
     if (
         decision.get("disposition") != "needs_trace_repair"
-        or failed.get("action") != "click"
         or index < 1
         or index > len(actions)
-        or "click action done" not in error
-        or "waiting for scheduled navigations to finish" not in error
     ):
-        raise ValueError(f"{task_id}: evidence does not prove a completed click auto-wait timeout")
+        raise ValueError(f"{task_id}: evidence does not prove a supported auto-wait timeout")
     response_builder = (task.get("ground_truth") or {}).get("response_builder")
     if not isinstance(response_builder, dict):
         raise ValueError(f"{task_id}: an existing response builder is required")
-    actions[index - 1]["accept_completed_action_navigation_timeout"] = True
+    if (
+        failed.get("action") == "click"
+        and "click action done" in error
+        and "waiting for scheduled navigations to finish" in error
+    ):
+        actions[index - 1]["accept_completed_action_navigation_timeout"] = True
+        repair_reason = (
+            "accept only this proven post-action timeout and retain the full wait so the request "
+            "remains observable to the official evaluator"
+        )
+    elif (
+        failed.get("action") == "press"
+        and 'elementHandle.press("Enter")' in error
+        and index < len(actions)
+        and isinstance(actions[index].get("target"), dict)
+    ):
+        actions[index - 1]["no_wait_after"] = True
+        repair_reason = (
+            "disable only the Enter key's implicit navigation wait; the next declared structured "
+            "target remains the readiness and path gate"
+        )
+    else:
+        raise ValueError(f"{task_id}: evidence does not prove a supported auto-wait timeout")
     return {
         "schema": "lex_browser_use_repair_proposal/1",
         "task_id": task_id,
         "replace_actions": actions,
         "response_builder": deepcopy(response_builder),
         "reason": (
-            f"Step {index} completed its click but timed out only while Playwright waited for "
-            "scheduled navigation; accept only this proven post-action timeout and retain the "
-            "full wait so the request remains observable to the official evaluator."
+            f"Step {index} timed out in Playwright's implicit post-action wait; {repair_reason}."
         ),
     }
 
