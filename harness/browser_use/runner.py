@@ -800,6 +800,9 @@ def run_evaluation(
 
         for task_index, declared_task in enumerate(runnable_tasks):
             task = _materialize_task(declared_task, fixture_origin)
+            if (task.environment or {}).get("kind") == "webarena_verified":
+                assert webarena_environment is not None
+                task = webarena_environment.materialize_task_actions(task)
             if trajectory_authoring_run:
                 task = _bounded_authoring_task(task)
             engine_order = (

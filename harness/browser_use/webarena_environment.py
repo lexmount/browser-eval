@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import socket
 import time
 import urllib.error
@@ -23,6 +24,18 @@ from .suite import BrowserTask
 STATEFUL_SITES = frozenset({"shopping_admin", "shopping", "reddit", "gitlab"})
 STATEFUL_CONTAINER_NAMES = frozenset(
     f"webarena_verified_{site}" for site in STATEFUL_SITES
+)
+LEGACY_PORT_SITES = {
+    3000: "map",
+    7770: "shopping",
+    7780: "shopping_admin",
+    8023: "gitlab",
+    8888: "wikipedia",
+    9999: "reddit",
+}
+_LEGACY_ORIGIN_RE = re.compile(
+    r"https?://[a-z0-9.-]+:(?P<port>3000|7770|7780|8023|8888|9999)",
+    flags=re.IGNORECASE,
 )
 
 
@@ -293,6 +306,48 @@ class WebArenaEnvironment:
         base = str(urls[index])
         suffix = value[len(token) :]
         return base.rstrip("/") + suffix if suffix else base
+
+    def rewrite_legacy_origins(self, value: Any) -> Any:
+        """Materialize baked WebArena origins inside recorded action arguments."""
+        if isinstance(value, dict):
+            return {key: self.rewrite_legacy_origins(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [self.rewrite_legacy_origins(item) for item in value]
+        if isinstance(value, tuple):
+            return tuple(self.rewrite_legacy_origins(item) for item in value)
+        if not isinstance(value, str):
+            return value
+
+        def replace(match: re.Match[str]) -> str:
+            site = LEGACY_PORT_SITES[int(match.group("port"))]
+            config = self._site_config(site)
+            urls = config.get("urls") or []
+            index = int(config.get("active_url_idx") or 0)
+            if not urls or index < 0 or index >= len(urls):
+                raise ValueError(f"WebArena environment has no active URL for site {site!r}")
+            active = urlparse(str(urls[index]))
+            if active.scheme not in {"http", "https"} or not active.netloc:
+                raise ValueError(f"WebArena environment URL is invalid for site {site!r}")
+            return f"{active.scheme}://{active.netloc}"
+
+        return _LEGACY_ORIGIN_RE.sub(replace, value)
+
+    def materialize_task_actions(self, task: BrowserTask) -> BrowserTask:
+        """Resolve runtime-specific origins without changing the canonical contract."""
+        calls = tuple(self.rewrite_legacy_origins(call) for call in task.tool_calls)
+        return BrowserTask(
+            task_id=task.task_id,
+            title=task.title,
+            tool_calls=calls,
+            assertions=task.assertions,
+            tags=task.tags,
+            difficulty=task.difficulty,
+            ground_truth=task.ground_truth,
+            source=task.source,
+            evaluator=task.evaluator,
+            environment=task.environment,
+            trajectory=task.trajectory,
+        )
 
     @staticmethod
     def _explicit_port(url: str, *, label: str) -> int:

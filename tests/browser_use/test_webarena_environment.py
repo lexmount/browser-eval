@@ -139,6 +139,72 @@ def test_site_docker_client_defaults_or_uses_validated_unix_socket(tmp_path, mon
     assert environment.site_docker_client(default_client) == (created, True)
 
 
+def test_recorded_action_origins_are_materialized_from_runtime_config(tmp_path):
+    environment, _ = _environment(tmp_path)
+    environment.environments.update(
+        {
+            "__GITLAB__": {"urls": ["http://10.2.131.41:18023"]},
+            "__REDDIT__": {"urls": ["http://10.2.131.41:19999"]},
+        }
+    )
+    task = BrowserTask(
+        task_id="webarena-682",
+        title="Cross-site copy",
+        tool_calls=(
+            {
+                "action": "fill",
+                "text": (
+                    "http://ec2-3-135-39-80.us-east-2.compute.amazonaws.com:8023/"
+                    "convexegg/chatgpt"
+                ),
+                "target": {
+                    "by": "playwright",
+                    "value": (
+                        'internal:attr=[title="http://old.example:9999/f/technology"i]'
+                    ),
+                },
+            },
+        ),
+        assertions=(),
+        tags=("mutate",),
+        difficulty="simple",
+        ground_truth={"expected_actions": ["fill"]},
+        source={},
+        evaluator={"kind": "webarena_verified"},
+        environment={"kind": "webarena_verified", "sites": ["gitlab", "reddit"]},
+        trajectory={"schema": "lex_browser_trajectory/1", "actions": []},
+    )
+
+    materialized = environment.materialize_task_actions(task)
+
+    assert materialized.tool_calls[0]["text"] == (
+        "http://10.2.131.41:18023/convexegg/chatgpt"
+    )
+    assert materialized.tool_calls[0]["target"]["value"] == (
+        'internal:attr=[title="http://10.2.131.41:19999/f/technology"i]'
+    )
+    assert materialized.trajectory is task.trajectory
+
+
+def test_unrelated_external_urls_are_not_rewritten(tmp_path):
+    environment, _ = _environment(tmp_path)
+
+    assert environment.rewrite_legacy_origins("https://example.com:8443/path") == (
+        "https://example.com:8443/path"
+    )
+
+
+def test_admin_origin_rewrite_does_not_duplicate_the_admin_base_path(tmp_path):
+    environment, _ = _environment(tmp_path)
+
+    rewritten = environment.rewrite_legacy_origins(
+        "http://ec2-3-135-39-80.us-east-2.compute.amazonaws.com:7780/"
+        "admin/review/product/index"
+    )
+
+    assert rewritten == "http://host.docker.internal:17780/admin/review/product/index"
+
+
 def test_stateful_reset_recreates_container_from_pinned_image(tmp_path, monkeypatch):
     environment, pinned = _environment(tmp_path)
     starts = []
