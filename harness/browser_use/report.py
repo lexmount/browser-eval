@@ -49,12 +49,6 @@ SITE_LABELS = {
 MUTATE_IDS = {399, 404, 441, 506}
 NAVIGATE_IDS = {44, 45, 118}
 RESEARCH_ROOT = Path(__file__).parents[2] / "research"
-SHARED_FAILURE_DIAGNOSES = {
-    int(task_id): diagnosis
-    for task_id, diagnosis in json.loads(
-        (RESEARCH_ROOT / "browser-use-failure-analysis.json").read_text(encoding="utf-8")
-    )["tasks"].items()
-}
 MAC_EXPANSION = json.loads(
     (RESEARCH_ROOT / "webarena-mac-expansion.json").read_text(encoding="utf-8")
 )
@@ -1143,28 +1137,48 @@ def _artifact_links(attempt_id: str) -> str:
 
 
 def _article_body(
-    paired: dict[str, Any], attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]
+    paired: dict[str, Any],
+    attempts: list[dict[str, Any]],
+    tasks: list[dict[str, Any]],
+    verified_causes: dict[str, dict[str, Any]],
 ) -> str:
     summary = _primary_summary(attempts)
     chromium, moli = summary["chromium"], summary["moli"]
-    failures = [
+    task_count = len(tasks)
+    failed_result_count = sum(
+        item["completed"] - item["passed"] for item in summary.values()
+    )
+    discordant = paired["chromium_only"] + paired["moli_only"]
+    tier_counts = {
+        tier: sum(task["tier"] == tier for task in tasks) for tier in ("easy", "medium", "hard")
+    }
+    cause_rows = [
         [
-            f"#{task_id}",
-            _finding_text(diagnosis, "root_cause"),
-            _finding_text(diagnosis, "owner"),
-            _finding_text(diagnosis, "proof"),
-            _finding_text(diagnosis, "corrective_action"),
-            _finding_text(diagnosis, "verification"),
+            result_id,
+            (diagnosis.get("subcategory") or {}).get("zh") or "—",
+            (diagnosis.get("reason") or {}).get("zh") or "—",
         ]
-        for task_id, diagnosis in SHARED_FAILURE_DIAGNOSES.items()
+        for result_id, diagnosis in sorted(verified_causes.items())
     ]
+    if failed_result_count:
+        cause_section = (
+            _table(
+                ["逻辑结果", "根因子类", "已核验根因"],
+                cause_rows,
+                caption="表 2｜根因核验不修改官方分数；修复后必须产生新的执行证据。",
+            )
+            if len(cause_rows) == failed_result_count
+            else f'<p class="callout">当前有 {failed_result_count} 个失败结果，根因核验尚未完成。正式发布前必须逐个绑定当前证据并补齐根因子类和具体原因。</p>'
+        )
+    else:
+        cause_section = '<p class="callout success">本轮没有失败结果，无需生成失败根因记录。</p>'
     return (
         '<article class="publication-article"><header class="essay-head"><div class="eyebrow">Browser Use 实测解读</div>'
-        f"<h1>{chromium['passed']} 比 {moli['passed']} 不是同因平局：五个零分包含四类根因</h1>"
-        f'<p class="lead">同一 CowAgent 与同一模型替换浏览器后，{paired["paired"]} 个配对任务的官方分数没有出现单边胜出，但逐条追查证明相同分数并不代表相同执行结果。根因分别位于官方任务合同、Agent 完成策略、本项目响应协议和证据采集器；Task 506 的 Chromium 与 Moli 甚至不是同一种失败。</p>'
+        f"<h1>{chromium['passed']}/{chromium['completed']} 对 {moli['passed']}/{moli['completed']}：{discordant} 个任务出现浏览器分歧</h1>"
+        f'<p class="lead">同一 CowAgent、模型、任务、站点状态和 evaluator 下，只替换浏览器后端。总分给出结果，{paired["paired"]} 个同题配对用于定位差异；每个失败结果还要沿官方合同、最终回答、网络证据和自主轨迹追到可复核根因。</p>'
         '<p class="source-note">测量口径：WebArena‑Verified 1.2.3；每题×浏览器一个最终逻辑结果；官方确定性 evaluator；无 LLM judge。</p></header>'
-        "<section><h2>一、最重要的结果不是平分，而是零个不一致配对</h2>"
-        f"<p>Chromium 与 Moli 分别通过 {chromium['passed']}/{chromium['completed']} 和 {moli['passed']}/{moli['completed']}。逐题配对后，{paired['both_pass']} 题共同通过、{paired['both_fail']} 题共同失败，两个浏览器单边通过都是 0。由于固定样本里没有不一致任务，这批数据不能估计浏览器的方向性效应，也不对 WebArena‑Verified 全集作统计外推。</p>"
+        "<section><h2>一、先看总分，再看同题分歧</h2>"
+        f"<p>Chromium 与 Moli 分别通过 {chromium['passed']}/{chromium['completed']} 和 {moli['passed']}/{moli['completed']}。逐题配对后，{paired['both_pass']} 题共同通过、{paired['both_fail']} 题共同失败、{paired['chromium_only']} 题仅 Chromium 通过、{paired['moli_only']} 题仅 Moli 通过。</p>"
         + _table(
             ["配对结果", "任务数", "可支持的判断"],
             [
@@ -1173,17 +1187,13 @@ def _article_body(
                 ["仅 Moli", paired["moli_only"], "本轮未观察到"],
                 ["两者都失败", paired["both_fail"], "优先排查共同链路"],
             ],
-            caption="表 1｜30 个任务的逐题最终结果配对。",
+            caption=f"表 1｜{paired['paired']} 个任务的逐题最终结果配对。",
         )
-        + f"<p>严谨表述只能是“本轮没有观察到成功率差异”，不能写成“两种内核等价”。{paired['paired']} 题对小效应检出力有限；更关键的是，样本没有诱发内核分歧。</p></section>"
-        '<section id="failure-findings"><h2>二、五个零分的根因与修复边界</h2>'
-        f"<p>两个浏览器共享 CowAgent、模型、任务合同与 evaluator，但这不意味着共同零分必然来自共同原因。根因审计把“页面上出现了什么”继续追到产生错误的合同、策略或采集实现，并为每项给出必须通过的复测条件。</p>"
-        + _table(
-            ["任务", "根因", "责任层", "证据闭环", "根治措施", "复测门槛"],
-            failures,
-            caption="表 2｜历史官方分数不被人工改写；合同或运行协议修复后必须产生新证据。",
-        )
-        + "<p><strong>可执行结论：</strong>#68 因官方 expected 与 schema 冲突而退出下一轮干净 A/B；#142 因类别验收边界未定义而退出，直至补齐可观察口径；#168 修正本项目的空结果状态协议；#124 增加候选语义核验和提交前自检；#506 修复 HAR 即时采集、末步工具调用 fail-closed，并在预注册的 40 步上限下复测。旧的 25/30 仍保留为历史官方分数，但不能再解释成五个同因的 Agent 失败。</p></section><section><h2>三、简单、中等、困难都覆盖了，但“难度”只是操作长度</h2><p>WebArena‑Verified 没有官方 easy/medium/hard 三档。本项目在运行前按最少可见 UI 操作数注册为 1–4、5–7、8+ 三档，配额 5/10/15。它控制操作链覆盖，不等同于推理难度。</p>"
+        + f"<p>固定样本中观察到 {discordant} 个不一致配对。这个数字用于发现浏览器相关差异，但不能单独证明整个浏览器内核的优劣，也不对 WebArena‑Verified 全集作统计外推。</p></section>"
+        '<section id="failure-findings"><h2>二、失败结果必须追到根因</h2>'
+        "<p>程序化 evaluator 先给出失败环节；核验再检查最终执行的任务合同、回答、网络记录和 Agent 轨迹，形成更具体的根因子类与原因。共同失败不默认是共同根因，单边失败也不默认是浏览器缺陷。</p>"
+        + cause_section
+        + f"</section><section><h2>三、简单、中等、困难都覆盖，但难度只表示操作长度</h2><p>WebArena‑Verified 没有官方 easy/medium/hard 三档。本项目在运行前按最少可见 UI 操作数注册为 1–4、5–7、8+ 三档，配额 {tier_counts['easy']}/{tier_counts['medium']}/{tier_counts['hard']}。它控制操作链覆盖，不等同于推理难度。</p>"
         + _table(
             ["本项目分层", "Chromium", "Moli"],
             _group_rows(attempts, tasks, "tier"),
@@ -1194,7 +1204,7 @@ def _article_body(
             _group_rows(attempts, tasks, "sites"),
             caption="表 4｜四个可重置自托管站点。",
         )
-        + f'</section><section><h2>四、选择 WebArena‑Verified 是为了归因，不是因为它最流行</h2><p>Mind2Web 家族采用面更广，但原版主要评离线动作预测；Online‑Mind2Web 和 WebVoyager贴近实时网页，却引入网页漂移和模型裁判。WebArena‑Verified 可以自托管、逐题重置，并用结构化最终答案和必要网络副作用做程序化验收，更适合“只替换浏览器”的 A/B。</p><p>代价也明确：部署重，环境兼容本身会成为工程变量；官方 evaluator 不衡量路径效率，也不能覆盖开放互联网泛化。</p></section><section><h2>五、下一轮先扩展四个已验证站点</h2><p>官方包有 {MAC_COUNTS["full"]} 题和 {MAC_COUNTS["hard"]} 题 hard 子集，没有官方 179 题版本；179 只能是另行声明的自定义样本。当前 Mac 已实跑的四个站点可覆盖 {MAC_COUNTS["current_four_sites_single_site"]} 个单站任务；再计入只依赖这四站的跨站任务，共有 {MAC_COUNTS["current_four_sites_including_cross_site"]} 个候选，其中 hard 子集有 {MAC_COUNTS["current_four_sites_hard_including_cross_site"]} 个。下一轮应在这些候选中先做登录、重置、健康检查与 evaluator 预检，再按简单、中等、困难和内核敏感交互分层抽样。</p><p>Wikipedia 需要约 100 GB 数据，Map 需要约 60 GB 数据且当前公开镜像为 amd64；二者可作为后续扩展，但没有理由成为本机下一批的前置阻塞。</p><p>保留 CowAgent、模型、reasoning=low 和每题最多两次执行的固定协议，优先加入长页面、复杂编辑器、弹窗、多标签页、上传下载等更可能诱发浏览器差异的任务。实时网站另开 Online‑Mind2Web / WebVoyager 泛化轨道，LLM judge 与人工抽检单列。</p><div class="essay-note"><h3>决策边界</h3><p>本轮支持“流程可比、当前样本无方向性差异”；不支持“内核等价”“Moli 已全面替代 Chromium”或“端到端耗时就是纯内核速度”。Astra 获权后必须形成独立运行。</p></div></section></article>'
+        + f'</section><section><h2>四、选择 WebArena‑Verified 是为了可归因的结果验收</h2><p>Mind2Web 家族采用面更广，但原版主要评离线动作预测；Online‑Mind2Web 和 WebVoyager贴近实时网页，却引入网页漂移和模型裁判。WebArena‑Verified 可以自托管、逐题重置，并用结构化最终答案和必要网络副作用做程序化验收，更适合“只替换浏览器”的 A/B。</p><p>代价也明确：部署重，环境兼容本身会成为工程变量；官方 evaluator 不衡量路径效率，也不能覆盖开放互联网泛化。</p></section><section><h2>五、结论只适用于本轮受控样本</h2><p>本轮固定 {task_count} 题，覆盖四个已验证站点。结果只说明当前 CowAgent、模型、任务与运行协议下的浏览器差异；不支持把总分直接解释为浏览器内核等价、全面替代关系或纯内核速度。端到端耗时包含模型、调度、页面等待和工具开销，动作延迟也包含 CDP 往返。</p><div class="essay-note"><h3>决策边界</h3><p>先修复已核验根因并形成新证据，再扩大任务与浏览器范围；历史官方分数不被人工覆盖。</p></div></section></article>'
     )
 
 
@@ -1501,6 +1511,12 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
     tasks = _resolve_tasks(
         selection, expected_data_checksum=str(official.get("data_checksum") or "") or None
     )
+    task_count = len(tasks)
+    result_count = len(attempts)
+    max_agent_steps = int(config.get("max_agent_steps") or protocol.get("max_agent_steps") or 0)
+    tier_counts = {
+        tier: sum(task["tier"] == tier for task in tasks) for tier in ("easy", "medium", "hard")
+    }
     summary, paired = _primary_summary(attempts), _paired_summary(attempts)
     measured_solvable_ids = {
         int(row["task_id"]) for row in attempts if float(row.get("score") or 0) == 1
@@ -1547,7 +1563,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             METHODOLOGY_FIGURE,
             stage / "assets/webarena-autonomous-evaluation-flow.png",
         )
-        article = _article_body(paired, attempts, tasks)
+        article = _article_body(paired, attempts, tasks, verified_causes)
         c, m = summary["chromium"], summary["moli"]
         families = _task_family_summary(tasks, attempts)
         coverage = review.get("coverage") or {}
@@ -1563,7 +1579,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         home = _hero(
             f"Browser Use Capability Evaluation · {run_date}",
             "Chromium 与 Moli：Browser Use 能力实测",
-            f"在同一 CowAgent、同一 {model}（reasoning=low）和同一 WebArena‑Verified 30 题样本下，对比两种浏览器完成真实网页任务的能力。",
+            f"在同一 CowAgent、同一 {model}（reasoning=low）和同一 WebArena‑Verified {task_count} 题样本下，对比两种浏览器完成真实网页任务的能力。",
         )
         home += _section(
             "先看结论",
@@ -1591,7 +1607,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         home += _section(
             "从结论进入证据",
-            '<div class="grid"><article class="card article-entry" style="grid-column:span 6"><h3>报告解读</h3><p>对零分歧、共同失败和下一轮设计的完整论证。</p><a href="guide/">阅读完整解读 →</a></article><article class="card" style="grid-column:span 3"><h3>30 个任务</h3><p>筛选并下钻两种浏览器结果。</p><a href="datasets/">打开任务库 →</a></article><article class="card" style="grid-column:span 3"><h3>60 个逻辑结果</h3><p>查看最终判定、耗时、轨迹和核验状态。</p><a href="analysis/">打开结果库 →</a></article></div>',
+            f'<div class="grid"><article class="card article-entry" style="grid-column:span 6"><h3>报告解读</h3><p>解释配对结果、失败根因和结论边界。</p><a href="guide/">阅读完整解读 →</a></article><article class="card" style="grid-column:span 3"><h3>{task_count} 个任务</h3><p>筛选任务并下钻验收合同。</p><a href="datasets/">打开任务库 →</a></article><article class="card" style="grid-column:span 3"><h3>{result_count} 个逻辑结果</h3><p>查看最终判定、耗时、轨迹和核验状态。</p><a href="analysis/">打开结果库 →</a></article></div>',
         )
         home += _section(
             "逐题配对比总分更重要",
@@ -1641,7 +1657,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
 
         datasets = _hero(
             "Dataset",
-            "候选 benchmark、选择依据与 30 个预注册任务",
+            f"候选 benchmark、选择依据与 {task_count} 个预注册任务",
             "先区分最终结果、动作过程和模型裁判，再谈采用率；同一家族不同变体的成绩不能合并。",
         )
         datasets += _section(
@@ -1651,7 +1667,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         datasets += (
             _section(
                 "Mind2Web 的拆分不是 easy / medium / hard",
-                "<p>原始 Mind2Web 使用 cross-task、cross-website、cross-domain 衡量泛化；Online‑Mind2Web 没有统一三档；Mind2Web 2 的 short / medium / long 按动作跨度划分。本报告的简单 5、中等 10、困难 15 是预注册的操作长度层级。</p>",
+                f"<p>原始 Mind2Web 使用 cross-task、cross-website、cross-domain 衡量泛化；Online‑Mind2Web 没有统一三档；Mind2Web 2 的 short / medium / long 按动作跨度划分。本报告的简单 {tier_counts['easy']}、中等 {tier_counts['medium']}、困难 {tier_counts['hard']} 是预注册的操作长度层级。</p>",
             )
             + _section(
                 "怎样阅读任务 ground truth",
@@ -1659,9 +1675,9 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             )
             + _section(
                 "题集范围",
-                "<p>本轮在模型执行前固定 30 个任务，覆盖四个已部署站点以及 RETRIEVE、NAVIGATE、MUTATE 三种最终合同。这里仅描述题目与验收规则；通过率、耗时、轨迹和可完成性观察统一放在结果分析中。</p>",
+                f"<p>本轮在模型执行前固定 {task_count} 个任务，覆盖四个已部署站点以及 RETRIEVE、NAVIGATE、MUTATE 三种最终合同。这里仅描述题目与验收规则；通过率、耗时、轨迹和可完成性观察统一放在结果分析中。</p>",
             )
-            + _section("30 个任务", _task_table(tasks))
+            + _section(f"{task_count} 个任务", _task_table(tasks))
         )
         (stage / "datasets/index.html").write_text(
             _page(title="评测集", active="datasets", body=datasets, depth=1), encoding="utf-8"
@@ -1744,15 +1760,15 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         methodology += _section(
             "本轮判分链",
-            '<ol class="flow"><li>预注册 30 题</li><li>逐题重置站点</li><li>CowAgent 自主规划</li><li>只替换浏览器</li><li>官方 evaluator 验收</li><li>确定性证据复核</li></ol><p>官方数据 812 题全部配置 AgentResponseEvaluator，其中 663 题还配置 NetworkEventEvaluator。所有已配置 evaluator 都返回 1.0 才通过。它检查最终结果和必要副作用，不要求复刻参考动作序列。</p>',
+            f'<ol class="flow"><li>预注册 {task_count} 题</li><li>逐题重置站点</li><li>CowAgent 自主规划</li><li>只替换浏览器</li><li>官方 evaluator 验收</li><li>确定性证据复核</li></ol><p>官方数据 812 题全部配置 AgentResponseEvaluator，其中 663 题还配置 NetworkEventEvaluator。所有已配置 evaluator 都返回 1.0 才通过。它检查最终结果和必要副作用，不要求复刻参考动作序列。</p>',
         )
         methodology += _section(
-            "这 30 题如何部署并由 Agent 执行",
+            f"这 {task_count} 题如何部署并由 Agent 执行",
             '<figure id="deployment-flow" class="method-figure"><img src="assets/webarena-autonomous-evaluation-flow.png" alt="WebArena-Verified 本地部署、CowAgent 自主操作、双浏览器对照与程序化验收流程" width="1672" height="941"><figcaption>图 1 · 从官方站点镜像、逐题隔离与健康检查，到 CowAgent 观察—决策—操作闭环，再到 Chromium/Moli 对照和官方程序化验收。窄屏可横向滚动查看。</figcaption></figure>'
             "<p><strong>站点确实部署在本机，不是公网代站。</strong>macOS 上的 Docker 由 Colima 虚拟机承载；本轮 Colima VM 地址是 <code>192.168.5.3</code>，其默认路由指向 <code>192.168.5.2</code>。后者是 VM 视角下的 macOS 宿主网关，不是虚拟机地址，也不是评测网站。Shopping、Shopping Admin、Reddit、GitLab 四个官方站点镜像通过 Docker 端口发布到这个宿主入口，独立的 Chromium/Moli 浏览器容器据此访问本地站点。</p>"
-            "<p>WebArena‑Verified 当前提供 Shopping、Shopping Admin、Reddit、GitLab、Wikipedia、Map 六类环境。本轮 30 题只覆盖前四类；Wikipedia 与 Map 需要额外大型数据卷，因此没有部署，也没有任务进入成绩。</p>"
+            f"<p>WebArena‑Verified 当前提供 Shopping、Shopping Admin、Reddit、GitLab、Wikipedia、Map 六类环境。本轮 {task_count} 题只覆盖前四类；Wikipedia 与 Map 需要额外大型数据卷，因此没有部署，也没有任务进入成绩。</p>"
             "<p>运行器代码在每个执行前调用 <code>ContainerManager.start(reset=True)</code>，只保留该题所需站点；env-ctrl 报告 ready 后，再做连续应用健康检查、清浏览器状态、登录测试账号并打开起始页。当前冻结证据保存了代码提交、运行协议和镜像身份；事件流从环境准备完成后开始，因此逐次 reset、ready 与 health 结果未形成独立绑定的准备回执。新版运行协议已要求保存该回执。</p>"
-            "<p>预注册文件只含任务 ID、层级和入选理由，不含点击序列。CowAgent 收到自然语言目标后，在最多 30 步内循环读取页面观察、请求模型决策并生成下一次 BrowserTool 调用。Chromium 与 Moli 分别连接独立 CDP 浏览器容器；每个逻辑结果保留最终 JSON、Agent 事件流、网络 HAR 和 Playwright trace。</p>"
+            f"<p>预注册文件只含任务 ID、层级和入选理由，不含点击序列。CowAgent 收到自然语言目标后，在最多 {max_agent_steps} 步内循环读取页面观察、请求模型决策并生成下一次 BrowserTool 调用。Chromium 与 Moli 分别连接独立 CDP 浏览器容器；每个逻辑结果保留最终 JSON、Agent 事件流、网络 HAR 和 Playwright trace。</p>"
             + _table(
                 ["站点", "本轮访问地址", "应用端口", "环境控制端口", "状态"],
                 [
@@ -1766,8 +1782,8 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                     ],
                     ["Reddit", "http://192.168.5.2:9999", "9999", "9998", "本轮已部署"],
                     ["GitLab", "http://192.168.5.2:8023", "8023", "8024", "本轮已部署"],
-                    ["Wikipedia", "—", "8888", "8889", "未部署；不在 30 题"],
-                    ["Map", "—", "3030", "3031", "未部署；不在 30 题"],
+                    ["Wikipedia", "—", "8888", "8889", f"未部署；不在 {task_count} 题"],
+                    ["Map", "—", "3030", "3031", f"未部署；不在 {task_count} 题"],
                 ],
             )
             + '<p class="callout"><strong>证据边界：</strong>事件流能证明 CowAgent 在准备完成后产生了 BrowserTool 调用序列；镜像 ID、digest、代码提交与网关记录限定了本地运行身份。当前证据没有独立的逐次环境准备 receipt，因此报告不把“每次重置均成功”当成已经独立核验的事实。</p>'
@@ -1864,7 +1880,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             + _same_task_comparison(tasks, attempts),
         ).replace('<section class="section">', '<section class="section" id="same-task">', 1)
         analysis += _section(
-            "60 个逻辑结果",
+            f"{result_count} 个逻辑结果",
             "<p>默认只显示失败；可按浏览器、层级、站点、任务类型、失败环节和全文关键词筛选。</p>"
             + _attempt_table(attempts, tasks, verified_causes),
         )
@@ -2036,17 +2052,17 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                         f"{model} · reasoning={protocol.get('reasoning_effort', '—')}",
                         "为两个选手生成决策",
                     ],
-                    ["任务与站点", "同一 30 题；同一批本地站点镜像", "提供一致输入与网页状态"],
+                    ["任务与站点", f"同一 {task_count} 题；同一批本地站点镜像", "提供一致输入与网页状态"],
                     ["动作接口", "CowAgent BrowserTool · CDP", "把 Agent 动作交给浏览器"],
                     [
                         "验收",
                         "WebArena‑Verified 1.2.3 官方 evaluator",
                         "对最终 JSON 与必要网络副作用判分",
                     ],
-                    ["资源与上限", "相同 CPU、内存、viewport 与最多 30 步", "控制运行预算"],
+                    ["资源与上限", f"相同 CPU、内存、viewport 与最多 {max_agent_steps} 步", "控制运行预算"],
                 ],
             )
-            + "<p><strong>这 30 题由 CowAgent 自主执行。</strong>仓库中的 Browser Trajectory Replay（轨迹重放）固定动作微基准属于另一条实验轨道，不是本报告的参评选手，也不计入这 30 题成绩。</p>",
+            + f"<p><strong>这 {task_count} 题由 CowAgent 自主执行。</strong>仓库中的 Browser Trajectory Replay（轨迹重放）固定动作微基准属于另一条实验轨道，不是本报告的参评选手，也不计入这 {task_count} 题成绩。</p>",
         )
         adoption += _section(
             "如何增加下一名选手",
@@ -2168,7 +2184,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         reproduce += _section(
             "公开复现入口",
-            '<p><a href="https://github.com/lexmount/browser-eval">lexmount/browser-eval</a> 是代码、题集和锁文件的唯一来源。</p><pre><code>./examples/browser_use/run.sh\nmake browser-use-review EVIDENCE="$BROWSER_USE_EVIDENCE"\nmake browser-use-report EVIDENCE="$BROWSER_USE_EVIDENCE"\nmake browser-use-report-check EVIDENCE="$BROWSER_USE_EVIDENCE"</code></pre><div class="page-links"><a href="data/selection.json">selection.json</a><a href="data/results.jsonl">results.jsonl</a><a href="data/evidence-index.json">evidence-index.json</a><a href="data/failure-cause-review.json">failure-cause-review.json</a><a href="data/summary.json">summary.json</a><a href="data/environment.json">environment.json</a><a href="data/review.json">review.json</a><a href="data/publication-privacy.json">publication-privacy.json</a></div><p class="fine">每个逻辑结果的脱敏回答、evaluator、事件和轨迹位于 <code>artifacts/&lt;result-id&gt;/</code>；<code>evidence-index.json</code> 给出全部 60 个逻辑结果的页面与下载路径。</p>',
+            f'<p><a href="https://github.com/lexmount/browser-eval">lexmount/browser-eval</a> 是代码、题集和锁文件的唯一来源。</p><pre><code>./examples/browser_use/run.sh\nmake browser-use-review EVIDENCE="$BROWSER_USE_EVIDENCE"\nmake browser-use-report EVIDENCE="$BROWSER_USE_EVIDENCE"\nmake browser-use-report-check EVIDENCE="$BROWSER_USE_EVIDENCE"</code></pre><div class="page-links"><a href="data/selection.json">selection.json</a><a href="data/results.jsonl">results.jsonl</a><a href="data/evidence-index.json">evidence-index.json</a><a href="data/failure-cause-review.json">failure-cause-review.json</a><a href="data/summary.json">summary.json</a><a href="data/environment.json">environment.json</a><a href="data/review.json">review.json</a><a href="data/publication-privacy.json">publication-privacy.json</a></div><p class="fine">每个逻辑结果的脱敏回答、evaluator、事件和轨迹位于 <code>artifacts/&lt;result-id&gt;/</code>；<code>evidence-index.json</code> 给出全部 {result_count} 个逻辑结果的页面与下载路径。</p>',
         )
         (stage / "reproduce/index.html").write_text(
             _page(title="环境与复现", active="reproduce", body=reproduce, depth=1), encoding="utf-8"
@@ -2196,10 +2212,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             "schema": "lex_browser_use_interpretation/1",
             "claims": [
                 {"claim": "当前样本未观察到成功率差异", "basis": paired},
-                {
-                    "claim": "失败任务完全重合；证据确认四题止于最终答案或状态协议，一题止于步数上限前的结账流程",
-                    "basis": SHARED_FAILURE_DIAGNOSES,
-                },
+                {"claim": "失败根因以当前证据绑定的逐结果核验为准", "basis": verified_causes},
             ],
             "bound_attempts_sha256": _sha256(evidence / "attempts.jsonl"),
             "selection_sha256": selection.sha256,
