@@ -12,7 +12,7 @@ from scripts.verify_artifact_hub import download_export, verify_public_files
 
 class PublicationVerifyTests(unittest.TestCase):
     def verify(self, served=b'const report=true;', changed_version=False,
-               injected_entry=True):
+               injected_entry=True, injection_location='prefix'):
         metadata_calls=0
         def response(request, timeout):
             nonlocal metadata_calls
@@ -20,21 +20,29 @@ class PublicationVerifyTests(unittest.TestCase):
                 if request.endswith('/index.html'):
                     entry=b'<html>\xe6\x8a\xa5\xe5\x91\x8a</html>'
                     if injected_entry:
-                        return io.BytesIO(
+                        injection=(
                             b'<base href="/api/preview/test/">'
                             b'<script data-artifact-bootstrap>safe()</script>'
-                            b'<script data-artifact-bootstrap>alsoSafe()</script>'+entry
+                            b'<script data-artifact-bootstrap>alsoSafe()</script>'
                         )
+                        if injection_location=='head':
+                            entry=b'<html><head></head>\xe6\x8a\xa5\xe5\x91\x8a</html>'
+                            return io.BytesIO(entry.replace(b'<head>',b'<head>'+injection,1))
+                        return io.BytesIO(injection+entry)
                     return io.BytesIO(entry)
                 return io.BytesIO(served)
             metadata_calls+=1
+            entry_content=('<html><head></head>报告</html>'
+                           if injection_location=='head' else '<html>报告</html>')
             return io.BytesIO(json.dumps({'files':['index.html','loader.js'],
-                'file':'index.html','content':'<html>报告</html>',
+                'file':'index.html','content':entry_content,
                 'version':{'id':'ver_second' if changed_version and metadata_calls>1 else 'ver_first'}}).encode())
         with tempfile.TemporaryDirectory() as temp:
             archive=Path(temp)/'site.zip'
             with zipfile.ZipFile(archive,'w') as bundle:
-                bundle.writestr('index.html','<html>报告</html>')
+                entry=('<html><head></head>报告</html>' if injection_location=='head'
+                       else '<html>报告</html>')
+                bundle.writestr('index.html',entry)
                 bundle.writestr('loader.js',b'const report=true;')
             with patch('scripts.verify_artifact_hub.load_token',return_value='fixture'), \
                  patch('scripts.verify_artifact_hub.urllib.request.urlopen',side_effect=response):
@@ -54,6 +62,11 @@ class PublicationVerifyTests(unittest.TestCase):
         self.assertEqual(result['anonymous_byte_identical_files'],2)
         self.assertEqual(result['anonymous_injected_html_files'],0)
         self.assertTrue(result['anonymous_all_files_byte_identical'])
+
+    def test_current_in_head_bootstrap_is_verified(self):
+        result=self.verify(injection_location='head')
+        self.assertEqual(result['anonymous_injected_html_files'],1)
+        self.assertTrue(result['submitted_bytes_verified_by_layer'])
 
     def test_unrecognized_entry_injection_fails(self):
         metadata_calls=0

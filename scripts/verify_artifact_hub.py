@@ -45,22 +45,38 @@ def verify_public_files(slug, expected_archive, base=DEFAULT_BASE):
         authenticated_entry=True
 
     def injected_html_matches(name, served):
-        """Accept only an exact submitted suffix after the Hub's HTML bootstrap."""
+        """Accept only an exact submitted document plus a known Hub bootstrap."""
         original=expected_html[name]
-        if not served.endswith(original):return False
-        prefix=served[:-len(original)] if original else served
         expected_base=('<base href="/api/preview/'+quote(slug,safe='')+'/">').encode()
-        if not prefix.startswith(expected_base):return False
-        bootstrap=prefix[len(expected_base):]
-        # The service may add one or more bootstrap scripts. Do not normalize or
-        # ignore arbitrary HTML: every injected byte must belong to such scripts.
-        while bootstrap:
-            opening=b'<script data-artifact-bootstrap>'
-            if not bootstrap.startswith(opening):return False
-            end=bootstrap.find(b'</script>',len(opening))
-            if end<0:return False
-            bootstrap=bootstrap[end+len(b'</script>'):]
-        return True
+
+        def known_injection(injected):
+            if not injected.startswith(expected_base):return False
+            bootstrap=injected[len(expected_base):]
+            # The service may add one or more bootstrap scripts. Do not normalize
+            # or ignore arbitrary HTML: every injected byte must be one such script.
+            while bootstrap:
+                opening=b'<script data-artifact-bootstrap>'
+                if not bootstrap.startswith(opening):return False
+                end=bootstrap.find(b'</script>',len(opening))
+                if end<0:return False
+                bootstrap=bootstrap[end+len(b'</script>'):]
+            return True
+
+        # Older deployments prepend the bootstrap to the submitted document.
+        if served.endswith(original):
+            injected=served[:-len(original)] if original else served
+            if known_injection(injected):return True
+
+        # Current deployments insert it immediately after the literal <head> so
+        # the submitted doctype and document element remain at the start.
+        head_end=original.find(b'<head>')
+        if head_end<0:return False
+        head_end+=len(b'<head>')
+        before,after=original[:head_end],original[head_end:]
+        if not served.startswith(before):return False
+        if after and not served.endswith(after):return False
+        injected=served[len(before):len(served)-len(after) if after else None]
+        return known_injection(injected)
 
     def digest(name):
         url=base+'/api/preview/'+quote(slug,safe='')+'/'+quote(name,safe='/')
@@ -104,7 +120,7 @@ def verify_public_files(slug, expected_archive, base=DEFAULT_BASE):
         'authenticated_original_entry_verified':authenticated_entry,
         'submitted_bytes_verified_by_layer':exact+injected==len(actual),
         'method':('anonymous_file_bytes; injected HTML requires an exact submitted '
-                  'suffix after validated Artifact Hub bootstrap scripts; authenticated '
+                  'document around validated Artifact Hub bootstrap scripts; authenticated '
                   'metadata verifies the original entry'),
     }
 
