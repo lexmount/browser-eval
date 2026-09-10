@@ -91,7 +91,7 @@ make test
 
 ## 重新实测
 
-把根目录 `.env.example` 复制为 `.env`，只填写需要的方法。所有 Web Fetch 入口默认只读取仓库根目录 `.env`，不读取用户目录、不执行 shell 内容；已导出的环境变量优先。只有显式 `--env-file <路径>` 才改用其他文件，文件不存在时报错。`.env` 与本地变体已被 Git 忽略，示例不含凭据。
+把根目录 `.env.example` 复制为 `.env`，只填写需要的方法。若账号集中保存在用户目录 `~/.env`，执行 `make import-env`：它只把本评测声明的 9 个托管方法变量导入仓库 `.env`，保留已有非空值，不复制其他账号，不打印变量值，并把目标权限设为 `0600`；缺少任何目标变量会列出变量名并失败。所有 Web Fetch 入口仍默认只读取仓库根目录 `.env`，绝不隐式读取用户目录或执行 shell 内容；已导出的环境变量优先。只有显式 `--env-file <路径>` 才改用其他文件，文件不存在时报错。`.env` 与本地变体已被 Git 忽略，示例不含凭据。
 
 先执行 `make setup`，再用 `uv run --frozen python -m harness.web_fetch validate --providers <方法名>` 校验凭据。LangChain 与 Crawl4AI 已由 `uv.lock` 固定并随 `make setup` 安装，worker 默认使用项目 `.venv`；OpenClaw、DeepSeek Harness 和 CowAgent 还需要固定源码仓库，路径均在 `.env.example` 中列出，可通过 `scripts/bootstrap_oss_baselines.sh` 准备。空仓库路径会在任何调用前失败。
 
