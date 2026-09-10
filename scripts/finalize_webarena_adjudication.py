@@ -89,6 +89,7 @@ def overlay_validated_run(
         }
         reason = str(
             ((task.get("ground_truth") or {}).get("qualification") or {}).get("reason")
+            or ((decisions[task_id].get("adjudication") or {}).get("reason"))
             or ""
         ).strip()
         if task.get("trajectory") != original.get("trajectory"):

@@ -142,3 +142,51 @@ def test_evidence_only_revalidation_does_not_invent_a_repair_reason(tmp_path):
 
     assert result["tasks"][0]["adjudication"]["status"] == "eligible"
     assert "reason" not in result["tasks"][0]["adjudication"]
+
+
+def test_revalidation_preserves_existing_repair_reason(tmp_path):
+    original = _task("webarena-1")
+    repaired = _task("webarena-1", "fixed")
+    evidence = tmp_path / "task" / "attempt-1"
+    evidence.mkdir(parents=True)
+    attempts = tmp_path / "attempts.jsonl"
+    attempts.write_text(
+        json.dumps(
+            {
+                "task_id": "webarena-1",
+                "engine": "chromium",
+                "qualification_run": True,
+                "is_retry": False,
+                "attempt": 1,
+                "process_status": "pass",
+                "result_status": "pass",
+                "evidence_status": "pass",
+                "evidence_directory": str(evidence),
+                "task_contract_sha256": task_contract_sha256(repaired),
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = finalize_adjudication(
+        {"tasks": [original]},
+        {
+            "tasks": [
+                {
+                    "task_id": "webarena-1",
+                    "disposition": "needs_trace_repair",
+                    "adjudication": {
+                        "status": "eligible",
+                        "reason": "Previously validated correction.",
+                    },
+                }
+            ]
+        },
+        [({"tasks": [repaired]}, attempts)],
+        {},
+    )
+
+    assert result["tasks"][0]["adjudication"]["reason"] == (
+        "Previously validated correction."
+    )
