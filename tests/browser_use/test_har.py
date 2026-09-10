@@ -143,7 +143,7 @@ def test_har_recorder_captures_new_tabs_and_evaluator_fields(tmp_path):
     summary = recorder.stop(output)
 
     payload = json.loads(output.read_text())
-    assert payload["log"]["creator"] == {"name": "browser-eval-cdp", "version": "2"}
+    assert payload["log"]["creator"] == {"name": "browser-eval-cdp", "version": "3"}
     entry = payload["log"]["entries"][0]
     assert summary == {
         "entry_count": 1,
@@ -231,6 +231,70 @@ def test_har_recorder_drains_pending_response_before_writing(tmp_path):
     assert summary["entry_count"] == 1
     assert summary["missing_response_count"] == 0
     assert summary["unfinished_request_count"] == 0
+
+
+def test_har_recorder_preserves_post_redirect_hop_when_cdp_reuses_request_id(tmp_path):
+    context = _Context()
+    page = _Page(context)
+    context.pages.append(page)
+    recorder = CdpHarRecorder(page)
+    session = context.sessions[0]
+    session.handlers["Network.requestWillBeSent"](
+        {
+            "requestId": "redirected",
+            "wallTime": 1,
+            "request": {
+                "method": "POST",
+                "url": "https://example.test/newsletter/subscriber/new",
+                "headers": {"content-type": "application/x-www-form-urlencoded"},
+                "postData": "email=reader%40example.test",
+            },
+        }
+    )
+    session.handlers["Network.requestWillBeSent"](
+        {
+            "requestId": "redirected",
+            "wallTime": 2,
+            "redirectResponse": {
+                "status": 302,
+                "statusText": "Found",
+                "protocol": "http/1.1",
+                "headers": {"location": "https://example.test/"},
+                "mimeType": "text/html",
+            },
+            "request": {
+                "method": "GET",
+                "url": "https://example.test/",
+                "headers": {},
+            },
+        }
+    )
+    session.handlers["Network.responseReceived"](
+        {
+            "requestId": "redirected",
+            "response": {
+                "status": 200,
+                "statusText": "OK",
+                "headers": {"content-type": "text/html"},
+                "mimeType": "text/html",
+            },
+        }
+    )
+    session.handlers["Network.loadingFinished"]({"requestId": "redirected"})
+
+    summary = recorder.stop(tmp_path / "network.har")
+    entries = json.loads((tmp_path / "network.har").read_text())["log"]["entries"]
+
+    assert summary["request_count"] == 2
+    assert summary["entry_count"] == 2
+    assert entries[0]["request"]["method"] == "POST"
+    assert entries[0]["request"]["postData"]["text"] == (
+        "email=reader%40example.test"
+    )
+    assert entries[0]["response"]["status"] == 302
+    assert entries[0]["response"]["redirectURL"] == "https://example.test/"
+    assert entries[1]["request"]["method"] == "GET"
+    assert entries[1]["response"]["status"] == 200
 
 
 def test_har_recorder_uses_stable_event_snapshot_while_reading_bodies(tmp_path):

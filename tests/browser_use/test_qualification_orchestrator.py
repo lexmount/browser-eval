@@ -59,7 +59,7 @@ def test_completed_shard_validation_binds_manifest_hashes_scope_and_attempts(tmp
             evidence / "network.har",
             {
                 "log": {
-                    "creator": {"name": "browser-eval-cdp", "version": "2"},
+                    "creator": {"name": "browser-eval-cdp", "version": "3"},
                     "entries": [],
                 }
             },

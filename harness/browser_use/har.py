@@ -34,7 +34,7 @@ _EVALUATOR_PARSEABLE_BODY_TYPES = (
     "multipart/form-data",
 )
 HAR_CREATOR_NAME = "browser-eval-cdp"
-HAR_CREATOR_VERSION = "2"
+HAR_CREATOR_VERSION = "3"
 
 
 def _redacted_request_cookie_header(value: Any) -> str:
@@ -137,6 +137,7 @@ class CdpHarRecorder:
         self._responses: dict[str, dict[str, Any]] = {}
         self._request_extra_info: dict[str, dict[str, Any]] = {}
         self._response_extra_info: dict[str, dict[str, Any]] = {}
+        self._redirects: list[dict[str, Any]] = []
         self._finished: set[str] = set()
         self._failed: set[str] = set()
         for existing in list(self._context.pages):
@@ -158,7 +159,7 @@ class CdpHarRecorder:
         self._sessions[session_id] = session
         session.on(
             "Network.requestWillBeSent",
-            lambda event: self._requests.__setitem__(self._key(session_id, event), event),
+            lambda event: self._record_request(session_id, event),
         )
         session.on(
             "Network.responseReceived",
@@ -185,6 +186,30 @@ class CdpHarRecorder:
             lambda event: self._failed.add(self._key(session_id, event)),
         )
         session.send("Network.enable", {"maxTotalBufferSize": 100_000_000})
+
+    def _record_request(self, session_id: int, event: dict[str, Any]) -> None:
+        """Preserve every hop when CDP reuses a request id for redirects."""
+        key = self._key(session_id, event)
+        previous = self._requests.get(key)
+        redirect_response = event.get("redirectResponse")
+        if previous is not None and isinstance(redirect_response, dict):
+            self._redirects.append(
+                {
+                    "session_id": session_id,
+                    "request_id": str(event["requestId"]),
+                    "request_event": previous,
+                    "response_event": {
+                        "requestId": event["requestId"],
+                        "response": redirect_response,
+                    },
+                    "request_extra_event": self._request_extra_info.pop(key, None),
+                    "response_extra_event": self._response_extra_info.pop(key, None),
+                }
+            )
+            self._responses.pop(key, None)
+            self._finished.discard(key)
+            self._failed.discard(key)
+        self._requests[key] = event
 
     def ensure_pages(self) -> None:
         """Attach pages discovered after recorder construction.
@@ -225,7 +250,18 @@ class CdpHarRecorder:
         finished = set(self._finished)
         failed = set(self._failed)
         sessions = dict(self._sessions)
-        entries: list[dict[str, Any]] = []
+        entries: list[dict[str, Any]] = [
+            self._entry(
+                sessions[item["session_id"]],
+                item["request_id"],
+                False,
+                item["request_event"],
+                item["response_event"],
+                item["request_extra_event"],
+                item["response_extra_event"],
+            )
+            for item in self._redirects
+        ]
         missing_response = 0
         for key, event in requests.items():
             response_event = responses.get(key)
@@ -263,7 +299,7 @@ class CdpHarRecorder:
         )
         return {
             "entry_count": len(entries),
-            "request_count": len(requests),
+            "request_count": len(requests) + len(self._redirects),
             "missing_response_count": missing_response,
             "failed_request_count": len(failed),
             "unfinished_request_count": len(set(requests).difference(finished, failed)),

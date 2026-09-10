@@ -569,7 +569,7 @@ def test_correction_is_applied_only_with_passing_primary_qualification_attempt(t
         json.dumps(
             {
                 "log": {
-                    "creator": {"name": "browser-eval-cdp", "version": "2"},
+                    "creator": {"name": "browser-eval-cdp", "version": "3"},
                     "entries": [],
                 }
             }
