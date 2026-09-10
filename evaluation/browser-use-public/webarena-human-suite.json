@@ -29,7 +29,12 @@
       "replay_qualified_count": 0
     },
     "qualification_required": true,
-    "catalog_sha256": "dc8a3bc883f79f2ce399f79d22a69cb856f94a6112a7aa84583b36c2252e2f7d"
+    "catalog_sha256": "dc8a3bc883f79f2ce399f79d22a69cb856f94a6112a7aa84583b36c2252e2f7d",
+    "qualification": {
+      "schema": "lex_browser_use_qualification/1",
+      "qualified_count": 19,
+      "skipped_count": 160
+    }
   },
   "tasks": [
     {
@@ -334,8 +339,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -2919,8 +2924,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -3565,8 +3570,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -3856,8 +3861,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory did not produce an evaluator-compatible answer, and no bounded DOM-observation repair passed independent Chromium qualification."
         }
       },
       "source": {
@@ -3916,9 +3921,11 @@
       "trajectory": {
         "schema": "lex_browser_trajectory/1",
         "provenance": {
-          "kind": "webarena_official_human_playwright_trace",
+          "kind": "codex_corrected_webarena_trajectory",
           "source_file": "23.trace.zip",
-          "source_sha256": "c8b559a8e11bf8757060b103c44d54cc177d98134541d8173e0d6c5d406a56bf"
+          "source_sha256": "c8b559a8e11bf8757060b103c44d54cc177d98134541d8173e0d6c5d406a56bf",
+          "original_trajectory_sha256": "9930c8e0e0527297738ed8438fa5e9e996c839938aa77ff9dfe9cf6bc05fe59c",
+          "proposal_sha256": "4cfd901fde3c8558b2d415afbfc59e20171d034b2fc21ef025fea9c0a4fcc87f"
         },
         "recorded_context": {
           "browser_name": "chromium",
@@ -3961,18 +3968,10 @@
             "tab_index": 0
           },
           {
-            "action": "click",
-            "source": {
-              "api_name": "frame.click",
-              "call_id": "call@ab687e26e868a0ff24a0674e68a01040",
-              "recorded_status": "pass"
-            },
-            "target": {
-              "by": "role",
-              "role": "link",
-              "name": "Page 2",
-              "exact": false
-            },
+            "action": "snapshot",
+            "selector": "body",
+            "max_chars": 40000,
+            "save_as": "page_body",
             "tab_index": 0
           }
         ],
@@ -3999,12 +3998,28 @@
         "expected_actions": [
           "click",
           "click",
-          "click"
+          "snapshot"
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "reason": "Extract each reviewer from the visible review text instead of relying on stale pagination or DOM classes.",
+          "corrected_trajectory_sha256": "3eebfb4caff3fe61495b43ad809ae35971c6d635813b81dbb5692e543dd4f749",
+          "validated_run_sha256": "24715686e77bf124dbdf3d23157df9c8a74d9132b0faaee910e26f1de58549a4"
+        },
+        "response_builder": {
+          "kind": "observed_shape",
+          "task_type": "retrieve",
+          "shape": [
+            {
+              "$output": "page_body",
+              "regex": "fingerprint resistant\\.[\\s\\S]*?Review by\\s+([^\\n]+)"
+            },
+            {
+              "$output": "page_body",
+              "regex": "resist fingerprints[\\s\\S]*?Review by\\s+([^\\n]+)"
+            }
+          ]
         }
       },
       "source": {
@@ -4198,8 +4213,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -5358,8 +5373,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -5978,8 +5993,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -6141,8 +6156,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -6611,8 +6626,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -6795,8 +6810,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -6934,8 +6949,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory did not produce an evaluator-compatible answer, and no bounded DOM-observation repair passed independent Chromium qualification."
         }
       },
       "source": {
@@ -7861,8 +7876,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -8071,8 +8086,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official map trajectory no longer resolves its exact accessible-name target under isolated cold Chromium HAR v3 revalidation; the provisional eligibility is superseded."
         }
       },
       "source": {
@@ -8171,8 +8186,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory did not produce an evaluator-compatible answer, and no bounded DOM-observation repair passed independent Chromium qualification."
         }
       },
       "source": {
@@ -8334,8 +8349,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -8688,8 +8703,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -10434,8 +10449,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -10772,8 +10787,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -11420,8 +11435,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -11643,8 +11658,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory did not produce an evaluator-compatible answer, and no bounded DOM-observation repair passed independent Chromium qualification."
         }
       },
       "source": {
@@ -11792,8 +11807,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory did not produce an evaluator-compatible answer, and no bounded DOM-observation repair passed independent Chromium qualification."
         }
       },
       "source": {
@@ -11937,8 +11952,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -12081,8 +12096,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -12302,8 +12317,9 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "official site image is not native amd64; cross-architecture emulation is excluded",
+          "exclusion_kind": "non_native_site_image"
         }
       },
       "source": {
@@ -12772,8 +12788,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory did not produce an evaluator-compatible answer, and no bounded DOM-observation repair passed independent Chromium qualification."
         }
       },
       "source": {
@@ -13426,8 +13442,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -13890,8 +13906,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory did not produce an evaluator-compatible answer, and no bounded DOM-observation repair passed independent Chromium qualification."
         }
       },
       "source": {
@@ -13990,9 +14006,11 @@
       "trajectory": {
         "schema": "lex_browser_trajectory/1",
         "provenance": {
-          "kind": "webarena_official_human_playwright_trace",
+          "kind": "codex_corrected_webarena_trajectory",
           "source_file": "115.trace.zip",
-          "source_sha256": "53f86e19a3ca257f64faad280a8fc058b4775af82bd74d23391d2b113930804d"
+          "source_sha256": "53f86e19a3ca257f64faad280a8fc058b4775af82bd74d23391d2b113930804d",
+          "original_trajectory_sha256": "8f0de6046993ac1a2e5cc29e2c7321960f35cf4cf7acd5f8043e9dffeda82e1d",
+          "proposal_sha256": "b55898e7986ab7d93afb2c9386df220b55581f8e47617d8464534e7101bcd1a7"
         },
         "recorded_context": {
           "browser_name": "chromium",
@@ -14348,6 +14366,11 @@
               "value": "#gridProducts_filter_review_cnt"
             },
             "tab_index": 0
+          },
+          {
+            "action": "snapshot",
+            "selector": "body",
+            "save_as": "review_report"
           }
         ],
         "unmapped_calls": []
@@ -14394,12 +14417,21 @@
           "click",
           "click",
           "fill",
-          "press"
+          "press",
+          "snapshot"
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "reason": "The corrected official path reaches the Product Reviews Report and the rendered page explicitly reports zero records; bind NOT_FOUND_ERROR to that observed text.",
+          "corrected_trajectory_sha256": "c2984a81932104cac299050ced7bddc3e0f8b07f5b2dfb1733e7d8c905869df0",
+          "validated_run_sha256": "1484fc982eb595a5576fc3cc67faddeccdb1e4867a57244d443d9ace212e96ad"
+        },
+        "response_builder": {
+          "kind": "observed_not_found",
+          "task_type": "retrieve",
+          "output": "review_report",
+          "evidence_regex": "(?:0 records found|couldn.t find any records)"
         }
       },
       "source": {
@@ -14508,8 +14540,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -14638,8 +14670,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -14689,9 +14721,11 @@
       "trajectory": {
         "schema": "lex_browser_trajectory/1",
         "provenance": {
-          "kind": "webarena_official_human_playwright_trace",
+          "kind": "codex_corrected_webarena_trajectory",
           "source_file": "123.trace.zip",
-          "source_sha256": "9a7f8d84c0d508d3e0284644b1ba413c1a6af5286a41065fd0db079608e3a568"
+          "source_sha256": "9a7f8d84c0d508d3e0284644b1ba413c1a6af5286a41065fd0db079608e3a568",
+          "original_trajectory_sha256": "6223305ada063030c5d2636d299ec640208c7c64d0437f12197cf40c6dadcbc3",
+          "proposal_sha256": "34ef115decad041da067aed0ae4ead900cef28f6923b727c0e72f653abdd7d18"
         },
         "recorded_context": {
           "browser_name": "chromium",
@@ -14805,6 +14839,26 @@
               "exact": false
             },
             "tab_index": 0
+          },
+          {
+            "action": "get_property",
+            "target": {
+              "by": "css",
+              "value": "#title"
+            },
+            "name": "value",
+            "save_as": "review_title",
+            "tab_index": 0
+          },
+          {
+            "action": "get_attribute",
+            "target": {
+              "by": "css",
+              "value": "input[name='ratings[4]']:checked"
+            },
+            "name": "id",
+            "save_as": "rating_id",
+            "tab_index": 0
           }
         ],
         "unmapped_calls": []
@@ -14834,12 +14888,32 @@
           "fill",
           "press",
           "click",
-          "click"
+          "click",
+          "get_property",
+          "get_attribute"
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "reason": "The official path reaches the matching review edit page; append DOM observations for the review title and selected rating instead of injecting the evaluator answer.",
+          "corrected_trajectory_sha256": "67c36b320b275db91094f8ea4b4ae6dad8f8b8da13a5f78c228ecb9fde44431a",
+          "validated_run_sha256": "a9247d4bfc63bd2d21858e51a74ff0c28f065b3104b56ae8c6cc66d1712dc751"
+        },
+        "response_builder": {
+          "kind": "observed_shape",
+          "task_type": "retrieve",
+          "shape": [
+            {
+              "title": {
+                "$output": "review_title"
+              },
+              "rating": {
+                "$output": "rating_id",
+                "regex": "_(\\d+)$",
+                "coerce": "number"
+              }
+            }
+          ]
         }
       },
       "source": {
@@ -14893,9 +14967,11 @@
       "trajectory": {
         "schema": "lex_browser_trajectory/1",
         "provenance": {
-          "kind": "webarena_official_human_playwright_trace",
+          "kind": "codex_corrected_webarena_trajectory",
           "source_file": "125.trace.zip",
-          "source_sha256": "326a2fb99c4d7021f5fcee1cc4de9e2ff445598c388a108eca00d5398fd48a30"
+          "source_sha256": "326a2fb99c4d7021f5fcee1cc4de9e2ff445598c388a108eca00d5398fd48a30",
+          "original_trajectory_sha256": "12e3ac34ccd4a3e3273c19f00c633e87c976088fa0654cc407a0ec85646504ff",
+          "proposal_sha256": "941f8e3a37256df085ae001c2474db8658b5faa2443cf1ba1f6a3037d7912f6e"
         },
         "recorded_context": {
           "browser_name": "chromium",
@@ -15082,6 +15158,56 @@
               "exact": false
             },
             "tab_index": 0
+          },
+          {
+            "action": "get_all_text",
+            "target": {
+              "by": "css",
+              "value": ".product-item .price-final_price .price"
+            },
+            "strip": true,
+            "save_as": "page_three_prices",
+            "tab_index": 0
+          },
+          {
+            "action": "click",
+            "target": {
+              "by": "role",
+              "role": "link",
+              "name": "Page 2",
+              "exact": false
+            },
+            "tab_index": 0
+          },
+          {
+            "action": "get_all_text",
+            "target": {
+              "by": "css",
+              "value": ".product-item .price-final_price .price"
+            },
+            "strip": true,
+            "save_as": "page_two_prices",
+            "tab_index": 0
+          },
+          {
+            "action": "click",
+            "target": {
+              "by": "role",
+              "role": "link",
+              "name": "Page 1",
+              "exact": false
+            },
+            "tab_index": 0
+          },
+          {
+            "action": "get_all_text",
+            "target": {
+              "by": "css",
+              "value": ".product-item .price-final_price .price"
+            },
+            "strip": true,
+            "save_as": "page_one_prices",
+            "tab_index": 0
           }
         ],
         "unmapped_calls": []
@@ -15116,12 +15242,28 @@
           "click",
           "press",
           "click",
-          "click"
+          "click",
+          "get_all_text",
+          "click",
+          "get_all_text",
+          "click",
+          "get_all_text"
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "reason": "The official path reaches the final search-result page; read rendered final prices on every result page and compute the range only from those observed arrays.",
+          "corrected_trajectory_sha256": "b794c4f48169786f46c05c5ab69137991ed931872a277fdd7f4ecd1055ae2ff8",
+          "validated_run_sha256": "fb329834f05ec9f509f6e9f4cdb93ad6445a91373c7e449bcbe113338b411b65"
+        },
+        "response_builder": {
+          "kind": "observed_currency_range",
+          "task_type": "retrieve",
+          "outputs": [
+            "page_three_prices",
+            "page_two_prices",
+            "page_one_prices"
+          ]
         }
       },
       "source": {
@@ -15280,8 +15422,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -15956,8 +16098,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -16191,8 +16333,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -16492,8 +16634,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -16652,8 +16794,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -16795,8 +16937,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -17026,8 +17168,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -17139,8 +17281,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "validated_run_sha256": "0ae392d26e69b901b0af3248c734fb6e2b07ce1df79f9a65cbd8294f130347b9"
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -17264,8 +17406,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "validated_run_sha256": "726fd09929ec843205a05850fe10c74bfeaf2ba25424e2f52b69665f6e272c19"
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -17414,8 +17556,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -17463,9 +17605,11 @@
       "trajectory": {
         "schema": "lex_browser_trajectory/1",
         "provenance": {
-          "kind": "webarena_official_human_playwright_trace",
+          "kind": "codex_corrected_webarena_trajectory",
           "source_file": "167.trace.zip",
-          "source_sha256": "12c8cbc89f3a0617ab17839c02d05bd97a08ef54a8923ab5d005d4b6e6833025"
+          "source_sha256": "12c8cbc89f3a0617ab17839c02d05bd97a08ef54a8923ab5d005d4b6e6833025",
+          "original_trajectory_sha256": "dc1514bc110a4ab78a152c7af5668b4a2ab905e46e38805a21286f1b1c6ceb76",
+          "proposal_sha256": "0857c4dc0566de763ab4fa3d13882c9adb5c3f1de1d4547b67a88a8acacdfd2c"
         },
         "recorded_context": {
           "browser_name": "chromium",
@@ -17534,6 +17678,16 @@
               "exact": false
             },
             "tab_index": 0
+          },
+          {
+            "action": "get_all_text",
+            "target": {
+              "by": "css",
+              "value": "li.review-item:has(.rating-result[title='20%']) .review-title, li.review-item:has(.rating-result[title='40%']) .review-title"
+            },
+            "strip": true,
+            "save_as": "review_titles",
+            "tab_index": 0
           }
         ],
         "unmapped_calls": []
@@ -17560,12 +17714,20 @@
           "click",
           "click",
           "click",
-          "click"
+          "click",
+          "get_all_text"
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "reason": "The official path exposes the product review list; select only review items whose observed aggregate percentage represents one or two stars, then read every matching review title.",
+          "corrected_trajectory_sha256": "93c00847ca4407666596502b11d6070ede962ec5248e2783f0d4232e79fe8e44",
+          "validated_run_sha256": "fc2b7e807d8dbbd9088607980cdddb2ba4997e39054c175cc1741ab687d74b28"
+        },
+        "response_builder": {
+          "kind": "observed_json",
+          "task_type": "retrieve",
+          "output": "review_titles"
         }
       },
       "source": {
@@ -18036,8 +18198,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -18081,9 +18243,11 @@
       "trajectory": {
         "schema": "lex_browser_trajectory/1",
         "provenance": {
-          "kind": "webarena_official_human_playwright_trace",
+          "kind": "codex_corrected_webarena_trajectory",
           "source_file": "173.trace.zip",
-          "source_sha256": "75c2b832e247c7128cbfba1a9d3c8752058735382b8ff5fb01991229712625af"
+          "source_sha256": "75c2b832e247c7128cbfba1a9d3c8752058735382b8ff5fb01991229712625af",
+          "original_trajectory_sha256": "88608e141568e814e0c348eaaac876e2bf8976c030da2732c320348277061085",
+          "proposal_sha256": "136eef8ca5178f4c5f71d26b637578d9461cecf060b6320dcf142745cad1f30d"
         },
         "recorded_context": {
           "browser_name": "chromium",
@@ -18206,6 +18370,11 @@
               "exact": false
             },
             "tab_index": 0
+          },
+          {
+            "action": "snapshot",
+            "selector": "body",
+            "save_as": "issue_page"
           }
         ],
         "unmapped_calls": []
@@ -18236,12 +18405,26 @@
           "click",
           "click",
           "click",
-          "click"
+          "click",
+          "snapshot"
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "reason": "The official path reaches issue 8. Capture the rendered issue page and derive the requested boolean from its explicit Open or Closed state label.",
+          "corrected_trajectory_sha256": "96d3e8116ddea3c6af8abb0700ae3c1b17a9b6da5acb657e161ba91d3dfd91b7",
+          "validated_run_sha256": "2706e66cb8b47caf43bcbeea77b576cbb7ea7feae2de828e44f4e97be2dc7d6d"
+        },
+        "response_builder": {
+          "kind": "observed_shape",
+          "task_type": "retrieve",
+          "shape": [
+            {
+              "$output": "issue_page",
+              "regex": "#8\\s+(Open|Closed)\\s+Issue created",
+              "coerce": "closed_boolean"
+            }
+          ]
         }
       },
       "source": {
@@ -18502,8 +18685,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -18790,8 +18973,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -18845,9 +19028,11 @@
       "trajectory": {
         "schema": "lex_browser_trajectory/1",
         "provenance": {
-          "kind": "webarena_official_human_playwright_trace",
+          "kind": "codex_corrected_webarena_trajectory",
           "source_file": "190.trace.zip",
-          "source_sha256": "fe6cc086863a6d6dca2bc3f9914d1e69e372684a05b349901a57ce364fa329f4"
+          "source_sha256": "fe6cc086863a6d6dca2bc3f9914d1e69e372684a05b349901a57ce364fa329f4",
+          "original_trajectory_sha256": "3b37286c75669ce994216ef340817bdc57e61cbfced20f76f6033e0f24b1a9c4",
+          "proposal_sha256": "20ba55df5d2ee94ae96f6e5c7b4a72fb7553f83c538f1f97089cdc0c6a1ce5d0"
         },
         "recorded_context": {
           "browser_name": "chromium",
@@ -18901,6 +19086,16 @@
               "value": "internal:role=row[name=\"000000180 3/11/23 $65.32 Complete View Order Reorder\"i] >> internal:role=link >> nth=0"
             },
             "tab_index": 0
+          },
+          {
+            "action": "get_text",
+            "target": {
+              "by": "css",
+              "value": "tfoot .grand_total .price"
+            },
+            "strip": true,
+            "save_as": "grand_total",
+            "tab_index": 0
           }
         ],
         "unmapped_calls": []
@@ -18926,12 +19121,26 @@
         "expected_actions": [
           "click",
           "click",
-          "click"
+          "click",
+          "get_text"
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "reason": "The official path opens the latest completed order; read its rendered grand-total cell and parse the observed currency amount.",
+          "corrected_trajectory_sha256": "4de702b0526c6b36ec422586fc38eeb8f58f834051516d21cf6f07e6d0ca8e4b",
+          "validated_run_sha256": "9a9d21408fad82ef9e4eede060580713fc0c18bd4c8e76507856d1f30e7d039b"
+        },
+        "response_builder": {
+          "kind": "observed_shape",
+          "task_type": "retrieve",
+          "shape": [
+            {
+              "$output": "grand_total",
+              "regex": "\\$([0-9]+(?:\\.[0-9]+)?)",
+              "coerce": "number"
+            }
+          ]
         }
       },
       "source": {
@@ -19901,8 +20110,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -20233,8 +20442,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -20441,8 +20650,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory did not produce an evaluator-compatible answer, and no bounded DOM-observation repair passed independent Chromium qualification."
         }
       },
       "source": {
@@ -20687,8 +20896,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -21080,8 +21289,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -22123,8 +22332,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -24627,8 +24836,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -24806,8 +25015,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -24845,9 +25054,11 @@
       "trajectory": {
         "schema": "lex_browser_trajectory/1",
         "provenance": {
-          "kind": "webarena_official_human_playwright_trace",
+          "kind": "codex_corrected_webarena_trajectory",
           "source_file": "227.trace.zip",
-          "source_sha256": "2ab1318c3da71a0bbd5d2bdc0f39d7634e14ec042d2cd693912287f74abcad45"
+          "source_sha256": "2ab1318c3da71a0bbd5d2bdc0f39d7634e14ec042d2cd693912287f74abcad45",
+          "original_trajectory_sha256": "668ba45857dc3121ad65d4b3056e5565293f85ccef9ea56da41f2c3c688e9a3c",
+          "proposal_sha256": "212e6bd6480f4be8ca9b8eb972a0225e020b81e22ddfd2398a57f7f0e61db785"
         },
         "recorded_context": {
           "browser_name": "chromium",
@@ -24903,116 +25114,13 @@
             "tab_index": 0
           },
           {
-            "action": "click",
-            "source": {
-              "api_name": "frame.click",
-              "call_id": "call@a99ebb00ec084d2049cf74441acac4a4",
-              "recorded_status": "pass"
-            },
+            "action": "get_all_text",
             "target": {
-              "by": "role",
-              "role": "link",
-              "name": "Image",
-              "exact": false
+              "by": "css",
+              "value": ".product-item .price"
             },
-            "tab_index": 0
-          },
-          {
-            "action": "check",
-            "source": {
-              "api_name": "frame.check",
-              "call_id": "call@79acd7974bcdf39d9317f11a210bc71e",
-              "recorded_status": "pass"
-            },
-            "target": {
-              "by": "label",
-              "value": "Black",
-              "exact": false
-            },
-            "tab_index": 0
-          },
-          {
-            "action": "check",
-            "source": {
-              "api_name": "frame.check",
-              "call_id": "call@8f513afeb7ccb78a6ef4c0266e2c9f50",
-              "recorded_status": "pass"
-            },
-            "target": {
-              "by": "label",
-              "value": "iPhone 7 Plus/8 Plus",
-              "exact": false
-            },
-            "tab_index": 0
-          },
-          {
-            "action": "check",
-            "source": {
-              "api_name": "frame.check",
-              "call_id": "call@492686e372e5ef5e982f64abaa3db5c8",
-              "recorded_status": "pass"
-            },
-            "target": {
-              "by": "label",
-              "value": "iPhone 7/8/SE 2020",
-              "exact": false
-            },
-            "tab_index": 0
-          },
-          {
-            "action": "check",
-            "source": {
-              "api_name": "frame.check",
-              "call_id": "call@e0eadae0909dfb3d85b9dca565e53bef",
-              "recorded_status": "pass"
-            },
-            "target": {
-              "by": "label",
-              "value": "Mint Green",
-              "exact": false
-            },
-            "tab_index": 0
-          },
-          {
-            "action": "check",
-            "source": {
-              "api_name": "frame.check",
-              "call_id": "call@4fd19b8fa9221c597ab2965dc2dc6de6",
-              "recorded_status": "pass"
-            },
-            "target": {
-              "by": "label",
-              "value": "Light Pink",
-              "exact": false
-            },
-            "tab_index": 0
-          },
-          {
-            "action": "check",
-            "source": {
-              "api_name": "frame.check",
-              "call_id": "call@91ffec5e36c61869c641b903da3e3b56",
-              "recorded_status": "pass"
-            },
-            "target": {
-              "by": "label",
-              "value": "Gray",
-              "exact": false
-            },
-            "tab_index": 0
-          },
-          {
-            "action": "check",
-            "source": {
-              "api_name": "frame.check",
-              "call_id": "call@73a6af8d200c01a9ff037576ff84e097",
-              "recorded_status": "pass"
-            },
-            "target": {
-              "by": "label",
-              "value": "Dark Green",
-              "exact": false
-            },
+            "strip": true,
+            "save_as": "search_result_prices",
             "tab_index": 0
           }
         ],
@@ -25040,19 +25148,21 @@
           "click",
           "fill",
           "press",
-          "click",
-          "check",
-          "check",
-          "check",
-          "check",
-          "check",
-          "check",
-          "check"
+          "get_all_text"
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "reason": "Replace stale recorded navigation with values observed on the live result page.",
+          "corrected_trajectory_sha256": "fae63eae506962df50a11c8bf99c66d1de34d4faacf1cf85b9a3a7a3829e8689",
+          "validated_run_sha256": "b193ee4f48a07765d16555924371114a7c6bd209716bf09a0eefa16bdf6f7319"
+        },
+        "response_builder": {
+          "kind": "observed_currency_range",
+          "task_type": "retrieve",
+          "outputs": [
+            "search_result_prices"
+          ]
         }
       },
       "source": {
@@ -25254,8 +25364,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory did not produce an evaluator-compatible answer, and no bounded DOM-observation repair passed independent Chromium qualification."
         }
       },
       "source": {
@@ -25480,8 +25590,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -26033,8 +26143,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -26746,8 +26856,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -27677,8 +27787,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -27846,8 +27956,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -28058,8 +28168,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -28563,8 +28673,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -28946,8 +29056,9 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "official site image is not native amd64; cross-architecture emulation is excluded",
+          "exclusion_kind": "non_native_site_image"
         }
       },
       "source": {
@@ -29194,8 +29305,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -29334,8 +29445,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "validated_run_sha256": "a86969bc5f8f2d3f22f54db0a22a35424659f602050070eab4545b452b656d04"
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -30644,8 +30755,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -31105,8 +31216,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -31298,8 +31409,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -31605,8 +31716,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -32174,8 +32285,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -32365,8 +32476,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -32447,8 +32558,8 @@
         "expected_actions": [],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -32551,8 +32662,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory did not produce an evaluator-compatible answer, and no bounded DOM-observation repair passed independent Chromium qualification."
         }
       },
       "source": {
@@ -32743,8 +32854,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -32842,8 +32953,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory did not produce an evaluator-compatible answer, and no bounded DOM-observation repair passed independent Chromium qualification."
         }
       },
       "source": {
@@ -33300,8 +33411,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -33479,8 +33590,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory did not produce an evaluator-compatible answer, and no bounded DOM-observation repair passed independent Chromium qualification."
         }
       },
       "source": {
@@ -33656,8 +33767,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -33944,8 +34055,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -34248,8 +34359,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -34422,8 +34533,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -34666,8 +34777,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -34811,8 +34922,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -34958,8 +35069,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -35085,8 +35196,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "validated_run_sha256": "e7cdb7dafcf90ae5d1eca07714b04a83ada813017ff8ac11cbf1d75818e50307"
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -35145,9 +35256,11 @@
       "trajectory": {
         "schema": "lex_browser_trajectory/1",
         "provenance": {
-          "kind": "webarena_official_human_playwright_trace",
+          "kind": "codex_corrected_webarena_trajectory",
           "source_file": "361.trace.zip",
-          "source_sha256": "f86e081eff7da2a6175ed93c40fa9e8ec1db55609062fe67a6f9727c0302937f"
+          "source_sha256": "f86e081eff7da2a6175ed93c40fa9e8ec1db55609062fe67a6f9727c0302937f",
+          "original_trajectory_sha256": "263bd3aa78c7f82a297e1bb2ecaab1fe71a5183fd71173fe037520db84eade52",
+          "proposal_sha256": "a3ae34ac1b9c4a744dd1fd39e5f649a3d8441875dc53f22b30ff8121ed06e82e"
         },
         "recorded_context": {
           "browser_name": "chromium",
@@ -35188,6 +35301,46 @@
               "exact": false
             },
             "tab_index": 0
+          },
+          {
+            "action": "get_text",
+            "target": {
+              "by": "css",
+              "value": "#my-orders-table tbody tr:has(td.col.id:has-text('000000170')) td.col.id"
+            },
+            "strip": true,
+            "save_as": "order_170_number",
+            "tab_index": 0
+          },
+          {
+            "action": "get_text",
+            "target": {
+              "by": "css",
+              "value": "#my-orders-table tbody tr:has(td.col.id:has-text('000000170')) td.col.status"
+            },
+            "strip": true,
+            "save_as": "order_170_status",
+            "tab_index": 0
+          },
+          {
+            "action": "get_text",
+            "target": {
+              "by": "css",
+              "value": "#my-orders-table tbody tr:has(td.col.id:has-text('000000189')) td.col.id"
+            },
+            "strip": true,
+            "save_as": "order_189_number",
+            "tab_index": 0
+          },
+          {
+            "action": "get_text",
+            "target": {
+              "by": "css",
+              "value": "#my-orders-table tbody tr:has(td.col.id:has-text('000000189')) td.col.status"
+            },
+            "strip": true,
+            "save_as": "order_189_status",
+            "tab_index": 0
           }
         ],
         "unmapped_calls": []
@@ -35212,12 +35365,42 @@
         "oracle": "webarena_verified",
         "expected_actions": [
           "click",
-          "click"
+          "click",
+          "get_text",
+          "get_text",
+          "get_text",
+          "get_text"
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "reason": "The official path opens the complete order-history table; read the order-number and status cells from the two rows identified by the order numbers in the task.",
+          "corrected_trajectory_sha256": "39a4102a08bb114f9863e8bf21ade8a07b3aeda7d5b91a46dca4f7b3e2deaacc",
+          "validated_run_sha256": "9816e296374cfb00b5acf679dc62f573e1aa145c46ca146410dcd640536d5298"
+        },
+        "response_builder": {
+          "kind": "observed_shape",
+          "task_type": "retrieve",
+          "shape": [
+            {
+              "order_number": {
+                "$output": "order_170_number"
+              },
+              "status": {
+                "$output": "order_170_status",
+                "case": "lower"
+              }
+            },
+            {
+              "order_number": {
+                "$output": "order_189_number"
+              },
+              "status": {
+                "$output": "order_189_status",
+                "case": "lower"
+              }
+            }
+          ]
         }
       },
       "source": {
@@ -36280,8 +36463,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -36775,8 +36958,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -36970,8 +37153,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -37150,8 +37333,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -37199,9 +37382,11 @@
       "trajectory": {
         "schema": "lex_browser_trajectory/1",
         "provenance": {
-          "kind": "webarena_official_human_playwright_trace",
+          "kind": "codex_corrected_webarena_trajectory",
           "source_file": "376.trace.zip",
-          "source_sha256": "a45717b85bed6b91e8b0a7af36b4ee2ed62c30d2f3f8d18e9c6c85be805ce50a"
+          "source_sha256": "a45717b85bed6b91e8b0a7af36b4ee2ed62c30d2f3f8d18e9c6c85be805ce50a",
+          "original_trajectory_sha256": "8ac45e7803d91ef9f894ba3d80abd7ff8672331a5658d491134f2bcf61931384",
+          "proposal_sha256": "755bcbb71fa301e9daf7c8e47f7c263b10310bf6555e9f44abde7e3346b33888"
         },
         "recorded_context": {
           "browser_name": "chromium",
@@ -37268,6 +37453,11 @@
               "value": "#product-item-info_101735 >> internal:role=link[name=\"Image\"i]"
             },
             "tab_index": 0
+          },
+          {
+            "action": "snapshot",
+            "selector": "body",
+            "save_as": "product_page"
           }
         ],
         "unmapped_calls": []
@@ -37294,12 +37484,21 @@
           "click",
           "fill",
           "press",
-          "click"
+          "click",
+          "snapshot"
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "reason": "The official path reaches the requested Echo Dot product, whose rendered page explicitly says that it has no customer reviews; bind NOT_FOUND_ERROR to that visible evidence.",
+          "corrected_trajectory_sha256": "b50f7dc61392bdf7745255ec6faf65f36d10ebd9cf15e8d904a389b0067447c4",
+          "validated_run_sha256": "1f82938cc4f63125884d27a138b989cb06addca3508be75812b62a2c08fdd4f0"
+        },
+        "response_builder": {
+          "kind": "observed_not_found",
+          "task_type": "retrieve",
+          "output": "product_page",
+          "evidence_regex": "Be the first to review this product"
         }
       },
       "source": {
@@ -37427,8 +37626,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -38229,8 +38428,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -38559,8 +38758,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -38799,8 +38998,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -38846,9 +39045,11 @@
       "trajectory": {
         "schema": "lex_browser_trajectory/1",
         "provenance": {
-          "kind": "webarena_official_human_playwright_trace",
+          "kind": "codex_corrected_webarena_trajectory",
           "source_file": "386.trace.zip",
-          "source_sha256": "b53cd20dea4d79f35eeaeaf7a9b73e1c112deb35498d3bc8883969916cf44888"
+          "source_sha256": "b53cd20dea4d79f35eeaeaf7a9b73e1c112deb35498d3bc8883969916cf44888",
+          "original_trajectory_sha256": "c07eafda686fe4a6e132eb384fe53343e2850b8ac70ef7267b99bc1801b2b72b",
+          "proposal_sha256": "e35d132c34bcf1f691d35242118d43f2d02f446a23fabada1e8ddcc47a8dbeaf"
         },
         "recorded_context": {
           "browser_name": "chromium",
@@ -38917,6 +39118,16 @@
               "exact": false
             },
             "tab_index": 0
+          },
+          {
+            "action": "get_attribute",
+            "target": {
+              "by": "css",
+              "value": ".product-info-main .rating-result"
+            },
+            "name": "title",
+            "save_as": "aggregate_rating",
+            "tab_index": 0
           }
         ],
         "unmapped_calls": []
@@ -38943,12 +39154,26 @@
           "click",
           "fill",
           "press",
-          "click"
+          "click",
+          "get_attribute"
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "reason": "The official path reaches the requested product detail page; read the aggregate rating title attribute from that page and parse its observed percentage.",
+          "corrected_trajectory_sha256": "8877add54f40e1fe11a26cb60c5b00bfc71a920139950463250e62e719fb9447",
+          "validated_run_sha256": "547827c18dc02c9562c051a471420a24166149fce4947bf52876cdbec469df89"
+        },
+        "response_builder": {
+          "kind": "observed_shape",
+          "task_type": "retrieve",
+          "shape": [
+            {
+              "$output": "aggregate_rating",
+              "regex": "(\\d+(?:\\.\\d+)?)%",
+              "coerce": "number"
+            }
+          ]
         }
       },
       "source": {
@@ -39108,8 +39333,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory did not produce an evaluator-compatible answer, and no bounded DOM-observation repair passed independent Chromium qualification."
         }
       },
       "source": {
@@ -39407,8 +39632,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -39976,8 +40201,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -40163,8 +40388,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -40346,8 +40571,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -40516,8 +40741,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -40977,8 +41202,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -41383,8 +41608,9 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "official site image is not native amd64; cross-architecture emulation is excluded",
+          "exclusion_kind": "non_native_site_image"
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -41474,8 +41700,8 @@
         "expected_actions": [],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -41813,8 +42039,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -42236,8 +42462,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -42410,8 +42636,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -42752,8 +42978,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -42974,8 +43200,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -46007,8 +46233,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -46161,8 +46387,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -46476,8 +46702,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -46662,8 +46888,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -46864,8 +47090,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -46919,9 +47145,11 @@
       "trajectory": {
         "schema": "lex_browser_trajectory/1",
         "provenance": {
-          "kind": "webarena_official_human_playwright_trace",
+          "kind": "codex_corrected_webarena_trajectory",
           "source_file": "488.trace.zip",
-          "source_sha256": "1434e8f676583299686444e19297ab6a5565e25940c699b6652b286078878338"
+          "source_sha256": "1434e8f676583299686444e19297ab6a5565e25940c699b6652b286078878338",
+          "original_trajectory_sha256": "4262bc01a79d0b2fb2395e58ece30e336d8e29565fb8f5ba5f9770a521e11a36",
+          "proposal_sha256": "c8b05537d08056b0b13b6fd396775568dbea6d9ed3caa7357560ede22d3706b1"
         },
         "recorded_context": {
           "browser_name": "chromium",
@@ -47167,7 +47395,7 @@
               "value": "Page Title",
               "exact": false
             },
-            "text": "Home Page",
+            "text": "This is the home page!! Leave here!!",
             "source": {
               "api_name": "synthetic.fill",
               "call_id": "call@616c5c1988cb96ae65c7cb7e6ff7d370",
@@ -47264,8 +47492,10 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "reason": "Replace only the final explicit fills whose values contradict the exact official NetworkEventEvaluator payload; field ownership and all other actions are unchanged.",
+          "corrected_trajectory_sha256": "52722d4ea835759578a9bfbaf1bf67a57468639e5a2473e991ff1d3f19db0e31",
+          "validated_run_sha256": "57252a0aa7038f72a929a26818b1cde28e49c7aa16f993017110665a866659fd"
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -47729,8 +47959,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -47889,8 +48119,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -48768,8 +48998,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -49004,8 +49234,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -49468,8 +49698,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -49650,8 +49880,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -49762,8 +49992,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -49817,9 +50047,11 @@
       "trajectory": {
         "schema": "lex_browser_trajectory/1",
         "provenance": {
-          "kind": "webarena_official_human_playwright_trace",
+          "kind": "codex_corrected_webarena_trajectory",
           "source_file": "521.trace.zip",
-          "source_sha256": "6b7e15e6adad1bb0a669129411673755c52968bad9c5d00e0d2c34d66c10f6d7"
+          "source_sha256": "6b7e15e6adad1bb0a669129411673755c52968bad9c5d00e0d2c34d66c10f6d7",
+          "original_trajectory_sha256": "e4b8573fc696e95c8e921cb20019476983681ca97dc51841b57f0dbfebe3fe80",
+          "proposal_sha256": "15183464d79575dce1529fc69fc7637283ca2ea94d915e22060b1ca1fcd406f8"
         },
         "recorded_context": {
           "browser_name": "chromium",
@@ -49832,89 +50064,22 @@
         },
         "actions": [
           {
-            "action": "click",
-            "source": {
-              "api_name": "frame.click",
-              "call_id": "call@3494e150bff35dc0d3e51daa4c05c193",
-              "recorded_status": "pass"
-            },
-            "target": {
-              "by": "playwright",
-              "value": "internal:role=banner >> internal:text=\"Welcome to One Stop Market\"i"
-            },
-            "tab_index": 0
-          },
-          {
-            "action": "click",
-            "source": {
-              "api_name": "frame.click",
-              "call_id": "call@32f40ef2c58d1b1e407d082525ec08aa",
-              "recorded_status": "pass"
-            },
-            "target": {
-              "by": "role",
-              "role": "link",
-              "name": "Contact Us",
-              "exact": false
-            },
-            "tab_index": 0
-          },
-          {
-            "action": "click",
-            "source": {
-              "api_name": "frame.click",
-              "call_id": "call@d672b85eed207e75346b7256e568ccc3",
-              "recorded_status": "pass"
-            },
-            "target": {
-              "by": "role",
-              "role": "link",
-              "name": "My Account",
-              "exact": false
-            },
-            "tab_index": 0
-          },
-          {
-            "action": "click",
-            "source": {
-              "api_name": "frame.click",
-              "call_id": "call@03f3a954c66d7b51b4b8dd5a27eb5856",
-              "recorded_status": "pass"
-            },
-            "target": {
-              "by": "role",
-              "role": "link",
-              "name": "Newsletter Subscriptions",
-              "exact": false
-            },
-            "tab_index": 0
-          },
-          {
-            "action": "check",
-            "source": {
-              "api_name": "frame.check",
-              "call_id": "call@98d9f7893de0aaff57a12c794171791f",
-              "recorded_status": "pass"
-            },
+            "action": "fill",
             "target": {
               "by": "label",
-              "value": "General Subscription",
+              "value": "Sign Up for Our Newsletter:",
               "exact": false
             },
+            "text": "emma.lopez@gmail.com",
             "tab_index": 0
           },
           {
             "action": "click",
-            "source": {
-              "api_name": "frame.click",
-              "call_id": "call@ad0b1ae2c8f9ab3e2f311a21539eebb0",
-              "recorded_status": "pass"
-            },
             "target": {
               "by": "role",
               "role": "button",
-              "name": "Save",
-              "exact": false
+              "name": "Subscribe",
+              "exact": true
             },
             "tab_index": 0
           }
@@ -49940,17 +50105,15 @@
       "ground_truth": {
         "oracle": "webarena_verified",
         "expected_actions": [
-          "click",
-          "click",
-          "click",
-          "click",
-          "check",
+          "fill",
           "click"
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "reason": "The official evaluator requires the public homepage newsletter POST, but the recording changes the signed-in account preference instead. Replace that workflow with the visible homepage email field and Subscribe button observed in the pinned Shopping image.",
+          "corrected_trajectory_sha256": "602934d5f8e9204d7e5ff83f6e200d16290e0149d119e5e0cf6b500f673b1f21",
+          "validated_run_sha256": "c60295d3e92370c3716b92c50cf4c868c689839285ea35a16d545cfe4e985855"
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -50374,8 +50537,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -51155,8 +51318,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -51394,8 +51557,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -51978,8 +52141,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -52737,8 +52900,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -53181,8 +53344,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -53471,8 +53634,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -53900,8 +54063,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -54179,8 +54342,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -54556,8 +54719,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -54613,9 +54776,11 @@
       "trajectory": {
         "schema": "lex_browser_trajectory/1",
         "provenance": {
-          "kind": "webarena_official_human_playwright_trace",
+          "kind": "codex_corrected_webarena_trajectory",
           "source_file": "593.trace.zip",
-          "source_sha256": "ca601cdf65d369fccb56c5870c22d056fa055fd22d726bce2fa19fb42a9e8bae"
+          "source_sha256": "ca601cdf65d369fccb56c5870c22d056fa055fd22d726bce2fa19fb42a9e8bae",
+          "original_trajectory_sha256": "ba135c81156381c274d4135f4ce5575ddbbff51456caf26ddf7fff55c1223fae",
+          "proposal_sha256": "ad1914749444f089dc35749a854eb324b1120f98698e438009ddfaf0ef4f9ead"
         },
         "recorded_context": {
           "browser_name": "chromium",
@@ -54691,7 +54856,7 @@
               "value": "Title",
               "exact": false
             },
-            "text": "Merging all branches to main",
+            "text": "all branches to main",
             "source": {
               "api_name": "synthetic.fill",
               "call_id": "call@3b681449304ed96837fa9100551edd3e",
@@ -55105,8 +55270,10 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "reason": "Replace only the final explicit fills whose values contradict the exact official NetworkEventEvaluator payload; field ownership and all other actions are unchanged.",
+          "corrected_trajectory_sha256": "4724456e3bb2816f80f7a75425929c2168e6e48ac1113f7a21a55235240aca84",
+          "validated_run_sha256": "ea19ad888319ef5a3cd14381166f12f03023b4498ba859455b1adca6dfa39e52"
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -55326,8 +55493,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -55565,8 +55732,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -55819,8 +55986,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -56061,8 +56228,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -56431,8 +56598,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -56718,8 +56885,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -57027,8 +57194,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -57350,8 +57517,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -57944,8 +58111,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -58119,8 +58286,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -58769,8 +58936,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -59261,8 +59428,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -59481,8 +59648,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -59983,8 +60150,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -60446,8 +60613,10 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "WebArena-Verified v1.2.3 discards the expected Magento grid XHR before URL matching because the task is typed as navigate+GET; a correct run cannot satisfy the published evaluator.",
+          "exclusion_kind": "confirmed_upstream_evaluator_defect",
+          "evidence_id": "wv-1.2.3-navigate-get-xhr-678"
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -60816,8 +60985,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -61321,8 +61490,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -61482,8 +61651,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -62130,8 +62299,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -62838,8 +63007,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -63094,8 +63263,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -63415,8 +63584,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "eligible",
+          "validated_run_sha256": "4a43df36bf88a50fdc7661777ec89cce671315d97933cd07578bd255bda565c3"
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -63697,8 +63866,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "A later isolated cold Chromium correction attempt failed; the provisional eligibility is superseded."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -63927,8 +64096,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "A later isolated cold Chromium correction attempt failed; the provisional eligibility is superseded."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -64150,8 +64319,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -64337,8 +64506,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -64686,8 +64855,9 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "official site image is not native amd64; cross-architecture emulation is excluded",
+          "exclusion_kind": "non_native_site_image"
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -65090,8 +65260,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -65624,8 +65794,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -66834,8 +67004,10 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "WebArena-Verified v1.2.3 discards the expected OSRM route XHR before URL and cookie matching because the task is typed as navigate+GET; a correct run cannot satisfy the published evaluator.",
+          "exclusion_kind": "confirmed_upstream_evaluator_defect",
+          "evidence_id": "wv-1.2.3-navigate-get-xhr-760"
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -67356,8 +67528,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -67658,8 +67830,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -67943,8 +68115,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -68246,8 +68418,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -68580,8 +68752,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -68965,8 +69137,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         }
       },
       "source": {
@@ -69302,8 +69474,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -70412,8 +70584,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -70672,8 +70844,8 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "The official trajectory failed isolated Chromium replay or conflicted with the task and evaluator; no bounded correction passed independent qualification."
         },
         "response_builder": {
           "kind": "null_after_verified_path",
@@ -70952,8 +71124,10 @@
         ],
         "reference_provenance": "official_human_recording",
         "qualification": {
-          "status": "pending",
-          "reason": "official recorded does not imply successful; replay and evaluator validation are required"
+          "status": "skipped",
+          "reason": "WebArena-Verified v1.2.3 rejects the published single-item assignee_ids array as an invalid alternatives list before comparing any trace; every otherwise-correct run receives evaluator error.",
+          "exclusion_kind": "confirmed_upstream_evaluator_defect",
+          "evidence_id": "wv-1.2.3-invalid-array-schema-811"
         },
         "response_builder": {
           "kind": "null_after_verified_path",

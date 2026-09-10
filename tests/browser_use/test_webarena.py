@@ -18,16 +18,21 @@ def test_canonical_public_suite_contains_every_recorded_candidate():
     suite = load_suite("evaluation/browser-use-public/webarena-human-suite.json")
 
     assert len(suite.tasks) == 179
-    assert sum(task.step_count for task in suite.tasks) == 3394
+    assert sum(task.step_count for task in suite.tasks) == 3400
     assert [task.task_id for task in suite.tasks if not task.tool_calls] == [
         "webarena-300",
         "webarena-431",
     ]
-    assert all(
-        task.ground_truth["qualification"]["status"] == "pending" for task in suite.tasks
-    )
+    qualification_counts = {
+        status: sum(
+            task.ground_truth["qualification"]["status"] == status
+            for task in suite.tasks
+        )
+        for status in ("eligible", "skipped")
+    }
+    assert qualification_counts == {"eligible": 19, "skipped": 160}
     response_builders = [task.ground_truth.get("response_builder") for task in suite.tasks]
-    assert sum(builder is None for builder in response_builders) == 81
+    assert sum(builder is None for builder in response_builders) == 70
     assert sum(
         isinstance(builder, dict) and builder.get("kind") == "null_after_verified_path"
         for builder in response_builders
@@ -43,6 +48,11 @@ def test_canonical_public_suite_contains_every_recorded_candidate():
     payload = json.loads(
         open("evaluation/browser-use-public/webarena-human-suite.json", encoding="utf-8").read()
     )
+    assert payload["benchmark"]["qualification"] == {
+        "schema": "lex_browser_use_qualification/1",
+        "qualified_count": 19,
+        "skipped_count": 160,
+    }
     assert payload["benchmark"]["structural_import"] == {
         "action_count": 3394,
         "action_counts": {"check": 14, "click": 1980, "fill": 411, "press": 874, "select": 115},

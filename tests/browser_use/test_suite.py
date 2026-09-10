@@ -128,7 +128,7 @@ def test_load_suite_rejects_duplicate_task_ids(tmp_path):
         load_suite(path)
 
 
-def test_only_pending_webarena_candidate_may_have_empty_trajectory(tmp_path):
+def test_only_pending_or_skipped_webarena_candidate_may_have_empty_trajectory(tmp_path):
     task = {
         "id": "empty",
         "title": "Empty upstream recording",
@@ -147,9 +147,15 @@ def test_only_pending_webarena_candidate_may_have_empty_trajectory(tmp_path):
     path.write_text(json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}))
 
     assert load_suite(path).tasks[0].tool_calls == ()
+    task["ground_truth"]["qualification"] = {
+        "status": "skipped",
+        "reason": "No mapped actions.",
+    }
+    path.write_text(json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}))
+    assert load_suite(path).tasks[0].tool_calls == ()
     task["ground_truth"]["qualification"] = {"status": "eligible"}
     path.write_text(json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}))
-    with pytest.raises(ValueError, match="only pending WebArena"):
+    with pytest.raises(ValueError, match="only pending or skipped WebArena"):
         load_suite(path)
 
 

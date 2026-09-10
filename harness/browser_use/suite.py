@@ -254,9 +254,11 @@ def load_suite(path: str | Path) -> TaskSuite:
                 raise ValueError(f"{task_id}: WebArena evaluator requires integer revision")
         if not steps:
             qualification = ground_truth.get("qualification") or {}
-            if evaluator["kind"] != "webarena_verified" or qualification.get("status") != "pending":
+            if evaluator["kind"] != "webarena_verified" or qualification.get(
+                "status"
+            ) not in {"pending", "skipped"}:
                 raise ValueError(
-                    f"{task_id}: only pending WebArena qualification candidates may be empty"
+                    f"{task_id}: only pending or skipped WebArena candidates may be empty"
                 )
         expected_actions = ground_truth.get("expected_actions")
         actual_actions = [step["action"] for step in steps]
