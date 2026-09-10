@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 from collections.abc import Callable, Iterable
 from contextlib import nullcontext
@@ -233,7 +234,25 @@ def execute_steps(
                     observation = str(value)
             elif action == "snapshot":
                 selector = str(call.get("selector") or "body")
-                observation = action_page.locator(selector).first.inner_text(timeout=timeout)
+                locator = action_page.locator(selector).first
+                wait_pattern = call.get("wait_for_text_regex")
+                if wait_pattern is not None:
+                    if not isinstance(wait_pattern, str) or not wait_pattern:
+                        raise ValueError("snapshot wait_for_text_regex must be non-empty")
+                    wait_timeout = min(timeout, int(call.get("wait_timeout_ms", 10_000)))
+                    deadline = time.monotonic() + wait_timeout / 1000
+                    observation = ""
+                    while time.monotonic() < deadline:
+                        observation = locator.inner_text(timeout=min(1_000, wait_timeout))
+                        if re.search(wait_pattern, observation, flags=re.IGNORECASE):
+                            break
+                        time.sleep(0.05)
+                    else:
+                        raise TimeoutError(
+                            f"{selector} did not match text regex {wait_pattern!r}"
+                        )
+                else:
+                    observation = locator.inner_text(timeout=timeout)
                 observation = observation[: int(call.get("max_chars", 40_000))]
             elif action == "back":
                 action_page.go_back(wait_until=call.get("wait_until", "commit"), timeout=timeout)

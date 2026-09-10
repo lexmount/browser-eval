@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -264,6 +265,39 @@ def test_click_does_not_accept_an_actionability_timeout():
                 },
             ),
         )
+
+
+def test_snapshot_can_wait_for_async_visible_text(monkeypatch):
+    page = FakePage()
+    values = iter(("Calculating route", "Route 5 h 47 min"))
+
+    class Locator:
+        @property
+        def first(self):
+            return self
+
+        def inner_text(self, **kwargs):
+            return next(values)
+
+    page.locator = lambda _selector: Locator()
+    monotonic = MagicMock(side_effect=(0, 0, 0.1))
+    monkeypatch.setattr("harness.browser_use.executor.time.monotonic", monotonic)
+    monkeypatch.setattr("harness.browser_use.executor.time.sleep", lambda _: None)
+
+    outputs = execute_steps(
+        page,
+        (
+            {
+                "action": "snapshot",
+                "selector": "body",
+                "save_as": "route",
+                "wait_for_text_regex": r"\d+\s*h\s*\d+\s*min",
+                "wait_timeout_ms": 1_000,
+            },
+        ),
+    )
+
+    assert outputs["route"] == "Route 5 h 47 min"
 
 
 def test_page_observer_runs_before_the_measured_action():
