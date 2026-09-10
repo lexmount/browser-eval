@@ -125,7 +125,10 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(tmp_path:
     assert "1/1" in text
     data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
     assert data["summary"]["chromium"]["score"] == 1
-    assert data["summary"]["chromium"]["median_duration_ms"] == 1900
+    chromium_summary = data["summary"]["chromium"]
+    assert chromium_summary["mean_duration_ms"] == 1900
+    assert chromium_summary["p50_duration_ms"] == 1900
+    assert chromium_summary["p95_duration_ms"] == 1900
     task = (output / "datasets/44.html").read_text(encoding="utf-8")
     assert "Ground truth · 官方验收合同" in task
     assert "没有唯一参考点击路径" in task
@@ -134,6 +137,15 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(tmp_path:
     dataset = (output / "datasets/index.html").read_text(encoding="utf-8")
     assert "可完成性证据" not in dataset
     assert 'data-result=' not in dataset
+    analysis = (output / "analysis/index.html").read_text(encoding="utf-8")
+    for expected in ("均值", "P50", "P95", "comparison-winner"):
+        assert expected in analysis
+    assert "中位数" not in analysis
+    assert "失败结果定位" not in analysis
+    review = (output / "review/index.html").read_text(encoding="utf-8")
+    assert "核验与修订记录" in review
+    assert "核验轮次" in review
+    assert "逐结果覆盖" not in review
     attempt = (output / "results/chromium-44.html").read_text(encoding="utf-8")
     for expected in (
         "Agent 实际回答",

@@ -88,6 +88,31 @@ def _number(value: float | int | None) -> str:
     return "—" if value is None else f"{value:,.0f}"
 
 
+def _best(values: dict[str, float | int | None], *, higher: bool) -> set[str]:
+    comparable = {key: float(value) for key, value in values.items() if value is not None}
+    if len(comparable) < 2 or len(set(comparable.values())) == 1:
+        return set()
+    target = (max if higher else min)(comparable.values())
+    return {key for key, value in comparable.items() if value == target}
+
+
+def _winner(value: str, *, won: bool, label: str = "更优") -> Safe:
+    if not won:
+        return Safe(_e(value))
+    return Safe(
+        f'<strong class="comparison-winner" title="{_e(label)}">{_e(value)}'
+        '<span class="winner-mark" aria-label="更优">优</span></strong>'
+    )
+
+
+def _metric_stack(items: list[tuple[str, str, bool]]) -> Safe:
+    lines = []
+    for label, value, won in items:
+        rendered = _winner(value, won=won)
+        lines.append(f'<span><b>{_e(label)}</b>{rendered}</span>')
+    return Safe('<span class="metric-stack">' + "".join(lines) + "</span>")
+
+
 def _probability(value: float | None) -> str:
     return "—" if value is None else f"{value:.3f}"
 
@@ -288,13 +313,16 @@ def _primary_summary(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
             "completed": len(logical),
             "passed": passed,
             "score": passed / len(logical) if logical else None,
-            "median_duration_ms": statistics.median(durations) if durations else None,
+            "mean_duration_ms": statistics.fmean(durations) if durations else None,
+            "p50_duration_ms": _percentile(durations, 0.50),
             "p95_duration_ms": _percentile(durations, 0.95),
-            "median_browser_tool_duration_ms": statistics.median(tool_durations)
-            if tool_durations
-            else None,
+            "mean_browser_tool_duration_ms": statistics.fmean(tool_durations)
+            if tool_durations else None,
+            "p50_browser_tool_duration_ms": _percentile(tool_durations, 0.50),
             "p95_browser_tool_duration_ms": _percentile(tool_durations, 0.95),
-            "median_tokens": statistics.median(tokens) if tokens else None,
+            "mean_tokens": statistics.fmean(tokens) if tokens else None,
+            "p50_tokens": _percentile(tokens, 0.50),
+            "p95_tokens": _percentile(tokens, 0.95),
         }
     return result
 
@@ -358,8 +386,16 @@ def _pairwise_browser_rows(rows: list[dict[str, Any]]) -> list[list[Any]]:
                 f"{ENGINE_LABELS[left]} ↔ {ENGINE_LABELS[right]}",
                 len(task_ids),
                 both_pass,
-                left_only,
-                right_only,
+                _winner(
+                    str(left_only),
+                    won=left_only > right_only,
+                    label=f"{ENGINE_LABELS[left]} 单边通过更多",
+                ),
+                _winner(
+                    str(right_only),
+                    won=right_only > left_only,
+                    label=f"{ENGINE_LABELS[right]} 单边通过更多",
+                ),
                 both_fail,
             ]
         )
@@ -508,14 +544,19 @@ def _paired_task_table(tasks: list[dict[str, Any]], attempts: list[dict[str, Any
         relation_label = {"all_pass": "全部通过", "mixed": "结果有分歧", "all_fail": "全部失败"}[relation]
         site = str(task["sites"][0])
 
-        def metrics(row: dict[str, Any]) -> str:
+        def metrics(row: dict[str, Any], *, won: bool) -> str:
             public = _public_attempt(row)
             usage = row.get("model_usage") or {}
-            return (
+            body = (
                 f'{_status(row)}<br><span class="fine">{public["action_count"]} 次动作 · '
                 f'BrowserTool 累计 {_seconds(public["browser_tool_duration_ms"])} · '
                 f"{int(usage.get('request_count') or 0)} 次模型请求 · "
                 f"Agent 链路累计 {_seconds(float(row.get('duration_ms') or 0))}</span>"
+            )
+            return (
+                f'<div class="comparison-winner winner-cell">{body}'
+                '<span class="winner-mark" aria-label="更优">优</span></div>'
+                if won else body
             )
 
         search = " ".join(
@@ -531,7 +572,10 @@ def _paired_task_table(tasks: list[dict[str, Any]], attempts: list[dict[str, Any
             f'<div class="fine">{_e(task["rationale"])}</div></td>'
             f"<td>{_e(TIER_LABELS[task['tier']])}</td>"
             f"<td>{_e(SITE_LABELS.get(site, site))}</td><td>{_e(task['task_type'])}</td>"
-            + "".join(f"<td>{metrics(row)}</td>" for row in engine_rows if row)
+            + "".join(
+                f'<td>{metrics(row, won=relation == "mixed" and float(row["score"]) == 1)}</td>'
+                for row in engine_rows if row
+            )
             + f'<td><span class="status-{"pass" if relation == "all_pass" else "fail"}">{_e(relation_label)}</span></td>'
             + f'<td><a href="datasets/{task_id}.html">任务合同</a></td></tr>'
         )
@@ -572,11 +616,18 @@ def _group_rows(
     result = []
     for value in sorted({key[0] for key in grouped}):
         line: list[Any] = [SITE_LABELS.get(value, TIER_LABELS.get(value, value))]
+        passed_by_engine = {
+            engine: sum(float(x["score"]) == 1 for x in grouped[(value, engine)])
+            for engine in ENGINE_LABELS
+        }
+        winners = _best(passed_by_engine, higher=True)
         for engine in ENGINE_LABELS:
             items = grouped[(value, engine)]
-            line.append(
-                f"{sum(float(x['score']) == 1 for x in items)}/{len(items)}" if items else "—"
-            )
+            line.append(_winner(
+                f"{passed_by_engine[engine]}/{len(items)}" if items else "—",
+                won=engine in winners,
+                label="同组通过数更高",
+            ))
         result.append(line)
     return result
 
@@ -592,6 +643,7 @@ def _action_duration_rows(attempts: list[dict[str, Any]]) -> list[list[Any]]:
     rows: list[list[Any]] = []
     for action in actions:
         line: list[Any] = [action]
+        metrics: dict[str, tuple[float, int, float | None]] = {}
         for engine in ENGINE_LABELS:
             total = sum(
                 float((row.get("browser_tool_duration_by_action_ms") or {}).get(action) or 0)
@@ -603,8 +655,91 @@ def _action_duration_rows(attempts: list[dict[str, Any]]) -> list[list[Any]]:
                 for row in attempts
                 if row["engine"] == engine
             )
-            line.append(f"{total / 1000:.1f} 秒 · {count} 次调用")
+            metrics[engine] = (total, count, total / count if count else None)
+        total_winners = _best(
+            {engine: values[0] for engine, values in metrics.items()}, higher=False
+        )
+        average_winners = _best(
+            {engine: values[2] for engine, values in metrics.items()}, higher=False
+        )
+        for engine in ENGINE_LABELS:
+            total, count, average = metrics[engine]
+            line.append(
+                _metric_stack(
+                    [
+                        ("总耗时", f"{total / 1000:.1f} 秒", engine in total_winners),
+                        (
+                            "单次均值",
+                            "—" if average is None else f"{average / 1000:.3f} 秒",
+                            engine in average_winners,
+                        ),
+                        ("调用数", str(count), False),
+                    ]
+                )
+            )
         rows.append(line)
+    return rows
+
+
+def _summary_comparison_rows(summary: dict[str, dict[str, Any]]) -> list[list[Any]]:
+    higher_metrics = {
+        "passed": _best({engine: summary[engine]["passed"] for engine in ENGINE_LABELS}, higher=True),
+        "score": _best({engine: summary[engine]["score"] for engine in ENGINE_LABELS}, higher=True),
+    }
+    lower_names = (
+        "mean_duration_ms",
+        "p50_duration_ms",
+        "p95_duration_ms",
+        "mean_browser_tool_duration_ms",
+        "p50_browser_tool_duration_ms",
+        "p95_browser_tool_duration_ms",
+        "mean_tokens",
+        "p50_tokens",
+        "p95_tokens",
+    )
+    lower_metrics = {
+        name: _best({engine: summary[engine][name] for engine in ENGINE_LABELS}, higher=False)
+        for name in lower_names
+    }
+    rows: list[list[Any]] = []
+    for engine, label in ENGINE_LABELS.items():
+        current = summary[engine]
+        rows.append(
+            [
+                label,
+                _winner(
+                    f'{current["passed"]}/{current["completed"]}',
+                    won=engine in higher_metrics["passed"],
+                    label="通过数更高",
+                ),
+                _winner(
+                    _pct(current["score"]),
+                    won=engine in higher_metrics["score"],
+                    label="通过率更高",
+                ),
+                _metric_stack(
+                    [
+                        ("均值", _seconds(current["mean_duration_ms"]), engine in lower_metrics["mean_duration_ms"]),
+                        ("P50", _seconds(current["p50_duration_ms"]), engine in lower_metrics["p50_duration_ms"]),
+                        ("P95", _seconds(current["p95_duration_ms"]), engine in lower_metrics["p95_duration_ms"]),
+                    ]
+                ),
+                _metric_stack(
+                    [
+                        ("均值", _seconds(current["mean_browser_tool_duration_ms"]), engine in lower_metrics["mean_browser_tool_duration_ms"]),
+                        ("P50", _seconds(current["p50_browser_tool_duration_ms"]), engine in lower_metrics["p50_browser_tool_duration_ms"]),
+                        ("P95", _seconds(current["p95_browser_tool_duration_ms"]), engine in lower_metrics["p95_browser_tool_duration_ms"]),
+                    ]
+                ),
+                _metric_stack(
+                    [
+                        ("均值", _number(current["mean_tokens"]), engine in lower_metrics["mean_tokens"]),
+                        ("P50", _number(current["p50_tokens"]), engine in lower_metrics["p50_tokens"]),
+                        ("P95", _number(current["p95_tokens"]), engine in lower_metrics["p95_tokens"]),
+                    ]
+                ),
+            ]
+        )
     return rows
 
 
@@ -620,6 +755,7 @@ REPORT_STYLE = (
     SHARED_STYLE
     + """
 .hero h1,.publication-article h1,.publication-article h2{overflow-wrap:break-word;word-break:normal}
+.callout strong{margin-right:.3em}
 .top nav{gap:18px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}.top nav>a,.top nav>button{flex:0 0 auto}.top nav .brand{font-weight:850;color:var(--ink)}.top nav a[aria-current=page]{color:var(--ink);font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:8px}.top .theme-toggle{margin-left:auto}.page-main{min-height:78vh}.hero.compact{padding-bottom:22px}.hero.compact h1{font-size:clamp(34px,4.5vw,52px)}.fine{font-size:13px;color:var(--muted)}.result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.result-grid .card{border-top:3px solid var(--accent)}.overview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.overview-card{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:20px;min-width:0}.overview-card h3{margin:8px 0}.audit-strip{display:grid;gap:10px}.audit-strip .callout{margin:0}.filters,.pair-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:18px 0}.filters select,.filters input,.pair-controls select{padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink)}.filters input{min-width:260px}.comparison-count{margin-left:auto;padding:8px 12px;border-radius:999px;background:var(--wash);color:var(--accent);font-weight:750}.status-pass{color:var(--good);font-weight:750}.status-fail{color:var(--bad);font-weight:750}.status-unproven{color:var(--warn,var(--bad));font-weight:750}.flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;list-style:none;padding:0}.flow li{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--panel);font-size:13px;min-width:0}.flow li+li:before{content:'→';color:var(--accent);margin-right:7px}.method-figure{margin:24px 0}.method-figure img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:16px;background:#f6faff}.method-figure figcaption{margin-top:10px;color:var(--muted);font-size:13px;line-height:1.55}.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.detail-grid .kv{min-height:92px;min-width:0}.page-links{display:flex;gap:10px;flex-wrap:wrap}.page-links a{border:1px solid var(--line);background:var(--panel);padding:8px 12px;border-radius:9px}.rank-list{counter-reset:rank}.rank-item{counter-increment:rank;display:grid;grid-template-columns:54px minmax(0,1fr);gap:16px;padding:20px 0;border-top:1px solid var(--line)}.rank-item:before{content:counter(rank);font-size:34px;font-weight:850;color:var(--accent)}.rank-item h3{margin:4px 0}.article-entry{border-left:4px solid var(--accent)}.source-list li{margin:9px 0}.table-wrap{margin:18px 0}.table-wrap table{min-width:760px}#task-table{min-width:1280px}#pair-table{min-width:1180px}.table-wrap caption{text-align:left;padding:10px 12px;color:var(--muted);caption-side:bottom}.footer{border-top:1px solid var(--line)}.evidence-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}.evidence-card{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px;min-width:0}.evidence-card h3{margin-top:0}.json-view,.log-view{white-space:pre-wrap;overflow-wrap:anywhere;max-height:540px;overflow:auto;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--bg);font-size:12px;line-height:1.55}.trajectory{list-style:none;padding:0;counter-reset:step}.trajectory>li{counter-increment:step;display:grid;grid-template-columns:46px minmax(0,1fr);gap:12px;padding:15px 0;border-top:1px solid var(--line)}.trajectory>li:before{content:counter(step);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:white;font-weight:800}.trajectory summary{cursor:pointer;font-weight:750}.rule-fail{border-left:4px solid var(--bad)}.rule-pass{border-left:4px solid var(--good)}.count-note{margin-left:auto;color:var(--muted);font-size:13px}.badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--wash);font-size:12px;margin-right:6px}.muted-box{padding:14px;border:1px dashed var(--line);border-radius:10px;color:var(--muted)}@media(max-width:900px){.result-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.overview-grid{grid-template-columns:1fr}.flow{grid-template-columns:repeat(3,minmax(0,1fr))}.evidence-pair{grid-template-columns:1fr}.grid>.card{grid-column:1/-1!important}}@media(max-width:600px){.wrap{width:calc(100% - 28px)}.top nav{gap:14px}.result-grid,.flow{grid-template-columns:1fr}.flow li+li:before{content:'↓';display:block}.hero{padding-top:28px}.hero.compact h1{font-size:30px;line-height:1.18}.filters input{min-width:0;width:100%}.comparison-count{margin-left:0}.rank-item{grid-template-columns:36px minmax(0,1fr)}}@media print{.top,.filters,.pair-controls{display:none!important}.card,.table-wrap{box-shadow:none}.json-view,.log-view{max-height:none;overflow:visible}.evidence-pair{grid-template-columns:1fr}}
 /* Publication QA overrides: readable dense tables, code, and text-heavy figures. */
 .table-wrap{overflow-x:auto;max-width:100%;contain:inline-size;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
@@ -637,14 +773,8 @@ REPORT_STYLE = (
 #pair-table th:nth-child(-n+4),#pair-table td:nth-child(-n+4){white-space:nowrap}
 #pair-table th:nth-child(1),#pair-table td:nth-child(1){min-width:260px;white-space:normal}
 #pair-table th:nth-child(n+5),#pair-table td:nth-child(n+5){min-width:235px}
-#failure-table{min-width:1480px}
-#failure-table th:nth-child(1),#failure-table td:nth-child(1){min-width:150px;white-space:nowrap}
-#failure-table th:nth-child(2),#failure-table td:nth-child(2){min-width:270px}
-#failure-table th:nth-child(3),#failure-table td:nth-child(3){min-width:220px}
-#failure-table th:nth-child(4),#failure-table td:nth-child(4){min-width:620px}
-#failure-table th:nth-child(5),#failure-table td:nth-child(5){min-width:180px}
-#result-table,#engine-result-table,#review-result-table,#change-table{min-width:1080px}
-#result-table td:first-child,#engine-result-table td:first-child,#review-result-table td:first-child{white-space:nowrap;min-width:150px}
+#result-table,#engine-result-table,#change-table{min-width:1080px}
+#result-table td:first-child,#engine-result-table td:first-child{white-space:nowrap;min-width:150px}
 .json-view,.log-view{background:var(--code-bg)!important;color:var(--code-ink)!important;border-color:#334b68!important;line-height:1.65}
 .json-view code,.log-view code{color:inherit!important;background:transparent!important}
 .detail-grid .kv{overflow-wrap:anywhere;word-break:break-word}
@@ -654,8 +784,9 @@ REPORT_STYLE = (
 .release-current,.release-archive{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:22px;margin:16px 0}
 .release-current{border-top:4px solid var(--accent)}
 .release-history>summary,.release-current details>summary,.release-archive details>summary{cursor:pointer;font-weight:800;padding:8px 0}
+.comparison-winner{color:var(--good);font-weight:850}.winner-mark{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;margin-left:7px;border-radius:999px;background:var(--good);color:white;font-size:11px;line-height:1}.winner-cell{position:relative;padding:9px 10px;border:1px solid color-mix(in srgb,var(--good) 42%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--good) 9%,var(--panel))}.metric-stack{display:grid;gap:5px;min-width:150px}.metric-stack>span{display:flex;align-items:center;justify-content:space-between;gap:12px;white-space:nowrap}.metric-stack>span>b{font-size:12px;color:var(--muted)}.review-round{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:22px;margin:16px 0}.review-round header{display:flex;align-items:start;justify-content:space-between;gap:18px}.review-round h3{margin:5px 0}.review-status{flex:0 0 auto;padding:5px 10px;border-radius:999px;background:var(--wash);font-size:12px;font-weight:800}.review-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}.review-fields>div{border-top:1px solid var(--line);padding-top:12px}.review-fields b{display:block;margin-bottom:5px}.review-fields p{margin:0}
 .page-main{overflow-x:clip}
-@media(max-width:600px){.method-figure img{min-width:900px}.table-wrap{margin-left:-4px;margin-right:-4px}.json-view,.log-view{font-size:13px}}
+@media(max-width:600px){.method-figure img{min-width:900px}.table-wrap{margin-left:-4px;margin-right:-4px}.json-view,.log-view{font-size:13px}.review-round header{display:block}.review-status{display:inline-block;margin-top:8px}.review-fields{grid-template-columns:1fr}}
 """
 )
 NAV = [
@@ -1062,31 +1193,6 @@ def _attempt_table(attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]) 
     )
 
 
-def _failure_inventory(attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]) -> str:
-    task_by_id = {int(task["task_id"]): task for task in tasks}
-    rows = []
-    for row in attempts:
-        if float(row["score"]) == 1:
-            continue
-        task_id = int(row["task_id"])
-        result = read_public_json(Path((row.get("paths") or {}).get("evaluation", "")))
-        failed = _failed_rule_labels(result)
-        rows.append(
-            [
-                Safe(f'<a href="results/{_attempt_id(row)}.html">{_attempt_id(row)}</a>'),
-                task_by_id.get(task_id, {}).get("rationale", f"Task #{task_id}"),
-                "、".join(failed) or "未定位",
-                _failure_diagnosis(result, row),
-                Safe(f'<a href="datasets/{task_id}.html">任务与两浏览器对照</a>'),
-            ]
-        )
-    return _table(
-        ["结果", "任务", "失败规则", "记录中的验收差异", "同题对照"],
-        rows,
-        table_id="failure-table",
-    )
-
-
 def _engine_attempts(
     engine: str, attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]
 ) -> str:
@@ -1167,6 +1273,30 @@ def _release_history(releases: list[dict[str, Any]], history_scope: str) -> str:
         f'<p>{_e(history_scope)}</p><p class="page-links"><a href="report-changes.json" download>下载结构化版本记录</a><a href="https://github.com/lexmount/browser-eval/commits/main">查看仓库变更</a></p>',
     )
     return body
+
+
+def _review_history(rounds: list[dict[str, Any]]) -> str:
+    if not rounds:
+        return "<p>暂无核验记录。</p>"
+    cards = []
+    for item in rounds:
+        fields = "".join(
+            f'<div><b>{_e(label)}</b><p>{_e(item.get(key) or "—")}</p></div>'
+            for label, key in (
+                ("核验范围", "scope"),
+                ("发现", "findings"),
+                ("处理", "corrections"),
+                ("遗留事项", "remaining"),
+            )
+        )
+        cards.append(
+            f'<article class="review-round" id="{_e(item.get("id") or "")}"><header><div>'
+            f'<div class="eyebrow">{_e(item.get("date") or "未记录")}</div>'
+            f'<h3>{_e(item.get("title") or "未命名核验")}</h3></div>'
+            f'<span class="review-status">{_e(item.get("status") or "未记录")}</span>'
+            f'</header><div class="review-fields">{fields}</div></article>'
+        )
+    return "".join(cards)
 
 
 def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
@@ -1425,8 +1555,8 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             "这 30 题如何部署并由 Agent 执行",
             '<figure id="deployment-flow" class="method-figure"><img src="assets/webarena-autonomous-evaluation-flow.png" alt="WebArena-Verified 本地部署、CowAgent 自主操作、双浏览器对照与程序化验收流程" width="1672" height="941"><figcaption>图 1 · 从官方站点镜像、逐题隔离与健康检查，到 CowAgent 观察—决策—操作闭环，再到 Chromium/Moli 对照和官方程序化验收。窄屏可横向滚动查看。</figcaption></figure>'
             "<p><strong>站点确实部署在本机，不是公网代站。</strong>macOS 上的 Docker 由 Colima 虚拟机承载；Shopping、Shopping Admin、Reddit、GitLab 四个官方镜像把应用端口发布到 Colima/Docker 宿主。Chromium 与 Moli 各自在独立浏览器容器中运行，通过容器内解析到的宿主网关 <code>192.168.5.2</code> 访问这些端口。这个地址只是本轮私有网络中的宿主入口，不是评测网站或固定产品配置。</p>"
-            "<p>WebArena‑Verified 当前提供 Shopping、Shopping Admin、Reddit、GitLab、Wikipedia、Map 六类环境。本轮 30 题只覆盖前四类；Wikipedia 与 Map 需要额外大型数据卷，因此没有部署，也没有任务进入成绩。这与另一个覆盖更多站点的 179 题运行不是同一批环境或结果。</p>"
-            "<p>运行器代码在每个执行前调用 <code>ContainerManager.start(reset=True)</code>，只保留该题所需站点；env-ctrl 报告 ready 后，再做连续应用健康检查、清浏览器状态、登录测试账号并打开起始页。需要注意：当前冻结证据保存了代码提交、运行协议和镜像身份，但事件流从环境准备完成后才开始，因此能证明“运行器配置为逐次重置”，不能独立见证每一次 reset/ready/health 的全过程。后续 179 题运行应把这些准备阶段写入逐执行 receipt。</p>"
+            "<p>WebArena‑Verified 当前提供 Shopping、Shopping Admin、Reddit、GitLab、Wikipedia、Map 六类环境。本轮 30 题只覆盖前四类；Wikipedia 与 Map 需要额外大型数据卷，因此没有部署，也没有任务进入成绩。</p>"
+            "<p>运行器代码在每个执行前调用 <code>ContainerManager.start(reset=True)</code>，只保留该题所需站点；env-ctrl 报告 ready 后，再做连续应用健康检查、清浏览器状态、登录测试账号并打开起始页。当前冻结证据保存了代码提交、运行协议和镜像身份；事件流从环境准备完成后开始，因此逐次 reset、ready 与 health 结果未形成独立绑定的准备回执。新版运行协议已要求保存该回执。</p>"
             "<p>预注册文件只含任务 ID、层级和入选理由，不含点击序列。CowAgent 收到自然语言目标后，在最多 30 步内循环读取页面观察、请求模型决策并生成下一次 BrowserTool 调用。Chromium 与 Moli 分别连接独立 CDP 浏览器容器；每个逻辑结果保留最终 JSON、Agent 事件流、网络 HAR 和 Playwright trace。</p>"
             + _table(
                 ["站点", "本轮访问地址", "应用端口", "环境控制端口", "状态"],
@@ -1490,7 +1620,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         analysis = _hero(
             "Results",
             "从总体配对下钻到每个逻辑结果",
-            "先看 30 个同题配对，再定位 10 个失败结果的官方规则、实际回答、轨迹和日志。",
+            "先看总体与同题比较，再通过筛选下钻到每个结果的官方规则、实际回答、轨迹和日志。",
         )
         analysis += _section(
             "汇总",
@@ -1499,31 +1629,18 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                     "浏览器",
                     "任务通过",
                     "通过率",
-                    "Agent 链路耗时中位数",
-                    "Agent 链路耗时 P95",
-                    "BrowserTool 耗时中位数",
-                    "BrowserTool 耗时 P95",
-                    "Tokens 中位数",
+                    "Agent 链路耗时",
+                    "BrowserTool 耗时",
+                    "Tokens",
                 ],
-                [
-                    [
-                        ENGINE_LABELS[e],
-                        f"{summary[e]['passed']}/{summary[e]['completed']}",
-                        _pct(summary[e]["score"]),
-                        _seconds(summary[e]["median_duration_ms"]),
-                        _seconds(summary[e]["p95_duration_ms"]),
-                        _seconds(summary[e]["median_browser_tool_duration_ms"]),
-                        _seconds(summary[e]["p95_browser_tool_duration_ms"]),
-                        _number(summary[e]["median_tokens"]),
-                    ]
-                    for e in ENGINE_LABELS
-                ],
+                _summary_comparison_rows(summary),
             )
+            + '<p class="fine"><span class="winner-mark" aria-hidden="true">优</span> 标记方向明确且数值更优的指标：通过数与通过率越高越优，耗时与 Tokens 越低越优；数值相同时不标记。</p>'
             + '<p class="fine"><strong>Agent 链路累计耗时</strong>把获得该任务结果实际发生的执行相加；每次从浏览器会话准备开始，到 CowAgent 完成、验收所需证据落盘前结束，包含登录、模型推理、调度、页面等待、BrowserTool 与收尾，不包含此前的 Docker 站点重置。<strong>BrowserTool 累计耗时</strong>是事件流中全部 browser 工具调用墙钟时间之和，包含工具封装、CDP 往返与页面等待，仍不是纯内核 CPU 时间。</p>',
         )
         analysis += _section(
             "浏览器动作耗时拆分",
-            "<p>按 CowAgent 发出的 BrowserTool action 聚合调用次数与墙钟时间，用于定位 navigate、click、input、snapshot 等动作在哪个浏览器上更慢。该指标比 Agent 总耗时更接近浏览器执行层，但仍包含工具与 CDP 开销。</p>"
+            "<p>按 CowAgent 发出的 BrowserTool action 聚合总墙钟时间、单次均值与调用数。耗时较低者标记为更优；调用数描述 Agent 行为，不判优。该指标比 Agent 总耗时更接近浏览器执行层，但仍包含工具与 CDP 开销。</p>"
             + _table(["动作"] + list(ENGINE_LABELS.values()), _action_duration_rows(attempts)),
         )
         analysis += _section(
@@ -1538,11 +1655,6 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             "同题浏览器结果矩阵",
             "<p>每行是一道任务，浏览器作为可扩展列生成；以后增加浏览器时沿用同一张矩阵，不再把页面结构写死为 Chromium 与 Moli。关系筛选只改变可见行，不产生新分数。</p>"
             + _paired_task_table(tasks, attempts),
-        )
-        analysis += _section(
-            "失败结果定位",
-            f"<p>两种浏览器在同 {paired['both_fail']} 题失败。失败规则来自官方 evaluator；补充文字只复述期望、实际值和记录中的错误，不代表已确认根因。</p>"
-            + _failure_inventory(attempts, tasks),
         )
         analysis += _section(
             "60 个逻辑结果",
@@ -1649,58 +1761,19 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                 _page(title=public["id"], active="analysis", body=detail, depth=1), encoding="utf-8"
             )
 
-        coverage = review.get("coverage") or {}
-        review_rows = []
-        for row in attempts:
-            result_id = _attempt_id(row)
-            source_reviews = [
-                review_by_key.get((row["engine"], int(row["task_id"]), int(source["attempt"])), {})
-                for source in row.get("_source_executions") or [row]
-            ]
-            failed_checks = sorted(
-                {
-                    key
-                    for source_review in source_reviews
-                    for key, value in (source_review.get("checks") or {}).items()
-                    if not value
-                }
-            )
-            review_rows.append(
-                [
-                    Safe(f'<a href="results/{result_id}.html">{result_id}</a>'),
-                    "pass" if all(x.get("outcome") == "pass" for x in source_reviews) else "fail",
-                    len(failed_checks),
-                    ", ".join(failed_checks) or "—",
-                ]
-            )
         review_page = _hero(
-            "Evidence integrity audit",
-            f"{len(attempts)}/{len(attempts)} 个逻辑结果完成证据完整性审计",
-            "证据完整性与独立结果复核是两个指标；本轮只完成前者，官方 evaluator 仍是唯一成绩来源。",
+            "Review history",
+            "核验与修订记录",
+            "按轮次记录核验范围、发现、正式处理和遗留事项；单个任务的判定证据位于结果详情页。",
         )
         review_page += _section(
-            "审计结论",
-            f'<div class="result-grid"><div class="card"><span class="tiny">证据完整性</span><div class="n">{len(attempts)}/{len(attempts)}</div><p>文件、哈希与分数一致性</p></div><div class="card"><span class="tiny">独立结果复核</span><div class="n">0/{len(attempts)}</div><p>尚未进行语义盲审</p></div><div class="card"><span class="tiny">记录不一致</span><div class="n">{len(review.get("disagreements") or [])}</div></div><div class="card"><span class="tiny">完整性未决</span><div class="n">{len(review.get("unresolved") or [])}</div></div></div><p>完整性检查确认回答、HAR、Agent trace、事件和 evaluator 明细存在，并核对哈希、分数、状态与官方版本。</p><p class="callout"><strong>复核边界：</strong>本轮没有第二名人工或模型对结果做盲审，因此“0 个完整性未决”不能解读为结果已经独立语义复核。</p>',
+            "当前状态",
+            '<p class="callout success"><strong>发布门禁：</strong>证据文件、哈希、分数、状态、官方版本与报告链接已通过程序化一致性检查。</p>'
+            '<p>官方 WebArena‑Verified evaluator 是成绩来源；核验记录只说明报告和实现经过了哪些检查与修订，不替代任务判分。</p>',
         )
         review_page += _section(
-            "复核协议",
-            _table(
-                ["审计项", "规则"],
-                [
-                    ["范围", "回答、事件、HAR、trace 与 evaluator 文件完整且哈希绑定"],
-                    ["成绩来源", "只接受未修改的 WebArena‑Verified evaluator 输出"],
-                    ["一致性", "公开状态、分数、官方版本与原始记录一致"],
-                    ["争议处理", "任何不一致或缺失证据均阻止发布；人工不得改分"],
-                ],
-            ),
-        )
-        review_page += _section(
-            "逐结果覆盖",
-            _table(
-                ["结果", "结论", "失败检查数", "失败检查项"],
-                review_rows,
-                table_id="review-result-table",
-            ),
+            "核验轮次",
+            _review_history(release_data.get("browser_agent_reviews") or []),
         )
         (stage / "review/index.html").write_text(
             _page(title="核验记录", active="review", body=review_page, depth=1), encoding="utf-8"
@@ -1710,11 +1783,11 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         participant_images = environment.get("browser_images") or {}
         adoption = _hero(
             "Participants",
-            "参评选手是浏览器后端，不是 Agent 或 benchmark",
-            "本轮 A/B 的唯一变化项是浏览器实现；CowAgent、模型、任务、资源上限、站点与 evaluator 都是共同实验条件。",
+            "参评浏览器与统一实验条件",
+            "Chromium 与 Moli 作为浏览器后端参与同题对照；Agent、模型、任务、资源上限、站点与 evaluator 保持一致。",
         )
         adoption += _section(
-            "两名参评选手",
+            "两个参评浏览器",
             _table(
                 ["参评浏览器", "运行版本", "镜像 ID", "接入方式", "本轮成绩"],
                 [
@@ -1728,7 +1801,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                     for engine, label in ENGINE_LABELS.items()
                 ],
             )
-            + '<p>更完整地说，一个可复现的“参评方法”是整套 Agent 栈；但本轮所有栈字段都保持一致，只有浏览器后端不同，所以报告按浏览器命名选手。不能把 CowAgent、gpt‑5.6‑sol 或 WebArena‑Verified 也算成独立选手。</p>',
+            + '<p>参评浏览器是本轮唯一实验变量；完整 Agent 栈的其余组成列为统一实验条件。</p>',
         )
         adoption += _section(
             "共同实验条件",
@@ -1750,7 +1823,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             "<p>新增浏览器时，需要注册其容器镜像、版本与 CDP 端点，并在同一冻结任务集和共同条件下形成完整结果。总榜按浏览器逐行扩展；同题矩阵按浏览器增加列；统计比较按浏览器对单独生成，不能把多个浏览器压成一个总胜负。</p>",
         )
         (stage / "adoption/index.html").write_text(
-            _page(title="方法介绍", active="adoption", body=adoption, depth=1), encoding="utf-8"
+            _page(title="参评浏览器", active="adoption", body=adoption, depth=1), encoding="utf-8"
         )
 
         versions, images = (
@@ -1781,7 +1854,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                         ["架构", image.get("architecture", "—")],
                         ["镜像 ID", image.get("id", "—")],
                         ["任务成绩", f"{summary[engine]['passed']}/{summary[engine]['completed']}"],
-                        ["逻辑结果耗时中位数", _seconds(summary[engine]["median_duration_ms"])],
+                        ["逻辑结果耗时 P50", _seconds(summary[engine]["p50_duration_ms"])],
                     ],
                 )
                 + '<p class="fine">版本与镜像身份用于限定复现边界，不参与评分。</p>',
@@ -1869,11 +1942,6 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                 [
                     ["四个自托管站点", "官方 Docker 镜像与内置测试账号；每题前重置", "不需要"],
                     ["模型 API", f"{model}，reasoning=low", "需要相应 API 权限"],
-                    [
-                        "GPT‑6 Astra",
-                        "代理实测返回 team_model_access_denied，未纳入成绩",
-                        "当前团队无权限",
-                    ],
                     ["Artifact Hub", "只发布脱敏静态报告", "发布者需已有站点权限"],
                 ],
             ),

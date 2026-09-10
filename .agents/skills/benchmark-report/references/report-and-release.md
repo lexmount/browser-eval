@@ -18,7 +18,7 @@ Keep environment and reproduction together and deduplicated. Show repository/ver
 
 For a multilingual report, generate every language from one semantic report model. Keep route inventory, section order, tables, values, filters and evidence links aligned one-to-one. Localize navigation and explanatory prose for the target language instead of translating mechanically; preserve task names, IDs, URLs, references, provider outputs and other measured evidence unless the benchmark explicitly evaluates translated content. A summary-only secondary language must be labeled as a summary, not presented as the full report.
 
-Use a compact review page resembling release history: current reviewed coverage and unresolved count, then one card or row per review round with scope, findings, corrections, and remaining work. Do not publish agent work logs, giant execution manifests, or downloads merely because the evidence exists.
+Use a compact review page resembling release history: one card or row per review round with scope, findings, corrections, status, and remaining work. Keep per-result review evidence on result routes or in the evidence store; do not turn the review history into another task-result inventory.
 
 Expose one logical result per method and task. A declared additional execution is an orchestration detail: preserve its immutable evidence, follow the score authority frozen before the run, and add every execution's latency and cost. Do not split the public result table by execution ordinal unless that distinction is the preregistered research question.
 
@@ -28,11 +28,17 @@ For self-hosted web environments, include a deployment and network topology, ima
 
 Never publish user prompts, assistant reasoning, plans, internal notes, conversational back-and-forth, or tool-work narration. A formal report explains the benchmark and evidence; it is not the authoring notebook.
 
+Write every title and paragraph for the reader, not as a reply to author feedback. Convert corrections into neutral artifact facts; never mention who requested a change, quote review conversation, or use a rebuttal-style heading when a descriptive heading works. Review history may record an objective finding and resolution, while release history records only reader-visible effects.
+
 ## Claims and rankings
 
 Pair every ranking with its task family, denominator, acceptance meaning, a typical input-to-output route, and limits. Keep task acceptance separate from continuous quality, latency, cost, and title/body diagnostics. Do not call conditional averages global quality or explain a correlation as a verified mechanism.
 
 Prefer concise tables for exact comparisons and prose for interpretation. Remove repeated caveats after placing each limitation where it changes interpretation. Run a factual pass before a prose/humanization pass; never let editing change numbers or scope.
+
+For a standard numeric comparison, show mean, P50, and P95 when all three are useful. P50 is the median, so never present “median” and P50 as separate statistics. Declare whether higher or lower is better and visually mark only a unique, directionally valid winner; leave ties, identifiers, call counts, and metrics without a universal direction neutral. Do not rank raw totals when unequal workloads make them non-comparable without also exposing the workload or normalized value.
+
+Do not add a second static inventory when existing filters expose the same result slice. Keep one searchable result table and use focused summaries only when they add a distinct analytical relationship.
 
 ## Release gates
 

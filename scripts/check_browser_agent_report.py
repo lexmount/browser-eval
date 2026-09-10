@@ -158,16 +158,38 @@ def check(
     if 'data-result=' in dataset_index or "可完成性证据" in dataset_index:
         raise ValueError("dataset inventory must not mix measured results into task definitions")
     review_index = rendered_pages[report_dir / "review/index.html"]
-    if "独立结果复核" not in review_index or f"0/{len(logical_rows)}" not in review_index:
-        raise ValueError("report must separate evidence integrity from semantic result review")
+    if (
+        "核验与修订记录" not in review_index
+        or "核验轮次" not in review_index
+        or "review-result-table" in review_index
+        or "逐结果覆盖" in review_index
+    ):
+        raise ValueError("review page must present review rounds, not a per-result audit table")
     methodology_index = rendered_pages[report_dir / "methodology/index.html"]
-    for marker in ("192.168.5.2", "Wikipedia", "Map", "当前证据没有独立的逐次环境准备 receipt"):
+    for marker in ("192.168.5.2", "Wikipedia", "Map", "未形成独立绑定的准备回执"):
         if marker not in methodology_index:
             raise ValueError(f"methodology is missing deployment evidence boundary: {marker}")
     analysis_index = rendered_pages[report_dir / "analysis/index.html"]
-    for marker in ("Agent 链路累计耗时", "BrowserTool 累计耗时", "浏览器两两比较"):
+    for marker in (
+        "Agent 链路累计耗时",
+        "BrowserTool 累计耗时",
+        "浏览器两两比较",
+        "均值",
+        "P50",
+        "P95",
+        "comparison-winner",
+    ):
         if marker not in analysis_index:
             raise ValueError(f"analysis is missing timing or scalable comparison: {marker}")
+    for forbidden in ("中位数", "失败结果定位", 'id="failure-table"'):
+        if forbidden in analysis_index:
+            raise ValueError(f"analysis contains a redundant or retired presentation: {forbidden}")
+    participant_index = rendered_pages[report_dir / "adoption/index.html"]
+    if (
+        "参评浏览器与统一实验条件" not in participant_index
+        or "参评选手是浏览器后端，不是 Agent 或 benchmark" in participant_index
+    ):
+        raise ValueError("participant page must use neutral reader-facing terminology")
     if result_pages and any(
         marker not in rendered_pages[page]
         for page in result_pages
@@ -221,6 +243,10 @@ def check(
         "用户提示词",
         "我的思考",
         "内部工作日志",
+        "另一个覆盖更多站点的 179 题",
+        "后续 179 题",
+        "需要注意：",
+        "代理实测返回 team_model_access_denied",
     )
     for page, text in rendered_pages.items():
         if any(term in text for term in forbidden_report_terms):
@@ -228,10 +254,11 @@ def check(
     style = (report_dir / "assets/style.css").read_text(encoding="utf-8")
     for required_style in (
         "#task-table{min-width:1500px}",
-        "#failure-table{min-width:1480px}",
         "background:var(--code-bg)!important",
         ".method-figure img{min-width:960px",
         ".detail-grid .kv{overflow-wrap:anywhere",
+        ".comparison-winner{",
+        ".review-round{",
         ".page-main{overflow-x:clip}",
     ):
         if required_style not in style:
