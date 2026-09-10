@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
 import base64
+import json
 import os
 import queue
 import shlex
@@ -13,10 +13,31 @@ from typing import Any
 
 from ..models import EvalCase, ProviderResult
 from .base import Provider
+from .runtime_identity import validate_runtime_identity
 
 
 class SubprocessJsonlProvider(Provider):
     """Invoke a persistent repository-native worker over line-delimited JSON."""
+
+    _LOCKED_RUNTIMES = {
+        "openclaw_builtin": {
+            "revision": "12c4bdf7482f24c85b011e9d858fdec3c245101c",
+            "paths": {
+                "{repo_path}/src/agents/tools/web-fetch.ts",
+                "{repo_path}/pnpm-lock.yaml",
+                "{harness_root}/scripts/oss/openclaw_webfetch_worker.mts",
+            },
+        },
+        "deepseek_harness_builtin": {
+            "revision": "dd6322d604e00eec1ba5e0c8541159906a21094a",
+            "paths": {
+                "{repo_path}/packages/web/web-fetch-http/src/provider.ts",
+                "{repo_path}/pnpm-lock.yaml",
+                "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts",
+                "{harness_root}/scripts/oss/dsh_webfetch_worker.mts",
+            },
+        },
+    }
 
     def __init__(self, name: str, config: dict[str, Any]):
         super().__init__(name, config)
@@ -28,16 +49,21 @@ class SubprocessJsonlProvider(Provider):
     def _resolve_token(self, value: Any) -> str:
         harness_root = Path(__file__).resolve().parents[3]
         repo_path = Path(str(self.config.get("repo_path", "."))).expanduser().resolve()
-        return str(value).replace("{harness_root}", str(harness_root)).replace("{repo_path}", str(repo_path))
+        return (str(value).replace("{harness_root}", str(harness_root))
+                .replace("{repo_path}", str(repo_path)))
 
     def validate(self) -> list[str]:
-        missing: list[str] = []
-        command = self.config.get("command")
-        if not isinstance(command, list) or not command:
-            missing.append("command")
-        repo_path = str(self.config.get("repo_path", "")).strip()
-        if repo_path and not Path(repo_path).expanduser().is_dir():
-            missing.append("repo_path")
+        missing, identity = validate_runtime_identity(self.config, self._resolve_token)
+        locked = self._LOCKED_RUNTIMES.get(self.type)
+        if locked:
+            if self.config.get("expected_repo_revision") != locked["revision"]:
+                missing.append(f"repo revision {locked['revision']}")
+            if self.config.get("expected_node_version") != "v24.15.0":
+                missing.append("Node v24.15.0")
+            if not locked["paths"].issubset(set(self.config.get("required_paths", []))):
+                missing.append("locked required paths")
+        if identity is not None:
+            self._implementation_identity = identity
         return missing
 
     def _start(self) -> subprocess.Popen[str]:

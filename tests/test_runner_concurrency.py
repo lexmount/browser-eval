@@ -20,6 +20,47 @@ class BarrierProvider(Provider):
 
 
 class RunnerConcurrencyTest(unittest.TestCase):
+    def test_failed_preflight_creates_no_evidence_or_calls(self):
+        class Invalid(Provider):
+            def validate(self):
+                return ["wrong revision"]
+
+            def fetch(self, case, timeout):
+                raise AssertionError("fetch must not be called")
+
+        case = EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'run'
+            with self.assertRaisesRegex(ValueError, 'wrong revision'):
+                run_evaluation(output_dir=output, dataset_meta={'id': 'test'},
+                    dataset_path=Path('dataset.json'), cases=[case],
+                    providers=[Invalid('invalid', {})],
+                    provider_config_path=Path('providers.json'), runs=1, timeout=2, delay=0)
+            self.assertFalse(output.exists())
+
+    def test_manifest_records_identity_created_by_preflight(self):
+        class Identified(Provider):
+            def validate(self):
+                self._implementation_identity = {
+                    "repository": {"head": "a" * 40, "tracked_status": ""},
+                    "files_sha256": {"repo/worker.py": "b" * 64},
+                }
+                return []
+
+            def fetch(self, case, timeout):
+                return ProviderResult(True, "Expected")
+
+        case = EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run_evaluation(output_dir=root, dataset_meta={'id': 'test'},
+                dataset_path=Path('dataset.json'), cases=[case],
+                providers=[Identified('identified', {})],
+                provider_config_path=Path('providers.json'), runs=1, timeout=2, delay=0)
+            manifest = json.loads((root / 'manifest.json').read_text())
+            identity = manifest['providers'][0]['implementation_identity']
+            self.assertEqual(identity['repository']['head'], 'a' * 40)
+
     def test_failed_task_is_called_once(self):
         class Flaky(Provider):
             def __init__(self):

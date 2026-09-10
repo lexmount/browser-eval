@@ -107,6 +107,17 @@ class FairnessTests(unittest.TestCase):
             file=r['provider_metadata']['file_evaluation']['files'][0]
             self.assertEqual((relative/file['artifact_path']).read_bytes(),raw)
 
+    def test_body_task_fingerprints_incidental_binary_without_accepting_it_as_body(self):
+        raw = b'%PDF-' + b'payload' * 10
+        case = EvalCase('body', 'body', 'https://example.com/file.pdf', 'document', [])
+
+        result = prepare_answer(ProviderResult(True, '', files=[{'data': raw}]), case)
+
+        files = result.metadata['file_evaluation']['files']
+        self.assertEqual(len(files), 1)
+        self.assertEqual(files[0]['sha256'], hashlib.sha256(raw).hexdigest())
+        self.assertFalse(task_passed(result.ok, score_attempt(case, b'', ok=result.ok)))
+
     def test_explicit_links_equal_markdown_not_arbitrary_metadata(self):
         contract = {'version': 1, 'schema': 'named_link', 'minimum_records': 3,
                     'hosts': ['example.com'], 'entry_path': '/item/\\d+'}

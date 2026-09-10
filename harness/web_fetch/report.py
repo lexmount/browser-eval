@@ -973,7 +973,10 @@ def write_support(out,records,manifests):
  provider_rows=[]
  for name in sorted({r['provider'] for r in records}):
   subset=[r for r in records if r['provider']==name]
-  versions=sorted({str(r.get('provider_metadata',{}).get('browser_version')) for r in subset if r.get('provider_metadata',{}).get('browser_version')})
+  versions=sorted({str(value) for r in subset for value in
+                   [r.get('provider_metadata',{}).get('browser_version') or
+                    r.get('provider_metadata',{}).get('library_version')]
+                   if value})
   hashes=sorted({str(r.get('provider_metadata',{}).get('binary_sha256')) for r in subset if r.get('provider_metadata',{}).get('binary_sha256')})
   versions=versions or sorted({provenance[h].get('version') or provenance[h].get('identity') for h in hashes if h in provenance})
   deployments=sorted({str(r.get('provider_metadata',{}).get('deployment','—')) for r in subset})

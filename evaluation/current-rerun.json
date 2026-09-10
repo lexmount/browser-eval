@@ -16,27 +16,21 @@
       "stable-rfc-6455-websocket",
       "stable-rfc-8259-json",
       "document-03",
-      "live-025-api-reference"
+      "live-025-api-reference",
+      "live-033-nasa-science",
+      "live-041-python-programming-language"
     ],
     "rerun_all_providers_for_each_case": true,
+    "full_rerun_providers": [
+      "crawl4ai",
+      "langchain-webbase"
+    ],
+    "full_rerun_reason": "The prior authoritative evidence did not record these libraries' implementation versions. The current locked versions therefore require complete method cohorts rather than mixed-version selective replacement.",
     "deadline_replacement_attempt_ids": [
       "cowagent-built-in__lm-rust-learn__r001",
-      "cowagent-built-in__document-05__r001",
-      "langchain-webbase__lm-rust-learn__r001",
-      "langchain-webbase__document-01__r001",
-      "langchain-webbase__document-06__r001",
-      "langchain-webbase__document-10__r001",
-      "crawl4ai__html-table__r001",
-      "crawl4ai__live-024-cascading-style-sheets-level-2-r__r001",
-      "crawl4ai__live-032-api-reference__r001",
-      "crawl4ai__live-033-nasa-science__r001",
-      "crawl4ai__document-01__r001",
-      "crawl4ai__document-02__r001",
-      "crawl4ai__video-04__r001",
-      "crawl4ai__challenge-07__r001",
-      "crawl4ai__challenge-10-justwatch__r001"
+      "cowagent-built-in__document-05__r001"
     ],
-    "planned_new_calls": 135,
+    "planned_new_calls": 422,
     "final_logical_attempts": 1800
   },
   "same_window_speed_cohort": {
@@ -68,5 +62,5 @@
     "planned_new_calls": 240,
     "require_independent_result_review": true
   },
-  "total_planned_new_calls": 375
+  "total_planned_new_calls": 662
 }

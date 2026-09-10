@@ -50,6 +50,23 @@ class RuntimeEntrypointTests(unittest.TestCase):
             unfrozen = re.findall(r"(?m)^\s*uv run (?!--frozen\b)", text)
             self.assertEqual(unfrozen, [], relative)
 
+    def test_oss_provider_configs_pin_historical_runtime_identity(self) -> None:
+        expected = {
+            'cowagent-built-in': 'ed5bb344cfe42cee443c8266ba47ee666d8d7471',
+            'openclaw-built-in': '12c4bdf7482f24c85b011e9d858fdec3c245101c',
+            'deepseek-harness-built-in': 'dd6322d604e00eec1ba5e0c8541159906a21094a',
+        }
+        for filename in ('providers.example.json', 'providers.resources.json'):
+            providers = json.loads((ROOT / 'configs' / filename).read_text())['providers']
+            for name, revision in expected.items():
+                self.assertEqual(providers[name]['expected_repo_revision'], revision)
+                self.assertTrue(providers[name]['required_paths'])
+            for name in ('openclaw-built-in', 'deepseek-harness-built-in'):
+                self.assertEqual(providers[name]['expected_node_version'], 'v24.15.0')
+                self.assertEqual(providers[name]['command'][0], '${OPENCLAW_NODE:-node}')
+            dsh_command = providers['deepseek-harness-built-in']['command']
+            self.assertEqual(dsh_command[1:3], ['--import', 'tsx'])
+
     def test_current_coverage_declares_all_twelve_methods(self) -> None:
         dataset = json.loads((ROOT / "evaluation/dataset.json").read_text())
         expected = {
@@ -68,6 +85,9 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertEqual(profile['conversion'], dataset['comparison']['conversion'])
         self.assertEqual(profile['comparison_kind'], dataset['comparison']['kind'])
         self.assertEqual(set(profile['providers']), set(dataset['coverage_plan']['web']))
+        self.assertEqual(profile['implementation_bindings']['crawl4ai']['library_version'], '0.9.3')
+        self.assertEqual(profile['implementation_bindings']['langchain-webbase']['library_version'], '0.3.30')
+        self.assertEqual(profile['implementation_bindings']['moli-webfetch']['reported_version'], 'moli 1.1.1')
         case_ids = [case['id'] for case in dataset['cases']]
         self.assertEqual(
             profile['case_ids_sha256'],
@@ -76,10 +96,10 @@ class RuntimeEntrypointTests(unittest.TestCase):
             ).encode()).hexdigest(),
         )
         self.assertEqual(profile['artifact_hub_base_url'], 'https://artifact-hub.dev.lexmount.net')
-        self.assertEqual(profile['artifact_hub_site'], 'UeZE1vfcEOrM')
+        self.assertEqual(profile['artifact_hub_site'], 'MblD_VwSPBRX')
         self.assertEqual(
             profile['artifact_hub_expected_version'],
-            'ver_69bede8bffdd47ba88f6b1b95c6fa00b',
+            'ver_f02f5362940344d3a6f76aa6e0638674',
         )
 
     def test_current_rerun_plan_is_exact_and_complete(self) -> None:
@@ -90,16 +110,27 @@ class RuntimeEntrypointTests(unittest.TestCase):
         providers = set(profile['providers'])
         main = plan['main_matrix']
         speed = plan['same_window_speed_cohort']
-        self.assertEqual(len(main['rerun_case_ids']), 10)
+        self.assertEqual(len(main['rerun_case_ids']), 12)
         self.assertTrue(set(main['rerun_case_ids']) <= case_ids)
-        self.assertEqual(len(main['deadline_replacement_attempt_ids']), 15)
-        self.assertEqual(len(set(main['deadline_replacement_attempt_ids'])), 15)
+        self.assertEqual(set(main['full_rerun_providers']), {
+            'crawl4ai', 'langchain-webbase',
+        })
+        self.assertEqual(len(main['deadline_replacement_attempt_ids']), 2)
+        self.assertEqual(len(set(main['deadline_replacement_attempt_ids'])), 2)
         for attempt_id in main['deadline_replacement_attempt_ids']:
             provider, case_id, run = attempt_id.rsplit('__', 2)
             self.assertIn(provider, providers)
+            self.assertNotIn(provider, main['full_rerun_providers'])
             self.assertIn(case_id, case_ids)
+            self.assertNotIn(case_id, main['rerun_case_ids'])
             self.assertEqual(run, 'r001')
-        self.assertEqual(main['planned_new_calls'], 10 * len(providers) + 15)
+        self.assertEqual(
+            main['planned_new_calls'],
+            len(main['rerun_case_ids']) * len(providers)
+            + len(main['full_rerun_providers'])
+            * (len(case_ids) - len(main['rerun_case_ids']))
+            + len(main['deadline_replacement_attempt_ids']),
+        )
         self.assertEqual(len(speed['case_ids']), 20)
         self.assertEqual(len(set(speed['case_ids'])), 20)
         self.assertTrue(set(speed['case_ids']) <= case_ids)
@@ -113,19 +144,19 @@ class RuntimeEntrypointTests(unittest.TestCase):
     def test_publication_receipt_must_target_current_site(self) -> None:
         profile = ROOT / 'evaluation/current-report.json'
         self.assertEqual(
-            require_publication_site({'slug':'UeZE1vfcEOrM'}, profile,
+            require_publication_site({'slug':'MblD_VwSPBRX'}, profile,
                                      'https://artifact-hub.dev.lexmount.net'),
-            'UeZE1vfcEOrM',
+            'MblD_VwSPBRX',
         )
         with self.assertRaisesRegex(ValueError, 'expected'):
             require_publication_site({'slug':'UUAhhQMnrGwm'}, profile,
                                      'https://artifact-hub.dev.lexmount.net')
         with self.assertRaisesRegex(ValueError, 'expected'):
-            require_publication_site({'slug':'UeZE1vfcEOrM'}, profile,
+            require_publication_site({'slug':'MblD_VwSPBRX'}, profile,
                                      'https://artifact-hub.app.lexmount.com')
         with self.assertRaisesRegex(ValueError, 'requested'):
             require_publication_site(
-                {'slug':'UeZE1vfcEOrM','base_url':'https://artifact-hub.app.lexmount.com'},
+                {'slug':'MblD_VwSPBRX','base_url':'https://artifact-hub.app.lexmount.com'},
                 profile,'https://artifact-hub.dev.lexmount.net')
 
     def test_publication_version_defaults_to_profile_and_rejects_override(self) -> None:

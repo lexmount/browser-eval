@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import base64
 import hashlib
 import os
 from pathlib import Path
@@ -14,6 +15,7 @@ import time
 import threading
 
 from ..models import EvalCase, ProviderResult
+from ..document_text import extract_document_text
 from ..safety import validate_http_url
 from .base import Provider
 
@@ -74,7 +76,11 @@ class MoliWebFetchProvider(Provider):
             )
         wait = self.config.get("wait_until", "done")
         file_task = case.task_kind == "file"
-        if file_task:
+        document_url = case.url.casefold().split("?", 1)[0]
+        document_task = (case.track == "document" and
+                         (document_url.endswith((".pdf", ".docx")) or "/pdf/" in document_url))
+        raw_task = file_task or document_task
+        if raw_task:
             # Direct file delivery uses Moli's automatic response mode. Forcing
             # --dump html/markdown can reject or serialize a non-HTML response
             # before the evaluator receives the original bytes.
@@ -103,7 +109,7 @@ class MoliWebFetchProvider(Provider):
         limit = int(self.config.get("max_bytes", 20_000_000))
         metadata = {
             "dump": dump,
-            "wait_until": None if file_task else wait,
+            "wait_until": None if raw_task else wait,
             "binary": Path(binary).name,
             "block_private_networks": bool(self.config.get("block_private_networks", True)),
         }
@@ -199,6 +205,24 @@ class MoliWebFetchProvider(Provider):
                 error_type=None if ok else "tool_error",
                 error_message=None if ok else stderr or "Moli returned no file bytes",
                 metadata=metadata)
+        if document_task and raw.startswith((b"%PDF", b"PK")):
+            try:
+                content, extractor = extract_document_text(raw)
+            except Exception as error:
+                return ProviderResult(False, "", error_type="document_parse_error",
+                    error_message=str(error), metadata=metadata)
+            metadata.update(
+                document_extractor=extractor,
+                raw_stdout_sha256=hashlib.sha256(raw).hexdigest(),
+                _raw_stdout_b64=base64.b64encode(raw).decode("ascii"),
+            )
+            ok = process.returncode == 0 and bool(content.strip())
+            return ProviderResult(ok, content,
+                error_type=None if ok else "empty_output",
+                error_message=None if ok else stderr or "Moli returned no usable document text",
+                metadata=metadata)
+        if document_task:
+            metadata["document_response"] = "serialized_text_not_raw_document"
         try:
             content = raw.decode("utf-8")
         except UnicodeDecodeError:

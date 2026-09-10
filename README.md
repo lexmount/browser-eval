@@ -93,7 +93,7 @@ make test
 
 把根目录 `.env.example` 复制为 `.env`，只填写需要的方法。所有 Web Fetch 入口默认只读取仓库根目录 `.env`，不读取用户目录、不执行 shell 内容；已导出的环境变量优先。只有显式 `--env-file <路径>` 才改用其他文件，文件不存在时报错。`.env` 与本地变体已被 Git 忽略，示例不含凭据。
 
-先执行 `make setup`，再用 `uv run --frozen python -m harness.web_fetch validate --providers <方法名>` 校验凭据。原生实现还需要对应仓库和 Python/Node 依赖；路径均在 `.env.example` 中列出，开源依赖可通过 `scripts/bootstrap_oss_baselines.sh` 准备。
+先执行 `make setup`，再用 `uv run --frozen python -m harness.web_fetch validate --providers <方法名>` 校验凭据。LangChain 与 Crawl4AI 已由 `uv.lock` 固定并随 `make setup` 安装，worker 默认使用项目 `.venv`；OpenClaw、DeepSeek Harness 和 CowAgent 还需要固定源码仓库，路径均在 `.env.example` 中列出，可通过 `scripts/bootstrap_oss_baselines.sh` 准备。空仓库路径会在任何调用前失败。
 
 ```bash
 uv run --frozen python scripts/run_benchmark.py
@@ -122,18 +122,18 @@ uv run --frozen python scripts/run_benchmark.py --track dynamic --providers lexm
 ## 发布
 
 ```bash
-export WEBFETCH_REPORT_PUBLIC_URL=https://artifact-hub.dev.lexmount.net/api/preview/UeZE1vfcEOrM
+export WEBFETCH_REPORT_PUBLIC_URL=https://artifact-hub.dev.lexmount.net/api/preview/MblD_VwSPBRX
 make report EVIDENCE=/absolute/path/to/evidence
 make report-check
 uv run --frozen python scripts/package_artifact_hub.py
 # 上传前先只读确认远端基线版本；不要拿新包和尚未更新的远端比较内容。
-uv run --frozen python scripts/verify_artifact_hub.py --slug UeZE1vfcEOrM --base-url https://artifact-hub.dev.lexmount.net
-ARTIFACT_HUB_BASE_URL=https://artifact-hub.dev.lexmount.net uv run --frozen python scripts/publish_artifact_hub.py --receipt publish/webfetch-12-site-receipt.json --update
+uv run --frozen python scripts/verify_artifact_hub.py --slug MblD_VwSPBRX --base-url https://artifact-hub.dev.lexmount.net
+ARTIFACT_HUB_BASE_URL=https://artifact-hub.dev.lexmount.net uv run --frozen python scripts/publish_artifact_hub.py --receipt publish/artifact-hub-receipt.json --update
 # 上传后再逐文件核对远端与本次提交包完全一致。
-uv run --frozen python scripts/verify_artifact_hub.py --slug UeZE1vfcEOrM --base-url https://artifact-hub.dev.lexmount.net --expected-archive publish/webfetch-sites.zip
+uv run --frozen python scripts/verify_artifact_hub.py --slug MblD_VwSPBRX --base-url https://artifact-hub.dev.lexmount.net --expected-archive publish/webfetch-sites.zip
 ```
 
-打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。Sites 发布令牌只从显式进程环境或 `~/.config/artifact-hub/token`（权限 0600）读取，不加载仓库 `.env`，避免评测密钥或旧部署令牌覆盖发布身份。其他评测密钥仍只读取仓库配置。当前报告绑定 `https://artifact-hub.dev.lexmount.net` 的 12 方法站点 `UeZE1vfcEOrM`；五类浏览器参考报告继续保留在 app 域独立站点 `UUAhhQMnrGwm`。构建、打包与发布都从 `evaluation/current-report.json` 读取公开地址、站点和预期远端版本；回执、请求地址或命令行版本只要不一致就拒绝更新。成功发布并验证后，把 profile 的预期版本更新为服务端新版本。发布令牌和管理回执不得提交或放入站点。
+打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。Sites 发布令牌只从显式进程环境或 `~/.config/artifact-hub/token`（权限 0600）读取，不加载仓库 `.env`，避免评测密钥或旧部署令牌覆盖发布身份。其他评测密钥仍只读取仓库配置。当前报告绑定 `https://artifact-hub.dev.lexmount.net` 的新 12 方法站点 `MblD_VwSPBRX`；旧 12 方法站点 `UeZE1vfcEOrM` 和五类浏览器参考报告的 app 域站点 `UUAhhQMnrGwm` 均保持不变。构建、打包与发布都从 `evaluation/current-report.json` 读取公开地址、站点和预期远端版本；回执、请求地址或命令行版本只要不一致就拒绝更新。成功发布并验证后，把 profile 的预期版本更新为服务端新版本。发布令牌和管理回执不得提交或放入站点。
 
 ## 内容规范
 

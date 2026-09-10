@@ -6,12 +6,15 @@ import json
 import sys
 import base64
 import tempfile
+from importlib.metadata import version
 from pathlib import Path
 from contextlib import AsyncExitStack
 
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
 from crawl4ai.async_crawler_strategy import AsyncHTTPCrawlerStrategy
 from crawl4ai.async_configs import HTTPCrawlerConfig
+
+LIBRARY_VERSION = version("crawl4ai")
 
 
 def encode_downloads(paths, directory):
@@ -33,6 +36,7 @@ async def fetch_file(request, directory):
         'status_code': result.status_code, 'final_url': result.redirected_url or request['url'],
         'files': encode_downloads(result.downloaded_files, directory),
         'metadata': {'implementation': 'crawl4ai.AsyncHTTPCrawlerStrategy',
+                     'library_version': LIBRARY_VERSION,
                      'output_contract': 'native_downloaded_files', 'strategy_selected_before_call': True}}
 
 
@@ -83,6 +87,7 @@ async def main() -> None:
                     "error_message": None if result.success else result.error_message,
                     "metadata": {
                         "implementation": "crawl4ai.AsyncWebCrawler",
+                        "library_version": LIBRARY_VERSION,
                         "images": result.media.get("images", []),
                         "videos": result.media.get("videos", []),
                         "audios": result.media.get("audios", []),
@@ -97,7 +102,8 @@ async def main() -> None:
                     "final_url": request["url"],
                     "error_type": type(error).__name__,
                     "error_message": str(error),
-                    "metadata": {"implementation": "crawl4ai.AsyncWebCrawler"},
+                    "metadata": {"implementation": "crawl4ai.AsyncWebCrawler",
+                                 "library_version": LIBRARY_VERSION},
                 }
             print(json.dumps(output, ensure_ascii=False), flush=True)
 

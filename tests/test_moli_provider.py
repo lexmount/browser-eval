@@ -71,6 +71,29 @@ class MoliTests(unittest.TestCase):
         self.assertIsNone(result.metadata["dump"])
         self.assertIsNone(result.metadata["wait_until"])
 
+    def test_direct_pdf_body_uses_raw_fetch_and_extracts_inside_call(self):
+        from dataclasses import replace
+        import io
+        from pypdf import PdfWriter
+        output = io.BytesIO()
+        writer = PdfWriter()
+        writer.add_blank_page(width=72, height=72)
+        writer.write(output)
+        encoded = repr(output.getvalue())
+        provider = self.provider(
+            'import sys\n'
+            'assert "--dump" not in sys.argv\n'
+            'assert "--wait-until" not in sys.argv\n'
+            f'sys.stdout.buffer.write({encoded})'
+        )
+        document = replace(self.case, url="https://example.com/fixed.pdf", track="document")
+        result = provider.fetch(document, 2)
+        self.assertFalse(result.ok)  # A blank but valid PDF has no answer text.
+        self.assertEqual(result.error_type, "empty_output")
+        self.assertEqual(result.metadata["document_extractor"], "pypdf")
+        self.assertEqual(result.metadata["dump"], None)
+        self.assertIn("_raw_stdout_b64", result.metadata)
+
     def test_failure_empty_binary_and_oversized_output(self):
         for script, config, expected in [
             ('import sys\nprint("partial")\nsys.exit(7)', {}, "tool_error"),

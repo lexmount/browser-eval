@@ -74,7 +74,10 @@ def persist_result_artifacts(
         result.metadata['raw_stdout_path'] = binary_rel.as_posix()
     delivered = result.metadata.get('file_evaluation', {}).get('files', [])
     if len(delivered) != len(result.files):
-        raise ValueError('File evaluation does not match returned files')
+        raise ValueError(
+            'File evaluation does not match returned files: '
+            f'evaluated={len(delivered)}, returned={len(result.files)}'
+        )
     for index, item in enumerate(result.files):
         binary = artifact.with_name(artifact.stem + f'-file-{index:03d}.bin')
         binary.write_bytes(item['data'])
@@ -110,6 +113,12 @@ def run_evaluation(
     for filename in ['artifacts', 'manifest.json', 'dataset.json', 'results.jsonl', 'summary.json']:
         contained_path(output_dir, filename)
     reference_checks = preflight_reference_checks(cases, dataset_path)
+    for provider in providers:
+        missing = provider.validate()
+        if missing:
+            raise ValueError(
+                f"provider {provider.name!r} missing configuration: {', '.join(missing)}"
+            )
     output_dir.mkdir(parents=True, exist_ok=True)
     artifacts_dir = output_dir / "artifacts"
     artifacts_dir.mkdir(exist_ok=True)
@@ -167,13 +176,6 @@ def run_evaluation(
     (output_dir / "dataset.json").write_text(
         json.dumps(dataset_meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-
-    for provider in providers:
-        missing = provider.validate()
-        if missing:
-            raise ValueError(
-                f"provider {provider.name!r} missing configuration: {', '.join(missing)}"
-            )
 
     results_path = output_dir / "results.jsonl"
     result_lock = threading.Lock()

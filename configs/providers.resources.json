@@ -21,7 +21,12 @@
     "cowagent-built-in": {
       "type": "cowagent_builtin",
       "repo_path": "${COWAGENT_REPO}",
-      "workspace": "${COWAGENT_BENCHMARK_WORKSPACE:-~/.browser-eval/runs/cowagent-workspace}"
+      "workspace": "${COWAGENT_BENCHMARK_WORKSPACE:-~/.browser-eval/runs/cowagent-workspace}",
+      "expected_repo_revision": "ed5bb344cfe42cee443c8266ba47ee666d8d7471",
+      "required_paths": [
+        "{repo_path}/agent/tools/web_fetch/web_fetch.py",
+        "{repo_path}/agent/tools/utils/url_safety.py"
+      ]
     },
     "lexmount-global": {
       "type": "lexmount",
@@ -121,15 +126,32 @@
       ],
       "env": {
         "OPENCLAW_REPO": "${OPENCLAW_REPO}"
-      }
+      },
+      "expected_repo_revision": "12c4bdf7482f24c85b011e9d858fdec3c245101c",
+      "expected_node_version": "v24.15.0",
+      "required_paths": [
+        "{repo_path}/src/agents/tools/web-fetch.ts",
+        "{repo_path}/pnpm-lock.yaml",
+        "{harness_root}/scripts/oss/openclaw_webfetch_worker.mts"
+      ]
     },
     "deepseek-harness-built-in": {
       "type": "subprocess_jsonl",
       "method_type": "deepseek_harness_builtin",
       "repo_path": "${DEEPSEEK_HARNESS_REPO}",
       "command": [
-        "{repo_path}/node_modules/.bin/tsx",
+        "${OPENCLAW_NODE:-node}",
+        "--import",
+        "tsx",
         "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts"
+      ],
+      "expected_repo_revision": "dd6322d604e00eec1ba5e0c8541159906a21094a",
+      "expected_node_version": "v24.15.0",
+      "required_paths": [
+        "{repo_path}/packages/web/web-fetch-http/src/provider.ts",
+        "{repo_path}/pnpm-lock.yaml",
+        "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts",
+        "{harness_root}/scripts/oss/dsh_webfetch_worker.mts"
       ]
     },
     "langchain-webbase": {
@@ -137,18 +159,24 @@
       "method_type": "langchain_webbase",
       "repo_path": ".",
       "command": [
-        "${OSS_PYTHON:-python3}",
+        "${OSS_PYTHON:-.venv/bin/python}",
         "{harness_root}/scripts/oss/langchain_webbase_worker.py"
-      ]
+      ],
+      "expected_python_version": "Python 3.11.12",
+      "expected_library_versions": {"langchain-community": "0.3.30"},
+      "required_paths": ["{harness_root}/scripts/oss/langchain_webbase_worker.py"]
     },
     "crawl4ai": {
       "type": "subprocess_jsonl",
       "method_type": "crawl4ai",
       "repo_path": ".",
       "command": [
-        "${OSS_PYTHON:-python3}",
+        "${OSS_PYTHON:-.venv/bin/python}",
         "{harness_root}/scripts/oss/crawl4ai_worker.py"
-      ]
+      ],
+      "expected_python_version": "Python 3.11.12",
+      "expected_library_versions": {"crawl4ai": "0.9.3"},
+      "required_paths": ["{harness_root}/scripts/oss/crawl4ai_worker.py"]
     }
   }
 }

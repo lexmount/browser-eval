@@ -12,7 +12,10 @@ def prepare_answer(result, case):
     # This required representation conversion is inside the measured call.
     result.prepared_answer = answer_input(result.content.encode('utf-8', errors='replace'), result.metadata,
                  ok=result.ok, status_code=result.status_code)
-    if case.task_kind == 'file':
+    # Persist and fingerprint every returned binary, including incidental
+    # downloads produced while a body task is being fetched.  Only ``file``
+    # tasks use this evidence for acceptance; body tasks still require text.
+    if case.task_kind == 'file' or result.files:
         files = []
         for item in result.files:
             raw = item.get('data')

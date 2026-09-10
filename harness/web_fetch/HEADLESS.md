@@ -177,5 +177,5 @@ implementation instead of bypassing them.
 
 The preserved public destination for this comparison is the separate app-domain
 Sites project `UUAhhQMnrGwm`. The current 12-method report is the dev-domain
-project `UeZE1vfcEOrM`; never use a headless receipt or evidence bundle to
-update it.
+project declared by `evaluation/current-report.json`; never use a headless
+receipt or evidence bundle to update it.

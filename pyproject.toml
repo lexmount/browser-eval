@@ -27,6 +27,13 @@ test = [
   "pytest>=8,<10",
   "ruff>=0.9,<1",
 ]
+oss-eval = [
+    "crawl4ai==0.9.3",
+    "langchain-community==0.3.30",
+    "openpyxl==3.1.5",
+    "python-docx==1.2.0",
+    "python-pptx==1.0.2",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

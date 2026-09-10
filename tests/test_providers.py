@@ -76,6 +76,23 @@ class ProviderTest(unittest.TestCase):
         provider = CowAgentBuiltinProvider("cowagent", {"repo_path": "/definitely/missing"})
         self.assertTrue(provider.validate())
 
+    def test_cowagent_cannot_omit_locked_identity(self) -> None:
+        errors = CowAgentBuiltinProvider("cowagent", {"repo_path": "."}).validate()
+        self.assertIn("repo revision ed5bb344cfe42cee443c8266ba47ee666d8d7471", errors)
+        self.assertIn("locked required paths", errors)
+
+    @patch("harness.web_fetch.providers.cowagent.validate_runtime_identity")
+    def test_cowagent_retains_validated_runtime_identity(self, validate) -> None:
+        identity = {"repository": {"head": "a" * 40, "tracked_status": ""}}
+        validate.return_value = ([], identity)
+        provider = CowAgentBuiltinProvider("cowagent", {
+            "repo_path": ".",
+            "expected_repo_revision": CowAgentBuiltinProvider._LOCKED_REVISION,
+            "required_paths": list(CowAgentBuiltinProvider._REQUIRED_PATHS),
+        })
+        self.assertEqual(provider.validate(), [])
+        self.assertEqual(provider._implementation_identity, identity)
+
 
 if __name__ == "__main__":
     unittest.main()
