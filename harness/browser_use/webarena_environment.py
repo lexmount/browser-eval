@@ -27,6 +27,7 @@ STATEFUL_CONTAINER_NAMES = frozenset(
 )
 LEGACY_PORT_SITES = {
     3000: "map",
+    4399: "reddit",
     7770: "shopping",
     7780: "shopping_admin",
     8023: "gitlab",
@@ -34,7 +35,7 @@ LEGACY_PORT_SITES = {
     9999: "reddit",
 }
 _LEGACY_ORIGIN_RE = re.compile(
-    r"https?://[a-z0-9.-]+:(?P<port>3000|7770|7780|8023|8888|9999)",
+    r"https?://[a-z0-9.-]+:(?P<port>3000|4399|7770|7780|8023|8888|9999)",
     flags=re.IGNORECASE,
 )
 

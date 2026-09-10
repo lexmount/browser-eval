@@ -125,6 +125,16 @@ def test_trace_import_preserves_actions_tabs_context_and_recorded_failure(tmp_pa
             "pageId": "page-one",
             "params": {"selector": 'internal:role=button[name="Save"i]'},
         },
+        {
+            "type": "frame-snapshot",
+            "snapshot": {
+                "callId": "one",
+                "snapshotName": "before@one",
+                "pageId": "page-one",
+                "frameUrl": "http://old.example:8023/project",
+                "html": ["HTML", {}, []],
+            },
+        },
         {"type": "after", "callId": "one"},
         {
             "type": "before",
@@ -132,6 +142,16 @@ def test_trace_import_preserves_actions_tabs_context_and_recorded_failure(tmp_pa
             "apiName": "frame.fill",
             "pageId": "page-two",
             "params": {"selector": "#query", "value": "hello"},
+        },
+        {
+            "type": "frame-snapshot",
+            "snapshot": {
+                "callId": "two",
+                "snapshotName": "before@two",
+                "pageId": "page-two",
+                "frameUrl": "http://old.example:9999/f/technology",
+                "html": ["HTML", {}, []],
+            },
         },
         {"type": "after", "callId": "two", "error": {"message": "detached"}},
     ]
@@ -148,6 +168,10 @@ def test_trace_import_preserves_actions_tabs_context_and_recorded_failure(tmp_pa
     }
     assert [item["action"] for item in result["actions"]] == ["click", "fill"]
     assert [item["tab_index"] for item in result["actions"]] == [0, 1]
+    assert result["recorded_tab_urls"] == [
+        "http://old.example:8023/project",
+        "http://old.example:9999/f/technology",
+    ]
     assert result["actions"][1]["source"]["recorded_status"] == "fail"
 
 

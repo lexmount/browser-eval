@@ -60789,8 +60789,8 @@
           "gitlab"
         ],
         "start_urls": [
-          "__REDDIT__",
-          "__GITLAB__"
+          "__GITLAB__",
+          "__REDDIT__"
         ],
         "reset_required": true
       },
@@ -61284,8 +61284,8 @@
           "gitlab"
         ],
         "start_urls": [
-          "__REDDIT__",
-          "__GITLAB__"
+          "__GITLAB__",
+          "__REDDIT__"
         ],
         "reset_required": true
       },

@@ -8,8 +8,45 @@ import json
 from collections import Counter
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from harness.browser_use.webarena import import_playwright_trace
+
+_RECORDED_PORT_SITES = {
+    3000: "map",
+    4399: "reddit",
+    7770: "shopping",
+    7780: "shopping_admin",
+    8023: "gitlab",
+    8888: "wikipedia",
+    9999: "reddit",
+}
+
+
+def _recorded_start_urls(row: dict[str, Any], trajectory: dict[str, Any]) -> list[str]:
+    """Align configured start pages with the trace's stable tab-index order."""
+    sites = [str(site) for site in row["sites"]]
+    start_urls = [str(url) for url in row["start_urls"]]
+    if len(sites) != len(start_urls) or len(set(sites)) != len(sites):
+        raise ValueError(f"task {row['task_id']}: sites and start_urls must map one-to-one")
+    recorded_sites: list[str] = []
+    for url in trajectory.get("recorded_tab_urls") or []:
+        try:
+            port = urlparse(str(url or "")).port
+        except ValueError:
+            return start_urls
+        site = _RECORDED_PORT_SITES.get(port or -1)
+        if site is None:
+            return start_urls
+        recorded_sites.append(site)
+    if (
+        len(recorded_sites) != len(sites)
+        or len(set(recorded_sites)) != len(recorded_sites)
+        or set(recorded_sites) != set(sites)
+    ):
+        return start_urls
+    by_site = dict(zip(sites, start_urls, strict=True))
+    return [by_site[site] for site in recorded_sites]
 
 
 def _task_type(row: dict[str, Any]) -> str:
@@ -56,6 +93,10 @@ def build_suite(catalog: dict[str, Any], trace_dir: Path) -> dict[str, Any]:
     tasks: list[dict[str, Any]] = []
     for row, trajectory in imported:
         actions = trajectory["actions"]
+        start_urls = _recorded_start_urls(row, trajectory)
+        stored_trajectory = {
+            key: value for key, value in trajectory.items() if key != "recorded_tab_urls"
+        }
         task_type = _task_type(row)
         ground_truth: dict[str, Any] = {
             "oracle": "webarena_verified",
@@ -85,7 +126,7 @@ def build_suite(catalog: dict[str, Any], trace_dir: Path) -> dict[str, Any]:
                     task_type,
                     *[f"site:{site}" for site in row["sites"]],
                 ],
-                "trajectory": trajectory,
+                "trajectory": stored_trajectory,
                 "assertions": [],
                 "evaluator": {
                     "kind": "webarena_verified",
@@ -95,7 +136,7 @@ def build_suite(catalog: dict[str, Any], trace_dir: Path) -> dict[str, Any]:
                 "environment": {
                     "kind": "webarena_verified",
                     "sites": row["sites"],
-                    "start_urls": row["start_urls"],
+                    "start_urls": start_urls,
                     "reset_required": True,
                 },
                 "ground_truth": ground_truth,

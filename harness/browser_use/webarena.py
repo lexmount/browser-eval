@@ -239,6 +239,7 @@ def import_playwright_trace(path: str | Path, *, strict: bool = True) -> dict[st
     snapshot_by_name: dict[str, dict[str, Any]] = {}
     before_records: list[dict[str, Any]] = []
     page_ids: list[str] = []
+    page_url_by_id: dict[str, str] = {}
     for line in raw_lines:
         record = json.loads(line)
         if record.get("type") == "context-options":
@@ -256,6 +257,14 @@ def import_playwright_trace(path: str | Path, *, strict: bool = True) -> dict[st
             after_by_call[str(record["callId"])] = record
         elif record.get("type") == "frame-snapshot":
             snapshot = record.get("snapshot") or {}
+            snapshot_page_id = str(snapshot.get("pageId") or "")
+            snapshot_url = str(snapshot.get("frameUrl") or "")
+            if (
+                snapshot_page_id
+                and snapshot_url.startswith(("http://", "https://"))
+                and snapshot_page_id not in page_url_by_id
+            ):
+                page_url_by_id[snapshot_page_id] = snapshot_url
             call_id = str(snapshot.get("callId") or "")
             snapshot_name = str(snapshot.get("snapshotName") or "")
             if snapshot_name:
@@ -354,6 +363,7 @@ def import_playwright_trace(path: str | Path, *, strict: bool = True) -> dict[st
             "device_scale_factor": options.get("deviceScaleFactor"),
             "tab_count": len(page_ids),
         },
+        "recorded_tab_urls": [page_url_by_id.get(page_id) for page_id in page_ids],
         "actions": actions,
         "unmapped_calls": unmapped,
     }
