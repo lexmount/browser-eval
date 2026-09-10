@@ -91,7 +91,7 @@ def test_max_tasks_limits_only_the_current_invocation() -> None:
 
     assert _scheduled_tasks(tasks, None) == tasks
     assert _scheduled_tasks(tasks, 1) == tasks[:1]
-    with pytest.raises(ValueError, match="between 1 and 30"):
+    with pytest.raises(ValueError, match="between 1 and 90"):
         _scheduled_tasks(tasks, 0)
 
 

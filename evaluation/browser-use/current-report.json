@@ -2,8 +2,8 @@
   "schema": "lex_browser_use_current_report/1",
   "benchmark": "WebArena-Verified",
   "benchmark_version": "1.2.3",
-  "task_count": 30,
-  "selection_sha256": "ba3c344df003dd4eba3a5d1ef97162ee98df2ed728f7c29c4188bc4247982d38",
+  "task_count": 90,
+  "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
   "official_data_checksum": "d65275660814663375028e9017e1f929e3c38321041b125795e2713b52243d30",
   "engines": [
     "chromium",
@@ -15,6 +15,7 @@
   },
   "model": "gpt-5.6-sol",
   "reasoning_effort": "low",
+  "max_agent_steps": 40,
   "max_task_executions": 2,
   "logical_result": "score authority follows the frozen run manifest; aggregate all execution latency and cost",
   "model_transport_retries": 1,
@@ -23,20 +24,14 @@
   "independent_semantic_review": false,
   "failure_cause_review": {
     "required_for_publication": true,
-    "source_sha256": "fd955376a105e0d99a25452b7f45ed412dbaf2735a8d1975e6146915dbe0243c"
+    "source_sha256": null
   },
-  "tasks_without_measured_success_path": [
-    68,
-    124,
-    142,
-    168,
-    506
-  ],
+  "tasks_without_measured_success_path": [],
   "publication": {
     "base_url": "https://artifact-hub.dev.lexmount.net",
     "site_slug": "28OH4YZkUYF1",
     "share_url": "https://artifact-hub.dev.lexmount.net/v/5Vhnhdc_f8FEM2RzctQm-ChRlXUf174Y",
     "expected_version": "ver_0bb766584e944330995bb009c4562dc4",
-    "state": "verified"
+    "state": "pending-90-task-evidence"
   }
 }

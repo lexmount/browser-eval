@@ -5,9 +5,9 @@ WebArena-Verified evaluator. It is independent from `harness/trajectory_replay`,
 which replays a fixed list of browser-tool calls to isolate browser-engine
 behavior and does not measure autonomous planning.
 
-The pilot selection is pre-registered in
-`evaluation/browser-use/webarena-verified-pilot.json`: 5 easy, 10 medium, and
-15 hard cases. These are project-defined operational tiers based on an audited
+The current selection is pre-registered in
+`evaluation/browser-use/webarena-verified-pilot.json`: 15 easy, 30 medium, and
+45 hard cases. These are project-defined operational tiers based on an audited
 minimum number of visible UI operations, not WebArena's official hard-subset
 label. The pilot uses the self-hosted shopping, shopping_admin, reddit, and
 gitlab sites. Wikipedia and Map are deferred because their official local setup
@@ -40,9 +40,9 @@ Astra attempts must never be resumed into or reported as the same cohort.
 `COWAGENT_REPO` is a trusted code-execution boundary, not a data input. The
 runner refuses a dirty checkout and records its Git commit in the run config.
 
-Every task runs once per engine. Only a failed official evaluation receives one
-retry. The official benchmark score is calculated from primary attempts only;
-retry recovery is reported separately and never replaces the primary score.
+Every task-browser pair has at most two physical executions: one execution and,
+only after failure, one retry. The final execution is the single logical result;
+all physical-call latency and model usage remain part of that result.
 After the run, create the deterministic per-attempt evidence review before
 building or publishing the report:
 

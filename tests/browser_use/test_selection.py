@@ -16,11 +16,11 @@ from harness.browser_use.selection import (
 
 def test_pilot_has_pre_registered_tier_counts() -> None:
     selection = load_pilot(Path("evaluation/browser-use/webarena-verified-pilot.json"))
-    assert len(selection.tasks) == 30
+    assert len(selection.tasks) == 90
     assert {
         tier: sum(task.tier == tier for task in selection.tasks) for tier in TIER_COUNTS
     } == TIER_COUNTS
-    assert sum(task.official_hard for task in selection.tasks) == 16
+    assert sum(task.official_hard for task in selection.tasks) == 39
     assert len(selection.sha256) == 64
 
 

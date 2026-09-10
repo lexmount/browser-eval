@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections import Counter
 from dataclasses import dataclass
 from functools import lru_cache
 from importlib.resources import files
@@ -12,7 +13,7 @@ from typing import Any
 
 PILOT_SCHEMA = "lex_webarena_verified_pilot/1"
 ALLOWED_SITES = frozenset({"shopping", "shopping_admin", "reddit", "gitlab"})
-TIER_COUNTS = {"easy": 5, "medium": 10, "hard": 15}
+TIER_COUNTS = {"easy": 15, "medium": 30, "hard": 45}
 TIER_BOUNDS = {"easy": (1, 4), "medium": (5, 7), "hard": (8, None)}
 TASK_EXCLUSIONS_PATH = Path(__file__).parents[2] / "evaluation/browser-use/task-exclusions.json"
 
@@ -207,6 +208,7 @@ def load_pilot(path: str | Path) -> PilotSelection:
     payload = json.loads(source.read_text(encoding="utf-8"))
     if payload.get("schema") != PILOT_SCHEMA:
         raise ValueError(f"unsupported pilot schema: {payload.get('schema')!r}")
+    metadata = dict(payload.get("metadata") or {})
     tasks = tuple(
         PilotTask(
             task_id=int(item["task_id"]),
@@ -223,11 +225,13 @@ def load_pilot(path: str | Path) -> PilotSelection:
     counts = {tier: sum(task.tier == tier for task in tasks) for tier in TIER_COUNTS}
     if counts != TIER_COUNTS:
         raise ValueError(f"pilot tier counts must be {TIER_COUNTS}, got {counts}")
+    if metadata.get("tier_counts") != TIER_COUNTS:
+        raise ValueError("selection metadata tier_counts must match the frozen tier counts")
     for task in tasks:
         low, high = TIER_BOUNDS[task.tier]
         if task.estimated_min_steps < low or (high is not None and task.estimated_min_steps > high):
             raise ValueError(f"task {task.task_id}: step estimate is outside {task.tier}")
-    return PilotSelection(tasks, source, _sha256(source), dict(payload.get("metadata") or {}))
+    return PilotSelection(tasks, source, _sha256(source), metadata)
 
 
 def validate_against_official(
@@ -284,4 +288,25 @@ def validate_against_official(
                 "start_urls": list(task.start_urls),
             }
         )
+    site_counts = Counter(row["sites"][0] for row in resolved)
+    expected_site_counts = selection.metadata.get("site_counts")
+    if expected_site_counts is not None and expected_site_counts != dict(site_counts):
+        raise ValueError(
+            f"selection site counts must be {expected_site_counts}, got {dict(site_counts)}"
+        )
+    expected_task_type_counts = selection.metadata.get("task_type_counts")
+    if expected_task_type_counts is not None:
+        task_type_counts: Counter[str] = Counter()
+        for selected in selection.tasks:
+            task = benchmark.get_task(selected.task_id)
+            response_evaluator = next(
+                item for item in task.eval if item.evaluator == "AgentResponseEvaluator"
+            )
+            task_type = response_evaluator.expected.task_type
+            task_type_counts[getattr(task_type, "value", str(task_type))] += 1
+        if expected_task_type_counts != dict(task_type_counts):
+            raise ValueError(
+                "selection task type counts must be "
+                f"{expected_task_type_counts}, got {dict(task_type_counts)}"
+            )
     return resolved
