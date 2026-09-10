@@ -174,6 +174,11 @@ success from process exit. Qualification then requires two public-site responses
 matches the configured origin. Docker health alone, or an HTTP response that redirects to the
 image's baked CMU origin, is insufficient.
 
+Reddit has a separate upstream inconsistency: its `RedditOps._init()` requires a `base_url` argument
+and does not fall back to `WA_ENV_CTRL_EXTERNAL_SITE_URL`, so the supervisor init exits before making
+changes. The harness waits for that no-op attempt to exit, runs the same official initializer once
+with an explicit `--base-url`, and requires its JSON success result before checking the public origin.
+
 `site_docker_host` may point to an absolute Unix socket when browser and site containers deliberately
 use different daemons. Resource limits are validated against the browser daemon; image identity,
 reset, and site state are validated against the site daemon. This permits a rootful, CPU-controlled

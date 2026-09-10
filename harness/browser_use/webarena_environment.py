@@ -442,16 +442,30 @@ class WebArenaEnvironment:
                 }
                 self._wait_ready(url, timeout_seconds=timeout_seconds)
                 if site == "gitlab":
-                    self._configure_gitlab_external_url(container, started.url)
+                    self._configure_external_url(container, started.url, site=site)
                     self._wait_ready(url, timeout_seconds=timeout_seconds)
                     receipts[site]["external_url_configuration"] = {
                         "external_url": started.url,
                         "internal_port": 8023,
                         "mode": "explicit_official_init_verified",
                     }
+                elif site == "reddit":
+                    # Reddit's official Ops implementation does not read
+                    # WA_ENV_CTRL_EXTERNAL_SITE_URL, so its supervisor attempt
+                    # exits before mutating state. Supply the URL explicitly
+                    # after that no-op attempt has exited.
+                    self._wait_container_initialization(
+                        container, timeout_seconds=timeout_seconds
+                    )
+                    self._configure_external_url(container, started.url, site=site)
+                    self._wait_ready(url, timeout_seconds=timeout_seconds)
+                    receipts[site]["external_url_configuration"] = {
+                        "external_url": started.url,
+                        "mode": "explicit_official_init_verified",
+                    }
                 else:
-                    # Shopping, Shopping Admin and Reddit run their one
-                    # env-ctrl init from the official image entrypoint.
+                    # Shopping and Shopping Admin run their one env-ctrl init
+                    # from the official image entrypoint.
                     self._wait_container_initialization(
                         container, timeout_seconds=timeout_seconds
                     )
@@ -521,8 +535,8 @@ class WebArenaEnvironment:
         raise RuntimeError("WebArena entrypoint initialization did not finish")
 
     @staticmethod
-    def _configure_gitlab_external_url(container: Any, external_url: str) -> None:
-        """Run GitLab's official initializer exactly once after cold startup."""
+    def _configure_external_url(container: Any, external_url: str, *, site: str) -> None:
+        """Run a site's official initializer with an explicit public URL."""
         result = container.exec_run(
             ["env-ctrl", "--verbose", "init", "--base-url", external_url],
             demux=False,
@@ -533,10 +547,10 @@ class WebArenaEnvironment:
         try:
             payload = json.loads(str(output or ""))
         except json.JSONDecodeError as exc:
-            raise RuntimeError("WebArena GitLab init returned invalid JSON") from exc
+            raise RuntimeError(f"WebArena {site} init returned invalid JSON") from exc
         if result.exit_code != 0 or payload.get("success") is not True:
             message = str(payload.get("message") or "official initializer failed")
-            raise RuntimeError(f"WebArena GitLab init failed: {message}")
+            raise RuntimeError(f"WebArena {site} init failed: {message}")
 
     @staticmethod
     def _verify_entrypoint_initialization(container: Any) -> None:

@@ -340,6 +340,65 @@ def test_gitlab_reset_preserves_internal_port_and_sets_external_url(tmp_path, mo
     }
 
 
+def test_reddit_reset_supplies_required_base_url_explicitly(tmp_path, monkeypatch):
+    environment, _ = _environment(tmp_path)
+    pinned = "am1n3e/webarena-verified-reddit@sha256:" + "c" * 64
+    environment.image_lock["images"]["reddit"] = {"pinned": pinned}
+    environment.environments["__REDDIT__"] = {
+        "urls": ["http://10.2.131.41:19999"]
+    }
+    environment.control_urls["reddit"] = "http://127.0.0.1:19998"
+    task = BrowserTask(
+        task_id="webarena-641",
+        title="Task",
+        tool_calls=(),
+        assertions=(),
+        tags=(),
+        difficulty="simple",
+        ground_truth={"expected_actions": []},
+        source={"url": "https://example.test"},
+        evaluator={"kind": "webarena_verified", "task_id": 641, "revision": 2},
+        environment={"kind": "webarena_verified", "sites": ["reddit"]},
+        trajectory={"schema": "lex_browser_trajectory/1", "actions": []},
+    )
+
+    class Manager:
+        container_name = "webarena_verified_reddit"
+
+        def __init__(self, **_kwargs):
+            pass
+
+        def start(self, **_kwargs):
+            return SimpleNamespace(
+                url="http://10.2.131.41:19999",
+                env_ctrl_url="http://10.2.131.41:19998",
+            )
+
+    docker_client = _Docker([pinned], "webarena_verified_reddit")
+    monkeypatch.setattr("harness.browser_use.webarena_environment.ContainerManager", Manager)
+    monkeypatch.setattr(environment, "_wait_ready", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(environment, "_wait_site_ready", lambda *_args, **_kwargs: None)
+
+    result = environment.reset(task, docker_client)
+
+    assert docker_client.containers.container.exec_calls == [
+        (
+            [
+                "env-ctrl",
+                "--verbose",
+                "init",
+                "--base-url",
+                "http://10.2.131.41:19999",
+            ],
+            False,
+        )
+    ]
+    assert result["sites"]["reddit"]["external_url_configuration"] == {
+        "external_url": "http://10.2.131.41:19999",
+        "mode": "explicit_official_init_verified",
+    }
+
+
 @pytest.mark.parametrize("site", ["shopping_admin", "shopping", "reddit"])
 def test_stateful_backend_lets_entrypoint_configure_external_origin_once(site):
     calls = []
@@ -429,8 +488,8 @@ def test_gitlab_initializer_fails_closed_on_invalid_response():
     )
 
     with pytest.raises(RuntimeError, match="invalid JSON"):
-        WebArenaEnvironment._configure_gitlab_external_url(
-            container, "http://10.2.131.41:18023"
+        WebArenaEnvironment._configure_external_url(
+            container, "http://10.2.131.41:18023", site="gitlab"
         )
 
 
