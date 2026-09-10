@@ -14,6 +14,7 @@ OBSERVATION_ACTIONS = frozenset(
     {
         "get_text",
         "get_all_text",
+        "get_table_column",
         "get_attribute",
         "get_all_attribute",
         "get_property",

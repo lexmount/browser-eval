@@ -68,6 +68,33 @@ def test_load_suite_rejects_unsupported_actions(tmp_path):
         load_suite(path)
 
 
+def test_load_suite_requires_visible_header_for_table_column(tmp_path):
+    path = tmp_path / "tasks.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": "lex_browser_use_tasks/3",
+                "tasks": [
+                    _task(
+                        "bad",
+                        [
+                            {
+                                "action": "get_table_column",
+                                "selector": "table",
+                                "save_as": "values",
+                            }
+                        ],
+                    )
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="requires header"):
+        load_suite(path)
+
+
 @pytest.mark.parametrize("action", ["click", "fill", "select"])
 @pytest.mark.parametrize("selector", [None, "", "  ", 12])
 def test_load_suite_rejects_ref_only_and_invalid_selectors(tmp_path, action, selector):

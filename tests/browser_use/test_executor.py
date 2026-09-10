@@ -74,9 +74,12 @@ class FakePage:
                 page.calls.append(("get_all_attribute", selector, name))
                 return ["one", "two"]
 
-            def evaluate(self, expression, name, **kwargs):
-                page.calls.append(("get_property", selector, name))
-                return True if name == "checked" else "Lexmount"
+            def evaluate(self, expression, argument, **kwargs):
+                if isinstance(argument, dict) and "header" in argument:
+                    page.calls.append(("get_table_column", selector, argument, kwargs))
+                    return ["First", "Second"]
+                page.calls.append(("get_property", selector, argument))
+                return True if argument == "checked" else "Lexmount"
 
         return Locator()
 
@@ -371,6 +374,31 @@ def test_multi_element_observations_are_json_arrays():
     )
 
     assert outputs == {"titles": '["First", "Second"]', "ids": '["one", "two"]'}
+
+
+def test_table_column_is_selected_by_visible_header_instead_of_position():
+    page = FakePage()
+
+    outputs = execute_steps(
+        page,
+        (
+            {
+                "action": "get_table_column",
+                "selector": "table.data-grid",
+                "header": "Search Query",
+                "save_as": "queries",
+                "max_items": 3,
+            },
+        ),
+    )
+
+    assert outputs["queries"] == '["First", "Second"]'
+    assert (
+        "get_table_column",
+        "table.data-grid",
+        {"header": "Search Query", "maxItems": 3},
+        {"timeout": 30_000},
+    ) in page.calls
 
 
 def test_exact_ground_truth_judge_reports_expected_and_actual():

@@ -29,6 +29,7 @@ SUPPORTED_ACTIONS = frozenset(
         "press",
         "get_text",
         "get_all_text",
+        "get_table_column",
         "get_attribute",
         "get_all_attribute",
         "get_property",
@@ -114,6 +115,7 @@ def validate_selector(step: dict[str, Any]) -> None:
         "hover",
         "get_text",
         "get_all_text",
+        "get_table_column",
         "get_attribute",
         "get_all_attribute",
         "get_property",
@@ -152,11 +154,14 @@ def _validate_step(task_id: str, index: int, step: Any) -> dict[str, Any]:
         step.get("name") or ""
     ):
         raise ValueError(f"{task_id}: {action} call {index} requires name")
+    if action == "get_table_column" and not str(step.get("header") or "").strip():
+        raise ValueError(f"{task_id}: get_table_column call {index} requires header")
     if action in {
         "navigate",
         "snapshot",
         "get_text",
         "get_all_text",
+        "get_table_column",
         "get_attribute",
         "get_all_attribute",
         "get_property",

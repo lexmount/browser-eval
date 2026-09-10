@@ -209,6 +209,40 @@ def execute_steps(
                 max_items = int(call.get("max_items", 1_000))
                 max_chars = int(call.get("max_chars", 40_000))
                 observation = json.dumps(values[:max_items], ensure_ascii=False)[:max_chars]
+            elif action == "get_table_column":
+                values = locator_for(action_page, call).evaluate(
+                    r"""(table, options) => {
+                      const normalize = value => (value || '').replace(/\s+/g, ' ').trim();
+                      const wanted = normalize(options.header).toLowerCase();
+                      const headers = Array.from(table.querySelectorAll('thead th'));
+                      const matches = headers
+                        .map((element, index) => ({index, text: normalize(element.innerText)}))
+                        .filter(item => item.text.toLowerCase() === wanted);
+                      if (matches.length !== 1) {
+                        throw new Error(
+                          `table header ${options.header} matched ${matches.length} columns`
+                        );
+                      }
+                      const index = matches[0].index;
+                      return Array.from(table.querySelectorAll('tbody tr'))
+                        .slice(0, options.maxItems)
+                        .map(row => {
+                          const cells = row.querySelectorAll('th, td');
+                          if (index >= cells.length) {
+                            throw new Error('table row does not contain the requested column');
+                          }
+                          return normalize(cells[index].innerText);
+                        });
+                    }""",
+                    {
+                        "header": str(call["header"]),
+                        "maxItems": int(call.get("max_items", 1_000)),
+                    },
+                    timeout=timeout,
+                )
+                observation = json.dumps(values, ensure_ascii=False)[: int(
+                    call.get("max_chars", 40_000)
+                )]
             elif action == "get_attribute":
                 value = locator_for(action_page, call).get_attribute(
                     str(call["name"]), timeout=timeout
