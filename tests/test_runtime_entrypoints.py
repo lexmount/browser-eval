@@ -1,11 +1,12 @@
 from pathlib import Path
+import hashlib
 import json
 import re
+import tempfile
 import unittest
 
 from scripts.run_headless_benchmark import require_expected_provider_versions
-from harness.web_fetch.providers.headless import HEADLESS_CONVERSION
-from harness.web_fetch.publication_target import require_publication_site
+from harness.web_fetch.publication_target import require_publication_site, require_publication_version
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -49,41 +50,109 @@ class RuntimeEntrypointTests(unittest.TestCase):
             unfrozen = re.findall(r"(?m)^\s*uv run (?!--frozen\b)", text)
             self.assertEqual(unfrozen, [], relative)
 
-    def test_headless_coverage_declares_all_seven_methods(self) -> None:
+    def test_current_coverage_declares_all_twelve_methods(self) -> None:
         dataset = json.loads((ROOT / "evaluation/dataset.json").read_text())
-        expected = {"kitesurf", "lightpanda", "obscura", "moli-1.0.6",
-                    "moli", "moli-1.1.3", "chromium"}
+        expected = {
+            "cloudflare-markdown", "cowagent-built-in", "crawl4ai",
+            "deepseek-harness-built-in", "exa", "firecrawl",
+            "langchain-webbase", "lexmount-cn", "lexmount-global",
+            "moli-webfetch", "openclaw-built-in", "tavily",
+        }
         for track, providers in dataset["coverage_plan"].items():
             self.assertEqual(set(providers), expected, track)
-            self.assertEqual(len(providers), 7, track)
+            self.assertEqual(len(providers), 12, track)
 
     def test_current_report_profile_matches_runner_and_canonical_dataset(self) -> None:
         profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
         dataset = json.loads((ROOT / 'evaluation/dataset.json').read_text())
-        self.assertEqual(profile['conversion'], HEADLESS_CONVERSION)
-        self.assertEqual(dataset['comparison']['conversion'], HEADLESS_CONVERSION)
+        self.assertEqual(profile['conversion'], dataset['comparison']['conversion'])
         self.assertEqual(profile['comparison_kind'], dataset['comparison']['kind'])
         self.assertEqual(set(profile['providers']), set(dataset['coverage_plan']['web']))
-        self.assertEqual(profile['artifact_hub_base_url'], 'https://artifact-hub.app.lexmount.com')
-        self.assertEqual(profile['artifact_hub_site'], 'UUAhhQMnrGwm')
+        case_ids = [case['id'] for case in dataset['cases']]
+        self.assertEqual(
+            profile['case_ids_sha256'],
+            hashlib.sha256(json.dumps(
+                case_ids, separators=(',', ':'), ensure_ascii=True
+            ).encode()).hexdigest(),
+        )
+        self.assertEqual(profile['artifact_hub_base_url'], 'https://artifact-hub.dev.lexmount.net')
+        self.assertEqual(profile['artifact_hub_site'], 'UeZE1vfcEOrM')
+        self.assertEqual(
+            profile['artifact_hub_expected_version'],
+            'ver_69bede8bffdd47ba88f6b1b95c6fa00b',
+        )
+
+    def test_current_rerun_plan_is_exact_and_complete(self) -> None:
+        dataset = json.loads((ROOT / 'evaluation/dataset.json').read_text())
+        profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
+        plan = json.loads((ROOT / 'evaluation/current-rerun.json').read_text())
+        case_ids = {case['id'] for case in dataset['cases']}
+        providers = set(profile['providers'])
+        main = plan['main_matrix']
+        speed = plan['same_window_speed_cohort']
+        self.assertEqual(len(main['rerun_case_ids']), 10)
+        self.assertTrue(set(main['rerun_case_ids']) <= case_ids)
+        self.assertEqual(len(main['deadline_replacement_attempt_ids']), 15)
+        self.assertEqual(len(set(main['deadline_replacement_attempt_ids'])), 15)
+        for attempt_id in main['deadline_replacement_attempt_ids']:
+            provider, case_id, run = attempt_id.rsplit('__', 2)
+            self.assertIn(provider, providers)
+            self.assertIn(case_id, case_ids)
+            self.assertEqual(run, 'r001')
+        self.assertEqual(main['planned_new_calls'], 10 * len(providers) + 15)
+        self.assertEqual(len(speed['case_ids']), 20)
+        self.assertEqual(len(set(speed['case_ids'])), 20)
+        self.assertTrue(set(speed['case_ids']) <= case_ids)
+        self.assertEqual(speed['provider_count'], len(providers))
+        self.assertEqual(speed['planned_new_calls'], 20 * len(providers))
+        self.assertEqual(
+            plan['total_planned_new_calls'],
+            main['planned_new_calls'] + speed['planned_new_calls'],
+        )
 
     def test_publication_receipt_must_target_current_site(self) -> None:
         profile = ROOT / 'evaluation/current-report.json'
         self.assertEqual(
-            require_publication_site({'slug':'UUAhhQMnrGwm'}, profile,
-                                     'https://artifact-hub.app.lexmount.com'),
-            'UUAhhQMnrGwm',
-        )
-        with self.assertRaisesRegex(ValueError, 'expected'):
             require_publication_site({'slug':'UeZE1vfcEOrM'}, profile,
-                                     'https://artifact-hub.app.lexmount.com')
+                                     'https://artifact-hub.dev.lexmount.net'),
+            'UeZE1vfcEOrM',
+        )
         with self.assertRaisesRegex(ValueError, 'expected'):
             require_publication_site({'slug':'UUAhhQMnrGwm'}, profile,
                                      'https://artifact-hub.dev.lexmount.net')
+        with self.assertRaisesRegex(ValueError, 'expected'):
+            require_publication_site({'slug':'UeZE1vfcEOrM'}, profile,
+                                     'https://artifact-hub.app.lexmount.com')
         with self.assertRaisesRegex(ValueError, 'requested'):
             require_publication_site(
-                {'slug':'UUAhhQMnrGwm','base_url':'https://artifact-hub.dev.lexmount.net'},
-                profile,'https://artifact-hub.app.lexmount.com')
+                {'slug':'UeZE1vfcEOrM','base_url':'https://artifact-hub.app.lexmount.com'},
+                profile,'https://artifact-hub.dev.lexmount.net')
+
+    def test_publication_version_defaults_to_profile_and_rejects_override(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            profile = Path(directory) / 'profile.json'
+            profile.write_text(json.dumps({
+                'artifact_hub_expected_version': 'ver_profile',
+            }))
+            self.assertEqual(require_publication_version(profile), 'ver_profile')
+            self.assertEqual(
+                require_publication_version(profile, 'ver_profile'),
+                'ver_profile',
+            )
+            with self.assertRaisesRegex(ValueError, 'expected'):
+                require_publication_version(profile, 'ver_cli')
+
+    def test_publication_version_fails_closed_when_profile_binding_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            profile = Path(directory) / 'profile.json'
+            for value in (None, '', 'version-without-prefix', 7):
+                profile.write_text(json.dumps({
+                    'artifact_hub_expected_version': value,
+                }))
+                with self.subTest(value=value), self.assertRaisesRegex(
+                    ValueError, 'artifact_hub_expected_version'
+                ):
+                    require_publication_version(profile)
 
     def test_publication_scripts_do_not_load_repository_eval_credentials(self) -> None:
         for relative in ('scripts/publish_artifact_hub.py',

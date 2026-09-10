@@ -27,8 +27,10 @@ SOURCE=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/'reports/webfetc
 DEST=Path(tempfile.mkdtemp(prefix='artifact-hub-',dir=ROOT/'publish'))
 
 LOADER=r'''
-const manifestPromise=fetch('manifest.json').then(r=>{if(!r.ok)throw Error('数据目录加载失败');return r.json()});
 const decoder=new TextDecoder();let currentPage='index.html',renderId=0;
+function englishRoute(){const hash=typeof location==='undefined'?'':location.hash||'',match=/(?:^#|&)page=([^&]+)/.exec(hash),path=match?decodeURIComponent(match[1]):currentPage;return path==='en/index.html'||path.startsWith('en/')||(typeof document!=='undefined'&&document.documentElement?.lang==='en')}
+function tr(zh,en){return englishRoute()?en:zh}
+const manifestPromise=fetch('manifest.json').then(r=>{if(!r.ok)throw Error(tr('数据目录加载失败','Failed to load the data catalog'));return r.json()});
 const LARGE_TEXT_BYTES=256*1024;
 const pageStates=new Map();
 function savePageState(){
@@ -43,13 +45,13 @@ function restorePageState(path){
 }
 const packs=new Map();
 async function pack(name){
- if(!packs.has(name))packs.set(name,fetch(name).then(async r=>{if(!r.ok)throw Error('内容加载失败');return new Uint8Array(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer())}));
+ if(!packs.has(name))packs.set(name,fetch(name).then(async r=>{if(!r.ok)throw Error(tr('内容加载失败','Failed to load report content'));return new Uint8Array(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer())}));
  const result=await packs.get(name);
  if(packs.size>6){const first=packs.keys().next().value;if(first!==name)packs.delete(first)}
  return result;
 }
 async function fileBytes(path){
- const m=await manifestPromise,f=m.files[path];if(!f)throw Error('文件不存在：'+path);
+ const m=await manifestPromise,f=m.files[path];if(!f)throw Error(tr('文件不存在：','File not found: ')+path);
  const result=new Uint8Array(f.size);let offset=0;
  for(const hash of f.parts){const part=m.blocks[hash],bytes=await pack(part.pack);result.set(bytes.subarray(part.offset,part.offset+part.size),offset);offset+=part.size}
  return result;
@@ -60,10 +62,10 @@ async function metadata(index){
  if(!recordsPromise)recordsPromise=textFile('results.jsonl').then(s=>s.trim().split('\n').map(JSON.parse));
  return JSON.stringify((await recordsPromise)[index].provider_metadata||{},null,2);
 }
-function deferFill(pre,message='完整内容较大，点击后在只读文本框中加载；也可直接下载原始输出。'){
+function deferFill(pre,message=tr('完整内容较大，点击后在只读文本框中加载；也可直接下载原始输出。','The complete content is large. Click to load it in a read-only text box, or download the original output.')){
  if(pre.dataset.deferred)return;
  pre.dataset.deferred='1';
- pre.classList.add('deferred-evidence');pre.tabIndex=0;pre.setAttribute('role','button');pre.setAttribute('aria-label','加载完整内容');pre.textContent=message;
+ pre.classList.add('deferred-evidence');pre.tabIndex=0;pre.setAttribute('role','button');pre.setAttribute('aria-label',tr('加载完整内容','Load complete content'));pre.textContent=message;
  const activate=event=>{if(event.type==='keydown'&&!['Enter',' '].includes(event.key))return;event.preventDefault();pre.removeEventListener('click',activate);pre.removeEventListener('keydown',activate);pre.dataset.deferred='';fill(pre,true)};
  pre.addEventListener('click',activate);pre.addEventListener('keydown',activate);
 }
@@ -88,7 +90,7 @@ async function fillImages(root,page,m){
   for(const img of root.querySelectorAll('img[src]')){
    const src=img.getAttribute('src');if(/^(https?:|data:|blob:)/i.test(src))continue;
    const {path}=resolvePath(src,page),file=m.files[path];
-   if(!file||!file.mime.startsWith('image/'))throw Error('图片文件不存在：'+path);
+   if(!file||!file.mime.startsWith('image/'))throw Error(tr('图片文件不存在：','Image file not found: ')+path);
    const bytes=await fileBytes(path),url=URL.createObjectURL(new Blob([bytes],{type:file.mime}));
    urls.push(url);img.src=url;
   }
@@ -100,11 +102,11 @@ async function fill(pre,force=false){
  let large=false;
  if(pre.dataset.file){const m=await manifestPromise;large=(m.files[pre.dataset.file]?.size||0)>LARGE_TEXT_BYTES}
  if(large&&!force){deferFill(pre);return}
- pre.dataset.loaded='1';pre.classList.remove('deferred-evidence');pre.removeAttribute('role');pre.textContent='正在加载完整内容…';
+ pre.dataset.loaded='1';pre.classList.remove('deferred-evidence');pre.removeAttribute('role');pre.textContent=tr('正在加载完整内容…','Loading complete content…');
  try{let text=pre.dataset.record?await metadata(Number(pre.dataset.record)-1):await textFile(pre.dataset.file);
   if(pre.dataset.readable)text=text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,c=>'\\x'+c.charCodeAt(0).toString(16).padStart(2,'0'));
-  if(large){const box=document.createElement('textarea');box.className='large-evidence-output';box.readOnly=true;box.value=text;box.setAttribute('aria-label','完整实际返回');pre.replaceWith(box)}else pre.textContent=text;
- }catch(error){pre.dataset.loaded='';pre.dataset.deferred='';if(large)deferFill(pre,'加载失败：'+error.message+'。点击重试，或下载原始输出。');else pre.textContent=error.message}
+  if(large){const box=document.createElement('textarea');box.className='large-evidence-output';box.readOnly=true;box.value=text;box.setAttribute('aria-label',tr('完整实际返回','Complete actual output'));pre.replaceWith(box)}else pre.textContent=text;
+ }catch(error){pre.dataset.loaded='';pre.dataset.deferred='';if(large)deferFill(pre,tr('加载失败：','Load failed: ')+error.message+tr('。点击重试，或下载原始输出。','. Click to retry, or download the original output.'));else pre.textContent=error.message}
 }
 async function render(){
  savePageState();
@@ -112,8 +114,9 @@ async function render(){
  let imageUrls=[];
  try{
   const [m,text]=await Promise.all([manifestPromise,textFile(path)]);if(token!==renderId)return;
-  if(!path.endsWith('.html'))throw Error('不是报告页面');
+  if(!path.endsWith('.html'))throw Error(tr('不是报告页面','Not a report page'));
   const page=new DOMParser().parseFromString(text,'text/html');
+  if(page.documentElement?.lang&&document.documentElement)document.documentElement.lang=page.documentElement.lang;
   imageUrls=await fillImages(page.body,path,m);
   if(token!==renderId)return;
   document.title=page.title;currentPage=path;fixLinks(page.body,path,m);document.body.innerHTML=page.body.innerHTML;
@@ -134,7 +137,7 @@ async function downloadClick(event){
  const routeLink=event.target.closest('a[href^="#page="]');
  if(routeLink){event.preventDefault();location.hash=routeLink.getAttribute('href');return}
  const a=event.target.closest('a[data-download]');if(!a)return;event.preventDefault();
- const path=a.dataset.download,old=a.textContent;a.textContent='正在准备完整文件…';
+ const path=a.dataset.download,old=a.textContent;a.textContent=tr('正在准备完整文件…','Preparing complete file…');
  try{const bytes=await fileBytes(path),m=await manifestPromise,url=URL.createObjectURL(new Blob([bytes],{type:m.files[path].mime}));
   const link=document.createElement('a');link.href=url;link.download=path.split('/').pop();link.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
  }catch(error){alert(error.message)}finally{a.textContent=old}

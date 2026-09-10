@@ -163,9 +163,11 @@ make report-check
 
 ## Cross-session release gates
 
-`evaluation/current-report.json` fixes the current report's dataset ID, task
-count, seven providers, timeout, route description and destination site. Both
-the evidence checker and report builder reject a different complete cohort.
+The headless report remains a separately published reference cohort. Its
+evidence bundle fixes the dataset ID, task count, seven providers, timeout and
+route description; `scripts/check_headless_evidence.py` rejects a different
+cohort. The repository's current publication profile may point at another
+report and must not be inferred from this historical reference document.
 The report also requires an exact all-attempt review binding, zero unresolved
 judgments, valid reference/scoring receipts and a nonempty top-level review-round
 log. Assembly rebinds inherited scoring history to the final dataset/results
@@ -173,6 +175,7 @@ bytes only after the complete blind review matches those bytes. These checks are
 covered by the repository test suite; a new session must repair the evidence or
 implementation instead of bypassing them.
 
-The public destination for this comparison is the separate Sites project
-`UUAhhQMnrGwm`. Do not update the older report sites `bWkRP157EtF6` or
-`UeZE1vfcEOrM`.
+The preserved public destination for this comparison is the separate app-domain
+Sites project `UUAhhQMnrGwm`. The current 12-method report is the dev-domain
+project `UeZE1vfcEOrM`; never use a headless receipt or evidence bundle to
+update it.

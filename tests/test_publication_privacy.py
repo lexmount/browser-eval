@@ -14,6 +14,14 @@ from harness.web_fetch.publication_privacy import project_file, publication_risk
 
 
 class PublicationPrivacyTests(unittest.TestCase):
+    def test_loader_localizes_async_status_and_accessibility_copy(self):
+        source=(Path(__file__).resolve().parents[1]/'scripts/package_artifact_hub.py').read_text()
+        self.assertIn("function tr(zh,en)",source)
+        for english in ('Failed to load the data catalog','Load complete content',
+                        'Loading complete content…','Complete actual output',
+                        'Preparing complete file…'):
+            self.assertIn(english,source)
+
     def test_auxiliary_html_projection_has_separate_hashes(self):
         key = b'AIzaSy' + b'x' * 33
         original = b'<script>config="' + key + b'"</script>'

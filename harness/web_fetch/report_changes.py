@@ -5,6 +5,7 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[2]
+HEADLESS_HISTORY_START='2026-09-04-five-browser-fastest-markdown'
 
 
 def require_review_rounds(data):
@@ -19,6 +20,33 @@ def require_review_rounds(data):
                 f'Review round {index} must include date, title, scope, finding, fix and pending'
             )
     return rounds
+
+
+def select_cohort_history(data, dataset, records):
+    """Select public history for the measured cohort, including legacy untagged entries.
+
+    New entries may declare ``comparison_kinds``. The existing history predates
+    that field, so its first headless release is the stable partition boundary.
+    """
+    comparison=(dataset or {}).get('comparison') or {}
+    kind=comparison.get('kind')
+    if not kind and records and all(
+        row.get('provider_type') in {'headless_html','headless_markdown'} for row in records
+    ):
+        kind='headless_markdown'
+    if not kind:kind='generic'
+    headless=kind in {'headless_html','headless_markdown'}
+    releases=data.get('releases',[])
+    boundary=next((i for i,row in enumerate(releases) if row.get('id')==HEADLESS_HISTORY_START),None)
+    selected=[]
+    for index,release in enumerate(releases):
+        declared=release.get('comparison_kinds')
+        if declared is not None:
+            if kind in declared:selected.append(release)
+        elif boundary is None or (index<=boundary)==headless:
+            selected.append(release)
+    rounds=require_review_rounds(data) if headless else []
+    return {**data,'releases':selected,'review_rounds':rounds}
 
 
 def first_correction(history, releases):
@@ -55,14 +83,18 @@ def release_details(release, table, cell, esc):
             +'</details>')
 
 
-def render_changes(out, cases, records):
+def render_changes(out, cases, records, dataset=None):
     from .report import hero, section, table, cell, esc, link, write
     from .storage import research_evidence_dir
     evidence_root=research_evidence_dir()
     data=json.loads((ROOT/'research/report-changes.json').read_text())
     require_review_rounds(data)
-    shutil.copy2(ROOT/'research/report-changes.json',out/'report-changes.json')
-    latest,*older=data['releases']
+    public_data=select_cohort_history(data,dataset,records)
+    (out/'report-changes.json').write_text(json.dumps(public_data,ensure_ascii=False,indent=2)+'\n')
+    releases=public_data['releases']
+    if not releases:
+        raise ValueError('No release history applies to the current report cohort')
+    latest,*older=releases
     body=hero('报告版本说明','每个版本只记录影响读者判断的正式修正；结论与分数影响直接展示，技术证据按需展开。')
     body+=section('当前版本',
         '<article class="release-current"><div class="eyebrow">'+esc(latest['date'])+'</div><h3>'+esc(latest['title'])+'</h3><p>'+esc(latest['summary'])+'</p>'
@@ -81,7 +113,7 @@ def render_changes(out, cases, records):
         total=sum(v[0] for v in grouped.values());passed=sum(v[1] for v in grouped.values())
         body+=section('本版结果影响',
             '<div class="guide-grid"><article class="guide-card"><h3>文件任务</h3><p>'+str(total)+' 次计划调用全部完成判定：'+str(passed)+' 次通过、'+str(total-passed)+' 次未通过、0 次未测。未通过保留为真实结果，不删除案例。</p></article>'
-            '<article class="guide-card"><h3>整份报告</h3><p>150 个案例 × 12 种方法，共 1,800 个计划调用均存在唯一结果并完成判定；其他 1,764 条选定调用未被文件补测改写。</p></article></div>'
+            '<article class="guide-card"><h3>整份报告</h3><p>当前报告共 '+str(len(cases))+' 个案例、'+str(len({row["provider"] for row in records}))+' 种方法和 '+str(len(records))+' 条权威逻辑结果；其中其他 '+str(max(0,len(records)-total))+' 条未被本次文件补测改写。</p></article></div>'
             '<details><summary>查看文件任务逐方法结果</summary>'+table(['方法','计划并判定','通过','未通过'],rows,metrics=[])+'</details>'
             '<details><summary>查看原始运行与选择证据</summary><p>'+' · '.join(link('../'+path,label) for path,label in [
                 ('file-rerun-selection.json','选定运行清单'),('history/file-baseline/results.jsonl','历史文件记录'),

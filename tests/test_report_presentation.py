@@ -1,7 +1,7 @@
 import tempfile
 from pathlib import Path
 import unittest
-from harness.web_fetch.report import failure_category,filter_controls,case_attrs,failure_filters,review_cell,table,write
+from harness.web_fetch.report import active_tracks,failure_category,filter_controls,case_attrs,failure_filters,overall_ranking,provider_configuration,review_cell,table,write
 from harness.web_fetch.report_interfaces import SPECS,HEADLESS_ACCESS
 
 class ReportRevisionTests(unittest.TestCase):
@@ -63,3 +63,32 @@ class ReportRevisionTests(unittest.TestCase):
   rendered=table(['Method'],[('', '<td>Moli</td>')],index_header='No.')
   self.assertIn('<th>No.</th>',rendered)
   self.assertNotIn('<th>序号</th>',rendered)
+ def test_overall_copy_and_columns_follow_the_actual_dataset(self):
+  cases={
+   'a':{'id':'a','track':'web','task_kind':'body'},
+   'b':{'id':'b','track':'document','task_kind':'body'},
+  }
+  records=[{'case_id':key,'provider':'p','ok':True,'metrics':{'content_pass':True},'elapsed_ms':1}
+           for key in cases]
+  rendered=overall_ranking(records,cases)
+  self.assertIn('计划的 2 个任务',rendered)
+  self.assertIn('回到 2 个分榜',rendered)
+  self.assertEqual(active_tracks(cases),[('web','静态网站正文'),('document','文档正文')])
+  self.assertNotIn('150 个任务',rendered)
+  self.assertNotIn('六类',rendered)
+ def test_provider_configuration_is_method_specific(self):
+  default={'endpoint':'endpoint','output':'text'}
+  firecrawl=provider_configuration('firecrawl',[{'provider_type':'firecrawl'}],default)
+  builtin=provider_configuration('builtin',[{'provider_type':'cowagent_builtin'}],default)
+  chromium=provider_configuration('chromium',[{'provider_type':'headless_markdown','provider_metadata':{'extractor':'node-html-markdown','output_contract':'markdown'}}],default)
+  self.assertIn('links 与 images',firecrawl)
+  self.assertNotIn('Exa、Tavily、Firecrawl',builtin)
+  self.assertIn('Chromium 渲染 DOM',chromium)
+ def test_dynamic_cohort_copy_has_english_translations(self):
+  from harness.web_fetch.report_i18n import translate_text
+  self.assertEqual(translate_text('90 个案例 · 12 种方法 · 4类分榜与一个综合通过率总榜。'),
+                   '90 tasks · 12 methods · 4 family rankings and one overall coverage ranking.')
+  self.assertEqual(translate_text('4类任务概览'),'4 task families')
+  translated=translate_text('本轮请求正文文本；资源链接仅来自同一 Contents 响应的 extras 字段。 未启用额外的理解模型或付费后备方法。')
+  self.assertNotIn('本轮',translated)
+  self.assertIn('Contents response',translated)

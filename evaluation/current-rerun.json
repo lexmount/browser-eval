@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "baseline": {
+    "dataset_sha256": "782e78ca069ca4e0638cd9a21e4cf6f178e93804c41d90c527a740d1ae87c70d",
+    "results_sha256": "113b78aefc776f291ddf59311dcb81511dbe0bf09cdb8f2cf71bdde878ab37e5",
+    "logical_attempts": 1800
+  },
+  "main_matrix": {
+    "rerun_case_ids": [
+      "stable-wikipedia-ai-revision",
+      "stable-browser-use-readme",
+      "stable-openclaw-readme",
+      "stable-nodejs-readme",
+      "stable-wcag21-recommendation",
+      "stable-xml10-recommendation",
+      "stable-rfc-6455-websocket",
+      "stable-rfc-8259-json",
+      "document-03",
+      "live-025-api-reference"
+    ],
+    "rerun_all_providers_for_each_case": true,
+    "deadline_replacement_attempt_ids": [
+      "cowagent-built-in__lm-rust-learn__r001",
+      "cowagent-built-in__document-05__r001",
+      "langchain-webbase__lm-rust-learn__r001",
+      "langchain-webbase__document-01__r001",
+      "langchain-webbase__document-06__r001",
+      "langchain-webbase__document-10__r001",
+      "crawl4ai__html-table__r001",
+      "crawl4ai__live-024-cascading-style-sheets-level-2-r__r001",
+      "crawl4ai__live-032-api-reference__r001",
+      "crawl4ai__live-033-nasa-science__r001",
+      "crawl4ai__document-01__r001",
+      "crawl4ai__document-02__r001",
+      "crawl4ai__video-04__r001",
+      "crawl4ai__challenge-07__r001",
+      "crawl4ai__challenge-10-justwatch__r001"
+    ],
+    "planned_new_calls": 135,
+    "final_logical_attempts": 1800
+  },
+  "same_window_speed_cohort": {
+    "required": true,
+    "selection": "Provider-blind reference-length quantile sampling over ordinary web body tasks; at most one case per hostname",
+    "case_ids": [
+      "live-010-navigation-menu",
+      "live-071-science",
+      "live-022-until-september-10-get-pycharm-f",
+      "live-040-documentation-overview",
+      "lm-feishu-help",
+      "lexmount-doc",
+      "lm-node-intro",
+      "live-046-file-api",
+      "live-051-email-an-email-and-mime-handling",
+      "live-052-objects-in-kubernetes",
+      "live-026-getting-started",
+      "live-027-sponsors",
+      "live-025-api-reference",
+      "stable-rfc-8259-json",
+      "live-024-cascading-style-sheets-level-2-r",
+      "live-061-version-control",
+      "live-028-getting-started-with-rails",
+      "live-029-fetch",
+      "live-032-api-reference",
+      "live-033-nasa-science"
+    ],
+    "provider_count": 12,
+    "planned_new_calls": 240,
+    "require_independent_result_review": true
+  },
+  "total_planned_new_calls": 375
+}

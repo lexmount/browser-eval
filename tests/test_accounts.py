@@ -1,6 +1,6 @@
 import unittest
 
-from harness.web_fetch.accounts import ACCOUNT_REGISTRY, env_template
+from harness.web_fetch.accounts import ACCOUNT_REGISTRY, env_template, report_access_registry
 
 
 class AccountRegistryTest(unittest.TestCase):
@@ -17,6 +17,23 @@ class AccountRegistryTest(unittest.TestCase):
         self.assertIn("LEXMOUNT_API_KEY=\n", template)
         self.assertIn("FIRECRAWL_API_KEY=\n", template)
         self.assertNotIn("secret", template.casefold())
+
+    def test_report_registry_is_exactly_the_measured_methods(self) -> None:
+        providers = {
+            "cloudflare-markdown", "cowagent-built-in", "crawl4ai",
+            "deepseek-harness-built-in", "exa", "firecrawl",
+            "langchain-webbase", "lexmount-cn", "lexmount-global",
+            "moli-webfetch", "openclaw-built-in", "tavily",
+        }
+        rows = report_access_registry(providers)
+        self.assertEqual(len(rows), len(providers))
+        names = {row["provider"] for row in rows}
+        self.assertNotIn("Browserbase Fetch", names)
+        self.assertIn("Moli WebFetch", names)
+
+    def test_report_registry_fails_closed_for_unknown_method(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unknown-method"):
+            report_access_registry({"unknown-method"})
 
 
 if __name__ == "__main__":

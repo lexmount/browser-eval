@@ -38,7 +38,10 @@ class ReportChangesTests(unittest.TestCase):
             self.assertNotIn('这两列怎么读',page)
             data=json.loads((out/'report-changes.json').read_text())
             self.assertEqual(len(data['releases']),len({r['id'] for r in data['releases']}))
-            self.assertGreaterEqual(len(data['review_rounds']), 5)
+            self.assertEqual(data['review_rounds'],[])
+            release_ids={row['id'] for row in data['releases']}
+            self.assertIn('2026-09-04-complete-file-evaluation',release_ids)
+            self.assertNotIn('2026-09-04-five-browser-fastest-markdown',release_ids)
             self.assertNotIn('github.com/lexmount/browser-eval/pull/6', page)
 
     def test_review_round_log_is_required_and_structured(self):
@@ -50,6 +53,38 @@ class ReportChangesTests(unittest.TestCase):
                         {'review_rounds':[{'date':'2026-09-08','title':'复核'}]}):
             with self.subTest(invalid=invalid), self.assertRaises(ValueError):
                 require_review_rounds(invalid)
+
+    def test_release_history_is_scoped_to_the_current_cohort(self):
+        from harness.web_fetch.report_changes import select_cohort_history
+        data={
+            'review_rounds':[{'date':'d','title':'t','scope':'s','finding':'f','fix':'x','pending':'p'}],
+            'releases':[
+                {'id':'new-headless'},
+                {'id':'2026-09-04-five-browser-fastest-markdown'},
+                {'id':'generic-file'},
+                {'id':'generic-score'},
+            ],
+        }
+        headless=select_cohort_history(data,{'comparison':{'kind':'headless_markdown'}},[])
+        generic=select_cohort_history(data,{'comparison':None},[{'provider_type':'firecrawl'}])
+        self.assertEqual([r['id'] for r in headless['releases']],
+                         ['new-headless','2026-09-04-five-browser-fastest-markdown'])
+        self.assertEqual([r['id'] for r in generic['releases']],
+                         ['generic-file','generic-score'])
+        self.assertTrue(headless['review_rounds'])
+        self.assertEqual(generic['review_rounds'],[])
+
+    def test_explicit_comparison_kind_overrides_legacy_partition(self):
+        from harness.web_fetch.report_changes import select_cohort_history
+        data={
+            'review_rounds':[{'date':'d','title':'t','scope':'s','finding':'f','fix':'x','pending':'p'}],
+            'releases':[
+                {'id':'tagged-generic','comparison_kinds':['generic']},
+                {'id':'2026-09-04-five-browser-fastest-markdown'},
+            ],
+        }
+        selected=select_cohort_history(data,{'comparison':{'kind':'generic'}},[])
+        self.assertEqual([r['id'] for r in selected['releases']],['tagged-generic'])
 
     def test_ranking_uses_planned_judgment_denominator(self):
         c={'id':'file','name':'File','track':'video','task_kind':'file'}

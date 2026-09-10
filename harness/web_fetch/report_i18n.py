@@ -1428,6 +1428,21 @@ TEXT.update({
 # are deliberately narrow report phrases; they never include task names,
 # reference answers, or provider output.
 PHRASES = {
+    "本轮记录的交付路线：": "Measured delivery path: ",
+    "；输出契约：": "; output contract: ",
+    "Cloudflare Browser Run /markdown 直接返回 Markdown": "Markdown returned directly by Cloudflare Browser Run /markdown",
+    "Lightpanda CLI 直接返回 Markdown": "Markdown returned directly by the Lightpanda CLI",
+    "Obscura CLI 直接返回 Markdown": "Markdown returned directly by the Obscura CLI",
+    "Moli CLI 直接返回 Markdown": "Markdown returned directly by the Moli CLI",
+    "Chromium 渲染 DOM → node-html-markdown 2.0.0": "Chromium rendered DOM → node-html-markdown 2.0.0",
+    "未启用额外的理解模型或付费后备方法。": "No additional understanding model or paid fallback was enabled.",
+    "本轮使用该方法的默认正文或文件交付路线。": "This run uses the method's default body-text or file-delivery path.",
+    "本轮请求 Markdown，并由同一 Scrape 响应保留 links 与 images 字段。": "This run requests Markdown and retains links and images from the same Scrape response.",
+    "本轮请求 Markdown；图片资源仅来自同一 Extract 响应的 images 字段。": "This run requests Markdown; image resources come only from the images field in the same Extract response.",
+    "本轮请求正文文本；资源链接仅来自同一 Contents 响应的 extras 字段。": "This run requests body text; resource links come only from the extras field in the same Contents response.",
+    "当前成绩包含对保存输出的离线重算；收据记录输入、输出哈希、判定变化及供应商调用数，不把新规则伪装成原调用时的运行配置。": "Current scores include offline rescoring of saved outputs. Receipts record input and output hashes, verdict changes, and provider-call counts without presenting new rules as the original run configuration.",
+    "本轮时延纠正保留旧值与全部物理调用，并按预先固定的最终轮更新权威逻辑结果，不能把跨批次视图当成同时重跑。": "This run's latency correction retains old values and every physical call, and updates authoritative logical results from the preselected final round; the cross-batch view is not a simultaneous rerun.",
+    "方法配置、凭据变量和本轮实际版本分别见“方法介绍”“账号”和上方方法版本表；不存在的 headless 专用配置不属于本 cohort。": "See Methods, Access, and the version table above for method configuration, credential variable names, and measured versions. Headless-only configuration that does not exist for this cohort is out of scope.",
     "高。核验时隐藏机器结论和分数，只提供任务契约、标准答案与完整实际输出；分歧回到原始证据裁定，未决非零则禁止发布。任务和输出未变化时沿用原核验；发生变化的调用必须重新盲审。": "high. Machine verdicts and scores are hidden during review; only the task contract, reference answer, and complete actual output are provided. Disagreements are adjudicated from original evidence, and any unresolved item blocks publication. Existing reviews are retained when task and output are unchanged; changed calls require a new blind review.",
     "Codex 独立强推理代理": "Codex independent high-reasoning agent",
     "任务运行时默认模型": "the task runtime's default model",
@@ -1466,7 +1481,12 @@ PHRASES = {
 
 
 REGEX = [
-    (re.compile(r"^(\d+) 个案例 · (\d+) 种方法 · 六类分榜与一个综合通过率总榜。$"), r"\1 tasks · \2 methods · six family rankings and one overall coverage ranking."),
+    (re.compile(r"^(\d+) 个案例 · (\d+) 种方法 · (\d+)类分榜与一个综合通过率总榜。$"), r"\1 tasks · \2 methods · \3 family rankings and one overall coverage ranking."),
+    (re.compile(r"^(\d+)类任务概览$"), r"\1 task families"),
+    (re.compile(r"^(\d+)类分榜$"), r"Rankings for \1 task families"),
+    (re.compile(r"^(\d+)类通过数$"), r"Passes across \1 task families"),
+    (re.compile(r"^每种方法都执行当前评测集计划的 (\d+) 个任务，每题计一次通过或失败，直接相加；不把耗时、全文质量或任务类别难度混成加权分。总榜适合看整体交付覆盖，具体能力仍应回到 (\d+) 个分榜。$"), r"Every method runs the current dataset's \1 planned tasks. Each task contributes one pass or fail and the results are summed directly; latency, full-text quality, and family difficulty are not blended into a weighted score. The overall ranking shows delivery coverage, while specific capabilities belong in the \2 family rankings."),
+    (re.compile(r"^当前报告共 (\d+) 个案例、(\d+) 种方法和 ([\d,]+) 条权威逻辑结果；其中其他 ([\d,]+) 条未被本次文件补测改写。$"), r"The current report contains \1 tasks, \2 methods, and \3 authoritative logical results; the other \4 results were not changed by this file-task rerun."),
     (re.compile(r"^(\d+) 个任务$"), r"\1 tasks"),
     (re.compile(r"^(\d+) 个案例 · (\d+) 种已测方法$"), r"\1 tasks · \2 measured methods"),
     (re.compile(r"^(\d+)/(\d+) · Codex 已核验$"), r"\1/\2 · reviewed by Codex"),

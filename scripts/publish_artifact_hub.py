@@ -10,16 +10,19 @@ BASE=os.environ.get('ARTIFACT_HUB_BASE_URL','https://artifact-hub.app.lexmount.c
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.artifact_auth import load_token
-from harness.web_fetch.publication_target import require_publication_site
+from harness.web_fetch.publication_target import require_publication_site, require_publication_version
 token=load_token()
 receipt=(Path(sys.argv[sys.argv.index('--receipt')+1]) if '--receipt' in sys.argv
          else ROOT/'publish/artifact-hub-receipt.json')
 updating='--update' in sys.argv
 creating='--create' in sys.argv
-expected=sys.argv[sys.argv.index('--expected-version')+1] if '--expected-version' in sys.argv else None
+requested_expected=(sys.argv[sys.argv.index('--expected-version')+1]
+                    if '--expected-version' in sys.argv else None)
 if creating and updating:raise ValueError('Choose exactly one of --create or --update')
-if updating and (not receipt.exists() or not expected or not expected.startswith('ver_')):
- raise ValueError('--update requires an existing receipt and --expected-version ver_...')
+if updating and not receipt.exists():
+ raise ValueError('--update requires an existing receipt')
+expected=(require_publication_version(ROOT/'evaluation/current-report.json',requested_expected)
+          if updating else None)
 
 def request(path,data=None,content_type=None,auth=True,method=None):
  headers={'User-Agent':'WebFetch-Report-Publisher/1.0'}
