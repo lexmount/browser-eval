@@ -174,6 +174,84 @@ def test_response_builder_concat_rejects_non_array_output():
         )
 
 
+def test_response_builder_zips_observed_columns_without_literal_values():
+    response = build_agent_response(
+        _task(
+            {
+                "kind": "observed_json_zip",
+                "task_type": "retrieve",
+                "fields": {"name": "names", "email": "emails"},
+            }
+        ),
+        {
+            "names": '["Ada Lovelace", "Grace Hopper"]',
+            "emails": '["ada@example.test", "grace@example.test"]',
+        },
+    )
+
+    assert response is not None
+    assert response["retrieved_data"] == [
+        {"name": "Ada Lovelace", "email": "ada@example.test"},
+        {"name": "Grace Hopper", "email": "grace@example.test"},
+    ]
+
+
+def test_response_builder_zip_fails_closed_on_unequal_or_non_array_columns():
+    builder = {
+        "kind": "observed_json_zip",
+        "task_type": "retrieve",
+        "fields": {"name": "names", "email": "emails"},
+    }
+    with pytest.raises(ValueError, match="equal lengths"):
+        build_agent_response(
+            _task(builder),
+            {"names": '["Ada", "Grace"]', "emails": '["ada@example.test"]'},
+        )
+    with pytest.raises(ValueError, match="JSON arrays"):
+        build_agent_response(
+            _task(builder),
+            {"names": '"Ada"', "emails": '["ada@example.test"]'},
+        )
+
+
+def test_response_builder_extracts_authors_only_from_matching_observed_reviews():
+    response = build_agent_response(
+        _task(
+            {
+                "kind": "observed_review_authors_matching",
+                "task_type": "retrieve",
+                "output": "reviews",
+                "match_regex": r"quality|poorly made",
+                "author_regex": r"Review by\s+([^\n]+)",
+            }
+        ),
+        {
+            "reviews": '["Review by Ada\\nPoorly made shell", '
+            '"Review by Grace\\nExcellent fit", '
+            '"Review by Ada\\nLow quality buttons"]'
+        },
+    )
+
+    assert response is not None
+    assert response["retrieved_data"] == ["Ada"]
+
+
+def test_response_builder_review_matching_fails_closed_without_observed_match():
+    with pytest.raises(ValueError, match="no observed reviews matched"):
+        build_agent_response(
+            _task(
+                {
+                    "kind": "observed_review_authors_matching",
+                    "task_type": "retrieve",
+                    "output": "reviews",
+                    "match_regex": r"quality",
+                    "author_regex": r"Review by\s+([^\n]+)",
+                }
+            ),
+            {"reviews": '["Review by Ada\\nExcellent fit"]'},
+        )
+
+
 def test_response_builder_computes_currency_range_from_observed_pages():
     response = build_agent_response(
         _task(
