@@ -16,6 +16,24 @@ from .suite import TRAJECTORY_SCHEMA, TaskSuite
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
+def trajectory_semantic_conflicts(task: dict[str, Any]) -> tuple[str, ...]:
+    """Return task/trajectory contradictions that must block eligibility.
+
+    Only frozen public task text and action contracts are inspected. Evaluator
+    answers and browser-comparison results are deliberately out of scope.
+    """
+    title = str(task.get("title") or "").casefold()
+    targets = "\n".join(
+        json.dumps(action.get("target"), ensure_ascii=False, sort_keys=True).casefold()
+        for action in ((task.get("trajectory") or {}).get("actions") or [])
+        if action.get("target") is not None
+    )
+    conflicts: list[str] = []
+    if "new branch" in title and "commit to main branch" in targets:
+        conflicts.append("new_branch_required_but_main_branch_selected")
+    return tuple(conflicts)
+
+
 def _json_sha256(value: Any) -> str:
     content = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(content.encode()).hexdigest()
@@ -122,19 +140,21 @@ def build_repair_queue(
     tasks: list[dict[str, Any]] = []
     for task in suite.tasks:
         row = by_task[task.task_id][0]
-        contract = task_contract_sha256(
-            {
-                "id": task.task_id,
-                "title": task.title,
-                "trajectory": task.trajectory,
-                "evaluator": task.evaluator,
-                "environment": task.environment,
-                "ground_truth": task.ground_truth,
-            }
-        )
+        task_payload = {
+            "id": task.task_id,
+            "title": task.title,
+            "trajectory": task.trajectory,
+            "evaluator": task.evaluator,
+            "environment": task.environment,
+            "ground_truth": task.ground_truth,
+        }
+        contract = task_contract_sha256(task_payload)
         if row.get("task_contract_sha256") != contract:
             raise ValueError(f"{task.task_id}: qualification attempt does not match task contract")
-        if not task.tool_calls:
+        semantic_conflicts = trajectory_semantic_conflicts(task_payload)
+        if semantic_conflicts:
+            disposition = "needs_trace_repair"
+        elif not task.tool_calls:
             disposition = "needs_trace_repair"
         elif (
             row.get("combined_status") == "pass"
@@ -167,6 +187,7 @@ def build_repair_queue(
                 "disposition": disposition,
                 "process_status": row.get("process_status"),
                 "result_status": row.get("result_status"),
+                "semantic_conflicts": list(semantic_conflicts),
                 "failed_step": failed_step,
                 "evidence_directory": row.get("evidence_directory"),
                 "adjudication": adjudication,

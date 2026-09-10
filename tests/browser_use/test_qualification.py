@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import replace
 
 import pytest
 
@@ -11,6 +12,7 @@ from harness.browser_use.qualification import (
     build_repair_queue,
     build_repair_validation_suite,
     task_contract_sha256,
+    trajectory_semantic_conflicts,
 )
 from harness.browser_use.suite import BrowserTask, TaskSuite, load_suite
 
@@ -169,6 +171,61 @@ def test_passing_outcome_without_required_final_evidence_needs_revalidation(tmp_
     assert result["tasks"][0]["adjudication"] is None
 
 
+def test_repair_queue_blocks_a_semantically_conflicting_passing_trace(tmp_path):
+    original = _task("branch-conflict")
+    action = {
+        "action": "click",
+        "target": {"by": "text", "value": "Commit to main branch"},
+    }
+    trajectory = {
+        "schema": "lex_browser_trajectory/1",
+        "provenance": {"kind": "test"},
+        "actions": [action],
+    }
+    task = replace(
+        original,
+        title="Commit this change to a new branch",
+        tool_calls=(action,),
+        trajectory=trajectory,
+        ground_truth={"expected_actions": ["click"]},
+    )
+    evidence_directory = tmp_path / task.task_id
+    evidence_directory.mkdir()
+    row = {
+        "task_id": task.task_id,
+        "engine": "chromium",
+        "is_retry": False,
+        "qualification_run": True,
+        "status": "pass",
+        "combined_status": "pass",
+        "process_status": "pass",
+        "result_status": "pass",
+        "evidence_status": "pass",
+        "trace": [],
+        "evidence_directory": str(evidence_directory),
+        "task_contract_sha256": task_contract_sha256(
+            {
+                "id": task.task_id,
+                "title": task.title,
+                "trajectory": task.trajectory,
+                "evaluator": task.evaluator,
+                "environment": task.environment,
+                "ground_truth": task.ground_truth,
+            }
+        ),
+    }
+    attempts = tmp_path / "attempts.jsonl"
+    attempts.write_text(json.dumps(row) + "\n", encoding="utf-8")
+
+    result = build_repair_queue(TaskSuite("lex_browser_use_tasks/4", (task,)), attempts)
+
+    assert result["tasks"][0]["disposition"] == "needs_trace_repair"
+    assert result["tasks"][0]["semantic_conflicts"] == [
+        "new_branch_required_but_main_branch_selected"
+    ]
+    assert result["tasks"][0]["adjudication"] is None
+
+
 def test_repaired_task_cannot_be_eligible_without_validated_attempt():
     suite = {
         "benchmark": {},
@@ -207,6 +264,40 @@ def test_unchanged_passing_task_still_requires_bound_qualification_attempt():
 
     with pytest.raises(ValueError, match="validated_attempt_path"):
         apply_adjudication(suite, qualification)
+
+
+def test_new_branch_task_cannot_qualify_a_main_branch_trajectory():
+    task = {
+        "title": "Commit the change to a new branch",
+        "trajectory": {
+            "actions": [
+                {
+                    "action": "click",
+                    "target": {"by": "text", "value": "Commit to main branch"},
+                }
+            ]
+        },
+    }
+
+    assert trajectory_semantic_conflicts(task) == (
+        "new_branch_required_but_main_branch_selected",
+    )
+
+
+def test_semantic_audit_does_not_guess_when_main_branch_is_allowed():
+    task = {
+        "title": "Commit the updated title",
+        "trajectory": {
+            "actions": [
+                {
+                    "action": "click",
+                    "target": {"by": "text", "value": "Commit to main branch"},
+                }
+            ]
+        },
+    }
+
+    assert trajectory_semantic_conflicts(task) == ()
 
 
 def test_empty_candidate_cannot_be_adjudicated_eligible_without_correction():
