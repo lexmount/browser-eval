@@ -29,7 +29,78 @@ NAV = (
 TEXT = {
     "首页 · Browser Use 评测": "Home · Browser Use evaluation",
     "Browser Use 评测": "Browser Use evaluation",
-    "同一自主 Agent、同一模型，只替换浏览器": "One autonomous agent and model; only the browser changes",
+    "Chromium 与 Moli：Browser Use 能力实测": "Chromium vs. Moli: a Browser Use capability evaluation",
+    "评测方法 · Browser Use 评测": "Methodology · Browser Use evaluation",
+    "这 30 题如何部署并由 Agent 执行": "How the 30 tasks were deployed and run by the agent",
+    "图 1 · 运行器从官方 WebArena‑Verified 镜像启动本地站点；每个试次重建该题所需站点、等待环境控制器与应用健康、清理浏览器状态并登录测试账号。图是流程说明，真实性证据来自下方运行身份及 70 个试次页的事件、HAR、trace 哈希。": "Figure 1. The runner starts local sites from official WebArena-Verified images. Every attempt rebuilds the sites required by the task, waits for environment-control and application health, clears browser state, and signs in with benchmark accounts. The figure explains the flow; the runtime identities and the events, HAR, and trace hashes on all 70 attempt pages provide the evidence.",
+    "不是“先人工部署一次，再连接一个现成网页”。": "This was not a one-time manual deployment followed by connections to an existing website.",
+    "本轮运行器直接调用 WebArena‑Verified 的 ContainerManager.start()；每次正式执行和诊断重试前都以 reset=True 启动该题所需的官方站点容器，并停止无关站点。环境控制服务报告 ready 后，还要通过连续应用级健康检查；随后才清 Cookie、登录内置测试账号、打开任务起始页并开始计入 Agent 执行。": "The runner directly calls WebArena-Verified's ContainerManager.start(). Before every primary run and diagnostic retry, it starts the official site containers required by that task with reset=True and stops unrelated sites. After environment control reports ready, the app must pass repeated application-level health checks. Only then does the runner clear cookies, sign in with benchmark accounts, open the task's start page, and begin agent execution.",
+    "也不是固定动作回放。": "This was not a fixed action replay either.",
+    "预注册文件只含任务 ID、层级和入选理由，不含点击序列。CowAgent 收到自然语言目标后，在最多 30 步内循环读取页面观察、请求模型决策并生成下一次 BrowserTool 调用。Chromium 与 Moli 的试次分别连接到独立 CDP 浏览器容器；每个试次保存模型最终 JSON、Agent 事件流、网络 HAR 和 Playwright trace。": "The preregistration contains task IDs, tiers, and selection rationales, but no click sequences. Given the natural-language objective, CowAgent repeatedly reads the page observation, requests a model decision, and generates the next BrowserTool call for up to 30 steps. Chromium and Moli attempts connect to separate CDP browser containers. Every attempt retains the final model JSON, agent event stream, network HAR, and Playwright trace.",
+    "站点来源": "Site source",
+    "环节": "Stage",
+    "本轮实际做法": "Implementation in this run",
+    "可核验证据": "Verifiable evidence",
+    "四个官方自托管镜像：Shopping、Shopping Admin、Reddit、GitLab": "Four official self-hosted images: Shopping, Shopping Admin, Reddit, and GitLab",
+    "运行清单记录镜像 ID、digest、架构与 WebArena‑Verified 1.2.3 checksum": "The run manifest records image IDs, digests, architectures, and the WebArena-Verified 1.2.3 checksum",
+    "逐试次准备": "Per-attempt preparation",
+    "重建题目所需容器 → env-ctrl ready → 连续健康检查 → 清状态并登录": "Rebuild required containers → env-ctrl ready → repeated health checks → clear state and sign in",
+    "运行器实现与 manifest 的 environment_reset；站点准备失败不会产生可计分试次": "Runner implementation and manifest environment_reset; failed site preparation cannot produce a scored attempt",
+    "CowAgent + 模型依据当前页面逐步调用 BrowserTool；无动作脚本": "CowAgent and the model call BrowserTool step by step from the current page; no action script",
+    "每个试次页公开按时间排序的 BrowserTool 轨迹和脱敏事件下载": "Every attempt page publishes the ordered BrowserTool trajectory and a sanitized event download",
+    "结果验收": "Outcome evaluation",
+    "最终 JSON 交给 AgentResponseEvaluator；需要副作用的任务同时检查 HAR": "AgentResponseEvaluator checks the final JSON; tasks requiring side effects also inspect the HAR",
+    "每个试次页公开规则级 expected / actual；原始 HAR 与 trace 仅公开 SHA-256 和字节数以避免泄露登录态": "Every attempt page publishes rule-level expected/actual values; raw HAR and trace files expose only SHA-256 and byte counts to protect authenticated state",
+    "证据边界：": "Evidence boundary:",
+    "事件流能证明 CowAgent 在运行时产生了不同的 BrowserTool 调用序列，站点镜像和运行配置能证明本地环境身份；它们不能公开模型隐藏思维，也不把成功轨迹当成唯一标准路径。": "Event streams establish that CowAgent produced BrowserTool call sequences at runtime, while site images and run configuration establish the local environment identity. They do not expose hidden model reasoning or make a successful trajectory the only valid path.",
+    "查看 Chromium 自主轨迹示例": "View a Chromium autonomous trajectory",
+    "查看 Moli 自主轨迹示例": "View a Moli autonomous trajectory",
+    "核对镜像与运行身份": "Verify image and runtime identities",
+    "自托管真实交互": "Self-hosted interactive websites",
+    "最终 JSON + 必要网络副作用": "Final JSON plus required network side effects",
+    "程序化；无 LLM judge": "Programmatic; no LLM judge",
+    "部署重，最适合内核 A/B": "Heavy deployment; strongest fit for browser A/B testing",
+    "离线网页快照": "Offline webpage snapshots",
+    "每步目标元素与操作": "Target element and action at each step",
+    "程序化动作指标": "Programmatic action metrics",
+    "评过程模仿": "Evaluates process imitation",
+    "136 个真实网站": "136 live websites",
+    "动作历史与最终完成": "Action history and final completion",
+    "WebJudge + 人工标签": "WebJudge plus human labels",
+    "漂移、CAPTCHA、judge 偏差": "Drift, CAPTCHA, and judge bias",
+    "实时网站视觉交互": "Visual interaction with live websites",
+    "最终回答与执行证据": "Final answer and execution evidence",
+    "多模态 LLM + 人工核验": "Multimodal LLM plus human verification",
+    "精确复现较弱": "Weaker exact reproducibility",
+    "长链多站搜索": "Long-horizon multi-site search",
+    "带引用研究答案": "Research answer with citations",
+    "rubric Agent-as-a-Judge": "Rubric Agent-as-a-Judge",
+    "非 UI 内核首选": "Not the first choice for UI browser cores",
+    "100 个混合任务": "100 mixed tasks",
+    "最终结果与轨迹": "Final outcomes and trajectories",
+    "Google judge LLM": "Google judge LLM",
+    "云浏览器条件影响可比性": "Cloud-browser conditions affect comparability",
+    "200 个长链多站任务": "200 long-horizon multi-site tasks",
+    "rubric 完成度": "Rubric completion",
+    "模型评审": "Model grading",
+    "成本高": "High cost",
+    "官方数据 812 题全部配置 AgentResponseEvaluator，其中 663 题还配置 NetworkEventEvaluator。所有已配置 evaluator 都返回 1.0 才通过。它检查最终结果和必要副作用，不要求复刻参考动作序列。": "All 812 official tasks configure AgentResponseEvaluator, and 663 also configure NetworkEventEvaluator. A task passes only when every configured evaluator returns 1.0. The evaluators inspect final outcomes and required side effects, not reproduction of a reference action sequence.",
+    "Agent / 模型": "Agent / model",
+    "CowAgent；gpt-5.6-sol；reasoning=low": "CowAgent; gpt-5.6-sol; reasoning=low",
+    "同题、同数据、同模型、同提示和资源上限，只替换浏览器": "Same task, data, model, prompt, and resource limits; only the browser changes",
+    "每题×浏览器第一次正式执行；二元 pass@1；逐题配对": "First formal run for each task-browser pair; binary pass@1; task-level pairing",
+    "首轮失败后最多一次，只做恢复诊断；模型传输失败同请求最多重发一次": "At most one retry after primary failure, used only for recovery diagnosis; at most one resend for a model transport failure",
+    "不纳入无法稳定验收的实时任务；首轮排除需大型数据卷的 Wikipedia / Map": "Exclude live tasks without stable acceptance; the pilot also excludes Wikipedia and Map because of their large data volumes",
+    "官方程序化 evaluator；无 LLM judge；人工不得改分": "Official programmatic evaluators; no LLM judge; no manual score changes",
+    "Agent 最终 JSON": "Agent final JSON",
+    "先按 JSON schema 和数据类型归一化，再比较 task_type、status 与 retrieved_data；按题可声明列表有序或无序。": "Normalize by JSON schema and data type, then compare task_type, status, and retrieved_data; each task may declare ordered or unordered lists.",
+    "最终回答符合该题公开答案合同。": "The final answer satisfies the task's public answer contract.",
+    "没有检查回答是通过哪条 UI 路径得到的，也不评操作效率。": "It does not inspect which UI path produced the answer or evaluate action efficiency.",
+    "本次浏览器 HAR": "HAR from this browser attempt",
+    "在网络事件中匹配 URL、方法、状态码以及按需声明的 query、POST、响应字段或 Cookie 条件。": "Match URL, method, status code, and, when declared, query, POST, response-field, or cookie conditions in network events.",
+    "导航或页面变更产生了指定的可观察副作用。": "Navigation or state changes produced the specified observable side effect.",
+    "没有要求复刻固定点击序列；未声明的页面状态不在验收范围内。": "It does not require a fixed click sequence; undeclared page state is outside the acceptance scope.",
+    "一题配置的每个 evaluator 都必须得分 1.0，整题才通过。这里没有 LLM-as-a-judge，也没有人工改分。": "Every evaluator configured for a task must score 1.0 for the task to pass. There is no LLM-as-a-judge and no manual score override.",
     "本轮没有观察到浏览器成功率差异；这证明对照流程可比，不证明两个内核等价。": "This run found no browser success-rate difference. It establishes a comparable controlled run, not browser equivalence.",
     "归因边界：": "Attribution boundary:",
     "任务族覆盖": "Task-family coverage",
@@ -339,25 +410,41 @@ def translate_text(value: str) -> str:
     if translated is None:
         patterns = (
             (
-                r"CowAgent \+ (.+?)（reasoning=low）在预注册的 (\d+) 题 WebArena‑Verified 样本上对比 Chromium 与 Moli。",
-                lambda match: f"CowAgent + {match.group(1)} (reasoning=low) compares Chromium and Moli on a preregistered {match.group(2)}-task WebArena-Verified sample.",
+                r"在同一 CowAgent、同一 (.+?)（reasoning=low）和同一 WebArena‑Verified 30 题样本下，对比两种浏览器完成真实网页任务的能力。",
+                lambda match: (
+                    f"Compare how Chromium and Moli complete real browser tasks with the same CowAgent, {match.group(1)} (reasoning=low), and the same 30-task WebArena-Verified sample."
+                ),
             ),
-            (r"(\d+) 个完整配对", lambda match: f'{match.group(1)} complete pairs'),
+            (
+                r"CowAgent \+ (.+?)（reasoning=low）在预注册的 (\d+) 题 WebArena‑Verified 样本上对比 Chromium 与 Moli。",
+                lambda match: (
+                    f"CowAgent + {match.group(1)} (reasoning=low) compares Chromium and Moli on a preregistered {match.group(2)}-task WebArena-Verified sample."
+                ),
+            ),
+            (r"(\d+) 个完整配对", lambda match: f"{match.group(1)} complete pairs"),
             (
                 r"(\d+) 个共同失败任务没有任何成功轨迹。报告只能确认结果未满足官方合同，尚不能证明任务在当前快照可完成，也不能归因给 Agent 或浏览器。",
-                lambda match: f"The {match.group(1)} shared-failure tasks have no successful trajectory in this run. The report establishes only that their official contracts were not met; it does not prove current-snapshot solvability or attribute failure to the agent or browser.",
+                lambda match: (
+                    f"The {match.group(1)} shared-failure tasks have no successful trajectory in this run. The report establishes only that their official contracts were not met; it does not prove current-snapshot solvability or attribute failure to the agent or browser."
+                ),
             ),
             (
                 r"(\d+) 个试次均保留回答、官方 evaluator 结果、Agent 事件和证据哈希；每题每浏览器首轮一次，只有失败任务再诊断重试一次。",
-                lambda match: f"All {match.group(1)} attempts retain the answer, official evaluator result, agent events, and evidence hashes. Each task-browser pair has one primary run; only failures receive one diagnostic retry.",
+                lambda match: (
+                    f"All {match.group(1)} attempts retain the answer, official evaluator result, agent events, and evidence hashes. Each task-browser pair has one primary run; only failures receive one diagnostic retry."
+                ),
             ),
             (
                 r"(\d+)/(\d+) 个试次完成确定性一致性检查，(\d+) 个未决。它不重新判题，也不是独立语义复核。",
-                lambda match: f"{match.group(1)}/{match.group(2)} attempts completed deterministic consistency checks, with {match.group(3)} unresolved. This does not rescore tasks and is not an independent semantic review.",
+                lambda match: (
+                    f"{match.group(1)}/{match.group(2)} attempts completed deterministic consistency checks, with {match.group(3)} unresolved. This does not rescore tasks and is not an independent semantic review."
+                ),
             ),
             (
                 r"(\d+)/(\d+) 题至少有一条自主成功轨迹；其余 (\d+) 题仅有官方验收合同。",
-                lambda match: f"{match.group(1)}/{match.group(2)} tasks have at least one autonomous successful trajectory; the remaining {match.group(3)} have only an official acceptance contract.",
+                lambda match: (
+                    f"{match.group(1)}/{match.group(2)} tasks have at least one autonomous successful trajectory; the remaining {match.group(3)} have only an official acceptance contract."
+                ),
             ),
         )
         for pattern, replacement in patterns:
@@ -368,7 +455,9 @@ def translate_text(value: str) -> str:
     if translated is None:
         translated = translate_common_text(core)
         if translated == core:
-            for source, target in sorted(PHRASES.items(), key=lambda item: len(item[0]), reverse=True):
+            for source, target in sorted(
+                PHRASES.items(), key=lambda item: len(item[0]), reverse=True
+            ):
                 translated = translated.replace(source, target)
             if translated == core:
                 translated = None
@@ -433,10 +522,12 @@ def _rewrite_url(value: str, source: PurePosixPath, english: PurePosixPath) -> s
 def _rewrite_links(page: str, source: PurePosixPath, english: PurePosixPath) -> str:
     pattern = re.compile(r'(?P<prefix>\b(?:href|src)=)(?P<quote>["\'])(?P<url>.*?)(?P=quote)')
     return pattern.sub(
-        lambda match: match.group("prefix")
-        + match.group("quote")
-        + _rewrite_url(match.group("url"), source, english)
-        + match.group("quote"),
+        lambda match: (
+            match.group("prefix")
+            + match.group("quote")
+            + _rewrite_url(match.group("url"), source, english)
+            + match.group("quote")
+        ),
         page,
     )
 
@@ -458,20 +549,28 @@ def _header(source: PurePosixPath, english: PurePosixPath) -> str:
 def localize_html(page: str, source: PurePosixPath) -> str:
     english = PurePosixPath("en") / source
     page = page.replace('<html lang="zh-CN">', '<html lang="en">', 1)
-    page = page.replace('placeholder="任务、意图、答案、错误"', 'placeholder="Task, intent, answer, or error"')
+    page = page.replace(
+        'placeholder="任务、意图、答案、错误"', 'placeholder="Task, intent, answer, or error"'
+    )
     page = re.sub(
-        r'<header class="top">.*?</header>', '<header data-english-nav></header>', page, count=1, flags=re.S
+        r'<header class="top">.*?</header>',
+        "<header data-english-nav></header>",
+        page,
+        count=1,
+        flags=re.S,
     )
     had_base = bool(re.search(r'<base\s+href=["\'][^"\']*["\']>', page, flags=re.I))
-    page = re.sub(r'<base\s+href=["\'][^"\']*["\']>', '<base data-english-base>', page, count=1, flags=re.I)
+    page = re.sub(
+        r'<base\s+href=["\'][^"\']*["\']>', "<base data-english-base>", page, count=1, flags=re.I
+    )
     parser = Localizer()
     parser.feed(page)
     parser.close()
     localized = _rewrite_links("".join(parser.parts), source, english)
-    localized = localized.replace('<header data-english-nav></header>', _header(source, english), 1)
+    localized = localized.replace("<header data-english-nav></header>", _header(source, english), 1)
     if had_base:
         base = _relative(english, PurePosixPath(".")) + "/"
-        localized = localized.replace('<base data-english-base>', f'<base href="{base}">', 1)
+        localized = localized.replace("<base data-english-base>", f'<base href="{base}">', 1)
     return localized
 
 
@@ -480,7 +579,9 @@ def write_english_report(out: Path) -> int:
     english_root = out / "en"
     if english_root.exists():
         shutil.rmtree(english_root)
-    sources = sorted(path for path in out.rglob("*.html") if "en" not in path.relative_to(out).parts)
+    sources = sorted(
+        path for path in out.rglob("*.html") if "en" not in path.relative_to(out).parts
+    )
     for source_path in sources:
         source = PurePosixPath(source_path.relative_to(out).as_posix())
         target = out / "en" / Path(str(source))

@@ -151,6 +151,13 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
         assert expected in text
 
     assert report.is_file()
+    assert (output / "assets/webarena-autonomous-evaluation-flow.png").is_file()
+    home_text = report.read_text(encoding="utf-8")
+    assert "Chromium 与 Moli：Browser Use 能力实测" in home_text
+    methodology_text = (output / "methodology/index.html").read_text(encoding="utf-8")
+    assert "webarena-autonomous-evaluation-flow.png" in methodology_text
+    assert "ContainerManager.start()" in methodology_text
+    assert "不是固定动作回放" in methodology_text
     for name in (
         "guide/index.html",
         "guide/article.html",

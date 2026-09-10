@@ -3,6 +3,28 @@
   "history_scope": "本页从有完整审计依据的修订开始记录。更早的站点版本仍保留在 Artifact Hub，但没有逐项变更说明，故不补编历史。",
   "browser_agent_releases": [
     {
+      "id": "2026-09-10-deployment-and-autonomy-evidence",
+      "date": "2026-09-10",
+      "title": "补全本地部署与自主执行证据",
+      "summary": "首页标题改为 Chromium 与 Moli 的 Browser Use 能力实测；评测方法页新增 WebArena-Verified 本地站点、逐试次重置、CowAgent 闭环操作、官方验收和证据留存的完整流程图及实现证据。测量结果、分母和原始证据未改变。",
+      "attempts_sha256": "517b613adcc40fc0ebe41af2ab2115d76f49faaba5378b426cc196b5b633e9c7",
+      "selection_sha256": "ba3c344df003dd4eba3a5d1ef97162ee98df2ed728f7c29c4188bc4247982d38",
+      "changes": [
+        [
+          "报告标题",
+          "原标题把控制变量写成了评测对象，读者无法第一眼识别报告在比较哪两个浏览器。",
+          "主标题改为 Chromium 与 Moli 的 Browser Use 能力实测；CowAgent、模型、reasoning 和题集降为实验条件。",
+          "只修正叙事层级，不改变评测设计或结果。"
+        ],
+        [
+          "部署与自主性证据",
+          "原报告只写“逐题重置”和“自主规划”，没有解释站点由谁部署、Agent 如何进入闭环，也不足以排除固定动作回放的误读。",
+          "新增双语流程图和逐环节证据表，明确运行器按试次启动官方站点镜像、健康检查、登录，再由 CowAgent 动态产生 BrowserTool 调用。",
+          "70 次既有调用不重跑；新增说明直接绑定现有 manifest、事件、HAR 与 trace 哈希。"
+        ]
+      ]
+    },
+    {
       "id": "2026-09-10-report-evidence-restructure",
       "date": "2026-09-10",
       "title": "按证据链重构 Browser Agent 报告",

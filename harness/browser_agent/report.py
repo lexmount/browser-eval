@@ -47,6 +47,7 @@ FAILURE_OBSERVATIONS = {
     168: "实际回答为空列表，而官方期望为非空项目列表。",
     506: "官方网络副作用合同未通过；购物车最终状态未满足题目要求。",
 }
+METHODOLOGY_FIGURE = Path(__file__).parent / "assets" / "webarena-autonomous-evaluation-flow.png"
 
 
 def _e(value: Any) -> str:
@@ -295,7 +296,9 @@ def _task_family_summary(
                 "kind": kind,
                 "count": len(selected),
                 "scores": {
-                    engine: sum(primary.get((engine, int(task["task_id"])), False) for task in selected)
+                    engine: sum(
+                        primary.get((engine, int(task["task_id"])), False) for task in selected
+                    )
                     for engine in ENGINE_LABELS
                 },
             }
@@ -319,14 +322,14 @@ def _adoption_top3(evidence: dict[str, Any]) -> str:
         }.get(str(item.get("family")), "采用数不代表评测质量。")
         cards.append(
             '<article class="rank-item"><div>'
-            f'<h3>{_e(item.get("family"))} 家族 · {len(adopters)} 家</h3>'
-            f'<p>{_e("、".join(adopters))}。{_e(note)}</p></div></article>'
+            f"<h3>{_e(item.get('family'))} 家族 · {len(adopters)} 家</h3>"
+            f"<p>{_e('、'.join(adopters))}。{_e(note)}</p></div></article>"
         )
     return (
         '<div class="rank-list">'
         + "".join(cards)
         + '</div><p class="fine">采用次数来自公开一手材料中的机构去重计数，不是质量分；'
-        f'证据核对日期 {_e(evidence.get("verified_at") or "未记录")}。未找到 DeepSeek、Kimi '
+        f"证据核对日期 {_e(evidence.get('verified_at') or '未记录')}。未找到 DeepSeek、Kimi "
         "公开的一手 UI browser-use benchmark，不等于内部没有评测。</p>"
     )
 
@@ -368,9 +371,9 @@ def _paired_task_table(tasks: list[dict[str, Any]], attempts: list[dict[str, Any
             usage = row.get("model_usage") or {}
             return (
                 f'{_status(row)}<br><span class="fine">{step_count} 步 · '
-                f'{int(usage.get("request_count") or 0)} 次模型请求 · '
-                f'{_number(int(usage.get("total_tokens") or 0))} tokens · '
-                f'{_seconds(float(row.get("duration_ms") or 0))}</span>'
+                f"{int(usage.get('request_count') or 0)} 次模型请求 · "
+                f"{_number(int(usage.get('total_tokens') or 0))} tokens · "
+                f"{_seconds(float(row.get('duration_ms') or 0))}</span>"
             )
 
         search = " ".join(
@@ -382,7 +385,7 @@ def _paired_task_table(tasks: list[dict[str, Any]], attempts: list[dict[str, Any
             f' data-search="{_e(search)}"'
         )
         rows.append(
-            f"<tr{attrs}><td><a href=\"datasets/{task_id}.html\">#{task_id}</a>"
+            f'<tr{attrs}><td><a href="datasets/{task_id}.html">#{task_id}</a>'
             f'<div class="fine">{_e(task["rationale"])}</div></td>'
             f"<td>{_e(TIER_LABELS[task['tier']])}</td>"
             f"<td>{_e(SITE_LABELS.get(site, site))}</td><td>{_e(task['task_type'])}</td>"
@@ -396,23 +399,21 @@ def _paired_task_table(tasks: list[dict[str, Any]], attempts: list[dict[str, Any
         '<option value="">全部</option><option value="discordant">有分歧</option>'
         '<option value="both_pass">共同通过</option><option value="both_fail" selected>共同失败</option>'
         '<option value="chromium_only">仅 Chromium</option><option value="moli_only">仅 Moli</option>'
-        '</select></label>'
+        "</select></label>"
         '<label>层级 <select data-pair-filter="tier"><option value="">全部</option>'
         '<option value="easy">简单</option><option value="medium">中等</option><option value="hard">困难</option></select></label>'
         '<label>站点 <select data-pair-filter="site"><option value="">全部</option>'
         '<option value="shopping">Shopping</option><option value="shopping_admin">Shopping Admin</option>'
         '<option value="reddit">Reddit</option><option value="gitlab">GitLab</option></select></label>'
         '<label>类型 <select data-pair-filter="kind"><option value="">全部</option>'
-        '<option>RETRIEVE</option><option>NAVIGATE</option><option>MUTATE</option></select></label>'
+        "<option>RETRIEVE</option><option>NAVIGATE</option><option>MUTATE</option></select></label>"
         '<span class="comparison-count" data-pair-count></span></div>'
     )
     return (
         controls
         + '<div class="table-wrap"><table id="pair-table"><thead><tr><th>任务</th><th>层级</th>'
-        '<th>站点</th><th>类型</th><th>Chromium</th><th>Moli 1.1.3</th><th>对照结论</th><th>证据</th>'
-        '</tr></thead><tbody id="pair-rows">'
-        + "".join(rows)
-        + "</tbody></table></div>"
+        "<th>站点</th><th>类型</th><th>Chromium</th><th>Moli 1.1.3</th><th>对照结论</th><th>证据</th>"
+        '</tr></thead><tbody id="pair-rows">' + "".join(rows) + "</tbody></table></div>"
     )
 
 
@@ -450,7 +451,7 @@ REPORT_STYLE = (
     SHARED_STYLE
     + """
 .hero h1,.publication-article h1,.publication-article h2{overflow-wrap:anywhere;word-break:break-word}
-.top nav{gap:18px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}.top nav>a,.top nav>button{flex:0 0 auto}.top nav .brand{font-weight:850;color:var(--ink)}.top nav a[aria-current=page]{color:var(--ink);font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:8px}.top .theme-toggle{margin-left:auto}.page-main{min-height:78vh}.hero.compact{padding-bottom:22px}.hero.compact h1{font-size:clamp(34px,4.5vw,52px)}.fine{font-size:13px;color:var(--muted)}.result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.result-grid .card{border-top:3px solid var(--accent)}.overview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.overview-card{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:20px;min-width:0}.overview-card h3{margin:8px 0}.audit-strip{display:grid;gap:10px}.audit-strip .callout{margin:0}.filters,.pair-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:18px 0}.filters select,.filters input,.pair-controls select{padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink)}.filters input{min-width:260px}.comparison-count{margin-left:auto;padding:8px 12px;border-radius:999px;background:var(--wash);color:var(--accent);font-weight:750}.status-pass{color:var(--good);font-weight:750}.status-fail{color:var(--bad);font-weight:750}.status-unproven{color:var(--warn,var(--bad));font-weight:750}.flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;list-style:none;padding:0}.flow li{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--panel);font-size:13px;min-width:0}.flow li+li:before{content:'→';color:var(--accent);margin-right:7px}.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.detail-grid .kv{min-height:92px;min-width:0}.page-links{display:flex;gap:10px;flex-wrap:wrap}.page-links a{border:1px solid var(--line);background:var(--panel);padding:8px 12px;border-radius:9px}.rank-list{counter-reset:rank}.rank-item{counter-increment:rank;display:grid;grid-template-columns:54px minmax(0,1fr);gap:16px;padding:20px 0;border-top:1px solid var(--line)}.rank-item:before{content:counter(rank);font-size:34px;font-weight:850;color:var(--accent)}.rank-item h3{margin:4px 0}.article-entry{border-left:4px solid var(--accent)}.source-list li{margin:9px 0}.table-wrap{margin:18px 0}.table-wrap table{min-width:760px}#task-table{min-width:1280px}#pair-table{min-width:1180px}.table-wrap caption{text-align:left;padding:10px 12px;color:var(--muted);caption-side:bottom}.footer{border-top:1px solid var(--line)}.evidence-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}.evidence-card{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px;min-width:0}.evidence-card h3{margin-top:0}.json-view,.log-view{white-space:pre-wrap;overflow-wrap:anywhere;max-height:540px;overflow:auto;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--bg);font-size:12px;line-height:1.55}.trajectory{list-style:none;padding:0;counter-reset:step}.trajectory>li{counter-increment:step;display:grid;grid-template-columns:46px minmax(0,1fr);gap:12px;padding:15px 0;border-top:1px solid var(--line)}.trajectory>li:before{content:counter(step);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:white;font-weight:800}.trajectory summary{cursor:pointer;font-weight:750}.rule-fail{border-left:4px solid var(--bad)}.rule-pass{border-left:4px solid var(--good)}.count-note{margin-left:auto;color:var(--muted);font-size:13px}.badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--wash);font-size:12px;margin-right:6px}.muted-box{padding:14px;border:1px dashed var(--line);border-radius:10px;color:var(--muted)}@media(max-width:900px){.result-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.overview-grid{grid-template-columns:1fr}.flow{grid-template-columns:repeat(3,minmax(0,1fr))}.evidence-pair{grid-template-columns:1fr}.grid>.card{grid-column:1/-1!important}}@media(max-width:600px){.wrap{width:calc(100% - 28px)}.top nav{gap:14px}.result-grid,.flow{grid-template-columns:1fr}.flow li+li:before{content:'↓';display:block}.hero{padding-top:28px}.hero.compact h1{font-size:30px;line-height:1.18}.filters input{min-width:0;width:100%}.comparison-count{margin-left:0}.rank-item{grid-template-columns:36px minmax(0,1fr)}}@media print{.top,.filters,.pair-controls{display:none!important}.card,.table-wrap{box-shadow:none}.json-view,.log-view{max-height:none;overflow:visible}.evidence-pair{grid-template-columns:1fr}}
+.top nav{gap:18px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}.top nav>a,.top nav>button{flex:0 0 auto}.top nav .brand{font-weight:850;color:var(--ink)}.top nav a[aria-current=page]{color:var(--ink);font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:8px}.top .theme-toggle{margin-left:auto}.page-main{min-height:78vh}.hero.compact{padding-bottom:22px}.hero.compact h1{font-size:clamp(34px,4.5vw,52px)}.fine{font-size:13px;color:var(--muted)}.result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.result-grid .card{border-top:3px solid var(--accent)}.overview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.overview-card{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:20px;min-width:0}.overview-card h3{margin:8px 0}.audit-strip{display:grid;gap:10px}.audit-strip .callout{margin:0}.filters,.pair-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:18px 0}.filters select,.filters input,.pair-controls select{padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink)}.filters input{min-width:260px}.comparison-count{margin-left:auto;padding:8px 12px;border-radius:999px;background:var(--wash);color:var(--accent);font-weight:750}.status-pass{color:var(--good);font-weight:750}.status-fail{color:var(--bad);font-weight:750}.status-unproven{color:var(--warn,var(--bad));font-weight:750}.flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;list-style:none;padding:0}.flow li{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--panel);font-size:13px;min-width:0}.flow li+li:before{content:'→';color:var(--accent);margin-right:7px}.method-figure{margin:24px 0}.method-figure img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:16px;background:#f6faff}.method-figure figcaption{margin-top:10px;color:var(--muted);font-size:13px;line-height:1.55}.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.detail-grid .kv{min-height:92px;min-width:0}.page-links{display:flex;gap:10px;flex-wrap:wrap}.page-links a{border:1px solid var(--line);background:var(--panel);padding:8px 12px;border-radius:9px}.rank-list{counter-reset:rank}.rank-item{counter-increment:rank;display:grid;grid-template-columns:54px minmax(0,1fr);gap:16px;padding:20px 0;border-top:1px solid var(--line)}.rank-item:before{content:counter(rank);font-size:34px;font-weight:850;color:var(--accent)}.rank-item h3{margin:4px 0}.article-entry{border-left:4px solid var(--accent)}.source-list li{margin:9px 0}.table-wrap{margin:18px 0}.table-wrap table{min-width:760px}#task-table{min-width:1280px}#pair-table{min-width:1180px}.table-wrap caption{text-align:left;padding:10px 12px;color:var(--muted);caption-side:bottom}.footer{border-top:1px solid var(--line)}.evidence-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}.evidence-card{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px;min-width:0}.evidence-card h3{margin-top:0}.json-view,.log-view{white-space:pre-wrap;overflow-wrap:anywhere;max-height:540px;overflow:auto;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--bg);font-size:12px;line-height:1.55}.trajectory{list-style:none;padding:0;counter-reset:step}.trajectory>li{counter-increment:step;display:grid;grid-template-columns:46px minmax(0,1fr);gap:12px;padding:15px 0;border-top:1px solid var(--line)}.trajectory>li:before{content:counter(step);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:white;font-weight:800}.trajectory summary{cursor:pointer;font-weight:750}.rule-fail{border-left:4px solid var(--bad)}.rule-pass{border-left:4px solid var(--good)}.count-note{margin-left:auto;color:var(--muted);font-size:13px}.badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--wash);font-size:12px;margin-right:6px}.muted-box{padding:14px;border:1px dashed var(--line);border-radius:10px;color:var(--muted)}@media(max-width:900px){.result-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.overview-grid{grid-template-columns:1fr}.flow{grid-template-columns:repeat(3,minmax(0,1fr))}.evidence-pair{grid-template-columns:1fr}.grid>.card{grid-column:1/-1!important}}@media(max-width:600px){.wrap{width:calc(100% - 28px)}.top nav{gap:14px}.result-grid,.flow{grid-template-columns:1fr}.flow li+li:before{content:'↓';display:block}.hero{padding-top:28px}.hero.compact h1{font-size:30px;line-height:1.18}.filters input{min-width:0;width:100%}.comparison-count{margin-left:0}.rank-item{grid-template-columns:36px minmax(0,1fr)}}@media print{.top,.filters,.pair-controls{display:none!important}.card,.table-wrap{box-shadow:none}.json-view,.log-view{max-height:none;overflow:visible}.evidence-pair{grid-template-columns:1fr}}
 """
 )
 NAV = [
@@ -471,7 +472,8 @@ NAV = [
 def _page(*, title: str, active: str, body: str, depth: int = 0) -> str:
     local_base = "../" * depth or "./"
     links = "".join(
-        f'<a href="{href}"' + (' class="brand"' if key == "home" else "")
+        f'<a href="{href}"'
+        + (' class="brand"' if key == "home" else "")
         + (' aria-current="page"' if key == active else "")
         + f">{_e(label)}</a>"
         for href, label, key in NAV
@@ -676,16 +678,15 @@ def _article_body(
     summary = _primary_summary(attempts)
     chromium, moli = summary["chromium"], summary["moli"]
     failures = [
-        [f"#{task_id}", FAILURE_OBSERVATIONS[task_id]]
-        for task_id in sorted(FAILURE_OBSERVATIONS)
+        [f"#{task_id}", FAILURE_OBSERVATIONS[task_id]] for task_id in sorted(FAILURE_OBSERVATIONS)
     ]
     return (
         '<article class="publication-article"><header class="essay-head"><div class="eyebrow">Browser Agent 实测解读</div>'
-        f'<h1>{chromium["passed"]} 比 {moli["passed"]} 不是“内核等价”：当前样本没有产生分歧</h1>'
+        f"<h1>{chromium['passed']} 比 {moli['passed']} 不是“内核等价”：当前样本没有产生分歧</h1>"
         f'<p class="lead">同一 CowAgent 与同一模型替换浏览器后，{paired["paired"]} 个配对任务没有一个出现单边胜出。这个结果证明对照流程跑通，却没有为内核优劣提供方向性证据。</p>'
         '<p class="source-note">测量口径：WebArena‑Verified 1.2.3；首轮 pass@1；失败最多一次诊断重试；官方确定性 evaluator；无 LLM judge。</p></header>'
-        '<section><h2>一、最重要的结果不是平分，而是零个不一致配对</h2>'
-        f'<p>Chromium 与 Moli 分别通过 {chromium["passed"]}/{chromium["completed"]} 和 {moli["passed"]}/{moli["completed"]}。逐题配对后，{paired["both_pass"]} 题共同通过、{paired["both_fail"]} 题共同失败，两个浏览器单边通过都是 0。精确 McNemar 双侧 p={_probability(paired["mcnemar_exact_p"])}，但这里最有解释力的不是 p 值，而是检验没有拿到任何不一致样本。</p>'
+        "<section><h2>一、最重要的结果不是平分，而是零个不一致配对</h2>"
+        f"<p>Chromium 与 Moli 分别通过 {chromium['passed']}/{chromium['completed']} 和 {moli['passed']}/{moli['completed']}。逐题配对后，{paired['both_pass']} 题共同通过、{paired['both_fail']} 题共同失败，两个浏览器单边通过都是 0。精确 McNemar 双侧 p={_probability(paired['mcnemar_exact_p'])}，但这里最有解释力的不是 p 值，而是检验没有拿到任何不一致样本。</p>"
         + _table(
             ["配对结果", "任务数", "可支持的判断"],
             [
@@ -696,9 +697,9 @@ def _article_body(
             ],
             caption="表 1｜30 个首轮任务的逐题配对；重试不并入主分。",
         )
-        + f'<p>严谨表述只能是“本轮没有观察到成功率差异”，不能写成“两种内核等价”。{paired["paired"]} 题对小效应检出力有限；更关键的是，样本没有诱发内核分歧。</p></section>'
-        '<section><h2>二、共同失败是待核验线索，不是已证实根因</h2>'
-        f'<p>{paired["both_fail"]} 个共同失败任务的 {chromium["retry_count"] + moli["retry_count"]} 次诊断重试均未恢复。下表只陈述官方期望与实际结果的差异，不把差异直接归因给 Agent、浏览器或站点。</p>'
+        + f"<p>严谨表述只能是“本轮没有观察到成功率差异”，不能写成“两种内核等价”。{paired['paired']} 题对小效应检出力有限；更关键的是，样本没有诱发内核分歧。</p></section>"
+        "<section><h2>二、共同失败是待核验线索，不是已证实根因</h2>"
+        f"<p>{paired['both_fail']} 个共同失败任务的 {chromium['retry_count'] + moli['retry_count']} 次诊断重试均未恢复。下表只陈述官方期望与实际结果的差异，不把差异直接归因给 Agent、浏览器或站点。</p>"
         + _table(
             ["任务", "公开诊断"],
             failures,
@@ -976,6 +977,12 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             (stage / folder).mkdir()
         (stage / "assets/style.css").write_text(REPORT_STYLE, encoding="utf-8")
         (stage / "assets/report.js").write_text(REPORT_JS, encoding="utf-8")
+        if not METHODOLOGY_FIGURE.is_file():
+            raise FileNotFoundError(f"missing methodology figure: {METHODOLOGY_FIGURE}")
+        shutil.copy2(
+            METHODOLOGY_FIGURE,
+            stage / "assets/webarena-autonomous-evaluation-flow.png",
+        )
         article = _article_body(paired, attempts, tasks)
         c, m = summary["chromium"], summary["moli"]
         c_ci = _wilson_interval(c["passed"], c["completed"]) or (None, None)
@@ -985,16 +992,16 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         family_cards = "".join(
             '<article class="overview-card">'
             f'<span class="tiny">{_e(family["kind"])}</span>'
-            f'<h3>{family["count"]} 个任务</h3>'
-            f'<p>Chromium {family["scores"]["chromium"]}/{family["count"]} · '
-            f'Moli {family["scores"]["moli"]}/{family["count"]}</p>'
+            f"<h3>{family['count']} 个任务</h3>"
+            f"<p>Chromium {family['scores']['chromium']}/{family['count']} · "
+            f"Moli {family['scores']['moli']}/{family['count']}</p>"
             f'<a href="datasets/?f_kind={_e(family["kind"])}">查看这类任务 →</a></article>'
             for family in families
         )
         home = _hero(
-            f"Browser Agent Evaluation · {run_date}",
-            "同一自主 Agent、同一模型，只替换浏览器",
-            f"CowAgent + {model}（reasoning=low）在预注册的 30 题 WebArena‑Verified 样本上对比 Chromium 与 Moli。",
+            f"Browser Use Capability Evaluation · {run_date}",
+            "Chromium 与 Moli：Browser Use 能力实测",
+            f"在同一 CowAgent、同一 {model}（reasoning=low）和同一 WebArena‑Verified 30 题样本下，对比两种浏览器完成真实网页任务的能力。",
         )
         home += _section(
             "先看结论",
@@ -1002,7 +1009,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         home += _section(
             "任务族覆盖",
-            '<p>样本同时包含信息提取、页面导航和状态变更任务；类别来自每题官方最终答案合同。</p>'
+            "<p>样本同时包含信息提取、页面导航和状态变更任务；类别来自每题官方最终答案合同。</p>"
             f'<div class="overview-grid">{family_cards}</div>',
         )
         home += _section(
@@ -1011,7 +1018,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             f'<p class="callout success"><strong>正式调用：</strong>{len(attempts)} 个试次均保留回答、官方 evaluator 结果、Agent 事件和证据哈希；每题每浏览器首轮一次，只有失败任务再诊断重试一次。</p>'
             f'<p class="callout success"><strong>证据完整性审计：</strong>{coverage.get("reviewed_attempts", 0)}/{coverage.get("recorded_attempts", len(attempts))} 个试次完成确定性一致性检查，{len(review.get("unresolved") or [])} 个未决。它不重新判题，也不是独立语义复核。</p>'
             f'<p class="callout"><strong>可完成性覆盖：</strong>{len(measured_solvable_ids)}/{len(tasks)} 题至少有一条自主成功轨迹；其余 {len(unproven_ids)} 题仅有官方验收合同。</p>'
-            '</div>',
+            "</div>",
         )
         home += _section(
             "从结论进入证据",
@@ -1253,6 +1260,39 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             '<ol class="flow"><li>预注册 30 题</li><li>逐题重置站点</li><li>CowAgent 自主规划</li><li>只替换浏览器</li><li>官方 evaluator 验收</li><li>确定性证据复核</li></ol><p>官方数据 812 题全部配置 AgentResponseEvaluator，其中 663 题还配置 NetworkEventEvaluator。所有已配置 evaluator 都返回 1.0 才通过。它检查最终结果和必要副作用，不要求复刻参考动作序列。</p>',
         )
         methodology += _section(
+            "这 30 题如何部署并由 Agent 执行",
+            '<figure id="deployment-flow" class="method-figure"><img src="assets/webarena-autonomous-evaluation-flow.png" alt="WebArena-Verified 本地部署与 CowAgent 自主评测流程 / local deployment and autonomous evaluation flow" width="1672" height="941"><figcaption>图 1 · 运行器从官方 WebArena‑Verified 镜像启动本地站点；每个试次重建该题所需站点、等待环境控制器与应用健康、清理浏览器状态并登录测试账号。图是流程说明，真实性证据来自下方运行身份及 70 个试次页的事件、HAR、trace 哈希。</figcaption></figure>'
+            "<p><strong>不是“先人工部署一次，再连接一个现成网页”。</strong>本轮运行器直接调用 WebArena‑Verified 的 ContainerManager.start()；每次正式执行和诊断重试前都以 reset=True 启动该题所需的官方站点容器，并停止无关站点。环境控制服务报告 ready 后，还要通过连续应用级健康检查；随后才清 Cookie、登录内置测试账号、打开任务起始页并开始计入 Agent 执行。</p>"
+            "<p><strong>也不是固定动作回放。</strong>预注册文件只含任务 ID、层级和入选理由，不含点击序列。CowAgent 收到自然语言目标后，在最多 30 步内循环读取页面观察、请求模型决策并生成下一次 BrowserTool 调用。Chromium 与 Moli 的试次分别连接到独立 CDP 浏览器容器；每个试次保存模型最终 JSON、Agent 事件流、网络 HAR 和 Playwright trace。</p>"
+            + _table(
+                ["环节", "本轮实际做法", "可核验证据"],
+                [
+                    [
+                        "站点来源",
+                        "四个官方自托管镜像：Shopping、Shopping Admin、Reddit、GitLab",
+                        "运行清单记录镜像 ID、digest、架构与 WebArena‑Verified 1.2.3 checksum",
+                    ],
+                    [
+                        "逐试次准备",
+                        "重建题目所需容器 → env-ctrl ready → 连续健康检查 → 清状态并登录",
+                        "运行器实现与 manifest 的 environment_reset；站点准备失败不会产生可计分试次",
+                    ],
+                    [
+                        "自主操作",
+                        "CowAgent + 模型依据当前页面逐步调用 BrowserTool；无动作脚本",
+                        "每个试次页公开按时间排序的 BrowserTool 轨迹和脱敏事件下载",
+                    ],
+                    [
+                        "结果验收",
+                        "最终 JSON 交给 AgentResponseEvaluator；需要副作用的任务同时检查 HAR",
+                        "每个试次页公开规则级 expected / actual；原始 HAR 与 trace 仅公开 SHA-256 和字节数以避免泄露登录态",
+                    ],
+                ],
+            )
+            + '<p class="callout"><strong>证据边界：</strong>事件流能证明 CowAgent 在运行时产生了不同的 BrowserTool 调用序列，站点镜像和运行配置能证明本地环境身份；它们不能公开模型隐藏思维，也不把成功轨迹当成唯一标准路径。</p>'
+            '<p class="page-links"><a href="attempts/chromium-44-a1.html#trajectory">查看 Chromium 自主轨迹示例</a><a href="attempts/moli-44-a1.html#trajectory">查看 Moli 自主轨迹示例</a><a href="reproduce/">核对镜像与运行身份</a></p>',
+        )
+        methodology += _section(
             "固定协议",
             _table(
                 ["项目", "规则"],
@@ -1336,7 +1376,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         analysis += _section(
             "首轮失败定位",
-            f'<p>两种浏览器在同 {paired["both_fail"]} 题失败。失败规则来自官方 evaluator；补充文字只复述期望、实际值和记录中的错误，不代表已确认根因。</p>'
+            f"<p>两种浏览器在同 {paired['both_fail']} 题失败。失败规则来自官方 evaluator；补充文字只复述期望、实际值和记录中的错误，不代表已确认根因。</p>"
             + _failure_inventory(attempts, tasks),
         )
         analysis += _section(
@@ -1457,7 +1497,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         ]
         review_page = _hero(
             "Evidence integrity audit",
-            f'{coverage.get("reviewed_attempts", 0)}/{coverage.get("recorded_attempts", len(attempts))} 个试次完成证据完整性审计',
+            f"{coverage.get('reviewed_attempts', 0)}/{coverage.get('recorded_attempts', len(attempts))} 个试次完成证据完整性审计",
             "这是确定性记录一致性检查，不是独立语义复核，也不是 LLM-as-a-judge；官方 evaluator 仍是唯一成绩来源。",
         )
         review_page += _section(

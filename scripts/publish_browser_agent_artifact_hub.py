@@ -54,7 +54,7 @@ def multipart_archive() -> tuple[bytes, str]:
     parts = []
     for key, value in (
         ("mode", "zip"),
-        ("title", "Browser Use 公开评测与 WebArena-Verified 对比"),
+        ("title", "Chromium 与 Moli：Browser Use 能力实测"),
     ):
         parts.append(
             (
@@ -139,7 +139,7 @@ def main(*, create: bool = False) -> None:
     )
     with urllib.request.urlopen(preview, timeout=60) as response:
         body = response.read().decode("utf-8", errors="replace")
-        if response.status != 200 or "同一自主 Agent、同一模型，只替换浏览器" not in body:
+        if response.status != 200 or "Chromium 与 Moli：Browser Use 能力实测" not in body:
             raise RuntimeError("public preview is unavailable or missing the report heading")
     print(json.dumps({"slug": result["slug"], "url": result["share_url"]}, ensure_ascii=False))
 
