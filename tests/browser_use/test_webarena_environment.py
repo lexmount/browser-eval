@@ -801,7 +801,7 @@ class _LoginLocator:
         self.page.actions.append(("wait_for", self.selector, kwargs))
 
     def all_inner_texts(self):
-        return []
+        raise AssertionError("successful login must not inspect a navigation-stale locator")
 
 
 class _LoginPage:
@@ -912,6 +912,10 @@ def test_official_form_login_paths_cover_all_stateful_sites(tmp_path, monkeypatc
     assert not any(action[0] == "wait_for" for action in pages["shopping"].actions)
     assert ("expect_response", {"timeout": 60_000}) in pages["shopping"].actions
     assert not any(action[0] == "wait_for" for action in pages["reddit"].actions)
+    assert (
+        "expect_navigation",
+        {"wait_until": "commit", "timeout": 120_000},
+    ) in pages["reddit"].actions
     assert (
         "expect_navigation",
         {"wait_until": "commit", "timeout": 120_000},

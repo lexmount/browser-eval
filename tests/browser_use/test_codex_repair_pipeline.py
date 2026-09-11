@@ -7,8 +7,9 @@ from pathlib import Path
 
 import pytest
 
+from scripts.build_webarena_codex_repair_suite import build_suite
 from scripts.build_webarena_repair_packet import _write_immutable, build_packet
-from scripts.run_webarena_codex_repairs import run_repairs
+from scripts.run_webarena_codex_repairs import _prompt, run_repairs
 
 
 def _json(path: Path, payload) -> None:
@@ -275,3 +276,77 @@ def test_codex_repair_runner_fails_closed_on_invalid_proposal(tmp_path):
     assert "requires exactly one" in result["error"]
     assert not (output_root / "webarena-4" / "proposal.json").exists()
     assert result["qualification_effect"] == "none"
+
+
+def test_codex_prompt_declares_the_actual_validator_contract(tmp_path):
+    prompt = _prompt(tmp_path / "packet.json")
+
+    assert '"replace_actions"' in prompt
+    assert "append_actions" in prompt
+    assert '"response_builder"' in prompt
+    assert '"reason"' in prompt
+    assert "Do not emit trajectory" in prompt
+    assert "null_after_verified_path" in prompt
+    assert "get_text, get_attribute, get_property, snapshot" in prompt
+    assert "There is no evaluate" in prompt
+
+
+def test_codex_repair_suite_combines_validated_proposals(tmp_path):
+    suite_path, _ = _fixture(tmp_path)
+    proposal_path = tmp_path / "proposal.json"
+    _json(
+        proposal_path,
+        {
+            "schema": "lex_browser_use_repair_proposal/1",
+            "task_id": "webarena-4",
+            "reason": "Capture the visible result heading.",
+            "append_actions": [
+                {"action": "get_text", "selector": "h1", "save_as": "heading"}
+            ],
+            "response_builder": {
+                "kind": "observed_shape",
+                "task_type": "retrieve",
+                "shape": [{"$output": "heading"}],
+            },
+        },
+    )
+
+    result = build_suite(
+        json.loads(suite_path.read_text(encoding="utf-8")), [proposal_path]
+    )
+
+    assert [task["id"] for task in result["tasks"]] == ["webarena-4"]
+    assert result["tasks"][0]["trajectory"]["actions"][-1]["save_as"] == "heading"
+    assert result["tasks"][0]["ground_truth"]["qualification"] == {
+        "status": "pending",
+        "reason": "Capture the visible result heading.",
+    }
+    assert result["benchmark"]["codex_repair_validation"] == {
+        "non_canonical": True,
+        "task_count": 1,
+        "task_ids": ["webarena-4"],
+        "qualification_required_passes": 2,
+        "proposal_effect": "none_until_both_qualification_passes_succeed",
+    }
+
+
+def test_codex_repair_suite_rejects_duplicate_task_proposals(tmp_path):
+    suite_path, _ = _fixture(tmp_path)
+    proposal = tmp_path / "proposal.json"
+    _json(
+        proposal,
+        {
+            "schema": "lex_browser_use_repair_proposal/1",
+            "task_id": "webarena-4",
+            "reason": "Capture the visible result heading.",
+            "append_actions": [{"action": "snapshot", "save_as": "page"}],
+            "response_builder": {
+                "kind": "observed_shape",
+                "task_type": "retrieve",
+                "shape": [{"$output": "page"}],
+            },
+        },
+    )
+
+    with pytest.raises(ValueError, match="unique"):
+        build_suite(json.loads(suite_path.read_text(encoding="utf-8")), [proposal, proposal])

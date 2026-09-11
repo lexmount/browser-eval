@@ -104,9 +104,31 @@ evidence_references. The AgentResponseEvaluator reference answer has intentional
 do not search the benchmark suite or other files for it. Infer actions and observed response fields
 only from the task instruction, recorded trajectory, final visible page, screenshot, and HAR.
 
-Return exactly one JSON object satisfying lex_browser_use_repair_proposal/1. Keep task_id unchanged.
-Prefer the smallest reproducible action change. This is only a proposal: do not claim that it
-passed qualification, and do not edit files.
+Return exactly one JSON object with this top-level contract and no prose or Markdown:
+{{
+  "schema": "lex_browser_use_repair_proposal/1",
+  "task_id": "the unchanged packet task id",
+  "reason": "a concrete evidence-based repair reason",
+  "replace_actions": ["one or more complete lex_browser_trajectory/1 action objects"],
+  "response_builder": {{"kind": "...", "task_type": "...", "...": "..."}}
+}}
+Use exactly one non-empty action field: either replace_actions for a complete corrected path or
+append_actions for observation actions appended to an otherwise valid path. Do not emit trajectory,
+actions, rationale, observed_response, or limitations as alternative field names.
+
+For a retrieve task, the corrected actions must save the required browser-observed value and the
+response_builder must derive the evaluator response from that saved output. Supported builders are
+observed_shape (shape contains $output references and optional regex/group/case/coerce transforms),
+observed_json, observed_json_concat, and observed_json_zip. For a navigate or mutate task, use
+{{"kind":"null_after_verified_path","task_type":"navigate"}} or the same with task_type
+"mutate". Never put a reference answer or an invented value directly in response_builder.
+
+Keep task_id unchanged. Every action name must be one of: navigate, click, dblclick, fill, select,
+check, uncheck, hover, press, get_text, get_attribute, get_property, snapshot, go_back, go_forward,
+or scroll. There is no evaluate, extract, wait, JavaScript, API, shell, or filesystem action.
+Follow the field shapes already used by the packet's recorded trajectory. Prefer the smallest
+reproducible action change. This is only a proposal: do not claim that it passed qualification, and
+do not edit files.
 """
 
 

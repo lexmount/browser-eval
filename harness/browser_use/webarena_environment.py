@@ -752,22 +752,25 @@ class WebArenaEnvironment:
         if user_field.count():
             user_field.fill(username)
             page.get_by_label("Password").fill(password)
-            page.get_by_role("button", name="Log in", exact=True).click(
-                no_wait_after=True, timeout=30_000
-            )
-            # As with Magento, supersede the submitted form navigation with a
-            # deterministic authenticated route instead of waiting on the
-            # stale login locator.
+            with page.expect_navigation(wait_until="commit", timeout=120_000):
+                page.get_by_role("button", name="Log in", exact=True).click(
+                    no_wait_after=True, timeout=30_000
+                )
+            # Supersede the completed form redirect with a deterministic
+            # authenticated route instead of reading from the stale form.
         post_login_url = page.url
-        messages = page.locator(
-            "[role='alert'], .alert, .form-error, .invalid-feedback"
-        ).all_inner_texts()
         page.goto(
             f"{base_url}/user/{username}/account",
             wait_until="domcontentloaded",
             timeout=60_000,
         )
         if "/login" in page.url:
+            try:
+                messages = page.locator(
+                    "[role='alert'], .alert, .form-error, .invalid-feedback"
+                ).all_inner_texts()
+            except Exception as exc:
+                messages = [f"diagnostic capture failed: {type(exc).__name__}"]
             raise RuntimeError(
                 "WebArena Reddit login failed; "
                 f"post_login_url={post_login_url!r}; messages={messages[:3]!r}"
