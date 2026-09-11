@@ -138,6 +138,14 @@ def test_webarena_site_reuse_is_read_only_and_site_exact():
     assert not runner._may_reuse_webarena_site(mutate_task, {"shopping"})
 
 
+def test_webarena_site_reuse_state_is_isolated_per_engine():
+    states = runner._engine_site_state(("chromium", "moli"))
+
+    states["chromium"].add("shopping")
+
+    assert states == {"chromium": {"shopping"}, "moli": set()}
+
+
 def test_browser_engines_publish_their_external_cdp_ports():
     assert ENGINE_PORTS == {"chromium": 9223, "moli": 9222}
 

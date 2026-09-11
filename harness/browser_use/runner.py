@@ -324,6 +324,11 @@ def _may_reuse_webarena_site(
     return bool(sites) and "mutate" not in task.tags and sites <= initialized_sites
 
 
+def _engine_site_state(engines: tuple[str, ...]) -> dict[str, set[str]]:
+    """Keep reset/reuse state independent for every measured browser engine."""
+    return {engine: set() for engine in engines}
+
+
 def _run_task(
     engine: str,
     page: Page,
@@ -898,9 +903,9 @@ def run_evaluation(
         fixture_runtime = _start_fixture_server(Path(suite_path).resolve().parent / "fixtures")
     fixture_origin = fixture_runtime[2] if fixture_runtime else ""
     authoring_initialized_sites: set[str] = set()
+    initialized_sites_by_engine = _engine_site_state(engines)
     try:
         for engine in engines:
-            initialized_sites: set[str] = set()
             network = client.networks.create(
                 f"lex-browser-use-eval-{run_id}-{engine}",
                 driver="bridge",
@@ -942,6 +947,7 @@ def run_evaluation(
                 engines if len(engines) == 1 or task_index % 2 == 0 else tuple(reversed(engines))
             )
             for engine in engine_order:
+                initialized_sites = initialized_sites_by_engine[engine]
                 for attempt in range(1, max_retries + 2):
                     artifact_dir = (
                         output / "tasks" / task.task_id / engine / f"attempt-{attempt}"
