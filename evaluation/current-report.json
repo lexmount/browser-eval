@@ -1,25 +1,20 @@
 {
   "schema_version": 1,
-  "dataset_id": "web-fetch-headless-browsers",
-  "comparison_kind": "headless_markdown",
-  "case_count": 150,
+  "dataset_id": "popular-sites",
+  "dataset_file": "evaluation/popular-sites-dataset.json",
+  "comparison_kind": "popular_sites",
+  "case_count": 100,
   "providers": [
-    "kitesurf",
-    "lightpanda",
-    "obscura",
-    "moli-1.0.6",
-    "moli",
-    "moli-1.1.3",
-    "chromium"
+    "lexmount-global"
   ],
   "timeout_seconds": 45,
   "runs_per_case": 1,
-  "concurrency": 5,
-  "reference_binding_mode": "equivalent_reference_bytes_with_independent_batch_captures",
-  "publication_state": "verified",
+  "concurrency": 1,
+  "reference_binding_mode": "hash_bound_stable_text_and_structure",
+  "publication_state": "measured_independently_reviewed",
   "unverified_reference_cases": [],
   "require_independent_result_review": true,
-  "conversion": "Native Markdown for Kitesurf, Lightpanda, Obscura and three measured Moli versions; direct Moli documents/media use automatic raw output; Chromium whole-DOM HTML via node-html-markdown 2.0.0",
+  "conversion": "Lexmount Global API native text plus structured name-link fields",
   "artifact_hub_base_url": "https://artifact-hub.app.lexmount.com",
-  "artifact_hub_site": "UUAhhQMnrGwm"
+  "artifact_hub_site": "l9jZU6GPMLn6"
 }

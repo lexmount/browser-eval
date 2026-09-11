@@ -25,7 +25,7 @@ def track_label(track, cases=None):
  if track=='challenge' and cases:
   values=cases.values() if isinstance(cases,dict) else cases
   values=list(values)
-  if values and all(c.get('category')=='global_homepage' for c in values):
+  if values and all(c.get('category') in {'global_homepage','popular_site'} for c in values):
    return '热门网站首页'
  return TRACKS[track]
 PROVIDER_LABELS={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.1','moli-1.1.3':'Moli 1.1.3'}

@@ -64,10 +64,18 @@ class PageShape(HTMLParser):
 
 root=Path(sys.argv[1]).resolve();d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
 names={r['provider'] for r in rs}
-inventory=json.loads((Path(__file__).resolve().parents[1]/'configs/evaluation-inventory.json').read_text())
-if d.get('comparison',{}).get('kind') in {'headless_html','headless_markdown'}:
- headless=json.loads((Path(__file__).resolve().parents[1]/'configs/providers.headless.json').read_text())
- inventory={track:{**group,'providers':list(headless['providers'])} for track,group in inventory.items()}
+repo_root=Path(__file__).resolve().parents[1]
+profile=json.loads((repo_root/'evaluation/current-report.json').read_text())
+if profile.get('dataset_file') and d.get('id')==profile.get('dataset_id'):
+ authoritative=json.loads((repo_root/profile['dataset_file']).read_text())
+ inventory={track:{'case_ids':[c['id'] for c in authoritative['cases'] if c.get('track','web')==track],
+                   'providers':providers}
+            for track,providers in authoritative.get('coverage_plan',{}).items()}
+else:
+ inventory=json.loads((repo_root/'configs/evaluation-inventory.json').read_text())
+ if d.get('comparison',{}).get('kind') in {'headless_html','headless_markdown'}:
+  headless=json.loads((repo_root/'configs/providers.headless.json').read_text())
+  inventory={track:{**group,'providers':list(headless['providers'])} for track,group in inventory.items()}
 assert len({c['id'] for c in d['cases']})==len(d['cases']),'Duplicate dataset case IDs'
 inventory_ids=[cid for group in inventory.values() for cid in group['case_ids']]
 assert len(set(inventory_ids))==len(inventory_ids),'Duplicate inventory case IDs'
@@ -132,6 +140,10 @@ assert not bilingual_issues,('Chinese/English page parity failed',bilingual_issu
 english_primary=[Path(name) for name in ('index.html','methodology/index.html','review/index.html',
  'guide/index.html','adoption/index.html','reproduce/index.html','changes/index.html','accounts/index.html')]
 allowed_english_source_text={'中文'}|{case['name'] for case in d['cases'] if case.get('name')}
+review_path=root/'result-review.json'
+review_data=json.loads(review_path.read_text()) if review_path.is_file() else {}
+allowed_english_source_text|={value for item in review_data.get('attempts',[]) for key in ('agent_evidence','review_note')
+                             if isinstance((value:=item.get(key)),str) and value}
 for relative in english_primary:
  if relative not in en_pages:continue
  parser=EnglishNarrative(allowed_english_source_text);parser.feed((root/'en'/relative).read_text())
@@ -160,7 +172,11 @@ for p in root.rglob('*.html'):
 execution=json.loads((root/'execution.json').read_text())['batches']
 assert Counter(i for b in execution for i in b['attempt_ids'])==Counter(r['attempt_id'] for r in rs)
 home=(root/'index.html').read_text()
-assert home.index('<h2>六类任务概览</h2>') < home.index('<h2>综合通过率总榜</h2>') < home.index('<h2>六类分榜</h2>'),'Task overview and overall ranking must precede detailed rankings'
+if all(marker in home for marker in ('id="overview"','id="overall-ranking"','id="results"')):
+ overview_marker,overall_marker,results_marker='id="overview"','id="overall-ranking"','id="results"'
+else:
+ overview_marker,overall_marker,results_marker='<h2>六类任务概览</h2>','<h2>综合通过率总榜</h2>','<h2>六类分榜</h2>'
+assert home.index(overview_marker) < home.index(overall_marker) < home.index(results_marker),'Task overview and overall ranking must precede detailed rankings'
 assert '本类最高：' in home and '判分完整性' in home
 methodology=(root/'methodology/index.html').read_text()
 for phrase in ['计入耗时','不计入耗时','供应商上报的服务端耗时只作附加证据','形成可送入统一评分器的最终答案']:

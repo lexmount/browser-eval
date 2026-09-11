@@ -59,20 +59,20 @@ class RuntimeEntrypointTests(unittest.TestCase):
 
     def test_current_report_profile_matches_runner_and_canonical_dataset(self) -> None:
         profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
-        dataset = json.loads((ROOT / 'evaluation/dataset.json').read_text())
-        self.assertEqual(profile['conversion'], HEADLESS_CONVERSION)
-        self.assertEqual(dataset['comparison']['conversion'], HEADLESS_CONVERSION)
+        dataset = json.loads((ROOT / profile.get('dataset_file', 'evaluation/dataset.json')).read_text())
+        self.assertEqual(profile['conversion'], dataset['comparison']['conversion'])
         self.assertEqual(profile['comparison_kind'], dataset['comparison']['kind'])
-        self.assertEqual(set(profile['providers']), set(dataset['coverage_plan']['web']))
+        declared = {provider for providers in dataset['coverage_plan'].values() for provider in providers}
+        self.assertEqual(set(profile['providers']), declared)
         self.assertEqual(profile['artifact_hub_base_url'], 'https://artifact-hub.app.lexmount.com')
-        self.assertEqual(profile['artifact_hub_site'], 'UUAhhQMnrGwm')
+        self.assertEqual(profile['artifact_hub_site'], 'l9jZU6GPMLn6')
 
     def test_publication_receipt_must_target_current_site(self) -> None:
         profile = ROOT / 'evaluation/current-report.json'
         self.assertEqual(
-            require_publication_site({'slug':'UUAhhQMnrGwm'}, profile,
+            require_publication_site({'slug':'l9jZU6GPMLn6'}, profile,
                                      'https://artifact-hub.app.lexmount.com'),
-            'UUAhhQMnrGwm',
+            'l9jZU6GPMLn6',
         )
         with self.assertRaisesRegex(ValueError, 'expected'):
             require_publication_site({'slug':'UeZE1vfcEOrM'}, profile,
@@ -82,7 +82,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
                                      'https://artifact-hub.dev.lexmount.net')
         with self.assertRaisesRegex(ValueError, 'requested'):
             require_publication_site(
-                {'slug':'UUAhhQMnrGwm','base_url':'https://artifact-hub.dev.lexmount.net'},
+                {'slug':'l9jZU6GPMLn6','base_url':'https://artifact-hub.dev.lexmount.net'},
                 profile,'https://artifact-hub.app.lexmount.com')
 
     def test_publication_scripts_do_not_load_repository_eval_credentials(self) -> None:

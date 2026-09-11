@@ -14,14 +14,17 @@
     "timeout_seconds": 45,
     "concurrency": 1,
     "runs_per_case": 1,
-    "publication_state": "frozen_not_run",
+    "publication_state": "measured_independently_reviewed",
     "require_independent_result_review": true,
     "inherited_result_count": 52,
     "new_provider_call_count": 48,
     "source_rule_registry": "research/popular-sites-rules.json",
     "source_rule_registry_sha256": "45f042b0be831e9d1b6f0b7f5b72e6c023948f64404b1e9b79df2919951d2cc9",
     "approval_record": "research/china-homepage-rules-approval.json",
-    "approval_record_sha256": "42e3651bb011958a6ffed2c79aac9a08be9a2616ac987d5b26c815cbbe7982be"
+    "approval_record_sha256": "42e3651bb011958a6ffed2c79aac9a08be9a2616ac987d5b26c815cbbe7982be",
+    "conversion": "Lexmount Global API native text plus structured name-link fields",
+    "reference_binding_mode": "hash_bound_stable_text_and_structure",
+    "unverified_reference_cases": []
   },
   "cases": [
     {

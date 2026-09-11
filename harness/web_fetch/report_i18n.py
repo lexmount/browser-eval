@@ -728,8 +728,16 @@ TEXT = {
     "Web Fetch · 浏览器路线实测": "Web Fetch · Browser-method benchmark",
     "评测报告": "Benchmark report",
     "全球热门网站首页：Lexmount 本轮取得了什么": "Global popular-site homepages: what Lexmount retrieved in this run",
+    "全球热门网站：Lexmount 本轮取得了什么": "Global popular sites: what Lexmount retrieved in this run",
     "Web Fetch · 单方法首页基线": "Web Fetch · single-method homepage baseline",
+    "Web Fetch · 单方法热门网站基线": "Web Fetch · single-method popular-site baseline",
     "这是一轮单方法基线，不是产品横向排名。它回答 Lexmount 国际接口在同一组冻结首页上取得了什么，以及失败发生在请求层、内容层还是规则变体层。": "This is a single-method baseline, not a cross-product ranking. It shows what the Lexmount Global endpoint retrieved from one frozen homepage cohort and whether failures occurred at the request, content, or rule-variant layer.",
+    "这是一轮单方法基线，不是产品横向排名。它回答 Lexmount 国际接口在同一组冻结热门网站页面上取得了什么，以及失败发生在请求层、内容层还是规则变体层。": "This is a single-method baseline, not a cross-product ranking. It shows what the Lexmount Global endpoint retrieved from one frozen popular-site cohort and whether failures occurred at the request, content, or rule-variant layer.",
+    "访问或提取失败": "Access or extraction failure",
+    "没有取得足以核验冻结契约的目标页内容。": "The response did not contain enough target-page content to verify the frozen contract.",
+    "已取得页面但契约未满足": "Page retrieved but contract not met",
+    "取得可读内容，但缺稳定文字、具名详情链接或字段结构。": "Readable content was retrieved, but stable text, named detail links, or required structure was missing.",
+    "本轮由 52 个已测全球热门首页、8 个去重后的旧热门列表案例和 40 个中国榜新增首页组成。旧 52 条调用保持不变，只对其余 48 条新增案例发起调用。": "This run combines 52 previously measured global-popular homepages, 8 deduplicated legacy popular-list cases, and 40 newly selected China-ranked homepages. The original 52 calls remain unchanged; only the other 48 cases received new calls.",
     "先看两个不同的成功率": "Start with two different success rates",
     "任务通过": "Task pass",
     "请求成功但任务失败": "Request succeeded; task failed",
@@ -1332,7 +1340,7 @@ TEXT.update({
     "展开查看原价、年付、追加用量、功能加价与失败扣费规则。": "Expand a provider to inspect list price, annual terms, overage, feature surcharges, and failed-request billing.",
     "产品 / 模式": "Product / mode",
     "原始计价": "Published pricing basis",
-    "每千页参考价": "Reference price per 1,000 pages",
+    "每千页参考价": "Reference price per thousand pages",
     "付费门槛": "Minimum commitment",
     "优惠与限制": "Discounts and limits",
     "价格状态": "Pricing status",
@@ -2332,11 +2340,16 @@ REGEX = [
     (re.compile(r"^通过任务的平均耗时为 ([\d,]+) ms；P50 ([\d,]+) ms；P95 ([\d,]+) ms。这些耗时只描述本轮通过子集，不能与另一产品不同的成功子集直接比较。$"), r"For passing tasks, mean latency was \1 ms, P50 was \2 ms, and P95 was \3 ms. These values describe only this run's passing subset and cannot be compared directly with another product's different success subset."),
     (re.compile(r"^其中 (\d+) 条已经取得可读首页，但地区跳转或当前文案与预先冻结的文字组不同。它们仍按原契约计失败，避免测后挑规则抬高成绩；同时也不能把它们解释成纯粹的网络或渲染失败。$"), r"Of these, \1 returned readable homepages, but the locale redirect or current copy differed from the text groups frozen in advance. They remain failures under the original contract to avoid post-run rule selection, but they must not be interpreted as pure network or rendering failures."),
     (re.compile(r"^(\d+) 个首页按真实形态标为落地页 (\d+) 个、内容列表 (\d+) 个、入口页 (\d+) 个、商品目录 (\d+) 个。机器契约进一步分为 (\d+) 个页面身份任务和 (\d+) 个具名链接任务。$"), r"The \1 homepages are labeled by observed shape: \2 landing pages, \3 content lists, \4 entry pages, and \5 product catalogs. Machine contracts further divide them into \6 page-identity tasks and \7 named-link tasks."),
+    (re.compile(r"^(\d+) 个网站案例按真实形态标为落地页 (\d+) 个、内容列表 (\d+) 个、入口页 (\d+) 个、商品目录 (\d+) 个。机器契约进一步分为 (\d+) 个页面身份任务和 (\d+) 个具名链接任务。$"), r"The \1 popular-site cases are labeled by observed shape: \2 landing pages, \3 content lists, \4 entry pages, and \5 product catalogs. Machine contracts further divide them into \6 page-identity tasks and \7 named-link tasks."),
+    (re.compile(r"^(\d+) 条失败不是同一种失败$"), r"The \1 failures are not one kind of failure"),
+    (re.compile(r"^(\d+) 条任务失败的测后分类；分类不改变运行时冻结判定。$"), r"Post-run classification of \1 task failures; classification does not change the verdict frozen at run time."),
+    (re.compile(r"^其中 (\d+) 条已经取得可读内容，但没有满足冻结契约；它们不能被解释成纯粹的网络失败。$"), r"Of these, \1 returned readable content but did not satisfy the frozen contract; they cannot be interpreted as pure network failures."),
+    (re.compile(r"^它能作为 Lexmount 在这 (\d+) 个热门网站案例上的一次可复核基线：每条调用、完整输出、最终地址、判定原因和哈希都保留。它不能单独证明 Lexmount 优于或弱于其他产品，也不能把 ([\d.]+%) 简化成“只有这些网站能访问”。$"), r"This is an auditable Lexmount baseline on \1 popular-site cases: every call, complete output, final URL, verdict reason, and hash is retained. By itself, it cannot show that Lexmount is better or worse than another product, and \2 must not be simplified to ‘only these sites are reachable.’"),
     (re.compile(r"^页面身份任务可以像 Google 首页一样简洁：只要取得目标页并命中真正稳定的品牌或功能文字即可，不要求长正文或三条链接。只有列表型首页才要求声明数量的名称—详情链接；稳定文字不设统一数量，也不冻结经常变化的标题、排名或价格。$"), r"A page-identity task can be as simple as the Google homepage: retrieving the target page and matching genuinely stable brand or functional text is enough; long-form body text and three links are not required. Only list-style homepages require a declared number of name–detail-link pairs. Stable-text counts are not standardized, and frequently changing titles, ranks, or prices are not frozen."),
     (re.compile(r"^候选来源为 Similarweb 估算的 2026 年 5 月全球访问量 Top 100。成人域名在访问前排除；其余 90 个候选逐站检查后保留 (\d+) 个，另有 (\d+) 个因登录页、空白页、错误/验证页、地区不可用或透明去重而排除。60 个只是目标，不是配额。$"), r"Candidates came from Similarweb's estimated May 2026 global-traffic Top 100. Adult domains were excluded before visiting; the remaining 90 candidates were reviewed site by site, retaining \1 and excluding \2 because of login-only, blank, error/verification, regional-unavailability, or transparent deduplication outcomes. Sixty was a target, not a quota."),
     (re.compile(r"^(\d+) 个案例 · (\d+) 种方法 · 六类分榜与一个综合通过率总榜。$"), r"\1 tasks · \2 methods · six family rankings and one overall coverage ranking."),
     (re.compile(r"^(\d+) 个案例 · (\d+) 种方法 · (\d+) 个实际分榜与一个综合通过率总榜。$"), r"\1 tasks · \2 methods · \3 active family rankings and one overall coverage ranking."),
-    (re.compile(r"^每种方法都执行同一组 (\d+) 个任务，每题计一次通过或失败，直接相加；不把耗时、全文质量或任务类别难度混成加权分。总榜适合看整体交付覆盖，具体能力仍应回到(\d+)个分榜。$"), r"Every method runs the same \1 tasks. Each task contributes one pass or fail and results are summed directly; latency, full-text quality, and family difficulty are not blended into a weighted score. The overall ranking shows delivery coverage, while specific capabilities belong in the \2 active family rankings."),
+    (re.compile(r"^每种方法都执行同一组 (\d+) 个任务，每题计一次通过或失败，直接相加；不把耗时、全文质量或任务类别难度混成加权分。总榜适合看整体交付覆盖，具体能力仍应回到(\d+)个分榜。$"), r"Every method runs the same \1 tasks. Each task contributes one pass or fail and results are summed directly; latency, full-text quality, and family difficulty are not blended into a weighted score. The overall ranking shows delivery coverage, while specific capabilities belong in the active family rankings."),
     (re.compile(r"^(\d+) 个实际分榜各自的通过数 / 本类任务数，用于定位总分来自哪些能力。$"), r"Passes / tasks in each of the \1 active family rankings, showing which capabilities contribute to the overall result."),
     (re.compile(r"^(\d+) 个冻结首页案例共完成 (\d+) 次供应商调用；(\d+) 次通过，(\d+) 次未通过。$"), r"\1 frozen homepage tasks completed \2 provider calls: \3 passed and \4 failed."),
     (re.compile(r"^(\d+) 个任务$"), r"\1 tasks"),
@@ -2772,6 +2785,173 @@ TEXT.update({
     "五行分别展示网页正文、文档文字、列表记录、媒体地址和原始文件的获取与交付。": "Five rows show retrieval and delivery of page text, document text, list records, media URLs, and original files.",
     "按最终交付物区分任务；图中页面为流程示意，下面的案例展示实测输出。": "Tasks are distinguished by their final outputs. Pages in the image illustrate workflows; the cases below show recorded outputs."
 })
+
+
+TEXT.update({
+    "热门网站": "Popular sites",
+    "内容选择": "Content selection",
+    "本表指标说明": "Metrics in this table",
+    "请求热门网站首页": "Request the popular-site homepage",
+    "排除错误、验证、空白或纯登录页": "Exclude error, verification, blank, and login-only pages",
+    "识别页面身份与主要功能": "Identify the page and its primary function",
+    "按该页契约核对稳定文字和可选列表": "Check stable text and any declared list against the page contract",
+    "本轮报告绑定 100 个冻结首页案例；候选筛选和排除依据保留在项目研究文件中。": "This report is bound to 100 frozen homepage tasks; project research files retain the candidate-selection and exclusion evidence.",
+    "100 站热门首页结果盲审": "Blind review of the 100-site homepage results",
+    "合并后的 100 条 Lexmount Global 热门首页结果；其中 52 条沿用既有已审阅证据，48 条为本轮新增调用。": "The combined 100 Lexmount Global popular-site homepage results: 52 reuse previously reviewed evidence and 48 are new calls from this run.",
+    "独立审阅覆盖 100/100 条结果；42 条满足冻结合同，35 条取得目标页面但未满足合同，23 条属于访问或提取失败。机器判定与盲审没有分歧。": "Independent review covers 100/100 results: 42 satisfy the frozen contract, 35 retrieve the target page but do not satisfy the contract, and 23 are access or extraction failures. Machine verdicts and blind review have no disagreements.",
+    "保留 52 条既有权威结果，只对新增范围调用并审阅；随后按同一评分器离线合并，未改变任何任务判定。": "The 52 existing authoritative results are retained; only the new scope is called and reviewed, then combined offline with the same scorer without changing any task verdict.",
+    "无未决判定；本轮未启用失败重试。": "No unresolved verdicts; failure retries were not enabled for this run.",
+    "热门网站首页评测扩展到 100 站": "Popular-site homepage benchmark expanded to 100 sites",
+    "热门网站首页测试集由 52 条扩展到 100 条；52 条旧结果沿用已审阅证据，只新增 48 次调用。Lexmount Global 通过 42/100，全部结果均完成独立盲审。": "The popular-site homepage dataset expands from 52 to 100 tasks. The 52 existing results reuse reviewed evidence and only 48 new calls are added. Lexmount Global passes 42/100, with every result independently blind-reviewed.",
+    "测试集范围": "Dataset scope",
+    "当前权威报告包含 52 个全球热门网站首页案例。": "The previous authoritative report contained 52 global popular-site homepage tasks.",
+    "加入 8 个既有候选案例和 40 个中国热门网站首页案例，形成无重复的 100 站测试集。": "8 existing candidate tasks and 40 popular-site homepage tasks from China are added to form a deduplicated 100-site dataset.",
+    "旧 52 条结果不重跑；新增范围执行 48 次调用，未启用失败重试。": "The existing 52 results are not rerun; the added scope uses 48 calls with no failure retries.",
+    "结果与审阅": "Results and review",
+    "旧报告只展示 52 站的既有结果与审阅。": "The previous report showed the existing results and review for 52 sites.",
+    "合并后 Lexmount Global 通过 42/100；100/100 条结果完成独立盲审，机器判定与审阅无分歧、无未决项。": "After the merge, Lexmount Global passes 42/100. All 100/100 results are independently blind-reviewed, with no machine-review disagreements and no unresolved items.",
+    "合并时使用冻结规则离线复算，任务判定变化为 0；所有物理调用与原始证据继续保留。": "The merge rescored frozen rules offline with 0 task-verdict changes; every physical call and original artifact remains retained.",
+    "报告解释": "Report explanation",
+    "热门网站章节沿用较小样本的固定数量和说明。": "The popular-sites section used fixed counts and prose from the smaller sample.",
+    "报告从同一生成器展示 100 站分母、结果分类、52 条继承结果与 48 条新增调用。": "The same report generator now presents the 100-site denominator, outcome classes, 52 inherited results, and 48 new calls.",
+    "只更新当前权威报告和既有发布目标，不创建第二份报告站点。": "Only the current authoritative report and its existing publication target are updated; no second report site is created.",
+    "必须返回文档正文，只返回论文下载地址不通过。查看本例完整参考与逐方法结果 →": "The document body must be returned; a paper download URL alone does not pass. View the complete reference and per-method results →",
+    "找齐指定入口，或实际返回文件；只复述 PNG 地址不算取得文件。本榜不测“看懂图片”。查看图片参考与结果 →": "Find every required entry point or return the actual file; merely repeating a PNG URL does not count as retrieving the file. This ranking does not test image understanding. View the image reference and results →",
+    "完成指定任务；找到播放地址不等于拿到视频，更不等于能识别画面或字幕。查看视频参考与结果 →": "Complete the specified task. Finding a playback URL is not the same as obtaining the video, and neither establishes recognition of frames or subtitles. View the video reference and results →",
+    "当前成绩包含对保存输出的离线复评分；原始输出和计时继续保留，只有契约实质加强且原输出不足以代表新任务时才定向重跑。": "Current results include offline rescoring of saved outputs. Original outputs and timings remain retained; a targeted rerun is used only when a materially stronger contract means the old output no longer represents the task.",
+    "定向重跑收据": "Targeted-rerun receipts",
+    "记录输入、输出哈希、判定变化、重跑范围及供应商调用数，不把新规则伪装成原调用时的运行配置。": "Record input and output hashes, verdict changes, rerun scope, and provider-call count; do not present a new rule as if it were the configuration used for the original call.",
+    "不同方法并行，同一方法串行；正文结束后再测其他任务。Firecrawl 每次完成后冷却 6.1 秒。本报告不是 WCXB 官方榜单。": "Different methods run in parallel while calls within one method are serialized; other tasks begin after body-text tasks finish. Firecrawl cools down for 6.1 seconds after each call. This report is not an official WCXB leaderboard."
+    ,"盲审协议与输入完整性检查": "Blind-review protocol and input-integrity check"
+    ,"全部 52 项正式调用；检查审查包是否隐藏机器判定并包含正文、请求状态和结构化链接证据。": "All 52 formal calls; verify that the review bundle hides machine verdicts and includes body text, request status, and structured-link evidence."
+    ,"初版审查包遗漏结构化链接字段，并未完整说明大小写规范化语义，因此作废且未用于最终判定。": "The first review bundle omitted structured-link fields and did not fully describe case-normalization semantics, so it was discarded and not used for final verdicts."
+    ,"重新生成 52 项盲审包；加入原始返回的名称—链接字段，同时继续隐藏机器判定、分数和派生指标。": "Regenerate the 52-item blind-review bundle with the original name–link fields while continuing to hide machine verdicts, scores, and derived metrics."
+    ,"无；第二轮审查包覆盖 52 个唯一 attempt ID。": "None; the second review bundle covers 52 unique attempt IDs."
+    ,"全部正式结果独立盲审": "Independent blind review of all formal results"
+    ,"逐项核对 52 项冻结契约、首次正式调用正文、结构化返回字段和请求落点。": "Check all 52 frozen contracts against the first formal call's body text, structured response fields, and final request destination."
+    ,"独立审查与共享评分器的 24 项通过、28 项未通过完全一致；分歧 0，未决 0。": "Independent review exactly matches the shared scorer's 24 passes and 28 failures; 0 disagreements and 0 unresolved items."
+    ,"不修改规则、供应商输出、耗时或分数；仅补齐复核记录、失败归因和元数据绑定。": "Do not change rules, provider outputs, latency, or scores; only complete the review record, failure attribution, and metadata binding."
+    ,"100 站增量结果独立盲审": "Independent blind review of the 100-site combined results"
+    ,"继承 52 项已绑定盲审；新增 48 项分成三个独立批次，逐项核对冻结契约、完整正文和原始名称—链接字段。": "Reuse the bound reviews for 52 items; split the 48 new items into three independent batches and check each frozen contract against complete body text and original name–link fields."
+    ,"仅给正文的初版新增审查输入无法核验不在正文中展开的结构化 URL，因此作废；补入原始 links 字段后重新判断，同时继续隐藏机器分数和判定。最终 100 项与共享评分器一致。": "The initial text-only review input could not verify structured URLs absent from the body, so it was discarded. Review was repeated with the original links field while machine scores and verdicts remained hidden. All 100 final reviews agree with the shared scorer."
+    ,"没有按结果改变规则、URL、输出、耗时或分数；尾斜杠按运行前已有的共享 URL 规范化规则处理，禁止文字与页面级稳定文字照冻结契约执行。": "No rule, URL, output, latency, or score was changed in response to results. Trailing slashes follow the shared URL-normalization rule that existed before the run, while forbidden text and page-level stable text follow the frozen contracts."
+    ,"分歧 0，未决 0。": "0 disagreements and 0 unresolved items."
+})
+
+
+TEXT.update({
+    "Lexmount 两个区域、Firecrawl、Tavily、Exa、Cloudflare；通过各自 API 调用。": "Lexmount in both regions, Firecrawl, Tavily, Exa, and Cloudflare; each is called through its API.",
+    "CowAgent、OpenClaw、DeepSeek Harness；按本轮保留的实现与配置执行。": "CowAgent, OpenClaw, and DeepSeek Harness; executed with the implementations and configurations retained for this run.",
+    "本地运行": "Local execution",
+    "LangChain WebBaseLoader、Crawl4AI、Moli WebFetch；使用本机网络与运行环境。": "LangChain WebBaseLoader, Crawl4AI, and Moli WebFetch; using the local network and runtime environment.",
+    "未列 PDF / Office 契约": "No PDF / Office contract stated",
+    "无专用媒体字段": "No dedicated media field",
+    "无原文件返回契约": "No original-file return contract",
+    "支持 · 按需渲染": "Supported · render on demand",
+    "URL 或已捕获的 dom_id；/v1/dom/dump 为独立 DOM 捕获接口。": "A URL or previously captured dom_id; /v1/dom/dump is a separate DOM-capture endpoint.",
+    "title、author、links、images 等固定字段；可选 trace/raw_dom。": "Fixed fields such as title, author, links, and images; optional trace/raw_dom.",
+    "API Key + Project ID 是服务鉴权，不是源站登录凭据；公开文档面向公共网页。": "API Key + Project ID authenticate the service, not the source site; the public documentation covers public web pages.",
+    "POST /v1/extract · 国际区": "POST /v1/extract · Global region",
+    "images 是资源引用，不是图片字节或视觉理解；links 可能包含文档或视频入口，但不保证提取视频流。PDF/Office、音视频转写和通用二进制下载均未在所核对的 Extract 契约中明确声明，不能写成确定不支持。": "images are resource references, not image bytes or visual understanding. links may include document or video entry points but do not guarantee video-stream extraction. The reviewed Extract contract does not explicitly declare PDF/Office handling, audio/video transcription, or general binary download, so these cannot be described as definitively unsupported.",
+    "国际区与中国区共用公开契约，但部署与实测分开；这里不推断两区内部引擎完全相同。": "The Global and China regions share a public contract but are deployed and measured separately; this report does not infer that their internal engines are identical.",
+    "Lexmount · Extract 契约 ↗": "Lexmount · Extract contract ↗",
+    "Lexmount · WebFetch 概览 ↗": "Lexmount · WebFetch overview ↗",
+    "按给定 URL 获取正文比较，不包含搜索、研究 Agent 或聊天模型。按页产品可以换算为每千页；浏览器时长产品必须带上耗时假设。套餐价、超额价与试用额度分开列示。": "The comparison covers body retrieval from a given URL, not search, research agents, or chat models. Per-page products can be normalized per thousand pages; browser-time products require an explicit duration assumption. Package, overage, and trial allowances are listed separately.",
+    "官方公开价格核验：2026-09-03；币种 USD，未加地区税费。以下为报价换算，不是本轮账单；供应商定义的提取成功不等于评测任务通过。": "Official public pricing checked on 2026-09-03; currency is USD before regional taxes. The figures below are price conversions, not this run's invoice; provider-defined extraction success is not the same as a benchmark task pass.",
+    "下载价格与来源数据": "Download pricing and source data",
+    "套餐折算价＝套餐费用 ÷ 可用积分 × 每页积分 × 1,000。只用完 20% 的额度，实际平均单价就是满额折算价的 5 倍。超额单价用于追加用量，不能替代套餐平均价。免费额度内供应商费用可为零；超额费用及自身运行成本另计。": "Normalized package price = package fee ÷ available credits × credits per page × 1,000. If only 20% of the allowance is used, the effective average unit price is 5 times the fully utilized rate. Overage pricing applies to added usage and cannot replace the package average. Provider cost may be zero within a free allowance; overages and internal operating costs remain separate.",
+    "未查到公开价格": "No public price found",
+    "官方 WebFetch 文档标记内测；两个区域分别实测，不能据此推断价格相同。价格未公布不代表免费。": "Official WebFetch documentation labels the product as beta. The two regions are measured separately, so equal pricing cannot be inferred. An unpublished price does not mean the service is free.",
+    "官方 WebFetch 文档 ↗": "Official WebFetch documentation ↗",
+    "对定价设计的启示": "Implications for pricing design",
+    "建议以“成功取得一个 URL 的内容”为基础计费单位，前台显示每千页价格；后台可以用积分记账，但要公开各能力的换算。不按 HTTP 请求次数简单收费：一次批量调用可能含多个 URL，一次取数也可能经历重试。": "Use successful retrieval of one URL as the basic billable unit and show a per-thousand-page price. Credits may be used internally, but capability conversions should be public. Do not bill solely by HTTP-request count: one batch may contain several URLs, and one retrieval may involve retries.",
+    "基础取数与增强能力分开": "Separate basic retrieval from enhanced capabilities",
+    "普通正文是一档；高成本代理、长时间交互、OCR、模型结构化抽取单列加价。不能只因网站执行了 JavaScript 就加价，应由真实资源成本和服务承诺决定，并给用户加价上限。": "Price ordinary body retrieval as one tier; charge separately for expensive proxies, long interactions, OCR, and model-based structured extraction. JavaScript alone should not trigger a surcharge; actual resource cost and service commitments should, with a user-visible surcharge cap.",
+    "先按量，再按承诺量折扣": "Start with usage pricing, then discount committed volume",
+    "低门槛按量价便于试用；月套餐降低稳定用量的单价，年付再交换资金与用量承诺。公布超额价、额度有效期、并发上限和自动续费上限，避免套餐便宜、追加昂贵却看不出来。": "A low-entry usage price supports trials. Monthly packages reduce unit cost for steady use, while annual plans exchange further discounts for funding and usage commitments. Publish overage rates, allowance expiry, concurrency limits, and renewal caps so low package prices do not hide expensive additions.",
+    "把“成功”写成可执行规则": "Define success as an executable rule",
+    "建议网络错误、空内容、可识别的登录或验证码页不收基础提取费；服务内部重试不重复计页。同一 URL 的再次主动刷新可计新页。成功取回内容不承诺每项业务判断正确，边界需写入接口契约。": "Do not charge the base extraction fee for network errors, empty content, or recognizable login and CAPTCHA pages; internal retries should not count as extra pages. A user-requested refresh of the same URL may count as a new page. Successful retrieval does not guarantee every business judgement, and that boundary belongs in the API contract.",
+    "价格区间不能代替成本测算": "Market price ranges do not replace cost modeling",
+    "用代理、浏览器时间、带宽、解析、失败重试和支持成本测算每千个可计费页面的成本，再用目标毛利反推售价。公开竞品价格是参照，不是成本下限；本报告没有完整账单，不能直接给出“最便宜且最好”的排名。": "Model the cost per thousand billable pages from proxies, browser time, bandwidth, parsing, failed retries, and support, then derive price from target gross margin. Public competitor prices are references, not a cost floor. This report lacks complete invoices and cannot rank a provider as both cheapest and best.",
+    "用于报价的成本公式与比较边界": "Cost formula and comparison boundary for quoting",
+    "单位成本＝该档全部请求的资源与运营成本 ÷ 可计费成功页数；价格底线＝单位成本 ÷（1−目标毛利率）。即使失败不向客户收费，失败重试成本仍须纳入分子。套餐定价还需考虑未用额度、峰值并发及承诺服务。": "Unit cost = resource and operating cost for all requests in the tier ÷ billable successful pages; price floor = unit cost ÷ (1 − target gross margin). Even when customers are not charged for failures, retry costs remain in the numerator. Package pricing must also account for unused allowance, peak concurrency, and service commitments.",
+    "比较实际采购成本时，用实际总账单 ÷ 满足相同业务验收条件的页面数。不要直接把当前公开价格除以本轮任务通过率：执行日期、付费档位、供应商成功口径、缓存与功能加价都未必一致。以上为定价设计建议，不是提供方现行条款。": "For actual procurement cost, divide the total invoice by pages satisfying the same business acceptance condition. Do not divide current public pricing by this run's task pass rate: execution dates, paid tiers, provider success definitions, caching, and feature surcharges may differ. These are pricing-design suggestions, not current provider terms.",
+    "Lexmount 国际 API，返回网页主正文与元数据。": "Lexmount Global API, returning primary page text and metadata.",
+    "托管实时抓取": "Managed live retrieval",
+    "最终报告纳入 100 次调用。任务与参考冻结后执行；每个方法内部串行，不复用个人登录状态。": "The final report includes 100 calls. Tasks and references were frozen before execution; calls within each method are serialized and personal login state is not reused.",
+    "在评测仓库中执行；读取 evaluation/ 的当前实测数据，不调用供应商接口。": "Run in the benchmark repository; read current measured data under evaluation/ without calling provider interfaces.",
+    "输出目录：reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。凭据仅从本地环境加载，不包含在报告中。": "Output directory: reports/webfetch/. The build fails immediately unless the pinned Python 3.11 and uv.lock environment is satisfied. Credentials are loaded only from the local environment and are not included in the report.",
+    "解读突出耗时减少比例并增加三张信息图": "Interpretation highlights latency reductions and adds three figures",
+    "首屏以 Chromium 为基准展示均值、P50、P95 的耗时减少比例；以结果总览和两张流程图替代重复总结与部分流程文字，标题改为直接的内容名称。": "The opening compares mean, P50, and P95 latency reductions against Chromium. A result overview and two flow diagrams replace repeated summaries and some process prose, and titles now name their content directly.",
+    "耗时比较": "Latency comparison",
+    "首屏强调秒数，读者需要自行计算差距。": "The opening emphasized seconds, requiring readers to calculate the differences.",
+    "用未舍入数据计算相对 Chromium 的耗时减少比例：均值 42.8%、P50 46.7%、P95 44.3%，秒数作为次要依据保留。": "Use unrounded values to calculate latency reductions versus Chromium: 42.8% for mean, 46.7% for P50, and 44.3% for P95, retaining seconds as secondary evidence.",
+    "仍为跨批次的 98 道共同成功任务；统计样本与测量边界不变。": "The sample remains the 98 shared successful tasks collected across batches; the statistical sample and measurement boundary are unchanged.",
+    "信息图": "Figures",
+    "概念流程与总结主要依靠文字。": "Conceptual flows and summaries relied mainly on prose.",
+    "增加结果总览、Web Fetch 与 Browser Use 对照、五种交付物流程图；提供完整图片下载，英文版使用对应英文总览。": "Add a result overview, a Web Fetch versus Browser Use comparison, and a five-output flow diagram; provide full-image downloads and a corresponding English overview.",
+    "流程图为说明性示意，六组案例仍展示原始证据。图片逐项核对并绑定哈希，不参与评分。": "The diagrams are explanatory; six example groups still show original evidence. Images are checked item by item and hash-bound, but do not affect scoring."
+})
+
+
+TEXT.update({
+    "账号 · Web Fetch": "Accounts · Web Fetch",
+    "账号与凭据": "Accounts and credentials",
+    "只列官方入口和环境变量名称，不保存实际凭据。": "Only official entry points and environment-variable names are listed; credential values are never stored.",
+    "注册清单": "Registration checklist",
+    "提供方": "Provider",
+    "官方入口": "Official entry point",
+    "环境变量": "Environment variables",
+    "取得方式": "How to obtain access",
+    "免费 / 准入说明": "Free tier / access notes",
+    "登录后打开 Settings → API Keys，创建或复制 API key，并复制对应 Project ID；本评测使用 api.lexmount.com。": "After signing in, open Settings → API Keys, create or copy an API key, and copy its Project ID. This benchmark uses api.lexmount.com.",
+    "内测准入；API key 与 Project ID 必须来自同一个 Global 项目。": "Beta access; the API key and Project ID must come from the same Global project.",
+    "注册账号，打开 Firecrawl 控制台 API Keys 页面，创建以 fc- 开头的 key。": "Create an account, open API Keys in the Firecrawl dashboard, and create a key beginning with fc-.",
+    "存在无 key 的限流层；可复现评测应使用免费账号。": "A rate-limited keyless tier exists; reproducible benchmarking should use a free account.",
+    "Lexmount 中国区": "Lexmount China region",
+    "登录中国区控制台，复制同一项目下的 API key 与 Project ID；本评测使用 api.lexmount.cn。": "Sign in to the China-region console and copy the API key and Project ID from the same project. This benchmark uses api.lexmount.cn.",
+    "API key 与 Project ID 必须来自同一个中国区项目。": "The API key and Project ID must come from the same China-region project.",
+    "注册或登录 Tavily Platform，从控制台复制 API key。": "Register or sign in to Tavily Platform and copy the API key from the dashboard.",
+    "官方快速开始说明每月有 1,000 免费 API credits，无需绑卡。": "The official quickstart states that 1,000 free API credits are available each month without a card.",
+    "注册或登录 Exa 控制台，打开 API Keys，创建 key；如系统要求则设置预算。": "Register or sign in to the Exa dashboard, open API Keys, create a key, and set a budget if required.",
+    "需要控制台账号；用量由 credits/预算控制。": "A dashboard account is required; usage is controlled by credits and budget.",
+    "注册后创建或选择项目，从 Overview 控制台复制 API key 与 Project ID。": "After registration, create or select a project and copy the API key and Project ID from its Overview page.",
+    "官方页面存在契约冲突；打分前必须先以账号内实际接口核验。": "Official pages contain conflicting contract descriptions; verify the actual account interface before scoring.",
+    "注册 Cloudflare，复制 32 位 Account ID，再创建自定义 API token：Account → Browser Rendering → Edit；运行前用 GET /client/v4/user/tokens/verify 验证。": "Register with Cloudflare, copy the 32-character Account ID, then create a custom API token with Account → Browser Rendering → Edit. Verify it with GET /client/v4/user/tokens/verify before running.",
+    "Workers Free 可用 Browser Rendering；token 需要 Browser Rendering Edit 权限，并受账户限额约束。": "Browser Rendering is available on Workers Free; the token needs Browser Rendering Edit permission and remains subject to account limits.",
+    "在博查开放平台注册，在控制台创建 API key，并填入 BOCHA_API_KEY。": "Register on the Bocha Open Platform, create an API key in the dashboard, and set BOCHA_API_KEY.",
+    "搜索/摘要产品，不是任意已知 URL 抽取；应使用独立查询数据集。": "A search/summarization product, not extraction from an arbitrary known URL; evaluate it on a separate query dataset.",
+    "注册并完成百度智能云认证，打开千帆 API Key 管理并创建或复制 key。": "Register and complete Baidu AI Cloud verification, then open Qianfan API Key management to create or copy a key.",
+    "Web Search 按查询返回摘要、URL 与片段，不是任意 URL 抓取 API。": "Web Search returns summaries, URLs, and snippets for a query; it is not an arbitrary-URL retrieval API.",
+    "注册并完成认证，开通 Web Search API，再在控制台创建服务 API key。": "Register and complete verification, enable the Web Search API, then create a service API key in the console.",
+    "返回标题、片段与来源 URL 的搜索 API，应与已知 URL 抽取分开评测。": "This search API returns titles, snippets, and source URLs and should be evaluated separately from known-URL extraction.",
+    "注册并完成阿里云认证，开通百炼 Model Studio，在 API Key 管理创建 key。": "Register and complete Alibaba Cloud verification, enable Bailian Model Studio, and create a key under API Key management.",
+    "web_extractor 当前随 web_search 出现在模型响应中；模型 token 与工具调用都计入成本。": "web_extractor currently appears with web_search in model responses; both model tokens and tool calls contribute to cost.",
+    "登录 Google AI Studio，创建 API key 并填入 GEMINI_API_KEY。": "Sign in to Google AI Studio, create an API key, and set GEMINI_API_KEY.",
+    "模型把检索到的 URL 内容作为输入 token，返回答案/引用，而不是独立原始 Markdown。": "The model consumes retrieved URL content as input tokens and returns an answer with citations rather than standalone raw Markdown.",
+    "注册账号，创建 Web Unlocker zone，再复制 API token 与 zone 名称。": "Register, create a Web Unlocker zone, then copy the API token and zone name.",
+    "需要账号、计费或试用资格，以及 Web Unlocker zone。": "Requires an account, billing or trial access, and a Web Unlocker zone.",
+    "注册后打开 Account → API Key，复制 key。": "After registering, open Account → API Key and copy the key.",
+    "受试用/账户限额约束；生产套餐有月度最低消费。": "Subject to trial and account limits; production plans have a monthly minimum spend.",
+    "注册后在控制台打开 Zyte API，创建或复制 API key。": "After registering, open Zyte API in the dashboard and create or copy an API key.",
+    "官方文档说明首月有 5 美元初始 credit。": "Official documentation states that the first month includes USD 5 in initial credit.",
+    "注册并复制控制台或 request builder 中显示的 API key。": "Register and copy the API key shown in the dashboard or request builder.",
+    "受账号/试用限额约束。": "Subject to account and trial limits.",
+    "注册后打开控制台，复制项目 API key。": "After registering, open the dashboard and copy the project API key.",
+    "注册或申请试用，开通 Web Scraper API 并复制用户凭据。": "Register or request a trial, enable the Web Scraper API, and copy the user credentials.",
+    "所选产品可能需要试用或销售审批。": "The selected product may require trial or sales approval."
+})
+
+
+REGEX.insert(0, (
+    re.compile(r"^全部 (\d+) 种受测配置共同通过$"),
+    r"All \1 tested configurations pass",
+))
+
+REGEX.insert(0, (
+    re.compile(r"^完整参考覆盖 (\d+)/(\d+)；缺少参考只影响全文指标，不影响任务结果。有参考时，请求失败计 0；请求成功但任务未通过仍按实际正文评分。 文字核对覆盖只衡量各例登记的必需文字组，不等于全文完整度；没有文字核对依据的案例不进入该项均值。 文字核对范围：各方法均为 (\d+)/(\d+) 例。 列表、固定字段标签与说明共同验收；标题文字质量仅作下方辅助诊断。 判分完整性是已有明确判定的调用数/计划调用数，不是通过率；任何方法未满即表示整份报告不完整，禁止发布。均值、P50、P95 仅统计各方法自身通过项，不能直接视为同题速度排名。$"),
+    r"Complete-reference coverage: \1/\2. A missing reference affects only full-text metrics, not task acceptance. With a complete reference, request failures score 0; successful requests that fail task acceptance are still scored using their actual body text. Required-text coverage measures only registered required-text groups; it is not full-text recall. Tasks without text evidence are excluded from that average. Required-text coverage: \3/\4 tasks for every method. Lists, stable field labels, and descriptions are judged together; title-text quality is only a supporting diagnostic below. Judgement coverage is judged calls divided by planned calls, not a pass rate. If any method is incomplete, the entire report is incomplete and publication is blocked. Mean, P50, and P95 include only each method's own passing calls and are not a matched-task speed ranking.",
+))
 
 
 def translate_text(value: str) -> str:

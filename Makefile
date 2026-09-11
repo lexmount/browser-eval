@@ -12,7 +12,7 @@ runtime-check:
 
 test-python: runtime-check
 	$(PY) -m unittest discover -s tests -v
-	$(PY) -m pytest tests/browser_use -q
+	$(UV) run --frozen --extra browser-use-eval --extra test python -m pytest tests/browser_use -q
 
 test-ui:
 	node tests/test_report_ui.mjs
@@ -33,4 +33,4 @@ report: runtime-check
 report-check: runtime-check
 	$(PY) scripts/check_report.py reports/webfetch
 	$(PY) scripts/check_report_links.py reports/webfetch
-	$(PY) scripts/check_report_revision.py reports/webfetch
+	$(UV) run --frozen --extra reference-audit python scripts/check_report_revision.py reports/webfetch
