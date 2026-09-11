@@ -1557,6 +1557,10 @@ def translate_text(value: str) -> str:
                 lambda match: f"{match.group(1)} logical results",
             ),
             (
+                r"本轮剔除 (\d+) 题：(.+)。",
+                lambda match: f"{match.group(1)} tasks excluded in this run: {match.group(2)}.",
+            ),
+            (
                 r"(\d+) 个任务×浏览器结果均保留最终回答、官方 evaluator 结果、Agent 事件和证据哈希。",
                 lambda match: f"All {match.group(1)} task-browser results retain the final answer, official evaluator output, agent events, and evidence hashes.",
             ),

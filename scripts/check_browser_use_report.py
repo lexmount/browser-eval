@@ -426,6 +426,7 @@ def check(
         "该执行没有可公开的 trace 页面画面",
         "个物理执行均记录",
         "个物理执行均保存",
+        "本轮剔除",
     )
     for page in english_pages:
         text = rendered_pages[page]

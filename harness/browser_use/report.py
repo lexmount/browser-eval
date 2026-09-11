@@ -731,7 +731,10 @@ def _task_family_table(families: list[dict[str, Any]]) -> str:
     rows: list[list[Any]] = []
     for family in families:
         kind = str(family["kind"])
-        label, description = TASK_TYPE_COPY[kind]
+        copy = TASK_TYPE_COPY.get(kind)
+        if copy is None:
+            raise ValueError(f"unsupported Browser Use task type: {kind}")
+        label, description = copy
         rows.append(
             [
                 Safe(
@@ -820,8 +823,8 @@ def _clean_subset_table(
             table_id="clean-subset-table",
             classes="core-comparison-table",
         )
-        + '<p class="fine">这是事后诊断口径，不是官方新分数。它按任务统一剔除任一配置已证实受任务/evaluator、站点、共享环境或参考状态干扰的任务，保证四个配置分母一致。'
-        f'本轮剔除 {len(excluded)} 题：{_e("、".join(f"#{task_id}" for task_id in sorted(excluded)))}。</p>'
+        + '<p class="fine">这是事后诊断口径，不是官方新分数。它按任务统一剔除任一配置已证实受任务/evaluator、站点、共享环境或参考状态干扰的任务，保证四个配置分母一致。</p>'
+        f'<p class="fine">本轮剔除 {len(excluded)} 题：{_e("、".join(f"#{task_id}" for task_id in sorted(excluded)))}。</p>'
     )
 
 
