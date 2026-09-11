@@ -311,6 +311,9 @@ def report_access_registry(
     for provider in sorted(providers):
         account_id = REPORT_PROVIDER_ACCOUNT_IDS.get(provider)
         if account_id:
+            if account_id not in account_by_id:
+                missing.append(provider)
+                continue
             rows.append(account_by_id[account_id])
         elif provider in REPORT_LOCAL_ACCESS:
             rows.append(REPORT_LOCAL_ACCESS[provider])

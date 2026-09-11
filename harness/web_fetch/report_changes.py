@@ -6,6 +6,10 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[2]
 HEADLESS_HISTORY_START='2026-09-04-five-browser-fastest-markdown'
+FILE_RERUN_EVIDENCE = (
+    'file-provider-rerun', 'file-provider-rerun-native',
+    'file-provider-rerun-crawl-http', 'file-provider-rerun-crawl-final',
+)
 
 
 def require_review_rounds(data):
@@ -50,7 +54,10 @@ def select_cohort_history(data, dataset, records):
 
 
 def first_correction(history, releases):
-    release=next(r for r in releases if r['id']=='2026-09-03-fairness-correction')
+    release=next((r for r in releases
+                  if r['id']=='2026-09-03-fairness-correction'),None)
+    if release is None:
+        raise ValueError('Release 2026-09-03-fairness-correction not found')
     digest=release['scoring_revision_input_sha256']
     matches=[r for r in history if r.get('input_results_sha256')==digest]
     if len(matches)!=1:
@@ -87,6 +94,15 @@ def render_changes(out, cases, records, dataset=None):
     from .report import hero, section, table, cell, esc, link, write
     from .storage import research_evidence_dir
     evidence_root=research_evidence_dir()
+    selection=out/'file-rerun-selection.json'
+    rerun_sources=[]
+    if selection.exists():
+        rerun_sources=[evidence_root/name for name in FILE_RERUN_EVIDENCE]
+        missing=[path for path in rerun_sources if not path.is_dir()]
+        if missing:
+            raise FileNotFoundError(
+                'Required file-rerun evidence directories are missing: '
+                + ', '.join(str(path) for path in missing))
     data=json.loads((ROOT/'research/report-changes.json').read_text())
     require_review_rounds(data)
     public_data=select_cohort_history(data,dataset,records)
@@ -100,7 +116,6 @@ def render_changes(out, cases, records, dataset=None):
         '<article class="release-current"><div class="eyebrow">'+esc(latest['date'])+'</div><h3>'+esc(latest['title'])+'</h3><p>'+esc(latest['summary'])+'</p>'
         +release_details(latest,table,cell,esc)+'</article>',latest['id'])
 
-    selection=out/'file-rerun-selection.json'
     if selection.exists():
         selected=json.loads(selection.read_text())
         grouped=defaultdict(lambda:[0,0])
@@ -108,8 +123,8 @@ def render_changes(out, cases, records, dataset=None):
             grouped[row['provider']][0]+=1
             grouped[row['provider']][1]+=row['task_pass']
         rows=[('',cell(esc(p))+cell(str(n))+cell(str(passed))+cell(str(n-passed))) for p,(n,passed) in sorted(grouped.items())]
-        for name in ['file-provider-rerun','file-provider-rerun-native','file-provider-rerun-crawl-http','file-provider-rerun-crawl-final']:
-            shutil.copytree(evidence_root/name,out/name)
+        for name,source in zip(FILE_RERUN_EVIDENCE,rerun_sources,strict=True):
+            shutil.copytree(source,out/name)
         total=sum(v[0] for v in grouped.values());passed=sum(v[1] for v in grouped.values())
         body+=section('本版结果影响',
             '<div class="guide-grid"><article class="guide-card"><h3>文件任务</h3><p>'+str(total)+' 次计划调用全部完成判定：'+str(passed)+' 次通过、'+str(total-passed)+' 次未通过、0 次未测。未通过保留为真实结果，不删除案例。</p></article>'

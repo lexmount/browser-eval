@@ -1,6 +1,10 @@
 import unittest
+from unittest.mock import patch
 
-from harness.web_fetch.accounts import ACCOUNT_REGISTRY, env_template, report_access_registry
+from harness.web_fetch.accounts import (
+    ACCOUNT_REGISTRY, REPORT_PROVIDER_ACCOUNT_IDS, env_template,
+    report_access_registry,
+)
 
 
 class AccountRegistryTest(unittest.TestCase):
@@ -34,6 +38,11 @@ class AccountRegistryTest(unittest.TestCase):
     def test_report_registry_fails_closed_for_unknown_method(self) -> None:
         with self.assertRaisesRegex(ValueError, "unknown-method"):
             report_access_registry({"unknown-method"})
+
+    def test_report_registry_names_stale_account_mapping(self) -> None:
+        with patch.dict(REPORT_PROVIDER_ACCOUNT_IDS, {"stale-method": "missing-account"}):
+            with self.assertRaisesRegex(ValueError, "stale-method"):
+                report_access_registry({"stale-method"})
 
 
 if __name__ == "__main__":

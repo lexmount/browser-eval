@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 from harness.web_fetch.report_changes import render_changes
 from harness.web_fetch.report import overview_card, ranking
@@ -14,6 +15,22 @@ class ReportChangesTests(unittest.TestCase):
         self.assertEqual(first_correction([later,original],releases),original)
         self.assertEqual(first_correction([original,later],releases),original)
         with self.assertRaises(ValueError):first_correction([later],releases)
+        with self.assertRaisesRegex(ValueError, 'fairness-correction'):
+            first_correction([original],[])
+
+    def test_file_rerun_sources_are_all_preflighted_before_report_writes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            out=root/'out';out.mkdir()
+            evidence=root/'evidence';evidence.mkdir()
+            (out/'file-rerun-selection.json').write_text('{"records": []}')
+            (evidence/'file-provider-rerun').mkdir()
+            with patch('harness.web_fetch.storage.research_evidence_dir',
+                       return_value=evidence):
+                with self.assertRaisesRegex(FileNotFoundError, 'file-provider-rerun-native'):
+                    render_changes(out,{},[])
+            self.assertFalse((out/'report-changes.json').exists())
+            self.assertFalse((out/'file-provider-rerun').exists())
     def test_every_bundled_revision_binds_one_release(self):
         from harness.web_fetch.report_changes import require_revision_release_bindings
         history=[{'input_results_sha256':'new'}]
