@@ -69,6 +69,14 @@ def test_release_translation_comes_from_structured_record() -> None:
     assert translate_text(release["title"]) == release["i18n"]["en"]["title"]
 
 
+def test_excluded_task_ids_use_english_punctuation() -> None:
+    source = '<html lang="zh-CN"><body><p>本轮剔除 3 题：#1、#2、#3。</p></body></html>'
+    localized = localize_html(source, PurePosixPath("analysis/index.html"))
+
+    assert "3 tasks excluded in this run: #1, #2, #3." in localized
+    assert "、" not in localized
+
+
 def test_all_release_and_review_copy_localizes_without_chinese() -> None:
     data = json.loads(Path("research/report-changes.json").read_text(encoding="utf-8"))
     values = [data["history_scope"]]

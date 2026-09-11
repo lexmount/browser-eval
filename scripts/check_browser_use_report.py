@@ -438,6 +438,9 @@ def check(
             raise ValueError(f"English report accessibility text is not localized: {page}")
         if any(marker in text for marker in untranslated_interface):
             raise ValueError(f"English report interface prose is not localized: {page}")
+        excluded_lists = re.findall(r"tasks excluded in this run: ([^<]+)", text)
+        if any("、" in value for value in excluded_lists):
+            raise ValueError(f"English excluded-task list uses Chinese punctuation: {page}")
     for engine in engines:
         engine_page = rendered_pages[report_dir / "engines" / f"{engine}.html"]
         if "engine-result-table" in engine_page or f"f_engine={engine}" not in engine_page:

@@ -1624,7 +1624,10 @@ def translate_text(value: str) -> str:
             ),
             (
                 r"本轮剔除 (\d+) 题：(.+)。",
-                lambda match: f"{match.group(1)} tasks excluded in this run: {match.group(2)}.",
+                lambda match: (
+                    f"{match.group(1)} tasks excluded in this run: "
+                    f"{match.group(2).replace('、', ', ')}."
+                ),
             ),
             (
                 r"(\d+) 个任务×浏览器结果均保留最终回答、官方 evaluator 结果、Agent 事件和证据哈希。",
