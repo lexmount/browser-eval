@@ -142,7 +142,7 @@ CAPABILITIES = {
   'structure': '可选 CSS/JSON 或 LLM 提取策略；media/links 是结构化资源信息。',
   'access': '可配置持久会话、Cookie 和页面动作；并非保证突破每个站点限制。',
   'notes': 'PDF 需 PDFCrawlerStrategy + PDFContentScrapingStrategy，可选提取并保存内嵌图片，默认不含扫描件 OCR。浏览器下载需 accept_downloads 并触发下载；原生 HTTP 文件策略直接将非 HTML 响应保存到 downloaded_files。网页截图和打印 PDF 是新生成的文件，不是目标原文件。',
-  'tested': '普通正文使用通用浏览器策略、无缓存；直接 PDF 正文在调用前选择 PDFCrawlerStrategy 与 PDFContentScrapingStrategy；文件任务选择原生 HTTP 文件策略并统一校验。未启用截图、OCR 或 LLM 提取；媒体字段不代表内容理解。',
+  'tested': '非动态网页使用通用浏览器策略、domcontentloaded 与无缓存；动态任务使用预声明的完成条件。直接 PDF 正文在调用前选择 PDFCrawlerStrategy 与 PDFContentScrapingStrategy；文件任务选择原生 HTTP 文件策略并统一校验。未启用截图、OCR 或 LLM 提取；媒体字段不代表内容理解。',
  },
 }
 SOURCES['moli'] = ('Moli 1.1.4 · WebFetch skill', 'https://github.com/lexmount/moli/blob/v1.1.4/skills/moli-webfetch/SKILL.md')

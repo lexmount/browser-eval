@@ -129,6 +129,7 @@ class FirecrawlProvider(Provider):
             request_body["parsers"] = []
         route = "v2_scrape_raw_base64" if file_route else "v2_scrape"
         wait_metadata = None
+        dynamic_wait_strategy = None
         if case.track == "dynamic":
             try:
                 if not math.isfinite(timeout) or timeout <= 0:
@@ -309,6 +310,11 @@ class FirecrawlProvider(Provider):
             metadata={
                 "route": route,
                 "wait": wait_metadata,
+                "requested_formats": request_body["formats"],
+                "requested_proxy": request_body["proxy"],
+                "requested_dynamic_wait_strategy": dynamic_wait_strategy,
+                "requested_cache_max_age_ms": request_body["maxAge"],
+                "requested_parsers": request_body.get("parsers"),
                 "service_timeout_ms": request_body["timeout"],
                 "client_http_timeout_ms": int(http_timeout * 1000),
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),

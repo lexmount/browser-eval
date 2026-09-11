@@ -51,7 +51,7 @@ TEXT = {
     "OpenClaw · HTML 转换器 ↗": "OpenClaw · HTML converter ↗",
     "OpenClaw · Readability 插件 ↗": "OpenClaw · Readability plugin ↗",
     "advanced 面向动态页、表格和嵌入内容；不能把 embedded media 理解为下载视频或理解画面。官方 Research 的 PDF/Markdown/JSON/TXT 文件上传能力不属于本次 Extract；Extract 的 PDF/Office 支持在本次核对资料中未明确承诺。": "advanced targets dynamic pages, tables, and embedded content; embedded media must not be interpreted as video downloading or visual understanding. The official Research capability to upload PDF/Markdown/JSON/TXT files is outside this Extract test; PDF/Office support for Extract is not explicitly promised in the reviewed materials.",
-    "本轮 basic + markdown + include_images=true，不传 query；未测试 advanced 或 Research 文件上传。": "This run used basic + markdown + include_images=true without query; advanced and Research file uploads were not tested.",
+    "本轮 advanced + markdown + include_images=true，不传 query；未测试 Research 文件上传。": "This run used advanced + markdown + include_images=true without query; Research file uploads were not tested.",
     "Tavily · Extract 契约 ↗": "Tavily · Extract contract ↗",
     "Tavily · 提取深度 ↗": "Tavily · Extraction depth ↗",
     "Tavily · Research 文件上传 ↗": "Tavily · Research file uploads ↗",

@@ -101,6 +101,9 @@ class TavilyExtractProvider(Provider):
                 ),
                 "failed_result_count": len(failures),
                 "failed_result_errors": public_failure_errors,
+                "requested_extract_depth": request_body["extract_depth"],
+                "requested_include_images": request_body["include_images"],
+                "requested_format": request_body["format"],
                 "extract_timeout_seconds": (
                     round(extract_timeout, 3) if extract_timeout >= 1.0 else None
                 ),

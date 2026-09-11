@@ -442,6 +442,17 @@ class NativeFileWorkerTests(unittest.TestCase):
         self.assertEqual(config["wait_for"], "css:main")
         self.assertEqual(metadata["strategy"], "css_selector")
 
+    def test_non_dynamic_browser_route_uses_domcontentloaded(self):
+        worker = self.load_worker(object)
+        config, metadata = worker.dynamic_completion_config(
+            {"track": "web", "retrieval_plan": None}
+        )
+        self.assertEqual(config, {})
+        self.assertEqual(
+            metadata,
+            {"strategy": "lifecycle", "wait_until": "domcontentloaded"},
+        )
+
     def test_main_applies_dynamic_completion_route_before_html_call(self):
         seen = []
 

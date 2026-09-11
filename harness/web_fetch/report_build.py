@@ -207,6 +207,9 @@ def build_report(source: Path, output: Path) -> Path:
             shutil.copy2(source/'reference-revisions.json', staging/'reference-revisions.json')
         if (source/'latency-corrections.json').is_file():
             shutil.copy2(source/'latency-corrections.json', staging/'latency-corrections.json')
+        if (source/'request-status-corrections.json').is_file():
+            shutil.copy2(source/'request-status-corrections.json',
+                         staging/'request-status-corrections.json')
         if (source/'file-rerun-selection.json').is_file():
             shutil.copy2(source/'file-rerun-selection.json', staging/'file-rerun-selection.json')
             shutil.copytree(source/'history/file-baseline', staging/'history/file-baseline')

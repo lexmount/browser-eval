@@ -34,7 +34,7 @@ TEXT = {
     "比较实际采购成本时，用实际总账单 ÷ 满足相同业务验收条件的页面数。不要直接把当前公开价格除以本轮任务通过率：执行日期、付费档位、供应商成功口径、缓存与功能加价都未必一致。以上为定价设计建议，不是提供方现行条款。": "To compare actual procurement costs, use the actual total bill ÷ pages meeting the same business acceptance criteria. Do not simply divide current public pricing by this run's task pass rate: execution dates, paid tiers, provider definitions of success, caching, and feature surcharges may differ. These are pricing-design recommendations, not current provider terms.",
     "本表指标说明": "Metric definitions for this table",
     "云端浏览器加载网页后转换为 Markdown。": "A cloud browser loads the page and converts it to Markdown.",
-    "实时；waitUntil=networkidle2": "Real-time; waitUntil=networkidle2",
+    "Quick Actions 默认最多缓存 5 秒；waitUntil=networkidle2": "Quick Actions uses its default cache for up to 5 seconds; waitUntil=networkidle2",
     "CowAgent 内的 HTTP 抓取和文本、文档解析工具。": "HTTP retrieval and text and document parsing tools within CowAgent.",
     "纯文本": "Plain text",
     "实时请求": "Real-time request",

@@ -30,7 +30,6 @@ for line in sys.stdin:
         output = {
             "ok": True,
             "content": content,
-            "final_url": metadata.get("source", request["url"]),
             "title": metadata.get("title"),
             "metadata": {
                 "implementation": "langchain_community.WebBaseLoader",
@@ -43,7 +42,6 @@ for line in sys.stdin:
         output = {
             "ok": False,
             "content": repr(error),
-            "final_url": request["url"],
             "error_type": type(error).__name__,
             "error_message": str(error),
             "metadata": {"implementation": "langchain_community.WebBaseLoader",

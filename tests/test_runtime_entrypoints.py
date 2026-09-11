@@ -130,6 +130,21 @@ class RuntimeEntrypointTests(unittest.TestCase):
         )
         self.assertNotIn('DEEPSEEK_PNPM=', env_example)
 
+    def test_dsh_worker_uses_execution_result_contract_and_fails_non_2xx(self) -> None:
+        worker = (ROOT / 'scripts/oss/dsh_webfetch_worker.mts').read_text()
+        self.assertNotIn('out.output', worker)
+        self.assertIn('out.meta', worker)
+        self.assertIn('out.value', worker)
+        self.assertIn('statusCode < 200 || statusCode >= 300', worker)
+        self.assertIn('missingStatus ? "invalid_response"', worker)
+        self.assertNotIn('meta.url ?? request.url', worker)
+        self.assertNotIn('final_url: request.url', worker)
+
+    def test_langchain_worker_does_not_claim_unobserved_final_url(self) -> None:
+        worker = (ROOT / 'scripts/oss/langchain_webbase_worker.py').read_text()
+        self.assertNotIn('"final_url"', worker)
+        self.assertIn('"document_metadata": metadata', worker)
+
     def test_current_coverage_declares_all_twelve_methods(self) -> None:
         dataset = json.loads((ROOT / "evaluation/dataset.json").read_text())
         expected = {
@@ -162,7 +177,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertEqual(profile['artifact_hub_site'], 'RSdbALdbdNG6')
         self.assertEqual(
             profile['artifact_hub_expected_version'],
-            'ver_fec3b3e8a8114ac58db344d67775789c',
+            'ver_21ee8ea85ef24f3cbeadeacd2657fda5',
         )
 
     def test_current_rerun_plan_is_exact_and_complete(self) -> None:

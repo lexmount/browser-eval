@@ -46,6 +46,11 @@ class ProviderTest(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertEqual(result.error_type, "rate_limit")
         self.assertEqual(result.metadata["retry_after_seconds"], 120)
+        self.assertEqual(result.metadata["requested_formats"], ["markdown"])
+        self.assertEqual(result.metadata["requested_proxy"], "auto")
+        self.assertIsNone(result.metadata["requested_dynamic_wait_strategy"])
+        self.assertEqual(result.metadata["requested_cache_max_age_ms"], 0)
+        self.assertIsNone(result.metadata["requested_parsers"])
 
     @patch("harness.web_fetch.providers.firecrawl.request")
     def test_firecrawl_insufficient_credits_are_account_capacity_and_private(
@@ -141,6 +146,11 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(mock_request.call_args.kwargs["timeout"], 40.5)
         self.assertEqual(result.metadata["service_timeout_ms"], 40_500)
         self.assertEqual(result.metadata["client_http_timeout_ms"], 40_500)
+        self.assertEqual(result.metadata["requested_formats"], ["rawBase64"])
+        self.assertEqual(result.metadata["requested_proxy"], "auto")
+        self.assertIsNone(result.metadata["requested_dynamic_wait_strategy"])
+        self.assertEqual(result.metadata["requested_cache_max_age_ms"], 0)
+        self.assertEqual(result.metadata["requested_parsers"], [])
         self.assertEqual(len(result.files), 1)
         self.assertEqual(result.files[0]["data"], raw)
         self.assertEqual(result.files[0]["target_url"], case.url)
@@ -326,6 +336,9 @@ class ProviderTest(unittest.TestCase):
         self.assertFalse(request_body["include_images"])
         self.assertEqual(request_body["timeout"], 40.5)
         self.assertEqual(result.metadata["extract_timeout_seconds"], 40.5)
+        self.assertEqual(result.metadata["requested_extract_depth"], "advanced")
+        self.assertFalse(result.metadata["requested_include_images"])
+        self.assertEqual(result.metadata["requested_format"], "markdown")
         self.assertEqual(base64.b64decode(result.metadata["_raw_response_b64"]), body)
         self.assertEqual(result.metadata["raw_response_sha256"], hashlib.sha256(body).hexdigest())
         self.assertNotIn("raw_response", result.metadata)
@@ -336,10 +349,13 @@ class ProviderTest(unittest.TestCase):
         provider = TavilyExtractProvider(
             "tavily", {"api_key": "x", "extract_depth": "basic", "include_images": True}
         )
-        provider.fetch(self.case, 1)
+        result = provider.fetch(self.case, 1)
         request_body = mock_request.call_args.kwargs["json_body"]
         self.assertEqual(request_body["extract_depth"], "basic")
         self.assertTrue(request_body["include_images"])
+        self.assertEqual(result.metadata["requested_extract_depth"], "basic")
+        self.assertTrue(result.metadata["requested_include_images"])
+        self.assertEqual(result.metadata["requested_format"], "markdown")
 
     @patch("harness.web_fetch.providers.tavily.request")
     def test_tavily_service_timeout_is_capped_by_inner_http_budget(self, mock_request) -> None:

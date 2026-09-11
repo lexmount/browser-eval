@@ -118,6 +118,11 @@ def test_firecrawl_uses_selector_action_then_declared_settle_delay(mock_request)
     assert body["timeout"] == 30_000
     assert "Example" not in str(body)
     assert result.metadata["route"] == "v2_scrape_dynamic"
+    assert result.metadata["requested_formats"] == ["markdown"]
+    assert result.metadata["requested_proxy"] == "auto"
+    assert result.metadata["requested_dynamic_wait_strategy"] == "actions"
+    assert result.metadata["requested_cache_max_age_ms"] == 0
+    assert result.metadata["requested_parsers"] is None
     assert result.metadata["wait"] == {
         "strategy": "selector_action_then_settle_delay",
         "selector": ".row",
@@ -179,6 +184,11 @@ def test_firecrawl_wait_for_route_avoids_region_restricted_actions(mock_request)
     assert "actions" not in body
     assert body["timeout"] == 30_000
     assert result.metadata["route"] == "v2_scrape_dynamic_wait_for"
+    assert result.metadata["requested_formats"] == ["markdown"]
+    assert result.metadata["requested_proxy"] == "auto"
+    assert result.metadata["requested_dynamic_wait_strategy"] == "wait_for"
+    assert result.metadata["requested_cache_max_age_ms"] == 0
+    assert result.metadata["requested_parsers"] is None
     assert result.metadata["wait"] == {
         "strategy": "predeclared_settle_delay",
         "selector": ".row",

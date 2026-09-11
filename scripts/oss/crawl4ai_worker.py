@@ -38,7 +38,7 @@ def dynamic_completion_config(request):
     """Translate the runner-normalized, answer-free plan to Crawl4AI settings."""
     plan = require_normalized_retrieval_plan(request)
     if request.get("track") != "dynamic":
-        return {}, {"strategy": "lifecycle", "wait_until": "networkidle"}
+        return {}, {"strategy": "lifecycle", "wait_until": "domcontentloaded"}
     wait_kind = plan["wait_kind"]
     wait_for = ("css:" if wait_kind == "selector" else "js:") + plan["wait_value"]
     strategy = (
@@ -305,7 +305,7 @@ async def main() -> None:
                 run_config_values = {
                     "cache_mode": CacheMode.BYPASS,
                     "page_timeout": route_timeout_ms,
-                    "wait_until": "networkidle",
+                    "wait_until": "domcontentloaded",
                     "remove_overlay_elements": True,
                     "process_iframes": True,
                 }

@@ -5,6 +5,7 @@ from pathlib import Path
 from harness.web_fetch.report import table, cell, link
 from harness.web_fetch.report_methods import PROFILES
 from harness.web_fetch.report_capabilities import CAPABILITIES, CHECKED_AT, SOURCES, render_capabilities
+from harness.web_fetch.report_interfaces import SPECS
 
 
 class CapabilityTests(unittest.TestCase):
@@ -52,6 +53,9 @@ class CapabilityTests(unittest.TestCase):
         self.assertNotIn('basic + markdown', CAPABILITIES['tavily']['tested'])
         self.assertIn('text.verbosity=full', CAPABILITIES['exa']['tested'])
         self.assertIn('PDFCrawlerStrategy', CAPABILITIES['crawl4ai']['tested'])
+        self.assertIn('domcontentloaded', CAPABILITIES['crawl4ai']['tested'])
+        self.assertIn('wait_until="domcontentloaded"', SPECS['crawl4ai']['request'])
+        self.assertIn('DOMContentLoaded', SPECS['crawl4ai']['notes'])
         self.assertNotIn('未启用专用 PDF 策略', CAPABILITIES['crawl4ai']['tested'])
         self.assertIn('Actions wait', CAPABILITIES['firecrawl']['tested'])
         self.assertIn('iframe', CAPABILITIES['firecrawl']['tested'])

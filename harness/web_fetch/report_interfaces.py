@@ -56,7 +56,7 @@ SPECS={
  {'url':URL,'extractMode':'markdown','maxChars':200000},'scripts/oss/openclaw_webfetch_worker.mts','Readability 开启，cacheTtlMinutes=0。函数异常转成失败记录，不把其他 provider 的回退结果算给 OpenClaw。'),
  'deepseek-harness-built-in':spec('TypeScript · ctx.tools.execute({name: "web_fetch", arguments, ...})','本地 HTTP fetch provider；无云端抓取 Key',
  [('name','string','web_fetch'),('arguments.url','string · 必填','目标网址'),('callId / signal','运行时参数','调用标识和取消信号；示例省略初始化')],
- [('isError','boolean','工具执行是否报错'),('content[].text','string','文本块合并 → content'),('output.presentationMeta','object · 若提供','URL、源站状态等展示信息'),('error.info.code','string · 若提供','工具错误类型')],
+ [('isError','boolean','工具执行是否报错'),('content[].text','string','文本块合并 → content'),('value.statusCode / value.url','number / string','成功态的规范源站状态与最终 URL'),('meta','object · 若提供','展示投影；仅在规范值缺失时补充状态或 URL'),('error.info.code','string · 若提供','工具错误类型')],
  {'name':'web_fetch','arguments':{'url':URL}},'scripts/oss/dsh_webfetch_worker.mts','本轮 response 上限 10 MB、正文上限 200000 字符；不是 DeepSeek 聊天 API，也没有调用模型生成答案。'),
  'langchain-webbase':spec('Python · WebBaseLoader(...).load()','本地开源库；无供应商 API Key',
  [('web_paths','tuple[str]','本轮仅一个目标 URL'),('requests_kwargs.timeout','number','本轮 45 秒'),('raise_for_status','boolean','本轮 true，HTTP 错误抛异常'),('continue_on_failure','boolean','本轮 false')],
@@ -64,10 +64,10 @@ SPECS={
  'loader = WebBaseLoader(\n    web_paths=("https://example.com/",),\n    requests_kwargs={"timeout": 45},\n    raise_for_status=True,\n    continue_on_failure=False,\n)\ndocs = loader.load()',
  'scripts/oss/langchain_webbase_worker.py','不运行网页 JavaScript；本轮没有把它替换成其他 LangChain loader。'),
  'crawl4ai':spec('Python · await AsyncWebCrawler(...).arun(url, config)','本地 Chromium；无云端抓取 Key',
- [('url','string · 必填','目标网址'),('cache_mode','CacheMode','本轮 BYPASS'),('page_timeout','number','45000 毫秒'),('wait_until','string','networkidle'),('process_iframes / remove_overlay_elements','boolean','本轮均为 true')],
+ [('url','string · 必填','目标网址'),('cache_mode','CacheMode','本轮 BYPASS'),('page_timeout','number','45000 毫秒'),('wait_until','string','非动态网页为 domcontentloaded；动态任务使用预声明值'),('process_iframes / remove_overlay_elements','boolean','本轮均为 true')],
  [('result.success','boolean','爬取是否成功'),('result.markdown.raw_markdown','string','Markdown → content'),('result.media','dict','images、videos、audios'),('result.links','dict','internal / external'),('result.status_code / error_message','number / string','源站状态或失败信息')],
- 'config = CrawlerRunConfig(\n    cache_mode=CacheMode.BYPASS,\n    page_timeout=45000,\n    wait_until="networkidle",\n    process_iframes=True,\n    remove_overlay_elements=True,\n)\nresult = await crawler.arun(\n    url="https://example.com/", config=config\n)',
- 'scripts/oss/crawl4ai_worker.py','普通正文使用本地无头 Chrome；直接 PDF 正文在调用前选择 PDFCrawlerStrategy 与 PDFContentScrapingStrategy，文件交付任务选择 AsyncHTTPCrawlerStrategy 并统一验收 downloaded_files。媒体链接不等于下载；文件字节校验不等于理解媒体。'),
+ 'config = CrawlerRunConfig(\n    cache_mode=CacheMode.BYPASS,\n    page_timeout=45000,\n    wait_until="domcontentloaded",\n    process_iframes=True,\n    remove_overlay_elements=True,\n)\nresult = await crawler.arun(\n    url="https://example.com/", config=config\n)',
+ 'scripts/oss/crawl4ai_worker.py','非动态网页使用本地无头 Chrome，并在 DOMContentLoaded 后提取；动态任务仍按预声明完成条件等待。直接 PDF 正文在调用前选择 PDFCrawlerStrategy 与 PDFContentScrapingStrategy，文件交付任务选择 AsyncHTTPCrawlerStrategy 并统一验收 downloaded_files。媒体链接不等于下载；文件字节校验不等于理解媒体。'),
 }
 SPECS['lexmount-cn']={**SPECS['lexmount-global'],'entry':'POST https://api.lexmount.cn/v1/extract','auth':'X-API-Key: <CN_API_KEY>；X-Project-Id: <CN_PROJECT_ID>'}
 SPECS['kitesurf']=spec(
