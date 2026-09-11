@@ -186,6 +186,46 @@ def test_default_action_timeout_is_thirty_seconds():
     assert page.calls == [("timeout", 30_000)]
 
 
+def test_task_wall_clock_budget_caps_each_action_timeout(monkeypatch):
+    page = FakePage()
+
+    class Locator:
+        @property
+        def first(self):
+            return self
+
+        def click(self, **kwargs):
+            page.calls.append(("timeout", kwargs["timeout"]))
+
+    page.locator = lambda _selector: Locator()
+    monkeypatch.setattr(
+        "harness.browser_use.executor.time.monotonic",
+        MagicMock(side_effect=(10.0, 10.2)),
+    )
+
+    execute_steps(
+        page,
+        ({"action": "click", "selector": "#target", "timeout_ms": 30_000},),
+        task_timeout_ms=5_000,
+    )
+
+    assert page.calls == [("timeout", 4_800)]
+
+
+def test_task_wall_clock_budget_stops_before_next_action(monkeypatch):
+    monkeypatch.setattr(
+        "harness.browser_use.executor.time.monotonic",
+        MagicMock(side_effect=(10.0, 11.1)),
+    )
+
+    with pytest.raises(TimeoutError, match="before action 1"):
+        execute_steps(
+            FakePage(),
+            ({"action": "navigate", "url": "https://example.com"},),
+            task_timeout_ms=1_000,
+        )
+
+
 @pytest.mark.parametrize(
     ("call", "record_prefix"),
     (

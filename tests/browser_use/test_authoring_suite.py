@@ -56,7 +56,7 @@ def test_authoring_suite_selects_only_pending_retrieve_repairs_for_site():
     assert result["benchmark"]["trajectory_authoring"] == {
         "non_canonical": True,
         "diagnostic_only": True,
-        "source_disposition": "needs_trace_repair",
+        "source_dispositions": ["needs_trace_repair"],
         "task_types": ["retrieve"],
         "site": "map",
         "task_count": 1,
@@ -130,3 +130,32 @@ def test_authoring_suite_can_explicitly_include_navigation_without_mutation():
         "navigate",
         "retrieve",
     ]
+
+
+def test_authoring_suite_can_select_response_annotation_tasks():
+    suite = {"tasks": [_task("webarena-1", "retrieve", "shopping")]}
+    qualification = {
+        "tasks": [
+            {"task_id": "webarena-1", "disposition": "needs_response_annotation"}
+        ]
+    }
+
+    result = build_authoring_suite(
+        suite,
+        qualification,
+        source_dispositions={"needs_response_annotation"},
+    )
+
+    assert [task["id"] for task in result["tasks"]] == ["webarena-1"]
+    assert result["benchmark"]["trajectory_authoring"]["source_dispositions"] == [
+        "needs_response_annotation"
+    ]
+
+
+def test_authoring_suite_rejects_unknown_disposition():
+    with pytest.raises(ValueError, match="unsupported authoring"):
+        build_authoring_suite(
+            {"tasks": [_task("webarena-1", "retrieve", "shopping")]},
+            {"tasks": []},
+            source_dispositions={"eligible"},
+        )

@@ -322,6 +322,7 @@ def _run_task(
     artifact_dir: Path,
     *,
     is_retry: bool = False,
+    task_timeout_ms: int = 300_000,
 ) -> dict[str, Any]:
     def record_origin(frame: Any) -> None:
         if frame != page.main_frame:
@@ -349,6 +350,7 @@ def _run_task(
             trace=trace,
             outputs=outputs,
             page_observer=recorder.attach,
+            task_timeout_ms=task_timeout_ms,
         )
         execution_status = "pass"
     except Exception:
@@ -726,6 +728,7 @@ def run_evaluation(
     max_retries: int = 1,
     sample_interval_ms: int = 50,
     settle_ms: int = 1500,
+    task_timeout_ms: int = 300_000,
     cpus: float = 2.0,
     memory: str = "2g",
     llm_diagnostics: bool = False,
@@ -742,6 +745,8 @@ def run_evaluation(
 ) -> dict[str, Any]:
     if max_retries < 0:
         raise ValueError("max_retries must be non-negative")
+    if task_timeout_ms < 1:
+        raise ValueError("task_timeout_ms must be positive")
     if cpus <= 0:
         raise ValueError("cpus must be positive for measured runs")
     if (
@@ -957,6 +962,7 @@ def run_evaluation(
                             evaluator_registry,
                             artifact_dir,
                             is_retry=attempt > 1,
+                            task_timeout_ms=task_timeout_ms,
                         )
                     row["run_id"] = run_id
                     row["qualification_run"] = qualification_run
@@ -1076,6 +1082,7 @@ def run_evaluation(
                 ),
                 "sample_interval_ms": sample_interval_ms,
                 "post_reset_settle_ms": settle_ms,
+                "task_timeout_ms": task_timeout_ms,
                 "primary_attempts_per_task": 1,
                 "max_failure_retries": max_retries,
                 "engine_order": "balanced by task index",

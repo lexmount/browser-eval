@@ -26,12 +26,16 @@ visible text, and test ID. A structured target must resolve to exactly one eleme
 explicitly permits multiple matches. Each action may identify a tab by its zero-based index.
 
 The action allowlist is navigate, click, double click, fill, select, check, uncheck, hover, press,
-get text, get attribute, get property, snapshot, history navigation, and scroll. Readiness waits are
-part of an action and do not count as additional trajectory steps.
+single/all text capture, table-column capture, single/all attribute capture, property capture,
+snapshot, history navigation, and scroll. Readiness waits are part of an action and do not count as
+additional trajectory steps.
 
 Every declared action has the same 30-second default timeout in both datasets and both engines;
 tasks may declare a different timeout in their trajectory. Duration is still measured continuously.
 This avoids turning a 5-second application navigation delay into a false trajectory failure.
+Each task also has a 300-second wall-clock budget. An action receives the smaller of its declared
+timeout and the remaining task budget, so a broken multi-step path cannot accumulate independent
+action timeouts into an unbounded run. The same budget applies to both engines.
 
 ## WebArena trajectory qualification
 

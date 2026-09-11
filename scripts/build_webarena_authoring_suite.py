@@ -20,12 +20,19 @@ def build_authoring_suite(
     target_timeout_ms: int = 5_000,
     task_ids: set[str] | None = None,
     task_types: set[str] | None = None,
+    source_dispositions: set[str] | None = None,
 ) -> dict[str, Any]:
     if target_timeout_ms < 1:
         raise ValueError("authoring target timeout must be positive")
     allowed_task_types = task_types or {"retrieve"}
     if not allowed_task_types or not allowed_task_types <= {"retrieve", "navigate"}:
         raise ValueError("authoring task types must be retrieve and/or navigate")
+    allowed_dispositions = source_dispositions or {"needs_trace_repair"}
+    if not allowed_dispositions or not allowed_dispositions <= {
+        "needs_trace_repair",
+        "needs_response_annotation",
+    }:
+        raise ValueError("unsupported authoring source disposition")
     dispositions = {
         str(row.get("task_id")): row.get("disposition")
         for row in qualification.get("tasks") or []
@@ -33,7 +40,7 @@ def build_authoring_suite(
     selected_ids = []
     for task in suite.get("tasks") or []:
         task_id = str(task.get("id"))
-        if dispositions.get(task_id) != "needs_trace_repair":
+        if dispositions.get(task_id) not in allowed_dispositions:
             continue
         if not allowed_task_types.intersection(task.get("tags") or []):
             continue
@@ -73,7 +80,7 @@ def build_authoring_suite(
         "trajectory_authoring": {
             "non_canonical": True,
             "diagnostic_only": True,
-            "source_disposition": "needs_trace_repair",
+            "source_dispositions": sorted(allowed_dispositions),
             "task_types": sorted(allowed_task_types),
             "site": site,
             "task_count": len(selected_ids),
@@ -92,6 +99,7 @@ def main() -> None:
     parser.add_argument("--target-timeout-ms", type=int, default=5_000)
     parser.add_argument("--task-ids")
     parser.add_argument("--task-types", default="retrieve")
+    parser.add_argument("--source-dispositions", default="needs_trace_repair")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     result = build_authoring_suite(
@@ -106,6 +114,11 @@ def main() -> None:
         ),
         task_types={
             item.strip() for item in args.task_types.split(",") if item.strip()
+        },
+        source_dispositions={
+            item.strip()
+            for item in args.source_dispositions.split(",")
+            if item.strip()
         },
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)

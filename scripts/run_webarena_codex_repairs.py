@@ -123,12 +123,15 @@ observed_json, observed_json_concat, and observed_json_zip. For a navigate or mu
 {{"kind":"null_after_verified_path","task_type":"navigate"}} or the same with task_type
 "mutate". Never put a reference answer or an invented value directly in response_builder.
 
-Keep task_id unchanged. Every action name must be one of: navigate, click, dblclick, fill, select,
-check, uncheck, hover, press, get_text, get_attribute, get_property, snapshot, go_back, go_forward,
-or scroll. There is no evaluate, extract, wait, JavaScript, API, shell, or filesystem action.
-Follow the field shapes already used by the packet's recorded trajectory. Prefer the smallest
-reproducible action change. This is only a proposal: do not claim that it passed qualification, and
-do not edit files.
+Keep task_id unchanged. Every action name must be one of: navigate, click, double_click, fill,
+select, check, uncheck, hover, press, get_text, get_all_text, get_table_column, get_attribute,
+get_all_attribute, get_property, snapshot, back, forward, or scroll. There is no evaluate, extract,
+wait, JavaScript, API, shell, or filesystem action. navigate requires an HTTP(S) url and save_as.
+snapshot/get_text/get_all_text/get_table_column/get_attribute/get_all_attribute/get_property also
+require save_as; attribute/property actions require name; get_table_column requires header. Follow
+the field shapes already used by the packet's recorded trajectory. Prefer the smallest reproducible
+action change. This is only a proposal: do not claim that it passed qualification, and do not edit
+files.
 """
 
 

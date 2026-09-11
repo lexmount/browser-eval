@@ -287,8 +287,9 @@ def test_codex_prompt_declares_the_actual_validator_contract(tmp_path):
     assert '"reason"' in prompt
     assert "Do not emit trajectory" in prompt
     assert "null_after_verified_path" in prompt
-    assert "get_text, get_attribute, get_property, snapshot" in prompt
+    assert "get_text, get_all_text, get_table_column, get_attribute" in prompt
     assert "There is no evaluate" in prompt
+    assert "navigate requires an HTTP(S) url and save_as" in prompt
 
 
 def test_codex_repair_suite_combines_validated_proposals(tmp_path):

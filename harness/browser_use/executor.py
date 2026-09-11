@@ -95,14 +95,31 @@ def execute_steps(
     trace: list[dict[str, Any]] | None = None,
     outputs: dict[str, str] | None = None,
     page_observer: Callable[[Any], None] | None = None,
+    task_timeout_ms: int | None = None,
 ) -> dict[str, str]:
     """Execute declared calls; implicit readiness waits are internal and not calls."""
+    if task_timeout_ms is not None and task_timeout_ms < 1:
+        raise ValueError("task_timeout_ms must be positive when provided")
     captured = outputs if outputs is not None else {}
     records = trace if trace is not None else []
+    deadline = (
+        time.monotonic() + task_timeout_ms / 1000
+        if task_timeout_ms is not None
+        else None
+    )
     for index, call in enumerate(tool_calls, start=1):
         action = call["action"]
         default_timeout = 30_000
-        timeout = int(call.get("timeout_ms", default_timeout))
+        declared_timeout = int(call.get("timeout_ms", default_timeout))
+        if deadline is None:
+            timeout = declared_timeout
+        else:
+            remaining_ms = int((deadline - time.monotonic()) * 1000)
+            if remaining_ms < 1:
+                raise TimeoutError(
+                    f"task wall-clock budget exhausted before action {index}: {action}"
+                )
+            timeout = min(declared_timeout, remaining_ms)
         started = time.perf_counter()
         record = {
             "index": index,
