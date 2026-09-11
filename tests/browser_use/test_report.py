@@ -159,9 +159,10 @@ def test_comparison_components_scale_to_three_browsers(monkeypatch) -> None:
     comparison = _same_task_comparison(tasks, attempts)
     actions = _action_duration_cards(attempts)
 
-    assert comparison.count("data-compare-engine") == 3
-    assert 'data-pass="chromium third"' in comparison
-    assert 'data-fail="moli"' in comparison
+    assert 'id="configuration-matrix"' in comparison
+    assert comparison.count('class="outcome-pill pass"') == 2
+    assert comparison.count('class="outcome-pill fail"') == 1
+    assert "同题全配置矩阵" in comparison
     assert "Third Browser" in comparison
     assert "Third Browser" in actions
     assert "0.040 秒" in actions
@@ -356,9 +357,10 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
     for expected in (
         "BrowserTool 动作延迟",
         "action-card-grid",
-        "浏览器组合对比",
+        "同题全配置对比",
         "browser-comparison",
-        "data-compare-engine",
+        'id="configuration-matrix"',
+        'id="clean-subset-table"',
     ):
         assert expected in analysis
     assert "中位数" not in analysis

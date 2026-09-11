@@ -148,6 +148,75 @@
   ],
   "browser_use_releases": [
     {
+      "id": "2026-09-11-diagnostic-workbench-and-clean-subset",
+      "date": "2026-09-11",
+      "title": "将结果分析改为故障定位台",
+      "summary": "同题比较改为全部模型与浏览器配置矩阵；失败清单改为固定高度的横向诊断表；每个失败详情补齐失败位置、自动判定、复核根因、处理责任、日志与最后页面画面。官方分数不变，另提供排除已证实外部干扰的诊断子集。",
+      "attempts_sha256_by_model": {
+        "gpt-5.6-sol": "73146500152db62d79f84b63c85a14027c005a6320c19bce7426651f167466bd",
+        "gpt-6-astra": "0659d227cf6d29fbfaf64d39f8e77a56bec73c87f7f6e1f2ac23ea13fd9b667c"
+      },
+      "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+      "changes": [
+        [
+          "同题比较",
+          "旧页面要求先选基准浏览器再做两两比较，无法同时观察全部配置。",
+          "改为每题一行、全部模型×浏览器配置为列的动态矩阵。",
+          "新增模型或浏览器只增加配置列，不再复制比较模块。"
+        ],
+        [
+          "失败定位",
+          "结果清单混入长原因和耗时字段，行高失控，且无法直接进入失败证据。",
+          "改为固定高度横向表，只保留失败位置、自动定位、复核根因、处理责任和证据入口。",
+          "完整 evaluator、轨迹、日志和原因留在结果详情，不在清单重复。"
+        ],
+        [
+          "证据页面",
+          "失败详情缺少从判定到具体轨迹、日志和可见页面状态的连续入口。",
+          "增加失败诊断区、轨迹步骤锚点，并从私有 trace 提取最后三张页面画面；原始 trace 仍不公开。",
+          "读者可从失败阶段直达相关轨迹，并核对日志与最后可见状态。"
+        ],
+        [
+          "干扰项处理",
+          "官方分数混合了模型/浏览器信号与已确认的题目、站点、共享环境和参考状态问题。",
+          "保留官方 90 题分数，同时按任务统一剔除已确认外部干扰，发布非官方诊断子集和修复登记。",
+          "诊断子集的四个配置使用相同分母；修复项必须完整重跑后才能重新纳入。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Turn Results into a failure-diagnosis workbench",
+          "summary": "Same-task comparison now uses a matrix across every model and browser configuration. The failure inventory is a fixed-height horizontal diagnosis table, and each failed result exposes its failure stage, automatic classification, reviewed root cause, remediation owner, logs, and final page frames. Official scores are unchanged; a separate diagnostic subset removes confirmed external interference.",
+          "changes": [
+            [
+              "Same-task comparison",
+              "The previous page required a baseline browser and pairwise comparisons, preventing a simultaneous view of every configuration.",
+              "Replaced it with a dynamic matrix with one task per row and every model-by-browser configuration as columns.",
+              "New models or browsers add configuration columns without duplicating comparison modules."
+            ],
+            [
+              "Failure location",
+              "The result inventory mixed long causes and latency fields, producing uncontrolled row heights and no direct route to failure evidence.",
+              "Replaced it with a fixed-height horizontal table containing failure stage, automatic locator, reviewed cause, owner/treatment, and evidence links.",
+              "Complete evaluator output, trajectory, logs, and cause remain on the result detail page without duplication."
+            ],
+            [
+              "Evidence pages",
+              "Failed-result pages lacked a continuous route from the verdict to the relevant trajectory, logs, and visible page state.",
+              "Added a diagnosis section, trajectory-step anchors, and the last three page frames extracted from the private trace while keeping the trace itself private.",
+              "Readers can jump from the failure stage to nearby trajectory evidence and inspect logs and final visible state."
+            ],
+            [
+              "Interference treatment",
+              "Official scores combined model/browser signal with confirmed task, site, shared-environment, and reference-state problems.",
+              "Kept the official 90-task scores and added a non-official diagnostic subset that removes confirmed external interference at task level, plus a remediation registry.",
+              "All four configurations use the same diagnostic denominator; remediated tasks require a complete rerun before readmission."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "2026-09-11-reader-first-report-and-sites-migration",
       "date": "2026-09-11",
       "title": "重排结果首页并迁移到正式 Sites",

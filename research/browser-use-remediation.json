@@ -1,0 +1,37 @@
+{
+  "schema": "lex_browser_use_remediation/1",
+  "updated_at": "2026-09-11",
+  "score_policy": "Official results remain unchanged. A task is excluded from the post-hoc diagnostic clean subset across every configuration when any verified result is affected by benchmark/evaluator, site, shared-environment, or mixed reference-state interference.",
+  "items": [
+    {
+      "category": "shared_environment",
+      "task_ids": [77],
+      "status": "implementation_fixed_rerun_required",
+      "action": "The full physical-attempt lifecycle is now protected by a cross-process lock. Rerun the affected task before admitting it to the clean comparison."
+    },
+    {
+      "category": "benchmark_or_evaluator",
+      "task_ids": [339, 475, 528, 600, 625, 676, 699, 771],
+      "status": "quarantined_pending_contract_fix",
+      "action": "Correct and independently validate the task contract or evaluator, then preregister and rerun the complete four-configuration scope."
+    },
+    {
+      "category": "self_hosted_site",
+      "task_ids": [470, 547, 605, 694],
+      "status": "quarantined_pending_site_fix",
+      "action": "Repair the dependency or save path, add task-relevant read/write readiness checks, then rerun the complete four-configuration scope."
+    },
+    {
+      "category": "reference_state_mixed",
+      "task_ids": [279],
+      "status": "quarantined_pending_reference_refreeze",
+      "action": "Refreeze the expected state before execution and rerun all configurations so the Agent contribution can be separated from reference drift."
+    },
+    {
+      "category": "browser_evidence_capture",
+      "task_ids": [448, 506, 595, 676],
+      "status": "retained_as_browser_integration_signal",
+      "action": "Keep in the primary browser comparison because HAR completeness is part of the browser integration contract; improve response-body and Referer capture and rerun."
+    }
+  ]
+}

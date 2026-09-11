@@ -49,6 +49,15 @@ def _route_classes(report: Path) -> list[Path]:
         pages = sorted((report / folder).glob("*.html"))
         if pages:
             dynamic.append(pages[0].relative_to(report).as_posix())
+        if folder == "results":
+            failed_page = next(
+                (page for page in pages if 'id="diagnosis"' in page.read_text(encoding="utf-8")),
+                None,
+            )
+            if failed_page:
+                failed_route = failed_page.relative_to(report).as_posix()
+                if failed_route not in dynamic:
+                    dynamic.append(failed_route)
     chinese = [report / name for name in (*fixed, *dynamic)]
     routes = chinese + [report / "en" / page.relative_to(report) for page in chinese]
     missing = [path for path in routes if not path.is_file()]

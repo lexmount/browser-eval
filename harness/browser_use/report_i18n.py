@@ -1226,6 +1226,46 @@ TEXT.update(
     }
 )
 
+TEXT.update(
+    {
+        "同题全配置对比": "Same-task comparison across all configurations",
+        "每道任务同时展示全部模型×浏览器结果，不做两两拆分，也不用不同成功样本拼接结论。": "Each task shows every model-by-browser outcome together. The report does not split them into pairwise views or combine different successful subsets.",
+        "同题全配置矩阵": "Same-task all-configuration matrix",
+        "每行是同一任务，每列是一个模型×浏览器配置。新增配置只增加列。": "Each row is one task and each column is one model-by-browser configuration. New configurations add columns only.",
+        "关系": "Outcome pattern",
+        "结果有差异": "Outcomes differ",
+        "全部通过": "All pass",
+        "全部失败": "All fail",
+        "排除已证实外部干扰后的诊断子集": "Diagnostic subset after removing confirmed external interference",
+        "官方 90 题结果保持不变。为了看清浏览器和模型差异，下表暂时排除已核验为评测合同、站点、共享环境或参考状态问题的整道任务。": "The official 90-task results remain unchanged. To isolate browser and model differences, this table temporarily removes every task confirmed to have a task-contract, site, shared-environment, or reference-state problem.",
+        "这是事后诊断口径，不是官方新分数。它按任务统一剔除任一配置已证实受任务/evaluator、站点、共享环境或参考状态干扰的任务，保证四个配置分母一致。": "This is a post-hoc diagnostic view, not a new official score. It removes a whole task across all configurations when any result is confirmed to be affected by task/evaluator, site, shared-environment, or reference-state interference, keeping denominators aligned.",
+        "失败诊断": "Failure diagnosis",
+        "失败位置": "Failure stage",
+        "人工复核根因": "Reviewed root cause",
+        "负责对象与处理": "Owner and treatment",
+        "页面画面": "Page frames",
+        "查看 evaluator 断言": "View evaluator assertions",
+        "查看失败附近轨迹": "View trajectory near the failure",
+        "查看最后页面画面": "View final page frames",
+        "下载执行日志": "Download execution log",
+        "核验依据：": "Review evidence:",
+        "对比口径：": "Comparison treatment:",
+        "该结果已确认含非模型/浏览器干扰，官方分数保留，但暂不纳入干净子集。": "This result contains confirmed interference outside the model/browser variables. Its official score is retained, but it is temporarily excluded from the clean subset.",
+        "失败执行的最后页面画面": "Final page frames from the failed execution",
+        "下图是判分权威执行的最后页面画面，用于核对失败前的可见状态；它们不一定正好对应错误发生的瞬间。": "These are the final page frames from the scoring execution. They help verify visible state before failure but may not capture the exact instant the error occurred.",
+        "是否属于目标变量": "Target variable?",
+        "处理": "Treatment",
+        "运行配置": "Run configuration",
+        "复核根因": "Reviewed root cause",
+        "负责对象与处理": "Owner and treatment",
+        "证据": "Evidence",
+        "诊断": "Diagnosis",
+        "画面": "Frames",
+        "日志": "Logs",
+        "详情": "Details"
+    }
+)
+
 
 PHRASES = {
     "步骤预算耗尽": "Step budget exhausted",
@@ -1269,6 +1309,15 @@ PHRASES = {
     "个失败结果": " failed results",
     "实际": "actual",
     "期望": "expected",
+    "环境准备后、Agent 读取前": "After environment preparation and before the Agent read",
+    "运行结束后的 evaluator 验收": "Evaluator acceptance after execution",
+    "运行结束后的网络证据验收": "Network-evidence acceptance after execution",
+    "最终回答/任务状态": "Final answer/task state",
+    "BrowserTool 执行异常": "BrowserTool execution error",
+    "步后达到步骤上限": " steps: step limit reached",
+    "步后的最终回答/任务状态": " steps: final answer/task state",
+    "步后的站点响应/保存": " steps: site response/save",
+    "最后页面画面": "Final page frame",
     "暂无发布记录。": "No release has been recorded.",
 }
 

@@ -20,23 +20,24 @@ const rows = [
   {dataset: {tier: 'easy', result: 'pass', model: 'model-a', engine: 'chromium'}, textContent: 'complete'},
 ];
 const count = {textContent: ''};
-const browserControls = {
-  'browser-model': {value: 'model-a', options: [{value: 'model-a'}, {value: 'model-b'}], addEventListener() {}},
-  'browser-a': {value: 'chromium', options: [{value: 'chromium'}, {value: 'moli'}], addEventListener() {}},
-  'browser-relation': {value: 'mixed', options: [{value: 'mixed'}, {value: 'all_fail'}], addEventListener() {}},
-  'browser-kind': {value: '', options: [{value: ''}, {value: 'RETRIEVE'}], addEventListener() {}},
-  'browser-compare-count': {textContent: ''},
-};
-const comparisonLabel = {classList: {toggle() {}}};
-const compareChecks = [
-  {value: 'chromium', checked: false, disabled: false, closest() { return comparisonLabel; }, addEventListener() {}},
-  {value: 'moli', checked: true, disabled: false, closest() { return comparisonLabel; }, addEventListener() {}},
+const matrixControls = [
+  {dataset: {matrixFilter: 'relation'}, value: 'mixed', addEventListener() {}},
+  {dataset: {matrixFilter: 'kind'}, value: '', addEventListener() {}},
 ];
 const comparisonRows = [
-  {dataset: {model: 'model-a', pass: 'chromium', fail: 'moli', kind: 'RETRIEVE'}},
-  {dataset: {model: 'model-a', pass: 'chromium moli', fail: '', kind: 'NAVIGATE'}},
-  {dataset: {model: 'model-a', pass: '', fail: 'chromium moli', kind: 'MUTATE'}},
+  {dataset: {tier: 'hard', relation: 'mixed', kind: 'RETRIEVE'}},
+  {dataset: {tier: 'easy', relation: 'all_pass', kind: 'NAVIGATE'}},
+  {dataset: {tier: 'medium', relation: 'all_fail', kind: 'MUTATE'}},
 ];
+const matrixCount = {textContent: ''};
+const matrixRoot = {
+  querySelectorAll(selector) {
+    if (selector === '[data-matrix-filter]') return matrixControls;
+    if (selector === 'tbody tr[data-tier]') return comparisonRows;
+    return [];
+  },
+  querySelector(selector) { return selector === '[data-matrix-count]' ? matrixCount : null; },
+};
 const listeners = {};
 const storage = new Map();
 let replaced = '';
@@ -53,15 +54,13 @@ const document = {
   querySelectorAll(selector) {
     if (selector === '[data-filter]') return controls;
     if (selector === '[data-search]') return [search];
-    if (selector === 'tbody tr[data-tier]') return rows;
+    if (selector === 'tbody tr[data-tier]:not([data-relation])') return rows;
     if (selector === '[data-visible-count]') return [count];
-    if (selector === '[data-browser-compare-control],[data-compare-engine]') return [...Object.values(browserControls).filter(x => x.addEventListener), ...compareChecks];
-    if (selector === '[data-compare-engine]') return compareChecks;
-    if (selector === '#browser-compare-rows tr') return comparisonRows;
+    if (selector === '[data-matrix-filter]') return matrixControls;
     return [];
   },
   querySelector(selector) { return selector === '[data-search]' ? search : null; },
-  getElementById(id) { return browserControls[id] ?? null; },
+  getElementById(id) { return id === 'configuration-matrix' ? matrixRoot : null; },
 };
 const context = vm.createContext({
   URL,
@@ -87,19 +86,11 @@ assert.equal(controls[0].value, 'fail');
 assert.deepEqual(rows.map(row => row.hidden), [false, true]);
 assert.equal(count.textContent, '1 / 2');
 assert.deepEqual(comparisonRows.map(row => row.hidden), [false, true, true]);
-assert.equal(browserControls['browser-compare-count'].textContent, '找到 1 个任务');
-assert.equal(compareChecks[0].disabled, true);
+assert.equal(matrixCount.textContent, '1 / 3');
 
-location.search = '?b_a=retired&b_relation=unknown&b_others=retired';
-vm.runInContext('restoreView()', context);
-assert.equal(browserControls['browser-a'].value, 'chromium');
-assert.equal(browserControls['browser-relation'].value, 'mixed');
-assert.equal(compareChecks[1].checked, true, 'invalid saved browsers must fall back to a valid comparison');
-
-browserControls['browser-relation'].value = 'all_fail';
-vm.runInContext('compareBrowsers()', context);
+matrixControls[0].value = 'all_fail';
+vm.runInContext('filterMatrix()', context);
 assert.deepEqual(comparisonRows.map(row => row.hidden), [true, true, false]);
-assert.match(replaced, /b_relation=all_fail/);
 
 controls[0].value = 'pass';
 search.value = '';

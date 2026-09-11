@@ -11,6 +11,7 @@ import re
 import shutil
 import statistics
 import tempfile
+import zipfile
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
 from pathlib import Path
@@ -748,12 +749,12 @@ def _task_family_table(families: list[dict[str, Any]]) -> str:
 
 def _failure_cause_table(verified_causes: dict[str, dict[str, Any]]) -> str:
     groups = {
-        "agent": ("Agent 决策或操作", "检索不完整、候选选择错误、走错页面、字段遗漏，或没有在步骤上限内完成。"),
-        "benchmark": ("任务或 evaluator", "任务要求与验收条件冲突，或 evaluator 的路由、表单和实现规则有缺陷。"),
-        "site": ("测试网站", "自托管网站的依赖、会话或保存接口失败。"),
-        "evidence": ("浏览器证据记录", "页面操作可能成功，但网络记录缺少响应正文或 Referer，evaluator 无法确认。"),
-        "environment": ("共享测试环境", "并发运行改写了同一网站状态；运行器现已串行化，历史结果仍按原证据保留。"),
-        "mixed": ("多项原因", "同一结果同时包含 Agent 遗漏和冻结参考状态差异。"),
+        "agent": ("Agent / 模型", "是", "保留为对比信号；通过轨迹修正检索、选择和提交策略。"),
+        "benchmark": ("任务 / evaluator", "否", "修正任务合同或 evaluator，验证后重跑；重跑前不进入干净子集。"),
+        "site": ("自托管站点", "否", "修复依赖、会话或保存链路，增加任务级写入预检后重跑。"),
+        "evidence": ("浏览器证据接口", "是", "保留为浏览器集成信号；补齐响应正文或 Referer 采集后重跑。"),
+        "environment": ("共享测试环境", "否", "跨进程串行锁已上线；受污染任务待重跑。"),
+        "mixed": ("参考状态 + Agent", "否", "先重新冻结参考状态，再重跑区分 Agent 错误。"),
     }
 
     def group_for(code: str) -> str:
@@ -774,16 +775,50 @@ def _failure_cause_table(verified_causes: dict[str, dict[str, Any]]) -> str:
         total = sum(counts[key].values())
         if not total:
             continue
-        details = "；".join(
-            f"{label} {count}"
-            for label, count in sorted(counts[key].items(), key=lambda item: (-item[1], item[0]))
-        )
-        rows.append([groups[key][0], total, details, groups[key][1]])
+        rows.append([groups[key][0], total, groups[key][1], groups[key][2]])
     return _table(
-        ["原因所在", "失败结果数", "具体分类", "说明"],
+        ["原因所在", "失败结果数", "是否属于目标变量", "处理"],
         rows,
         table_id="failure-cause-table",
         classes="wide-data-table",
+    )
+
+
+def _external_interference_task_ids(
+    verified_causes: dict[str, dict[str, Any]],
+) -> set[int]:
+    prefixes = ("benchmark_", "site_", "environment_", "mixed_")
+    return {
+        int(result_id.rsplit("-", 1)[-1])
+        for result_id in verified_causes
+        if _cause_code(verified_causes, result_id).startswith(prefixes)
+    }
+
+
+def _clean_subset_table(
+    attempts: list[dict[str, Any]], verified_causes: dict[str, dict[str, Any]]
+) -> str:
+    excluded = _external_interference_task_ids(verified_causes)
+    kept = [row for row in attempts if int(row["task_id"]) not in excluded]
+    summary = _primary_summary(kept)
+    return (
+        _table(
+            ["模型", "浏览器", "通过任务", "通过率"],
+            [
+                [
+                    MODEL_LABELS[model],
+                    ENGINE_LABELS[engine],
+                    f"{summary[model][engine]['passed']}/{summary[model][engine]['completed']}",
+                    _pct(summary[model][engine]["score"]),
+                ]
+                for model in MODEL_LABELS
+                for engine in ENGINE_LABELS
+            ],
+            table_id="clean-subset-table",
+            classes="core-comparison-table",
+        )
+        + '<p class="fine">这是事后诊断口径，不是官方新分数。它按任务统一剔除任一配置已证实受任务/evaluator、站点、共享环境或参考状态干扰的任务，保证四个配置分母一致。'
+        f'本轮剔除 {len(excluded)} 题：{_e("、".join(f"#{task_id}" for task_id in sorted(excluded)))}。</p>'
     )
 
 
@@ -844,91 +879,74 @@ def _adoption_top3(evidence: dict[str, Any]) -> str:
 
 
 def _same_task_comparison(tasks: list[dict[str, Any]], attempts: list[dict[str, Any]]) -> str:
+    """Render one task-by-configuration matrix; never reduce it to pairwise controls."""
+
     results = {(_row_model(row), str(row["engine"]), int(row["task_id"])): row for row in attempts}
-    ordered = [BASELINE_ENGINE, *(engine for engine in ENGINE_LABELS if engine != BASELINE_ENGINE)]
-    if len(ordered) < 2:
-        return '<p class="muted-box">至少需要两个参评浏览器才能进行同题比较。</p>'
+    engines = [BASELINE_ENGINE, *(engine for engine in ENGINE_LABELS if engine != BASELINE_ENGINE)]
+    configurations = [(model, engine) for model in MODEL_LABELS for engine in engines]
+    if len(configurations) < 2:
+        return '<p class="muted-box">至少需要两个参评配置才能进行同题比较。</p>'
 
     rows = []
-    for model in MODEL_LABELS:
-        for task in tasks:
-            task_id = int(task["task_id"])
-            present = [engine for engine in ordered if (model, engine, task_id) in results]
-            passed = [
-                engine
-                for engine in present
-                if float(results[(model, engine, task_id)]["score"]) == 1
-            ]
-            failed = [engine for engine in present if engine not in passed]
-
-            def outcome_links(
-                engines: list[str], state: str, *, model: str = model, task_id: int = task_id
-            ) -> str:
-                if not engines:
-                    return "—"
-                return (
-                    '<span class="outcome-list">'
-                    + "".join(
-                        f'<a class="outcome-pill {state}" href="results/{model}-{engine}-{task_id}.html">'
-                        f"{_e(ENGINE_LABELS[engine])}</a>"
-                        for engine in engines
-                    )
-                    + "</span>"
-                )
-
-            site = str(task["sites"][0])
-            attrs = (
-                f' data-model="{_e(model)}" data-pass="{_e(" ".join(passed))}"'
-                f' data-fail="{_e(" ".join(failed))}" data-kind="{_e(task["task_type"])}"'
+    for task in tasks:
+        task_id = int(task["task_id"])
+        states = []
+        cells = []
+        for model, engine in configurations:
+            result = results.get((model, engine, task_id))
+            if result is None:
+                state, label = "missing", "未测"
+            elif float(result["score"]) == 1:
+                state, label = "pass", "通过"
+            else:
+                state, label = "fail", "失败"
+            states.append(state)
+            cells.append(
+                f'<td><a class="outcome-pill {state}" href="results/{model}-{engine}-{task_id}.html">'
+                f"{label}</a></td>"
+                if result is not None
+                else '<td><span class="outcome-pill missing">未测</span></td>'
             )
-            task_cell = (
-                f'<div class="task-cell"><a href="datasets/{task_id}.html">#{task_id} · '
-                f'{_e(task["rationale"])}</a><div class="task-meta">'
-                f'<span class="track-badge">{_e(MODEL_LABELS[model])}</span>'
-                f'<span class="track-badge">{_e(TIER_LABELS[task["tier"]])}</span>'
-                f'<span class="track-badge">{_e(SITE_LABELS.get(site, site))}</span>'
-                f'<span class="track-badge">{_e(task["task_type"])}</span></div></div>'
-            )
-            rows.append(
-                f"<tr{attrs}><td>{task_cell}</td><td>{outcome_links(passed, 'pass')}</td>"
-                f"<td>{outcome_links(failed, 'fail')}</td></tr>"
-            )
+        present = [state for state in states if state != "missing"]
+        relation = (
+            "all_pass"
+            if present and all(state == "pass" for state in present)
+            else "all_fail"
+            if present and all(state == "fail" for state in present)
+            else "mixed"
+        )
+        site = str(task["sites"][0])
+        task_cell = (
+            f'<div class="task-cell"><a href="datasets/{task_id}.html">#{task_id} · '
+            f'{_e(task["rationale"])}</a><div class="task-meta">'
+            f'<span class="track-badge">{_e(TIER_LABELS[task["tier"]])}</span>'
+            f'<span class="track-badge">{_e(SITE_LABELS.get(site, site))}</span>'
+            f'<span class="track-badge">{_e(task["task_type"])}</span></div></div>'
+        )
+        rows.append(
+            f'<tr data-tier="{_e(task["tier"])}" data-site="{_e(site)}" '
+            f'data-kind="{_e(task["task_type"])}" data-relation="{relation}" '
+            f'data-search="{_e(str(task.get("intent") or task.get("rationale") or ""))}">'
+            f"<td>{task_cell}</td>{''.join(cells)}</tr>"
+        )
 
-    options = "".join(
-        f'<option value="{_e(engine)}"{" selected" if engine == BASELINE_ENGINE else ""}>'
-        f"{_e(ENGINE_LABELS[engine])}</option>"
-        for engine in ordered
-    )
-    checks = "".join(
-        f'<label><input type="checkbox" value="{_e(engine)}" data-compare-engine'
-        f"{' checked' if engine == ordered[1] else ''}> {_e(ENGINE_LABELS[engine])}</label>"
-        for engine in ordered
-    )
-    kinds = '<option value="">全部类型</option>' + "".join(
-        f'<option value="{kind}">{kind}</option>' for kind in ("RETRIEVE", "NAVIGATE", "MUTATE")
+    headers = "".join(
+        f"<th>{_e(MODEL_LABELS[model])}<br><span class=\"table-kicker\">{_e(ENGINE_LABELS[engine])}</span></th>"
+        for model, engine in configurations
     )
     return (
-        '<article class="browser-comparison"><header class="comparison-heading"><div>'
-        "<h3>同题结果组合</h3><p>选择一个基准浏览器和一个或多个对比浏览器；浏览器标签可直达该题完整结果。</p>"
-        '</div><b class="comparison-count" id="browser-compare-count" role="status" aria-live="polite"></b></header>'
-        '<div class="comparison-controls">'
-        '<label>模型<select id="browser-model" data-browser-compare-control>'
-        + "".join(
-            f'<option value="{_e(model)}">{_e(label)}</option>'
-            for model, label in MODEL_LABELS.items()
-        )
-        + "</select></label>"
-        f'<label>浏览器 A<select id="browser-a" data-browser-compare-control>{options}</select></label>'
-        '<label>比较条件<select id="browser-relation" data-browser-compare-control>'
-        '<option value="mixed">结果有分歧</option><option value="a_pass_others_fail">A 通过，其余失败</option>'
-        '<option value="a_fail_others_pass">A 失败，其余通过</option><option value="all_pass">所选浏览器全部通过</option>'
-        '<option value="all_fail" selected>所选浏览器全部失败</option><option value="exact_pass">仅所选浏览器通过</option>'
-        f'</select></label><label>任务类型<select id="browser-kind" data-browser-compare-control>{kinds}</select></label></div>'
-        '<fieldset class="comparison-browsers"><legend>对比浏览器（可多选）</legend>'
-        f'<div class="browser-checks">{checks}</div></fieldset>'
-        '<div class="comparison-result"><div class="table-wrap"><table class="comparison-table">'
-        "<thead><tr><th>任务</th><th>通过浏览器</th><th>失败浏览器</th></tr></thead>"
-        f'<tbody id="browser-compare-rows">{"".join(rows)}</tbody></table></div></div></article>'
+        '<article class="browser-comparison" id="configuration-matrix"><header class="comparison-heading"><div>'
+        "<h3>同题全配置矩阵</h3><p>每行是同一任务，每列是一个模型×浏览器配置。新增配置只增加列。</p></div>"
+        '<b class="comparison-count" data-matrix-count></b></header>'
+        '<div class="filters matrix-filters"><label>关系 <select data-matrix-filter="relation"><option value="">全部</option>'
+        '<option value="mixed" selected>结果有差异</option><option value="all_pass">全部通过</option>'
+        '<option value="all_fail">全部失败</option></select></label>'
+        '<label>层级 <select data-matrix-filter="tier"><option value="">全部</option><option value="easy">简单</option><option value="medium">中等</option><option value="hard">困难</option></select></label>'
+        '<label>站点 <select data-matrix-filter="site"><option value="">全部</option><option value="shopping">Shopping</option><option value="shopping_admin">Shopping Admin</option><option value="reddit">Reddit</option><option value="gitlab">GitLab</option></select></label>'
+        '<label>类型 <select data-matrix-filter="kind"><option value="">全部</option><option>RETRIEVE</option><option>NAVIGATE</option><option>MUTATE</option></select></label></div>'
+        '<div class="comparison-result"><div class="table-wrap"><table class="comparison-table configuration-matrix">'
+        f"<thead><tr><th>任务</th>{headers}</tr></thead>"
+        f'<tbody>{"".join(rows)}</tbody></table></div></div></article>'
     )
 
 
@@ -1131,15 +1149,14 @@ def _summary_comparison_rows(summary: dict[str, dict[str, dict[str, Any]]]) -> l
 
 REPORT_JS = """function theme(){const r=document.documentElement,n=r.dataset.theme==='dark'?'light':'dark';r.dataset.theme=n;try{localStorage.setItem('browser-use-theme',n)}catch(e){}}
 function updateViewUrl(){const u=new URL(location.href),q=document.querySelector('[data-search]');[...u.searchParams.keys()].filter(k=>k==='q'||k.startsWith('f_')).forEach(k=>u.searchParams.delete(k));if(q?.value)u.searchParams.set('q',q.value);document.querySelectorAll('[data-filter]').forEach(c=>{if(c.value)u.searchParams.set('f_'+c.dataset.filter,c.value)});history.replaceState(null,'',u.pathname+(u.search?'?'+u.searchParams.toString():'')+u.hash)}
-function filterRows(save=true){const controls=[...document.querySelectorAll('[data-filter]')],query=(document.querySelector('[data-search]')?.value||'').trim().toLowerCase();let visible=0,total=0;document.querySelectorAll('tbody tr[data-tier]').forEach(r=>{total++;const hidden=Boolean(controls.some(c=>c.value&&r.dataset[c.dataset.filter]!==c.value)||(query&&!String(r.dataset.search||r.textContent).toLowerCase().includes(query)));r.hidden=hidden;if(!hidden)visible++});document.querySelectorAll('[data-visible-count]').forEach(x=>x.textContent=visible+' / '+total);if(save)updateViewUrl()}
+function filterRows(save=true){const controls=[...document.querySelectorAll('[data-filter]')],query=(document.querySelector('[data-search]')?.value||'').trim().toLowerCase();let visible=0,total=0;document.querySelectorAll('tbody tr[data-tier]:not([data-relation])').forEach(r=>{total++;const hidden=Boolean(controls.some(c=>c.value&&r.dataset[c.dataset.filter]!==c.value)||(query&&!String(r.dataset.search||r.textContent).toLowerCase().includes(query)));r.hidden=hidden;if(!hidden)visible++});document.querySelectorAll('[data-visible-count]').forEach(x=>x.textContent=visible+' / '+total);if(save)updateViewUrl()}
+function filterMatrix(){const root=document.getElementById('configuration-matrix');if(!root)return;const controls=[...root.querySelectorAll('[data-matrix-filter]')];let visible=0,total=0;root.querySelectorAll('tbody tr[data-tier]').forEach(r=>{total++;const hidden=controls.some(c=>c.value&&r.dataset[c.dataset.matrixFilter]!==c.value);r.hidden=hidden;if(!hidden)visible++});const count=root.querySelector('[data-matrix-count]');if(count)count.textContent=visible+' / '+total}
 function applySort(t,col,dir){const b=t?.tBodies[0];if(!b)return;[...b.rows].sort((a,z)=>{const av=a.cells[col]?.dataset.sort||a.cells[col]?.textContent||'',zv=z.cells[col]?.dataset.sort||z.cells[col]?.textContent||'';const an=Number(av.replace(/[^0-9.-]/g,'')),zn=Number(zv.replace(/[^0-9.-]/g,''));const cmp=!Number.isNaN(an)&&!Number.isNaN(zn)?an-zn:av.localeCompare(zv,'zh-CN');return dir==='asc'?cmp:-cmp}).forEach(r=>b.appendChild(r));t.dataset.col=String(col);t.dataset.dir=dir}
 function sortTable(id,col){const t=document.getElementById(id);if(!t)return;const dir=t.dataset.col==col&&t.dataset.dir==='asc'?'desc':'asc';applySort(t,col,dir);const u=new URL(location.href);u.searchParams.set('sort',id+':'+col+':'+dir);history.replaceState(null,'',u.pathname+'?'+u.searchParams.toString()+u.hash)}
-function browserOutcomes(row,key){return new Set((row.dataset[key]||'').split(' ').filter(Boolean))}
-function compareBrowsers(save=true){const model=document.getElementById('browser-model'),a=document.getElementById('browser-a'),relation=document.getElementById('browser-relation'),kind=document.getElementById('browser-kind'),count=document.getElementById('browser-compare-count');if(!model||!a||!relation||!kind||!count)return;const boxes=[...document.querySelectorAll('[data-compare-engine]')];boxes.forEach(box=>{box.disabled=box.value===a.value;box.closest('label')?.classList.toggle('disabled',box.disabled);if(box.disabled)box.checked=false});const others=boxes.filter(box=>box.checked&&!box.disabled).map(box=>box.value),selected=[a.value,...others];let shown=0;document.querySelectorAll('#browser-compare-rows tr').forEach(row=>{const pass=browserOutcomes(row,'pass'),fail=browserOutcomes(row,'fail');let match=row.dataset.model===model.value&&others.length>0&&(!kind.value||row.dataset.kind===kind.value);if(match)match={mixed:selected.some(x=>pass.has(x))&&selected.some(x=>fail.has(x)),a_pass_others_fail:pass.has(a.value)&&others.every(x=>fail.has(x)),a_fail_others_pass:fail.has(a.value)&&others.every(x=>pass.has(x)),all_pass:selected.every(x=>pass.has(x)),all_fail:selected.every(x=>fail.has(x)),exact_pass:selected.every(x=>pass.has(x))&&pass.size===selected.length}[relation.value];row.hidden=!match;if(match)shown++});count.textContent=others.length?(document.documentElement.lang==='en'?shown+' tasks found':'找到 '+shown+' 个任务'):(document.documentElement.lang==='en'?'Select at least one comparison browser':'请至少选择一个对比浏览器');if(save){const u=new URL(location.href);['b_model','b_a','b_relation','b_kind','b_others'].forEach(k=>u.searchParams.delete(k));u.searchParams.set('b_model',model.value);u.searchParams.set('b_a',a.value);u.searchParams.set('b_relation',relation.value);if(kind.value)u.searchParams.set('b_kind',kind.value);if(others.length)u.searchParams.set('b_others',others.join(','));history.replaceState(null,'',u.pathname+(u.search?'?'+u.searchParams.toString():'')+u.hash)}}
 function applyAnchor(){if(!location.hash)return;const id=decodeURIComponent(location.hash.slice(1)),target=document.getElementById(id);if(target?.scrollIntoView)requestAnimationFrame(()=>target.scrollIntoView({block:'start'}))}
 function hasOption(control,value){return !control?.options||[...control.options].some(option=>option.value===value)}
-function restoreView(){const p=new URLSearchParams(location.search),q=document.querySelector('[data-search]');if(q&&p.has('q'))q.value=p.get('q')||'';document.querySelectorAll('[data-filter]').forEach(c=>{const v=p.get('f_'+c.dataset.filter);if(v!==null&&hasOption(c,v))c.value=v});const model=document.getElementById('browser-model'),a=document.getElementById('browser-a'),relation=document.getElementById('browser-relation'),kind=document.getElementById('browser-kind'),boxes=[...document.querySelectorAll('[data-compare-engine]')],allowed=new Set(boxes.map(box=>box.value)),others=new Set((p.get('b_others')||'').split(',').filter(value=>allowed.has(value)));if(model&&p.has('b_model')&&hasOption(model,p.get('b_model')))model.value=p.get('b_model');if(a&&p.has('b_a')&&hasOption(a,p.get('b_a')))a.value=p.get('b_a');if(relation&&p.has('b_relation')&&hasOption(relation,p.get('b_relation')))relation.value=p.get('b_relation');if(kind&&p.has('b_kind')&&hasOption(kind,p.get('b_kind')))kind.value=p.get('b_kind');boxes.forEach(box=>{if(p.has('b_others'))box.checked=others.has(box.value)});if(boxes.length>1&&!boxes.some(box=>box.checked&&box.value!==a?.value)){const fallback=boxes.find(box=>box.value!==a?.value);if(fallback)fallback.checked=true}const s=(p.get('sort')||'').split(':');if(s.length===3)applySort(document.getElementById(s[0]),Number(s[1]),s[2]);filterRows(false);compareBrowsers(false);try{if(!location.hash){const y=sessionStorage.getItem('browser-use-scroll:'+location.pathname+location.search);if(y!==null)requestAnimationFrame(()=>scrollTo(0,Number(y)||0))}}catch(e){}}
-document.addEventListener('DOMContentLoaded',()=>{try{document.documentElement.dataset.theme=localStorage.getItem('browser-use-theme')||'light'}catch(e){}restoreView();applyAnchor();document.querySelectorAll('[data-filter]').forEach(x=>x.addEventListener('change',()=>filterRows()));document.querySelectorAll('[data-search]').forEach(x=>x.addEventListener('input',()=>filterRows()));document.querySelectorAll('[data-browser-compare-control],[data-compare-engine]').forEach(x=>x.addEventListener('change',()=>compareBrowsers()))});addEventListener('pagehide',()=>{try{sessionStorage.setItem('browser-use-scroll:'+location.pathname+location.search,String(scrollY))}catch(e){}});"""
+function restoreView(){const p=new URLSearchParams(location.search),q=document.querySelector('[data-search]');if(q&&p.has('q'))q.value=p.get('q')||'';document.querySelectorAll('[data-filter]').forEach(c=>{const v=p.get('f_'+c.dataset.filter);if(v!==null&&hasOption(c,v))c.value=v});const s=(p.get('sort')||'').split(':');if(s.length===3)applySort(document.getElementById(s[0]),Number(s[1]),s[2]);filterRows(false);filterMatrix();try{if(!location.hash){const y=sessionStorage.getItem('browser-use-scroll:'+location.pathname+location.search);if(y!==null)requestAnimationFrame(()=>scrollTo(0,Number(y)||0))}}catch(e){}}
+document.addEventListener('DOMContentLoaded',()=>{try{document.documentElement.dataset.theme=localStorage.getItem('browser-use-theme')||'light'}catch(e){}restoreView();applyAnchor();document.querySelectorAll('[data-filter]').forEach(x=>x.addEventListener('change',()=>filterRows()));document.querySelectorAll('[data-search]').forEach(x=>x.addEventListener('input',()=>filterRows()));document.querySelectorAll('[data-matrix-filter]').forEach(x=>x.addEventListener('change',filterMatrix))});addEventListener('pagehide',()=>{try{sessionStorage.setItem('browser-use-scroll:'+location.pathname+location.search,String(scrollY))}catch(e){}});"""
 REPORT_STYLE = (
     SHARED_STYLE
     + """
@@ -1162,7 +1179,18 @@ REPORT_STYLE = (
 #pair-table th:nth-child(-n+4),#pair-table td:nth-child(-n+4){white-space:nowrap}
 #pair-table th:nth-child(1),#pair-table td:nth-child(1){min-width:260px;white-space:normal}
 #pair-table th:nth-child(n+5),#pair-table td:nth-child(n+5){min-width:235px}
-#result-table,#engine-result-table,#change-table{min-width:1080px}
+#result-table{min-width:1580px;table-layout:fixed}
+#result-table th,#result-table td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;height:72px;max-height:72px}
+#result-table th:nth-child(1),#result-table td:nth-child(1){width:230px}
+#result-table th:nth-child(2),#result-table td:nth-child(2){width:170px}
+#result-table th:nth-child(3),#result-table td:nth-child(3){width:80px}
+#result-table th:nth-child(4),#result-table td:nth-child(4){width:75px}
+#result-table th:nth-child(5),#result-table td:nth-child(5){width:250px}
+#result-table th:nth-child(6),#result-table td:nth-child(6){width:180px}
+#result-table th:nth-child(7),#result-table td:nth-child(7){width:180px}
+#result-table th:nth-child(8),#result-table td:nth-child(8){width:310px}
+#result-table th:nth-child(9),#result-table td:nth-child(9){width:170px}
+#engine-result-table,#change-table{min-width:1080px}
 #result-table td:first-child,#engine-result-table td:first-child{white-space:nowrap;min-width:150px}
 .json-view,.log-view{background:var(--code-bg)!important;color:var(--code-ink)!important;border-color:#334b68!important;line-height:1.65}
 .json-view code,.log-view code{color:inherit!important;background:transparent!important}
@@ -1174,14 +1202,15 @@ REPORT_STYLE = (
 .release-current{border-top:4px solid var(--accent)}
 .release-history>summary,.release-current details>summary,.release-archive details>summary{cursor:pointer;font-weight:800;padding:8px 0}
 .comparison-winner{color:var(--good);font-weight:850}.winner-mark{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;margin-left:7px;border-radius:999px;background:var(--good);color:white;font-size:11px;line-height:1}.winner-cell{position:relative;padding:9px 10px;border:1px solid color-mix(in srgb,var(--good) 42%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--good) 9%,var(--panel))}.metric-stack{display:grid;gap:5px;min-width:150px}.metric-stack>span{display:flex;align-items:center;justify-content:space-between;gap:12px;white-space:nowrap}.metric-stack>span>b{font-size:12px;color:var(--muted)}.review-round{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:22px;margin:16px 0}.review-round header{display:flex;align-items:start;justify-content:space-between;gap:18px}.review-round h3{margin:5px 0}.review-status{flex:0 0 auto;padding:5px 10px;border-radius:999px;background:var(--wash);font-size:12px;font-weight:800}.review-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}.review-fields>div{border-top:1px solid var(--line);padding-top:12px}.review-fields b{display:block;margin-bottom:5px}.review-fields p{margin:0}
-.browser-comparison{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:24px;box-shadow:0 12px 32px rgba(25,45,70,.06)}.comparison-heading{display:flex;align-items:start;justify-content:space-between;gap:24px;margin-bottom:22px}.comparison-heading h3{margin:0 0 6px;font-size:22px}.comparison-heading p{margin:0;color:var(--muted);line-height:1.65}.comparison-controls{display:grid;grid-template-columns:minmax(170px,1fr) minmax(240px,1.4fr) minmax(170px,1fr);gap:14px}.comparison-controls label{display:grid;gap:6px;font-weight:750}.comparison-controls select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}.comparison-browsers{border:0;padding:0;margin:20px 0 0}.comparison-browsers legend{font-weight:750;margin-bottom:10px}.browser-checks{display:flex;gap:8px;flex-wrap:wrap}.browser-checks label{display:flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid var(--line);border-radius:999px;background:var(--bg);cursor:pointer}.browser-checks label.disabled{opacity:.45;cursor:not-allowed}.browser-checks input{accent-color:var(--accent)}.comparison-result{margin-top:20px}.table-wrap .comparison-table{min-width:720px;table-layout:fixed}.comparison-table th:first-child,.comparison-table td:first-child{width:48%}.comparison-table th:nth-child(2),.comparison-table td:nth-child(2),.comparison-table th:nth-child(3),.comparison-table td:nth-child(3){width:26%}.task-cell a{font-weight:750}.task-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:7px}.track-badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--panel2);color:var(--muted);font-size:12px;white-space:nowrap}.outcome-list{display:flex;gap:6px;flex-wrap:wrap}.outcome-pill{display:inline-block;padding:5px 8px;border-radius:8px;font-size:13px;text-decoration:none}.outcome-pill.pass{background:var(--success-bg);color:var(--good)}.outcome-pill.fail{background:var(--failure-bg);color:var(--bad)}
+.browser-comparison{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:24px;box-shadow:0 12px 32px rgba(25,45,70,.06)}.comparison-heading{display:flex;align-items:start;justify-content:space-between;gap:24px;margin-bottom:10px}.comparison-heading h3{margin:0 0 6px;font-size:22px}.comparison-heading p{margin:0;color:var(--muted);line-height:1.65}.matrix-filters{margin:16px 0}.comparison-result{margin-top:12px}.table-wrap .configuration-matrix{min-width:1120px;table-layout:fixed}.configuration-matrix th:first-child,.configuration-matrix td:first-child{width:420px}.configuration-matrix th:not(:first-child),.configuration-matrix td:not(:first-child){width:165px;text-align:center;vertical-align:middle}.task-cell a{font-weight:750}.task-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:7px}.track-badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--panel2);color:var(--muted);font-size:12px;white-space:nowrap}.outcome-pill{display:inline-block;min-width:62px;padding:6px 10px;border-radius:8px;font-size:13px;text-decoration:none;font-weight:750}.outcome-pill.pass{background:var(--success-bg);color:var(--good)}.outcome-pill.fail{background:var(--failure-bg);color:var(--bad)}.outcome-pill.missing{background:var(--panel2);color:var(--muted)}
 .action-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.action-card{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:18px;min-width:0}.action-card>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.action-card>header code{font-size:16px;font-weight:800}.action-card>header span{font-size:12px;color:var(--muted)}.action-browser-row{padding:12px 0;border-top:1px solid var(--line)}.action-browser-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.action-bar{height:7px;border-radius:999px;background:var(--panel2);overflow:hidden;margin:8px 0}.action-bar i{display:block;height:100%;border-radius:inherit;background:var(--accent)}.action-browser-row.action-winner .action-bar i{background:var(--good)}.action-browser-meta{font-size:12px;color:var(--muted)}
 .finding-list{display:grid;gap:8px;margin:0 0 20px;padding:16px 20px 16px 38px;border-left:4px solid var(--accent);border-radius:0 12px 12px 0;background:var(--wash)}.finding-list li{padding-left:4px}.table-kicker{display:block;color:var(--muted);font:700 11px/1.4 ui-monospace,monospace;letter-spacing:.04em;margin-top:3px}.core-comparison-table{min-width:1040px}.core-comparison-table td:nth-child(1),.core-comparison-table td:nth-child(2){font-weight:750}.pair-outcome-table{min-width:900px}.wide-data-table td{line-height:1.65}.report-entry-links{margin-top:18px}.report-entry-links a{font-weight:750}.source-note a{margin-left:5px}
 .attempt-summary{display:grid;grid-template-columns:minmax(270px,1.4fr) repeat(4,minmax(135px,.7fr));gap:12px;align-items:stretch}.attempt-verdict{padding:20px 22px;border:1px solid var(--line);border-left:5px solid var(--good);border-radius:12px;background:var(--success-bg)}.attempt-verdict.failure{border-left-color:var(--bad);background:var(--failure-bg)}.attempt-verdict .status-line{display:block;font-size:24px;font-weight:850;margin-bottom:6px}.attempt-verdict p{margin:0;line-height:1.65}.attempt-jumps{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-weight:750}.attempt-fact{padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow-wrap:anywhere}.attempt-fact b{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}.attempt-secondary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:12px}
+.diagnosis-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.diagnosis-grid .attempt-fact{min-height:110px}.diagnosis-reason{margin-top:14px;padding:18px 20px;border-left:5px solid var(--bad);border-radius:10px;background:var(--failure-bg);line-height:1.7}.evidence-links{display:flex;gap:8px}.screenshot-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.screenshot-grid figure{margin:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}.screenshot-grid img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;object-position:top}.screenshot-grid figcaption{padding:10px 12px;color:var(--muted);font-size:12px}
 .task-goal{padding:22px 24px;border-radius:16px;background:var(--wash);border:1px solid var(--line);margin-bottom:18px}.task-goal span,.rule-index{display:block;color:var(--accent);font-size:12px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}.task-goal p{font-size:20px;font-weight:750;line-height:1.6;margin:7px 0}.task-goal small{color:var(--muted)}.verification-list{display:grid;gap:14px}.verification-rule{padding:20px 22px;border:1px solid var(--line);border-left:5px solid var(--good);border-radius:14px;background:var(--panel);min-width:0}.verification-rule.rule-fail{border-left-color:var(--bad)}.verification-rule>header{display:flex;align-items:start;justify-content:space-between;gap:18px}.verification-rule h3{margin:4px 0 0;font-size:19px}.rule-verdict{flex:0 0 auto;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:850}.rule-verdict.pass{background:var(--success-bg);color:var(--good)}.rule-verdict.fail{background:var(--failure-bg);color:var(--bad)}.rule-purpose{color:var(--muted);margin:12px 0 6px}.rule-summary{font-size:17px;font-weight:750;margin:0 0 14px}.verification-rule details{border-top:1px solid var(--line);padding-top:12px;margin-top:10px}.verification-rule summary{cursor:pointer;font-weight:750}.compact-evidence{margin-top:12px}.compact-evidence .json-view{max-height:360px}
 .page-main{overflow-x:clip}
 .section[id]{scroll-margin-top:76px}
-@media(max-width:980px){.attempt-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.attempt-verdict{grid-column:1/-1}.attempt-secondary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:980px){.attempt-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.attempt-verdict{grid-column:1/-1}.attempt-secondary,.diagnosis-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.screenshot-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.browser-comparison{padding:18px}.comparison-heading{display:block}.comparison-count{display:inline-block;margin-top:12px}.comparison-controls{grid-template-columns:1fr}.action-card-grid{grid-template-columns:1fr}}
 @media(max-width:600px){.hero h1{word-break:break-all;line-break:anywhere;text-wrap:balance}.method-figure img{min-width:900px}.table-wrap{margin-left:-4px;margin-right:-4px}.json-view,.log-view{font-size:13px}.review-round header{display:block}.review-status{display:inline-block;margin-top:8px}.review-fields,.attempt-summary,.attempt-secondary{grid-template-columns:1fr}}
 """
@@ -1355,6 +1384,55 @@ def _automatic_failure_type(result: dict[str, Any] | None) -> tuple[str, str]:
     return "mixed", "多项验收失败"
 
 
+def _cause_code(verified: dict[str, dict[str, Any]], result_id: str) -> str:
+    return str(((verified.get(result_id) or {}).get("subcategory") or {}).get("code") or "")
+
+
+def _failure_point(code: str, steps: list[dict[str, Any]]) -> tuple[str, int | None]:
+    """Locate the evidenced stage without inventing a precise failing click."""
+
+    failed_step = next(
+        (
+            step
+            for step in reversed(steps)
+            if str(step.get("status") or "").lower() not in {"", "success"}
+            or step.get("error")
+        ),
+        None,
+    )
+    last_step = int(steps[-1].get("step") or len(steps)) if steps else None
+    if code.startswith("environment_"):
+        return "环境准备后、Agent 读取前", None
+    if code.startswith("benchmark_"):
+        return "运行结束后的 evaluator 验收", last_step
+    if code.startswith("evidence_") or code == "evidence_capture":
+        return "运行结束后的网络证据验收", last_step
+    if code.startswith("site_"):
+        return (f"第 {last_step} 步后的站点响应/保存" if last_step else "站点响应/保存"), last_step
+    if failed_step:
+        number = int(failed_step.get("step") or last_step or 1)
+        return f"第 {number} 步 BrowserTool 执行异常", number
+    if code == "agent_step_budget":
+        return (f"第 {last_step} 步后达到步骤上限" if last_step else "达到步骤上限"), last_step
+    return (f"第 {last_step} 步后的最终回答/任务状态" if last_step else "最终回答/任务状态"), last_step
+
+
+def _remediation(code: str) -> tuple[str, str, bool]:
+    """Return owner, current action, and whether this is an external interference."""
+
+    if code.startswith("benchmark_"):
+        return "评测集 / evaluator", "修正合同并重跑；当前仅纳入官方分数", True
+    if code.startswith("site_"):
+        return "自托管站点", "修复依赖或保存链路，通过写入预检后重跑", True
+    if code.startswith("environment_"):
+        return "运行环境", "跨进程锁已上线；受污染任务待重跑", True
+    if code.startswith("mixed_"):
+        return "任务与 Agent", "先冻结参考状态，再重跑区分 Agent 错误", True
+    if code.startswith("evidence_") or code == "evidence_capture":
+        return "浏览器证据接口", "保留为浏览器集成信号；补齐 HAR 后重跑", False
+    return "Agent / 模型", "保留为目标变量；按轨迹修正策略或工具合同", False
+
+
 def _failure_brief(result: dict[str, Any] | None, row: dict[str, Any]) -> str:
     labels = _failed_rule_labels(result)
     if labels:
@@ -1452,12 +1530,13 @@ def _trajectory_html(steps: list[dict[str, Any]]) -> str:
         return '<p class="muted-box">没有可展示的 BrowserTool 调用。</p>'
     rows = []
     for step in steps:
+        step_number = int(step.get("step") or len(rows) + 1)
         duration = step.get("duration_seconds")
         meta = f"Turn {step.get('turn') or '—'} · {_e(step.get('status') or 'unknown')}"
         if duration is not None:
             meta += f" · {float(duration):.2f} 秒"
         rows.append(
-            "<li><div><details><summary>"
+            f'<li id="trajectory-step-{step_number}"><div><details><summary>'
             + _e(trajectory_label(step))
             + f'</summary><p class="fine">{meta}</p><h4>调用参数</h4>'
             + _json_pre(step.get("arguments"))
@@ -1471,6 +1550,40 @@ def _trajectory_html(steps: list[dict[str, Any]]) -> str:
 PUBLIC_EXECUTION_ARTIFACTS = {
     "execution_evidence": "execution-evidence.json",
 }
+
+
+def _extract_trace_screenshots(
+    trace_path: Path, artifact_dir: Path, *, limit: int = 3
+) -> list[dict[str, Any]]:
+    """Publish only the last raster frames, never the cookie-bearing trace archive."""
+
+    if not trace_path.is_file():
+        return []
+    try:
+        with zipfile.ZipFile(trace_path) as archive:
+            names = [
+                name
+                for name in archive.namelist()
+                if name.startswith("resources/")
+                and name.lower().endswith((".jpeg", ".jpg", ".png"))
+            ][-limit:]
+            output = []
+            screenshot_dir = artifact_dir / "screenshots"
+            screenshot_dir.mkdir(parents=True, exist_ok=True)
+            for index, name in enumerate(names, start=1):
+                suffix = ".png" if name.lower().endswith(".png") else ".jpeg"
+                destination = screenshot_dir / f"frame-{index}{suffix}"
+                destination.write_bytes(archive.read(name))
+                output.append(
+                    {
+                        "path": f"screenshots/{destination.name}",
+                        "sha256": _sha256(destination),
+                        "label": f"最后页面画面 {index}/{len(names)}",
+                    }
+                )
+            return output
+    except (OSError, KeyError, zipfile.BadZipFile):
+        return []
 
 
 def _artifact_links(result_id: str, execution: int) -> str:
@@ -1498,6 +1611,11 @@ def _write_execution_artifacts(
     artifact_dir = stage / "artifacts" / result_id / "executions" / str(execution)
     artifact_dir.mkdir(parents=True)
     measurements = _public_execution(row, authoritative=authoritative)
+    screenshots = (
+        _extract_trace_screenshots(Path(paths.get("agent_trace", "")), artifact_dir)
+        if authoritative and float(row.get("score") or 0) < 1
+        else []
+    )
     bundle = {
         "schema": "lex_browser_use_public_execution_evidence/3",
         "result_id": result_id,
@@ -1509,6 +1627,7 @@ def _write_execution_artifacts(
         "evaluation": evaluation,
         "agent_events": events,
         "trajectory": steps,
+        "screenshots": screenshots,
     }
     _write_json(artifact_dir / PUBLIC_EXECUTION_ARTIFACTS["execution_evidence"], bundle)
     artifacts = {
@@ -1518,7 +1637,33 @@ def _write_execution_artifacts(
         }
         for label, filename in PUBLIC_EXECUTION_ARTIFACTS.items()
     }
-    return {**measurements, "artifacts": artifacts}, response, evaluation, steps
+    return {**measurements, "artifacts": artifacts, "screenshots": screenshots}, response, evaluation, steps
+
+
+def _screenshot_gallery(result_id: str, executions: list[dict[str, Any]]) -> str:
+    authoritative = next((item for item in executions if item.get("authoritative")), {})
+    execution = int(authoritative.get("execution") or 0)
+    screenshots = authoritative.get("screenshots") or []
+    if not screenshots:
+        return '<p class="muted-box">该执行没有可公开的 trace 页面画面；错误日志与执行证据仍可下载。</p>'
+    root = f"artifacts/{result_id}/executions/{execution}"
+    figures = "".join(
+        '<figure><a href="'
+        + _e(f"{root}/{item['path']}")
+        + '"><img loading="lazy" src="'
+        + _e(f"{root}/{item['path']}")
+        + '" alt="'
+        + _e(item["label"])
+        + '"></a><figcaption>'
+        + _e(item["label"])
+        + f" · SHA-256 {_e(str(item['sha256'])[:12])}…</figcaption></figure>"
+        for item in screenshots
+    )
+    return (
+        '<p>下图是判分权威执行的最后页面画面，用于核对失败前的可见状态；'
+        "它们不一定正好对应错误发生的瞬间。</p>"
+        f'<div class="screenshot-grid">{figures}</div>'
+    )
 
 
 def _execution_evidence_html(result_id: str, executions: list[dict[str, Any]]) -> str:
@@ -1758,21 +1903,38 @@ def _attempt_table(
         result_record = read_public_json(Path((row.get("paths") or {}).get("evaluation", "")))
         failure, automatic_failure = _automatic_failure_type(result_record)
         subcategory, reason = localized_cause(verified_causes, p["id"])
+        code = _cause_code(verified_causes, p["id"])
+        event_record = read_public_json(Path((row.get("paths") or {}).get("events", "")))
+        steps = trajectory(event_record if isinstance(event_record, list) else [])
+        failure_point, step_number = _failure_point(code, steps)
+        owner, action, _external = _remediation(code)
         task = task_meta.get(p["task_id"], {})
+        point_link = (
+            f'results/{p["id"]}.html#trajectory-step-{step_number}'
+            if step_number
+            else f'results/{p["id"]}.html#diagnosis'
+        )
         values = [
             Safe(f'<a href="results/{p["id"]}.html">{p["id"]}</a>'),
-            MODEL_LABELS[p["model"]],
-            ENGINE_LABELS[p["engine"]],
-            p["task_id"],
-            TIER_LABELS[p["tier"]],
+            Safe(
+                f'<strong>{_e(MODEL_LABELS[p["model"]])}</strong><span class="table-kicker">'
+                f'{_e(ENGINE_LABELS[p["engine"]])}</span>'
+            ),
+            Safe(f'<a href="datasets/{p["task_id"]}.html">#{p["task_id"]}</a>'),
             _status(row),
-            _seconds(p["duration_ms"]),
-            _seconds(p["browser_tool_duration_ms"]),
-            p["action_count"],
-            _number(p["model_usage"]["total_tokens"]),
-            automatic_failure,
-            subcategory,
-            reason,
+            Safe(f'<a href="{point_link}">{_e(failure_point)}</a>') if result == "fail" else "—",
+            automatic_failure or "—",
+            subcategory or "待复核" if result == "fail" else "—",
+            Safe(f'<strong>{_e(owner)}</strong><span class="table-kicker">{_e(action)}</span>') if result == "fail" else "—",
+            Safe(
+                (
+                    f'<span class="evidence-links"><a href="results/{p["id"]}.html#diagnosis">诊断</a>'
+                    f'<a href="results/{p["id"]}.html#screenshots">画面</a>'
+                    f'<a href="results/{p["id"]}.html#runtime">日志</a></span>'
+                )
+                if result == "fail"
+                else f'<a href="results/{p["id"]}.html">详情</a>'
+            ),
         ]
         cells = "".join(f"<td>{x if isinstance(x, Safe) else _e(x)}</td>" for x in values)
         rows.append(
@@ -1785,18 +1947,14 @@ def _attempt_table(
         f"<th>{_e(x)}</th>"
         for x in [
             "结果",
-            "模型",
-            "浏览器",
+            "运行配置",
             "任务",
-            "层级",
             "判定",
-            "Agent 链路累计耗时",
-            "BrowserTool 累计耗时",
-            "动作数",
-            "Tokens",
+            "失败位置",
             "程序自动定位",
-            "核验根因子类",
-            "核验原因",
+            "复核根因",
+            "负责对象与处理",
+            "证据",
         ]
     )
     return (
@@ -2421,10 +2579,15 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             + _action_duration_cards(attempts),
         )
         analysis += _section(
-            "浏览器组合对比",
-            "<p>按同一任务比较所选浏览器，不用各浏览器不同的成功样本拼接结论。基准浏览器单选，对比浏览器可多选；新增浏览器只增加选项和结果标签，不改变页面结构。</p>"
+            "同题全配置对比",
+            "<p>每道任务同时展示全部模型×浏览器结果，不做两两拆分，也不用不同成功样本拼接结论。</p>"
             + _same_task_comparison(tasks, attempts),
         ).replace('<section class="section">', '<section class="section" id="same-task">', 1)
+        analysis += _section(
+            "排除已证实外部干扰后的诊断子集",
+            "<p>官方 90 题结果保持不变。为了看清浏览器和模型差异，下表暂时排除已核验为评测合同、站点、共享环境或参考状态问题的整道任务。</p>"
+            + _clean_subset_table(attempts, verified_causes),
+        )
         analysis += _section(
             f"{result_count} 个逻辑结果",
             "<p>默认只显示失败；可按浏览器、层级、站点、任务类型、失败环节和全文关键词筛选。</p>"
@@ -2486,6 +2649,11 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 public["resource"],
                 item.get("checks") or {},
             )
+            cause_code = _cause_code(verified_causes, public["id"])
+            failure_point, failure_step = _failure_point(cause_code, steps)
+            remediation_owner, remediation_action, external_interference = _remediation(
+                cause_code
+            )
             detail = _hero(
                 public["id"],
                 f"{MODEL_LABELS[public['model']]} · {ENGINE_LABELS[public['engine']]} · Task #{public['task_id']}",
@@ -2496,10 +2664,20 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             attempt_page = f"results/{public['id']}.html"
             detail += (
                 '<nav class="page-links wrap" aria-label="结果详情导航">'
-                f'<a href="{attempt_page}#verification">任务与验收</a>'
-                f'<a href="{attempt_page}#trajectory">执行轨迹</a>'
-                f'<a href="{attempt_page}#runtime">运行与证据</a>'
-                "</nav>"
+                + (
+                    f'<a href="{attempt_page}#diagnosis">失败诊断</a>'
+                    if float(public["score"]) < 1
+                    else ""
+                )
+                + f'<a href="{attempt_page}#verification">任务与验收</a>'
+                + f'<a href="{attempt_page}#trajectory">执行轨迹</a>'
+                + (
+                    f'<a href="{attempt_page}#screenshots">页面画面</a>'
+                    if float(public["score"]) < 1
+                    else ""
+                )
+                + f'<a href="{attempt_page}#runtime">运行与证据</a>'
+                + "</nav>"
             )
             detail += _section(
                 "结果与运行",
@@ -2516,20 +2694,35 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 f'<div class="attempt-fact"><b>证据完整性审计</b>{_e(item.get("outcome") or "未记录")}</div></div>'
                 '<p class="fine">Agent 链路耗时包含会话准备、登录、模型推理、调度、工具执行和收尾，不包含 Docker 站点重置；BrowserTool 耗时是全部 browser 工具调用的墙钟时间之和，不等同于纯内核时间。</p>',
             )
+            if float(public["score"]) < 1:
+                step_href = (
+                    f'{attempt_page}#trajectory-step-{failure_step}'
+                    if failure_step
+                    else f'{attempt_page}#trajectory'
+                )
+                detail += '<div id="diagnosis"></div>' + _section(
+                    "失败诊断",
+                    '<div class="diagnosis-grid">'
+                    f'<div class="attempt-fact"><b>失败位置</b><a href="{step_href}">{_e(failure_point)}</a></div>'
+                    f'<div class="attempt-fact"><b>程序自动定位</b>{_e(public["automatic_failure_type"] or "无")}</div>'
+                    f'<div class="attempt-fact"><b>人工复核根因</b>{_e(public["verified_failure_subcategory"] or "待复核")}</div>'
+                    f'<div class="attempt-fact"><b>负责对象与处理</b>{_e(remediation_owner)}<br><span class="fine">{_e(remediation_action)}</span></div>'
+                    '</div><div class="diagnosis-reason"><strong>核验依据：</strong>'
+                    + _e(public["verified_failure_reason"] or "当前尚无已核验根因。")
+                    + '</div><p class="page-links">'
+                    f'<a href="{attempt_page}#verification">查看 evaluator 断言</a>'
+                    f'<a href="{step_href}">查看失败附近轨迹</a>'
+                    f'<a href="{attempt_page}#screenshots">查看最后页面画面</a>'
+                    f'<a href="{attempt_page}#runtime">下载执行日志</a></p>'
+                    + (
+                        '<p class="callout"><strong>对比口径：</strong>该结果已确认含非模型/浏览器干扰，官方分数保留，但暂不纳入干净子集。</p>'
+                        if external_interference
+                        else ""
+                    ),
+                )
             detail += '<div id="verification"></div>' + _section(
                 "任务要求与验收结果",
                 _verification_html(task, evaluation_record, response_record)
-                + (
-                    '<div class="callout"><strong>程序自动定位：</strong>'
-                    + _e(public["automatic_failure_type"])
-                    + " <strong>核验根因子类：</strong>"
-                    + _e(public["verified_failure_subcategory"])
-                    + "<br><strong>核验原因：</strong>"
-                    + _e(public["verified_failure_reason"])
-                    + "</div>"
-                    if float(public["score"]) < 1
-                    else ""
-                )
                 + '<p class="fine">所有规则均为官方程序化验收，必须全部得分 1.0。页面先给出可读结论；官方期望、实际观察和断言保留在折叠技术明细及下载文件中。</p>',
             )
             detail += '<div id="trajectory"></div>' + _section(
@@ -2537,6 +2730,11 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 "<p>以下顺序来自本次执行的 Agent 事件流，不是固定动作回放。展开可查看调用参数和输出摘录；完整脱敏日志可下载。</p>"
                 + _trajectory_html(steps),
             )
+            if float(public["score"]) < 1:
+                detail += '<div id="screenshots"></div>' + _section(
+                    "失败执行的最后页面画面",
+                    _screenshot_gallery(public["id"], execution_records),
+                )
             detail += '<div id="runtime"></div>' + _section(
                 "运行、日志与证据",
                 _execution_evidence_html(public["id"], execution_records)

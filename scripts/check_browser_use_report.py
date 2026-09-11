@@ -165,6 +165,25 @@ def _check_execution_artifacts(
                         f"result page omits execution artifact link or hash: "
                         f"{result_id}/{number}/{label}"
                     )
+            screenshots = indexed_execution.get("screenshots") or []
+            if number != authority and screenshots:
+                raise ValueError(f"only the authoritative execution may publish frames: {result_id}")
+            for screenshot in screenshots:
+                relative = (
+                    Path("artifacts")
+                    / result_id
+                    / "executions"
+                    / str(number)
+                    / str(screenshot.get("path") or "")
+                )
+                path = report_dir / relative
+                if path.suffix.lower() not in {".jpeg", ".jpg", ".png"}:
+                    raise ValueError(f"unsafe screenshot type: {relative}")
+                expected_files.add(path)
+                if not path.is_file() or screenshot.get("sha256") != _sha256(path):
+                    raise ValueError(f"trace frame binding differs: {relative}")
+                if relative.as_posix() not in detail_text:
+                    raise ValueError(f"result page omits trace frame: {relative}")
             bundle_path = (
                 report_dir
                 / "artifacts"
@@ -226,7 +245,7 @@ def _check_execution_artifacts(
             "agent_trace.zip",
         }:
             raise ValueError(f"private HAR or trace was copied into the public report: {path}")
-        if forbidden_text.search(path.read_text(encoding="utf-8")):
+        if path.suffix.lower() in {".json", ".jsonl", ".html", ".css", ".js"} and forbidden_text.search(path.read_text(encoding="utf-8")):
             raise ValueError(f"published execution artifact contains sensitive text: {path}")
 
 
@@ -421,8 +440,9 @@ def check(
         "comparison-winner",
         "BrowserTool 动作延迟",
         "action-card-grid",
-        "浏览器组合对比",
-        "data-compare-engine",
+        "同题全配置对比",
+        'id="configuration-matrix"',
+        'id="clean-subset-table"',
     ):
         if marker not in analysis_index:
             raise ValueError(f"analysis is missing timing or scalable comparison: {marker}")
@@ -448,6 +468,25 @@ def check(
         )
     ):
         raise ValueError("every result page must expose result, evaluator, trajectory and logs")
+    failed_pages = [
+        report_dir / "results" / f"{_attempt_id(row)}.html"
+        for row in logical_rows
+        if float(row["score"]) < 1
+    ]
+    if failed_pages and any(
+        marker not in rendered_pages[page]
+        for page in failed_pages
+        for marker in (
+            "失败诊断",
+            "失败位置",
+            "程序自动定位",
+            "人工复核根因",
+            "负责对象与处理",
+            "失败执行的最后页面画面",
+            "下载执行日志",
+        )
+    ):
+        raise ValueError("every failed result must expose a complete diagnosis path")
     if any(
         marker in rendered_pages[page]
         for page in result_pages
@@ -529,6 +568,9 @@ def check(
         ".browser-comparison{",
         ".action-card-grid{",
         ".attempt-summary{",
+        "#result-table{min-width:1580px;table-layout:fixed}",
+        ".diagnosis-grid{",
+        ".screenshot-grid{",
         ".review-round{",
         ".page-main{overflow-x:clip}",
     ):
@@ -664,6 +706,35 @@ def check(
         )
         if published_cause_review.get("results") != verified_causes:
             raise ValueError("published failure causes differ from verified reviews")
+        remediation = json.loads(
+            (Path(__file__).parents[1] / "research/browser-use-remediation.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        if remediation.get("schema") != "lex_browser_use_remediation/1":
+            raise ValueError("unsupported Browser Use remediation schema")
+        external_prefixes = ("benchmark_", "site_", "environment_", "mixed_")
+        expected_quarantine = {
+            int(result_id.rsplit("-", 1)[-1])
+            for result_id, diagnosis in verified_causes.items()
+            if str((diagnosis.get("subcategory") or {}).get("code") or "").startswith(
+                external_prefixes
+            )
+        }
+        registered_quarantine = {
+            int(task_id)
+            for item in remediation.get("items") or []
+            if item.get("category")
+            in {
+                "shared_environment",
+                "benchmark_or_evaluator",
+                "self_hosted_site",
+                "reference_state_mixed",
+            }
+            for task_id in item.get("task_ids") or []
+        }
+        if registered_quarantine != expected_quarantine:
+            raise ValueError("remediation quarantine differs from verified external interference")
         for bundle in bundles:
             for _page, text in rendered_pages.items():
                 if str(bundle["path"]) in text:
