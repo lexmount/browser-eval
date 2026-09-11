@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
+# ruff: noqa: E501 -- browser-evaluation JavaScript contains indivisible regex lines
 """Capture bounded anonymous-browser observations for a frozen popular-site list.
 
 This is research tooling, not a benchmark runner. It never calls a registered
 Web Fetch provider and deliberately does not visit domains excluded by policy.
 """
+
 from __future__ import annotations
 
 import argparse
 import asyncio
 import json
-from pathlib import Path
 import re
-
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-async def observe(
-    page, domain: str, requested_url: str, timeout_ms: int, settle_ms: int
-) -> dict:
+
+
+async def observe(page, domain: str, requested_url: str, timeout_ms: int, settle_ms: int) -> dict:
     base = {
         "domain": domain,
         "requested_url": requested_url,
@@ -96,9 +97,12 @@ async def run(
     if "cases" in source:
         targets = [(item["domain"], item["url"]) for item in source["cases"]]
     elif "candidates" in source:
-        targets = [
-            (item["domain"], item["candidate_url"]) for item in source["candidates"]
-        ]
+        targets = []
+        for item in source["candidates"]:
+            requested_url = item.get("candidate_url") or item.get("url")
+            if not requested_url:
+                raise SystemExit(f"Candidate {item.get('domain')!r} has no URL")
+            targets.append((item["domain"], requested_url))
     else:
         targets = [(domain, f"https://{domain}/") for domain in source["domains"]]
     if len(targets) != len({domain for domain, _ in targets}):
@@ -108,9 +112,7 @@ async def run(
 
     semaphore = asyncio.Semaphore(concurrency)
     async with async_playwright() as playwright:
-        browser = await playwright.chromium.launch(
-            headless=True, executable_path=browser_binary
-        )
+        browser = await playwright.chromium.launch(headless=True, executable_path=browser_binary)
 
         async def worker(target: tuple[str, str]) -> dict:
             domain, requested_url = target
@@ -126,9 +128,7 @@ async def run(
                 )
                 page = await context.new_page()
                 try:
-                    return await observe(
-                        page, domain, requested_url, timeout_ms, settle_ms
-                    )
+                    return await observe(page, domain, requested_url, timeout_ms, settle_ms)
                 finally:
                     await context.close()
 

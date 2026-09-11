@@ -1,0 +1,560 @@
+{
+  "schema_version": 1,
+  "purpose": "Policy-filtered China Top 100 candidates awaiting independent initial-page observation",
+  "source": {
+    "ranking_file": "research/semrush-china-top-100-2026-07.json",
+    "ranking_file_sha256": "3f4f333ff4bf69c7d4fb9e738facc6ead9d80cff50d0c1939054c6039ae0b63d",
+    "homepage_dataset": "evaluation/global-homepages-dataset.json",
+    "homepage_dataset_sha256": "8f6479e6f8846a3f106eedfb8fb2b89e38f493efc17cc83aa294872c4d762171",
+    "legacy_dataset": "evaluation/dataset.json",
+    "legacy_dataset_sha256": "d43ae3569cd98f25456ab2a1b270731b1913b247b7b70b611e613f79e6290449"
+  },
+  "count_reconciliation": {
+    "homepage_case_count": 52,
+    "legacy_popular_case_count": 10,
+    "definite_overlapping_site_domains": [
+      "amazon.com",
+      "reddit.com"
+    ],
+    "unique_existing_site_domain_count": 60,
+    "target_unique_site_domain_count": 100,
+    "new_unique_site_domains_required": 40,
+    "note": "The stated 52 + 10 baseline contains Amazon and Reddit twice, so 40 new unique domains are required for a strict 100-site union."
+  },
+  "selection_policy": {
+    "rank_order_preserved": true,
+    "ranking_metadata_used_for_scoring": false,
+    "adult_domains_not_visited": true,
+    "login_blank_error_captcha_and_duplicate_final_pages_must_be_excluded_after_observation": true,
+    "target_count_is_a_post_eligibility_requirement": true
+  },
+  "candidate_count": 76,
+  "candidates": [
+    {
+      "china_rank": 4,
+      "domain": "msn.cn",
+      "url": "https://msn.cn/"
+    },
+    {
+      "china_rank": 8,
+      "domain": "doubao.com",
+      "url": "https://doubao.com/"
+    },
+    {
+      "china_rank": 9,
+      "domain": "google.com.hk",
+      "url": "https://google.com.hk/"
+    },
+    {
+      "china_rank": 11,
+      "domain": "facebook.com",
+      "url": "https://facebook.com/"
+    },
+    {
+      "china_rank": 12,
+      "domain": "feishu.cn",
+      "url": "https://feishu.cn/"
+    },
+    {
+      "china_rank": 13,
+      "domain": "instagram.com",
+      "url": "https://instagram.com/"
+    },
+    {
+      "china_rank": 14,
+      "domain": "x.com",
+      "url": "https://x.com/"
+    },
+    {
+      "china_rank": 18,
+      "domain": "163.com",
+      "url": "https://163.com/"
+    },
+    {
+      "china_rank": 19,
+      "domain": "taobao.com",
+      "url": "https://taobao.com/"
+    },
+    {
+      "china_rank": 20,
+      "domain": "woa.com",
+      "url": "https://woa.com/"
+    },
+    {
+      "china_rank": 23,
+      "domain": "linkedin.com",
+      "url": "https://linkedin.com/"
+    },
+    {
+      "china_rank": 24,
+      "domain": "pinterest.com",
+      "url": "https://pinterest.com/"
+    },
+    {
+      "china_rank": 26,
+      "domain": "aliyun.com",
+      "url": "https://aliyun.com/"
+    },
+    {
+      "china_rank": 27,
+      "domain": "tencent.com",
+      "url": "https://tencent.com/"
+    },
+    {
+      "china_rank": 28,
+      "domain": "weibo.com",
+      "url": "https://weibo.com/"
+    },
+    {
+      "china_rank": 29,
+      "domain": "360.com",
+      "url": "https://360.com/"
+    },
+    {
+      "china_rank": 30,
+      "domain": "larkoffice.com",
+      "url": "https://larkoffice.com/"
+    },
+    {
+      "china_rank": 33,
+      "domain": "dingtalk.com",
+      "url": "https://dingtalk.com/"
+    },
+    {
+      "china_rank": 34,
+      "domain": "tiktok.com",
+      "url": "https://tiktok.com/"
+    },
+    {
+      "china_rank": 36,
+      "domain": "hao123.com",
+      "url": "https://hao123.com/"
+    },
+    {
+      "china_rank": 37,
+      "domain": "claude.ai",
+      "url": "https://claude.ai/"
+    },
+    {
+      "china_rank": 38,
+      "domain": "alibaba-inc.com",
+      "url": "https://alibaba-inc.com/"
+    },
+    {
+      "china_rank": 39,
+      "domain": "1688.com",
+      "url": "https://1688.com/"
+    },
+    {
+      "china_rank": 40,
+      "domain": "quark.cn",
+      "url": "https://quark.cn/"
+    },
+    {
+      "china_rank": 42,
+      "domain": "kdocs.cn",
+      "url": "https://kdocs.cn/"
+    },
+    {
+      "china_rank": 43,
+      "domain": "live.com",
+      "url": "https://live.com/"
+    },
+    {
+      "china_rank": 44,
+      "domain": "kimi.com",
+      "url": "https://kimi.com/"
+    },
+    {
+      "china_rank": 45,
+      "domain": "tmall.com",
+      "url": "https://tmall.com/"
+    },
+    {
+      "china_rank": 46,
+      "domain": "wedoany.com",
+      "url": "https://wedoany.com/"
+    },
+    {
+      "china_rank": 47,
+      "domain": "qianwen.com",
+      "url": "https://qianwen.com/"
+    },
+    {
+      "china_rank": 48,
+      "domain": "douyu.com",
+      "url": "https://douyu.com/"
+    },
+    {
+      "china_rank": 49,
+      "domain": "bytedance.net",
+      "url": "https://bytedance.net/"
+    },
+    {
+      "china_rank": 50,
+      "domain": "openai.com",
+      "url": "https://openai.com/"
+    },
+    {
+      "china_rank": 52,
+      "domain": "alipay.com",
+      "url": "https://alipay.com/"
+    },
+    {
+      "china_rank": 53,
+      "domain": "sohu.com",
+      "url": "https://sohu.com/"
+    },
+    {
+      "china_rank": 55,
+      "domain": "huya.com",
+      "url": "https://huya.com/"
+    },
+    {
+      "china_rank": 56,
+      "domain": "cnki.net",
+      "url": "https://cnki.net/"
+    },
+    {
+      "china_rank": 57,
+      "domain": "nih.gov",
+      "url": "https://nih.gov/"
+    },
+    {
+      "china_rank": 58,
+      "domain": "huaban.com",
+      "url": "https://huaban.com/"
+    },
+    {
+      "china_rank": 59,
+      "domain": "jianying.com",
+      "url": "https://jianying.com/"
+    },
+    {
+      "china_rank": 60,
+      "domain": "eastmoney.com",
+      "url": "https://eastmoney.com/"
+    },
+    {
+      "china_rank": 61,
+      "domain": "msn.com",
+      "url": "https://msn.com/"
+    },
+    {
+      "china_rank": 62,
+      "domain": "sciencedirect.com",
+      "url": "https://sciencedirect.com/"
+    },
+    {
+      "china_rank": 63,
+      "domain": "sina.com.cn",
+      "url": "https://sina.com.cn/"
+    },
+    {
+      "china_rank": 64,
+      "domain": "gamer520.com",
+      "url": "https://gamer520.com/"
+    },
+    {
+      "china_rank": 65,
+      "domain": "lingxing.com",
+      "url": "https://lingxing.com/"
+    },
+    {
+      "china_rank": 67,
+      "domain": "alibaba.com",
+      "url": "https://alibaba.com/"
+    },
+    {
+      "china_rank": 68,
+      "domain": "youdao.com",
+      "url": "https://youdao.com/"
+    },
+    {
+      "china_rank": 69,
+      "domain": "3dmgame.com",
+      "url": "https://3dmgame.com/"
+    },
+    {
+      "china_rank": 71,
+      "domain": "2345.com",
+      "url": "https://2345.com/"
+    },
+    {
+      "china_rank": 72,
+      "domain": "cctv.com",
+      "url": "https://cctv.com/"
+    },
+    {
+      "china_rank": 73,
+      "domain": "so.com",
+      "url": "https://so.com/"
+    },
+    {
+      "china_rank": 74,
+      "domain": "temu.com",
+      "url": "https://temu.com/"
+    },
+    {
+      "china_rank": 75,
+      "domain": "volcengine.com",
+      "url": "https://volcengine.com/"
+    },
+    {
+      "china_rank": 77,
+      "domain": "antfin.com",
+      "url": "https://antfin.com/"
+    },
+    {
+      "china_rank": 78,
+      "domain": "nga.cn",
+      "url": "https://nga.cn/"
+    },
+    {
+      "china_rank": 79,
+      "domain": "qcc.com",
+      "url": "https://qcc.com/"
+    },
+    {
+      "china_rank": 80,
+      "domain": "yandex.com",
+      "url": "https://yandex.com/"
+    },
+    {
+      "china_rank": 81,
+      "domain": "elsevier.com",
+      "url": "https://elsevier.com/"
+    },
+    {
+      "china_rank": 82,
+      "domain": "huawei.com",
+      "url": "https://huawei.com/"
+    },
+    {
+      "china_rank": 83,
+      "domain": "grok.com",
+      "url": "https://grok.com/"
+    },
+    {
+      "china_rank": 84,
+      "domain": "zhipin.com",
+      "url": "https://zhipin.com/"
+    },
+    {
+      "china_rank": 85,
+      "domain": "shopify.com",
+      "url": "https://shopify.com/"
+    },
+    {
+      "china_rank": 86,
+      "domain": "aliyuncs.com",
+      "url": "https://aliyuncs.com/"
+    },
+    {
+      "china_rank": 87,
+      "domain": "gamersky.com",
+      "url": "https://gamersky.com/"
+    },
+    {
+      "china_rank": 88,
+      "domain": "figma.com",
+      "url": "https://figma.com/"
+    },
+    {
+      "china_rank": 89,
+      "domain": "yuque.com",
+      "url": "https://yuque.com/"
+    },
+    {
+      "china_rank": 90,
+      "domain": "toutiao.com",
+      "url": "https://toutiao.com/"
+    },
+    {
+      "china_rank": 91,
+      "domain": "qingyue.vip",
+      "url": "https://qingyue.vip/"
+    },
+    {
+      "china_rank": 92,
+      "domain": "linux.do",
+      "url": "https://linux.do/"
+    },
+    {
+      "china_rank": 93,
+      "domain": "360.cn",
+      "url": "https://360.cn/"
+    },
+    {
+      "china_rank": 94,
+      "domain": "hupu.com",
+      "url": "https://hupu.com/"
+    },
+    {
+      "china_rank": 95,
+      "domain": "iqiyi.com",
+      "url": "https://iqiyi.com/"
+    },
+    {
+      "china_rank": 96,
+      "domain": "wps.cn",
+      "url": "https://wps.cn/"
+    },
+    {
+      "china_rank": 97,
+      "domain": "cnblogs.com",
+      "url": "https://cnblogs.com/"
+    },
+    {
+      "china_rank": 98,
+      "domain": "office.com",
+      "url": "https://office.com/"
+    }
+  ],
+  "upstream_exclusions": [
+    {
+      "china_rank": 1,
+      "domain": "google.com",
+      "url": "https://google.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 2,
+      "domain": "bing.com",
+      "url": "https://bing.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 3,
+      "domain": "youtube.com",
+      "url": "https://youtube.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 5,
+      "domain": "chatgpt.com",
+      "url": "https://chatgpt.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 6,
+      "domain": "deepseek.com",
+      "url": "https://deepseek.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 7,
+      "domain": "github.com",
+      "url": "https://github.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 10,
+      "domain": "douyin.com",
+      "url": "https://douyin.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 15,
+      "domain": "xiaohongshu.com",
+      "url": "https://xiaohongshu.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 16,
+      "domain": "whatsapp.com",
+      "url": "https://whatsapp.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 17,
+      "domain": "microsoft.com",
+      "url": "https://microsoft.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 21,
+      "domain": "wikipedia.org",
+      "url": "https://wikipedia.org/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 22,
+      "domain": "amazon.com",
+      "url": "https://amazon.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 25,
+      "domain": "reddit.com",
+      "url": "https://reddit.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 31,
+      "domain": "yahoo.com",
+      "url": "https://yahoo.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 32,
+      "domain": "jd.com",
+      "url": "https://jd.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 35,
+      "domain": "netflix.com",
+      "url": "https://netflix.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 41,
+      "domain": "twitch.tv",
+      "url": "https://twitch.tv/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 51,
+      "domain": "douban.com",
+      "url": "https://douban.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 54,
+      "domain": "apple.com",
+      "url": "https://apple.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 66,
+      "domain": "discord.com",
+      "url": "https://discord.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 70,
+      "domain": "canva.com",
+      "url": "https://canva.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 76,
+      "domain": "pornhub.com",
+      "url": "https://pornhub.com/",
+      "reason_code": "adult_content_not_visited"
+    },
+    {
+      "china_rank": 99,
+      "domain": "spotify.com",
+      "url": "https://spotify.com/",
+      "reason_code": "existing_site_domain"
+    },
+    {
+      "china_rank": 100,
+      "domain": "telegram.org",
+      "url": "https://telegram.org/",
+      "reason_code": "existing_site_domain"
+    }
+  ]
+}

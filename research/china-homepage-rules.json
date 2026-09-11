@@ -1,0 +1,2716 @@
+{
+  "schema_version": 1,
+  "purpose": "Human-review draft of per-site rules for the 40 China-ranked homepage additions",
+  "status": "draft_pending_human_review",
+  "review_gate": "Do not generate the executable combined dataset or call lexmount-global before user approval",
+  "source_selection": "research/china-homepage-selection.json",
+  "source_selection_sha256": "0b96e6410a3a1c337789f9165b3a7066d1171018c28ca08cb5084e1e57681712",
+  "source_capture": "research/china-homepage-rule-evidence-2026-09-11.json",
+  "source_capture_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+  "common": {
+    "all_registered_anchor_groups_required": true,
+    "named_link_minimum_records": 3,
+    "recursive_navigation_allowed": false,
+    "provider_output_used_for_rules": false,
+    "dynamic_members_and_values_frozen": false
+  },
+  "label_counts": {
+    "content_list": 16,
+    "landing_page": 19,
+    "product_catalog": 5
+  },
+  "rule_model_counts": {
+    "named_link": 13,
+    "page_identity": 27
+  },
+  "cases": [
+    {
+      "id": "china-homepage-008-doubao-com",
+      "china_rank": 8,
+      "domain": "doubao.com",
+      "url": "https://doubao.com/",
+      "observed_final_url": "https://www.doubao.com/chat/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "豆包"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "有什么我能帮你的吗？"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "对话"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "图像生成"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "10b053eb89e5808a4778d02d0e4e6d284d92e1adb0ec4c857e3ea2d380e4cc1a",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-012-feishu-cn",
+      "china_rank": 12,
+      "domain": "feishu.cn",
+      "url": "https://feishu.cn/",
+      "observed_final_url": "https://www.feishu.cn/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "飞书"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "字节跳动旗下 AI 工作平台"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "智能会议纪要"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "多维表格"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "1f0932a70d98ee3c9808e35131c9e9aef957fe452edfd469d01064d3b6a2b0e4",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-018-163-com",
+      "china_rank": 18,
+      "domain": "163.com",
+      "url": "https://163.com/",
+      "observed_final_url": "https://www.163.com/?referFrom=",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.163.com"
+        ],
+        "entry_path": "/dy/article/[A-Z0-9]+\\.html",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "网易"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "新闻"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "体育"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "财经"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 165,
+      "observed_named_link_examples": [
+        {
+          "url": "https://www.163.com/dy/article/L6HB2KV90514R9M0.html?clickfrom=w_yw",
+          "title": "扩大双向投资共促全球发展"
+        },
+        {
+          "url": "https://www.163.com/dy/article/L6GCDIOQ05346RC6.html?clickfrom=w_yw",
+          "title": "倒下，为了蹚出通向胜利的道路"
+        },
+        {
+          "url": "https://www.163.com/dy/article/L6HC6LQE0530QRMB.html?clickfrom=w_yw",
+          "title": "在AI微短剧里，他们找到了就业新赛道"
+        }
+      ],
+      "rule_rationale": "首页存在至少 3 个符合单一稳定 URL 结构的具名条目。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "fd0161a776bf812a24ef800889ac714c26f95d2392b40906db6bf4035cdbfb05",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-019-taobao-com",
+      "china_rank": 19,
+      "domain": "taobao.com",
+      "url": "https://taobao.com/",
+      "observed_final_url": "https://www.taobao.com/",
+      "label": "product_catalog",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "淘宝"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "搜索"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "购物车"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "收藏夹"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "商品 ID 位于 item.htm 的查询参数中，共享提取器按主机与路径去重；暂按目录身份核验。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "5965cd5cadf74975b3e2f36a79c7fc68ed8ad0a38ee9d93afa8d539437477339",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-026-aliyun-com",
+      "china_rank": 26,
+      "domain": "aliyun.com",
+      "url": "https://aliyun.com/",
+      "observed_final_url": "https://www.aliyun.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "阿里云"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "大模型"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "云市场"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "控制台"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "精选产品"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "7f14f491d3da76b8eb4fdbf3b2f32ef902afee880e27e193b2deba6ff74d131a",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-028-weibo-com",
+      "china_rank": 28,
+      "domain": "weibo.com",
+      "url": "https://weibo.com/",
+      "observed_final_url": "https://weibo.com/newlogin?tabtype=weibo&gid=102803&openLoginLayer=0&url=https://weibo.com/",
+      "label": "content_list",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "微博"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "热门推荐"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "热门榜单"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "热搜"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "观察到公开内容流，但文章链接的可见标签主要是时间而非标题，故不把它们伪装成具名记录。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "2132f5cbd7f29029e2c00eb4da62985a223d3524b71ce68343f1eb4c379eea5c",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-029-360-com",
+      "china_rank": 29,
+      "domain": "360.com",
+      "url": "https://360.com/",
+      "observed_final_url": "https://360.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "360安全卫士"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "软件下载中心"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "纳米AI"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "360安全浏览器"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "4a7e1a5409584d528f2d789d2d8d460d017524dd0261bef1c4d0dee9e6ce8b21",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-033-dingtalk-com",
+      "china_rank": 33,
+      "domain": "dingtalk.com",
+      "url": "https://dingtalk.com/",
+      "observed_final_url": "https://www.dingtalk.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "钉钉"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "AI钉钉"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "产品功能"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "开放平台"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "下载钉钉"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "80b0b3916d14e65ada8dc24eec7c417fa7dba0c22b9e5a4ac3b8eddd1be98e29",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-036-hao123-com",
+      "china_rank": 36,
+      "domain": "hao123.com",
+      "url": "https://hao123.com/",
+      "observed_final_url": "https://www.hao123.com/?from=offline_host",
+      "label": "content_list",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "hao123"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "上网从这里开始"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "搜索热点"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "热点"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "新闻链接以查询参数承载身份，当前共享提取器会按主机与路径去重；暂按页面身份核验。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "a8d6a47f5bc8830ab35128861daf907187669db90a654a52b04e5e3fc0ff880c",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-039-1688-com",
+      "china_rank": 39,
+      "domain": "1688.com",
+      "url": "https://1688.com/",
+      "observed_final_url": "https://www.1688.com/",
+      "label": "product_catalog",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "阿里1688首页"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "挑好货"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "找工厂"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "工业品"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "商品分类链接共用 /selloffer/offer_search.htm，身份在查询参数中；暂按目录身份核验。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "b7a4ad7720b49961c48492f1cd4374a69bc9aa4a41b4bb0c5460a4500776902c",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-040-quark-cn",
+      "china_rank": 40,
+      "domain": "quark.cn",
+      "url": "https://quark.cn/",
+      "observed_final_url": "https://www.quark.cn/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "夸克"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "AI浏览器"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "AI搜索"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "夸克网盘"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "1a0af842fec0191a33f7819eab61835d950f196af564d7658791ee1d36683117",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-042-kdocs-cn",
+      "china_rank": 42,
+      "domain": "kdocs.cn",
+      "url": "https://kdocs.cn/",
+      "observed_final_url": "https://www.kdocs.cn/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "金山文档"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "WPS云文档"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "智能文档"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "多人协作"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "04fad9594ec22d8339f635a1f89fd7a1fb1afdde7156edc6fffddfa02d1590e0",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-044-kimi-com",
+      "china_rank": 44,
+      "domain": "kimi.com",
+      "url": "https://kimi.com/",
+      "observed_final_url": "https://www.kimi.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Kimi"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "New Chat"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Deep Research"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Kimi Code"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "d27dc3a676ccd81b25ec3898316d5caa0ea25ae12bdccc4e38be865ab5835575",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-045-tmall-com",
+      "china_rank": 45,
+      "domain": "tmall.com",
+      "url": "https://tmall.com/",
+      "observed_final_url": "https://www.tmall.com/",
+      "label": "product_catalog",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "天猫Tmall.com"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "搜索"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "购物车"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "商家支持"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "商品 ID 位于 item.htm 的查询参数中，共享提取器按主机与路径去重；暂按目录身份核验。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "d44770cd09acb4b5f70bff2160c5c3a5860acde99669af1ea2e9ae7de9005bb8",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-046-wedoany-com",
+      "china_rank": 46,
+      "domain": "wedoany.com",
+      "url": "https://wedoany.com/",
+      "observed_final_url": "https://www.wedoany.com/",
+      "label": "product_catalog",
+      "rule_model": "named_link",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.wedoany.com"
+        ],
+        "entry_path": "/product/[0-9]+\\.html",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "维度网"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "工程分类"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "产品"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "选型总库"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 102,
+      "observed_named_link_examples": [
+        {
+          "url": "https://www.wedoany.com/product/190151.html",
+          "title": "沟通报价 高速动车组平台 中车长春轨道客车股份有限公司"
+        },
+        {
+          "url": "https://www.wedoany.com/product/183696.html",
+          "title": "沟通报价 车用8Y系列发动机 上海新动力汽车科技股份有限公司"
+        },
+        {
+          "url": "https://www.wedoany.com/product/183041.html",
+          "title": "¥350-450 /千克 中航迈特Avimetal增材制造3d打印TC4钛合金粉末超细球型Ti6AI4V金属粉末 中航迈特增材科技（北京）有限公司"
+        }
+      ],
+      "rule_rationale": "首页存在至少 3 个符合单一稳定 URL 结构的具名条目。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "4651bf2dd526a094ea567833a89c5e23fdf03c6a6ee599cba08741970cf3348b",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-047-qianwen-com",
+      "china_rank": 47,
+      "domain": "qianwen.com",
+      "url": "https://qianwen.com/",
+      "observed_final_url": "https://www.qianwen.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "千问"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "阿里旗下全能AI助手"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "新建对话"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "千问创作"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "2c85377404fe73e4031a92a69b5430a429f9d25b6b97c79aa6d07e6276aad090",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-048-douyu-com",
+      "china_rank": 48,
+      "domain": "douyu.com",
+      "url": "https://douyu.com/",
+      "observed_final_url": "https://www.douyu.com/?dyshid=0-",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.douyu.com"
+        ],
+        "entry_path": "/[0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "斗鱼"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "直播"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "分类"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "视频"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 50,
+      "observed_named_link_examples": [
+        {
+          "url": "https://www.douyu.com/100",
+          "title": "斗鱼吃鸡赛事"
+        },
+        {
+          "url": "https://www.douyu.com/7839031",
+          "title": "火影忍者趣味上超挑战赛"
+        },
+        {
+          "url": "https://www.douyu.com/11969011",
+          "title": "完美定级赛！ 11969011"
+        }
+      ],
+      "rule_rationale": "首页存在至少 3 个符合单一稳定 URL 结构的具名条目。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "b1a1f1cbb7ed7c7f4c859cc56c5548dd5ee4079d4ea92599442022502b860b18",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-050-openai-com",
+      "china_rank": 50,
+      "domain": "openai.com",
+      "url": "https://openai.com/",
+      "observed_final_url": "https://openai.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "OpenAI"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Research"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Products"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Developers"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Try ChatGPT"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "d9351bf27276cd01f2f39f2de22051d3707ee69d7ee63122d35d581a71f0b171",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-052-alipay-com",
+      "china_rank": 52,
+      "domain": "alipay.com",
+      "url": "https://alipay.com/",
+      "observed_final_url": "https://www.alipay.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "支付宝"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "我是服务商"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "我是开发者"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "我是商家用户"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "8b721f4f257bc098b6b0504db3ff423d122c7a4140182f804d6dcbefa67adb15",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-053-sohu-com",
+      "china_rank": 53,
+      "domain": "sohu.com",
+      "url": "https://sohu.com/",
+      "observed_final_url": "https://www.sohu.com/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.sohu.com"
+        ],
+        "entry_path": "/a/[0-9]+_[0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "搜狐"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "新闻"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "财经"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "体育"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 167,
+      "observed_named_link_examples": [
+        {
+          "url": "https://www.sohu.com/a/1074816154_120914498?edtsign=53EC0CFADABCB793650352966C0A8257F356AA0E&edtcode=t2ghGd6SBUJwCxJjFvW8hQ%3D%3D&scm=thor.283_14-200000.0.0-0-0-0-0.&spm=smpc.home.fspic.1.1789122990639O2VR1Qs_1467",
+          "title": "中秋假期首日火车票开售 购票日历请收好"
+        },
+        {
+          "url": "https://www.sohu.com/a/1074812845_120388781?edtsign=9BB9B8028C84677F55351F927E622762B822E716&edtcode=t2ghGd6SBUJwCxJjFvW8hQ%3D%3D&scm=thor.283_14-200000.0.0-0-0-0-0.&spm=smpc.home.fspic.2.1789122990639O2VR1Qs_1467",
+          "title": "50天内台风接连登陆地设\"三台风纪念碑\""
+        },
+        {
+          "url": "https://www.sohu.com/a/1074842666_313745?edtsign=1493283E56F9AB15DBA2070E1359F7EF7A43B4D9&edtcode=t2ghGd6SBUJwCxJjFvW8hQ%3D%3D&scm=thor.283_14-200000.0.0-0-0-0-0.&spm=smpc.home.fspic.4.1789122990639O2VR1Qs_1467",
+          "title": "雀巢持续\"瘦身\" 接连卖掉7大品牌业务"
+        }
+      ],
+      "rule_rationale": "首页存在至少 3 个符合单一稳定 URL 结构的具名条目。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "dc7a5433e32a6c40d74f242812c385aac685277ad2aa7a8b2fcb99b7e77ec18e",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-055-huya-com",
+      "china_rank": 55,
+      "domain": "huya.com",
+      "url": "https://huya.com/",
+      "observed_final_url": "https://www.huya.com/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.huya.com"
+        ],
+        "entry_path": "/video/u/[0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "虎牙直播"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "绝地求生"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "英雄联盟"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "王者荣耀"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 29,
+      "observed_named_link_examples": [
+        {
+          "url": "http://www.huya.com/video/u/1487476672",
+          "title": "RASH悲喜"
+        },
+        {
+          "url": "http://www.huya.com/video/u/3197597",
+          "title": "沫子"
+        },
+        {
+          "url": "http://www.huya.com/video/u/1199512718563",
+          "title": "托马斯Czh"
+        }
+      ],
+      "rule_rationale": "首页存在至少 3 个符合单一稳定 URL 结构的具名条目。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "05a7858d976ddfeb3e8bd999e497e3e59cf478021457547ff253be071acdd858",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-056-cnki-net",
+      "china_rank": 56,
+      "domain": "cnki.net",
+      "url": "https://cnki.net/",
+      "observed_final_url": "https://www.cnki.net/",
+      "label": "content_list",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "中国知网"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "学术期刊"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "学位论文"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "下载热榜"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "文献身份位于查询参数，而共享提取器按主机与路径去重；规则不冻结当前论文标题。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "bedacc7dc26ad00260ad936a6cc4362558fef4e03362f9921a64032b55d1f964",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-057-nih-gov",
+      "china_rank": 57,
+      "domain": "nih.gov",
+      "url": "https://nih.gov/",
+      "observed_final_url": "https://www.nih.gov/",
+      "label": "content_list",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "National Institutes of Health"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Health Information"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Grants & Funding"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "NIH at a Glance"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "首页混合专题、跨 NIH 机构资源与栏目入口；没有单一、稳定的详情 URL 形状。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "b3359f8d62ee2ec3e664df209c9acef304aa40c5a67b641573f53fc3ad41e6b9",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-058-huaban-com",
+      "china_rank": 58,
+      "domain": "huaban.com",
+      "url": "https://huaban.com/",
+      "observed_final_url": "https://huaban.com/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "huaban.com"
+        ],
+        "entry_path": "/pins/[0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "花瓣网"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "探索"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "平面设计"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "UI/UX"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 32,
+      "observed_named_link_examples": [
+        {
+          "url": "https://huaban.com/pins/6771386994",
+          "title": "中秋节海报"
+        },
+        {
+          "url": "https://huaban.com/pins/7117195745",
+          "title": "已生成图片：本草之源，滋养身心"
+        },
+        {
+          "url": "https://huaban.com/pins/6225051108",
+          "title": "携手热爱奔赴山河励志手写字体字体设计"
+        }
+      ],
+      "rule_rationale": "首页存在至少 3 个符合单一稳定 URL 结构的具名条目。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "03f0b7e58ba4c6ede29b58be0709df09e01fc2e03b1c6d8283fd37e9763e1fd6",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-059-jianying-com",
+      "china_rank": 59,
+      "domain": "jianying.com",
+      "url": "https://jianying.com/",
+      "observed_final_url": "https://www.jianying.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "剪映AI"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "视频生成"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "专业剪辑"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "智能抠像"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "fb706c1a1627e44489c02f53c850f6321912cc518ae6abfda605c7b916fbb4bf",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-060-eastmoney-com",
+      "china_rank": 60,
+      "domain": "eastmoney.com",
+      "url": "https://eastmoney.com/",
+      "observed_final_url": "https://www.eastmoney.com/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "finance.eastmoney.com"
+        ],
+        "entry_path": "/a/[0-9]+\\.html",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "东方财富网"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "财经"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "股票"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "基金"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 166,
+      "observed_named_link_examples": [
+        {
+          "url": "https://finance.eastmoney.com/a/202609113872026872.html",
+          "title": "美联储下周是否加息？今晚20:30 市场迎来“终极一战”！"
+        },
+        {
+          "url": "https://finance.eastmoney.com/a/202609113871241897.html",
+          "title": "美联储下周加息概率升破70% 华尔街紧盯今晚CPI"
+        },
+        {
+          "url": "https://finance.eastmoney.com/a/202609113872026127.html",
+          "title": "A股三大指数收跌 地面兵装、玻璃玻纤、元件板块逆市走强"
+        }
+      ],
+      "rule_rationale": "首页存在至少 3 个符合单一稳定 URL 结构的具名条目。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "69dcbf15e4e869b7a9fc220ceccc8d5e8a73a2afe8dad3a8f9cb70dc9981c39f",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-063-sina-com-cn",
+      "china_rank": 63,
+      "domain": "sina.com.cn",
+      "url": "https://sina.com.cn/",
+      "observed_final_url": "https://www.sina.com.cn/?from=kandian",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.sina.com.cn",
+          "finance.sina.com.cn",
+          "sports.sina.com.cn"
+        ],
+        "entry_path": "/.*/[0-9]{4}-[0-9]{2}-[0-9]{2}/[^/]+\\.shtml",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "新浪网"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "新闻"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "财经"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "体育"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 179,
+      "observed_named_link_examples": [
+        {
+          "url": "https://finance.sina.com.cn/world/2026-09-11/doc-inirmfef5320805.shtml",
+          "title": "牛弹琴：这个国家，快把兄弟们得罪光了"
+        },
+        {
+          "url": "http://finance.sina.com.cn/zl/china/2026-09-10/zl-inirinus8532514.shtml",
+          "title": "看清经济分化与集聚"
+        },
+        {
+          "url": "https://finance.sina.com.cn/wm/2026-09-10/doc-inirhezn3433533.shtml",
+          "title": "员工如厕被拒失控“裸奔”？"
+        }
+      ],
+      "rule_rationale": "首页存在至少 3 个符合单一稳定 URL 结构的具名条目。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "0e4e5db47b116c4dd5f0677704d5a0478b629b83b05a579241898f16841518af",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-064-gamer520-com",
+      "china_rank": 64,
+      "domain": "gamer520.com",
+      "url": "https://gamer520.com/",
+      "observed_final_url": "https://www.gamer520.com/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.gamer520.com"
+        ],
+        "entry_path": "/[0-9]+\\.html",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Switch520"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "PC游戏"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "IGN必玩推荐榜"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 45,
+      "observed_named_link_examples": [
+        {
+          "url": "https://www.gamer520.com/103203.html",
+          "title": "歧路旅人0|豪华中文|V1.0.3-故土新塑-无冕御灵+全DLC-模拟器整合版|解压即撸|"
+        },
+        {
+          "url": "https://www.gamer520.com/94895.html",
+          "title": "情感反诈模拟器|中字-国语|Build.19395921-心战术师-破镜重生+全DLC-多结局|解压即撸|"
+        },
+        {
+          "url": "https://www.gamer520.com/85688.html",
+          "title": "真・三国无双 起源|中字-国语|V1.0.1.2Fix+梦幻四英杰DLC-实装马匹“金兔马”+预购特典+全DLC+修改器-支持手柄|解压即撸|"
+        }
+      ],
+      "rule_rationale": "首页存在至少 3 个符合单一稳定 URL 结构的具名条目。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "e2a3560196d38c28cd60aa786cedcb836d1cdb680c4e822a25affa33e97ba81a",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-065-lingxing-com",
+      "china_rank": 65,
+      "domain": "lingxing.com",
+      "url": "https://lingxing.com/",
+      "observed_final_url": "https://www.lingxing.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "领星ERP"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "核心功能"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "进销存一体管理"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "财务精准管理"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "05a490f971b9ea1e1a9167e39cef30a10ca2044b1852353f3a50cbadea88bf74",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-067-alibaba-com",
+      "china_rank": 67,
+      "domain": "alibaba.com",
+      "url": "https://alibaba.com/",
+      "observed_final_url": "https://www.alibaba.com/",
+      "label": "product_catalog",
+      "rule_model": "named_link",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.alibaba.com"
+        ],
+        "entry_path": "/product-detail/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Alibaba.com"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Discover manufacturers"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Request for Quotation"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Top Ranking"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 36,
+      "observed_named_link_examples": [
+        {
+          "url": "https://www.alibaba.com/product-detail/15kWh-Wall-Mount-LiFePO4-Battery-Pack_1601610545341.html?priceId=c308d0f5623640aa85fdc9cf30e3f6dd",
+          "title": "15kWh Wall-Mount LiFePO4 Battery Pack, 48V 300Ah, Built-in BMS, >6000 Cycles, for Home Solar Energy Storage, UN38.3/CE/IEC 5% off CN¥13,600 Reorder rate 18% CN¥2,189.60-2,723.65 MOQ: 1 piece184 sold 1 yr CN"
+        },
+        {
+          "url": "https://www.alibaba.com/product-detail/WLX-Factory-8-level-Gradient-Strength_1601475103198.html?priceId=c308d0f5623640aa85fdc9cf30e3f6dd",
+          "title": "WLX Factory 8-level Gradient Strength Foot Massager Machine 240mah 6 Kinds Ems Foot Massager Mat Cushion CN¥5.68-6.68 MOQ: 1 piece8,401 sold 2 yrs CN"
+        },
+        {
+          "url": "https://www.alibaba.com/product-detail/Piano-Black-Brown-Highlight-300-Density_1601735401654.html?priceId=c308d0f5623640aa85fdc9cf30e3f6dd",
+          "title": "Piano Black Brown Highlight 300% Density Machine Made Layered Curly Lace Front Wig Vietnamese Raw Human Hair Glueless 5% off CN¥13,600 Reorder rate 27% CN¥66.09-266.36 MOQ: 1 piece695 sold 6 yrs CN"
+        }
+      ],
+      "rule_rationale": "首页存在至少 3 个符合单一稳定 URL 结构的具名条目。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "706cb49f7985d32040b5e5fc2f77c83311c66fa365694dc1cd4936f0f9e77e8b",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-068-youdao-com",
+      "china_rank": 68,
+      "domain": "youdao.com",
+      "url": "https://youdao.com/",
+      "observed_final_url": "https://youdao.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "网易有道"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "词典"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "翻译"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "有道龙虾"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "5a2c9cae8a813a5d9e86588a54bf09e3a8c008f61c06becf0b2a9aca154fba48",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-069-3dmgame-com",
+      "china_rank": 69,
+      "domain": "3dmgame.com",
+      "url": "https://3dmgame.com/",
+      "observed_final_url": "https://www.3dmgame.com/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.3dmgame.com"
+        ],
+        "entry_path": "/games/[A-Za-z0-9_-]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "单机游戏"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "新闻"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "专栏"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "硬件"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 241,
+      "observed_named_link_examples": [
+        {
+          "url": "https://www.3dmgame.com/games/gwzjzd/",
+          "title": "鬼武者：剑之道"
+        },
+        {
+          "url": "https://www.3dmgame.com/games/shwj9/",
+          "title": "2 生化危机9：安魂曲"
+        },
+        {
+          "url": "https://www.3dmgame.com/games/hssm/",
+          "title": "红色沙漠"
+        }
+      ],
+      "rule_rationale": "首页存在至少 3 个符合单一稳定 URL 结构的具名条目。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "b793d1afd1164040cf846c55b7d14a601d7d6e8cfe0866c41c2750c7efb04111",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-071-2345-com",
+      "china_rank": 71,
+      "domain": "2345.com",
+      "url": "https://2345.com/",
+      "observed_final_url": "https://www.2345.com/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.jxcn.cn",
+          "news-pc.gzylhy.cn"
+        ],
+        "entry_path": "/p/[0-9]{8}/[0-9]+\\.html",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "2345网址导航"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "旗下产品"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "邮箱"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "天气"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 24,
+      "observed_named_link_examples": [
+        {
+          "url": "https://news.jxcn.cn/p/20260911/43037089.html?from=jx39",
+          "title": "洪水之下，60岁母亲被毒蛇咬伤身亡背后"
+        },
+        {
+          "url": "https://news.jxcn.cn/p/20260910/43036562.html?from=jx52",
+          "title": "特朗普称美伊战事将在中期选举后“立即终结”"
+        },
+        {
+          "url": "https://news.jxcn.cn/p/20260909/43035967.html?from=jx80",
+          "title": "国际粮价飙涨，会不会影响我们的“饭碗”？"
+        }
+      ],
+      "rule_rationale": "具名内容来自首页直接公开的资讯卡片；第三方承载主机可能变化，冻结前应再复查。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "440120232c99bea5337bb2632b4e946abbeb7c40520ff0b51de0daba68d8c498",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-072-cctv-com",
+      "china_rank": 72,
+      "domain": "cctv.com",
+      "url": "https://cctv.com/",
+      "observed_final_url": "https://www.cctv.com/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.cctv.com",
+          "tv.cctv.com"
+        ],
+        "entry_path": "/[0-9]{4}/[0-9]{2}/[0-9]{2}/(?:ARTI|VIDE)[A-Za-z0-9]+\\.shtml",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "央视网"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "新闻"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "财经"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "体育"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 96,
+      "observed_named_link_examples": [
+        {
+          "url": "https://news.cctv.com/2026/09/11/ARTITnBDychMF9rMGWFyjGT2260909.shtml",
+          "title": "联播+｜“全球南方”第一方阵"
+        },
+        {
+          "url": "https://tv.cctv.com/2026/09/11/VIDE4LI6THQoWl3WkKmfPQ0z260911.shtml",
+          "title": "截至2025年末 中国对金砖国家直接投资存量820亿美元 ｜"
+        },
+        {
+          "url": "https://tv.cctv.com/2026/09/11/VIDEykrnjVuXjJ94tdpTRwW1260911.shtml",
+          "title": "金砖国家已达成60余份成果文件"
+        }
+      ],
+      "rule_rationale": "首页存在至少 3 个符合单一稳定 URL 结构的具名条目。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "eb6639d18a3c999c1aef0df00aed1b88766476e72480498f8b66aced8fbb38f8",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-073-so-com",
+      "china_rank": 73,
+      "domain": "so.com",
+      "url": "https://so.com/",
+      "observed_final_url": "https://www.so.com/?src=so.com",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "360搜索"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "搜全网"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "问AI"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "AI写作"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "1899da21dca4bce0213dc9d98a6995db949ae06d1194895d8e50754b8342aaab",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-075-volcengine-com",
+      "china_rank": 75,
+      "domain": "volcengine.com",
+      "url": "https://volcengine.com/",
+      "observed_final_url": "https://www.volcengine.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "火山引擎"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "火山方舟"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "精选产品"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "控制台"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "1e3bceef4acdd86d686eed3af48079e627d7a1840acd642959c47c627204b8e1",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-078-nga-cn",
+      "china_rank": 78,
+      "domain": "nga.cn",
+      "url": "https://nga.cn/",
+      "observed_final_url": "https://nga.cn/",
+      "label": "content_list",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "NGA玩家社区"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "论坛"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "评分"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "专题"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "帖子身份在 read.php 查询参数中，共享提取器会合并为一个路径；暂按页面身份核验。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "0fb4e75ad871e692c749e46aa40b828ca3bafdf24d419898496d416dc7d8fe8e",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-080-yandex-com",
+      "china_rank": 80,
+      "domain": "yandex.com",
+      "url": "https://yandex.com/",
+      "observed_final_url": "https://yandex.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Yandex"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Search with Yandex AI"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Images"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Maps"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "c6e836a94a1b4144ecd5a59af3b09ecda53a36b0afa6ce7ebc4c13af0409ca7f",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-081-elsevier-com",
+      "china_rank": 81,
+      "domain": "elsevier.com",
+      "url": "https://elsevier.com/",
+      "observed_final_url": "https://www.elsevier.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Elsevier"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Academic & Government"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Health"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Publish with us"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "96fdf08e9401913c9715ff251133c09dab1715f1e5d1b6e5d0f022d809778bc7",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    },
+    {
+      "id": "china-homepage-082-huawei-com",
+      "china_rank": 82,
+      "domain": "huawei.com",
+      "url": "https://huawei.com/",
+      "observed_final_url": "https://www.huawei.com/en/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Huawei"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Enterprise"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Consumer"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Huawei Cloud"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_link_count": 0,
+      "observed_named_link_examples": [],
+      "rule_rationale": "按稳定页面身份与主要功能文字验收。",
+      "evidence": {
+        "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+        "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+        "visible_text_sha256": "2ae6da7c612f04977e0afaed652cb626741559fb6f7b92a7dddd230abc3bf9ce",
+        "checked_at": "2026-09-11",
+        "provider_output_used": false,
+        "clicks_or_recursive_navigation": false
+      },
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "review_status": "draft_pending_human_review"
+    }
+  ]
+}
