@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import fcntl
 import hashlib
 import importlib.metadata
 import ipaddress
@@ -11,9 +12,12 @@ import os
 import platform
 import subprocess
 import sys
+import tempfile
 import time
 import traceback
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -77,12 +81,54 @@ SITE_AUTH_HEADERS = {
 # healthy shortly afterwards. A longer ceiling changes no measured task time;
 # it only keeps environment preparation from aborting a formal cohort.
 ENV_CTRL_READY_TIMEOUT_SECONDS = 600
+PHYSICAL_EXECUTION_LOCK_NAMESPACE = "webarena-verified-fixed-site-stack-v1"
 AMD64_PHP_SITES = frozenset(
     {WebArenaSite.SHOPPING, WebArenaSite.SHOPPING_ADMIN, WebArenaSite.REDDIT}
 )
 PHP_FPM_COMPAT_CONFIG = Path(__file__).with_name("runtime") / "php-fpm-qemu.ini"
 QEMU_X86_64_HOST_PATH = "/usr/bin/qemu-x86_64"
 QEMU_X86_64_CONTAINER_PATH = "/usr/local/bin/qemu-x86_64"
+
+
+def _physical_execution_lock_path() -> Path:
+    # The WebArena stack uses fixed host ports and is shared by every run owned
+    # by this OS user.  The lock therefore must not follow BROWSER_EVAL_DATA_HOME:
+    # two cohorts may intentionally write to different evidence directories
+    # while still mutating the same containers and databases.
+    return (
+        Path(tempfile.gettempdir())
+        / f"browser-eval-{os.getuid()}"
+        / "locks"
+        / f"{PHYSICAL_EXECUTION_LOCK_NAMESPACE}.lock"
+    )
+
+
+@contextmanager
+def _physical_execution_lock(lock_path: Path) -> Iterator[float]:
+    """Serialize the full attempt lifecycle for the shared fixed-port site stack."""
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("a+b") as lock_file:
+        wait_started = time.perf_counter()
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        wait_ms = (time.perf_counter() - wait_started) * 1000
+        try:
+            yield wait_ms
+        finally:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+
+def _environment_prepare_receipt(
+    sites: tuple[WebArenaSite, ...], *, lock_wait_ms: float, lock_namespace: str
+) -> dict[str, Any]:
+    return {
+        "required_sites": [site.value for site in sites],
+        "reset_requested": True,
+        "physical_execution_lock": {
+            "namespace": lock_namespace,
+            "wait_ms": round(lock_wait_ms, 3),
+        },
+        "status": "running",
+    }
 
 
 def _load_repo_env(repo_root: Path) -> dict[str, str]:
@@ -530,6 +576,19 @@ def _resource_summary(
 
 def _run_attempt(  # noqa: PLR0913
     *,
+    lock_path: Path,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    with _physical_execution_lock(lock_path) as lock_wait_ms:
+        return _run_attempt_locked(
+            **kwargs,
+            lock_wait_ms=lock_wait_ms,
+            lock_namespace=PHYSICAL_EXECUTION_LOCK_NAMESPACE,
+        )
+
+
+def _run_attempt_locked(  # noqa: PLR0913
+    *,
     benchmark: WebArenaVerified,
     selected: PilotTask,
     engine: str,
@@ -541,6 +600,8 @@ def _run_attempt(  # noqa: PLR0913
     model: OpenAIResponsesModel,
     sample_interval_ms: int,
     max_agent_steps: int,
+    lock_wait_ms: float,
+    lock_namespace: str,
 ) -> dict[str, Any]:
     task = benchmark.get_task(selected.task_id)
     sites = tuple(task.sites)
@@ -550,11 +611,9 @@ def _run_attempt(  # noqa: PLR0913
     attempt_dir.mkdir(parents=True, exist_ok=True)
     prepare_path = attempt_dir / "environment_prepare.json"
     prepare_started = time.perf_counter()
-    prepare_receipt: dict[str, Any] = {
-        "required_sites": [site.value for site in sites],
-        "reset_requested": True,
-        "status": "running",
-    }
+    prepare_receipt = _environment_prepare_receipt(
+        sites, lock_wait_ms=lock_wait_ms, lock_namespace=lock_namespace
+    )
     try:
         _prepare_sites(sites)
         prepare_receipt["status"] = "ready"
@@ -610,9 +669,7 @@ def _run_attempt(  # noqa: PLR0913
         model.reset()
         service = tool._get_service()
         service._submit(lambda: None)
-        browser_session_readiness_retries = _login_context(
-            service, sites, benchmark, start_urls
-        )
+        browser_session_readiness_retries = _login_context(service, sites, benchmark, start_urls)
         service._submit(
             lambda: (
                 recorder.start(service._context),
@@ -716,6 +773,7 @@ def _run_attempt(  # noqa: PLR0913
     )
     return {
         "schema": SCHEMA,
+        "model": model.model,
         "engine": engine,
         "task_id": selected.task_id,
         "tier": selected.tier,
@@ -756,16 +814,26 @@ def _run_attempt(  # noqa: PLR0913
     }
 
 
-def _load_completed_attempts(path: Path) -> dict[tuple[str, int, int], dict[str, Any]]:
+def _load_completed_attempts(
+    path: Path, expected_model: str | None = None
+) -> dict[tuple[str, str, int, int], dict[str, Any]]:
     """Load durable attempt rows so an interrupted multi-hour pilot can resume safely."""
     if not path.exists():
         return {}
-    completed: dict[tuple[str, int, int], dict[str, Any]] = {}
+    completed: dict[tuple[str, str, int, int], dict[str, Any]] = {}
     for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
             continue
         row = json.loads(line)
-        key = (str(row["engine"]), int(row["task_id"]), int(row["attempt"]))
+        model = str(row.get("model") or expected_model or "")
+        if not model:
+            raise ValueError(f"attempt does not identify its model at {path}:{line_number}")
+        if expected_model and model != expected_model:
+            raise ValueError(
+                f"attempt model differs from the evidence cohort at {path}:{line_number}"
+            )
+        row["model"] = model
+        key = (model, str(row["engine"]), int(row["task_id"]), int(row["attempt"]))
         if key in completed:
             raise ValueError(f"duplicate attempt at {path}:{line_number}: {key}")
         completed[key] = row
@@ -811,6 +879,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
 
     output_dir = Path(args.output).expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    physical_execution_lock_path = _physical_execution_lock_path()
     selection = load_pilot(args.selection)
     benchmark = _configure_benchmark()
     resolved = validate_against_official(selection, benchmark)
@@ -829,7 +898,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     endpoints: dict[str, str] = {}
     attempts_file = output_dir / "attempts.jsonl"
     run_config_file = output_dir / "run-config.json"
-    completed = _load_completed_attempts(attempts_file)
+    completed = _load_completed_attempts(attempts_file, args.model)
     image_metadata: dict[str, dict[str, Any]] = {}
     site_image_metadata = {
         site.value: {
@@ -912,7 +981,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                 order = ("chromium", "moli") if task_index % 2 == 0 else ("moli", "chromium")
                 for engine in order:
                     for attempt in (1, 2):
-                        key = (engine, selected.task_id, attempt)
+                        key = (args.model, engine, selected.task_id, attempt)
                         if key in completed:
                             row = completed[key]
                             print(
@@ -930,10 +999,11 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                             if float(row["score"]) == 1.0:
                                 break
                             continue
-                        primary = completed.get((engine, selected.task_id, 1))
+                        primary = completed.get((args.model, engine, selected.task_id, 1))
                         if attempt == 2 and primary is not None and float(primary["score"]) == 1.0:
                             break
                         row = _run_attempt(
+                            lock_path=physical_execution_lock_path,
                             benchmark=benchmark,
                             selected=selected,
                             engine=engine,

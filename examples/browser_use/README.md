@@ -36,9 +36,24 @@ Astra-enabled project is available, keep the evidence cohort separate and run:
 
 The selected model is immutable within one evidence directory. GPT-5.6 and
 Astra attempts must never be resumed into or reported as the same cohort.
+To build one layered report from several completed cohorts, pass each directory
+separately. The builder rejects duplicate models and mismatched primary
+browser-task cohorts:
+
+    uv run --frozen python scripts/build_browser_use_report.py \
+      --evidence "$MODEL_A_EVIDENCE" --evidence "$MODEL_B_EVIDENCE" \
+      --output reports/browser-use
 
 `COWAGENT_REPO` is a trusted code-execution boundary, not a data input. The
 runner refuses a dirty checkout and records its Git commit in the run config.
+
+The official sites use one shared fixed-port stack. The runner therefore holds a
+cross-process lock for each complete physical execution, from environment reset
+through browser-session setup, CowAgent, evidence finalization, and evaluation.
+Separate runner processes wait rather than execute against that stack in parallel.
+Parallel execution is valid only after every worker has an isolated complete site
+stack, site and control ports, and browser containers; changing output directories
+alone does not provide isolation.
 
 Every task-browser pair has at most two physical executions: one execution and,
 only after failure, one retry. The final execution is the single logical result;

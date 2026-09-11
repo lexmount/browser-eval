@@ -53,17 +53,27 @@ Web Fetch has no legacy top-level package or compatibility imports.
 
 ## Autonomous browser-use pilot
 
-The second browser track runs the real CowAgent loop with GPT-6 Astra
-(`reasoning.effort=low`) against 30 pre-registered WebArena-Verified tasks. Both
-engines receive the same task, model, agent, site snapshot, limits, and official
-evaluator. Each engine gets one primary attempt; only a failed primary receives
-one retry, reported separately from pass@1.
+The second browser track runs the real CowAgent loop against pre-registered
+WebArena-Verified tasks. Browsers remain the evaluated participants; models are
+separate experiment layers. Each model is collected in its own evidence
+directory, and the report builder merges those immutable cohorts in memory.
 
 ```bash
 ./examples/browser_use/run.sh
 make browser-use-review EVIDENCE="$HOME/.browser-eval/browser-use/current"
 make browser-use-report EVIDENCE="$HOME/.browser-eval/browser-use/current"
 make browser-use-report-check EVIDENCE="$HOME/.browser-eval/browser-use/current"
+```
+
+For a joint report, repeat `--evidence` once per model cohort; never concatenate
+their `attempts.jsonl` files:
+
+```bash
+uv run --frozen python scripts/build_browser_use_report.py \
+  --evidence "$MODEL_A_EVIDENCE" --evidence "$MODEL_B_EVIDENCE" \
+  --output reports/browser-use
+uv run --frozen python scripts/check_browser_use_report.py reports/browser-use \
+  --evidence "$MODEL_A_EVIDENCE" --evidence "$MODEL_B_EVIDENCE"
 ```
 
 See [examples/browser_use/README.md](examples/browser_use/README.md) for the

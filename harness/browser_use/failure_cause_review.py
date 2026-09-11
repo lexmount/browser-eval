@@ -1,4 +1,4 @@
-"""Load hash-bound, per-result Browser Use failure-cause reviews."""
+"""Load model-scoped Browser Use failure-cause reviews from one layered source."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 
+LAYERED_REVIEW_SCHEMA = "lex_browser_use_layered_failure_cause_review/2"
 DEFAULT_REVIEW_PATH = (
     Path(__file__).parents[2] / "research/browser-use-failure-cause-review.json"
 )
@@ -21,61 +22,120 @@ def load_failure_cause_review(path: Path = DEFAULT_REVIEW_PATH) -> dict[str, Any
     return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
 
 
+def extract_failure_cause_review_cohort(
+    review: dict[str, Any], model_id: str
+) -> dict[str, Any]:
+    """Extract one model cohort from the authoritative layered review document."""
+
+    if not review:
+        return {}
+    if review.get("schema") != LAYERED_REVIEW_SCHEMA:
+        raise ValueError("unsupported Browser Use failure-cause review schema")
+    cohorts = review.get("cohorts")
+    if not isinstance(cohorts, dict):
+        raise ValueError("layered failure-cause review must contain model cohorts")
+    cohort = cohorts.get(model_id)
+    if cohort is None:
+        return {}
+    if not isinstance(cohort, dict):
+        raise ValueError(f"failure-cause review cohort must be an object: {model_id}")
+    return cohort
+
+
 def validate_failure_cause_review(
     review: dict[str, Any],
     *,
+    model_id: str,
     attempts_sha256: str | None,
     failed_result_ids: set[str],
     require_complete: bool,
 ) -> dict[str, dict[str, Any]]:
-    """Return only verified causes; never promote draft or stale diagnoses."""
+    """Return verified causes for one model; reject stale or cross-model records."""
 
-    if not review:
-        if require_complete and failed_result_ids:
-            raise ValueError("complete publication requires a failure-cause review")
+    result_prefix = f"{model_id}-"
+    foreign_failures = sorted(
+        result_id for result_id in failed_result_ids if not result_id.startswith(result_prefix)
+    )
+    if foreign_failures:
+        raise ValueError(
+            f"failed-result inventory includes another model for {model_id}: {foreign_failures}"
+        )
+    cohort = extract_failure_cause_review_cohort(review, model_id)
+    if not cohort:
+        if require_complete:
+            raise ValueError(f"complete publication requires a failure-cause review: {model_id}")
         return {}
-    if review.get("schema") != "lex_browser_use_failure_cause_review/1":
-        raise ValueError("unsupported Browser Use failure-cause review schema")
-    bound_hash = (review.get("bindings") or {}).get("attempts_sha256")
+
+    bindings = cohort.get("bindings")
+    if not isinstance(bindings, dict):
+        raise ValueError(f"failure-cause review cohort has invalid bindings: {model_id}")
+    bound_hash = bindings.get("attempts_sha256")
     if not attempts_sha256 or bound_hash != attempts_sha256:
         if require_complete:
-            raise ValueError("failure-cause review is not bound to the current attempts")
+            raise ValueError(
+                f"failure-cause review is not bound to the current attempts: {model_id}"
+            )
         return {}
 
-    results = review.get("results") or {}
+    coverage = cohort.get("coverage")
+    results = cohort.get("results")
+    unresolved = cohort.get("unresolved")
+    review_protocol = cohort.get("review_protocol")
+    if not isinstance(coverage, dict):
+        raise ValueError(f"failure-cause review cohort has invalid coverage: {model_id}")
+    if not isinstance(results, dict):
+        raise ValueError(f"failure-cause review cohort has invalid results: {model_id}")
+    if not isinstance(unresolved, list):
+        raise ValueError(f"failure-cause review cohort has invalid unresolved items: {model_id}")
+    if not isinstance(review_protocol, dict):
+        raise ValueError(f"failure-cause review cohort has invalid review protocol: {model_id}")
+
     verified: dict[str, dict[str, Any]] = {}
     for result_id, item in results.items():
+        if not isinstance(result_id, str) or not result_id.startswith(result_prefix):
+            raise ValueError(
+                f"failure-cause review includes a result outside its model cohort: {result_id}"
+            )
         if result_id not in failed_result_ids:
             raise ValueError(f"failure-cause review includes a non-failed result: {result_id}")
+        if not isinstance(item, dict):
+            raise ValueError(f"failure-cause review result must be an object: {result_id}")
         status = str(item.get("status") or "")
         category = item.get("subcategory") or {}
         reason = item.get("reason") or {}
         if status != "verified":
             if category or reason:
                 raise ValueError(
-                    f"unverified failure cause must not contain a subcategory or reason: {result_id}"
+                    "unverified failure cause must not contain a subcategory or reason: "
+                    f"{result_id}"
                 )
             continue
-        if not all(category.get(language) for language in ("code", "zh", "en")):
+        if not isinstance(category, dict) or not all(
+            category.get(language) for language in ("code", "zh", "en")
+        ):
             raise ValueError(f"verified failure cause has an incomplete subcategory: {result_id}")
-        if not all(reason.get(language) for language in ("zh", "en")):
+        if not isinstance(reason, dict) or not all(
+            reason.get(language) for language in ("zh", "en")
+        ):
             raise ValueError(f"verified failure cause has an incomplete reason: {result_id}")
         verified[result_id] = item
 
     if require_complete and set(verified) != failed_result_ids:
         missing = sorted(failed_result_ids - set(verified))
-        raise ValueError(f"failure-cause review is incomplete: {missing}")
+        raise ValueError(f"failure-cause review is incomplete for {model_id}: {missing}")
     if require_complete:
         expected_coverage = {
             "failed_results": len(failed_result_ids),
             "verified_results": len(verified),
         }
-        if review.get("coverage") != expected_coverage:
-            raise ValueError("failure-cause review coverage is inconsistent")
-        if review.get("unresolved"):
-            raise ValueError("failure-cause review contains unresolved items")
-        if not review.get("reviewer_class") or not review.get("reviewed_at"):
-            raise ValueError("failure-cause review must identify its reviewer class and date")
+        if coverage != expected_coverage:
+            raise ValueError(f"failure-cause review coverage is inconsistent: {model_id}")
+        if unresolved:
+            raise ValueError(f"failure-cause review contains unresolved items: {model_id}")
+        if not cohort.get("reviewer_class") or not cohort.get("reviewed_at"):
+            raise ValueError(
+                f"failure-cause review must identify its reviewer class and date: {model_id}"
+            )
     return verified
 
 

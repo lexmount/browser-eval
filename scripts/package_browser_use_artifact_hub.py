@@ -36,10 +36,8 @@ def tree_sha256(root: Path) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--report", type=Path, default=Path("reports/browser-use"))
-    parser.add_argument("--evidence", required=True, type=Path)
-    parser.add_argument(
-        "--output", type=Path, default=Path("publish/browser-use-sites.zip")
-    )
+    parser.add_argument("--evidence", required=True, action="append", type=Path)
+    parser.add_argument("--output", type=Path, default=Path("publish/browser-use-sites.zip"))
     args = parser.parse_args()
     check(
         args.report,
@@ -55,17 +53,20 @@ def main() -> None:
                     raise ValueError(f"publication cannot contain symlinks: {path}")
                 archive.write(path, path.relative_to(args.report))
     evidence_files = {
-        name: sha256(args.evidence / name)
-        for name in ("manifest.json", "run-config.json", "attempts.jsonl", "result-review.json")
+        str(evidence): {
+            name: sha256(evidence / name)
+            for name in ("manifest.json", "run-config.json", "attempts.jsonl", "result-review.json")
+        }
+        for evidence in args.evidence
     }
     attestation = {
-        "schema": "lex_browser_use_publication_attestation/1",
+        "schema": "lex_browser_use_publication_attestation/2",
         "archive": str(args.output),
         "archive_sha256": sha256(args.output),
         "report": str(args.report),
         "report_tree_sha256": tree_sha256(args.report),
         "profile_sha256": sha256(PROFILE),
-        "evidence": str(args.evidence),
+        "evidence": [str(path) for path in args.evidence],
         "evidence_files": evidence_files,
     }
     ATTESTATION.write_text(

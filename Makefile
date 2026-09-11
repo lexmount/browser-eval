@@ -41,8 +41,8 @@ report-check: runtime-check
 	$(PY) scripts/check_report_revision.py reports/webfetch
 
 browser-use-report: runtime-check
-	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/build_browser_use_report.py --evidence "$(EVIDENCE)" --output reports/browser-use
+	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE="/absolute/path [/absolute/path...]" is required' >&2; exit 2)
+	$(PY) scripts/build_browser_use_report.py $(foreach path,$(EVIDENCE),--evidence "$(path)") --output reports/browser-use
 
 browser-use-review: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
@@ -52,7 +52,7 @@ browser-use-visual-check: runtime-check
 	$(PY) scripts/check_browser_use_visual.py reports/browser-use
 
 browser-use-report-check: runtime-check
-	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/check_browser_use_report.py reports/browser-use --evidence "$(EVIDENCE)" --require-complete
+	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE="/absolute/path [/absolute/path...]" is required' >&2; exit 2)
+	$(PY) scripts/check_browser_use_report.py reports/browser-use $(foreach path,$(EVIDENCE),--evidence "$(path)") --require-complete
 	$(PY) scripts/check_report_links.py reports/browser-use
 	$(MAKE) browser-use-visual-check

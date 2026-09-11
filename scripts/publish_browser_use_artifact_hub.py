@@ -11,6 +11,7 @@ import urllib.parse
 import urllib.request
 import uuid
 from pathlib import Path
+from urllib.error import HTTPError
 
 from harness.web_fetch.artifact_auth import load_token
 
@@ -42,18 +43,25 @@ def validate_package() -> None:
     if not ARCHIVE.is_file() or not ATTESTATION.is_file():
         raise ValueError("missing validated Browser Use package or attestation")
     attestation = json.loads(ATTESTATION.read_text(encoding="utf-8"))
+    if attestation.get("schema") != "lex_browser_use_publication_attestation/2":
+        raise ValueError("publication attestation is not the current multi-evidence schema")
     report = Path(str(attestation.get("report") or ""))
-    evidence = Path(str(attestation.get("evidence") or ""))
+    evidence_paths = [Path(str(path)) for path in attestation.get("evidence") or []]
     expected_evidence = attestation.get("evidence_files") or {}
     checks = {
         "archive": sha256(ARCHIVE) == attestation.get("archive_sha256"),
         "report": report.is_dir()
         and tree_sha256(report) == attestation.get("report_tree_sha256"),
         "profile": sha256(PROFILE) == attestation.get("profile_sha256"),
-        "evidence": evidence.is_dir()
+        "evidence": bool(evidence_paths)
+        and set(expected_evidence) == {str(path) for path in evidence_paths}
         and all(
-            (evidence / name).is_file() and sha256(evidence / name) == digest
-            for name, digest in expected_evidence.items()
+            path.is_dir()
+            and all(
+                (path / name).is_file() and sha256(path / name) == digest
+                for name, digest in expected_evidence[str(path)].items()
+            )
+            for path in evidence_paths
         ),
     }
     failed = [name for name, valid in checks.items() if not valid]
@@ -90,8 +98,11 @@ def request(
     if content_type:
         headers["Content-Type"] = content_type
     req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
-    with urllib.request.urlopen(req, timeout=240) as response:
-        return response.status, response.read()
+    try:
+        with urllib.request.urlopen(req, timeout=240) as response:
+            return response.status, response.read()
+    except HTTPError as error:
+        return error.code, error.read()
 
 
 def multipart_archive() -> tuple[bytes, str]:
@@ -101,7 +112,7 @@ def multipart_archive() -> tuple[bytes, str]:
     parts = []
     for key, value in (
         ("mode", "zip"),
-        ("title", "Chromium 与 Moli：Browser Use 能力实测"),
+        ("title", "浏览器 Browser Use 能力对比"),
     ):
         parts.append(
             (
@@ -167,6 +178,15 @@ def main(*, create: bool = False) -> None:
                 if key not in {"editToken", "claimToken"}
             }
         )
+    title_status, title_raw = request(
+        f"/api/sites/{result['slug']}",
+        json.dumps({"title": "浏览器 Browser Use 能力对比"}).encode(),
+        "application/json",
+        method="PATCH",
+    )
+    if not 200 <= title_status < 300:
+        raise RuntimeError(json.loads(title_raw))
+    result["title"] = "浏览器 Browser Use 能力对比"
     if not result.get("share_url"):
         status, raw = request(
             f"/api/sites/{result['slug']}/shares",
@@ -189,7 +209,7 @@ def main(*, create: bool = False) -> None:
     )
     with urllib.request.urlopen(preview, timeout=60) as response:
         body = response.read().decode("utf-8", errors="replace")
-        if response.status != 200 or "Chromium 与 Moli：Browser Use 能力实测" not in body:
+        if response.status != 200 or "浏览器 Browser Use 能力对比" not in body:
             raise RuntimeError("public preview is unavailable or missing the report heading")
     print(json.dumps({"slug": result["slug"], "url": result["share_url"]}, ensure_ascii=False))
 

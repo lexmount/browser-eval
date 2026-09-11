@@ -1,17 +1,27 @@
+import json
+import multiprocessing
+from pathlib import Path
+
 import pytest
 from webarena_verified.types.task import WebArenaSite
 
 from harness.browser_use.runner import (
     ENV_CTRL_READY_TIMEOUT_SECONDS,
+    PHYSICAL_EXECUTION_LOCK_NAMESPACE,
     QEMU_X86_64_HOST_PATH,
     SITE_AUTH_HEADERS,
     _allow_official_container_hostname,
     _configure_benchmark,
     _container_host_gateway,
+    _environment_prepare_receipt,
     _exhausted_agent_steps,
     _limit_cowagent_transport_retries,
+    _load_completed_attempts,
     _login_context,
     _max_steps_response,
+    _physical_execution_lock,
+    _physical_execution_lock_path,
+    _run_attempt,
     _scheduled_tasks,
     _site_container_manager,
     _site_runtime_compatibility,
@@ -20,6 +30,12 @@ from harness.browser_use.runner import (
     _wait_container_healthy,
 )
 from harness.browser_use.selection import load_pilot
+
+
+def _hold_physical_execution_lock(lock_path, acquired, release) -> None:
+    with _physical_execution_lock(Path(lock_path)):
+        acquired.set()
+        release.wait(timeout=5)
 
 
 def test_official_container_urls_and_header_auth() -> None:
@@ -61,8 +77,7 @@ def test_agent_step_exhaustion_requires_a_final_tool_call() -> None:
         for turn in range(1, 41)
     ]
     zero_indexed = [
-        {"type": "turn_end", "data": {"turn": turn, "has_tool_calls": True}}
-        for turn in range(40)
+        {"type": "turn_end", "data": {"turn": turn, "has_tool_calls": True}} for turn in range(40)
     ]
     completed = [
         {
@@ -135,9 +150,7 @@ def test_login_context_closes_old_tabs_and_opens_official_start_url() -> None:
         def _submit(self, callback):
             return callback()
 
-    readiness_retries = _login_context(
-        Service(), (), object(), ["http://official.test/start"]
-    )
+    readiness_retries = _login_context(Service(), (), object(), ["http://official.test/start"])
 
     assert readiness_retries == 0
     assert stale.closed is True
@@ -262,6 +275,125 @@ def test_environment_control_wait_covers_slow_official_image_restore() -> None:
     assert ENV_CTRL_READY_TIMEOUT_SECONDS == 600
 
 
+def test_physical_execution_lock_path_is_user_global_not_evidence_scoped(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path))
+    monkeypatch.setattr("harness.browser_use.runner.tempfile.gettempdir", lambda: "/tmp")
+    monkeypatch.setattr("harness.browser_use.runner.os.getuid", lambda: 1234)
+
+    assert _physical_execution_lock_path() == (
+        Path("/tmp")
+        / "browser-eval-1234"
+        / "locks"
+        / f"{PHYSICAL_EXECUTION_LOCK_NAMESPACE}.lock"
+    )
+
+
+def test_prepare_receipt_records_lock_wait_and_namespace_without_path() -> None:
+    receipt = _environment_prepare_receipt(
+        (WebArenaSite.REDDIT,),
+        lock_wait_ms=12.3456,
+        lock_namespace=PHYSICAL_EXECUTION_LOCK_NAMESPACE,
+    )
+
+    assert receipt["physical_execution_lock"] == {
+        "namespace": PHYSICAL_EXECUTION_LOCK_NAMESPACE,
+        "wait_ms": 12.346,
+    }
+    assert "path" not in receipt["physical_execution_lock"]
+
+
+def test_physical_execution_lock_serializes_processes(tmp_path: Path) -> None:
+    context = multiprocessing.get_context("fork")
+    lock_path = tmp_path / "physical-execution.lock"
+    first_acquired = context.Event()
+    first_release = context.Event()
+    second_acquired = context.Event()
+    second_release = context.Event()
+    first = context.Process(
+        target=_hold_physical_execution_lock,
+        args=(str(lock_path), first_acquired, first_release),
+    )
+    second = context.Process(
+        target=_hold_physical_execution_lock,
+        args=(str(lock_path), second_acquired, second_release),
+    )
+    try:
+        first.start()
+        assert first_acquired.wait(timeout=2)
+        second.start()
+        assert not second_acquired.wait(timeout=0.2)
+        first_release.set()
+        assert second_acquired.wait(timeout=2)
+    finally:
+        first_release.set()
+        second_release.set()
+        first.join(timeout=2)
+        second.join(timeout=2)
+        if first.is_alive():
+            first.terminate()
+        if second.is_alive():
+            second.terminate()
+
+
+def test_run_attempt_holds_lock_around_complete_physical_execution(
+    monkeypatch, tmp_path: Path
+) -> None:
+    context = multiprocessing.get_context("fork")
+    lock_path = tmp_path / "physical-execution.lock"
+    competing_acquired = context.Event()
+    competing_release = context.Event()
+    competing = context.Process(
+        target=_hold_physical_execution_lock,
+        args=(str(lock_path), competing_acquired, competing_release),
+    )
+
+    def run_locked(**kwargs):
+        assert kwargs["lock_namespace"] == PHYSICAL_EXECUTION_LOCK_NAMESPACE
+        assert kwargs["lock_wait_ms"] >= 0
+        competing.start()
+        assert not competing_acquired.wait(timeout=0.2)
+        return {"status": "complete"}
+
+    monkeypatch.setattr("harness.browser_use.runner._run_attempt_locked", run_locked)
+    try:
+        assert _run_attempt(lock_path=lock_path) == {"status": "complete"}
+        assert competing_acquired.wait(timeout=2)
+    finally:
+        competing_release.set()
+        competing.join(timeout=2)
+        if competing.is_alive():
+            competing.terminate()
+
+
+def test_run_attempt_releases_lock_after_exception(monkeypatch, tmp_path: Path) -> None:
+    context = multiprocessing.get_context("fork")
+    lock_path = tmp_path / "physical-execution.lock"
+
+    def fail_locked(**_kwargs):
+        raise RuntimeError("attempt failed")
+
+    monkeypatch.setattr("harness.browser_use.runner._run_attempt_locked", fail_locked)
+    with pytest.raises(RuntimeError, match="attempt failed"):
+        _run_attempt(lock_path=lock_path)
+
+    acquired = context.Event()
+    release = context.Event()
+    process = context.Process(
+        target=_hold_physical_execution_lock,
+        args=(str(lock_path), acquired, release),
+    )
+    try:
+        process.start()
+        assert acquired.wait(timeout=2)
+    finally:
+        release.set()
+        process.join(timeout=2)
+        if process.is_alive():
+            process.terminate()
+
+
 def test_arm_php_sites_mount_targeted_qemu_compatibility(monkeypatch) -> None:
     class Client:
         @staticmethod
@@ -341,3 +473,27 @@ def test_only_official_container_hostname_bypasses_host_dns_validation() -> None
     tool._validate_url_safe("http://host.docker.internal:7780/admin")
     tool._validate_url_safe("https://example.com")
     assert checked == ["https://example.com"]
+
+
+def test_resume_key_includes_and_validates_model(tmp_path: Path) -> None:
+    attempts = tmp_path / "attempts.jsonl"
+    attempts.write_text(
+        json.dumps({"engine": "chromium", "task_id": 44, "attempt": 1}) + "\n",
+        encoding="utf-8",
+    )
+
+    completed = _load_completed_attempts(attempts, "model-a")
+
+    assert set(completed) == {("model-a", "chromium", 44, 1)}
+    assert completed[("model-a", "chromium", 44, 1)]["model"] == "model-a"
+
+
+def test_resume_rejects_attempt_from_another_model(tmp_path: Path) -> None:
+    attempts = tmp_path / "attempts.jsonl"
+    attempts.write_text(
+        json.dumps({"model": "model-b", "engine": "chromium", "task_id": 44, "attempt": 1}) + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="attempt model differs"):
+        _load_completed_attempts(attempts, "model-a")

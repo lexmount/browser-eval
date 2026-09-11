@@ -52,9 +52,10 @@ def _write_fixture(
             {
                 "selection_sha256": "selection-sha",
                 "protocol": {
+                    "model": "test-model",
                     "environment_prepare_receipt": "required"
                     if require_prepare_receipt
-                    else "legacy-unavailable"
+                    else "legacy-unavailable",
                 },
                 "environment": {
                     "official_evaluator": {
@@ -78,6 +79,7 @@ def test_review_verifies_every_artifact_and_binding(tmp_path: Path) -> None:
     assert review["disagreements"] == []
     assert review["unresolved"] == []
     assert review["attempts"][0]["outcome"] == "verified"
+    assert review["attempts"][0]["model"] == "test-model"
     assert set(review["attempts"][0]["artifacts"]) == {
         "network_har",
         "agent_trace",

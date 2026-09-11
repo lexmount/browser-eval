@@ -8,10 +8,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 REQUIRED_ARTIFACTS = ("network_har", "agent_trace", "response", "evaluation", "events")
 
@@ -30,9 +29,7 @@ def _attempts_sha256(path: Path) -> str:
 
 def _read_attempts(path: Path) -> list[dict[str, Any]]:
     return [
-        json.loads(line)
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
+        json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()
     ]
 
 
@@ -48,6 +45,9 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
         raise ValueError("manifest does not match the pre-registered selection")
 
     rows = _read_attempts(attempts_path)
+    model = str((manifest.get("protocol") or {}).get("model") or "")
+    if not model:
+        raise ValueError("manifest protocol must identify the evidence model")
     required_artifacts = list(REQUIRED_ARTIFACTS)
     if (manifest.get("protocol") or {}).get("environment_prepare_receipt") == "required":
         required_artifacts.append("environment_prepare")
@@ -57,7 +57,11 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
     expected_provenance = manifest.get("environment", {}).get("official_evaluator", {})
 
     for row in rows:
+        row_model = str(row.get("model") or model)
+        if row_model != model:
+            raise ValueError("attempt model differs from the evidence manifest")
         identity = {
+            "model": model,
             "engine": str(row.get("engine")),
             "task_id": int(row.get("task_id")),
             "attempt": int(row.get("attempt")),
@@ -116,11 +120,9 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
         )
         usage = row.get("model_usage") or {}
         transport_errors = row.get("model_transport_errors") or []
-        checks["model_request_attempts_accounted"] = (
-            isinstance(transport_errors, list)
-            and int(usage.get("request_attempt_count") or 0)
-            == int(usage.get("request_count") or 0) + len(transport_errors)
-        )
+        checks["model_request_attempts_accounted"] = isinstance(transport_errors, list) and int(
+            usage.get("request_attempt_count") or 0
+        ) == int(usage.get("request_count") or 0) + len(transport_errors)
 
         failed = sorted(name for name, passed in checks.items() if not passed)
         item = {**identity, "outcome": "verified" if not failed else "unresolved", "checks": checks}
@@ -138,7 +140,7 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
             "kind": "deterministic programmatic review",
             "version": 1,
         },
-        "reviewed_at": datetime.now(timezone.utc).isoformat(),
+        "reviewed_at": datetime.now(UTC).isoformat(),
         "bindings": {
             "attempts_sha256": _attempts_sha256(attempts_path),
             "manifest_sha256": _sha256(manifest_path),
@@ -148,7 +150,9 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
             "scope": "evidence completeness, byte identity, and recorded score/status agreement",
             "score_authority": "unmodified WebArena-Verified evaluator",
             "manual_score_override": "not permitted",
-            "adjudication": "any disagreement or missing artifact remains unresolved and blocks publication",
+            "adjudication": (
+                "any disagreement or missing artifact remains unresolved and blocks publication"
+            ),
         },
         "coverage": {"recorded_attempts": len(rows), "reviewed_attempts": len(reviewed)},
         "disagreements": disagreements,

@@ -11,15 +11,17 @@ assert.ok(match, 'browser-use report JavaScript must remain extractable');
 
 const controls = [
   {dataset: {filter: 'result'}, value: '', addEventListener() {}},
+  {dataset: {filter: 'model'}, value: '', addEventListener() {}},
   {dataset: {filter: 'engine'}, value: '', addEventListener() {}},
 ];
 const search = {value: '', addEventListener() {}};
 const rows = [
-  {dataset: {tier: 'hard', result: 'fail', engine: 'moli'}, textContent: 'missing item'},
-  {dataset: {tier: 'easy', result: 'pass', engine: 'chromium'}, textContent: 'complete'},
+  {dataset: {tier: 'hard', result: 'fail', model: 'model-a', engine: 'moli'}, textContent: 'missing item'},
+  {dataset: {tier: 'easy', result: 'pass', model: 'model-a', engine: 'chromium'}, textContent: 'complete'},
 ];
 const count = {textContent: ''};
 const browserControls = {
+  'browser-model': {value: 'model-a', options: [{value: 'model-a'}, {value: 'model-b'}], addEventListener() {}},
   'browser-a': {value: 'chromium', options: [{value: 'chromium'}, {value: 'moli'}], addEventListener() {}},
   'browser-relation': {value: 'mixed', options: [{value: 'mixed'}, {value: 'all_fail'}], addEventListener() {}},
   'browser-kind': {value: '', options: [{value: ''}, {value: 'RETRIEVE'}], addEventListener() {}},
@@ -31,9 +33,9 @@ const compareChecks = [
   {value: 'moli', checked: true, disabled: false, closest() { return comparisonLabel; }, addEventListener() {}},
 ];
 const comparisonRows = [
-  {dataset: {pass: 'chromium', fail: 'moli', kind: 'RETRIEVE'}},
-  {dataset: {pass: 'chromium moli', fail: '', kind: 'NAVIGATE'}},
-  {dataset: {pass: '', fail: 'chromium moli', kind: 'MUTATE'}},
+  {dataset: {model: 'model-a', pass: 'chromium', fail: 'moli', kind: 'RETRIEVE'}},
+  {dataset: {model: 'model-a', pass: 'chromium moli', fail: '', kind: 'NAVIGATE'}},
+  {dataset: {model: 'model-a', pass: '', fail: 'chromium moli', kind: 'MUTATE'}},
 ];
 const listeners = {};
 const storage = new Map();

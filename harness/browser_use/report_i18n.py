@@ -436,7 +436,10 @@ _FAILURE_CAUSE_REVIEW = json.loads(
         encoding="utf-8"
     )
 )
-for _cause in _FAILURE_CAUSE_REVIEW["results"].values():
+_failure_cause_results = _FAILURE_CAUSE_REVIEW.get("results") or {}
+for _cohort in (_FAILURE_CAUSE_REVIEW.get("cohorts") or {}).values():
+    _failure_cause_results.update(_cohort.get("results") or {})
+for _cause in _failure_cause_results.values():
     for _field in ("subcategory", "reason"):
         _localized = _cause.get(_field)
         if isinstance(_localized, dict) and _localized.get("zh") and _localized.get("en"):
@@ -911,6 +914,114 @@ TEXT.update(
     }
 )
 
+# Report-authored interface copy introduced by the multi-model renderer. Task
+# names, task intents, expected/actual values, and execution excerpts are
+# deliberately not covered here: they are measured material and may remain in
+# their source language.
+TEXT.update(
+    {
+        "Browser Use 联合多模型能力实测": "Browser Use capability evaluation across model cohorts",
+        "浏览器 Browser Use 能力对比": "Browser capability comparison on Browser Use tasks",
+        "先看结论": "Key findings",
+        "失败根因是报告解读的核心证据": "Failure root causes are core interpretation evidence",
+        "任务族覆盖": "Task-family coverage",
+        "单边通过": "One-browser-only passes",
+        "共同失败": "Both browsers failed",
+        "不等于共同根因": "Not necessarily the same root cause",
+        "模型内完整配对": "complete within-model pairs",
+        "本轮共有 9 个模型内不一致配对，且方向随模型层变化；固定样本不支持对全部 Browser Use 任务作统计外推。": "This run contains nine discordant within-model pairs, and their direction changes across model cohorts. The fixed sample does not support statistical generalization to all Browser Use tasks.",
+        "浏览器后端是参评选手；模型是分层实验变量，每个模型层内保持 Agent、任务、资源上限、站点与 evaluator 一致。": "Browser backends are the participants. Models are stratification variables; within each model cohort, the agent, tasks, resource limits, sites, and evaluators are held constant.",
+        "官方任务身份、公开意图与程序化验收合同。运行结果位于结果分析，不混入评测集定义。": "Official task identity, public intent, and programmatic acceptance contract. Measured outcomes appear in Results and are kept separate from the dataset definition.",
+        "查看本题运行结果": "View measured results for this task",
+        "评测集页面保持为冻结输入；实测输出、判分和轨迹在结果页查看。": "Dataset pages remain frozen inputs. Measured outputs, verdicts, and trajectories appear on result pages.",
+        "Chromium 结果": "Chromium results",
+        "Moli 1.1.3 结果": "Moli 1.1.3 results",
+        "全部浏览器对照": "Compare all browsers",
+        "程序自动定位：": "Automatic failure locator:",
+        "核验根因子类：": "Reviewed root-cause subtype:",
+        "核验原因：": "Reviewed cause:",
+        "查看修正依据、处理与影响": "View findings, treatment, and impact",
+        "每个版本只记录影响读者判断的正式修正；结论、分母、耗时与证据影响直接展示，技术依据按需展开。": "Each release records only formal corrections that affect reader interpretation. Effects on conclusions, denominators, latency, and evidence are shown directly, with supporting details available on demand.",
+        "判分权威": "Scoring authority",
+        "物理执行": "Physical execution",
+        "模型层": "Model cohort",
+        "正式处理": "Formal treatment",
+        "未命名版本": "Untitled release",
+        "未命名核验": "Untitled review",
+        "官方 Hard": "Official hard subset",
+        "步起": "minimum steps",
+        "模板 ID": "template ID",
+        "公开文件": "Public files",
+        "没有 evaluator 明细。": "No evaluator details are available.",
+        "没有可展示的 BrowserTool 调用。": "No BrowserTool calls are available to display.",
+        "最终回答 JSON": "Final answer JSON",
+        "完整执行证据 JSON": "Complete execution evidence JSON",
+        "Evaluator 明细 JSON": "Evaluator details JSON",
+        "动作轨迹 JSON": "Action trajectory JSON",
+        "脱敏事件日志 JSON": "Sanitized event log JSON",
+        "原始证据哈希": "Source-evidence hashes",
+        "返回任务页": "Return to the task page",
+        "任务与验收": "Task and acceptance",
+        "执行轨迹": "Execution trajectory",
+        "运行与证据": "Runtime and evidence",
+        "查看任务合同": "View task contract",
+        "查看任务与验收": "View task and acceptance",
+        "基准浏览器": "Baseline browser",
+        "对比浏览器": "Comparison browsers",
+        "完整配对": "Complete pairs",
+        "仅基准通过": "Baseline only",
+        "仅对比通过": "Comparison only",
+        "模型内浏览器配对结果": "Within-model browser pair outcomes",
+        "失败根因以当前证据绑定的逐结果核验为准": "Failure causes follow the per-result reviews bound to the current evidence",
+        "37/37 个失败结果已逐个绑定当前证据并完成核验。": "All 37 failed results are bound to the current evidence and have completed root-cause review.",
+        "查看逐结果根因与证据边界 →": "View per-result causes and evidence boundaries →",
+        "220/220 个物理执行均记录 reset、ready、应用健康检查和登录准备状态；事件流随后证明 CowAgent 自主产生 BrowserTool 调用序列。": "All 220 physical executions record reset, readiness, application-health, and sign-in preparation status. The subsequent event streams show CowAgent generating BrowserTool calls autonomously.",
+        "，只保留该题所需站点；env-ctrl 报告 ready 后，再做连续应用健康检查、清浏览器状态、登录测试账号并打开起始页。本轮 220/220 个物理执行都保存了环境准备回执，并与对应执行记录绑定。": ", keeping only the sites required by the task. After env-ctrl reports ready, the runner performs repeated application-health checks, clears browser state, signs in with test accounts, and opens the start page. All 220 physical executions retain preparation receipts bound to their execution records.",
+        "本轮 220/220 个物理执行均保存环境准备回执；公开环境摘要保留逐项状态，原始登录态不发布。": "All 220 physical executions retain environment-preparation receipts. The public environment summary preserves each status while authenticated session state remains private.",
+        "各模型任务成绩": "Task scores by model cohort",
+        "各模型逻辑结果耗时 P50": "P50 logical-result latency by model cohort",
+        "判分权威执行的原始证据绑定": "Source-evidence binding for the authoritative execution",
+    }
+)
+
+
+def _register_report_change_translations() -> None:
+    """Load explicit English release/review copy from the shared report model.
+
+    Release history changes frequently, so keeping its English prose beside the
+    Chinese source prevents a new release from depending on a hand-maintained
+    global exact-string table.
+    """
+
+    path = Path(__file__).parents[2] / "research/report-changes.json"
+    if not path.is_file():
+        return
+    data = json.loads(path.read_text(encoding="utf-8"))
+
+    history_i18n = data.get("history_scope_i18n") or {}
+    if isinstance(data.get("history_scope"), str) and isinstance(history_i18n.get("en"), str):
+        TEXT[data["history_scope"]] = history_i18n["en"]
+
+    for collection in ("browser_use_reviews", "browser_use_releases"):
+        for record in data.get(collection) or []:
+            english = ((record.get("i18n") or {}).get("en") or {})
+            for field in ("title", "status", "scope", "findings", "corrections", "remaining", "summary"):
+                source, target = record.get(field), english.get(field)
+                if isinstance(source, str) and isinstance(target, str):
+                    TEXT[source] = target
+            source_rows, target_rows = record.get("changes") or [], english.get("changes") or []
+            if len(source_rows) != len(target_rows):
+                continue
+            for source_row, target_row in zip(source_rows, target_rows, strict=True):
+                if len(source_row) != len(target_row):
+                    continue
+                for source, target in zip(source_row, target_row, strict=True):
+                    if isinstance(source, str) and isinstance(target, str):
+                        TEXT[source] = target
+
+
+_register_report_change_translations()
+
 TEXT.update(
     {
         # Project-authored task labels/rationales. The adjacent official task
@@ -1002,6 +1113,7 @@ PHRASES = {
     "任务 #": "Task #",
     "个试次": " attempts",
     "个任务": " tasks",
+    "个失败结果": " failed results",
     "实际": "actual",
     "期望": "expected",
     "暂无发布记录。": "No release has been recorded.",

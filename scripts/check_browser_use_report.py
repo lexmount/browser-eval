@@ -11,11 +11,25 @@ from pathlib import Path
 
 from harness.browser_use.failure_cause_review import (
     DEFAULT_REVIEW_PATH as FAILURE_CAUSE_REVIEW_PATH,
+)
+from harness.browser_use.failure_cause_review import (
     load_failure_cause_review,
-    sha256 as file_sha256,
     validate_failure_cause_review,
 )
-from harness.browser_use.report import _logical_results
+from harness.browser_use.failure_cause_review import (
+    sha256 as file_sha256,
+)
+from harness.browser_use.publication import evidence_metadata
+from harness.browser_use.report import (
+    PUBLIC_EXECUTION_ARTIFACTS,
+    _attempt_id,
+    _configure_engine_labels,
+    _configure_models,
+    _load_evidence_bundles,
+    _logical_results,
+    _public_attempt,
+    _public_execution,
+)
 from harness.browser_use.selection import load_pilot
 
 
@@ -23,16 +37,210 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _check_execution_artifacts(
+    report_dir: Path,
+    logical_rows: list[dict],
+    public_results: list[dict],
+    evidence_index: dict,
+) -> None:
+    """Verify that every physical execution has one safe, hash-bound public projection."""
+
+    logical_by_id = {_attempt_id(row): row for row in logical_rows}
+    public_by_id = {str(row.get("id")): row for row in public_results}
+    indexed_rows = evidence_index.get("results") or []
+    indexed_by_id = {str(row.get("result_id")): row for row in indexed_rows}
+    expected_ids = set(logical_by_id)
+    if len(public_by_id) != len(public_results) or set(public_by_id) != expected_ids:
+        raise ValueError("public result projection must identify every logical result exactly once")
+    if len(indexed_by_id) != len(indexed_rows) or set(indexed_by_id) != expected_ids:
+        raise ValueError("public evidence index must cover every logical result exactly once")
+    if evidence_index.get("schema") != "lex_browser_use_public_evidence_index/4":
+        raise ValueError("public evidence index schema does not describe physical executions")
+
+    expected_files: set[Path] = set()
+    for result_id, logical in logical_by_id.items():
+        sources = logical.get("_source_executions") or [logical]
+        authority = int(logical["attempt"])
+        public = public_by_id[result_id]
+        indexed = indexed_by_id[result_id]
+        detail_text = (report_dir / "results" / f"{result_id}.html").read_text(encoding="utf-8")
+        if f"包含 <strong>{len(sources)}</strong> 次物理执行" not in detail_text:
+            raise ValueError(f"result page omits physical execution count: {result_id}")
+        expected_public = _public_attempt(logical)
+        for key in (
+            "execution_count",
+            "authoritative_execution",
+            "score",
+            "duration_ms",
+            "action_count",
+            "browser_tool_duration_ms",
+            "browser_tool_duration_by_action_ms",
+            "browser_tool_count_by_action",
+            "model_usage",
+        ):
+            if public.get(key) != expected_public.get(key):
+                raise ValueError(
+                    f"public logical aggregate cannot be recomputed: {result_id}/{key}"
+                )
+        for key in (
+            "model",
+            "engine",
+            "task_id",
+            "score",
+            "execution_count",
+            "authoritative_execution",
+        ):
+            if indexed.get(key) != public.get(key):
+                raise ValueError(f"evidence index logical binding differs: {result_id}/{key}")
+        if public.get("execution_count") != len(sources):
+            raise ValueError(f"public result has wrong physical execution count: {result_id}")
+        if public.get("authoritative_execution") != authority:
+            raise ValueError(f"public result changed score authority: {result_id}")
+        if indexed.get("execution_count") != len(sources):
+            raise ValueError(f"evidence index has wrong physical execution count: {result_id}")
+        if indexed.get("authoritative_execution") != authority:
+            raise ValueError(f"evidence index changed score authority: {result_id}")
+        executions = indexed.get("executions") or []
+        if len(executions) != len(sources):
+            raise ValueError(f"evidence index omitted a physical execution: {result_id}")
+        indexed_by_number = {int(item.get("execution") or 0): item for item in executions}
+        if len(indexed_by_number) != len(executions):
+            raise ValueError(f"evidence index duplicates a physical execution: {result_id}")
+        for source in sources:
+            number = int(source["attempt"])
+            indexed_execution = indexed_by_number.get(number)
+            if indexed_execution is None:
+                raise ValueError(f"evidence index omitted execution {number}: {result_id}")
+            expected_measurements = _public_execution(source, authoritative=number == authority)
+            measured = {key: indexed_execution.get(key) for key in expected_measurements}
+            if measured != expected_measurements:
+                raise ValueError(f"published execution measurements differ: {result_id}/{number}")
+            artifacts = indexed_execution.get("artifacts") or {}
+            if set(artifacts) != set(PUBLIC_EXECUTION_ARTIFACTS):
+                raise ValueError(f"execution artifact inventory differs: {result_id}/{number}")
+            for label, filename in PUBLIC_EXECUTION_ARTIFACTS.items():
+                relative = Path("artifacts") / result_id / "executions" / str(number) / filename
+                artifact = artifacts[label]
+                if (
+                    set(artifact) != {"path", "sha256"}
+                    or artifact.get("path") != relative.as_posix()
+                ):
+                    raise ValueError(
+                        f"unsafe or incorrect artifact link: {result_id}/{number}/{label}"
+                    )
+                path = report_dir / relative
+                expected_files.add(path)
+                if not path.is_file():
+                    raise ValueError(f"missing physical execution artifact: {path}")
+                if artifact.get("sha256") != _sha256(path):
+                    raise ValueError(f"physical execution artifact hash differs: {path}")
+                if (
+                    f'href="{relative.as_posix()}"' not in detail_text
+                    or str(artifact["sha256"]) not in detail_text
+                ):
+                    raise ValueError(
+                        f"result page omits execution artifact link or hash: "
+                        f"{result_id}/{number}/{label}"
+                    )
+            bundle_path = (
+                report_dir
+                / "artifacts"
+                / result_id
+                / "executions"
+                / str(number)
+                / PUBLIC_EXECUTION_ARTIFACTS["execution_evidence"]
+            )
+            bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+            if (
+                bundle.get("schema") != "lex_browser_use_public_execution_evidence/3"
+                or bundle.get("result_id") != result_id
+                or bundle.get("execution") != number
+                or bundle.get("authoritative") != (number == authority)
+                or bundle.get("measurements") != expected_measurements
+            ):
+                raise ValueError(f"execution evidence binding differs: {result_id}/{number}")
+            for key in ("agent_response", "evaluation", "agent_events", "trajectory"):
+                if key not in bundle:
+                    raise ValueError(
+                        f"execution evidence payload is incomplete: {result_id}/{number}/{key}"
+                    )
+            source_files = (bundle.get("source_evidence") or {}).get("files") or {}
+            if source_files != (evidence_metadata(source).get("files") or {}):
+                raise ValueError(f"source evidence hashes differ: {result_id}/{number}")
+            missing_public_sources = {
+                label
+                for label in ("response", "evaluation", "events")
+                if not (source_files.get(label) or {}).get("present")
+            }
+            if missing_public_sources:
+                raise ValueError(
+                    f"physical execution lacks publishable source evidence: "
+                    f"{result_id}/{number}/{sorted(missing_public_sources)}"
+                )
+            for private_label in ("network_har", "agent_trace"):
+                if (
+                    private_label in source_files
+                    and source_files[private_label].get("publication")
+                    != "private_only_session_sensitive"
+                ):
+                    raise ValueError(f"private {private_label} was marked publishable")
+
+    artifact_root = report_dir / "artifacts"
+    actual_files = {path for path in artifact_root.rglob("*") if path.is_file()}
+    if actual_files != expected_files:
+        extra = sorted(str(path) for path in actual_files - expected_files)
+        missing = sorted(str(path) for path in expected_files - actual_files)
+        raise ValueError(f"execution artifact tree differs; extra={extra}, missing={missing}")
+    forbidden_text = re.compile(
+        r"(?:Password\.123|admin1234|test1234|hello1234|"
+        r"-----BEGIN [A-Z ]*PRIVATE KEY-----|\bBearer\s+[A-Za-z0-9._~+/=-]{12,}|"
+        r"\bsk-[A-Za-z0-9_-]{12,}|(?-i:/(?:Users|home|private|tmp|var|opt)/[^\s\"']+))",
+        flags=re.I,
+    )
+    for path in actual_files:
+        if path.suffix.lower() in {".har", ".zip"} or path.name in {
+            "network.har",
+            "agent_trace.zip",
+        }:
+            raise ValueError(f"private HAR or trace was copied into the public report: {path}")
+        if forbidden_text.search(path.read_text(encoding="utf-8")):
+            raise ValueError(f"published execution artifact contains sensitive text: {path}")
+
+
+def _check_public_privacy(report_dir: Path) -> None:
+    forbidden_text = re.compile(
+        r"(?:Password\.123|admin1234|test1234|hello1234|"
+        r"-----BEGIN [A-Z ]*PRIVATE KEY-----|\bBearer\s+[A-Za-z0-9._~+/=-]{12,}|"
+        r"\bsk-[A-Za-z0-9_-]{12,}|(?-i:/(?:Users|home|private|tmp|var|opt)/[^\s\"']+))",
+        flags=re.I,
+    )
+    text_suffixes = {".html", ".json", ".jsonl", ".js", ".css"}
+    for path in report_dir.rglob("*"):
+        if not path.is_file():
+            continue
+        if path.suffix.lower() == ".har" or (
+            "trace" in path.name.lower() and path.suffix.lower() == ".zip"
+        ):
+            raise ValueError(f"private HAR or trace was copied into the public report: {path}")
+        if path.suffix.lower() in text_suffixes and forbidden_text.search(
+            path.read_text(encoding="utf-8")
+        ):
+            raise ValueError(f"published report contains sensitive text: {path}")
+
+
 def check(
     report_dir: Path,
-    evidence_dir: Path,
+    evidence_dir: Path | list[Path],
     selection_path: Path,
     *,
     require_complete: bool,
 ) -> None:
     profile_path = Path("evaluation/browser-use/current-report.json")
     profile = json.loads(profile_path.read_text(encoding="utf-8"))
+    _configure_engine_labels(profile)
+    _configure_models(profile)
     engines = tuple(str(engine) for engine in profile.get("engines") or [])
+    models = tuple(str(model) for model in profile.get("models") or [])
     if not engines or len(engines) != len(set(engines)):
         raise ValueError("current Browser Use profile must register unique browser engines")
     page_names = (
@@ -52,33 +260,21 @@ def check(
     pages = tuple(report_dir / name for name in page_names)
     index = pages[0]
     audit_path = report_dir / "report-data.json"
-    attempts_path = evidence_dir / "attempts.jsonl"
-    manifest_path = evidence_dir / "manifest.json"
-    run_config_path = evidence_dir / "run-config.json"
+    bundles = _load_evidence_bundles(evidence_dir)
     task_pages = tuple(
         report_dir / "datasets" / f"{task_id}.html"
         for task_id in sorted(task.task_id for task in load_pilot(selection_path).tasks)
     )
-    measured_rows = (
-        [
-            json.loads(line)
-            for line in attempts_path.read_text(encoding="utf-8").splitlines()
-            if line.strip()
-        ]
-        if attempts_path.is_file()
-        else []
-    )
-    manifest_for_projection = (
-        json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else {}
-    )
-    logical_rows = _logical_results(
-        measured_rows, manifest_for_projection.get("protocol") or {}
-    )
+    measured_rows = [row for bundle in bundles for row in bundle["source_attempts"]]
+    logical_rows = [
+        row
+        for bundle in bundles
+        for row in _logical_results(
+            bundle["source_attempts"], bundle["manifest"].get("protocol") or {}
+        )
+    ]
     result_pages = tuple(
-        report_dir
-        / "results"
-        / f"{row['engine']}-{int(row['task_id'])}.html"
-        for row in logical_rows
+        report_dir / "results" / f"{_attempt_id(row)}.html" for row in logical_rows
     )
     chinese_pages = (*pages, *task_pages, *result_pages)
     english_pages = tuple(
@@ -98,15 +294,15 @@ def check(
         )
     )
     artifact_files = tuple(
-        report_dir / "artifacts" / page.stem / name
-        for page in result_pages
-        for name in (
-            "agent-response.json",
-            "evaluation.json",
-            "agent-events.json",
-            "trajectory.json",
-            "evidence-metadata.json",
-        )
+        report_dir
+        / "artifacts"
+        / _attempt_id(row)
+        / "executions"
+        / str(source["attempt"])
+        / filename
+        for row in logical_rows
+        for source in (row.get("_source_executions") or [row])
+        for filename in PUBLIC_EXECUTION_ARTIFACTS.values()
     )
     if not all(
         path.is_file()
@@ -123,31 +319,35 @@ def check(
     audit = json.loads(audit_path.read_text(encoding="utf-8"))
     if audit.get("selection_sha256") != selection.sha256:
         raise ValueError("report was not built from the current pre-registered selection")
-    rows = []
-    if attempts_path.exists():
-        rows = [
-            json.loads(line)
-            for line in attempts_path.read_text(encoding="utf-8").splitlines()
-            if line.strip()
-        ]
+    rows = measured_rows
     selected_ids = {task.task_id for task in selection.tasks}
-    expected_primary = {(engine, task_id, 1) for engine in engines for task_id in selected_ids}
-    by_key: dict[tuple[str, int, int], dict] = {}
+    expected_primary = {
+        (model, engine, task_id, 1)
+        for model in models
+        for engine in engines
+        for task_id in selected_ids
+    }
+    by_key: dict[tuple[str, str, int, int], dict] = {}
     for row in rows:
-        key = (str(row["engine"]), int(row["task_id"]), int(row["attempt"]))
+        key = (
+            str(row["model"]),
+            str(row["engine"]),
+            int(row["task_id"]),
+            int(row["attempt"]),
+        )
         if key in by_key:
             raise ValueError(f"duplicate measured attempt: {key}")
-        if key[0] not in set(engines) or key[1] not in selected_ids:
+        if key[0] not in set(models) or key[1] not in set(engines) or key[2] not in selected_ids:
             raise ValueError(f"attempt outside the registered cohort: {key}")
-        if key[2] not in {1, 2}:
+        if key[3] not in {1, 2}:
             raise ValueError(f"more than one retry is not allowed: {key}")
         by_key[key] = row
-    for engine, task_id, attempt in by_key:
+    for model, engine, task_id, attempt in by_key:
         if attempt == 2:
-            primary = by_key.get((engine, task_id, 1))
+            primary = by_key.get((model, engine, task_id, 1))
             if primary is None or float(primary["score"]) == 1.0:
                 raise ValueError(
-                    f"retry is allowed only after a failed primary: {(engine, task_id)}"
+                    f"retry is allowed only after a failed primary: {(model, engine, task_id)}"
                 )
     rendered_pages = {
         page: page.read_text(encoding="utf-8") for page in (*chinese_pages, *english_pages)
@@ -155,9 +355,7 @@ def check(
     if any('<html lang="en">' not in rendered_pages[page] for page in english_pages):
         raise ValueError("every Chinese report route must have an English mirror")
     cjk = re.compile(r"[\u3400-\u9fff]")
-    localized_attribute = re.compile(
-        r'(?:aria-label|placeholder|title)="([^"]*)"', flags=re.I
-    )
+    localized_attribute = re.compile(r'(?:aria-label|placeholder|title)="([^"]*)"', flags=re.I)
     for page in english_pages:
         text = rendered_pages[page]
         title = re.search(r"<title>(.*?)</title>", text, flags=re.I | re.S)
@@ -175,7 +373,7 @@ def check(
             "task pages must publish frozen contracts without embedding measured comparisons"
         )
     dataset_index = rendered_pages[report_dir / "datasets/index.html"]
-    if 'data-result=' in dataset_index or "可完成性证据" in dataset_index:
+    if "data-result=" in dataset_index or "可完成性证据" in dataset_index:
         raise ValueError("dataset inventory must not mix measured results into task definitions")
     review_index = rendered_pages[report_dir / "review/index.html"]
     if (
@@ -254,11 +452,8 @@ def check(
     evidence_index = json.loads(
         (report_dir / "data/evidence-index.json").read_text(encoding="utf-8")
     )
-    indexed_results = evidence_index.get("results") or []
-    if {item.get("result_id") for item in indexed_results} != {
-        page.stem for page in result_pages
-    }:
-        raise ValueError("public evidence index must cover every logical result exactly once")
+    _check_execution_artifacts(report_dir, logical_rows, public_results, evidence_index)
+    _check_public_privacy(report_dir)
     forbidden = {
         "agent_response",
         "paths",
@@ -284,7 +479,9 @@ def check(
     )
     for page, text in rendered_pages.items():
         if any(term in text for term in forbidden_report_terms):
-            raise ValueError(f"formal report contains forbidden notebook or execution-label text: {page}")
+            raise ValueError(
+                f"formal report contains forbidden notebook or execution-label text: {page}"
+            )
         if re.search(
             r"<svg\b|<(?:img|object|embed)\b[^>]+(?:src|data)=[\"'][^\"']*\.svg(?:[?#][^\"']*)?[\"']",
             text,
@@ -314,155 +511,147 @@ def check(
         if required_style not in style:
             raise ValueError(f"report is missing publication readability guard: {required_style}")
     if require_complete:
-        if not manifest_path.is_file() or not run_config_path.is_file():
-            raise ValueError("complete evidence requires manifest.json and run-config.json")
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        run_config = json.loads(run_config_path.read_text(encoding="utf-8"))
-        official = (manifest.get("environment") or {}).get("official_evaluator") or {}
-        expected_profile = {
-            "selection_sha256": selection.sha256,
-            "model": (manifest.get("protocol") or {}).get("model"),
-            "reasoning_effort": (manifest.get("protocol") or {}).get("reasoning_effort"),
-            "official_data_checksum": official.get("data_checksum"),
-        }
-        for key, expected in expected_profile.items():
-            if profile.get(key) != expected:
-                raise ValueError(f"current report profile mismatch for {key}")
-        browser_versions = set(((manifest.get("environment") or {}).get("browser_versions") or {}))
-        if set(engines) != browser_versions:
-            raise ValueError("current report engines differ from measured browser identities")
-        manifest_score_authority = (manifest.get("protocol") or {}).get(
-            "official_score_uses"
-        ) or "final execution for each browser and task"
-        if audit.get("score_authority") != manifest_score_authority:
-            raise ValueError("report renderer changed the frozen score authority")
         if not str(profile.get("logical_result") or "").startswith(
             "score authority follows the frozen run manifest"
         ):
             raise ValueError("current report profile must defer score authority to the manifest")
-        if manifest.get("selection_sha256") != selection.sha256:
-            raise ValueError("manifest selection hash differs from the registered cohort")
-        if run_config.get("selection_sha256") != selection.sha256:
-            raise ValueError("run configuration differs from the registered cohort")
-        if run_config.get("reasoning_effort") != "low":
-            raise ValueError("pilot reasoning effort must be low")
-        if not run_config.get("browser_eval_commit"):
-            raise ValueError("run configuration must identify the browser-eval commit")
-        if manifest.get("protocol", {}).get("browser_eval_commit") != run_config.get(
-            "browser_eval_commit"
-        ):
-            raise ValueError("manifest and run configuration disagree on browser-eval commit")
-        if manifest.get("protocol", {}).get("model_transport_retries") != 1:
-            raise ValueError("pilot allows exactly one model transport retry")
+        authorities = audit.get("score_authority") or {}
+        review_bindings = (audit.get("review") or {}).get("bindings") or {}
+        for bundle in bundles:
+            evidence_path = bundle["path"]
+            manifest_path = evidence_path / "manifest.json"
+            run_config_path = evidence_path / "run-config.json"
+            attempts_path = evidence_path / "attempts.jsonl"
+            review_path = evidence_path / "result-review.json"
+            if not manifest_path.is_file() or not run_config_path.is_file():
+                raise ValueError("complete evidence requires manifest.json and run-config.json")
+            manifest, run_config = bundle["manifest"], bundle["config"]
+            model = bundle["model"]
+            official = (manifest.get("environment") or {}).get("official_evaluator") or {}
+            if model not in models:
+                raise ValueError(
+                    f"current report profile does not register measured model: {model}"
+                )
+            for key, expected in {
+                "selection_sha256": selection.sha256,
+                "reasoning_effort": (manifest.get("protocol") or {}).get("reasoning_effort"),
+                "official_data_checksum": official.get("data_checksum"),
+            }.items():
+                if profile.get(key) != expected:
+                    raise ValueError(f"current report profile mismatch for {key}: {model}")
+            browser_versions = set(
+                (manifest.get("environment") or {}).get("browser_versions") or {}
+            )
+            if set(engines) != browser_versions:
+                raise ValueError(f"current report engines differ from measured identities: {model}")
+            authority = (manifest.get("protocol") or {}).get(
+                "official_score_uses"
+            ) or "final execution for each browser and task"
+            if authorities.get(model) != authority:
+                raise ValueError(f"report renderer changed frozen score authority: {model}")
+            if manifest.get("selection_sha256") != selection.sha256:
+                raise ValueError("manifest selection hash differs from the registered cohort")
+            if run_config.get("selection_sha256") != selection.sha256:
+                raise ValueError("run configuration differs from the registered cohort")
+            if run_config.get("reasoning_effort") != profile.get("reasoning_effort"):
+                raise ValueError("run configuration reasoning effort differs from the profile")
+            if not run_config.get("browser_eval_commit"):
+                raise ValueError("run configuration must identify the browser-eval commit")
+            if manifest.get("protocol", {}).get("browser_eval_commit") != run_config.get(
+                "browser_eval_commit"
+            ):
+                raise ValueError("manifest and run configuration disagree on browser-eval commit")
+            if manifest.get("protocol", {}).get("model_transport_retries") != 1:
+                raise ValueError("pilot allows exactly one model transport retry")
+            if not review_path.is_file():
+                raise ValueError("complete publication requires result-review.json per model")
+            bundle_review = bundle["review"]
+            bindings = bundle_review.get("bindings") or {}
+            if bindings.get("attempts_sha256") != _sha256(attempts_path):
+                raise ValueError(f"result review is not bound to current attempts: {model}")
+            if bindings.get("manifest_sha256") != _sha256(manifest_path):
+                raise ValueError(f"result review is not bound to current manifest: {model}")
+            if bindings.get("selection_sha256") != selection.sha256:
+                raise ValueError("result review is not bound to the registered selection")
+            model_rows = [row for row in rows if row["model"] == model]
+            coverage = bundle_review.get("coverage") or {}
+            if coverage != {
+                "recorded_attempts": len(model_rows),
+                "reviewed_attempts": len(model_rows),
+            }:
+                raise ValueError(f"result review does not cover every attempt: {model}")
+            if bundle_review.get("disagreements") or bundle_review.get("unresolved"):
+                raise ValueError(f"result review has disagreements or unresolved checks: {model}")
+            reviewed_keys = {
+                (model, str(item["engine"]), int(item["task_id"]), int(item["attempt"]))
+                for item in bundle_review.get("attempts") or []
+            }
+            measured_keys = {key for key in by_key if key[0] == model}
+            if reviewed_keys != measured_keys:
+                raise ValueError(f"result review inventory differs from evidence: {model}")
+            if review_bindings.get(model) != bindings:
+                raise ValueError(f"rendered report review binding differs: {model}")
         missing = expected_primary - set(by_key)
         if missing:
             raise ValueError(f"missing {len(missing)} primary attempts")
         missing_retries = {
-            (engine, task_id, 2)
-            for engine, task_id, _ in expected_primary
-            if float(by_key[(engine, task_id, 1)]["score"]) != 1.0
-            and (engine, task_id, 2) not in by_key
+            (model, engine, task_id, 2)
+            for model, engine, task_id, _ in expected_primary
+            if float(by_key[(model, engine, task_id, 1)]["score"]) != 1.0
+            and (model, engine, task_id, 2) not in by_key
         }
         if missing_retries:
             raise ValueError(f"missing {len(missing_retries)} permitted failure retries")
         if "测量尚未完整" in html:
             raise ValueError("complete publication cannot contain an incomplete-results notice")
-        review_path = evidence_dir / "result-review.json"
-        if not review_path.is_file():
-            raise ValueError("complete publication requires result-review.json")
-        review = json.loads(review_path.read_text(encoding="utf-8"))
-        bindings = review.get("bindings") or {}
-        if bindings.get("attempts_sha256") != _sha256(attempts_path):
-            raise ValueError("result review is not bound to the current attempts")
-        if bindings.get("manifest_sha256") != _sha256(manifest_path):
-            raise ValueError("result review is not bound to the current manifest")
-        if bindings.get("selection_sha256") != selection.sha256:
-            raise ValueError("result review is not bound to the registered selection")
-        coverage = review.get("coverage") or {}
-        if coverage != {"recorded_attempts": len(rows), "reviewed_attempts": len(rows)}:
-            raise ValueError("result review does not cover every recorded attempt")
-        if review.get("disagreements") or review.get("unresolved"):
-            raise ValueError("result review contains disagreements or unresolved checks")
-        reviewed_keys = {
-            (str(item["engine"]), int(item["task_id"]), int(item["attempt"]))
-            for item in review.get("attempts") or []
-        }
-        if reviewed_keys != set(by_key):
-            raise ValueError("result review attempt inventory differs from measured evidence")
-        failed_result_ids = {
-            f"{row['engine']}-{int(row['task_id'])}"
-            for row in logical_rows
-            if float(row.get("score") or 0) < 1
-        }
-        cause_review = load_failure_cause_review()
         cause_profile = profile.get("failure_cause_review") or {}
         cause_required = bool(cause_profile.get("required_for_publication"))
-        verified_causes = validate_failure_cause_review(
-            cause_review,
-            attempts_sha256=_sha256(attempts_path),
-            failed_result_ids=failed_result_ids,
-            require_complete=cause_required,
-        )
-        if cause_required:
-            if cause_profile.get("source_sha256") != file_sha256(
-                FAILURE_CAUSE_REVIEW_PATH
-            ):
-                raise ValueError(
-                    "current report profile is not bound to the failure-cause review"
+        default_cause_review = load_failure_cause_review()
+        verified_causes: dict[str, dict] = {}
+        for bundle in bundles:
+            model = bundle["model"]
+            failed_ids = {
+                _attempt_id(row)
+                for row in logical_rows
+                if row["model"] == model and float(row.get("score") or 0) < 1
+            }
+            verified_causes.update(
+                validate_failure_cause_review(
+                    default_cause_review,
+                    model_id=model,
+                    attempts_sha256=bundle["attempts_sha256"],
+                    failed_result_ids=failed_ids,
+                    require_complete=cause_required,
                 )
+            )
+        if cause_required:
+            failed_result_ids = {
+                _attempt_id(row) for row in logical_rows if float(row.get("score") or 0) < 1
+            }
             if set(verified_causes) != failed_result_ids:
                 raise ValueError("every failed logical result must have a verified root cause")
-            cause_bindings = cause_review.get("bindings") or {}
-            if cause_bindings.get("manifest_sha256") != _sha256(manifest_path):
-                raise ValueError("failure-cause review is not bound to the current manifest")
-            if cause_bindings.get("selection_sha256") != selection.sha256:
-                raise ValueError("failure-cause review is not bound to the current selection")
+            configured_hash = cause_profile.get("source_sha256")
+            if not isinstance(configured_hash, str) or configured_hash != file_sha256(
+                FAILURE_CAUSE_REVIEW_PATH
+            ):
+                raise ValueError("current profile is not bound to the failure-cause review")
         published_cause_review = json.loads(
             (report_dir / "data/failure-cause-review.json").read_text(encoding="utf-8")
         )
         if published_cause_review.get("results") != verified_causes:
-            raise ValueError("published failure causes differ from the verified review")
-        public_by_id = {str(item["id"]): item for item in public_results}
-        for result_id, item in public_by_id.items():
-            has_verified_cause = result_id in verified_causes
-            if bool(item.get("verified_failure_subcategory")) != has_verified_cause:
-                raise ValueError(f"failure subcategory review state mismatch: {result_id}")
-            if bool(item.get("verified_failure_reason")) != has_verified_cause:
-                raise ValueError(f"failure reason review state mismatch: {result_id}")
-        report_review = audit.get("review") or {}
-        if report_review.get("bindings") != bindings:
-            raise ValueError("rendered report is not bound to the current result review")
-        for _page, text in rendered_pages.items():
-            if str(evidence_dir.resolve()) in text:
-                raise ValueError("published pages must not contain machine-local evidence paths")
-        forbidden_text = (
-            "Password.123",
-            "admin1234",
-            "test1234",
-            "hello1234",
-        )
-        for path in report_dir.rglob("*"):
-            if path.is_file() and path.suffix in {".html", ".json", ".jsonl", ".js", ".css"}:
-                text = path.read_text(encoding="utf-8")
-                if any(secret in text for secret in forbidden_text):
+            raise ValueError("published failure causes differ from verified reviews")
+        for bundle in bundles:
+            for _page, text in rendered_pages.items():
+                if str(bundle["path"]) in text:
                     raise ValueError(
-                        f"published evidence contains a secret or local origin: {path}"
+                        "published pages must not contain machine-local evidence paths"
                     )
-                if re.search(r"/Users/[^/\s<]+/", text) or any(
-                    re.search(pattern, text, flags=re.I)
-                    for pattern in (
-                        r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
-                        r"\bBearer\s+[A-Za-z0-9._~+/=-]{12,}",
-                        r"\bsk-[A-Za-z0-9_-]{12,}",
-                    )
-                ):
-                    raise ValueError(f"published evidence contains sensitive text: {path}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("report", type=Path)
-    parser.add_argument("--evidence", required=True, type=Path)
+    parser.add_argument("--evidence", required=True, action="append", type=Path)
     parser.add_argument(
         "--selection",
         type=Path,

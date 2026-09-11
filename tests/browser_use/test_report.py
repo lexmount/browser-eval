@@ -1,19 +1,23 @@
 import json
 from pathlib import Path, PurePosixPath
 
+import pytest
+
 import harness.browser_use.report as report_module
-from harness.browser_use.report_i18n import localize_html
-from harness.browser_use.selection import load_pilot
 from harness.browser_use.report import (
     _action_duration_cards,
     _best,
     _failure_diagnosis,
+    _load_evidence_bundles,
     _logical_results,
     _paired_summary,
     _same_task_comparison,
     _verification_html,
     build_report,
 )
+from harness.browser_use.report_i18n import localize_html
+from harness.browser_use.selection import load_pilot
+from scripts.check_browser_use_report import _check_execution_artifacts, _check_public_privacy
 
 
 def test_best_marks_only_one_visibly_distinct_winner() -> None:
@@ -51,11 +55,7 @@ def test_result_verification_is_readable_and_does_not_duplicate_raw_panels() -> 
                 "expected": {"status": "success", "retrieved_data": [1, 2]},
                 "actual": {"status": "success", "retrieved_data": [1]},
                 "assertions": [
-                    {
-                        "assertion_msgs": [
-                            "Array is missing 1 expected element(s). Matched (1/2)"
-                        ]
-                    }
+                    {"assertion_msgs": ["Array is missing 1 expected element(s). Matched (1/2)"]}
                 ],
             }
         ]
@@ -82,11 +82,11 @@ def test_paired_summary_uses_final_logical_results() -> None:
         {"engine": "moli", "task_id": 2, "attempt": 1, "score": 1},
     ]
 
-    summary = _paired_summary(_logical_results(rows))
+    summary = _paired_summary(_logical_results(rows))["gpt-5.6-sol"]["comparisons"]["moli"]
 
     assert summary["paired"] == 2
     assert summary["both_pass"] == 1
-    assert summary["moli_only"] == 1
+    assert summary["comparison_only"] == 1
     assert summary["mcnemar_exact_p"] == 1.0
 
 
@@ -96,6 +96,7 @@ def test_comparison_components_scale_to_three_browsers(monkeypatch) -> None:
         "ENGINE_LABELS",
         {"chromium": "Chromium", "moli": "Moli", "third": "Third Browser"},
     )
+    monkeypatch.setattr(report_module, "BASELINE_ENGINE", "chromium")
     tasks = [
         {
             "task_id": 1,
@@ -123,7 +124,7 @@ def test_comparison_components_scale_to_three_browsers(monkeypatch) -> None:
     comparison = _same_task_comparison(tasks, attempts)
     actions = _action_duration_cards(attempts)
 
-    assert comparison.count('data-compare-engine') == 3
+    assert comparison.count("data-compare-engine") == 3
     assert 'data-pass="chromium third"' in comparison
     assert 'data-fail="moli"' in comparison
     assert "Third Browser" in comparison
@@ -188,10 +189,40 @@ def test_logical_results_aggregate_browser_tool_wall_time(tmp_path: Path) -> Non
     assert result["browser_tool_count_by_action"] == {"click": 2}
 
 
-def test_report_publishes_one_final_logical_result_and_aggregates_cost(tmp_path: Path) -> None:
+def _use_single_model_profile(monkeypatch) -> None:
+    real_read_json = report_module._read_json
+
+    def read_json(path: Path) -> dict:
+        value = real_read_json(path)
+        if path == Path("evaluation/browser-use/current-report.json"):
+            return {
+                **value,
+                "models": ["gpt-5.6-sol"],
+                "model_labels": {"gpt-5.6-sol": "GPT-5.6 Sol"},
+            }
+        return value
+
+    monkeypatch.setattr(report_module, "_read_json", read_json)
+    monkeypatch.setattr(
+        report_module,
+        "load_failure_cause_review",
+        lambda: {
+            "schema": "lex_browser_use_layered_failure_cause_review/2",
+            "cohorts": {},
+        },
+    )
+
+
+def test_report_publishes_one_final_logical_result_and_aggregates_cost(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _use_single_model_profile(monkeypatch)
     evidence = tmp_path / "evidence"
     output = tmp_path / "report"
     evidence.mkdir()
+    (evidence / "manifest.json").write_text(
+        json.dumps({"protocol": {"model": "gpt-5.6-sol"}}), encoding="utf-8"
+    )
     rows = [
         {
             "engine": "chromium",
@@ -200,6 +231,7 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(tmp_path:
             "attempt": 1,
             "score": 0,
             "duration_ms": 1000,
+            "model_usage": {"total_tokens": 100},
         },
         {
             "engine": "chromium",
@@ -208,6 +240,7 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(tmp_path:
             "attempt": 2,
             "score": 1,
             "duration_ms": 900,
+            "model_usage": {"total_tokens": 200},
         },
         {
             "engine": "moli",
@@ -216,8 +249,47 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(tmp_path:
             "attempt": 1,
             "score": 1,
             "duration_ms": 800,
+            "model_usage": {"total_tokens": 80},
         },
     ]
+    for row in rows:
+        execution_dir = evidence / f"{row['engine']}-{row['attempt']}"
+        execution_dir.mkdir()
+        paths = {}
+        for label, filename, payload in (
+            ("response", "response.json", {"execution": row["attempt"]}),
+            ("evaluation", "evaluation.json", {"score": row["score"]}),
+            (
+                "events",
+                "events.json",
+                [
+                    {
+                        "type": "tool_execution_start",
+                        "data": {
+                            "tool_call_id": str(row["attempt"]),
+                            "tool_name": "browser",
+                            "arguments": {"action": "click"},
+                        },
+                    },
+                    {
+                        "type": "tool_execution_end",
+                        "data": {
+                            "tool_call_id": str(row["attempt"]),
+                            "status": "success",
+                            "execution_time": row["attempt"] / 10,
+                        },
+                    },
+                ],
+            ),
+        ):
+            path = execution_dir / filename
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            paths[label] = str(path)
+        for label, filename in (("network_har", "network.har"), ("agent_trace", "trace.zip")):
+            path = execution_dir / filename
+            path.write_bytes(f"private-{row['attempt']}".encode())
+            paths[label] = str(path)
+        row["paths"] = paths
     (evidence / "attempts.jsonl").write_text(
         "\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8"
     )
@@ -229,11 +301,12 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(tmp_path:
     text = report.read_text(encoding="utf-8")
     assert "1/1" in text
     data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
-    assert data["summary"]["chromium"]["score"] == 1
-    chromium_summary = data["summary"]["chromium"]
+    assert data["summary"]["gpt-5.6-sol"]["chromium"]["score"] == 1
+    chromium_summary = data["summary"]["gpt-5.6-sol"]["chromium"]
     assert chromium_summary["mean_duration_ms"] == 1900
     assert chromium_summary["p50_duration_ms"] == 1900
     assert chromium_summary["p95_duration_ms"] == 1900
+    assert chromium_summary["mean_tokens"] == 300
     task = (output / "datasets/44.html").read_text(encoding="utf-8")
     assert "Ground truth · 官方验收合同" in task
     assert "没有唯一参考点击路径" in task
@@ -241,7 +314,7 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(tmp_path:
     assert "最终结果对照" not in task
     dataset = (output / "datasets/index.html").read_text(encoding="utf-8")
     assert "可完成性证据" not in dataset
-    assert 'data-result=' not in dataset
+    assert "data-result=" not in dataset
     analysis = (output / "analysis/index.html").read_text(encoding="utf-8")
     for expected in ("均值", "P50", "P95", "comparison-winner"):
         assert expected in analysis
@@ -260,12 +333,13 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(tmp_path:
     assert "核验与修订记录" in review
     assert "核验轮次" in review
     assert "逐结果覆盖" not in review
-    attempt = (output / "results/chromium-44.html").read_text(encoding="utf-8")
+    result_id = "gpt-5.6-sol-chromium-44"
+    attempt = (output / f"results/{result_id}.html").read_text(encoding="utf-8")
     for expected in (
         "任务要求与验收结果",
         "CowAgent 自主执行轨迹",
         "运行、日志与证据",
-        'href="results/chromium-44.html#trajectory"',
+        f'href="results/{result_id}.html#trajectory"',
         "attempt-summary",
         "查看任务与验收",
     ):
@@ -273,26 +347,67 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(tmp_path:
     assert "没有 evaluator 明细" in attempt
     assert "Ground truth 与实际最终回答" not in attempt
     assert "官方 evaluator 逐规则判定" not in attempt
-    for artifact in (
-        "agent-response.json",
-        "evaluation.json",
-        "agent-events.json",
-        "trajectory.json",
-        "evidence-metadata.json",
-    ):
-        assert (output / "artifacts/chromium-44" / artifact).is_file()
+    for execution in (1, 2):
+        artifact = output / f"artifacts/{result_id}/executions/{execution}/execution-evidence.json"
+        assert artifact.is_file()
+        bundle = json.loads(artifact.read_text(encoding="utf-8"))
+        assert set(("agent_response", "evaluation", "agent_events", "trajectory")) <= set(bundle)
+    assert "包含 <strong>2</strong> 次物理执行" in attempt
+    assert "物理执行 1" in attempt
+    assert "物理执行 2 · 判分权威" in attempt
+    assert "SHA-256" in attempt
+    public_results = [
+        json.loads(line)
+        for line in (output / "data/results.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    evidence_index = json.loads((output / "data/evidence-index.json").read_text(encoding="utf-8"))
+    bundles = _load_evidence_bundles(evidence)
+    logical = _logical_results(bundles[0]["source_attempts"])
+    _check_execution_artifacts(output, logical, public_results, evidence_index)
+    _check_public_privacy(output)
+    legitimate_route = output / "legitimate-route.json"
+    legitimate_route.write_text('{"href":"/users/sign_out"}', encoding="utf-8")
+    _check_public_privacy(output)
+    legitimate_route.unlink()
+    index_row = next(item for item in evidence_index["results"] if item["result_id"] == result_id)
+    assert index_row["execution_count"] == 2
+    assert index_row["authoritative_execution"] == 2
+    assert [item["duration_ms"] for item in index_row["executions"]] == [1000, 900]
+    assert [item["model_usage"]["total_tokens"] for item in index_row["executions"]] == [
+        100,
+        200,
+    ]
+    assert [item["browser_tool_duration_ms"] for item in index_row["executions"]] == [
+        100,
+        200,
+    ]
+    assert all(
+        artifact["sha256"]
+        for execution in index_row["executions"]
+        for artifact in execution["artifacts"].values()
+    )
+    private_trace = output / f"artifacts/{result_id}/executions/1/agent_trace.zip"
+    private_trace.write_bytes(b"private trace")
+    with pytest.raises(ValueError, match="private HAR or trace"):
+        _check_public_privacy(output)
+    with pytest.raises(ValueError, match="artifact tree differs"):
+        _check_execution_artifacts(output, logical, public_results, evidence_index)
+    private_trace.unlink()
+    missing_response = output / f"artifacts/{result_id}/executions/1/execution-evidence.json"
+    missing_response.unlink()
+    with pytest.raises(ValueError, match="missing physical execution artifact"):
+        _check_execution_artifacts(output, logical, public_results, evidence_index)
     assert "诊断重试" not in "".join(
         path.read_text(encoding="utf-8") for path in output.rglob("*.html")
     )
-    formal_html = "".join(
-        path.read_text(encoding="utf-8") for path in output.rglob("*.html")
-    )
+    formal_html = "".join(path.read_text(encoding="utf-8") for path in output.rglob("*.html"))
     for speculative_label in ("证据支持的诊断", "共享链路诊断", "失败归因："):
         assert speculative_label not in formal_html
     assert not list(output.rglob("*.svg"))
 
 
-def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
+def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch) -> None:
+    _use_single_model_profile(monkeypatch)
     evidence = tmp_path / "evidence"
     output = tmp_path / "report"
     evidence.mkdir()
@@ -305,7 +420,7 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
             {
                 "protocol": {
                     "cowagent_commit": "abc123",
-                    "model": "gpt-6-astra",
+                    "model": "gpt-5.6-sol",
                     "reasoning_effort": "low",
                 },
                 "environment": {
@@ -345,7 +460,7 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
 
     for expected in (
         "abc123",
-        "gpt-6-astra · reasoning=low",
+        "GPT-5.6 Sol · reasoning=low",
         "eval-checksum",
         "selection-hash",
         "Chrome/151",
@@ -356,7 +471,7 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
     assert report.is_file()
     assert (output / "assets/webarena-autonomous-evaluation-flow.png").is_file()
     home_text = report.read_text(encoding="utf-8")
-    assert "Chromium 与 Moli：Browser Use 能力实测" in home_text
+    assert "浏览器 Browser Use 能力对比" in home_text
     methodology_text = (output / "methodology/index.html").read_text(encoding="utf-8")
     assert "webarena-autonomous-evaluation-flow.png" in methodology_text
     assert "ContainerManager.start(reset=True)" in methodology_text
@@ -381,15 +496,13 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
         assert page.is_file()
         if name not in {"guide/article.html", "en/index.html"}:
             assert "切换主题" in page.read_text(encoding="utf-8")
-    expected_tasks = len(
-        load_pilot("evaluation/browser-use/webarena-verified-pilot.json").tasks
-    )
+    expected_tasks = len(load_pilot("evaluation/browser-use/webarena-verified-pilot.json").tasks)
     assert len(list((output / "datasets").glob("[0-9]*.html"))) == expected_tasks
     assert (output / "guide/article.html").read_text(encoding="utf-8").find("<script") == -1
     report_data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
     assert "evidence" not in report_data
     evidence_index = json.loads((output / "data/evidence-index.json").read_text(encoding="utf-8"))
-    assert evidence_index["schema"] == "lex_browser_use_public_evidence_index/2"
+    assert evidence_index["schema"] == "lex_browser_use_public_evidence_index/4"
     assert len(evidence_index["results"]) == 0
 
 
@@ -410,3 +523,144 @@ def test_failure_diagnosis_surfaces_exact_evaluator_assertion() -> None:
 
     assert "规则 1 AgentResponseEvaluator" in diagnosis
     assert "Array is missing 1 expected element(s)" in diagnosis
+
+
+def _write_model_evidence(path: Path, model: str, rows: list[dict]) -> None:
+    path.mkdir()
+    (path / "manifest.json").write_text(
+        json.dumps({"protocol": {"model": model}}), encoding="utf-8"
+    )
+    (path / "attempts.jsonl").write_text(
+        "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+    )
+
+
+def test_two_models_and_two_browsers_keep_distinct_logical_results(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setattr(report_module, "MODEL_LABELS", {"model-a": "A", "model-b": "B"})
+    monkeypatch.setattr(report_module, "ENGINE_LABELS", {"chromium": "Chromium", "moli": "Moli"})
+    model_a, model_b = tmp_path / "a", tmp_path / "b"
+    rows = [
+        {"engine": engine, "task_id": 44, "tier": "easy", "attempt": 1, "score": 1}
+        for engine in ("chromium", "moli")
+    ]
+    _write_model_evidence(model_a, "model-a", rows)
+    _write_model_evidence(model_b, "model-b", rows)
+
+    bundles = _load_evidence_bundles([model_a, model_b])
+    logical = [
+        result for bundle in bundles for result in _logical_results(bundle["source_attempts"])
+    ]
+
+    assert len(logical) == 4
+    assert len({report_module._attempt_id(row) for row in logical}) == 4
+    assert set(report_module._primary_summary(logical)) == {"model-a", "model-b"}
+
+
+def test_joint_report_builds_two_model_by_two_browser_matrix(tmp_path: Path, monkeypatch) -> None:
+    model_a, model_b = tmp_path / "a", tmp_path / "b"
+    rows = [
+        {
+            "engine": engine,
+            "task_id": 44,
+            "tier": "easy",
+            "attempt": 1,
+            "score": score,
+        }
+        for engine, score in (("chromium", 1), ("moli", 0))
+    ]
+    _write_model_evidence(model_a, "model-a", rows)
+    _write_model_evidence(model_b, "model-b", rows)
+    real_read_json = report_module._read_json
+
+    def read_json(path: Path) -> dict:
+        if path == Path("evaluation/browser-use/current-report.json"):
+            return {
+                "engines": ["chromium", "moli"],
+                "engine_labels": {"chromium": "Chromium", "moli": "Moli"},
+                "baseline_engine": "chromium",
+                "models": ["model-a", "model-b"],
+                "model_labels": {"model-a": "Model A", "model-b": "Model B"},
+            }
+        return real_read_json(path)
+
+    monkeypatch.setattr(report_module, "_read_json", read_json)
+    monkeypatch.setattr(
+        report_module,
+        "load_failure_cause_review",
+        lambda: {
+            "schema": "lex_browser_use_layered_failure_cause_review/2",
+            "cohorts": {},
+        },
+    )
+    output = tmp_path / "report"
+
+    build_report(
+        evidence=[model_a, model_b],
+        output=output,
+        selection_path=Path("evaluation/browser-use/webarena-verified-pilot.json"),
+    )
+
+    data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
+    assert set(data["summary"]) == {"model-a", "model-b"}
+    assert data["summary"]["model-a"]["chromium"]["completed"] == 1
+    assert data["summary"]["model-b"]["moli"]["completed"] == 1
+    assert len(list((output / "results").glob("*.html"))) == 4
+    assert (output / "results/model-a-chromium-44.html").is_file()
+    assert (output / "results/model-b-chromium-44.html").is_file()
+    analysis = (output / "analysis/index.html").read_text(encoding="utf-8")
+    assert 'data-filter="model"' in analysis
+    assert 'data-model="model-a"' in analysis
+    assert 'data-model="model-b"' in analysis
+
+
+def test_multi_model_evidence_fails_closed_when_cohort_is_missing(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setattr(report_module, "MODEL_LABELS", {"model-a": "A", "model-b": "B"})
+    model_a, model_b = tmp_path / "a", tmp_path / "b"
+    _write_model_evidence(
+        model_a,
+        "model-a",
+        [
+            {"engine": engine, "task_id": 44, "attempt": 1, "score": 1}
+            for engine in ("chromium", "moli")
+        ],
+    )
+    _write_model_evidence(
+        model_b,
+        "model-b",
+        [{"engine": "chromium", "task_id": 44, "attempt": 1, "score": 1}],
+    )
+
+    with pytest.raises(ValueError, match="model cohort differs"):
+        _load_evidence_bundles([model_a, model_b])
+
+
+def test_pairing_uses_dynamic_baseline_for_three_browsers(monkeypatch) -> None:
+    monkeypatch.setattr(report_module, "MODEL_LABELS", {"model-a": "A"})
+    monkeypatch.setattr(
+        report_module,
+        "ENGINE_LABELS",
+        {"first": "First", "baseline": "Baseline", "third": "Third"},
+    )
+    monkeypatch.setattr(report_module, "BASELINE_ENGINE", "baseline")
+    rows = [
+        {
+            "model": "model-a",
+            "engine": engine,
+            "task_id": task_id,
+            "attempt": 1,
+            "score": score,
+        }
+        for task_id, outcomes in ((1, (1, 0, 1)), (2, (0, 0, 1)))
+        for engine, score in zip(("first", "baseline", "third"), outcomes, strict=True)
+    ]
+
+    comparisons = _paired_summary(_logical_results(rows))["model-a"]["comparisons"]
+
+    assert set(comparisons) == {"first", "third"}
+    assert comparisons["first"]["baseline_engine"] == "baseline"
+    assert comparisons["first"]["comparison_only"] == 1
+    assert comparisons["third"]["comparison_only"] == 2
