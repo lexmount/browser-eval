@@ -11,6 +11,10 @@
   },
   "catalog_sha256": "dc8a3bc883f79f2ce399f79d22a69cb856f94a6112a7aa84583b36c2252e2f7d",
   "suite_sha256": "170dbcbec33a7527e15cbd8d8d5ae7a80a41d27ccf360cd13f7e60fe16f182d7",
+  "audited_suite_git_commit": "9c8d6c7e54c3c257bde1ea59d5dfe78e2532a4be",
+  "current_suite_sha256": "ed2832f9c061726cd856d2949313f6a543c770277122eb42dd38cd0a8d27fe0c",
+  "current_suite_trace_sources_unchanged": true,
+  "suite_binding_note": "suite_sha256 identifies the suite used for this historical official-recording audit; the current suite adds qualification and bounded trajectory repairs but preserves the same 179 official source-trace hashes.",
   "task_count": 179,
   "status_counts": {
     "error": 1,

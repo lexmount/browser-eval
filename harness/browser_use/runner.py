@@ -590,6 +590,8 @@ class _QuietFixtureHandler(SimpleHTTPRequestHandler):
 
 def _start_fixture_server(root: Path) -> tuple[ThreadingHTTPServer, threading.Thread, str]:
     handler = partial(_QuietFixtureHandler, directory=str(root))
+    # Linux containers reach the host through the Docker bridge, so binding
+    # loopback would make this suite-scoped, ephemeral fixture server unreachable.
     server = ThreadingHTTPServer(("0.0.0.0", 0), handler)
     thread = threading.Thread(
         target=server.serve_forever,
