@@ -12,16 +12,22 @@ from harness.web_fetch.metrics import task_passed
 from harness.web_fetch.reference_lifecycle import reference_revision_cases
 from harness.web_fetch.result_review import review_input_identity
 from harness.web_fetch.safety import contained_path, validate_report_ids
+from harness.web_fetch.scoring_regressions import (
+    ROOT_CAUSE_CATEGORIES, build_correction_provenance,
+)
 from scripts.rescore_content import rescore
 
 ALLOWED_FIELDS = {
     'body_requirements', 'required_patterns', 'required_facts',
     'acceptance_contract', 'forbidden_any',
 }
-
-
 class IndependentReviewRequired(ValueError):
     """The prior review is valid history but cannot certify revised scores."""
+
+
+def correction_provenance(category, root_cause, regression_ids, decisions=()):
+    """Require an actionable cause and executable controls for every score revision."""
+    return build_correction_provenance(category, root_cause, regression_ids, decisions)
 
 
 def _without_rules(case):
@@ -143,7 +149,12 @@ def archive_superseded_result_review(path: Path, *, before_dataset: bytes,
     }
 
 
-def revise(source: Path, canonical_path: Path):
+def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
+           root_cause: str, regression_ids: list[str]):
+    # Validate correction intent and executable controls before touching evidence.
+    provenance = correction_provenance(
+        root_cause_category, root_cause, regression_ids
+    )
     source = source.resolve()
     dataset_path = contained_path(source, 'dataset.json')
     results_path = contained_path(source, 'results.jsonl')
@@ -207,6 +218,7 @@ def revise(source: Path, canonical_path: Path):
             review_path, before_dataset=before_dataset,
             before_results=before_results)
     receipt = {
+        'schema_version':2,
         'kind':'audited_scoring_rule_revision',
         'scored_at':datetime.now(timezone.utc).isoformat(),
         'input_dataset_sha256':hashlib.sha256(before_dataset).hexdigest(),
@@ -217,6 +229,10 @@ def revise(source: Path, canonical_path: Path):
         'task_decision_changes':decisions,
         'provider_calls':0,
         'immutable_call_fields':'attempt identity, output bytes/hash, timestamps and elapsed time retained',
+        'correction_provenance': correction_provenance(
+            provenance['category'], provenance['root_cause'],
+            provenance['regression_ids'], decisions
+        ),
         **review_revision,
     }
     history.append(receipt)
@@ -243,5 +259,16 @@ if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source',type=Path,required=True)
     parser.add_argument('--canonical',type=Path,default=ROOT/'evaluation/dataset.json')
+    parser.add_argument('--root-cause-category',required=True,
+                        choices=sorted(ROOT_CAUSE_CATEGORIES))
+    parser.add_argument('--root-cause',required=True,
+                        help='Concrete defect mechanism, not the observed score change')
+    parser.add_argument('--regression-id',action='append',required=True,
+                        help='Executable case id from evaluation/scoring-regressions.json; repeat as needed')
     args=parser.parse_args()
-    print(json.dumps(revise(args.source,args.canonical),ensure_ascii=False,indent=2))
+    print(json.dumps(revise(
+        args.source, args.canonical,
+        root_cause_category=args.root_cause_category,
+        root_cause=args.root_cause,
+        regression_ids=args.regression_id,
+    ),ensure_ascii=False,indent=2))

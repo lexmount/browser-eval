@@ -95,6 +95,16 @@ The three result filters remain pass/fail/all; unmeasured rows appear in all.
 `scripts/correct_evaluation_contracts.py` applies reviewed scope and contract
 changes without reading provider outputs. `scripts/rescore_content.py` rescales
 all applicable records through the shared scorer without supplier calls.
+Known scoring failure modes have compact synthetic positive and negative controls
+in `evaluation/scoring-regressions.json`; CI executes every control through the
+same `score_attempt` orchestration and task predicate used by live and offline
+scoring. A new decision-changing scoring correction, or a frozen-reference
+correction via `scripts/revise_reference_evidence.py`, must use its revision
+command with a concrete `--root-cause-category`,
+`--root-cause`, and one or more `--regression-id` values. The command validates
+those controls before touching evidence and writes their IDs plus FP/FN direction
+counts into the revision receipt. Directly editing stored verdicts is not a
+supported correction path.
 `scripts/revise_fairness.py --baseline-ref <original-commit>` also records original
 and revised scores in the persistent bundle's `scoring-revisions.json`, checking original
 output hashes, identities and timing. Historical hard deadlines and timing

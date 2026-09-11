@@ -1,0 +1,328 @@
+{
+  "schema_version": 1,
+  "purpose": "Paired synthetic controls for scoring defects that previously produced false-positive or false-negative task verdicts. These are contracts, not measured provider outputs.",
+  "cases": [
+    {
+      "id": "answer-title-supplies-required-fact",
+      "category": "answer-surface",
+      "root_cause": "answer_surface_omission",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [{"id": "title", "alternatives": ["Exact page title"]}]
+      },
+      "artifact": "Body",
+      "title": "Exact page title",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"fact_coverage": 1.0, "content_chars": 4}
+    },
+    {
+      "id": "answer-title-does-not-inflate-body-length",
+      "category": "answer-surface",
+      "root_cause": "answer_surface_omission",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [{"id": "title", "alternatives": ["Exact page title"]}],
+        "min_content_chars": 20
+      },
+      "artifact": "Body",
+      "title": "Exact page title",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"fact_coverage": 1.0, "length_pass": false, "content_chars": 4}
+    },
+    {
+      "id": "balanced-multiline-markdown-keeps-visible-label",
+      "category": "format-normalization",
+      "root_cause": "format_normalization",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [{"id": "label", "alternatives": ["Download guide now"]}]
+      },
+      "artifact": "[Download **guide**\nnow]\n(/files/guide(v2).pdf?download=1 \"PDF copy\")",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"fact_coverage": 1.0}
+    },
+    {
+      "id": "explicit-named-links-form-records",
+      "category": "structured-extraction",
+      "root_cause": "record_ownership",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": ["example.test"],
+          "entry_path": "/item/[0-9]+",
+          "entry_context": "list_or_card",
+          "stable_text_anchors": [{"id": "heading", "alternatives": ["Catalog"]}]
+        }
+      },
+      "artifact": "Catalog\n- [Alpha](https://example.test/item/1)\n- [Beta](https://example.test/item/2)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"stable_structure_pass": true, "stable_content_pass": true}
+    },
+    {
+      "id": "separate-names-and-bare-urls-are-not-records",
+      "category": "structured-extraction",
+      "root_cause": "record_ownership",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": ["example.test"],
+          "entry_path": "/item/[0-9]+",
+          "entry_context": "list_or_card",
+          "stable_text_anchors": [{"id": "heading", "alternatives": ["Catalog"]}]
+        }
+      },
+      "artifact": "Catalog\nAlpha\nBeta\nhttps://example.test/item/1\nhttps://example.test/item/2",
+      "metadata": {"extras": {"links": ["https://example.test/item/1", "https://example.test/item/2"]}},
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"stable_structure_pass": false}
+    },
+    {
+      "id": "complete-distributed-body-passes",
+      "category": "body-scope",
+      "root_cause": "body_scope_calibration",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/article",
+        "ground_truth_main_content": "alpha bravo charlie delta echo foxtrot golf hotel",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 2,
+          "regions": [
+            {"id": "opening", "text": "alpha bravo charlie delta"},
+            {"id": "ending", "text": "echo foxtrot golf hotel"}
+          ]
+        }
+      },
+      "artifact": "alpha bravo charlie delta echo foxtrot golf hotel",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"body_coverage_pass": true}
+    },
+    {
+      "id": "short-prefix-cannot-pass-full-body-task",
+      "category": "body-scope",
+      "root_cause": "body_scope_calibration",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/article",
+        "ground_truth_main_content": "alpha bravo charlie delta echo foxtrot golf hotel",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 2,
+          "regions": [
+            {"id": "opening", "text": "alpha bravo charlie delta"},
+            {"id": "ending", "text": "echo foxtrot golf hotel"}
+          ]
+        }
+      },
+      "artifact": "alpha bravo charlie delta",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"body_coverage_pass": false}
+    },
+    {
+      "id": "glued-quote-fields-cannot-borrow-boundaries",
+      "category": "structured-extraction",
+      "root_cause": "record_ownership",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/quotes",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [{"id": "quote", "alternatives": ["The world as we have created it is a process of our thinking. by Albert Einstein Tags: change deep-thoughts thinking world"]}]
+        }
+      },
+      "artifact": "\"The world as we have created it is a process of our thinking.\"byAlbert EinsteinTags:changedeep-thoughtsthinkingworld",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"stable_content_pass": false}
+    },
+    {
+      "id": "nested-linked-image-is-explicit-resource",
+      "category": "structured-extraction",
+      "root_cause": "resource_surface_parsing",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [{"id": "image", "urls": ["/media/moon(large).jpg"]}]
+      },
+      "artifact": "[![Moon](//cdn.example.test/thumb.jpg)](/media/moon(large).jpg)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"resource_pass": true}
+    },
+    {
+      "id": "input-url-echo-is-not-resource-discovery",
+      "category": "structured-extraction",
+      "root_cause": "resource_surface_parsing",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/media/moon.jpg",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [{"id": "image", "urls": ["https://example.test/media/moon.jpg"]}]
+      },
+      "artifact": "https://example.test/media/moon.jpg",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"resource_pass": false}
+    },
+    {
+      "id": "same-entity-tracking-links-do-not-inflate-count",
+      "category": "structured-extraction",
+      "root_cause": "entity_identity",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://amazon.example.test/search",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": ["amazon.example.test"],
+          "entry_path": "(?:/[^/]+)?/dp/[A-Z0-9]{10}(?:/ref=[^/?#]+)?",
+          "entry_identity_pattern": "/dp/([A-Z0-9]{10})(?:/|$)",
+          "entry_context": "list_or_card",
+          "stable_text_anchors": [{"id": "heading", "alternatives": ["Headphones"]}]
+        }
+      },
+      "artifact": "Headphones\n- [Alpha](/alpha/dp/B012345678/ref=one)\n- [Alpha offer](/alpha/dp/B012345678/ref=two)",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"stable_structure_pass": false}
+    },
+    {
+      "id": "distinct-entity-links-meet-count",
+      "category": "structured-extraction",
+      "root_cause": "entity_identity",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://amazon.example.test/search",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": ["amazon.example.test"],
+          "entry_path": "(?:/[^/]+)?/dp/[A-Z0-9]{10}(?:/ref=[^/?#]+)?",
+          "entry_identity_pattern": "/dp/([A-Z0-9]{10})(?:/|$)",
+          "entry_context": "list_or_card",
+          "stable_text_anchors": [{"id": "heading", "alternatives": ["Headphones"]}]
+        }
+      },
+      "artifact": "Headphones\n- [Alpha](/alpha/dp/B012345678/ref=one)\n- [Beta](/beta/dp/B087654321/ref=two)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"stable_structure_pass": true}
+    },
+    {
+      "id": "successful-empty-response-is-not-task-success",
+      "category": "task-predicate",
+      "root_cause": "task_predicate",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/page",
+        "required_facts": [{"id": "fact", "alternatives": ["Required text"]}]
+      },
+      "artifact": "",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"content_pass": false, "content_check_coverage": 0.0}
+    },
+    {
+      "id": "reference-scope-retains-main-content",
+      "category": "reference-evidence",
+      "root_cause": "reference_scope_contamination",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/article",
+        "required_facts": [{"id": "main", "alternatives": ["Independent article text"]}]
+      },
+      "artifact": "Independent article text",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"fact_coverage": 1.0}
+    },
+    {
+      "id": "reference-scope-excludes-site-chrome",
+      "category": "reference-evidence",
+      "root_cause": "reference_scope_contamination",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/article",
+        "required_facts": [{"id": "main", "alternatives": ["Independent article text"]}]
+      },
+      "artifact": "Cookie settings navigation",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"fact_coverage": 0.0}
+    },
+    {
+      "id": "complete-declared-record-passes-contract",
+      "category": "acceptance-contract",
+      "root_cause": "dataset_contract_completeness",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 2
+        }
+      },
+      "artifact": "Alpha phone\nA brighter display.\n\nBeta phone\nA different camera.",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"stable_structure_pass": true}
+    },
+    {
+      "id": "incomplete-record-fails-declared-contract",
+      "category": "acceptance-contract",
+      "root_cause": "dataset_contract_completeness",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 2
+        }
+      },
+      "artifact": "Alpha phone\n\nBeta phone",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"stable_structure_pass": false}
+    }
+  ]
+}

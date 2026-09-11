@@ -464,6 +464,7 @@ def valid_scoring_revision(source) -> bool:
                 and source_hash == scoring_revision_history_sha256(rows[:index])
                 and row.get('independent_result_review_sha256') == review_hash)
 
+    from .scoring_regressions import valid_correction_provenance
     return any(
         isinstance(row, dict)
         and (row.get('kind') in {'audited_body_scoring_revision',
@@ -474,10 +475,11 @@ def valid_scoring_revision(source) -> bool:
         and row.get('output_results_sha256') == current_results
         and isinstance(row.get('task_decision_changes'), list)
         and isinstance(row.get('changed_cases'), list)
+        and valid_correction_provenance(row)
         and all(isinstance(change, dict)
                 and set(change.get('fields', ())) <= {
                     'body_requirements', 'required_patterns', 'required_facts',
-                    'acceptance_contract',
+                    'acceptance_contract', 'forbidden_any',
                 }
                 for change in row['changed_cases'])
         for index, row in enumerate(rows) if isinstance(rows, list)
@@ -554,13 +556,15 @@ def reference_revision_cases(source) -> dict[str, set[str]]:
         return {}
     current_dataset = sha256((root / "dataset.json").read_bytes())
     current_results = sha256((root / "results.jsonl").read_bytes())
+    from .scoring_regressions import valid_correction_provenance
     covered: dict[str, set[str]] = {}
     for receipt in receipts if isinstance(receipts, list) else ():
         if (not isinstance(receipt, dict)
                 or receipt.get("kind") != "audited_reference_correction"
                 or receipt.get("provider_calls") != 0
                 or receipt.get("output_dataset_sha256") != current_dataset
-                or receipt.get("output_results_sha256") != current_results):
+                or receipt.get("output_results_sha256") != current_results
+                or not valid_correction_provenance(receipt)):
             continue
         for change in receipt.get("changed_cases", ()):
             if (not isinstance(change, dict) or not isinstance(change.get("case_id"), str)
