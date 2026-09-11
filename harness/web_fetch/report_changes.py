@@ -61,7 +61,13 @@ def render_changes(out, cases, records):
     evidence_root=research_evidence_dir()
     audit_path=out/'result-review.json'
     audit=json.loads(audit_path.read_text()) if audit_path.is_file() else None
-    standalone=bool(audit and audit.get('review_protocol',{}).get('machine_judgments_withheld') is False)
+    protocol=(audit or {}).get('review_protocol',{})
+    # Report type and review rigor are independent. A standalone research run
+    # may (and normally should) use a blinded result review.
+    standalone=bool(audit and (
+        protocol.get('standalone_measured_run') is True
+        or protocol.get('machine_judgments_withheld') is False
+    ))
     if standalone:
         from .report import succeeded
         call_count=len(records)

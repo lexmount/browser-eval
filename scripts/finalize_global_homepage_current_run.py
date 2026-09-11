@@ -20,7 +20,6 @@ sys.path.insert(0, str(ROOT))
 
 from harness.web_fetch.metrics import summarize
 from harness.web_fetch.report import succeeded
-from harness.web_fetch.result_review import require_result_review
 from scripts.rescore_content import rescore
 
 
@@ -81,6 +80,15 @@ def projected_batches(path: Path, chosen: set[str], role: str) -> list[dict]:
     return result
 
 
+def measured_dataset_pending_review(source: dict) -> dict:
+    """Return the post-run snapshot without claiming an independent review exists."""
+    dataset = deepcopy(source)
+    comparison = dataset.setdefault("comparison", {})
+    comparison["publication_state"] = "measured_pending_independent_review"
+    comparison["require_independent_result_review"] = True
+    return dataset
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--baseline", type=Path, required=True)
@@ -97,7 +105,7 @@ def main() -> None:
     if args.output.exists():
         parser.error("Output already exists; refusing to overwrite evidence")
 
-    dataset = json.loads(args.dataset.read_text())
+    dataset = measured_dataset_pending_review(json.loads(args.dataset.read_text()))
     case_ids = [case["id"] for case in dataset["cases"]]
     if len(case_ids) != 52 or len(case_ids) != len(set(case_ids)):
         raise ValueError("Expected the frozen 52-case homepage cohort")
@@ -115,7 +123,7 @@ def main() -> None:
         raise ValueError("Targeted-run inventories differ from the declared revised URLs")
 
     args.output.mkdir(parents=True)
-    (args.output / "dataset.json").write_bytes(args.dataset.read_bytes())
+    write_json(args.output / "dataset.json", dataset)
     (args.output / "source-selection.json").write_bytes(args.selection.read_bytes())
     chosen_records = []
     chosen_attempts = {"baseline": set(), "fixed": set(), "new": set(), "additional": set()}
@@ -168,84 +176,6 @@ def main() -> None:
 
     rescored = records(args.output)
     cases = {case["id"]: case for case in dataset["cases"]}
-    attempts = []
-    for row in rescored:
-        passed = succeeded(row, cases[row["case_id"]])
-        metrics = row["metrics"]
-        missing = [" / ".join(item.get("alternatives", []))
-                   for item in metrics.get("stable_anchor_results", []) if not item.get("pass")]
-        if passed:
-            classification = "verified_contract_pass"
-            note = "正式调用满足独立首页证据冻结的稳定文字与适用结构要求。"
-        elif not row.get("ok") or metrics.get("content_chars", 0) < 50:
-            classification = "provider_access_or_extraction_failure"
-            note = "正式调用未取得足以核验该首页契约的页面内容。"
-        else:
-            classification = "target_retrieved_but_frozen_contract_not_met"
-            note = "正式调用取得内容，但未命中：" + "；".join(missing)
-        verdict = "pass" if passed else "fail"
-        attempts.append({
-            "attempt_id": row["attempt_id"],
-            "machine_verdict": verdict,
-            "agent_verdict": verdict,
-            "final_verdict": verdict,
-            "classification": classification,
-            "review_note": note,
-            "request_evidence": {
-                "ok": row.get("ok"), "status_code": row.get("status_code"),
-                "upstream_status": row.get("provider_metadata", {}).get("upstream_status"),
-                "final_url": row.get("final_url"), "error_type": row.get("error_type"),
-            },
-            "output_evidence": {
-                "artifact_path": row["artifact_path"],
-                "content_sha256": metrics.get("content_sha256"),
-                "content_chars": metrics.get("content_chars"),
-            },
-            "contract_evidence": {
-                "schema": metrics.get("stable_task_schema"),
-                "acceptance_contract_sha256": metrics.get("acceptance_contract_sha256"),
-                "stable_anchor_hits": metrics.get("stable_anchor_hits"),
-                "stable_anchor_total": metrics.get("stable_anchor_total"),
-                "stable_unique_record_count": metrics.get("stable_unique_record_count"),
-                "stable_minimum_records": metrics.get("stable_minimum_records"),
-                "stable_task_errors": metrics.get("stable_task_errors", []),
-            },
-            "independent_rule_evidence": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
-        })
-    review = {
-        "schema_version": 1,
-        "bindings": {"dataset_sha256": sha(args.output / "dataset.json"),
-                     "results_sha256": sha(args.output / "results.jsonl")},
-        "reviewer": {"agent": "Codex post-run evidence audit"},
-        "review_protocol": {
-            "machine_judgments_withheld": False, "scope": "all",
-            "post_run_independent_audit": True,
-            "provider_output_not_used_as_rule_source": True,
-            "failed_rule_audit": "failed-rule-audit.json",
-            "method": "规则先由独立首页证据冻结；随后组合每个 URL 的一次正式调用并按同一共享评分器复算。",
-        },
-        "review_rounds": [{
-            "date": "2026-09-11",
-            "title": "全球热门首页失败规则与语言稳定性复核",
-            "scope": "52 项正式结果；重点逐项复核全部 28 个未通过案例。",
-            "finding": (
-                "独立浏览器复核发现 Twitch 根页存在语言变化，因此将其改为可固定英文的首页 URL。"
-                "其余失败案例的稳定文字均有供应商无关的首页证据；未发现把当前新闻标题、价格、"
-                "排名、日期或数量冻结为稳定文字，也未发现把不同语言候选混在同一规则中。"
-            ),
-            "fix": (
-                "只根据独立访问到的首页修正 URL 与规则；Twitch 新 URL 仅正式调用一次。"
-                "供应商访问、跳转和提取失败均保留原判定，没有按返回结果放宽规则或择优取样。"
-            ),
-            "pending": (
-                "规则复核未决 0 项。本组只评价冻结稳定文字与适用结构，不代表整页正文完整度。"
-            ),
-        }],
-        "attempt_count": len(attempts), "attempts": attempts,
-        "disagreements": 0, "unresolved": 0,
-    }
-    write_json(args.output / "result-review.json", review)
-    require_result_review(args.output, dataset, rescored)
     write_json(args.output / "summary.json", summarize(rescored))
     write_json(args.output / "task-rerun.json", {
         "schema_version": 1,
@@ -263,6 +193,7 @@ def main() -> None:
     print(json.dumps({"cases": len(rescored),
                       "passes": sum(succeeded(row, cases[row["case_id"]]) for row in rescored),
                       "new_calls": len(NEW_URL_IDS | ADDITIONAL_NEW_URL_IDS),
+                      "independent_review": "pending",
                       "output": str(args.output)}, ensure_ascii=False))
 
 

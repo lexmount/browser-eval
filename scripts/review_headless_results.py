@@ -24,6 +24,12 @@ SCHEMA = {
     'required': ['attempts'],
 }
 
+BLINDED_ATTEMPT_KEYS = (
+    'attempt_id', 'provider', 'artifact', 'request_ok', 'status_code',
+    'final_url', 'upstream_status', 'error_type', 'returned_links', 'file_artifacts',
+    'raw_response_artifact',
+)
+
 
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -48,8 +54,8 @@ def independent_case(case):
 def independent_attempt(row):
     # Do not prime the independent reviewer with machine verdicts, scores or
     # large derived URL inventories. Those are joined only after review.
-    result = {key: row[key] for key in
-              ('attempt_id', 'provider', 'artifact', 'request_ok', 'error_type')}
+    result = {key: row.get(key) for key in BLINDED_ATTEMPT_KEYS
+              if key not in {'file_artifacts', 'raw_response_artifact'}}
     if row.get('file_artifacts'):
         result['file_artifacts'] = row['file_artifacts']
     if row.get('raw_response_artifact'):
@@ -103,6 +109,10 @@ def main():
             'machine_verdict': machine_verdict,
             'artifact': str(evidence/record['artifact_path']),
             'request_ok': record['ok'], 'error_type': record.get('error_type'),
+            'status_code': record.get('status_code'),
+            'final_url': record.get('final_url'),
+            'upstream_status': record.get('provider_metadata', {}).get('upstream_status'),
+            'returned_links': record.get('provider_metadata', {}).get('links', []),
             'metrics': record['metrics'],
             'file_artifacts': [str(evidence/file['artifact_path']) for file in
                                record.get('provider_metadata',{}).get('file_evaluation',{}).get('files',[])
@@ -122,8 +132,7 @@ def main():
             if not packet.is_file():
                 raise ValueError(f'Batch {batch_index} has output without its blinded input packet')
             saved_packet = json.loads(packet.read_text())
-            if any(set(row) - {'attempt_id','provider','artifact','request_ok','error_type',
-                               'file_artifacts','raw_response_artifact'}
+            if any(set(row) - set(BLINDED_ATTEMPT_KEYS)
                    for row in saved_packet.get('attempts', [])):
                 raise ValueError(f'Batch {batch_index} exposes machine judgments; use a new review directory')
             result = json.loads(output.read_text())
@@ -136,8 +145,8 @@ def main():
             if args.prepare_only:
                 return []
             prompt = f'''Independently audit every attempt in {packet}. This is a result-verification stage, not a code review.
-Inspect every artifact named for an attempt, including file_artifacts and raw_response_artifact when present, and compare it with that case's task, exact body-region passages, required facts/resources/patterns, stable contract, and exclusions. For direct-file tasks, the text artifact may intentionally be empty: verify the supplied file artifact's signature, size and reference hash instead of treating empty text as failure. Use Read, Grep and read-only hashing/file-identification commands as needed; the full frozen page is available at full_dataset when context beyond the declared acceptance evidence is necessary. The packet deliberately omits machine verdicts and scores. Decide whether the saved output satisfies the declared task. Review successes and failures equally. Return exactly one row per attempt ID ({len(expected)} rows), no omissions or extras. Use uncertain only when the frozen evidence is genuinely insufficient. Evidence must be a short, concrete observable reason; do not expose chain-of-thought.
-Stable text anchors are literal requirements after ordinary Markdown/whitespace normalization: only a declared alternative can substitute for one. Semantically related text is not a hit. Before returning pass, locate every required fact group, stable anchor, resource and record constraint in the artifact; never claim a passage is present without finding it. Evidence for a pass must name the observed required anchors or fields, not merely say that all criteria are met.'''
+Inspect every artifact named for an attempt, including returned_links, file_artifacts and raw_response_artifact when present, and compare it with that case's task, exact body-region passages, required facts/resources/patterns, stable contract, and exclusions. returned_links is part of the saved provider response and is the evidence source for named-link structure even when the plain-text artifact omits URLs. For direct-file tasks, the text artifact may intentionally be empty: verify the supplied file artifact's signature, size and reference hash instead of treating empty text as failure. Use Read, Grep and read-only hashing/file-identification commands as needed; the full frozen page is available at full_dataset when context beyond the declared acceptance evidence is necessary. The packet deliberately omits machine verdicts and scores. Decide whether the saved output satisfies the declared task. Review successes and failures equally. Return exactly one row per attempt ID ({len(expected)} rows), no omissions or extras. Use uncertain only when the frozen evidence is genuinely insufficient. Evidence must be a short, concrete observable reason; do not expose chain-of-thought.
+Stable text anchors are literal requirements after the benchmark's declared normalization: Unicode NFKC, case-folding, Markdown cleanup and whitespace normalization. Only a declared alternative can substitute for one; semantically related text is not a hit. Before returning pass, locate every required fact group, stable anchor, resource and record constraint in the supplied evidence; never claim a passage or link is present without finding it. Evidence for a pass must name the observed required anchors or fields, not merely say that all criteria are met.'''
             system=('You are an independent benchmark evidence auditor. Follow the task exactly. '
                     'Use only read operations, report observable evidence, and never trust stored verdicts. ')
             raw_output=work/f'batch-{batch_index:03d}-raw.json'

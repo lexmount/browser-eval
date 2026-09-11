@@ -51,6 +51,23 @@ class ReportChangesTests(unittest.TestCase):
             with self.subTest(invalid=invalid), self.assertRaises(ValueError):
                 require_review_rounds(invalid)
 
+    def test_blinded_standalone_run_does_not_use_main_release_history(self):
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory)
+            (out/'result-review.json').write_text(json.dumps({
+                'review_protocol': {
+                    'machine_judgments_withheld': True,
+                    'standalone_measured_run': True,
+                },
+                'summary': {},
+            }))
+
+            render_changes(out, {}, [])
+
+            page=(out/'changes/index.html').read_text()
+            self.assertIn('独立运行', page)
+            self.assertNotIn('整份报告', page)
+
     def test_ranking_uses_planned_judgment_denominator(self):
         c={'id':'file','name':'File','track':'video','task_kind':'file'}
         r={'case_id':'file','provider':'p','ok':True,'elapsed_ms':1,'metrics':{'task_kind':'file'}}
