@@ -12,6 +12,7 @@ from harness.browser_use.report import (
     _method_page,
     _metric_tables,
     _ratio_metric_cell,
+    _results_page,
     _suite_page,
     _summary_page,
     _task_detail_body,
@@ -204,6 +205,13 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert "9.90×" in results
     assert "边际分位数相除" in results
     assert "首次成功与重试恢复" in rendered
+    assert "首页决策摘要" in rendered
+    assert "正确性与资源要分开决策" in rendered
+    assert "内存：Moli 的明确优势" in rendered
+    assert 'role="progressbar"' in rendered
+    assert "一眼看懂这轮评测" not in rendered
+    assert "结果与参考过程均正确" not in rendered
+    assert "程序验收结果" in rendered
     assert (reports / "webarena-trajectory-replay-latest-suite.html").exists()
     assert (reports / "webarena-trajectory-replay-latest-research.html").exists()
     research = (reports / "webarena-trajectory-replay-latest-research.html").read_text(
@@ -222,8 +230,8 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert (reports / "webarena-trajectory-replay-latest-appendix.html").exists()
     assert (reports / "webarena-trajectory-replay-latest-review.html").exists()
     assert (reports / "webarena-trajectory-replay-latest-data.json").exists()
-    assert "一眼看懂这轮评测" in rendered
     assert "总体结果" in results
+    assert 'class="better">4/4' in results
     suite = (reports / "webarena-trajectory-replay-latest-suite.html").read_text(encoding="utf-8")
     assert "1</strong><span>公网任务" in suite
     assert "公网测试页面" in suite
@@ -248,6 +256,58 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert "Codex" in method
     assert "<table" in rendered
     assert "<pre># Browser Use Evaluation" not in rendered
+
+
+def test_grouped_correctness_marks_only_the_higher_rate_as_winner():
+    manifest = {
+        "suite": [
+            {
+                "task_id": "one",
+                "complexity": "simple",
+                "environment": {"sites": ["shopping"]},
+                "evaluator": {"kind": "webarena_verified"},
+            },
+            {
+                "task_id": "two",
+                "complexity": "simple",
+                "environment": {"sites": ["shopping"]},
+                "evaluator": {"kind": "webarena_verified"},
+            },
+        ]
+    }
+    summary = {
+        "functional": {
+            "chromium": {"tasks": 2, "result_first_passes": 2, "result_final_passes": 2},
+            "moli": {"tasks": 2, "result_first_passes": 1, "result_final_passes": 1},
+        },
+        "by_complexity": {
+            "simple": {
+                "functional": {
+                    "chromium": {"tasks": 2, "result_first_passes": 2, "result_final_passes": 2},
+                    "moli": {"tasks": 2, "result_first_passes": 1, "result_final_passes": 1},
+                }
+            }
+        },
+        "by_task": {
+            "one": {
+                "attempts": {
+                    "chromium": [{"result_status": "pass"}],
+                    "moli": [{"result_status": "pass"}],
+                }
+            },
+            "two": {
+                "attempts": {
+                    "chromium": [{"result_status": "pass"}],
+                    "moli": [{"result_status": "fail"}],
+                }
+            },
+        },
+        "resource_comparison": {"intersection_attempts": 0},
+    }
+    rendered = _results_page(manifest, summary)
+    assert rendered.count('class="better">2/2') >= 3
+    assert 'class="better">1/2' not in rendered
+    assert "相同值保持中性" in rendered
 
 
 def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
@@ -358,6 +418,7 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
     assert "参考操作与执行对照" in detail
     assert 'class="record-grid-head"' in analysis
     assert 'class="execution-summary"' in analysis
+    assert 'data-label="程序验收"' in analysis
     assert 'class="execution-body"' not in analysis
     assert 'class="failure-grid"' not in analysis
     assert 'class="failure-summary"' not in analysis
@@ -379,7 +440,8 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
     assert "未判定" in detail
     assert "LLM 根因假设" not in analysis
     assert "未启用 LLM" not in analysis
-    assert "时序机制研究" in analysis
+    assert "待验证的时序假设" in analysis
+    assert analysis.index("逐任务分析与原始证据") < analysis.index("待验证的时序假设")
     homepage = (reports / "webarena-trajectory-replay-latest.html").read_text(encoding="utf-8")
     assert 'class="failure-shortcut"' not in homepage
     assert f'href="{detail_files[0].name}"' not in homepage
@@ -395,6 +457,7 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
     assert "错误类别" in analysis
     assert "重试结论" not in analysis
     assert 'id="execution-task-moli"' in analysis
+    assert ".case-detail .stackable table{min-width:0}" in detail
 
 
 def test_detail_merges_attempts_and_deduplicates_raw_evidence():
