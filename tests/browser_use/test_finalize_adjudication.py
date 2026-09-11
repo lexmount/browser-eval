@@ -5,7 +5,10 @@ import json
 
 from harness.browser_use.har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
 from harness.browser_use.qualification import QUALIFICATION_SCHEMA, task_contract_sha256
-from scripts.finalize_webarena_adjudication import finalize_adjudication
+from scripts.finalize_webarena_adjudication import (
+    finalize_adjudication,
+    qualification_from_applied_suite,
+)
 
 
 def _task(task_id: str, text: str = "old"):
@@ -77,6 +80,25 @@ def _write_attempt(root, task, pass_index, *, statuses=None):
     row.update(statuses or {})
     (evidence / "attempt.json").write_text(json.dumps(row), encoding="utf-8")
     return row
+
+
+def test_rehydrates_public_qualification_without_private_attempt_paths():
+    eligible = _task("webarena-1")
+    eligible["ground_truth"]["qualification"] = {
+        "status": "eligible",
+        "validated_run_sha256s": ["a" * 64, "b" * 64],
+    }
+    skipped = _task("webarena-2")
+    skipped["ground_truth"]["qualification"] = {
+        "status": "skipped",
+        "reason": "Known broken trace.",
+    }
+
+    result = qualification_from_applied_suite({"tasks": [eligible, skipped]})
+
+    assert result["schema"] == QUALIFICATION_SCHEMA
+    assert result["tasks"][0]["adjudication"] == eligible["ground_truth"]["qualification"]
+    assert result["tasks"][1]["adjudication"] == skipped["ground_truth"]["qualification"]
 
 
 def test_overlays_only_triple_pass_and_skips_every_unresolved_task(tmp_path):
@@ -209,6 +231,60 @@ def test_single_validated_pass_remains_skipped(tmp_path):
 
     assert result["schema"] == QUALIFICATION_SCHEMA
     assert result["tasks"][0]["adjudication"]["status"] == "skipped"
+
+
+def test_later_two_pass_contract_supersedes_prior_failed_contract(tmp_path):
+    original = _task("webarena-1")
+    failed = _task("webarena-1", "failed-repair")
+    passed = _task("webarena-1", "passed-repair")
+    passed["ground_truth"]["qualification"]["reason"] = "Final validated correction."
+    failed_attempts = tmp_path / "failed.jsonl"
+    failed_attempts.write_text(
+        "".join(
+            json.dumps(
+                _write_attempt(
+                    tmp_path / "failed",
+                    failed,
+                    pass_index,
+                    statuses={
+                        "process_status": "fail",
+                        "result_status": "fail",
+                        "status": "fail",
+                        "combined_status": "fail",
+                    },
+                )
+            )
+            + "\n"
+            for pass_index in (1, 2)
+        ),
+        encoding="utf-8",
+    )
+    passed_attempts = tmp_path / "passed.jsonl"
+    passed_attempts.write_text(
+        "".join(
+            json.dumps(_write_attempt(tmp_path / "passed", passed, pass_index)) + "\n"
+            for pass_index in (1, 2)
+        ),
+        encoding="utf-8",
+    )
+
+    result = finalize_adjudication(
+        {"tasks": [original]},
+        {
+            "tasks": [
+                {"task_id": "webarena-1", "disposition": "needs_trace_repair"}
+            ]
+        },
+        [
+            ({"tasks": [failed]}, failed_attempts),
+            ({"tasks": [passed]}, passed_attempts),
+        ],
+        {},
+    )
+
+    adjudication = result["tasks"][0]["adjudication"]
+    assert adjudication["status"] == "eligible"
+    assert adjudication["corrected_trajectory"] == passed["trajectory"]
 
 
 def test_explicit_invalidation_wins_over_two_passing_runs(tmp_path):

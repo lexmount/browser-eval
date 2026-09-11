@@ -51,12 +51,40 @@ def _task_payload(task: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def qualification_from_applied_suite(suite: dict[str, Any]) -> dict[str, Any]:
+    """Rehydrate adjudication state without requiring old private evidence paths."""
+    decisions: list[dict[str, Any]] = []
+    for task in suite.get("tasks") or []:
+        qualification = deepcopy((task.get("ground_truth") or {}).get("qualification") or {})
+        status = qualification.get("status")
+        if status not in {"eligible", "skipped"}:
+            raise ValueError(f"{task.get('id')}: applied suite has unresolved qualification")
+        decisions.append(
+            {
+                "task_id": str(task["id"]),
+                "disposition": "eligible" if status == "eligible" else "needs_trace_repair",
+                "adjudication": qualification,
+            }
+        )
+    return {
+        "schema": QUALIFICATION_SCHEMA,
+        "policy": {
+            "qualification_browser": "upstream Chromium",
+            "independent_passes_per_task": 2,
+            "task_and_evaluator_are_immutable": True,
+            "browser_comparison_results_must_not_be_used": True,
+            "allowed_final_statuses": ["eligible", "skipped"],
+        },
+        "tasks": decisions,
+    }
+
+
 def _collect_validated_run(
     canonical_tasks: dict[str, dict[str, Any]],
     decisions: dict[str, dict[str, Any]],
     validated_suite: dict[str, Any],
     attempts_path: Path,
-    candidates: dict[str, dict[str, Any]],
+    candidates: dict[tuple[str, str], dict[str, Any]],
 ) -> None:
     validated_tasks = {str(task["id"]): task for task in validated_suite.get("tasks") or []}
     rows = _rows(attempts_path)
@@ -89,14 +117,17 @@ def _collect_validated_run(
         evidence_directory = str(row.get("evidence_directory") or "").strip()
         if not evidence_directory:
             raise ValueError(f"{task_id}: validated run lacks evidence_directory")
+        contract = task_contract_sha256(_task_payload(task))
         candidate = candidates.setdefault(
-            task_id,
-            {"task": deepcopy(task), "attempt_paths": [], "passing_paths": []},
+            (task_id, contract),
+            {
+                "task_id": task_id,
+                "contract": contract,
+                "task": deepcopy(task),
+                "attempt_paths": [],
+                "passing_paths": [],
+            },
         )
-        if task_contract_sha256(_task_payload(candidate["task"])) != task_contract_sha256(
-            _task_payload(task)
-        ):
-            raise ValueError(f"{task_id}: validated runs use different task contracts")
         attempt_path = str(Path(evidence_directory) / "attempt.json")
         candidate["attempt_paths"].append(attempt_path)
         if all(
@@ -115,18 +146,21 @@ def _collect_validated_run(
 def _overlay_two_pass_candidates(
     canonical_tasks: dict[str, dict[str, Any]],
     decisions: dict[str, dict[str, Any]],
-    candidates: dict[str, dict[str, Any]],
+    candidates: dict[tuple[str, str], dict[str, Any]],
 ) -> set[str]:
     overlaid: set[str] = set()
-    for task_id, candidate in candidates.items():
+    for candidate in candidates.values():
+        task_id = candidate["task_id"]
         attempt_paths = candidate["attempt_paths"]
         passing_paths = candidate["passing_paths"]
         if len(attempt_paths) > 2:
             raise ValueError(f"{task_id}: more than two validation attempts")
         if len(attempt_paths) != 2 or len(passing_paths) != 2:
             continue
+        if task_id in overlaid:
+            raise ValueError(f"{task_id}: multiple task contracts passed qualification")
         task = candidate["task"]
-        contract = task_contract_sha256(_task_payload(task))
+        contract = candidate["contract"]
         adjudication: dict[str, Any] = {
             "status": "eligible",
             "validated_attempt_paths": list(passing_paths),
@@ -170,7 +204,7 @@ def overlay_validated_run(
     attempts_path: Path,
 ) -> None:
     """Compatibility wrapper requiring both passes in one attempts projection."""
-    candidates: dict[str, dict[str, Any]] = {}
+    candidates: dict[tuple[str, str], dict[str, Any]] = {}
     _collect_validated_run(
         canonical_tasks,
         decisions,
@@ -202,7 +236,7 @@ def finalize_adjudication(
         for task_id, decision in decisions.items()
         if (decision.get("adjudication") or {}).get("status") == "eligible"
     }
-    candidates: dict[str, dict[str, Any]] = {}
+    candidates: dict[tuple[str, str], dict[str, Any]] = {}
     for validated_suite, attempts_path in validated_runs:
         _collect_validated_run(
             canonical_tasks,
@@ -217,7 +251,8 @@ def finalize_adjudication(
     # eligibility; otherwise an unrelated small batch would silently erase all
     # previously qualified tasks. A complete revalidation still has replacement
     # semantics because every task is present in ``candidates``.
-    for task_id in (previous_eligible & set(candidates)) - overlaid:
+    observed_task_ids = {task_id for task_id, _contract in candidates}
+    for task_id in (previous_eligible & observed_task_ids) - overlaid:
         decisions[task_id]["adjudication"] = None
     # An explicit invalidation records later evidence and therefore wins over
     # every provisional or independently reproduced pass.
@@ -246,7 +281,11 @@ def finalize_adjudication(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--suite", type=Path, required=True)
-    parser.add_argument("--qualification", type=Path, required=True)
+    parser.add_argument(
+        "--qualification",
+        type=Path,
+        help="prior private adjudication; omit to rehydrate from an already applied suite",
+    )
     parser.add_argument(
         "--validated-run",
         action="append",
@@ -273,9 +312,15 @@ def main() -> None:
     )
     if not isinstance(invalidations, dict):
         raise ValueError("invalidations must be a task-to-reason object")
+    suite = json.loads(args.suite.read_text(encoding="utf-8"))
+    qualification = (
+        json.loads(args.qualification.read_text(encoding="utf-8"))
+        if args.qualification
+        else qualification_from_applied_suite(suite)
+    )
     payload = finalize_adjudication(
-        json.loads(args.suite.read_text(encoding="utf-8")),
-        json.loads(args.qualification.read_text(encoding="utf-8")),
+        suite,
+        qualification,
         runs,
         {str(key): str(value) for key, value in invalidations.items()},
     )
