@@ -173,8 +173,14 @@
         [
           "证据页面",
           "失败详情缺少从判定到具体轨迹、日志和可见页面状态的连续入口。",
-          "增加失败诊断区、轨迹步骤锚点，并从私有 trace 提取最后三张页面画面；原始 trace 仍不公开。",
+          "增加失败诊断区、轨迹步骤锚点，并按 Playwright screencast 事件顺序从私有 trace 提取最后三张完整页面画面；原始 trace 仍不公开。",
           "读者可从失败阶段直达相关轨迹，并核对日志与最后可见状态。"
+        ],
+        [
+          "结果入口",
+          "浏览器详情页曾重复生成一套含长原因的结果表。",
+          "删除重复表，改为链接到预先筛选当前浏览器的唯一结果清单。",
+          "结果、筛选和诊断入口只有一套，新增浏览器不会复制页面结构。"
         ],
         [
           "干扰项处理",
@@ -203,8 +209,14 @@
             [
               "Evidence pages",
               "Failed-result pages lacked a continuous route from the verdict to the relevant trajectory, logs, and visible page state.",
-              "Added a diagnosis section, trajectory-step anchors, and the last three page frames extracted from the private trace while keeping the trace itself private.",
+              "Added a diagnosis section, trajectory-step anchors, and the last three full-page frames selected in Playwright screencast-event order from the private trace while keeping the trace itself private.",
               "Readers can jump from the failure stage to nearby trajectory evidence and inspect logs and final visible state."
+            ],
+            [
+              "Result entry point",
+              "Browser detail pages duplicated a result table containing long cause text.",
+              "Removed the duplicate and linked to the single result inventory with the current browser preselected.",
+              "Results, filters, and diagnosis entry points now have one owner; adding a browser does not duplicate page structure."
             ],
             [
               "Interference treatment",

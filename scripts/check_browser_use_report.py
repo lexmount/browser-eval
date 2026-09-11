@@ -9,6 +9,8 @@ import json
 import re
 from pathlib import Path
 
+from PIL import Image
+
 from harness.browser_use.failure_cause_review import (
     DEFAULT_REVIEW_PATH as FAILURE_CAUSE_REVIEW_PATH,
 )
@@ -169,6 +171,15 @@ def _check_execution_artifacts(
             if number != authority and screenshots:
                 raise ValueError(f"only the authoritative execution may publish frames: {result_id}")
             for screenshot in screenshots:
+                if set(screenshot) != {
+                    "path",
+                    "sha256",
+                    "label",
+                    "source",
+                    "width",
+                    "height",
+                } or screenshot.get("source") != "playwright-screencast-frame":
+                    raise ValueError(f"trace frame lacks screencast provenance: {result_id}")
                 relative = (
                     Path("artifacts")
                     / result_id
@@ -182,6 +193,12 @@ def _check_execution_artifacts(
                 expected_files.add(path)
                 if not path.is_file() or screenshot.get("sha256") != _sha256(path):
                     raise ValueError(f"trace frame binding differs: {relative}")
+                with Image.open(path) as image:
+                    dimensions = image.size
+                if dimensions != (screenshot.get("width"), screenshot.get("height")):
+                    raise ValueError(f"trace frame dimensions differ: {relative}")
+                if dimensions[0] < 800 or dimensions[1] < 450:
+                    raise ValueError(f"trace frame is not a full page image: {relative}")
                 if relative.as_posix() not in detail_text:
                     raise ValueError(f"result page omits trace frame: {relative}")
             bundle_path = (
@@ -399,6 +416,17 @@ def check(
         raise ValueError("every Chinese report route must have an English mirror")
     cjk = re.compile(r"[\u3400-\u9fff]")
     localized_attribute = re.compile(r'(?:aria-label|placeholder|title)="([^"]*)"', flags=re.I)
+    untranslated_interface = (
+        "该逻辑结果包含",
+        "物理执行",
+        "判分权威",
+        "单次调用墙钟时间",
+        "查看该浏览器的全部结果",
+        "完整结果只保留一份",
+        "该执行没有可公开的 trace 页面画面",
+        "个物理执行均记录",
+        "个物理执行均保存",
+    )
     for page in english_pages:
         text = rendered_pages[page]
         title = re.search(r"<title>(.*?)</title>", text, flags=re.I | re.S)
@@ -406,6 +434,12 @@ def check(
             raise ValueError(f"English report title is not localized: {page}")
         if any(cjk.search(value) for value in localized_attribute.findall(text)):
             raise ValueError(f"English report accessibility text is not localized: {page}")
+        if any(marker in text for marker in untranslated_interface):
+            raise ValueError(f"English report interface prose is not localized: {page}")
+    for engine in engines:
+        engine_page = rendered_pages[report_dir / "engines" / f"{engine}.html"]
+        if "engine-result-table" in engine_page or f"f_engine={engine}" not in engine_page:
+            raise ValueError("browser pages must link to the single filtered result inventory")
     if task_pages and any(
         "Ground truth · 官方验收合同" not in rendered_pages[page]
         or "查看本题运行结果" not in rendered_pages[page]

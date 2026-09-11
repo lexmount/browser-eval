@@ -12,10 +12,13 @@ import shutil
 import statistics
 import tempfile
 import zipfile
+from io import BytesIO
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any
+
+from PIL import Image
 
 from harness.web_fetch.report_style import STYLE as SHARED_STYLE
 
@@ -1555,30 +1558,51 @@ PUBLIC_EXECUTION_ARTIFACTS = {
 def _extract_trace_screenshots(
     trace_path: Path, artifact_dir: Path, *, limit: int = 3
 ) -> list[dict[str, Any]]:
-    """Publish only the last raster frames, never the cookie-bearing trace archive."""
+    """Publish the final Playwright screencast frames, never arbitrary trace resources."""
 
     if not trace_path.is_file():
         return []
     try:
         with zipfile.ZipFile(trace_path) as archive:
-            names = [
-                name
-                for name in archive.namelist()
-                if name.startswith("resources/")
-                and name.lower().endswith((".jpeg", ".jpg", ".png"))
-            ][-limit:]
+            frames = []
+            for raw_line in archive.read("trace.trace").splitlines():
+                try:
+                    event = json.loads(raw_line)
+                except (TypeError, ValueError):
+                    continue
+                if event.get("type") != "screencast-frame" or not event.get("sha1"):
+                    continue
+                name = "resources/" + str(event["sha1"])
+                if name not in archive.namelist():
+                    continue
+                frames.append((float(event.get("timestamp") or 0), name))
+            names = []
+            for _timestamp, name in reversed(sorted(frames)):
+                if name not in names:
+                    names.append(name)
+                if len(names) == limit:
+                    break
+            names.reverse()
             output = []
             screenshot_dir = artifact_dir / "screenshots"
             screenshot_dir.mkdir(parents=True, exist_ok=True)
             for index, name in enumerate(names, start=1):
+                payload = archive.read(name)
+                with Image.open(BytesIO(payload)) as image:
+                    width, height = image.size
+                    if width < 800 or height < 450:
+                        continue
                 suffix = ".png" if name.lower().endswith(".png") else ".jpeg"
                 destination = screenshot_dir / f"frame-{index}{suffix}"
-                destination.write_bytes(archive.read(name))
+                destination.write_bytes(payload)
                 output.append(
                     {
                         "path": f"screenshots/{destination.name}",
                         "sha256": _sha256(destination),
-                        "label": f"最后页面画面 {index}/{len(names)}",
+                        "label": f"最后页面画面 {len(output) + 1}/{len(names)}",
+                        "source": "playwright-screencast-frame",
+                        "width": width,
+                        "height": height,
                     }
                 )
             return output
@@ -1960,56 +1984,6 @@ def _attempt_table(
     return (
         _filters(attempts=True)
         + f'<div class="table-wrap"><table id="result-table"><thead><tr>{headers}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
-    )
-
-
-def _engine_attempts(
-    engine: str,
-    attempts: list[dict[str, Any]],
-    tasks: list[dict[str, Any]],
-    verified_causes: dict[str, dict[str, Any]] | None = None,
-) -> str:
-    verified_causes = verified_causes or {}
-    meta = {int(task["task_id"]): task for task in tasks}
-    rows = []
-    for row in attempts:
-        if row["engine"] != engine:
-            continue
-        task = meta[int(row["task_id"])]
-        result = read_public_json(Path((row.get("paths") or {}).get("evaluation", "")))
-        automatic_failure = _automatic_failure_type(result)[1]
-        subcategory, reason = localized_cause(verified_causes, _attempt_id(row))
-        rows.append(
-            [
-                Safe(f'<a href="results/{_attempt_id(row)}.html">{_attempt_id(row)}</a>'),
-                MODEL_LABELS[str(row["model"])],
-                task["rationale"],
-                TIER_LABELS[task["tier"]],
-                _status(row),
-                _seconds(float(row.get("duration_ms") or 0)),
-                _seconds(float(row.get("browser_tool_duration_ms") or 0)),
-                int(row.get("action_count") or 0),
-                automatic_failure,
-                subcategory,
-                reason,
-            ]
-        )
-    return _table(
-        [
-            "结果",
-            "模型",
-            "任务",
-            "层级",
-            "判定",
-            "Agent 链路耗时",
-            "BrowserTool 耗时",
-            "动作数",
-            "程序自动定位",
-            "核验根因子类",
-            "核验原因",
-        ],
-        rows,
-        table_id="engine-result-table",
     )
 
 
@@ -2900,9 +2874,9 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 + '<p class="fine">版本与镜像身份用于限定复现边界，不参与评分。</p>',
             )
             body += _section(
-                "全部逻辑结果",
-                "<p>每题只展示一个最终逻辑结果；端到端耗时与模型用量包含获得该结果所需的全部执行。</p>"
-                + _engine_attempts(engine, attempts, tasks, verified_causes),
+                "查看该浏览器的全部结果",
+                "<p>完整结果只保留一份。下方入口打开结果分析页，并预先筛选当前浏览器；失败诊断、轨迹、页面画面与日志均从该清单进入。</p>"
+                f'<div class="report-entry-links"><a class="button-link" href="analysis/index.html?f_engine={engine}#result-table">打开筛选后的结果清单 →</a></div>',
             )
             (stage / f"engines/{engine}.html").write_text(
                 _page(title=ENGINE_LABELS[engine], active="adoption", body=body, depth=1),

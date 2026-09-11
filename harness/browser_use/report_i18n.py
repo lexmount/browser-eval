@@ -1262,7 +1262,11 @@ TEXT.update(
         "诊断": "Diagnosis",
         "画面": "Frames",
         "日志": "Logs",
-        "详情": "Details"
+        "详情": "Details",
+        "查看该浏览器的全部结果": "View all results for this browser",
+        "完整结果只保留一份。下方入口打开结果分析页，并预先筛选当前浏览器；失败诊断、轨迹、页面画面与日志均从该清单进入。": "The report keeps one result inventory. The link below opens it with this browser preselected; failure diagnoses, trajectories, page frames, and logs are all reached from that inventory.",
+        "打开筛选后的结果清单 →": "Open the filtered result inventory →",
+        "WebArena-Verified 本地部署、CowAgent 自主操作、双浏览器对照与程序化验收流程": "WebArena-Verified local deployment, autonomous CowAgent operation, browser comparison, and programmatic evaluation"
     }
 )
 
@@ -1293,6 +1297,26 @@ PHRASES = {
     "响应证据缺失": "Missing response evidence",
     "共享环境并发污染": "Shared-environment concurrency contamination",
     "检索遗漏与参考状态差异": "Retrieval omission and reference-state drift",
+    "保留为目标变量；按轨迹修正策略或工具合同": "Keep as a target-variable signal; improve the strategy or tool contract from the trajectory",
+    "评测集 / evaluator": "Benchmark / evaluator",
+    "修正合同并重跑；当前仅纳入官方分数": "Fix the contract and rerun; retain only the official score for now",
+    "修复依赖或保存链路，通过写入预检后重跑": "Fix the dependency or save path, then rerun after a write preflight",
+    "保留为浏览器集成信号；补齐 HAR 后重跑": "Keep as a browser-integration signal; rerun after completing HAR capture",
+    "运行环境": "Runtime environment",
+    "跨进程锁已上线；受污染任务待重跑": "The cross-process lock is implemented; contaminated tasks await rerun",
+    "任务与 Agent": "Task and Agent",
+    "先冻结参考状态，再重跑区分 Agent 错误": "Freeze reference state, then rerun to distinguish Agent errors",
+    "自托管站点": "Self-hosted site",
+    "浏览器证据接口": "Browser evidence interface",
+    "保留为对比信号；通过轨迹修正检索、选择和提交策略。": "Keep as a comparison signal; use trajectories to improve retrieval, selection, and submission.",
+    "任务 / evaluator": "Task / evaluator",
+    "修正任务合同或 evaluator，验证后重跑；重跑前不进入干净子集。": "Fix the task contract or evaluator, validate it, and rerun; exclude it from the clean subset until then.",
+    "修复依赖、会话或保存链路，增加任务级写入预检后重跑。": "Fix the dependency, session, or save path and rerun after adding a task-level write preflight.",
+    "保留为浏览器集成信号；补齐响应正文或 Referer 采集后重跑。": "Keep as a browser-integration signal; rerun after completing response-body or Referer capture.",
+    "跨进程串行锁已上线；受污染任务待重跑。": "The cross-process serialization lock is implemented; contaminated tasks await rerun.",
+    "参考状态 + Agent": "Reference state + Agent",
+    "先重新冻结参考状态，再重跑区分 Agent 错误。": "Refreeze reference state, then rerun to distinguish Agent errors.",
+    "该执行没有可公开的 trace 页面画面；错误日志与执行证据仍可下载。": "This execution has no publishable trace page frame; the error log and execution evidence remain available.",
     "规则 ": "Rule ",
     " 秒": " s",
     " 次 BrowserTool 调用": " BrowserTool calls",
@@ -1318,6 +1342,17 @@ PHRASES = {
     "步后的最终回答/任务状态": " steps: final answer/task state",
     "步后的站点响应/保存": " steps: site response/save",
     "最后页面画面": "Final page frame",
+    "该逻辑结果包含": "This logical result contains",
+    "次物理执行。标记为判分权威的执行决定最终得分；累计耗时、tokens 与 BrowserTool 指标是下列各次执行之和。": "physical execution(s). The scoring-authority execution determines the final score; cumulative latency, tokens, and BrowserTool metrics sum all executions shown below.",
+    "物理执行": "Physical execution",
+    " · 判分权威": " · scoring authority",
+    "判分": "Score",
+    "Agent 链路": "Agent path",
+    "模型 tokens": "model tokens",
+    "（完整内容见脱敏事件日志）": "(see the sanitized event log for the complete content)",
+    "个物理执行均保存环境准备回执；公开环境摘要保留逐项状态，原始登录态不发布。": "physical executions retain environment-preparation receipts. The public environment summary preserves each status while authenticated session state remains private.",
+    "个物理执行均记录 reset、ready、应用健康检查和登录准备状态；事件流随后证明 CowAgent 自主产生 BrowserTool 调用序列。": "physical executions record reset, readiness, application-health, and sign-in preparation status. The subsequent event streams show CowAgent generating BrowserTool calls autonomously.",
+    "个逻辑结果及其物理执行、下载路径和公开文件哈希。": "logical results with their physical executions, download paths, and public-file hashes.",
     "暂无发布记录。": "No release has been recorded.",
 }
 
@@ -1331,6 +1366,62 @@ def translate_text(value: str) -> str:
     translated = TEXT.get(core)
     if translated is None:
         patterns = (
+            (
+                r"(.+?) · (Chromium|Moli 1\.1\.3) 结果",
+                lambda m: f"{m.group(1)} · {m.group(2)} result",
+            ),
+            (
+                r"(简单|中等|困难) · (\d+) 步起",
+                lambda m: f"{ {'简单': 'Easy', '中等': 'Medium', '困难': 'Hard'}[m.group(1)] } · {m.group(2)} minimum steps",
+            ),
+            (
+                r"第 (\d+) 步 BrowserTool 执行异常",
+                lambda m: f"Step {m.group(1)}: BrowserTool execution error",
+            ),
+            (
+                r"第 (\d+) 步后达到步骤上限",
+                lambda m: f"After {m.group(1)} steps: step limit reached",
+            ),
+            (
+                r"第 (\d+) 步后的最终回答/任务状态",
+                lambda m: f"After {m.group(1)} steps: final answer/task state",
+            ),
+            (
+                r"第 (\d+) 步后的站点响应/保存",
+                lambda m: f"After {m.group(1)} steps: site response/save",
+            ),
+            (
+                r"(.+?) · 单次调用墙钟时间",
+                lambda m: f"{m.group(1)} · per-call wall time",
+            ),
+            (
+                r"判分 ([01]) · Agent 链路 ([\d.]+) 秒 · BrowserTool (\d+) 次 / ([\d.]+) 秒 · 模型 tokens ([\d,]+)",
+                lambda m: f"Score {m.group(1)} · Agent path {m.group(2)} s · BrowserTool {m.group(3)} calls / {m.group(4)} s · model tokens {m.group(5)}",
+            ),
+            (
+                r"，只保留该题所需站点；env-ctrl 报告 ready 后，再做连续应用健康检查、清浏览器状态、登录测试账号并打开起始页。本轮 (\d+)/(\d+) 个物理执行都保存了环境准备回执，并与对应执行记录绑定。",
+                lambda m: f", keeping only the sites required by the task. After env-ctrl reports ready, the runner performs repeated application-health checks, clears browser state, signs in with test accounts, and opens the start page. All {m.group(1)}/{m.group(2)} physical executions retain preparation receipts bound to their execution records.",
+            ),
+            (
+                r"预注册文件只含任务 ID、层级和入选理由，不含点击序列。CowAgent 收到自然语言目标后，在最多 (\d+) 步内循环读取页面观察、请求模型决策并生成下一次 BrowserTool 调用。Chromium 与 Moli 分别连接独立 CDP 浏览器容器；每次物理执行都保留最终 JSON、Agent 事件流、网络 HAR 和 Playwright trace。",
+                lambda m: f"The preregistration contains task IDs, tiers, and selection rationales, but no click sequence. Given a natural-language objective, CowAgent repeatedly reads the page, requests a model decision, and generates the next BrowserTool call for up to {m.group(1)} steps. Chromium and Moli connect to separate CDP browser containers. Every physical execution retains the final JSON, Agent event stream, network HAR, and Playwright trace.",
+            ),
+            (
+                r"(\d+)/(\d+) 个物理执行均记录 reset、ready、应用健康检查和登录准备状态；事件流随后证明 CowAgent 自主产生 BrowserTool 调用序列。",
+                lambda m: f"All {m.group(1)}/{m.group(2)} physical executions record reset, readiness, application-health, and sign-in preparation status. The subsequent event streams show CowAgent generating BrowserTool calls autonomously.",
+            ),
+            (
+                r"本轮 (\d+)/(\d+) 个物理执行均保存环境准备回执；公开环境摘要保留逐项状态，原始登录态不发布。",
+                lambda m: f"All {m.group(1)}/{m.group(2)} physical executions retain environment-preparation receipts. The public summary preserves each status while authenticated session state remains private.",
+            ),
+            (
+                r"每次物理执行的脱敏回答、evaluator、事件和轨迹位于",
+                lambda _m: "The sanitized answer, evaluator output, events, and trajectory for each physical execution are located under",
+            ),
+            (
+                r"给出全部 (\d+) 个逻辑结果及其物理执行、下载路径和公开文件哈希。",
+                lambda m: f"lists all {m.group(1)} logical results, their physical executions, download paths, and public-file hashes.",
+            ),
             (
                 r"CowAgent 使用 (.+)，在同一组 WebArena‑Verified (\d+) 题上分别操作 (.+)。",
                 lambda m: f"CowAgent uses {m.group(1)} to operate {m.group(3)} on the same {m.group(2)} WebArena-Verified tasks.",
