@@ -38,6 +38,12 @@ const matrixRoot = {
   },
   querySelector(selector) { return selector === '[data-matrix-count]' ? matrixCount : null; },
 };
+const diagnosisDialog = {
+  open: false,
+  showModal() { this.open = true; },
+  close() { this.open = false; },
+  addEventListener() {},
+};
 const listeners = {};
 const storage = new Map();
 let replaced = '';
@@ -57,10 +63,15 @@ const document = {
     if (selector === 'tbody tr[data-tier]:not([data-relation])') return rows;
     if (selector === '[data-visible-count]') return [count];
     if (selector === '[data-matrix-filter]') return matrixControls;
+    if (selector === 'dialog') return [diagnosisDialog];
     return [];
   },
   querySelector(selector) { return selector === '[data-search]' ? search : null; },
-  getElementById(id) { return id === 'configuration-matrix' ? matrixRoot : null; },
+  getElementById(id) {
+    if (id === 'configuration-matrix') return matrixRoot;
+    if (id === 'diagnosis-example') return diagnosisDialog;
+    return null;
+  },
 };
 const context = vm.createContext({
   URL,
@@ -91,6 +102,11 @@ assert.equal(matrixCount.textContent, '1 / 3');
 matrixControls[0].value = 'all_fail';
 vm.runInContext('filterMatrix()', context);
 assert.deepEqual(comparisonRows.map(row => row.hidden), [true, true, false]);
+
+vm.runInContext("openDiagnosis('diagnosis-example')", context);
+assert.equal(diagnosisDialog.open, true);
+vm.runInContext("closeDiagnosis('diagnosis-example')", context);
+assert.equal(diagnosisDialog.open, false);
 
 controls[0].value = 'pass';
 search.value = '';

@@ -755,12 +755,12 @@ def _task_family_table(families: list[dict[str, Any]]) -> str:
 
 def _failure_cause_table(verified_causes: dict[str, dict[str, Any]]) -> str:
     groups = {
-        "agent": ("Agent / 模型", "是", "保留为对比信号；通过轨迹修正检索、选择和提交策略。"),
-        "benchmark": ("任务 / evaluator", "否", "修正任务合同或 evaluator，验证后重跑；重跑前不进入干净子集。"),
-        "site": ("自托管站点", "否", "修复依赖、会话或保存链路，增加任务级写入预检后重跑。"),
-        "evidence": ("浏览器证据接口", "是", "保留为浏览器集成信号；补齐响应正文或 Referer 采集后重跑。"),
-        "environment": ("共享测试环境", "否", "跨进程串行锁已上线；受污染任务待重跑。"),
-        "mixed": ("参考状态 + Agent", "否", "先重新冻结参考状态，再重跑区分 Agent 错误。"),
+        "agent": ("Agent / 模型行为", "保留", "属于当前被测组合；按轨迹定位检索、选择或提交错误。"),
+        "benchmark": ("任务 / evaluator", "排除并修复", "修正验收合同，通过独立预检后重跑四种配置。"),
+        "site": ("自托管站点", "排除并修复", "修复依赖、会话或保存链路，通过读写预检后重跑。"),
+        "evidence": ("浏览器证据接口", "保留并修复", "这是浏览器集成能力的一部分；补齐响应正文或 Referer 采集后重跑。"),
+        "environment": ("共享测试环境", "排除，修复已完成", "跨进程串行锁已经上线；受污染任务仍需重跑。"),
+        "mixed": ("参考状态与 Agent 混合", "排除并重建", "重新冻结参考状态，再重跑以区分 Agent 错误。"),
     }
 
     def group_for(code: str) -> str:
@@ -783,7 +783,7 @@ def _failure_cause_table(verified_causes: dict[str, dict[str, Any]]) -> str:
             continue
         rows.append([groups[key][0], total, groups[key][1], groups[key][2]])
     return _table(
-        ["原因所在", "失败结果数", "是否属于目标变量", "处理"],
+        ["原因范围", "失败结果数", "本轮处理", "修复与验证"],
         rows,
         table_id="failure-cause-table",
         classes="wide-data-table",
@@ -826,25 +826,6 @@ def _clean_subset_table(
         + '<p class="fine">这是事后诊断口径，不是官方新分数。它按任务统一剔除任一配置已证实受任务/evaluator、站点、共享环境或参考状态干扰的任务，保证四个配置分母一致。</p>'
         f'<p class="fine">本轮剔除 {len(excluded)} 题：{_e("、".join(f"#{task_id}" for task_id in sorted(excluded)))}。</p>'
     )
-
-
-def _headline_findings(summary: dict[str, dict[str, dict[str, Any]]]) -> str:
-    lines = []
-    engines = list(ENGINE_LABELS)
-    for model, model_summary in summary.items():
-        results = [
-            f"{ENGINE_LABELS[engine]} {model_summary[engine]['passed']}/{model_summary[engine]['completed']}"
-            f"（{_pct(model_summary[engine]['score'])}）"
-            for engine in engines
-        ]
-        top = max(item["passed"] for item in model_summary.values())
-        winner_ids = [engine for engine in engines if model_summary[engine]["passed"] == top]
-        outcome = "通过数相同" if len(winner_ids) > 1 else f"{ENGINE_LABELS[winner_ids[0]]} 多通过"
-        if len(engines) == 2 and len(winner_ids) == 1:
-            loser = next(engine for engine in engines if engine not in winner_ids)
-            outcome += f" {top - model_summary[loser]['passed']} 题"
-        lines.append(f"<li><strong>{_e(MODEL_LABELS[model])}</strong>：{_e('，'.join(results))}；{_e(outcome)}。</li>")
-    return '<ul class="finding-list">' + "".join(lines) + "</ul>"
 
 
 def _adoption_top3(evidence: dict[str, Any]) -> str:
@@ -996,10 +977,11 @@ def _action_duration_cards(attempts: list[dict[str, Any]]) -> str:
         }
     )
     cards: list[str] = []
-    for model in MODEL_LABELS:
-        for action in actions:
-            metrics: dict[str, tuple[float, int, float | None]] = {}
+    for action in actions:
+        metrics: dict[str, tuple[float, int, float | None]] = {}
+        for model in MODEL_LABELS:
             for engine in ENGINE_LABELS:
+                key = f"{model}|{engine}"
                 total = sum(
                     float((row.get("browser_tool_duration_by_action_ms") or {}).get(action) or 0)
                     for row in attempts
@@ -1010,32 +992,33 @@ def _action_duration_cards(attempts: list[dict[str, Any]]) -> str:
                     for row in attempts
                     if _row_model(row) == model and row["engine"] == engine
                 )
-                metrics[engine] = (total, count, total / count if count else None)
-            average_winners = _best(
-                {engine: values[2] for engine, values in metrics.items()},
-                higher=False,
-                display=lambda value: round(value / 1000, 3),
-            )
-            maximum = max((values[2] or 0 for values in metrics.values()), default=0)
-            browser_rows = []
+                metrics[key] = (total, count, total / count if count else None)
+        average_winners = _best(
+            {key: values[2] for key, values in metrics.items()},
+            higher=False,
+            display=lambda value: round(value / 1000, 3),
+        )
+        maximum = max((values[2] or 0 for values in metrics.values()), default=0)
+        browser_rows = []
+        for model in MODEL_LABELS:
             for engine in ENGINE_LABELS:
-                total, count, average = metrics[engine]
+                key = f"{model}|{engine}"
+                total, count, average = metrics[key]
                 width = 0 if average is None or maximum <= 0 else max(2.0, average / maximum * 100)
                 average_text = "—" if average is None else f"{average / 1000:.3f} 秒"
                 browser_rows.append(
-                    f'<div class="action-browser-row{" action-winner" if engine in average_winners else ""}"><div class="action-browser-head">'
-                    f"<b>{_e(ENGINE_LABELS[engine])}</b>{_winner(average_text, won=engine in average_winners, label='单次均值更低')}"
+                    f'<div class="action-browser-row{" action-winner" if key in average_winners else ""}"><div class="action-browser-head">'
+                    f"<b>{_e(MODEL_LABELS[model])} · {_e(ENGINE_LABELS[engine])}</b>{_winner(average_text, won=key in average_winners, label='四种配置中单次均值最低')}"
                     f'</div><div class="action-bar" aria-hidden="true"><i style="width:{width:.1f}%"></i></div>'
                     f'<div class="action-browser-meta">总耗时 {total / 1000:.1f} 秒 · {count} 次调用</div></div>'
                 )
-            cards.append(
-                '<article class="action-card"><header><code>'
-                + _e(action)
-                + "</code>"
-                + f"<span>{_e(MODEL_LABELS[model])} · 单次调用墙钟时间</span></header>"
-                + "".join(browser_rows)
-                + "</article>"
-            )
+        cards.append(
+            '<article class="action-card"><header><code>'
+            + _e(action)
+            + "</code><span>四种配置 · 单次调用墙钟时间</span></header>"
+            + "".join(browser_rows)
+            + "</article>"
+        )
     return '<div class="action-card-grid">' + "".join(cards) + "</div>"
 
 
@@ -1051,31 +1034,31 @@ def _summary_comparison_rows(summary: dict[str, dict[str, dict[str, Any]]]) -> l
         "p50_tokens",
         "p95_tokens",
     )
+    flat = {
+        f"{model}|{engine}": values
+        for model, model_summary in summary.items()
+        for engine, values in model_summary.items()
+    }
+    higher_metrics = {
+        name: _best({key: values[name] for key, values in flat.items()}, higher=True)
+        for name in ("passed", "score")
+    }
+    lower_metrics = {
+        name: _best(
+            {key: values[name] for key, values in flat.items()},
+            higher=False,
+            display=(
+                (lambda value: round(value / 1000, 1))
+                if "duration_ms" in name
+                else (lambda value: round(value))
+            ),
+        )
+        for name in lower_names
+    }
     rows: list[list[Any]] = []
     for model, model_summary in summary.items():
-        higher_metrics = {
-            "passed": _best(
-                {engine: model_summary[engine]["passed"] for engine in ENGINE_LABELS},
-                higher=True,
-            ),
-            "score": _best(
-                {engine: model_summary[engine]["score"] for engine in ENGINE_LABELS},
-                higher=True,
-            ),
-        }
-        lower_metrics = {
-            name: _best(
-                {engine: model_summary[engine][name] for engine in ENGINE_LABELS},
-                higher=False,
-                display=(
-                    (lambda value: round(value / 1000, 1))
-                    if "duration_ms" in name
-                    else (lambda value: round(value))
-                ),
-            )
-            for name in lower_names
-        }
         for engine, label in ENGINE_LABELS.items():
+            key = f"{model}|{engine}"
             current = model_summary[engine]
             rows.append(
                 [
@@ -1083,30 +1066,30 @@ def _summary_comparison_rows(summary: dict[str, dict[str, dict[str, Any]]]) -> l
                     label,
                     _winner(
                         f"{current['passed']}/{current['completed']}",
-                        won=engine in higher_metrics["passed"],
-                        label="通过数更高",
+                        won=key in higher_metrics["passed"],
+                        label="四种配置中通过数最高",
                     ),
                     _winner(
                         _pct(current["score"]),
-                        won=engine in higher_metrics["score"],
-                        label="通过率更高",
+                        won=key in higher_metrics["score"],
+                        label="四种配置中通过率最高",
                     ),
                     _metric_stack(
                         [
                             (
                                 "均值",
                                 _seconds(current["mean_duration_ms"]),
-                                engine in lower_metrics["mean_duration_ms"],
+                                key in lower_metrics["mean_duration_ms"],
                             ),
                             (
                                 "P50",
                                 _seconds(current["p50_duration_ms"]),
-                                engine in lower_metrics["p50_duration_ms"],
+                                key in lower_metrics["p50_duration_ms"],
                             ),
                             (
                                 "P95",
                                 _seconds(current["p95_duration_ms"]),
-                                engine in lower_metrics["p95_duration_ms"],
+                                key in lower_metrics["p95_duration_ms"],
                             ),
                         ]
                     ),
@@ -1115,17 +1098,17 @@ def _summary_comparison_rows(summary: dict[str, dict[str, dict[str, Any]]]) -> l
                             (
                                 "均值",
                                 _seconds(current["mean_browser_tool_duration_ms"]),
-                                engine in lower_metrics["mean_browser_tool_duration_ms"],
+                                key in lower_metrics["mean_browser_tool_duration_ms"],
                             ),
                             (
                                 "P50",
                                 _seconds(current["p50_browser_tool_duration_ms"]),
-                                engine in lower_metrics["p50_browser_tool_duration_ms"],
+                                key in lower_metrics["p50_browser_tool_duration_ms"],
                             ),
                             (
                                 "P95",
                                 _seconds(current["p95_browser_tool_duration_ms"]),
-                                engine in lower_metrics["p95_browser_tool_duration_ms"],
+                                key in lower_metrics["p95_browser_tool_duration_ms"],
                             ),
                         ]
                     ),
@@ -1134,17 +1117,17 @@ def _summary_comparison_rows(summary: dict[str, dict[str, dict[str, Any]]]) -> l
                             (
                                 "均值",
                                 _number(current["mean_tokens"]),
-                                engine in lower_metrics["mean_tokens"],
+                                key in lower_metrics["mean_tokens"],
                             ),
                             (
                                 "P50",
                                 _number(current["p50_tokens"]),
-                                engine in lower_metrics["p50_tokens"],
+                                key in lower_metrics["p50_tokens"],
                             ),
                             (
                                 "P95",
                                 _number(current["p95_tokens"]),
-                                engine in lower_metrics["p95_tokens"],
+                                key in lower_metrics["p95_tokens"],
                             ),
                         ]
                     ),
@@ -1154,6 +1137,8 @@ def _summary_comparison_rows(summary: dict[str, dict[str, dict[str, Any]]]) -> l
 
 
 REPORT_JS = """function theme(){const r=document.documentElement,n=r.dataset.theme==='dark'?'light':'dark';r.dataset.theme=n;try{localStorage.setItem('browser-use-theme',n)}catch(e){}}
+function openDiagnosis(id){const d=document.getElementById(id);if(d?.showModal)d.showModal()}
+function closeDiagnosis(id){const d=document.getElementById(id);if(d?.open)d.close()}
 function updateViewUrl(){const u=new URL(location.href),q=document.querySelector('[data-search]');[...u.searchParams.keys()].filter(k=>k==='q'||k.startsWith('f_')).forEach(k=>u.searchParams.delete(k));if(q?.value)u.searchParams.set('q',q.value);document.querySelectorAll('[data-filter]').forEach(c=>{if(c.value)u.searchParams.set('f_'+c.dataset.filter,c.value)});history.replaceState(null,'',u.pathname+(u.search?'?'+u.searchParams.toString():'')+u.hash)}
 function filterRows(save=true){const controls=[...document.querySelectorAll('[data-filter]')],query=(document.querySelector('[data-search]')?.value||'').trim().toLowerCase();let visible=0,total=0;document.querySelectorAll('tbody tr[data-tier]:not([data-relation])').forEach(r=>{total++;const hidden=Boolean(controls.some(c=>c.value&&r.dataset[c.dataset.filter]!==c.value)||(query&&!String(r.dataset.search||r.textContent).toLowerCase().includes(query)));r.hidden=hidden;if(!hidden)visible++});document.querySelectorAll('[data-visible-count]').forEach(x=>x.textContent=visible+' / '+total);if(save)updateViewUrl()}
 function filterMatrix(){const root=document.getElementById('configuration-matrix');if(!root)return;const controls=[...root.querySelectorAll('[data-matrix-filter]')];let visible=0,total=0;root.querySelectorAll('tbody tr[data-tier]').forEach(r=>{total++;const hidden=controls.some(c=>c.value&&r.dataset[c.dataset.matrixFilter]!==c.value);r.hidden=hidden;if(!hidden)visible++});const count=root.querySelector('[data-matrix-count]');if(count)count.textContent=visible+' / '+total}
@@ -1162,13 +1147,14 @@ function sortTable(id,col){const t=document.getElementById(id);if(!t)return;cons
 function applyAnchor(){if(!location.hash)return;const id=decodeURIComponent(location.hash.slice(1)),target=document.getElementById(id);if(target?.scrollIntoView)requestAnimationFrame(()=>target.scrollIntoView({block:'start'}))}
 function hasOption(control,value){return !control?.options||[...control.options].some(option=>option.value===value)}
 function restoreView(){const p=new URLSearchParams(location.search),q=document.querySelector('[data-search]');if(q&&p.has('q'))q.value=p.get('q')||'';document.querySelectorAll('[data-filter]').forEach(c=>{const v=p.get('f_'+c.dataset.filter);if(v!==null&&hasOption(c,v))c.value=v});const s=(p.get('sort')||'').split(':');if(s.length===3)applySort(document.getElementById(s[0]),Number(s[1]),s[2]);filterRows(false);filterMatrix();try{if(!location.hash){const y=sessionStorage.getItem('browser-use-scroll:'+location.pathname+location.search);if(y!==null)requestAnimationFrame(()=>scrollTo(0,Number(y)||0))}}catch(e){}}
-document.addEventListener('DOMContentLoaded',()=>{try{document.documentElement.dataset.theme=localStorage.getItem('browser-use-theme')||'light'}catch(e){}restoreView();applyAnchor();document.querySelectorAll('[data-filter]').forEach(x=>x.addEventListener('change',()=>filterRows()));document.querySelectorAll('[data-search]').forEach(x=>x.addEventListener('input',()=>filterRows()));document.querySelectorAll('[data-matrix-filter]').forEach(x=>x.addEventListener('change',filterMatrix))});addEventListener('pagehide',()=>{try{sessionStorage.setItem('browser-use-scroll:'+location.pathname+location.search,String(scrollY))}catch(e){}});"""
+document.addEventListener('DOMContentLoaded',()=>{try{document.documentElement.dataset.theme=localStorage.getItem('browser-use-theme')||'light'}catch(e){}restoreView();applyAnchor();document.querySelectorAll('[data-filter]').forEach(x=>x.addEventListener('change',()=>filterRows()));document.querySelectorAll('[data-search]').forEach(x=>x.addEventListener('input',()=>filterRows()));document.querySelectorAll('[data-matrix-filter]').forEach(x=>x.addEventListener('change',filterMatrix));document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.close()}))});addEventListener('pagehide',()=>{try{sessionStorage.setItem('browser-use-scroll:'+location.pathname+location.search,String(scrollY))}catch(e){}});"""
 REPORT_STYLE = (
     SHARED_STYLE
     + """
+:root{--max:1440px}
 .hero h1,.publication-article h1,.publication-article h2{overflow-wrap:anywhere;word-break:break-word;max-width:100%}
 .callout strong{margin-right:.3em}
-.top nav{gap:18px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}.top nav>a,.top nav>button{flex:0 0 auto}.top nav .brand{font-weight:850;color:var(--ink)}.top nav a[aria-current=page]{color:var(--ink);font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:8px}.top .theme-toggle{margin-left:auto}.page-main{min-height:78vh}.hero.compact{padding-bottom:22px}.hero.compact h1{font-size:clamp(34px,4.5vw,52px)}.fine{font-size:13px;color:var(--muted)}.result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.result-grid .card{border-top:3px solid var(--accent)}.overview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.overview-card{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:20px;min-width:0}.overview-card h3{margin:8px 0}.audit-strip{display:grid;gap:10px}.audit-strip .callout{margin:0}.filters,.pair-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:18px 0}.filters select,.filters input,.pair-controls select{padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink)}.filters input{min-width:260px}.comparison-count{margin-left:auto;padding:8px 12px;border-radius:999px;background:var(--wash);color:var(--accent);font-weight:750}.status-pass{color:var(--good);font-weight:750}.status-fail{color:var(--bad);font-weight:750}.status-unproven{color:var(--warn,var(--bad));font-weight:750}.flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;list-style:none;padding:0}.flow li{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--panel);font-size:13px;min-width:0}.flow li+li:before{content:'→';color:var(--accent);margin-right:7px}.method-figure{margin:24px 0}.method-figure img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:16px;background:#f6faff}.method-figure figcaption{margin-top:10px;color:var(--muted);font-size:13px;line-height:1.55}.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.detail-grid .kv{min-height:92px;min-width:0}.page-links{display:flex;gap:10px;flex-wrap:wrap}.page-links a{border:1px solid var(--line);background:var(--panel);padding:8px 12px;border-radius:9px}.rank-list{counter-reset:rank}.rank-item{counter-increment:rank;display:grid;grid-template-columns:54px minmax(0,1fr);gap:16px;padding:20px 0;border-top:1px solid var(--line)}.rank-item:before{content:counter(rank);font-size:34px;font-weight:850;color:var(--accent)}.rank-item h3{margin:4px 0}.article-entry{border-left:4px solid var(--accent)}.source-list li{margin:9px 0}.table-wrap{margin:18px 0}.table-wrap table{min-width:760px}#task-table{min-width:1280px}#pair-table{min-width:1180px}.table-wrap caption{text-align:left;padding:10px 12px;color:var(--muted);caption-side:bottom}.footer{border-top:1px solid var(--line)}.evidence-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}.evidence-card{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px;min-width:0}.evidence-card h3{margin-top:0}.json-view,.log-view{white-space:pre-wrap;overflow-wrap:anywhere;max-height:540px;overflow:auto;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--bg);font-size:12px;line-height:1.55}.trajectory{list-style:none;padding:0;counter-reset:step}.trajectory>li{counter-increment:step;display:grid;grid-template-columns:46px minmax(0,1fr);gap:12px;padding:15px 0;border-top:1px solid var(--line)}.trajectory>li:before{content:counter(step);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:white;font-weight:800}.trajectory summary{cursor:pointer;font-weight:750}.rule-fail{border-left:4px solid var(--bad)}.rule-pass{border-left:4px solid var(--good)}.count-note{margin-left:auto;color:var(--muted);font-size:13px}.badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--wash);font-size:12px;margin-right:6px}.muted-box{padding:14px;border:1px dashed var(--line);border-radius:10px;color:var(--muted)}@media(max-width:900px){.result-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.overview-grid{grid-template-columns:1fr}.flow{grid-template-columns:repeat(3,minmax(0,1fr))}.evidence-pair{grid-template-columns:1fr}.grid>.card{grid-column:1/-1!important}}@media(max-width:600px){.wrap{width:calc(100% - 28px)}.top nav{gap:14px}.result-grid,.flow{grid-template-columns:1fr}.flow li+li:before{content:'↓';display:block}.hero{padding-top:28px}.hero.compact h1{font-size:30px;line-height:1.18}.filters input{min-width:0;width:100%}.comparison-count{margin-left:0}.rank-item{grid-template-columns:36px minmax(0,1fr)}}@media print{.top,.filters,.pair-controls{display:none!important}.card,.table-wrap{box-shadow:none}.json-view,.log-view{max-height:none;overflow:visible}.evidence-pair{grid-template-columns:1fr}}
+.top nav{gap:18px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}.top nav>a,.top nav>button{flex:0 0 auto}.top nav .brand{font-weight:850;color:var(--ink)}.top nav a[aria-current=page]{color:var(--ink);font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:8px}.top .theme-toggle{margin-left:auto}.page-main{min-height:78vh}.hero.compact{padding:34px 0 26px}.hero.compact h1{font-size:clamp(34px,4vw,50px);margin:10px 0}.hero.compact .lead{margin:0}.section{padding:32px 0}.fine{font-size:13px;color:var(--muted)}.result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.result-grid .card{border-top:3px solid var(--accent)}.overview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.overview-card{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:20px;min-width:0}.overview-card h3{margin:8px 0}.audit-strip{display:grid;gap:10px}.audit-strip .callout{margin:0}.filters,.pair-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:18px 0}.filters select,.filters input,.pair-controls select{padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink)}.filters input{min-width:260px}.comparison-count{margin-left:auto;padding:8px 12px;border-radius:999px;background:var(--wash);color:var(--accent);font-weight:750}.status-pass{color:var(--good);font-weight:750}.status-fail{color:var(--bad);font-weight:750}.status-unproven{color:var(--warn,var(--bad));font-weight:750}.flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;list-style:none;padding:0}.flow li{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--panel);font-size:13px;min-width:0}.flow li+li:before{content:'→';color:var(--accent);margin-right:7px}.method-figure{margin:24px 0}.method-figure img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:16px;background:#f6faff}.method-figure figcaption{margin-top:10px;color:var(--muted);font-size:13px;line-height:1.55}.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.detail-grid .kv{min-height:92px;min-width:0}.page-links{display:flex;gap:10px;flex-wrap:wrap}.page-links a{border:1px solid var(--line);background:var(--panel);padding:8px 12px;border-radius:9px}.rank-list{counter-reset:rank}.rank-item{counter-increment:rank;display:grid;grid-template-columns:54px minmax(0,1fr);gap:16px;padding:20px 0;border-top:1px solid var(--line)}.rank-item:before{content:counter(rank);font-size:34px;font-weight:850;color:var(--accent)}.rank-item h3{margin:4px 0}.article-entry{border-left:4px solid var(--accent)}.source-list li{margin:9px 0}.table-wrap{margin:18px 0}.table-wrap table{min-width:760px}#task-table{min-width:1280px}#pair-table{min-width:1180px}.table-wrap caption{text-align:left;padding:10px 12px;color:var(--muted);caption-side:bottom}.footer{border-top:1px solid var(--line)}.evidence-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}.evidence-card{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px;min-width:0}.evidence-card h3{margin-top:0}.json-view,.log-view{white-space:pre-wrap;overflow-wrap:anywhere;max-height:540px;overflow:auto;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--bg);font-size:12px;line-height:1.55}.trajectory{list-style:none;padding:0;counter-reset:step}.trajectory>li{counter-increment:step;display:grid;grid-template-columns:46px minmax(0,1fr);gap:12px;padding:15px 0;border-top:1px solid var(--line)}.trajectory>li:before{content:counter(step);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:white;font-weight:800}.trajectory summary{cursor:pointer;font-weight:750}.rule-fail{border-left:4px solid var(--bad)}.rule-pass{border-left:4px solid var(--good)}.count-note{margin-left:auto;color:var(--muted);font-size:13px}.badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--wash);font-size:12px;margin-right:6px}.muted-box{padding:14px;border:1px dashed var(--line);border-radius:10px;color:var(--muted)}@media(max-width:900px){.result-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.overview-grid{grid-template-columns:1fr}.flow{grid-template-columns:repeat(3,minmax(0,1fr))}.evidence-pair{grid-template-columns:1fr}.grid>.card{grid-column:1/-1!important}}@media(max-width:600px){.wrap{width:calc(100% - 28px)}.top nav{gap:14px}.result-grid,.flow{grid-template-columns:1fr}.flow li+li:before{content:'↓';display:block}.hero{padding-top:24px}.hero.compact h1{font-size:30px;line-height:1.18}.filters input{min-width:0;width:100%}.comparison-count{margin-left:0}.rank-item{grid-template-columns:36px minmax(0,1fr)}}@media print{.top,.filters,.pair-controls{display:none!important}.card,.table-wrap{box-shadow:none}.json-view,.log-view{max-height:none;overflow:visible}.evidence-pair{grid-template-columns:1fr}}
 /* Publication QA overrides: readable dense tables, code, and text-heavy figures. */
 .table-wrap{overflow-x:auto;max-width:100%;contain:inline-size;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
 .table-wrap table{min-width:860px;margin:0;border:0}
@@ -1210,15 +1196,19 @@ REPORT_STYLE = (
 .comparison-winner{color:var(--good);font-weight:850}.winner-mark{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;margin-left:7px;border-radius:999px;background:var(--good);color:white;font-size:11px;line-height:1}.winner-cell{position:relative;padding:9px 10px;border:1px solid color-mix(in srgb,var(--good) 42%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--good) 9%,var(--panel))}.metric-stack{display:grid;gap:5px;min-width:150px}.metric-stack>span{display:flex;align-items:center;justify-content:space-between;gap:12px;white-space:nowrap}.metric-stack>span>b{font-size:12px;color:var(--muted)}.review-round{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:22px;margin:16px 0}.review-round header{display:flex;align-items:start;justify-content:space-between;gap:18px}.review-round h3{margin:5px 0}.review-status{flex:0 0 auto;padding:5px 10px;border-radius:999px;background:var(--wash);font-size:12px;font-weight:800}.review-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}.review-fields>div{border-top:1px solid var(--line);padding-top:12px}.review-fields b{display:block;margin-bottom:5px}.review-fields p{margin:0}
 .browser-comparison{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:24px;box-shadow:0 12px 32px rgba(25,45,70,.06)}.comparison-heading{display:flex;align-items:start;justify-content:space-between;gap:24px;margin-bottom:10px}.comparison-heading h3{margin:0 0 6px;font-size:22px}.comparison-heading p{margin:0;color:var(--muted);line-height:1.65}.matrix-filters{margin:16px 0}.comparison-result{margin-top:12px}.table-wrap .configuration-matrix{min-width:1120px;table-layout:fixed}.configuration-matrix th:first-child,.configuration-matrix td:first-child{width:420px}.configuration-matrix th:not(:first-child),.configuration-matrix td:not(:first-child){width:165px;text-align:center;vertical-align:middle}.task-cell a{font-weight:750}.task-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:7px}.track-badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--panel2);color:var(--muted);font-size:12px;white-space:nowrap}.outcome-pill{display:inline-block;min-width:62px;padding:6px 10px;border-radius:8px;font-size:13px;text-decoration:none;font-weight:750}.outcome-pill.pass{background:var(--success-bg);color:var(--good)}.outcome-pill.fail{background:var(--failure-bg);color:var(--bad)}.outcome-pill.missing{background:var(--panel2);color:var(--muted)}
 .action-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.action-card{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:18px;min-width:0}.action-card>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.action-card>header code{font-size:16px;font-weight:800}.action-card>header span{font-size:12px;color:var(--muted)}.action-browser-row{padding:12px 0;border-top:1px solid var(--line)}.action-browser-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.action-bar{height:7px;border-radius:999px;background:var(--panel2);overflow:hidden;margin:8px 0}.action-bar i{display:block;height:100%;border-radius:inherit;background:var(--accent)}.action-browser-row.action-winner .action-bar i{background:var(--good)}.action-browser-meta{font-size:12px;color:var(--muted)}
-.finding-list{display:grid;gap:8px;margin:0 0 20px;padding:16px 20px 16px 38px;border-left:4px solid var(--accent);border-radius:0 12px 12px 0;background:var(--wash)}.finding-list li{padding-left:4px}.table-kicker{display:block;color:var(--muted);font:700 11px/1.4 ui-monospace,monospace;letter-spacing:.04em;margin-top:3px}.core-comparison-table{min-width:1040px}.core-comparison-table td:nth-child(1),.core-comparison-table td:nth-child(2){font-weight:750}.pair-outcome-table{min-width:900px}.wide-data-table td{line-height:1.65}.report-entry-links{margin-top:18px}.report-entry-links a{font-weight:750}.source-note a{margin-left:5px}
+.finding-list{display:grid;gap:8px;margin:0 0 20px;padding:16px 20px 16px 38px;border-left:4px solid var(--accent);border-radius:0 12px 12px 0;background:var(--wash)}.finding-list li{padding-left:4px}.table-kicker{display:block;color:var(--muted);font:700 11px/1.4 ui-monospace,monospace;letter-spacing:.04em;margin-top:3px}.core-comparison-table{min-width:1240px;table-layout:fixed}.core-comparison-table td:nth-child(1),.core-comparison-table td:nth-child(2){font-weight:750}.core-comparison-table th:nth-child(1),.core-comparison-table td:nth-child(1){width:145px}.core-comparison-table th:nth-child(2),.core-comparison-table td:nth-child(2){width:135px}.core-comparison-table th:nth-child(3),.core-comparison-table td:nth-child(3){width:115px}.core-comparison-table th:nth-child(4),.core-comparison-table td:nth-child(4){width:105px}.core-comparison-table th:nth-child(n+5),.core-comparison-table td:nth-child(n+5){width:245px}.pair-outcome-table{min-width:900px}.wide-data-table td{line-height:1.65}.report-entry-links{margin-top:18px}.report-entry-links a{font-weight:750}.source-note a{margin-left:5px}
+#task-family-table{min-width:1320px;table-layout:fixed}#task-family-table th:nth-child(1),#task-family-table td:nth-child(1){width:150px}#task-family-table th:nth-child(2),#task-family-table td:nth-child(2){width:90px}#task-family-table th:nth-child(3),#task-family-table td:nth-child(3){width:300px}#task-family-table th:nth-child(n+4),#task-family-table td:nth-child(n+4){width:190px;white-space:nowrap}.metric-note{margin:14px 0 0;border-top:1px solid var(--line);padding-top:12px;color:var(--muted)}.metric-note summary{cursor:pointer;font-weight:750;color:var(--ink)}
+.diagnosis-button,.dialog-actions button{border:1px solid var(--accent);background:var(--accent);color:white;padding:8px 12px;border-radius:9px;font:inherit;font-weight:750;cursor:pointer;white-space:nowrap}.diagnosis-button:hover,.dialog-actions button:hover{filter:brightness(.94)}.diagnosis-dialog{width:min(920px,calc(100% - 32px));max-height:88vh;padding:0;border:1px solid var(--line);border-radius:18px;background:var(--panel);color:var(--ink);box-shadow:0 28px 90px rgba(10,25,45,.28)}.diagnosis-dialog::backdrop{background:rgba(5,15,25,.62);backdrop-filter:blur(3px)}.diagnosis-dialog-head{position:sticky;top:0;z-index:1;display:flex;align-items:start;justify-content:space-between;gap:20px;padding:22px 24px 16px;border-bottom:1px solid var(--line);background:var(--panel)}.diagnosis-dialog-head h2{font-size:24px;margin:4px 0}.dialog-close{border:0;background:var(--panel2);color:var(--ink);width:36px;height:36px;border-radius:50%;font-size:24px;line-height:1;cursor:pointer}.diagnosis-dialog-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:18px 24px}.diagnosis-dialog-grid>div{padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--bg);min-width:0;overflow-wrap:anywhere}.diagnosis-dialog-grid b{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}.dialog-error,.dialog-review{padding:0 24px 18px}.dialog-error h3,.dialog-review h3{margin:8px 0}.dialog-error .log-view{max-height:240px}.dialog-review p{margin:6px 0}.dialog-actions{position:sticky;bottom:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:16px 24px;border-top:1px solid var(--line);background:var(--panel)}.dialog-actions a{padding:8px 10px;border:1px solid var(--line);border-radius:9px}.dialog-actions button{margin-left:auto}
+.failure-lead{padding:20px 22px;margin-bottom:14px;border:1px solid color-mix(in srgb,var(--bad) 35%,var(--line));border-left:6px solid var(--bad);border-radius:14px;background:var(--failure-bg)}.failure-lead .status-line{color:var(--bad);font-size:13px;font-weight:850}.failure-lead h3{font-size:24px;margin:5px 0}.failure-lead p{margin:4px 0}.success-lead{border-color:color-mix(in srgb,var(--good) 35%,var(--line));border-left-color:var(--good);background:var(--success-bg)}.success-lead .status-line{color:var(--good)}.runtime-strip{grid-template-columns:repeat(6,minmax(0,1fr));margin:14px 0}.failure-error{margin-top:16px}.failure-error .log-view{max-height:260px}.trajectory-step.failure-step{margin:8px 0;padding:14px;border:1px solid color-mix(in srgb,var(--bad) 40%,var(--line));border-left:5px solid var(--bad);border-radius:12px;background:var(--failure-bg)}.trajectory-step.failure-step:before{background:var(--bad)}.inline-evidence{margin:14px 0}.inline-evidence>summary{cursor:pointer;font-weight:750}
+.action-card-grid{grid-auto-rows:1fr}.action-card{height:100%}.dialog-step,.step-signature{padding:13px 16px;border-radius:10px;background:var(--wash);overflow-wrap:anywhere}.dialog-step{margin:0 24px 18px}.dialog-step b{margin-right:8px}.step-signature{margin:0 0 14px}
 .attempt-summary{display:grid;grid-template-columns:minmax(270px,1.4fr) repeat(4,minmax(135px,.7fr));gap:12px;align-items:stretch}.attempt-verdict{padding:20px 22px;border:1px solid var(--line);border-left:5px solid var(--good);border-radius:12px;background:var(--success-bg)}.attempt-verdict.failure{border-left-color:var(--bad);background:var(--failure-bg)}.attempt-verdict .status-line{display:block;font-size:24px;font-weight:850;margin-bottom:6px}.attempt-verdict p{margin:0;line-height:1.65}.attempt-jumps{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-weight:750}.attempt-fact{padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow-wrap:anywhere}.attempt-fact b{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}.attempt-secondary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:12px}
 .diagnosis-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.diagnosis-grid .attempt-fact{min-height:110px}.diagnosis-reason{margin-top:14px;padding:18px 20px;border-left:5px solid var(--bad);border-radius:10px;background:var(--failure-bg);line-height:1.7}.evidence-links{display:flex;gap:8px}.screenshot-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.screenshot-grid figure{margin:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}.screenshot-grid img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;object-position:top}.screenshot-grid figcaption{padding:10px 12px;color:var(--muted);font-size:12px}
 .task-goal{padding:22px 24px;border-radius:16px;background:var(--wash);border:1px solid var(--line);margin-bottom:18px}.task-goal span,.rule-index{display:block;color:var(--accent);font-size:12px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}.task-goal p{font-size:20px;font-weight:750;line-height:1.6;margin:7px 0}.task-goal small{color:var(--muted)}.verification-list{display:grid;gap:14px}.verification-rule{padding:20px 22px;border:1px solid var(--line);border-left:5px solid var(--good);border-radius:14px;background:var(--panel);min-width:0}.verification-rule.rule-fail{border-left-color:var(--bad)}.verification-rule>header{display:flex;align-items:start;justify-content:space-between;gap:18px}.verification-rule h3{margin:4px 0 0;font-size:19px}.rule-verdict{flex:0 0 auto;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:850}.rule-verdict.pass{background:var(--success-bg);color:var(--good)}.rule-verdict.fail{background:var(--failure-bg);color:var(--bad)}.rule-purpose{color:var(--muted);margin:12px 0 6px}.rule-summary{font-size:17px;font-weight:750;margin:0 0 14px}.verification-rule details{border-top:1px solid var(--line);padding-top:12px;margin-top:10px}.verification-rule summary{cursor:pointer;font-weight:750}.compact-evidence{margin-top:12px}.compact-evidence .json-view{max-height:360px}
 .page-main{overflow-x:clip}
 .section[id]{scroll-margin-top:76px}
-@media(max-width:980px){.attempt-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.attempt-verdict{grid-column:1/-1}.attempt-secondary,.diagnosis-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.screenshot-grid{grid-template-columns:1fr}}
+@media(max-width:980px){.attempt-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.attempt-verdict{grid-column:1/-1}.attempt-secondary,.diagnosis-grid,.runtime-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.screenshot-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.browser-comparison{padding:18px}.comparison-heading{display:block}.comparison-count{display:inline-block;margin-top:12px}.comparison-controls{grid-template-columns:1fr}.action-card-grid{grid-template-columns:1fr}}
-@media(max-width:600px){.hero h1{word-break:break-all;line-break:anywhere;text-wrap:balance}.method-figure img{min-width:900px}.table-wrap{margin-left:-4px;margin-right:-4px}.json-view,.log-view{font-size:13px}.review-round header{display:block}.review-status{display:inline-block;margin-top:8px}.review-fields,.attempt-summary,.attempt-secondary{grid-template-columns:1fr}}
+@media(max-width:600px){.hero h1{word-break:break-all;line-break:anywhere;text-wrap:balance}.method-figure img{min-width:900px}.table-wrap{margin-left:-4px;margin-right:-4px}.json-view,.log-view{font-size:13px}.review-round header{display:block}.review-status{display:inline-block;margin-top:8px}.review-fields,.attempt-summary,.attempt-secondary,.diagnosis-dialog-grid{grid-template-columns:1fr}.diagnosis-dialog-head,.diagnosis-dialog-grid,.dialog-error,.dialog-review,.dialog-actions{padding-left:16px;padding-right:16px}.dialog-actions button{margin-left:0}}
 """
 )
 NAV = [
@@ -1367,6 +1357,33 @@ def _failure_diagnosis(result: dict[str, Any] | None, row: dict[str, Any]) -> st
     return "；".join(dict.fromkeys(x.strip() for x in parts if x.strip())).rstrip("。.;； ") + "。"
 
 
+def _evaluator_error_text(result: dict[str, Any] | None, row: dict[str, Any]) -> str:
+    """Return the exact sanitized evaluator/runtime error without inferring a cause."""
+
+    lines: list[str] = []
+    for item in evaluator_summary(result):
+        if float(item.get("score") or 0) == 1:
+            continue
+        messages = [
+            str(message)
+            for assertion in item.get("assertions") or []
+            for message in [*(assertion.get("assertion_msgs") or []), assertion.get("error_msg")]
+            if message
+        ]
+        if item.get("error"):
+            messages.append(str(item["error"]))
+        if not messages:
+            messages.append(_rule_outcome_summary(item))
+        for message in dict.fromkeys(messages):
+            lines.append(f"规则 {item['index']} · {item['name']}: {sanitize(message)}")
+    if row.get("error"):
+        lines.append(f"运行错误: {sanitize(row['error'])}")
+    response = row.get("agent_response") or {}
+    if response.get("error_details"):
+        lines.append(f"Agent 错误: {sanitize(response['error_details'])}")
+    return "\n".join(lines) or "程序没有提供更具体的错误文本。"
+
+
 def _failed_rule_labels(result: dict[str, Any] | None) -> list[str]:
     return [
         f"规则 {item['index']} {item['name']}"
@@ -1421,6 +1438,23 @@ def _failure_point(code: str, steps: list[dict[str, Any]]) -> tuple[str, int | N
     if code == "agent_step_budget":
         return (f"第 {last_step} 步后达到步骤上限" if last_step else "达到步骤上限"), last_step
     return (f"第 {last_step} 步后的最终回答/任务状态" if last_step else "最终回答/任务状态"), last_step
+
+
+def _trajectory_context(
+    steps: list[dict[str, Any]], step_number: int | None, failure_point: str
+) -> tuple[str, str]:
+    """Describe the linked step without claiming a successful action caused evaluator failure."""
+
+    if step_number is None:
+        return "", ""
+    step = next(
+        (item for item in steps if int(item.get("step") or 0) == step_number), None
+    )
+    if step is None:
+        return "", ""
+    label = trajectory_label(step)
+    prefix = "失败动作" if "BrowserTool 执行异常" in failure_point else "验收前最后一步"
+    return prefix, label
 
 
 def _remediation(code: str) -> tuple[str, str, bool]:
@@ -1537,12 +1571,16 @@ def _trajectory_html(steps: list[dict[str, Any]]) -> str:
     rows = []
     for step in steps:
         step_number = int(step.get("step") or len(rows) + 1)
+        failed = (
+            str(step.get("status") or "").lower() not in {"", "success"}
+            or bool(step.get("error"))
+        )
         duration = step.get("duration_seconds")
         meta = f"Turn {step.get('turn') or '—'} · {_e(step.get('status') or 'unknown')}"
         if duration is not None:
             meta += f" · {float(duration):.2f} 秒"
         rows.append(
-            f'<li id="trajectory-step-{step_number}"><div><details><summary>'
+            f'<li id="trajectory-step-{step_number}" class="trajectory-step{" failure-step" if failed else ""}"><div><details{" open" if failed else ""}><summary>'
             + _e(trajectory_label(step))
             + f'</summary><p class="fine">{meta}</p><h4>调用参数</h4>'
             + _json_pre(step.get("arguments"))
@@ -1617,7 +1655,7 @@ def _artifact_links(result_id: str, execution: int) -> str:
     root = f"artifacts/{result_id}/executions/{execution}"
     return (
         '<div class="page-links">'
-        f'<a href="{root}/execution-evidence.json" download>完整执行证据 JSON</a>'
+        f'<a href="{root}/execution-evidence.json" target="_blank" rel="noopener">打开原始 JSON</a>'
         "</div>"
     )
 
@@ -1664,7 +1702,12 @@ def _write_execution_artifacts(
         }
         for label, filename in PUBLIC_EXECUTION_ARTIFACTS.items()
     }
-    return {**measurements, "artifacts": artifacts, "screenshots": screenshots}, response, evaluation, steps
+    return {
+        **measurements,
+        "artifacts": artifacts,
+        "screenshots": screenshots,
+        "_inline_evidence": bundle,
+    }, response, evaluation, steps
 
 
 def _screenshot_gallery(result_id: str, executions: list[dict[str, Any]]) -> str:
@@ -1709,6 +1752,9 @@ def _execution_evidence_html(result_id: str, executions: list[dict[str, Any]]) -
             f"BrowserTool {execution['action_count']} 次 / {_seconds(execution['browser_tool_duration_ms'])} · "
             f"模型 tokens {_number(usage['total_tokens'])}</p>"
             + _artifact_links(result_id, int(execution["execution"]))
+            + '<details class="inline-evidence"><summary>在页面中查看完整执行证据</summary>'
+            + _json_pre(execution.get("_inline_evidence") or {})
+            + "</details>"
             + hashes
             + "</article>"
         )
@@ -1916,6 +1962,52 @@ def _task_table(tasks: list[dict[str, Any]]) -> str:
     )
 
 
+def _diagnosis_dialog(
+    *,
+    result_id: str,
+    task_id: int,
+    configuration: str,
+    failure_point: str,
+    automatic_failure: str,
+    evaluator_error: str,
+    subcategory: str,
+    reason: str,
+    owner: str,
+    action: str,
+    step_link: str,
+    step_context_label: str = "",
+    step_context: str = "",
+) -> str:
+    dialog_id = f"diagnosis-{result_id}"
+    detail_url = f"results/{result_id}.html"
+    return (
+        f'<dialog class="diagnosis-dialog" id="{_e(dialog_id)}" aria-labelledby="{_e(dialog_id)}-title">'
+        '<div class="diagnosis-dialog-head"><div><span class="table-kicker">失败诊断</span>'
+        f'<h2 id="{_e(dialog_id)}-title">Task #{task_id} · {_e(configuration)}</h2></div>'
+        f'<button class="dialog-close" type="button" onclick="closeDiagnosis(\'{_e(dialog_id)}\')" aria-label="关闭">×</button></div>'
+        '<div class="diagnosis-dialog-grid">'
+        f'<div><b>发生位置</b><a href="{_e(step_link)}">{_e(failure_point)}</a></div>'
+        f'<div><b>程序判定</b>{_e(automatic_failure or "未分类")}</div>'
+        f'<div><b>复核根因</b>{_e(subcategory or "待复核")}</div>'
+        f'<div><b>负责范围</b>{_e(owner)}</div></div>'
+        + (
+            f'<div class="dialog-step"><b>{_e(step_context_label)}</b><a href="{_e(step_link)}">{_e(step_context)}</a></div>'
+            if step_context
+            else ""
+        )
+        + '<section class="dialog-error"><h3>程序报错</h3>'
+        f'<pre class="log-view">{_e(evaluator_error)}</pre></section>'
+        '<section class="dialog-review"><h3>复核结论</h3>'
+        f'<p>{_e(reason or "尚未完成根因复核。")}</p><p><strong>处理：</strong>{_e(action)}</p></section>'
+        '<div class="dialog-actions">'
+        f'<a class="button-link" href="{_e(detail_url)}#verification">查看期望与实际值</a>'
+        f'<a href="{_e(step_link)}">查看失败附近轨迹</a>'
+        f'<a href="{_e(detail_url)}#screenshots">查看页面画面</a>'
+        f'<a href="{_e(detail_url)}#runtime">查看日志与完整证据</a>'
+        f'<button type="button" onclick="closeDiagnosis(\'{_e(dialog_id)}\')">关闭</button></div></dialog>'
+    )
+
+
 def _attempt_table(
     attempts: list[dict[str, Any]],
     tasks: list[dict[str, Any]],
@@ -1924,6 +2016,7 @@ def _attempt_table(
     verified_causes = verified_causes or {}
     task_meta = {int(task["task_id"]): task for task in tasks}
     rows = []
+    dialogs = []
     for row in attempts:
         p = _public_attempt(row)
         result = "pass" if p["score"] == 1 else "fail"
@@ -1934,6 +2027,9 @@ def _attempt_table(
         event_record = read_public_json(Path((row.get("paths") or {}).get("events", "")))
         steps = trajectory(event_record if isinstance(event_record, list) else [])
         failure_point, step_number = _failure_point(code, steps)
+        step_context_label, step_context = _trajectory_context(
+            steps, step_number, failure_point
+        )
         owner, action, _external = _remediation(code)
         task = task_meta.get(p["task_id"], {})
         point_link = (
@@ -1941,6 +2037,25 @@ def _attempt_table(
             if step_number
             else f'results/{p["id"]}.html#diagnosis'
         )
+        dialog_id = f"diagnosis-{p['id']}"
+        if result == "fail":
+            dialogs.append(
+                _diagnosis_dialog(
+                    result_id=p["id"],
+                    task_id=p["task_id"],
+                    configuration=f"{MODEL_LABELS[p['model']]} · {ENGINE_LABELS[p['engine']]}",
+                    failure_point=failure_point,
+                    automatic_failure=automatic_failure,
+                    evaluator_error=_evaluator_error_text(result_record, row),
+                    subcategory=subcategory,
+                    reason=reason,
+                    owner=owner,
+                    action=action,
+                    step_link=point_link,
+                    step_context_label=step_context_label,
+                    step_context=step_context,
+                )
+            )
         values = [
             Safe(f'<a href="results/{p["id"]}.html">{p["id"]}</a>'),
             Safe(
@@ -1955,9 +2070,7 @@ def _attempt_table(
             Safe(f'<strong>{_e(owner)}</strong><span class="table-kicker">{_e(action)}</span>') if result == "fail" else "—",
             Safe(
                 (
-                    f'<span class="evidence-links"><a href="results/{p["id"]}.html#diagnosis">诊断</a>'
-                    f'<a href="results/{p["id"]}.html#screenshots">画面</a>'
-                    f'<a href="results/{p["id"]}.html#runtime">日志</a></span>'
+                    f'<button class="diagnosis-button" type="button" onclick="openDiagnosis(\'{_e(dialog_id)}\')">查看诊断</button>'
                 )
                 if result == "fail"
                 else f'<a href="results/{p["id"]}.html">详情</a>'
@@ -1987,6 +2100,7 @@ def _attempt_table(
     return (
         _filters(attempts=True)
         + f'<div class="table-wrap"><table id="result-table"><thead><tr>{headers}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
+        + "".join(dialogs)
     )
 
 
@@ -2239,31 +2353,20 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             f"CowAgent 使用 {', '.join(MODEL_LABELS.values())}，在同一组 WebArena‑Verified {task_count} 题上分别操作 {', '.join(ENGINE_LABELS.values())}。",
         )
         home += _section(
-            "评测结果",
-            _headline_findings(summary_by_model)
-            + _table(
+            "四种配置的总体结果",
+            _table(
                 ["模型", "浏览器", "通过任务", "通过率", "Agent 总耗时", "BrowserTool 耗时", "Tokens"],
                 _summary_comparison_rows(summary_by_model),
                 table_id="core-metrics-table",
                 classes="core-comparison-table",
             )
-            + '<p class="source-note"><span class="winner-mark" aria-hidden="true">优</span> 只标记同一模型下数值唯一更好的浏览器。通过数越高越好；耗时和 Tokens 越低越好。Agent 总耗时包含模型推理、页面等待和浏览器操作，BrowserTool 耗时更接近浏览器执行层，但仍包含工具封装与 CDP 往返。</p>'
-            + f'<p class="callout">这 {task_count} 题是固定选择的样本，结果不能直接外推到 WebArena‑Verified 全集，也不能仅凭总耗时判断浏览器内核速度。</p>',
+            + '<p class="source-note"><span class="winner-mark" aria-hidden="true">优</span> 在四种配置中统一比较并只标记唯一最优值；相同值不标。通过数越高越好，耗时和 Tokens 越低越好。</p>'
+            + f'<p class="source-note">四种配置均使用同一组 {task_count} 题。模型和浏览器同时变化时，表格比较的是整套配置，不能把差值只归因于浏览器。<a href="analysis/#same-task">查看全部配置的逐题矩阵 →</a></p>'
+            + '<details class="metric-note"><summary>耗时统计包含什么</summary><p>Agent 总耗时包含模型推理、页面等待和浏览器操作；BrowserTool 耗时是全部浏览器工具调用的墙钟时间之和，仍包含工具封装与 CDP 往返，不是纯内核 CPU 时间。</p></details>',
         )
         home += _section(
-            "同一任务上的结果差异",
-            "<p>每行比较同一模型、同一任务和同一网站状态下的两个浏览器。A、B 对应表内所列浏览器。</p>"
-            + _table(
-                ["模型", "浏览器 A", "浏览器 B", "同题数", "两边都通过", "A 通过、B 失败", "A 失败、B 通过", "两边都失败"],
-                pairing_rows,
-                table_id="pair-outcomes",
-                classes="pair-outcome-table",
-            )
-            + f'<p class="source-note">两组模型合计有 {discordant_total} 个同题结果不同；不同模型的运行互不配对。<a href="analysis/#same-task">打开逐题对照 →</a></p>',
-        )
-        home += _section(
-            f"{len(failed_result_ids)} 个失败是怎么造成的",
-            "<p>官方 evaluator 说明哪条验收规则没有满足；下表来自对任务要求、最终回答、网络记录和自主执行轨迹的逐条核验。</p>"
+            "失败与干扰项",
+            f"<p>{len(failed_result_ids)} 个失败结果已经逐条核验。与任务合同、站点、共享环境或参考状态有关的任务不会进入诊断子集，修复后需完整重跑。</p>"
             + failure_overview,
         )
         home += _section(
@@ -2530,11 +2633,11 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
 
         analysis = _hero(
             "Results",
-            "从总体配对下钻到每个逻辑结果",
-            "先看总体与同题比较，再通过筛选下钻到每个结果的官方规则、实际回答、轨迹和日志。",
+            "结果分析",
+            "四种配置先在同一张表和同一任务矩阵中比较；失败结果可直接打开诊断，查看发生位置、程序报错、复核根因、轨迹、画面和日志。",
         )
         analysis += _section(
-            "汇总",
+            "四种配置总览",
             _table(
                 [
                     "模型",
@@ -2546,28 +2649,30 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     "Tokens",
                 ],
                 _summary_comparison_rows(summary_by_model),
+                table_id="analysis-core-metrics",
+                classes="core-comparison-table",
             )
-            + '<p class="fine"><span class="winner-mark" aria-hidden="true">优</span> 标记方向明确且数值更优的指标：通过数与通过率越高越优，耗时与 Tokens 越低越优；数值相同时不标记。</p>'
-            + '<p class="fine"><strong>Agent 链路累计耗时</strong>把获得该任务结果实际发生的执行相加；每次从浏览器会话准备开始，到 CowAgent 完成、验收所需证据落盘前结束，包含登录、模型推理、调度、页面等待、BrowserTool 与收尾，不包含此前的 Docker 站点重置。<strong>BrowserTool 累计耗时</strong>是事件流中全部 browser 工具调用墙钟时间之和，包含工具封装、CDP 往返与页面等待，仍不是纯内核 CPU 时间。</p>',
-        )
-        analysis += _section(
-            "BrowserTool 动作延迟",
-            "<p>每张卡对应一种 CowAgent action。以单次调用墙钟均值作为主要比较值并标记较低者；总耗时与调用数用于解释工作量，不判优。该指标仍包含工具封装、CDP 往返和页面等待，不是纯内核 CPU 时间。</p>"
-            + _action_duration_cards(attempts),
+            + '<p class="source-note"><span class="winner-mark" aria-hidden="true">优</span> 四种配置统一比较，只标记唯一最优值；相同值不标。通过数越高越好，耗时和 Tokens 越低越好。</p>'
+            + '<details class="metric-note"><summary>耗时和 Tokens 如何统计</summary><p><strong>Agent 链路累计耗时</strong>把取得逻辑结果所发生的执行相加，包含登录、模型推理、调度、页面等待、BrowserTool 与收尾，不包含此前的 Docker 站点重置。<strong>BrowserTool 累计耗时</strong>是所有 browser 工具调用的墙钟时间之和，包含工具封装、CDP 往返和页面等待。Tokens 同样累计正式结果包含的物理执行。</p></details>',
         )
         analysis += _section(
             "同题全配置对比",
-            "<p>每道任务同时展示全部模型×浏览器结果，不做两两拆分，也不用不同成功样本拼接结论。</p>"
+            "<p>每行是一道任务，四列分别对应模型×浏览器配置；可筛出结果有差异、全部通过或全部失败的任务。</p>"
             + _same_task_comparison(tasks, attempts),
         ).replace('<section class="section">', '<section class="section" id="same-task">', 1)
+        analysis += _section(
+            "BrowserTool 动作延迟",
+            "<p>每个动作同时比较四种配置的单次调用墙钟均值，只标记唯一最低值。总耗时和调用数受 Agent 行为量影响，仅用于解释工作量，不参与快慢判定。</p>"
+            + _action_duration_cards(attempts),
+        )
         analysis += _section(
             "排除已证实外部干扰后的诊断子集",
             "<p>官方 90 题结果保持不变。为了看清浏览器和模型差异，下表暂时排除已核验为评测合同、站点、共享环境或参考状态问题的整道任务。</p>"
             + _clean_subset_table(attempts, verified_causes),
         )
         analysis += _section(
-            f"{result_count} 个逻辑结果",
-            "<p>默认只显示失败；可按浏览器、层级、站点、任务类型、失败环节和全文关键词筛选。</p>"
+            f"{result_count} 个结果与失败诊断",
+            "<p>默认显示失败。点击“查看诊断”可先在当前页核对发生位置、程序报错、复核根因和处理方案，再进入完整轨迹、画面与日志。</p>"
             + _attempt_table(attempts, tasks, verified_causes),
         )
         (stage / "analysis/index.html").write_text(
@@ -2618,7 +2723,10 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     "authoritative_execution": int(row["attempt"]),
                     "task_page": f"datasets/{public['task_id']}.html",
                     "result_page": f"results/{public['id']}.html",
-                    "executions": execution_records,
+                    "executions": [
+                        {key: value for key, value in execution.items() if key != "_inline_evidence"}
+                        for execution in execution_records
+                    ],
                 }
             )
             usage, resource, checks = (
@@ -2628,13 +2736,20 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             )
             cause_code = _cause_code(verified_causes, public["id"])
             failure_point, failure_step = _failure_point(cause_code, steps)
+            step_context_label, step_context = _trajectory_context(
+                steps, failure_step, failure_point
+            )
             remediation_owner, remediation_action, external_interference = _remediation(
                 cause_code
             )
             detail = _hero(
                 public["id"],
                 f"{MODEL_LABELS[public['model']]} · {ENGINE_LABELS[public['engine']]} · Task #{public['task_id']}",
-                "先看任务目标与验收结论，再按需展开技术明细和 CowAgent 的每一步 BrowserTool 调用。",
+                (
+                    f"失败发生在{failure_point}；下方保留程序报错、复核根因和对应执行证据。"
+                    if float(public["score"]) < 1
+                    else "该结果通过全部官方程序化验收；下方可核对任务合同、执行轨迹和运行证据。"
+                ),
             )
             # Pages declare <base href="../"> so every internal URL is rooted at
             # the report bundle, including same-page fragment links.
@@ -2656,20 +2771,14 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 + f'<a href="{attempt_page}#runtime">运行与证据</a>'
                 + "</nav>"
             )
-            detail += _section(
-                "结果与运行",
-                f'<div class="attempt-summary"><article class="attempt-verdict{" failure" if float(row["score"]) < 1 else ""}">'
-                f'<span class="status-line">{_status(row)}</span><p>{_e(_failure_brief(evaluation_record, row))}</p>'
-                f'<div class="attempt-jumps"><a href="{attempt_page}#verification">查看任务与验收</a></div></article>'
-                f'<div class="attempt-fact"><b>累计自主操作</b>{public["action_count"]} 次 BrowserTool 调用</div>'
-                f'<div class="attempt-fact"><b>Agent 链路累计耗时</b>{_seconds(public["duration_ms"])}</div>'
-                f'<div class="attempt-fact"><b>BrowserTool 累计耗时</b>{_seconds(public["browser_tool_duration_ms"])}</div>'
-                f'<div class="attempt-fact"><b>模型 tokens</b>{_number(usage["total_tokens"])}</div></div>'
-                f'<div class="attempt-secondary"><div class="attempt-fact"><b>模型请求</b>{usage["request_count"]} 次调用 / {usage["request_attempt_count"]} 次传输尝试</div>'
-                f'<div class="attempt-fact"><b>传输错误</b>{public["transport_error_count"]}</div>'
-                f'<div class="attempt-fact"><b>Run ID</b>{_e(public["run_id"] or "未记录")}</div>'
-                f'<div class="attempt-fact"><b>证据完整性审计</b>{_e(item.get("outcome") or "未记录")}</div></div>'
-                '<p class="fine">Agent 链路耗时包含会话准备、登录、模型推理、调度、工具执行和收尾，不包含 Docker 站点重置；BrowserTool 耗时是全部 browser 工具调用的墙钟时间之和，不等同于纯内核时间。</p>',
+            runtime_facts = (
+                '<div class="attempt-secondary runtime-strip">'
+                f'<div class="attempt-fact"><b>自主操作</b>{public["action_count"]} 次</div>'
+                f'<div class="attempt-fact"><b>Agent 链路</b>{_seconds(public["duration_ms"])}</div>'
+                f'<div class="attempt-fact"><b>BrowserTool</b>{_seconds(public["browser_tool_duration_ms"])}</div>'
+                f'<div class="attempt-fact"><b>模型 tokens</b>{_number(usage["total_tokens"])}</div>'
+                f'<div class="attempt-fact"><b>模型请求</b>{usage["request_count"]} 次 / {usage["request_attempt_count"]} 次传输</div>'
+                f'<div class="attempt-fact"><b>Run ID</b>{_e(public["run_id"] or "未记录")}</div></div>'
             )
             if float(public["score"]) < 1:
                 step_href = (
@@ -2679,23 +2788,41 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 )
                 detail += '<div id="diagnosis"></div>' + _section(
                     "失败诊断",
-                    '<div class="diagnosis-grid">'
-                    f'<div class="attempt-fact"><b>失败位置</b><a href="{step_href}">{_e(failure_point)}</a></div>'
-                    f'<div class="attempt-fact"><b>程序自动定位</b>{_e(public["automatic_failure_type"] or "无")}</div>'
-                    f'<div class="attempt-fact"><b>人工复核根因</b>{_e(public["verified_failure_subcategory"] or "待复核")}</div>'
-                    f'<div class="attempt-fact"><b>负责对象与处理</b>{_e(remediation_owner)}<br><span class="fine">{_e(remediation_action)}</span></div>'
-                    '</div><div class="diagnosis-reason"><strong>核验依据：</strong>'
+                    '<article class="failure-lead"><span class="status-line">失败</span>'
+                    f'<h3><a href="{step_href}">{_e(failure_point)}</a></h3>'
+                    f'<p>{_e(_failure_brief(evaluation_record, row))}</p></article>'
+                    + (
+                        f'<p class="step-signature"><strong>{_e(step_context_label)}：</strong><a href="{step_href}">{_e(step_context)}</a></p>'
+                        if step_context
+                        else ""
+                    )
+                    + '<div class="diagnosis-grid">'
+                    f'<div class="attempt-fact"><b>程序判定</b>{_e(public["automatic_failure_type"] or "无")}</div>'
+                    f'<div class="attempt-fact"><b>复核根因</b>{_e(public["verified_failure_subcategory"] or "待复核")}</div>'
+                    f'<div class="attempt-fact"><b>负责范围</b>{_e(remediation_owner)}</div>'
+                    f'<div class="attempt-fact"><b>处理</b>{_e(remediation_action)}</div></div>'
+                    '<div class="failure-error"><h3>程序报错</h3>'
+                    f'<pre class="log-view">{_e(_evaluator_error_text(evaluation_record, row))}</pre></div>'
+                    '<div class="diagnosis-reason"><strong>复核结论：</strong>'
                     + _e(public["verified_failure_reason"] or "当前尚无已核验根因。")
                     + '</div><p class="page-links">'
-                    f'<a href="{attempt_page}#verification">查看 evaluator 断言</a>'
+                    f'<a href="{attempt_page}#verification">查看期望与实际值</a>'
                     f'<a href="{step_href}">查看失败附近轨迹</a>'
-                    f'<a href="{attempt_page}#screenshots">查看最后页面画面</a>'
-                    f'<a href="{attempt_page}#runtime">下载执行日志</a></p>'
+                    f'<a href="{attempt_page}#screenshots">查看页面画面</a>'
+                    f'<a href="{attempt_page}#runtime">查看完整日志</a></p>'
+                    + runtime_facts
                     + (
                         '<p class="callout"><strong>对比口径：</strong>该结果已确认含非模型/浏览器干扰，官方分数保留，但暂不纳入干净子集。</p>'
                         if external_interference
                         else ""
                     ),
+                )
+            else:
+                detail += _section(
+                    "结果",
+                    '<article class="failure-lead success-lead"><span class="status-line">通过</span>'
+                    f'<h3>{_e(_failure_brief(evaluation_record, row))}</h3></article>'
+                    + runtime_facts,
                 )
             detail += '<div id="verification"></div>' + _section(
                 "任务要求与验收结果",

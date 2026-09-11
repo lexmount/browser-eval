@@ -473,15 +473,27 @@ def check(
         "P50",
         "P95",
         "comparison-winner",
+        'id="analysis-core-metrics"',
         "BrowserTool 动作延迟",
         "action-card-grid",
+        "四种配置 · 单次调用墙钟时间",
         "同题全配置对比",
         'id="configuration-matrix"',
         'id="clean-subset-table"',
+        "查看诊断",
+        'class="diagnosis-dialog"',
+        "程序报错",
     ):
         if marker not in analysis_index:
             raise ValueError(f"analysis is missing timing or scalable comparison: {marker}")
-    for forbidden in ("中位数", "失败结果定位", 'id="failure-table"', 'id="pair-table"'):
+    for forbidden in (
+        "中位数",
+        "失败结果定位",
+        "是否属于目标变量",
+        'id="failure-table"',
+        'id="pair-table"',
+        'class="finding-list"',
+    ):
         if forbidden in analysis_index:
             raise ValueError(f"analysis contains a redundant or retired presentation: {forbidden}")
     participant_index = rendered_pages[report_dir / "adoption/index.html"]
@@ -498,8 +510,8 @@ def check(
             "查看官方期望与本次观察",
             "CowAgent 自主执行轨迹",
             "运行、日志与证据",
-            "attempt-summary",
-            "查看任务与验收",
+            "runtime-strip",
+            "任务与验收",
         )
     ):
         raise ValueError("every result page must expose result, evaluator, trajectory and logs")
@@ -513,12 +525,14 @@ def check(
         for page in failed_pages
         for marker in (
             "失败诊断",
-            "失败位置",
-            "程序自动定位",
-            "人工复核根因",
-            "负责对象与处理",
+            'class="failure-lead"',
+            "程序报错",
+            "程序判定",
+            "复核根因",
+            "负责范围",
             "失败执行的最后页面画面",
-            "下载执行日志",
+            "在页面中查看完整执行证据",
+            "打开原始 JSON",
         )
     ):
         raise ValueError("every failed result must expose a complete diagnosis path")

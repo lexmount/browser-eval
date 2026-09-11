@@ -151,13 +151,19 @@
       "id": "2026-09-11-diagnostic-workbench-and-clean-subset",
       "date": "2026-09-11",
       "title": "将结果分析改为故障定位台",
-      "summary": "同题比较改为全部模型与浏览器配置矩阵；失败清单改为固定高度的横向诊断表；每个失败详情补齐失败位置、自动判定、复核根因、处理责任、日志与最后页面画面。官方分数不变，另提供排除已证实外部干扰的诊断子集。",
+      "summary": "总体指标和动作延迟统一比较全部模型×浏览器配置；失败清单改为固定高度的横向诊断表并提供页内诊断弹窗；每个失败详情补齐失败位置、程序报错、复核根因、处理责任、轨迹、画面与可直接查看的执行证据。官方分数不变，另提供排除已证实外部干扰的诊断子集。",
       "attempts_sha256_by_model": {
         "gpt-5.6-sol": "73146500152db62d79f84b63c85a14027c005a6320c19bce7426651f167466bd",
         "gpt-6-astra": "0659d227cf6d29fbfaf64d39f8e77a56bec73c87f7f6e1f2ac23ea13fd9b667c"
       },
       "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
       "changes": [
+        [
+          "总体与速度比较",
+          "旧版按模型分组标记浏览器优胜者，无法直接比较四种完整配置。",
+          "通过率、Agent 耗时、BrowserTool 耗时、Tokens 和逐动作单次延迟均改为四种配置同台比较，只标记唯一最优值。",
+          "总耗时与动作调用数仍只解释工作量，不参与浏览器快慢判定。"
+        ],
         [
           "同题比较",
           "旧页面要求先选基准浏览器再做两两比较，无法同时观察全部配置。",
@@ -167,8 +173,8 @@
         [
           "失败定位",
           "结果清单混入长原因和耗时字段，行高失控，且无法直接进入失败证据。",
-          "改为固定高度横向表，只保留失败位置、自动定位、复核根因、处理责任和证据入口。",
-          "完整 evaluator、轨迹、日志和原因留在结果详情，不在清单重复。"
+          "改为固定高度横向表；每行可打开页内诊断，直接查看失败位置、程序报错、复核根因、处理责任和证据入口。",
+          "完整 evaluator、轨迹、日志和原因留在结果详情；原始 JSON 同时提供页内阅读和独立打开入口。"
         ],
         [
           "证据页面",
@@ -192,8 +198,14 @@
       "i18n": {
         "en": {
           "title": "Turn Results into a failure-diagnosis workbench",
-          "summary": "Same-task comparison now uses a matrix across every model and browser configuration. The failure inventory is a fixed-height horizontal diagnosis table, and each failed result exposes its failure stage, automatic classification, reviewed root cause, remediation owner, logs, and final page frames. Official scores are unchanged; a separate diagnostic subset removes confirmed external interference.",
+          "summary": "Overall metrics and action latency now compare every model-by-browser configuration together. The failure inventory is a fixed-height horizontal table with an in-page diagnosis dialog, and each failed result exposes its failure stage, exact program error, reviewed root cause, remediation owner, trajectory, screenshots, and directly readable execution evidence. Official scores are unchanged; a separate diagnostic subset removes confirmed external interference.",
           "changes": [
+            [
+              "Overall and speed comparison",
+              "The previous version marked browser winners within each model, preventing direct comparison of all four complete configurations.",
+              "Pass rate, Agent latency, BrowserTool latency, tokens, and per-action per-call latency now compare all four configurations together and mark only a unique winner.",
+              "Total action latency and call counts remain workload context and are not used to rank browser speed."
+            ],
             [
               "Same-task comparison",
               "The previous page required a baseline browser and pairwise comparisons, preventing a simultaneous view of every configuration.",
@@ -203,8 +215,8 @@
             [
               "Failure location",
               "The result inventory mixed long causes and latency fields, producing uncontrolled row heights and no direct route to failure evidence.",
-              "Replaced it with a fixed-height horizontal table containing failure stage, automatic locator, reviewed cause, owner/treatment, and evidence links.",
-              "Complete evaluator output, trajectory, logs, and cause remain on the result detail page without duplication."
+              "Replaced it with a fixed-height horizontal table whose rows open an in-page diagnosis with the failure stage, exact program error, reviewed cause, owner/treatment, and evidence links.",
+              "Complete evaluator output, trajectory, logs, and cause remain on the result detail page; raw JSON is available both inline and as a separate link."
             ],
             [
               "Evidence pages",

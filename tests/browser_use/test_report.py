@@ -6,6 +6,7 @@ import pytest
 import harness.browser_use.report as report_module
 from harness.browser_use.report import (
     _action_duration_cards,
+    _attempt_table,
     _best,
     _failure_diagnosis,
     _load_evidence_bundles,
@@ -36,6 +37,87 @@ def test_best_marks_only_one_visibly_distinct_winner() -> None:
         )
         == set()
     )
+
+
+def test_failed_result_inventory_opens_exact_diagnosis_and_links_trajectory(
+    tmp_path: Path,
+) -> None:
+    evaluation = tmp_path / "evaluation.json"
+    events = tmp_path / "events.json"
+    evaluation.write_text(
+        json.dumps(
+            {
+                "score": 0,
+                "evaluators_results": [
+                    {
+                        "evaluator_name": "AgentResponseEvaluator",
+                        "score": 0,
+                        "assertions": [
+                            {"assertion_msgs": ["Array is missing 1 expected element(s)."]}
+                        ],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    events.write_text(
+        json.dumps(
+            [
+                {
+                    "type": "tool_execution_start",
+                    "data": {
+                        "tool_call_id": "1",
+                        "tool_name": "browser",
+                        "arguments": {"action": "click", "ref": "button-1"},
+                    },
+                },
+                {
+                    "type": "tool_execution_end",
+                    "data": {
+                        "tool_call_id": "1",
+                        "status": "failure",
+                        "error": "element detached",
+                    },
+                },
+            ]
+        ),
+        encoding="utf-8",
+    )
+    attempt = {
+        "model": "gpt-5.6-sol",
+        "engine": "chromium",
+        "task_id": 44,
+        "tier": "easy",
+        "attempt": 1,
+        "score": 0,
+        "paths": {"evaluation": str(evaluation), "events": str(events)},
+    }
+    tasks = [
+        {
+            "task_id": 44,
+            "tier": "easy",
+            "sites": ["shopping_admin"],
+            "task_type": "RETRIEVE",
+            "intent": "Inspect a report",
+        }
+    ]
+
+    html = _attempt_table([attempt], tasks)
+
+    for expected in (
+        "查看诊断",
+        '<dialog class="diagnosis-dialog"',
+        "程序报错",
+        "Array is missing 1 expected element(s).",
+        "第 1 步 BrowserTool 执行异常",
+        "失败动作",
+        "click",
+        "#trajectory-step-1",
+        "#screenshots",
+        "#runtime",
+    ):
+        assert expected in html
 
 
 def test_english_localization_includes_visible_attributes() -> None:
@@ -361,8 +443,11 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
         "browser-comparison",
         'id="configuration-matrix"',
         'id="clean-subset-table"',
+        'id="analysis-core-metrics"',
+        "四种配置 · 单次调用墙钟时间",
     ):
         assert expected in analysis
+    assert analysis.index("同题全配置对比") < analysis.index("BrowserTool 动作延迟")
     assert "中位数" not in analysis
     assert "失败结果定位" not in analysis
     assert 'id="pair-table"' not in analysis
@@ -377,8 +462,10 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
         "CowAgent 自主执行轨迹",
         "运行、日志与证据",
         f'href="results/{result_id}.html#trajectory"',
-        "attempt-summary",
-        "查看任务与验收",
+        "runtime-strip",
+        "任务与验收",
+        "在页面中查看完整执行证据",
+        "打开原始 JSON",
     ):
         assert expected in attempt
     assert "没有 evaluator 明细" in attempt
