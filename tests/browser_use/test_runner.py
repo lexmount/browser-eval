@@ -107,7 +107,7 @@ def test_remaining_task_budget_fails_closed_when_exhausted(monkeypatch):
         runner._remaining_task_budget_ms(20.0, phase="evaluator")
 
 
-def test_qualification_environment_reuse_is_read_only_and_site_exact():
+def test_webarena_site_reuse_is_read_only_and_site_exact():
     read_task = BrowserTask(
         task_id="webarena-1",
         title="Read",
@@ -133,9 +133,9 @@ def test_qualification_environment_reuse_is_read_only_and_site_exact():
         environment={"kind": "webarena_verified", "sites": ["shopping"]},
     )
 
-    assert runner._may_reuse_qualification_environment(read_task, {"shopping"})
-    assert not runner._may_reuse_qualification_environment(read_task, {"gitlab"})
-    assert not runner._may_reuse_qualification_environment(mutate_task, {"shopping"})
+    assert runner._may_reuse_webarena_site(read_task, {"shopping"})
+    assert not runner._may_reuse_webarena_site(read_task, {"gitlab"})
+    assert not runner._may_reuse_webarena_site(mutate_task, {"shopping"})
 
 
 def test_browser_engines_publish_their_external_cdp_ports():

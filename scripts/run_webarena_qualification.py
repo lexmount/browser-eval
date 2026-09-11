@@ -263,6 +263,12 @@ def main() -> None:
     parser.add_argument("--sample-interval-ms", type=int, default=50)
     parser.add_argument("--settle-ms", type=int, default=1500)
     parser.add_argument(
+        "--task-timeout-ms",
+        type=int,
+        default=660_000,
+        help="full wall-clock budget per task, including the bounded WebArena site reset",
+    )
+    parser.add_argument(
         "--max-site-workers",
         type=int,
         default=1,
@@ -360,6 +366,8 @@ def main() -> None:
             str(args.sample_interval_ms),
             "--settle-ms",
             str(args.settle_ms),
+            "--task-timeout-ms",
+            str(args.task_timeout_ms),
             "--output",
             str(output),
             "--reports",

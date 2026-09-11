@@ -317,7 +317,7 @@ def _task_viewport(task: BrowserTask) -> dict[str, int]:
     return {"width": 1280, "height": 900}
 
 
-def _may_reuse_qualification_environment(
+def _may_reuse_webarena_site(
     task: BrowserTask, initialized_sites: set[str]
 ) -> bool:
     sites = set((task.environment or {}).get("sites") or [])
@@ -858,6 +858,12 @@ def run_evaluation(
         if ground_truth_evidence_path is not None
         else None
     )
+    # Validate the benchmark/runtime binding before touching Docker. This keeps
+    # a wrong environment config from wasting a remote daemon round trip or
+    # starting any measured resource.
+    webarena_environment = (
+        WebArenaEnvironment(webarena_config_path) if webarena_config_path is not None else None
+    )
     client = docker.from_env()
     _validate_measured_resource_controls(client.info())
     output = Path(output_dir)
@@ -871,9 +877,6 @@ def run_evaluation(
     resources: dict[str, DockerStatsResources] = {}
     rows: list[dict[str, Any]] = []
     evaluator_registry = EvaluatorRegistry(webarena_config_path=webarena_config_path)
-    webarena_environment = (
-        WebArenaEnvironment(webarena_config_path) if webarena_config_path is not None else None
-    )
     site_client = client
     close_site_client = False
     if webarena_environment is not None and uses_webarena:
@@ -895,9 +898,9 @@ def run_evaluation(
         fixture_runtime = _start_fixture_server(Path(suite_path).resolve().parent / "fixtures")
     fixture_origin = fixture_runtime[2] if fixture_runtime else ""
     authoring_initialized_sites: set[str] = set()
-    qualification_initialized_sites: set[str] = set()
     try:
         for engine in engines:
+            initialized_sites: set[str] = set()
             network = client.networks.create(
                 f"lex-browser-use-eval-{run_id}-{engine}",
                 driver="bridge",
@@ -965,17 +968,15 @@ def run_evaluation(
                                     "mode": "warm_non_mutating_authoring_reuse",
                                     "sites": sorted(task_sites),
                                 }
-                            elif qualification_run and _may_reuse_qualification_environment(
-                                task, qualification_initialized_sites
-                            ):
+                            elif _may_reuse_webarena_site(task, initialized_sites):
                                 environment_reset = {
-                                    "diagnostic_only": True,
-                                    "mode": "warm_non_mutating_qualification_reuse",
+                                    "diagnostic_only": bool(qualification_run),
+                                    "mode": "warm_non_mutating_site_reuse",
                                     "sites": sorted(task_sites),
                                 }
                             else:
                                 if "mutate" in task.tags:
-                                    qualification_initialized_sites.difference_update(task_sites)
+                                    initialized_sites.difference_update(task_sites)
                                 reset_budget_ms = _remaining_task_budget_ms(
                                     attempt_deadline, phase="environment reset"
                                 )
@@ -986,8 +987,8 @@ def run_evaluation(
                                 )
                                 if trajectory_authoring_run:
                                     authoring_initialized_sites.update(task_sites)
-                                if qualification_run and "mutate" not in task.tags:
-                                    qualification_initialized_sites.update(task_sites)
+                                if "mutate" not in task.tags:
+                                    initialized_sites.update(task_sites)
                             prepare_budget_ms = _remaining_task_budget_ms(
                                 attempt_deadline, phase="environment prepare"
                             )
@@ -1136,12 +1137,14 @@ def run_evaluation(
                     diagnosis_reasoning_effort if llm_diagnostics else None
                 ),
                 "cold_start_excluded": True,
-                "state_reset_between_tasks": True,
-                "state_reset_method": (
-                    "warm browser/context; clear all top-level navigation origins, "
-                    "browser cache, cookies, permissions and history; replace renderer page; "
-                    "WebArena tasks additionally reset each involved self-hosted site before "
-                    "every engine attempt"
+                "browser_state_reset_between_tasks": True,
+                "browser_state_reset_method": (
+                    "warm browser/context; clear all top-level navigation origins, browser "
+                    "cache, cookies, permissions and history; replace renderer page"
+                ),
+                "webarena_site_reset_policy": (
+                    "reset once per site and engine for a contiguous/non-mutating task set; "
+                    "reset before every state-changing task and invalidate reuse afterward"
                 ),
                 "sample_interval_ms": sample_interval_ms,
                 "post_reset_settle_ms": settle_ms,

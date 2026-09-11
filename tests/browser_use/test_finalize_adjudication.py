@@ -144,6 +144,47 @@ def test_explicit_invalidation_replaces_stale_eligibility():
     }
 
 
+def test_partial_validation_preserves_unobserved_eligible_task(tmp_path):
+    existing = _task("webarena-1")
+    candidate = _task("webarena-2")
+    candidate["ground_truth"]["qualification"]["reason"] = "Validated repair."
+    attempts = tmp_path / "attempts.jsonl"
+    attempts.write_text(
+        "".join(
+            json.dumps(_write_attempt(tmp_path, candidate, pass_index)) + "\n"
+            for pass_index in (1, 2)
+        ),
+        encoding="utf-8",
+    )
+    qualification = {
+        "schema": QUALIFICATION_SCHEMA,
+        "tasks": [
+            {
+                "task_id": "webarena-1",
+                "disposition": "eligible",
+                "adjudication": {
+                    "status": "eligible",
+                    "validated_attempt_paths": ["/existing/pass-1", "/existing/pass-2"],
+                },
+            },
+            {
+                "task_id": "webarena-2",
+                "disposition": "needs_trace_repair",
+            },
+        ],
+    }
+
+    result = finalize_adjudication(
+        {"tasks": [existing, candidate]},
+        qualification,
+        [({"tasks": [candidate]}, attempts)],
+        {},
+    )
+
+    assert result["tasks"][0]["adjudication"] == qualification["tasks"][0]["adjudication"]
+    assert result["tasks"][1]["adjudication"]["status"] == "eligible"
+
+
 def test_single_validated_pass_remains_skipped(tmp_path):
     task = _task("webarena-1")
     attempts = tmp_path / "attempts.jsonl"

@@ -212,7 +212,12 @@ def finalize_adjudication(
             candidates,
         )
     overlaid = _overlay_two_pass_candidates(canonical_tasks, decisions, candidates)
-    for task_id in previous_eligible - overlaid:
+    # A partial repair-validation batch is an incremental overlay. Only a task
+    # that was actually present in fresh evidence may replace its prior
+    # eligibility; otherwise an unrelated small batch would silently erase all
+    # previously qualified tasks. A complete revalidation still has replacement
+    # semantics because every task is present in ``candidates``.
+    for task_id in (previous_eligible & set(candidates)) - overlaid:
         decisions[task_id]["adjudication"] = None
     # An explicit invalidation records later evidence and therefore wins over
     # every provisional or independently reproduced pass.
