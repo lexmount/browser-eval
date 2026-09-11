@@ -24,7 +24,7 @@ from harness.browser_use.publication import (  # noqa: E402
     public_projection,
 )
 
-STEM = "browser-use-evaluation-latest"
+STEM = "webarena-trajectory-replay-latest"
 CURRENT_REPORT = ROOT / "evaluation/browser-use-public/current-report.json"
 DEFAULT_FORMAL_ROOT = (
     Path.home()

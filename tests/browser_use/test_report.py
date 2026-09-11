@@ -180,10 +180,10 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
         },
     )
 
-    assert path.name == "browser-use-evaluation-latest.md"
+    assert path.name == "webarena-trajectory-replay-latest.md"
     assert path.exists()
     assert not (reports / "browser-use-evaluation-20260101.md").exists()
-    rendered = (reports / "browser-use-evaluation-latest.html").read_text(encoding="utf-8")
+    rendered = (reports / "webarena-trajectory-replay-latest.html").read_text(encoding="utf-8")
     assert "Chromium 与 Moli：WebArena 固定轨迹回放评测" in rendered
     assert "RPA 式公开人工轨迹重放" in rendered
     assert "Chromium 与 Moli 浏览器工具调用评测" not in rendered
@@ -202,9 +202,9 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert "边际分位数相除" in rendered
     assert "结果重试恢复" not in rendered
     assert "首次结果正确" not in rendered
-    assert (reports / "browser-use-evaluation-latest-suite.html").exists()
-    assert (reports / "browser-use-evaluation-latest-research.html").exists()
-    research = (reports / "browser-use-evaluation-latest-research.html").read_text(
+    assert (reports / "webarena-trajectory-replay-latest-suite.html").exists()
+    assert (reports / "webarena-trajectory-replay-latest-research.html").exists()
+    research = (reports / "webarena-trajectory-replay-latest-research.html").read_text(
         encoding="utf-8"
     )
     assert "端到端 browser-use 采用 Top 3" in research
@@ -214,14 +214,14 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert "这些用例不要求 AMD" in research
     assert "1 条轨迹进入正式双浏览器分母" in research
     assert "19 条轨迹进入正式双浏览器分母" not in research
-    assert (reports / "browser-use-evaluation-latest-method.html").exists()
-    assert not (reports / "browser-use-evaluation-latest-results.html").exists()
-    assert (reports / "browser-use-evaluation-latest-analysis.html").exists()
-    assert (reports / "browser-use-evaluation-latest-appendix.html").exists()
-    assert (reports / "browser-use-evaluation-latest-data.json").exists()
+    assert (reports / "webarena-trajectory-replay-latest-method.html").exists()
+    assert not (reports / "webarena-trajectory-replay-latest-results.html").exists()
+    assert (reports / "webarena-trajectory-replay-latest-analysis.html").exists()
+    assert (reports / "webarena-trajectory-replay-latest-appendix.html").exists()
+    assert (reports / "webarena-trajectory-replay-latest-data.json").exists()
     assert "总体结果" not in rendered
     assert "第 1/6 页" in rendered
-    suite = (reports / "browser-use-evaluation-latest-suite.html").read_text(encoding="utf-8")
+    suite = (reports / "webarena-trajectory-replay-latest-suite.html").read_text(encoding="utf-8")
     assert "1</strong><span>公网任务" in suite
     assert "公网测试页面" in suite
     assert 'href="https://example.com"' in suite
@@ -237,9 +237,9 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert 'data-search="任务01 任务 01 example' in suite
     for html_path in reports.glob("*.html"):
         assert "人工复核" not in html_path.read_text(encoding="utf-8")
-    audit = json.loads((reports / "browser-use-evaluation-latest-data.json").read_text())
+    audit = json.loads((reports / "webarena-trajectory-replay-latest-data.json").read_text())
     assert "human_review" not in audit["ground_truth_validation"]
-    method = (reports / "browser-use-evaluation-latest-method.html").read_text(encoding="utf-8")
+    method = (reports / "webarena-trajectory-replay-latest-method.html").read_text(encoding="utf-8")
     assert "RX = Receive" in method
     assert "P50 与中位数是同一个统计量" in method
     assert "Codex" in method
@@ -335,7 +335,7 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
             },
         },
     )
-    analysis = (reports / "browser-use-evaluation-latest-analysis.html").read_text(encoding="utf-8")
+    analysis = (reports / "webarena-trajectory-replay-latest-analysis.html").read_text(encoding="utf-8")
     assert "逐任务分析与原始证据" in analysis
     assert "TRACE_ONLY_SEARCH_MARKER" in analysis
     assert "c.dataset.search" in analysis
@@ -377,7 +377,7 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
     assert "LLM 根因假设" not in analysis
     assert "未启用 LLM" not in analysis
     assert "时序机制研究" in analysis
-    homepage = (reports / "browser-use-evaluation-latest.html").read_text(encoding="utf-8")
+    homepage = (reports / "webarena-trajectory-replay-latest.html").read_text(encoding="utf-8")
     assert 'class="failure-shortcut"' not in homepage
     assert f'href="{detail_files[0].name}"' not in homepage
     assert "#provider=moli&amp;status=fail" in homepage
@@ -606,7 +606,7 @@ def test_all_published_suite_tasks_link_to_public_web_targets(tmp_path):
         manifest={"run_id": "suite-links", "suite": suite},
         summary={"functional": {}, "resource_comparison": {"by_engine": {}}},
     )
-    rendered = (reports / "browser-use-evaluation-latest-suite.html").read_text(encoding="utf-8")
+    rendered = (reports / "webarena-trajectory-replay-latest-suite.html").read_text(encoding="utf-8")
     links = re.findall(
         r'<strong>公网测试页面</strong><span><a[^>]+href="(https://[^\"]+)"',
         rendered,

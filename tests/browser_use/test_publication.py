@@ -29,7 +29,7 @@ def test_public_bundle_contains_reports_and_minimal_binding(tmp_path):
     (formal / "run/summary.json").write_text(
         json.dumps({"functional": {"moli": {"tasks": 1}}, "by_task": {"private": True}})
     )
-    (formal / "reports/browser-use-evaluation-latest.html").write_text("report")
+    (formal / "reports/webarena-trajectory-replay-latest.html").write_text("report")
 
     target = export_public_report_bundle(formal, tmp_path / "public")
 
@@ -40,4 +40,4 @@ def test_public_bundle_contains_reports_and_minimal_binding(tmp_path):
         "artifact_provenance": {"artifact_directory": "/[local-user]/run"},
     }
     assert summary == {"functional": {"moli": {"tasks": 1}}, "resource_comparison": {}}
-    assert (target / "reports/browser-use-evaluation-latest.html").read_text() == "report"
+    assert (target / "reports/webarena-trajectory-replay-latest.html").read_text() == "report"

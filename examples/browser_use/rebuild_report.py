@@ -9,7 +9,7 @@ from pathlib import Path
 
 from harness.browser_use.diagnostics import diagnose_summary
 from harness.browser_use.metrics import summarize_attempts
-from harness.browser_use.report import write_latest_report
+from harness.browser_use.report import REPORT_STEM, write_latest_report
 from harness.browser_use.suite import load_suite, validate_ground_truth_evidence
 
 
@@ -105,7 +105,7 @@ def main() -> None:
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     write_latest_report(args.reports, manifest=manifest, summary=summary)
-    report_path = Path(args.reports) / "browser-use-evaluation-latest.html"
+    report_path = Path(args.reports) / f"{REPORT_STEM}.html"
     print(f"Recalculated {len(rows)} attempts; report: {report_path}")
 
 

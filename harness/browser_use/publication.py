@@ -35,7 +35,7 @@ def export_public_report_bundle(formal_root: Path, output_root: Path) -> Path:
     target = output_root / "formal/webarena-public-trajectories"
     reports_target = target / "reports"
     reports_target.mkdir(parents=True, exist_ok=False)
-    for source in sorted((formal_root / "reports").glob("browser-use-evaluation-latest*")):
+    for source in sorted((formal_root / "reports").glob("webarena-trajectory-replay-latest*")):
         if source.is_symlink() or not source.is_file():
             raise ValueError(f"unsafe report file: {source}")
         shutil.copy2(source, reports_target / source.name)
