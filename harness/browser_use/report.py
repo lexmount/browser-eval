@@ -531,7 +531,8 @@ def _research_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         '<p>Browser Use 当前公开仓库同时维护 BU Bench V1 和 Online-Mind2Web 运行结果。前者有 100 个经过筛选的混合任务，后者便于与公开生态比较。两者都保留运行轨迹，但都没有可直接当作标准操作路径的 gold trajectory。</p>'
         '<p>本项目采用它们对任务失效、验证码、外部认证和不可验收任务的处理原则，也保留完整轨迹；不照搬多次采样或 bootstrapping，因为这里测的是固定路径与浏览器兼容性。</p></section>'
         '<section class="card"><h2>架构结论</h2>'
-        '<p>这些用例不要求 AMD。远端 Intel x86-64 主机可以运行官方 amd64 镜像。179 条官方 WebArena 人类录制中，本项目在运行前排除了 4 条只适配 arm64 Wikipedia 环境的任务，并排除了 3 条已确认的 evaluator 缺陷；172 条进入 amd64 资格验证。最终只有冷 Chromium 重放、程序 evaluator 和证据完整性同时通过的 19 条轨迹进入正式双浏览器分母。</p></section>'
+        '<p>这些用例不要求 AMD。远端 Intel x86-64 主机可以运行官方 amd64 镜像。179 条官方 WebArena 人类录制中，本项目在运行前排除了 4 条只适配 arm64 Wikipedia 环境的任务，并排除了 3 条已确认的 evaluator 缺陷；172 条进入 amd64 资格验证。最终只有冷 Chromium 重放、程序 evaluator 和证据完整性同时通过的 '
+        f'{len(manifest.get("suite") or [])} 条轨迹进入正式双浏览器分母。</p></section>'
         + "".join(benchmark_sections)
         + '<section class="card"><h2>Benchmark 来源</h2><ul>'
         + "".join(benchmark_source_links)

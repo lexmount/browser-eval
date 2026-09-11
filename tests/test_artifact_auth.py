@@ -34,6 +34,22 @@ class ArtifactAuthTests(unittest.TestCase):
         with patch.dict(os.environ, {'ARTIFACT_HUB_TOKEN': 'ahp_override_fixture'}):
             self.assertEqual(load_token(Path('/does-not-exist')), 'ahp_override_fixture')
 
+    def test_per_host_token_precedes_legacy_token(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict(
+            os.environ, {'HOME': directory}, clear=True
+        ):
+            config = Path(directory) / '.config/artifact-hub'
+            save_token('ahp_legacy_fixture', config / 'token')
+            save_token(
+                'ahp_host_fixture',
+                base_url='https://artifact-hub.app.lexmount.com',
+            )
+            self.assertEqual(
+                load_token(base_url='https://artifact-hub.app.lexmount.com'),
+                'ahp_host_fixture',
+            )
+            self.assertEqual(load_token(), 'ahp_legacy_fixture')
+
     def test_invalid_and_symlink(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'token'

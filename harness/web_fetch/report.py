@@ -607,7 +607,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  TITLE=article_title(records)
  home+='<aside class="wrap home-reading" aria-label="报告解读"><div><strong>报告解读</strong><p>'+link('guide/index.html',TITLE)+'</p></div><p>从分数差异、失败案例和实现机制，理解如何选择抓取方法。</p>'+link('guide/index.html','阅读全文 →')+'</aside>'
  if (out/'browser-use/browser-use-evaluation-latest.html').is_file():
-  home+='<aside class="wrap home-reading" aria-label="浏览器操作轨迹评测"><div><strong>浏览器操作轨迹评测</strong><p>'+link('browser-use/browser-use-evaluation-latest.html','Chromium 与 Moli：公开参考轨迹实测')+'</p></div><p>现有 30 例是确定性工具微基准；这里单列 WebArena 官方人工轨迹的双浏览器正式评测与评测集采用研究。</p>'+link('browser-use/browser-use-evaluation-latest.html','查看报告 →')+'</aside>'
+  home+='<aside class="wrap home-reading" aria-label="浏览器操作轨迹评测"><div><strong>浏览器操作轨迹评测</strong><p>'+link('browser-use/browser-use-evaluation-latest.html','Chromium 与 Moli：公开参考轨迹实测')+'</p></div><p>仓库原有 30 例是确定性工具微基准；本页另列 30 条经资格验证的 WebArena 官方人工轨迹双浏览器正式评测，两者不合并统计。</p>'+link('browser-use/browser-use-evaluation-latest.html','查看报告 →')+'</aside>'
  write(out,'guide/index.html','报告解读',render_explainer(out,cases,records,table=table,cell=cell,link=link))
  panels=[]
  for track,label in TRACKS.items():

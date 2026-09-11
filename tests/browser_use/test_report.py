@@ -209,6 +209,8 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert "本报告把 benchmark 分为四类，不做跨类排名" in research
     assert "原始 Mind2Web 是离线 HTML 和动作预测数据集" in research
     assert "这些用例不要求 AMD" in research
+    assert "1 条轨迹进入正式双浏览器分母" in research
+    assert "19 条轨迹进入正式双浏览器分母" not in research
     assert (reports / "browser-use-evaluation-latest-method.html").exists()
     assert not (reports / "browser-use-evaluation-latest-results.html").exists()
     assert (reports / "browser-use-evaluation-latest-analysis.html").exists()

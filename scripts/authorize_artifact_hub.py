@@ -23,7 +23,8 @@ def main():
     args = parser.parse_args()
     if args.persist_existing:
         load_runtime_env()
-        backup=save_token(os.environ.get('ARTIFACT_HUB_TOKEN', '').strip(),replace_existing=args.replace_existing)
+        backup=save_token(os.environ.get('ARTIFACT_HUB_TOKEN', '').strip(),base_url=args.base_url,
+                          replace_existing=args.replace_existing)
         if backup:print('Previous credential backed up:',backup)
         print('Existing authorization saved to the user credential file; token not displayed.')
         return
@@ -36,7 +37,7 @@ def main():
             result = json.load(response)
         if result.get('status') == 'approved':
             token = result['token']
-            backup=save_token(token,replace_existing=args.replace_existing)
+            backup=save_token(token,base_url=args.base_url,replace_existing=args.replace_existing)
             if backup:print('Previous credential backed up:',backup)
             print('Authorized:', result.get('user', {}).get('email', '(identity unavailable)'), flush=True)
             return
