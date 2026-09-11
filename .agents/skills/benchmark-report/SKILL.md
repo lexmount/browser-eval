@@ -19,7 +19,7 @@ Read the repository's `AGENTS.md` first. Project rules override this general ski
 6. Review results as a first-class stage. Inspect all attempts, not only machine failures, using the task contract, reference, and complete actual output. Record coverage, reviewer, disagreements, adjudications, and unresolved items. A review summary never replaces per-attempt evidence.
 7. Rerun only calls whose inputs, provider route/version, runtime contract, or source validity changed. Recompute downstream scores and reports without provider calls when only scoring, annotations, or presentation changed. Never retry merely to obtain a better result.
 8. Build the public report from the frozen evidence. Every page should answer a reader question. Show task and run identifiers, the exact expected-versus-actual evidence behind a verdict, denominators and unavailable metrics, method differences, limits, concise reproduction instructions, and a compact review history.
-9. Release only after code tests, evidence integrity, report links, responsive/visual checks, secret scans, target-site checks, and deployed-output verification pass. Preserve earlier sites unless replacement was explicitly requested.
+9. Choose release gates by what changed. Presentation-only updates reuse the frozen evidence and run targeted renderer tests, binding/link/privacy checks, plus deployed-output verification. Run the full code/evidence audit when the dataset, runner, scorer, measured evidence, or claimed result changes. Repeat visual checks when layout or style changes, not for text-only or release-metadata edits. Preserve earlier sites unless replacement was explicitly requested.
 
 ## Stop conditions
 
