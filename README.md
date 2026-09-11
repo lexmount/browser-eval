@@ -124,18 +124,17 @@ uv run --frozen python scripts/run_benchmark.py --track dynamic --providers lexm
 ## 发布
 
 ```bash
-export WEBFETCH_REPORT_PUBLIC_URL=https://artifact-hub.dev.lexmount.net/api/preview/MblD_VwSPBRX
+export WEBFETCH_REPORT_PUBLIC_URL=https://artifact-hub.app.lexmount.com/api/preview/RSdbALdbdNG6
 make report EVIDENCE=/absolute/path/to/evidence
 make report-check
 uv run --frozen python scripts/package_artifact_hub.py
 # 上传前先只读确认远端基线版本；不要拿新包和尚未更新的远端比较内容。
-uv run --frozen python scripts/verify_artifact_hub.py --slug MblD_VwSPBRX --base-url https://artifact-hub.dev.lexmount.net
-ARTIFACT_HUB_BASE_URL=https://artifact-hub.dev.lexmount.net uv run --frozen python scripts/publish_artifact_hub.py --receipt publish/artifact-hub-receipt.json --update
-# 上传后再逐文件核对远端与本次提交包完全一致。
-uv run --frozen python scripts/verify_artifact_hub.py --slug MblD_VwSPBRX --base-url https://artifact-hub.dev.lexmount.net --expected-archive publish/webfetch-sites.zip
+uv run --frozen python scripts/verify_artifact_hub.py --slug RSdbALdbdNG6 --base-url https://artifact-hub.app.lexmount.com
+ARTIFACT_HUB_BASE_URL=https://artifact-hub.app.lexmount.com uv run --frozen python scripts/publish_artifact_hub.py --receipt publish/artifact-hub-app-new-receipt.json --update
+# 发布脚本确认公开 share URL 返回 200；随后在浏览器打开 share_url 做页面冒烟检查。
 ```
 
-打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。Sites 发布令牌依次从显式进程环境 `ARTIFACT_HUB_TOKEN`、目标服务的 `~/.config/artifact-hub/tokens/<host>` 读取，不加载仓库 `.env`。新授权按目标 host 保存，文件权限为 0600；不同部署的令牌不通用，也不互相覆盖，host 包含显式端口（如有）。其他评测密钥仍只读取仓库配置。当前报告绑定 `https://artifact-hub.dev.lexmount.net` 的新 12 方法站点 `MblD_VwSPBRX`；旧 12 方法站点 `UeZE1vfcEOrM` 和五类浏览器参考报告的 app 域站点 `UUAhhQMnrGwm` 均保持不变。构建、打包与发布都从 `evaluation/current-report.json` 读取公开地址、站点和预期远端版本；回执的服务地址与 slug 共同决定更新目标，回执、请求地址或命令行版本只要不一致就拒绝更新。服务端版本标识仅用于并发保护；成功发布并验证后，把 profile 的预期版本更新为服务端新版本。发布令牌和管理回执不得提交或放入站点。
+打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。Sites 发布令牌依次从显式进程环境 `ARTIFACT_HUB_TOKEN`、目标服务的 `~/.config/artifact-hub/tokens/<host>` 读取，不加载仓库 `.env`。新授权按目标 host 保存，文件权限为 0600；不同部署的令牌不通用，也不互相覆盖，host 包含显式端口（如有）。其他评测密钥仍只读取仓库配置。当前报告绑定 `https://artifact-hub.app.lexmount.com` 的 12 方法站点 `RSdbALdbdNG6`；此前的 dev 域站点 `MblD_VwSPBRX`、旧 12 方法站点 `UeZE1vfcEOrM` 和五类浏览器参考报告站点 `UUAhhQMnrGwm` 均保持不变。构建、打包与发布都从 `evaluation/current-report.json` 读取公开地址、站点和预期远端版本；回执的服务地址与 slug 共同决定更新目标，回执、请求地址或命令行版本只要不一致就拒绝更新。服务端版本标识仅用于并发保护；成功发布后，把 profile 的预期版本更新为服务端新版本。例行发布只检查提交响应、轻量站点元数据和公开页面渲染，不回下载 ZIP 或逐文件镜像；`verify_artifact_hub.py --export` 与 `--public-files` 仅用于明确的服务端排障。发布令牌和管理回执不得提交或放入站点。
 
 ## 内容规范
 

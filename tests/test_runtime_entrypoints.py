@@ -95,11 +95,11 @@ class RuntimeEntrypointTests(unittest.TestCase):
                 case_ids, separators=(',', ':'), ensure_ascii=True
             ).encode()).hexdigest(),
         )
-        self.assertEqual(profile['artifact_hub_base_url'], 'https://artifact-hub.dev.lexmount.net')
-        self.assertEqual(profile['artifact_hub_site'], 'MblD_VwSPBRX')
+        self.assertEqual(profile['artifact_hub_base_url'], 'https://artifact-hub.app.lexmount.com')
+        self.assertEqual(profile['artifact_hub_site'], 'RSdbALdbdNG6')
         self.assertEqual(
             profile['artifact_hub_expected_version'],
-            'ver_b741a80b5e8a411b9b98591688674c86',
+            'ver_fec3b3e8a8114ac58db344d67775789c',
         )
 
     def test_current_rerun_plan_is_exact_and_complete(self) -> None:
@@ -144,19 +144,19 @@ class RuntimeEntrypointTests(unittest.TestCase):
     def test_publication_receipt_must_target_current_site(self) -> None:
         profile = ROOT / 'evaluation/current-report.json'
         self.assertEqual(
-            require_publication_site({'slug':'MblD_VwSPBRX'}, profile,
-                                     'https://artifact-hub.dev.lexmount.net'),
-            'MblD_VwSPBRX',
+            require_publication_site({'slug':'RSdbALdbdNG6'}, profile,
+                                     'https://artifact-hub.app.lexmount.com'),
+            'RSdbALdbdNG6',
         )
         with self.assertRaisesRegex(ValueError, 'expected'):
             require_publication_site({'slug':'UUAhhQMnrGwm'}, profile,
-                                     'https://artifact-hub.dev.lexmount.net')
-        with self.assertRaisesRegex(ValueError, 'expected'):
-            require_publication_site({'slug':'MblD_VwSPBRX'}, profile,
                                      'https://artifact-hub.app.lexmount.com')
+        with self.assertRaisesRegex(ValueError, 'expected'):
+            require_publication_site({'slug':'RSdbALdbdNG6'}, profile,
+                                     'https://artifact-hub.dev.lexmount.net')
         with self.assertRaisesRegex(ValueError, 'requested'):
             require_publication_site(
-                {'slug':'MblD_VwSPBRX','base_url':'https://artifact-hub.app.lexmount.com'},
+                {'slug':'RSdbALdbdNG6','base_url':'https://artifact-hub.app.lexmount.com'},
                 profile,'https://artifact-hub.dev.lexmount.net')
 
     def test_publication_version_defaults_to_profile_and_rejects_override(self) -> None:

@@ -5,6 +5,7 @@ from http.client import IncompleteRead
 import json
 import os
 from pathlib import Path
+import re
 import socket
 import sys
 import tempfile
@@ -19,6 +20,30 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.artifact_auth import load_token
 from harness.web_fetch.publication_target import DEFAULT_BASE
+
+
+def verify_metadata(slug, base=DEFAULT_BASE):
+    """Check the committed site record without downloading its published tree."""
+    endpoint=base.rstrip('/')+'/api/sites/'+quote(slug,safe='')
+    request=urllib.request.Request(
+        endpoint,
+        headers={'Authorization':'Bearer '+load_token(base_url=base)},
+    )
+    with urllib.request.urlopen(request,timeout=60) as response:
+        data=json.load(response)
+    version=(data.get('version') or {}).get('id')
+    if not isinstance(version,str) or not version.startswith('ver_'):
+        raise ValueError('Site metadata omitted the committed version id')
+    files=data.get('files')
+    if not isinstance(files,list) or not files:
+        raise ValueError('Site metadata omitted the committed file inventory')
+    return {
+        'slug':data.get('slug'),
+        'version':version,
+        'files':len(files),
+        'kind':data.get('kind'),
+        'method':'authenticated site metadata only; no report files downloaded',
+    }
 
 
 def verify_public_files(slug, expected_archive, base=DEFAULT_BASE):
@@ -47,11 +72,20 @@ def verify_public_files(slug, expected_archive, base=DEFAULT_BASE):
     def injected_html_matches(name, served):
         """Accept only an exact submitted document plus a known Hub bootstrap."""
         original=expected_html[name]
-        expected_base=('<base href="/api/preview/'+quote(slug,safe='')+'/">').encode()
+        quoted_slug=re.escape(quote(slug,safe='').encode())
+        # Newer deployments pin the injected base to the immutable served
+        # version (``slug~opaque-version-token``). Keep this deliberately
+        # narrow: the site slug must still match exactly and the suffix may
+        # contain URL-path-safe token characters only.
+        base_pattern=re.compile(
+            rb'^<base href="/api/preview/'+quoted_slug+
+            rb'(?:~[A-Za-z0-9._-]+)?/">'
+        )
 
         def known_injection(injected):
-            if not injected.startswith(expected_base):return False
-            bootstrap=injected[len(expected_base):]
+            base=base_pattern.match(injected)
+            if not base:return False
+            bootstrap=injected[base.end():]
             # The service may add one or more bootstrap scripts. Do not normalize
             # or ignore arbitrary HTML: every injected byte must be one such script.
             while bootstrap:
@@ -158,12 +192,18 @@ def main():
     parser.add_argument('--expected-archive',type=Path)
     parser.add_argument('--slug',required=True)
     parser.add_argument('--base-url',default=os.environ.get('ARTIFACT_HUB_BASE_URL',DEFAULT_BASE))
-    parser.add_argument('--public-files',action='store_true',help='Verify individual served files when ZIP export is unavailable')
+    mode=parser.add_mutually_exclusive_group()
+    mode.add_argument('--export',action='store_true',help='Diagnostic only: download and verify the complete site export')
+    mode.add_argument('--public-files',action='store_true',help='Diagnostic only: download and verify every served file')
     args=parser.parse_args()
     base=args.base_url.rstrip('/')
     if args.public_files:
         if not args.expected_archive:parser.error('--public-files requires --expected-archive')
         print(json.dumps(verify_public_files(args.slug,args.expected_archive,base)),flush=True)
+        return
+    if not args.export:
+        if args.expected_archive:parser.error('--expected-archive requires --export or --public-files')
+        print(json.dumps(verify_metadata(args.slug,base)),flush=True)
         return
     request=urllib.request.Request(base+'/api/sites/'+quote(args.slug,safe='')+'/export',
         headers={'Authorization':'Bearer '+load_token(base_url=base)})

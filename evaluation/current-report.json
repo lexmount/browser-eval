@@ -34,7 +34,7 @@
   "unverified_reference_cases": [],
   "require_independent_result_review": true,
   "conversion": "Each method's strongest documented known-URL extraction route; body tasks normalize visible text or Markdown, resource tasks use declared native resource fields, and direct file tasks validate returned bytes without cross-provider fallback",
-  "artifact_hub_base_url": "https://artifact-hub.dev.lexmount.net",
-  "artifact_hub_site": "MblD_VwSPBRX",
-  "artifact_hub_expected_version": "ver_b741a80b5e8a411b9b98591688674c86"
+  "artifact_hub_base_url": "https://artifact-hub.app.lexmount.com",
+  "artifact_hub_site": "RSdbALdbdNG6",
+  "artifact_hub_expected_version": "ver_fec3b3e8a8114ac58db344d67775789c"
 }
