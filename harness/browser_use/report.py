@@ -12,9 +12,9 @@ import shutil
 import statistics
 import tempfile
 import zipfile
-from io import BytesIO
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -1668,9 +1668,7 @@ def _extract_trace_screenshots(
             screenshot_dir = artifact_dir / "screenshots"
             screenshot_dir.mkdir(parents=True, exist_ok=True)
             total = len(valid_frames)
-            for index, (payload, width, height, suffix) in enumerate(
-                valid_frames, start=1
-            ):
+            for index, (payload, width, height, suffix) in enumerate(valid_frames, start=1):
                 destination = screenshot_dir / f"frame-{index}{suffix}"
                 destination.write_bytes(payload)
                 output.append(
@@ -2358,21 +2356,6 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         )
         article = _article_body(paired_by_model, attempts, tasks, verified_causes)
         families = _task_family_summary(tasks, attempts)
-        pairing_rows = [
-            [
-                MODEL_LABELS[model_id],
-                ENGINE_LABELS[item["baseline_engine"]],
-                ENGINE_LABELS[item["comparison_engine"]],
-                item["paired"],
-                item["both_pass"],
-                item["baseline_only"],
-                item["comparison_only"],
-                item["both_fail"],
-            ]
-            for model_id, model_pairs in paired_by_model.items()
-            for item in model_pairs["comparisons"].values()
-        ]
-        discordant_total = sum(row[5] + row[6] for row in pairing_rows)
         if failed_result_ids and set(verified_causes) == failed_result_ids:
             failure_overview = (
                 _failure_cause_table(verified_causes)

@@ -43,7 +43,8 @@ def test_best_marks_only_one_visibly_distinct_winner() -> None:
 def test_trace_screenshot_labels_count_only_publishable_frames(tmp_path: Path) -> None:
     trace = tmp_path / "trace.zip"
     image_payloads = {}
-    for sha1, size in (("large-a", (1280, 720)), ("small", (320, 200)), ("large-b", (1280, 720))):
+    frames = (("large-a", (1280, 720)), ("small", (320, 200)), ("large-b", (1280, 720)))
+    for sha1, size in frames:
         buffer = report_module.BytesIO()
         report_module.Image.new("RGB", size, "white").save(buffer, format="JPEG")
         image_payloads[sha1] = buffer.getvalue()
