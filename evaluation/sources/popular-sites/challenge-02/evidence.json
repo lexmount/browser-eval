@@ -1,0 +1,10 @@
+{
+  "case_id": "challenge-02",
+  "url": "https://search.jd.com/Search?keyword=%E8%80%B3%E6%9C%BA&enc=utf-8",
+  "checked_at": "2026-09-02T08:21:56.909688+00:00",
+  "source": "Immutable legacy stable-anchor evidence rebound for the 100-site suite",
+  "source_anchor_evidence": "sources/challenge-02/stable-page.txt",
+  "source_anchor_evidence_sha256": "5e21a4be497e42450e243ca66c77f27f62e5705d7c40b21b1ef051abf4eb7b33",
+  "stable_page_sha256": "5e21a4be497e42450e243ca66c77f27f62e5705d7c40b21b1ef051abf4eb7b33",
+  "provider_output_used": false
+}

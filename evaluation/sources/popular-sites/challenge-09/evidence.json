@@ -1,0 +1,10 @@
+{
+  "case_id": "challenge-09",
+  "url": "https://www.imdb.com/chart/top/",
+  "checked_at": "2026-09-02T08:21:56.909703+00:00",
+  "source": "Immutable legacy stable-anchor evidence rebound for the 100-site suite",
+  "source_anchor_evidence": "sources/challenge-09/stable-page.txt",
+  "source_anchor_evidence_sha256": "47132be5dcdcf06d87d17d25d77ef7424e18e8f189b2fb04a44904e5645c7d5f",
+  "stable_page_sha256": "47132be5dcdcf06d87d17d25d77ef7424e18e8f189b2fb04a44904e5645c7d5f",
+  "provider_output_used": false
+}

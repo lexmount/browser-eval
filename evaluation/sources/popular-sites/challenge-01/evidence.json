@@ -1,0 +1,10 @@
+{
+  "case_id": "challenge-01",
+  "url": "https://www.anthropologie.com/collection-decorative-candles",
+  "checked_at": "2026-09-02T08:21:56.909679+00:00",
+  "source": "Immutable legacy stable-anchor evidence rebound for the 100-site suite",
+  "source_anchor_evidence": "sources/challenge-01/stable-page.txt",
+  "source_anchor_evidence_sha256": "8a6a057ff2d6ff2934e0aa78aabaefd1827e78a671df73b369104ecacf812839",
+  "stable_page_sha256": "8a6a057ff2d6ff2934e0aa78aabaefd1827e78a671df73b369104ecacf812839",
+  "provider_output_used": false
+}

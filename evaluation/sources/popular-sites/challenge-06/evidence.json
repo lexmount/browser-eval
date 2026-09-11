@@ -1,0 +1,10 @@
+{
+  "case_id": "challenge-06",
+  "url": "https://www.dianping.com/shanghai/ch10",
+  "checked_at": "2026-09-02T08:21:56.909694+00:00",
+  "source": "Immutable legacy stable-anchor evidence rebound for the 100-site suite",
+  "source_anchor_evidence": "sources/challenge-06/reference.txt",
+  "source_anchor_evidence_sha256": "793cd088544165d29ec87c5dfae60af3f07691cf65a85d7ecc2e2fd249312922",
+  "stable_page_sha256": "793cd088544165d29ec87c5dfae60af3f07691cf65a85d7ecc2e2fd249312922",
+  "provider_output_used": false
+}

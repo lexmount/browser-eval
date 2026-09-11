@@ -1,0 +1,10 @@
+{
+  "case_id": "challenge-03",
+  "url": "https://www.xiaohongshu.com/explore",
+  "checked_at": "2026-09-02T08:21:56.909690+00:00",
+  "source": "Immutable legacy stable-anchor evidence rebound for the 100-site suite",
+  "source_anchor_evidence": "sources/challenge-03/stable-page.txt",
+  "source_anchor_evidence_sha256": "37b39263f8cbafcf10292486e63a6b8196f5afad4c5f7ff7eda3b120fd035fbb",
+  "stable_page_sha256": "37b39263f8cbafcf10292486e63a6b8196f5afad4c5f7ff7eda3b120fd035fbb",
+  "provider_output_used": false
+}

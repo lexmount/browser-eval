@@ -5347,7 +5347,7 @@
             "rating",
             "popularity"
           ],
-          "anchor_evidence": "sources/challenge-01/stable-page.txt",
+          "anchor_evidence": "sources/popular-sites/challenge-01/stable-page.txt",
           "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",
@@ -5452,7 +5452,7 @@
             "rating",
             "popularity"
           ],
-          "anchor_evidence": "sources/challenge-02/stable-page.txt",
+          "anchor_evidence": "sources/popular-sites/challenge-02/stable-page.txt",
           "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",
@@ -5550,7 +5550,7 @@
             "rating",
             "popularity"
           ],
-          "anchor_evidence": "sources/challenge-03/stable-page.txt",
+          "anchor_evidence": "sources/popular-sites/challenge-03/stable-page.txt",
           "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",
@@ -5730,7 +5730,7 @@
             "rating",
             "popularity"
           ],
-          "anchor_evidence": "sources/challenge-05/stable-page.txt",
+          "anchor_evidence": "sources/popular-sites/challenge-05/stable-page.txt",
           "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",
@@ -5828,7 +5828,7 @@
             "rating",
             "popularity"
           ],
-          "anchor_evidence": "sources/challenge-06/reference.txt",
+          "anchor_evidence": "sources/popular-sites/challenge-06/stable-page.txt",
           "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",
@@ -5927,7 +5927,7 @@
             "rating",
             "popularity"
           ],
-          "anchor_evidence": "sources/challenge-09/stable-page.txt",
+          "anchor_evidence": "sources/popular-sites/challenge-09/stable-page.txt",
           "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",
@@ -6020,7 +6020,7 @@
             "rating",
             "popularity"
           ],
-          "anchor_evidence": "sources/challenge-10-justwatch/stable-page.txt",
+          "anchor_evidence": "sources/popular-sites/challenge-10-justwatch/stable-page.txt",
           "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",

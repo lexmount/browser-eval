@@ -1,0 +1,10 @@
+{
+  "case_id": "challenge-05",
+  "url": "https://movie.douban.com/top250",
+  "checked_at": "2026-09-02T08:21:56.909693+00:00",
+  "source": "Immutable legacy stable-anchor evidence rebound for the 100-site suite",
+  "source_anchor_evidence": "sources/challenge-05/stable-page.txt",
+  "source_anchor_evidence_sha256": "826cf47631a0b012c4c8b6e96ef38914fbe1ccc313f123159952c96b2dd4c2ff",
+  "stable_page_sha256": "826cf47631a0b012c4c8b6e96ef38914fbe1ccc313f123159952c96b2dd4c2ff",
+  "provider_output_used": false
+}

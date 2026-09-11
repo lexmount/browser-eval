@@ -1,0 +1,10 @@
+{
+  "case_id": "challenge-10-justwatch",
+  "url": "https://www.justwatch.com/us/tv-shows",
+  "checked_at": "2026-09-02T08:21:56.909705+00:00",
+  "source": "Immutable legacy stable-anchor evidence rebound for the 100-site suite",
+  "source_anchor_evidence": "sources/challenge-10-justwatch/stable-page.txt",
+  "source_anchor_evidence_sha256": "1b8cd4e8e33d7c4268f09162337d215cbcb0e38342ff3da59601514aec0b260e",
+  "stable_page_sha256": "1b8cd4e8e33d7c4268f09162337d215cbcb0e38342ff3da59601514aec0b260e",
+  "provider_output_used": false
+}

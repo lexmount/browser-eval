@@ -170,6 +170,41 @@ def build_china_case(rule: dict) -> dict:
     }
 
 
+def bind_legacy_evidence(case: dict) -> dict:
+    """Copy old immutable anchor bytes into a current evidence-record shape."""
+    annotation = case["source_benchmark"]["stable_annotation"]
+    old_relative = annotation.get("anchor_evidence")
+    if not old_relative:
+        return case
+    source = ROOT / "evaluation" / old_relative
+    expected = annotation["anchor_evidence_sha256"]
+    if sha256(source) != expected:
+        raise ValueError(f"{case['id']}: legacy anchor bytes differ from the frozen hash")
+    relative = Path("sources") / "popular-sites" / case["id"] / "stable-page.txt"
+    target = ROOT / "evaluation" / relative
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(source.read_bytes())
+    write_json(
+        target.with_name("evidence.json"),
+        {
+            "case_id": case["id"],
+            "url": case["url"],
+            "checked_at": case["source_verification"]["checked_at"],
+            "source": "Immutable legacy stable-anchor evidence rebound for the 100-site suite",
+            "source_anchor_evidence": old_relative,
+            "source_anchor_evidence_sha256": expected,
+            "stable_page_sha256": expected,
+            "provider_output_used": False,
+        },
+    )
+    annotation["anchor_evidence"] = relative.as_posix()
+    if case.get("ground_truth_evidence"):
+        for item in case["ground_truth_evidence"]:
+            if item.get("source") == old_relative:
+                item["source"] = relative.as_posix()
+    return case
+
+
 def main() -> None:
     homepage_data = json.loads(HOMEPAGES.read_text())
     legacy_data = json.loads(LEGACY.read_text())
@@ -194,7 +229,7 @@ def main() -> None:
         case["category"] = "popular_site"
         case["tags"] = ["popular-site", "legacy-popular-list", "content_list"]
         case.setdefault("description", "旧热门网站结构案例；保留原冻结 URL 与验收契约。")
-        legacy.append(case)
+        legacy.append(bind_legacy_evidence(case))
     china = [build_china_case(rule) for rule in china_rules["cases"]]
 
     combined = homepages + legacy + china
