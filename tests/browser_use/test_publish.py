@@ -64,10 +64,23 @@ def test_validate_package_requires_and_checks_every_evidence_root(
         raise AssertionError("changed secondary evidence must invalidate the package")
 
 
-def test_packaging_runs_complete_release_gate(monkeypatch, tmp_path: Path) -> None:
+def test_packaging_reuses_visual_gate_bound_to_current_report(monkeypatch, tmp_path: Path) -> None:
     report = tmp_path / "report"
+    report.mkdir()
+    (report / "index.html").write_text("report", encoding="utf-8")
     evidence = [tmp_path / "evidence-a", tmp_path / "evidence-b"]
     receipt = tmp_path / "visual.json"
+    receipt.write_text(
+        json.dumps(
+            {
+                "schema": "lex_browser_use_visual_qa/1",
+                "report_tree_sha256": packager.tree_sha256(report),
+                "states_checked": 112,
+                "failures": [],
+            }
+        ),
+        encoding="utf-8",
+    )
     calls = []
 
     monkeypatch.setattr(
@@ -86,6 +99,9 @@ def test_packaging_runs_complete_release_gate(monkeypatch, tmp_path: Path) -> No
 
     packager.validate_release(report, evidence, receipt)
 
-    assert [call[0] for call in calls] == ["report", "links", "visual"]
+    assert [call[0] for call in calls] == ["report", "links"]
     assert calls[0][-1] is True
-    assert calls[2] == ("visual", report, receipt)
+
+    (report / "index.html").write_text("changed", encoding="utf-8")
+    packager.validate_release(report, evidence, receipt)
+    assert calls[-1] == ("visual", report, receipt)

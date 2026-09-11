@@ -4,12 +4,23 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
+
+
+def report_tree_sha256(report: Path) -> str:
+    digest = hashlib.sha256()
+    for path in sorted(item for item in report.rglob("*") if item.is_file()):
+        relative = path.relative_to(report).as_posix().encode()
+        digest.update(len(relative).to_bytes(8, "big"))
+        digest.update(relative)
+        digest.update(hashlib.sha256(path.read_bytes()).digest())
+    return digest.hexdigest()
 
 
 def _browser_executable() -> str:
@@ -128,6 +139,7 @@ return {overflow,clipped:[...new Set(clipped)],vertical,textOverflow};
         json.dumps(
             {
                 "schema": "lex_browser_use_visual_qa/1",
+                "report_tree_sha256": report_tree_sha256(report),
                 "browser_executable": executable,
                 "route_classes": len(routes),
                 "states_checked": len(states),

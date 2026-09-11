@@ -51,7 +51,17 @@ def validate_release(report: Path, evidence: list[Path], visual_receipt: Path) -
         require_complete=True,
     )
     check_links(report)
-    check_visual(report, visual_receipt)
+    try:
+        visual = json.loads(visual_receipt.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        visual = {}
+    if (
+        visual.get("schema") != "lex_browser_use_visual_qa/1"
+        or visual.get("report_tree_sha256") != tree_sha256(report)
+        or visual.get("failures")
+        or int(visual.get("states_checked") or 0) <= 0
+    ):
+        check_visual(report, visual_receipt)
 
 
 def main() -> None:
