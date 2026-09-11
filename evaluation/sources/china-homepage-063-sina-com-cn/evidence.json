@@ -1,0 +1,15 @@
+{
+  "case_id": "china-homepage-063-sina-com-cn",
+  "domain": "sina.com.cn",
+  "url": "https://sina.com.cn/",
+  "observed_final_url": "https://www.sina.com.cn/?from=kandian",
+  "checked_at": "2026-09-11",
+  "source": "Independent Chromium initial-page capture; no provider output or recursive navigation",
+  "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+  "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+  "visible_text_sha256": "0e4e5db47b116c4dd5f0677704d5a0478b629b83b05a579241898f16841518af",
+  "stable_page_sha256": "604dec3bcbbbef3457ecf35d97981b43300eec356baceb89dabf5a44e2be94e3",
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Stable page-level text and declared link structure; dynamic members and values are not frozen"
+}

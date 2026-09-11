@@ -1,0 +1,15 @@
+{
+  "case_id": "china-homepage-082-huawei-com",
+  "domain": "huawei.com",
+  "url": "https://huawei.com/",
+  "observed_final_url": "https://www.huawei.com/en/",
+  "checked_at": "2026-09-11",
+  "source": "Independent Chromium initial-page capture; no provider output or recursive navigation",
+  "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+  "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+  "visible_text_sha256": "2ae6da7c612f04977e0afaed652cb626741559fb6f7b92a7dddd230abc3bf9ce",
+  "stable_page_sha256": "7032d2949ccebe0c8e38f763c281fe84cee2213a1631c5ea2a3b438f2118010f",
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Stable page-level text and declared link structure; dynamic members and values are not frozen"
+}

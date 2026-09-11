@@ -1,0 +1,15 @@
+{
+  "case_id": "china-homepage-067-alibaba-com",
+  "domain": "alibaba.com",
+  "url": "https://alibaba.com/",
+  "observed_final_url": "https://www.alibaba.com/",
+  "checked_at": "2026-09-11",
+  "source": "Independent Chromium initial-page capture; no provider output or recursive navigation",
+  "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+  "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+  "visible_text_sha256": "706cb49f7985d32040b5e5fc2f77c83311c66fa365694dc1cd4936f0f9e77e8b",
+  "stable_page_sha256": "9752bc5d176556c0634bed72ceab03fa1180987072d240c63f569233c6526682",
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Stable page-level text and declared link structure; dynamic members and values are not frozen"
+}

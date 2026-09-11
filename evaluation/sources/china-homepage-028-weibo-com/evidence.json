@@ -1,0 +1,15 @@
+{
+  "case_id": "china-homepage-028-weibo-com",
+  "domain": "weibo.com",
+  "url": "https://weibo.com/",
+  "observed_final_url": "https://weibo.com/newlogin?tabtype=weibo&gid=102803&openLoginLayer=0&url=https://weibo.com/",
+  "checked_at": "2026-09-11",
+  "source": "Independent Chromium initial-page capture; no provider output or recursive navigation",
+  "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+  "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+  "visible_text_sha256": "2132f5cbd7f29029e2c00eb4da62985a223d3524b71ce68343f1eb4c379eea5c",
+  "stable_page_sha256": "48ec38a1f204e51481a1e461e4344c5ac6e874b9a91ba8123d90bf659621999a",
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Stable page-level text and declared link structure; dynamic members and values are not frozen"
+}

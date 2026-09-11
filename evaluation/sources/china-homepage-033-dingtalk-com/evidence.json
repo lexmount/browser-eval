@@ -1,0 +1,15 @@
+{
+  "case_id": "china-homepage-033-dingtalk-com",
+  "domain": "dingtalk.com",
+  "url": "https://dingtalk.com/",
+  "observed_final_url": "https://www.dingtalk.com/",
+  "checked_at": "2026-09-11",
+  "source": "Independent Chromium initial-page capture; no provider output or recursive navigation",
+  "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+  "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+  "visible_text_sha256": "80b0b3916d14e65ada8dc24eec7c417fa7dba0c22b9e5a4ac3b8eddd1be98e29",
+  "stable_page_sha256": "d429843a718c33f72bf0aad5516f78ffc0846efdace932e60cf090b8d313eb1f",
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Stable page-level text and declared link structure; dynamic members and values are not frozen"
+}

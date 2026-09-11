@@ -1,0 +1,15 @@
+{
+  "case_id": "china-homepage-018-163-com",
+  "domain": "163.com",
+  "url": "https://163.com/",
+  "observed_final_url": "https://www.163.com/?referFrom=",
+  "checked_at": "2026-09-11",
+  "source": "Independent Chromium initial-page capture; no provider output or recursive navigation",
+  "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+  "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+  "visible_text_sha256": "fd0161a776bf812a24ef800889ac714c26f95d2392b40906db6bf4035cdbfb05",
+  "stable_page_sha256": "058fca73203c6544dd900576b7781a9067d12edbfb03c4e058a29e06e8897d24",
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Stable page-level text and declared link structure; dynamic members and values are not frozen"
+}

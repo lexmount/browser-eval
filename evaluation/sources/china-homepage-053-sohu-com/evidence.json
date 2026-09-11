@@ -1,0 +1,15 @@
+{
+  "case_id": "china-homepage-053-sohu-com",
+  "domain": "sohu.com",
+  "url": "https://sohu.com/",
+  "observed_final_url": "https://www.sohu.com/",
+  "checked_at": "2026-09-11",
+  "source": "Independent Chromium initial-page capture; no provider output or recursive navigation",
+  "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+  "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+  "visible_text_sha256": "dc7a5433e32a6c40d74f242812c385aac685277ad2aa7a8b2fcb99b7e77ec18e",
+  "stable_page_sha256": "c6674d3b313a1b6ab798032a38515e5ba766c07ba66f9334944408fe8f3e188e",
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Stable page-level text and declared link structure; dynamic members and values are not frozen"
+}

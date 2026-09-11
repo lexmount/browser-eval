@@ -1,0 +1,15 @@
+{
+  "case_id": "china-homepage-040-quark-cn",
+  "domain": "quark.cn",
+  "url": "https://quark.cn/",
+  "observed_final_url": "https://www.quark.cn/",
+  "checked_at": "2026-09-11",
+  "source": "Independent Chromium initial-page capture; no provider output or recursive navigation",
+  "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+  "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+  "visible_text_sha256": "1a0af842fec0191a33f7819eab61835d950f196af564d7658791ee1d36683117",
+  "stable_page_sha256": "7a3868f636c2b2db7603f2ef9cc4ffc5f9cf9a03eaf23bd8988a0402289e55c8",
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Stable page-level text and declared link structure; dynamic members and values are not frozen"
+}

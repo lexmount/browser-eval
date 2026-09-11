@@ -1,0 +1,15 @@
+{
+  "case_id": "china-homepage-050-openai-com",
+  "domain": "openai.com",
+  "url": "https://openai.com/",
+  "observed_final_url": "https://openai.com/",
+  "checked_at": "2026-09-11",
+  "source": "Independent Chromium initial-page capture; no provider output or recursive navigation",
+  "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+  "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+  "visible_text_sha256": "d9351bf27276cd01f2f39f2de22051d3707ee69d7ee63122d35d581a71f0b171",
+  "stable_page_sha256": "661f045cfe288dc2086e95b62e1ccf7eed53b89ab509356456b4c7679ab56bbf",
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Stable page-level text and declared link structure; dynamic members and values are not frozen"
+}

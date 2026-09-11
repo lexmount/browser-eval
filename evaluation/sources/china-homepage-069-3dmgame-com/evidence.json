@@ -1,0 +1,15 @@
+{
+  "case_id": "china-homepage-069-3dmgame-com",
+  "domain": "3dmgame.com",
+  "url": "https://3dmgame.com/",
+  "observed_final_url": "https://www.3dmgame.com/",
+  "checked_at": "2026-09-11",
+  "source": "Independent Chromium initial-page capture; no provider output or recursive navigation",
+  "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+  "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+  "visible_text_sha256": "b793d1afd1164040cf846c55b7d14a601d7d6e8cfe0866c41c2750c7efb04111",
+  "stable_page_sha256": "462749157b7dcb9215de9eba4768213c28dfa2a50e5e86bf0ddc6c0a69cac423",
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Stable page-level text and declared link structure; dynamic members and values are not frozen"
+}

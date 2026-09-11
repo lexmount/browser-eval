@@ -1,0 +1,3908 @@
+{
+  "schema_version": 1,
+  "status": "frozen_for_execution",
+  "purpose": "One scoring registry for the 100-site lexmount-global report",
+  "counts": {
+    "inherited_formal_results": 52,
+    "new_provider_calls": 48,
+    "total": 100
+  },
+  "components": [
+    {
+      "kind": "global_homepage",
+      "count": 52,
+      "path": "evaluation/global-homepages-dataset.json",
+      "sha256": "8f6479e6f8846a3f106eedfb8fb2b89e38f493efc17cc83aa294872c4d762171"
+    },
+    {
+      "kind": "legacy_popular_list",
+      "count": 8,
+      "path": "evaluation/dataset.json",
+      "sha256": "d43ae3569cd98f25456ab2a1b270731b1913b247b7b70b611e613f79e6290449",
+      "case_ids": [
+        "challenge-01",
+        "challenge-02",
+        "challenge-03",
+        "challenge-04",
+        "challenge-05",
+        "challenge-06",
+        "challenge-09",
+        "challenge-10-justwatch"
+      ]
+    },
+    {
+      "kind": "china_ranked_homepage",
+      "count": 40,
+      "path": "research/china-homepage-rules.json",
+      "sha256": "ec908ac9291b75ac70fdc1c3dcfcb8faed37b4faf42bb87a7de8d57b2b10cbdc"
+    }
+  ],
+  "approval": {
+    "path": "research/china-homepage-rules-approval.json",
+    "sha256": "42e3651bb011958a6ffed2c79aac9a08be9a2616ac987d5b26c815cbbe7982be"
+  },
+  "cases": [
+    {
+      "id": "global-homepage-001-google-com",
+      "url": "https://www.google.com/?hl=en",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Google"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "About"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Advertising"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Business"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Privacy"
+            ]
+          },
+          {
+            "id": "stable-anchor-6",
+            "alternatives": [
+              "Terms"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-002-youtube-com",
+      "url": "https://www.youtube.com/?hl=en&gl=US&persist_hl=1",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "YouTube Home"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Guide"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Search"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Settings"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Sign in"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-005-chatgpt-com",
+      "url": "https://chatgpt.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "ChatGPT"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Where should we begin?"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Chat with ChatGPT"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "New chat"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-006-reddit-com",
+      "url": "https://reddit.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.reddit.com",
+          "reddit.com"
+        ],
+        "entry_path": "/r/[^/]+/comments/[a-z0-9]+(?:/[^/?#]+)?",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "POPULAR COMMUNITIES"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Best"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Hot"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-008-whatsapp-com",
+      "url": "https://whatsapp.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Message privately"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Never miss a moment with voice and video calls"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Keep in touch with your groups"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Transform your business"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-010-bing-com",
+      "url": "https://bing.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Microsoft Bing"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Images"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Maps"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Search using an image"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Sign in"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-011-wikipedia-org",
+      "url": "https://wikipedia.org/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Wikipedia"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "The Free Encyclopedia"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "English"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "日本語"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-012-gemini-google-com",
+      "url": "https://gemini.google.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Gemini"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Conversation with Gemini"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Meet Gemini, your personal AI assistant"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-013-yahoo-co-jp",
+      "url": "https://yahoo.co.jp/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.yahoo.co.jp"
+        ],
+        "entry_path": "/pickup/[0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Yahoo! JAPAN"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "主なサービス"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "お知らせ"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "ニュース"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-015-yahoo-com",
+      "url": "https://www.yahoo.com/?p=us",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.yahoo.com",
+          "hk.news.yahoo.com",
+          "hk.finance.yahoo.com"
+        ],
+        "entry_path": "/(?:news|entertainment|finance)/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Search the web"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "News"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Finance"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Sports"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Trending"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-016-amazon-com",
+      "url": "https://amazon.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.amazon.com"
+        ],
+        "entry_path": "(?:/[^/]+)?/dp/[A-Z0-9]{10}",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Amazon"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Today's Deals"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Customer Service"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-018-baidu-com",
+      "url": "https://baidu.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "百度一下"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "新闻"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "地图"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "更多"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-020-naver-com",
+      "url": "https://naver.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.naver.com",
+          "blog.naver.com",
+          "cafe.naver.com",
+          "in.naver.com",
+          "m.naver.com"
+        ],
+        "entry_path": "/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "NAVER"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "공지사항"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Partners"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Developers"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-021-netflix-com",
+      "url": "https://netflix.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Unlimited movies, TV shows, and more"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "More Reasons to Join"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Frequently Asked Questions"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-023-cloud-microsoft",
+      "url": "https://cloud.microsoft/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Work smarter across Microsoft 365 with Copilot"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Popular prompts to try"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Jump into your favorite app"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-025-bilibili-com",
+      "url": "https://bilibili.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.bilibili.com"
+        ],
+        "entry_path": "/video/(?:BV[A-Za-z0-9]+|av[0-9]+)",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "首页"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "番剧"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "直播"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "热门"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-027-dzen-ru",
+      "url": "https://dzen.ru/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "dzen.ru"
+        ],
+        "entry_path": "/(?:a/[A-Za-z0-9_-]+|news/story/[A-Za-z0-9_-]+)",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Поиск Яндекса"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Новости"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Статьи"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Видео"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-028-microsoft-com",
+      "url": "https://microsoft.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Microsoft"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Microsoft 365"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Windows"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Surface"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "XBOX"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-029-twitch-tv",
+      "url": "https://www.twitch.tv/?lang=en",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.twitch.tv"
+        ],
+        "entry_path": "/(?!directory(?:/|$)|downloads?$|jobs?$|settings|login|signup|search|subscriptions|wallet|turbo|videos|friends|inventory|store|drops|creatorcamp|prime|about|legal|brand|security|partners|press|advertisers|blog)[A-Za-z0-9_]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Live Channels"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Live on Twitch"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Categories we think you’ll like"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-030-weather-com",
+      "url": "https://weather.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Forecasts"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Radar"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Today's Outlook"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-032-canva-com",
+      "url": "https://canva.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Canva home"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "What will you design today?"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Start designing"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Canva AI"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-034-news-yahoo-co-jp",
+      "url": "https://news.yahoo.co.jp/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.yahoo.co.jp"
+        ],
+        "entry_path": "/pickup/[0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Yahoo!ニュース"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "トピックス"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "アクセスランキング"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-035-fandom-com",
+      "url": "https://fandom.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.fandom.com"
+        ],
+        "entry_path": "/topics/(?:games|movies|tv)",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Fandom"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "GAMES"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "MOVIES"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "TV"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "EXPLORE PROPERTIES"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-036-globo-com",
+      "url": "https://globo.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "g1.globo.com"
+        ],
+        "entry_path": "/.+/(?:noticia|blog)/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "globo.com"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Guia de Compras"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Previsão do tempo"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-037-mail-ru",
+      "url": "https://mail.ru/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.mail.ru"
+        ],
+        "entry_path": "/[^/]+/[0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Mail.ru"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Почта"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Облако"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Календарь"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-038-samsung-com",
+      "url": "https://samsung.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Samsung"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Mobile"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "TV & AV"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Appliances"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Computers & Monitors"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-039-duckduckgo-com",
+      "url": "https://duckduckgo.com/?kad=en_US&kl=us-en",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "DuckDuckGo"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Search"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Duck.ai"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Settings"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Privacy Policy"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-041-discord-com",
+      "url": "https://discord.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "GROUP CHAT THAT’S ALL FUN & GAMES"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "MAKE YOUR GROUP CHATS MORE FUN"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "STREAM LIKE YOU’RE IN THE SAME ROOM"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "HOP IN WHEN YOU'RE FREE, NO NEED TO CALL"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-042-github-com",
+      "url": "https://github.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "GitHub features"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "GitHub Copilot"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "GitHub Actions"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "GitHub Codespaces"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-044-spotify-com",
+      "url": "https://open.spotify.com/?locale=en_US",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Your Library"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Trending songs"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Popular artists"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Popular albums and singles"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-045-nytimes-com",
+      "url": "https://nytimes.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.nytimes.com"
+        ],
+        "entry_path": "/[0-9]{4}/[0-9]{2}/[0-9]{2}/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "The New York Times"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "TOP STORIES"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "NEWSLETTERS"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "PODCASTS"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-046-zoom-us",
+      "url": "https://zoom.us/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Find out what's possible when work connects"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "One platform. Endless ways to work together."
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Trusted by millions. Built for you."
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Businesses achieve more with Zoom"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-047-booking-com",
+      "url": "https://www.booking.com/?lang=en-us",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Booking.com"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Stays"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Flights"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Car rental"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Search"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-049-brave-com",
+      "url": "https://brave.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "The browser that puts you first"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Private search"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Powerful VPN"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "A Web with fewer ads"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-056-apple-com",
+      "url": "https://apple.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Apple"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Mac"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "iPhone"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Watch"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-060-espn-com",
+      "url": "https://espn.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.espn.com"
+        ],
+        "entry_path": "/[a-z0-9-]+/story/_/id/[0-9]+/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "ESPN"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Quick Links"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Top Headlines"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-062-bbc-com",
+      "url": "https://bbc.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.bbc.com"
+        ],
+        "entry_path": "/news/articles/[a-z0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "BBC"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "News"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Sport"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Business"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Technology"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-063-paypal-com",
+      "url": "https://paypal.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "PayPal"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Personal"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Business"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Get the PayPal app"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-065-ya-ru",
+      "url": "https://ya.ru/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Запрос"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Поиск по картинке"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Сервисы"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-067-deepseek-com",
+      "url": "https://www.deepseek.com/en/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Into the Unknown"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "DeepSeek Web"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "API Platform"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "API Docs"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-068-indeed-com",
+      "url": "https://indeed.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Your next job starts here"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Trending Searches"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Trending Jobs"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Search"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-072-rakuten-co-jp",
+      "url": "https://rakuten.co.jp/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "item.rakuten.co.jp"
+        ],
+        "entry_path": "/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "ようこそ楽天市場へ"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "楽天スーパーDEAL"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "人気商品ランキング"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "ジャンル"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-075-telegram-org",
+      "url": "https://telegram.org/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Why Telegram?"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Simple"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Private"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Secure"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Powerful"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-080-cnn-com",
+      "url": "https://cnn.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.cnn.com",
+          "edition.cnn.com"
+        ],
+        "entry_path": "/[0-9]{4}/[0-9]{2}/[0-9]{2}/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "CNN"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "MORE TOP STORIES"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "CNN UNDERSCORED"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Across our coverage"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-081-namu-wiki",
+      "url": "https://namu.wiki/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "나무위키에 오신 것을 환영합니다!"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "나무위키는 누구나 기여할 수 있는 위키입니다."
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "검증되지 않았거나 편향된 내용이 있을 수 있습니다."
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "나무위키의 도움말"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-082-shein-com",
+      "url": "https://us.shein.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "SHEIN"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Women Clothing"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Home & Living"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Electronics"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-084-qq-com",
+      "url": "https://qq.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.qq.com"
+        ],
+        "entry_path": "/rain/a/[A-Za-z0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "产品推荐"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "热点精选"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "腾讯新闻出品"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "热门问答"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-085-douyin-com",
+      "url": "https://douyin.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "精选"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "推荐"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "放映厅"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "短剧"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-086-usps-com",
+      "url": "https://usps.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Quick Tools"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Track a Package"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Find USPS Locations"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Buy Stamps"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-087-instructure-com",
+      "url": "https://instructure.com/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Instructure"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Canvas"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Explore Canvas"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Why Instructure"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-088-primevideo-com",
+      "url": "https://www.primevideo.com/-/zh/storefront",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Prime Video"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "电影"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "电视节目"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "体育"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-homepage-090-rutube-ru",
+      "url": "https://rutube.ru/",
+      "cohort": "inherited_global_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "rutube.ru"
+        ],
+        "entry_path": "/video/[a-f0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "RUTUBE"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Для вас"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Shorts"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "ТВ-каналы"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Рекомендации"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "challenge-01",
+      "url": "https://www.anthropologie.com/collection-decorative-candles",
+      "cohort": "new_legacy_popular_list",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.anthropologie.com",
+          "www.anthropologie.com.cn"
+        ],
+        "entry_path": "/shop/[^/]+",
+        "stable_text_anchors": [
+          {
+            "id": "page-text-1",
+            "alternatives": [
+              "Decorative Candles"
+            ]
+          },
+          {
+            "id": "page-text-2",
+            "alternatives": [
+              "Price"
+            ]
+          },
+          {
+            "id": "page-text-3",
+            "alternatives": [
+              "Color"
+            ]
+          },
+          {
+            "id": "page-text-4",
+            "alternatives": [
+              "Brand"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "challenge-02",
+      "url": "https://search.jd.com/Search?keyword=%E8%80%B3%E6%9C%BA&enc=utf-8",
+      "cohort": "new_legacy_popular_list",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "item.jd.com"
+        ],
+        "entry_path": "/\\d+\\.html",
+        "stable_text_anchors": [
+          {
+            "id": "page-text-1",
+            "alternatives": [
+              "品牌"
+            ]
+          },
+          {
+            "id": "page-text-2",
+            "alternatives": [
+              "综合"
+            ]
+          },
+          {
+            "id": "page-text-3",
+            "alternatives": [
+              "销量"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "challenge-03",
+      "url": "https://www.xiaohongshu.com/explore",
+      "cohort": "new_legacy_popular_list",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.xiaohongshu.com"
+        ],
+        "entry_path": "/explore/[a-fA-F0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "page-text-1",
+            "alternatives": [
+              "穿搭"
+            ]
+          },
+          {
+            "id": "page-text-2",
+            "alternatives": [
+              "美食"
+            ]
+          },
+          {
+            "id": "page-text-3",
+            "alternatives": [
+              "彩妆"
+            ]
+          },
+          {
+            "id": "page-text-4",
+            "alternatives": [
+              "影视"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "challenge-04",
+      "url": "https://www.zhihu.com/hot",
+      "cohort": "new_legacy_popular_list",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.zhihu.com"
+        ],
+        "entry_path": "/question/\\d+",
+        "stable_text_anchors": []
+      }
+    },
+    {
+      "id": "challenge-05",
+      "url": "https://movie.douban.com/top250",
+      "cohort": "new_legacy_popular_list",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "movie.douban.com"
+        ],
+        "entry_path": "/subject/\\d+",
+        "stable_text_anchors": [
+          {
+            "id": "page-text-1",
+            "alternatives": [
+              "豆瓣电影 Top 250"
+            ]
+          },
+          {
+            "id": "page-text-2",
+            "alternatives": [
+              "导演:"
+            ]
+          },
+          {
+            "id": "page-text-3",
+            "alternatives": [
+              "主演:"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "challenge-06",
+      "url": "https://www.dianping.com/shanghai/ch10",
+      "cohort": "new_legacy_popular_list",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.dianping.com"
+        ],
+        "entry_path": "/shop/[A-Za-z0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "record-label-1",
+            "alternatives": [
+              "人均"
+            ]
+          },
+          {
+            "id": "record-label-2",
+            "alternatives": [
+              "推荐菜"
+            ]
+          },
+          {
+            "id": "record-label-3",
+            "alternatives": [
+              "条评价"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "challenge-09",
+      "url": "https://www.imdb.com/chart/top/",
+      "cohort": "new_legacy_popular_list",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.imdb.com",
+          "imdb.com"
+        ],
+        "entry_path": "/title/tt\\d+",
+        "stable_text_anchors": [
+          {
+            "id": "page-text-1",
+            "alternatives": [
+              "IMDb Top 250 movies"
+            ]
+          },
+          {
+            "id": "page-text-2",
+            "alternatives": [
+              "As rated by regular IMDb voters."
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "challenge-10-justwatch",
+      "url": "https://www.justwatch.com/us/tv-shows",
+      "cohort": "new_legacy_popular_list",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.justwatch.com"
+        ],
+        "entry_path": "/us/tv-show/[^/]+",
+        "stable_text_anchors": [
+          {
+            "id": "page-text-1",
+            "alternatives": [
+              "Discover TV shows and find where to watch online"
+            ]
+          },
+          {
+            "id": "page-text-2",
+            "alternatives": [
+              "Where to watch TV series online?"
+            ]
+          },
+          {
+            "id": "page-text-3",
+            "alternatives": [
+              "You can also check out other streaming services to find out what’s available to buy, rent or watch for free."
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-008-doubao-com",
+      "url": "https://doubao.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "豆包"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "有什么我能帮你的吗？"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "对话"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "图像生成"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-012-feishu-cn",
+      "url": "https://feishu.cn/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "飞书"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "字节跳动旗下 AI 工作平台"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "智能会议纪要"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "多维表格"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-018-163-com",
+      "url": "https://163.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.163.com"
+        ],
+        "entry_path": "/dy/article/[A-Z0-9]+\\.html",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "网易"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "新闻"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "体育"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "财经"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-019-taobao-com",
+      "url": "https://taobao.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "淘宝"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "搜索"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "购物车"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "收藏夹"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-026-aliyun-com",
+      "url": "https://aliyun.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "阿里云"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "大模型"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "云市场"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "控制台"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "精选产品"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-028-weibo-com",
+      "url": "https://weibo.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "微博"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "热门推荐"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "热门榜单"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "热搜"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-029-360-com",
+      "url": "https://360.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "360安全卫士"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "软件下载中心"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "纳米AI"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "360安全浏览器"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-033-dingtalk-com",
+      "url": "https://dingtalk.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "钉钉"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "AI钉钉"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "产品功能"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "开放平台"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "下载钉钉"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-036-hao123-com",
+      "url": "https://hao123.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "hao123"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "上网从这里开始"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "搜索热点"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "热点"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-039-1688-com",
+      "url": "https://1688.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "阿里1688首页"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "挑好货"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "找工厂"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "工业品"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-040-quark-cn",
+      "url": "https://quark.cn/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "夸克"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "AI浏览器"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "AI搜索"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "夸克网盘"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-042-kdocs-cn",
+      "url": "https://kdocs.cn/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "金山文档"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "WPS云文档"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "智能文档"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "多人协作"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-044-kimi-com",
+      "url": "https://kimi.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Kimi"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "New Chat"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Deep Research"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Kimi Code"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-045-tmall-com",
+      "url": "https://tmall.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "天猫Tmall.com"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "搜索"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "购物车"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "商家支持"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-046-wedoany-com",
+      "url": "https://wedoany.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.wedoany.com"
+        ],
+        "entry_path": "/product/[0-9]+\\.html",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "维度网"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "工程分类"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "产品"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "选型总库"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-047-qianwen-com",
+      "url": "https://qianwen.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "千问"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "阿里旗下全能AI助手"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "新建对话"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "千问创作"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-048-douyu-com",
+      "url": "https://douyu.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.douyu.com"
+        ],
+        "entry_path": "/[0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "斗鱼"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "直播"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "分类"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "视频"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-050-openai-com",
+      "url": "https://openai.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "OpenAI"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Research"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Products"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Developers"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Try ChatGPT"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-052-alipay-com",
+      "url": "https://alipay.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "支付宝"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "我是服务商"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "我是开发者"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "我是商家用户"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-053-sohu-com",
+      "url": "https://sohu.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.sohu.com"
+        ],
+        "entry_path": "/a/[0-9]+_[0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "搜狐"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "新闻"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "财经"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "体育"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-055-huya-com",
+      "url": "https://huya.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.huya.com"
+        ],
+        "entry_path": "/video/u/[0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "虎牙直播"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "绝地求生"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "英雄联盟"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "王者荣耀"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-056-cnki-net",
+      "url": "https://cnki.net/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "中国知网"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "学术期刊"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "学位论文"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "下载热榜"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-057-nih-gov",
+      "url": "https://nih.gov/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "National Institutes of Health"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Health Information"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Grants & Funding"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "NIH at a Glance"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-058-huaban-com",
+      "url": "https://huaban.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "huaban.com"
+        ],
+        "entry_path": "/pins/[0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "花瓣网"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "探索"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "平面设计"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "UI/UX"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-059-jianying-com",
+      "url": "https://jianying.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "剪映AI"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "视频生成"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "专业剪辑"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "智能抠像"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-060-eastmoney-com",
+      "url": "https://eastmoney.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "finance.eastmoney.com"
+        ],
+        "entry_path": "/a/[0-9]+\\.html",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "东方财富网"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "财经"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "股票"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "基金"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-063-sina-com-cn",
+      "url": "https://sina.com.cn/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.sina.com.cn",
+          "finance.sina.com.cn",
+          "sports.sina.com.cn"
+        ],
+        "entry_path": "/.*/[0-9]{4}-[0-9]{2}-[0-9]{2}/[^/]+\\.shtml",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "新浪网"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "新闻"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "财经"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "体育"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-064-gamer520-com",
+      "url": "https://gamer520.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.gamer520.com"
+        ],
+        "entry_path": "/[0-9]+\\.html",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Switch520"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "PC游戏"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "IGN必玩推荐榜"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-065-lingxing-com",
+      "url": "https://lingxing.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "领星ERP"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "核心功能"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "进销存一体管理"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "财务精准管理"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-067-alibaba-com",
+      "url": "https://alibaba.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.alibaba.com"
+        ],
+        "entry_path": "/product-detail/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Alibaba.com"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Discover manufacturers"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Request for Quotation"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Top Ranking"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-068-youdao-com",
+      "url": "https://youdao.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "网易有道"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "词典"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "翻译"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "有道龙虾"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-069-3dmgame-com",
+      "url": "https://3dmgame.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.3dmgame.com"
+        ],
+        "entry_path": "/games/[A-Za-z0-9_-]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "单机游戏"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "新闻"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "专栏"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "硬件"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-071-2345-com",
+      "url": "https://2345.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.jxcn.cn",
+          "news-pc.gzylhy.cn"
+        ],
+        "entry_path": "/p/[0-9]{8}/[0-9]+\\.html",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "2345网址导航"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "旗下产品"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "邮箱"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "天气"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-072-cctv-com",
+      "url": "https://cctv.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.cctv.com",
+          "tv.cctv.com"
+        ],
+        "entry_path": "/[0-9]{4}/[0-9]{2}/[0-9]{2}/(?:ARTI|VIDE)[A-Za-z0-9]+\\.shtml",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "央视网"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "新闻"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "财经"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "体育"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-073-so-com",
+      "url": "https://so.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "360搜索"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "搜全网"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "问AI"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "AI写作"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-075-volcengine-com",
+      "url": "https://volcengine.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "火山引擎"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "火山方舟"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "精选产品"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "控制台"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-078-nga-cn",
+      "url": "https://nga.cn/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "NGA玩家社区"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "论坛"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "评分"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "专题"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-080-yandex-com",
+      "url": "https://yandex.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Yandex"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Search with Yandex AI"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Images"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Maps"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-081-elsevier-com",
+      "url": "https://elsevier.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Elsevier"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Academic & Government"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Health"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Publish with us"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-082-huawei-com",
+      "url": "https://huawei.com/",
+      "cohort": "new_china_ranked_homepage",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Huawei"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Enterprise"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Consumer"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Huawei Cloud"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

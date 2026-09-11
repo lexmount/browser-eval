@@ -1,0 +1,15 @@
+{
+  "case_id": "china-homepage-052-alipay-com",
+  "domain": "alipay.com",
+  "url": "https://alipay.com/",
+  "observed_final_url": "https://www.alipay.com/",
+  "checked_at": "2026-09-11",
+  "source": "Independent Chromium initial-page capture; no provider output or recursive navigation",
+  "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+  "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+  "visible_text_sha256": "8b721f4f257bc098b6b0504db3ff423d122c7a4140182f804d6dcbefa67adb15",
+  "stable_page_sha256": "0f0e1445d183b73d3f1d9ebc0d00f07aa78c3b38ad78b91baf3890ced3e1ac65",
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Stable page-level text and declared link structure; dynamic members and values are not frozen"
+}

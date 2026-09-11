@@ -1,0 +1,15 @@
+{
+  "case_id": "china-homepage-029-360-com",
+  "domain": "360.com",
+  "url": "https://360.com/",
+  "observed_final_url": "https://360.com/",
+  "checked_at": "2026-09-11",
+  "source": "Independent Chromium initial-page capture; no provider output or recursive navigation",
+  "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+  "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+  "visible_text_sha256": "4a7e1a5409584d528f2d789d2d8d460d017524dd0261bef1c4d0dee9e6ce8b21",
+  "stable_page_sha256": "76aa0abbbfd784ca02e2ef81bf7922f342fc5d745411a82543e486736faf109b",
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Stable page-level text and declared link structure; dynamic members and values are not frozen"
+}

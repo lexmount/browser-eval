@@ -1,0 +1,15 @@
+{
+  "case_id": "china-homepage-081-elsevier-com",
+  "domain": "elsevier.com",
+  "url": "https://elsevier.com/",
+  "observed_final_url": "https://www.elsevier.com/",
+  "checked_at": "2026-09-11",
+  "source": "Independent Chromium initial-page capture; no provider output or recursive navigation",
+  "capture_file": "research/china-homepage-rule-evidence-2026-09-11.json",
+  "capture_file_sha256": "cc11091be15f5b8bd82a3f3d861a77189662af0720234fa772fd2642d9f77eae",
+  "visible_text_sha256": "96fdf08e9401913c9715ff251133c09dab1715f1e5d1b6e5d0f022d809778bc7",
+  "stable_page_sha256": "2b466cf5afec330afdd476d5ba5182b455be5a650f606dfb81b1a878d66f2556",
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Stable page-level text and declared link structure; dynamic members and values are not frozen"
+}
