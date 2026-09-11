@@ -529,12 +529,21 @@ def build_evidence_revalidation_suite(
 
 
 def apply_adjudication(
-    suite_payload: dict[str, Any], qualification: dict[str, Any]
+    suite_payload: dict[str, Any],
+    qualification: dict[str, Any],
+    *,
+    task_ids: set[str] | None = None,
 ) -> dict[str, Any]:
     decisions = {str(item["task_id"]): item for item in qualification.get("tasks") or []}
     tasks = suite_payload.get("tasks") or []
-    if set(decisions) != {str(task["id"]) for task in tasks}:
+    suite_ids = {str(task["id"]) for task in tasks}
+    selected_ids = suite_ids if task_ids is None else set(task_ids)
+    if not selected_ids or not selected_ids <= suite_ids:
+        raise ValueError("incremental qualification contains unknown or empty task selection")
+    if task_ids is None and set(decisions) != suite_ids:
         raise ValueError("qualification task set does not match suite")
+    if task_ids is not None and not selected_ids <= set(decisions):
+        raise ValueError("incremental qualification lacks selected task decisions")
     if (
         any(
             (item.get("adjudication") or {}).get("status") == "eligible"
@@ -544,6 +553,8 @@ def apply_adjudication(
     ):
         raise ValueError(f"eligible tasks require qualification schema {QUALIFICATION_SCHEMA}")
     for task in tasks:
+        if str(task["id"]) not in selected_ids:
+            continue
         decision = decisions[str(task["id"])]
         adjudication = decision.get("adjudication")
         if not isinstance(adjudication, dict):
@@ -598,13 +609,15 @@ def apply_adjudication(
                 )
             )
         task["ground_truth"]["qualification"] = public_adjudication
+    final_statuses = [
+        str(((task.get("ground_truth") or {}).get("qualification") or {}).get("status"))
+        for task in tasks
+    ]
+    if any(status not in {"eligible", "skipped"} for status in final_statuses):
+        raise ValueError("applied suite contains unresolved qualification states")
     suite_payload["benchmark"]["qualification"] = {
         "schema": qualification.get("schema"),
-        "qualified_count": sum(
-            item["adjudication"]["status"] == "eligible" for item in decisions.values()
-        ),
-        "skipped_count": sum(
-            item["adjudication"]["status"] == "skipped" for item in decisions.values()
-        ),
+        "qualified_count": final_statuses.count("eligible"),
+        "skipped_count": final_statuses.count("skipped"),
     }
     return suite_payload

@@ -788,6 +788,52 @@ def test_repaired_task_cannot_use_old_har_evidence(tmp_path):
         apply_adjudication(suite, qualification)
 
 
+def test_incremental_apply_promotes_selected_task_without_revalidating_existing(tmp_path):
+    existing = {
+        "id": "existing",
+        "trajectory": {
+            "schema": "lex_browser_trajectory/1",
+            "actions": [{"action": "click", "selector": "#existing"}],
+        },
+        "ground_truth": {"qualification": {"status": "eligible"}},
+    }
+    candidate = {
+        "id": "candidate",
+        "trajectory": {
+            "schema": "lex_browser_trajectory/1",
+            "actions": [{"action": "click", "selector": "#candidate"}],
+        },
+        "ground_truth": {"qualification": {"status": "pending"}},
+    }
+    attempts = [
+        _write_validated_attempt(tmp_path, candidate, pass_index=pass_index)[1]
+        for pass_index in (1, 2)
+    ]
+    qualification = {
+        "schema": QUALIFICATION_SCHEMA,
+        "tasks": [
+            {
+                "task_id": "candidate",
+                "disposition": "eligible",
+                "adjudication": {
+                    "status": "eligible",
+                    "validated_attempt_paths": [str(path) for path in attempts],
+                },
+            }
+        ],
+    }
+
+    result = apply_adjudication(
+        {"benchmark": {}, "tasks": [existing, candidate]},
+        qualification,
+        task_ids={"candidate"},
+    )
+
+    assert result["tasks"][0]["ground_truth"]["qualification"] == {"status": "eligible"}
+    assert result["tasks"][1]["ground_truth"]["qualification"]["status"] == "eligible"
+    assert result["benchmark"]["qualification"]["qualified_count"] == 2
+
+
 def test_repair_validation_suite_requires_the_declared_material_change():
     suite = {
         "benchmark": {},
