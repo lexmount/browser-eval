@@ -391,6 +391,7 @@ def _logical_results(
             error for row in executions for error in (row.get("model_transport_errors") or [])
         ]
         resources = [row.get("resource") or {} for row in executions]
+        weighted_duration = sum(float(row.get("duration_ms") or 0) for row in executions)
         authoritative["resource"] = {
             **{
                 name: sum(float(resource.get(name) or 0) for resource in resources)
@@ -401,15 +402,37 @@ def _logical_results(
                 for name in ("memory_peak_bytes", "memory_retained_bytes", "pids_current_peak")
             },
         }
-        weighted_duration = sum(float(row.get("duration_ms") or 0) for row in executions)
         if weighted_duration:
-            authoritative["resource"]["cpu_average_utilization_pct"] = (
-                sum(
-                    float((row.get("resource") or {}).get("cpu_average_utilization_pct") or 0)
-                    * float(row.get("duration_ms") or 0)
-                    for row in executions
+            present_duration = sum(
+                float(row.get("duration_ms") or 0)
+                for row in executions
+                if (row.get("resource") or {}).get("cpu_average_utilization_pct") is not None
+            )
+            if present_duration:
+                authoritative["resource"]["cpu_average_utilization_pct"] = (
+                    sum(
+                        float((row.get("resource") or {}).get("cpu_average_utilization_pct") or 0)
+                        * float(row.get("duration_ms") or 0)
+                        for row in executions
+                        if (row.get("resource") or {}).get("cpu_average_utilization_pct")
+                        is not None
+                    )
+                    / present_duration
                 )
-                / weighted_duration
+        memory_sample_count = sum(
+            int((row.get("resource") or {}).get("sample_count") or 0)
+            for row in executions
+            if (row.get("resource") or {}).get("memory_mean_bytes") is not None
+        )
+        if memory_sample_count:
+            authoritative["resource"]["memory_mean_bytes"] = (
+                sum(
+                    float((row.get("resource") or {}).get("memory_mean_bytes") or 0)
+                    * int((row.get("resource") or {}).get("sample_count") or 0)
+                    for row in executions
+                    if (row.get("resource") or {}).get("memory_mean_bytes") is not None
+                )
+                / memory_sample_count
             )
         tool_metrics = [_execution_tool_metrics(row) for row in executions]
         authoritative["action_count"] = sum(item["action_count"] for item in tool_metrics)
@@ -469,6 +492,7 @@ def _public_attempt(row: dict[str, Any]) -> dict[str, Any]:
                 "cpu_ms",
                 "network_rx_bytes",
                 "network_tx_bytes",
+                "memory_mean_bytes",
                 "memory_peak_bytes",
                 "memory_retained_bytes",
                 "pids_current_peak",
@@ -538,6 +562,26 @@ def _primary_summary(rows: list[dict[str, Any]]) -> dict[str, dict[str, dict[str
             tool_durations = [float(r.get("browser_tool_duration_ms") or 0) for r in logical]
             tokens = [int((r.get("model_usage") or {}).get("total_tokens") or 0) for r in logical]
             passed = sum(float(r["score"]) == 1 for r in logical)
+            resource_summary = {}
+            for name in (
+                "cpu_ms",
+                "cpu_average_utilization_pct",
+                "memory_mean_bytes",
+                "memory_peak_bytes",
+                "network_rx_bytes",
+                "network_tx_bytes",
+            ):
+                values = [
+                    float((row.get("resource") or {})[name])
+                    for row in logical
+                    if (row.get("resource") or {}).get(name) is not None
+                ]
+                resource_summary[name] = {
+                    "count": len(values),
+                    "mean": statistics.fmean(values) if values else None,
+                    "p50": _percentile(values, 0.50),
+                    "p95": _percentile(values, 0.95),
+                }
             result[model][engine] = {
                 "completed": len(logical),
                 "passed": passed,
@@ -553,6 +597,7 @@ def _primary_summary(rows: list[dict[str, Any]]) -> dict[str, dict[str, dict[str
                 "mean_tokens": statistics.fmean(tokens) if tokens else None,
                 "p50_tokens": _percentile(tokens, 0.50),
                 "p95_tokens": _percentile(tokens, 0.95),
+                "resources": resource_summary,
             }
     return result
 
@@ -756,11 +801,27 @@ def _task_family_table(families: list[dict[str, Any]]) -> str:
 def _failure_cause_table(verified_causes: dict[str, dict[str, Any]]) -> str:
     groups = {
         "agent": ("Agent / 模型行为", "保留", "属于当前被测组合；按轨迹定位检索、选择或提交错误。"),
-        "benchmark": ("任务 / evaluator", "排除并修复", "修正验收合同，通过独立预检后重跑四种配置。"),
+        "benchmark": (
+            "任务 / evaluator",
+            "排除并修复",
+            "修正验收合同，通过独立预检后重跑四种配置。",
+        ),
         "site": ("自托管站点", "排除并修复", "修复依赖、会话或保存链路，通过读写预检后重跑。"),
-        "evidence": ("浏览器证据接口", "保留并修复", "这是浏览器集成能力的一部分；补齐响应正文或 Referer 采集后重跑。"),
-        "environment": ("共享测试环境", "排除，修复已完成", "跨进程串行锁已经上线；受污染任务仍需重跑。"),
-        "mixed": ("参考状态与 Agent 混合", "排除并重建", "重新冻结参考状态，再重跑以区分 Agent 错误。"),
+        "evidence": (
+            "浏览器证据接口",
+            "保留并修复",
+            "这是浏览器集成能力的一部分；补齐响应正文或 Referer 采集后重跑。",
+        ),
+        "environment": (
+            "共享测试环境",
+            "排除，修复已完成",
+            "跨进程串行锁已经上线；受污染任务仍需重跑。",
+        ),
+        "mixed": (
+            "参考状态与 Agent 混合",
+            "排除并重建",
+            "重新冻结参考状态，再重跑以区分 Agent 错误。",
+        ),
     }
 
     def group_for(code: str) -> str:
@@ -918,7 +979,7 @@ def _same_task_comparison(tasks: list[dict[str, Any]], attempts: list[dict[str, 
         )
 
     headers = "".join(
-        f"<th>{_e(MODEL_LABELS[model])}<br><span class=\"table-kicker\">{_e(ENGINE_LABELS[engine])}</span></th>"
+        f'<th>{_e(MODEL_LABELS[model])}<br><span class="table-kicker">{_e(ENGINE_LABELS[engine])}</span></th>'
         for model, engine in configurations
     )
     return (
@@ -933,7 +994,7 @@ def _same_task_comparison(tasks: list[dict[str, Any]], attempts: list[dict[str, 
         '<label>类型 <select data-matrix-filter="kind"><option value="">全部</option><option>RETRIEVE</option><option>NAVIGATE</option><option>MUTATE</option></select></label></div>'
         '<div class="comparison-result"><div class="table-wrap"><table class="comparison-table configuration-matrix">'
         f"<thead><tr><th>任务</th>{headers}</tr></thead>"
-        f'<tbody>{"".join(rows)}</tbody></table></div></div></article>'
+        f"<tbody>{''.join(rows)}</tbody></table></div></div></article>"
     )
 
 
@@ -1136,6 +1197,80 @@ def _summary_comparison_rows(summary: dict[str, dict[str, dict[str, Any]]]) -> l
     return rows
 
 
+def _resource_value(value: float | None, unit: str) -> str:
+    if value is None:
+        return "—"
+    if unit == "ms":
+        return f"{value / 1000:.1f} 秒"
+    if unit == "pct":
+        return f"{value:.1f}%"
+    if unit == "mib":
+        return f"{value / 1_048_576:,.1f} MiB"
+    if unit == "mib_net":
+        return f"{value / 1_048_576:,.2f} MiB"
+    raise ValueError(f"unknown resource unit: {unit}")
+
+
+def _resource_comparison_table(summary: dict[str, dict[str, dict[str, Any]]]) -> str:
+    metrics = (
+        ("cpu_ms", "CPU 时间", "ms"),
+        ("cpu_average_utilization_pct", "平均 CPU 单核占用", "pct"),
+        ("memory_mean_bytes", "时间加权平均内存", "mib"),
+        ("memory_peak_bytes", "峰值内存", "mib"),
+        ("network_rx_bytes", "网络接收量", "mib_net"),
+        ("network_tx_bytes", "网络发送量", "mib_net"),
+    )
+    flat = {
+        f"{model}|{engine}": values
+        for model, model_summary in summary.items()
+        for engine, values in model_summary.items()
+    }
+    winners = {
+        (name, stat): _best(
+            {
+                key: ((values.get("resources") or {}).get(name) or {}).get(stat)
+                for key, values in flat.items()
+            },
+            higher=False,
+            display=lambda value, unit=unit: round(
+                value / (1_048_576 if unit in {"mib", "mib_net"} else 1), 2
+            ),
+        )
+        for name, _, unit in metrics
+        for stat in ("mean", "p50", "p95")
+    }
+    rows: list[list[Any]] = []
+    for model, model_summary in summary.items():
+        for engine, label in ENGINE_LABELS.items():
+            key = f"{model}|{engine}"
+            resources = model_summary[engine].get("resources") or {}
+            rows.append(
+                [
+                    MODEL_LABELS[model],
+                    label,
+                    *[
+                        _metric_stack(
+                            [
+                                (
+                                    stat.upper() if stat != "mean" else "均值",
+                                    _resource_value((resources.get(name) or {}).get(stat), unit),
+                                    key in winners[(name, stat)],
+                                )
+                                for stat in ("mean", "p50", "p95")
+                            ]
+                        )
+                        for name, _, unit in metrics
+                    ],
+                ]
+            )
+    return _table(
+        ["模型", "浏览器", *[label for _, label, _ in metrics]],
+        rows,
+        table_id="resource-metrics-table",
+        classes="wide-data-table resource-comparison-table",
+    )
+
+
 REPORT_JS = """function theme(){const r=document.documentElement,n=r.dataset.theme==='dark'?'light':'dark';r.dataset.theme=n;try{localStorage.setItem('browser-use-theme',n)}catch(e){}}
 function openDiagnosis(id){const d=document.getElementById(id);if(d?.showModal)d.showModal()}
 function closeDiagnosis(id){const d=document.getElementById(id);if(d?.open)d.close()}
@@ -1250,20 +1385,20 @@ def _evidence_viewer_page() -> str:
         '<a id="evidence-raw-link" class="button-link" hidden target="_blank" rel="noopener">打开原始 JSON</a></div>'
         '<p id="evidence-viewer-status" class="fine" role="status">正在读取证据…</p>'
         '<pre id="evidence-viewer-content" class="json-view" tabindex="0"></pre>'
-        '</div></section><script>(()=>{'
+        "</div></section><script>(()=>{"
         'const status=document.getElementById("evidence-viewer-status");'
         'const output=document.getElementById("evidence-viewer-content");'
         'const raw=document.getElementById("evidence-raw-link");'
         'const source=new URLSearchParams(location.search).get("src")||"";'
-        r'const valid=/^artifacts\/[a-z0-9._-]+\/executions\/[0-9]+\/execution-evidence[.]json$/i.test(source);'
+        r"const valid=/^artifacts\/[a-z0-9._-]+\/executions\/[0-9]+\/execution-evidence[.]json$/i.test(source);"
         'const english=document.documentElement.lang==="en";'
         'if(!valid){status.textContent=english?"Invalid evidence path.":"证据路径无效。";return;}'
-        'raw.href=source;raw.hidden=false;'
+        "raw.href=source;raw.hidden=false;"
         'fetch(new URL(source,document.baseURI),{credentials:"same-origin"})'
-        '.then(response=>{if(!response.ok)throw new Error(`HTTP ${response.status}`);return response.json();})'
+        ".then(response=>{if(!response.ok)throw new Error(`HTTP ${response.status}`);return response.json();})"
         '.then(value=>{output.textContent=JSON.stringify(value,null,2);status.textContent=english?"Evidence loaded.":"证据已载入。";})'
         '.catch(error=>{status.textContent=(english?"Unable to load evidence: ":"无法读取执行证据：")+error.message;});'
-        '})();</script>'
+        "})();</script>"
     )
     return _page(title="完整执行证据", active="analysis", body=body)
 
@@ -1448,8 +1583,7 @@ def _failure_point(code: str, steps: list[dict[str, Any]]) -> tuple[str, int | N
         (
             step
             for step in reversed(steps)
-            if str(step.get("status") or "").lower() not in {"", "success"}
-            or step.get("error")
+            if str(step.get("status") or "").lower() not in {"", "success"} or step.get("error")
         ),
         None,
     )
@@ -1467,7 +1601,9 @@ def _failure_point(code: str, steps: list[dict[str, Any]]) -> tuple[str, int | N
         return f"第 {number} 步 BrowserTool 执行异常", number
     if code == "agent_step_budget":
         return (f"第 {last_step} 步后达到步骤上限" if last_step else "达到步骤上限"), last_step
-    return (f"第 {last_step} 步后的最终回答/任务状态" if last_step else "最终回答/任务状态"), last_step
+    return (
+        f"第 {last_step} 步后的最终回答/任务状态" if last_step else "最终回答/任务状态"
+    ), last_step
 
 
 def _trajectory_context(
@@ -1477,9 +1613,7 @@ def _trajectory_context(
 
     if step_number is None:
         return "", ""
-    step = next(
-        (item for item in steps if int(item.get("step") or 0) == step_number), None
-    )
+    step = next((item for item in steps if int(item.get("step") or 0) == step_number), None)
     if step is None:
         return "", ""
     label = trajectory_label(step)
@@ -1601,9 +1735,8 @@ def _trajectory_html(steps: list[dict[str, Any]]) -> str:
     rows = []
     for step in steps:
         step_number = int(step.get("step") or len(rows) + 1)
-        failed = (
-            str(step.get("status") or "").lower() not in {"", "success"}
-            or bool(step.get("error"))
+        failed = str(step.get("status") or "").lower() not in {"", "success"} or bool(
+            step.get("error")
         )
         duration = step.get("duration_seconds")
         meta = f"Turn {step.get('turn') or '—'} · {_e(step.get('status') or 'unknown')}"
@@ -1739,11 +1872,16 @@ def _write_execution_artifacts(
         }
         for label, filename in PUBLIC_EXECUTION_ARTIFACTS.items()
     }
-    return {
-        **measurements,
-        "artifacts": artifacts,
-        "screenshots": screenshots,
-    }, response, evaluation, steps
+    return (
+        {
+            **measurements,
+            "artifacts": artifacts,
+            "screenshots": screenshots,
+        },
+        response,
+        evaluation,
+        steps,
+    )
 
 
 def _screenshot_gallery(result_id: str, executions: list[dict[str, Any]]) -> str:
@@ -1766,7 +1904,7 @@ def _screenshot_gallery(result_id: str, executions: list[dict[str, Any]]) -> str
         for item in screenshots
     )
     return (
-        '<p>下图是判分权威执行的最后页面画面，用于核对失败前的可见状态；'
+        "<p>下图是判分权威执行的最后页面画面，用于核对失败前的可见状态；"
         "它们不一定正好对应错误发生的瞬间。</p>"
         f'<div class="screenshot-grid">{figures}</div>'
     )
@@ -1841,7 +1979,7 @@ def _article_body(
         [
             MODEL_LABELS[model_id],
             ENGINE_LABELS[engine],
-            f'{values["passed"]}/{values["completed"]}',
+            f"{values['passed']}/{values['completed']}",
             _pct(values["score"]),
         ]
         for model_id, model_summary in summary.items()
@@ -1874,7 +2012,7 @@ def _article_body(
             table_id="guide-core-metrics",
             classes="core-comparison-table",
         )
-        + '<p>在 Sol 运行中，Chromium 比 Moli 多通过 3 题；在 Astra 运行中，两者都是 71/90。耗时需要结合下表和逐题记录看：Agent 总耗时还包含模型推理与页面等待，BrowserTool 耗时也包含工具封装和 CDP 往返。</p></section>'
+        + "<p>在 Sol 运行中，Chromium 比 Moli 多通过 3 题；在 Astra 运行中，两者都是 71/90。耗时需要结合下表和逐题记录看：Agent 总耗时还包含模型推理与页面等待，BrowserTool 耗时也包含工具封装和 CDP 往返。</p></section>"
         "<section><h2>同一任务上的结果</h2>"
         "<p>同题比较只在同一模型内进行。A、B 是表内所列的两个浏览器。</p>"
         + _table(
@@ -1892,8 +2030,8 @@ def _article_body(
             caption="每行只比较同一模型、同一任务和同一网站状态下的结果。",
         )
         + f"<p>两次运行合计有 {discordant} 个同题结果不同。Sol 和 Astra 的方向并不一致，因此现有结果不足以支持某个浏览器在所有任务上更好。</p></section>"
-        '<section><h2>两个模型的结果不能直接当成模型排名</h2>'
-        '<p>Sol 与 Astra 在不同时间、不同代码提交上运行。Astra 的两个 Task 77 结果还受到已确认的共享环境并发污染。表格可以帮助观察差异，但不能把差值全部归因于模型。</p>'
+        "<section><h2>两个模型的结果不能直接当成模型排名</h2>"
+        "<p>Sol 与 Astra 在不同时间、不同代码提交上运行。Astra 的两个 Task 77 结果还受到已确认的共享环境并发污染。表格可以帮助观察差异，但不能把差值全部归因于模型。</p>"
         + _table(["模型", "浏览器", "任务通过", "通过率"], model_result_rows)
         + '</section><section id="failure-findings"><h2>失败原因</h2>'
         "<p>evaluator 的报错只说明哪条验收规则没有满足。我们继续核对任务要求、最终回答、网络记录和 Agent 轨迹，确认失败发生在 Agent、任务规则、测试网站、共享环境或浏览器证据记录中的哪一处。</p>"
@@ -2020,9 +2158,9 @@ def _diagnosis_dialog(
         f'<button class="dialog-close" type="button" onclick="closeDiagnosis(\'{_e(dialog_id)}\')" aria-label="关闭">×</button></div>'
         '<div class="diagnosis-dialog-grid">'
         f'<div><b>发生位置</b><a href="{_e(step_link)}">{_e(failure_point)}</a></div>'
-        f'<div><b>程序判定</b>{_e(automatic_failure or "未分类")}</div>'
-        f'<div><b>复核根因</b>{_e(subcategory or "待复核")}</div>'
-        f'<div><b>负责范围</b>{_e(owner)}</div></div>'
+        f"<div><b>程序判定</b>{_e(automatic_failure or '未分类')}</div>"
+        f"<div><b>复核根因</b>{_e(subcategory or '待复核')}</div>"
+        f"<div><b>负责范围</b>{_e(owner)}</div></div>"
         + (
             f'<div class="dialog-step"><b>{_e(step_context_label)}</b><a href="{_e(step_link)}">{_e(step_context)}</a></div>'
             if step_context
@@ -2031,7 +2169,7 @@ def _diagnosis_dialog(
         + '<section class="dialog-error"><h3>程序报错</h3>'
         f'<pre class="log-view">{_e(evaluator_error)}</pre></section>'
         '<section class="dialog-review"><h3>复核结论</h3>'
-        f'<p>{_e(reason or "尚未完成根因复核。")}</p><p><strong>处理：</strong>{_e(action)}</p></section>'
+        f"<p>{_e(reason or '尚未完成根因复核。')}</p><p><strong>处理：</strong>{_e(action)}</p></section>"
         '<div class="dialog-actions">'
         f'<a class="button-link" href="{_e(detail_url)}#verification">查看期望与实际值</a>'
         f'<a href="{_e(step_link)}">查看失败附近轨迹</a>'
@@ -2060,15 +2198,13 @@ def _attempt_table(
         event_record = read_public_json(Path((row.get("paths") or {}).get("events", "")))
         steps = trajectory(event_record if isinstance(event_record, list) else [])
         failure_point, step_number = _failure_point(code, steps)
-        step_context_label, step_context = _trajectory_context(
-            steps, step_number, failure_point
-        )
+        step_context_label, step_context = _trajectory_context(steps, step_number, failure_point)
         owner, action, _external = _remediation(code)
         task = task_meta.get(p["task_id"], {})
         point_link = (
-            f'results/{p["id"]}.html#trajectory-step-{step_number}'
+            f"results/{p['id']}.html#trajectory-step-{step_number}"
             if step_number
-            else f'results/{p["id"]}.html#diagnosis'
+            else f"results/{p['id']}.html#diagnosis"
         )
         dialog_id = f"diagnosis-{p['id']}"
         if result == "fail":
@@ -2093,14 +2229,16 @@ def _attempt_table(
             Safe(f'<a href="results/{p["id"]}.html">{p["id"]}</a>'),
             Safe(
                 f'<strong>{_e(MODEL_LABELS[p["model"]])}</strong><span class="table-kicker">'
-                f'{_e(ENGINE_LABELS[p["engine"]])}</span>'
+                f"{_e(ENGINE_LABELS[p['engine']])}</span>"
             ),
             Safe(f'<a href="datasets/{p["task_id"]}.html">#{p["task_id"]}</a>'),
             _status(row),
             Safe(f'<a href="{point_link}">{_e(failure_point)}</a>') if result == "fail" else "—",
             automatic_failure or "—",
             subcategory or "待复核" if result == "fail" else "—",
-            Safe(f'<strong>{_e(owner)}</strong><span class="table-kicker">{_e(action)}</span>') if result == "fail" else "—",
+            Safe(f'<strong>{_e(owner)}</strong><span class="table-kicker">{_e(action)}</span>')
+            if result == "fail"
+            else "—",
             Safe(
                 (
                     f'<button class="diagnosis-button" type="button" onclick="openDiagnosis(\'{_e(dialog_id)}\')">查看诊断</button>'
@@ -2345,9 +2483,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             (stage / folder).mkdir()
         (stage / "assets/style.css").write_text(REPORT_STYLE, encoding="utf-8")
         (stage / "assets/report.js").write_text(REPORT_JS, encoding="utf-8")
-        (stage / "evidence-viewer.html").write_text(
-            _evidence_viewer_page(), encoding="utf-8"
-        )
+        (stage / "evidence-viewer.html").write_text(_evidence_viewer_page(), encoding="utf-8")
         if not METHODOLOGY_FIGURE.is_file():
             raise FileNotFoundError(f"missing methodology figure: {METHODOLOGY_FIGURE}")
         shutil.copy2(
@@ -2376,7 +2512,15 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         home += _section(
             "四种配置的总体结果",
             _table(
-                ["模型", "浏览器", "通过任务", "通过率", "Agent 总耗时", "BrowserTool 耗时", "Tokens"],
+                [
+                    "模型",
+                    "浏览器",
+                    "通过任务",
+                    "通过率",
+                    "Agent 总耗时",
+                    "BrowserTool 耗时",
+                    "Tokens",
+                ],
                 _summary_comparison_rows(summary_by_model),
                 table_id="core-metrics-table",
                 classes="core-comparison-table",
@@ -2384,6 +2528,12 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             + '<p class="source-note"><span class="winner-mark" aria-hidden="true">优</span> 在四种配置中统一比较并只标记唯一最优值；相同值不标。通过数越高越好，耗时和 Tokens 越低越好。</p>'
             + f'<p class="source-note">四种配置均使用同一组 {task_count} 题。模型和浏览器同时变化时，表格比较的是整套配置，不能把差值只归因于浏览器。<a href="analysis/#same-task">查看全部配置的逐题矩阵 →</a></p>'
             + '<details class="metric-note"><summary>耗时统计包含什么</summary><p>Agent 总耗时包含模型推理、页面等待和浏览器操作；BrowserTool 耗时是全部浏览器工具调用的墙钟时间之和，仍包含工具封装与 CDP 往返，不是纯内核 CPU 时间。</p></details>',
+        )
+        home += _section(
+            "速度与浏览器资源",
+            f"<p>下表统一比较四种配置。CPU、内存和网络只计浏览器容器，不含 CowAgent 或模型服务；均值、P50、P95 都按 {task_count} 个逻辑任务结果统计。模型会改变动作数量和页面停留时间，因此这里比较的是整套配置，不能单独归因于浏览器内核。</p>"
+            + _resource_comparison_table(summary_by_model)
+            + '<p class="source-note"><span class="winner-mark" aria-hidden="true">优</span> 仅标记四种配置中数值唯一最低的一项。CPU 时间与网络总量累计得到逻辑结果所用的全部执行；内存来自 Browser Use 执行阶段的浏览器容器采样。</p>',
         )
         home += _section(
             "失败与干扰项",
@@ -2400,10 +2550,26 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             _table(
                 ["检查项", "结果", "说明"],
                 [
-                    ["任务结果", f"{len(attempts)}/{len(attempts)}", f"{len(MODEL_LABELS)} 个模型 × {len(ENGINE_LABELS)} 个浏览器 × {task_count} 题都有最终判定"],
-                    ["失败原因核验", f"{len(verified_causes)}/{len(failed_result_ids)}", "每个失败结果都有分类和具体原因"],
-                    ["未解决的证据问题", len(review.get("unresolved") or []), "完整性检查没有发现待处理项"],
-                    ["至少成功过一次的任务", f"{len(measured_solvable_ids)}/{len(tasks)}", f"另有 {len(unproven_ids)} 题在本轮没有成功轨迹"],
+                    [
+                        "任务结果",
+                        f"{len(attempts)}/{len(attempts)}",
+                        f"{len(MODEL_LABELS)} 个模型 × {len(ENGINE_LABELS)} 个浏览器 × {task_count} 题都有最终判定",
+                    ],
+                    [
+                        "失败原因核验",
+                        f"{len(verified_causes)}/{len(failed_result_ids)}",
+                        "每个失败结果都有分类和具体原因",
+                    ],
+                    [
+                        "未解决的证据问题",
+                        len(review.get("unresolved") or []),
+                        "完整性检查没有发现待处理项",
+                    ],
+                    [
+                        "至少成功过一次的任务",
+                        f"{len(measured_solvable_ids)}/{len(tasks)}",
+                        f"另有 {len(unproven_ids)} 题在本轮没有成功轨迹",
+                    ],
                     ["保存的实际执行", len(source_attempts), "包含正式执行及按协议发生的一次重试"],
                 ],
                 table_id="evidence-coverage",
@@ -2757,9 +2923,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             step_context_label, step_context = _trajectory_context(
                 steps, failure_step, failure_point
             )
-            remediation_owner, remediation_action, external_interference = _remediation(
-                cause_code
-            )
+            remediation_owner, remediation_action, external_interference = _remediation(cause_code)
             detail = _hero(
                 public["id"],
                 f"{MODEL_LABELS[public['model']]} · {ENGINE_LABELS[public['engine']]} · Task #{public['task_id']}",
@@ -2800,15 +2964,15 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             )
             if float(public["score"]) < 1:
                 step_href = (
-                    f'{attempt_page}#trajectory-step-{failure_step}'
+                    f"{attempt_page}#trajectory-step-{failure_step}"
                     if failure_step
-                    else f'{attempt_page}#trajectory'
+                    else f"{attempt_page}#trajectory"
                 )
                 detail += '<div id="diagnosis"></div>' + _section(
                     "失败诊断",
                     '<article class="failure-lead"><span class="status-line">失败</span>'
                     f'<h3><a href="{step_href}">{_e(failure_point)}</a></h3>'
-                    f'<p>{_e(_failure_brief(evaluation_record, row))}</p></article>'
+                    f"<p>{_e(_failure_brief(evaluation_record, row))}</p></article>"
                     + (
                         f'<p class="step-signature"><strong>{_e(step_context_label)}：</strong><a href="{step_href}">{_e(step_context)}</a></p>'
                         if step_context
@@ -2839,7 +3003,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 detail += _section(
                     "结果",
                     '<article class="failure-lead success-lead"><span class="status-line">通过</span>'
-                    f'<h3>{_e(_failure_brief(evaluation_record, row))}</h3></article>'
+                    f"<h3>{_e(_failure_brief(evaluation_record, row))}</h3></article>"
                     + runtime_facts,
                 )
             detail += '<div id="verification"></div>' + _section(

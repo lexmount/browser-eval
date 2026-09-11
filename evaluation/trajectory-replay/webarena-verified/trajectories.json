@@ -1,0 +1,94 @@
+{
+  "schema": "lex_webarena_verified_trajectory_dataset/1",
+  "benchmark": "WebArena-Verified",
+  "benchmark_version": "1.2.3",
+  "official_data_checksum": "d65275660814663375028e9017e1f929e3c38321041b125795e2713b52243d30",
+  "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+  "semantics": {
+    "trajectory_is_one_verified_feasible_path": true,
+    "trajectory_is_the_only_correct_path": false,
+    "browser_use_scoring_authority": "official task outcome contract",
+    "browser_use_agent_visibility": "hidden",
+    "trajectory_replay_role": "fixed BrowserTool action input",
+    "evaluation_input_role": "official evaluator input only; never an Agent prompt"
+  },
+  "promotion_policy": {
+    "required_browsers": [
+      "chromium",
+      "moli"
+    ],
+    "process_status": "pass",
+    "official_evaluator_status": "pass",
+    "model_calls": 0
+  },
+  "provenance": {
+    "seed_manifest_sha256": "dcdf6735dcd5dc0cc9ef77110538bbd6cf0b84a2eed7f511216e48b11a1901f4",
+    "replay_receipts": [
+      {
+        "sha256": "7bef7414c30814a2ea6e713b359dfccb882f67e878f004537b2583b8695102f6"
+      }
+    ]
+  },
+  "counts": {
+    "verified_tasks": 1,
+    "verified_trajectories": 1
+  },
+  "trajectories": [
+    {
+      "id": "webarena-verified-44-trajectory-1",
+      "task_id": 44,
+      "task": {
+        "intent": "Open my todos page",
+        "intent_template_id": 303,
+        "revision": 2,
+        "sites": [
+          "gitlab"
+        ],
+        "start_urls": [
+          "__GITLAB__"
+        ]
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://192.168.5.2:8023"
+        },
+        {
+          "action": "click",
+          "ref": 8
+        },
+        {
+          "action": "snapshot"
+        }
+      ],
+      "evaluation_input": {
+        "task_type": "NAVIGATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      },
+      "source": {
+        "kind": "authoritative_successful_browser_use_execution",
+        "candidate_id": "gpt-5.6-sol__chromium__task-44",
+        "model": "gpt-5.6-sol",
+        "browser": "chromium",
+        "execution": 1,
+        "events_sha256": "eab05ae2e7ca04df24aed3d437412a9e2dec06f83bdc7a6fff679a8e4ac5203d",
+        "response_sha256": "ea9dcfc71ad7b459c521cfca0a64030b90888bc7c3c4919a00da179e3604a5ce",
+        "evaluation_sha256": "4971d2ec4b2a99e4f3a978921400bf2b93c31f2bc698722192388d16a43cec07"
+      },
+      "verification": {
+        "browsers": [
+          "chromium",
+          "moli"
+        ],
+        "process_status": "pass",
+        "official_evaluator_status": "pass",
+        "model_calls": 0,
+        "receipt_run_ids": [
+          "a5e7087a653c"
+        ]
+      }
+    }
+  ]
+}

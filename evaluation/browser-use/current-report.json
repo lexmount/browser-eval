@@ -35,29 +35,11 @@
     "source_path": "research/browser-use-failure-cause-review.json",
     "source_sha256": "08e555e6d991892780a8b967741f42921424299e53dac079a7901d47446106e9"
   },
-  "tasks_without_measured_success_path": [
-    124,
-    258,
-    279,
-    284,
-    339,
-    464,
-    470,
-    475,
-    510,
-    528,
-    547,
-    600,
-    625,
-    676,
-    694,
-    699
-  ],
   "publication": {
     "base_url": "https://artifact-hub.app.lexmount.com",
     "site_slug": "7l77EeXPRfml",
     "share_url": "https://artifact-hub.app.lexmount.com/v/Ghn1BR6PCy-njsCMqCe2LRIJ-eyJEJoa",
-    "expected_version": "ver_c98cab9638a4463f997f45931ba27d46",
+    "expected_version": "ver_48bb19785cc1409091de9a936acbcfa3",
     "state": "verified"
   }
 }

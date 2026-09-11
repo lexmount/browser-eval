@@ -69,6 +69,20 @@ def test_release_translation_comes_from_structured_record() -> None:
     assert translate_text(release["title"]) == release["i18n"]["en"]["title"]
 
 
+def test_failure_summary_and_scope_labels_are_fully_localized() -> None:
+    assert translate_text("Agent / 模型行为") == "Agent / model behavior"
+    assert translate_text("浏览器证据接口") == "Browser evidence interface"
+    assert translate_text("保留并修复") == "Retain and fix"
+    assert translate_text(
+        "75 个失败结果已经逐条核验。与任务合同、站点、共享环境或参考状态有关的任务"
+        "不会进入诊断子集，修复后需完整重跑。"
+    ) == (
+        "All 75 failed results have been reviewed individually. Tasks affected by task-contract, "
+        "site, shared-environment, or reference-state issues are excluded from the diagnostic "
+        "subset and require a complete rerun after correction."
+    )
+
+
 def test_excluded_task_ids_use_english_punctuation() -> None:
     source = '<html lang="zh-CN"><body><p>本轮剔除 3 题：#1、#2、#3。</p></body></html>'
     localized = localize_html(source, PurePosixPath("analysis/index.html"))

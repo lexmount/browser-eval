@@ -148,6 +148,63 @@
   ],
   "browser_use_releases": [
     {
+      "id": "2026-09-11-browser-resource-comparison",
+      "date": "2026-09-11",
+      "title": "补齐四种配置的浏览器资源比较",
+      "summary": "首页新增四种模型×浏览器配置的 CPU、内存与网络统计，统一报告均值、P50 和 P95。数据来自现有浏览器容器测量，不修改任务成绩。",
+      "attempts_sha256_by_model": {
+        "gpt-5.6-sol": "73146500152db62d79f84b63c85a14027c005a6320c19bce7426651f167466bd",
+        "gpt-6-astra": "0659d227cf6d29fbfaf64d39f8e77a56bec73c87f7f6e1f2ac23ea13fd9b667c"
+      },
+      "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+      "changes": [
+        [
+          "资源统计",
+          "报告已保留浏览器容器的 CPU、内存和网络测量，但首页没有汇总，读者无法比较资源开销。",
+          "增加四种配置同台的 CPU 时间、平均单核 CPU、时间加权平均内存、峰值内存及网络收发量，全部展示均值、P50、P95。",
+          "资源只覆盖浏览器容器，不包含 CowAgent 或模型服务；模型会改变动作量，因此结果描述完整配置而非纯内核差异。"
+        ],
+        [
+          "重试聚合",
+          "逻辑结果包含重试时，平均内存只取最后一次执行会丢失前次执行的资源贡献。",
+          "按每次执行的等间隔采样数加权合并平均内存；CPU 与网络继续累计全部物理执行。",
+          "只修正资源汇总口径；任务分数、分母和判分执行保持不变。"
+        ],
+        [
+          "英文首页",
+          "失败干扰表和核心指标说明残留部分中文界面文案。",
+          "补齐动态失败摘要、责任范围、处理标签和指标说明的英文映射。",
+          "中英文页面结构和数据保持一致。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Add browser-resource comparisons across all four configurations",
+          "summary": "The home page now compares CPU, memory, and network measurements across all four model-by-browser configurations using mean, P50, and P95. The values come from existing browser-container evidence and do not change task scores.",
+          "changes": [
+            [
+              "Resource statistics",
+              "Browser-container CPU, memory, and network measurements were retained but not summarized on the report home page.",
+              "Added CPU time, mean single-core CPU utilization, time-weighted mean memory, peak memory, and network receive/transmit totals for all four configurations, each with mean, P50, and P95.",
+              "Measurements cover only the browser container, excluding CowAgent and model services. Because models change workload, the table compares complete configurations rather than pure browser cores."
+            ],
+            [
+              "Retry aggregation",
+              "For logical results with a retry, using only the final execution's mean memory omitted the earlier execution's resource contribution.",
+              "Mean memory is now combined across executions using equal-interval sample counts as weights; CPU and network totals continue to accumulate every physical execution.",
+              "Only the resource aggregation changes. Task scores, denominators, and score-authoritative executions remain unchanged."
+            ],
+            [
+              "English home page",
+              "Some interface copy in the failure-interference table and core-metric notes remained in Chinese.",
+              "Completed the English mappings for the dynamic failure summary, owning scopes, treatment labels, and metric explanations.",
+              "The Chinese and English pages retain identical structure and data."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "2026-09-11-diagnostic-workbench-and-clean-subset",
       "date": "2026-09-11",
       "title": "将结果分析改为故障定位台",

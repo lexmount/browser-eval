@@ -180,9 +180,7 @@ def test_reader_facing_ux_requires_home_core_tables_without_current_data(
 
 
 @pytest.mark.parametrize("term", FORBIDDEN_READER_TERMS)
-def test_reader_facing_ux_rejects_unexplained_internal_terms(
-    tmp_path: Path, term: str
-) -> None:
+def test_reader_facing_ux_rejects_unexplained_internal_terms(tmp_path: Path, term: str) -> None:
     pages = {
         tmp_path / "index.html": '<table id="core-metrics-table"></table>',
         tmp_path / "en/index.html": '<table id="core-metrics-table"></table>',
@@ -335,6 +333,31 @@ def test_logical_results_aggregate_browser_tool_wall_time(tmp_path: Path) -> Non
     assert result["action_count"] == 2
     assert result["browser_tool_duration_ms"] == 1000
     assert result["browser_tool_count_by_action"] == {"click": 2}
+
+
+def test_logical_results_weight_mean_memory_by_resource_samples() -> None:
+    rows = [
+        {
+            "engine": "chromium",
+            "task_id": 1,
+            "attempt": 1,
+            "score": 0,
+            "duration_ms": 1000,
+            "resource": {"memory_mean_bytes": 100, "sample_count": 1},
+        },
+        {
+            "engine": "chromium",
+            "task_id": 1,
+            "attempt": 2,
+            "score": 1,
+            "duration_ms": 1000,
+            "resource": {"memory_mean_bytes": 300, "sample_count": 3},
+        },
+    ]
+
+    result = _logical_results(rows)[0]
+
+    assert result["resource"]["memory_mean_bytes"] == 250
 
 
 def _use_single_model_profile(monkeypatch) -> None:
