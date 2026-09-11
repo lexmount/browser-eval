@@ -78,7 +78,7 @@ def main():
                         help='Limit review packets to one or more exact provider IDs')
     parser.add_argument('--prepare-only', action='store_true',
                         help='Write blinded input packets, then stop before invoking a reviewer')
-    parser.add_argument('--scope', choices=('all','machine-failures'), default='machine-failures',
+    parser.add_argument('--scope', choices=('all','machine-failures','machine-passes'), default='machine-failures',
                         help='Review machine failures by default; full review requires explicit confirmation')
     parser.add_argument('--confirm-full-review', action='store_true',
                         help='Confirm that the user explicitly requested reviewing every attempt')
@@ -86,8 +86,8 @@ def main():
     parser.add_argument('--install', action='store_true',
                         help='Copy the complete, fully adjudicated review into the evidence bundle')
     args = parser.parse_args()
-    if args.scope == 'all' and not args.confirm_full_review:
-        parser.error('--scope all requires --confirm-full-review after an explicit user request')
+    if args.scope in {'all','machine-passes'} and not args.confirm_full_review:
+        parser.error('--scope all/machine-passes requires --confirm-full-review after an explicit user request')
     evidence = args.evidence.resolve()
     work = args.work.resolve(); work.mkdir(parents=True, exist_ok=True)
     dataset = json.loads((evidence/'dataset.json').read_text())
@@ -106,6 +106,8 @@ def main():
         machine = task_passed(record['ok'], record['metrics'], cases[record['case_id']].get('task_kind', 'body'))
         machine_verdict = 'pass' if machine else 'fail'
         if args.scope == 'machine-failures' and machine_verdict != 'fail':
+            continue
+        if args.scope == 'machine-passes' and machine_verdict != 'pass':
             continue
         case = cases[record['case_id']]
         include_resources = (case.get('task_kind') == 'resource'
@@ -157,6 +159,7 @@ def main():
             prompt = f'''Independently audit every attempt in {packet}. This is a result-verification stage, not a code review.
 Inspect every artifact named for an attempt, including file_artifacts, raw_response_artifact and answer_metadata_artifact when present, and compare it with that case's task, exact body-region passages, required facts/resources/patterns, stable contract, and exclusions. The answer metadata file contains only the provider's source title and answer-bearing links/images/videos/media/extras; those fields are valid task output, while request/final URLs, logs, diagnostics and machine-derived candidate inventories are excluded. For direct-file tasks, the text artifact may intentionally be empty: verify the supplied file artifact's signature, size and reference hash instead of treating empty text as failure. Use Read, Grep and read-only hashing/file-identification commands as needed; the full frozen page is available at full_dataset when context beyond the declared acceptance evidence is necessary. The packet deliberately omits machine verdicts and scores. Decide whether the saved output satisfies the declared task. Review successes and failures equally. Return exactly one row per attempt ID ({len(expected)} rows), no omissions or extras. Use uncertain only when the frozen evidence is genuinely insufficient. Evidence must be a short, concrete observable reason; do not expose chain-of-thought.
 Stable text anchors are literal requirements after ordinary Markdown/whitespace normalization: only a declared alternative can substitute for one. Semantically related text is not a hit. Before returning pass, locate every required fact group, stable anchor, resource and record constraint in the artifact; never claim a passage is present without finding it. Evidence for a pass must name the observed required anchors or fields, not merely say that all criteria are met.'''
+            prompt += '''\nFor resource tasks, read resource_output_contract before judging extras. When it declares candidate_scope=image_answer_fields and unexpected=reject, every image URL in answer-bearing image fields or image markup is part of the submitted answer: all expected resources must be present and every candidate must match a declared URL, alias or pattern. Unrelated images therefore fail. Without that target-only contract, expected_resources is recall-only and incidental additional URLs do not fail. A declared alias is an accepted equivalent of its target, not an unexpected resource.'''
             system=('You are an independent benchmark evidence auditor. Follow the task exactly. '
                     'Use only read operations, report observable evidence, and never trust stored verdicts. ')
             raw_output=work/f'batch-{batch_index:03d}-raw.json'

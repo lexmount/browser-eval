@@ -1,10 +1,12 @@
 """Apply reviewed body/table scoring rules to saved outputs without provider calls."""
 import argparse
 from datetime import datetime, timezone
+import fcntl
 import hashlib
 import json
 from pathlib import Path
 import sys
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -19,7 +21,8 @@ from scripts.rescore_content import rescore
 
 ALLOWED_FIELDS = {
     'body_requirements', 'required_patterns', 'required_facts',
-    'acceptance_contract', 'forbidden_any',
+    'acceptance_contract', 'forbidden_any', 'expected_resources',
+    'resource_output_contract',
 }
 class IndependentReviewRequired(ValueError):
     """The prior review is valid history but cannot certify revised scores."""
@@ -149,8 +152,8 @@ def archive_superseded_result_review(path: Path, *, before_dataset: bytes,
     }
 
 
-def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
-           root_cause: str, regression_ids: list[str]):
+def _revise_unlocked(source: Path, canonical_path: Path, *, root_cause_category: str,
+                     root_cause: str, regression_ids: list[str]):
     # Validate correction intent and executable controls before touching evidence.
     provenance = correction_provenance(
         root_cause_category, root_cause, regression_ids
@@ -198,13 +201,29 @@ def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
     dataset['cases'] = [updated_cases[case['id']] for case in dataset['cases']]
     validate_report_ids(dataset, [json.loads(line) for line in before_results.splitlines()])
     dataset_path.write_text(json.dumps(dataset, ensure_ascii=False, indent=2)+'\n')
+    staged_dataset = dataset_path.read_bytes()
     try:
         decisions = rescore(source, allow_rule_revision=True,
                             reference_revision_hashes=revised_reference_hashes or None)
     except BaseException:
-        dataset_path.write_bytes(before_dataset)
-        results_path.write_bytes(before_results)
+        # Never roll stale bytes over a different process's completed revision.
+        # Standard callers are serialized below; this comparison also protects
+        # against an uncooperative writer that does not take the lock.
+        if (dataset_path.read_bytes() == staged_dataset
+                and results_path.read_bytes() == before_results):
+            dataset_path.write_bytes(before_dataset)
+            results_path.write_bytes(before_results)
         raise
+    # A shared scorer implementation can change a verdict without changing a
+    # case field. Record those cases too so the review merger re-audits every
+    # method for the affected task instead of silently reusing old judgments.
+    attempt_cases = {row['attempt_id']: row['case_id']
+                     for row in map(json.loads, before_results.splitlines())}
+    changed_by_case = {row['case_id']: row for row in changed}
+    for decision in decisions:
+        case_id = attempt_cases[decision['attempt_id']]
+        changed_by_case.setdefault(case_id, {'case_id': case_id, 'fields': []})
+    changed = [changed_by_case[case_id] for case_id in sorted(changed_by_case)]
     receipt_path = source/'scoring-revisions.json'
     history = json.loads(receipt_path.read_text()) if receipt_path.exists() else []
     review_revision = {}
@@ -253,6 +272,25 @@ def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
         reference_receipt_path.write_text(json.dumps(
             prior_reference_receipts, ensure_ascii=False, indent=2)+'\n')
     return receipt
+
+
+def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
+           root_cause: str, regression_ids: list[str]):
+    """Serialize evidence revisions and make rollback ownership explicit."""
+    source = source.resolve()
+    lock_id = hashlib.sha256(str(source).encode()).hexdigest()[:20]
+    lock_path = Path(tempfile.gettempdir()) / f"browser-eval-scoring-revision-{lock_id}.lock"
+    with lock_path.open("a+") as lock:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        try:
+            return _revise_unlocked(
+                source, canonical_path,
+                root_cause_category=root_cause_category,
+                root_cause=root_cause,
+                regression_ids=regression_ids,
+            )
+        finally:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
 
 
 if __name__ == '__main__':

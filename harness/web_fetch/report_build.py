@@ -10,6 +10,7 @@ from .safety import contained_path, validate_report_ids
 from .reference_lifecycle import require_verified_reference_checks
 from .reliability import assess_reliability
 from .storage import require_selection_history
+from .scoring import SCORING_SOURCE_SHA256
 
 
 def scoring_scope(records, cases):
@@ -65,6 +66,9 @@ def build_report(source: Path, output: Path) -> Path:
             if checked['source_benchmark']['stable_annotation']['anchor_evidence_sha256'] != annotation['anchor_evidence_sha256']:
                 raise ValueError('Stable text evidence changed: '+c['id'])
     for r in records:
+        if r.get('metrics', {}).get('scoring_source_sha256') != SCORING_SOURCE_SHA256:
+            raise ValueError(
+                f'Stale scoring implementation; rescore before reporting: {r["attempt_id"]}')
         contract = cases[r['case_id']].get('acceptance_contract')
         if contract:
             from .stable_tasks import validate_acceptance_contract
@@ -72,6 +76,16 @@ def build_report(source: Path, output: Path) -> Path:
             expected = hashlib.sha256(json.dumps(contract, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
             if r['metrics'].get('acceptance_contract_sha256') != expected:
                 raise ValueError(f'Acceptance contract hash missing or mismatched: {r["attempt_id"]}')
+        if cases[r['case_id']].get('expected_resources') or cases[r['case_id']].get('resource_output_contract'):
+            resource_contract = {
+                'expected_resources': cases[r['case_id']].get('expected_resources', []),
+                'resource_output_contract': cases[r['case_id']].get('resource_output_contract', {}),
+            }
+            expected = hashlib.sha256(json.dumps(
+                resource_contract, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
+            if r['metrics'].get('resource_acceptance_contract_sha256') != expected:
+                raise ValueError(
+                    f'Resource acceptance contract hash missing or mismatched: {r["attempt_id"]}')
     diagnostic_path=Path(__file__).resolve().parents[2]/'research/failure-sources.json'
     source_checks={x['case_id']:x for x in json.loads(diagnostic_path.read_text())} if diagnostic_path.exists() else {}
     if not cases or not records:

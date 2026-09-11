@@ -9761,6 +9761,9 @@
           "urls": [
             "https://mdn.github.io/learning-area/html/multimedia-and-embedding/responsive-images/elva-800w.jpg"
           ],
+          "aliases": [
+            "https://mdn.github.io/learning-area/html/multimedia-and-embedding/responsive-images/elva-480w-close-portrait.jpg"
+          ],
           "url_patterns": []
         },
         {
@@ -9769,9 +9772,16 @@
           "urls": [
             "https://mdn.github.io/learning-area/html/multimedia-and-embedding/responsive-images/elva-fairy-800w.jpg"
           ],
+          "aliases": [
+            "https://mdn.github.io/learning-area/html/multimedia-and-embedding/responsive-images/elva-fairy-480w.jpg"
+          ],
           "url_patterns": []
         }
-      ]
+      ],
+      "resource_output_contract": {
+        "candidate_scope": "image_answer_fields",
+        "unexpected": "reject"
+      }
     },
     {
       "id": "image-02",
@@ -9816,7 +9826,11 @@
           ],
           "url_patterns": []
         }
-      ]
+      ],
+      "resource_output_contract": {
+        "candidate_scope": "image_answer_fields",
+        "unexpected": "reject"
+      }
     },
     {
       "id": "image-03",
@@ -9853,7 +9867,11 @@
           ],
           "url_patterns": []
         }
-      ]
+      ],
+      "resource_output_contract": {
+        "candidate_scope": "image_answer_fields",
+        "unexpected": "reject"
+      }
     },
     {
       "id": "image-04",
@@ -9898,7 +9916,11 @@
           ],
           "url_patterns": []
         }
-      ]
+      ],
+      "resource_output_contract": {
+        "candidate_scope": "image_answer_fields",
+        "unexpected": "reject"
+      }
     },
     {
       "id": "image-nasa-article",
@@ -9936,6 +9958,10 @@
           "url_patterns": []
         }
       ],
+      "resource_output_contract": {
+        "candidate_scope": "image_answer_fields",
+        "unexpected": "reject"
+      },
       "required_patterns": [],
       "ground_truth_main_content": "",
       "ground_truth_evidence": [
@@ -9981,6 +10007,10 @@
           "url_patterns": []
         }
       ],
+      "resource_output_contract": {
+        "candidate_scope": "image_answer_fields",
+        "unexpected": "reject"
+      },
       "required_patterns": [],
       "ground_truth_main_content": "",
       "ground_truth_evidence": [
@@ -10026,6 +10056,10 @@
           "url_patterns": []
         }
       ],
+      "resource_output_contract": {
+        "candidate_scope": "image_answer_fields",
+        "unexpected": "reject"
+      },
       "required_patterns": [],
       "ground_truth_main_content": "",
       "ground_truth_evidence": [
@@ -10071,6 +10105,10 @@
           "url_patterns": []
         }
       ],
+      "resource_output_contract": {
+        "candidate_scope": "image_answer_fields",
+        "unexpected": "reject"
+      },
       "required_patterns": [],
       "ground_truth_main_content": "",
       "ground_truth_evidence": [
@@ -10116,6 +10154,10 @@
           "url_patterns": []
         }
       ],
+      "resource_output_contract": {
+        "candidate_scope": "image_answer_fields",
+        "unexpected": "reject"
+      },
       "required_patterns": [],
       "ground_truth_main_content": "",
       "ground_truth_evidence": [
@@ -12802,7 +12844,8 @@
       "fact_coverage_threshold": 1.0,
       "forbidden_any": [
         "Access denied",
-        "CAPTCHA"
+        "CAPTCHA",
+        "data-testid=\"review-stars\""
       ],
       "ground_truth_main_content": "2023-05-18\nUnique flavor and great energy boost. It's the perfect gamer's drink!\n\n2023-05-17\nGood flavor and keeps me energized. The bottle design is really fun.\n\n2023-05-16\nExcellent energy drink for gamers. The tropical flavor is refreshing.\n\n2023-05-15\nIt’s fun, tastes good, and the energy boost is helpful during intense gaming sessions.\n\n2023-05-15\nThe best sneakers I've bought in a long time. Stylish, comfortable and the leather quality is top-notch.\n\n2023-05-12\nThe cherry cola flavor is a win. Keeps me energized and focused.\n\n2023-05-10\nThese shoes are a hit with my twins. They love the lights and they seem to be quite durable.\n\n2023-05-01\nExcellent boots for outdoor adventures. They offer great support and are very comfortable.\n\n2023-05-01\nNice design and good quality, but a bit too tight for me. Otherwise, it's a pretty cool beanie.\n\n2023-04-25\nReally enjoyed the citrus flavor and the energy boost it gives.\n\n2023-04-25\nGreat concept, but the sizing is a bit off. Order a size larger.\n\n2023-04-18\nDelicious chocolates, and the box is pretty substantial. It'd make a nice gift.\n\n2023-04-12\nThe boots are durable, but the laces could be better quality.\n\n2023-04-11\nThis potion is a game changer. Love the energy boost and the flavor.\n\n2023-04-10\nLight, comfortable, and nice design. I'm buying another pair.\n\n2023-04-10\nHighly recommend! These shoes are great for evening walks. Kids love them!\n\n2023-04-09\nIt's like a health potion for gamers! The energy boost is spot on.\n\n2023-04-07\nReally helps me focus during intense gaming marathons. The teal color is a nice touch.\n\n2023-04-07\nThe shoes are nice but they didn't fit me well. I had to exchange for a larger size.\n\n2023-04-05\nGreat taste, and the energy kick is awesome. Feels just like a strength potion.",
       "task_prompt": "首次自动加载的 20 条评论：日期与评论全文；不含星级图形，不点击 Load More。允许渲染、解析内嵌数据、加载子文档或获取公开接口，不限制实现路径。",
@@ -13358,7 +13401,10 @@
       "fact_coverage_threshold": 1.0,
       "forbidden_any": [
         "Access denied",
-        "CAPTCHA"
+        "CAPTCHA",
+        "Add to cart",
+        "Work in the Netherlands",
+        "jeremy-akeze-doghouse-it-recruitment"
       ],
       "ground_truth_main_content": "Cropped Stay Groovy off white\n$10.90\nor 9 x$1.21\nFree shipping\n\nBasic Cactus White T-shirt\n$13.25\nor 3 x$4.42\nFree shipping\n\nSkater Black Sweatshirt\n$25.90\nor 12 x$2.16\n\nBlack Tule Oversized\n$29.45\nor 5 x$5.89\nFree shipping\n\nBlack Batman T-shirt\n$10.90\nor 9 x$1.21\nFree shipping\n\nBlue T-Shirt\n$9.00\nor 3 x$3.00\nFree shipping\n\nLoose Black T-shirt\n$14.00\nor 5 x$2.80\nFree shipping\n\nRinger Hall Pass\n$10.90\nor 9 x$1.21\nFree shipping\n\nGrey T-shirt\n$14.90\nor 7 x$2.13\nFree shipping\n\nBlack T-shirt with white stripes\n$14.90\nor 7 x$2.13\nFree shipping\n\nTurtles Ninja T-shirt\n$10.90\nor 9 x$1.21\n\nSlim black T-shirt\n$49.90\nFree shipping\n\nBlue Sweatshirt\n$22.50\nor 4 x$5.63\nFree shipping\n\nWhite T-shirt Gucci\n$18.70\nor 4 x$4.67\n\nTropical Wine T-shirt\n$134.90\nor 5 x$26.98\nFree shipping\n\nMarine Blue T-shirt\n$49.00\nor 9 x$5.44\nFree shipping",
       "task_prompt": "默认未筛选目录的全部 16 个商品：名称、售价、可见分期与免邮文字；不含按钮、图片及广告。允许渲染、解析内嵌数据、加载子文档或获取公开接口，不限制实现路径。",
@@ -14489,7 +14535,9 @@
       "fact_coverage_threshold": 1.0,
       "forbidden_any": [
         "Access denied",
-        "CAPTCHA"
+        "CAPTCHA",
+        "data-testid=\"review-stars\"",
+        "Similar Products"
       ],
       "ground_truth_main_content": "2022-07-22\nAbsolutely delicious! The orange flavor is my favorite.\n\n2022-08-16\nI bought these as a gift, and they were well received. Will definitely purchase again.\n\n2022-09-10\nNice variety of flavors. The chocolate is rich and smooth.\n\n2022-10-02\nThe cherry flavor is amazing. Will be buying more.\n\n2022-11-05\nA bit pricey, but the quality of the chocolate is worth it.",
       "task_prompt": "商品页首次自动呈现的 5 条评论：日期和评论全文；不含星级图形、商品推荐，不点击 Load More。允许渲染、解析内嵌数据、加载子文档或获取公开接口，不限制实现路径。",

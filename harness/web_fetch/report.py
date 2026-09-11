@@ -372,8 +372,14 @@ def reason(r,c):
  if c.get('task_kind')=='file':return '已返回原始文件，格式特征、长度及目标 SHA-256 校验通过。' if succeeded(r,c) else '没有返回可核对的原始文件；文字或重复输入地址不算文件。'
  if c.get('task_kind')=='resource':
   missing=[x['id'] for x in r['metrics'].get('resource_results',[]) if not x['pass']]
+  unexpected=r['metrics'].get('unexpected_resource_urls',[])
+  if missing and unexpected:
+   return ('未找到目标资源：'+', '.join(missing)
+           +'；同时返回非目标资源：'+', '.join(unexpected))
+  if unexpected:return '已找到目标资源，但答案字段还返回了非目标资源：'+', '.join(unexpected)
   return '已找到目标资源。' if not missing else '未找到目标资源：'+', '.join(missing)
  m=r['metrics'];parts=[]
+ if m.get('declared_truncation_hits'):parts.append('供应商声明正文已截断')
  if not m.get('length_pass'):parts.append('正文过短')
  if m.get('forbidden_hits'):parts.append('命中排除文本：'+', '.join(m['forbidden_hits']))
  missing=[x['id'] for x in m.get('fact_results',[]) if not x['pass']]
@@ -513,8 +519,9 @@ def overview_matched_latency(records,cases):
   if observed:
    dates.append(esc(provider_label(row['provider']))+'：'+esc('、'.join(f'{date}（{number} 题）' for date,number in observed.items())))
  links='、'.join(link('datasets/'+cid+'.html',cases[cid].get('name',cid)) for cid in population['common_pass_cases'])
- return (note+table(['方法','同题均值','同题 P50','同题 P95'],rows,'overall-matched-latency-table',metrics=[])
-         +'<details><summary>共同任务与调用日期</summary><p>'+links+'</p><p>'+'<br>'.join(dates)+'</p></details>')
+ content=(note+table(['方法','同题均值','同题 P50','同题 P95'],rows,'overall-matched-latency-table',metrics=[])
+          +'<details><summary>共同任务与调用日期</summary><p>'+links+'</p><p>'+'<br>'.join(dates)+'</p></details>')
+ return '<details class="ranking-metric-help"><summary>按需查看共同成功任务耗时</summary>'+content+'</details>'
 
 def title_diagnostics(groups,selected,base,identifier):
  rows=[]
@@ -553,20 +560,25 @@ def overall_ranking(records,cases,audit=None):
   for track,_ in active_tracks(cases):
    subset=[r for r in rs if cases[r['case_id']].get('track','web')==track and measured(r,cases[r['case_id']])]
    values+=cell(f'{sum(succeeded(r,cases[r["case_id"]]) for r in subset)}/{len(subset)}',sum(succeeded(r,cases[r['case_id']]) for r in subset)/len(subset) if subset else -1)
+  times=[r['elapsed_ms'] for r in rs]
+  values+=cell(ms(statistics.mean(times)),statistics.mean(times))
+  values+=cell(ms(percentile(times,.5)),percentile(times,.5))
+  values+=cell(ms(percentile(times,.95)),percentile(times,.95))
   if audit:values+=review_cell(audit,rs)
   rows.append((passed,name,('',values)))
  rows=[row for _,_,row in sorted(rows,key=lambda x:(-x[0],x[1]))]
  tracks=active_tracks(cases)
- heads=['方法','请求成功率','综合任务通过率']+[label for _,label in tracks]
+ heads=['方法','请求成功率','综合任务通过率']+[label for _,label in tracks]+['全调用均值','全调用 P50','全调用 P95']
  if audit:heads+=['审查结果']
  case_count=len(cases);track_count=len(tracks);track_label=track_count_label(track_count)
  if case_count==150 and track_count==6:
-  intro='<p class="decision-lead"><b>总榜口径：</b>每种方法都执行同一组 150 个任务，每题计一次通过或失败，直接相加；不把耗时、全文质量或任务类别难度混成加权分。总榜适合看整体交付覆盖，具体能力仍应回到六个分榜。</p>'
+  intro='<p class="decision-lead"><b>总榜口径：</b>每种方法都执行同一组 150 个任务，每题计一次通过或失败，直接相加；耗时单列展示，不参与通过率排序。总榜适合看整体交付覆盖，具体能力仍应回到六个分榜。</p>'
  else:
-  intro=(f'<p class="decision-lead"><b>总榜口径：</b>每种方法都执行当前评测集计划的 {case_count} 个任务，每题计一次通过或失败，直接相加；不把耗时、全文质量或任务类别难度混成加权分。总榜适合看整体交付覆盖，具体能力仍应回到 {track_label} 个分榜。</p>')
+  intro=(f'<p class="decision-lead"><b>总榜口径：</b>每种方法都执行当前评测集计划的 {case_count} 个任务，每题计一次通过或失败，直接相加；耗时单列展示，不参与通过率排序。总榜适合看整体交付覆盖，具体能力仍应回到 {track_label} 个分榜。</p>')
  help=('<details class="ranking-metric-help"><summary>总榜指标说明</summary><div class="metric-help"><dl>'
        f'<div><dt>综合任务通过率</dt><dd>{case_count} 个任务中满足各自验收规则的数量；每题等权。</dd></div>'
        f'<div><dt>{track_label} 类通过数</dt><dd>各分榜通过数 / 本类任务数，用于定位总分来自哪些能力。</dd></div>'
+       f'<div><dt>全调用均值 / P50 / P95</dt><dd>每种方法在同一组 {case_count} 个计划任务上的端到端耗时，包含通过与失败；三项不参与通过率排名。主矩阵调用跨日期、跨批次，不等同于同窗受控速度比较。</dd></div>'
        '<div><dt>审查结果</dt><dd>独立盲审覆盖数、审查方法和未决数。</dd></div>'
        '</dl></div></details>')
  return intro+help+table(heads,rows,'ranking-overall',True,'ranking',metrics=[]).replace('<table class="ranking"','<table class="ranking" data-col="3" data-dir="desc"')
@@ -691,6 +703,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   resources=[('',cell(esc(x['id']))+cell('<br>'.join(link(u,u) for u in x.get('urls',[]))+('<br>入口地址规则：<code>'+esc(' / '.join(x['url_patterns']))+'</code>' if x.get('url_patterns') else ''))) for x in c.get('expected_resources',[])]
   rules=''.join(f'<p>{esc(x["id"])}：至少 {x.get("minimum",1)} 项；<code>{esc(x["pattern"])}</code></p>' for x in c.get('required_patterns',[]))
   status_note=f'<p class="callout">参考状态：{reference_label(c)}。</p>'
+  if c.get('resource_output_contract',{}).get('unexpected')=='reject':
+   status_note+='<p class="callout">资源输出契约：只允许在答案图片字段中返回登记的目标、别名或匹配规则；额外图片会使任务未通过。</p>'
   if c.get('task_kind')=='structure':
    from .report_components import list_rule_description
    status_note='<p class="callout">'+esc(list_rule_description(c))+'</p><p>任务结果与耗时进入主榜；全文指标无完整参考时显示 —。</p>'
@@ -751,6 +765,12 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
    rows[8]=('',cell('文本输出校验值')+cell(f'<code class="break">{esc(m.get("content_sha256"))}</code>'))
   if 'content_check_total' in m:
    rows.append(('',cell('文字核对覆盖')+cell(pct(m.get('content_check_coverage'))+f' · {m["content_check_hits"]}/{m["content_check_total"]} 组')))
+  if c.get('task_kind')=='resource':
+   rows.append(('',cell('资源召回率 / 纯净度')+cell(
+       f'{pct(m.get("resource_recall"))} / {pct(m.get("resource_precision"))}')))
+   if m.get('unexpected_resource_urls'):
+    rows.append(('',cell('非目标资源')+cell('<br>'.join(
+        f'<code class="break">{esc(url)}</code>' for url in m['unexpected_resource_urls']))))
   rows[3]=('',cell('任务结果')+cell(result_label(r,c)))
   if r.get('raw_request_status'):
    rows.append(('',cell('原始适配器状态')+cell(esc(json.dumps(r['raw_request_status'],ensure_ascii=False)))))
@@ -881,6 +901,13 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   else:
    checks_html+=(table(['核对点','标准答案','判定','实际命中'],checks) if checks else '<p class="decision-lead">本例按任务结构或原文件输出判定。</p>')
    checks_html+=''.join(f'<p>{esc(x["id"])}：实际 {x["count"]}，要求至少 {x["minimum"]}。</p>' for x in m.get('pattern_results',[]))
+  if c.get('task_kind')=='resource' and m.get('resource_candidates'):
+   unexpected=set(m.get('unexpected_resource_urls',[]))
+   candidate_rows=[('',cell(f'<code class="break">{esc(item["url"])}</code>')
+                    +cell(esc('、'.join(item.get('sources',[]))))
+                    +cell('非目标资源' if item['url'] in unexpected else '目标或允许变体'))
+                   for item in m['resource_candidates']]
+   checks_html+=table(['候选资源地址','答案字段来源','范围判定'],candidate_rows,metrics=[])
   if m.get('stable_field_results'):
    checks_html+=table(['记录字段','有效记录数','至少要求','判定'],[('',cell(esc(x['field']))+cell(str(x['count']))+cell(str(x['minimum']))+cell('通过' if x['pass'] else '未通过')) for x in m['stable_field_results']],metrics=[])
   body+=section('为什么这样判',caveat+checks_html,'decision')

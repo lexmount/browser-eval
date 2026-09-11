@@ -145,6 +145,76 @@
       "expected_metrics": {"body_coverage_pass": false}
     },
     {
+      "id": "declared-truncation-cannot-pass-full-body-task",
+      "category": "body-scope",
+      "root_cause": "declared_truncation",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/article",
+        "required_facts": [{"id": "anchor", "alternatives": ["required anchor"]}],
+        "min_content_chars": 20
+      },
+      "artifact": "required anchor and enough retained prefix text\n\n(Content truncated. Fetch a more specific URL or section for the full text.)",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"declared_truncation_hits": ["(Content truncated. Fetch a more specific URL or section for the full text.)"]}
+    },
+    {
+      "id": "ordinary-truncation-prose-does-not-fail-body-task",
+      "category": "body-scope",
+      "root_cause": "declared_truncation",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/article",
+        "required_facts": [{"id": "anchor", "alternatives": ["required anchor"]}],
+        "min_content_chars": 20
+      },
+      "artifact": "required anchor. This article explains how content truncated by a parser can be recovered.",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"declared_truncation_hits": []}
+    },
+    {
+      "id": "complete-records-with-declared-excluded-ui-fail",
+      "category": "acceptance-contract",
+      "root_cause": "declared_scope_exclusions",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/products",
+        "forbidden_any": ["Similar Products"],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Alpha\n$10.00\n\nBeta\n$20.00\n\nSimilar Products\nGamma\n$30.00",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"forbidden_hits": ["Similar Products"], "stable_structure_pass": true}
+    },
+    {
+      "id": "target-only-records-pass-declared-exclusions",
+      "category": "acceptance-contract",
+      "root_cause": "declared_scope_exclusions",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/products",
+        "forbidden_any": ["Similar Products"],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Alpha\n$10.00\n\nBeta\n$20.00",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"forbidden_hits": [], "stable_structure_pass": true}
+    },
+    {
       "id": "glued-quote-fields-cannot-borrow-boundaries",
       "category": "structured-extraction",
       "root_cause": "record_ownership",
@@ -323,6 +393,61 @@
       "ok": true,
       "expected_task_pass": false,
       "expected_metrics": {"stable_structure_pass": false}
+    },
+    {
+      "id": "target-only-image-answer-rejects-unexpected-image",
+      "category": "acceptance-contract",
+      "root_cause": "resource_output_scope",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [{"id": "hero", "urls": ["/media/hero.jpg"]}],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "",
+      "metadata": {"extras": {"imageLinks": ["/media/hero.jpg", "/media/logo.png"]}},
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_recall": 1.0,
+        "resource_precision": 0.5,
+        "resource_pass": false,
+        "unexpected_resource_urls": ["https://example.test/media/logo.png"]
+      }
+    },
+    {
+      "id": "target-only-image-answer-accepts-declared-alias",
+      "category": "acceptance-contract",
+      "root_cause": "resource_output_scope",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [{
+          "id": "hero",
+          "urls": ["/media/hero-large.jpg"],
+          "aliases": ["/media/hero-480w.jpg"]
+        }],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "![Hero](/media/hero-480w.jpg)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_recall": 1.0,
+        "resource_precision": 1.0,
+        "resource_pass": true,
+        "unexpected_resource_urls": []
+      }
     }
   ]
 }

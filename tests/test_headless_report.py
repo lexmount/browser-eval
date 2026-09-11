@@ -8,6 +8,7 @@ import unittest
 
 from harness.web_fetch.reference_lifecycle import (preflight_reference_checks, sha256,
     require_verified_reference_checks, valid_scoring_revision)
+from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
 from harness.web_fetch.report_explainer import (
     _digest, _headless_article_input, _article_speed_population,
     headless_evidence, render_explainer)
@@ -85,13 +86,14 @@ class HeadlessReportTests(unittest.TestCase):
                              'agent_verdict':'pass','final_verdict':'pass'}]}
             (root/'result-review.json').write_text(json.dumps(review))
             history=[{'kind':'audited_scoring_rule_revision','provider_calls':0,
-                      'output_dataset_sha256':'old','output_results_sha256':'old',
+                      'input_dataset_sha256':'a'*64,'input_results_sha256':'b'*64,
+                      'output_dataset_sha256':'c'*64,'output_results_sha256':'d'*64,
                       'changed_cases':[],'task_decision_changes':[]}]
             (root/'scoring-revisions.json').write_text(json.dumps(history))
             self.assertTrue(bind_assembled_scoring_revision(root))
             self.assertTrue(valid_scoring_revision(root))
             bound=json.loads((root/'scoring-revisions.json').read_text())[-1]
-            self.assertEqual(bound['input_results_sha256'],bound['output_results_sha256'])
+            self.assertEqual(bound['input_results_sha256'],'d'*64)
             self.assertFalse(bind_assembled_scoring_revision(root))
             history=json.loads((root/'scoring-revisions.json').read_text())
             history[0]['changed_cases']=[{'case_id':'tampered','fields':[]}]
@@ -212,7 +214,8 @@ class HeadlessReportTests(unittest.TestCase):
         record={'attempt_id':'p__body__r001','provider':'p','case_id':'body',
             'started_at':(now-timedelta(seconds=3)).isoformat(),
             'completed_at':(now-timedelta(seconds=2)).isoformat(),'elapsed_ms':1000,
-            'metrics':{'reference_sha256':sha256('Reference body')}}
+            'metrics':{'reference_sha256':sha256('Reference body'),
+                       'scoring_source_sha256':SCORING_SOURCE_SHA256}}
         observation={'case_id':'body','independent':True,'content_text':'Reference body',
             'checked_at':(now-timedelta(seconds=1)).isoformat(),
             'scope_identity':checks['cases']['body']['scope_identity'],

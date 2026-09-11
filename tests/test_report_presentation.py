@@ -20,6 +20,7 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertIn('<strong>2/3</strong>',rendered)
   self.assertIn('同题均值',rendered)
   self.assertIn('同题 P95',rendered)
+  self.assertIn('<summary>按需查看共同成功任务耗时</summary>',rendered)
   self.assertEqual(rendered.count('<strong>2,000 ms</strong>'),14)
   self.assertEqual(rendered.count('<strong>3,000 ms</strong>'),7)
   for provider in providers:self.assertIn('providers/'+provider+'.html',rendered)
@@ -31,8 +32,27 @@ class ReportRevisionTests(unittest.TestCase):
  def test_result_default_failure(self):
   controls=filter_controls([('result','结果',[('pass','任务通过'),('fail','任务失败')])])
   self.assertIn('value="fail" selected',controls)
+ def test_overall_ranking_shows_all_call_latency_without_affecting_pass_order(self):
+  cases={'a':{'id':'a','track':'web','task_kind':'body'},
+         'b':{'id':'b','track':'web','task_kind':'body'}}
+  records=[
+   {'provider':'fast-low-pass','case_id':'a','ok':True,'elapsed_ms':10,'metrics':{'content_pass':True}},
+   {'provider':'fast-low-pass','case_id':'b','ok':False,'elapsed_ms':20,'metrics':{'content_pass':False}},
+   {'provider':'slow-high-pass','case_id':'a','ok':True,'elapsed_ms':100,'metrics':{'content_pass':True}},
+   {'provider':'slow-high-pass','case_id':'b','ok':True,'elapsed_ms':200,'metrics':{'content_pass':True}},
+  ]
+  rendered=overall_ranking(records,cases)
+  self.assertIn('全调用均值',rendered)
+  self.assertIn('全调用 P50',rendered)
+  self.assertIn('全调用 P95',rendered)
+  self.assertIn('包含通过与失败',rendered)
+  self.assertLess(rendered.index('slow-high-pass'),rendered.index('fast-low-pass'))
+  self.assertIn('150 ms',rendered)
  def test_failure_filter_defaults_and_deduplication(self):
-  rows=[self.row(case_id='case'),self.row(case_id='case'),self.row(case_id='case',metrics={'content_pass':True})]
+  missing={'content_pass':False,'length_pass':True,'resource_pass':False,
+           'resource_results':[{'id':'target','pass':False}], 'unexpected_resource_urls':[]}
+  rows=[self.row(case_id='case',metrics=missing),self.row(case_id='case',metrics=missing),
+        self.row(case_id='case',metrics={'content_pass':True,'resource_pass':True})]
   options=failure_filters(rows,{'case':{'task_kind':'resource'}})
   self.assertEqual(options[1][2],[('缺少目标资源','缺少目标资源')])
   controls=filter_controls(options)
@@ -49,7 +69,10 @@ class ReportRevisionTests(unittest.TestCase):
  def test_upstream_access_denied(self):
   self.assertEqual(failure_category(self.row(ok=False,error_type='CRAWL_HTTP_401'),{}),'源站拒绝该次访问')
  def test_resource_missing(self):
-  self.assertEqual(failure_category(self.row(),{'task_kind':'resource'}),'缺少目标资源')
+  missing=self.row(metrics={'content_pass':False,'resource_pass':False,
+                            'resource_results':[{'id':'target','pass':False}],
+                            'unexpected_resource_urls':[]})
+  self.assertEqual(failure_category(missing,{'task_kind':'resource'}),'缺少目标资源')
  def test_pass_no_failure(self):
   self.assertEqual(failure_category(self.row(metrics={'content_pass':True}),{}),'—')
  def test_all_interfaces(self):

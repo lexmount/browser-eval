@@ -191,6 +191,112 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(result["resource_recall"], 1.0)
         self.assertEqual(result["resource_candidate_urls"], ["https://example.test/valid.png"])
 
+    def test_target_only_image_contract_rejects_non_target_with_provenance(self) -> None:
+        result = evaluate_resources(
+            "![Target](/target.jpg)",
+            {"images": [{"src": "/target.jpg", "alt": "Target photo"}, "/logo.svg"]},
+            [{"id": "target", "kind": "image", "urls": ["/target.jpg"]}],
+            base_url="https://example.test/gallery",
+            output_contract={"candidate_scope": "image_answer_fields", "unexpected": "reject"},
+        )
+        self.assertEqual(result["resource_recall"], 1.0)
+        self.assertEqual(result["resource_precision"], 0.5)
+        self.assertEqual(result["unexpected_resource_urls"], ["https://example.test/logo.svg"])
+        self.assertFalse(result["resource_pass"])
+        self.assertEqual(result["resource_candidates"], [
+            {"url": "https://example.test/logo.svg", "sources": ["metadata.images"]},
+            {"url": "https://example.test/target.jpg",
+             "sources": ["content.markdown_image", "metadata.images.src"]},
+        ])
+
+    def test_target_only_image_contract_parses_img_src_and_srcset(self) -> None:
+        result = evaluate_resources(
+            '<img src="/target.jpg" srcset="/target.jpg 1x, /logo.png 2x">',
+            {},
+            [{"id": "target", "kind": "image", "urls": ["/target.jpg"]}],
+            base_url="https://example.test/gallery",
+            output_contract={"candidate_scope": "image_answer_fields", "unexpected": "reject"},
+        )
+        self.assertEqual(result["resource_recall"], 1.0)
+        self.assertEqual(result["resource_precision"], 0.5)
+        self.assertEqual(result["unexpected_resource_urls"],
+                         ["https://example.test/logo.png"])
+        self.assertFalse(result["resource_pass"])
+        by_url = {row["url"]: row["sources"] for row in result["resource_candidates"]}
+        self.assertEqual(by_url["https://example.test/target.jpg"],
+                         ["content.html_img", "content.html_img_srcset"])
+        self.assertEqual(by_url["https://example.test/logo.png"],
+                         ["content.html_img_srcset"])
+
+    def test_invalid_target_only_contract_fails_closed(self) -> None:
+        invalid = (
+            ({"candidate_scope": "all", "unexpected": "reject"},
+             "Unsupported resource candidate_scope"),
+            ({"candidate_scope": "image_answer_fields", "unexpected": "drop"},
+             "Unsupported resource unexpected policy"),
+        )
+        for contract, message in invalid:
+            with self.subTest(contract=contract):
+                with self.assertRaisesRegex(ValueError, message):
+                    evaluate_resources(
+                        "![Target](/target.jpg)", {},
+                        [{"id": "target", "urls": ["/target.jpg"]}],
+                        base_url="https://example.test/gallery",
+                        output_contract=contract,
+                    )
+
+    def test_image_scope_ignores_ordinary_page_links(self) -> None:
+        result = evaluate_resources(
+            "[Article](https://example.test/article)\n"
+            "<a href='https://example.test/related'>Related</a>\n"
+            "![Target](https://cdn.example.test/target.webp)",
+            {"links": ["https://example.test/navigation"],
+             "extras": {"links": ["https://example.test/card"]}},
+            [{"id": "target", "kind": "image", "urls": ["https://cdn.example.test/target.webp"]}],
+            base_url="https://example.test/gallery",
+            output_contract={"candidate_scope": "image_answer_fields", "unexpected": "reject"},
+        )
+        self.assertTrue(result["resource_pass"])
+        self.assertEqual(result["resource_precision"], 1.0)
+        self.assertEqual(result["resource_candidate_urls"], ["https://cdn.example.test/target.webp"])
+        self.assertEqual(result["unexpected_resource_urls"], [])
+
+    def test_image_scope_accepts_declared_alias_pattern_and_normalized_thumbnail(self) -> None:
+        contract = {"candidate_scope": "image_answer_fields", "unexpected": "reject"}
+        alias = evaluate_resources(
+            "", {"images": ["/photo-480w.jpg"]},
+            [{"id": "photo", "urls": ["/photo-800w.jpg"], "aliases": ["/photo-480w.jpg"]}],
+            base_url="https://example.test/gallery/", output_contract=contract,
+        )
+        self.assertTrue(alias["resource_pass"])
+        self.assertEqual(alias["resource_precision"], 1.0)
+        pattern = evaluate_resources(
+            "", {"extras": {"imageLinks": ["https://cdn.example.test/photo_640.jpg"]}},
+            [{"id": "photo", "url_patterns": [r"/photo_\d+\.jpg$"]}],
+            base_url="https://example.test/gallery/", output_contract=contract,
+        )
+        self.assertTrue(pattern["resource_pass"])
+        thumb = evaluate_resources(
+            "", {"media": {"images": [{"src":
+                "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Earth.jpg/320px-Earth.jpg"}]}},
+            [{"id": "earth", "urls": [
+                "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Earth.jpg/1280px-Earth.jpg"
+            ]}], base_url="https://commons.wikimedia.org/wiki/File:Earth.jpg",
+            output_contract=contract,
+        )
+        self.assertTrue(thumb["resource_pass"])
+
+    def test_image_scope_accepts_bare_declared_extensionless_target(self) -> None:
+        target = "https://images.unsplash.com/photo-1493673272479-a20888bcee10"
+        result = evaluate_resources(
+            target + "\nhttps://example.test/ordinary-page", {},
+            [{"id": "photo", "urls": [target]}],
+            base_url="https://unsplash.com/photos/example",
+            output_contract={"candidate_scope": "image_answer_fields", "unexpected": "reject"},
+        )
+        self.assertTrue(result["resource_pass"])
+        self.assertEqual(result["resource_candidate_urls"], [target])
+
 
 if __name__ == "__main__":
     unittest.main()

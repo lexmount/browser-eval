@@ -9,6 +9,7 @@ import hashlib
 import json
 from pathlib import Path
 import sys
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -19,22 +20,101 @@ def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _revision_suffix(receipts, prior_bindings, current_bindings):
+    """Return the complete revision suffix from a prior review to current bytes."""
+    starts = [index for index, receipt in enumerate(receipts)
+              if (receipt.get('input_dataset_sha256'),
+                  receipt.get('input_results_sha256')) == (
+                      prior_bindings.get('dataset_sha256'),
+                      prior_bindings.get('results_sha256'))]
+    if not starts:
+        raise ValueError('Prior review is not bound to any scoring revision inputs')
+
+    failures = []
+    for start in starts:
+        expected = (prior_bindings.get('dataset_sha256'),
+                    prior_bindings.get('results_sha256'))
+        suffix = receipts[start:]
+        for offset, receipt in enumerate(suffix):
+            actual_input = (receipt.get('input_dataset_sha256'),
+                            receipt.get('input_results_sha256'))
+            if actual_input != expected:
+                failures.append(
+                    f'Scoring revision chain is broken at receipt {start + offset + 1}')
+                break
+            expected = (receipt.get('output_dataset_sha256'),
+                        receipt.get('output_results_sha256'))
+            if None in expected:
+                failures.append(
+                    f'Scoring revision receipt {start + offset + 1} has no output binding')
+                break
+        else:
+            if expected == (current_bindings['dataset_sha256'],
+                            current_bindings['results_sha256']):
+                return suffix
+            failures.append('Scoring revision chain does not end at current evidence')
+    raise ValueError(failures[0])
+
+
+def _validate_before_install(dataset_bytes, results_bytes, review):
+    """Run the publication validator before replacing the installed review."""
+    with tempfile.TemporaryDirectory(prefix='result-review-merge-') as directory:
+        root = Path(directory)
+        (root/'dataset.json').write_bytes(dataset_bytes)
+        (root/'results.jsonl').write_bytes(results_bytes)
+        (root/'result-review.json').write_text(
+            json.dumps(review, ensure_ascii=False, indent=2)+'\n')
+        dataset = json.loads(dataset_bytes)
+        records = [json.loads(line) for line in results_bytes.splitlines()]
+        require_result_review(root, dataset, records)
+
+
+def _install_review(evidence, review):
+    dataset_bytes = (evidence/'dataset.json').read_bytes()
+    results_bytes = (evidence/'results.jsonl').read_bytes()
+    _validate_before_install(dataset_bytes, results_bytes, review)
+    target = evidence/'result-review.json'
+    payload = json.dumps(review, ensure_ascii=False, indent=2)+'\n'
+    temporary = target.with_name('.result-review.json.merge-tmp')
+    try:
+        temporary.write_text(payload)
+        temporary.replace(target)
+    finally:
+        temporary.unlink(missing_ok=True)
+    dataset = json.loads(dataset_bytes)
+    records = [json.loads(line) for line in results_bytes.splitlines()]
+    require_result_review(evidence, dataset, records)
+    return target
+
+
 def merge(evidence: Path, prior_path: Path, supplemental_evidence: Path):
     dataset=json.loads((evidence/'dataset.json').read_text())
     records=[json.loads(line) for line in (evidence/'results.jsonl').read_text().splitlines()]
     receipts=json.loads((evidence/'scoring-revisions.json').read_text())
-    receipt=receipts[-1]
-    changed_cases={row['case_id'] for row in receipt.get('changed_cases',[])}
-    if not changed_cases:
-        raise ValueError('Latest scoring revision has no changed cases')
     prior=json.loads(prior_path.read_text())
-    if prior.get('bindings') != {
-            'dataset_sha256':receipt['input_dataset_sha256'],
-            'results_sha256':receipt['input_results_sha256']}:
-        raise ValueError('Prior review is not bound to the scoring revision inputs')
+    current_bindings={'dataset_sha256':sha(evidence/'dataset.json'),
+                      'results_sha256':sha(evidence/'results.jsonl')}
+    suffix=_revision_suffix(receipts,prior.get('bindings',{}),current_bindings)
+    changed_cases={row['case_id'] for receipt in suffix
+                   for row in receipt.get('changed_cases',[])}
+    if not changed_cases:
+        raise ValueError('Scoring revision chain has no changed cases')
+    current_cases={case['id']:case for case in dataset['cases']}
+    if not changed_cases <= set(current_cases):
+        raise ValueError('Scoring revision changed cases are absent from current dataset')
     subset_dataset=json.loads((supplemental_evidence/'dataset.json').read_text())
     subset_records=[json.loads(line) for line in (supplemental_evidence/'results.jsonl').read_text().splitlines()]
     supplemental=require_result_review(supplemental_evidence,subset_dataset,subset_records)
+    supplemental_protocol=supplemental.get('review_protocol',{})
+    if supplemental_protocol.get('machine_judgments_withheld') is not True:
+        raise ValueError('Supplemental review must be blinded to machine judgments')
+    if supplemental_protocol.get('scope','all') != 'all':
+        raise ValueError('Supplemental review must cover all changed attempts')
+    subset_cases={case['id']:case for case in subset_dataset['cases']}
+    if set(subset_cases) != changed_cases or any(
+            subset_cases[case_id] != current_cases[case_id]
+            for case_id in changed_cases):
+        raise ValueError('Supplemental review must use every current changed task')
     expected={r['attempt_id'] for r in records if r['case_id'] in changed_cases}
     supplied={r['attempt_id'] for r in subset_records}
     if supplied != expected:
@@ -44,24 +124,36 @@ def merge(evidence: Path, prior_path: Path, supplemental_evidence: Path):
         if row != current[row['attempt_id']]:
             raise ValueError('Supplemental review was not run against current persisted results')
     replacements={row['attempt_id']:row for row in supplemental['attempts']}
-    attempts=[replacements.get(row['attempt_id'],row) for row in prior['attempts']]
-    if {row['attempt_id'] for row in attempts} != set(current):
+    if set(replacements) != expected:
+        raise ValueError('Supplemental review must independently review every changed attempt')
+    previous_attempts=prior.get('attempts',[])
+    previous_ids=[row.get('attempt_id') for row in previous_attempts]
+    if len(previous_ids) != len(set(previous_ids)) or set(previous_ids) != set(current):
+        raise ValueError('Prior full review does not cover the current attempt inventory')
+    retained={row['attempt_id']:row for row in previous_attempts
+              if current[row['attempt_id']]['case_id'] not in changed_cases}
+    attempts=[replacements.get(row['attempt_id'],retained.get(row['attempt_id']))
+              for row in records]
+    if any(row is None for row in attempts):
         raise ValueError('Merged review does not cover the current attempt inventory')
-    prior['bindings']={'dataset_sha256':sha(evidence/'dataset.json'),
-                       'results_sha256':sha(evidence/'results.jsonl')}
-    prior['attempts']=attempts
-    prior['review_protocol']['scoring_rule_revision_review']={
+    merged=json.loads(json.dumps(prior))
+    merged['bindings']=current_bindings
+    merged['attempts']=attempts
+    merged.setdefault('review_protocol',{})['scope']='all'
+    merged['review_protocol']['scoring_rule_revision_review']={
         'changed_cases':sorted(changed_cases),
         'reviewed_attempts':len(replacements),
         'reviewer':supplemental['reviewer'],
         'machine_judgments_withheld':True,
+        'revision_receipts':len(suffix),
     }
-    prior['disagreements']=sum(row['agent_verdict'] != row['machine_verdict'] for row in attempts)
-    prior['unresolved']=sum(row['final_verdict'] not in {'pass','fail'} for row in attempts)
-    target=evidence/'result-review.json'
-    target.write_text(json.dumps(prior,ensure_ascii=False,indent=2)+'\n')
-    require_result_review(evidence,dataset,records)
-    return target
+    merged['total_attempts']=len(records)
+    merged['expected_attempts']=len(records)
+    merged['reviewed_attempts']=len(attempts)
+    merged['accepted_unreviewed_passes']=0
+    merged['disagreements']=sum(row['agent_verdict'] != row['machine_verdict'] for row in attempts)
+    merged['unresolved']=sum(row['final_verdict'] not in {'pass','fail'} for row in attempts)
+    return _install_review(evidence,merged)
 
 
 def merge_replacement(evidence: Path, prior_evidence: Path,

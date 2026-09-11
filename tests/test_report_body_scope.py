@@ -16,6 +16,7 @@ from harness.web_fetch.report_components import (
     task_contract_guide, task_pass_guide, examples, list_rule_description, metric_guide, reference_status, task_instruction,
 )
 from harness.web_fetch.stable_tasks import evaluate_stable_task
+from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
 
 
 def case(identifier='list', kind='structure', track='challenge'):
@@ -36,6 +37,7 @@ def record(c, passed=True, ok=True, score=.8, elapsed=100):
                              word_f1=score, word_recall=score, word_precision=score,
                              length_pass=True, fact_results=[], pattern_results=[],
                              resource_results=[], confirmed_entries=3,
+                             scoring_source_sha256=SCORING_SOURCE_SHA256,
                              content_sha256=hashlib.sha256(b'output').hexdigest()))
 
 
@@ -328,6 +330,92 @@ class ReportBodyScopeTests(unittest.TestCase):
                 self.assertIn(phrase,detail)
             self.assertNotIn('本次没有交付可校验的原始文件字节',detail)
 
+    def test_target_only_resource_reason_and_details_show_scope_failures_in_both_languages(self):
+        from harness.web_fetch.failure_diagnosis import diagnose
+
+        target = 'https://cdn.example.com/target.jpg'
+        alias = 'https://cdn.example.com/target-640.jpg'
+        unexpected = 'https://cdn.example.com/recommended.jpg'
+        scenarios = [
+            ('unexpected-only', True, 1.0, .5, [unexpected],
+             '已找到目标资源，但答案字段还返回了非目标资源：',
+             '目标资源已命中，但答案字段还返回了非目标资源：',
+             'The target resource was found, but answer-bearing fields also returned unexpected resources:'),
+            ('mixed', False, 0.0, 0.0, [unexpected],
+             '未找到目标资源：target；同时返回非目标资源：',
+             '未命中资源：target；同时返回非目标资源：',
+             'Missing resources: target; also returned unexpected resources:'),
+            ('clean-alias', True, 1.0, 1.0, [],
+             '已找到目标资源。', '已找到目标资源。',
+             'The required resource was found.'),
+        ]
+        cases=[];records=[]
+        for identifier, matched, recall, precision, extra, zh_reason, _, _ in scenarios:
+            c=case(identifier,'resource','image')
+            c.update(
+                expected_resources=[{'id':'target','kind':'image','urls':[target],'aliases':[alias]}],
+                resource_output_contract={'candidate_scope':'image_answer_fields','unexpected':'reject'},
+                reference_answer='返回登记的目标图片或允许别名，且不返回其它图片。',
+            )
+            r=record(c,passed=matched and not extra)
+            matched_urls=[alias] if identifier=='clean-alias' else [target] if matched else []
+            candidate_urls=matched_urls+extra
+            r['metrics'].update(
+                resource_pass=matched and not extra,
+                resource_hits=1 if matched else 0,
+                resource_total=1,
+                resource_recall=recall,
+                resource_precision=precision,
+                resource_results=[{'id':'target','kind':'image','expected_urls':[target,alias],
+                                   'expected_mime_types':[],'matched_urls':matched_urls,'pass':matched}],
+                resource_candidate_urls=candidate_urls,
+                resource_candidates=[{'url':url,'sources':['metadata.images']}
+                                     for url in candidate_urls],
+                unexpected_resource_urls=extra,
+            )
+            fallback=reason(r,c)
+            self.assertIn(zh_reason,fallback)
+            if extra:self.assertIn(unexpected,fallback)
+            if not r['metrics']['resource_pass']:
+                r['diagnosis']=diagnose(r,c,'')
+            cases.append(c);records.append(r)
+
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory)
+            for r in records:
+                artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True,exist_ok=True)
+                artifact.write_text('\n'.join(r['metrics']['resource_candidate_urls']))
+            with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), \
+                    patch('harness.web_fetch.report.write_support'):
+                generate(out,{'cases':cases},records,[])
+            for (identifier, matched, recall, precision, extra, _, zh_detail, en_reason),r in zip(scenarios,records):
+                zh=(out/'attempts'/f'{r["attempt_id"]}.html').read_text()
+                en=(out/'en/attempts'/f'{r["attempt_id"]}.html').read_text()
+                expected_values=f'{recall*100:.1f}% / {precision*100:.1f}%'
+                self.assertIn('资源召回率 / 纯净度',zh)
+                self.assertIn('Resource recall / precision',en)
+                self.assertIn(expected_values,zh)
+                self.assertIn(expected_values,en)
+                self.assertIn(zh_detail,zh)
+                self.assertIn(en_reason,en)
+                for phrase in ['候选资源地址','答案字段来源','范围判定','metadata.images']:
+                    self.assertIn(phrase,zh)
+                for phrase in ['Candidate resource URL','Answer-field source','Scope decision','metadata.images']:
+                    self.assertIn(phrase,en)
+                expected_verdict='通过' if r['metrics']['resource_pass'] else '未通过'
+                self.assertIn(f'<span class="status-line">{expected_verdict}</span>',zh)
+                self.assertIn(f'<span class="status-line">{"Pass" if expected_verdict=="通过" else "Fail"}</span>',en)
+                if extra:
+                    self.assertIn('非目标资源',zh)
+                    self.assertIn('Unexpected resources',en)
+                    self.assertIn(unexpected,zh)
+                    self.assertIn(unexpected,en)
+                else:
+                    self.assertNotIn('非目标资源',zh)
+                    self.assertNotIn('Unexpected resources',en)
+                    self.assertIn(alias,zh)
+                    self.assertIn(alias,en)
+
     def test_body_failure_reason_names_readable_positions_not_internal_region_ids(self):
         from harness.web_fetch.report import reason
         c=case('article','body','web')
@@ -509,6 +597,19 @@ class ReportBodyScopeTests(unittest.TestCase):
                         build_report(source,out)
                 generated.assert_not_called()
                 self.assertFalse(out.exists())
+
+    def test_build_rejects_stale_scoring_implementation_before_render(self):
+        from harness.web_fetch.report_build import build_report
+        c=case();r=record(c);r['metrics']['scoring_source_sha256']='old-scorer'
+        with tempfile.TemporaryDirectory() as directory:
+            source=Path(directory)/'source';source.mkdir();out=Path(directory)/'report'
+            (source/'dataset.json').write_text(json.dumps({'cases':[c]}))
+            (source/'results.jsonl').write_text(json.dumps(r)+'\n')
+            with patch('harness.web_fetch.report_build.generate') as generated:
+                with self.assertRaisesRegex(ValueError,'Stale scoring implementation'):
+                    build_report(source,out)
+            generated.assert_not_called()
+            self.assertFalse(out.exists())
 
 
 if __name__=='__main__':

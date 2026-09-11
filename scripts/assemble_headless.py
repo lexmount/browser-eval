@@ -21,6 +21,7 @@ from harness.web_fetch.result_review import require_result_review
 
 ALLOWED_REVISION_FIELDS = {
     'body_requirements', 'required_patterns', 'required_facts', 'acceptance_contract',
+    'forbidden_any', 'expected_resources', 'resource_output_contract',
 }
 
 
@@ -51,6 +52,8 @@ def bind_assembled_scoring_revision(output):
     require_result_review(output,dataset,records)
     if valid_scoring_revision(output):return False
     history=json.loads(path.read_bytes())
+    if not isinstance(history,list) or not history:
+        raise ValueError('Invalid inherited scoring revision history')
     changed={};decisions={}
     for row in history:
         if (not isinstance(row,dict) or row.get('provider_calls') != 0
@@ -67,8 +70,8 @@ def bind_assembled_scoring_revision(output):
     history.append({
         'kind':'audited_assembled_scoring_revision',
         'scored_at':datetime.now(timezone.utc).isoformat(),
-        'input_dataset_sha256':hashlib.sha256((output/'dataset.json').read_bytes()).hexdigest(),
-        'input_results_sha256':hashlib.sha256((output/'results.jsonl').read_bytes()).hexdigest(),
+        'input_dataset_sha256':history[-1]['output_dataset_sha256'],
+        'input_results_sha256':history[-1]['output_results_sha256'],
         'output_dataset_sha256':hashlib.sha256((output/'dataset.json').read_bytes()).hexdigest(),
         'output_results_sha256':hashlib.sha256((output/'results.jsonl').read_bytes()).hexdigest(),
         'changed_cases':list(changed.values()),

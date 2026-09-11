@@ -32,6 +32,34 @@ class FailureDiagnosisTests(unittest.TestCase):
   d=diagnose(r,{'track':'dynamic','task_kind':'body'},'A product and some text')
   self.assertEqual(d['category'],'条目未完整匹配')
   self.assertIn('不表示每个字段都不存在',d['evidence'])
+ def test_declared_body_truncation_has_specific_failure(self):
+  r=self.record(ok=True,status_code=200,metrics={
+   'content_pass':False,
+   'declared_truncation_hits':['(Content truncated. Fetch a more specific URL or section for the full text.)'],
+  })
+  d=diagnose(r,{'task_kind':'body'},'')
+  self.assertEqual(d['category'],'正文范围不完整')
+  self.assertIn('明确声明',d['evidence'])
+ def test_target_only_resource_extras_have_specific_failure(self):
+  r=self.record(ok=True,status_code=200,metrics={
+   'resource_pass':False,
+   'resource_results':[{'id':'hero','pass':True}],
+   'unexpected_resource_urls':['https://example.test/logo.png'],
+  })
+  d=diagnose(r,{'task_kind':'resource'},'')
+  self.assertEqual(d['category'],'返回非目标资源')
+  self.assertIn('logo.png',d['evidence'])
+ def test_missing_target_with_extra_does_not_claim_target_hit(self):
+  r=self.record(ok=True,status_code=200,metrics={
+   'resource_pass':False,
+   'resource_results':[{'id':'hero','pass':False}],
+   'unexpected_resource_urls':['https://example.test/logo.png'],
+  })
+  d=diagnose(r,{'task_kind':'resource'},'')
+  self.assertEqual(d['category'],'缺少目标资源')
+  self.assertIn('hero',d['evidence'])
+  self.assertIn('logo.png',d['evidence'])
+  self.assertNotIn('目标资源已命中',d['evidence'])
 
 
 class UnifiedTextFailureTests(unittest.TestCase):

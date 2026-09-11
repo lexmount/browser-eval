@@ -45,6 +45,7 @@ def load_list_reference(case: EvalCase | dict[str, Any], source: Path) -> dict |
 # re-certified by text scoring.
 _CONDITIONAL_FIELDS = {
     "acceptance_contract_sha256", "content_decision_basis", "factual_correctness",
+    "resource_acceptance_contract_sha256",
     "structure_pass", "named_entry_count", "minimum_entries", "snapshot_f1",
     "dynamic_titles", "verification_note", "confirmed_entries", "checked_entries",
 }
@@ -87,6 +88,17 @@ def score_attempt(
     result.update(request_ok=ok, request_status_basis=status_basis,
                   normalized_named_link_count=len(links))
     result["task_kind"] = case.get("task_kind", "body")
+    # Body tasks request the complete readable document. An exact provider
+    # notice that its answer is truncated is therefore disqualifying even when
+    # the retained prefix happens to contain every sparse anchor. Resource and
+    # structure tasks continue to use their own declared deliverable contract.
+    if result["task_kind"] == "body" and result["declared_truncation_hits"]:
+        result["content_pass"] = False
+        if contract := case.get("acceptance_contract"):
+            result["stable_task_pass"] = False
+            result["stable_content_pass"] = False
+            if "declared_truncation" not in result["stable_task_errors"]:
+                result["stable_task_errors"].append("declared_truncation")
     file_evaluation = (metadata or {}).get('file_evaluation')
     if result['task_kind'] == 'file' and isinstance(file_evaluation, dict) and 'raw_file_pass' not in result:
         result['raw_file_pass'] = bool(file_evaluation.get('pass'))
@@ -109,8 +121,18 @@ def score_attempt(
     hits = sum(bool(check["pass"]) for check in checks) if ok else 0
     result.update(content_check_hits=hits, content_check_total=total,
                   content_check_coverage=round(hits / total, 4) if total else None)
-    result.update(evaluate_resources(content, metadata or {}, case.get("expected_resources", []),
-                                    base_url=case["url"], eligible=ok))
+    result.update(evaluate_resources(
+        content, metadata or {}, case.get("expected_resources", []),
+        base_url=case["url"], eligible=ok,
+        output_contract=case.get("resource_output_contract", {}),
+    ))
+    if case.get("expected_resources") or case.get("resource_output_contract"):
+        resource_contract = {
+            "expected_resources": case.get("expected_resources", []),
+            "resource_output_contract": case.get("resource_output_contract", {}),
+        }
+        result["resource_acceptance_contract_sha256"] = hashlib.sha256(json.dumps(
+            resource_contract, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     benchmark = case.get("source_benchmark", {})
     if not contract and benchmark.get("mode") == "dynamic_list_structure":
         result.update(evaluate_dynamic_list(content, benchmark, case["url"], ok, links))

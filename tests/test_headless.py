@@ -75,6 +75,12 @@ class HeadlessTests(unittest.TestCase):
             self.assertEqual([x['attempt_id'] for x in packet['attempts']],['p__a__r001'])
             with patch('sys.argv',argv[:-1]+['--scope','all','--prepare-only']):
                 with self.assertRaises(SystemExit): review_main()
+            pass_work=root/'pass-work'
+            pass_argv=argv[:-1]+['--work',str(pass_work),'--scope','machine-passes',
+                                 '--confirm-full-review','--prepare-only']
+            with patch('sys.argv',pass_argv): review_main()
+            pass_packet=json.loads(next(pass_work.glob('batch-*-input.json')).read_text())
+            self.assertEqual([x['attempt_id'] for x in pass_packet['attempts']],['q__a__r001'])
 
     def test_independent_review_receives_real_file_evidence(self):
         row = {'attempt_id':'a','provider':'moli-1.1.3','artifact':'empty.txt',

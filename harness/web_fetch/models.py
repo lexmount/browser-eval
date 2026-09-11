@@ -30,6 +30,7 @@ class EvalCase:
     source_benchmark: dict[str, Any] = field(default_factory=dict)
     ground_truth_main_content: str = ""
     expected_resources: list[dict[str, Any]] = field(default_factory=list)
+    resource_output_contract: dict[str, Any] = field(default_factory=dict)
     content_score_applicable: bool = True
     track: str = "web"
     required_patterns: list[dict[str, Any]] = field(default_factory=list)

@@ -95,7 +95,8 @@ def scope_identity(case) -> dict[str, Any]:
         "evaluation_contract": {key: _get(case, key, default) for key, default in (
             ("expected_any", []), ("required_facts", []), ("required_patterns", []),
             ("forbidden_any", []), ("min_content_chars", 1), ("fact_coverage_threshold", 1.0),
-            ("content_score_applicable", True), ("expected_resources", []), ("reference_answer", ""))},
+            ("content_score_applicable", True), ("expected_resources", []),
+            ("resource_output_contract", {}), ("reference_answer", ""))},
     })
 
 
@@ -430,7 +431,7 @@ def finalize_reference_checks(run_dir: Path, observations_path: Path, now=None) 
 
 
 def valid_scoring_revision(source) -> bool:
-    """Return true only for a receipt bound to the current derived dataset/results."""
+    """Return true only for a continuous receipt chain ending at current evidence."""
     if source is None:
         return False
     root = Path(source)
@@ -457,33 +458,51 @@ def valid_scoring_revision(source) -> bool:
 
     def valid_assembled_binding(row, index):
         source_hash = row.get('source_scoring_receipts_sha256')
+        review_binding = row.get('independent_result_review_sha256')
         return (row.get('kind') == 'audited_assembled_scoring_revision'
-                and assembled_review_valid
                 and isinstance(source_hash, str)
                 and re.fullmatch(r'[0-9a-f]{64}', source_hash) is not None
                 and source_hash == scoring_revision_history_sha256(rows[:index])
-                and row.get('independent_result_review_sha256') == review_hash)
+                and isinstance(review_binding, str)
+                and re.fullmatch(r'[0-9a-f]{64}', review_binding) is not None
+                and (index != len(rows) - 1
+                     or (assembled_review_valid and review_binding == review_hash)))
 
     from .scoring_regressions import valid_correction_provenance
-    return any(
-        isinstance(row, dict)
-        and (row.get('kind') in {'audited_body_scoring_revision',
-                                 'audited_scoring_rule_revision'}
-             or valid_assembled_binding(row, index))
-        and row.get('provider_calls') == 0
-        and row.get('output_dataset_sha256') == current_dataset
-        and row.get('output_results_sha256') == current_results
-        and isinstance(row.get('task_decision_changes'), list)
-        and isinstance(row.get('changed_cases'), list)
-        and valid_correction_provenance(row)
-        and all(isinstance(change, dict)
-                and set(change.get('fields', ())) <= {
-                    'body_requirements', 'required_patterns', 'required_facts',
-                    'acceptance_contract', 'forbidden_any',
-                }
-                for change in row['changed_cases'])
-        for index, row in enumerate(rows) if isinstance(rows, list)
-    )
+    if not isinstance(rows, list) or not rows:
+        return False
+    allowed_fields = {
+        'body_requirements', 'required_patterns', 'required_facts',
+        'acceptance_contract', 'forbidden_any', 'expected_resources',
+        'resource_output_contract',
+    }
+    previous_output = None
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            return False
+        input_binding = (row.get('input_dataset_sha256'),
+                         row.get('input_results_sha256'))
+        output_binding = (row.get('output_dataset_sha256'),
+                          row.get('output_results_sha256'))
+        if (any(not isinstance(value, str)
+                or re.fullmatch(r'[0-9a-f]{64}', value) is None
+                for value in (*input_binding, *output_binding))
+                or (previous_output is not None and input_binding != previous_output)):
+            return False
+        if (row.get('kind') not in {'audited_body_scoring_revision',
+                                    'audited_scoring_rule_revision'}
+                and not valid_assembled_binding(row, index)):
+            return False
+        if (row.get('provider_calls') != 0
+                or not isinstance(row.get('task_decision_changes'), list)
+                or not isinstance(row.get('changed_cases'), list)
+                or not valid_correction_provenance(row)
+                or not all(isinstance(change, dict)
+                           and set(change.get('fields', ())) <= allowed_fields
+                           for change in row['changed_cases'])):
+            return False
+        previous_output = output_binding
+    return previous_output == (current_dataset, current_results)
 
 
 def latency_correction_original_elapsed(source) -> dict[tuple[str, str], float]:

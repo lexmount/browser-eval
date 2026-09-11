@@ -9,7 +9,7 @@ from scripts.prepare_dynamic_content import prepare
 from harness.web_fetch.dynamic_reference import entry_facts
 from harness.web_fetch.metrics import evaluate_content
 from harness.web_fetch.reference_lifecycle import preflight_reference_checks
-from harness.web_fetch.stable_annotations import SNAPSHOT_METRIC_SCOPE
+from harness.web_fetch.stable_annotations import DYNAMIC_FORBIDDEN_ANY, SNAPSHOT_METRIC_SCOPE
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -37,6 +37,8 @@ class CaptureFreshnessTests(unittest.TestCase):
                 self.assertEqual(case['source_verification']['checked_at'], capture['checked_at'])
                 self.assertEqual(case['source_benchmark']['snapshot_metric_scope'], SNAPSHOT_METRIC_SCOPE)
                 self.assertIn('acceptance_contract', case)
+                for token in DYNAMIC_FORBIDDEN_ANY.get(case['id'], ()):
+                    self.assertIn(token, case['forbidden_any'])
                 self.assertEqual((output/'sources'/case['id']/'rendered.txt').read_text(), capture['rendered_text'])
                 evidence = json.loads((output/'sources'/case['id']/'evidence.json').read_text())
                 self.assertEqual(evidence['metric_scope'], SNAPSHOT_METRIC_SCOPE)
@@ -70,6 +72,19 @@ class CaptureFreshnessTests(unittest.TestCase):
                     prepare(captures, output, checks)
                 self.assertFalse(output.exists())
                 get.assert_not_called()
+
+    def test_strict_exclusion_registry_is_explicit_and_fails_closed(self):
+        captures, checks = self.captures()
+        incomplete = dict(DYNAMIC_FORBIDDEN_ANY)
+        del incomplete['dynamic-product-reviews']
+        with tempfile.TemporaryDirectory() as folder, \
+                patch('scripts.prepare_dynamic_content.DYNAMIC_FORBIDDEN_ANY', incomplete), \
+                patch('scripts.prepare_dynamic_content.requests.get') as get:
+            output = Path(folder)/'new-run'
+            with self.assertRaisesRegex(ValueError, 'explicit per-case declaration'):
+                prepare(captures, output, checks)
+            self.assertFalse(output.exists())
+            get.assert_not_called()
 
     def test_fixed_demo_content_changes_do_not_silently_rewrite_registry(self):
         captures, checks = self.captures()

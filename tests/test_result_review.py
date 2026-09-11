@@ -210,6 +210,8 @@ class ResultReviewTests(unittest.TestCase):
             prior_path=root/'prior.json';prior_path.write_text(json.dumps(prior))
             receipt={'input_dataset_sha256':prior['bindings']['dataset_sha256'],
                      'input_results_sha256':prior['bindings']['results_sha256'],
+                     'output_dataset_sha256':hashlib.sha256((evidence/'dataset.json').read_bytes()).hexdigest(),
+                     'output_results_sha256':hashlib.sha256((evidence/'results.jsonl').read_bytes()).hexdigest(),
                      'changed_cases':[{'case_id':'a','fields':['required_patterns']}]}
             (evidence/'scoring-revisions.json').write_text(json.dumps([receipt]))
             subset_dataset={'comparison':{'require_independent_result_review':True},'cases':[new_dataset['cases'][0]]}
@@ -225,6 +227,185 @@ class ResultReviewTests(unittest.TestCase):
             merged=json.loads((evidence/'result-review.json').read_text())
             self.assertEqual(merged['attempts'][0]['machine_verdict'],'pass')
             self.assertEqual(merged['review_protocol']['scoring_rule_revision_review']['reviewed_attempts'],1)
+
+    def multistage_revision_fixture(self, root):
+        evidence=root/'evidence';supplement=root/'supplement'
+        evidence.mkdir();supplement.mkdir()
+        dataset={'comparison':{'require_independent_result_review':True},
+                 'cases':[{'id':case_id,'task_kind':'body'} for case_id in ('a','b','c')]}
+        old_records=[]
+        for provider in ('p','q'):
+            for case_id in ('a','b','c'):
+                passed=case_id=='c'
+                old_records.append({
+                    'attempt_id':f'{provider}__{case_id}__r001',
+                    'provider':provider,'case_id':case_id,'ok':True,
+                    'metrics':{'content_pass':passed}})
+        middle_records=json.loads(json.dumps(old_records))
+        current_records=json.loads(json.dumps(old_records))
+        for row in middle_records:
+            if row['case_id']=='a':
+                row['metrics']['content_pass']=True
+        for row in current_records:
+            if row['case_id'] in {'a','b'}:
+                row['metrics']['content_pass']=True
+
+        dataset_bytes=json.dumps(dataset).encode()
+        old_bytes=(''.join(json.dumps(row)+'\n' for row in old_records)).encode()
+        middle_bytes=(''.join(json.dumps(row)+'\n' for row in middle_records)).encode()
+        current_bytes=(''.join(json.dumps(row)+'\n' for row in current_records)).encode()
+        (evidence/'dataset.json').write_bytes(dataset_bytes)
+        (evidence/'results.jsonl').write_bytes(current_bytes)
+        prior={'schema_version':1,
+               'bindings':{'dataset_sha256':hashlib.sha256(dataset_bytes).hexdigest(),
+                           'results_sha256':hashlib.sha256(old_bytes).hexdigest()},
+               'reviewer':{'agent':'Codex'},
+               'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
+               'attempts':[]}
+        for row in old_records:
+            verdict='pass' if row['metrics']['content_pass'] else 'fail'
+            prior['attempts'].append({'attempt_id':row['attempt_id'],
+                                      'machine_verdict':verdict,
+                                      'agent_verdict':verdict,
+                                      'final_verdict':verdict})
+        prior_path=root/'prior.json';prior_path.write_text(json.dumps(prior))
+        dataset_hash=hashlib.sha256(dataset_bytes).hexdigest()
+        receipts=[
+            {'input_dataset_sha256':dataset_hash,
+             'input_results_sha256':hashlib.sha256(old_bytes).hexdigest(),
+             'output_dataset_sha256':dataset_hash,
+             'output_results_sha256':hashlib.sha256(middle_bytes).hexdigest(),
+             'changed_cases':[{'case_id':'a','fields':['forbidden_any']}]},
+            {'input_dataset_sha256':dataset_hash,
+             'input_results_sha256':hashlib.sha256(middle_bytes).hexdigest(),
+             'output_dataset_sha256':dataset_hash,
+             'output_results_sha256':hashlib.sha256(current_bytes).hexdigest(),
+             'changed_cases':[{'case_id':'b','fields':['body_regions']}]},
+        ]
+        (evidence/'scoring-revisions.json').write_text(json.dumps(receipts))
+        changed_cases=[case for case in dataset['cases'] if case['id'] in {'a','b'}]
+        changed_records=[row for row in current_records if row['case_id'] in {'a','b'}]
+        (supplement/'dataset.json').write_text(json.dumps({
+            'comparison':dataset['comparison'],'cases':changed_cases}))
+        (supplement/'results.jsonl').write_text(
+            ''.join(json.dumps(row)+'\n' for row in changed_records))
+        supplemental={'schema_version':1,
+                      'bindings':{
+                          'dataset_sha256':hashlib.sha256((supplement/'dataset.json').read_bytes()).hexdigest(),
+                          'results_sha256':hashlib.sha256((supplement/'results.jsonl').read_bytes()).hexdigest()},
+                      'reviewer':{'agent':'Codex'},
+                      'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
+                      'attempts':[{
+                          'attempt_id':row['attempt_id'],'machine_verdict':'pass',
+                          'agent_verdict':'pass','final_verdict':'pass'}
+                          for row in changed_records]}
+        (supplement/'result-review.json').write_text(json.dumps(supplemental))
+        return evidence,prior_path,supplement,receipts
+
+    def test_multistage_revision_reviews_union_of_changed_cases(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            evidence,prior_path,supplement,_=self.multistage_revision_fixture(root)
+            merge(evidence,prior_path,supplement)
+            merged=json.loads((evidence/'result-review.json').read_text())
+            revision=merged['review_protocol']['scoring_rule_revision_review']
+            self.assertEqual(revision['changed_cases'],['a','b'])
+            self.assertEqual(revision['reviewed_attempts'],4)
+            self.assertEqual(revision['revision_receipts'],2)
+            self.assertEqual(merged['reviewed_attempts'],6)
+            self.assertEqual(merged['accepted_unreviewed_passes'],0)
+
+    def test_multistage_revision_rejects_broken_receipt_chain(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            evidence,prior_path,supplement,receipts=self.multistage_revision_fixture(root)
+            receipts[1]['input_results_sha256']='broken'
+            (evidence/'scoring-revisions.json').write_text(json.dumps(receipts))
+            with self.assertRaisesRegex(ValueError,'chain is broken'):
+                merge(evidence,prior_path,supplement)
+            self.assertFalse((evidence/'result-review.json').exists())
+
+    def test_multistage_revision_rejects_omitted_changed_case(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            evidence,prior_path,supplement,_=self.multistage_revision_fixture(root)
+            subset=json.loads((supplement/'dataset.json').read_text())
+            subset['cases']=[case for case in subset['cases'] if case['id']=='a']
+            records=[json.loads(line) for line in
+                     (supplement/'results.jsonl').read_text().splitlines()
+                     if json.loads(line)['case_id']=='a']
+            (supplement/'dataset.json').write_text(json.dumps(subset))
+            (supplement/'results.jsonl').write_text(
+                ''.join(json.dumps(row)+'\n' for row in records))
+            review=json.loads((supplement/'result-review.json').read_text())
+            review['bindings']={
+                'dataset_sha256':hashlib.sha256((supplement/'dataset.json').read_bytes()).hexdigest(),
+                'results_sha256':hashlib.sha256((supplement/'results.jsonl').read_bytes()).hexdigest()}
+            review['attempts']=[row for row in review['attempts']
+                                if '__a__' in row['attempt_id']]
+            (supplement/'result-review.json').write_text(json.dumps(review))
+            with self.assertRaisesRegex(ValueError,'every current changed task'):
+                merge(evidence,prior_path,supplement)
+            self.assertFalse((evidence/'result-review.json').exists())
+
+    def test_multistage_revision_rejects_current_hash_mismatch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            evidence,prior_path,supplement,receipts=self.multistage_revision_fixture(root)
+            receipts[-1]['output_results_sha256']='not-current'
+            (evidence/'scoring-revisions.json').write_text(json.dumps(receipts))
+            with self.assertRaisesRegex(ValueError,'does not end at current evidence'):
+                merge(evidence,prior_path,supplement)
+            self.assertFalse((evidence/'result-review.json').exists())
+
+    def test_multistage_revision_rejects_each_preinstall_gate(self):
+        scenarios = (
+            ('prior-binding-missing', 'not bound to any scoring revision inputs'),
+            ('receipt-output-missing', 'has no output binding'),
+            ('supplemental-not-blind', 'not blinded to machine judgments'),
+            ('supplemental-not-all', 'must cover all changed attempts'),
+            ('supplemental-not-current', 'not run against current persisted results'),
+            ('prior-inventory-missing', 'Prior full review does not cover'),
+        )
+        for scenario, message in scenarios:
+            with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                evidence, prior_path, supplement, receipts = self.multistage_revision_fixture(root)
+
+                if scenario == 'prior-binding-missing':
+                    prior = json.loads(prior_path.read_text())
+                    prior['bindings'].pop('results_sha256')
+                    prior_path.write_text(json.dumps(prior))
+                elif scenario == 'receipt-output-missing':
+                    receipts[0].pop('output_results_sha256')
+                    (evidence/'scoring-revisions.json').write_text(json.dumps(receipts))
+                elif scenario == 'supplemental-not-blind':
+                    review = json.loads((supplement/'result-review.json').read_text())
+                    review['review_protocol']['machine_judgments_withheld'] = False
+                    (supplement/'result-review.json').write_text(json.dumps(review))
+                elif scenario == 'supplemental-not-all':
+                    review = json.loads((supplement/'result-review.json').read_text())
+                    review['review_protocol']['scope'] = 'machine-failures'
+                    review['attempts'] = []
+                    (supplement/'result-review.json').write_text(json.dumps(review))
+                elif scenario == 'supplemental-not-current':
+                    records = [json.loads(line) for line in
+                               (supplement/'results.jsonl').read_text().splitlines()]
+                    records[0]['provider_metadata'] = {'diagnostic': 'not-current'}
+                    (supplement/'results.jsonl').write_text(
+                        ''.join(json.dumps(row)+'\n' for row in records))
+                    review = json.loads((supplement/'result-review.json').read_text())
+                    review['bindings']['results_sha256'] = hashlib.sha256(
+                        (supplement/'results.jsonl').read_bytes()).hexdigest()
+                    (supplement/'result-review.json').write_text(json.dumps(review))
+                elif scenario == 'prior-inventory-missing':
+                    prior = json.loads(prior_path.read_text())
+                    prior['attempts'] = prior['attempts'][:-1]
+                    prior_path.write_text(json.dumps(prior))
+
+                with self.assertRaisesRegex(ValueError, message):
+                    merge(evidence, prior_path, supplement)
+                self.assertFalse((evidence/'result-review.json').exists())
 
     def test_task_replacement_reuses_only_unchanged_reviews(self):
         with tempfile.TemporaryDirectory() as directory:

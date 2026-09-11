@@ -34,7 +34,9 @@ class ScoringRegressionTests(unittest.TestCase):
                     self.assertEqual(metrics.get(key), expected, key)
                 root_modes.setdefault(row["root_cause"], set()).add(row["failure_mode"])
         paired = {"answer_surface_omission", "body_scope_calibration",
-                  "entity_identity", "record_ownership", "resource_surface_parsing"}
+                  "declared_scope_exclusions", "declared_truncation",
+                  "entity_identity", "record_ownership",
+                  "resource_output_scope", "resource_surface_parsing"}
         for root_cause in paired:
             self.assertEqual(root_modes.get(root_cause), {"false-positive", "false-negative"})
 
@@ -104,6 +106,8 @@ class ScoringRegressionTests(unittest.TestCase):
                 "schema_version": 2,
                 "kind": "audited_scoring_rule_revision",
                 "provider_calls": 0,
+                "input_dataset_sha256": hashlib.sha256(dataset).hexdigest(),
+                "input_results_sha256": hashlib.sha256(results).hexdigest(),
                 "output_dataset_sha256": hashlib.sha256(dataset).hexdigest(),
                 "output_results_sha256": hashlib.sha256(results).hexdigest(),
                 "changed_cases": [{"case_id": "case", "fields": ["forbidden_any"]}],
@@ -115,6 +119,51 @@ class ScoringRegressionTests(unittest.TestCase):
                 ),
             }
             (root / "scoring-revisions.json").write_text(json.dumps([receipt]))
+            self.assertTrue(valid_scoring_revision(root))
+
+    def test_scoring_revision_requires_a_continuous_fully_valid_history(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dataset = b'{"cases": []}\n'
+            results = b''
+            (root / "dataset.json").write_bytes(dataset)
+            (root / "results.jsonl").write_bytes(results)
+            current = (hashlib.sha256(dataset).hexdigest(),
+                       hashlib.sha256(results).hexdigest())
+            base = {
+                "kind": "audited_scoring_rule_revision",
+                "provider_calls": 0,
+                "changed_cases": [],
+                "task_decision_changes": [],
+            }
+            first = {
+                **base,
+                "input_dataset_sha256": "a" * 64,
+                "input_results_sha256": "b" * 64,
+                "output_dataset_sha256": "c" * 64,
+                "output_results_sha256": "d" * 64,
+            }
+            final = {
+                **base,
+                "input_dataset_sha256": "c" * 64,
+                "input_results_sha256": "d" * 64,
+                "output_dataset_sha256": current[0],
+                "output_results_sha256": current[1],
+            }
+
+            broken = json.loads(json.dumps([first, final]))
+            broken[1]["input_results_sha256"] = "e" * 64
+            (root / "scoring-revisions.json").write_text(json.dumps(broken))
+            self.assertFalse(valid_scoring_revision(root))
+
+            unauthorized = json.loads(json.dumps([first, final]))
+            unauthorized[0]["changed_cases"] = [{
+                "case_id": "case", "fields": ["url"],
+            }]
+            (root / "scoring-revisions.json").write_text(json.dumps(unauthorized))
+            self.assertFalse(valid_scoring_revision(root))
+
+            (root / "scoring-revisions.json").write_text(json.dumps([first, final]))
             self.assertTrue(valid_scoring_revision(root))
 
     def test_reference_revision_requires_the_same_root_cause_binding(self):

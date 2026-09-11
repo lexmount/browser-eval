@@ -118,6 +118,41 @@ class ScoringTests(unittest.TestCase):
         self.assertTrue(partial["stable_structure_pass"])
         self.assertEqual(partial["content_check_coverage"], .5)
 
+    def test_second_declared_truncation_notice_overrides_stable_body_contract(self):
+        notice = "[Content truncated: showing 10 of 20 lines]"
+        measured = score_attempt(
+            case(acceptance_contract=stable_contract()),
+            ("Catalog\nCategory filter\n" + LINKS + "\n" + notice).encode(),
+            ok=True,
+        )
+        self.assertEqual(measured["declared_truncation_hits"], [notice])
+        self.assertFalse(measured["content_pass"])
+        self.assertFalse(measured["stable_content_pass"])
+        self.assertFalse(measured["stable_task_pass"])
+        self.assertIn("declared_truncation", measured["stable_task_errors"])
+        self.assertFalse(task_passed(True, measured))
+
+    def test_declared_truncation_notice_does_not_override_non_body_contracts(self):
+        notice = "[Content truncated: showing 10 of 20 lines]"
+        structure = score_attempt(
+            case(task_kind="structure", acceptance_contract=stable_contract()),
+            ("Catalog\nCategory filter\n" + LINKS + "\n" + notice).encode(),
+            ok=True,
+        )
+        self.assertEqual(structure["declared_truncation_hits"], [notice])
+        self.assertTrue(structure["stable_task_pass"])
+        self.assertTrue(task_passed(True, structure, "structure"))
+
+        resource = score_attempt(
+            case(task_kind="resource", content_score_applicable=False,
+                 expected_resources=[{"id": "image", "urls": ["/image.png"]}]),
+            (notice + "\n![Image](/image.png)").encode(),
+            ok=True,
+        )
+        self.assertEqual(resource["declared_truncation_hits"], [notice])
+        self.assertTrue(resource["resource_pass"])
+        self.assertTrue(task_passed(True, resource, "resource"))
+
     def test_quote_fields_reject_lost_tag_boundaries(self):
         quote = "“The world as we have created it is a process of our thinking.”"
         contract = {
@@ -174,9 +209,35 @@ class ScoringTests(unittest.TestCase):
             self.assertEqual(measured["resource_pass"], ok)
             self.assertFalse(measured["content_pass"])
 
+    def test_target_only_image_contract_is_part_of_shared_task_decision(self):
+        c = case(
+            task_kind="resource", content_score_applicable=False,
+            expected_resources=[{"id": "image", "urls": ["/image.png"]}],
+            resource_output_contract={
+                "candidate_scope": "image_answer_fields", "unexpected": "reject",
+            },
+        )
+        measured = score_attempt(
+            c, b"", ok=True,
+            metadata={"images": ["/image.png", "/recommended.png"],
+                      "links": ["/ordinary-page"]},
+        )
+        self.assertEqual(measured["resource_recall"], 1.0)
+        self.assertEqual(measured["resource_precision"], 0.5)
+        self.assertEqual(measured["unexpected_resource_urls"],
+                         ["https://example.test/recommended.png"])
+        self.assertFalse(measured["resource_pass"])
+        self.assertFalse(task_passed(True, measured))
+        expected_contract = hashlib.sha256(json.dumps({
+            "expected_resources": c.expected_resources,
+            "resource_output_contract": c.resource_output_contract,
+        }, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+        self.assertEqual(measured["resource_acceptance_contract_sha256"], expected_contract)
+
     def test_old_stable_and_list_decisions_cannot_survive_mode_change(self):
         old = {"stable_task_pass": True, "stable_anchor_results": [],
                "acceptance_contract_sha256": "old", "content_decision_basis": "old",
+               "resource_acceptance_contract_sha256": "old",
                "list_task_pass": True, "list_checks": [], "structure_pass": True,
                "confirmed_entries": 3, "verification_note": "old", "raw_file_pass": True}
         measured = score_attempt(case(expected_any=["Missing"]), b"Other", ok=True, previous_metrics=old)

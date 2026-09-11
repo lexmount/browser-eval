@@ -182,6 +182,36 @@ class FairnessTests(unittest.TestCase):
         self.assertFalse(m['stable_task_pass'])
         self.assertEqual(m['stable_field_results'][0]['count'], 1)
 
+    def test_dynamic_strict_exclusions_flip_only_contaminated_complete_outputs(self):
+        cases = {case['id']: case for case in json.loads(
+            (ROOT/'evaluation/dataset.json').read_text())['cases']}
+        exclusions = {
+            'dynamic-reviews-graphql': ['data-testid="review-stars"'],
+            'dynamic-react-cart': [
+                'Add to cart',
+                'Work in the Netherlands',
+                'jeremy-akeze-doghouse-it-recruitment',
+            ],
+            'dynamic-product-reviews': [
+                'data-testid="review-stars"',
+                'Similar Products',
+            ],
+        }
+        for identifier, forbidden in exclusions.items():
+            case = cases[identifier]
+            target_only = case['ground_truth_main_content']
+            clean = score_attempt(case, target_only.encode(), ok=True)
+            with self.subTest(case=identifier, variant='target-only'):
+                self.assertTrue(task_passed(True, clean))
+                self.assertEqual(clean['forbidden_hits'], [])
+            for token in forbidden:
+                contaminated = score_attempt(
+                    case, f'{target_only}\n\n{token}'.encode(), ok=True)
+                with self.subTest(case=identifier, forbidden=token):
+                    self.assertTrue(contaminated['stable_structure_pass'])
+                    self.assertIn(token, contaminated['forbidden_hits'])
+                    self.assertFalse(task_passed(True, contaminated))
+
     def test_end_to_end_processing_is_timed_and_late_answers_rejected(self):
         class Slow(Provider):
             def fetch(self, case, timeout):

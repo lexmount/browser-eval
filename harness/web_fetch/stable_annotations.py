@@ -20,6 +20,24 @@ from .stable_tasks import validate_acceptance_contract
 REGISTRY_VERSION = 2
 SNAPSHOT_METRIC_SCOPE = "captured_sample_diagnostic"
 
+# Explicit task-scope exclusions. These are reviewed observable tokens, not
+# inferred from localized task prose. ``annotate_case`` merges them into the
+# shared forbidden_any gate used by both live and offline scoring.
+DYNAMIC_FORBIDDEN_ANY = {
+    "dynamic-reviews-graphql": (
+        'data-testid="review-stars"',
+    ),
+    "dynamic-react-cart": (
+        "Add to cart",
+        "Work in the Netherlands",
+        "jeremy-akeze-doghouse-it-recruitment",
+    ),
+    "dynamic-product-reviews": (
+        'data-testid="review-stars"',
+        "Similar Products",
+    ),
+}
+
 
 def _anchors(values, prefix):
     return [{"id": f"{prefix}-{i}", "alternatives": [value]} for i, value in enumerate(values, 1)]
@@ -361,6 +379,13 @@ def annotate_case(case: dict) -> dict:
     contract = deepcopy(rule["contract"])
     validate_acceptance_contract(contract)
     result["acceptance_contract"] = contract
+    forbidden = result.setdefault("forbidden_any", [])
+    if (not isinstance(forbidden, list)
+            or any(not isinstance(value, str) or not value.strip() for value in forbidden)):
+        raise ValueError("Case forbidden_any must contain nonempty strings")
+    for value in DYNAMIC_FORBIDDEN_ANY.get(result["id"], ()):
+        if value not in forbidden:
+            forbidden.append(value)
     benchmark = result.setdefault("source_benchmark", {})
     if rule['track'] == 'challenge':
         benchmark.setdefault('captured_task_prompt', result.get('task_prompt', ''))
