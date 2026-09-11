@@ -30,7 +30,9 @@ def test_stage_builds_report_without_mutating_source_evidence(tmp_path):
 
     assert (staged / "reports/webarena-trajectory-replay-latest.html").is_file()
     assert (staged / "reports/webarena-trajectory-replay-latest-results.html").is_file()
-    assert (staged / "reports/webarena-trajectory-replay-latest-review.html").is_file()
+    method = staged / "reports/webarena-trajectory-replay-latest-method.html"
+    assert method.is_file()
+    assert "核验结论" in method.read_text(encoding="utf-8")
     assert (source / "run/summary.json").read_bytes() == before
 
 

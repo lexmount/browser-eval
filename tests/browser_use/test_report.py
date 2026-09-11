@@ -9,6 +9,7 @@ from harness.browser_use.report import (
     _absolute_metric_cell,
     _annotate_source_marks,
     _correctness_table,
+    _failure_review,
     _method_page,
     _metric_tables,
     _ratio_metric_cell,
@@ -18,6 +19,69 @@ from harness.browser_use.report import (
     _task_detail_body,
     write_latest_report,
 )
+
+
+def test_failure_review_separates_process_interruptions_from_final_evaluator_failures():
+    rows, reviewed = _failure_review(
+        {
+            "by_task": {
+                "interrupted": {
+                    "attempts": {
+                        "moli": [
+                            {
+                                "attempt": 1,
+                                "status": "fail",
+                                "result_status": "fail",
+                                "process_status": "fail",
+                                "error": "element is not visible",
+                            }
+                        ]
+                    }
+                },
+                "evaluated": {
+                    "attempts": {
+                        "chromium": [
+                            {
+                                "attempt": 1,
+                                "status": "fail",
+                                "result_status": "fail",
+                                "process_status": "pass",
+                                "validation": [
+                                    {
+                                        "evaluator_name": "NetworkEventEvaluator",
+                                        "status": "failure",
+                                        "score": 0,
+                                        "actual": [],
+                                    }
+                                ],
+                            }
+                        ]
+                    }
+                },
+            },
+            "failure_diagnostics": {
+                "rule_engine": {
+                    "groups": [
+                        {
+                            "task_id": "interrupted",
+                            "engine": "moli",
+                            "failed_action": "click",
+                            "evidence": "element is not visible",
+                            "attempts": [{"attempt": 1}],
+                        }
+                    ]
+                }
+            },
+        }
+    )
+
+    assert reviewed[("interrupted", "moli")]["category"] == "页面交互中断"
+    assert reviewed[("evaluated", "chromium")]["category"] == "最终验收不匹配"
+    assert "HAR 中没有" in reviewed[("evaluated", "chromium")]["reason"]
+    assert {row[0]: row[1] for row in rows} == {
+        "页面交互中断": "1",
+        "最终验收不匹配": "1",
+    }
 
 
 def test_comparisons_are_neutral_for_displayed_ties_and_missing_values():
@@ -226,9 +290,9 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert "19 条轨迹进入正式双浏览器分母" not in research
     assert (reports / "webarena-trajectory-replay-latest-method.html").exists()
     assert (reports / "webarena-trajectory-replay-latest-results.html").exists()
-    assert (reports / "webarena-trajectory-replay-latest-analysis.html").exists()
+    assert not (reports / "webarena-trajectory-replay-latest-analysis.html").exists()
     assert (reports / "webarena-trajectory-replay-latest-appendix.html").exists()
-    assert (reports / "webarena-trajectory-replay-latest-review.html").exists()
+    assert not (reports / "webarena-trajectory-replay-latest-review.html").exists()
     assert (reports / "webarena-trajectory-replay-latest-data.json").exists()
     assert "总体结果" in results
     assert 'class="better">4/4' in results
@@ -253,6 +317,9 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     method = (reports / "webarena-trajectory-replay-latest-method.html").read_text(encoding="utf-8")
     assert "RX = Receive" in method
     assert "P50 与中位数是同一个统计量" in method
+    assert "核验结论" in method
+    assert "评测选型依据" in research
+    assert "失败日志审查" in results
     assert "Codex" in method
     assert "<table" in rendered
     assert "<pre># Browser Use Evaluation" not in rendered
@@ -432,15 +499,16 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
             },
         },
     )
-    analysis = (reports / "webarena-trajectory-replay-latest-analysis.html").read_text(encoding="utf-8")
-    assert "逐任务分析与原始证据" in analysis
-    assert "TRACE_ONLY_SEARCH_MARKER" in analysis
-    assert "c.dataset.search" in analysis
-    assert "逐任务对比" not in analysis
-    assert "<details" not in analysis
+    results = (reports / "webarena-trajectory-replay-latest-results.html").read_text(encoding="utf-8")
+    assert "逐任务结果与原始证据" in results
+    assert "失败日志审查" in results
+    assert "TRACE_ONLY_SEARCH_MARKER" in results
+    assert "c.dataset.search" in results
+    assert "逐任务对比" not in results
+    assert "<details" not in results
     detail_files = list(reports.glob("*-task-*.html"))
     assert len(detail_files) == 1
-    assert f'href="{detail_files[0].name}"' in analysis
+    assert f'href="{detail_files[0].name}"' in results
     detail = detail_files[0].read_text()
     assert "<details" not in detail
     assert 'href="#' not in detail
@@ -450,47 +518,49 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
     assert "FIRST FULL STACK TRACE" in detail
     assert detail.count("SECOND FULL STACK TRACE") == 1
     assert "参考操作与执行对照" in detail
-    assert 'class="record-grid-head"' in analysis
-    assert 'class="execution-summary"' in analysis
-    assert 'data-label="程序验收"' in analysis
-    assert 'class="execution-body"' not in analysis
-    assert 'class="failure-grid"' not in analysis
-    assert 'class="failure-summary"' not in analysis
+    assert 'class="record-grid-head"' in results
+    assert 'class="execution-summary"' in results
+    assert 'data-label="程序验收"' in results
+    assert 'data-label="工具调用"' in results
+    assert 'data-label="最终尝试耗时"' in results
+    assert 'class="execution-body"' not in results
+    assert 'class="failure-grid"' not in results
+    assert 'class="failure-summary"' not in results
     assert 'class="diagnosis-panel"' in detail
     assert "Actionability probe" in detail
     assert "完整异常" in detail
-    assert "BrowserTool 方法" in analysis
-    assert 'id="f-status"' in analysis
-    assert 'id="f-combined"' in analysis
-    assert 'id="f-action"' in analysis
-    assert 'id="f-query"' in analysis
-    assert 'id="f-all"' in analysis
-    assert 'id="f-attempt"' not in analysis
-    assert '<option value="fail" selected>错误</option>' in analysis
-    assert 'aria-live="polite"' in analysis
+    assert "BrowserTool 方法" in results
+    assert 'id="f-status"' in results
+    assert 'id="f-combined"' in results
+    assert 'id="f-action"' in results
+    assert 'id="f-query"' in results
+    assert 'id="f-all"' in results
+    assert 'id="f-attempt"' not in results
+    assert '<option value="fail" selected>错误</option>' in results
+    assert 'aria-live="polite"' in results
     assert "验收规则：预期、实际与判定" in detail
     assert "unique-answer" in detail
     assert "未产生（过程失败）" in detail
     assert "未判定" in detail
-    assert "LLM 根因假设" not in analysis
-    assert "未启用 LLM" not in analysis
-    assert "待验证的时序假设" in analysis
-    assert analysis.index("逐任务分析与原始证据") < analysis.index("待验证的时序假设")
+    assert "LLM 根因假设" not in results
+    assert "未启用 LLM" not in results
+    assert "尚未确认的内部根因" in results
+    assert results.index("失败日志审查") < results.index("逐任务结果与原始证据")
     homepage = (reports / "webarena-trajectory-replay-latest.html").read_text(encoding="utf-8")
     assert 'class="failure-shortcut"' not in homepage
     assert f'href="{detail_files[0].name}"' not in homepage
     assert "#provider=moli&amp;status=fail" in homepage
-    assert 'id="execution-empty"' in analysis
-    assert "new URLSearchParams(raw)" in analysis
-    assert "document.querySelector(location.hash)" not in analysis
+    assert 'id="execution-empty"' in results
+    assert "new URLSearchParams(raw)" in results
+    assert "document.querySelector(location.hash)" not in results
     assert "CDP screencast 下采样" in homepage
     assert "rAF 目标间隔为 16 ms" in homepage
-    assert analysis.count('class="execution-card"') == 1
+    assert results.count('class="execution-card"') == 1
     assert "执行记录 1" in detail
     assert "执行记录 2" in detail
-    assert "错误类别" in analysis
-    assert "重试结论" not in analysis
-    assert 'id="execution-task-moli"' in analysis
+    assert "错误类别" in results
+    assert "重试结论" not in results
+    assert 'id="execution-task-moli"' in results
     assert ".case-detail .stackable table{min-width:0}" in detail
 
 
