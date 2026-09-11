@@ -317,6 +317,13 @@ def _task_viewport(task: BrowserTask) -> dict[str, int]:
     return {"width": 1280, "height": 900}
 
 
+def _may_reuse_qualification_environment(
+    task: BrowserTask, initialized_sites: set[str]
+) -> bool:
+    sites = set((task.environment or {}).get("sites") or [])
+    return bool(sites) and "mutate" not in task.tags and sites <= initialized_sites
+
+
 def _run_task(
     engine: str,
     page: Page,
@@ -888,6 +895,7 @@ def run_evaluation(
         fixture_runtime = _start_fixture_server(Path(suite_path).resolve().parent / "fixtures")
     fixture_origin = fixture_runtime[2] if fixture_runtime else ""
     authoring_initialized_sites: set[str] = set()
+    qualification_initialized_sites: set[str] = set()
     try:
         for engine in engines:
             network = client.networks.create(
@@ -957,7 +965,17 @@ def run_evaluation(
                                     "mode": "warm_non_mutating_authoring_reuse",
                                     "sites": sorted(task_sites),
                                 }
+                            elif qualification_run and _may_reuse_qualification_environment(
+                                task, qualification_initialized_sites
+                            ):
+                                environment_reset = {
+                                    "diagnostic_only": True,
+                                    "mode": "warm_non_mutating_qualification_reuse",
+                                    "sites": sorted(task_sites),
+                                }
                             else:
+                                if "mutate" in task.tags:
+                                    qualification_initialized_sites.difference_update(task_sites)
                                 reset_budget_ms = _remaining_task_budget_ms(
                                     attempt_deadline, phase="environment reset"
                                 )
@@ -968,6 +986,8 @@ def run_evaluation(
                                 )
                                 if trajectory_authoring_run:
                                     authoring_initialized_sites.update(task_sites)
+                                if qualification_run and "mutate" not in task.tags:
+                                    qualification_initialized_sites.update(task_sites)
                             prepare_budget_ms = _remaining_task_budget_ms(
                                 attempt_deadline, phase="environment prepare"
                             )
