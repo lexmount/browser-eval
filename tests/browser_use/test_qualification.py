@@ -6,13 +6,16 @@ from dataclasses import replace
 
 import pytest
 
+from harness.browser_use.har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
 from harness.browser_use.qualification import (
+    QUALIFICATION_SCHEMA,
     apply_adjudication,
     build_evidence_revalidation_suite,
     build_repair_queue,
     build_repair_validation_suite,
     task_contract_sha256,
     trajectory_semantic_conflicts,
+    validated_attempt_sha256s,
 )
 from harness.browser_use.suite import BrowserTask, TaskSuite, load_suite
 
@@ -41,6 +44,87 @@ def _task(task_id, *, response_builder=None, empty=False):
     )
 
 
+def _task_contract(task):
+    if isinstance(task, BrowserTask):
+        return {
+            "id": task.task_id,
+            "title": task.title,
+            "trajectory": task.trajectory,
+            "evaluator": task.evaluator,
+            "environment": task.environment,
+            "ground_truth": task.ground_truth,
+            "source": task.source,
+        }
+    return task
+
+
+def _write_validated_attempt(
+    root,
+    task,
+    *,
+    pass_index,
+    run_id=None,
+    statuses=None,
+    har_version=HAR_CREATOR_VERSION,
+):
+    run_id = run_id or f"run-{pass_index}"
+    evidence_directory = (
+        root / run_id / str(task.task_id if isinstance(task, BrowserTask) else task["id"])
+    )
+    evidence_directory.mkdir(parents=True)
+    screenshot = evidence_directory / "final.png"
+    page = evidence_directory / "final-page.json"
+    screenshot.write_bytes(f"image-{run_id}".encode())
+    page.write_text(json.dumps({"run_id": run_id}), encoding="utf-8")
+    (evidence_directory / "network.har").write_text(
+        json.dumps(
+            {
+                "log": {
+                    "creator": {
+                        "name": HAR_CREATOR_NAME,
+                        "version": har_version,
+                    },
+                    "entries": [],
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    row = {
+        "task_id": task.task_id if isinstance(task, BrowserTask) else str(task["id"]),
+        "engine": "chromium",
+        "attempt": 1,
+        "is_retry": False,
+        "qualification_run": True,
+        "qualification_pass_index": pass_index,
+        "qualification_required_passes": 2,
+        "run_id": run_id,
+        "process_status": "pass",
+        "result_status": "pass",
+        "evidence_status": "pass",
+        "status": "pass",
+        "combined_status": "pass",
+        "trace": [],
+        "evidence_directory": str(evidence_directory),
+        "task_contract_sha256": task_contract_sha256(_task_contract(task)),
+        "final_page_evidence": {
+            "status": "complete",
+            "screenshot": {
+                "path": "final.png",
+                "sha256": hashlib.sha256(screenshot.read_bytes()).hexdigest(),
+            },
+            "page": {
+                "path": "final-page.json",
+                "sha256": hashlib.sha256(page.read_bytes()).hexdigest(),
+            },
+        },
+    }
+    row.update(statuses or {})
+    attempt = evidence_directory / "attempt.json"
+    attempt.write_text(json.dumps(row), encoding="utf-8")
+    return row, attempt
+
+
 def test_repair_queue_covers_every_task_and_separates_trace_from_response_work(tmp_path):
     suite = TaskSuite(
         "lex_browser_use_tasks/4",
@@ -52,64 +136,37 @@ def test_repair_queue_covers_every_task_and_separates_trace_from_response_work(t
         ),
     )
     attempts = tmp_path / "attempts.jsonl"
-    rows = [
-        {
-            "task_id": "pass",
-            "engine": "chromium",
-            "is_retry": False,
-            "combined_status": "pass",
-            "status": "pass",
-            "evidence_status": "pass",
-            "process_status": "pass",
-            "result_status": "pass",
-            "trace": [],
-            "qualification_run": True,
-        },
-        {
-            "task_id": "response",
-            "engine": "chromium",
-            "is_retry": False,
+    rows = []
+    status_by_task = {
+        "pass": {},
+        "response": {
             "combined_status": "fail",
-            "process_status": "pass",
+            "status": "fail",
             "result_status": "fail",
-            "trace": [],
-            "qualification_run": True,
         },
-        {
-            "task_id": "repair",
-            "engine": "chromium",
-            "is_retry": False,
+        "repair": {
             "combined_status": "fail",
+            "status": "fail",
             "process_status": "fail",
             "result_status": "fail",
             "trace": [{"index": 1, "status": "fail"}],
-            "qualification_run": True,
         },
-        {
-            "task_id": "empty",
-            "engine": "chromium",
-            "is_retry": False,
+        "empty": {
             "combined_status": "fail",
-            "process_status": "pass",
+            "status": "fail",
             "result_status": "fail",
-            "trace": [],
-            "qualification_run": True,
         },
-    ]
-    for task, row in zip(suite.tasks, rows, strict=True):
-        evidence_directory = tmp_path / task.task_id
-        evidence_directory.mkdir()
-        row["evidence_directory"] = str(evidence_directory)
-        row["task_contract_sha256"] = task_contract_sha256(
-            {
-                "id": task.task_id,
-                "title": task.title,
-                "trajectory": task.trajectory,
-                "evaluator": task.evaluator,
-                "environment": task.environment,
-                "ground_truth": task.ground_truth,
-            }
-        )
+    }
+    for pass_index in (1, 2):
+        for task in suite.tasks:
+            row, _ = _write_validated_attempt(
+                tmp_path,
+                task,
+                pass_index=pass_index,
+                run_id=f"run-{pass_index}-{task.task_id}",
+                statuses=status_by_task[task.task_id],
+            )
+            rows.append(row)
     attempts.write_text(
         "".join(json.dumps(row) + "\n" for row in rows),
         encoding="utf-8",
@@ -124,9 +181,13 @@ def test_repair_queue_covers_every_task_and_separates_trace_from_response_work(t
         "needs_trace_repair",
     ]
     assert result["tasks"][2]["failed_step"]["index"] == 1
+    assert result["schema"] == QUALIFICATION_SCHEMA
     assert result["tasks"][0]["adjudication"] == {
         "status": "eligible",
-        "validated_attempt_path": str(tmp_path / "pass" / "attempt.json"),
+        "validated_attempt_paths": [
+            str(tmp_path / "run-1-pass" / "pass" / "attempt.json"),
+            str(tmp_path / "run-2-pass" / "pass" / "attempt.json"),
+        ],
     }
 
 
@@ -135,13 +196,18 @@ def test_passing_outcome_without_required_final_evidence_needs_revalidation(tmp_
     attempt_dir = tmp_path / "legacy-pass"
     attempt_dir.mkdir()
     attempts = tmp_path / "attempts.jsonl"
-    attempts.write_text(
-        json.dumps(
+    rows = []
+    for pass_index in (1, 2):
+        rows.append(
             {
                 "task_id": task.task_id,
                 "engine": "chromium",
+                "attempt": 1,
                 "is_retry": False,
                 "qualification_run": True,
+                "qualification_pass_index": pass_index,
+                "qualification_required_passes": 2,
+                "run_id": f"run-{pass_index}",
                 "status": "pass",
                 "combined_status": "pass",
                 "process_status": "pass",
@@ -149,19 +215,11 @@ def test_passing_outcome_without_required_final_evidence_needs_revalidation(tmp_
                 "evidence_status": "fail",
                 "trace": [],
                 "evidence_directory": str(attempt_dir),
-                "task_contract_sha256": task_contract_sha256(
-                    {
-                        "id": task.task_id,
-                        "title": task.title,
-                        "trajectory": task.trajectory,
-                        "evaluator": task.evaluator,
-                        "environment": task.environment,
-                        "ground_truth": task.ground_truth,
-                    }
-                ),
+                "task_contract_sha256": task_contract_sha256(_task_contract(task)),
             }
         )
-        + "\n",
+    attempts.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows),
         encoding="utf-8",
     )
 
@@ -194,6 +252,7 @@ def test_repair_queue_blocks_a_semantically_conflicting_passing_trace(tmp_path):
     row = {
         "task_id": task.task_id,
         "engine": "chromium",
+        "attempt": 1,
         "is_retry": False,
         "qualification_run": True,
         "status": "pass",
@@ -203,19 +262,24 @@ def test_repair_queue_blocks_a_semantically_conflicting_passing_trace(tmp_path):
         "evidence_status": "pass",
         "trace": [],
         "evidence_directory": str(evidence_directory),
-        "task_contract_sha256": task_contract_sha256(
-            {
-                "id": task.task_id,
-                "title": task.title,
-                "trajectory": task.trajectory,
-                "evaluator": task.evaluator,
-                "environment": task.environment,
-                "ground_truth": task.ground_truth,
-            }
-        ),
+        "task_contract_sha256": task_contract_sha256(_task_contract(task)),
     }
     attempts = tmp_path / "attempts.jsonl"
-    attempts.write_text(json.dumps(row) + "\n", encoding="utf-8")
+    attempts.write_text(
+        "".join(
+            json.dumps(
+                {
+                    **row,
+                    "run_id": f"run-{pass_index}",
+                    "qualification_pass_index": pass_index,
+                    "qualification_required_passes": 2,
+                }
+            )
+            + "\n"
+            for pass_index in (1, 2)
+        ),
+        encoding="utf-8",
+    )
 
     result = build_repair_queue(TaskSuite("lex_browser_use_tasks/4", (task,)), attempts)
 
@@ -232,7 +296,7 @@ def test_repaired_task_cannot_be_eligible_without_validated_attempt():
         "tasks": [{"id": "x", "ground_truth": {"qualification": {"status": "pending"}}}],
     }
     qualification = {
-        "schema": "lex_browser_use_qualification/1",
+        "schema": QUALIFICATION_SCHEMA,
         "tasks": [
             {
                 "task_id": "x",
@@ -242,7 +306,7 @@ def test_repaired_task_cannot_be_eligible_without_validated_attempt():
         ],
     }
 
-    with pytest.raises(ValueError, match="validated_attempt_path"):
+    with pytest.raises(ValueError, match="exactly two validated_attempt_paths"):
         apply_adjudication(suite, qualification)
 
 
@@ -252,7 +316,7 @@ def test_unchanged_passing_task_still_requires_bound_qualification_attempt():
         "tasks": [{"id": "x", "ground_truth": {"qualification": {"status": "pending"}}}],
     }
     qualification = {
-        "schema": "lex_browser_use_qualification/1",
+        "schema": QUALIFICATION_SCHEMA,
         "tasks": [
             {
                 "task_id": "x",
@@ -262,8 +326,102 @@ def test_unchanged_passing_task_still_requires_bound_qualification_attempt():
         ],
     }
 
-    with pytest.raises(ValueError, match="validated_attempt_path"):
+    with pytest.raises(ValueError, match="exactly two validated_attempt_paths"):
         apply_adjudication(suite, qualification)
+
+
+def test_legacy_one_pass_qualification_schema_cannot_publish_eligibility():
+    suite = {
+        "benchmark": {},
+        "tasks": [
+            {
+                "id": "x",
+                "trajectory": {
+                    "schema": "lex_browser_trajectory/1",
+                    "actions": [{"action": "click", "selector": "#x"}],
+                },
+                "ground_truth": {"qualification": {"status": "pending"}},
+            }
+        ],
+    }
+    qualification = {
+        "schema": "lex_browser_use_qualification/1",
+        "tasks": [
+            {
+                "task_id": "x",
+                "disposition": "eligible",
+                "adjudication": {
+                    "status": "eligible",
+                    "validated_attempt_path": "/legacy/attempt.json",
+                },
+            }
+        ],
+    }
+
+    with pytest.raises(ValueError, match="qualification schema"):
+        apply_adjudication(suite, qualification)
+
+
+def test_task_contract_binds_verified_evaluator_source_contract():
+    task = {
+        "id": "x",
+        "title": "Task",
+        "trajectory": {"actions": [{"action": "click"}]},
+        "source": {
+            "verified_evaluators": [
+                {"evaluator": "AgentResponseEvaluator", "expected": {"value": 1}}
+            ]
+        },
+    }
+    changed = json.loads(json.dumps(task))
+    changed["source"]["verified_evaluators"][0]["expected"]["value"] = 2
+
+    assert task_contract_sha256(task) != task_contract_sha256(changed)
+
+
+def test_two_validated_attempts_require_distinct_run_ids(tmp_path):
+    task = {
+        "id": "x",
+        "title": "Task",
+        "trajectory": {"actions": [{"action": "click"}]},
+        "ground_truth": {},
+    }
+    paths = [
+        _write_validated_attempt(
+            tmp_path,
+            task,
+            pass_index=pass_index,
+            run_id=f"run-{pass_index}",
+        )[1]
+        for pass_index in (1, 2)
+    ]
+    second = json.loads(paths[1].read_text(encoding="utf-8"))
+    second["run_id"] = "run-1"
+    paths[1].write_text(json.dumps(second), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="distinct run_id"):
+        validated_attempt_sha256s(
+            {"validated_attempt_paths": [str(path) for path in paths]},
+            "x",
+            expected_contract_sha256=task_contract_sha256(task),
+        )
+
+
+def test_two_validated_attempt_paths_must_be_unique(tmp_path):
+    task = {
+        "id": "x",
+        "title": "Task",
+        "trajectory": {"actions": [{"action": "click"}]},
+        "ground_truth": {},
+    }
+    _, path = _write_validated_attempt(tmp_path, task, pass_index=1)
+
+    with pytest.raises(ValueError, match="paths must be unique"):
+        validated_attempt_sha256s(
+            {"validated_attempt_paths": [str(path), str(path)]},
+            "x",
+            expected_contract_sha256=task_contract_sha256(task),
+        )
 
 
 def test_new_branch_task_cannot_qualify_a_main_branch_trajectory():
@@ -279,9 +437,7 @@ def test_new_branch_task_cannot_qualify_a_main_branch_trajectory():
         },
     }
 
-    assert trajectory_semantic_conflicts(task) == (
-        "new_branch_required_but_main_branch_selected",
-    )
+    assert trajectory_semantic_conflicts(task) == ("new_branch_required_but_main_branch_selected",)
 
 
 def test_semantic_audit_does_not_guess_when_main_branch_is_allowed():
@@ -314,9 +470,7 @@ def test_declared_project_name_must_appear_in_project_name_fills():
         },
     }
 
-    assert trajectory_semantic_conflicts(task) == (
-        "required_project_name_not_filled",
-    )
+    assert trajectory_semantic_conflicts(task) == ("required_project_name_not_filled",)
 
 
 def test_project_name_audit_accepts_a_later_corrected_fill():
@@ -355,9 +509,7 @@ def test_declared_file_name_must_appear_as_the_filled_basename():
         },
     }
 
-    assert trajectory_semantic_conflicts(task) == (
-        "required_file_name_not_filled",
-    )
+    assert trajectory_semantic_conflicts(task) == ("required_file_name_not_filled",)
 
 
 def test_file_name_audit_accepts_the_declared_basename_in_a_folder():
@@ -398,17 +550,13 @@ def test_network_evaluator_values_must_be_filled_into_their_owned_fields():
             "verified_evaluators": [
                 {
                     "evaluator": "NetworkEventEvaluator",
-                    "expected": {
-                        "post_data": {"submission[title]": "Expected title"}
-                    },
+                    "expected": {"post_data": {"submission[title]": "Expected title"}},
                 }
             ]
         },
     }
 
-    assert trajectory_semantic_conflicts(task) == (
-        "evaluator_title_value_not_filled",
-    )
+    assert trajectory_semantic_conflicts(task) == ("evaluator_title_value_not_filled",)
 
 
 def test_network_evaluator_field_audit_accepts_exact_owned_fill():
@@ -427,9 +575,7 @@ def test_network_evaluator_field_audit_accepts_exact_owned_fill():
             "verified_evaluators": [
                 {
                     "evaluator": "NetworkEventEvaluator",
-                    "expected": {
-                        "post_data": {"submission[title]": "Expected title"}
-                    },
+                    "expected": {"post_data": {"submission[title]": "Expected title"}},
                 }
             ]
         },
@@ -472,18 +618,14 @@ def test_network_evaluator_field_audit_detects_value_in_wrong_field():
                 {
                     "evaluator": "NetworkEventEvaluator",
                     "expected": {
-                        "post_data": {
-                            "submission[url]": "__GITLAB__/auth0/angular-storage"
-                        }
+                        "post_data": {"submission[url]": "__GITLAB__/auth0/angular-storage"}
                     },
                 }
             ]
         },
     }
 
-    assert trajectory_semantic_conflicts(task) == (
-        "evaluator_url_value_filled_in_wrong_field",
-    )
+    assert trajectory_semantic_conflicts(task) == ("evaluator_url_value_filled_in_wrong_field",)
 
 
 def test_network_evaluator_url_audit_normalizes_legacy_origin_to_site_token():
@@ -494,9 +636,7 @@ def test_network_evaluator_url_audit_normalizes_legacy_origin_to_site_token():
                 {
                     "action": "fill",
                     "target": {"by": "label", "value": "URL"},
-                    "text": (
-                        "http://old.example:8023/auth0/angular-storage"
-                    ),
+                    "text": ("http://old.example:8023/auth0/angular-storage"),
                 }
             ]
         },
@@ -505,9 +645,7 @@ def test_network_evaluator_url_audit_normalizes_legacy_origin_to_site_token():
                 {
                     "evaluator": "NetworkEventEvaluator",
                     "expected": {
-                        "post_data": {
-                            "submission[url]": "__GITLAB__/auth0/angular-storage"
-                        }
+                        "post_data": {"submission[url]": "__GITLAB__/auth0/angular-storage"}
                     },
                 }
             ]
@@ -529,7 +667,7 @@ def test_empty_candidate_cannot_be_adjudicated_eligible_without_correction():
         ],
     }
     qualification = {
-        "schema": "lex_browser_use_qualification/1",
+        "schema": QUALIFICATION_SCHEMA,
         "tasks": [
             {
                 "task_id": "x",
@@ -544,40 +682,6 @@ def test_empty_candidate_cannot_be_adjudicated_eligible_without_correction():
 
 
 def test_correction_is_applied_only_with_passing_primary_qualification_attempt(tmp_path):
-    attempt = tmp_path / "attempt.json"
-    attempt.write_text(
-        json.dumps(
-            {
-                "task_id": "x",
-                "engine": "chromium",
-                "is_retry": False,
-                "qualification_run": True,
-                "status": "pass",
-                "combined_status": "pass",
-                "evidence_status": "pass",
-                "evidence_directory": str(tmp_path),
-                "final_page_evidence": {
-                    "status": "complete",
-                    "screenshot": {"path": "final.png", "sha256": "0" * 64},
-                    "page": {"path": "final-page.json", "sha256": "0" * 64},
-                },
-            }
-        ),
-        encoding="utf-8",
-    )
-    (tmp_path / "network.har").write_text(
-        json.dumps(
-            {
-                "log": {
-                    "creator": {"name": "browser-eval-cdp", "version": "3"},
-                    "entries": [],
-                }
-            }
-        ),
-        encoding="utf-8",
-    )
-    (tmp_path / "final.png").write_bytes(b"image")
-    (tmp_path / "final-page.json").write_text("{}", encoding="utf-8")
     suite = {
         "benchmark": {},
         "tasks": [
@@ -603,7 +707,7 @@ def test_correction_is_applied_only_with_passing_primary_qualification_attempt(t
         ],
     }
     qualification = {
-        "schema": "lex_browser_use_qualification/1",
+        "schema": QUALIFICATION_SCHEMA,
         "tasks": [
             {
                 "task_id": "x",
@@ -611,7 +715,6 @@ def test_correction_is_applied_only_with_passing_primary_qualification_attempt(t
                 "adjudication": {
                     "status": "eligible",
                     "reason": "replaced a stale selector",
-                    "validated_attempt_path": str(attempt),
                     "corrected_trajectory": corrected,
                 },
             }
@@ -623,27 +726,28 @@ def test_correction_is_applied_only_with_passing_primary_qualification_attempt(t
     assert validation_task["trajectory"]["provenance"]["kind"] == (
         "codex_corrected_webarena_trajectory"
     )
-    attempt_payload = json.loads(attempt.read_text(encoding="utf-8"))
-    attempt_payload["task_contract_sha256"] = task_contract_sha256(validation_task)
-    attempt_payload["final_page_evidence"]["screenshot"]["sha256"] = hashlib.sha256(
-        (tmp_path / "final.png").read_bytes()
-    ).hexdigest()
-    attempt_payload["final_page_evidence"]["page"]["sha256"] = hashlib.sha256(
-        (tmp_path / "final-page.json").read_bytes()
-    ).hexdigest()
-    attempt.write_text(json.dumps(attempt_payload), encoding="utf-8")
+    paths = [
+        _write_validated_attempt(
+            tmp_path,
+            validation_task,
+            pass_index=pass_index,
+        )[1]
+        for pass_index in (1, 2)
+    ]
+    qualification["tasks"][0]["adjudication"]["validated_attempt_paths"] = [
+        str(path) for path in paths
+    ]
 
     result = apply_adjudication(suite, qualification)
 
     task = result["tasks"][0]
     assert task["trajectory"]["actions"] == corrected["actions"]
-    assert task["ground_truth"]["qualification"]["validated_run_sha256"]
-    assert "validated_attempt_path" not in task["ground_truth"]["qualification"]
+    assert len(task["ground_truth"]["qualification"]["validated_run_sha256s"]) == 2
+    assert "validated_attempt_paths" not in task["ground_truth"]["qualification"]
     assert task["trajectory"]["provenance"]["original_trajectory_sha256"]
 
 
 def test_repaired_task_cannot_use_old_har_evidence(tmp_path):
-    attempt = tmp_path / "attempt.json"
     suite = {
         "benchmark": {},
         "tasks": [
@@ -657,50 +761,24 @@ def test_repaired_task_cannot_use_old_har_evidence(tmp_path):
             }
         ],
     }
-    attempt.write_text(
-        json.dumps(
-            {
-                "task_id": "x",
-                "engine": "chromium",
-                "is_retry": False,
-                "qualification_run": True,
-                "status": "pass",
-                "combined_status": "pass",
-                "evidence_status": "pass",
-                "evidence_directory": str(tmp_path),
-                "task_contract_sha256": task_contract_sha256(suite["tasks"][0]),
-                "final_page_evidence": {
-                    "status": "complete",
-                    "screenshot": {"path": "final.png", "sha256": "0" * 64},
-                    "page": {"path": "final-page.json", "sha256": "0" * 64},
-                },
-            }
-        ),
-        encoding="utf-8",
-    )
-    (tmp_path / "network.har").write_text(
-        json.dumps({"log": {"creator": {"name": "browser-eval-cdp", "version": "1"}}}),
-        encoding="utf-8",
-    )
-    (tmp_path / "final.png").write_bytes(b"image")
-    (tmp_path / "final-page.json").write_text("{}", encoding="utf-8")
-    payload = json.loads(attempt.read_text(encoding="utf-8"))
-    payload["final_page_evidence"]["screenshot"]["sha256"] = hashlib.sha256(
-        (tmp_path / "final.png").read_bytes()
-    ).hexdigest()
-    payload["final_page_evidence"]["page"]["sha256"] = hashlib.sha256(
-        (tmp_path / "final-page.json").read_bytes()
-    ).hexdigest()
-    attempt.write_text(json.dumps(payload), encoding="utf-8")
+    attempts = [
+        _write_validated_attempt(
+            tmp_path,
+            suite["tasks"][0],
+            pass_index=pass_index,
+            har_version="1" if pass_index == 1 else HAR_CREATOR_VERSION,
+        )[1]
+        for pass_index in (1, 2)
+    ]
     qualification = {
-        "schema": "lex_browser_use_qualification/1",
+        "schema": QUALIFICATION_SCHEMA,
         "tasks": [
             {
                 "task_id": "x",
                 "disposition": "eligible",
                 "adjudication": {
                     "status": "eligible",
-                    "validated_attempt_path": str(attempt),
+                    "validated_attempt_paths": [str(path) for path in attempts],
                 },
             }
         ],
@@ -728,7 +806,7 @@ def test_repair_validation_suite_requires_the_declared_material_change():
         ],
     }
     qualification = {
-        "schema": "lex_browser_use_qualification/1",
+        "schema": QUALIFICATION_SCHEMA,
         "tasks": [
             {
                 "task_id": "x",
@@ -773,7 +851,7 @@ def test_repair_validation_suite_is_loadable_and_keeps_contract_hash(tmp_path):
         ],
     }
     qualification = {
-        "schema": "lex_browser_use_qualification/1",
+        "schema": QUALIFICATION_SCHEMA,
         "tasks": [
             {
                 "task_id": "x",
@@ -921,7 +999,7 @@ def test_skipped_task_requires_public_reason():
         "tasks": [{"id": "x", "ground_truth": {"qualification": {"status": "pending"}}}],
     }
     qualification = {
-        "schema": "lex_browser_use_qualification/1",
+        "schema": QUALIFICATION_SCHEMA,
         "tasks": [
             {
                 "task_id": "x",

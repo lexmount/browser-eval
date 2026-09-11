@@ -8,14 +8,16 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from harness.browser_use.qualification import task_contract_sha256
+from harness.browser_use.qualification import (
+    QUALIFICATION_SCHEMA,
+    task_contract_sha256,
+    validated_attempt_sha256s,
+)
 
 
 def _rows(path: Path) -> list[dict[str, Any]]:
     return [
-        json.loads(line)
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
+        json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()
     ]
 
 
@@ -45,21 +47,29 @@ def _task_payload(task: dict[str, Any]) -> dict[str, Any]:
         "evaluator": task.get("evaluator"),
         "environment": task.get("environment"),
         "ground_truth": task.get("ground_truth"),
+        "source": task.get("source"),
     }
 
 
-def overlay_validated_run(
+def _collect_validated_run(
     canonical_tasks: dict[str, dict[str, Any]],
     decisions: dict[str, dict[str, Any]],
     validated_suite: dict[str, Any],
     attempts_path: Path,
+    candidates: dict[str, dict[str, Any]],
 ) -> None:
-    validated_tasks = {
-        str(task["id"]): task for task in validated_suite.get("tasks") or []
-    }
+    validated_tasks = {str(task["id"]): task for task in validated_suite.get("tasks") or []}
     rows = _rows(attempts_path)
-    if not rows or len({str(row.get("task_id")) for row in rows}) != len(rows):
-        raise ValueError(f"validated run has empty or duplicate task rows: {attempts_path}")
+    identities = {
+        (
+            str(row.get("task_id")),
+            str(row.get("run_id")),
+            row.get("qualification_pass_index"),
+        )
+        for row in rows
+    }
+    if not rows or len(identities) != len(rows):
+        raise ValueError(f"validated run has empty or duplicate attempt rows: {attempts_path}")
     for row in rows:
         task_id = str(row.get("task_id") or "")
         task = validated_tasks.get(task_id)
@@ -70,23 +80,64 @@ def overlay_validated_run(
             or row.get("qualification_run") is not True
             or row.get("is_retry") is not False
             or row.get("attempt") != 1
+            or row.get("qualification_pass_index") not in {1, 2}
+            or row.get("qualification_required_passes") != 2
         ):
             raise ValueError(f"{task_id}: validated run violates cold primary policy")
-        if not all(
-            row.get(key) == "pass"
-            for key in ("process_status", "result_status", "evidence_status")
-        ):
-            continue
         if row.get("task_contract_sha256") != task_contract_sha256(_task_payload(task)):
             raise ValueError(f"{task_id}: validated run does not match task contract")
         evidence_directory = str(row.get("evidence_directory") or "").strip()
         if not evidence_directory:
-            raise ValueError(f"{task_id}: validated pass lacks evidence_directory")
-        original = canonical_tasks[task_id]
+            raise ValueError(f"{task_id}: validated run lacks evidence_directory")
+        candidate = candidates.setdefault(
+            task_id,
+            {"task": deepcopy(task), "attempt_paths": [], "passing_paths": []},
+        )
+        if task_contract_sha256(_task_payload(candidate["task"])) != task_contract_sha256(
+            _task_payload(task)
+        ):
+            raise ValueError(f"{task_id}: validated runs use different task contracts")
+        attempt_path = str(Path(evidence_directory) / "attempt.json")
+        candidate["attempt_paths"].append(attempt_path)
+        if all(
+            row.get(key) == "pass"
+            for key in (
+                "process_status",
+                "result_status",
+                "evidence_status",
+                "status",
+                "combined_status",
+            )
+        ):
+            candidate["passing_paths"].append(attempt_path)
+
+
+def _overlay_two_pass_candidates(
+    canonical_tasks: dict[str, dict[str, Any]],
+    decisions: dict[str, dict[str, Any]],
+    candidates: dict[str, dict[str, Any]],
+) -> set[str]:
+    overlaid: set[str] = set()
+    for task_id, candidate in candidates.items():
+        attempt_paths = candidate["attempt_paths"]
+        passing_paths = candidate["passing_paths"]
+        if len(attempt_paths) > 2:
+            raise ValueError(f"{task_id}: more than two validation attempts")
+        if len(attempt_paths) != 2 or len(passing_paths) != 2:
+            continue
+        task = candidate["task"]
+        contract = task_contract_sha256(_task_payload(task))
         adjudication: dict[str, Any] = {
             "status": "eligible",
-            "validated_attempt_path": str(Path(evidence_directory) / "attempt.json"),
+            "validated_attempt_paths": list(passing_paths),
         }
+        # Validate the immutable attempt files, not only their JSONL projections.
+        validated_attempt_sha256s(
+            adjudication,
+            task_id,
+            expected_contract_sha256=contract,
+        )
+        original = canonical_tasks[task_id]
         reason = str(
             ((task.get("ground_truth") or {}).get("qualification") or {}).get("reason")
             or ((decisions[task_id].get("adjudication") or {}).get("reason"))
@@ -108,6 +159,26 @@ def overlay_validated_run(
                 raise ValueError(f"{task_id}: repaired validated pass lacks reason")
             adjudication["reason"] = reason
         decisions[task_id]["adjudication"] = adjudication
+        overlaid.add(task_id)
+    return overlaid
+
+
+def overlay_validated_run(
+    canonical_tasks: dict[str, dict[str, Any]],
+    decisions: dict[str, dict[str, Any]],
+    validated_suite: dict[str, Any],
+    attempts_path: Path,
+) -> None:
+    """Compatibility wrapper requiring both passes in one attempts projection."""
+    candidates: dict[str, dict[str, Any]] = {}
+    _collect_validated_run(
+        canonical_tasks,
+        decisions,
+        validated_suite,
+        attempts_path,
+        candidates,
+    )
+    _overlay_two_pass_candidates(canonical_tasks, decisions, candidates)
 
 
 def finalize_adjudication(
@@ -124,6 +195,27 @@ def finalize_adjudication(
     unknown_invalidations = set(invalidations) - set(decisions)
     if unknown_invalidations:
         raise ValueError(f"invalidations contain unknown tasks: {sorted(unknown_invalidations)}")
+    # Preserve prior repair reasons while overlaying, but remember which
+    # eligibility decisions must be replaced by fresh two-pass evidence.
+    previous_eligible = {
+        task_id
+        for task_id, decision in decisions.items()
+        if (decision.get("adjudication") or {}).get("status") == "eligible"
+    }
+    candidates: dict[str, dict[str, Any]] = {}
+    for validated_suite, attempts_path in validated_runs:
+        _collect_validated_run(
+            canonical_tasks,
+            decisions,
+            validated_suite,
+            attempts_path,
+            candidates,
+        )
+    overlaid = _overlay_two_pass_candidates(canonical_tasks, decisions, candidates)
+    for task_id in previous_eligible - overlaid:
+        decisions[task_id]["adjudication"] = None
+    # An explicit invalidation records later evidence and therefore wins over
+    # every provisional or independently reproduced pass.
     for task_id, reason in invalidations.items():
         if not str(reason).strip():
             raise ValueError(f"{task_id}: invalidation reason is empty")
@@ -131,8 +223,6 @@ def finalize_adjudication(
             "status": "skipped",
             "reason": str(reason).strip(),
         }
-    for validated_suite, attempts_path in validated_runs:
-        overlay_validated_run(canonical_tasks, decisions, validated_suite, attempts_path)
     for decision in decisions.values():
         adjudication = decision.get("adjudication")
         if not isinstance(adjudication, dict) or adjudication.get("status") not in {
@@ -144,6 +234,7 @@ def finalize_adjudication(
                 "reason": _default_skip_reason(decision),
             }
     result["tasks"] = [decisions[str(task["id"])] for task in suite["tasks"]]
+    result["schema"] = QUALIFICATION_SCHEMA
     return result
 
 
@@ -173,9 +264,7 @@ def main() -> None:
             )
         )
     invalidations = (
-        json.loads(args.invalidations.read_text(encoding="utf-8"))
-        if args.invalidations
-        else {}
+        json.loads(args.invalidations.read_text(encoding="utf-8")) if args.invalidations else {}
     )
     if not isinstance(invalidations, dict):
         raise ValueError("invalidations must be a task-to-reason object")

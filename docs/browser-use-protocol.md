@@ -56,10 +56,12 @@ Of the 179 candidates, 98 mutate or navigate tasks already have a null response 
 success can be decided from final state and HAR. The other 81 are retrieve tasks: the upstream
 recording provides actions but no evaluator-ready final answer. Even if their imported path
 executes, they remain `needs response annotation` until Codex adds DOM observation actions and an
-observed response builder, then passes a second Chromium qualification run.
+observed response builder, then passes two independent Chromium qualification runs.
 
-All 179 candidates are replayed once with upstream Chromium against the pinned WebArena-Verified
-environment before either measured browser is run. Each task enters one of three queues:
+All 172 candidates in the pre-registered native scope are replayed in two independent passes with
+upstream Chromium against the pinned WebArena-Verified environment before either measured browser
+is run. Each pass uses a clean per-task reset and contains one primary attempt, not a retry. A task
+enters one of three queues only after both passes are present:
 
 - eligible: the path executes and the current deterministic evaluator passes;
 - needs response annotation: the UI path executes but a retrieve response still needs an
@@ -68,8 +70,8 @@ environment before either measured browser is run. Each task enters one of three
 
 For correction, Codex may inspect the original trace, its snapshots, the current page, and the
 failure evidence. It may change UI actions or add DOM capture steps. It may not change the task,
-expected result, evaluator, or environment. A repaired task becomes eligible only after a new
-Chromium run passes the same WebArena-Verified evaluator. Original and corrected trajectories,
+expected result, evaluator, or environment. A repaired task becomes eligible only after two
+independent new Chromium runs pass the same WebArena-Verified evaluator. Original and corrected trajectories,
 diffs, evidence hashes, and correction reasons are retained. A task that cannot be completed and
 independently verified is marked skipped with a public reason.
 
@@ -111,9 +113,9 @@ the smoke into qualification evidence.
 
 Qualification must not inspect Moli results or the later Chromium-versus-Moli comparison. This
 prevents browser-specific post-selection.
-Qualification shards are globally sequential within one evidence root. A process lock rejects
-parallel site batches because shared CPU, disk, or database pressure can turn navigation latency
-into false trajectory failures.
+Qualification shards for the same site are sequential within one evidence root. Disjoint site
+batches may run concurrently under distinct process locks; the orchestrator never overlaps two
+batches whose reset can touch the same service. Both complete passes cover the same immutable scope.
 Large asset downloads, image imports, archive hashing, and other sustained disk or network jobs on
 the measurement host must also be paused while a qualification or formal comparison shard runs.
 If such work overlaps a shard, the complete shard is retained as `invalid_runtime` and rerun from
@@ -254,16 +256,16 @@ Run qualification in site-compatible batches with Chromium only. `--task-ids` co
 pre-registered IDs for the active site group:
 
 ```text
-uv run --frozen python -m harness.browser_use.cli --suite evaluation/browser-use-public/webarena-human-suite.json --webarena-config <runtime-config> --qualification-run --engines chromium --failure-retries 0 --task-ids <ids> --output <evidence>/qualification/<batch>
+uv run --frozen python -m harness.browser_use.cli --suite evaluation/browser-use-public/webarena-human-suite.json --webarena-config <runtime-config> --qualification-run --qualification-pass-index <1-or-2> --qualification-required-passes 2 --engines chromium --failure-retries 0 --task-ids <ids> --output <evidence>/qualification/pass-<1-or-2>/<batch>
 ```
 
 Codex may first use a warm-site authoring run to inspect and repair pending retrieve-only
 trajectories in batches. This mode resets each involved site once, but still creates a fresh browser
 context for every task. It is diagnostic only: its manifest and attempts are explicitly marked
 `trajectory_authoring_run`, it cannot include state-changing tasks or retries, and its output is
-never accepted by the qualification gate. Every proposed trajectory must subsequently pass a clean
-Chromium qualification run with the normal per-task reset and complete HAR, screenshot, final-page,
-and evaluator evidence.
+never accepted by the qualification gate. Every proposed trajectory must subsequently pass two
+clean Chromium qualification runs with the normal per-task reset and complete HAR, screenshot,
+final-page, and evaluator evidence. A Codex proposal has no qualification effect by itself.
 
 ```text
 uv run --frozen python -m harness.browser_use.cli --suite <evidence>/authoring/retrieve-suite.json --webarena-config <runtime-config> --trajectory-authoring-run --engines chromium --failure-retries 0 --output <evidence>/authoring/retrieve
@@ -273,7 +275,7 @@ For the pre-registered single-host amd64 run, select an immutable batch directly
 that the scope is bound to the exact suite SHA before starting Docker:
 
 ```text
-uv run --frozen python -m harness.browser_use.cli --suite evaluation/browser-use-public/webarena-human-suite.json --native-scope evaluation/browser-use-public/webarena-amd64-scope.json --batch-id shopping --webarena-config <runtime-config> --qualification-run --engines chromium --failure-retries 0 --output <evidence>/qualification/shopping
+uv run --frozen python -m harness.browser_use.cli --suite evaluation/browser-use-public/webarena-human-suite.json --native-scope evaluation/browser-use-public/webarena-amd64-scope.json --batch-id shopping --webarena-config <runtime-config> --qualification-run --qualification-pass-index <1-or-2> --qualification-required-passes 2 --engines chromium --failure-retries 0 --output <evidence>/qualification/pass-<1-or-2>/shopping
 ```
 
 The native scope pre-registers stable round-robin shards with at most 12 tasks each: 18 shards cover
@@ -282,30 +284,34 @@ rejects a different count, and each manifest records the scope hash, batch, shar
 index. Shards from one stateful site remain sequential because they share a resettable service state.
 
 ```text
-uv run --frozen python -m harness.browser_use.cli --suite evaluation/browser-use-public/webarena-human-suite.json --native-scope evaluation/browser-use-public/webarena-amd64-scope.json --batch-id shopping --batch-shard-count 4 --batch-shard-index 0 --webarena-config <runtime-config> --qualification-run --engines chromium --failure-retries 0 --output <evidence>/qualification/shopping-0-of-4
+uv run --frozen python -m harness.browser_use.cli --suite evaluation/browser-use-public/webarena-human-suite.json --native-scope evaluation/browser-use-public/webarena-amd64-scope.json --batch-id shopping --batch-shard-count 4 --batch-shard-index 0 --webarena-config <runtime-config> --qualification-run --qualification-pass-index <1-or-2> --qualification-required-passes 2 --engines chromium --failure-retries 0 --output <evidence>/qualification/pass-<1-or-2>/shopping-0-of-4
 ```
 
-The scope orchestrator runs all 18 shards sequentially. On restart it skips an existing shard only
-after verifying its manifest contract, artifact hashes, and exactly one primary Chromium attempt
-per task. It refuses to overwrite incomplete or conflicting evidence. After all 172 tasks are
-present, it writes the immutable correction queue; `--dry-run` prints the full plan without creating
-the evidence root.
+The scope orchestrator keeps shards from the same site sequential, but may run disjoint site batches
+in parallel. `--max-site-workers 3` therefore never overlaps two resets that can touch the same
+service. On restart it skips an existing shard only after verifying its manifest contract, artifact
+hashes, and exactly one primary Chromium attempt per task and pass. Incomplete output is preserved
+under `_failed` before a clean rerun; conflicting complete evidence is never overwritten. After
+both 172-task passes are present, it writes the immutable correction queue;
+`--dry-run` prints the full plan without creating the evidence root.
 
 ```text
-uv run --frozen python -m scripts.run_webarena_qualification --suite evaluation/browser-use-public/webarena-human-suite.json --native-scope evaluation/browser-use-public/webarena-amd64-scope.json --webarena-config <runtime-config> --env-file .env --browser-docker-host unix:///var/run/docker.sock --evidence-root <evidence>/qualification
+uv run --frozen python -m scripts.run_webarena_qualification --suite evaluation/browser-use-public/webarena-human-suite.json --native-scope evaluation/browser-use-public/webarena-amd64-scope.json --webarena-config <runtime-config> --env-file .env --browser-docker-host unix:///var/run/docker.sock --max-site-workers 3 --evidence-root <evidence>/qualification
 ```
 
 Merge the batch attempt files into one correction queue. A repaired or observation-annotated task
-is accepted only when its adjudication points to a primary passing Chromium `attempt.json` whose
-task-contract hash matches the corrected actions, evaluator, environment, and response builder.
+is accepted only when its adjudication points to two primary passing Chromium `attempt.json` files
+from distinct runs covering pass indices 1 and 2. Both task-contract hashes must match the corrected
+actions, evaluator, environment, source evaluator contract, and response builder.
 After Codex records proposed corrections in the queue, build the exact pending subset and run that
-suite once with the same qualification flags. Copy each passing repair attempt path into the final
+suite twice with the pass-specific qualification flags. Copy both passing repair attempt paths into the final
 adjudication; do not validate a hand-edited suite whose normalized provenance differs from the
 canonical result.
 
 ```text
 uv run --frozen python -m scripts.build_webarena_repair_queue --suite evaluation/browser-use-public/webarena-human-suite.json --attempts <batch-1>/attempts.jsonl <batch-2>/attempts.jsonl --output <evidence>/qualification/queue.json
 uv run --frozen python -m scripts.build_webarena_repair_validation_suite --suite evaluation/browser-use-public/webarena-human-suite.json --qualification <evidence>/qualification/proposed.json --output <evidence>/qualification/repair-suite.json
-uv run --frozen python -m harness.browser_use.cli --suite <evidence>/qualification/repair-suite.json --webarena-config <runtime-config> --qualification-run --engines chromium --failure-retries 0 --output <evidence>/qualification/repairs
+uv run --frozen python -m harness.browser_use.cli --suite <evidence>/qualification/repair-suite.json --webarena-config <runtime-config> --qualification-run --qualification-pass-index 1 --qualification-required-passes 2 --engines chromium --failure-retries 0 --output <evidence>/qualification/repairs/pass-1
+uv run --frozen python -m harness.browser_use.cli --suite <evidence>/qualification/repair-suite.json --webarena-config <runtime-config> --qualification-run --qualification-pass-index 2 --qualification-required-passes 2 --engines chromium --failure-retries 0 --output <evidence>/qualification/repairs/pass-2
 uv run --frozen python -m scripts.apply_webarena_qualification --suite evaluation/browser-use-public/webarena-human-suite.json --qualification <evidence>/qualification/adjudicated.json --output evaluation/browser-use-public/webarena-human-suite.json
 ```

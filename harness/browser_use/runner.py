@@ -160,29 +160,116 @@ def _capture_final_page_evidence(page: Page, artifact_dir: Path) -> dict[str, An
     """Persist post-HAR visual/page evidence and fail closed when it is unavailable."""
     screenshot_path = artifact_dir / "final.png"
     page_path = artifact_dir / "final-page.json"
-    screenshot_bytes = page.screenshot(path=str(screenshot_path), full_page=False)
-    if not screenshot_bytes:
-        screenshot_bytes = screenshot_path.read_bytes()
+    candidates = [candidate for candidate in page.context.pages if not candidate.is_closed()]
+    capture_page = candidates[-1] if candidates else page
+    capture_errors: list[dict[str, str]] = []
+    try:
+        capture_page.wait_for_load_state("domcontentloaded", timeout=5_000)
+    except Exception as exc:
+        capture_errors.append({"stage": "load_state", "error": type(exc).__name__})
+
+    screenshot_bytes = b""
+    for _ in range(3):
+        try:
+            screenshot_bytes = capture_page.screenshot(
+                path=str(screenshot_path), full_page=False, timeout=5_000
+            )
+            if not screenshot_bytes:
+                screenshot_bytes = screenshot_path.read_bytes()
+            break
+        except Exception as exc:
+            capture_errors.append({"stage": "screenshot", "error": type(exc).__name__})
+            capture_page.wait_for_timeout(250)
+
+    dom_evidence = None
+    for _ in range(3):
+        try:
+            dom_evidence = capture_page.evaluate(
+                r"""() => {
+          const normalize = value => String(value || '').replace(/\s+/g, ' ').trim();
+          const candidates = Array.from(document.querySelectorAll(
+            'a, button, input, select, textarea, [role], [contenteditable="true"], [tabindex]'
+          ));
+          return {
+            visibleText: normalize(document.body ? document.body.innerText : '').slice(0, 40000),
+            interactiveElements: candidates.slice(0, 1000).map((element, index) => ({
+              index,
+              tag: element.tagName.toLowerCase(),
+              role: element.getAttribute('role'),
+              text: normalize(element.innerText || element.textContent).slice(0, 500),
+              id: element.id || null,
+              name: element.getAttribute('name'),
+              ariaLabel: element.getAttribute('aria-label'),
+              placeholder: element.getAttribute('placeholder'),
+              title: element.getAttribute('title'),
+              href: element.getAttribute('href'),
+              type: element.getAttribute('type'),
+              checked: 'checked' in element ? Boolean(element.checked) : null,
+              selected: 'selected' in element ? Boolean(element.selected) : null,
+              disabled: 'disabled' in element ? Boolean(element.disabled) : null,
+              visible: Boolean(element.getClientRects().length),
+            })),
+          };
+        }"""
+            )
+            break
+        except Exception as exc:
+            capture_errors.append({"stage": "dom", "error": type(exc).__name__})
+            capture_page.wait_for_timeout(250)
+    dom_captured = dom_evidence is not None
+    if dom_evidence is None:
+        dom_evidence = {"visibleText": "", "interactiveElements": []}
+
+    open_pages = []
+    for candidate in list(page.context.pages):
+        try:
+            open_pages.append({"url": str(candidate.url), "title": candidate.title()})
+        except Exception as exc:
+            open_pages.append(
+                {
+                    "url": str(getattr(candidate, "url", "")),
+                    "title_error": type(exc).__name__,
+                }
+            )
+    try:
+        title = capture_page.title()
+    except Exception as exc:
+        title = ""
+        capture_errors.append({"stage": "title", "error": type(exc).__name__})
+    try:
+        viewport = capture_page.evaluate("() => ({width: innerWidth, height: innerHeight})")
+    except Exception as exc:
+        viewport = None
+        capture_errors.append({"stage": "viewport", "error": type(exc).__name__})
     page_payload = {
-        "url": str(page.url),
-        "title": page.title(),
-        "visible_text": page.locator("body").first.inner_text(timeout=10_000)[:40_000],
-        "viewport": page.evaluate("() => ({width: innerWidth, height: innerHeight})"),
+        "url": str(capture_page.url),
+        "title": title,
+        "visible_text": dom_evidence["visibleText"],
+        "interactive_elements": dom_evidence["interactiveElements"],
+        "open_pages": open_pages,
+        "viewport": viewport,
+        "capture_errors": capture_errors,
     }
     page_bytes = (json.dumps(page_payload, indent=2, ensure_ascii=False) + "\n").encode()
     page_path.write_bytes(page_bytes)
+    complete = bool(screenshot_bytes and dom_captured and viewport)
     return {
-        "status": "complete",
-        "screenshot": {
-            "path": screenshot_path.name,
-            "sha256": hashlib.sha256(screenshot_bytes).hexdigest(),
-            "bytes": len(screenshot_bytes),
-        },
+        "status": "complete" if complete else "partial",
+        "screenshot": (
+            {
+                "path": screenshot_path.name,
+                "sha256": hashlib.sha256(screenshot_bytes).hexdigest(),
+                "bytes": len(screenshot_bytes),
+            }
+            if screenshot_bytes
+            else None
+        ),
         "page": {
             "path": page_path.name,
             "sha256": hashlib.sha256(page_bytes).hexdigest(),
             "bytes": len(page_bytes),
         },
+        "capture_errors": capture_errors,
     }
 
 
@@ -647,6 +734,8 @@ def run_evaluation(
     webarena_config_path: str | Path | None = None,
     engines: tuple[str, ...] = ("chromium", "moli"),
     qualification_run: bool = False,
+    qualification_pass_index: int | None = None,
+    qualification_required_passes: int | None = None,
     trajectory_authoring_run: bool = False,
     task_ids: tuple[str, ...] | None = None,
     task_selection: dict[str, Any] | None = None,
@@ -663,6 +752,13 @@ def run_evaluation(
         raise ValueError(f"engines must be a unique subset of {tuple(ENGINE_IMAGES)}")
     if qualification_run and trajectory_authoring_run:
         raise ValueError("qualification_run and trajectory_authoring_run are mutually exclusive")
+    if qualification_run:
+        if qualification_required_passes != 2 or qualification_pass_index not in {1, 2}:
+            raise ValueError(
+                "qualification requires pass index 1 or 2 and exactly two independent passes"
+            )
+    elif qualification_pass_index is not None or qualification_required_passes is not None:
+        raise ValueError("qualification pass identity is valid only for qualification runs")
     if (qualification_run or trajectory_authoring_run) and (
         engines != ("chromium",) or max_retries != 0
     ):
@@ -864,6 +960,12 @@ def run_evaluation(
                         )
                     row["run_id"] = run_id
                     row["qualification_run"] = qualification_run
+                    row["qualification_pass_index"] = (
+                        qualification_pass_index if qualification_run else None
+                    )
+                    row["qualification_required_passes"] = (
+                        qualification_required_passes if qualification_run else None
+                    )
                     row["trajectory_authoring_run"] = trajectory_authoring_run
                     row["environment_reset"] = environment_reset
                     row["task_contract_sha256"] = task_contract_sha256(
@@ -874,6 +976,7 @@ def run_evaluation(
                             "evaluator": task.evaluator,
                             "environment": task.environment,
                             "ground_truth": task.ground_truth,
+                            "source": task.source,
                         }
                     )
                     attempt_path = artifact_dir / "attempt.json"
@@ -978,6 +1081,12 @@ def run_evaluation(
                 "engine_order": "balanced by task index",
                 "engines": list(engines),
                 "qualification_run": qualification_run,
+                "qualification_pass_index": (
+                    qualification_pass_index if qualification_run else None
+                ),
+                "qualification_required_passes": (
+                    qualification_required_passes if qualification_run else None
+                ),
                 "trajectory_authoring_run": trajectory_authoring_run,
                 "trajectory_authoring_scope": (
                     "diagnostic-only non-mutating retrieve/navigate tasks; one site reset before "

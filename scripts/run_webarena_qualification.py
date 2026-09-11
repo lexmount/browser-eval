@@ -8,6 +8,9 @@ import json
 import os
 import subprocess
 import sys
+import time
+import uuid
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -58,12 +61,46 @@ def qualification_shards(scope_path: Path, suite_path: Path) -> tuple[dict[str, 
     return tuple(shards)
 
 
+def qualification_waves(
+    shards: tuple[dict[str, Any], ...], scope: dict[str, Any], *, max_workers: int
+) -> tuple[tuple[tuple[dict[str, Any], ...], ...], ...]:
+    """Group complete site batches into deterministic, conflict-free parallel waves."""
+    if max_workers < 1:
+        raise ValueError("max_workers must be positive")
+    sites_by_batch = {
+        str(batch["id"]): frozenset(str(site) for site in batch.get("sites") or [])
+        for batch in scope.get("qualification_batches") or []
+    }
+    shards_by_batch: dict[str, list[dict[str, Any]]] = {}
+    for shard in shards:
+        batch_id = str(shard["batch_id"])
+        if batch_id not in sites_by_batch or not sites_by_batch[batch_id]:
+            raise ValueError(f"qualification batch has no declared sites: {batch_id}")
+        shards_by_batch.setdefault(batch_id, []).append(shard)
+    remaining = list(shards_by_batch)
+    waves: list[tuple[tuple[dict[str, Any], ...], ...]] = []
+    while remaining:
+        occupied: set[str] = set()
+        selected: list[str] = []
+        for batch_id in remaining:
+            sites = sites_by_batch[batch_id]
+            if len(selected) < max_workers and not occupied.intersection(sites):
+                selected.append(batch_id)
+                occupied.update(sites)
+        waves.append(tuple(tuple(shards_by_batch[batch_id]) for batch_id in selected))
+        selected_set = set(selected)
+        remaining = [batch_id for batch_id in remaining if batch_id not in selected_set]
+    return tuple(waves)
+
+
 def validate_completed_shard(
     output: Path,
     *,
     suite_sha256: str,
     scope_sha256: str,
     shard: dict[str, Any],
+    qualification_pass_index: int,
+    qualification_required_passes: int = 2,
 ) -> None:
     required = {name: output / name for name in ("attempts.jsonl", "summary.json", "manifest.json")}
     missing = [name for name, path in required.items() if not path.is_file()]
@@ -84,6 +121,8 @@ def validate_completed_shard(
         "batch_id": shard["batch_id"],
         "shard_count": shard["shard_count"],
         "shard_index": shard["shard_index"],
+        "qualification_pass_index": qualification_pass_index,
+        "qualification_required_passes": qualification_required_passes,
     }
     expected_ids = list(shard["task_ids"])
     if (
@@ -93,6 +132,8 @@ def validate_completed_shard(
         or protocol.get("max_failure_retries") != 0
         or protocol.get("task_filter") != expected_ids
         or selection != expected_selection
+        or protocol.get("qualification_pass_index") != qualification_pass_index
+        or protocol.get("qualification_required_passes") != qualification_required_passes
     ):
         raise ValueError(f"{shard['id']}: qualification manifest contract mismatch")
     rows = [
@@ -109,6 +150,8 @@ def validate_completed_shard(
         or row.get("qualification_run") is not True
         or row.get("is_retry") is not False
         or row.get("attempt") != 1
+        or row.get("qualification_pass_index") != qualification_pass_index
+        or row.get("qualification_required_passes") != qualification_required_passes
         for row in rows
     ):
         raise ValueError(f"{shard['id']}: qualification attempts violate primary-run policy")
@@ -219,6 +262,12 @@ def main() -> None:
     parser.add_argument("--memory", default="2g")
     parser.add_argument("--sample-interval-ms", type=int, default=50)
     parser.add_argument("--settle-ms", type=int, default=1500)
+    parser.add_argument(
+        "--max-site-workers",
+        type=int,
+        default=1,
+        help="parallel site batches; batches sharing a site always remain serialized",
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     suite_path = args.suite.resolve()
@@ -241,19 +290,41 @@ def main() -> None:
     )
     suite_sha256 = _sha256(suite_path)
     scope_sha256 = _sha256(scope_path)
-    attempts_paths: list[Path] = []
-    for shard in selected_shards:
-        output = evidence_root / str(shard["id"])
+    waves = qualification_waves(selected_shards, scope, max_workers=args.max_site_workers)
+
+    def run_shard(shard: dict[str, Any], qualification_pass_index: int) -> Path:
+        output = (
+            evidence_root
+            / f"pass-{qualification_pass_index}"
+            / str(shard["id"])
+        )
         if output.exists():
-            validate_completed_shard(
-                output,
-                suite_sha256=suite_sha256,
-                scope_sha256=scope_sha256,
-                shard=shard,
-            )
-            print(f"SKIP verified {shard['id']}", flush=True)
-            attempts_paths.append(output / "attempts.jsonl")
-            continue
+            try:
+                validate_completed_shard(
+                    output,
+                    suite_sha256=suite_sha256,
+                    scope_sha256=scope_sha256,
+                    shard=shard,
+                    qualification_pass_index=qualification_pass_index,
+                )
+            except Exception:
+                failed = (
+                    evidence_root
+                    / "_failed"
+                    / (
+                        f"pass-{qualification_pass_index}-{shard['id']}-"
+                        f"{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}-{uuid.uuid4().hex[:8]}"
+                    )
+                )
+                failed.parent.mkdir(parents=True, exist_ok=True)
+                output.replace(failed)
+                print(f"PRESERVE incomplete {shard['id']} at {failed}", flush=True)
+            else:
+                print(
+                    f"SKIP verified pass-{qualification_pass_index} {shard['id']}",
+                    flush=True,
+                )
+                return output / "attempts.jsonl"
         command = [
             sys.executable,
             "-m",
@@ -271,6 +342,12 @@ def main() -> None:
             "--webarena-config",
             str(config_path),
             "--qualification-run",
+            "--qualification-pass-index",
+            str(qualification_pass_index),
+            "--qualification-required-passes",
+            "2",
+            "--qualification-lock-key",
+            str(shard["batch_id"]),
             "--engines",
             "chromium",
             "--failure-retries",
@@ -294,15 +371,50 @@ def main() -> None:
             command.extend(["--browser-docker-host", args.browser_docker_host])
         if args.dry_run:
             print(" ".join(command), flush=True)
-            continue
+            return output / "attempts.jsonl"
         subprocess.run(command, check=True, env=os.environ.copy())
         validate_completed_shard(
             output,
             suite_sha256=suite_sha256,
             scope_sha256=scope_sha256,
             shard=shard,
+            qualification_pass_index=qualification_pass_index,
         )
-        attempts_paths.append(output / "attempts.jsonl")
+        return output / "attempts.jsonl"
+
+    attempts_by_id: dict[tuple[int, str], Path] = {}
+    for qualification_pass_index in (1, 2):
+        for wave_index, wave in enumerate(waves, start=1):
+            print(
+                f"PASS {qualification_pass_index}/2 WAVE {wave_index}/{len(waves)}: "
+                + ", ".join(str(batch[0]["batch_id"]) for batch in wave),
+                flush=True,
+            )
+
+            def run_batch(
+                batch: tuple[dict[str, Any], ...],
+                qualification_pass_index: int = qualification_pass_index,
+            ) -> list[tuple[tuple[int, str], Path]]:
+                return [
+                    (
+                        (qualification_pass_index, str(shard["id"])),
+                        run_shard(shard, qualification_pass_index),
+                    )
+                    for shard in batch
+                ]
+
+            if args.dry_run or len(wave) == 1:
+                completed = [run_batch(batch) for batch in wave]
+            else:
+                with ThreadPoolExecutor(max_workers=len(wave)) as executor:
+                    completed = list(executor.map(run_batch, wave))
+            for batch_rows in completed:
+                attempts_by_id.update(batch_rows)
+    attempts_paths = [
+        attempts_by_id[(pass_index, str(shard["id"]))]
+        for pass_index in (1, 2)
+        for shard in selected_shards
+    ]
     if not args.dry_run and not selected_batches:
         queue = build_scoped_repair_queue(
             load_suite(suite_path),

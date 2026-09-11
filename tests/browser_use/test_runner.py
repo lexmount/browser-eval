@@ -14,8 +14,8 @@ from harness.browser_use.runner import (
     ENGINE_PORTS,
     _capture_final_page_evidence,
     _cleanup_runtime,
-    _environment_failure_row,
     _environment,
+    _environment_failure_row,
     _external_websocket_url,
     _http_origin,
     _prepare_page,
@@ -379,16 +379,42 @@ def test_environment_records_browser_image_build_source_labels():
 def test_final_page_evidence_binds_screenshot_and_visible_page_state(tmp_path):
     screenshot = b"png-bytes"
     page = MagicMock()
-    def write_screenshot(*, path, full_page):
+    def write_screenshot(*, path, full_page, timeout):
         assert full_page is False
+        assert timeout == 5_000
         Path(path).write_bytes(screenshot)
         return screenshot
 
     page.screenshot.side_effect = write_screenshot
     page.url = "https://example.test/result"
     page.title.return_value = "Result"
-    page.locator.return_value.first.inner_text.return_value = "Visible result"
-    page.evaluate.return_value = {"width": 1280, "height": 720}
+    page.context.pages = [page]
+    page.is_closed.return_value = False
+    page.evaluate.side_effect = [
+        {
+            "visibleText": "Visible result",
+            "interactiveElements": [
+                {
+                    "index": 0,
+                    "tag": "button",
+                    "role": None,
+                    "text": "Save",
+                    "id": "save",
+                    "name": None,
+                    "ariaLabel": None,
+                    "placeholder": None,
+                    "title": None,
+                    "href": None,
+                    "type": "submit",
+                    "checked": None,
+                    "selected": None,
+                    "disabled": False,
+                    "visible": True,
+                }
+            ],
+        },
+        {"width": 1280, "height": 720},
+    ]
 
     result = _capture_final_page_evidence(page, tmp_path)
 
@@ -398,7 +424,56 @@ def test_final_page_evidence_binds_screenshot_and_visible_page_state(tmp_path):
         "url": "https://example.test/result",
         "title": "Result",
         "visible_text": "Visible result",
+        "interactive_elements": [
+            {
+                "index": 0,
+                "tag": "button",
+                "role": None,
+                "text": "Save",
+                "id": "save",
+                "name": None,
+                "ariaLabel": None,
+                "placeholder": None,
+                "title": None,
+                "href": None,
+                "type": "submit",
+                "checked": None,
+                "selected": None,
+                "disabled": False,
+                "visible": True,
+            }
+        ],
+        "open_pages": [{"url": "https://example.test/result", "title": "Result"}],
         "viewport": {"width": 1280, "height": 720},
+        "capture_errors": [],
+    }
+
+
+def test_final_page_evidence_retries_navigation_races_and_writes_partial(tmp_path):
+    page = MagicMock()
+    page.context.pages = [page]
+    page.is_closed.return_value = False
+    page.url = "https://example.test/loading"
+    page.wait_for_load_state.side_effect = TimeoutError("still loading")
+    page.screenshot.side_effect = TimeoutError("context replaced")
+    page.evaluate.side_effect = RuntimeError("execution context destroyed")
+    page.title.side_effect = RuntimeError("execution context destroyed")
+
+    result = _capture_final_page_evidence(page, tmp_path)
+
+    assert result["status"] == "partial"
+    assert result["screenshot"] is None
+    assert result["page"]["path"] == "final-page.json"
+    payload = json.loads((tmp_path / "final-page.json").read_text())
+    assert payload["url"] == "https://example.test/loading"
+    assert payload["visible_text"] == ""
+    assert payload["interactive_elements"] == []
+    assert {row["stage"] for row in payload["capture_errors"]} == {
+        "load_state",
+        "screenshot",
+        "dom",
+        "title",
+        "viewport",
     }
 
 
@@ -448,6 +523,8 @@ def test_webarena_run_mode_fails_closed_on_qualification_state(
             engines=("chromium",),
             max_retries=0,
             qualification_run=qualification_run,
+            qualification_pass_index=1 if qualification_run else None,
+            qualification_required_passes=2 if qualification_run else None,
         )
     docker_call.assert_not_called()
 

@@ -15,6 +15,14 @@ from .har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
 from .suite import TRAJECTORY_SCHEMA, TaskSuite
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+QUALIFICATION_SCHEMA = "lex_browser_use_qualification/2"
+_PASS_STATUS_FIELDS = (
+    "process_status",
+    "result_status",
+    "evidence_status",
+    "status",
+    "combined_status",
+)
 _LEGACY_URL_PORT_SITES = {
     3000: "map",
     4399: "reddit",
@@ -132,7 +140,8 @@ def trajectory_semantic_conflicts(task: dict[str, Any]) -> tuple[str, ...]:
                 for action in actions
                 if action.get("action") == "fill"
                 and any(
-                    token in json.dumps(
+                    token
+                    in json.dumps(
                         action.get("target"), ensure_ascii=False, sort_keys=True
                     ).casefold()
                     for token in field_tokens[field]
@@ -141,8 +150,7 @@ def trajectory_semantic_conflicts(task: dict[str, Any]) -> tuple[str, ...]:
             if fills and expected_value not in fills:
                 conflicts.append(f"evaluator_{field}_value_not_filled")
             elif not fills and any(
-                _semantic_field_value(field, str(action.get("text") or ""))
-                == expected_value
+                _semantic_field_value(field, str(action.get("text") or "")) == expected_value
                 for action in actions
                 if action.get("action") == "fill"
             ):
@@ -165,35 +173,44 @@ def task_contract_sha256(task: dict[str, Any]) -> str:
             "evaluator": task.get("evaluator"),
             "environment": task.get("environment"),
             "response_builder": (task.get("ground_truth") or {}).get("response_builder"),
+            # WebArena-Verified evaluator contracts are immutable public benchmark
+            # inputs.  Binding them prevents a passing trajectory from being
+            # reused after an expected answer, network event, or result schema
+            # changes without changing the executable evaluator adapter.
+            "verified_evaluators": (task.get("source") or {}).get("verified_evaluators"),
         }
     )
 
 
 def _validated_attempt(
-    adjudication: dict[str, Any], task_id: str, *, expected_contract_sha256: str
-) -> str:
-    path_value = str(adjudication.get("validated_attempt_path") or "").strip()
-    if not path_value:
-        raise ValueError(f"{task_id}: repaired eligibility requires validated_attempt_path")
-    path = Path(path_value)
+    path: Path, task_id: str, *, expected_contract_sha256: str
+) -> tuple[str, str, int]:
     if not path.is_file():
         raise ValueError(f"{task_id}: validated attempt evidence is missing")
     raw = path.read_bytes()
     sha256 = hashlib.sha256(raw).hexdigest()
-    declared = str(adjudication.get("validated_run_sha256") or "").strip()
-    if declared and (not _SHA256_RE.fullmatch(declared) or declared != sha256):
-        raise ValueError(f"{task_id}: validated attempt sha256 mismatch")
     row = json.loads(raw)
     if (
         str(row.get("task_id")) != task_id
         or row.get("engine") != "chromium"
+        or row.get("attempt") != 1
         or row.get("is_retry") is not False
         or row.get("qualification_run") is not True
-        or row.get("status") != "pass"
-        or row.get("combined_status") != "pass"
-        or row.get("evidence_status") != "pass"
+        or any(row.get(field) != "pass" for field in _PASS_STATUS_FIELDS)
     ):
         raise ValueError(f"{task_id}: validated attempt is not a passing primary qualification run")
+    run_id = str(row.get("run_id") or "").strip()
+    pass_index = row.get("qualification_pass_index")
+    if not run_id:
+        raise ValueError(f"{task_id}: validated attempt run_id is missing")
+    if (
+        isinstance(pass_index, bool)
+        or pass_index not in {1, 2}
+        or row.get("qualification_required_passes") != 2
+    ):
+        raise ValueError(
+            f"{task_id}: validated attempt must declare qualification pass 1 or 2 of 2"
+        )
     if row.get("task_contract_sha256") != expected_contract_sha256:
         raise ValueError(f"{task_id}: validated attempt does not match corrected task contract")
     evidence_directory = Path(str(row.get("evidence_directory") or "")).resolve()
@@ -221,7 +238,37 @@ def _validated_attempt(
             raise ValueError(f"{task_id}: validated attempt {key} sha256 is invalid")
         if hashlib.sha256(evidence_path.read_bytes()).hexdigest() != expected_sha256:
             raise ValueError(f"{task_id}: validated attempt {key} sha256 mismatch")
-    return sha256
+    return sha256, run_id, int(pass_index)
+
+
+def validated_attempt_sha256s(
+    adjudication: dict[str, Any], task_id: str, *, expected_contract_sha256: str
+) -> tuple[str, str]:
+    """Validate and hash the two independent runs required for eligibility."""
+    path_values = adjudication.get("validated_attempt_paths")
+    if not isinstance(path_values, list) or len(path_values) != 2:
+        raise ValueError(f"{task_id}: eligibility requires exactly two validated_attempt_paths")
+    if any(not isinstance(value, str) or not value.strip() for value in path_values):
+        raise ValueError(f"{task_id}: validated attempt paths must be non-empty strings")
+    paths = [Path(value).resolve() for value in path_values]
+    if len(set(paths)) != 2:
+        raise ValueError(f"{task_id}: validated attempt paths must be unique")
+    validated = [
+        _validated_attempt(
+            path,
+            task_id,
+            expected_contract_sha256=expected_contract_sha256,
+        )
+        for path in paths
+    ]
+    run_ids = {run_id for _, run_id, _ in validated}
+    pass_indices = {pass_index for _, _, pass_index in validated}
+    if len(run_ids) != 2:
+        raise ValueError(f"{task_id}: validated attempts must have distinct run_id values")
+    if pass_indices != {1, 2}:
+        raise ValueError(f"{task_id}: validated attempts must cover pass_index 1 and 2")
+    ordered = sorted(validated, key=lambda item: item[2])
+    return ordered[0][0], ordered[1][0]
 
 
 def build_repair_queue(
@@ -246,16 +293,26 @@ def build_repair_queue(
             row.get("engine") != "chromium"
             or row.get("is_retry") is not False
             or row.get("qualification_run") is not True
+            or row.get("attempt") != 1
+            or row.get("qualification_required_passes") != 2
         ):
-            raise ValueError("qualification evidence must contain one primary Chromium attempt")
+            raise ValueError("qualification evidence must contain primary Chromium attempts only")
         by_task.setdefault(str(row["task_id"]), []).append(row)
     expected = {task.task_id for task in suite.tasks}
-    if set(by_task) != expected or any(len(items) != 1 for items in by_task.values()):
-        raise ValueError("qualification evidence must cover every task exactly once")
+    if set(by_task) != expected or any(len(items) != 2 for items in by_task.values()):
+        raise ValueError("qualification evidence must cover every task exactly twice")
 
     tasks: list[dict[str, Any]] = []
     for task in suite.tasks:
-        row = by_task[task.task_id][0]
+        task_rows = by_task[task.task_id]
+        run_ids = {str(row.get("run_id") or "").strip() for row in task_rows}
+        pass_indices = {row.get("qualification_pass_index") for row in task_rows}
+        if "" in run_ids or len(run_ids) != 2:
+            raise ValueError(f"{task.task_id}: qualification run_id values must be distinct")
+        if pass_indices != {1, 2}:
+            raise ValueError(
+                f"{task.task_id}: qualification evidence must cover pass_index 1 and 2"
+            )
         task_payload = {
             "id": task.task_id,
             "title": task.title,
@@ -266,55 +323,76 @@ def build_repair_queue(
             "source": task.source,
         }
         contract = task_contract_sha256(task_payload)
-        if row.get("task_contract_sha256") != contract:
+        if any(row.get("task_contract_sha256") != contract for row in task_rows):
             raise ValueError(f"{task.task_id}: qualification attempt does not match task contract")
         semantic_conflicts = trajectory_semantic_conflicts(task_payload)
         if semantic_conflicts:
             disposition = "needs_trace_repair"
         elif not task.tool_calls:
             disposition = "needs_trace_repair"
-        elif (
-            row.get("combined_status") == "pass"
-            and row.get("status") == "pass"
-            and row.get("evidence_status") == "pass"
+        elif all(
+            all(row.get(field) == "pass" for field in _PASS_STATUS_FIELDS) for row in task_rows
         ):
             disposition = "eligible"
-        elif row.get("combined_status") == "pass":
+        elif all(
+            row.get("process_status") == "pass"
+            and row.get("result_status") == "pass"
+            and row.get("status") == "pass"
+            and row.get("combined_status") == "pass"
+            for row in task_rows
+        ):
             disposition = "needs_evidence_revalidation"
-        elif row.get("process_status") == "pass" and not task.ground_truth.get("response_builder"):
+        elif all(
+            row.get("process_status") == "pass" for row in task_rows
+        ) and not task.ground_truth.get("response_builder"):
             disposition = "needs_response_annotation"
         else:
             disposition = "needs_trace_repair"
         failed_step = next(
-            (item for item in row.get("trace") or [] if item.get("status") == "fail"),
+            (
+                item
+                for row in task_rows
+                for item in row.get("trace") or []
+                if item.get("status") == "fail"
+            ),
             None,
         )
         adjudication = None
         if disposition == "eligible":
-            evidence_directory = str(row.get("evidence_directory") or "").strip()
-            if not evidence_directory:
-                raise ValueError(f"{task.task_id}: passing qualification lacks evidence_directory")
+            validated_paths = [
+                str(Path(str(row.get("evidence_directory") or "")) / "attempt.json")
+                for row in sorted(task_rows, key=lambda item: item["qualification_pass_index"])
+            ]
             adjudication = {
                 "status": "eligible",
-                "validated_attempt_path": str(Path(evidence_directory) / "attempt.json"),
+                "validated_attempt_paths": validated_paths,
             }
+            validated_attempt_sha256s(
+                adjudication,
+                task.task_id,
+                expected_contract_sha256=contract,
+            )
         tasks.append(
             {
                 "task_id": task.task_id,
                 "disposition": disposition,
-                "process_status": row.get("process_status"),
-                "result_status": row.get("result_status"),
+                "process_status": [row.get("process_status") for row in task_rows],
+                "result_status": [row.get("result_status") for row in task_rows],
                 "semantic_conflicts": list(semantic_conflicts),
                 "failed_step": failed_step,
-                "evidence_directory": row.get("evidence_directory"),
+                "evidence_directories": [
+                    row.get("evidence_directory")
+                    for row in sorted(task_rows, key=lambda item: item["qualification_pass_index"])
+                ],
                 "adjudication": adjudication,
             }
         )
     return {
-        "schema": "lex_browser_use_qualification/1",
+        "schema": QUALIFICATION_SCHEMA,
         "attempts_sha256": [hashlib.sha256(path.read_bytes()).hexdigest() for path in paths],
         "policy": {
             "qualification_browser": "upstream Chromium",
+            "independent_passes_per_task": 2,
             "task_and_evaluator_are_immutable": True,
             "browser_comparison_results_must_not_be_used": True,
             "allowed_final_statuses": ["eligible", "skipped"],
@@ -409,7 +487,7 @@ def build_repair_validation_suite(
         "qualification_schema": qualification.get("schema"),
         "task_count": len(selected),
         "browser": "chromium",
-        "attempts_per_task": 1,
+        "attempts_per_task": 2,
     }
     result["benchmark"] = benchmark
     return result
@@ -443,7 +521,7 @@ def build_evidence_revalidation_suite(
         "evidence_revalidation": {
             "task_count": len(selected),
             "browser": "chromium",
-            "attempts_per_task": 1,
+            "attempts_per_task": 2,
             "purpose": "bind HAR v3, final screenshot, and final visible page state",
         },
     }
@@ -457,6 +535,14 @@ def apply_adjudication(
     tasks = suite_payload.get("tasks") or []
     if set(decisions) != {str(task["id"]) for task in tasks}:
         raise ValueError("qualification task set does not match suite")
+    if (
+        any(
+            (item.get("adjudication") or {}).get("status") == "eligible"
+            for item in decisions.values()
+        )
+        and qualification.get("schema") != QUALIFICATION_SCHEMA
+    ):
+        raise ValueError(f"eligible tasks require qualification schema {QUALIFICATION_SCHEMA}")
     for task in tasks:
         decision = decisions[str(task["id"])]
         adjudication = decision.get("adjudication")
@@ -470,7 +556,15 @@ def apply_adjudication(
         public_adjudication = {
             key: value
             for key, value in adjudication.items()
-            if key not in {"validated_attempt_path", "corrected_trajectory", "response_builder"}
+            if key
+            not in {
+                "validated_attempt_path",
+                "validated_attempt_paths",
+                "validated_run_sha256",
+                "validated_run_sha256s",
+                "corrected_trajectory",
+                "response_builder",
+            }
         }
         material_change = (
             adjudication.get("corrected_trajectory") is not None
@@ -496,10 +590,12 @@ def apply_adjudication(
         if adjudication.get("corrected_trajectory") is not None:
             public_adjudication["corrected_trajectory_sha256"] = _json_sha256(task["trajectory"])
         if requires_validation:
-            public_adjudication["validated_run_sha256"] = _validated_attempt(
-                adjudication,
-                str(task["id"]),
-                expected_contract_sha256=task_contract_sha256(task),
+            public_adjudication["validated_run_sha256s"] = list(
+                validated_attempt_sha256s(
+                    adjudication,
+                    str(task["id"]),
+                    expected_contract_sha256=task_contract_sha256(task),
+                )
             )
         task["ground_truth"]["qualification"] = public_adjudication
     suite_payload["benchmark"]["qualification"] = {

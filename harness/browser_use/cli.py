@@ -6,6 +6,7 @@ import argparse
 import fcntl
 import hashlib
 import json
+import re
 from collections.abc import Iterator
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
@@ -15,10 +16,15 @@ from .runner import run_evaluation
 
 
 @contextmanager
-def qualification_lock(output_dir: str | Path) -> Iterator[None]:
+def qualification_lock(
+    output_dir: str | Path, *, lock_key: str | None = None
+) -> Iterator[None]:
     root = Path(output_dir).resolve().parent
     root.mkdir(parents=True, exist_ok=True)
-    handle = (root / ".qualification.lock").open("a+", encoding="utf-8")
+    if lock_key is not None and not re.fullmatch(r"[a-z0-9][a-z0-9+_.-]*", lock_key):
+        raise ValueError("qualification lock key is invalid")
+    lock_name = f".qualification.{lock_key}.lock" if lock_key else ".qualification.lock"
+    handle = (root / lock_name).open("a+", encoding="utf-8")
     try:
         try:
             fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -102,7 +108,13 @@ def main() -> None:
     )
     parser.add_argument("--engines", default="chromium,moli")
     parser.add_argument("--qualification-run", action="store_true")
+    parser.add_argument("--qualification-pass-index", type=int)
+    parser.add_argument("--qualification-required-passes", type=int)
     parser.add_argument("--trajectory-authoring-run", action="store_true")
+    parser.add_argument(
+        "--qualification-lock-key",
+        help="isolated lock domain for an orchestrator-proven disjoint site batch",
+    )
     parser.add_argument(
         "--task-ids",
         help="comma-separated task IDs; used for site-grouped WebArena batches",
@@ -112,6 +124,16 @@ def main() -> None:
     parser.add_argument("--batch-shard-count", type=int)
     parser.add_argument("--batch-shard-index", type=int)
     args = parser.parse_args()
+    if args.qualification_run:
+        if args.qualification_pass_index is None:
+            parser.error("--qualification-pass-index is required for qualification runs")
+        if args.qualification_required_passes is None:
+            parser.error("--qualification-required-passes is required for qualification runs")
+    elif (
+        args.qualification_pass_index is not None
+        or args.qualification_required_passes is not None
+    ):
+        parser.error("qualification pass flags require --qualification-run")
     load_runtime_env(args.env_file)
     configure_browser_docker_host(args.browser_docker_host)
     if bool(args.native_scope) != bool(args.batch_id):
@@ -138,7 +160,7 @@ def main() -> None:
         )
     )
     lock = (
-        qualification_lock(args.output)
+        qualification_lock(args.output, lock_key=args.qualification_lock_key)
         if args.qualification_run or args.trajectory_authoring_run
         else nullcontext()
     )
@@ -159,6 +181,8 @@ def main() -> None:
             webarena_config_path=args.webarena_config,
             engines=tuple(item.strip() for item in args.engines.split(",") if item.strip()),
             qualification_run=args.qualification_run,
+            qualification_pass_index=args.qualification_pass_index,
+            qualification_required_passes=args.qualification_required_passes,
             trajectory_authoring_run=args.trajectory_authoring_run,
             task_ids=selected_task_ids,
             task_selection=(
@@ -170,6 +194,8 @@ def main() -> None:
                     "batch_id": args.batch_id,
                     "shard_count": args.batch_shard_count or 1,
                     "shard_index": args.batch_shard_index or 0,
+                    "qualification_pass_index": args.qualification_pass_index,
+                    "qualification_required_passes": args.qualification_required_passes,
                 }
                 if args.native_scope
                 else None

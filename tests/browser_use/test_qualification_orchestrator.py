@@ -12,6 +12,7 @@ from scripts.run_webarena_qualification import (
     _write_immutable,
     build_scoped_repair_queue,
     qualification_shards,
+    qualification_waves,
     validate_completed_shard,
 )
 
@@ -31,6 +32,36 @@ def test_canonical_qualification_plan_is_an_exact_eighteen_shard_partition():
     assert max(len(shard["task_ids"]) for shard in shards) <= 12
 
 
+def test_parallel_qualification_waves_never_share_a_site():
+    scope = json.loads(
+        Path("evaluation/browser-use-public/webarena-amd64-scope.json").read_text()
+    )
+    shards = qualification_shards(
+        Path("evaluation/browser-use-public/webarena-amd64-scope.json"),
+        Path("evaluation/browser-use-public/webarena-human-suite.json"),
+    )
+
+    waves = qualification_waves(shards, scope, max_workers=3)
+    sites = {row["id"]: set(row["sites"]) for row in scope["qualification_batches"]}
+
+    assert len(waves) > 1
+    assert all(len(wave) <= 3 for wave in waves)
+    assert {
+        shard["id"] for wave in waves for batch in wave for shard in batch
+    } == {shard["id"] for shard in shards}
+    for wave in waves:
+        occupied = set()
+        for batch in wave:
+            batch_sites = sites[batch[0]["batch_id"]]
+            assert occupied.isdisjoint(batch_sites)
+            occupied.update(batch_sites)
+
+
+def test_parallel_qualification_rejects_non_positive_worker_count():
+    with pytest.raises(ValueError, match="positive"):
+        qualification_waves((), {"qualification_batches": []}, max_workers=0)
+
+
 def test_completed_shard_validation_binds_manifest_hashes_scope_and_attempts(tmp_path):
     output = tmp_path / "shopping-0-of-1"
     output.mkdir()
@@ -46,6 +77,8 @@ def test_completed_shard_validation_binds_manifest_hashes_scope_and_attempts(tmp
             "task_id": task_id,
             "engine": "chromium",
             "qualification_run": True,
+            "qualification_pass_index": 1,
+            "qualification_required_passes": 2,
             "is_retry": False,
             "attempt": 1,
         }
@@ -81,6 +114,8 @@ def test_completed_shard_validation_binds_manifest_hashes_scope_and_attempts(tmp
             },
             "protocol": {
                 "qualification_run": True,
+                "qualification_pass_index": 1,
+                "qualification_required_passes": 2,
                 "engines": ["chromium"],
                 "max_failure_retries": 0,
                 "task_filter": ["a", "b"],
@@ -90,6 +125,8 @@ def test_completed_shard_validation_binds_manifest_hashes_scope_and_attempts(tmp
                     "batch_id": "shopping",
                     "shard_count": 1,
                     "shard_index": 0,
+                    "qualification_pass_index": 1,
+                    "qualification_required_passes": 2,
                 },
             },
         },
@@ -100,6 +137,7 @@ def test_completed_shard_validation_binds_manifest_hashes_scope_and_attempts(tmp
         suite_sha256=suite_sha256,
         scope_sha256=scope_sha256,
         shard=shard,
+        qualification_pass_index=1,
     )
 
     attempts[0]["is_retry"] = True
@@ -115,6 +153,7 @@ def test_completed_shard_validation_binds_manifest_hashes_scope_and_attempts(tmp
             suite_sha256=suite_sha256,
             scope_sha256=scope_sha256,
             shard=shard,
+            qualification_pass_index=1,
         )
 
 
@@ -129,6 +168,8 @@ def test_completed_shard_validation_rejects_old_har_creator(tmp_path):
                 "task_id": "a",
                 "engine": "chromium",
                 "qualification_run": True,
+                "qualification_pass_index": 1,
+                "qualification_required_passes": 2,
                 "is_retry": False,
                 "attempt": 1,
                 "evidence_directory": str(evidence),
@@ -153,6 +194,8 @@ def test_completed_shard_validation_rejects_old_har_creator(tmp_path):
             },
             "protocol": {
                 "qualification_run": True,
+                "qualification_pass_index": 1,
+                "qualification_required_passes": 2,
                 "engines": ["chromium"],
                 "max_failure_retries": 0,
                 "task_filter": ["a"],
@@ -162,6 +205,8 @@ def test_completed_shard_validation_rejects_old_har_creator(tmp_path):
                     "batch_id": "shopping",
                     "shard_count": 1,
                     "shard_index": 0,
+                    "qualification_pass_index": 1,
+                    "qualification_required_passes": 2,
                 },
             },
         },
@@ -179,6 +224,7 @@ def test_completed_shard_validation_rejects_old_har_creator(tmp_path):
                 "shard_index": 0,
                 "task_ids": ("a",),
             },
+            qualification_pass_index=1,
         )
 
 
@@ -221,15 +267,20 @@ def test_scoped_queue_covers_measured_and_architecture_excluded_tasks(tmp_path):
     )
     suite = TaskSuite("lex_browser_use_tasks/4", (included, excluded))
     attempts = tmp_path / "attempts.jsonl"
-    evidence = tmp_path / "included"
-    evidence.mkdir()
-    attempts.write_text(
-        json.dumps(
+    rows = []
+    for pass_index in (1, 2):
+        evidence = tmp_path / f"included-pass-{pass_index}"
+        evidence.mkdir()
+        rows.append(
             {
                 "task_id": "included",
                 "engine": "chromium",
+                "attempt": 1,
                 "is_retry": False,
                 "qualification_run": True,
+                "qualification_pass_index": pass_index,
+                "qualification_required_passes": 2,
+                "run_id": f"qualification-pass-{pass_index}",
                 "combined_status": "fail",
                 "process_status": "fail",
                 "result_status": "fail",
@@ -243,11 +294,13 @@ def test_scoped_queue_covers_measured_and_architecture_excluded_tasks(tmp_path):
                         "evaluator": included.evaluator,
                         "environment": included.environment,
                         "ground_truth": included.ground_truth,
+                        "source": included.source,
                     }
                 ),
             }
         )
-        + "\n",
+    attempts.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows),
         encoding="utf-8",
     )
     scope = {

@@ -21,6 +21,19 @@ def test_qualification_lock_prevents_parallel_runs_in_one_evidence_root(tmp_path
         pass
 
 
+def test_qualification_lock_allows_proven_disjoint_site_domains(tmp_path):
+    first = tmp_path / "qualification" / "shopping-0-of-1"
+    second = tmp_path / "qualification" / "reddit-0-of-1"
+
+    with qualification_lock(first, lock_key="shopping"):
+        with qualification_lock(second, lock_key="reddit"):
+            pass
+
+    with pytest.raises(ValueError, match="lock key"):
+        with qualification_lock(first, lock_key="../escape"):
+            pass
+
+
 def test_native_scope_batch_is_bound_to_exact_suite(tmp_path):
     suite = tmp_path / "suite.json"
     suite.write_text('{"tasks": []}\n')
