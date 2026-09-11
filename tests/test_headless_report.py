@@ -15,6 +15,7 @@ from harness.web_fetch.report_explainer import (
 from scripts.certify_headless_cases import certify_case
 from scripts.assemble_headless import (assemble, copy_bound_review, read_verified_batches,
                                        bind_assembled_scoring_revision,
+                                       _copy_speed_bundle,
                                        _prune_shadowed_batch_attempts)
 from unittest.mock import patch
 
@@ -141,6 +142,61 @@ class HeadlessReportTests(unittest.TestCase):
                 self.assertEqual(read_verified_batches(root,{'cases':[]},[]),batches)
                 verify.assert_called_once_with(batches,cases={'cases':[]},records=[],source=root,
                     equivalent_capture_bindings=False)
+
+    def test_speed_bundle_copies_only_explicitly_bound_evidence(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';target=root/'target';source.mkdir()
+            artifact=b'public result';private=b'private response'
+            artifact_path='artifacts/p/body/run-001.txt'
+            private_path='private_artifacts/p/body/run-001.response.bin'
+            for relative,payload in ((artifact_path,artifact),(private_path,private)):
+                path=source/relative;path.parent.mkdir(parents=True,exist_ok=True)
+                path.write_bytes(payload)
+            row={'attempt_id':'p__body__r001','provider':'p','case_id':'body',
+                 'artifact_path':artifact_path,
+                 'metrics':{'content_sha256':hashlib.sha256(artifact).hexdigest()},
+                 'provider_metadata':{
+                     'raw_response_path':private_path,
+                     'raw_response_sha256':hashlib.sha256(private).hexdigest(),
+                     'raw_response_bytes':len(private)}}
+            dataset={'cases':[{'id':'body'}]}
+            batches=[{'reference_checks':{'postcheck':{
+                'evidence_path':'reference-checks/postcheck.json'}}}]
+            required={
+                'dataset.json':json.dumps(dataset).encode(),
+                'results.jsonl':(json.dumps(row)+'\n').encode(),
+                'execution.json':json.dumps({'batches':batches}).encode(),
+                'speed-comparison.json':b'{}',
+                'result-review.json':b'{}',
+                'scoring-revisions.json':b'[]',
+                'reference-checks/postcheck.json':b'{}',
+                'sources/body/source.txt':b'independent source',
+                'list-references/body.json':b'{}',
+            }
+            for relative,payload in required.items():
+                path=source/relative;path.parent.mkdir(parents=True,exist_ok=True)
+                path.write_bytes(payload)
+            secret=source/'worker-secrets/session-token.txt'
+            secret.parent.mkdir();secret.write_text('must not copy')
+
+            _copy_speed_bundle(source,target,dataset,[row],batches)
+
+            for relative in (*required,artifact_path,private_path):
+                self.assertTrue((target/relative).is_file(),relative)
+            self.assertFalse((target/'worker-secrets').exists())
+
+    def test_speed_bundle_rejects_any_symlink_even_when_unreferenced(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';target=root/'target';source.mkdir()
+            outside=root/'secret';outside.write_text('secret')
+            (source/'dataset.json').write_text('{"cases": []}')
+            (source/'results.jsonl').write_text('')
+            (source/'execution.json').write_text('{"batches": []}')
+            (source/'speed-comparison.json').write_text('{}')
+            (source/'unreferenced-link').symlink_to(outside)
+            with self.assertRaisesRegex(ValueError,'contains a symlink'):
+                _copy_speed_bundle(source,target,{'cases':[]},[],[])
+            self.assertFalse(target.exists())
 
     def test_matched_success_latency_and_unknown_quality(self):
         cases={cid:{'id':cid,'name':cid,'track':'web'} for cid in ('a','b','c')}

@@ -25,6 +25,11 @@ ALLOWED_FIELDS = {
     "ground_truth_main_content", "source_verification", "body_requirements",
     "required_patterns", "reference_answer",
 }
+SEPARATE_SCORING_FIELDS = {
+    "required_facts", "acceptance_contract", "forbidden_any",
+    "expected_resources", "resource_output_contract", "task_prompt",
+    "retrieval_hints",
+}
 
 
 def digest(raw: bytes) -> str:
@@ -45,8 +50,8 @@ def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
     canonical = json.loads(canonical_path.read_text())
     old_cases = {case["id"]: case for case in dataset["cases"]}
     new_cases = {case["id"]: case for case in canonical["cases"]}
-    if old_cases.keys() != new_cases.keys():
-        raise ValueError("Reference revision cannot change the task inventory")
+    if not old_cases.keys() <= new_cases.keys():
+        raise ValueError("Measured evidence contains cases absent from the canonical dataset")
     changed = []
     original_hashes = {}
     execution_path = source / "execution.json"
@@ -58,8 +63,13 @@ def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
     updated = []
     for case_id, old in old_cases.items():
         new = new_cases[case_id]
+        # A reference correction and an independently reviewed scoring-contract
+        # correction may be pending at the same time. Preserve the old scoring
+        # fields for the later scoring revision instead of either importing them
+        # under the wrong provenance or blocking the reference-only step.
         forbidden = [key for key in set(old) | set(new)
-                     if key not in ALLOWED_FIELDS and old.get(key) != new.get(key)]
+                     if key not in ALLOWED_FIELDS | SEPARATE_SCORING_FIELDS
+                     and old.get(key) != new.get(key)]
         if forbidden:
             raise ValueError(f"{case_id}: reference revision changed task fields {forbidden}")
         row = deepcopy(old)
@@ -124,8 +134,36 @@ def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
             provenance["regression_ids"], decisions
         ),
     }
-    (source / "reference-revisions.json").write_text(
-        json.dumps([receipt], ensure_ascii=False, indent=2) + "\n")
+    receipt_path = source / "reference-revisions.json"
+    history = json.loads(receipt_path.read_text()) if receipt_path.exists() else []
+    if not isinstance(history, list):
+        raise ValueError("Reference revision history must be a list")
+    receipt_sha = digest(json.dumps(
+        receipt, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode())
+    for prior in history:
+        prior["prior_output_dataset_sha256"] = prior["output_dataset_sha256"]
+        prior["prior_output_results_sha256"] = prior["output_results_sha256"]
+        prior["output_dataset_sha256"] = receipt["output_dataset_sha256"]
+        prior["output_results_sha256"] = receipt["output_results_sha256"]
+        prior["rebound_after_reference_revision_at"] = receipt["corrected_at"]
+        prior["rebound_by_reference_revision_receipt_sha256"] = receipt_sha
+    receipt_path.write_text(
+        json.dumps([*history, receipt], ensure_ascii=False, indent=2) + "\n")
+    scoring_path = source / "scoring-revisions.json"
+    if scoring_path.exists():
+        scoring_history = json.loads(scoring_path.read_text())
+        if not isinstance(scoring_history, list):
+            raise ValueError("Scoring revision history must be a list")
+        for prior in scoring_history:
+            prior["prior_output_dataset_sha256"] = prior["output_dataset_sha256"]
+            prior["prior_output_results_sha256"] = prior["output_results_sha256"]
+            prior["output_dataset_sha256"] = receipt["output_dataset_sha256"]
+            prior["output_results_sha256"] = receipt["output_results_sha256"]
+            prior["rebound_after_reference_revision_at"] = receipt["corrected_at"]
+            prior["rebound_by_reference_revision_receipt_sha256"] = receipt_sha
+        scoring_path.write_text(
+            json.dumps(scoring_history, ensure_ascii=False, indent=2) + "\n")
     return receipt
 
 

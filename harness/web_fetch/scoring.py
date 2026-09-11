@@ -83,16 +83,33 @@ def score_attempt(
     keys = ("required_facts", "forbidden_any", "min_content_chars",
             "fact_coverage_threshold", "ground_truth_main_content", "required_patterns",
             "acceptance_contract", "body_requirements")
-    result.update(evaluate_content(content, case.get("expected_any", []), title=title,
-        base_url=case["url"], named_links=links, **{key: case[key] for key in keys if key in case}))
+    task_kind = case.get("task_kind", "body")
+    result.update(evaluate_content(
+        content, case.get("expected_any", []), title=title,
+        base_url=case["url"], named_links=links,
+        allow_reference_block_exemptions=(
+            task_kind == "body" and not case.get("acceptance_contract")
+        ),
+        **{key: case[key] for key in keys if key in case},
+    ))
     result.update(request_ok=ok, request_status_basis=status_basis,
                   normalized_named_link_count=len(links))
-    result["task_kind"] = case.get("task_kind", "body")
-    # Body tasks request the complete readable document. An exact provider
-    # notice that its answer is truncated is therefore disqualifying even when
-    # the retained prefix happens to contain every sparse anchor. Resource and
-    # structure tasks continue to use their own declared deliverable contract.
-    if result["task_kind"] == "body" and result["declared_truncation_hits"]:
+    result["task_kind"] = task_kind
+    # A truncation notice defeats sparse anchors, but it is not evidence that
+    # reference text is missing when every declared body region has exact
+    # recall. Extra provider prose does not reduce recall, so require 1.0 for
+    # every region rather than the ordinary threshold/floor contract.
+    declared_regions = (case.get("body_requirements") or {}).get("regions") or []
+    measured_regions = result.get("body_region_results") or []
+    exact_body_proven = bool(
+        declared_regions
+        and len(measured_regions) == len(declared_regions)
+        and all(region.get("coverage") == 1.0 for region in measured_regions)
+        and result.get("content_pass")
+        and (not case.get("acceptance_contract") or result.get("stable_task_pass"))
+    )
+    if (result["task_kind"] == "body" and result["declared_truncation_hits"]
+            and not exact_body_proven):
         result["content_pass"] = False
         if contract := case.get("acceptance_contract"):
             result["stable_task_pass"] = False

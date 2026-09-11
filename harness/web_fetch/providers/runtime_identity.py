@@ -107,6 +107,39 @@ def validate_runtime_identity(
                     missing.append(f"Node {expected_node}")
                 node = {"version": actual_node, "executable_sha256": _sha256(executable)}
 
+    package_manager: dict[str, str] | None = None
+    expected_package_manager = str(
+        config.get("expected_package_manager_version", "")
+    ).strip()
+    raw_package_manager = str(config.get("package_manager_command", "")).strip()
+    if expected_package_manager or raw_package_manager:
+        manager = _command_executable(
+            [raw_package_manager] if raw_package_manager else [], repo, resolve_token
+        )
+        if not expected_package_manager:
+            missing.append("expected_package_manager_version")
+        if manager is None:
+            missing.append("package manager executable")
+        else:
+            try:
+                actual_package_manager = subprocess.check_output(
+                    [str(manager), "--version"], text=True, stderr=subprocess.DEVNULL,
+                    timeout=10,
+                    env={**os.environ, **({"PATH": str(executable.parent) + os.pathsep
+                                           + os.environ.get("PATH", "")}
+                                          if executable is not None else {})},
+                ).strip()
+            except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                missing.append(f"package manager {expected_package_manager}")
+            else:
+                if actual_package_manager != expected_package_manager:
+                    missing.append(f"package manager {expected_package_manager}")
+                package_manager = {
+                    "name": str(config.get("package_manager_name", "pnpm")),
+                    "version": actual_package_manager,
+                    "executable_sha256": _sha256(manager),
+                }
+
     python: dict[str, Any] | None = None
     expected_python = str(config.get("expected_python_version", "")).strip()
     expected_libraries = config.get("expected_library_versions", {})
@@ -145,6 +178,8 @@ def validate_runtime_identity(
         identity["repository"] = repository
     if node is not None:
         identity["node"] = node
+    if package_manager is not None:
+        identity["package_manager"] = package_manager
     if python is not None:
         identity["python"] = python
     return missing, None if missing else identity

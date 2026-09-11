@@ -49,6 +49,10 @@ def correct(source, *, body_only=False):
             case['source_benchmark']['stable_annotation']['note'] = (
                 '独立参考的 16 件商品范围内，至少 15 条分期、13 条配送字段须归属于完整且唯一的商品记录。'
                 '不固定商品名、价格和顺序，不要求每件商品均具备这两个字段。')
+            for value in ('Add to cart', 'Work in the Netherlands',
+                          'jeremy-akeze-doghouse-it-recruitment'):
+                if value not in case['forbidden_any']:
+                    case['forbidden_any'].append(value)
         if not body_only and case['id'] == 'html-table':
             headers = next(f for f in case['required_facts'] if f['id'] == 'headers')
             headers['alternatives'] = list(dict.fromkeys(

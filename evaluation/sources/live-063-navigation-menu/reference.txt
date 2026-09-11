@@ -54,9 +54,6 @@ FastAPI
 Hugging Face
 Pandas
 SciPy
-...and
-many more
-.
 Ruff is backed by
 Astral
 , the creators of
@@ -129,7 +126,7 @@ Rules
 Contributing
 Support
 Acknowledgements
-Who's Using Ruff?
+Show Your Support
 License
 Getting Started
 For more, see the
@@ -142,10 +139,10 @@ on PyPI.
 Invoke Ruff directly with
 uvx
 :
-uvx ruff@0.16.6 check
+uvx ruff@0.16.7 check
 #
 Lint all files in the current directory.
-uvx ruff@0.16.6 format
+uvx ruff@0.16.7 format
 #
 Format all files in the current directory.
 Or install Ruff with
@@ -185,12 +182,12 @@ irm https://astral.sh/ruff/install.ps1 | iex
 "
 #
 For a specific version.
-curl -LsSf https://astral.sh/ruff/0.16.6/install.sh
+curl -LsSf https://astral.sh/ruff/0.16.7/install.sh
 |
 sh
 powershell -c
 "
-irm https://astral.sh/ruff/0.16.6/install.ps1 | iex
+irm https://astral.sh/ruff/0.16.7/install.ps1 | iex
 "
 You can also install Ruff via
 Homebrew
@@ -250,7 +247,7 @@ https://github.com/astral-sh/ruff-pre-commit
 Ruff version.
 rev
 :
-v0.16.6
+v0.16.7
 hooks
 :
 #
@@ -680,158 +677,6 @@ Ruff is the beneficiary of a large number of
 contributors
 .
 Ruff is released under the MIT license.
-Who's Using Ruff?
-Ruff is used by a number of major open-source projects and companies, including:
-Albumentations
-Amazon (
-AWS SAM
-)
-Anki
-Anthropic (
-Python SDK
-)
-Apache Airflow
-AstraZeneca (
-Magnus
-)
-Babel
-Benchling (
-Refac
-)
-Bokeh
-Capital One (
-datacompy
-)
-CrowdCent (
-NumerBlox
-)
-Cryptography (PyCA)
-CERN (
-Indico
-)
-DVC
-Dagger
-Dagster
-Databricks (
-MLflow
-)
-Dify
-FastAPI
-Godot
-Gradio
-Great Expectations
-HTTPX
-Hatch
-Home Assistant
-Hugging Face (
-Transformers
-,
-Datasets
-,
-Diffusers
-)
-IBM (
-Qiskit
-)
-ING Bank (
-popmon
-,
-probatus
-)
-Ibis
-ivy
-JAX
-Jupyter
-Kraken Tech
-LangChain
-Litestar
-LlamaIndex
-Matrix (
-Synapse
-)
-MegaLinter
-Meltano (
-Meltano CLI
-,
-Singer SDK
-)
-Microsoft (
-Semantic Kernel
-,
-ONNX Runtime
-,
-LightGBM
-)
-Modern Treasury (
-Python SDK
-)
-Mozilla (
-Firefox
-)
-Mypy
-Nautobot
-Netflix (
-Dispatch
-)
-Neon
-Nokia
-NoneBot
-NumPyro
-ONNX
-OpenBB
-Open Wine Components
-PDM
-PaddlePaddle
-Pandas
-Pillow
-Poetry
-Polars
-PostHog
-Prefect (
-Python SDK
-,
-Marvin
-)
-PyInstaller
-PyMC
-PyMC-Marketing
-pytest
-PyTorch
-Pydantic
-Pylint
-PyScripter
-PyVista
-Reflex
-River
-Rippling
-Robyn
-Saleor
-Scale AI (
-Launch SDK
-)
-SciPy
-Snowflake (
-SnowCLI
-)
-Sphinx
-Stable Baselines3
-Starlette
-Streamlit
-The Algorithms
-Vega-Altair
-Weblate
-WordPress (
-Openverse
-)
-ZenML
-Zulip
-build (PyPA)
-cibuildwheel (PyPA)
-delta-rs
-featuretools
-meson-python
-nox
-pip
 Show Your Support
 If you're using Ruff, consider adding the Ruff badge to your project's
 README.md

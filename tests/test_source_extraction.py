@@ -7,6 +7,27 @@ import unittest
 
 @unittest.skipUnless(importlib.util.find_spec('bs4') and importlib.util.find_spec('requests'),'requires reference-audit extra')
 class SourceExtractionTests(unittest.TestCase):
+    def test_wikipedia_navbox_drift_does_not_change_article_reference(self):
+        from scripts.collect_source_evidence import extract_html
+        def extract(navbox,body='Stable article prose'):
+            raw=('''<html><head><title>Article</title></head><body>
+            <div id="mw-content-text"><div class="mw-parser-output">
+            <p>'''+body+'''</p><div class="navbox-styles">style marker</div>
+            <div class="navbox" role="navigation">'''+navbox+'''</div>
+            <aside role="navigation">Generic navigation marker</aside>
+            </div></div></body></html>''').encode()
+            return extract_html(raw,
+                'https://en.wikipedia.org/w/index.php?title=Article&oldid=123')[1]
+        original=extract('Old transcluded navigation')
+        nav_changed=extract('New transcluded navigation')
+        body_changed=extract('New transcluded navigation','Changed article prose')
+        self.assertEqual(hashlib.sha256(original.encode()).hexdigest(),
+                         hashlib.sha256(nav_changed.encode()).hexdigest())
+        self.assertNotEqual(hashlib.sha256(original.encode()).hexdigest(),
+                            hashlib.sha256(body_changed.encode()).hexdigest())
+        self.assertNotIn('navigation',original)
+        self.assertNotIn('Generic',original)
+
     def test_excludes_w3schools_share_controls_from_article_reference(self):
         from scripts.collect_source_evidence import extract_html
         raw = b'''<html><body><main id="main"><h1>HTML Tables</h1>

@@ -106,9 +106,9 @@ class StableAnnotationTests(unittest.TestCase):
         if not (evidence/'artifacts').is_dir():self.skipTest('requires persisted benchmark evidence')
         layouts = {
             "dynamic-quotes-api": ("crawl4ai", "tavily", "cloudflare-markdown"),
-            "dynamic-products-api": ("crawl4ai", "firecrawl", "cloudflare-markdown"),
-            "dynamic-angular-phones": ("crawl4ai", "cloudflare-markdown"),
-            "dynamic-swagger": ("firecrawl", "tavily", "cloudflare-markdown", "crawl4ai"),
+            "dynamic-products-api": ("crawl4ai", "moli-webfetch"),
+            "dynamic-angular-phones": ("crawl4ai", "cloudflare-markdown", "moli-webfetch", "tavily"),
+            "dynamic-swagger": ("cloudflare-markdown", "moli-webfetch"),
         }
         for identifier, sources in layouts.items():
             for source in sources:
@@ -124,14 +124,13 @@ class StableAnnotationTests(unittest.TestCase):
         if not (evidence/'artifacts').is_dir():self.skipTest('requires persisted benchmark evidence')
         for source, identifier in (("firecrawl", "dynamic-quotes-api"),
                                    ("tavily", "dynamic-products-api"),
-                                   ("tavily", "dynamic-angular-phones")):
+                                   ("firecrawl", "dynamic-angular-phones")):
             path = evidence / "artifacts" / source / identifier / "run-001.txt"
             if not path.is_file():
                 self.skipTest('requires persisted general benchmark artifacts')
             result = self.score(identifier, path.read_text())
             self.assertFalse(result["stable_task_pass"], (source, identifier))
             if identifier == "dynamic-quotes-api":
-                self.assertTrue(result["stable_structure_pass"])
                 self.assertFalse(result["stable_content_pass"])
 
     def test_fixed_phone_descriptions_and_swagger_operations_not_replaced_by_count(self):

@@ -8,6 +8,8 @@ from pathlib import Path
 
 from scripts.assemble_webfetch_refresh import assemble, expected_refresh_pairs
 from scripts.package_headless_speed import build_summary as build_speed_summary
+from harness.web_fetch.reference_lifecycle import reference_revision_cases, valid_scoring_revision
+from harness.web_fetch.scoring_regressions import build_correction_provenance
 
 PROVIDERS = [
     "cloudflare-markdown",
@@ -92,7 +94,7 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
             for case_id in required
         ]
         self.canonical = {
-            "schema_version": 1,
+            "schema_version": 2,
             "id": "webfetch",
             "cases": self.canonical_cases,
             "coverage_plan": {"web": PROVIDERS},
@@ -132,31 +134,53 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
         self.write_bundle(self.baseline, self.baseline_dataset, baseline_rows)
 
         self.plan = {
-            "schema_version": 1,
+            "schema_version": 2,
             "baseline": {
                 "dataset_sha256": sha((self.baseline / "dataset.json").read_bytes()),
                 "results_sha256": sha((self.baseline / "results.jsonl").read_bytes()),
                 "logical_attempts": 1800,
             },
             "main_matrix": {
-                "rerun_case_ids": RERUN_CASES,
-                "rerun_all_providers_for_each_case": True,
                 "full_rerun_providers": ["crawl4ai", "langchain-webbase"],
-                "deadline_replacement_attempt_ids": [
-                    "cowagent-built-in__lm-rust-learn__r001",
-                    "cowagent-built-in__document-05__r001",
+                "full_rerun_reason_by_provider": {
+                    provider: {"category": "provider_route", "reason": "changed route"}
+                    for provider in ("crawl4ai", "langchain-webbase")
+                },
+                "matched_case_ids": list(RERUN_CASES),
+                "matched_case_reason_groups": [{
+                    "case_ids": list(RERUN_CASES),
+                    "category": "input_contract", "reason": "changed shared input",
+                }],
+                "pair_replacements": [
+                    {
+                        "provider": "cowagent-built-in", "case_id": "lm-rust-learn",
+                        "category": "provider_case_route", "reason": "changed route",
+                    },
+                    {
+                        "provider": "cowagent-built-in", "case_id": "document-05",
+                        "category": "provider_case_route", "reason": "changed route",
+                    },
                 ],
+                "offline_rescore_cases": [{
+                    "case_id": "filler-000", "category": "reference_only_correction",
+                    "reason": "rescore immutable attempts", "attempts": 12,
+                    "full_review": True,
+                }],
                 "planned_new_calls": 422,
                 "final_logical_attempts": 1800,
             },
             "same_window_speed_cohort": {
-                "required": True,
-                "case_ids": SPEED_CASES,
-                "provider_count": 12,
-                "planned_new_calls": 240,
-                "require_independent_result_review": True,
+                "required": False,
+                "reuse_existing": True,
+                "reason": "reuse the certified prior cohort",
+                "dataset_sha256": "pending",
+                "results_sha256": "pending",
+                "execution_sha256": "pending",
+                "speed_comparison_sha256": "pending",
+                "auxiliary_sha256": {},
+                "planned_new_calls": 0,
             },
-            "total_planned_new_calls": 662,
+            "total_planned_new_calls": 422,
         }
         self.plan_path = self.root / "evaluation" / "current-rerun.json"
         self.write_json(self.plan_path, self.plan)
@@ -219,6 +243,18 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
             "results_sha256": sha((self.speed / "results.jsonl").read_bytes()),
         }
         self.write_json(self.speed / "speed-comparison.json", speed_summary)
+        self.plan["same_window_speed_cohort"].update({
+            "dataset_sha256": sha((self.speed / "dataset.json").read_bytes()),
+            "results_sha256": sha((self.speed / "results.jsonl").read_bytes()),
+            "execution_sha256": sha((self.speed / "execution.json").read_bytes()),
+            "speed_comparison_sha256": sha(
+                (self.speed / "speed-comparison.json").read_bytes()
+            ),
+            "auxiliary_sha256": {
+                "result-review.json": sha((self.speed / "result-review.json").read_bytes())
+            },
+        })
+        self.write_json(self.plan_path, self.plan)
 
     def tearDown(self) -> None:
         self.temp.cleanup()
@@ -285,6 +321,56 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
         self.assertIn(("tavily", "document-03"), pairs)
         self.assertIn(("cowagent-built-in", "document-05"), pairs)
 
+    def test_refresh_scope_rejects_missing_reasons_and_bad_counts(self) -> None:
+        self.plan["main_matrix"]["matched_case_reason_groups"][0]["reason"] = ""
+        with self.assertRaisesRegex(ValueError, "empty matched case reason group"):
+            expected_refresh_pairs(self.plan, self.canonical)
+        self.plan["main_matrix"]["matched_case_reason_groups"][0]["reason"] = (
+            "changed shared input"
+        )
+        self.plan["main_matrix"]["planned_new_calls"] -= 1
+        with self.assertRaisesRegex(ValueError, "call count"):
+            expected_refresh_pairs(self.plan, self.canonical)
+
+    def test_refresh_scope_rejects_unexplained_matched_and_partial_offline_review(self) -> None:
+        self.plan["main_matrix"]["matched_case_reason_groups"][0]["case_ids"].pop()
+        with self.assertRaisesRegex(ValueError, "explain every matched case"):
+            expected_refresh_pairs(self.plan, self.canonical)
+        self.plan["main_matrix"]["matched_case_reason_groups"][0]["case_ids"] = list(
+            RERUN_CASES
+        )
+        self.plan["main_matrix"]["offline_rescore_cases"][0]["attempts"] = 11
+        with self.assertRaisesRegex(ValueError, "every method"):
+            expected_refresh_pairs(self.plan, self.canonical)
+        self.plan["main_matrix"]["offline_rescore_cases"][0]["attempts"] = 12
+        self.plan["main_matrix"]["offline_rescore_cases"][0]["full_review"] = False
+        with self.assertRaisesRegex(ValueError, "full review"):
+            expected_refresh_pairs(self.plan, self.canonical)
+
+    def test_refresh_scope_rejects_duplicate_or_overlapping_explicit_pairs(self) -> None:
+        replacement = self.plan["main_matrix"]["pair_replacements"][0]
+        self.plan["main_matrix"]["pair_replacements"].append(dict(replacement))
+        with self.assertRaisesRegex(ValueError, "duplicate pair"):
+            expected_refresh_pairs(self.plan, self.canonical)
+        self.plan["main_matrix"]["pair_replacements"].pop()
+        replacement["provider"] = "crawl4ai"
+        with self.assertRaisesRegex(ValueError, "overlap broader"):
+            expected_refresh_pairs(self.plan, self.canonical)
+
+    def test_matched_and_full_scopes_overlap_once(self) -> None:
+        pairs = expected_refresh_pairs(self.plan, self.canonical)
+        broad_sum = (
+            len(self.plan["main_matrix"]["full_rerun_providers"])
+            * len(self.canonical_cases)
+            + len(self.plan["main_matrix"]["matched_case_ids"]) * len(PROVIDERS)
+            + len(self.plan["main_matrix"]["pair_replacements"])
+        )
+        overlap = (
+            len(self.plan["main_matrix"]["full_rerun_providers"])
+            * len(self.plan["main_matrix"]["matched_case_ids"])
+        )
+        self.assertEqual(len(pairs), broad_sum - overlap)
+
     def test_assembly_keeps_speed_results_out_of_main_matrix(self) -> None:
         output = self.root / "output"
         assemble(
@@ -310,11 +396,100 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
         self.assertEqual(receipt["selected_rerun_attempts"], 422)
         self.assertEqual(receipt["inherited_attempts"], 1378)
         self.assertTrue(receipt["speed_cohort"]["excluded_from_main_results"])
-        self.assertEqual(len(json.loads((output / "selection-audit.json").read_text())), 422)
+        self.assertTrue(receipt["speed_cohort"]["reused_existing"])
+        self.assertEqual(receipt["speed_cohort"]["new_calls"], 0)
+        audit = json.loads((output / "selection-audit.json").read_text())
+        self.assertEqual(len(audit), 422)
+        overlap = next(
+            row for row in audit
+            if row["provider"] == "crawl4ai" and row["case_id"] == RERUN_CASES[0]
+        )
+        self.assertEqual(
+            {scope["scope"] for scope in overlap["declared_scopes"]},
+            {"full_rerun_provider", "matched_case"},
+        )
+        explicit = next(
+            row for row in audit
+            if row["provider"] == "cowagent-built-in" and row["case_id"] == "document-05"
+        )
+        self.assertEqual(explicit["declared_scopes"][0]["scope"], "pair_replacement")
         self.assertTrue(
             (output / "history/source-executions/000-baseline-execution.json").is_file()
         )
         self.assertFalse((output / "speed-cohort/workers").exists())
+
+    def test_assembly_rebinds_selected_source_revision_provenance(self) -> None:
+        dataset_hash = sha((self.main / "dataset.json").read_bytes())
+        results_hash = sha((self.main / "results.jsonl").read_bytes())
+        changed_case = RERUN_CASES[0]
+        scoring = [{
+            "schema_version": 1,
+            "kind": "audited_scoring_rule_revision",
+            "input_dataset_sha256": dataset_hash,
+            "input_results_sha256": results_hash,
+            "output_dataset_sha256": dataset_hash,
+            "output_results_sha256": results_hash,
+            "changed_cases": [{"case_id": changed_case, "fields": ["body_requirements"]}],
+            "task_decision_changes": [{
+                "attempt_id": f"crawl4ai__{changed_case}__r001",
+                "before": False,
+                "after": True,
+            }],
+            "provider_calls": 0,
+            "correction_provenance": build_correction_provenance(
+                "body-scope", "Full body completeness previously rejected valid complete output.",
+                ["declared-truncation-cannot-pass-full-body-task"],
+                [{"attempt_id": f"crawl4ai__{changed_case}__r001",
+                  "before": False, "after": True}],
+            ),
+        }]
+        references = [{
+            "schema_version": 2,
+            "kind": "audited_reference_correction",
+            "input_dataset_sha256": dataset_hash,
+            "input_results_sha256": results_hash,
+            "output_dataset_sha256": dataset_hash,
+            "output_results_sha256": results_hash,
+            "changed_cases": [{
+                "case_id": changed_case,
+                "fields": ["ground_truth_main_content"],
+                "old_reference_sha256": "a" * 64,
+                "new_reference_sha256": "b" * 64,
+            }],
+            "task_decision_changes": [],
+            "provider_calls": 0,
+            "correction_provenance": build_correction_provenance(
+                "reference-evidence", "Reference capture previously included unrelated page chrome.",
+                ["reference-scope-excludes-site-chrome"], [],
+            ),
+        }]
+        self.write_json(self.main / "scoring-revisions.json", scoring)
+        self.write_json(self.main / "reference-revisions.json", references)
+        output = self.root / "revision-output"
+        assemble(self.baseline, [self.main], self.speed, output,
+                 canonical_dataset=self.canonical_path, plan=self.plan_path)
+        self.assertTrue(valid_scoring_revision(output))
+        self.assertEqual(reference_revision_cases(output), {changed_case: {"a" * 64}})
+        receipt = json.loads((output / "scoring-revisions.json").read_text())[0]
+        source = receipt["source_receipts"][0]
+        self.assertEqual(
+            sha((output / source["receipt_path"]).read_bytes()), source["receipt_sha256"]
+        )
+
+    def test_assembly_rejects_invalid_selected_source_revision(self) -> None:
+        self.write_json(self.main / "scoring-revisions.json", [{
+            "kind": "audited_scoring_rule_revision",
+            "input_dataset_sha256": "a" * 64,
+            "input_results_sha256": "b" * 64,
+            "output_dataset_sha256": "c" * 64,
+            "output_results_sha256": "d" * 64,
+            "changed_cases": [], "task_decision_changes": [], "provider_calls": 0,
+        }])
+        output = self.root / "invalid-revision-output"
+        with self.assertRaisesRegex(ValueError, "invalid scoring revision binding"):
+            assemble(self.baseline, [self.main], self.speed, output,
+                     canonical_dataset=self.canonical_path, plan=self.plan_path)
+        self.assertFalse(output.exists())
 
     def test_duplicate_rerun_pair_fails_without_creating_output(self) -> None:
         rows = [json.loads(line) for line in (self.main / "results.jsonl").read_text().splitlines()]
@@ -337,6 +512,67 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
                 plan=self.plan_path,
             )
         self.assertFalse(output.exists())
+
+    def test_main_rerun_rejects_explicit_account_capacity_failure(self) -> None:
+        rows = [json.loads(line) for line in (self.main / "results.jsonl").read_text().splitlines()]
+        rows[0].update(
+            ok=False,
+            error_type="account_capacity",
+            error_message="private provider response must not appear in the rejection",
+        )
+        (self.main / "results.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+        )
+        output = self.root / "account-capacity-output"
+        with self.assertRaisesRegex(
+            ValueError, "provider account-capacity failure.*replenish the account"
+        ) as raised:
+            assemble(
+                self.baseline,
+                [self.main],
+                self.speed,
+                output,
+                canonical_dataset=self.canonical_path,
+                plan=self.plan_path,
+            )
+        self.assertNotIn("private provider response", str(raised.exception))
+        self.assertFalse(output.exists())
+
+    def test_main_rerun_rejects_legacy_firecrawl_402_only(self) -> None:
+        rows = [json.loads(line) for line in (self.main / "results.jsonl").read_text().splitlines()]
+        firecrawl = next(row for row in rows if row["provider"] == "firecrawl")
+        firecrawl.update(ok=False, status_code=402, error_type="api_error")
+        (self.main / "results.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+        )
+        with self.assertRaisesRegex(ValueError, "provider account-capacity failure"):
+            assemble(
+                self.baseline,
+                [self.main],
+                self.speed,
+                self.root / "legacy-firecrawl-402-output",
+                canonical_dataset=self.canonical_path,
+                plan=self.plan_path,
+            )
+
+        firecrawl.update(ok=True, status_code=200, error_type=None)
+        origin_402 = next(
+            row
+            for row in rows
+            if row["provider"] == "crawl4ai"
+        )
+        origin_402.update(ok=False, status_code=402, error_type="crawl_error")
+        (self.main / "results.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+        )
+        assemble(
+            self.baseline,
+            [self.main],
+            self.speed,
+            self.root / "origin-402-output",
+            canonical_dataset=self.canonical_path,
+            plan=self.plan_path,
+        )
 
     def test_equivalent_capture_mode_allows_only_observation_metadata_drift(self) -> None:
         canonical_case = self.canonical["cases"][0]
@@ -383,7 +619,7 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
         comparison = json.loads((self.speed / "speed-comparison.json").read_text())
         comparison["rows"][0]["planned_attempts"] -= 1
         self.write_json(self.speed / "speed-comparison.json", comparison)
-        with self.assertRaisesRegex(ValueError, "Speed comparison schema"):
+        with self.assertRaisesRegex(ValueError, "Reused speed cohort bytes"):
             assemble(self.baseline, [self.main], self.speed, self.root / "bad-speed",
                      canonical_dataset=self.canonical_path, plan=self.plan_path)
         self.assertFalse((self.root / "bad-speed").exists())
@@ -404,11 +640,11 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
                      canonical_dataset=self.canonical_path, plan=self.plan_path)
         self.assertFalse((self.root / "root-symlink-speed").exists())
 
-    def test_speed_execution_schema_fails_before_output(self) -> None:
+    def test_reused_speed_execution_mutation_fails_before_output(self) -> None:
         execution = json.loads((self.speed / "execution.json").read_text())
         execution["schema_version"] = 99
         self.write_json(self.speed / "execution.json", execution)
-        with self.assertRaisesRegex(ValueError, "speed execution schema"):
+        with self.assertRaisesRegex(ValueError, "Reused speed cohort bytes"):
             assemble(self.baseline, [self.main], self.speed, self.root / "execution-schema-speed",
                      canonical_dataset=self.canonical_path, plan=self.plan_path)
         self.assertFalse((self.root / "execution-schema-speed").exists())
@@ -490,13 +726,41 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
             )
         self.assertFalse(output.exists())
 
+    def test_reused_speed_hash_mismatch_fails_closed(self) -> None:
+        self.plan["same_window_speed_cohort"]["results_sha256"] = "0" * 64
+        self.write_json(self.plan_path, self.plan)
+        output = self.root / "bad-speed-binding"
+        with self.assertRaisesRegex(ValueError, "Reused speed cohort bytes"):
+            assemble(
+                self.baseline, [self.main], self.speed, output,
+                canonical_dataset=self.canonical_path, plan=self.plan_path,
+            )
+        self.assertFalse(output.exists())
+
+    def test_reused_speed_bundle_allows_optional_review_and_keeps_revisions(self) -> None:
+        (self.speed / "result-review.json").unlink()
+        self.write_json(self.speed / "scoring-revisions.json", {"schema_version": 1})
+        self.plan["same_window_speed_cohort"]["auxiliary_sha256"] = {
+            "scoring-revisions.json": sha(
+                (self.speed / "scoring-revisions.json").read_bytes()
+            )
+        }
+        self.write_json(self.plan_path, self.plan)
+        output = self.root / "speed-optional-review"
+        assemble(
+            self.baseline, [self.main], self.speed, output,
+            canonical_dataset=self.canonical_path, plan=self.plan_path,
+        )
+        self.assertFalse((output / "speed-cohort/result-review.json").exists())
+        self.assertTrue((output / "speed-cohort/scoring-revisions.json").is_file())
+
     def test_speed_dataset_cannot_smuggle_an_extra_main_case(self) -> None:
         dataset = json.loads((self.speed / "dataset.json").read_text())
         extra = next(case for case in self.canonical_cases if case["id"] not in SPEED_CASES)
         dataset["cases"].append(extra)
         self.write_json(self.speed / "dataset.json", dataset)
         output = self.root / "mixed-speed-output"
-        with self.assertRaisesRegex(ValueError, "exact sampled case inventory"):
+        with self.assertRaisesRegex(ValueError, "Reused speed cohort bytes"):
             assemble(
                 self.baseline,
                 [self.main],

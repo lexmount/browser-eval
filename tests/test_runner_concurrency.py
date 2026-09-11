@@ -6,7 +6,9 @@ from pathlib import Path
 
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.base import Provider
-from harness.web_fetch.runner import IncompleteEvaluationError, run_evaluation
+from harness.web_fetch.runner import (
+    IncompleteEvaluationError, preflight_declared_capacity, run_evaluation,
+)
 
 
 class BarrierProvider(Provider):
@@ -20,6 +22,26 @@ class BarrierProvider(Provider):
 
 
 class RunnerConcurrencyTest(unittest.TestCase):
+    def test_capacity_hook_is_optional_and_runs_once_per_logical_provider(self):
+        calls = []
+
+        class Capacity(Provider):
+            def preflight_capacity(self, declared_calls, timeout=10):
+                calls.append((self.name, declared_calls, timeout))
+
+            def fetch(self, case, timeout):
+                raise AssertionError('capacity preflight must not fetch')
+
+        providers = [
+            Capacity('metered', {'scope': 'web'}),
+            Capacity('metered', {'scope': 'resources'}),
+            BarrierProvider('without-hook', threading.Barrier(1)),
+        ]
+
+        preflight_declared_capacity(providers, declared_calls=24, timeout=7)
+
+        self.assertEqual(calls, [('metered', 24, 7)])
+
     def test_failed_preflight_creates_no_evidence_or_calls(self):
         class Invalid(Provider):
             def validate(self):

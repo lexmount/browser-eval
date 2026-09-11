@@ -58,14 +58,77 @@ class RuntimeEntrypointTests(unittest.TestCase):
         }
         for filename in ('providers.example.json', 'providers.resources.json'):
             providers = json.loads((ROOT / 'configs' / filename).read_text())['providers']
+            self.assertEqual(
+                providers['moli-webfetch']['expected_reported_version'], 'moli 1.1.4'
+            )
+            self.assertEqual(
+                providers['moli-webfetch']['expected_binary_sha256'],
+                'dbce6cc79b97eeb558416707a642ca20b9b1b8d6731655a695059d334adb6d5b',
+            )
             for name, revision in expected.items():
                 self.assertEqual(providers[name]['expected_repo_revision'], revision)
                 self.assertTrue(providers[name]['required_paths'])
             for name in ('openclaw-built-in', 'deepseek-harness-built-in'):
                 self.assertEqual(providers[name]['expected_node_version'], 'v24.15.0')
                 self.assertEqual(providers[name]['command'][0], '${OPENCLAW_NODE:-node}')
+            self.assertEqual(
+                providers['openclaw-built-in']['expected_package_manager_version'],
+                '12.1.0',
+            )
+            self.assertNotIn('expected_package_manager_version',
+                             providers['deepseek-harness-built-in'])
             dsh_command = providers['deepseek-harness-built-in']['command']
             self.assertEqual(dsh_command[1:3], ['--import', 'tsx'])
+            dsh_required = providers['deepseek-harness-built-in']['required_paths']
+            for built_entrypoint in (
+                'vendor/cordis/lib/index.js',
+                'packages/llm/llm/lib/index.js',
+                'packages/core/system-prompt/lib/index.js',
+                'packages/core/tools/lib/index.js',
+                'packages/web/web/lib/index.js',
+                'packages/web/web-fetch-http/lib/index.js',
+                'packages/web/tool-web/lib/index.js',
+                'packages/guard/timeout-policy/lib/index.js',
+            ):
+                self.assertIn(f'{{repo_path}}/{built_entrypoint}', dsh_required)
+            self.assertEqual(
+                providers['langchain-webbase']['expected_library_versions'],
+                {'langchain-community': '0.3.30'},
+            )
+            self.assertEqual(providers['langchain-webbase']['command'][0],
+                             '${OSS_PYTHON:-.venv/bin/python}')
+            self.assertEqual(providers['langchain-webbase']['expected_python_version'],
+                             'Python 3.11.12')
+
+    def test_oss_bootstrap_installs_pinned_package_managers_outside_source_trees(self) -> None:
+        script = (ROOT / 'scripts/bootstrap_oss_baselines.sh').read_text()
+        self.assertIn('node@24.15.0 pnpm@12.1.0', script)
+        self.assertIn('openclaw_pnpm="$openclaw_node_root/node_modules/.bin/pnpm"', script)
+        self.assertNotIn('dsh_pnpm', script)
+        self.assertIn('sparse-checkout disable', script)
+        self.assertNotIn('git -C "$target" clean -ffdX', script)
+        dsh_install = script.index('corepack pnpm install --frozen-lockfile --ignore-scripts')
+        dsh_clean = script.index('corepack pnpm run clean')
+        dsh_build = script.index('corepack pnpm run build:lib:host')
+        self.assertLess(dsh_install, dsh_clean)
+        self.assertLess(dsh_clean, dsh_build)
+        self.assertIn(
+            '"$node_bin_dir/node" --import tsx '
+            'node_modules/.pnpm/.browser-harness-dsh-worker.mts </dev/null',
+            script,
+        )
+
+    def test_env_example_uses_the_bootstrapped_runtime_commands(self) -> None:
+        env_example = (ROOT / '.env.example').read_text()
+        self.assertIn(
+            'OPENCLAW_NODE=~/.browser-eval/toolchains/openclaw-node/node_modules/node/bin/node',
+            env_example,
+        )
+        self.assertIn(
+            'OPENCLAW_PNPM=~/.browser-eval/toolchains/openclaw-node/node_modules/.bin/pnpm',
+            env_example,
+        )
+        self.assertNotIn('DEEPSEEK_PNPM=', env_example)
 
     def test_current_coverage_declares_all_twelve_methods(self) -> None:
         dataset = json.loads((ROOT / "evaluation/dataset.json").read_text())
@@ -87,7 +150,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertEqual(set(profile['providers']), set(dataset['coverage_plan']['web']))
         self.assertEqual(profile['implementation_bindings']['crawl4ai']['library_version'], '0.9.3')
         self.assertEqual(profile['implementation_bindings']['langchain-webbase']['library_version'], '0.3.30')
-        self.assertEqual(profile['implementation_bindings']['moli-webfetch']['reported_version'], 'moli 1.1.1')
+        self.assertEqual(profile['implementation_bindings']['moli-webfetch']['reported_version'], 'moli 1.1.4')
         case_ids = [case['id'] for case in dataset['cases']]
         self.assertEqual(
             profile['case_ids_sha256'],
@@ -110,32 +173,81 @@ class RuntimeEntrypointTests(unittest.TestCase):
         providers = set(profile['providers'])
         main = plan['main_matrix']
         speed = plan['same_window_speed_cohort']
-        self.assertEqual(len(main['rerun_case_ids']), 13)
-        self.assertTrue(set(main['rerun_case_ids']) <= case_ids)
+        self.assertEqual(plan['schema_version'], 2)
+        refreshed_live = {
+            'live-016-navigation-menu', 'live-043-syntax',
+            'live-063-navigation-menu', 'live-067-navigation-menu',
+        }
+        self.assertEqual(set(main['matched_case_ids']), refreshed_live)
         self.assertEqual(set(main['full_rerun_providers']), {
-            'crawl4ai', 'langchain-webbase',
+            'cloudflare-markdown', 'exa', 'firecrawl', 'moli-webfetch', 'tavily',
         })
-        self.assertEqual(len(main['deadline_replacement_attempt_ids']), 2)
-        self.assertEqual(len(set(main['deadline_replacement_attempt_ids'])), 2)
-        for attempt_id in main['deadline_replacement_attempt_ids']:
-            provider, case_id, run = attempt_id.rsplit('__', 2)
-            self.assertIn(provider, providers)
-            self.assertNotIn(provider, main['full_rerun_providers'])
-            self.assertIn(case_id, case_ids)
-            self.assertNotIn(case_id, main['rerun_case_ids'])
-            self.assertEqual(run, 'r001')
+        self.assertEqual(set(main['full_rerun_reason_by_provider']),
+                         set(main['full_rerun_providers']))
+        for entry in main['full_rerun_reason_by_provider'].values():
+            self.assertTrue(entry['category'].strip())
+            self.assertTrue(entry['reason'].strip())
+        reason_groups = main['matched_case_reason_groups']
+        explained = [case_id for group in reason_groups for case_id in group['case_ids']]
+        self.assertEqual(len(explained), len(set(explained)))
+        self.assertEqual(set(explained), set(main['matched_case_ids']))
         self.assertEqual(
-            main['planned_new_calls'],
-            len(main['rerun_case_ids']) * len(providers)
-            + len(main['full_rerun_providers'])
-            * (len(case_ids) - len(main['rerun_case_ids']))
-            + len(main['deadline_replacement_attempt_ids']),
+            {group['category'] for group in reason_groups},
+            {'source_input_refresh'},
         )
-        self.assertEqual(len(speed['case_ids']), 20)
-        self.assertEqual(len(set(speed['case_ids'])), 20)
-        self.assertTrue(set(speed['case_ids']) <= case_ids)
-        self.assertEqual(speed['provider_count'], len(providers))
-        self.assertEqual(speed['planned_new_calls'], 20 * len(providers))
+        for group in reason_groups:
+            self.assertTrue(group['reason'].strip())
+        pair_keys = {
+            (entry['provider'], entry['case_id']) for entry in main['pair_replacements']
+        }
+        self.assertEqual(pair_keys, (
+            {('crawl4ai', f'document-{number:02d}')
+             for number in (1, 2, 3, 4, 6, 10)}
+            | {('crawl4ai', case['id']) for case in dataset['cases']
+               if case['track'] == 'dynamic'}
+            | {(provider, case['id'])
+               for provider in {
+                   'deepseek-harness-built-in', 'openclaw-built-in',
+                   'langchain-webbase',
+               }
+               for case in dataset['cases'] if case['track'] == 'dynamic'}
+        ))
+        self.assertEqual(len(pair_keys), len(main['pair_replacements']))
+        for entry in main['pair_replacements']:
+            self.assertTrue(entry['category'].strip())
+            self.assertTrue(entry['reason'].strip())
+        self.assertEqual(
+            {entry['case_id'] for entry in main['offline_rescore_cases']},
+            {
+                'stable-wikipedia-ai-revision', 'stable-wcag21-recommendation',
+                'live-041-python-programming-language', 'live-060-database',
+                'live-061-version-control', 'live-062-natural-language-processing',
+            },
+        )
+        for entry in main['offline_rescore_cases']:
+            self.assertEqual(entry['category'], 'reference_only_correction')
+            self.assertTrue(entry['reason'].strip())
+            self.assertEqual(entry['attempts'], 12)
+            self.assertTrue(entry['full_review'])
+        expected_pairs = (
+            {(provider, case_id) for provider in main['full_rerun_providers']
+             for case_id in case_ids}
+            | {(provider, case_id) for provider in providers
+               for case_id in main['matched_case_ids']}
+            | pair_keys
+        )
+        self.assertEqual(main['planned_new_calls'], len(expected_pairs))
+        self.assertEqual(main['planned_new_calls'], 824)
+        self.assertFalse(speed['required'])
+        self.assertTrue(speed['reuse_existing'])
+        self.assertEqual(speed['planned_new_calls'], 0)
+        for key in ('dataset_sha256', 'results_sha256', 'execution_sha256',
+                    'speed_comparison_sha256'):
+            self.assertRegex(speed[key], r'^[0-9a-f]{64}$')
+        self.assertEqual(set(speed['auxiliary_sha256']), {
+            'scoring-revisions.json', 'reference-revisions.json'})
+        for digest in speed['auxiliary_sha256'].values():
+            self.assertRegex(digest, r'^[0-9a-f]{64}$')
         self.assertEqual(
             plan['total_planned_new_calls'],
             main['planned_new_calls'] + speed['planned_new_calls'],
@@ -190,6 +302,14 @@ class RuntimeEntrypointTests(unittest.TestCase):
                          'scripts/verify_artifact_hub.py',
                          'scripts/rename_artifact_hub.py'):
             self.assertNotIn('load_runtime_env', (ROOT/relative).read_text(), relative)
+
+    def test_publisher_does_not_read_the_published_site_back(self) -> None:
+        source = (ROOT / 'scripts/publish_artifact_hub.py').read_text()
+        self.assertNotIn("request(result['share_url']", source)
+        self.assertNotIn("'unauthenticated_status'", source)
+        self.assertNotIn('/api/preview/', source)
+        self.assertNotIn('/export', source)
+        self.assertIn("'versionId':version,'url':share_url", source)
 
     def test_dynamic_rendered_references_cannot_fall_back_to_http(self) -> None:
         source = (ROOT / "scripts/freeze_headless_references.py").read_text()

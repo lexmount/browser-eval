@@ -55,6 +55,8 @@ class PublicationPrivacyTests(unittest.TestCase):
                 project_file('sources/case/source.html.txt', value)
         with self.assertRaises(ValueError):
             project_file('.env', b'API_KEY=example')
+        with self.assertRaisesRegex(ValueError, 'Private evidence is not publishable'):
+            project_file('private_artifacts/tavily/case/run-001.response.bin', b'raw envelope')
 
     def test_public_bundle_rejects_real_auth_values_and_local_user_paths(self):
         self.assertEqual(publication_risk(b'Authorization: Bearer <API_TOKEN>'), None)

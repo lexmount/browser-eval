@@ -2,9 +2,9 @@
 
 TEXT = {
     "边界": "Boundary",
-    "普通 Scrape / 增强代理": "Standard Scrape / enhanced proxy",
+    "基础 Scrape / auto / enhanced": "Base Scrape / auto / enhanced",
     "1 credit/页": "1 credit/page",
-    "增强代理不额外加价，包含自动增强重试": "The enhanced proxy has no surcharge and includes automatic enhanced retries",
+    "auto 在特定源站状态下最多升级重试一次；当前 enhanced 与重试均不加收积分": "For specific origin status codes, auto escalates and retries at most once; enhanced proxy use and that retry currently carry no credit surcharge",
     "JSON 模型抽取": "JSON model extraction",
     "+4 credits/页": "+4 credits/page",
     "普通网页总计 5；不能按基础单价预算": "5 total for a standard webpage; the base rate alone is not a valid budget",
@@ -12,8 +12,8 @@ TEXT = {
     "分别 +4 / +1 credits/页": "+4 / +1 credits/page, respectively",
     "检查仅用于 JSON：成功共 9；检查执行后失败共 5（不含其他加价）；ZDR 可另叠加": "Checks apply only to JSON: 9 total on success; 5 total when the request fails after the check runs, excluding other surcharges; ZDR may be added separately",
     "PDF 文字解析": "PDF text parsing",
-    "解析文档标为 1 credit/PDF 页": "Parsed documents are listed as 1 credit/PDF page",
-    "账单概览写 +1/页，是否另加基础费存在歧义；10 页不是 1 credit": "The billing overview says +1/page, but whether the base fee is also charged is ambiguous; 10 pages are not 1 credit",
+    "基础价之上 +1 credit/PDF 页": "+1 credit/PDF page on top of the base price",
+    "Billing 按附加费列示；本轮原文件题传 parsers=[]，不解析，rawBase64 整份 PDF 固定 1 credit": "Billing lists this as a surcharge. Original-file tasks in this run pass parsers=[] and do not parse the document, so a rawBase64 PDF costs a flat 1 credit for the whole file",
     "Interact 浏览器交互": "Interact browser automation",
     "2–7 credits/分钟，至少 1 分钟": "2–7 credits/minute, with a 1-minute minimum",
     "纯代码 2；使用 prompt 7；不属于本轮 Scrape": "2 for code only; 7 when using a prompt; not part of this Scrape run",

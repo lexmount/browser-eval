@@ -70,7 +70,8 @@ class ScoringTests(unittest.TestCase):
         with patch("harness.web_fetch.providers.cloudflare.request", return_value=HttpResponse(
                 200, "https://example.test/api", {}, b'{"success":true,"result":""}')):
             result = CloudflareMarkdownProvider("cloudflare-markdown", {}).fetch(case(), 1)
-        self.assertTrue(result.ok)
+        self.assertFalse(result.ok)
+        self.assertEqual(result.error_type, "empty_content")
         self.assertEqual(result.content, "")
         self.assertTrue(result.metadata["empty_content"])
         measured = score_attempt(case(required_facts=[{"alternatives": ["Alpha"]}]),
@@ -152,6 +153,64 @@ class ScoringTests(unittest.TestCase):
         self.assertEqual(resource["declared_truncation_hits"], [notice])
         self.assertTrue(resource["resource_pass"])
         self.assertTrue(task_passed(True, resource, "resource"))
+
+    def test_exact_declared_body_regions_override_truncation_notice(self):
+        notice = "[Content truncated: showing 10 of 20 lines]"
+        requirements = {
+            "version": 1,
+            "unit": "region_token_recall",
+            "minimum_coverage": 0.5,
+            "regions": [{"id": "body", "text": "alpha bravo charlie delta"}],
+        }
+        complete = score_attempt(
+            case(body_requirements=requirements,
+                 ground_truth_main_content="alpha bravo charlie delta"),
+            ("alpha bravo charlie delta\n" + notice).encode(), ok=True,
+        )
+        self.assertEqual(complete["body_region_results"][0]["coverage"], 1.0)
+        self.assertTrue(complete["content_pass"])
+        self.assertTrue(task_passed(True, complete))
+
+        partial = score_attempt(
+            case(body_requirements=requirements,
+                 ground_truth_main_content="alpha bravo charlie delta"),
+            ("alpha bravo charlie\n" + notice).encode(), ok=True,
+        )
+        self.assertTrue(partial["body_coverage_pass"])
+        self.assertLess(partial["body_region_results"][0]["coverage"], 1.0)
+        self.assertFalse(partial["content_pass"])
+        self.assertFalse(task_passed(True, partial))
+
+    def test_body_reference_can_exempt_its_standalone_captcha_heading_only(self):
+        reference = "Accessibility guidance\nCAPTCHA\nProvide an equivalent text alternative."
+        legitimate = score_attempt(
+            case(ground_truth_main_content=reference,
+                 required_facts=[{"id": "guidance", "alternatives": [
+                     "Provide an equivalent text alternative"
+                 ]}]),
+            reference.encode(), ok=True,
+        )
+        self.assertEqual(legitimate["blocked_page_hits"], [])
+        self.assertEqual(legitimate["blocked_page_reference_exemptions"], ["CAPTCHA"])
+        self.assertTrue(task_passed(True, legitimate))
+
+        challenge = score_attempt(
+            case(ground_truth_main_content="Accessibility guidance",
+                 required_facts=[]),
+            b"CAPTCHA", ok=True,
+        )
+        self.assertEqual(challenge["blocked_page_hits"], ["CAPTCHA"])
+        self.assertEqual(challenge["blocked_page_reference_exemptions"], [])
+        self.assertFalse(task_passed(True, challenge))
+
+        stable = score_attempt(
+            case(ground_truth_main_content=reference,
+                 acceptance_contract=stable_contract()),
+            ("CAPTCHA\nCatalog\nCategory filter\n" + LINKS).encode(), ok=True,
+        )
+        self.assertEqual(stable["blocked_page_hits"], ["CAPTCHA"])
+        self.assertEqual(stable["blocked_page_reference_exemptions"], [])
+        self.assertFalse(task_passed(True, stable))
 
     def test_quote_fields_reject_lost_tag_boundaries(self):
         quote = "“The world as we have created it is a process of our thinking.”"

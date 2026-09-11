@@ -4,6 +4,7 @@ import unittest
 
 from harness.web_fetch.metrics import evaluate_content, task_passed
 from harness.web_fetch.models import EvalCase
+from harness.web_fetch.scoring import score_attempt
 from harness.web_fetch.stable_tasks import evaluate_stable_task, validate_acceptance_contract
 
 
@@ -179,6 +180,79 @@ class StableTaskTests(unittest.TestCase):
         result = self.check(text, "named_link", **rules)
         self.assertTrue(result["stable_task_pass"], result["stable_task_errors"])
 
+    def test_stable_anchor_compares_visible_relative_autolinks_and_link_labels(self):
+        rules = {
+            "hosts": ["example.test"],
+            "entry_path": r"/item/\d+",
+            "stable_text_anchors": [{
+                "id": "help",
+                "alternatives": [
+                    "Questions: /help/start, /help/advanced, or Support."
+                ],
+            }],
+        }
+        artifact = ("Questions: </help/start>, </help/advanced>, or "
+                    "[Support](https://support.example.test/).\n"
+                    "[Alpha](/item/1)\n[Beta](/item/2)")
+        result = self.check(artifact, "named_link", **rules)
+        self.assertTrue(result["stable_task_pass"], result["stable_task_errors"])
+
+        missing = artifact.replace("</help/advanced>, ", "")
+        result = self.check(missing, "named_link", **rules)
+        self.assertTrue(result["stable_structure_pass"])
+        self.assertFalse(result["stable_content_pass"])
+        self.assertIn("missing_stable_anchor:help", result["stable_task_errors"])
+
+    def test_named_links_reject_route_labels_and_pure_actions(self):
+        rules = {"hosts": ["example.test"], "entry_path": r"/item/\d+"}
+        fake = ("[https://example.test/item/1](https://example.test/item/1)\n"
+                "[/item/2?ref=search](/item/2?ref=search)\n"
+                "[?ref=search](/item/3?ref=search)\n"
+                "[See options](/item/4)\n"
+                "[Click to see price](/item/5)\n"
+                "[(74K)](/item/6)\n"
+                "[前往登录](/item/7)")
+        result = self.check(fake, "named_link", **rules)
+        self.assertEqual(result["stable_complete_record_count"], 0)
+        self.assertFalse(result["stable_task_pass"])
+
+        real = "[Real product title](/item/1)\n[真实商品标题](/item/2)"
+        result = self.check(real, "named_link", **rules)
+        self.assertEqual(result["stable_complete_record_count"], 2)
+        self.assertTrue(result["stable_task_pass"], result)
+
+    def test_named_link_task_exclusions_reject_generic_card_labels_only(self):
+        acceptance = {
+            "version": 1,
+            "schema": "named_link",
+            "minimum_records": 3,
+            "hosts": ["example.test"],
+            "entry_path": r"/item/\d+",
+            "record_name_exclusions": ["FreeTV"],
+        }
+        case = {
+            "url": "https://example.test/catalog",
+            "task_kind": "structure",
+            "acceptance_contract": acceptance,
+        }
+        generic = score_attempt(
+            case,
+            b"[FreeTV](/item/1)\n[FreeTV](/item/2)\n[FreeTV](/item/3)",
+            ok=True,
+        )
+        self.assertFalse(task_passed(True, generic, "structure"))
+        self.assertEqual(generic["stable_complete_record_count"], 0)
+
+        named = score_attempt(
+            case,
+            (b"[FreeTV](/item/0)\n[Alpha Show](/item/1)\n"
+             b"[Beta Show](/item/2)\n[Gamma Show](/item/3)"),
+            ok=True,
+        )
+        self.assertTrue(task_passed(True, named, "structure"))
+        self.assertEqual(named["stable_complete_record_count"], 3)
+        self.assertEqual(named["stable_excluded_record_names"], ["FreeTV"])
+
     def test_wrong_page_identity_and_eligible_gates(self):
         text = "Alpha\n$10\n\nBeta\n$20"
         rules = contract("product", page_patterns=[r"^Product catalog$"])
@@ -191,7 +265,10 @@ class StableTaskTests(unittest.TestCase):
                       contract("invented"), contract(["product"]), contract("product", count=0), contract("product", count=True),
                       contract("product", maximum_records=1), contract("product", page_patterns=["["]),
                       contract("product", typo=True), contract("named_link"),
-                      contract("named_link", hosts=["evil.test/path"], entry_path="/item/.+")):
+                      contract("named_link", hosts=["evil.test/path"], entry_path="/item/.+"),
+                      contract("product", record_name_exclusions=["Generic"]),
+                      contract("named_link", hosts=["example.test"], entry_path="/item/.+",
+                               record_name_exclusions=["Generic", "generic"])):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 validate_acceptance_contract(value)
 
@@ -251,7 +328,10 @@ class StableTaskTests(unittest.TestCase):
 
     def test_block_pages_with_complete_cards_never_pass(self):
         cards = "Alpha\n$10\n\nBeta\n$20"
-        for heading in ("# Access denied", "403 Forbidden", "Verify you are human", "Just a moment..."):
+        for heading in ("# Access denied", "403 Forbidden", "Verify you are human", "Just a moment...",
+                        "W3 Performing security verification", "Making sure you're not a bot",
+                        "# 京东验证", "验证中心", "身份核实", "验证一下，购物无忧",
+                        "![](/shield.png)验证一下，购物无忧"):
             result = self.check(heading + "\n" + cards)
             self.assertTrue(result["stable_structure_pass"])
             self.assertFalse(result["stable_content_pass"])
@@ -272,8 +352,13 @@ class StableTaskTests(unittest.TestCase):
         self.assertFalse(task_passed(False, {"stable_task_pass": True}))
 
     def test_block_page_words_in_explanatory_prose_are_not_automatically_block_pages(self):
-        text = "This catalog explains why an access denied message can occur.\nAlpha\n$10\n\nBeta\n$20"
-        self.assertTrue(self.check(text)["stable_task_pass"])
+        cards = "Alpha\n$10\n\nBeta\n$20"
+        for prose in ("This catalog explains why an access denied message can occur.",
+                      "本文介绍京东验证页面的处理方式。",
+                      "遇到“身份核实”提示时，请先检查网址。",
+                      "这篇文章解释了验证中心的设计。"):
+            result = self.check(prose + "\n" + cards)
+            self.assertTrue(result["stable_task_pass"], (prose, result))
 
     def test_same_schema_wrong_page_requires_explicit_stable_identity(self):
         text = "Unrelated store\nNew coat\n$10\n\nAnother coat\n$20"
@@ -372,6 +457,16 @@ class StableTaskTests(unittest.TestCase):
         result = self.check(text, "quote", 1, stable_text_anchors=anchors)
         self.assertTrue(result["stable_task_pass"], result)
         self.assertEqual(result["stable_records"][0]["fields"]["tags"], "first second")
+
+    def test_quote_pagination_is_not_owned_by_the_last_tags_field(self):
+        anchors = [{"id": "fixed", "alternatives": [
+            '“A day without sunshine is like, you know, night.”\nby Steve Martin\nTags: humor obvious simile']}]
+        text = ('“A day without sunshine is like, you know, night.”\n'
+                'by Steve Martin\nTags: humor obvious simile\nNext →')
+        result = self.check(text, "quote", 1, stable_text_anchors=anchors)
+        self.assertTrue(result["stable_task_pass"], result)
+        self.assertEqual(result["stable_records"][0]["fields"]["tags"],
+                         "humor obvious simile")
 
     def test_minimum_only_contract_ignores_unrelated_incomplete_candidate(self):
         rules = {"version": 1, "schema": "quote", "minimum_records": 1}

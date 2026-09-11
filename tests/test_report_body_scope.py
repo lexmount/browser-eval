@@ -562,12 +562,20 @@ class ReportBodyScopeTests(unittest.TestCase):
         c['acceptance_contract']={'version':1,'schema':'product','minimum_records':1,'stable_text_anchors':[{'id':'title','alternatives':['商品']} ]}
         r['metrics']['acceptance_contract_sha256']=hashlib.sha256(json.dumps(c['acceptance_contract'],sort_keys=True,ensure_ascii=False).encode()).hexdigest()
         r['metrics'].update(stable_task_pass=True)
+        private = b'{"private":"provider envelope"}'
+        r['provider_metadata'] = {
+            'raw_response_path': 'private_artifacts/fixture/list/run-001.response.bin',
+            'raw_response_sha256': hashlib.sha256(private).hexdigest(),
+            'raw_response_bytes': len(private),
+        }
         with tempfile.TemporaryDirectory() as directory:
             source=Path(directory)/'source';source.mkdir();out=Path(directory)/'report'
             (source/'dataset.json').write_text(json.dumps({'cases':[c]}))
             (source/'results.jsonl').write_text(json.dumps(r)+'\n')
             (source/'manifest.json').write_text('{}')
             artifact=source/r['artifact_path'];artifact.parent.mkdir(parents=True);artifact.write_bytes(b'output')
+            private_path=source/r['provider_metadata']['raw_response_path']
+            private_path.parent.mkdir(parents=True);private_path.write_bytes(private)
             def inspect_generate(staging,*args):
                 for name in ['annotation','validation','scoring']:
                     expected=(assets/f'{name}.png').read_bytes()
@@ -576,6 +584,7 @@ class ReportBodyScopeTests(unittest.TestCase):
                 summary=json.loads((staging/'summary.json').read_text())
                 self.assertEqual(summary['challenge']['fixture']['scoring_scope'],'stable_contract')
                 self.assertEqual(summary['challenge']['fixture']['task_pass'],1)
+                self.assertFalse((staging/'private_artifacts').exists())
             with patch('harness.web_fetch.report_build.require_verified_reference_checks'), \
                  patch('harness.web_fetch.report_build.diagnose',return_value=None), \
                  patch('harness.web_fetch.report_build.generate',side_effect=inspect_generate) as generated:

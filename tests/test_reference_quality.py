@@ -1,11 +1,17 @@
 import unittest
 from harness.web_fetch.reference_quality import (audit_reference, clean_reference_text,
-    markdown_link_destinations, markdown_links, visible_markdown_links)
+    blocked_page_hits, markdown_link_destinations, markdown_links, reference_anchor_in_text,
+    visible_markdown_links)
 from harness.web_fetch.metrics import normalize_for_match
 from harness.web_fetch.models import execution_id
 
 
 class ReferenceQualityTests(unittest.TestCase):
+    def test_blocked_page_heading_accepts_markdown_emphasis_without_prose_false_positive(self):
+        self.assertEqual(blocked_page_hits('**Error: Forbidden / 403**'),
+                         ['**Error: Forbidden / 403**'])
+        self.assertEqual(blocked_page_hits(
+            'This article explains an Error: Forbidden / 403 response.'), [])
     def test_inline_breadcrumb_spacing_is_formatting_not_missing_prose(self):
         variants = ['Settings > AI > Usage', 'Settings>AI>Usage', 'Settings\n>\nAI\n>\nUsage',
                     '[Settings](https://example.com/settings)>AI > Usage']
@@ -26,6 +32,15 @@ class ReferenceQualityTests(unittest.TestCase):
         self.assertEqual(markdown_link_destinations(
             '[![Moon](//cdn.example/moon(large).jpg)](/file/moon)'),
             ['/file/moon', '//cdn.example/moon(large).jpg'])
+    def test_relative_path_autolinks_are_visible_but_html_closing_tags_are_not_rewritten(self):
+        value = ('Questions: </help/start>, </help/advanced>, or '
+                 '[Support](https://support.example.test/). </div>')
+        visible = visible_markdown_links(value)
+        self.assertEqual(visible,
+                         'Questions: /help/start, /help/advanced, or Support. </div>')
+        self.assertEqual(normalize_for_match(value),
+                         normalize_for_match(
+                             'Questions: /help/start, /help/advanced, or Support. </div>'))
     def test_breadcrumb_normalization_preserves_semantic_differences(self):
         for left, right in [('Settings > AI', 'Settings AI'), ('x > 10', 'x < 10'),
                             ('x > 10', 'x >= 10'), ('x > 10', 'x > 100'),
@@ -48,6 +63,16 @@ class ReferenceQualityTests(unittest.TestCase):
                          audit_reference('GET',structured,normalize=normalize_for_match))
     def test_short_valid_reference_is_not_rejected(self):
         self.assertEqual(audit_reference('Dummy PDF file',[{'id':'title','alternatives':['Dummy PDF file']}],normalize=normalize_for_match),[])
+    def test_reference_anchor_preserves_punctuation_but_accepts_capture_layout(self):
+        reference = 'Python\nis a\nhigh-level\n,\ngeneral-purpose programming language'
+        self.assertTrue(reference_anchor_in_text(
+            reference, 'Python is a high-level, general-purpose programming language'))
+        self.assertFalse(reference_anchor_in_text(
+            reference, 'Python is a high-level general-purpose programming language'))
+        facts = [{'id':'lead','alternatives':[
+            'Python is a high-level general-purpose programming language']}]
+        self.assertIn('fact_absent_from_reference:lead',
+                      audit_reference(reference,facts,normalize=normalize_for_match))
     def test_run_identifier_is_stable_and_distinguishes_retests(self):
         r={'attempt_id':'provider__case__r001','started_at':'2026-09-02T01:00:00Z'}
         self.assertEqual(execution_id(r),execution_id(dict(r)))

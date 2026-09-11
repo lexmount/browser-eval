@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from harness.web_fetch.accounts import (
-    ACCOUNT_REGISTRY, REPORT_PROVIDER_ACCOUNT_IDS, env_template,
+    ACCOUNT_REGISTRY, REPORT_LOCAL_ACCESS, REPORT_PROVIDER_ACCOUNT_IDS, env_template,
     report_access_registry,
 )
 
@@ -38,6 +38,16 @@ class AccountRegistryTest(unittest.TestCase):
     def test_report_registry_fails_closed_for_unknown_method(self) -> None:
         with self.assertRaisesRegex(ValueError, "unknown-method"):
             report_access_registry({"unknown-method"})
+
+    def test_local_source_methods_document_their_runtime_commands(self) -> None:
+        self.assertEqual(
+            REPORT_LOCAL_ACCESS["openclaw-built-in"]["env_vars"],
+            ["OPENCLAW_REPO", "OPENCLAW_NODE", "OPENCLAW_PNPM"],
+        )
+        self.assertEqual(
+            REPORT_LOCAL_ACCESS["deepseek-harness-built-in"]["env_vars"],
+            ["DEEPSEEK_HARNESS_REPO", "OPENCLAW_NODE", "DEEPSEEK_PNPM"],
+        )
 
     def test_report_registry_names_stale_account_mapping(self) -> None:
         with patch.dict(REPORT_PROVIDER_ACCOUNT_IDS, {"stale-method": "missing-account"}):

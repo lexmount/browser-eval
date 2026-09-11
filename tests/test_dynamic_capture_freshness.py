@@ -76,7 +76,7 @@ class CaptureFreshnessTests(unittest.TestCase):
     def test_strict_exclusion_registry_is_explicit_and_fails_closed(self):
         captures, checks = self.captures()
         incomplete = dict(DYNAMIC_FORBIDDEN_ANY)
-        del incomplete['dynamic-product-reviews']
+        del incomplete['dynamic-reviews-graphql']
         with tempfile.TemporaryDirectory() as folder, \
                 patch('scripts.prepare_dynamic_content.DYNAMIC_FORBIDDEN_ANY', incomplete), \
                 patch('scripts.prepare_dynamic_content.requests.get') as get:

@@ -2,22 +2,218 @@
 
 from __future__ import annotations
 
-import math
 import base64
 import hashlib
+import json
+import math
 import os
-from pathlib import Path
 import shutil
 import signal
 import subprocess
 import tempfile
-import time
 import threading
+import time
+from pathlib import Path
+from urllib.parse import urlsplit
 
-from ..models import EvalCase, ProviderResult
 from ..document_text import extract_document_text
+from ..models import EvalCase, ProviderResult
+from ..retrieval_hints import plan_for_case
 from ..safety import validate_http_url
 from .base import Provider
+
+_WAIT_UNTIL_VALUES = {
+    "done",
+    "load",
+    "domcontentloaded",
+    "networkidle",
+    "domstable",
+}
+
+_HTML_TO_MARKDOWN = Path(__file__).resolve().parents[3] / "scripts/html_to_markdown.mjs"
+_NODE_HTML_MARKDOWN_PACKAGE = (
+    Path(__file__).resolve().parents[3] / "node_modules/node-html-markdown/package.json"
+)
+
+
+_RESOURCE_PAGE_EXPRESSION = r"""
+(async () => {
+  const urls = new Set();
+  const add = (value, base = location.href) => {
+    if (!value) return;
+    for (const part of String(value).split(',')) {
+      const raw = part.trim().split(/\s+/)[0];
+      if (!raw || /^(?:data|blob|javascript|mailto):/i.test(raw)) continue;
+      try { urls.add(new URL(raw, base).href); } catch {}
+    }
+  };
+
+  // Enumerate the top document and bounded, already-loaded same-origin frame
+  // documents.  This is answer-free: it follows the page's own document
+  // hierarchy and never receives an expected URL or case-specific selector.
+  const roots = [document];
+  for (let cursor = 0; cursor < roots.length && roots.length < 16; cursor++) {
+    for (const frame of roots[cursor].querySelectorAll('iframe,frame')) {
+      try {
+        if (frame.contentDocument && !roots.includes(frame.contentDocument)) {
+          roots.push(frame.contentDocument);
+          if (roots.length >= 16) break;
+        }
+      } catch {}
+    }
+  }
+  for (const root of roots) {
+    for (const node of root.querySelectorAll('[src],[href],[data],[poster],[srcset]')) {
+      for (const name of ['src', 'href', 'data', 'poster', 'srcset']) {
+        add(node.getAttribute(name), node.baseURI || root.baseURI || location.href);
+      }
+    }
+  }
+  const queue = roots.flatMap(root => [...root.querySelectorAll(
+      'astro-island[component-url],script[type="module"][src]'
+    )].map(node => ({
+      value: node.getAttribute('component-url') || node.getAttribute('src'),
+      base: node.baseURI || root.baseURI || location.href
+    })))
+    .filter(item => item.value).slice(0, 16)
+    .map(item => ({url: new URL(item.value, item.base).href, depth: 0}));
+  const seen = new Set();
+  while (queue.length && seen.size < 48) {
+    const item = queue.shift(), moduleUrl = item.url;
+    if (seen.has(moduleUrl) || new URL(moduleUrl).origin !== location.origin) continue;
+    seen.add(moduleUrl);
+    try {
+      const source = await (await fetch(moduleUrl)).text();
+      for (const match of source.matchAll(/https?:\/\/[^\s`"'<>]+/g)) add(match[0]);
+      if (item.depth < 2) {
+        for (const match of source.matchAll(/(?:from\s*|import\s*)[('"`]([^'"`]+)[)'"`]/g)) {
+          try {
+            const imported = new URL(match[1], moduleUrl).href;
+            if (new URL(imported).origin === location.origin) {
+              queue.push({url: imported, depth: item.depth + 1});
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+  return JSON.stringify({links: [...urls]});
+})()
+"""
+
+_DOCUMENT_PAGE_EXPRESSION = r"""
+(async () => {
+  const app = globalThis.PDFViewerApplication;
+  if (app) {
+    await app.initializedPromise;
+    const pdf = app.pdfDocument;
+    if (pdf) {
+      const pages = [];
+      for (let number = 1; number <= pdf.numPages; number++) {
+        const page = await pdf.getPage(number), text = await page.getTextContent();
+        pages.push(text.items.map(item => item.str).join(' '));
+      }
+      return JSON.stringify({
+        kind: 'text', source: new URL(app.url, location.href).href,
+        text: pages.join('\n\n')
+      });
+    }
+  }
+  const nodes = [...document.querySelectorAll('embed[src],iframe[src],object[data],a[href]')];
+  const source = nodes.map(node => node.src || node.data || node.href)
+    .find(value => value && /\.pdf(?:$|[?#])/i.test(value));
+  if (!source) return JSON.stringify({kind: 'page_text', text: document.body?.innerText || ''});
+  const response = await fetch(new URL(source, location.href));
+  if (!response.ok) throw new Error(`embedded PDF HTTP ${response.status}`);
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  let binary = '';
+  for (let offset = 0; offset < bytes.length; offset += 32768) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
+  }
+  return JSON.stringify({kind: 'pdf_base64', source: response.url, data: btoa(binary)});
+})()
+"""
+
+_DOCUMENT_PAGE_READY = r"""
+() => {
+  const viewer = document.querySelector('#viewer');
+  if (viewer) return !!globalThis.PDFViewerApplication?.pdfDocument;
+  return !!document.querySelector('embed[src],iframe[src],object[data],a[href*=".pdf"]')
+    || !!document.body?.innerText?.trim();
+}
+"""
+
+
+_MEDIA_METADATA_EXPRESSION = r"""
+(() => {
+  const values = [];
+  const add = value => {
+    const text = String(value || '').trim();
+    if (text && !values.includes(text)) values.push(text);
+  };
+  add(document.title);
+  add(document.body?.innerText);
+  for (const node of document.querySelectorAll(
+    'meta[name="author"],meta[property$=":author"],meta[itemprop="author"],'
+    + '[itemprop="author"],[itemprop="creator"],[itemprop="publisher"]'
+  )) {
+    add(node.content);
+    add(node.getAttribute?.('content'));
+    add(node.innerText);
+    for (const name of node.querySelectorAll?.('[itemprop="name"]') || []) {
+      add(name.content);
+      add(name.getAttribute?.('content'));
+      add(name.innerText);
+    }
+  }
+  let visited = 0;
+  const visit = (value, depth = 0) => {
+    if (++visited > 2048 || depth > 6 || value == null) return;
+    if (Array.isArray(value)) {
+      for (const item of value.slice(0, 64)) visit(item, depth + 1);
+      return;
+    }
+    if (typeof value !== 'object') return;
+    for (const [key, item] of Object.entries(value).slice(0, 128)) {
+      if (/^(?:author|creator|publisher)$/i.test(key)) {
+        if (typeof item === 'string') add(item);
+        else if (item && typeof item === 'object') add(item.name);
+      }
+      visit(item, depth + 1);
+    }
+  };
+  for (const script of [...document.querySelectorAll('script[type="application/ld+json"]')]
+    .slice(0, 16)) {
+    try { visit(JSON.parse(script.textContent)); } catch {}
+  }
+  return values.join('\n\n');
+})()
+"""
+
+
+def _dynamic_text_expression(plan) -> str:
+    """Build an answer-free rendered-text extraction for the declared scope."""
+    selector = json.dumps(plan.selector, ensure_ascii=False)
+    if plan.frame_selector:
+        frame = json.dumps(plan.frame_selector, ensure_ascii=False)
+        root = f"document.querySelector({frame})?.contentDocument"
+    else:
+        root = "document"
+    return (
+        "(() => { const root = "
+        + root
+        + "; if (!root) return ''; const selected = [...root.querySelectorAll("
+        + selector
+        + ")].slice(0, "
+        + str(plan.minimum_count)
+        + "); const lines = node => node.innerText.split(/\\n+/).map(value => "
+        + "value.trim()).filter(Boolean); const records = selected.map(node => { "
+        + "for (let level = 0; level < 3 && lines(node).length < 2 && node.parentElement; "
+        + "level++) node = node.parentElement; return lines(node).join('\\n'); "
+        + "}).filter(Boolean); const body = "
+        + "(root.body || root.documentElement)?.innerText?.trim() || ''; return records.length "
+        + "? records.join('\\n\\n') : body; })()"
+    )
 
 
 class MoliWebFetchProvider(Provider):
@@ -39,13 +235,17 @@ class MoliWebFetchProvider(Provider):
         errors = []
         if not binary:
             errors.append("binary (set MOLI_BINARY or install moli on PATH)")
-        if self.config.get("wait_until", "done") not in {
-            "done",
-            "load",
-            "domcontentloaded",
-            "networkidle",
-            "domstable",
-        }:
+        expected_version = self.config.get("expected_reported_version")
+        if not isinstance(expected_version, str) or not expected_version.strip():
+            errors.append("expected_reported_version")
+        expected_sha256 = self.config.get("expected_binary_sha256")
+        if (
+            not isinstance(expected_sha256, str)
+            or len(expected_sha256) != 64
+            or any(character not in "0123456789abcdef" for character in expected_sha256)
+        ):
+            errors.append("expected_binary_sha256")
+        if self.config.get("wait_until", "done") not in _WAIT_UNTIL_VALUES:
             errors.append("wait_until")
         if int(self.config.get("max_bytes", 20_000_000)) <= 0:
             errors.append("max_bytes")
@@ -53,33 +253,105 @@ class MoliWebFetchProvider(Provider):
 
     def validate(self) -> list[str]:
         binary = self._resolve_binary()
+        return self._validate_resolved_binary(binary)
+
+    def _validate_resolved_binary(self, binary: str | None) -> list[str]:
+        for attribute in (
+            "_binary_sha256",
+            "_reported_version",
+            "_binary_identity",
+            "_implementation_identity",
+        ):
+            if hasattr(self, attribute):
+                delattr(self, attribute)
         errors = self._configuration_errors(binary)
         if not errors:
+            assert binary is not None
             try:
-                with open(binary, 'rb') as source:
-                    self._binary_sha256 = hashlib.file_digest(source, 'sha256').hexdigest()
+                with open(binary, "rb") as source:
+                    binary_sha256 = hashlib.file_digest(source, "sha256").hexdigest()
                 stat = Path(binary).stat()
-                self._binary_identity = (binary, stat.st_ino, stat.st_size, stat.st_mtime_ns)
+                reported_version = subprocess.check_output(
+                    [binary, "--version"],
+                    text=True,
+                    stderr=subprocess.STDOUT,
+                    timeout=10,
+                ).strip()
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                errors.append("Moli version probe")
             except OSError:
-                errors.append('binary (unreadable)')
+                errors.append("binary (unreadable)")
+            else:
+                expected_version = self.config["expected_reported_version"].strip()
+                expected_sha256 = self.config["expected_binary_sha256"]
+                if reported_version != expected_version:
+                    errors.append(f"Moli reported version {expected_version}")
+                if binary_sha256 != expected_sha256:
+                    errors.append(f"Moli binary SHA-256 {expected_sha256}")
+                if not errors:
+                    self._binary_sha256 = binary_sha256
+                    self._reported_version = reported_version
+                    self._binary_identity = (
+                        binary,
+                        stat.st_ino,
+                        stat.st_size,
+                        stat.st_mtime_ns,
+                    )
+                    self._implementation_identity = {
+                        "reported_version": reported_version,
+                        "binary_sha256": binary_sha256,
+                    }
         return errors
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         validate_http_url(case.url)
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("timeout must be positive and finite")
+        try:
+            # Validate the dynamic contract before selecting any content route.
+            # A future dynamic file/document case must not bypass fail-closed
+            # retrieval planning merely because it takes the raw-byte path.
+            retrieval_plan = plan_for_case(case)
+        except ValueError as error:
+            return ProviderResult(
+                False,
+                "",
+                error_type="configuration",
+                error_message=str(error),
+            )
+        call_deadline = time.monotonic() + timeout
         binary = self._resolve_binary()
         errors = self._configuration_errors(binary)
+        if not errors and not hasattr(self, "_implementation_identity"):
+            errors = self._validate_resolved_binary(binary)
         if errors:
             return ProviderResult(
                 False, "", error_type="configuration", error_message="; ".join(errors)
             )
         wait = self.config.get("wait_until", "done")
         file_task = case.task_kind == "file"
-        document_url = case.url.casefold().split("?", 1)[0]
-        document_task = (case.track == "document" and
-                         (document_url.endswith((".pdf", ".docx")) or "/pdf/" in document_url))
+        document_path = urlsplit(case.url).path.casefold()
+        document_task = case.track == "document" and (
+            document_path.endswith((".pdf", ".docx")) or "/pdf/" in document_path
+        )
+        document_page_task = case.track == "document" and (
+            document_path.endswith(".html") or document_path.endswith("/")
+        )
+        media_metadata_task = case.track == "video" and case.task_kind == "body"
+        challenge_task = case.track == "challenge"
+        if challenge_task and (
+            not shutil.which("node")
+            or not _HTML_TO_MARKDOWN.is_file()
+            or not _NODE_HTML_MARKDOWN_PACKAGE.is_file()
+        ):
+            return ProviderResult(
+                False,
+                "",
+                error_type="configuration",
+                error_message="Moli challenge route requires node-html-markdown 2.0.0",
+            )
         raw_task = file_task or document_task
+        timeout_ms = str(max(1, int(timeout * 1000)))
         if raw_task:
             # Direct file delivery uses Moli's automatic response mode. Forcing
             # --dump html/markdown can reject or serialize a non-HTML response
@@ -89,36 +361,178 @@ class MoliWebFetchProvider(Provider):
                 binary,
                 "fetch",
                 "--timeout",
-                str(max(1, int(timeout * 1000))),
+                timeout_ms,
+                "--http-timeout",
+                timeout_ms,
             ]
+            wait_metadata = None
         else:
-            dump = "markdown"
-            command = [
-                binary,
-                "fetch",
-                "--dump",
-                dump,
-                "--wait-until",
-                wait,
+            dump = "html" if case.task_kind == "resource" else "markdown"
+            try:
+                if document_page_task:
+                    wait_arguments = [
+                        "--eval",
+                        _DOCUMENT_PAGE_EXPRESSION,
+                        "--wait-script",
+                        _DOCUMENT_PAGE_READY,
+                        "--wait-until",
+                        wait,
+                    ]
+                    wait_metadata = {
+                        "wait_until": wait,
+                        "embedded_document": "page_runtime",
+                        "completion_support": "exact",
+                    }
+                    dump = None
+                elif challenge_task:
+                    wait_arguments = ["--trace-network", "--wait-until", wait]
+                    wait_metadata = {
+                        "wait_until": wait,
+                        "extraction": "json_final_dom_then_local_markdown",
+                        "network_trace": "metadata_without_response_bodies",
+                    }
+                    dump = "json"
+                elif case.task_kind == "resource":
+                    wait_arguments = ["--eval", _RESOURCE_PAGE_EXPRESSION, "--wait-until", wait]
+                    wait_metadata = {
+                        "wait_until": wait,
+                        "resource_discovery": "rendered_dom_and_same_origin_component_modules",
+                    }
+                    dump = None
+                elif case.track == "dynamic":
+                    plan = retrieval_plan
+                    assert plan is not None
+                    wait_arguments = ["--eval", _dynamic_text_expression(plan)]
+                    dump = None
+                    wait_arguments.extend([
+                        "--wait-selector" if plan.wait_kind == "selector" else "--wait-script",
+                        plan.wait_value,
+                        "--wait-until",
+                        plan.wait_until,
+                    ])
+                    if plan.delay_ms:
+                        wait_arguments.extend(["--delay-ms", str(plan.delay_ms)])
+                    wait_metadata = {
+                        "strategy": (
+                            "frame_selector_count_script"
+                            if plan.frame_selector
+                            else "selector"
+                            if plan.wait_kind == "selector"
+                            else "selector_count_script"
+                        ),
+                        "selector": plan.selector,
+                        "minimum_count": plan.minimum_count,
+                        "frame_selector": plan.frame_selector,
+                        "delay_ms": plan.delay_ms,
+                        "timeout_ms": plan.timeout_ms,
+                        "wait_until": plan.wait_until,
+                        "completion_support": "exact",
+                        "extraction": "selected_records_or_rendered_body_fallback",
+                    }
+                    if plan.minimum_text_fragments:
+                        wait_metadata["minimum_text_fragments"] = plan.minimum_text_fragments
+                    timeout_ms = str(min(int(timeout_ms), plan.timeout_ms))
+                elif media_metadata_task:
+                    wait_arguments = [
+                        "--eval",
+                        _MEDIA_METADATA_EXPRESSION,
+                        "--wait-until",
+                        wait,
+                    ]
+                    wait_metadata = {
+                        "wait_until": wait,
+                        "extraction": "visible_text_and_standard_media_metadata",
+                    }
+                    dump = None
+                else:
+                    wait_arguments = ["--wait-until", wait]
+                    wait_metadata = {"wait_until": wait}
+            except ValueError as error:
+                return ProviderResult(
+                    False,
+                    "",
+                    error_type="configuration",
+                    error_message=str(error),
+                )
+            command = [binary, "fetch"]
+            if dump is not None:
+                command.extend(["--dump", dump])
+            command.extend([
+                *wait_arguments,
                 "--timeout",
-                str(max(1, int(timeout * 1000))),
-            ]
+                timeout_ms,
+                "--http-timeout",
+                timeout_ms,
+            ])
         if self.config.get("block_private_networks", True):
             command.append("--block-private-networks")
         command.append(case.url)
         limit = int(self.config.get("max_bytes", 20_000_000))
         metadata = {
             "dump": dump,
-            "wait_until": None if raw_task else wait,
+            "route": (
+                "raw_file"
+                if file_task
+                else "raw_document"
+                if document_task
+                else "document_page_runtime"
+                if document_page_task
+                else "resource_page_runtime"
+                if case.task_kind == "resource"
+                else "challenge_json_trace"
+                if challenge_task
+                else "dynamic_selected_text"
+                if case.track == "dynamic"
+                else "media_metadata_runtime"
+                if media_metadata_task
+                else "ordinary_markdown"
+            ),
+            "output": (
+                "raw_bytes"
+                if file_task
+                else "raw_document_bytes+local_text"
+                if document_task
+                else "document_text_or_embedded_document"
+                if document_page_task
+                else "structured_resource_urls"
+                if case.task_kind == "resource"
+                else "final_dom_html+local_markdown+network_diagnostics"
+                if challenge_task
+                else "selected_records_or_rendered_body_fallback"
+                if case.track == "dynamic"
+                else "visible_text_and_standard_media_metadata"
+                if media_metadata_task
+                else "markdown"
+            ),
+            "wait": wait_metadata,
+            "wait_until": None if raw_task else wait_metadata.get("wait_until"),
             "binary": Path(binary).name,
             "block_private_networks": bool(self.config.get("block_private_networks", True)),
         }
         try:
-            if hasattr(self, '_binary_identity'):
+            if hasattr(self, "_binary_identity"):
                 stat = Path(binary).stat()
                 if (binary, stat.st_ino, stat.st_size, stat.st_mtime_ns) != self._binary_identity:
-                    return ProviderResult(False, '', error_type='configuration', error_message='Moli binary changed; validate runtime before measurement')
-            metadata['binary_sha256'] = getattr(self, '_binary_sha256', None)
+                    return ProviderResult(
+                        False,
+                        "",
+                        error_type="configuration",
+                        error_message="Moli binary changed; validate runtime before measurement",
+                    )
+            if (
+                getattr(self, "_reported_version", None)
+                != self.config["expected_reported_version"].strip()
+                or getattr(self, "_binary_sha256", None)
+                != self.config["expected_binary_sha256"]
+            ):
+                return ProviderResult(
+                    False,
+                    "",
+                    error_type="configuration",
+                    error_message="Moli runtime identity does not match the configured pins",
+                )
+            metadata["binary_sha256"] = getattr(self, "_binary_sha256", None)
+            metadata["reported_version"] = getattr(self, "_reported_version", None)
         except OSError as error:
             return ProviderResult(
                 False,
@@ -151,7 +565,6 @@ class MoliWebFetchProvider(Provider):
                 )
             with process:
                 stopped = None
-                deadline = time.monotonic() + timeout
                 while True:
                     if (
                         os.fstat(output.fileno()).st_size > limit
@@ -161,7 +574,7 @@ class MoliWebFetchProvider(Provider):
                         break
                     if process.poll() is not None:
                         break
-                    remaining = deadline - time.monotonic()
+                    remaining = call_deadline - time.monotonic()
                     if remaining <= 0:
                         stopped = "timeout"
                         break
@@ -170,13 +583,7 @@ class MoliWebFetchProvider(Provider):
                     except subprocess.TimeoutExpired:
                         pass
                 if stopped:
-                    if os.name == "posix":
-                        try:
-                            os.killpg(process.pid, signal.SIGKILL)
-                        except ProcessLookupError:
-                            pass
-                    else:
-                        process.kill()
+                    self._kill(process)
                     process.wait()
                 output.seek(0)
                 raw = output.read(limit + 1)
@@ -199,30 +606,243 @@ class MoliWebFetchProvider(Provider):
                 error_message="Moli stdout exceeds max_bytes",
                 metadata=metadata,
             )
+        if time.monotonic() >= call_deadline:
+            return ProviderResult(
+                False,
+                "",
+                error_type="timeout",
+                error_message="Moli fetch exceeded time budget",
+                metadata=metadata,
+            )
         if case.task_kind == "file":
             ok = process.returncode == 0 and bool(raw)
-            return ProviderResult(ok, "", files=[{"data": raw}] if raw else [],
+            return ProviderResult(
+                ok,
+                "",
+                files=[{"data": raw}] if raw else [],
                 error_type=None if ok else "tool_error",
                 error_message=None if ok else stderr or "Moli returned no file bytes",
-                metadata=metadata)
+                metadata=metadata,
+            )
         if document_task and raw.startswith((b"%PDF", b"PK")):
             try:
                 content, extractor = extract_document_text(raw)
             except Exception as error:
-                return ProviderResult(False, "", error_type="document_parse_error",
-                    error_message=str(error), metadata=metadata)
+                return ProviderResult(
+                    False,
+                    "",
+                    error_type="document_parse_error",
+                    error_message=str(error),
+                    metadata=metadata,
+                )
             metadata.update(
                 document_extractor=extractor,
                 raw_stdout_sha256=hashlib.sha256(raw).hexdigest(),
                 _raw_stdout_b64=base64.b64encode(raw).decode("ascii"),
             )
+            if time.monotonic() >= call_deadline:
+                return ProviderResult(
+                    False,
+                    "",
+                    error_type="timeout",
+                    error_message="Moli document extraction exceeded time budget",
+                    metadata=metadata,
+                )
             ok = process.returncode == 0 and bool(content.strip())
-            return ProviderResult(ok, content,
+            return ProviderResult(
+                ok,
+                content,
                 error_type=None if ok else "empty_output",
                 error_message=None if ok else stderr or "Moli returned no usable document text",
-                metadata=metadata)
+                metadata=metadata,
+            )
         if document_task:
-            metadata["document_response"] = "serialized_text_not_raw_document"
+            metadata.update(
+                document_response="serialized_text_not_raw_document",
+                raw_stdout_sha256=hashlib.sha256(raw).hexdigest(),
+                _raw_stdout_b64=base64.b64encode(raw).decode("ascii"),
+            )
+            return ProviderResult(
+                False,
+                "",
+                error_type="invalid_output" if process.returncode == 0 else "tool_error",
+                error_message=(
+                    "Moli serialized a direct document instead of returning raw bytes"
+                    if process.returncode == 0
+                    else stderr or "Moli did not return raw document bytes"
+                ),
+                metadata=metadata,
+            )
+        if document_page_task:
+            if process.returncode != 0:
+                return ProviderResult(
+                    False,
+                    "",
+                    error_type="tool_error",
+                    error_message=stderr or "Moli document-page extraction failed",
+                    metadata=metadata,
+                )
+            try:
+                envelope = json.loads(raw.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError) as error:
+                return ProviderResult(
+                    False,
+                    "",
+                    error_type="invalid_output",
+                    error_message=f"Moli document-page output is invalid JSON: {error}",
+                    metadata=metadata,
+                )
+            metadata["embedded_document_url"] = envelope.get("source")
+            if envelope.get("kind") == "pdf_base64":
+                try:
+                    embedded = base64.b64decode(envelope["data"], validate=True)
+                    content, extractor = extract_document_text(embedded)
+                except Exception as error:
+                    return ProviderResult(
+                        False,
+                        "",
+                        error_type="document_parse_error",
+                        error_message=str(error),
+                        metadata=metadata,
+                    )
+                metadata.update(
+                    document_extractor=extractor,
+                    raw_stdout_sha256=hashlib.sha256(embedded).hexdigest(),
+                    _raw_stdout_b64=base64.b64encode(embedded).decode("ascii"),
+                )
+            elif envelope.get("kind") in {"text", "page_text"}:
+                content = str(envelope.get("text") or "")
+                metadata["document_extractor"] = (
+                    "pdfjs_runtime" if envelope.get("kind") == "text" else "rendered_page_text"
+                )
+            else:
+                return ProviderResult(
+                    False,
+                    "",
+                    error_type="invalid_output",
+                    error_message="Moli document-page output has an unknown kind",
+                    metadata=metadata,
+                )
+            if time.monotonic() >= call_deadline:
+                return ProviderResult(
+                    False,
+                    "",
+                    error_type="timeout",
+                    error_message="Moli document-page extraction exceeded time budget",
+                    metadata=metadata,
+                )
+            ok = bool(content.strip())
+            return ProviderResult(
+                ok,
+                content,
+                error_type=None if ok else "empty_output",
+                error_message=None if ok else "Moli returned no usable document text",
+                metadata=metadata,
+            )
+        if challenge_task:
+            metadata.update(
+                raw_stdout_sha256=hashlib.sha256(raw).hexdigest(),
+                _raw_stdout_b64=base64.b64encode(raw).decode("ascii"),
+            )
+            try:
+                envelope = json.loads(raw.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError) as error:
+                return ProviderResult(
+                    False,
+                    "",
+                    error_type="invalid_output",
+                    error_message=f"Moli challenge JSON is invalid: {error}",
+                    metadata=metadata,
+                )
+            if not isinstance(envelope, dict) or not isinstance(envelope.get("html"), str):
+                return ProviderResult(
+                    False,
+                    "",
+                    status_code=envelope.get("status") if isinstance(envelope, dict) else None,
+                    final_url=envelope.get("final_url") if isinstance(envelope, dict) else None,
+                    title=envelope.get("title") if isinstance(envelope, dict) else None,
+                    error_type="invalid_output",
+                    error_message="Moli challenge JSON omitted final DOM HTML",
+                    metadata=metadata,
+                )
+            trace = envelope.get("network") if isinstance(envelope.get("network"), dict) else {}
+            main = trace.get("main_document") if isinstance(trace.get("main_document"), dict) else {}
+            subresources = trace.get("subresources") if isinstance(trace.get("subresources"), list) else []
+            metadata["network_trace"] = {
+                "main_document": {
+                    key: main.get(key) for key in (
+                        "url", "requested_url", "status", "content_type",
+                        "redirected", "redirect_count",
+                    ) if key in main
+                },
+                "subresource_count": len(subresources),
+                "failed_subresource_count": sum(
+                    isinstance(item, dict) and item.get("ok") is False
+                    for item in subresources
+                ),
+                "response_header_names": sorted({
+                    str(item.get("name", "")).casefold()
+                    for item in envelope.get("headers", [])
+                    if isinstance(item, dict) and item.get("name")
+                }),
+                "redirect_chain": [
+                    {key: item.get(key) for key in ("from_url", "to_url", "status")}
+                    for item in envelope.get("redirect_chain", [])[:20]
+                    if isinstance(item, dict)
+                ],
+            }
+            remaining = call_deadline - time.monotonic()
+            if remaining <= 0:
+                return ProviderResult(
+                    False, "", status_code=envelope.get("status"),
+                    final_url=envelope.get("final_url"), title=envelope.get("title"),
+                    error_type="timeout",
+                    error_message="Moli challenge conversion exceeded time budget",
+                    metadata=metadata,
+                )
+            try:
+                converted = subprocess.run(
+                    [shutil.which("node") or "node", str(_HTML_TO_MARKDOWN)],
+                    input=envelope["html"].encode("utf-8"),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=remaining,
+                    check=False,
+                )
+            except subprocess.TimeoutExpired:
+                return ProviderResult(
+                    False, "", status_code=envelope.get("status"),
+                    final_url=envelope.get("final_url"), title=envelope.get("title"),
+                    error_type="timeout",
+                    error_message="Moli challenge conversion exceeded time budget",
+                    metadata=metadata,
+                )
+            if converted.returncode != 0 or len(converted.stdout) > limit:
+                return ProviderResult(
+                    False, "", status_code=envelope.get("status"),
+                    final_url=envelope.get("final_url"), title=envelope.get("title"),
+                    error_type="conversion_error" if converted.returncode else "output_too_large",
+                    error_message=(converted.stderr.decode("utf-8", "replace")[:2000]
+                                   if converted.returncode else "Converted challenge output exceeds max_bytes"),
+                    metadata=metadata,
+                )
+            content = converted.stdout.decode("utf-8", "replace")
+            status = envelope.get("status")
+            http_ok = isinstance(status, int) and 200 <= status < 400
+            ok = process.returncode == 0 and http_ok and bool(content.strip())
+            return ProviderResult(
+                ok,
+                content,
+                status_code=status if isinstance(status, int) else None,
+                final_url=envelope.get("final_url"),
+                title=envelope.get("title"),
+                error_type=(None if ok else "api_error" if isinstance(status, int) and status >= 400
+                            else "empty_output" if process.returncode == 0 else "tool_error"),
+                error_message=(None if ok else stderr or
+                               f"Moli returned HTTP {status}" if isinstance(status, int) and status >= 400
+                               else "Moli returned no usable challenge output"),
+                metadata=metadata,
+            )
         try:
             content = raw.decode("utf-8")
         except UnicodeDecodeError:
@@ -258,10 +878,18 @@ class MoliWebFetchProvider(Provider):
     @staticmethod
     def _kill(process):
         if process is not None and process.poll() is None:
-            try:
-                if os.name == 'posix':
+            if os.name == "posix":
+                try:
                     os.killpg(process.pid, signal.SIGKILL)
-                else:
+                    return
+                except ProcessLookupError:
+                    return
+                except OSError:
+                    # Sandboxes can forbid process-group signalling while
+                    # still allowing the direct child to be terminated.
+                    pass
+            try:
+                if process.poll() is None:
                     process.kill()
-            except ProcessLookupError:
+            except OSError:
                 pass

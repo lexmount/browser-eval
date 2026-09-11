@@ -17,11 +17,16 @@ from harness.web_fetch.reference_lifecycle import (
 )
 from harness.web_fetch.safety import contained_path, validate_report_ids
 from harness.web_fetch.result_review import require_result_review
+from harness.web_fetch.artifacts import (
+    materialize_private_artifacts, record_private_bindings,
+    verify_record_private_artifacts,
+)
+from scripts.run_benchmark import artifact_bindings
 
 
 ALLOWED_REVISION_FIELDS = {
     'body_requirements', 'required_patterns', 'required_facts', 'acceptance_contract',
-    'forbidden_any', 'expected_resources', 'resource_output_contract',
+    'forbidden_any', 'expected_resources', 'resource_output_contract', 'task_prompt',
 }
 
 
@@ -120,6 +125,21 @@ def _without_reference(case):
     return value
 
 
+def _provider_request_contract(case, provider):
+    """Return the task fields that can affect this provider's physical call.
+
+    Firecrawl records ``minimum_text_fragments`` as unsupported and never puts
+    it in the Scrape request.  A cohort frozen immediately before that
+    evaluator-only completion diagnostic was added is therefore physically
+    equivalent for Firecrawl, while every other task field remains exact.
+    """
+    value = _without_reference(case)
+    if provider == "firecrawl":
+        completion = value.get("retrieval_hints", {}).get("completion", {})
+        completion.pop("minimum_text_fragments", None)
+    return value
+
+
 def _prune_shadowed_batch_attempts(batches, records):
     """Keep an attempt ID only in the batch whose time bounds contain the selected call.
 
@@ -162,6 +182,51 @@ def _prune_shadowed_batch_attempts(batches, records):
     return result
 
 
+def _copy_speed_bundle(source, target, dataset, rows, batches):
+    """Copy only explicitly bound speed evidence into an aggregate tree."""
+    if source.is_symlink():
+        raise ValueError('Speed cohort root must not be a symlink')
+    source_root=source.resolve()
+    for child in source.rglob('*'):
+        if child.is_symlink():
+            raise ValueError('Speed cohort contains a symlink: '+str(child.relative_to(source)))
+
+    allowed={
+        'dataset.json','results.jsonl','execution.json','speed-comparison.json',
+    }
+    for optional in ('result-review.json','scoring-revisions.json','reference-revisions.json'):
+        if (source/optional).is_file():allowed.add(optional)
+    for row in rows:
+        for relative,digest in artifact_bindings(row):
+            artifact=contained_path(source,relative)
+            if (not artifact.is_file()
+                    or hashlib.sha256(artifact.read_bytes()).hexdigest()!=digest):
+                raise ValueError('Speed artifact changed: '+relative)
+            allowed.add(relative)
+        verify_record_private_artifacts(source,row)
+        allowed.update(binding['path'] for binding in record_private_bindings(row))
+    for batch in batches:
+        evidence=batch.get('reference_checks',{}).get('postcheck',{}).get('evidence_path')
+        if evidence:allowed.add(evidence)
+    for case in dataset.get('cases',[]):
+        case_id=case['id']
+        source_dir=contained_path(source,'sources/'+case_id)
+        if source_dir.is_dir():
+            allowed.update(child.relative_to(source_root).as_posix()
+                           for child in source_dir.rglob('*') if child.is_file())
+        reference=contained_path(source,'list-references/'+case_id+'.json')
+        if reference.is_file():allowed.add(reference.relative_to(source_root).as_posix())
+
+    target.mkdir(parents=True)
+    for relative in sorted(allowed):
+        source_file=contained_path(source,relative)
+        if not source_file.is_file():
+            raise ValueError('Speed cohort allowlisted file is missing: '+relative)
+        target_file=contained_path(target,relative)
+        target_file.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copy2(source_file,target_file)
+
+
 def _assemble(run, certificates, replacements, output, additions=None, provider_replacements=None,
               provider_additions=None, speed_cohort=None, canonical_dataset=None, retain_unverified=False):
     additions = additions or []
@@ -192,7 +257,8 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         prior_batches=json.loads((run/'execution.json').read_text())['batches']
         require_verified_reference_checks(prior_batches,cases=dataset,records=original,source=run,
             equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
-            'equivalent_reference_bytes_with_independent_batch_captures')
+            'equivalent_reference_bytes_with_independent_batch_captures',
+            allow_scoring_rule_revision=valid_scoring_revision(run))
         batches.extend(public_manifest(batch) for batch in prior_batches)
         evidence.append(run)
         prior_audit=run/'selection-audit.json'
@@ -276,7 +342,8 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
                 raise ValueError('Unknown/duplicate provider replacement: '+row['case_id']+'/'+row['provider'])
             case=incoming[row['case_id']]
             comparison=canonical_cases.get(row['case_id'],cases[row['case_id']])
-            if _without_reference(case)!=_without_reference(comparison):
+            if _provider_request_contract(case, row['provider']) != \
+                    _provider_request_contract(comparison, row['provider']):
                 raise ValueError('Provider replacement changed task rules: '+row['case_id'])
             if requires_fresh_reference(comparison):
                 if case.get('ground_truth_main_content')!=comparison.get('ground_truth_main_content'):
@@ -372,6 +439,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             if hashlib.sha256(source.read_bytes()).hexdigest()!=digest:raise ValueError('Artifact changed: '+relative)
             target=contained_path(output,relative);target.parent.mkdir(parents=True,exist_ok=True)
             shutil.copy2(source,target)
+        materialize_private_artifacts(output, root, [row])
     for root in evidence:
         if (root/'reference-checks').exists():
             shutil.copytree(root/'reference-checks',output/'reference-checks',dirs_exist_ok=True)
@@ -445,7 +513,14 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     if speed_cohort:
         if not (speed_cohort/'speed-comparison.json').is_file():
             raise ValueError('Speed cohort has not been packaged')
-        shutil.copytree(speed_cohort,output/'speed-cohort')
+        speed_dataset=json.loads((speed_cohort/'dataset.json').read_text())
+        speed_rows=read_records(speed_cohort)
+        speed_execution=json.loads((speed_cohort/'execution.json').read_text())
+        speed_batches=speed_execution.get('batches')
+        if not isinstance(speed_batches,list):
+            raise ValueError('Speed cohort execution has no batches')
+        _copy_speed_bundle(speed_cohort,output/'speed-cohort',speed_dataset,
+                           speed_rows,speed_batches)
     if not failed:require_verified_reference_checks(batches,cases=dataset,records=records,source=output,
         equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
         'equivalent_reference_bytes_with_independent_batch_captures')

@@ -182,11 +182,10 @@ class FairnessTests(unittest.TestCase):
         self.assertFalse(m['stable_task_pass'])
         self.assertEqual(m['stable_field_results'][0]['count'], 1)
 
-    def test_dynamic_strict_exclusions_flip_only_contaminated_complete_outputs(self):
+    def test_dynamic_declared_exclusions_are_executable_not_prose_only(self):
         cases = {case['id']: case for case in json.loads(
             (ROOT/'evaluation/dataset.json').read_text())['cases']}
-        exclusions = {
-            'dynamic-reviews-graphql': ['data-testid="review-stars"'],
+        supplemental = {
             'dynamic-react-cart': [
                 'Add to cart',
                 'Work in the Netherlands',
@@ -197,20 +196,24 @@ class FairnessTests(unittest.TestCase):
                 'Similar Products',
             ],
         }
-        for identifier, forbidden in exclusions.items():
+        for identifier, tokens in supplemental.items():
             case = cases[identifier]
             target_only = case['ground_truth_main_content']
             clean = score_attempt(case, target_only.encode(), ok=True)
             with self.subTest(case=identifier, variant='target-only'):
                 self.assertTrue(task_passed(True, clean))
                 self.assertEqual(clean['forbidden_hits'], [])
-            for token in forbidden:
-                contaminated = score_attempt(
+            for token in tokens:
+                extended = score_attempt(
                     case, f'{target_only}\n\n{token}'.encode(), ok=True)
-                with self.subTest(case=identifier, forbidden=token):
-                    self.assertTrue(contaminated['stable_structure_pass'])
-                    self.assertIn(token, contaminated['forbidden_hits'])
-                    self.assertFalse(task_passed(True, contaminated))
+                with self.subTest(case=identifier, supplemental=token):
+                    self.assertTrue(extended['stable_structure_pass'])
+                    if identifier == 'dynamic-react-cart' or token == 'Similar Products':
+                        self.assertEqual(extended['forbidden_hits'], [token])
+                        self.assertFalse(task_passed(True, extended))
+                    else:
+                        self.assertEqual(extended['forbidden_hits'], [])
+                        self.assertTrue(task_passed(True, extended))
 
     def test_end_to_end_processing_is_timed_and_late_answers_rejected(self):
         class Slow(Provider):

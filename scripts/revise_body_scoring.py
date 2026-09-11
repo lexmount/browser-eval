@@ -22,7 +22,7 @@ from scripts.rescore_content import rescore
 ALLOWED_FIELDS = {
     'body_requirements', 'required_patterns', 'required_facts',
     'acceptance_contract', 'forbidden_any', 'expected_resources',
-    'resource_output_contract',
+    'resource_output_contract', 'task_prompt',
 }
 class IndependentReviewRequired(ValueError):
     """The prior review is valid history but cannot certify revised scores."""
@@ -35,6 +35,39 @@ def correction_provenance(category, root_cause, regression_ids, decisions=()):
 
 def _without_rules(case):
     return {key:value for key,value in case.items() if key not in ALLOWED_FIELDS}
+
+
+def _resource_prompt_policy_correction(old: dict, new: dict) -> bool:
+    """Allow wording to follow one narrowly audited resource-policy correction.
+
+    The physical resource request receives the URL and native resource route;
+    it never receives a target URL.  Changing an impossible target-only
+    precision requirement to recall acceptance therefore changes scoring and
+    its reader-facing wording, not the preserved provider call.
+    """
+    before = old.get('resource_output_contract', {})
+    after = new.get('resource_output_contract', {})
+    old_targets = old.get('expected_resources', [])
+    new_targets = new.get('expected_resources', [])
+    aliases_expand_only = (
+        len(old_targets) == len(new_targets)
+        and all(
+            prior.get('id') == current.get('id')
+            and prior.get('kind') == current.get('kind')
+            and prior.get('url_patterns', []) == current.get('url_patterns', [])
+            and set(prior.get('urls', [])) <= set(current.get('urls', []))
+            for prior, current in zip(old_targets, new_targets)
+        )
+    )
+    return (
+        old.get('task_kind', 'body') == new.get('task_kind', 'body') == 'resource'
+        and aliases_expand_only
+        and before.get('candidate_scope') == after.get('candidate_scope') == 'image_answer_fields'
+        and before.get('unexpected') == 'reject'
+        and after.get('unexpected') == 'allow'
+        and {key: value for key, value in before.items() if key != 'unexpected'}
+            == {key: value for key, value in after.items() if key != 'unexpected'}
+    )
 
 
 def rebind_unchanged_result_review(path, before_dataset, before_results,
@@ -187,9 +220,15 @@ def _revise_unlocked(source: Path, canonical_path: Path, *, root_cause_category:
     updated_cases = {}
     for identifier, old in old_cases.items():
         canonical_case = new_cases[identifier]
-        for key in ('url','track','task_kind','task_prompt','ground_truth_main_content'):
+        # Scoring and reference corrections are independent audit dimensions.
+        # Keep the measured cohort's frozen reference bytes for this step; a
+        # later reference revision may update them under separate provenance.
+        for key in ('url','track','task_kind'):
             if old.get(key) != canonical_case.get(key):
-                raise ValueError(identifier + ': captured task/reference differs from canonical ' + key)
+                raise ValueError(identifier + ': captured task differs from canonical ' + key)
+        if (old.get('task_prompt') != canonical_case.get('task_prompt')
+                and not _resource_prompt_policy_correction(old, canonical_case)):
+            raise ValueError(identifier + ': task_prompt changed outside the audited resource-policy correction')
         new = dict(old)
         for key in ALLOWED_FIELDS:
             if key in canonical_case:new[key]=canonical_case[key]

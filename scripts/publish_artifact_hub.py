@@ -5,6 +5,7 @@ import sys
 import urllib.request
 import uuid
 from pathlib import Path
+from urllib.parse import urlsplit
 
 BASE=os.environ.get('ARTIFACT_HUB_BASE_URL','https://artifact-hub.app.lexmount.com').rstrip('/')
 ROOT=Path(__file__).resolve().parents[1]
@@ -80,6 +81,14 @@ if not result.get('share_url'):
  status,raw=request('/api/sites/'+result['slug']+'/shares',json.dumps({'policy':'public'}).encode(),'application/json')
  share=json.loads(raw);result['share_url']=share['url']
  receipt.write_text(json.dumps(result,ensure_ascii=False,indent=2));os.chmod(receipt,0o600)
-status,_=request(result['share_url'],auth=False)
-assert status==200,status
-print(json.dumps({'slug':result['slug'],'url':result['share_url'],'unauthenticated_status':status},ensure_ascii=False),flush=True)
+version=result.get('versionId',result.get('version'))
+if isinstance(version,dict):version=version.get('id')
+if not isinstance(version,str) or not version.startswith('ver_'):
+ raise ValueError('Publication receipt omitted an activated version')
+share_url=result['share_url'];parsed=urlsplit(share_url);base=urlsplit(BASE)
+if parsed.scheme not in ('http','https') or parsed.netloc != base.netloc or not parsed.path:
+ raise ValueError('Publication did not return a valid share URL for the target service')
+# A successful commit/share response is the script's terminal condition. Do not
+# read the public page or export back through HTTP; the caller opens share_url in
+# a browser for the user-visible smoke check.
+print(json.dumps({'slug':result['slug'],'versionId':version,'url':share_url},ensure_ascii=False),flush=True)

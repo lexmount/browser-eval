@@ -34,7 +34,7 @@ def main():
     p.add_argument('--run-dir',type=Path,required=True)
     p.add_argument('--captures',type=Path,required=True)
     p.add_argument('--browser-observations',type=Path,
-                   help='Post-call browser observations for JavaScript-only reference cases')
+                   help='Post-call browser observations for browser-contract or HTTP-unavailable references')
     p.add_argument('--timeout',type=int,default=3600)
     p.add_argument('--resume',action='store_true')
     args=p.parse_args()

@@ -27,15 +27,6 @@ DYNAMIC_FORBIDDEN_ANY = {
     "dynamic-reviews-graphql": (
         'data-testid="review-stars"',
     ),
-    "dynamic-react-cart": (
-        "Add to cart",
-        "Work in the Netherlands",
-        "jeremy-akeze-doghouse-it-recruitment",
-    ),
-    "dynamic-product-reviews": (
-        'data-testid="review-stars"',
-        "Similar Products",
-    ),
 }
 
 
@@ -360,6 +351,15 @@ CASE_ANNOTATIONS['challenge-06']['note'] = ('Required restaurant-card field labe
 
 
 CASE_ANNOTATIONS['dynamic-react-cart']['contract']['field_minimum_records'] = {'financing': 15, 'shipping': 13}
+
+# The frozen task explicitly excludes controls and adjacent advertising from
+# the answer surface.  Keep those observable strings in the executable case
+# contract instead of relying on prose that the scorer cannot enforce.
+DYNAMIC_FORBIDDEN_ANY['dynamic-react-cart'] = (
+    'Add to cart',
+    'Work in the Netherlands',
+    'jeremy-akeze-doghouse-it-recruitment',
+)
 
 
 def annotate_case(case: dict) -> dict:

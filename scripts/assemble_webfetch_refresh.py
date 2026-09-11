@@ -18,8 +18,20 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from harness.web_fetch.artifacts import (  # noqa: E402
+    materialize_private_artifacts,
+    record_private_bindings,
+    verify_record_private_artifacts,
+)
 from harness.web_fetch.reference_lifecycle import (  # noqa: E402
+    reference_revision_cases,
     require_verified_reference_checks,
+    valid_scoring_revision,
+)
+from harness.web_fetch.scoring_regressions import (  # noqa: E402
+    build_correction_provenance,
+    load_scoring_regressions,
+    valid_correction_provenance,
 )
 from harness.web_fetch.safety import contained_path, validate_report_ids  # noqa: E402
 from scripts.assemble_headless import _prune_shadowed_batch_attempts  # noqa: E402
@@ -46,6 +58,27 @@ def _read_records(root: Path) -> list[dict]:
     return rows
 
 
+def _reject_account_capacity_results(rows: list[dict], *, label: str) -> None:
+    """Keep provider account exhaustion out of publishable benchmark evidence."""
+    blocked = [
+        row
+        for row in rows
+        if row.get("error_type") == "account_capacity"
+        or (row.get("provider") == "firecrawl" and row.get("status_code") == 402)
+    ]
+    if not blocked:
+        return
+    attempt_ids = ", ".join(
+        str(row.get("attempt_id") or "unknown-attempt") for row in blocked[:3]
+    )
+    suffix = "" if len(blocked) <= 3 else f", and {len(blocked) - 3} more"
+    raise ValueError(
+        f"{label} contains {len(blocked)} non-publishable provider account-capacity "
+        f"failure(s); replenish the account and rerun the declared scope: "
+        f"{attempt_ids}{suffix}"
+    )
+
+
 def _provider_order(dataset: dict) -> list[str]:
     coverage = dataset.get("coverage_plan")
     if not isinstance(coverage, dict) or not coverage:
@@ -63,55 +96,185 @@ def _provider_order(dataset: dict) -> list[str]:
     return providers
 
 
+def _require_reason(value: object, *, label: str) -> None:
+    if not isinstance(value, dict) or set(value) != {"category", "reason"}:
+        raise ValueError(f"Refresh plan has invalid {label}")
+    if not all(isinstance(value[field], str) and value[field].strip() for field in value):
+        raise ValueError(f"Refresh plan has empty {label}")
+
+
 def expected_refresh_pairs(plan: dict, canonical: dict) -> set[tuple[str, str]]:
     """Return the exact main refresh scope, rejecting an internally inconsistent plan."""
     matrix = plan.get("main_matrix")
-    if plan.get("schema_version") != 1 or not isinstance(matrix, dict):
+    if plan.get("schema_version") != 2 or not isinstance(matrix, dict):
         raise ValueError("Unsupported refresh plan")
+    if set(plan) != {
+        "schema_version", "baseline", "main_matrix", "same_window_speed_cohort",
+        "total_planned_new_calls",
+    } or not isinstance(plan.get("baseline"), dict) or set(plan["baseline"]) != {
+        "dataset_sha256", "results_sha256", "logical_attempts",
+    }:
+        raise ValueError("Refresh plan has unknown or missing top-level fields")
+    if set(matrix) != {
+        "full_rerun_providers", "full_rerun_reason_by_provider", "matched_case_ids",
+        "matched_case_reason_groups", "pair_replacements", "offline_rescore_cases",
+        "planned_new_calls", "final_logical_attempts",
+    }:
+        raise ValueError("Refresh plan has unknown or missing main-matrix fields")
     providers = _provider_order(canonical)
     cases = [case.get("id") for case in canonical.get("cases", [])]
     if not cases or len(cases) != len(set(cases)) or any(not case for case in cases):
         raise ValueError("Canonical case inventory is empty or duplicated")
-    rerun_cases = matrix.get("rerun_case_ids")
     full_providers = matrix.get("full_rerun_providers")
-    deadline_ids = matrix.get("deadline_replacement_attempt_ids")
+    matched_cases = matrix.get("matched_case_ids")
+    pair_replacements = matrix.get("pair_replacements")
     for label, values in (
-        ("rerun_case_ids", rerun_cases),
         ("full_rerun_providers", full_providers),
-        ("deadline_replacement_attempt_ids", deadline_ids),
+        ("matched_case_ids", matched_cases),
     ):
-        if not isinstance(values, list) or len(values) != len(set(values)):
+        if (
+            not isinstance(values, list)
+            or not all(isinstance(value, str) and value for value in values)
+            or len(values) != len(set(values))
+        ):
             raise ValueError(f"Refresh plan has invalid {label}")
-    if matrix.get("rerun_all_providers_for_each_case") is not True:
-        raise ValueError("Refresh cases must be rerun across every provider")
-    if not set(rerun_cases) <= set(cases):
+    if not isinstance(pair_replacements, list):
+        raise ValueError("Refresh plan has invalid pair_replacements")
+    if not set(matched_cases) <= set(cases):
         raise ValueError("Refresh plan names a noncanonical case")
     if not set(full_providers) <= set(providers):
         raise ValueError("Refresh plan names a noncanonical provider")
-    case_pairs = {(provider, case_id) for case_id in rerun_cases for provider in providers}
+    reasons = matrix.get("full_rerun_reason_by_provider")
+    if not isinstance(reasons, dict) or set(reasons) != set(full_providers):
+        raise ValueError("Refresh plan must explain every full provider rerun exactly once")
+    for provider, reason in reasons.items():
+        _require_reason(reason, label=f"full provider reason for {provider}")
+    matched_reason_groups = matrix.get("matched_case_reason_groups")
+    if not isinstance(matched_reason_groups, list) or not matched_reason_groups:
+        raise ValueError("Refresh plan has invalid matched case reason groups")
+    explained_cases = []
+    for index, group in enumerate(matched_reason_groups):
+        if not isinstance(group, dict) or set(group) != {"case_ids", "category", "reason"}:
+            raise ValueError("Refresh plan has invalid matched case reason group")
+        group_cases = group["case_ids"]
+        if (
+            not isinstance(group_cases, list)
+            or not group_cases
+            or not all(isinstance(case_id, str) and case_id for case_id in group_cases)
+            or len(group_cases) != len(set(group_cases))
+        ):
+            raise ValueError("Refresh plan has invalid matched reason case inventory")
+        _require_reason(
+            {field: group[field] for field in ("category", "reason")},
+            label=f"matched case reason group {index}",
+        )
+        explained_cases.extend(group_cases)
+    if len(explained_cases) != len(set(explained_cases)):
+        raise ValueError("Matched case reason groups overlap")
+    if set(explained_cases) != set(matched_cases):
+        raise ValueError("Matched case reason groups must explain every matched case exactly once")
+
+    offline_rescore = matrix.get("offline_rescore_cases")
+    if not isinstance(offline_rescore, list):
+        raise ValueError("Refresh plan has invalid offline rescore cases")
+    offline_ids = []
+    for entry in offline_rescore:
+        if not isinstance(entry, dict) or set(entry) != {
+            "case_id", "category", "reason", "attempts", "full_review"
+        }:
+            raise ValueError("Refresh plan has invalid offline rescore entry")
+        case_id = entry["case_id"]
+        if not isinstance(case_id, str) or case_id not in cases:
+            raise ValueError("Offline rescore names a noncanonical case")
+        _require_reason(
+            {field: entry[field] for field in ("category", "reason")},
+            label=f"offline rescore reason for {case_id}",
+        )
+        if entry["attempts"] != len(providers) or entry["full_review"] is not True:
+            raise ValueError("Offline rescore must cover every method and require full review")
+        offline_ids.append(case_id)
+    if len(offline_ids) != len(set(offline_ids)):
+        raise ValueError("Refresh plan has duplicate offline rescore cases")
+
+    case_pairs = {(provider, case_id) for case_id in matched_cases for provider in providers}
     provider_pairs = {(provider, case_id) for provider in full_providers for case_id in cases}
-    deadline_pairs = set()
-    for attempt_id in deadline_ids:
-        if not isinstance(attempt_id, str) or not attempt_id.endswith("__r001"):
-            raise ValueError("Deadline replacement must name an r001 attempt")
-        stem = attempt_id[:-6]
-        try:
-            provider, case_id = stem.split("__", 1)
-        except ValueError as error:
-            raise ValueError("Invalid deadline replacement attempt ID") from error
+    explicit_pairs = set()
+    for replacement in pair_replacements:
+        if not isinstance(replacement, dict) or set(replacement) != {
+            "provider", "case_id", "category", "reason"
+        }:
+            raise ValueError("Refresh plan has invalid pair replacement")
+        provider = replacement["provider"]
+        case_id = replacement["case_id"]
+        if not isinstance(provider, str) or not isinstance(case_id, str):
+            raise ValueError("Refresh plan has invalid pair replacement identity")
+        _require_reason(
+            {field: replacement[field] for field in ("category", "reason")},
+            label=f"pair replacement reason for {provider}/{case_id}",
+        )
         pair = (provider, case_id)
         if provider not in providers or case_id not in cases:
-            raise ValueError("Deadline replacement lies outside the canonical matrix")
-        deadline_pairs.add(pair)
-    if deadline_pairs & (case_pairs | provider_pairs):
-        raise ValueError("Deadline replacements must be the only remaining pair replacements")
-    expected = case_pairs | provider_pairs | deadline_pairs
+            raise ValueError("Pair replacement lies outside the canonical matrix")
+        if pair in explicit_pairs:
+            raise ValueError("Refresh plan has duplicate pair replacements")
+        explicit_pairs.add(pair)
+    if explicit_pairs & (case_pairs | provider_pairs):
+        raise ValueError("Pair replacements must not overlap broader refresh scopes")
+
+    expected = case_pairs | provider_pairs | explicit_pairs
     if matrix.get("planned_new_calls") != len(expected):
         raise ValueError("Refresh plan call count does not match its declared scopes")
     speed = plan.get("same_window_speed_cohort", {})
-    if plan.get("total_planned_new_calls") != len(expected) + speed.get("planned_new_calls", -1):
+    if not isinstance(speed, dict) or type(speed.get("required")) is not bool:
+        raise ValueError("Refresh plan has invalid speed cohort")
+    speed_common = {"required", "reuse_existing", "reason", "planned_new_calls"}
+    expected_speed_fields = (
+        speed_common | {"case_ids", "provider_count"}
+        if speed["required"]
+        else speed_common | {
+            "dataset_sha256", "results_sha256", "execution_sha256",
+            "speed_comparison_sha256", "auxiliary_sha256",
+        }
+    )
+    if set(speed) != expected_speed_fields:
+        raise ValueError("Refresh plan has unknown or missing speed-cohort fields")
+    if not isinstance(speed.get("reason"), str) or not speed["reason"].strip():
+        raise ValueError("Refresh plan has empty speed-cohort reason")
+    speed_calls = speed.get("planned_new_calls")
+    if type(speed_calls) is not int or speed_calls < 0:
+        raise ValueError("Refresh plan has invalid speed call count")
+    if plan.get("total_planned_new_calls") != len(expected) + speed_calls:
         raise ValueError("Refresh plan total call count is inconsistent")
     return expected
+
+
+def _pair_scope_reasons(plan: dict, provider: str, case_id: str) -> list[dict]:
+    matrix = plan["main_matrix"]
+    scopes = []
+    if provider in matrix["full_rerun_providers"]:
+        scopes.append({
+            "scope": "full_rerun_provider",
+            **matrix["full_rerun_reason_by_provider"][provider],
+        })
+    if case_id in matrix["matched_case_ids"]:
+        reason = next(
+            group for group in matrix["matched_case_reason_groups"]
+            if case_id in group["case_ids"]
+        )
+        scopes.append({
+            "scope": "matched_case", "category": reason["category"],
+            "reason": reason["reason"],
+        })
+    for replacement in matrix["pair_replacements"]:
+        if (replacement["provider"], replacement["case_id"]) == (provider, case_id):
+            scopes.append({
+                "scope": "pair_replacement",
+                "category": replacement["category"],
+                "reason": replacement["reason"],
+            })
+    if not scopes:
+        raise ValueError(f"Rerun pair has no declared scope reason: {provider}/{case_id}")
+    return scopes
 
 
 def _validate_record_identity(
@@ -241,6 +404,7 @@ def _copy_artifacts(output: Path, selections: list[tuple[dict, Path]]) -> None:
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
             copied[relative] = digest
+        materialize_private_artifacts(output, root, [row])
 
 
 def _copy_speed_bundle(
@@ -253,11 +417,15 @@ def _copy_speed_bundle(
         if child.is_symlink():
             raise ValueError(f"Speed cohort contains a symlink: {child.relative_to(source)}")
     allowed = {
-        "dataset.json", "results.jsonl", "execution.json",
-        "result-review.json", "speed-comparison.json",
+        "dataset.json", "results.jsonl", "execution.json", "speed-comparison.json",
     }
+    for optional in ("result-review.json", "scoring-revisions.json", "reference-revisions.json"):
+        if (source / optional).is_file():
+            allowed.add(optional)
     for row in rows:
         allowed.update(relative for relative, _ in artifact_bindings(row))
+        verify_record_private_artifacts(source, row)
+        allowed.update(binding['path'] for binding in record_private_bindings(row))
     for batch in batches:
         evidence = batch.get("reference_checks", {}).get("postcheck", {}).get("evidence_path")
         if evidence:
@@ -291,6 +459,158 @@ def _bundle_identity(root: Path, execution_path: Path) -> dict:
         "execution_file": execution_path.name,
         "execution_sha256": _sha256(execution_path),
     }
+
+
+def _composite_correction_provenance(receipts: list[dict], decisions: list[dict]) -> dict:
+    provenances = [receipt.get("correction_provenance") for receipt in receipts
+                   if isinstance(receipt.get("correction_provenance"), dict)]
+    if not provenances:
+        raise ValueError("Selected source revisions lack correction provenance")
+    regression_ids = list(dict.fromkeys(
+        identifier
+        for provenance in provenances
+        for identifier in provenance.get("regression_ids", [])
+    ))
+    registry = load_scoring_regressions()
+    categories = {registry[identifier]["category"] for identifier in regression_ids}
+    category = next(iter(categories)) if len(categories) == 1 else "multi-root"
+    causes = list(dict.fromkeys(provenance["root_cause"] for provenance in provenances))
+    return build_correction_provenance(
+        category,
+        "Composite assembly preserves audited source causes: " + " | ".join(causes),
+        regression_ids,
+        decisions,
+    )
+
+
+def _write_composite_revisions(output: Path, selections: list[tuple[dict, Path]]) -> None:
+    """Carry only selected, validated source corrections into the final bundle."""
+    by_root: dict[Path, list[dict]] = {}
+    for row, root in selections:
+        by_root.setdefault(root, []).append(row)
+    dataset_hash = _sha256(output / "dataset.json")
+    results_hash = _sha256(output / "results.jsonl")
+    scoring_changes, scoring_decisions, scoring_sources, scoring_receipts = {}, {}, [], []
+    reference_changes, reference_decisions, reference_sources, reference_receipts = {}, {}, [], []
+    history = output / "history" / "source-revisions"
+    for index, (root, selected) in enumerate(by_root.items()):
+        attempts = {row["attempt_id"] for row in selected}
+        cases = {row["case_id"] for row in selected}
+        for kind, filename in (("scoring", "scoring-revisions.json"),
+                               ("reference", "reference-revisions.json")):
+            path = root / filename
+            if not path.is_file():
+                continue
+            receipts = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(receipts, list) or not receipts:
+                raise ValueError(f"Invalid selected source revision receipt: {path}")
+            if kind == "scoring":
+                current = (_sha256(root / "dataset.json"), _sha256(root / "results.jsonl"))
+                batches, _ = _source_batches(root)
+                projected = any(
+                    isinstance(batch.get("projection"), dict)
+                    and isinstance(batch["projection"].get("source_execution_sha256"), str)
+                    and re.fullmatch(
+                        r"[0-9a-f]{64}", batch["projection"]["source_execution_sha256"]
+                    )
+                    for batch in batches
+                )
+                derived_bundle = projected or (root / "selection-audit.json").is_file()
+                if any(not isinstance(receipt, dict)
+                       or receipt.get("kind") not in {
+                           "audited_body_scoring_revision", "audited_scoring_rule_revision"
+                       }
+                       or receipt.get("provider_calls") != 0
+                       or ((receipt.get("output_dataset_sha256"),
+                           receipt.get("output_results_sha256")) != current and not derived_bundle)
+                       or not valid_correction_provenance(receipt) for receipt in receipts):
+                    raise ValueError(f"Selected source has invalid scoring revision binding: {root}")
+            if kind == "reference":
+                current = (_sha256(root / "dataset.json"), _sha256(root / "results.jsonl"))
+                batches, _ = _source_batches(root)
+                projected = any(
+                    isinstance(batch.get("projection"), dict)
+                    and isinstance(batch["projection"].get("source_execution_sha256"), str)
+                    and re.fullmatch(
+                        r"[0-9a-f]{64}", batch["projection"]["source_execution_sha256"]
+                    )
+                    for batch in batches
+                )
+                derived_bundle = projected or (root / "selection-audit.json").is_file()
+                if any(not isinstance(receipt, dict)
+                       or receipt.get("kind") != "audited_reference_correction"
+                       or receipt.get("provider_calls") != 0
+                       or (receipt.get("output_dataset_sha256"),
+                           receipt.get("output_results_sha256")) != current and not derived_bundle
+                       or not valid_correction_provenance(receipt) for receipt in receipts):
+                    raise ValueError(f"Selected source has invalid reference revision binding: {root}")
+                if (not derived_bundle and any(receipt.get("changed_cases") for receipt in receipts)
+                        and not reference_revision_cases(root)):
+                    raise ValueError(f"Selected source has invalid reference revision changes: {root}")
+            history.mkdir(parents=True, exist_ok=True)
+            relative = f"history/source-revisions/{index:03d}-{root.name}-{filename}"
+            shutil.copy2(path, output / relative)
+            source = {
+                "source_dataset_sha256": _sha256(root / "dataset.json"),
+                "source_results_sha256": _sha256(root / "results.jsonl"),
+                "receipt_path": relative,
+                "receipt_sha256": _sha256(path),
+            }
+            changes = scoring_changes if kind == "scoring" else reference_changes
+            decisions = scoring_decisions if kind == "scoring" else reference_decisions
+            sources = scoring_sources if kind == "scoring" else reference_sources
+            all_receipts = scoring_receipts if kind == "scoring" else reference_receipts
+            sources.append(source)
+            for receipt in receipts:
+                all_receipts.append(receipt)
+                for change in receipt.get("changed_cases", []):
+                    if change.get("case_id") in cases:
+                        changes[json.dumps(change, sort_keys=True)] = deepcopy(change)
+                for decision in receipt.get("task_decision_changes", []):
+                    if decision.get("attempt_id") in attempts:
+                        decisions[decision["attempt_id"]] = deepcopy(decision)
+    if scoring_sources:
+        # This is a provenance index over independently revised source cohorts,
+        # not a no-op scoring revision of the assembled matrix.  Give it a
+        # deterministic synthetic input identity so later review-merging starts
+        # at the first real matrix revision whose input is the reviewed output
+        # below, rather than re-reviewing every historical source correction.
+        source_index = json.dumps(
+            scoring_sources, ensure_ascii=False, sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+        receipt = {
+            "schema_version": 2, "kind": "audited_scoring_rule_revision",
+            "input_dataset_sha256": hashlib.sha256(b"dataset\0" + source_index).hexdigest(),
+            "input_results_sha256": hashlib.sha256(b"results\0" + source_index).hexdigest(),
+            "output_dataset_sha256": dataset_hash, "output_results_sha256": results_hash,
+            "changed_cases": list(scoring_changes.values()),
+            "task_decision_changes": list(scoring_decisions.values()), "provider_calls": 0,
+            "composite_semantics": "index-only; no reconstructed historical input state",
+            "source_receipts": scoring_sources,
+            "correction_provenance": _composite_correction_provenance(
+                scoring_receipts, list(scoring_decisions.values())
+            ),
+        }
+        (output / "scoring-revisions.json").write_text(json.dumps([receipt], indent=2) + "\n")
+        if not valid_scoring_revision(output):
+            raise ValueError("Assembled scoring revision provenance is invalid")
+    if reference_changes:
+        receipt = {
+            "schema_version": 2, "kind": "audited_reference_correction",
+            "input_dataset_sha256": dataset_hash, "input_results_sha256": results_hash,
+            "output_dataset_sha256": dataset_hash, "output_results_sha256": results_hash,
+            "changed_cases": list(reference_changes.values()),
+            "task_decision_changes": list(reference_decisions.values()), "provider_calls": 0,
+            "composite_semantics": "index-only; no reconstructed historical input state",
+            "source_receipts": reference_sources,
+            "correction_provenance": _composite_correction_provenance(
+                reference_receipts, list(reference_decisions.values())
+            ),
+        }
+        (output / "reference-revisions.json").write_text(json.dumps([receipt], indent=2) + "\n")
+        if not reference_revision_cases(output):
+            raise ValueError("Assembled reference revision provenance is invalid")
 
 
 def _assemble(
@@ -335,12 +655,19 @@ def _assemble(
     replacements = canonical.get("comparison", {}).get("case_replacements")
     if not isinstance(replacements, dict) or len(set(replacements.values())) != len(replacements):
         raise ValueError("Canonical case replacement map is missing or invalid")
-    if set(baseline_cases) - set(canonical_cases) != set(replacements):
+    baseline_only = set(baseline_cases) - set(canonical_cases)
+    canonical_only = set(canonical_cases) - set(baseline_cases)
+    active_replacements = {
+        old: new for old, new in replacements.items()
+        if old in baseline_only or new in canonical_only
+    }
+    if baseline_only != set(active_replacements):
         raise ValueError("Baseline-only cases differ from the replacement map")
-    if set(canonical_cases) - set(baseline_cases) != set(replacements.values()):
+    if canonical_only != set(active_replacements.values()):
         raise ValueError("Canonical-only cases differ from the replacement map")
-    if not set(replacements.values()) <= set(plan["main_matrix"]["rerun_case_ids"]):
-        raise ValueError("Every replacement case must be in the all-provider rerun scope")
+    matched_cases = set(plan["main_matrix"]["matched_case_ids"])
+    if not set(active_replacements.values()) <= matched_cases:
+        raise ValueError("Every active replacement case must be in the matched rerun scope")
 
     rerun_by_pair: dict[tuple[str, str], tuple[dict, Path]] = {}
     rerun_batches: list[tuple[list[dict], list[dict], Path, Path]] = []
@@ -352,6 +679,7 @@ def _assemble(
     for root in main_reruns:
         dataset = _read_json(root / "dataset.json")
         rows = _read_records(root)
+        _reject_account_capacity_results(rows, label="main rerun")
         _require_canonical_cases(
             dataset,
             canonical_cases,
@@ -381,7 +709,8 @@ def _assemble(
             if pair in rerun_by_pair:
                 row, root = rerun_by_pair[pair]
                 old_case_id = next(
-                    (old for old, new in replacements.items() if new == case["id"]), case["id"]
+                    (old for old, new in active_replacements.items() if new == case["id"]),
+                    case["id"],
                 )
                 old = baseline_by_pair.get((provider, old_case_id))
                 selected.append((row, root))
@@ -392,6 +721,7 @@ def _assemble(
                         "case_id": case["id"],
                         "replaces_case_id": old_case_id,
                         "selection_reason": "predeclared refresh scope; no score-based selection",
+                        "declared_scopes": _pair_scope_reasons(plan, provider, case["id"]),
                         "source_results_sha256": _sha256(root / "results.jsonl"),
                         "excluded_attempt": (
                             {
@@ -416,23 +746,56 @@ def _assemble(
     speed_plan = plan.get("same_window_speed_cohort", {})
     speed_dataset = _read_json(speed_cohort / "dataset.json")
     speed_rows = _read_records(speed_cohort)
-    speed_cases = speed_plan.get("case_ids")
+    speed_case_inventory = [case.get("id") for case in speed_dataset.get("cases", [])]
     if (
-        speed_plan.get("required") is not True
-        or not isinstance(speed_cases, list)
-        or len(speed_cases) != len(set(speed_cases))
-        or not set(speed_cases) <= set(canonical_cases)
+        not speed_case_inventory
+        or len(speed_case_inventory) != len(set(speed_case_inventory))
+        or not set(speed_case_inventory) <= set(canonical_cases)
     ):
+        raise ValueError("Invalid speed cohort case inventory")
+    required_speed = speed_plan.get("required")
+    if type(required_speed) is not bool:
         raise ValueError("Invalid speed cohort plan")
-    if speed_plan.get("provider_count") != len(providers):
-        raise ValueError("Speed provider count differs from the main cohort")
+    if required_speed:
+        speed_cases = speed_plan.get("case_ids")
+        if (
+            speed_plan.get("reuse_existing") is not False
+            or not isinstance(speed_cases, list)
+            or len(speed_cases) != len(set(speed_cases))
+            or speed_cases != speed_case_inventory
+        ):
+            raise ValueError("Invalid measured speed cohort plan")
+        if speed_plan.get("provider_count") != len(providers):
+            raise ValueError("Speed provider count differs from the main cohort")
+        expected_speed_calls = len(providers) * len(speed_cases)
+        if speed_plan.get("planned_new_calls") != expected_speed_calls:
+            raise ValueError("Speed call count differs from its exact matrix")
+    else:
+        if speed_plan.get("reuse_existing") is not True or speed_plan.get("planned_new_calls") != 0:
+            raise ValueError("Unmeasured speed cohort must explicitly reuse existing evidence")
+        if not isinstance(speed_plan.get("reason"), str) or not speed_plan["reason"].strip():
+            raise ValueError("Reused speed cohort requires a reason")
+        bindings = {
+            "dataset_sha256": _sha256(speed_cohort / "dataset.json"),
+            "results_sha256": _sha256(speed_cohort / "results.jsonl"),
+            "execution_sha256": _sha256(speed_cohort / "execution.json"),
+            "speed_comparison_sha256": _sha256(speed_cohort / "speed-comparison.json"),
+        }
+        if any(speed_plan.get(field) != digest for field, digest in bindings.items()):
+            raise ValueError("Reused speed cohort bytes differ from the refresh plan")
+        auxiliary_names = (
+            "result-review.json", "scoring-revisions.json", "reference-revisions.json"
+        )
+        actual_auxiliary = {
+            name: _sha256(speed_cohort / name)
+            for name in auxiliary_names if (speed_cohort / name).is_file()
+        }
+        if speed_plan.get("auxiliary_sha256") != actual_auxiliary:
+            raise ValueError("Reused speed auxiliary bytes differ from the refresh plan")
+        speed_cases = speed_case_inventory
     if _provider_order(speed_dataset) != providers:
         raise ValueError("Speed provider cohort differs from the main cohort")
-    if {case.get("id") for case in speed_dataset.get("cases", [])} != set(speed_cases):
-        raise ValueError("Speed dataset differs from the exact sampled case inventory")
     expected_speed = {(provider, case_id) for provider in providers for case_id in speed_cases}
-    if speed_plan.get("planned_new_calls") != len(expected_speed):
-        raise ValueError("Speed call count differs from its exact matrix")
     _require_canonical_cases(
         speed_dataset,
         canonical_cases,
@@ -499,6 +862,7 @@ def _assemble(
     (output / "selection-audit.json").write_text(
         json.dumps(audit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    _write_composite_revisions(output, selected)
 
     history = output / "history" / "source-executions"
     history.mkdir(parents=True)
@@ -534,6 +898,8 @@ def _assemble(
         "speed_cohort": {
             **_bundle_identity(speed_cohort, speed_execution),
             "logical_attempts": len(speed_rows),
+            "new_calls": speed_plan["planned_new_calls"],
+            "reused_existing": speed_plan.get("reuse_existing") is True,
             "stored_below": "speed-cohort/",
             "excluded_from_main_results": True,
             "excluded_from_main_execution": True,

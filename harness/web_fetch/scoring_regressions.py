@@ -12,8 +12,9 @@ FAILURE_MODES = {"false-positive", "false-negative"}
 ROOT_CAUSE_CATEGORIES = {
     "acceptance-contract", "answer-surface", "body-scope",
     "format-normalization", "reference-evidence", "structured-extraction",
-    "task-predicate",
+    "task-predicate", "multi-root",
 }
+REGRESSION_CATEGORIES = ROOT_CAUSE_CATEGORIES - {"multi-root"}
 
 
 def load_scoring_regressions(path: Path = DEFAULT_REGISTRY) -> dict[str, dict[str, Any]]:
@@ -27,7 +28,7 @@ def load_scoring_regressions(path: Path = DEFAULT_REGISTRY) -> dict[str, dict[st
             raise ValueError(f"Scoring regression {index} requires a unique nonempty id")
         if row.get("failure_mode") not in FAILURE_MODES:
             raise ValueError(f"{identifier}: invalid failure_mode")
-        if row.get("category") not in ROOT_CAUSE_CATEGORIES:
+        if row.get("category") not in REGRESSION_CATEGORIES:
             raise ValueError(f"{identifier}: invalid root-cause category")
         if not isinstance(row.get("root_cause"), str) or not row["root_cause"].strip():
             raise ValueError(f"{identifier}: missing root_cause")
@@ -86,13 +87,22 @@ def build_correction_provenance(category: str, root_cause: str,
     root_cause = (root_cause or "").strip()
     if len(root_cause) < 20:
         raise ValueError("Correction root cause must be concrete, not a short label")
-    regression_ids = require_scoring_regressions(regression_ids, category=category)
-    return {
+    regression_ids = require_scoring_regressions(
+        regression_ids, category=None if category == "multi-root" else category
+    )
+    registry = load_scoring_regressions()
+    source_categories = sorted({registry[identifier]["category"] for identifier in regression_ids})
+    if category == "multi-root" and len(source_categories) < 2:
+        raise ValueError("A multi-root correction must cite regressions from multiple categories")
+    result = {
         "category": category,
         "root_cause": root_cause,
         "regression_ids": regression_ids,
         "verdict_corrections": verdict_correction_counts(list(decisions)),
     }
+    if category == "multi-root":
+        result["root_cause_categories"] = source_categories
+    return result
 
 
 def valid_correction_provenance(receipt: dict[str, Any]) -> bool:
@@ -106,9 +116,15 @@ def valid_correction_provenance(receipt: dict[str, Any]) -> bool:
     if not isinstance(provenance, dict):
         return False
     try:
+        category = provenance.get("category")
         regression_ids = require_scoring_regressions(
-            provenance.get("regression_ids", []), category=provenance.get("category")
+            provenance.get("regression_ids", []),
+            category=None if category == "multi-root" else category,
         )
+        registry = load_scoring_regressions()
+        source_categories = sorted({registry[identifier]["category"] for identifier in regression_ids})
+        if category == "multi-root" and len(source_categories) < 2:
+            return False
         expected = verdict_correction_counts(receipt.get("task_decision_changes", []))
     except (OSError, TypeError, ValueError):
         return False
@@ -117,5 +133,7 @@ def valid_correction_provenance(receipt: dict[str, Any]) -> bool:
         and isinstance(provenance.get("root_cause"), str)
         and len(provenance["root_cause"].strip()) >= 20
         and provenance.get("regression_ids") == regression_ids
+        and (category != "multi-root"
+             or provenance.get("root_cause_categories") == source_categories)
         and provenance.get("verdict_corrections") == expected
     )

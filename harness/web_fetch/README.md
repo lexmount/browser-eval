@@ -175,11 +175,16 @@ Credentials and local executable/repository paths belong in the root `.env`
 variables take precedence; `--env-file` overrides which file is read.
 
 `moli-webfetch` invokes the official local Moli CLI; set `MOLI_BINARY` when it
-is not on PATH. Body tasks use `moli fetch --dump markdown`. Direct file tasks
-use bare `moli fetch URL`, without `--dump` or page-wait flags, so the evaluator
-can receive and verify original bytes. No alternate provider or output-format
-fallback is used after a failed call. The seven-method cohort's direct PDF and
-DOCX body route is defined separately in [HEADLESS.md](HEADLESS.md).
+is not on PATH. Ordinary body tasks use `moli fetch --dump markdown`; challenge
+tasks use one `--dump json --trace-network` call and convert its final DOM to
+Markdown within the same deadline while retaining only a public-safe trace
+summary. Dynamic,
+resource-page, and embedded-document tasks use one bounded `--eval` call for
+their declared rendered output. Direct file tasks use bare `moli fetch URL`,
+without `--dump` or page-wait flags, so the evaluator can receive and verify
+original bytes. No alternate provider or output-format fallback is used after
+a failed call. The seven-method cohort's direct PDF and DOCX body route is
+defined separately in [HEADLESS.md](HEADLESS.md).
 
 The installed console command is `browser-harness-eval`. There is no legacy
 Python package or compatibility entrypoint.

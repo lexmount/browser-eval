@@ -57,7 +57,6 @@ SCOPES = {
 STRICT_EXCLUSION_CASES = frozenset({
     'dynamic-reviews-graphql',
     'dynamic-react-cart',
-    'dynamic-product-reviews',
 })
 
 

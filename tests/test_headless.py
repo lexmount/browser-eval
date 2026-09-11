@@ -1,15 +1,14 @@
 import base64
 import hashlib
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from harness.web_fetch.models import EvalCase
 from harness.web_fetch.providers import build_provider
-from harness.web_fetch.providers.headless import cli_command, output_mode_for_case
-from harness.web_fetch.providers.headless import _resolve_binary
+from harness.web_fetch.providers.headless import _resolve_binary, cli_command, output_mode_for_case
 from harness.web_fetch.runner import run_evaluation
 from scripts.headless_worker import fetch
 from scripts.review_headless_results import independent_attempt
@@ -112,6 +111,7 @@ class HeadlessTests(unittest.TestCase):
     def test_whitespace_normalization_preserves_original_semantics(self):
         import itertools
         import re
+
         from harness.web_fetch.metrics import normalize_for_match
         old = r'(?<=[\u3400-\u9fff])\s+|\s+(?=[\u3400-\u9fff])'
         new = r'(?<=[\u3400-\u9fff])\s+|(?<!\s)\s+(?=[\u3400-\u9fff])'
@@ -148,6 +148,71 @@ class HeadlessTests(unittest.TestCase):
                          'networkidle')
         self.assertIn('--terminate-ms', lightpanda)
         self.assertNotIn('--wait-until', obscura)
+
+    def test_dynamic_cli_commands_consume_normalized_plan(self):
+        plan = {
+            'wait_kind': 'script',
+            'wait_value': '() => document.querySelectorAll(".row").length >= 3',
+            'selector': '.row',
+            'frame_selector': None,
+            'minimum_count': 3,
+            'timeout_ms': 10000,
+            'delay_ms': 250,
+            'wait_until': 'domcontentloaded',
+        }
+        moli = cli_command('moli', '/moli', 'https://example.com', 10, 'markdown',
+                           retrieval_plan=plan)
+        lightpanda = cli_command('lightpanda', '/lp', 'https://example.com', 10, 'markdown',
+                                 retrieval_plan=plan)
+        obscura = cli_command('obscura', '/obscura', 'https://example.com', 10, 'markdown',
+                              retrieval_plan=plan)
+        self.assertIn('--wait-script', moli)
+        self.assertIn('--wait-until', moli)
+        self.assertIn('--delay-ms', moli)
+        self.assertIn('--wait-script', lightpanda)
+        self.assertIn('--wait-until', lightpanda)
+        self.assertIn('--wait-ms', lightpanda)
+        self.assertIn('--selector', obscura)
+        self.assertIn('--wait-until', obscura)
+        self.assertIn('--wait', obscura)
+
+    def test_headless_dynamic_missing_hints_fails_before_worker(self):
+        provider = build_provider('moli', dict(type='headless_markdown', engine='moli'))
+        case = EvalCase('x', 'x', 'https://example.com', 'dynamic', [], track='dynamic')
+        with patch('harness.web_fetch.providers.headless.subprocess.Popen') as process:
+            result = provider.fetch(case, 1)
+        self.assertFalse(result.ok)
+        self.assertEqual(result.error_type, 'configuration')
+        process.assert_not_called()
+
+    def test_headless_worker_rejects_dynamic_request_without_normalized_plan(self):
+        with self.assertRaisesRegex(ValueError, 'normalized retrieval_plan'):
+            fetch({'url': 'https://example.com', 'track': 'dynamic'})
+
+    def test_obscura_discloses_count_approximation(self):
+        from types import SimpleNamespace
+        plan = {
+            'wait_kind': 'script',
+            'wait_value': '() => document.querySelectorAll(".row").length >= 3',
+            'selector': '.row',
+            'frame_selector': None,
+            'minimum_count': 3,
+            'timeout_ms': 10000,
+            'delay_ms': 250,
+            'wait_until': 'domcontentloaded',
+        }
+        request = dict(engine='obscura', binary='/obscura', url='https://example.com',
+                       timeout=10, output_mode='markdown', track='dynamic',
+                       retrieval_plan=plan)
+        with patch('scripts.headless_worker.subprocess.run', return_value=SimpleNamespace(
+                returncode=0, stdout=b'content', stderr=b'')):
+            result = fetch(request)
+        completion = result['metadata']['completion']
+        self.assertEqual(completion['completion_support'], 'approximate')
+        self.assertFalse(completion['minimum_count_enforced'])
+        self.assertEqual(completion['unsupported'], [
+            'selector_enforcement', 'post_completion_delay',
+            'completion_timeout', 'minimum_count'])
 
     def test_moli_raw_document_command_omits_dump(self):
         command = cli_command('moli', '/moli', 'https://example.com/paper.pdf', 1.5,

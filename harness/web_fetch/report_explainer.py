@@ -124,16 +124,20 @@ def _bound_initial_audit(cases):
     raw = dataset_path.read_bytes()
     current = {c['id']: c for c in json.loads(raw)['cases']}
     # Other tracks' rules may change after this web-reference audit. Bind the
-    # published web claim to every current web reference and source below.
-    if current != cases:
+    # published claim to the complete web-case definitions, references and
+    # sources, without making unrelated dynamic retrieval metadata part of the
+    # web-reference claim.
+    current_web = {key: case for key, case in current.items()
+                   if case.get('track', 'web') == 'web'}
+    input_web = {key: case for key, case in cases.items()
+                 if case.get('track', 'web') == 'web'}
+    if current_web != input_web:
         return None
     indexed = {r['case_id']: r for r in audit['cases']}
-    if set(indexed) != set(cases):
+    if not set(input_web) <= set(indexed):
         return None
     rows = []
-    for key, case in cases.items():
-        if case.get('track', 'web') != 'web':
-            continue
+    for key, case in input_web.items():
         r = indexed[key]
         reference = case.get('ground_truth_main_content', '')
         expected_hash = hashlib.sha256(reference.encode()).hexdigest() if reference else None
@@ -148,8 +152,7 @@ def _bound_initial_audit(cases):
                      'reconstructed_sha256', 'exact_reconstruction', 'source_state')})
     return {'audited_dataset_sha256': audit['dataset_sha256'],
             'current_dataset_sha256': hashlib.sha256(raw).hexdigest(),
-            'current_web_cases_sha256': _digest({k: c for k, c in cases.items()
-                                                if c.get('track', 'web') == 'web'}), 'cases': rows,
+            'current_web_cases_sha256': _digest(input_web), 'cases': rows,
             'web_case_count': len(rows), 'exact_reconstructions':
             sum(r['exact_reconstruction'] is True for r in rows),
             'scope': 'frozen reference recoverability from saved initial HTML, not DOM visibility or JS necessity'}

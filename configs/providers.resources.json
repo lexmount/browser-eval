@@ -4,6 +4,8 @@
     "moli-webfetch": {
       "type": "moli_webfetch",
       "binary": "${MOLI_BINARY:-moli}",
+      "expected_reported_version": "moli 1.1.4",
+      "expected_binary_sha256": "dbce6cc79b97eeb558416707a642ca20b9b1b8d6731655a695059d334adb6d5b",
       "wait_until": "done",
       "block_private_networks": true,
       "max_bytes": 20000000
@@ -49,6 +51,9 @@
       "max_age": 0,
       "max_bytes": 20000000,
       "min_interval_seconds": 6.1,
+      "proxy": "auto",
+      "capacity_credits_per_call": 1,
+      "dynamic_wait_strategy": "wait_for",
       "formats": [
         "markdown",
         "links",
@@ -66,13 +71,17 @@
       ],
       "max_age": 0,
       "max_bytes": 20000000,
-      "min_interval_seconds": 6.1
+      "min_interval_seconds": 6.1,
+      "proxy": "auto",
+      "capacity_credits_per_call": 1,
+      "dynamic_wait_strategy": "wait_for"
     },
     "tavily": {
       "type": "tavily_extract",
       "base_url": "https://api.tavily.com",
       "api_key": "${TAVILY_API_KEY}",
-      "extract_depth": "basic",
+      "extract_depth": "advanced",
+      "extract_timeout_seconds": 60.0,
       "max_bytes": 20000000,
       "include_images": true
     },
@@ -80,7 +89,8 @@
       "type": "tavily_extract",
       "base_url": "https://api.tavily.com",
       "api_key": "${TAVILY_API_KEY}",
-      "extract_depth": "basic",
+      "extract_depth": "advanced",
+      "extract_timeout_seconds": 60.0,
       "include_images": true,
       "max_bytes": 20000000
     },
@@ -88,7 +98,9 @@
       "type": "exa_contents",
       "base_url": "https://api.exa.ai",
       "api_key": "${EXA_API_KEY}",
+      "text_verbosity": "full",
       "max_age_hours": 0,
+      "livecrawl_timeout_ms": 15000,
       "max_bytes": 20000000,
       "include_resource_links": true
     },
@@ -96,8 +108,10 @@
       "type": "exa_contents",
       "base_url": "https://api.exa.ai",
       "api_key": "${EXA_API_KEY}",
+      "text_verbosity": "full",
       "include_resource_links": true,
       "max_age_hours": 0,
+      "livecrawl_timeout_ms": 15000,
       "max_bytes": 20000000
     },
     "cloudflare-markdown": {
@@ -129,6 +143,8 @@
       },
       "expected_repo_revision": "12c4bdf7482f24c85b011e9d858fdec3c245101c",
       "expected_node_version": "v24.15.0",
+      "package_manager_command": "${OPENCLAW_PNPM:-~/.browser-eval/toolchains/openclaw-node/node_modules/.bin/pnpm}",
+      "expected_package_manager_version": "12.1.0",
       "required_paths": [
         "{repo_path}/src/agents/tools/web-fetch.ts",
         "{repo_path}/pnpm-lock.yaml",
@@ -149,6 +165,14 @@
       "expected_node_version": "v24.15.0",
       "required_paths": [
         "{repo_path}/packages/web/web-fetch-http/src/provider.ts",
+        "{repo_path}/vendor/cordis/lib/index.js",
+        "{repo_path}/packages/llm/llm/lib/index.js",
+        "{repo_path}/packages/core/system-prompt/lib/index.js",
+        "{repo_path}/packages/core/tools/lib/index.js",
+        "{repo_path}/packages/web/web/lib/index.js",
+        "{repo_path}/packages/web/web-fetch-http/lib/index.js",
+        "{repo_path}/packages/web/tool-web/lib/index.js",
+        "{repo_path}/packages/guard/timeout-policy/lib/index.js",
         "{repo_path}/pnpm-lock.yaml",
         "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts",
         "{harness_root}/scripts/oss/dsh_webfetch_worker.mts"

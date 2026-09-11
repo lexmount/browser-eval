@@ -23,7 +23,9 @@ METRIC_DEFINITIONS = {
     "html_tags": "输出中残留的类 HTML 标签数量。",
     "fact_coverage": "命中的预登记事实组除以全部必需事实组；同组可接受表达等价。",
     "forbidden_hits": "输出中出现的预登记错误页、挑战页或拒绝访问文本。",
-    "declared_truncation_hits": "供应商输出中精确命中的截断声明；完整正文任务一律不通过，资源与结构任务仍按各自交付合同验收。",
+    "blocked_page": "输出整体是已知阻断或人机验证页；即使偶然含目标链接或资源也不通过。",
+    "blocked_page_hits": "对 blocked_page 判定起效的独立页标题或标记，用于证据展示和失败归类。",
+    "declared_truncation_hits": "供应商输出中精确命中的截断声明；正文仅在全部预登记区域均被完整覆盖时可通过，资源与结构任务仍按各自交付合同验收。",
     "content_sha256": "完整输出的 SHA-256，用于核验报告预览与原始结果一致。",
     "unique_line_ratio": "去重后的非空规范化行数除以全部非空行数，用于诊断重复模板。",
     "word_f1": "完整参考正文与输出的词语重合评分，同时衡量正文遗漏和额外噪声；无完整参考的案例不计算。",
@@ -318,7 +320,8 @@ def task_passed(ok: bool, metrics: dict, task_kind: str | None = None) -> bool:
     # Scored records carry the case kind so dataset-free summaries use the same
     # predicate as the report. Explicit case context still takes precedence.
     task_kind = task_kind if task_kind is not None else metrics.get('task_kind', 'body')
-    if not task_measured(metrics, task_kind) or metrics.get('deadline_overrun'):
+    if (not task_measured(metrics, task_kind) or metrics.get('deadline_overrun')
+            or metrics.get('blocked_page')):
         return False
     if "stable_task_pass" in metrics:
         return bool(ok and metrics["stable_task_pass"] and not metrics.get("forbidden_hits")
@@ -421,8 +424,11 @@ def evaluate_content(
     base_url: str = "",
     named_links: list[dict] | None = None,
     body_requirements: dict | None = None,
+    allow_reference_block_exemptions: bool = False,
 ) -> dict[str, Any]:
     answer_text = ((title.strip() + '\n') if title and title.strip() else '') + content
+    from .reference_quality import blocked_page_hits
+    block_hits = blocked_page_hits(answer_text)
     replacement_count, replacement_ratio, encoding_corruption = text_corruption(answer_text)
     truncation_hits = declared_truncation_hits(answer_text)
     folded = normalize_for_match(answer_text)
@@ -449,6 +455,16 @@ def evaluate_content(
     # Such text is not evidence that the returned document is an error page.
     # Keep length, facts and structural gates active, including for short errors.
     reference_folded = normalize_for_match(ground_truth_main_content)
+    block_reference_exemptions = []
+    if allow_reference_block_exemptions and reference_folded:
+        reference_block_terms = {
+            normalize_for_match(hit) for hit in blocked_page_hits(ground_truth_main_content)
+        }
+        block_reference_exemptions = [
+            hit for hit in block_hits
+            if (term := normalize_for_match(hit)) and term in reference_block_terms
+        ]
+        block_hits = [hit for hit in block_hits if hit not in block_reference_exemptions]
     reference_exemptions = [item for item in (forbidden_any or [])
                             if reference_folded and (text := normalize_for_match(item)) and text in reference_folded]
     if acceptance_contract:
@@ -462,7 +478,7 @@ def evaluate_content(
     legacy_pass = bool(matched) if expected else True
     length_pass = len(content) >= min_content_chars
     content_pass = (legacy_pass and length_pass and fact_coverage >= fact_coverage_threshold
-                    and not forbidden and not encoding_corruption)
+                    and not forbidden and not block_hits and not encoding_corruption)
     pattern_results = []
     for rule in required_patterns or []:
         count = len(set(re.findall(rule['pattern'], answer_text, re.I)))
@@ -490,6 +506,9 @@ def evaluate_content(
         "fact_coverage": fact_coverage,
         "fact_coverage_threshold": fact_coverage_threshold,
         "forbidden_hits": forbidden,
+        "blocked_page": bool(block_hits),
+        "blocked_page_hits": block_hits,
+        "blocked_page_reference_exemptions": block_reference_exemptions,
         "reference_term_exemptions": reference_exemptions,
         "minimum_content_chars": min_content_chars,
         "length_pass": length_pass,

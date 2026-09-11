@@ -1,8 +1,9 @@
 import tempfile
 from pathlib import Path
 import unittest
-from harness.web_fetch.report import active_tracks,failure_category,filter_controls,case_attrs,failure_filters,overall_ranking,overview_matched_latency,provider_configuration,review_cell,table,write
+from harness.web_fetch.report import EXTRA,active_tracks,failure_category,filter_controls,case_attrs,failure_filters,overall_ranking,overview_matched_latency,provider_configuration,review_cell,table,write
 from harness.web_fetch.report_interfaces import SPECS,HEADLESS_ACCESS
+from harness.web_fetch.report_style import STYLE
 
 class ReportRevisionTests(unittest.TestCase):
  def test_overview_latency_includes_every_configuration_and_same_case_mean(self):
@@ -42,12 +43,20 @@ class ReportRevisionTests(unittest.TestCase):
    {'provider':'slow-high-pass','case_id':'b','ok':True,'elapsed_ms':200,'metrics':{'content_pass':True}},
   ]
   rendered=overall_ranking(records,cases)
-  self.assertIn('全调用均值',rendered)
-  self.assertIn('全调用 P50',rendered)
-  self.assertIn('全调用 P95',rendered)
+  from bs4 import BeautifulSoup
+  headers=[cell.get_text(' ',strip=True) for cell in BeautifulSoup(rendered,'html.parser').select('#ranking-overall thead th')]
+  self.assertEqual(headers[-3:],['均值 ↕','P50 ↕','P95 ↕'])
+  self.assertNotIn('全调用', ' '.join(headers))
+  self.assertIn('全调用均值 / P50 / P95',rendered)
+  from harness.web_fetch.report_i18n import translate_text
+  self.assertEqual([translate_text(label) for label in ('均值','P50','P95')],['Mean','P50','P95'])
   self.assertIn('包含通过与失败',rendered)
   self.assertLess(rendered.index('slow-high-pass'),rendered.index('fast-low-pass'))
   self.assertIn('150 ms',rendered)
+ def test_ranking_method_names_do_not_wrap_and_tables_remain_scrollable(self):
+  self.assertIn('.table-wrap{overflow:auto',STYLE)
+  self.assertRegex(EXTRA,r'\.ranking td:nth-child\(2\)\{[^}]*min-width:220px[^}]*white-space:nowrap')
+  self.assertRegex(EXTRA,r'\.ranking td:nth-child\(2\)\{[^}]*overflow-wrap:normal[^}]*word-break:normal')
  def test_failure_filter_defaults_and_deduplication(self):
   missing={'content_pass':False,'length_pass':True,'resource_pass':False,
            'resource_results':[{'id':'target','pass':False}], 'unexpected_resource_urls':[]}
@@ -81,6 +90,28 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertTrue({'kitesurf','lightpanda','obscura','moli','chromium'} <= set(SPECS))
   for s in SPECS.values():
    self.assertTrue(s['params'] and s['fields'] and s['request'] and s['source'])
+ def test_current_interface_and_capability_copy_is_localized(self):
+  from harness.web_fetch.report_capabilities import CAPABILITIES, SOURCES
+  from harness.web_fetch.report_i18n import translate_text
+  current_interface_copy=[
+   SPECS['moli-webfetch']['entry'],
+   *(description for _,_,description in SPECS['moli-webfetch']['params']),
+   SPECS['moli-webfetch']['notes'],
+   SPECS['tavily']['params'][1][2], SPECS['tavily']['notes'],
+   SPECS['exa']['params'][1][2], SPECS['exa']['notes'],
+   SPECS['crawl4ai']['notes'],
+   *(description for _,_,description in SPECS['firecrawl']['params']),
+   *(description for _,_,description in SPECS['firecrawl']['fields']),
+   SPECS['firecrawl']['notes'],
+  ]
+  current_capability_copy=[]
+  for method in ('moli-webfetch','tavily','exa','firecrawl','cloudflare-markdown','crawl4ai'):
+   row=CAPABILITIES[method]
+   current_capability_copy.extend([row['scope'],row['tested'],row['notes']])
+   current_capability_copy.extend(row[field]['detail'] for field in ('web','document','image','av','file','js'))
+  current_capability_copy.extend(SOURCES[key][0]+' ↗' for key in ('moli','moli-recipes','moli-release'))
+  for source in current_interface_copy+current_capability_copy:
+   self.assertNotRegex(translate_text(source),r'[\u4e00-\u9fff]',source)
  def test_regional_endpoint_distinct(self):
   self.assertNotEqual(SPECS['lexmount-cn']['entry'],SPECS['lexmount-global']['entry'])
  def test_review_label_names_codex(self):
@@ -126,7 +157,7 @@ class ReportRevisionTests(unittest.TestCase):
   firecrawl=provider_configuration('firecrawl',[{'provider_type':'firecrawl'}],default)
   builtin=provider_configuration('builtin',[{'provider_type':'cowagent_builtin'}],default)
   chromium=provider_configuration('chromium',[{'provider_type':'headless_markdown','provider_metadata':{'extractor':'node-html-markdown','output_contract':'markdown'}}],default)
-  self.assertIn('links 与 images',firecrawl)
+  self.assertIn('rawBase64',firecrawl)
   self.assertNotIn('Exa、Tavily、Firecrawl',builtin)
   self.assertIn('Chromium 渲染 DOM',chromium)
  def test_dynamic_cohort_copy_has_english_translations(self):

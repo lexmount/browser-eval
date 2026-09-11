@@ -1,8 +1,9 @@
-"""Merge a blinded review of changed cases into the prior complete review.
+"""Merge a blinded supplemental review into a prior complete review.
 
 Use after an offline scoring-rule revision changes task verdicts. Unchanged
 attempt reviews remain valid because their artifacts and task rules did not
-change; every attempt for each changed case must be independently re-reviewed.
+change; every attempt whose complete task or result record changed must be
+independently re-reviewed.
 """
 import argparse
 import hashlib
@@ -156,14 +157,25 @@ def merge(evidence: Path, prior_path: Path, supplemental_evidence: Path):
     return _install_review(evidence,merged)
 
 
-def merge_replacement(evidence: Path, prior_evidence: Path,
-                      supplemental_evidence: Path):
-    """Reuse reviews only for byte-identical tasks/results after case replacement.
+def _unique_by(rows, key, label):
+    if not rows:
+        raise ValueError(f'{label} must not be empty')
+    values = [row.get(key) for row in rows]
+    if None in values or len(values) != len(set(values)):
+        raise ValueError(f'{label} must have unique non-empty {key} values')
+    return dict(zip(values, rows))
 
-    A changed task invalidates every old review for that case, but it does not
-    invalidate reviews for other cases whose task definitions and complete
-    result records are unchanged. The supplemental bundle must contain every
-    current attempt for every changed case and its own blinded review.
+
+def merge_refresh(evidence: Path, prior_evidence: Path,
+                  supplemental_evidence: Path):
+    """Safely reuse reviews across an arbitrarily refreshed complete matrix.
+
+    A prior per-attempt review is reusable only when the complete current case
+    object and complete current result object compare equal to their prior
+    JSON objects. This deliberately invalidates all providers for a changed
+    task, while a provider-only rerun of an unchanged task invalidates only
+    that provider's attempt. Every non-reusable current attempt must appear in
+    one blinded, full-scope supplemental review bound to its exact subset.
     """
     current_dataset=json.loads((evidence/'dataset.json').read_text())
     current_records=[json.loads(line) for line in (evidence/'results.jsonl').read_text().splitlines()]
@@ -171,40 +183,62 @@ def merge_replacement(evidence: Path, prior_evidence: Path,
     prior_records=[json.loads(line) for line in (prior_evidence/'results.jsonl').read_text().splitlines()]
     prior=require_result_review(prior_evidence,prior_dataset,prior_records)
 
-    current_cases={case['id']:case for case in current_dataset['cases']}
-    prior_cases={case['id']:case for case in prior_dataset['cases']}
-    if set(current_cases)!=set(prior_cases):
-        raise ValueError('Task replacement must preserve the case inventory')
-    changed_cases={case_id for case_id in current_cases
-                   if current_cases[case_id]!=prior_cases[case_id]}
-    if not changed_cases:
-        raise ValueError('Task replacement has no changed cases')
+    current_cases=_unique_by(current_dataset.get('cases', []), 'id', 'Current dataset')
+    prior_cases=_unique_by(prior_dataset.get('cases', []), 'id', 'Prior dataset')
+    current=_unique_by(current_records, 'attempt_id', 'Current results')
+    previous=_unique_by(prior_records, 'attempt_id', 'Prior results')
+    if any(row.get('case_id') not in current_cases for row in current_records):
+        raise ValueError('Current result refers to a task absent from the current dataset')
 
-    current={row['attempt_id']:row for row in current_records}
-    previous={row['attempt_id']:row for row in prior_records}
-    if set(current)!=set(previous):
-        raise ValueError('Task replacement must preserve the attempt inventory')
+    prior_protocol=prior.get('review_protocol', {})
+    if prior_protocol.get('scope', 'all') != 'all':
+        raise ValueError('Prior review must be a complete full-scope review')
+    if prior.get('accepted_unreviewed_passes', 0) != 0:
+        raise ValueError('Prior review must not contain accepted unreviewed passes')
+
+    reusable=set()
     for attempt_id,row in current.items():
-        if row['case_id'] not in changed_cases and row!=previous[attempt_id]:
-            raise ValueError('Unchanged case result differs: '+attempt_id)
+        old=previous.get(attempt_id)
+        case_id=row['case_id']
+        if (old is not None and old.get('case_id') == case_id
+                and prior_cases.get(case_id) == current_cases[case_id]
+                and old == row):
+            reusable.add(attempt_id)
+    required=set(current)-reusable
+    if not required:
+        raise ValueError('Refresh has no attempts requiring supplemental review')
 
     subset_dataset=json.loads((supplemental_evidence/'dataset.json').read_text())
     subset_records=[json.loads(line) for line in (supplemental_evidence/'results.jsonl').read_text().splitlines()]
     supplemental=require_result_review(supplemental_evidence,subset_dataset,subset_records)
-    subset_cases={case['id']:case for case in subset_dataset['cases']}
-    if set(subset_cases)!=changed_cases or any(
-            subset_cases[case_id]!=current_cases[case_id] for case_id in changed_cases):
-        raise ValueError('Supplemental review must use every current changed task')
-    expected={attempt_id for attempt_id,row in current.items()
-              if row['case_id'] in changed_cases}
-    supplied={row['attempt_id'] for row in subset_records}
-    if supplied!=expected or any(row!=current[row['attempt_id']]
-                                 for row in subset_records):
-        raise ValueError('Supplemental review must contain every current changed attempt')
+    if supplemental is None:
+        raise ValueError('Supplemental independent result review is required')
+    supplemental_protocol=supplemental.get('review_protocol', {})
+    if supplemental_protocol.get('machine_judgments_withheld') is not True:
+        raise ValueError('Supplemental review must be blinded to machine judgments')
+    if supplemental_protocol.get('scope', 'all') != 'all':
+        raise ValueError('Supplemental review must cover every non-reusable attempt')
+    if supplemental.get('accepted_unreviewed_passes', 0) != 0:
+        raise ValueError('Supplemental review must not contain accepted unreviewed passes')
+
+    subset_cases=_unique_by(subset_dataset.get('cases', []), 'id', 'Supplemental dataset')
+    required_cases={current[attempt_id]['case_id'] for attempt_id in required}
+    if set(subset_cases)!=required_cases or any(
+            subset_cases[case_id]!=current_cases[case_id]
+            for case_id in required_cases):
+        raise ValueError('Supplemental review must use every exact current required task')
+    supplied_records=_unique_by(subset_records, 'attempt_id', 'Supplemental results')
+    if set(supplied_records)!=required:
+        raise ValueError('Supplemental review must contain exactly every non-reusable current attempt')
+    if any(row!=current[attempt_id]
+           for attempt_id,row in supplied_records.items()):
+        raise ValueError('Supplemental review was not run against exact current result records')
 
     replacements={row['attempt_id']:row for row in supplemental['attempts']}
-    retained={row['attempt_id']:row for row in prior['attempts']
-              if previous[row['attempt_id']]['case_id'] not in changed_cases}
+    if set(replacements) != required:
+        raise ValueError('Supplemental review must independently review every non-reusable attempt')
+    prior_attempts=_unique_by(prior.get('attempts', []), 'attempt_id', 'Prior review')
+    retained={attempt_id:prior_attempts[attempt_id] for attempt_id in reusable}
     attempts=[replacements.get(row['attempt_id'],retained.get(row['attempt_id']))
               for row in current_records]
     if any(row is None for row in attempts):
@@ -213,12 +247,18 @@ def merge_replacement(evidence: Path, prior_evidence: Path,
     merged['bindings']={'dataset_sha256':sha(evidence/'dataset.json'),
                         'results_sha256':sha(evidence/'results.jsonl')}
     merged['attempts']=attempts
-    merged.setdefault('review_protocol',{})['task_replacement_review']={
-        'changed_cases':sorted(changed_cases),
+    changed_task_cases={case_id for case_id in current_cases
+                        if prior_cases.get(case_id) != current_cases[case_id]}
+    rerun_only_attempts=required-{attempt_id for attempt_id in required
+                                  if current[attempt_id]['case_id'] in changed_task_cases}
+    merged.setdefault('review_protocol',{})['matrix_refresh_review']={
+        'changed_task_cases':sorted(changed_task_cases),
+        'rerun_only_attempts':sorted(rerun_only_attempts),
+        'retained_attempts':len(retained),
         'reviewed_attempts':len(replacements),
         'reviewer':supplemental['reviewer'],
         'machine_judgments_withheld':True,
-        'reuse_rule':'Only byte-identical task definitions and result records retained prior reviews.',
+        'reuse_rule':'Only JSON-identical complete task definitions and complete result records retained prior reviews.',
     }
     merged['total_attempts']=len(current_records)
     merged['expected_attempts']=len(current_records)
@@ -226,10 +266,13 @@ def merge_replacement(evidence: Path, prior_evidence: Path,
     merged['accepted_unreviewed_passes']=0
     merged['disagreements']=sum(row['agent_verdict']!=row['machine_verdict'] for row in attempts)
     merged['unresolved']=sum(row['final_verdict'] not in {'pass','fail'} for row in attempts)
-    target=evidence/'result-review.json'
-    target.write_text(json.dumps(merged,ensure_ascii=False,indent=2)+'\n')
-    require_result_review(evidence,current_dataset,current_records)
-    return target
+    return _install_review(evidence,merged)
+
+
+def merge_replacement(evidence: Path, prior_evidence: Path,
+                      supplemental_evidence: Path):
+    """Backward-compatible name for the generalized matrix refresh merge."""
+    return merge_refresh(evidence, prior_evidence, supplemental_evidence)
 
 
 if __name__ == '__main__':

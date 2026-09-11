@@ -407,17 +407,28 @@ class ResultReviewTests(unittest.TestCase):
                     merge(evidence, prior_path, supplement)
                 self.assertFalse((evidence/'result-review.json').exists())
 
-    def test_task_replacement_reuses_only_unchanged_reviews(self):
+    def test_matrix_refresh_reuses_only_identical_task_and_result_pairs(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory); prior_root=root/'prior'; current_root=root/'current'; supplement=root/'supplement'
             prior_root.mkdir();current_root.mkdir();supplement.mkdir()
             old_dataset={'comparison':{'require_independent_result_review':True},
                          'cases':[{'id':'a','task_kind':'body','url':'https://old.example'},
                                   {'id':'b','task_kind':'body','url':'https://same.example'}]}
-            new_dataset=json.loads(json.dumps(old_dataset));new_dataset['cases'][0]['url']='https://fixed.example'
-            old_records=[{'attempt_id':'p__a__r001','case_id':'a','ok':True,'metrics':{'content_pass':False}},
-                         {'attempt_id':'p__b__r001','case_id':'b','ok':True,'metrics':{'content_pass':True}}]
-            new_records=json.loads(json.dumps(old_records));new_records[0]['metrics']['content_pass']=True
+            new_dataset=json.loads(json.dumps(old_dataset));new_dataset['cases'][1]['url']='https://fixed.example'
+            old_records=[]
+            for provider in ('p','q'):
+                for case_id in ('a','b'):
+                    old_records.append({
+                        'attempt_id':f'{provider}__{case_id}__r001',
+                        'provider':provider,'case_id':case_id,'ok':True,
+                        'metrics':{'content_pass':case_id == 'a'},
+                    })
+            new_records=json.loads(json.dumps(old_records))
+            # A provider-only rerun on unchanged task a invalidates only p/a.
+            new_records[0]['provider_metadata']={'route':'refreshed'}
+            # A task-definition change on b invalidates both providers, even
+            # though only one result object happened to change.
+            new_records[1]['metrics']['content_pass']=True
             for path,dataset,records in ((prior_root,old_dataset,old_records),(current_root,new_dataset,new_records)):
                 (path/'dataset.json').write_text(json.dumps(dataset))
                 (path/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records))
@@ -425,26 +436,45 @@ class ResultReviewTests(unittest.TestCase):
                 'dataset_sha256':hashlib.sha256((prior_root/'dataset.json').read_bytes()).hexdigest(),
                 'results_sha256':hashlib.sha256((prior_root/'results.jsonl').read_bytes()).hexdigest()},
                 'reviewer':{'agent':'Codex'},'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
-                'attempts':[{'attempt_id':'p__a__r001','machine_verdict':'fail','agent_verdict':'fail','final_verdict':'fail'},
-                            {'attempt_id':'p__b__r001','machine_verdict':'pass','agent_verdict':'pass','final_verdict':'pass'}]}
+                'attempts':[]}
+            for row in old_records:
+                verdict='pass' if row['metrics']['content_pass'] else 'fail'
+                prior_review['attempts'].append({
+                    'attempt_id':row['attempt_id'],'machine_verdict':verdict,
+                    'agent_verdict':verdict,'final_verdict':verdict})
             (prior_root/'result-review.json').write_text(json.dumps(prior_review))
-            subset_dataset={'comparison':{'require_independent_result_review':True},'cases':[new_dataset['cases'][0]]}
+            required_ids={'p__a__r001','p__b__r001','q__b__r001'}
+            required_records=[row for row in new_records if row['attempt_id'] in required_ids]
+            subset_dataset={'comparison':{'require_independent_result_review':True},
+                            'cases':new_dataset['cases']}
             (supplement/'dataset.json').write_text(json.dumps(subset_dataset))
-            (supplement/'results.jsonl').write_text(json.dumps(new_records[0])+'\n')
+            (supplement/'results.jsonl').write_text(
+                ''.join(json.dumps(row)+'\n' for row in required_records))
             supplemental={'schema_version':1,'bindings':{
                 'dataset_sha256':hashlib.sha256((supplement/'dataset.json').read_bytes()).hexdigest(),
                 'results_sha256':hashlib.sha256((supplement/'results.jsonl').read_bytes()).hexdigest()},
                 'reviewer':{'agent':'Codex'},'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
-                'attempts':[{'attempt_id':'p__a__r001','machine_verdict':'pass','agent_verdict':'pass','final_verdict':'pass'}]}
+                'attempts':[]}
+            for row in required_records:
+                verdict='pass' if row['metrics']['content_pass'] else 'fail'
+                supplemental['attempts'].append({
+                    'attempt_id':row['attempt_id'],'machine_verdict':verdict,
+                    'agent_verdict':verdict,'final_verdict':verdict})
             (supplement/'result-review.json').write_text(json.dumps(supplemental))
             merge_replacement(current_root,prior_root,supplement)
             merged=json.loads((current_root/'result-review.json').read_text())
-            self.assertEqual([row['machine_verdict'] for row in merged['attempts']],['pass','pass'])
-            self.assertEqual(merged['review_protocol']['task_replacement_review']['reviewed_attempts'],1)
+            refresh=merged['review_protocol']['matrix_refresh_review']
+            self.assertEqual(refresh['changed_task_cases'],['b'])
+            self.assertEqual(refresh['rerun_only_attempts'],['p__a__r001'])
+            self.assertEqual(refresh['retained_attempts'],1)
+            self.assertEqual(refresh['reviewed_attempts'],3)
+            self.assertEqual(merged['reviewed_attempts'],4)
+            self.assertEqual(merged['accepted_unreviewed_passes'],0)
+            self.assertEqual(merged['unresolved'],0)
 
-            changed=json.loads(json.dumps(new_records));changed[1]['metrics']['content_pass']=False
+            changed=json.loads(json.dumps(new_records));changed[2]['provider_metadata']={'route':'also-refreshed'}
             (current_root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in changed))
-            with self.assertRaisesRegex(ValueError,'Unchanged case result differs'):
+            with self.assertRaisesRegex(ValueError,'exactly every non-reusable current attempt'):
                 merge_replacement(current_root,prior_root,supplement)
 
 

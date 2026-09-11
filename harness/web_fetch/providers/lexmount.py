@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from ..models import EvalCase, ProviderResult
 from .base import Provider
-from .http_client import request
+from .http_client import inner_timeout_budget, request
 
 
 class LexmountProvider(Provider):
@@ -22,7 +22,7 @@ class LexmountProvider(Provider):
         response = request(
             f"{base_url}/v1/extract",
             method="POST",
-            timeout=timeout,
+            timeout=inner_timeout_budget(timeout),
             max_bytes=int(self.config.get("max_bytes", 20_000_000)),
             headers={
                 "X-API-Key": str(self.config.get("api_key", "")),

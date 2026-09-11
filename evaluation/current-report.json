@@ -26,7 +26,7 @@
     "crawl4ai": {"library_version": "0.9.3"},
     "deepseek-harness-built-in": {"repository_revision": "dd6322d604e00eec1ba5e0c8541159906a21094a", "node_version": "v24.15.0"},
     "langchain-webbase": {"library_version": "0.3.30"},
-    "moli-webfetch": {"reported_version": "moli 1.1.1", "binary_sha256": "44f1a90efc45e9d114619b00ea3b4ad48b6eef93be7ea89aa19277e12b926783"},
+    "moli-webfetch": {"reported_version": "moli 1.1.4", "binary_sha256": "dbce6cc79b97eeb558416707a642ca20b9b1b8d6731655a695059d334adb6d5b"},
     "openclaw-built-in": {"repository_revision": "12c4bdf7482f24c85b011e9d858fdec3c245101c", "node_version": "v24.15.0"}
   },
   "reference_binding_mode": "equivalent_reference_bytes_with_independent_batch_captures",
@@ -36,5 +36,5 @@
   "conversion": "Each method's strongest documented known-URL extraction route; body tasks normalize visible text or Markdown, resource tasks use declared native resource fields, and direct file tasks validate returned bytes without cross-provider fallback",
   "artifact_hub_base_url": "https://artifact-hub.app.lexmount.com",
   "artifact_hub_site": "RSdbALdbdNG6",
-  "artifact_hub_expected_version": "ver_fec3b3e8a8114ac58db344d67775789c"
+  "artifact_hub_expected_version": "ver_21ee8ea85ef24f3cbeadeacd2657fda5"
 }

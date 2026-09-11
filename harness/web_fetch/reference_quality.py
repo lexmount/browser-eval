@@ -1,11 +1,52 @@
 """Deterministic reference preparation; original source bytes remain evidence."""
 import re
 from dataclasses import dataclass
+import unicodedata
 
 
 def clean_reference_text(text: str) -> str:
     # Explicit list, not all Unicode format characters: ZWJ/ZWNJ can carry meaning.
     return text.translate({0x200B:None, 0xFEFF:None, 0x00AD:None})
+
+
+def normalize_reference_anchor(text: str) -> str:
+    """Normalize capture layout while retaining evidence-bearing punctuation.
+
+    The ordinary scorer deliberately treats most punctuation as presentation.
+    Reference promotion has a different job: an anchor must be transcribed from
+    the independently captured scope.  In particular, dropping a comma must not
+    be hidden by the scorer's punctuation-insensitive normalization.
+    """
+    value = unicodedata.normalize("NFKC", clean_reference_text(text)).casefold()
+    value = re.sub(r"\s+", " ", value).strip()
+    return re.sub(r"\s*([,.;:!?])\s*", r"\1", value)
+
+
+def reference_anchor_in_text(reference: str, anchor: str) -> bool:
+    expected = normalize_reference_anchor(anchor)
+    return bool(expected and expected in normalize_reference_anchor(reference))
+
+
+_BLOCKED_PAGE = re.compile(
+    r"(?im)^\s*(?:#{1,6}\s*)?(?:[*_]{1,3})?(?:access denied|403 forbidden|"
+    r"error:\s*forbidden\s*/\s*403|verify (?:that )?you are human|"
+    r"checking your browser|(?:w3\s+)?performing security verification|making sure you're not a bot|"
+    r"just a moment(?:\.{3}|…)?|attention required!?|captcha(?: challenge)?|"
+    r"京东验证|验证中心|身份核实|验证一下\s*[,，]?\s*购物无忧)"
+    r"(?:[*_]{1,3})?[.!: 。！：\t]*$"
+)
+
+
+def blocked_page_hits(text: str) -> list[str]:
+    """Return exact standalone challenge headings from any answer surface."""
+    # Markdown serializers commonly place a decorative challenge-page image at
+    # the start of the same source line as the visible gate phrase. The image is
+    # not visible prose and must not prevent the phrase from being standalone.
+    visible = text
+    for link in reversed(markdown_links(text)):
+        if link.is_image:
+            visible = visible[:link.start] + " " + visible[link.end:]
+    return [match.group(0).strip() for match in _BLOCKED_PAGE.finditer(visible)]
 
 
 @dataclass(frozen=True)
@@ -129,7 +170,14 @@ def visible_markdown_links(text: str) -> str:
         previous_label=label
         start=match.end
     result.append(text[start:])
-    return ''.join(result)
+    visible = ''.join(result)
+    # Some browser Markdown serializers use angle-autolink spelling for a
+    # root-relative path even though CommonMark formally reserves autolinks
+    # for absolute URIs and email addresses.  It is still visible page text:
+    # ``</docs/start>`` renders as ``/docs/start``.  Require a second path
+    # segment so raw HTML closing tags such as ``</div>`` remain markup rather
+    # than becoming evidence-bearing prose.
+    return re.sub(r"<((?:/[^<>\s/]+){2,}(?:[?#][^<>\s]*)?)>", r"\1", visible)
 
 
 def audit_reference(text, facts, *, normalize):

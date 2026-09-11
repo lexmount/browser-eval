@@ -28,6 +28,10 @@ class SupplementDatasetTests(unittest.TestCase):
         self.payload = {"id": "independent-supplement", "tool": "web_fetch", "cases": [
             {"id": f"new-{index}", "name": f"New {index}", "url": "https://example.test/",
              "category": "dynamic_content", "track": "dynamic", "expected_any": [],
+             "retrieval_hints": {
+                 "version": 1, "wait_until": "domcontentloaded",
+                 "completion": {"selector": "main", "minimum_count": 1,
+                                "timeout_ms": 1000, "delay_ms": 0}},
              "ground_truth_main_content": self.content,
              "required_facts": [{"id": "content", "alternatives": [self.content]}],
              "source_benchmark": {"render_evidence": {
@@ -127,7 +131,9 @@ class SupplementDatasetTests(unittest.TestCase):
         self.assertFalse(self.output.exists())
 
     def test_track_filter_excludes_unrelated_cases_from_both_runners(self):
-        unrelated = {**self.payload["cases"][0], "id": "unrelated-web", "track": "web"}
+        unrelated = {key: value for key, value in self.payload["cases"][0].items()
+                     if key != "retrieval_hints"}
+        unrelated.update(id="unrelated-web", track="web")
         self.payload["cases"].append(unrelated)
         self.write(self.dataset_path, self.payload)
         self.benchmark_main()

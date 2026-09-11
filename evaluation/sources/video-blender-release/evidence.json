@@ -20,6 +20,12 @@
   "title": "Index of /demo/movies/BBB/",
   "selector": "body",
   "resources": [],
+  "observed_resource_candidates": [
+    {
+      "tag": "visible-directory-entry",
+      "url": "https://download.blender.org/demo/movies/BBB/bbb_sunflower_1080p_30fps_normal.mp4.zip"
+    }
+  ],
   "text_chars": 1099,
   "excerpt": "Index of /demo/movies/BBB/\n../\nbbb_sunflower_1080p_30fps_normal.mp4.zip\n24-Nov-2023 18:39           275524128\nbbb_sunflower_1080p_30fps_stereo_abl.mp4.zip\n24-Nov-2023 18:40           434207013\nbbb_sunflower_1080p_30fps_stereo_agmh.mp4.zip\n24-Nov-2023 18:40           354521345\nbbb_sunflower_1080p_30fps_stereo_arcc.mp4.zip\n24-Nov-2023 18:40           354454027\nbbb_sunflower_1080p_30fps_stereo_arcd.mp4.zip\n24-Nov-2023 18:41           354355632\nbbb_sunflower_1080p_60fps_normal.mp4.zip\n24-Nov-2023 18:41           355019001\nbbb_sunflower_1080p_60fps_stereo_abl.mp4.zip\n24-Nov-2023 18:41           513774940\nbbb_sunflower_1080p_60fps_stereo_agmh.mp4.zip\n24-Nov-2023 18:41           354758680\nbbb_sunflower_1080p_60fps_stereo_arcc.mp4.zip\n24-Nov-2023 18:42           354624145\nbbb_sunflower_1080p_60fps",
   "missing_facts": [],

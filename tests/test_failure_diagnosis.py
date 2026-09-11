@@ -117,6 +117,28 @@ class UnifiedTextFailureTests(unittest.TestCase):
         self.assert_category({'stable_task_pass': False, 'stable_task_errors': ['forbidden_content']},
                              '返回非目标内容')
 
+    def test_generic_blocked_page_precedes_resource_success(self):
+        blocked = evaluate_content('# Making sure you\'re not a bot!', [])
+        blocked.update(resource_pass=True, resource_results=[{'id': 'hero', 'pass': True}])
+        result = diagnose(self.record(blocked), {'task_kind': 'resource'}, '')
+        self.assertEqual(result['category'], '返回非目标内容')
+        self.assertIn("Making sure you're not a bot", result['evidence'])
+
+        prose = evaluate_content("The article explains why sites say you're not a bot.", [])
+        prose.update(resource_pass=True, resource_results=[{'id': 'hero', 'pass': True}])
+        self.assertIsNone(diagnose(self.record(prose), {'task_kind': 'resource'}, ''))
+
+    def test_chinese_gate_heading_precedes_resource_success_without_prose_fp(self):
+        blocked = evaluate_content('# 验证中心', [])
+        blocked.update(resource_pass=True, resource_results=[{'id': 'hero', 'pass': True}])
+        result = diagnose(self.record(blocked), {'task_kind': 'resource'}, '')
+        self.assertEqual(result['category'], '返回非目标内容')
+        self.assertIn('验证中心', result['evidence'])
+
+        prose = evaluate_content('本文介绍验证中心的设计与用户体验。', [])
+        prose.update(resource_pass=True, resource_results=[{'id': 'hero', 'pass': True}])
+        self.assertIsNone(diagnose(self.record(prose), {'task_kind': 'resource'}, ''))
+
     def test_too_many_records_reports_upper_bound_not_too_few(self):
         contract = self.contract(maximum_records=3)
         metrics = evaluate_stable_task(self.links + '\n[Delta](/item/4)', contract, self.base_url)

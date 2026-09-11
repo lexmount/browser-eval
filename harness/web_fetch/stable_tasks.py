@@ -36,9 +36,6 @@ _MONEY = rf"(?:[$£€¥]\s*{_AMOUNT}|(?:USD|EUR|GBP|CNY)\s+{_AMOUNT}|{_AMOUNT}\
 _METHOD = r"(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE|CONNECT)"
 _REVIEW_COUNT = r"\d+\s+reviews?"
 _PLACEHOLDER = re.compile(r"(?:n/?a|none|null|undefined|unknown|tbd|loading[. …]*|[-—]+|add to cart|read more|view details|description|name|title)", re.I)
-_BLOCKED_PAGE = re.compile(
-    r"(?im)^\s*(?:#{1,6}\s*)?(?:access denied|403 forbidden|verify (?:that )?you are human|"
-    r"checking your browser|just a moment(?:\.{3}|…)?|attention required!?|captcha(?: challenge)?)[.!: \t]*$")
 _LABELS = {"quote": "quote", "author": "(?:author|by)", "tags": "tags",
     "name": "name", "title": "title", "price": "price", "description": "description",
     "reviews": "reviews", "date": "date", "text": "(?:text|review)", "method": "method",
@@ -294,7 +291,9 @@ def _quotes(lines):
         parts = [line]
         j = i + 1
         while j < len(lines) and not re.match(r'[“"‘]|quote\s*:', lines[j], re.I):
-            if re.match(r'(?:#{1,6}\s*)?(?:loading[. …]*|quotes by\s*:|made with\b)',
+            if re.match(r'(?:#{1,6}\s*)?(?:loading[. …]*|quotes by\s*:|made with\b|'
+                        r'(?:next|previous)(?:\s+(?:page\s*)?\d+)?\s*[→←»«]?\s*$|'
+                        r'page\s+\d+(?:\s+of\s+\d+)?\s*$)',
                         lines[j], re.I):
                 break
             parts.append(lines[j])
@@ -469,7 +468,7 @@ def validate_acceptance_contract(contract: dict) -> None:
             or contract.get("version") != 1 or not isinstance(contract.get("schema"), str)
             or contract.get("schema") not in SCHEMA_FIELDS):
         raise ValueError("Unsupported stable acceptance contract")
-    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "hosts", "entry_path", "entry_identity_pattern", "entry_context", "field_minimum_records"}:
+    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "hosts", "entry_path", "entry_identity_pattern", "entry_context", "field_minimum_records", "record_name_exclusions"}:
         raise ValueError("Unknown stable acceptance contract fields")
     field_counts = contract.get('field_minimum_records', {})
     if not isinstance(field_counts, dict) or any(k not in _LABELS or type(v) is not int or v < 1 for k,v in field_counts.items()):
@@ -501,13 +500,18 @@ def validate_acceptance_contract(contract: dict) -> None:
             raise ValueError("Named links require allowed hosts and detail path pattern")
         if contract.get('entry_context', 'list_or_card') != 'list_or_card':
             raise ValueError('Named-link entry context must be list_or_card')
+        exclusions = contract.get('record_name_exclusions', [])
+        if (not isinstance(exclusions, list)
+                or any(not isinstance(value, str) or not _key(value) for value in exclusions)
+                or len({_key(value) for value in exclusions}) != len(exclusions)):
+            raise ValueError('Invalid or duplicate record-name exclusions')
         patterns = [*patterns, contract["entry_path"]]
         identity_pattern = contract.get('entry_identity_pattern')
         if identity_pattern is not None:
             if not isinstance(identity_pattern, str) or not identity_pattern:
                 raise ValueError('Invalid named-link identity pattern')
             patterns.append(identity_pattern)
-    elif "hosts" in contract or "entry_path" in contract:
+    elif "hosts" in contract or "entry_path" in contract or "record_name_exclusions" in contract:
         raise ValueError("Host/path contracts apply only to named_link records")
     try:
         for pattern in patterns:
@@ -536,7 +540,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     visible = _visible(content, schema)
     page_results = [{"pattern": p, "pass": bool(re.search(p, visible, re.I | re.M))} for p in patterns]
     content_errors = (["page_identity_mismatch"] if not all(r["pass"] for r in page_results) else [])
-    blocked_page = bool(_BLOCKED_PAGE.search(visible))
+    from .reference_quality import blocked_page_hits
+    blocked_page = bool(blocked_page_hits(visible))
     if blocked_page:
         content_errors.append("blocked_page")
     errors = []
@@ -548,6 +553,9 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             # malformed contracts and not exceptions that abort a whole run.
             entries = []
             errors.append("invalid_link_output")
+        excluded_names = {_key(value) for value in contract.get("record_name_exclusions", [])}
+        excluded_entries = [entry for entry in entries if _key(entry["title"]) in excluded_names]
+        entries = [entry for entry in entries if _key(entry["title"]) not in excluded_names]
         records = []
         for entry in entries:
             parts = urlsplit(entry["url"])
@@ -555,6 +563,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
                 continue
             records.append({"fields": entry, "valid": True, "errors": []})
     else:
+        excluded_entries = []
         records = _parse_records(visible, schema)
     anchors = []
     for anchor in contract.get("stable_text_anchors", []):
@@ -600,6 +609,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             "stable_record_count": len(records), "stable_complete_record_count": len(complete),
             "stable_unique_record_count": len(unique), "stable_minimum_records": minimum,
             "stable_maximum_records": maximum, "stable_task_errors": errors, "stable_records": records,
+            "stable_excluded_record_names": [entry["title"] for entry in excluded_entries],
             "stable_record_warnings": record_warnings,
             "factual_correctness": None,
             "stable_verification_scope": "Mechanical field/group/count checks; source fidelity and factual values are not verified"}

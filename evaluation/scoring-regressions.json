@@ -175,6 +175,55 @@
       "expected_metrics": {"declared_truncation_hits": []}
     },
     {
+      "id": "exact-body-regions-survive-declared-truncation-notice",
+      "category": "body-scope",
+      "root_cause": "declared_truncation",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/article",
+        "ground_truth_main_content": "alpha bravo charlie delta",
+        "body_requirements": {
+          "version": 1,
+          "unit": "region_token_recall",
+          "minimum_coverage": 0.5,
+          "regions": [{"id": "body", "text": "alpha bravo charlie delta"}]
+        }
+      },
+      "artifact": "alpha bravo charlie delta\n[Content truncated: showing 10 of 20 lines]",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"body_coverage_pass": true, "declared_truncation_hits": ["[Content truncated: showing 10 of 20 lines]"]}
+    },
+    {
+      "id": "reference-captcha-heading-is-legitimate-body-text",
+      "category": "task-predicate",
+      "root_cause": "blocked_page_detection",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/accessibility",
+        "ground_truth_main_content": "Accessibility guidance\nCAPTCHA\nProvide an equivalent text alternative.",
+        "required_facts": [{"id": "guidance", "alternatives": ["Provide an equivalent text alternative"]}]
+      },
+      "artifact": "Accessibility guidance\nCAPTCHA\nProvide an equivalent text alternative.",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"blocked_page": false, "blocked_page_hits": [], "blocked_page_reference_exemptions": ["CAPTCHA"]}
+    },
+    {
+      "id": "standalone-captcha-without-reference-remains-blocked",
+      "category": "task-predicate",
+      "root_cause": "blocked_page_detection",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/accessibility",
+        "ground_truth_main_content": "Accessibility guidance"
+      },
+      "artifact": "CAPTCHA",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"blocked_page": true, "blocked_page_hits": ["CAPTCHA"], "blocked_page_reference_exemptions": []}
+    },
+    {
       "id": "complete-records-with-declared-excluded-ui-fail",
       "category": "acceptance-contract",
       "root_cause": "declared_scope_exclusions",
@@ -447,6 +496,492 @@
         "resource_precision": 1.0,
         "resource_pass": true,
         "unexpected_resource_urls": []
+      }
+    },
+    {
+      "id": "semantic-title-may-follow-answer-preamble",
+      "category": "acceptance-contract",
+      "root_cause": "semantic_requirement_location",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/article",
+        "required_facts": [{"id": "title", "alternatives": ["Fearless Concurrency"]}],
+        "min_content_chars": 20
+      },
+      "artifact": "Source navigation\nFearless Concurrency\nComplete article body.",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"fact_coverage": 1.0, "length_pass": true}
+    },
+    {
+      "id": "semantic-title-remains-required",
+      "category": "acceptance-contract",
+      "root_cause": "semantic_requirement_location",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/article",
+        "required_facts": [{"id": "title", "alternatives": ["Fearless Concurrency"]}],
+        "min_content_chars": 20
+      },
+      "artifact": "Source navigation\nComplete unrelated article body.",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"fact_coverage": 0.0, "length_pass": true}
+    },
+    {
+      "id": "complete-records-allow-supplemental-ui",
+      "category": "acceptance-contract",
+      "root_cause": "supplemental_content_scope",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2
+        }
+      },
+      "artifact": "Alpha shirt\n$10\n\nBeta shirt\n$20\n\nAdd to cart",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"stable_structure_pass": true, "stable_content_pass": true}
+    },
+    {
+      "id": "supplemental-ui-cannot-repair-incomplete-records",
+      "category": "acceptance-contract",
+      "root_cause": "supplemental_content_scope",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2
+        }
+      },
+      "artifact": "Alpha shirt\n$10\n\nBeta shirt\n\nAdd to cart",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"stable_structure_pass": false}
+    },
+    {
+      "id": "quote-pagination-stays-outside-tags",
+      "category": "structured-extraction",
+      "root_cause": "record_ownership",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/quotes",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [{
+            "id": "quote",
+            "alternatives": ["\u201cA real quote.\u201d\nby Real Author\nTags: first second"]
+          }]
+        }
+      },
+      "artifact": "\u201cA real quote.\u201d\nby Real Author\nTags: first second\nNext \u2192",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"stable_structure_pass": true, "stable_content_pass": true}
+    },
+    {
+      "id": "pagination-cannot-supply-a-missing-tag",
+      "category": "structured-extraction",
+      "root_cause": "record_ownership",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/quotes",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [{
+            "id": "quote",
+            "alternatives": ["\u201cA real quote.\u201d\nby Real Author\nTags: first next"]
+          }]
+        }
+      },
+      "artifact": "\u201cA real quote.\u201d\nby Real Author\nTags: first\nNext \u2192",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"stable_structure_pass": true, "stable_content_pass": false}
+    },
+    {
+      "id": "known-challenge-headings-block-complete-records",
+      "category": "task-predicate",
+      "root_cause": "blocked_page_detection",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [{"id": "hero", "urls": ["/hero.jpg"]}]
+      },
+      "artifact": "W3 Performing security verification\n![Hero](/hero.jpg)",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"resource_pass": true, "blocked_page": true}
+    },
+    {
+      "id": "challenge-phrase-in-prose-is-not-a-block-page",
+      "category": "task-predicate",
+      "root_cause": "blocked_page_detection",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [{"id": "hero", "urls": ["/hero.jpg"]}]
+      },
+      "artifact": "This guide explains why a site may say Making sure you're not a bot.\n![Hero](/hero.jpg)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"resource_pass": true, "blocked_page": false}
+    },
+    {
+      "id": "unsplash-bot-heading-blocks-complete-records",
+      "category": "task-predicate",
+      "root_cause": "blocked_page_detection",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/gallery",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [{"id": "hero", "urls": ["/hero.jpg"]}]
+      },
+      "artifact": "Making sure you're not a bot\n![Hero](/hero.jpg)",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"resource_pass": true, "blocked_page": true}
+    },
+    {
+      "id": "complete-dynamic-products-pass-output-contract",
+      "category": "acceptance-contract",
+      "root_cause": "completion_contract",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/products",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2
+        }
+      },
+      "artifact": "Alpha hoodie\n$52\n\nBeta hoodie\n$70",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"stable_complete_record_count": 2, "stable_structure_pass": true}
+    },
+    {
+      "id": "empty-placeholder-products-fail-output-contract",
+      "category": "acceptance-contract",
+      "root_cause": "completion_contract",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/products",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2
+        }
+      },
+      "artifact": "Loading\n\nLoading",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"stable_complete_record_count": 0, "stable_structure_pass": false}
+    },
+    {
+      "id": "semantic-reference-fact-survives-visual-line-wrap",
+      "category": "acceptance-contract",
+      "root_cause": "layout_sensitive_reference_fact",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/help",
+        "required_facts": [{
+          "id": "purchase-requirement",
+          "alternatives": ["飞书 AI 版本需企业管理员另外购买"]
+        }]
+      },
+      "artifact": "增值信息：飞书 AI 版本需企业管理员另外购买。如需购买，请\n联系客服\n或前往\n飞书管理后台\n>\n资产管理。",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"fact_coverage": 1.0}
+    },
+    {
+      "id": "nearby-purchase-navigation-cannot-replace-semantic-fact",
+      "category": "acceptance-contract",
+      "root_cause": "layout_sensitive_reference_fact",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/help",
+        "required_facts": [{
+          "id": "purchase-requirement",
+          "alternatives": ["飞书 AI 版本需企业管理员另外购买"]
+        }]
+      },
+      "artifact": "如需购买，请联系客服或前往飞书管理后台 > 资产管理 > AI 使用管理 > 用量概览自助购买。",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"fact_coverage": 0.0}
+    },
+    {
+      "id": "chinese-gate-heading-blocks-complete-records",
+      "category": "task-predicate",
+      "root_cause": "blocked_page_detection",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2
+        }
+      },
+      "artifact": "![](/shield.png)验证一下，购物无忧\nAlpha shirt\n$10\n\nBeta shirt\n$20",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "blocked_page": true,
+        "stable_blocked_page": true,
+        "stable_structure_pass": true,
+        "stable_content_pass": false
+      }
+    },
+    {
+      "id": "chinese-gate-phrase-in-prose-is-not-block-page",
+      "category": "task-predicate",
+      "root_cause": "blocked_page_detection",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2
+        }
+      },
+      "artifact": "本文介绍验证中心的设计与用户体验。\nAlpha shirt\n$10\n\nBeta shirt\n$20",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "blocked_page": false,
+        "stable_blocked_page": false,
+        "stable_structure_pass": true,
+        "stable_content_pass": true
+      }
+    },
+    {
+      "id": "route-and-action-labels-are-not-named-records",
+      "category": "structured-extraction",
+      "root_cause": "named_link_label_validity",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": ["example.test"],
+          "entry_path": "/item/\\d+"
+        }
+      },
+      "artifact": "[/item/1?ref=search](/item/1?ref=search)\n[See options](/item/2)\n[Click to see price](/item/3)\n[(74K)](/item/4)",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0,
+        "stable_structure_pass": false
+      }
+    },
+    {
+      "id": "real-title-labels-remain-named-records",
+      "category": "structured-extraction",
+      "root_cause": "named_link_label_validity",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": ["example.test"],
+          "entry_path": "/item/\\d+"
+        }
+      },
+      "artifact": "[Real product title](/item/1)\n[真实商品标题](/item/2)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2,
+        "stable_structure_pass": true
+      }
+    },
+    {
+      "id": "semantic-facts-survive-inline-markdown-boundaries",
+      "category": "acceptance-contract",
+      "root_cause": "semantic_inline_boundaries",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/python",
+        "required_facts": [
+          {"id": "level", "alternatives": ["high-level"]},
+          {"id": "purpose", "alternatives": ["general-purpose programming language"]}
+        ],
+        "fact_coverage_threshold": 1.0
+      },
+      "artifact": "**Python** is a [high-level](/level), [general-purpose programming language](/purpose).",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"fact_coverage": 1.0}
+    },
+    {
+      "id": "one-semantic-fragment-cannot-replace-the-other",
+      "category": "acceptance-contract",
+      "root_cause": "semantic_inline_boundaries",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/python",
+        "required_facts": [
+          {"id": "level", "alternatives": ["high-level"]},
+          {"id": "purpose", "alternatives": ["general-purpose programming language"]}
+        ],
+        "fact_coverage_threshold": 1.0
+      },
+      "artifact": "Python is a high-level language.",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"fact_coverage": 0.5}
+    },
+    {
+      "id": "markdown-emphasized-forbidden-status-heading-is-blocked",
+      "category": "task-predicate",
+      "root_cause": "blocked_page_detection",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/platform",
+        "required_facts": []
+      },
+      "artifact": "**Error: Forbidden / 403**",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"blocked_page": true}
+    },
+    {
+      "id": "relative-autolinks-and-markdown-labels-preserve-visible-anchor",
+      "category": "format-normalization",
+      "root_cause": "markdown_relative_autolink_visibility",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": ["example.test"],
+          "entry_path": "/item/[0-9]+",
+          "stable_text_anchors": [{
+            "id": "help",
+            "alternatives": ["Questions: /help/start, /help/advanced, or Support."]
+          }]
+        }
+      },
+      "artifact": "Questions: </help/start>, </help/advanced>, or [Support](https://support.example.test/).\n[Alpha](/item/1)\n[Beta](/item/2)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_structure_pass": true,
+        "stable_content_pass": true
+      }
+    },
+    {
+      "id": "missing-relative-link-text-cannot-borrow-visible-anchor",
+      "category": "format-normalization",
+      "root_cause": "markdown_relative_autolink_visibility",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": ["example.test"],
+          "entry_path": "/item/[0-9]+",
+          "stable_text_anchors": [{
+            "id": "help",
+            "alternatives": ["Questions: /help/start, /help/advanced, or Support."]
+          }]
+        }
+      },
+      "artifact": "Questions: </help/start>, or [Support](https://support.example.test/).\n[Alpha](/item/1)\n[Beta](/item/2)",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_structure_pass": true,
+        "stable_content_pass": false
+      }
+    },
+    {
+      "id": "task-generic-card-labels-do-not-count-as-entity-names",
+      "category": "structured-extraction",
+      "root_cause": "named_link_label_validity",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 3,
+          "hosts": ["example.test"],
+          "entry_path": "/item/[0-9]+",
+          "record_name_exclusions": ["FreeTV"]
+        }
+      },
+      "artifact": "[FreeTV](/item/1)\n[FreeTV](/item/2)\n[FreeTV](/item/3)",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0,
+        "stable_structure_pass": false
+      }
+    },
+    {
+      "id": "task-name-exclusions-preserve-real-entity-titles",
+      "category": "structured-extraction",
+      "root_cause": "named_link_label_validity",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 3,
+          "hosts": ["example.test"],
+          "entry_path": "/item/[0-9]+",
+          "record_name_exclusions": ["FreeTV"]
+        }
+      },
+      "artifact": "[FreeTV](/item/0)\n[Alpha Show](/item/1)\n[Beta Show](/item/2)\n[Gamma Show](/item/3)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 3,
+        "stable_structure_pass": true
       }
     }
   ]

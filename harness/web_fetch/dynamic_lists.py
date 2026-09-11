@@ -4,9 +4,10 @@ No saved names, ranks, prices or item IDs are compared. Correctness remains
 unverified without an independent, contemporaneous reference in the same context.
 """
 import re
+import unicodedata
 from html import unescape
 from html.parser import HTMLParser
-from urllib.parse import urljoin,urlsplit
+from urllib.parse import unquote,urljoin,urlsplit,urlunsplit
 
 
 class Links(HTMLParser):
@@ -20,6 +21,36 @@ class Links(HTMLParser):
     def handle_endtag(self,tag):
         if tag=='a' and self.current:
             self.items.append((self.current[0],''.join(self.current[1])));self.current=None
+
+
+_PURE_CTA = re.compile(
+    r'(?:details?|read more|view more|learn more|see (?:more|details|options)|open|visit|go|'
+    r'watch|free tv|tv|buy now|add to cart|click to see price|sign in|log in|'
+    r'详情|查看|更多|评论|分享|图片|点击|了解更多|打开|访问|进入|前往|'
+    r'立即查看|立即购买|加入购物车|前往登录|登录|去看看|\d+)', re.I)
+
+
+def _label_key(value):
+    value=unicodedata.normalize('NFKC',unquote(unescape(value))).casefold()
+    return re.sub(r'\s+',' ',value).strip(' *#>`')
+
+
+def _is_named_label(title,url,parts):
+    """A record name must identify the entity, not repeat its route or UI action."""
+    label=_label_key(title)
+    if (len(label)<2 or not any(c.isalpha() for c in label) or _PURE_CTA.fullmatch(label)
+            or re.fullmatch(r'\(?\d+(?:[.,]\d+)?\s*[kmb]?\)?',label,re.I)):
+        return False
+    path=parts.path or '/'
+    path_query=path + (('?' + parts.query) if parts.query else '')
+    path_query_fragment=path_query + (('#' + parts.fragment) if parts.fragment else '')
+    authority_path='//' + parts.netloc + path_query_fragment
+    absolute=urlunsplit((parts.scheme,parts.netloc,parts.path,parts.query,parts.fragment))
+    route_labels={absolute,authority_path,path,path.rstrip('/') or '/',path_query,
+                  path_query_fragment}
+    if parts.query:
+        route_labels.update((parts.query,'?'+parts.query))
+    return label not in {_label_key(value) for value in route_labels}
 
 
 def extract_named_entries(content,contract,base_url,links=None):
@@ -57,9 +88,7 @@ def extract_named_entries(content,contract,base_url,links=None):
         if parts.hostname not in contract['hosts'] or not re.fullmatch(contract['entry_path'],parts.path.rstrip('/')):continue
         title=re.sub(r'<[^>]+>',' ',unescape(title))
         title=re.sub(r'\s+',' ',title).strip(' *#>-')
-        if len(title)<2 or title.startswith(('http://','https://')):continue
-        if not any(c.isalpha() for c in title):continue
-        if re.fullmatch(r'(详情|查看|更多|评论|分享|图片|点击|了解更多|TV|Free TV|Watch|Details|Read more|View more|\d+)',title,re.I):continue
+        if not _is_named_label(title,url,parts):continue
         # Deduplicate by identity, but retain the provider's navigable URL.
         # Query parameters can be required for access (e.g. signed note links).
         identity = parts.path.rstrip('/')

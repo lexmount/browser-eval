@@ -41,7 +41,7 @@ TEXT = {
     "本地浏览器渲染，再抽取 Markdown、媒体及链接信息。": "Renders in a local browser, then extracts Markdown, media, and link information.",
     "本轮使用匿名 HTTP provider 与 Turndown 转换。": "This run used the anonymous HTTP provider with Turndown conversion.",
     "本轮调用 Contents 取得指定 URL 的正文，不测试搜索。": "This run called Contents to retrieve body text from the specified URL; search was not tested.",
-    "本轮调用云端 Scrape，将网页或文档转换为 Markdown。": "This run called cloud-hosted Scrape to convert webpages or documents to Markdown.",
+    "云端 Scrape 为正文与资源题返回 Markdown/地址，原文件题用 rawBase64 交付目标字节。": "Cloud-hosted Scrape returns Markdown/addresses for body and resource tasks, while original-file tasks use rawBase64 to deliver the target bytes.",
     "WebBaseLoader 使用 HTTP 与 BeautifulSoup 取得网页文字。": "WebBaseLoader uses HTTP and BeautifulSoup to retrieve webpage text.",
     "Lexmount 中国区 API；与国际 API 分开实测，不重复计算品牌采用。": "Lexmount China API; tested separately from the international API without double-counting brand adoption.",
     "中国区托管实时抓取": "Managed real-time retrieval in the China region",

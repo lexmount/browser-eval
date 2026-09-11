@@ -11,6 +11,7 @@ from .reference_lifecycle import require_verified_reference_checks
 from .reliability import assess_reliability
 from .storage import require_selection_history
 from .scoring import SCORING_SOURCE_SHA256
+from .artifacts import verify_record_private_artifacts
 
 
 def scoring_scope(records, cases):
@@ -53,6 +54,7 @@ def build_report(source: Path, output: Path) -> Path:
             raise ValueError('Speed comparison result binding mismatch')
         speed_records=[json.loads(line) for line in (speed_root/'results.jsonl').read_text().splitlines()]
         for row in speed_records:
+            verify_record_private_artifacts(speed_root, row)
             raw=contained_path(speed_root,row['artifact_path'])
             if hashlib.sha256(raw.read_bytes()).hexdigest()!=row['metrics']['content_sha256']:
                 raise ValueError('Speed cohort output integrity failure: '+row['attempt_id'])
@@ -99,6 +101,9 @@ def build_report(source: Path, output: Path) -> Path:
     staging = Path(tempfile.mkdtemp(prefix='.report-build-', dir=output.parent))
     try:
         for r in records:
+            # Raw API envelopes remain private persistent evidence.  Verify the
+            # binding here, but deliberately do not copy them into staging.
+            verify_record_private_artifacts(source, r)
             path = Path(r['artifact_path'])
             raw = contained_path(source,path)
             if hashlib.sha256(raw.read_bytes()).hexdigest() != r['metrics']['content_sha256']:
@@ -146,7 +151,7 @@ def build_report(source: Path, output: Path) -> Path:
             shutil.copytree(source/'reference-checks', staging/'reference-checks')
         if speed_root.exists():
             shutil.copytree(speed_root,staging/'speed-cohort',ignore=shutil.ignore_patterns(
-                'result-review.json','review-history'))
+                'result-review.json','review-history','private_artifacts'))
         summary = {t:{p:{'attempts':len(rs), 'task_pass':sum(succeeded(r,cases[r['case_id']]) for r in rs)}
                       for p in sorted({r['provider'] for r in records})
                       if (rs := [r for r in records if r['provider']==p and cases[r['case_id']].get('track','web')==t])}

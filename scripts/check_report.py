@@ -9,6 +9,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from harness.web_fetch.reliability import require_reliable
+from harness.web_fetch.reference_lifecycle import validate_resource_source_evidence
 from scripts.report_asset_parity import ArticleAssetParity
 
 class Tables(HTMLParser):
@@ -63,6 +64,7 @@ class PageShape(HTMLParser):
   if not self.skip:self.numbers.extend(re.findall(r'\d+(?:[.,]\d+)*(?:%|\b)',text))
 
 root=Path(sys.argv[1]).resolve();d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
+repository=Path(__file__).resolve().parents[1]
 names={r['provider'] for r in rs}
 inventory=json.loads((Path(__file__).resolve().parents[1]/'configs/evaluation-inventory.json').read_text())
 if d.get('comparison',{}).get('kind') in {'headless_html','headless_markdown'}:
@@ -81,6 +83,8 @@ assert {(r['provider'],r['case_id']) for r in rs}==expected_pairs
 assert len({r['attempt_id'] for r in rs})==expected
 assert len({(r['provider'],r['case_id']) for r in rs})==expected
 case_by_id={c['id']:c for c in d['cases']}
+for case in d['cases']:
+ validate_resource_source_evidence(case,repository/'evaluation/dataset.json')
 reliability=require_reliable(d,rs)
 saved_reliability=json.loads((root/'reliability.json').read_text())
 assert saved_reliability==reliability,'Saved reliability status differs from report evidence'

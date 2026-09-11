@@ -38,6 +38,7 @@ class EvalCase:
     task_kind: str = "body"
     acceptance_contract: dict[str, Any] = field(default_factory=dict)
     body_requirements: dict[str, Any] = field(default_factory=dict)
+    retrieval_hints: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

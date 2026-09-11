@@ -5,7 +5,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from harness.web_fetch.reference_lifecycle import scope_identity, valid_scoring_revision
+from harness.web_fetch.reference_lifecycle import (
+    ReferenceLifecycleError, check_case_scoring_revision_binding, scope_identity,
+    sha256, valid_scoring_revision,
+)
 from harness.web_fetch.report_build import build_report
 from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
 from scripts.append_dynamic_content import frozen_case
@@ -19,7 +22,7 @@ from scripts.rebind_result_review_metadata import (
 from scripts.revise_body_scoring import ALLOWED_FIELDS as SCORING_REVISION_FIELDS
 
 
-RESOURCE_FIELDS = {"expected_resources", "resource_output_contract"}
+RESOURCE_FIELDS = {"expected_resources", "resource_output_contract", "task_prompt"}
 
 
 def digest(value):
@@ -67,6 +70,24 @@ class ResourceContractLifecycleTests(unittest.TestCase):
         changed_policy["resource_output_contract"]["unexpected"] = "allow"
         self.assertNotEqual(digest(scope_identity(changed_targets)), original)
         self.assertNotEqual(digest(scope_identity(changed_policy)), original)
+
+    def test_audited_recall_policy_may_update_matching_prompt_but_not_prompt_alone(self):
+        original = self.resource_case()
+        original["source_verification"] = {"reference_sha256": sha256("")}
+        binding = {
+            "reference_sha256": sha256(""),
+            "expected_normalized_sha256": sha256(""),
+            "scope_identity": scope_identity(original),
+        }
+        corrected = json.loads(json.dumps(original))
+        corrected["resource_output_contract"]["unexpected"] = "allow"
+        corrected["task_prompt"] = "Return every target; report extra images as precision only."
+        check_case_scoring_revision_binding(corrected, binding)
+
+        prompt_only = json.loads(json.dumps(original))
+        prompt_only["task_prompt"] = corrected["task_prompt"]
+        with self.assertRaises(ReferenceLifecycleError):
+            check_case_scoring_revision_binding(prompt_only, binding)
 
     def test_dynamic_frozen_case_retains_complete_resource_contract(self):
         case = self.resource_case()

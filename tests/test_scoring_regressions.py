@@ -36,7 +36,11 @@ class ScoringRegressionTests(unittest.TestCase):
         paired = {"answer_surface_omission", "body_scope_calibration",
                   "declared_scope_exclusions", "declared_truncation",
                   "entity_identity", "record_ownership",
-                  "resource_output_scope", "resource_surface_parsing"}
+                  "resource_output_scope", "resource_surface_parsing",
+                  "semantic_requirement_location", "supplemental_content_scope",
+                  "blocked_page_detection", "completion_contract",
+                  "layout_sensitive_reference_fact", "named_link_label_validity",
+                  "semantic_inline_boundaries", "markdown_relative_autolink_visibility"}
         for root_cause in paired:
             self.assertEqual(root_modes.get(root_cause), {"false-positive", "false-negative"})
 
@@ -93,6 +97,32 @@ class ScoringRegressionTests(unittest.TestCase):
         self.assertFalse(valid_correction_provenance(receipt))
         receipt["schema_version"] = 3
         self.assertFalse(valid_correction_provenance(receipt))
+
+    def test_multi_root_revision_binds_every_cited_category(self):
+        provenance = correction_provenance(
+            "multi-root",
+            "One offline rescore applies independently reviewed acceptance and task-predicate corrections together.",
+            [
+                "complete-declared-record-passes-contract",
+                "known-challenge-headings-block-complete-records",
+            ],
+        )
+        self.assertEqual(
+            provenance["root_cause_categories"],
+            ["acceptance-contract", "task-predicate"],
+        )
+        receipt = {
+            "schema_version": 2,
+            "task_decision_changes": [],
+            "correction_provenance": provenance,
+        }
+        self.assertTrue(valid_correction_provenance(receipt))
+        with self.assertRaisesRegex(ValueError, "multiple categories"):
+            correction_provenance(
+                "multi-root",
+                "A claimed combined correction cites controls from only one root-cause category.",
+                ["complete-declared-record-passes-contract"],
+            )
 
     def test_schema_two_receipt_accepts_every_field_the_revision_tool_can_change(self):
         with tempfile.TemporaryDirectory() as directory:

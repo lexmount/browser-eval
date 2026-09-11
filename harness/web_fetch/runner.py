@@ -27,10 +27,43 @@ from .reference_lifecycle import (
 from .safety import contained_path, safe_identifier
 from .call_boundary import fetch_with_deadline
 from .response_input import apply_request_status
+from .artifacts import (
+    PRIVATE_ARTIFACT_ROOT, raw_response_binding, verify_record_private_artifacts,
+)
 
 
 class IncompleteEvaluationError(RuntimeError):
     """The saved run is inspectable, but it is not a complete benchmark."""
+
+
+def preflight_declared_capacity(
+    providers: list[Provider], *, declared_calls: int, timeout: float = 10
+) -> None:
+    """Check optional account capacity once per logical provider.
+
+    ``providers`` may contain separately configured instances for multiple task
+    scopes.  Capacity, however, is declared for the logical provider's entire
+    cohort, so only the first instance for each provider name receives the
+    complete worst-case physical-call bound.
+    """
+    if isinstance(declared_calls, bool) or not isinstance(declared_calls, int):
+        raise ValueError("declared call count must be a positive integer")
+    if declared_calls < 1:
+        raise ValueError("declared call count must be a positive integer")
+    if not math.isfinite(timeout) or timeout <= 0:
+        raise ValueError("capacity preflight timeout must be positive and finite")
+    checked: set[str] = set()
+    for provider in providers:
+        if provider.name in checked:
+            continue
+        checked.add(provider.name)
+        hook = getattr(provider, "preflight_capacity", None)
+        if hook is not None:
+            if not callable(hook):
+                raise ValueError(
+                    f"provider {provider.name!r} has an invalid capacity preflight hook"
+                )
+            hook(declared_calls, timeout=timeout)
 
 
 def utc_now() -> str:
@@ -72,6 +105,25 @@ def persist_result_artifacts(
             raise ValueError('Raw stdout hash mismatch')
         contained_path(output_dir, binary_rel).write_bytes(binary)
         result.metadata['raw_stdout_path'] = binary_rel.as_posix()
+    raw_response = result.metadata.pop('_raw_response_b64', None)
+    if raw_response is not None:
+        binary = base64.b64decode(raw_response, validate=True)
+        expected_hash = result.metadata.get('raw_response_sha256')
+        expected_bytes = result.metadata.get('raw_response_bytes')
+        if hashlib.sha256(binary).hexdigest() != expected_hash:
+            raise ValueError('Raw response hash mismatch')
+        if len(binary) != expected_bytes:
+            raise ValueError('Raw response byte size mismatch')
+        private_rel = (Path(PRIVATE_ARTIFACT_ROOT, *artifact_rel.parts[1:])
+                       .with_suffix('.response.bin'))
+        private_path = contained_path(output_dir, private_rel)
+        private_path.parent.mkdir(parents=True, exist_ok=True)
+        private_path.write_bytes(binary)
+        result.metadata['raw_response_path'] = private_rel.as_posix()
+        raw_response_binding(result.metadata)
+    elif any(result.metadata.get(key) is not None for key in
+             ('raw_response_path', 'raw_response_sha256', 'raw_response_bytes')):
+        raise ValueError('Raw response binding supplied without raw response bytes')
     delivered = result.metadata.get('file_evaluation', {}).get('files', [])
     if len(delivered) != len(result.files):
         raise ValueError(
@@ -255,6 +307,10 @@ def run_evaluation(
                             for item in result.metadata.get('file_evaluation', {}).get('files', [])
                             if item.get('artifact_path')
                         )
+                        private_artifacts = []
+                        private_binding = raw_response_binding(result.metadata)
+                        if private_binding:
+                            private_artifacts.append(private_binding)
                         physical_attempts.append({
                             'physical_attempt': physical_attempt,
                             'started_at': physical_started,
@@ -269,6 +325,7 @@ def run_evaluation(
                             'content_sha256': measured['content_sha256'],
                             'artifact_path': artifact_rel.as_posix(),
                             'artifact_paths': artifact_paths,
+                            **({'private_artifacts': private_artifacts} if private_artifacts else {}),
                         })
                         stopped_provider = (result.error_type == 'timeout' and pending is not None
                                             and pending.is_alive())
@@ -398,6 +455,7 @@ def rescore_evaluation(
     case_by_id = {case.id: case for case in cases}
     records = load_records(run_dir)
     for record in records:
+        verify_record_private_artifacts(run_dir, record)
         contained_path(run_dir, record["artifact_path"])
         expected_hash = record.get("metrics", {}).get("content_sha256")
         if expected_hash and hashlib.sha256(contained_path(run_dir, record["artifact_path"]).read_bytes()).hexdigest() != expected_hash:

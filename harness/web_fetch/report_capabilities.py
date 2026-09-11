@@ -3,7 +3,7 @@ import json
 from html import escape
 from .report_components import tabs
 
-CHECKED_AT = '2026-09-02'
+CHECKED_AT = '2026-09-11'
 SOURCES = {
  'cow': ('CowAgent · WebFetch 源码', 'https://github.com/zhayujie/CowAgent/blob/ed5bb344cfe42cee443c8266ba47ee666d8d7471/agent/tools/web_fetch/web_fetch.py'),
  'lex': ('Lexmount · Extract 契约', 'https://browser.lexmount.com/docs/webfetch/reference/all-in-one-extract'),
@@ -21,7 +21,7 @@ SOURCES = {
  'claw-reader': ('OpenClaw · Readability 插件', 'https://github.com/openclaw/openclaw/blob/12c4bdf7482f24c85b011e9d858fdec3c245101c/extensions/web-readability/web-content-extractor.ts'),
  'dsh': ('DeepSeek Harness · MIME 策略', 'https://github.com/deepseek-ai/deepseek-harness/blob/dd6322d604e00eec1ba5e0c8541159906a21094a/packages/web/web-fetch-http/src/policy.ts'),
  'dsh-text': ('DeepSeek Harness · Markdown 转换', 'https://github.com/deepseek-ai/deepseek-harness/blob/dd6322d604e00eec1ba5e0c8541159906a21094a/packages/web/tool-web/src/fetch.ts'),
- 'lc': ('LangChain · WebBaseLoader 源码', 'https://github.com/langchain-ai/langchain-community/blob/main/libs/community/langchain_community/document_loaders/web_base.py'),
+ 'lc': ('LangChain · WebBaseLoader 源码', 'https://github.com/langchain-ai/langchain-community/blob/libs/community/v0.3.30/libs/community/langchain_community/document_loaders/web_base.py'),
  'lc-loaders': ('LangChain · 其他文档加载器', 'https://docs.langchain.com/oss/python/integrations/document_loaders/index'),
  'c4-media': ('Crawl4AI · 链接与媒体', 'https://docs.crawl4ai.com/core/link-media/'),
  'c4-pdf': ('Crawl4AI · PDF 策略', 'https://docs.crawl4ai.com/advanced/pdf-parsing/'),
@@ -65,7 +65,7 @@ CAPABILITIES = {
   'structure': '可选 JSON schema、产品字段、截图等格式；不能都视为本轮已测。',
   'access': '可配置页面动作；站点授权、反爬与套餐限制仍会影响访问。',
   'notes': 'rawBase64 必须单独请求，解码后是目标 URL 的原始 HTTP 响应体，不包含页面引用的所有资源。audio/video 针对支持的视频站点，返回有时效的下载 URL，不保证任意站点或原编码字节，也不是字幕转写/画面理解。文档解析覆盖 PDF、Word、Excel、PowerPoint 等。',
-  'tested': '本轮仅请求 markdown、links、images；未启用 rawBase64、audio、video、JSON 或截图，未调用 Parse。原文件榜不能代表这些未测模式。',
+  'tested': '正文与资源题请求 markdown、links、images；原文件题只请求 rawBase64 并验收目标 URL 的解码字节。动态顶层选择器使用 Actions wait，随后执行预声明稳定延迟；选择器数量与 iframe 子文档条件仍标为未完整执行。未测试 audio、video、JSON、截图或 Parse。',
  },
  'tavily': {
   'scope': 'POST /extract', 'sources': ['tav', 'tav-depth', 'tav-research'],
@@ -76,7 +76,7 @@ CAPABILITIES = {
   'structure': 'raw_content 和图片列表；query 可选择相关片段，并非必然返回全文。',
   'access': '公开 Extract 参数没有源站登录会话接口；advanced 不等于保证绕过登录。',
   'notes': 'advanced 面向动态页、表格和嵌入内容；不能把 embedded media 理解为下载视频或理解画面。官方 Research 的 PDF/Markdown/JSON/TXT 文件上传能力不属于本次 Extract；Extract 的 PDF/Office 支持在本次核对资料中未明确承诺。',
-  'tested': '本轮 basic + markdown + include_images=true，不传 query；未测试 advanced 或 Research 文件上传。',
+  'tested': '本轮 advanced + markdown + include_images=true，不传 query；未测试 Research 文件上传。',
  },
  'exa': {
   'scope': 'POST /contents', 'sources': ['exa'],
@@ -87,7 +87,7 @@ CAPABILITIES = {
   'structure': 'text、highlights、summary；摘要可用 schema，含模型生成环节。',
   'access': 'maxAgeHours 控制缓存/实时抓取，不提供登录成功保证。',
   'notes': 'extras.links 和 imageLinks 是地址；PDF text 是解析后的文字，不是原 PDF。summary/highlights 与正文原文提取的语义不同，生成摘要不能作为独立 ground truth。',
-  'tested': 'text=true、maxAgeHours=0，并取 links/imageLinks；本轮没有调用摘要或高亮生成。',
+  'tested': 'text.verbosity=full、maxAgeHours=0，并取 links/imageLinks；本轮没有调用摘要或高亮生成。',
  },
  'cloudflare-markdown': {
   'scope': 'Browser Run · /markdown', 'sources': ['cf'],
@@ -98,7 +98,7 @@ CAPABILITIES = {
   'structure': '/markdown 返回字符串；AI /json 是独立端点。',
   'access': '支持 cookies、HTTP authenticate 等参数；浏览器流量仍可能被识别和拦截。',
   'notes': '页面中的链接可能被保留，不是媒体专用抽取保证。/pdf 是把网页打印成 PDF，不是读取已有 PDF；Workers AI 的 AI.toMarkdown 文档转换也不是本轮 /markdown。',
-  'tested': '只调用 /markdown，waitUntil=networkidle2；未提供源站登录 Cookie，未调用其他端点。',
+  'tested': '只调用 /markdown；普通网页使用 networkidle2，动态任务使用预声明 selector 和有界稳定等待；未提供源站登录 Cookie，未调用其他端点。',
  },
  'openclaw-built-in': {
   'scope': 'web_fetch · 内置 HTTP 路径', 'sources': ['claw', 'claw-code', 'claw-html', 'claw-reader'],
@@ -142,24 +142,25 @@ CAPABILITIES = {
   'structure': '可选 CSS/JSON 或 LLM 提取策略；media/links 是结构化资源信息。',
   'access': '可配置持久会话、Cookie 和页面动作；并非保证突破每个站点限制。',
   'notes': 'PDF 需 PDFCrawlerStrategy + PDFContentScrapingStrategy，可选提取并保存内嵌图片，默认不含扫描件 OCR。浏览器下载需 accept_downloads 并触发下载；原生 HTTP 文件策略直接将非 HTML 响应保存到 downloaded_files。网页截图和打印 PDF 是新生成的文件，不是目标原文件。',
-  'tested': '正文使用原通用浏览器策略、无缓存；文件补测在调用前选择原生 HTTP 文件策略，读取 downloaded_files 并统一校验。未启用专用 PDF 策略、截图或 LLM 提取；媒体字段不代表内容理解。',
+  'tested': '普通正文使用通用浏览器策略、无缓存；直接 PDF 正文在调用前选择 PDFCrawlerStrategy 与 PDFContentScrapingStrategy；文件任务选择原生 HTTP 文件策略并统一校验。未启用截图、OCR 或 LLM 提取；媒体字段不代表内容理解。',
  },
 }
-SOURCES['moli'] = ('Moli · WebFetch skill', 'https://github.com/lexmount/moli/blob/91ad8c5fd4e50663323569401ec07704380ce52c/skills/moli-webfetch/SKILL.md')
-SOURCES['moli-recipes'] = ('Moli · 输出与接口边界', 'https://github.com/lexmount/moli/blob/91ad8c5fd4e50663323569401ec07704380ce52c/skills/moli-webfetch/references/fetch-recipes.md')
+SOURCES['moli'] = ('Moli 1.1.4 · WebFetch skill', 'https://github.com/lexmount/moli/blob/v1.1.4/skills/moli-webfetch/SKILL.md')
+SOURCES['moli-recipes'] = ('Moli 1.1.4 · 输出与接口边界', 'https://github.com/lexmount/moli/blob/v1.1.4/skills/moli-webfetch/references/fetch-recipes.md')
+SOURCES['moli-release'] = ('Moli 1.1.4 · 官方发布', 'https://github.com/lexmount/moli/releases/tag/v1.1.4')
 CAPABILITIES['moli-webfetch'] = {
- 'scope':'moli fetch；正文 markdown，原文件 html 字节输出', 'sources':['moli','moli-recipes'],
+ 'scope':'moli fetch；普通正文使用 Markdown，挑战题使用 JSON 最终 DOM 与网络诊断，动态/资源/嵌入文档使用有界 DOM eval，直接文档与媒体使用裸 fetch 自动响应', 'sources':['moli','moli-recipes','moli-release'],
  'web':c('支持','JS 渲染网页 → Markdown / HTML'),
- 'document':c('未声明','未声明 PDF / Office 正文解析'),
+ 'document':c('需配置','裸 fetch 取得原始 PDF 后在同一预算内本地解析；Office 取决于实际响应'),
  'image':c('有限支持','页面引用；JSON HTML / eval 可取地址'),
  'av':c('有限支持','页面入口；HTML / eval 可取地址'),
- 'file':c('有限支持','原始非 HTML 响应仅支持 html / json 模式'),
+ 'file':c('有限支持','裸 fetch 可自动返回直接非 HTML 响应的原始字节'),
  'js':c('支持','默认运行 JS，支持多种就绪等待'),
  'input':'单个 URL；每个页面单独调用 fetch。',
  'structure':'JSON 返回最终 URL、状态、标题、响应头、重定向链和 HTML；--eval 可返回 DOM 字段。',
  'access':'支持授权 cookie-file / profile-dir 和请求头；仍可能被站点拒绝。默认适配器不加载登录状态。',
- 'notes':'截图和 PDF 是启用 --layout 后生成的页面产物，不是读取已有文档或下载原媒体。官方未承诺文档 OCR、媒体理解或音频转写；非 HTML 响应不支持 Markdown。',
- 'tested':'正文使用 Markdown，文件任务预先选择 html 原始字节模式；done + 私网屏蔽，无 layout、额外资源加载或 eval，无失败后格式回退。只有实际执行记录参与榜单。',
+ 'notes':'截图和 PDF 是启用 --layout 后生成的页面产物，不是读取已有文档或下载原媒体。官方未承诺文档 OCR、媒体理解或音频转写；直接非 HTML 输入不强制使用 Markdown。',
+ 'tested':'Moli 1.1.4：普通正文使用 Markdown；挑战题一次请求返回 JSON 最终 DOM、HTTP 状态、最终 URL 和网络诊断，DOM 在同一截止内本地转 Markdown；动态任务用预声明 selector、数量和有界等待返回记录文本；资源页从渲染 DOM、同源 iframe 与有界同源模块返回 URL；嵌入文档使用页面运行时；直接 PDF、DOCX 与媒体不传 --dump。无 layout、失败后格式回退或跨 provider 补抓；只有实际执行记录参与榜单。',
 }
 CAPABILITIES['lexmount-cn'] = {**CAPABILITIES['lexmount-global'], 'scope': 'POST /v1/extract · 中国区'}
 for engine,url in {

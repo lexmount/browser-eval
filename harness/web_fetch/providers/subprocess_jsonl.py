@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from ..models import EvalCase, ProviderResult
+from ..retrieval_hints import plan_for_case
 from .base import Provider
 from .runtime_identity import validate_runtime_identity
 
@@ -22,6 +23,8 @@ class SubprocessJsonlProvider(Provider):
     _LOCKED_RUNTIMES = {
         "openclaw_builtin": {
             "revision": "12c4bdf7482f24c85b011e9d858fdec3c245101c",
+            "node_version": "v24.15.0",
+            "package_manager_version": "12.1.0",
             "paths": {
                 "{repo_path}/src/agents/tools/web-fetch.ts",
                 "{repo_path}/pnpm-lock.yaml",
@@ -30,6 +33,7 @@ class SubprocessJsonlProvider(Provider):
         },
         "deepseek_harness_builtin": {
             "revision": "dd6322d604e00eec1ba5e0c8541159906a21094a",
+            "node_version": "v24.15.0",
             "paths": {
                 "{repo_path}/packages/web/web-fetch-http/src/provider.ts",
                 "{repo_path}/pnpm-lock.yaml",
@@ -49,17 +53,29 @@ class SubprocessJsonlProvider(Provider):
     def _resolve_token(self, value: Any) -> str:
         harness_root = Path(__file__).resolve().parents[3]
         repo_path = Path(str(self.config.get("repo_path", "."))).expanduser().resolve()
-        return (str(value).replace("{harness_root}", str(harness_root))
-                .replace("{repo_path}", str(repo_path)))
+        return (
+            str(value)
+            .replace("{harness_root}", str(harness_root))
+            .replace("{repo_path}", str(repo_path))
+        )
 
     def validate(self) -> list[str]:
+        if hasattr(self, "_implementation_identity"):
+            del self._implementation_identity
         missing, identity = validate_runtime_identity(self.config, self._resolve_token)
         locked = self._LOCKED_RUNTIMES.get(self.type)
         if locked:
             if self.config.get("expected_repo_revision") != locked["revision"]:
                 missing.append(f"repo revision {locked['revision']}")
-            if self.config.get("expected_node_version") != "v24.15.0":
-                missing.append("Node v24.15.0")
+            if self.config.get("expected_node_version") != locked["node_version"]:
+                missing.append(f"Node {locked['node_version']}")
+            package_manager_version = locked.get("package_manager_version")
+            if (
+                package_manager_version is not None
+                and self.config.get("expected_package_manager_version")
+                != package_manager_version
+            ):
+                missing.append(f"package manager {package_manager_version}")
             if not locked["paths"].issubset(set(self.config.get("required_paths", []))):
                 missing.append("locked required paths")
         if identity is not None:
@@ -103,10 +119,25 @@ class SubprocessJsonlProvider(Provider):
             del self._stderr_lines[:-200]
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+        try:
+            retrieval_plan = plan_for_case(case)
+        except ValueError as error:
+            return ProviderResult(
+                False,
+                "",
+                error_type="configuration",
+                error_message=str(error),
+            )
         deadline = time.monotonic() + timeout
         process = self._start()
         assert process.stdin is not None and process.stdout is not None
-        request = {"url": case.url, "timeout_seconds": timeout, "task_kind": case.task_kind}
+        request = {
+            "url": case.url,
+            "timeout_seconds": timeout,
+            "task_kind": case.task_kind,
+            "track": case.track,
+            "retrieval_plan": retrieval_plan.worker_dict() if retrieval_plan else None,
+        }
         process.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")
         process.stdin.flush()
 
