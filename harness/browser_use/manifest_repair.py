@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -28,7 +28,9 @@ def repair_task_scope(artifacts: Path) -> dict[str, object]:
     skipped_ids = set((manifest.get("protocol") or {}).get("skipped_qualified_tasks") or [])
     excluded_ids = declared_ids - attempted_ids
     if not attempted_ids or not attempted_ids < declared_ids:
-        raise ValueError("repair requires attempts to be a non-empty strict subset of manifest suite")
+        raise ValueError(
+            "repair requires attempts to be a non-empty strict subset of manifest suite"
+        )
     if excluded_ids != skipped_ids:
         raise ValueError("unattempted manifest tasks do not exactly match skipped qualified tasks")
     engines = tuple((manifest.get("protocol") or {}).get("engines") or ())
@@ -48,7 +50,7 @@ def repair_task_scope(artifacts: Path) -> dict[str, object]:
     ]
     manifest.setdefault("artifact_provenance", {})["manifest_correction"] = {
         "kind": "task_scope_denominator",
-        "corrected_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "corrected_at": datetime.now(UTC).replace(microsecond=0).isoformat(),
         "prior_manifest_sha256": hashlib.sha256(original_bytes).hexdigest(),
         "prior_declared_tasks": len(declared_ids),
         "corrected_declared_tasks": len(attempted_ids),
