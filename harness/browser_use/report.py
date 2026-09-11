@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from .publication import public_projection
+
 REPORT_STEM = "browser-use-evaluation-latest"
 ROOT = Path(__file__).resolve().parents[2]
 PAGES = tuple(
@@ -1370,6 +1372,10 @@ def _execution_details(
 def _execution_explorer(
     manifest: dict[str, Any], summary: dict[str, Any], detail_pages: dict[str, str]
 ) -> str:
+    filter_anchors = "".join(
+        f'<span id="provider={_e(engine)}&amp;status=fail" hidden></span>'
+        for engine in (summary.get("functional") or {})
+    )
     physical_attempts = sum(
         (values or {}).get("physical_attempts", 0)
         for values in (summary.get("functional") or {}).values()
@@ -1482,7 +1488,7 @@ document.getElementById('f-reset').onclick=defaults;
 addEventListener('hashchange',reveal);apply();reveal();
 })()</script>"""
     grid_head = '<div class="record-grid-head" aria-hidden="true"><span>任务</span><span>Provider</span><span>结果</span><span>过程</span><span>错误类别</span><span>总耗时</span></div>'
-    return f"""<section class="card" id="execution-results"><h2>逐任务分析与原始证据</h2><p>{logical_executions} 条任务 × Provider 记录，{physical_attempts} 次执行。点击任务查看完整操作、答案、判定和执行轨迹。</p>{_table(["规则类别", "去重失败组", "实际失败次数"], category_rows, "程序化失败分布")}{filters}<div id="execution-list" class="record-grid">{grid_head}{_execution_details(manifest, summary, detail_pages)}</div><p id="execution-empty" class="empty-state" role="status" hidden></p>{script}</section>"""
+    return f"""{filter_anchors}<section class="card" id="execution-results"><h2>逐任务分析与原始证据</h2><p>{logical_executions} 条任务 × Provider 记录，{physical_attempts} 次执行。点击任务查看完整操作、答案、判定和执行轨迹。</p>{_table(["规则类别", "去重失败组", "实际失败次数"], category_rows, "程序化失败分布")}{filters}<div id="execution-list" class="record-grid">{grid_head}{_execution_details(manifest, summary, detail_pages)}</div><p id="execution-empty" class="empty-state" role="status" hidden></p>{script}</section>"""
 
 
 def _classify(error: str) -> str:
@@ -1577,6 +1583,8 @@ def _markdown(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
 def write_latest_report(
     reports_dir: str | Path, *, manifest: dict[str, Any], summary: dict[str, Any]
 ) -> Path:
+    manifest = public_projection(manifest)
+    summary = public_projection(summary)
     root = Path(reports_dir)
     root.mkdir(parents=True, exist_ok=True)
     audit_name = f"{REPORT_STEM}-data.json"

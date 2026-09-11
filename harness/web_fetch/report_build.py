@@ -10,6 +10,7 @@ from .safety import contained_path, validate_report_ids
 from .reference_lifecycle import require_verified_reference_checks
 from .reliability import assess_reliability
 from .storage import require_selection_history
+from harness.browser_use.publication import public_projection
 
 BROWSER_USE_REPORT_ROOT = Path("formal/webarena-public-trajectories")
 BROWSER_USE_REPORT_STEM = "browser-use-evaluation-latest"
@@ -32,10 +33,12 @@ def copy_browser_use_report(source: Path, output: Path) -> bool:
     audit = json.loads(audit_path.read_text(encoding="utf-8"))
     if audit.get("suite_sha256") != manifest.get("suite_sha256"):
         raise ValueError("Browser-use report suite binding mismatch")
-    if audit.get("artifact_provenance") != manifest.get("artifact_provenance"):
+    if audit.get("artifact_provenance") != public_projection(
+        manifest.get("artifact_provenance") or {}
+    ):
         raise ValueError("Browser-use report artifact binding mismatch")
     for key in ("functional", "resource_comparison"):
-        if audit.get(key) != summary.get(key):
+        if audit.get(key) != public_projection(summary.get(key) or {}):
             raise ValueError(f"Browser-use report {key} binding mismatch")
 
     files = sorted(reports.glob(f"{BROWSER_USE_REPORT_STEM}*"))

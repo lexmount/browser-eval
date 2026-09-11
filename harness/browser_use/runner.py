@@ -926,7 +926,7 @@ def run_evaluation(
                     "evaluator": task.evaluator,
                     "environment": task.environment,
                 }
-                for task in selected_tasks
+                for task in runnable_tasks
             ],
             "ground_truth_validation": (
                 {
@@ -985,7 +985,7 @@ def run_evaluation(
                     if trajectory_authoring_run
                     else None
                 ),
-                "task_filter": [task.task_id for task in selected_tasks],
+                "task_filter": [task.task_id for task in runnable_tasks],
                 "task_selection": task_selection,
                 "skipped_qualified_tasks": [
                     task.task_id
