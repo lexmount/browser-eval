@@ -570,7 +570,19 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     c_passes = int(c.get("result_final_passes", c.get("final_passes", 0)))
     m_passes = int(m.get("result_final_passes", m.get("final_passes", 0)))
 
+    def ratio_tone(value: float | None) -> str:
+        if not isinstance(value, (int, float)) or value == 1:
+            return ""
+        return "good" if value < 1 else "warn"
+
     if c_passes > m_passes:
+        c_summary = "Chromium 最终通过，兼容性较高"
+        m_summary = "Moli 最终通过，当前主要短板"
+        compatibility_title = "兼容性：Chromium 明显领先"
+        compatibility_body = (
+            f'<strong>{c_passes - m_passes} 个任务</strong>的最终通过数差距。'
+            f"对当前 {task_count} 条固定轨迹，Chromium 是更稳妥的默认方案。"
+        )
         recommendation = (
             f"本轮固定轨迹中 Chromium 通过 {c_passes} 个任务，高于 Moli 的 {m_passes} 个。"
             + (
@@ -584,6 +596,13 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
             "Moli 在双方均成功的任务上若表现出更低耗时或资源占用，可作为任务已验证兼容时的备选。"
         )
     elif m_passes > c_passes:
+        c_summary = "Chromium 最终通过，当前主要短板"
+        m_summary = "Moli 最终通过，兼容性较高"
+        compatibility_title = "兼容性：Moli 明显领先"
+        compatibility_body = (
+            f'<strong>{m_passes - c_passes} 个任务</strong>的最终通过数差距。'
+            f"对当前 {task_count} 条固定轨迹，Moli 是更稳妥的默认方案。"
+        )
         recommendation = (
             f"本轮固定轨迹中 Moli 通过 {m_passes} 个任务，高于 Chromium 的 {c_passes} 个。"
             "这定位了当前兼容性差异，不足以推出浏览器总体优劣。"
@@ -592,10 +611,40 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
             "仍需结合双方成功任务上的资源指标和失败类型确认适用边界。"
         )
     else:
+        c_summary = "Chromium 最终通过"
+        m_summary = "Moli 最终通过"
+        compatibility_title = "兼容性：本轮持平"
+        compatibility_body = (
+            f"两个浏览器均通过 <strong>{c_passes}/{task_count}</strong> 个任务，"
+            "需结合失败类型和成功交集资源指标决策。"
+        )
         recommendation = (
             f"本轮两个浏览器的程序验收通过数相同（均为 {c_passes}）；"
             "仅凭正确性无法确定默认方案，应结合双方成功任务上的资源指标和失败类型决策。"
         )
+    if all(isinstance(value, (int, float)) for value in (memory_ratio, retained_ratio)):
+        if memory_ratio < 1 and retained_ratio < 1:
+            memory_title = "内存：Moli 的明确优势"
+        elif memory_ratio > 1 and retained_ratio > 1:
+            memory_title = "内存：Chromium 的明确优势"
+        else:
+            memory_title = "内存：不同指标方向不一致"
+    else:
+        memory_title = "内存：配对数据不足"
+    duration_title = (
+        "速度：中位接近，长尾更慢"
+        if isinstance(duration_tail_ratio, (int, float)) and duration_tail_ratio > 1
+        else "速度：Moli 的配对耗时较低"
+        if isinstance(duration_tail_ratio, (int, float)) and duration_tail_ratio < 1
+        else "速度：配对数据不足或持平"
+    )
+    network_title = (
+        "网络：Moli 发送量更高"
+        if isinstance(tx_ratio, (int, float)) and tx_ratio > 1
+        else "网络：Moli 发送量更低"
+        if isinstance(tx_ratio, (int, float)) and tx_ratio < 1
+        else "网络：配对数据不足或持平"
+    )
     correctness = _correctness_table(summary)
     if webarena:
         scope = (
@@ -622,8 +671,8 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         for engine, values in (("chromium", c), ("moli", m))
     )
     return f"""<section class="card hero"><div class="eyebrow">结论先行</div><h2>{recommendation}</h2><p>{scope}</p><p><a href="{REPORT_STEM}-results.html">查看完整结果与资源数据 →</a></p></section>
-<section class="card"><div class="section-heading"><h2>首页决策摘要</h2><a href="{REPORT_STEM}-method.html">查看统计口径</a></div><div class="grid"><div class="metric"><strong>{c_passes}/{task_count}</strong><span>Chromium 最终通过，兼容性较高</span></div><div class="metric"><strong>{m_passes}/{task_count}</strong><span>Moli 最终通过，当前主要短板</span></div><div class="metric good"><strong>{_show(memory_ratio, suffix='×')}</strong><span>Moli / Chromium 时间加权平均内存 P50</span></div><div class="metric good"><strong>{_show(retained_ratio, suffix='×')}</strong><span>Moli / Chromium 结束保留内存 P50</span></div><div class="metric warn"><strong>{_show(duration_tail_ratio, suffix='×')}</strong><span>Moli / Chromium 耗时配对 P95</span></div><div class="metric warn"><strong>{_show(tx_ratio, suffix='×')}</strong><span>Moli / Chromium 发送流量配对 P50</span></div></div><p class="muted">资源比值仅统计 {paired} 个双方首次均成功的同任务；低于 1 表示 Moli 较低。不能把资源交集扩大成全部 {task_count} 个任务。</p></section>
-<section class="card"><h2>正确性与资源要分开决策</h2><div class="insight-grid"><article class="insight"><h3>兼容性：Chromium 明显领先</h3><p><strong>{c_passes - m_passes} 个任务</strong>的最终通过数差距。对当前 30 条固定轨迹，Chromium 是更稳妥的默认方案。</p></article><article class="insight good"><h3>内存：Moli 的明确优势</h3><p>成功交集中，Moli 的时间加权平均内存 P50 为 Chromium 的 <strong>{_show(memory_ratio, suffix='×')}</strong>，结束保留内存 P50 为 <strong>{_show(retained_ratio, suffix='×')}</strong>。</p></article><article class="insight warn"><h3>速度：中位接近，长尾更慢</h3><p>逐任务耗时比 P50 为 <strong>{_show(duration_ratio, suffix='×')}</strong>，P95 为 <strong>{_show(duration_tail_ratio, suffix='×')}</strong>。不能只用总体 P50 宣称 Moli 更快。</p></article><article class="insight warn"><h3>网络：Moli 发送量更高</h3><p>发送流量逐任务比 P50 为 <strong>{_show(tx_ratio, suffix='×')}</strong>。内存节省伴随明显的网络传输代价。</p></article></div></section>
+<section class="card"><div class="section-heading"><h2>首页决策摘要</h2><a href="{REPORT_STEM}-method.html">查看统计口径</a></div><div class="grid"><div class="metric"><strong>{c_passes}/{task_count}</strong><span>{c_summary}</span></div><div class="metric"><strong>{m_passes}/{task_count}</strong><span>{m_summary}</span></div><div class="metric {ratio_tone(memory_ratio)}"><strong>{_show(memory_ratio, suffix='×')}</strong><span>Moli / Chromium 时间加权平均内存 P50</span></div><div class="metric {ratio_tone(retained_ratio)}"><strong>{_show(retained_ratio, suffix='×')}</strong><span>Moli / Chromium 结束保留内存 P50</span></div><div class="metric {ratio_tone(duration_tail_ratio)}"><strong>{_show(duration_tail_ratio, suffix='×')}</strong><span>Moli / Chromium 耗时配对 P95</span></div><div class="metric {ratio_tone(tx_ratio)}"><strong>{_show(tx_ratio, suffix='×')}</strong><span>Moli / Chromium 发送流量配对 P50</span></div></div><p class="muted">资源比值仅统计 {paired} 个双方首次均成功的同任务；低于 1 表示 Moli 较低。不能把资源交集扩大成全部 {task_count} 个任务。</p></section>
+<section class="card"><h2>正确性与资源要分开决策</h2><div class="insight-grid"><article class="insight"><h3>{compatibility_title}</h3><p>{compatibility_body}</p></article><article class="insight {ratio_tone(memory_ratio)}"><h3>{memory_title}</h3><p>成功交集中，Moli 的时间加权平均内存 P50 为 Chromium 的 <strong>{_show(memory_ratio, suffix='×')}</strong>，结束保留内存 P50 为 <strong>{_show(retained_ratio, suffix='×')}</strong>。</p></article><article class="insight {ratio_tone(duration_tail_ratio)}"><h3>{duration_title}</h3><p>逐任务耗时比 P50 为 <strong>{_show(duration_ratio, suffix='×')}</strong>，P95 为 <strong>{_show(duration_tail_ratio, suffix='×')}</strong>。应同时看中位与长尾，不能用单个汇总值概括速度。</p></article><article class="insight {ratio_tone(tx_ratio)}"><h3>{network_title}</h3><p>发送流量逐任务比 P50 为 <strong>{_show(tx_ratio, suffix='×')}</strong>。网络开销应与内存、速度和兼容性分开判断。</p></article></div></section>
 <section class="card"><h2>首次成功与重试恢复</h2><div class="score-grid">{score_cards}</div><p class="muted">主指标是首次成功率。失败时允许的一次重试只报告恢复效果，不扩大任务分母。</p></section>
 <section class="card"><h2>任务通过情况</h2><p class="muted">同一行中较高的首次、最终通过率以粗体绿色标出；相同值不标胜者。</p>{correctness}</section>
 <section class="card" id="technical-findings"><div class="section-heading"><h2>关键技术结论</h2><a href="{REPORT_STEM}-analysis.html">查看失败证据</a></div><ul>{findings}</ul></section>

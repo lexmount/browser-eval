@@ -207,7 +207,7 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert "首次成功与重试恢复" in rendered
     assert "首页决策摘要" in rendered
     assert "正确性与资源要分开决策" in rendered
-    assert "内存：Moli 的明确优势" in rendered
+    assert "内存：配对数据不足" in rendered
     assert 'role="progressbar"' in rendered
     assert "一眼看懂这轮评测" not in rendered
     assert "结果与参考过程均正确" not in rendered
@@ -308,6 +308,40 @@ def test_grouped_correctness_marks_only_the_higher_rate_as_winner():
     assert rendered.count('class="better">2/2') >= 3
     assert 'class="better">1/2' not in rendered
     assert "相同值保持中性" in rendered
+
+
+def test_summary_decisions_follow_reversed_results_and_resource_ratios():
+    manifest = {
+        "run_id": "reversed",
+        "suite": [
+            {"task_id": "one", "evaluator": {"kind": "webarena_verified"}},
+            {"task_id": "two", "evaluator": {"kind": "webarena_verified"}},
+        ],
+    }
+    summary = {
+        "functional": {
+            "chromium": {"tasks": 2, "result_final_passes": 1},
+            "moli": {"tasks": 2, "result_final_passes": 2},
+        },
+        "resource_comparison": {
+            "intersection_attempts": 1,
+            "paired_ratios": {
+                "metrics": {
+                    "memory_mean_bytes": {"p50": 1.5},
+                    "memory_retained_bytes": {"p50": 1.2},
+                    "duration_ms": {"p50": 0.8, "p95": 0.7},
+                    "network_tx_bytes": {"p50": 0.6},
+                }
+            },
+        },
+    }
+    rendered = _summary_page(manifest, summary)
+    assert "兼容性：Moli 明显领先" in rendered
+    assert "Moli 最终通过，兼容性较高" in rendered
+    assert "内存：Chromium 的明确优势" in rendered
+    assert "速度：Moli 的配对耗时较低" in rendered
+    assert "网络：Moli 发送量更低" in rendered
+    assert "兼容性：Chromium 明显领先" not in rendered
 
 
 def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
