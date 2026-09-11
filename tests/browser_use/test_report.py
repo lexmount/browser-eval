@@ -185,23 +185,25 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert not (reports / "browser-use-evaluation-20260101.md").exists()
     rendered = (reports / "webarena-trajectory-replay-latest.html").read_text(encoding="utf-8")
     assert "Chromium 与 Moli：WebArena 固定轨迹回放评测" in rendered
-    assert "RPA 式公开人工轨迹重放" in rendered
+    assert "公开人工轨迹的确定性重放" in rendered
     assert "Chromium 与 Moli 浏览器工具调用评测" not in rendered
-    assert "结论与产品建议" in rendered
+    assert "结论先行" in rendered
     assert 'lang="zh-CN"' in rendered
     assert "报告分页" in rendered
     assert "结果正确率是默认 Provider 的第一决策指标" not in rendered
     assert "评测集包含 1 个结果唯一的任务" in rendered
-    assert rendered.index('<th colspan="2">P50</th>') < rendered.index('<th colspan="2">P95</th>')
-    assert rendered.index('<th colspan="2">P95</th>') < rendered.index(
+    results = (reports / "webarena-trajectory-replay-latest-results.html").read_text(
+        encoding="utf-8"
+    )
+    assert results.index('<th colspan="2">P50</th>') < results.index('<th colspan="2">P95</th>')
+    assert results.index('<th colspan="2">P95</th>') < results.index(
         '<th colspan="2">平均值</th>'
     )
-    assert '<td>100.00</td><td class="better">50.00</td>' in rendered
-    assert '<td class="better">200.00</td><td>300.00</td>' in rendered
-    assert "9.90×" in rendered
-    assert "边际分位数相除" in rendered
-    assert "结果重试恢复" not in rendered
-    assert "首次结果正确" not in rendered
+    assert '<td>100.00</td><td class="better">50.00</td>' in results
+    assert '<td class="better">200.00</td><td>300.00</td>' in results
+    assert "9.90×" in results
+    assert "边际分位数相除" in results
+    assert "首次成功与重试恢复" in rendered
     assert (reports / "webarena-trajectory-replay-latest-suite.html").exists()
     assert (reports / "webarena-trajectory-replay-latest-research.html").exists()
     research = (reports / "webarena-trajectory-replay-latest-research.html").read_text(
@@ -215,12 +217,13 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert "1 条轨迹进入正式双浏览器分母" in research
     assert "19 条轨迹进入正式双浏览器分母" not in research
     assert (reports / "webarena-trajectory-replay-latest-method.html").exists()
-    assert not (reports / "webarena-trajectory-replay-latest-results.html").exists()
+    assert (reports / "webarena-trajectory-replay-latest-results.html").exists()
     assert (reports / "webarena-trajectory-replay-latest-analysis.html").exists()
     assert (reports / "webarena-trajectory-replay-latest-appendix.html").exists()
+    assert (reports / "webarena-trajectory-replay-latest-review.html").exists()
     assert (reports / "webarena-trajectory-replay-latest-data.json").exists()
-    assert "总体结果" not in rendered
-    assert "第 1/6 页" in rendered
+    assert "一眼看懂这轮评测" in rendered
+    assert "总体结果" in results
     suite = (reports / "webarena-trajectory-replay-latest-suite.html").read_text(encoding="utf-8")
     assert "1</strong><span>公网任务" in suite
     assert "公网测试页面" in suite

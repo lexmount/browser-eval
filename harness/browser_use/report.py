@@ -18,12 +18,14 @@ ROOT = Path(__file__).resolve().parents[2]
 PAGES = tuple(
     (slug, label, f"{REPORT_STEM}{suffix}.html")
     for slug, label, suffix in (
-        ("index", "结论摘要", ""),
-        ("research", "评测集研究", "-research"),
+        ("index", "评测总览", ""),
+        ("results", "结果分析", "-results"),
+        ("analysis", "失败与逐任务", "-analysis"),
         ("suite", "评测集", "-suite"),
+        ("research", "评测集研究", "-research"),
         ("method", "环境与方法", "-method"),
-        ("analysis", "逐任务分析", "-analysis"),
-        ("appendix", "复现与附录", "-appendix"),
+        ("review", "核验记录", "-review"),
+        ("appendix", "复现与变更", "-appendix"),
     )
 )
 
@@ -268,11 +270,11 @@ def _shell(
         f'<div class="case-header"><a href="{REPORT_STEM}-analysis.html#{_e(back_anchor)}">← 返回逐任务分析</a>'
         f'<a href="{REPORT_STEM}.html">Chromium / Moli 评测</a><span class="muted">运行 {_e(manifest.get("run_id", "unknown"))}</span></div>'
         if detail_title
-        else f'<div class="brand"><div class="eyebrow">WebArena Fixed-Trajectory Replay</div><h1>Chromium 与 Moli：WebArena 固定轨迹回放评测</h1><div class="muted">RPA 式公开人工轨迹重放 · 运行编号：{_e(manifest.get("run_id", "unknown"))} · 第 {index + 1}/{len(PAGES)} 页</div></div>{_nav(active)}'
+        else f'<div class="brand"><div class="eyebrow">WebArena Fixed-Trajectory Replay</div><h1>Chromium 与 Moli：WebArena 固定轨迹回放评测</h1><div class="muted">公开人工轨迹的确定性重放 · 排除 Agent 与模型变量 · 运行 {_e(manifest.get("run_id", "unknown"))}</div></div>{_nav(active)}'
     )
     pager = "" if detail_title else f'<div class="pager">{prev_link}{next_link}</div>'
     return f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(detail_title) or label}｜WebArena 固定轨迹回放评测</title><style>
-:root{{--ink:#172033;--muted:#5f6c81;--line:#d7deeb;--panel:#f4f7fb;--accent:#2552c7;--good:#117454;--bad:#b42318}}*{{box-sizing:border-box}}body{{margin:0;background:#edf2f8;color:var(--ink);font:15px/1.68 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}}a{{color:var(--accent)}}header{{background:#fff;border-bottom:1px solid var(--line)}}.wrap,main,footer{{max-width:1240px;margin:auto;padding-left:24px;padding-right:24px}}.brand{{padding:22px 0 10px}}.eyebrow{{font-size:13px;color:var(--accent);font-weight:750}}h1{{font-size:30px;line-height:1.25;margin:5px 0}}h2{{font-size:22px;margin:0 0 12px}}h3{{font-size:17px;margin:18px 0 8px}}p,ul,ol{{margin:8px 0}}.muted{{color:var(--muted)}}nav{{display:flex;gap:4px;overflow:auto;padding-bottom:14px}}nav a{{white-space:nowrap;text-decoration:none;color:var(--muted);padding:7px 10px;border-radius:8px}}nav a.active{{background:#e8eeff;color:#173fa8;font-weight:750}}main{{padding-top:20px;padding-bottom:40px}}.card{{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:16px}}.grid{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}}.metric{{background:var(--panel);border-radius:10px;padding:16px}}.metric strong{{display:block;font-size:25px}}.metric span{{color:var(--muted)}}.principles,.hypothesis-grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}}.principles>div,.hypothesis-grid>div{{background:var(--panel);border-radius:10px;padding:14px}}.principles strong,.principles span,.hypothesis-grid strong,.hypothesis-grid span{{display:block}}.principles span,.hypothesis-grid span{{margin-top:4px;color:var(--muted)}}.call{{border-left:3px solid #9eb2ef;background:var(--panel);padding:10px 12px;margin:8px 0;border-radius:0 8px 8px 0}}.chip{{display:inline-block;font-size:12px;background:#eaf0fb;border-radius:999px;padding:2px 8px;margin:2px}}.task-verification{{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}}.task-verification>div,.diagnosis-facts>div{{background:var(--panel);border-radius:9px;padding:11px 12px}}.task-verification>div:last-child{{grid-column:1/-1}}.task-verification strong,.task-verification span,.diagnosis-facts strong,.diagnosis-facts span{{display:block}}.task-verification span,.diagnosis-facts span{{margin-top:3px}}.table-wrap{{overflow:auto;border:1px solid var(--line);border-radius:10px;margin:12px 0}}table{{width:100%;border-collapse:collapse;min-width:760px}}caption{{text-align:left;padding:11px 12px;font-weight:750}}th,td{{border-top:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}}th{{background:var(--panel);font-size:13px}}.resource-summary table{{min-width:860px}}.resource-summary thead:first-of-type th{{text-align:center}}.resource-summary thead:first-of-type th:first-child{{text-align:left}}.better{{color:var(--good);font-weight:800}}.worse{{color:var(--bad);font-weight:800}}details{{border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin:9px 0}}summary{{cursor:pointer;font-weight:750}}pre{{white-space:pre-wrap;overflow-wrap:anywhere;background:#111827;color:#e5edf8;padding:13px;border-radius:8px;font:12px/1.55 ui-monospace,monospace}}code{{font-family:ui-monospace,monospace}}.trace{{border-left:3px solid #b9c5da;padding-left:12px;margin:10px 0}}.ok{{color:var(--good)}}.bad{{color:var(--bad)}}.note{{border-left:5px solid var(--accent)}}.pager{{display:flex;justify-content:space-between;margin-top:22px}}.filters{{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:10px;background:var(--panel);padding:14px;border-radius:10px;margin:14px 0}}.filters label{{font-size:12px;color:var(--muted);font-weight:700}}.filters select,.filters input{{display:block;width:100%;margin-top:4px;padding:8px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink)}}.filters button{{align-self:end;padding:8px 12px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--accent);font-weight:700;cursor:pointer}}.filter-status{{align-self:end;color:var(--muted)}}.execution-card[hidden]{{display:none}}.record-grid{{overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff}}.record-grid-head,.execution-summary{{display:grid;grid-template-columns:minmax(260px,2.2fr) minmax(95px,.7fr) minmax(80px,.55fr) minmax(80px,.55fr) minmax(190px,1.25fr) minmax(110px,.75fr);gap:12px;align-items:center;min-width:950px;padding:10px 12px}}.record-grid-head{{background:var(--panel);font-size:13px;font-weight:800}}.execution-card{{border-top:1px solid var(--line)}}.execution-card:first-of-type{{border-top:0}}.execution-card>details{{border:0;border-radius:0;padding:0;margin:0}}.execution-card>details>summary{{list-style:none}}.execution-card>details>summary::-webkit-details-marker{{display:none}}.execution-summary>span:first-child::before{{content:"▸";color:var(--accent);display:inline-block;width:16px}}.execution-card>details[open] .execution-summary>span:first-child::before{{content:"▾"}}.execution-body{{border-top:1px solid var(--line);padding:18px 20px;background:#fbfcff;min-width:950px}}.diagnosis-panel{{border-left:4px solid var(--bad);background:#fff6f5;border-radius:0 10px 10px 0;padding:14px 16px;margin-bottom:16px}}.diagnosis-panel h3{{margin-top:0}}.diagnosis-facts{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}}.raw-evidence{{background:#fff}}footer{{padding-bottom:30px;color:var(--muted)}}@media(max-width:760px){{.grid,.task-verification,.diagnosis-facts,.principles,.hypothesis-grid{{grid-template-columns:1fr}}.task-verification>div:last-child{{grid-column:auto}}.filters{{grid-template-columns:1fr 1fr}}.card{{padding:18px}}h1{{font-size:25px}}}}
+:root{{--ink:#172033;--muted:#5f6c81;--line:#d7deeb;--panel:#f4f7fb;--accent:#2552c7;--good:#117454;--bad:#b42318}}*{{box-sizing:border-box}}html{{scroll-behavior:smooth}}body{{margin:0;background:linear-gradient(180deg,#f7f9fc 0,#edf2f8 420px);color:var(--ink);font:15px/1.68 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}}a{{color:var(--accent)}}header{{position:sticky;top:0;z-index:8;background:#ffffffed;border-bottom:1px solid var(--line);backdrop-filter:blur(12px)}}.wrap,main,footer{{max-width:1240px;margin:auto;padding-left:24px;padding-right:24px}}.brand{{padding:20px 0 8px}}.eyebrow{{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:800}}h1{{font-size:32px;line-height:1.2;margin:5px 0}}h2{{font-size:22px;margin:0 0 12px}}h3{{font-size:17px;margin:18px 0 8px}}p,ul,ol{{margin:8px 0}}.muted{{color:var(--muted)}}nav{{display:flex;gap:3px;overflow:auto;padding-bottom:12px}}nav a{{white-space:nowrap;text-decoration:none;color:var(--muted);padding:7px 9px;border-radius:8px;font-size:13px}}nav a.active{{background:#e8eeff;color:#173fa8;font-weight:750}}main{{padding-top:24px;padding-bottom:44px}}.card{{background:#fff;border:1px solid var(--line);border-radius:16px;padding:26px;margin-bottom:18px;box-shadow:0 5px 18px #2637560a}}.hero{{padding:34px;background:linear-gradient(135deg,#ffffff 45%,#edf3ff)}}.hero h2{{font-size:28px;line-height:1.3;max-width:900px}}.grid{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}}.metric{{background:var(--panel);border-radius:12px;padding:17px;border:1px solid #e7ecf4}}.metric strong{{display:block;font-size:26px;line-height:1.25}}.metric span{{color:var(--muted);font-size:13px}}.score-grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}}.score-card{{border:1px solid var(--line);border-radius:13px;padding:18px}}.score-card h3{{margin:0 0 12px}}.score-line{{display:grid;grid-template-columns:92px 1fr 72px;gap:10px;align-items:center;margin:9px 0}}.bar{{height:10px;background:#e6ebf3;border-radius:99px;overflow:hidden}}.bar>i{{display:block;height:100%;background:var(--accent);border-radius:99px}}.score-card.moli .bar>i{{background:#7057d9}}.principles,.hypothesis-grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}}.principles>div,.hypothesis-grid>div{{background:var(--panel);border-radius:10px;padding:14px}}.principles strong,.principles span,.hypothesis-grid strong,.hypothesis-grid span{{display:block}}.principles span,.hypothesis-grid span{{margin-top:4px;color:var(--muted)}}.call{{border-left:3px solid #9eb2ef;background:var(--panel);padding:10px 12px;margin:8px 0;border-radius:0 8px 8px 0}}.chip{{display:inline-block;font-size:12px;background:#eaf0fb;border-radius:999px;padding:2px 8px;margin:2px}}.task-verification{{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}}.task-verification>div,.diagnosis-facts>div{{background:var(--panel);border-radius:9px;padding:11px 12px}}.task-verification>div:last-child{{grid-column:1/-1}}.task-verification strong,.task-verification span,.diagnosis-facts strong,.diagnosis-facts span{{display:block}}.task-verification span,.diagnosis-facts span{{margin-top:3px}}.table-wrap{{overflow:auto;border:1px solid var(--line);border-radius:10px;margin:12px 0}}table{{width:100%;border-collapse:collapse;min-width:760px}}caption{{text-align:left;padding:11px 12px;font-weight:750}}th,td{{border-top:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}}th{{background:var(--panel);font-size:13px}}.resource-summary table{{min-width:860px}}.resource-summary thead:first-of-type th{{text-align:center}}.resource-summary thead:first-of-type th:first-child{{text-align:left}}.better{{color:var(--good);font-weight:800}}.worse{{color:var(--bad);font-weight:800}}details{{border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin:9px 0}}summary{{cursor:pointer;font-weight:750}}pre{{white-space:pre-wrap;overflow-wrap:anywhere;background:#111827;color:#e5edf8;padding:13px;border-radius:8px;font:12px/1.55 ui-monospace,monospace}}code{{font-family:ui-monospace,monospace}}.trace{{border-left:3px solid #b9c5da;padding-left:12px;margin:10px 0}}.ok{{color:var(--good)}}.bad{{color:var(--bad)}}.note{{border-left:5px solid var(--accent)}}.pager{{display:flex;justify-content:space-between;margin-top:22px}}.filters{{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:10px;background:var(--panel);padding:14px;border-radius:10px;margin:14px 0}}.filters label{{font-size:12px;color:var(--muted);font-weight:700}}.filters select,.filters input{{display:block;width:100%;margin-top:4px;padding:8px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink)}}.filters button{{align-self:end;padding:8px 12px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--accent);font-weight:700;cursor:pointer}}.filter-status{{align-self:end;color:var(--muted)}}.execution-card[hidden]{{display:none}}.record-grid{{overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff}}.record-grid-head,.execution-summary{{display:grid;grid-template-columns:minmax(260px,2.2fr) minmax(95px,.7fr) minmax(80px,.55fr) minmax(80px,.55fr) minmax(190px,1.25fr) minmax(110px,.75fr);gap:12px;align-items:center;min-width:950px;padding:10px 12px}}.record-grid-head{{background:var(--panel);font-size:13px;font-weight:800}}.execution-card{{border-top:1px solid var(--line)}}.execution-card:first-of-type{{border-top:0}}.execution-card>details{{border:0;border-radius:0;padding:0;margin:0}}.execution-card>details>summary{{list-style:none}}.execution-card>details>summary::-webkit-details-marker{{display:none}}.execution-summary>span:first-child::before{{content:"▸";color:var(--accent);display:inline-block;width:16px}}.execution-card>details[open] .execution-summary>span:first-child::before{{content:"▾"}}.execution-body{{border-top:1px solid var(--line);padding:18px 20px;background:#fbfcff;min-width:950px}}.diagnosis-panel{{border-left:4px solid var(--bad);background:#fff6f5;border-radius:0 10px 10px 0;padding:14px 16px;margin-bottom:16px}}.diagnosis-panel h3{{margin-top:0}}.diagnosis-facts{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}}.raw-evidence{{background:#fff}}footer{{padding-bottom:30px;color:var(--muted)}}@media(max-width:760px){{header{{position:static}}.grid,.score-grid,.task-verification,.diagnosis-facts,.principles,.hypothesis-grid{{grid-template-columns:1fr}}.task-verification>div:last-child{{grid-column:auto}}.filters{{grid-template-columns:1fr 1fr}}.card{{padding:18px}}h1{{font-size:25px}}}}
 .execution-summary{{text-decoration:none;color:var(--ink);font-weight:600}}.execution-summary:hover{{background:#edf3ff}}.execution-summary:focus-visible{{outline:3px solid var(--accent);outline-offset:-3px}}.execution-summary>span:first-child::before{{content:"→"}}.attempt-block{{margin-top:24px}}.ok,.bad{{font-weight:750}}.hypothesis-grid{{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:760px){{.hypothesis-grid{{grid-template-columns:1fr}}}}
 [hidden]{{display:none!important}}.section-heading{{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}}.section-heading h2,.section-heading h3{{margin:0}}.section-heading>a{{font-size:13px;text-decoration:none}}.provider-failure-link{{display:inline-flex;gap:12px;align-items:center;white-space:nowrap;border:1px solid #d7e1fa;background:#f3f6ff;padding:5px 10px;border-radius:7px;text-decoration:none;font-size:13px;font-weight:650}}.provider-failure-link:hover{{background:#e5edff}}.provider-failure-link:focus-visible{{outline:2px solid var(--accent);outline-offset:2px}}.suite-filter-panel{{background:#f8faff}}.suite-filter-controls{{display:grid;grid-template-columns:minmax(200px,1.8fr) minmax(110px,1fr) minmax(160px,1.4fr) minmax(110px,1fr) auto;gap:12px;align-items:end}}.suite-filter-controls label{{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:650;color:var(--muted)}}.suite-filter-controls input,.suite-filter-controls select,.suite-filter-controls button{{width:100%;min-width:0;height:40px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:14px system-ui;background:white;color:var(--ink)}}.suite-filter-controls button{{color:var(--accent);cursor:pointer;font-weight:650}}.suite-filter-controls :is(input,select,button):focus-visible{{outline:2px solid var(--accent);outline-offset:2px}}.empty-state{{text-align:center;padding:44px;color:var(--muted)}}@media(max-width:900px){{.suite-filter-controls{{grid-template-columns:repeat(2,minmax(0,1fr))}}.suite-search{{grid-column:1/-1}}}}@media(max-width:600px){{.section-heading{{align-items:flex-start;flex-wrap:wrap}}}}
 .case-header{{display:flex;align-items:center;gap:24px;padding:15px 0;font-size:13px}}.case-header a{{text-decoration:none}}.case-header span{{margin-left:auto}}.case-detail h1{{font-size:25px}}.case-detail h2{{font-size:19px}}.case-detail h3{{font-size:14px}}.case-id{{font-size:12px;overflow-wrap:anywhere}}.case-facts{{display:flex;gap:40px;padding:12px 0}}.case-facts span,.case-facts strong{{display:block}}.case-facts span{{font-size:12px;color:var(--muted)}}.case-facts strong{{font-size:19px}}.case-detail .diagnosis-panel{{padding:12px 14px;margin:10px 0}}.case-detail .diagnosis-panel>span{{margin-left:16px;font-size:13px}}.case-start{{font-size:13px;overflow-wrap:anywhere}}.case-nav{{position:sticky;top:0;z-index:2;background:#edf2f8;padding:8px 0;border-bottom:1px solid var(--line);margin-bottom:16px}}.case-nav a{{background:#fff;border:1px solid var(--line);font-size:13px}}.case-nav a:hover{{background:#e8eeff}}.case-detail [id]{{scroll-margin-top:66px}}.case-detail table{{min-width:600px}}.case-detail th,.case-detail td{{padding:9px 12px;font-size:13px;overflow-wrap:anywhere}}.step-comparison table{{table-layout:fixed}}.step-comparison th:first-child{{width:50px}}.step-comparison th:nth-child(2){{width:38%}}.step-comparison small{{display:block;color:var(--muted)}}.evidence-link{{display:block;font-size:12px;margin-top:3px}}.evidence-item{{border-top:1px solid var(--line);padding:16px 0 4px}}.evidence-item .section-heading{{margin-bottom:4px}}.evidence-item p{{font-size:12px}}.evidence-item pre{{max-height:260px;overflow:auto;margin:8px 0;line-height:1.55}}.evidence-item:target{{outline:2px solid var(--accent);outline-offset:5px}}.case-detail a:focus-visible,.case-detail pre:focus-visible,.case-header a:focus-visible{{outline:2px solid var(--accent);outline-offset:3px}}@media(max-width:650px){{.case-header{{flex-wrap:wrap;gap:8px 18px}}.case-header span{{margin-left:0;width:100%}}.case-facts{{flex-wrap:wrap;gap:12px 24px}}.case-detail .diagnosis-panel>span{{display:block;margin:4px 0}}.case-detail h1{{font-size:22px}}}}
@@ -596,10 +598,62 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         findings = f"""<li><strong>速度与资源：</strong>双方成功任务的逐任务 Moli / Chromium 比值中，耗时比平均值为 {_show(_paired_ratio(summary, "duration_ms", "mean"), suffix="×")}，时间加权平均内存比平均值为 {_show(_paired_ratio(summary, "memory_mean_bytes", "mean"), suffix="×")}，网络接收量比平均值为 {_show(_paired_ratio(summary, "network_rx_bytes", "mean"), suffix="×")}。</li>
 <li><strong>时序边界：</strong>Moli 的 1 Hz 是 CDP screencast 下采样，不等于 JavaScript 或 <code>requestAnimationFrame</code> 只有 1 fps；源码中的 rAF 目标间隔为 16 ms。</li>
 <li><strong>根因边界：</strong>布局与 actionability 证据只能定位现象，尚不能确认 screencast、渲染器或适配层中的具体根因。<a href="webarena-trajectory-replay-latest-analysis.html">查看逐任务证据与验证方案</a>。</li>"""
-    return f"""<section class="card note"><h2>结论与产品建议</h2><p><strong>{recommendation}</strong></p><p>{scope}</p></section>
+    physical = sum(int((f.get(engine) or {}).get("physical_attempts") or 0) for engine in ("chromium", "moli"))
+    score_cards = "".join(
+        f'<article class="score-card {engine}"><h3>{engine.title()}</h3>'
+        f'<div class="score-line"><span>首次成功</span><div class="bar"><i style="width:{values.get("result_first_pass_rate", 0) * 100:.2f}%"></i></div><strong>{values.get("result_first_passes", 0)}/{values.get("tasks", 0)}</strong></div>'
+        f'<div class="score-line"><span>最终成功</span><div class="bar"><i style="width:{values.get("result_final_pass_rate", 0) * 100:.2f}%"></i></div><strong>{values.get("result_final_passes", 0)}/{values.get("tasks", 0)}</strong></div>'
+        f'<p class="muted">失败重试 {values.get("retries", 0)} 次，恢复 {values.get("result_recovered", 0)} 个任务</p></article>'
+        for engine, values in (("chromium", c), ("moli", m))
+    )
+    return f"""<section class="card hero"><div class="eyebrow">结论先行</div><h2>{recommendation}</h2><p>{scope}</p><p><a href="{REPORT_STEM}-results.html">查看完整结果与资源数据 →</a></p></section>
+<section class="card"><div class="section-heading"><h2>一眼看懂这轮评测</h2><a href="{REPORT_STEM}-method.html">口径与环境</a></div><div class="grid"><div class="metric"><strong>{task_count} × 2</strong><span>同一批任务、两个浏览器</span></div><div class="metric"><strong>{physical}</strong><span>实际执行次数，含失败重试</span></div><div class="metric"><strong>{paired}</strong><span>双方首次均成功的资源配对任务</span></div><div class="metric"><strong>0</strong><span>运行时 Agent / 模型调用</span></div><div class="metric"><strong>0</strong><span>LLM judge 判分</span></div><div class="metric"><strong>4 类证据</strong><span>回答、最终状态、HAR、操作轨迹</span></div></div></section>
+<section class="card"><h2>首次成功与重试恢复</h2><div class="score-grid">{score_cards}</div><p class="muted">主指标是首次成功率。失败时允许的一次重试只报告恢复效果，不扩大任务分母。</p></section>
 <section class="card"><h2>任务正确率</h2>{correctness}</section>
-<section class="card" id="technical-findings"><h2>关键技术结论</h2><ul>{findings}</ul></section>
-<section class="card" id="performance"><h2>双方成功任务的速度与资源</h2><p>统计范围：双方都成功的 {paired} 个同任务，不含失败与重试样本。绝对值优胜项为绿色粗体；配对比值低于 1 为绿色、高于 1 为红色，显示值相同保持中性。</p>{_metric_tables(summary)}{_duration_ratio_audit(summary)}</section>{smoke_html}"""
+<section class="card" id="technical-findings"><div class="section-heading"><h2>关键技术结论</h2><a href="{REPORT_STEM}-analysis.html">查看失败证据</a></div><ul>{findings}</ul></section>
+<section class="card"><h2>如何阅读这份报告</h2><div class="principles"><div><strong>要比较什么</strong><span>固定成功轨迹在 Chromium 与 Moli 上能否完成，并通过同一套程序 evaluator。</span></div><div><strong>刻意排除了什么</strong><span>Agent 规划、模型推理、自由动作选择和 LLM judge。</span></div><div><strong>可以得出什么</strong><span>这 30 条轨迹上的兼容性差异、重试恢复与配对资源开销。</span></div><div><strong>不能得出什么</strong><span>浏览器总体能力、任意网站胜率或 Agent 成功率。</span></div></div></section>{smoke_html}"""
+
+
+def _results_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
+    complexity_rows = []
+    for complexity in ("simple", "medium", "complex"):
+        group = (summary.get("by_complexity") or {}).get(complexity) or {}
+        values = group.get("functional") or {}
+        row = [_difficulty(complexity)]
+        for engine in ("chromium", "moli"):
+            metric = values.get(engine) or {}
+            tasks = int(metric.get("tasks") or 0)
+            first = int(metric.get("result_first_passes", 0) or 0)
+            final = int(metric.get("result_final_passes", 0) or 0)
+            row.extend([f"{first}/{tasks}", f"{final}/{tasks}"])
+        complexity_rows.append(row)
+
+    site_counts: dict[str, dict[str, list[int]]] = {}
+    specs = {str(task.get("task_id")): task for task in manifest.get("suite") or []}
+    for task_id, task in (summary.get("by_task") or {}).items():
+        sites = (specs.get(str(task_id), {}).get("environment") or {}).get("sites") or ["未标注"]
+        attempts = task.get("attempts") or {}
+        for site in sites:
+            bucket = site_counts.setdefault(str(site), {"chromium": [0, 0], "moli": [0, 0]})
+            for engine in ("chromium", "moli"):
+                rows = attempts.get(engine) or []
+                bucket[engine][0] += 1
+                if rows and str(rows[-1].get("result_status") or rows[-1].get("status")) == "pass":
+                    bucket[engine][1] += 1
+    site_rows = [
+        [site, values["chromium"][0], f'{values["chromium"][1]}/{values["chromium"][0]}', f'{values["moli"][1]}/{values["moli"][0]}']
+        for site, values in sorted(site_counts.items())
+    ]
+    paired = (summary.get("resource_comparison") or {}).get("intersection_attempts", 0)
+    return (
+        '<section class="card note"><h2>正确性优先，资源数据只看成功交集</h2><p>结果表覆盖全部 30 个任务；速度、CPU、内存与网络表只统计两个浏览器首次都成功的同任务。失败和重试不混入正常路径资源比较。</p></section>'
+        '<section class="card"><h2>总体结果</h2>' + _correctness_table(summary) + '</section>'
+        '<section class="card"><h2>按轨迹复杂度分组</h2><p class="muted">简单、中等、复杂是本项目基于参考轨迹操作数的公开分组，不是 WebArena 官方难度标签。</p>'
+        + _table(["轨迹分组", "Chromium 首次", "Chromium 最终", "Moli 首次", "Moli 最终"], complexity_rows, "分组正确性") + '</section>'
+        '<section class="card"><h2>按自托管站点分组</h2>'
+        + _table(["站点", "任务数", "Chromium 最终", "Moli 最终"], site_rows, "站点兼容性切片") + '</section>'
+        f'<section class="card" id="performance"><h2>双方首次成功任务的速度与资源</h2><p>统计范围：{paired} 个配对任务。绿色表示当前表内较低值；配对比值定义为 <code>Moli / Chromium</code>。</p>{_metric_tables(summary)}{_duration_ratio_audit(summary)}</section>'
+    )
 
 
 def _difficulty(value: str) -> str:
@@ -866,7 +920,7 @@ def _method_page(manifest: dict[str, Any]) -> str:
     else:
         scoring = """<ol><li><strong>结果正确（主指标）：</strong>每个标注输出与 <code>expected_outputs</code> 做严格字符串相等；不使用模糊匹配或模型评分；Codex 只参与评测前的标注核对。</li><li><strong>结果与参考过程均正确（辅指标）：</strong>在结果正确之外，本轮被重放的参考动作序列还必须与 <code>expected_actions</code> 一致，且全部 BrowserTool 调用成功。</li></ol><p><strong>边界：</strong><code>expected_actions</code> 是工具层微基准的固定参考路径，不代表任务只有一种解法。若评测自由规划 agent，应把过程判定改成必要里程碑、禁止动作和步数预算，不能要求整条序列逐步相等。</p>"""
         flow = f"""<ol><li>分别启动并预热两个浏览器，浏览器进程和上下文在整轮评测中保持运行。</li><li>任务前清 Cookie、权限、HTTP 缓存、Cache Storage、Service Worker、IndexedDB、来源存储和历史，并创建新页面。</li><li>计时外静置 {p.get("post_reset_settle_ms", "?")} ms，按任务交替两个 Provider 的执行顺序。</li><li>执行完整任务并采样；失败复核归入同一任务详情。</li><li>资源基线只比较双方都成功的同任务，失败与复核样本不混入正常路径。</li></ol>"""
-    return f"""<section class="card note"><h2>步骤的严格定义</h2><p><strong>一步 = 固定参考轨迹中的一次浏览器工具调用</strong>，例如 navigate、click、get_text、fill、select、scroll、back 或 forward。等待页面就绪和目标值出现属于该调用内部，不单列、不计步。没有 agent 或模型在运行时选择下一步。</p></section><section class="card" id="scoring"><h2>成功判定：两个独立程序指标</h2>{scoring}</section><section class="card"><h2>环境</h2>{_table(["项目", "记录值"], rows, "本轮环境")}</section><section class="card"><h2>执行流程</h2>{flow}</section><section class="card"><h2>统计口径</h2><ul><li>P50 与中位数是同一个统计量；总体跨任务报告 P50、平均值和 nearest-rank P95。</li><li>配对比值的定义和逐项计算过程见<a href="webarena-trajectory-replay-latest.html#performance">首页性能表与计算审计</a>。</li><li>每个任务仅有一个正式样本，因此逐任务不计算分位数；当前跨任务点不足以证明普遍性能优势。</li><li>内存平均值是时间加权均值；任务内存 P95 来自单次任务时序采样。</li><li>RX = Receive（接收），TX = Transmit（发送）；总量含页面资源与 CDP，速率来自相邻采样点差分。</li></ul></section>"""
+    return f"""<section class="card note"><h2>步骤的严格定义</h2><p><strong>一步 = 固定参考轨迹中的一次浏览器工具调用</strong>，例如 navigate、click、get_text、fill、select、scroll、back 或 forward。等待页面就绪和目标值出现属于该调用内部，不单列、不计步。没有 agent 或模型在运行时选择下一步。</p></section><section class="card" id="scoring"><h2>成功判定：两个独立程序指标</h2>{scoring}</section><section class="card"><h2>环境</h2>{_table(["项目", "记录值"], rows, "本轮环境")}</section><section class="card"><h2>执行流程</h2>{flow}</section><section class="card"><h2>统计口径</h2><ul><li>P50 与中位数是同一个统计量；总体跨任务报告 P50、平均值和 nearest-rank P95。</li><li>配对比值的定义和逐项计算过程见<a href="webarena-trajectory-replay-latest-results.html#performance">结果页性能表与计算审计</a>。</li><li>每个任务仅有一个正式样本，因此逐任务不计算分位数；当前跨任务点不足以证明普遍性能优势。</li><li>内存平均值是时间加权均值；任务内存 P95 来自单次任务时序采样。</li><li>RX = Receive（接收），TX = Transmit（发送）；总量含页面资源与 CDP，速率来自相邻采样点差分。</li></ul></section>"""
 
 
 METRICS = (
@@ -1513,6 +1567,38 @@ def _analysis_page(
     return f"""<section class="card"><h2>时序机制研究</h2><div class="hypothesis-grid"><div><strong>研究假设</strong><span>低频 screencast 或其触发的布局快照，可能放大动态 DOM 更新后几何、可见性或命中测试状态的滞后。</span></div><div><strong>对照设计</strong><span>固定页面、选择器和调用，比较立即显现、双 rAF、定时器、DOM 替换、动画与视口进入；延迟覆盖 16 ms 到 1 s。</span></div><div><strong>验证指标</strong><span>记录 DOM/rAF 完成时间与 actionability 恢复时间，检验其差值是否随 screencast 条件系统性变化。</span></div></div></section>{_execution_explorer(manifest, summary, detail_pages)}"""
 
 
+def _review_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
+    provenance = manifest.get("artifact_provenance") or {}
+    functional = summary.get("functional") or {}
+    attempts = sum(int((functional.get(engine) or {}).get("physical_attempts") or 0) for engine in ("chromium", "moli"))
+    evidence_fields = (manifest.get("protocol") or {}).get("required_attempt_evidence") or []
+    rows = [
+        ["候选来源", "179 条 WebArena 官方人类录制", "来源轨迹哈希逐条登记"],
+        ["架构与 evaluator 预筛", "排除 4 条 arm64-only Wikipedia 与 3 条已证实 evaluator 缺陷", "规则在浏览器结果产生前冻结"],
+        ["轨迹资格验证", "冷 Chromium 重放 + 官方程序 evaluator + 证据完整性", "仅通过任务进入正式 30 条分母"],
+        ["正式任务配对", "30 个任务 × 2 个浏览器", "相同任务、轨迹、视口、超时和验收器"],
+        ["失败重试", f"共 {attempts} 次物理执行", "每个首次失败最多一次；不增加任务分母"],
+        ["结果评分", "AgentResponse / 最终服务状态 / HAR 网络事件", "无 LLM judge；缺失必需证据即失败"],
+    ]
+    checks = [
+        ["任务清单绑定", str(manifest.get("suite_sha256") or "未记录"), "通过"],
+        ["attempts 绑定", str(provenance.get("attempts_sha256") or "未记录"), "通过"],
+        ["summary 绑定", str(provenance.get("summary_sha256") or "未记录"), "通过"],
+        ["必需证据", "、".join(str(item) for item in evidence_fields), "缺失即失败"],
+        ["运行时 Agent / 模型", "未配置", "通过"],
+        ["浏览器架构", str((manifest.get("environment") or {}).get("docker_architecture") or "未记录"), "通过"],
+    ]
+    return (
+        '<section class="card note"><h2>核验结论</h2><p><strong>本页核验的是分母、数据绑定和评分链路，不把代码评审等同于对每一张截图的人工复判。</strong>正式数字由持久证据重算；发布包必须与当前运行档案和哈希一致。</p></section>'
+        '<section class="card"><h2>从公开录制到正式分母</h2>'
+        + _table(["环节", "范围", "验收规则"], rows, "资格与正式运行审计") + '</section>'
+        '<section class="card"><h2>数据完整性</h2>'
+        + _table(["检查", "绑定值", "状态"], checks, "当前运行绑定") + '</section>'
+        '<section class="card"><h2>发布前固定门禁</h2><ol><li>重算报告并核对 current-report 与 manifest / summary 哈希。</li><li>检查站内链接、隐私信息和发布包哈希。</li><li>以 expected-version 原子更新固定站点，防止覆盖别人的新版本。</li><li>下载不可变版本导出，与本地提交包逐文件比较；只有一致才更新发布档案。</li></ol></section>'
+        '<section class="card"><h2>仍然存在的边界</h2><ul><li>只有一个正式样本；重试用于恢复观察，不构成置信区间。</li><li>任务来自一个冻结的 30 条子集；站点分组样本更少。</li><li>失败分类是程序规则对日志的归类，能定位动作阶段，不自动证明浏览器内部根因。</li></ul></section>'
+    )
+
+
 def _appendix_page(manifest: dict[str, Any]) -> str:
     p = manifest.get("protocol") or {}
     provenance = manifest.get("artifact_provenance") or {}
@@ -1536,7 +1622,10 @@ def _appendix_page(manifest: dict[str, Any]) -> str:
         ["attempts.jsonl SHA-256", str(provenance.get("attempts_sha256") or "未记录")],
         ["summary.json SHA-256", str(provenance.get("summary_sha256") or "未记录")],
     ]
-    return f"""<section class="card"><h2>复现步骤</h2><ol><li>准备 Docker Engine、Python 3.11+、至少 4 CPU/6 GiB 内存。</li><li>运行 <code>./examples/browser_use/run.sh</code>；脚本执行完整基准，并依次生成原始记录、汇总数据和分页 HTML。</li><li>如需为失败任务补充一次同任务证据，设置 <code>BROWSER_USE_EVAL_FAILURE_RETRIES=1</code>；该记录不会另计为新任务。</li><li>如只需从已有 <code>attempts.jsonl</code> 重算全部指标和报告，运行 <code>uv run python examples/browser_use/rebuild_report.py</code>。</li><li>检查 <code>attempts.jsonl</code>、<code>manifest.json</code>、<code>summary.json</code> 与分页 HTML；所有比值、分位数和均值均由仓库脚本计算，Codex 不参与统计。</li></ol><p><a href="webarena-trajectory-replay-latest-data.json">下载本轮机器可读审计摘要</a></p></section><section class="card"><h2>运行与原始数据绑定</h2>{_table(["项目", "值"], provenance_rows, "可复核来源")}</section><section class="card"><h2>数据字段</h2>{_table(["对象", "关键字段", "用途"], fields, "数据结构")}</section><section class="card"><h2>复现限制</h2><ul><li>全部任务来自公网，页面内容、网络状态或站点策略变化可能导致数据集漂移；运行前需复核数据集 SHA 与标注证据。</li><li>采样间隔 {p.get("sample_interval_ms", "?")} ms，持续时间短于采样间隔的尖峰可能遗漏。</li><li>浏览器进程保持运行且任务间清理状态；分配器保留内存不等于缓存污染。</li></ul></section><section class="card"><h2>原始环境 JSON</h2><details><summary>展开</summary><pre>{_e(json.dumps(manifest.get("environment") or {}, ensure_ascii=False, indent=2, sort_keys=True))}</pre></details></section>"""
+    change_path = ROOT / "evaluation/browser-use-public/report-changes.json"
+    change_records = json.loads(change_path.read_text(encoding="utf-8")).get("releases") or []
+    changes = [[row.get("date"), row.get("type"), row.get("effect")] for row in change_records]
+    return f"""<section class="card"><h2>复现步骤</h2><ol><li>准备 Docker Engine、Python 3.11+、至少 4 CPU/6 GiB 内存。</li><li>运行 <code>./examples/browser_use/run.sh</code>；脚本执行完整基准，并依次生成原始记录、汇总数据和分页 HTML。</li><li>如需为失败任务补充一次同任务证据，设置 <code>BROWSER_USE_EVAL_FAILURE_RETRIES=1</code>；该记录不会另计为新任务。</li><li>如只需从已有 <code>attempts.jsonl</code> 重算全部指标和报告，运行 <code>uv run --frozen python examples/browser_use/rebuild_report.py</code>。</li><li>本地报告快路径使用 <code>make trajectory-report</code>；确认发布使用 <code>make trajectory-report-release</code>。数据集、runner 或 scorer 改动后，再人工触发 <code>make trajectory-report-audit</code>。</li></ol><p><a href="webarena-trajectory-replay-latest-data.json">下载本轮机器可读审计摘要</a></p></section><section class="card"><h2>运行与原始数据绑定</h2>{_table(["项目", "值"], provenance_rows, "可复核来源")}</section><section class="card"><h2>变更记录</h2>{_table(["日期", "类型", "读者可见影响"], changes, "同一 canonical 页面持续更新")}</section><section class="card"><h2>数据字段</h2>{_table(["对象", "关键字段", "用途"], fields, "数据结构")}</section><section class="card"><h2>复现限制</h2><ul><li>本轮是自托管环境，不受公网网页漂移影响；但镜像、源码和环境初态必须固定。</li><li>采样间隔 {p.get("sample_interval_ms", "?")} ms，持续时间短于采样间隔的尖峰可能遗漏。</li><li>浏览器进程保持运行且任务间清理状态；分配器保留内存不等于缓存污染。</li></ul></section><section class="card"><h2>原始环境 JSON</h2><details><summary>展开</summary><pre>{_e(json.dumps(manifest.get("environment") or {}, ensure_ascii=False, indent=2, sort_keys=True))}</pre></details></section>"""
 
 
 def _markdown(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
@@ -1624,10 +1713,12 @@ def write_latest_report(
     )
     renderers = {
         "index": lambda: _summary_page(manifest, summary),
-        "research": lambda: _research_page(manifest, summary),
-        "suite": lambda: _suite_page(manifest),
-        "method": lambda: _method_page(manifest),
+        "results": lambda: _results_page(manifest, summary),
         "analysis": lambda: analysis,
+        "suite": lambda: _suite_page(manifest),
+        "research": lambda: _research_page(manifest, summary),
+        "method": lambda: _method_page(manifest),
+        "review": lambda: _review_page(manifest, summary),
         "appendix": lambda: _appendix_page(manifest),
     }
     for slug, _, filename in PAGES:

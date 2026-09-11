@@ -1,7 +1,7 @@
 UV ?= uv
 PY := $(UV) run --frozen python
 
-.PHONY: setup runtime-check test test-python test-ui fixture-smoke ci report report-check
+.PHONY: setup runtime-check test test-python test-ui fixture-smoke ci report report-check trajectory-report trajectory-report-release trajectory-report-audit
 
 setup:
 	$(UV) sync --frozen --all-extras
@@ -34,3 +34,13 @@ report-check: runtime-check
 	$(PY) scripts/check_report.py reports/webfetch
 	$(PY) scripts/check_report_links.py reports/webfetch
 	$(PY) scripts/check_report_revision.py reports/webfetch
+
+trajectory-report: runtime-check
+	$(PY) scripts/release_webarena_trajectory_report.py
+
+trajectory-report-release: runtime-check
+	$(PY) scripts/release_webarena_trajectory_report.py --publish
+
+trajectory-report-audit: runtime-check
+	$(PY) -m pytest tests/browser_use -q
+	$(PY) scripts/release_webarena_trajectory_report.py

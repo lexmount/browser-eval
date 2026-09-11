@@ -1,0 +1,15 @@
+{
+  "schema": "lexmount_webarena_trajectory_report_changes/1",
+  "releases": [
+    {
+      "date": "2026-09-11",
+      "type": "首次发布",
+      "effect": "公开 30 条 WebArena 固定轨迹的 Chromium / Moli 正式结果，独立于 Web Fetch 报告。"
+    },
+    {
+      "date": "2026-09-11",
+      "type": "报告结构升级",
+      "effect": "补齐总览指标、首次与最终成功、分组结果、核验记录和变更记录；测量结果未变。"
+    }
+  ]
+}
