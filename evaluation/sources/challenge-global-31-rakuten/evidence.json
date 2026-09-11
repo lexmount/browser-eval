@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-31-rakuten",
+  "url": "https://ranking.rakuten.co.jp/",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "af85ad22bc30ba16bf2bb1a3db4991e641006f9d0e8a798a4d2a0c8c60caf6cb",
+  "items_sha256": "aa4e18fc88c107408aa289f48206aed57633e5e36c4d1eac0df94776b2119a92",
+  "reference_sha256": "f265cebb129448a5f66ccf820c934f7787dd9009cb33cf2414c837c090e1d2b3",
+  "list_reference_sha256": "fd196caa5fc3479169d738ba03ed47e3dcb3f568767fd912c46a94269192b1ad",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "商品详情只呈现“店铺/商品”两段通用结构；精确商品主机已显著收窄范围，但仍需确认该主机是否存在同形非商品页面。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

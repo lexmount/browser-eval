@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-27-espn",
+  "url": "https://www.espn.com/nba/standings",
+  "checked_at": "2026-09-08",
+  "source": "Independent rendered list and detail-page review; formalized from the reviewed handoff",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "stable_page_sha256": "a8e9b3af001569c71188370c4dc702c122cb1ac153993b01cb1e2cdaa720908d",
+  "items_sha256": "3e21b8ab3cc16ed44c170b38f6706e8556cac6f1ac8fa8576f461e9e32a0442d",
+  "list_reference_sha256": "16d961f2cbebb039c10e3873ea8f10d39714920ac932b268eb53831ca17947ed",
+  "reference_sha256": "d8b9d4fe989fba567449df4257f075c3cf605295cbbf5c38e569578ba7be9d5f",
+  "scope": "Three verified name-detail pairs plus selected stable standings text",
+  "items": 3,
+  "access_context": "Public pages in an ordinary logged-out browser",
+  "risk": "这是本批规则的格式基准；赛季年份、排名和统计值均不在 contract 中。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

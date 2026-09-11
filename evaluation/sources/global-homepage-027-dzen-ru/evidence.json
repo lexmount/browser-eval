@@ -1,0 +1,30 @@
+{
+  "case_id": "global-homepage-027-dzen-ru",
+  "domain": "dzen.ru",
+  "url": "https://dzen.ru/",
+  "final_url": "https://dzen.ru/",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "48531c6c62c5f62a737412eaa9a2247357a52a8d10065c55301ac15436f36d37",
+  "stable_page_sha256": "49399e6094d8d575423ccc227682c58edf37e38b377e30e0363884c682abeb44",
+  "anchor_groups": [
+    [
+      "Поиск Яндекса"
+    ],
+    [
+      "Новости"
+    ],
+    [
+      "Статьи"
+    ],
+    [
+      "Видео"
+    ]
+  ],
+  "matching_named_link_count": 25,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

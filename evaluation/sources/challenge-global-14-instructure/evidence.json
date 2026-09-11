@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-14-instructure",
+  "url": "https://www.instructure.com/resources/blog",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "25d667e697a783c380ed4d9c0255909774ba8ff4ed2b548d7bc5bdaa6c8eb04a",
+  "items_sha256": "45615478f90022029ca1191e1787f9fcd22f7e55daa43a7b1a792daee95cd435",
+  "reference_sha256": "3d97392677bc07d7ec31298bc482399472304107715bb46d8f9a840b112ce1d8",
+  "list_reference_sha256": "94fba5d8888dd413accbb37d39029611fc33ea6f708ff3f1e24ce7734336db18",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "使用博客标题和明确的组织类型筛选字段；删除过短且易在导航/正文出现的 `Product`，也不使用无必要的行级排除。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

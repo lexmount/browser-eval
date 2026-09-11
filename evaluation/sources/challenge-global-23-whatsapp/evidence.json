@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-23-whatsapp",
+  "url": "https://blog.whatsapp.com/?lang=en_US",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "765a85d6c26ed5f5684ba3fc9946593c36763357f13aa48b840ae6d3920bfe68",
+  "items_sha256": "9c5f2476e34274bdf042177d4054a6e5b7c1346f4b9dfc9c5348e831cdff0586",
+  "reference_sha256": "2b4df78f2c1595d4f5a36eccb2bd655956dbec246c20383f32b258d84a496ac8",
+  "list_reference_sha256": "8732e9246fac63640db254844097f3794adf00be34a3f19cfc5b685c19d42f07",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "`lang=en_US` 下仍观察到混合语言；只保留实际复现的 `Search blog:`。入库证据必须记录它位于博客主体搜索字段，而不是全站通用搜索控件。未采用 `了解更多`/`Learn more about` 卡片操作文字，也未凭推测加入尚未复现的英文博客标题。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

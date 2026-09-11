@@ -1,0 +1,14 @@
+{
+  "case_id": "global-popular-48-pinterest",
+  "url": "https://www.pinterest.com/ideas/",
+  "checked_at": "2026-09-10",
+  "source": "Previously completed direct-page browser review, mechanically packaged from the retained rule registry",
+  "rule_registry": "research/global-popular-per-site-rules.json",
+  "rule_registry_sha256": "7a14287375592c37cc09ba1bfbb77d63046d6f47b94da6a060addbc1c476a03a",
+  "selection_registry": "research/global-popular-selection.json",
+  "selection_registry_sha256": "f95e5bfc016efd33a39da22d4e4e3d0aa17155d6abe51eb82275775d4fa60af7",
+  "stable_page_sha256": "121a75279db0f78aa4a5779bbb2a93ac7d6bed5c6c85c7d436cf547534911aa8",
+  "scope": "Stable text observed on the selected URL's initial page; no recursive navigation",
+  "dynamic_values_are_not_fixed_answers": true,
+  "provider_output_used": false
+}

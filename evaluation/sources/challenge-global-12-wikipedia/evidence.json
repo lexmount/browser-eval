@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-12-wikipedia",
+  "url": "https://en.wikipedia.org/wiki/Wikipedia:Top_25_Report",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "eb50eac8524fd951043d9cc25eab6079da7cd54cac4ab078a5df4f70e2cbb78e",
+  "items_sha256": "aba0252e1def71d4d7553ff3695a9328411dd37e4df71ac5acd42092fd85797a",
+  "reference_sha256": "287ed0945c80154a495ab611368ad95add43c0017f74dce41d51d1102c3c2917",
+  "list_reference_sha256": "8b14e297b8ea08211cbfdb247dcf5bef9c3b038eb305e82079d4c767d2591b29",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "按 MediaWiki 标准命名空间及英文 Wikipedia 常见扩展/别名补全排除项，但不把所有含冒号的标题一概拒绝，因为正文标题本身也可能合法包含冒号。未来新增命名空间仍需维护。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

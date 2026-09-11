@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-25-disney-plus",
+  "url": "https://press.disneyplus.com/news",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "ef1da45a937e3529afa0895ed5617ba0403736e739fc62c906c3f609c2524280",
+  "items_sha256": "eb6bdb7ccb82eaa76bd4894297c598e0f958f36f2dc25fc90466188459da367f",
+  "reference_sha256": "e6a24b539ec762de8f4e4d098c3a549a5d8d8fdbfc383d646d0cb509ddc4fe83",
+  "list_reference_sha256": "9ea6d8518b912cb0e651985875a1d3b3895b7bcb7575322908e82061ae98dce8",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "已用页面分区 `Next On Disney+` 替换卡片重复类型标签；标题标点差异不应成为失败条件。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

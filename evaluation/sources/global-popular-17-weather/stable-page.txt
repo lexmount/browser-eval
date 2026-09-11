@@ -1,0 +1,11 @@
+New York City Hourly Forecast
+
+Hourly
+
+Temperature
+
+Precipitation
+
+Wind
+
+Humidity

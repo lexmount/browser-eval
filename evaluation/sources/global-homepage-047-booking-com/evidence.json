@@ -1,0 +1,33 @@
+{
+  "case_id": "global-homepage-047-booking-com",
+  "domain": "booking.com",
+  "url": "https://www.booking.com/?lang=en-us",
+  "final_url": "https://www.booking.com/?lang=en-us",
+  "checked_at": "2026-09-11",
+  "source": "Codex in-app Chromium, independently reviewed homepage contract",
+  "capture_file": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+  "capture_file_sha256": "823d1b8d2819f3f30be1a7f02b0d1891122b54b87ddcce30db0d3c6eefa8d846",
+  "visible_text_sha256": "f81c7fe9f2e429ddeb3241a5ed2efc9003c70048c2ccdd834007062d28fc101c",
+  "stable_page_sha256": "5fb5a20687cd89cb39fb9eff5eb4935bb4e240df9eb9a2a0d36df251e063a8af",
+  "anchor_groups": [
+    [
+      "Booking.com"
+    ],
+    [
+      "Stays"
+    ],
+    [
+      "Flights"
+    ],
+    [
+      "Car rental"
+    ],
+    [
+      "Search"
+    ]
+  ],
+  "matching_named_link_count": 0,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import hashlib
 import base64
-import math
+import hashlib
 import json
+import math
 import platform
+import shutil
 import socket
 import sys
 import threading
@@ -82,6 +83,42 @@ def persist_result_artifacts(
     return artifact
 
 
+def copy_declared_static_evidence(
+    output_dir: Path, dataset_path: Path, cases: list[EvalCase]
+) -> None:
+    """Copy only hash-bound stable-anchor evidence needed by this run.
+
+    Provider outputs remain outside Git, while independently captured rule
+    evidence travels with the run so scoring and the generated report can
+    verify the exact literals. Undeclared sibling files are never copied.
+    """
+    for case in cases:
+        annotation = case.source_benchmark.get("stable_annotation", {})
+        relative = annotation.get("anchor_evidence")
+        expected = annotation.get("anchor_evidence_sha256")
+        if not relative:
+            continue
+        if not expected:
+            raise ValueError(f"{case.id}: stable anchor evidence lacks SHA-256")
+        source = contained_path(dataset_path.parent.resolve(), relative)
+        raw = source.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != expected:
+            raise ValueError(f"{case.id}: stable anchor evidence SHA-256 mismatch")
+        target = contained_path(output_dir, relative)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+        evidence_record = source.with_name("evidence.json")
+        if evidence_record.is_file():
+            evidence = json.loads(evidence_record.read_text(encoding="utf-8"))
+            if (not isinstance(evidence, dict)
+                    or evidence.get("case_id") != case.id
+                    or evidence.get("url") != case.url
+                    or evidence.get("stable_page_sha256") != expected):
+                raise ValueError(f"{case.id}: stable anchor evidence record is inconsistent")
+            evidence_target = target.with_name("evidence.json")
+            shutil.copy2(evidence_record, evidence_target)
+
+
 def run_evaluation(
     *,
     output_dir: Path,
@@ -111,6 +148,7 @@ def run_evaluation(
         contained_path(output_dir, filename)
     reference_checks = preflight_reference_checks(cases, dataset_path)
     output_dir.mkdir(parents=True, exist_ok=True)
+    copy_declared_static_evidence(output_dir, dataset_path, cases)
     artifacts_dir = output_dir / "artifacts"
     artifacts_dir.mkdir(exist_ok=True)
     started_at = utc_now()

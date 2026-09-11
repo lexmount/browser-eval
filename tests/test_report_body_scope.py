@@ -10,10 +10,10 @@ from unittest.mock import patch
 
 from harness.web_fetch.report import (
     TRACKS, attempt_row, case_rate, generate, overview_card, ranking, reason, stable_anchor_evidence,
-    stable_failure_summary, write_support,
+    stable_answer_panel, stable_failure_summary, write_support,
 )
 from harness.web_fetch.report_components import (
-    task_contract_guide, task_pass_guide, examples, list_rule_description, metric_guide, reference_status, task_instruction,
+    basis_label, task_contract_guide, task_pass_guide, examples, list_rule_description, metric_guide, reference_status, task_instruction,
 )
 from harness.web_fetch.stable_tasks import evaluate_stable_task
 
@@ -86,6 +86,23 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertNotIn('机器失败项有证据',rendered)
             self.assertNotIn('核验 JSON',rendered)
             self.assertNotIn('结果核验',(out/'reproduce/index.html').read_text())
+
+    def test_classified_result_audit_has_readable_summary_and_detail(self):
+        c=case();r=record(c,passed=False)
+        audit={'reviewed_attempts':1,'expected_attempts':1,'disagreements':0,'unresolved':0,
+               'reviewer':{'agent':'Codex'},'review_protocol':{'scope':'all'},
+               'attempts':[{'attempt_id':r['attempt_id'],'machine_verdict':'fail',
+                            'agent_verdict':'fail','final_verdict':'fail',
+                            'classification':'target_retrieved_but_frozen_contract_not_met',
+                            'review_note':'缺少一个已登记的稳定文字组。'}]}
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory);(out/'result-review.json').write_text(json.dumps(audit))
+            with patch('harness.web_fetch.report_methods.render_methods',return_value='methods'):
+                write_support(out,[r],[])
+            rendered=(out/'review/index.html').read_text()
+            for phrase in ['逐项审计分类','已取得目标页，但未满足冻结契约',
+                           '查看全部逐项审计','缺少一个已登记的稳定文字组。']:
+                self.assertIn(phrase,rendered)
 
     def test_text_coverage_repeated_denominator_removed_but_different_scopes_disclosed(self):
         a,b=case('a','body'),case('b','body')
@@ -203,6 +220,48 @@ class ReportBodyScopeTests(unittest.TestCase):
         self.assertIn('列表任务：通过',rendered)
         self.assertNotIn('未评测',rendered)
 
+    def test_page_identity_uses_anchor_language_without_zero_record_claims(self):
+        c=case();c['acceptance_contract']={
+            'version':1,'schema':'page_identity','minimum_records':0,
+            'stable_text_anchors':[
+                {'id':'brand','alternatives':['Google']},
+                {'id':'about','alternatives':['About Google','关于 Google']},
+            ],
+        }
+        r=record(c);r['metrics'].update(
+            stable_task_pass=True,stable_task_schema='page_identity',
+            stable_content_pass=True,stable_structure_pass=True,
+            stable_anchor_hits=2,stable_anchor_total=2,
+            stable_anchor_results=[
+                {'id':'brand','alternatives':['Google'],'matched':['Google'],'pass':True},
+                {'id':'about','alternatives':['About Google','关于 Google'],'matched':['关于 Google'],'pass':True},
+            ],stable_page_pattern_results=[],stable_record_count=0,
+            stable_complete_record_count=0,stable_unique_record_count=0,
+            stable_minimum_records=0,stable_maximum_records=None,stable_task_errors=[])
+        self.assertIn('首页身份规则：通过',attempt_row(r,c)[1])
+        explanation=reason(r,c)
+        self.assertIn('稳定文字命中 2/2 组',explanation)
+        self.assertNotIn('检出 0 条',explanation)
+        panel=stable_answer_panel(c['acceptance_contract'])
+        self.assertIn('必须出现的稳定文字 2',panel)
+        self.assertIn('必须出现的稳定文字 1</b>',panel)
+        self.assertIn('必须出现的稳定文字 2（任一写法即可）',panel)
+        self.assertNotIn('必须出现的稳定文字 1（任一写法即可）',panel)
+        self.assertNotIn('结构要求',panel)
+        self.assertNotIn('0 条',panel)
+        from harness.web_fetch.report import stable_checks
+        self.assertNotIn('条目字段',stable_checks(r['metrics'],include_records=False))
+
+    def test_page_identity_stylesheet_leak_is_diagnostic_only(self):
+        from harness.web_fetch.report import output_noise_note
+        c=case();c['acceptance_contract']={'version':1,'schema':'page_identity','minimum_records':0}
+        noisy='Google\n.a{color:red}.b{height:2px}.c{display:block}'
+        note=output_noise_note(noisy,c)
+        self.assertIn('实际输出可能混入样式代码',note)
+        self.assertIn('不改变本次首页身份规则的通过判定',note)
+        c['acceptance_contract']['schema']='named_link'
+        self.assertEqual(output_noise_note(noisy,c),'')
+
     def test_example_order_and_metric_explanations(self):
         rendered=examples()
         positions=[rendered.index('data-tab="'+t+'"') for t in ['web','dynamic','challenge','document','image','video']]
@@ -228,6 +287,14 @@ class ReportBodyScopeTests(unittest.TestCase):
         self.assertIn('字段／数量规则',list_rule_description(c))
         self.assertIn('至少 5',list_rule_description(c))
         self.assertNotIn('独立内容证据',list_rule_description(c))
+
+    def test_dataset_basis_label_matches_the_case_contract(self):
+        c=case();c['acceptance_contract']={'schema':'page_identity','minimum_records':0,
+            'stable_text_anchors':[{'id':'brand','alternatives':['Brand']}]}
+        self.assertEqual(basis_label(c),'稳定文字 · 1 组')
+        c['acceptance_contract']={'schema':'named_link','minimum_records':3,
+            'stable_text_anchors':[{'id':'section','alternatives':['News']}]}
+        self.assertEqual(basis_label(c),'稳定文字 1 组＋至少 3 条具名详情入口')
 
     def test_stable_content_anchors_remain_part_of_task_acceptance(self):
         for rendered in [metric_guide(), task_contract_guide(), examples(),
@@ -405,8 +472,8 @@ class ReportBodyScopeTests(unittest.TestCase):
         from harness.web_fetch.report import failure_category, failure_filters
         from harness.web_fetch.failure_diagnosis import diagnose
         c=case();c['acceptance_contract']={'version':1,'schema':'product','minimum_records':3}
-        for error,label in [('missing_stable_anchor:heading','缺少关键信息'),('duplicate_records','条目重复'),
-                            ('incomplete_records','字段格式或记录不完整'),('too_few_complete_records','有效条目不足')]:
+        for error,label in [('missing_stable_anchor:heading','稳定文字未全部命中'),('duplicate_records','条目重复'),
+                            ('incomplete_records','字段格式或记录不完整'),('too_few_complete_records','具名入口不足')]:
             with self.subTest(error=error):
                 r=record(c,passed=False)
                 r['metrics'].update(stable_task_pass=False,stable_task_errors=[error],stable_minimum_records=3)
@@ -420,13 +487,20 @@ class ReportBodyScopeTests(unittest.TestCase):
         from harness.web_fetch.report_components import stable_contract_details, FIELD_REQUIREMENTS
         from harness.web_fetch.stable_tasks import SCHEMA_FIELDS, UNIQUE_FIELDS
         for schema,fields in SCHEMA_FIELDS.items():
-            c=case();c['acceptance_contract']={'version':1,'schema':schema,'minimum_records':3}
+            minimum = 0 if schema == 'page_identity' else 3
+            c=case();c['acceptance_contract']={'version':1,'schema':schema,'minimum_records':minimum}
             if schema=='named_link':c['acceptance_contract'].update(hosts=['example.com'],entry_path='/items/.*')
+            if schema=='page_identity':c['acceptance_contract']['stable_text_anchors']=[
+                {'id':'identity','alternatives':['Example Search']}]
             rendered=stable_contract_details(c)
             with self.subTest(schema=schema):
-                self.assertIn('必需字段与要求',rendered)
-                for field in fields:self.assertIn(FIELD_REQUIREMENTS[field][0],rendered)
-                self.assertIn('＋'.join(FIELD_REQUIREMENTS[f][0] for f in UNIQUE_FIELDS[schema]),rendered)
+                if schema == 'page_identity':
+                    self.assertIn('入口页身份与功能',rendered)
+                    self.assertNotIn('必需字段与要求',rendered)
+                else:
+                    self.assertIn('必需字段与要求',rendered)
+                    for field in fields:self.assertIn(FIELD_REQUIREMENTS[field][0],rendered)
+                    self.assertIn('＋'.join(FIELD_REQUIREMENTS[f][0] for f in UNIQUE_FIELDS[schema]),rendered)
                 self.assertNotIn('v1',rendered)
                 self.assertNotIn('未登记',rendered)
                 self.assertNotIn('<h3>页面模式',rendered)

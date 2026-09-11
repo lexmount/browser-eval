@@ -1,8 +1,9 @@
 import tempfile
 from pathlib import Path
 import unittest
-from harness.web_fetch.report import failure_category,filter_controls,case_attrs,failure_filters,review_cell,table,write,overview_matched_latency
+from harness.web_fetch.report import failure_category,filter_controls,case_attrs,failure_filters,review_cell,table,write,overview_matched_latency,track_label
 from harness.web_fetch.report_interfaces import SPECS,HEADLESS_ACCESS
+from harness.web_fetch.report_explainer import article_title,render_explainer
 
 class ReportRevisionTests(unittest.TestCase):
  def test_overview_latency_includes_every_configuration_and_same_case_mean(self):
@@ -64,6 +65,21 @@ class ReportRevisionTests(unittest.TestCase):
   audit={'attempts':[{'attempt_id':'one','final_verdict':'pass'}]}
   row=review_cell(audit,[{'attempt_id':'one'}])
   self.assertIn('1/1 · Codex 已核验',row)
+ def test_global_homepage_label_and_interpretation_are_run_specific(self):
+  case={'id':'global-homepage-001-example','name':'example 首页','category':'global_homepage',
+        'track':'challenge','task_kind':'structure','acceptance_contract':{'schema':'page_identity'},
+        'source_benchmark':{'stable_annotation':{'content_kind':'entry_page'}}}
+  record={'attempt_id':'lexmount-global__global-homepage-001-example__r001',
+          'provider':'lexmount-global','provider_type':'lexmount','case_id':case['id'],
+          'ok':True,'elapsed_ms':100,'started_at':'2026-09-11T00:00:00+00:00',
+          'completed_at':'2026-09-11T00:00:01+00:00','metrics':{'stable_task_pass':True}}
+  self.assertEqual(track_label('challenge',[case]),'热门网站首页')
+  self.assertIn('全球热门网站首页',article_title([record]))
+  with tempfile.TemporaryDirectory() as directory:
+   page=render_explainer(Path(directory),{case['id']:case},[record])
+   self.assertIn('单方法基线',page)
+   self.assertIn('1/1（100.0%）',page)
+   self.assertNotIn('CowAgent',page)
  def test_headless_access_covers_every_method_and_lists_setup_variables(self):
   self.assertEqual(set(HEADLESS_ACCESS),{'kitesurf','lightpanda','obscura','moli-1.0.6','moli','moli-1.1.3','chromium'})
   for access in HEADLESS_ACCESS.values():

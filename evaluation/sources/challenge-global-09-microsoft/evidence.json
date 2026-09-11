@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-09-microsoft",
+  "url": "https://news.microsoft.com/source/",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "9c24450f43246814a3b02ebe151b64428a445b41d36a2bf0d646852f1ff9996f",
+  "items_sha256": "c322bf5c38c697d67332a062886c66243dabddafff01e61fe60e9e6c2bcb5e59",
+  "reference_sha256": "c51e73b759788444ecfd7c65f067021275651a52b85337eb3c19065f08d1969d",
+  "list_reference_sha256": "7f7a5dcd4746833d10dac362040f591bb40b69e6e7e91968c4bfee106e23d50c",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "已删除无证据的 `/source/features/<单段>` 文章泛化；规则只覆盖三个正例所证明的三类结构，未来其他 Microsoft 新闻栏目不会自动获准。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

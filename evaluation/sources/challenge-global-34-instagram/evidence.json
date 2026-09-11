@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-34-instagram",
+  "url": "https://about.instagram.com/blog",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "4a943b82c1fa1fde6350f04b43effdee5a2955b084a4fa2a4281f5605b4c63e9",
+  "items_sha256": "1ff16bfe4eed9e427fff7d25a71329bd1f492942e9c1e9f9d9fcf8a4056b6f12",
+  "reference_sha256": "064b5e50be39bb118a0bf4f4bf7ea4dc4738b83f4523ba6126872a9679536b81",
+  "list_reference_sha256": "0a6c9fff721bb197d39f802278d5a7b9e1b3841da06a00f429bc9635c0d1695d",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "为避免中英文锚点必须同时出现，统一采用本轮实际观察到的英文说明和分类；长英文说明可能被编辑，入库前需持久化本轮证据。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

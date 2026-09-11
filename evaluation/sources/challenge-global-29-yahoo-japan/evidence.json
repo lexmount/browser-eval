@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-29-yahoo-japan",
+  "url": "https://news.yahoo.co.jp/ranking/access/news",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "51de6fc924e49971be4b9f3edb6b5a3dfdf65053b81b0148150ac62cf4045fbd",
+  "items_sha256": "022167864f67decb6cd539ffa0ba2bf4c7e43995936894a2f87adf7101056558",
+  "reference_sha256": "c3676ede84a18725b326d8063913a3326e0dd02762cfc0dc3d640c375986855b",
+  "list_reference_sha256": "a117e9e57f070526d05acc75857e409bf0f58b6df125ddfb3aeb59db48c71299",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "规则根据三个正例归纳 40 位小写十六进制文章 ID；若历史或未来 ID 格式改变，需要新证据后调整。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-44-ebay",
+  "url": "https://www.ebay.com/deals",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "af65879f28b3bdd2a5eb79e8670bb98c932a16429f19eb42f9b54aff0bfbec3b",
+  "items_sha256": "934707b1df4a5a47e8b77240e95eabc232dab38dea677c3185415c0eeb6f43f1",
+  "reference_sha256": "2ba7b7f3aa834d944fb7544ae7fa9d803c7bc6e224485c89f94a514618ae4800",
+  "list_reference_sha256": "a8ada55e40b5c009feac82a9a78c8e2fd322bc9af18db284f64380118d16d172",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "商品、价格、库存和促销分区成员频繁变化；查询追踪参数不参与判定。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

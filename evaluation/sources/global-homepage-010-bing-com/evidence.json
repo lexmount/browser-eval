@@ -1,0 +1,33 @@
+{
+  "case_id": "global-homepage-010-bing-com",
+  "domain": "bing.com",
+  "url": "https://bing.com/",
+  "final_url": "https://www.bing.com/?toWww=1&redig=664889C106914BE786F166BF5F44DAFE",
+  "checked_at": "2026-09-11",
+  "source": "Codex in-app Chromium, independently reviewed homepage contract",
+  "capture_file": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+  "capture_file_sha256": "823d1b8d2819f3f30be1a7f02b0d1891122b54b87ddcce30db0d3c6eefa8d846",
+  "visible_text_sha256": "9bd49a512b717e6414f3d351c6134a5eb716e299954e84fcad834f524e245703",
+  "stable_page_sha256": "b4764770e7c3e4d6087503c61367f415885dfa5099e673cc197a29b65931b180",
+  "anchor_groups": [
+    [
+      "Microsoft Bing"
+    ],
+    [
+      "Images"
+    ],
+    [
+      "Maps"
+    ],
+    [
+      "Search using an image"
+    ],
+    [
+      "Sign in"
+    ]
+  ],
+  "matching_named_link_count": 0,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

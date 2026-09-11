@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-35-linkedin",
+  "url": "https://www.linkedin.com/jobs/search/?keywords=Software%20Engineer",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "8a15e65950d74dbd12047ffea28fc39000fa36785c3dd3decec8672716d48bd8",
+  "items_sha256": "80815a365e4a7c614d80ee25ec2e7b0c5b3deacbaa51d3115d1a6987beb3b755",
+  "reference_sha256": "7560f050781de017b18e74eb899aa7eeaf3229a6cf49c06bbca3efe49c7d0a9b",
+  "list_reference_sha256": "4678478b9427e773356bde46c9f98c1a384fb86053673f0067dd5a083676abf8",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "职位可能下架；两组 OR 分别覆盖本轮实际观察到的中文页面与官方英文抓取。这里刻意不使用 `non_record_lines`：页面可能有一条记录标题恰好就是 `Software Engineer`，现实现会删除所有包含该标题的行，从而误删查询上下文。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

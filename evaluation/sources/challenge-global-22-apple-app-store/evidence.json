@@ -1,0 +1,18 @@
+{
+  "case_id": "challenge-global-22-apple-app-store",
+  "requested_url": "https://apps.apple.com/us/iphone/today",
+  "url": "https://apps.apple.com/cn/iphone/today",
+  "checked_at": "2026-09-08",
+  "source": "Independent rendered list and detail-page review after observed redirect; formalized from the reviewed handoff",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "stable_page_sha256": "10442f9612ef0ad28d79828a0730c8a73c25d6c73df18074d14a21b1c33e12d6",
+  "items_sha256": "1998d65b9070788f23bc5e25016833e4a2adc2f55682312218cac41ca67e1cc2",
+  "list_reference_sha256": "872a659ac758854936707bed5874386b2cb937ebdcdd079ce4908fc82057022c",
+  "reference_sha256": "7401431c99654a3d3709fcabff0212488038fc812c01ec5cc08763cfb00ed50a",
+  "scope": "Three verified CN-store name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "access_context": "Public pages in an ordinary logged-out browser; US request redirected to the CN storefront",
+  "risk": "规则固定为实际核验的中国区，不声称覆盖未验证地区。若正式运行环境要测美国区，应另取美国区证据后再改规则。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "purpose": "Targeted visible-browser audit of high-risk ranked-domain homepages before provider execution",
+  "checked_at": "2026-09-11",
+  "method": "Codex in-app Chromium browser, visibly rendered anonymous root-page load; accessibility tree inspected; no clicks or recursive navigation",
+  "scope_note": "This is a targeted audit, not a replacement for the full independent headless Chromium capture.",
+  "checks": [
+    {
+      "domain": "google.com",
+      "requested_url": "https://google.com/",
+      "final_url": "https://www.google.com.hk/",
+      "state": "observed",
+      "page_form": "entry_page",
+      "stable_visible_identity": ["Google"],
+      "finding": "Consistent with an entry page. Localized footer text varies by execution region, so the rule should require only the observed product identity."
+    },
+    {
+      "domain": "youtube.com",
+      "requested_url": "https://youtube.com/",
+      "final_url": "https://www.youtube.com/",
+      "state": "observed",
+      "page_form": "content_list",
+      "stable_visible_identity": ["YouTube"],
+      "finding": "The anonymous page displayed a public video recommendation feed. Video titles, channels, views and upload times are dynamic and are not frozen."
+    },
+    {
+      "domain": "chatgpt.com",
+      "requested_url": "https://chatgpt.com/",
+      "final_url": "https://chatgpt.com/",
+      "state": "observed",
+      "page_form": "entry_page",
+      "stable_visible_identity": ["ChatGPT"],
+      "finding": "Anonymous chat composer and product navigation were visible; the page was not login-only."
+    },
+    {
+      "domain": "amazon.com",
+      "requested_url": "https://amazon.com/",
+      "final_url": "https://www.amazon.com/",
+      "state": "observed",
+      "page_form": "product_catalog",
+      "stable_visible_identity": ["Amazon", "Today's Deals"],
+      "finding": "The anonymous storefront, search control, departments and product merchandising were visible; current promotions and prices remain volatile."
+    },
+    {
+      "domain": "yahoo.co.jp",
+      "requested_url": "https://yahoo.co.jp/",
+      "final_url": "https://www.yahoo.co.jp/",
+      "state": "observed",
+      "page_form": "content_list",
+      "stable_visible_identity": ["Yahoo! JAPAN", "主なサービス", "ニュース"],
+      "finding": "The public portal and news lists were visible without authentication; headlines, weather and rankings remain volatile."
+    },
+    {
+      "domain": "naver.com",
+      "requested_url": "https://naver.com/",
+      "final_url": "https://www.naver.com/",
+      "state": "observed",
+      "page_form": "content_list",
+      "stable_visible_identity": ["NAVER"],
+      "finding": "The public NAVER search surface loaded. The targeted snapshot confirmed page identity but did not replace the fuller headless capture."
+    },
+    {
+      "domain": "baidu.com",
+      "requested_url": "https://baidu.com/",
+      "final_url": "https://www.baidu.com/",
+      "state": "observed",
+      "page_form": "entry_page",
+      "stable_visible_identity": ["百度一下", "新闻", "地图"],
+      "finding": "The public search entry and hot-search module were visible; current hot-search members are not frozen."
+    },
+    {
+      "domain": "reddit.com",
+      "requested_url": "https://reddit.com/",
+      "final_url": "https://www.reddit.com/",
+      "state": "observed",
+      "page_form": "content_list",
+      "stable_visible_identity": ["Reddit"],
+      "finding": "The anonymous public post feed and community links were visible; the page was not a login-only or verification page."
+    },
+    {
+      "domain": "netflix.com",
+      "requested_url": "https://netflix.com/",
+      "final_url": "https://www.netflix.com/",
+      "state": "observed",
+      "page_form": "landing_page",
+      "stable_visible_identity": ["Netflix", "More Reasons to Join", "Frequently Asked Questions"],
+      "finding": "The public marketing page, membership form, benefit sections and FAQ were visible; the page was not login-only."
+    },
+    {
+      "domain": "bbc.com",
+      "requested_url": "https://bbc.com/",
+      "final_url": "https://www.bbc.com/",
+      "state": "observed",
+      "page_form": "content_list",
+      "stable_visible_identity": ["BBC", "News", "Sport", "Business"],
+      "finding": "The public multi-section news homepage and article links were visible; current headlines are not frozen."
+    },
+    {
+      "domain": "dzen.ru",
+      "requested_url": "https://dzen.ru/",
+      "state": "not_rechecked",
+      "finding": "The visible-browser environment declined this domain under its site-safety policy. No workaround was attempted; the existing independent headless capture remains the only evidence for this case."
+    }
+  ]
+}

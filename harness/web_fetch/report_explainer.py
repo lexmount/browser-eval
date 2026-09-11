@@ -18,6 +18,7 @@ from .safety import contained_path, safe_identifier
 
 TITLE = '网页抓取成功之后，内容离可用还有多远'
 HEADLESS_TITLE = 'Moli Web Fetch 实测：五款浏览器，150 道任务'
+GLOBAL_HOMEPAGE_TITLE = '全球热门网站首页：Lexmount 本轮取得了什么'
 from .publication_target import HUB
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).parent / 'templates/interpretation.html'
@@ -403,8 +404,88 @@ def _is_headless_comparison(records):
     return bool(records) and all(r.get('provider_type') in {'headless_html','headless_markdown'} for r in records)
 
 
+def _is_global_homepage_run(records):
+    return (bool(records) and {r.get('provider') for r in records} == {'lexmount-global'}
+            and all(str(r.get('case_id','')).startswith('global-homepage-') for r in records))
+
+
 def article_title(records):
-    return HEADLESS_TITLE if _is_headless_comparison(records) else TITLE
+    if _is_headless_comparison(records):
+        return HEADLESS_TITLE
+    if _is_global_homepage_run(records):
+        return GLOBAL_HOMEPAGE_TITLE
+    return TITLE
+
+
+def _render_global_homepages(out, cases, records):
+    """Interpret the standalone homepage run without importing unrelated providers."""
+    def passed(row):
+        case=cases[row['case_id']]
+        return task_passed(row['ok'],row['metrics'],case.get('task_kind','body'))
+    request_ok=sum(bool(row['ok']) for row in records)
+    pass_count=sum(passed(row) for row in records)
+    post_response=sum(bool(row['ok']) and not passed(row) for row in records)
+    passing_times=[row['elapsed_ms'] for row in records if passed(row)]
+    schemas=Counter(case.get('acceptance_contract',{}).get('schema','undeclared') for case in cases.values())
+    shapes=Counter(case.get('source_benchmark',{}).get('stable_annotation',{}).get('content_kind','undeclared') for case in cases.values())
+    review_path=contained_path(out,'result-review.json')
+    review=json.loads(review_path.read_text()) if review_path.is_file() else {}
+    classes=review.get('summary',{}).get('counts',{})
+    selection_path=contained_path(out,'source-selection.json')
+    selection=json.loads(selection_path.read_text()) if selection_path.is_file() else None
+    selection_text=(
+        f'候选来源为 Similarweb 估算的 2026 年 5 月全球访问量 Top 100。成人域名在访问前排除；其余 90 个候选逐站检查后保留 {selection["selected_count"]} 个，'
+        f'另有 {len(selection["excluded"])} 个因登录页、空白页、错误/验证页、地区不可用或透明去重而排除。60 个只是目标，不是配额。'
+        if selection else
+        f'本轮报告绑定 {len(cases)} 个冻结首页案例；候选筛选和排除依据保留在项目研究文件中。')
+    failure_rows=[
+        ('上游拒绝',classes.get('transport_blocked',0),'供应商没有取得可验收的目标页正文。'),
+        ('登录或 SSO 跳转',classes.get('login_redirect',0),'最终页面不是目标公开首页。'),
+        ('空壳、等待页或仅标题',classes.get('empty_or_shell',0),'请求表面成功，但没有足够的目标页内容。'),
+        ('地区或文案变体限制',classes.get('localized_or_copy_variant',0),'取得可读首页，但未命中冻结规则的全部等价文字。'),
+        ('部分内容未满足契约',classes.get('partial_contract_failure',0),'取得一些内容，但缺稳定文字、具名详情链接或字段结构。'),
+    ]
+    failure_table=_table(['失败类型','数量','怎样理解'],[(escape(label),str(count),escape(note)) for label,count,note in failure_rows], '33 条任务失败的测后分类；分类不改变运行时冻结判定。')
+    bars=''.join(
+        f'<div class="editorial-bar-row"><span>{label}</span><span class="editorial-bar-track" aria-hidden="true"><i style="width:{count/max(len(records),1)*100:.4f}%"></i></span><b>{count}/{len(records)}</b></div>'
+        for label,count in [('任务通过',pass_count),('请求成功但任务失败',post_response),('请求失败',len(records)-request_ok)])
+    latency=(f'{statistics.mean(passing_times):,.0f} ms；P50 {statistics.median(passing_times):,.0f} ms；P95 {percentile(passing_times,.95):,.0f} ms'
+             if passing_times else '没有通过任务，无法计算通过项耗时')
+    date=max((row.get('completed_at','')[:10] for row in records),default='')
+    body=(
+        f'<article><header class="article-header"><p class="eyebrow">Web Fetch · 单方法首页基线</p><h1>{GLOBAL_HOMEPAGE_TITLE}</h1>'
+        f'<p class="article-lead">这是一轮单方法基线，不是产品横向排名。它回答 Lexmount 国际接口在同一组冻结首页上取得了什么，以及失败发生在请求层、内容层还是规则变体层。</p>'
+        f'<p class="article-meta">{date} · {len(cases)} 个案例 · {len(records)} 次调用 · 无失败重试</p></header>'
+        '<section><h2>先看两个不同的成功率</h2>'
+        f'<p>Lexmount 的请求成功率是 {request_ok}/{len(records)}（{request_ok/len(records):.1%}），任务通过率是 {pass_count}/{len(records)}（{pass_count/len(records):.1%}）。前者只说明接口正常返回；后者还要求输出满足该首页冻结的页面身份、稳定文字和适用的列表结构。</p>'
+        f'<figure class="editorial-figure"><div class="editorial-bars">{bars}</div><figcaption>全部 {len(records)} 次调用的互斥结果。请求成功但内容不足仍然是任务失败。</figcaption></figure>'
+        f'<p>通过任务的平均耗时为 {latency}。这些耗时只描述本轮通过子集，不能与另一产品不同的成功子集直接比较。</p></section>'
+        '<section><h2>33 条失败不是同一种失败</h2>'+failure_table+
+        f'<p>其中 {classes.get("localized_or_copy_variant",0)} 条已经取得可读首页，但地区跳转或当前文案与预先冻结的文字组不同。它们仍按原契约计失败，避免测后挑规则抬高成绩；同时也不能把它们解释成纯粹的网络或渲染失败。</p></section>'
+        '<section><h2>首页简单，不等于不能测试</h2>'
+        f'<p>53 个首页按真实形态标为落地页 {shapes.get("landing_page",0)} 个、内容列表 {shapes.get("content_list",0)} 个、入口页 {shapes.get("entry_page",0)} 个、商品目录 {shapes.get("product_catalog",0)} 个。机器契约进一步分为 {schemas.get("page_identity",0)} 个页面身份任务和 {schemas.get("named_link",0)} 个具名链接任务。</p>'
+        '<p>页面身份任务可以像 Google 首页一样简洁：只要取得目标页并命中真正稳定的品牌或功能文字即可，不要求长正文或三条链接。只有列表型首页才要求声明数量的名称—详情链接；稳定文字不设统一数量，也不冻结经常变化的标题、排名或价格。</p></section>'
+        '<section><h2>样本怎样进入主测试集</h2>'
+        f'<p>{selection_text}</p><p>主集始终使用榜单域名根地址及其自然重定向，不把人工挑选的文章、视频或商品页替换成“首页结果”。现有 45 个代表性公开内容案例是另一套可执行扩展集，本轮没有调用。</p></section>'
+        '<section><h2>这份结果可以证明什么</h2>'
+        '<p>它能作为 Lexmount 在这 53 个热门网站首页上的一次可复核基线：每条调用、完整输出、最终地址、判定原因和哈希都保留。它不能单独证明 Lexmount 优于或弱于其他产品，也不能把 37.7% 简化成“只有 37.7% 的网站能访问”。</p>'
+        '<p>若继续测试其他 Web Fetch 产品，应复用同一冻结数据集、45 秒预算和零重试设置。跨产品正式比较前，还应先决定地区策略：固定出口地区，或在调用前冻结各地区允许的等价文案；不能看到结果后再为某个产品改答案。</p></section></article>')
+    data={'schema_version':1,'title':GLOBAL_HOMEPAGE_TITLE,'date':date,'cases':len(cases),'attempts':len(records),
+          'request_ok':request_ok,'task_pass':pass_count,'request_ok_task_fail':post_response,
+          'failure_classes':classes,'schemas':dict(schemas),'page_shapes':dict(shapes),
+          'passing_latency_ms':{'mean':statistics.mean(passing_times) if passing_times else None,
+                                'p50':statistics.median(passing_times) if passing_times else None,
+                                'p95':percentile(passing_times,.95) if passing_times else None},
+          'selection_bound':selection is not None}
+    contained_path(out,'guide').mkdir(parents=True,exist_ok=True)
+    contained_path(out,'guide/interpretation-evidence.json').write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+    contained_path(out,'guide/article.html').write_text('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+f'<title>{GLOBAL_HOMEPAGE_TITLE}</title><style>{STYLE}</style></head><body class="standalone-article"><main class="wrap essay">{body}</main></body></html>')
+    downloads=('<aside id="evidence" class="editorial-downloads" aria-label="文章与证据下载"><h2>文章与证据下载</h2><p>'
+               '<a href="article.html" download>下载独立 HTML</a> · <a href="interpretation-evidence.json" download>下载本文计算明细</a> · '
+               '<a href="../results.jsonl" download>下载规范化执行记录</a> · <a href="../result-review.json" download>下载逐项审计记录</a>'
+               + (' · <a href="../source-selection.json" download>下载候选筛选记录</a>' if selection else '')
+               + '</p></aside>')
+    return f'<div class="wrap essay">{body}{downloads}</div>'
 
 
 def headless_evidence(cases, records):
@@ -663,6 +744,8 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
     out = Path(out)
     if _is_headless_comparison(records):
         return _render_headless(out,cases,records)
+    if _is_global_homepage_run(records):
+        return _render_global_homepages(out,cases,records)
     data = collect_evidence(cases, records)
     data['initial_reference_audit'] = _bound_initial_audit(cases)
     data['dynamic']['loading_attempts'] = []

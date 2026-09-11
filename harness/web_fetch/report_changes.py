@@ -59,6 +59,30 @@ def render_changes(out, cases, records):
     from .report import hero, section, table, cell, esc, link, write
     from .storage import research_evidence_dir
     evidence_root=research_evidence_dir()
+    audit_path=out/'result-review.json'
+    audit=json.loads(audit_path.read_text()) if audit_path.is_file() else None
+    standalone=bool(audit and audit.get('review_protocol',{}).get('machine_judgments_withheld') is False)
+    if standalone:
+        from .report import succeeded
+        call_count=len(records)
+        pass_count=sum(succeeded(row,cases[row['case_id']]) for row in records)
+        date=max((row.get('completed_at','')[:10] for row in records),default='')
+        changes={
+            'schema_version':1,
+            'report_kind':'standalone_measured_run',
+            'date':date,
+            'scope':{'cases':len(cases),'provider_calls':call_count,'providers':sorted({row['provider'] for row in records})},
+            'result':{'task_pass':pass_count,'task_fail':call_count-pass_count},
+            'scoring_correction':audit.get('summary',{}).get('scorer_correction'),
+        }
+        (out/'report-changes.json').write_text(json.dumps(changes,ensure_ascii=False,indent=2)+'\n')
+        correction=esc(changes['scoring_correction'] or '本轮没有登记评分修正。')
+        body=hero('报告版本说明','本页只记录这次独立运行的范围、结果与测后修正，不混入其他评测报告的历史。')
+        body+=section('当前版本',f'<article class="release-current"><div class="eyebrow">{esc(date)}</div><h3>Lexmount 全球热门网站首页实测</h3><p>{len(cases)} 个冻结首页案例共完成 {call_count} 次供应商调用；{pass_count} 次通过，{call_count-pass_count} 次未通过。</p></article>')
+        body+=section('离线评分修正',f'<p>{correction}</p><p>该修正不新增供应商调用，不改变保存输出、请求状态或耗时；逐项最终判定绑定在{link("../result-review.json","测后审计记录")}中。</p>')
+        body+=section('范围与下载',f'<p>{link("../report-changes.json","下载本次结构化版本记录")} · {link("../reliability.json","下载完整性状态")}</p>')
+        write(out,'changes/index.html','报告版本说明','<div class="change-log">'+body+'</div>')
+        return
     data=json.loads((ROOT/'research/report-changes.json').read_text())
     require_review_rounds(data)
     shutil.copy2(ROOT/'research/report-changes.json',out/'report-changes.json')

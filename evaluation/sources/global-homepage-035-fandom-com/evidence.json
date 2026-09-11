@@ -1,0 +1,33 @@
+{
+  "case_id": "global-homepage-035-fandom-com",
+  "domain": "fandom.com",
+  "url": "https://fandom.com/",
+  "final_url": "https://www.fandom.com/",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "454511fa88b1abde683e63c4450f6e44c3986a4c2992bc4f1862bf4e073519e3",
+  "stable_page_sha256": "119ad75d884f23f09be5416f38c3eefdc9c52624b5047e4a04acdf5d1420ab6d",
+  "anchor_groups": [
+    [
+      "Fandom"
+    ],
+    [
+      "GAMES"
+    ],
+    [
+      "MOVIES"
+    ],
+    [
+      "TV"
+    ],
+    [
+      "EXPLORE PROPERTIES"
+    ]
+  ],
+  "matching_named_link_count": 3,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

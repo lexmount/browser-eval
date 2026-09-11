@@ -1,0 +1,30 @@
+{
+  "case_id": "global-homepage-013-yahoo-co-jp",
+  "domain": "yahoo.co.jp",
+  "url": "https://yahoo.co.jp/",
+  "final_url": "https://www.yahoo.co.jp/",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "a0b992e0f67c1efe951cbd7cbc5acbea2ad248947a66920a5697870b0a86cfbb",
+  "stable_page_sha256": "14b3b42e7e6c46f9a7966c0395d7c1e9d12d518ca32b7826012813747a12009a",
+  "anchor_groups": [
+    [
+      "Yahoo! JAPAN"
+    ],
+    [
+      "主なサービス"
+    ],
+    [
+      "お知らせ"
+    ],
+    [
+      "ニュース"
+    ]
+  ],
+  "matching_named_link_count": 8,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

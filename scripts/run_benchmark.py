@@ -21,6 +21,8 @@ def main(argv=None):
     parser.add_argument('--env-file',type=Path)
     parser.add_argument('--providers',help='Comma-separated names; default: all benchmark methods')
     parser.add_argument('--track',help='Run only this task group, such as dynamic; default: all groups')
+    parser.add_argument('--case-ids',help='Comma-separated exact case IDs; default: all selected cases')
+    parser.add_argument('--skip-report',action='store_true',help='Persist measured evidence without building an HTML report')
     parser.add_argument('--validate-only',action='store_true',help='Check selected configuration without creating files or calling providers')
     parser.add_argument('--workers',type=int,default=11)
     args=parser.parse_args(argv)
@@ -31,7 +33,17 @@ def main(argv=None):
     if args.track:
         cases=[c for c in cases if c.track==args.track]
         if not cases:parser.error(f'Unknown or empty task group: {args.track}')
-        dataset={**dataset,'cases':[c for c in dataset['cases'] if c.get('track','web')==args.track]}
+    if args.case_ids:
+        requested=[value.strip() for value in args.case_ids.split(',') if value.strip()]
+        if not requested or len(requested)!=len(set(requested)):
+            parser.error('Select nonempty, unique case IDs')
+        available={case.id for case in cases}
+        unknown=sorted(set(requested)-available)
+        if unknown:parser.error(f'Unknown or unselected case IDs: {", ".join(unknown)}')
+        wanted=set(requested)
+        cases=[case for case in cases if case.id in wanted]
+    selected_ids={case.id for case in cases}
+    dataset={**dataset,'cases':[case for case in dataset['cases'] if case['id'] in selected_ids]}
     selected_tracks={case.track for case in cases}
     planned={name for track in selected_tracks for name in dataset.get('coverage_plan',{}).get(track,[])}
     names=[n.strip() for n in args.providers.split(',') if n.strip()] if args.providers else sorted(planned)
@@ -83,6 +95,9 @@ def main(argv=None):
         if reference.exists():
             (args.output/'list-references').mkdir(exist_ok=True)
             shutil.copy2(reference,args.output/'list-references'/reference.name)
-    print(build_report(args.output,args.output/'report'))
+    if args.skip_report:
+        print(args.output)
+    else:
+        print(build_report(args.output,args.output/'report'))
 
 if __name__=='__main__':main()

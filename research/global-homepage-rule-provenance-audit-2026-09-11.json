@@ -1,0 +1,2838 @@
+{
+  "schema_version": 1,
+  "purpose": "Mechanical provenance audit only. Unchanged URLs must be supported directly by the original independent browser capture; changed URLs must be supported directly by the exact fixed-language URL observation. Supplemental reviews cannot rescue missing primary evidence. Provider outputs are not consulted.",
+  "evidence_files_provider_free": true,
+  "limitations": [
+    "Substring presence proves observation, not long-term stability.",
+    "Script-class detection is a conservative signal for flat locale mixing, not a language classifier.",
+    "Unsupported means absent from the declared independent evidence files; it is not proof that the text cannot appear on the live site."
+  ],
+  "case_count": 52,
+  "cases_with_unsupported_literals": 0,
+  "cases_with_flat_locale_mixing_risk": 0,
+  "cases": [
+    {
+      "case_id": "global-homepage-001-google-com",
+      "domain": "google.com",
+      "schema": "page_identity",
+      "anchor_group_count": 6,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Google",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-visual-spot-check-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "About",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Advertising",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Business",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-5",
+          "literal": "Privacy",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-6",
+          "literal": "Terms",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-002-youtube-com",
+      "domain": "youtube.com",
+      "schema": "page_identity",
+      "anchor_group_count": 5,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "YouTube Home",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Guide",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Search",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Settings",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-5",
+          "literal": "Sign in",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-005-chatgpt-com",
+      "domain": "chatgpt.com",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "ChatGPT",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-visual-spot-check-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Where should we begin?",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Chat with ChatGPT",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "New chat",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-006-reddit-com",
+      "domain": "reddit.com",
+      "schema": "named_link",
+      "anchor_group_count": 3,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "POPULAR COMMUNITIES",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Best",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Hot",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-008-whatsapp-com",
+      "domain": "whatsapp.com",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Message privately",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Never miss a moment with voice and video calls",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Keep in touch with your groups",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Transform your business",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-010-bing-com",
+      "domain": "bing.com",
+      "schema": "page_identity",
+      "anchor_group_count": 5,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Microsoft Bing",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Images",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Maps",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Search using an image",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-5",
+          "literal": "Sign in",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-011-wikipedia-org",
+      "domain": "wikipedia.org",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Wikipedia",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "The Free Encyclopedia",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "English",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "日本語",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-012-gemini-google-com",
+      "domain": "gemini.google.com",
+      "schema": "page_identity",
+      "anchor_group_count": 3,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Gemini",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Conversation with Gemini",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Meet Gemini, your personal AI assistant",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-013-yahoo-co-jp",
+      "domain": "yahoo.co.jp",
+      "schema": "named_link",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Yahoo! JAPAN",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-visual-spot-check-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "主なサービス",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-visual-spot-check-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "お知らせ",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "ニュース",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-visual-spot-check-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-015-yahoo-com",
+      "domain": "yahoo.com",
+      "schema": "named_link",
+      "anchor_group_count": 5,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Search the web",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "News",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Finance",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Sports",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-5",
+          "literal": "Trending",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-016-amazon-com",
+      "domain": "amazon.com",
+      "schema": "named_link",
+      "anchor_group_count": 3,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Amazon",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-visual-spot-check-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Today's Deals",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-visual-spot-check-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Customer Service",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-018-baidu-com",
+      "domain": "baidu.com",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "百度一下",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-visual-spot-check-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "新闻",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-visual-spot-check-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "地图",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-visual-spot-check-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "更多",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-020-naver-com",
+      "domain": "naver.com",
+      "schema": "named_link",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "NAVER",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-visual-spot-check-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "공지사항",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Partners",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Developers",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-021-netflix-com",
+      "domain": "netflix.com",
+      "schema": "page_identity",
+      "anchor_group_count": 3,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Unlimited movies, TV shows, and more",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "More Reasons to Join",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-visual-spot-check-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Frequently Asked Questions",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-visual-spot-check-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-023-cloud-microsoft",
+      "domain": "cloud.microsoft",
+      "schema": "page_identity",
+      "anchor_group_count": 3,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Work smarter across Microsoft 365 with Copilot",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Popular prompts to try",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Jump into your favorite app",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-025-bilibili-com",
+      "domain": "bilibili.com",
+      "schema": "named_link",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "首页",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "番剧",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "直播",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "热门",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-027-dzen-ru",
+      "domain": "dzen.ru",
+      "schema": "named_link",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Поиск Яндекса",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Новости",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Статьи",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Видео",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-028-microsoft-com",
+      "domain": "microsoft.com",
+      "schema": "page_identity",
+      "anchor_group_count": 5,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Microsoft",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Microsoft 365",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Windows",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Surface",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-5",
+          "literal": "XBOX",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-029-twitch-tv",
+      "domain": "twitch.tv",
+      "schema": "named_link",
+      "anchor_group_count": 3,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Live Channels",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Live on Twitch",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Categories we think you’ll like",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-030-weather-com",
+      "domain": "weather.com",
+      "schema": "page_identity",
+      "anchor_group_count": 3,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Forecasts",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Radar",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Today's Outlook",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-032-canva-com",
+      "domain": "canva.com",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Canva home",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "What will you design today?",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Start designing",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Canva AI",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-034-news-yahoo-co-jp",
+      "domain": "news.yahoo.co.jp",
+      "schema": "named_link",
+      "anchor_group_count": 3,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Yahoo!ニュース",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "トピックス",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "アクセスランキング",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-035-fandom-com",
+      "domain": "fandom.com",
+      "schema": "named_link",
+      "anchor_group_count": 5,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Fandom",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "GAMES",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "MOVIES",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "TV",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-5",
+          "literal": "EXPLORE PROPERTIES",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-036-globo-com",
+      "domain": "globo.com",
+      "schema": "named_link",
+      "anchor_group_count": 3,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "globo.com",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Guia de Compras",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Previsão do tempo",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-037-mail-ru",
+      "domain": "mail.ru",
+      "schema": "named_link",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Mail.ru",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Почта",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Облако",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Календарь",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-038-samsung-com",
+      "domain": "samsung.com",
+      "schema": "page_identity",
+      "anchor_group_count": 5,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Samsung",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Mobile",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "TV & AV",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Appliances",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-5",
+          "literal": "Computers & Monitors",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-039-duckduckgo-com",
+      "domain": "duckduckgo.com",
+      "schema": "page_identity",
+      "anchor_group_count": 5,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "DuckDuckGo",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Search",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Duck.ai",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Settings",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-5",
+          "literal": "Privacy Policy",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-041-discord-com",
+      "domain": "discord.com",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "GROUP CHAT THAT’S ALL FUN & GAMES",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "MAKE YOUR GROUP CHATS MORE FUN",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "STREAM LIKE YOU’RE IN THE SAME ROOM",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "HOP IN WHEN YOU'RE FREE, NO NEED TO CALL",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-042-github-com",
+      "domain": "github.com",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "GitHub features",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "GitHub Copilot",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "GitHub Actions",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "GitHub Codespaces",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-044-spotify-com",
+      "domain": "spotify.com",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Your Library",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Trending songs",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Popular artists",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Popular albums and singles",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-045-nytimes-com",
+      "domain": "nytimes.com",
+      "schema": "named_link",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "The New York Times",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "TOP STORIES",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "NEWSLETTERS",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "PODCASTS",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-046-zoom-us",
+      "domain": "zoom.us",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Find out what's possible when work connects",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "One platform. Endless ways to work together.",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Trusted by millions. Built for you.",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Businesses achieve more with Zoom",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-047-booking-com",
+      "domain": "booking.com",
+      "schema": "page_identity",
+      "anchor_group_count": 5,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Booking.com",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Stays",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Flights",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Car rental",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-5",
+          "literal": "Search",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-049-brave-com",
+      "domain": "brave.com",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "The browser that puts you first",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Private search",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Powerful VPN",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "A Web with fewer ads",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-056-apple-com",
+      "domain": "apple.com",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Apple",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Mac",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "iPhone",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Watch",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-060-espn-com",
+      "domain": "espn.com",
+      "schema": "named_link",
+      "anchor_group_count": 3,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "ESPN",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Quick Links",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Top Headlines",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-062-bbc-com",
+      "domain": "bbc.com",
+      "schema": "named_link",
+      "anchor_group_count": 5,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "BBC",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-visual-spot-check-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "News",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-visual-spot-check-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Sport",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-visual-spot-check-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Business",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-visual-spot-check-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-5",
+          "literal": "Technology",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-063-paypal-com",
+      "domain": "paypal.com",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "PayPal",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Personal",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Business",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Get the PayPal app",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-065-ya-ru",
+      "domain": "ya.ru",
+      "schema": "page_identity",
+      "anchor_group_count": 3,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Запрос",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Поиск по картинке",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Сервисы",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-067-deepseek-com",
+      "domain": "deepseek.com",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Into the Unknown",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "DeepSeek Web",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "API Platform",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "API Docs",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-068-indeed-com",
+      "domain": "indeed.com",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Your next job starts here",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Trending Searches",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Trending Jobs",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Search",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-072-rakuten-co-jp",
+      "domain": "rakuten.co.jp",
+      "schema": "named_link",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "ようこそ楽天市場へ",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "楽天スーパーDEAL",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "人気商品ランキング",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "ジャンル",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-075-telegram-org",
+      "domain": "telegram.org",
+      "schema": "page_identity",
+      "anchor_group_count": 5,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Why Telegram?",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Simple",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Private",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Secure",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-5",
+          "literal": "Powerful",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-080-cnn-com",
+      "domain": "cnn.com",
+      "schema": "named_link",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "CNN",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "MORE TOP STORIES",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "CNN UNDERSCORED",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Across our coverage",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-081-namu-wiki",
+      "domain": "namu.wiki",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "나무위키에 오신 것을 환영합니다!",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "나무위키는 누구나 기여할 수 있는 위키입니다.",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "검증되지 않았거나 편향된 내용이 있을 수 있습니다.",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "나무위키의 도움말",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-082-shein-com",
+      "domain": "shein.com",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "SHEIN",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Women Clothing",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Home & Living",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Electronics",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-084-qq-com",
+      "domain": "qq.com",
+      "schema": "named_link",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "产品推荐",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "热点精选",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "腾讯新闻出品",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "热门问答",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-085-douyin-com",
+      "domain": "douyin.com",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "精选",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "推荐",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "放映厅",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "短剧",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-086-usps-com",
+      "domain": "usps.com",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Quick Tools",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Track a Package",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Find USPS Locations",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Buy Stamps",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-087-instructure-com",
+      "domain": "instructure.com",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Instructure",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Canvas",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Explore Canvas",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "Why Instructure",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-088-primevideo-com",
+      "domain": "primevideo.com",
+      "schema": "page_identity",
+      "anchor_group_count": 4,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "Prime Video",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+            "research/global-homepage-rule-variant-review-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "电影",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-variant-review-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "电视节目",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-variant-review-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "体育",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-variant-review-2026-09-11.json",
+            "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    },
+    {
+      "case_id": "global-homepage-090-rutube-ru",
+      "domain": "rutube.ru",
+      "schema": "named_link",
+      "anchor_group_count": 5,
+      "multilingual_anchor_group_count": 0,
+      "flat_locale_mixing_risk": false,
+      "unsupported_literals": [],
+      "unsupported_literal_count": 0,
+      "primary_evidence": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+      "primary_evidence_provider_calls": false,
+      "literal_provenance": [
+        {
+          "anchor_id": "stable-anchor-1",
+          "literal": "RUTUBE",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-2",
+          "literal": "Для вас",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-3",
+          "literal": "Shorts",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-4",
+          "literal": "ТВ-каналы",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        },
+        {
+          "anchor_id": "stable-anchor-5",
+          "literal": "Рекомендации",
+          "primary_supported": true,
+          "observed_in": [
+            "research/global-homepage-rule-evidence-final-v2-2026-09-11.json"
+          ]
+        }
+      ],
+      "evidence_scope": {
+        "capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+        "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+        "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+        "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      }
+    }
+  ]
+}

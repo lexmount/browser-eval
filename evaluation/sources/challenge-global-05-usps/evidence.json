@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-05-usps",
+  "url": "https://store.usps.com/store/stamps",
+  "checked_at": "2026-09-08",
+  "source": "Independent rendered list and detail-page review; formalized from the reviewed handoff",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "stable_page_sha256": "fb15368b7fb4273bdc4702887b2a2cf4b9aea278a49dd689ca4754caca382309",
+  "items_sha256": "2282161ed1b07f950c1cacff9dd62c42be90335b23ef87ddb8d85ac60e2b8909",
+  "list_reference_sha256": "83e4c4deced4d569ee1c02d5dccbcf4f67c5e6b0b47187a3f61177ceb534b484",
+  "reference_sha256": "13497c3c6170e011197f1669a5c1ff8e79298a4a5a989b849c63de08336e97a1",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "access_context": "Public pages in an ordinary logged-out browser",
+  "risk": "商品与在售状态变化；路径规则依赖 USPS 当前的 /store/product/ 商品详情结构。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

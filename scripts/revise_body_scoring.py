@@ -16,7 +16,7 @@ from scripts.rescore_content import rescore
 
 ALLOWED_FIELDS = {
     'body_requirements', 'required_patterns', 'required_facts',
-    'acceptance_contract',
+    'acceptance_contract', 'task_prompt', 'reference_answer', 'source_benchmark',
 }
 
 

@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-03-quora",
+  "url": "https://www.quora.com/topic/Technology/writers",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "408a92810f1aa9c59c4bb58d30022d11c3f52d7b6a361b0dca217ca99129386f",
+  "items_sha256": "8d3a9d46b3d340a4eb1e9bf54a7f96f5e1f1e80704e6702b3ada5a24c47151d6",
+  "reference_sha256": "4882621df3454cd430b3a924b0f5dcf2d3a15f244dd6b52f00488800a95b7fc7",
+  "list_reference_sha256": "ab5e91f3327467eb924d48ff4daca5b1c69f91f958a8aa0468cb36baf4f49704",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "条目是作者而非文章；作者顺序和统计数字变化不影响本规则，但是否符合测试集内容类型分布需人工确认。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

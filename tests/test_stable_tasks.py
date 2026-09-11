@@ -139,6 +139,28 @@ class StableTaskTests(unittest.TestCase):
         self.assertFalse(self.check("Navigation\nHome\nAbout\nContact", "taxonomy_family")["stable_task_pass"])
         self.assertFalse(self.check("Testidae\nTestidae", "taxonomy_family")["stable_task_pass"])
 
+    def test_page_identity_requires_all_stable_groups_without_records(self):
+        rules = contract("page_identity", count=0, stable_text_anchors=[
+            {"id": "brand", "alternatives": ["Example Search"]},
+            {"id": "control", "alternatives": ["Search the web", "搜索网页"]},
+        ])
+        result = evaluate_stable_task(
+            "Example Search\nSearch the web\nPrivacy", rules, "https://example.test/"
+        )
+        self.assertTrue(result["stable_task_pass"], result)
+        self.assertEqual(result["stable_record_count"], 0)
+        self.assertFalse(evaluate_stable_task("Example Search", rules)["stable_task_pass"])
+
+    def test_page_identity_contract_rejects_records_or_missing_anchors(self):
+        for rules in (
+            contract("page_identity", count=1, stable_text_anchors=[
+                {"id": "brand", "alternatives": ["Example"]}
+            ]),
+            contract("page_identity", count=0),
+        ):
+            with self.subTest(rules=rules), self.assertRaises(ValueError):
+                validate_acceptance_contract(rules)
+
     def test_markdown_tables_have_owned_typed_fields_and_empty_cells_fail(self):
         text = "| Name | Price |\n| --- | --- |\n| Alpha | $10 |\n| Beta | $20 |"
         self.assertTrue(self.check(text)["stable_task_pass"])
@@ -346,6 +368,32 @@ class StableTaskTests(unittest.TestCase):
         result = self.check(text, "named_link", 3, stable_text_anchors=anchors,
                             hosts=["example.com"], entry_path=r"/r/programming/comments/\d+")
         self.assertTrue(result["stable_task_pass"], result)
+
+    def test_named_link_non_record_anchor_survives_flat_page_without_borrowing_title(self):
+        links = [
+            {"title": "First story", "url": "https://example.com/item/1"},
+            {"title": "Second story", "url": "https://example.com/item/2"},
+            {"title": "Third story", "url": "https://example.com/item/3"},
+        ]
+        rules = contract("named_link", 3, maximum_records=None,
+                         hosts=["example.com"], entry_path=r"/item/\d+",
+                         stable_text_anchors=[
+                             {"id": "brand", "alternatives": ["Example Portal"],
+                              "match_scope": "non_record_lines"},
+                             {"id": "section", "alternatives": ["News"],
+                              "match_scope": "non_record_lines"},
+                         ])
+        flat = "Example Portal News First story Second story Third story"
+        result = evaluate_stable_task(flat, rules, "https://example.com/", links=links)
+        self.assertTrue(result["stable_task_pass"], result)
+
+        title_only = {**rules, "stable_text_anchors": [
+            {"id": "title", "alternatives": ["First story"],
+             "match_scope": "non_record_lines"}
+        ]}
+        rejected = evaluate_stable_task(flat, title_only, "https://example.com/", links=links)
+        self.assertTrue(rejected["stable_structure_pass"])
+        self.assertFalse(rejected["stable_content_pass"])
 
     def test_quote_anchors_match_owned_fields_not_markup_or_ui_link(self):
         anchors = [{"id": "fixed", "alternatives": ['“An independent thought.”\nby Some Author\nTags: first second']}]

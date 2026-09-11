@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-09-11T04:27:53Z",
+  "purpose": "Audit locale-dependent homepage acceptance without using provider output as reference evidence.",
+  "provider_calls": false,
+  "current_case": {
+    "case_id": "global-homepage-001-google-com",
+    "url": "https://google.com/",
+    "finding": "The current contract uses independent alternatives per semantic field. It does not require all matched fields to belong to one locale, and an unlisted legitimate locale such as Japanese would fail literal matching.",
+    "provenance_gap": {
+      "independently_observed_variants": [
+        "关于 Google",
+        "關於 Google",
+        "广告",
+        "廣告",
+        "商务",
+        "商業",
+        "隐私权",
+        "隱私權",
+        "条款",
+        "服務條款"
+      ],
+      "current_contract_variants_not_supported_by_the_saved_independent_google_observations": [
+        "關於",
+        "企業",
+        "私隱權政策",
+        "條款"
+      ],
+      "policy": "Provider output cannot establish or expand reference variants."
+    }
+  },
+  "independent_fixed_locale_candidate": {
+    "requested_url": "https://www.google.com/?hl=en",
+    "observed_final_url": "https://www.google.com.hk/?hl=en",
+    "observer": "Codex in-app Chromium accessibility snapshot in an anonymous browsing surface",
+    "observed_at": "2026-09-11T04:27:53Z",
+    "document_title": "Google",
+    "observed_identity_and_function_text": [
+      "Google",
+      "Search",
+      "Search by voice",
+      "Search by image",
+      "Google Search",
+      "I'm Feeling Lucky",
+      "About",
+      "Advertising",
+      "Business",
+      "How Search works",
+      "Privacy",
+      "Terms",
+      "Settings"
+    ],
+    "finding": "The explicit hl=en homepage remained English after the natural google.com.hk redirect, so a fixed-locale Google homepage case is feasible."
+  },
+  "recommended_policy": {
+    "primary_benchmark": "Pin a locale in the task URL when the site provides a stable locale parameter, independently observe that exact URL, and freeze one literal-language contract before provider calls.",
+    "natural_root_extension": "If a bare root URL is retained as a separate locale-compatibility task, accept only complete independently observed locale bundles. Do not mix alternatives across locales and do not use open-ended semantic translation matching.",
+    "reporting": "Show the declared locale, the complete expected bundle, and the one bundle matched by the returned output.",
+    "current_result": "Do not silently reinterpret or replace the existing first formal call. A URL change requires a new formal call identity; the earlier call remains historical evidence."
+  }
+}

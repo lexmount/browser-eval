@@ -1,0 +1,33 @@
+{
+  "case_id": "global-homepage-090-rutube-ru",
+  "domain": "rutube.ru",
+  "url": "https://rutube.ru/",
+  "final_url": "https://rutube.ru/",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "4666874c218c0440924dc28c31461de821ca835f1bdb5c6103c0bde2544349d9",
+  "stable_page_sha256": "73c2c66598b256be890d934da60b277ca040fc3e6f0eaff0801828cc00904b9b",
+  "anchor_groups": [
+    [
+      "RUTUBE"
+    ],
+    [
+      "Для вас"
+    ],
+    [
+      "Shorts"
+    ],
+    [
+      "ТВ-каналы"
+    ],
+    [
+      "Рекомендации"
+    ]
+  ],
+  "matching_named_link_count": 64,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

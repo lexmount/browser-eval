@@ -1,0 +1,33 @@
+{
+  "case_id": "global-homepage-038-samsung-com",
+  "domain": "samsung.com",
+  "url": "https://samsung.com/",
+  "final_url": "https://www.samsung.com/us/",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "9f0e108cf972cda3485f763c56cc62034590ac32a2c61a76ed01a7d191403480",
+  "stable_page_sha256": "2aab53c1dace41cfc030eeeb99090a13ba02529ff0535f42beea8ab1d11d47cb",
+  "anchor_groups": [
+    [
+      "Samsung"
+    ],
+    [
+      "Mobile"
+    ],
+    [
+      "TV & AV"
+    ],
+    [
+      "Appliances"
+    ],
+    [
+      "Computers & Monitors"
+    ]
+  ],
+  "matching_named_link_count": 0,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

@@ -1,0 +1,30 @@
+{
+  "case_id": "global-homepage-082-shein-com",
+  "domain": "shein.com",
+  "url": "https://us.shein.com/",
+  "final_url": "https://us.shein.com/",
+  "checked_at": "2026-09-11",
+  "source": "Codex in-app Chromium, independently reviewed homepage contract",
+  "capture_file": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+  "capture_file_sha256": "823d1b8d2819f3f30be1a7f02b0d1891122b54b87ddcce30db0d3c6eefa8d846",
+  "visible_text_sha256": "3f06a724367a04ed25bffeceeccf84f41b6fd0439251876d28823a659c261648",
+  "stable_page_sha256": "f46e21d27ba644e3fd6314b06f764e6eb109ca2054e2adf05015ec4abca3eb03",
+  "anchor_groups": [
+    [
+      "SHEIN"
+    ],
+    [
+      "Women Clothing"
+    ],
+    [
+      "Home & Living"
+    ],
+    [
+      "Electronics"
+    ]
+  ],
+  "matching_named_link_count": 0,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

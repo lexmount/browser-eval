@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-33-mail-ru",
+  "url": "https://news.mail.ru/",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "ff9648593d42dd3f379ca21fdef04780e69992cf6f4551ba11040beaaff90ef9",
+  "items_sha256": "c0535013a76784e98e55f428fbf4854cec689e7f2dffcb3edc7cee69e998d3cd",
+  "reference_sha256": "1b97a8d8698d428c2a169527aa9ca61a69c940091834af3c1cd3b9fae8871327",
+  "list_reference_sha256": "fc27a6edbb98c06eb0e4a00ecb8dae55eaaa79cef4d4536084b3eeb07dfc8af8",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "分类 slug 按三个证据泛化为小写拉丁字母；若站点出现含连字符的新闻分类，需基于新证据放宽。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

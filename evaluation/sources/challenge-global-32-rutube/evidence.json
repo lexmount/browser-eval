@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-32-rutube",
+  "url": "https://rutube.ru/feeds/popular/",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "0edcc67d3f7dc836d5adb812f5ba08a7c27afe688317aa03579bcc89e12ccc42",
+  "items_sha256": "0c709c3079332a592d25fb6de5902940529b02d76ceed77b84319c5e7d8511b3",
+  "reference_sha256": "5dbe22729ce45ace0d9aabe2d5d8cde958a2e73ea915efe2eef02fd6a4ef5102",
+  "list_reference_sha256": "71c69bba0b391ecf1f64f1a6c1ba88732ec3820046793f5dcd7ad7818008618a",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "热门推荐可能含较旧视频；日期、观看数、频道和顺序均不固定。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

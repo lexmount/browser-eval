@@ -1,0 +1,30 @@
+{
+  "case_id": "global-homepage-045-nytimes-com",
+  "domain": "nytimes.com",
+  "url": "https://nytimes.com/",
+  "final_url": "https://www.nytimes.com/",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "a5695226342363dd442b36a71f3f096eeacab561cdb2f4a13512e73a94848a5e",
+  "stable_page_sha256": "32ec28043df1c5747fa6a7c0b4c359e7ec6f040d59ec4f830c8002144a4cb884",
+  "anchor_groups": [
+    [
+      "The New York Times"
+    ],
+    [
+      "TOP STORIES"
+    ],
+    [
+      "NEWSLETTERS"
+    ],
+    [
+      "PODCASTS"
+    ]
+  ],
+  "matching_named_link_count": 95,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

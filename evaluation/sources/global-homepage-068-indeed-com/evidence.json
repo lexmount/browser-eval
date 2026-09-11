@@ -1,0 +1,30 @@
+{
+  "case_id": "global-homepage-068-indeed-com",
+  "domain": "indeed.com",
+  "url": "https://indeed.com/",
+  "final_url": "https://www.indeed.com/",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "09b9a19a5ab17c5eb32961d1ced079f9facf0f4d1e5c3e088a358e020f9a5676",
+  "stable_page_sha256": "805312082247fdc8dfd120b2c9066c60129ed82b93c036bfad647f6afb0c1ebd",
+  "anchor_groups": [
+    [
+      "Your next job starts here"
+    ],
+    [
+      "Trending Searches"
+    ],
+    [
+      "Trending Jobs"
+    ],
+    [
+      "Search"
+    ]
+  ],
+  "matching_named_link_count": 0,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

@@ -1,0 +1,30 @@
+{
+  "case_id": "global-homepage-085-douyin-com",
+  "domain": "douyin.com",
+  "url": "https://douyin.com/",
+  "final_url": "https://www.douyin.com/jingxuan",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "ee44d5ff0e8183cb336eb58c3570b9544789bbcf720f54455d7b5ef2fb400167",
+  "stable_page_sha256": "8293efde3f5a18095d4c56a4f07518eb6fc4259af2eef3b116a2cd58042d541f",
+  "anchor_groups": [
+    [
+      "精选"
+    ],
+    [
+      "推荐"
+    ],
+    [
+      "放映厅"
+    ],
+    [
+      "短剧"
+    ]
+  ],
+  "matching_named_link_count": 0,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

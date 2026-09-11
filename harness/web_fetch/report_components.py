@@ -132,6 +132,10 @@ def task_pass_guide(track, base='', cases=None):
         'challenge': '请求成功，取得至少 3 条具名详情链接，字段完整、类型正确、条目不重复，链接符合目标站点规则；有独立内容证据的稳定标题、栏目、说明还须命中。频繁变化的名单和价格不固定旧值。通过表示满足上述取数要求，不证明变化值真实或最新。',
     }
     text = rules.get(track, '按案例中登记的验收规则逐项检查。')
+    if track == 'challenge' and cases:
+        schemas={c.get('acceptance_contract',{}).get('schema') for c in cases.values()}
+        if 'page_identity' in schemas:
+            text=('请求成功并取得目标首页，而不是错误页、验证码、空白页或纯登录页。入口页按登记的稳定页面身份与功能文字验收，不要求列表记录或长正文；内容列表页除稳定文字外，还须满足各例声明的具名详情链接数量、字段、类型与唯一性。稳定文字数量不统一，频繁变化的名单、价格和名次不固定旧值。')
     coverage=[c['body_requirements'] for c in (cases or {}).values() if c.get('body_requirements')]
     if coverage:
         thresholds=' / '.join(f'{v:.0%}' for v in sorted({r['minimum_coverage'] for r in coverage}))
@@ -142,6 +146,17 @@ def task_pass_guide(track, base='', cases=None):
             labels={'financing':'分期','shipping':'配送'}
             text+=' '+c['name']+' 的字段覆盖要求：'+'、'.join(f'{labels.get(k,k)}至少 {v} 条' for k,v in fields.items())+'，各归属于完整且唯一的记录。'
     context = TRACK_CONTEXT.get(track)
+    if track == 'challenge' and cases and any(
+            c.get('acceptance_contract',{}).get('schema') == 'page_identity'
+            for c in cases.values()):
+        context=dict(context)
+        context.update({
+            'flow':['请求热门网站首页','排除错误、验证、空白或纯登录页','识别页面身份与主要功能','按该页契约核对稳定文字和可选列表'],
+            'flow_note':'简单入口页本身可以成为有效测试：取得品牌或页面身份及可见功能文字即可；只有声明为列表型的案例才要求具名详情链接。',
+            'meaning':'评测热门网站首页的页面获取与内容提取。页面可能是简单搜索入口、品牌落地页、内容列表或商品目录；验收随真实页面形态变化，不把所有首页强迫成排行榜。',
+            'example':'Google 首页按入口页身份与稳定文字验收，不要求三条详情链接；新闻或视频列表首页则可同时要求稳定栏目和具名详情入口。',
+            'boundary':'不向方法提供登录凭据，不操作验证码，也不把错误页、验证码、空白页或纯登录页当作有效首页。某次访问受限不等于网站失效；地区化跳转和文案变体须在冻结规则与审计中明确记录。',
+        })
     if not context:
         return '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+escape(text)+'</p></div>'
     example_link = ''
@@ -192,10 +207,10 @@ def examples():
             ('怎样算通过','完成指定任务；找到播放地址不等于拿到视频，更不等于能识别画面或字幕。<a href="../datasets/video-01.html">查看视频参考与结果 →</a>'),
         ]),
         ('challenge','热门网站正文',[
-            ('任务','以 JustWatch 为例取得声明数量的不同剧集及名称、详情入口；任务结果与耗时进入热门网站主表。缺少完整参考只影响全文指标，不隐藏任务结果。'),
-            ('核对依据','独立页面提供稳定内容锚点与条目结构要求：剧集名称和本站详情入口，不固定当天的剧集名单。'),
-            ('结构怎么测','至少 3 个有名称的本站详情链接，按地址去重。仅网址、导航按钮和登录提示不计入；频繁变化的条目名称、名次、价格或 ID 不固定为旧快照取值，不免除登记的稳定内容核对。'),
-            ('怎样算通过','稳定内容锚点与必需字段、类型、唯一性和数量全部通过。通过不证明变化值的事实准确性或实时性；缺少完整、可比的参考时完整度、纯净度和 F1 为 —。<a href="../datasets/challenge-10-justwatch.html">查看参考与实测 →</a>'),
+            ('任务','打开冻结的热门网站首页，取得与真实页面形态相符的可见内容。入口页、落地页、内容列表和商品目录可使用不同契约。'),
+            ('核对依据','独立页面证据登记真正稳定的页面身份、功能文字、栏目或说明，不规定统一数量；列表型页面另登记字段结构和最低记录数。'),
+            ('结构怎么测','入口页只核对页面身份与功能文字，不要求三条链接；列表型页面才核对具名本站详情链接、字段归属、类型、数量和唯一性。易变名单、名次、价格或 ID 不冻结为旧值。'),
+            ('怎样算通过','请求成功、取得目标首页而非错误页、验证码、空白页或纯登录页，并满足该页冻结契约的全部适用项。缺少完整、可比的正文参考时完整度、纯净度和 F1 为 —。'),
         ]),
     ]
     order = ['web', 'dynamic', 'challenge', 'document', 'image', 'video']
@@ -227,6 +242,7 @@ SCHEMA_LABELS = {
     'quote':'引文列表', 'product':'商品列表', 'catalog_product':'商品目录',
     'review':'评论列表', 'name_description':'名称与说明', 'api_operation':'接口摘要',
     'taxonomy_family':'科名列表', 'named_link':'具名详情入口',
+    'page_identity':'入口页身份与功能',
 }
 FIELD_REQUIREMENTS = {
     'quote':('引文','至少 3 个字符，含文字，不能只是网址、金额或占位内容。'),
@@ -255,6 +271,8 @@ def task_instruction(c):
             return '读取这个最小文档的全部可见正文。该样本只检查能否取得短文档文字，不代表多页、表格或附录能力。'
         return c.get('task_prompt', '')
     from .stable_tasks import SCHEMA_FIELDS
+    if contract['schema'] == 'page_identity':
+        return '取得该入口页，并命中下方列明的全部稳定页面身份与功能文字；不要求列表记录或长正文。'
     fields = '、'.join(FIELD_REQUIREMENTS[f][0] for f in SCHEMA_FIELDS[contract['schema']])
     instruction = f'取得至少 {contract["minimum_records"]} 条完整、不重复的记录，每条包含{fields}。'
     if contract.get('stable_text_anchors') or contract.get('page_patterns'):
@@ -264,6 +282,9 @@ def task_instruction(c):
 
 def stable_rule_description(c):
     contract = c['acceptance_contract']
+    if contract['schema'] == 'page_identity':
+        return ('入口页身份与功能：不要求结构化记录；按登记的稳定文本锚点与页面模式核对正确页面，'
+                '同时排除空白、登录墙、验证码、安全验证与通用错误页。通过不表示完成站内搜索、登录或其他交互。')
     maximum = contract.get('maximum_records')
     limit = f'至少 {contract["minimum_records"]} 条' + (f'，最多 {maximum} 条' if maximum is not None else '')
     return (f'{SCHEMA_LABELS.get(contract["schema"], contract["schema"])}：{limit}完整且唯一的记录。'
@@ -277,7 +298,8 @@ def stable_contract_details(c):
     schema = contract['schema']
     fields = ''.join('<li><strong>'+escape(FIELD_REQUIREMENTS[f][0])+'</strong>：'+escape(FIELD_REQUIREMENTS[f][1])+'</li>' for f in SCHEMA_FIELDS[schema])
     unique = '＋'.join(FIELD_REQUIREMENTS[f][0] for f in UNIQUE_FIELDS[schema])
-    requirements = '<h3>必需字段与要求</h3><ul>'+fields+'</ul><p>各字段须属于同一条记录，不得跨条目拼接。按'+escape(unique)+'核对唯一性。</p>'
+    requirements = ('' if schema == 'page_identity' else
+        '<h3>必需字段与要求</h3><ul>'+fields+'</ul><p>各字段须属于同一条记录，不得跨条目拼接。按'+escape(unique)+'核对唯一性。</p>')
     if schema == 'name_description':
         requirements += '<p>说明不能仅重复名称。</p>'
     if schema in {'product','catalog_product'}:
@@ -298,7 +320,10 @@ def stable_contract_details(c):
 
 
 def basis_label(c):
-    if c.get('acceptance_contract'):return '稳定内容＋字段结构契约'
+    if c.get('acceptance_contract'):
+        contract=c['acceptance_contract'];anchors=len(contract.get('stable_text_anchors',[]))
+        if contract.get('schema')=='page_identity':return f'稳定文字 · {anchors} 组'
+        return f'稳定文字 {anchors} 组＋至少 {contract.get("minimum_records",0)} 条{SCHEMA_LABELS.get(contract.get("schema"),"结构化记录")}'
     if c.get('task_kind')=='structure':return '名称＋详情身份核验' if c.get('source_benchmark',{}).get('verification_scope')=='first_three_name_detail_pairs' else '登记内容＋字段规则'
     if c.get('task_kind')=='file':return '原文件'
     resources=c.get('expected_resources',[])

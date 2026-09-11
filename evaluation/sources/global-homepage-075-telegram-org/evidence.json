@@ -1,0 +1,33 @@
+{
+  "case_id": "global-homepage-075-telegram-org",
+  "domain": "telegram.org",
+  "url": "https://telegram.org/",
+  "final_url": "https://telegram.org/",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "abeb6ed758fe042ced26c66e18827f0f4ccebc6facce518758a88ef28316d221",
+  "stable_page_sha256": "5bf1ffe8b5f44c8e9dc383e3b4449af1dcf3161791d816be6d33bf63adbcd10d",
+  "anchor_groups": [
+    [
+      "Why Telegram?"
+    ],
+    [
+      "Simple"
+    ],
+    [
+      "Private"
+    ],
+    [
+      "Secure"
+    ],
+    [
+      "Powerful"
+    ]
+  ],
+  "matching_named_link_count": 0,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

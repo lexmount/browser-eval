@@ -1,0 +1,27 @@
+{
+  "case_id": "global-homepage-012-gemini-google-com",
+  "domain": "gemini.google.com",
+  "url": "https://gemini.google.com/",
+  "final_url": "https://gemini.google.com/app",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "ee05d05031af6fb787ddb4504ccd2840e15976b0e8293eeb40fd89aa5ca4743e",
+  "stable_page_sha256": "d3e1bf4c054ace6980eef81d3f3c1de7b5a7b07e34c6eebe1382494653b321be",
+  "anchor_groups": [
+    [
+      "Gemini"
+    ],
+    [
+      "Conversation with Gemini"
+    ],
+    [
+      "Meet Gemini, your personal AI assistant"
+    ]
+  ],
+  "matching_named_link_count": 0,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

@@ -1,0 +1,30 @@
+{
+  "case_id": "global-homepage-088-primevideo-com",
+  "domain": "primevideo.com",
+  "url": "https://www.primevideo.com/-/zh/storefront",
+  "final_url": "https://www.primevideo.com/-/zh/offers/nonprimehomepage?ref_=dv_web_force_root&language=zh",
+  "checked_at": "2026-09-11",
+  "source": "Codex in-app Chromium, independently reviewed homepage contract",
+  "capture_file": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+  "capture_file_sha256": "823d1b8d2819f3f30be1a7f02b0d1891122b54b87ddcce30db0d3c6eefa8d846",
+  "visible_text_sha256": "67c8ddc076bec426b59ee577a62ae0af0b87deb6f86b04a1cf5d402dde12553f",
+  "stable_page_sha256": "9afaaece5a5a29d7b6db3eced9524529b93a58ac7f47f9114646e9d1d9ab457d",
+  "anchor_groups": [
+    [
+      "Prime Video"
+    ],
+    [
+      "电影"
+    ],
+    [
+      "电视节目"
+    ],
+    [
+      "体育"
+    ]
+  ],
+  "matching_named_link_count": 0,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

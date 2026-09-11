@@ -4,6 +4,16 @@ import json
 from .metrics import task_passed
 
 
+AUDIT_CLASSIFICATIONS = {
+    'provider_access_or_extraction_failure',
+    'target_retrieved_but_frozen_contract_not_met',
+    'scorer_normalization_or_structure_error',
+    'reference_locale_language_or_page_variant_limitation',
+    'insufficient_evidence',
+    'verified_contract_pass',
+}
+
+
 def _sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -64,6 +74,14 @@ def require_result_review(source, dataset, records):
                   if row.get('final_verdict') not in {'pass', 'fail'}]
     if unresolved:
         raise ValueError(f'Result review has unresolved attempts: {len(unresolved)}')
+    classified = [row for row in attempts if 'classification' in row]
+    if classified:
+        if len(classified) != len(attempts):
+            raise ValueError('Result audit classifications must cover every reviewed attempt')
+        invalid = [row['attempt_id'] for row in classified
+                   if row.get('classification') not in AUDIT_CLASSIFICATIONS]
+        if invalid:
+            raise ValueError(f'Result audit has invalid classifications: {len(invalid)}')
     by_id = {record['attempt_id']: record for record in records}
     cases = {case['id']: case for case in dataset.get('cases', [])}
     for row in attempts:

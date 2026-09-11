@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-15-zoom",
+  "url": "https://www.zoom.com/en/blog/",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "9acc76808f5342fbc6029f90aa6baa5de6de0ea15ad82f24614796ab548439ab",
+  "items_sha256": "b3ab9718d6e711dc463cef3e2e75bb07ea41e841506824a87b7013c845fc5ab5",
+  "reference_sha256": "ed7a5d74b4beee456911f5b7bddf223f4bcdbc3a9bfdf0d350dc935c694fb97d",
+  "list_reference_sha256": "1d4d31ddfb8d16c973e5f84fb201825e42c7bc9ee11c84c48df89b274cb45c0d",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "只允许已有正例证明的 `/en/blog/<slug>`，没有把未验证的其他语言结构加入规则。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

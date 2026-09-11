@@ -1,0 +1,27 @@
+{
+  "case_id": "global-homepage-065-ya-ru",
+  "domain": "ya.ru",
+  "url": "https://ya.ru/",
+  "final_url": "https://ya.ru/",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "f8b5f5d7d12097249b79a01f15117e293c367186aada06b96a740f2fec4ed319",
+  "stable_page_sha256": "16e4af212056abf501ae3471860e0bb4fc60ae7f1f69470bccb7650372418910",
+  "anchor_groups": [
+    [
+      "Запрос"
+    ],
+    [
+      "Поиск по картинке"
+    ],
+    [
+      "Сервисы"
+    ]
+  ],
+  "matching_named_link_count": 0,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

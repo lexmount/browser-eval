@@ -1,0 +1,27 @@
+{
+  "case_id": "global-homepage-029-twitch-tv",
+  "domain": "twitch.tv",
+  "url": "https://www.twitch.tv/?lang=en",
+  "final_url": "https://www.twitch.tv/?lang=en",
+  "checked_at": "2026-09-11",
+  "source": "Codex in-app Chromium, independently reviewed homepage contract",
+  "capture_file": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+  "capture_file_sha256": "823d1b8d2819f3f30be1a7f02b0d1891122b54b87ddcce30db0d3c6eefa8d846",
+  "visible_text_sha256": "fb6d5295cf107b01a70237de4ccecce2adf893cace563ce5bb4299952864140a",
+  "stable_page_sha256": "69dbbb17335e8a1bfd25c1e830490f472c3b30e64a26ae2c3a06887669eaa9ad",
+  "anchor_groups": [
+    [
+      "Live Channels"
+    ],
+    [
+      "Live on Twitch"
+    ],
+    [
+      "Categories we think you’ll like"
+    ]
+  ],
+  "matching_named_link_count": 3,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

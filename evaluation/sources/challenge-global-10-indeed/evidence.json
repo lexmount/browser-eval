@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-10-indeed",
+  "url": "https://www.indeed.com/companies/browse-companies",
+  "checked_at": "2026-09-08",
+  "source": "Independent rendered list and detail-page review; formalized from the reviewed handoff",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "stable_page_sha256": "261b51e1231996327b3ed0ed7e3a8d45d4292f6efd2c9fa6b77b0d0bca4cac19",
+  "items_sha256": "a807c4c7c724194c61b1ba0837a6c1dcc9c01362f544b373f5ef806eabb32704",
+  "list_reference_sha256": "42732e7799596ad5433bd0c411bf01fadb42735f873c05b9d5a4baded25cda09",
+  "reference_sha256": "e2f1c112285a81de155e367750424bfd0ca68ab40bd13288086884255a7d47bf",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "access_context": "Public United States English pages in an ordinary logged-out browser",
+  "risk": "地区语言和公司目录成员会变化；URL 百分号编码应保留，路径规则不要求名称与 slug 字面完全一致。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

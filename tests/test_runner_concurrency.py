@@ -1,3 +1,4 @@
+import hashlib
 import json
 import tempfile
 import threading
@@ -6,7 +7,11 @@ from pathlib import Path
 
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.base import Provider
-from harness.web_fetch.runner import IncompleteEvaluationError, run_evaluation
+from harness.web_fetch.runner import (
+    IncompleteEvaluationError,
+    copy_declared_static_evidence,
+    run_evaluation,
+)
 
 
 class BarrierProvider(Provider):
@@ -20,6 +25,37 @@ class BarrierProvider(Provider):
 
 
 class RunnerConcurrencyTest(unittest.TestCase):
+    def test_static_anchor_evidence_is_hash_bound_before_copy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dataset = root / "evaluation/dataset.json"
+            source = root / "evaluation/sources/case/stable-page.txt"
+            source.parent.mkdir(parents=True)
+            source.write_text("Stable identity\n")
+            digest = hashlib.sha256(source.read_bytes()).hexdigest()
+            (source.with_name("evidence.json")).write_text(json.dumps({
+                "case_id": "case", "url": "https://example.com/",
+                "stable_page_sha256": digest,
+            }))
+            case = EvalCase(
+                "case", "Case", "https://example.com/", "challenge", [],
+                source_benchmark={"stable_annotation": {
+                    "anchor_evidence": "sources/case/stable-page.txt",
+                    "anchor_evidence_sha256": digest,
+                }},
+            )
+            output = root / "run"
+            copy_declared_static_evidence(output, dataset, [case])
+            self.assertEqual((output / "sources/case/stable-page.txt").read_bytes(), source.read_bytes())
+            self.assertEqual(json.loads((output / "sources/case/evidence.json").read_text())["case_id"], "case")
+
+            (source.with_name("evidence.json")).write_text(json.dumps({
+                "case_id": "other", "url": "https://example.com/",
+                "stable_page_sha256": digest,
+            }))
+            with self.assertRaisesRegex(ValueError, "evidence record is inconsistent"):
+                copy_declared_static_evidence(root / "other-run", dataset, [case])
+
     def test_failed_task_is_called_once(self):
         class Flaky(Provider):
             def __init__(self):

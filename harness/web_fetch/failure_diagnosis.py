@@ -1,26 +1,59 @@
 """Evidence-based failure stage, preserving uncertainty about remote internals."""
 import json,re
+from urllib.parse import urlparse
+
+
+def _non_target_auth_landing(result, case):
+    """Explain a successful HTTP response that ended on an auth detour."""
+    requested = case.get('url') or result.get('url') or ''
+    final = result.get('final_url') or ''
+    if not requested or not final:
+        return None
+    requested_url, final_url = urlparse(requested), urlparse(final)
+    requested_host = (requested_url.hostname or '').lower()
+    final_host = (final_url.hostname or '').lower()
+    location = f'{final_host}{final_url.path}'.lower()
+    auth_markers = ('login', 'signin', 'sign-in', 'sso.', 'passport.', 'account.')
+    if requested_host != final_host and any(marker in location for marker in auth_markers):
+        return (f'请求 URL 为 {requested}，但本次调用最终落在登录或身份跳转页 {final}；'
+                'HTTP 200 只说明该跳转页成功返回，不代表取得目标首页。')
+    return None
 
 
 def _stable_failure(metrics):
     """Describe measured contract errors; never infer a shortfall by default."""
     errors = metrics.get('stable_task_errors', [])
-    if 'page_identity_mismatch' in errors or any(e.startswith('missing_stable_anchor:') for e in errors):
-        label = '缺少关键信息'
+    missing_anchors = (
+        'page_identity_mismatch' in errors
+        or any(e.startswith('missing_stable_anchor:') for e in errors)
+    )
+    too_few_records = 'too_few_complete_records' in errors
+    if metrics.get('stable_task_schema') == 'page_identity' and missing_anchors:
+        label = '稳定文字未全部命中'
+    elif missing_anchors and too_few_records:
+        label = '稳定文字和具名入口不完整'
+    elif missing_anchors:
+        label = '稳定文字未全部命中'
     elif 'too_many_records' in errors:
         label = '有效条目过多'
     elif 'duplicate_records' in errors:
         label = '条目重复'
     elif any(e in errors for e in ('incomplete_records', 'invalid_link_output')):
         label = '字段格式或记录不完整'
-    elif 'too_few_complete_records' in errors:
-        label = '有效条目不足'
+    elif too_few_records:
+        label = '具名入口不足'
     else:
         label = '任务规则未满足'
-    counts = f"完整且去重的记录 {metrics.get('stable_unique_record_count','未提供')} 条；至少要求 {metrics.get('stable_minimum_records','未提供')} 条"
-    maximum = metrics.get('stable_maximum_records')
-    if maximum is not None:
-        counts += f"，最多允许 {maximum} 条"
+    if metrics.get('stable_task_schema') == 'page_identity':
+        counts = (
+            f"稳定文字命中 {metrics.get('stable_anchor_hits','未提供')}/"
+            f"{metrics.get('stable_anchor_total','未提供')} 组"
+        )
+    else:
+        counts = f"完整且去重的记录 {metrics.get('stable_unique_record_count','未提供')} 条；至少要求 {metrics.get('stable_minimum_records','未提供')} 条"
+        maximum = metrics.get('stable_maximum_records')
+        if maximum is not None:
+            counts += f"，最多允许 {maximum} 条"
     return label, '内容核验', counts + '。规则：' + (', '.join(errors) or '未提供具体错误')
 
 
@@ -91,6 +124,8 @@ def diagnose(r,c,raw,source=None):
         else:
             category,stage,proof=set_result('服务取页失败','服务取页',message[:650])
             certainty='服务未披露更细原因；不能仅凭该错误归责源站或服务内部'
+    elif auth_landing := _non_target_auth_landing(r, c):
+        category,stage,proof=set_result('返回非目标登录 / 跳转页','页面落点',auth_landing)
     elif m.get('text_encoding_corruption'):
         category,stage,proof=set_result(
             '输出文本解码损坏','内容提取',

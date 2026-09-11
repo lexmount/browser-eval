@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-08-bbc",
+  "url": "https://www.bbc.com/news/world",
+  "checked_at": "2026-09-08",
+  "source": "Independent rendered list and detail-page review; formalized from the reviewed handoff",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "stable_page_sha256": "0c53ca7e732d847373e680ee18236bf36f37846e875d8816ab7716a7f5b11cfc",
+  "items_sha256": "79941ead7bf96174eca3bf85beca2279ef753954b4afe460b94e7e54f34d459a",
+  "list_reference_sha256": "0ffbf1da30cbe6a0aae0735aa3a6d4e1ce67b9f89259d1e2e9c8786eeef1843e",
+  "reference_sha256": "5630140e5e836c6d581d87d5389252d746c72dc32a56afbc07e7fcbbf3cada63",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "access_context": "Public pages in an ordinary logged-out browser",
+  "risk": "栏目和文章动态变化；锚点选用正文分区，而未使用登录或订阅等通用页面文字。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

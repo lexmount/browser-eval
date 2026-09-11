@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-19-yahoo-sports",
+  "url": "https://sports.yahoo.com/nba/standings/",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "33fd1bba84f5d7cc3c24949e477ab0e1cfdac3ac68b4c4dfaa2cd1742ad0c3f9",
+  "items_sha256": "ffa8b84b0f5cd4b25aafeee61b5593332f9ce6a6103d930f349c16a05b14f235",
+  "reference_sha256": "16683b2653ac4814b087aba10cfc1583a65b8612a3ca7b720ab5c0aaec545899",
+  "list_reference_sha256": "63b53f1f5f70489e6281f54d29ddebb833367b5bfd3a3e034d283ba96a7e6944",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "列表短名称与详情正式队名不同；身份需由 URL 和详情页标题共同解释，赛季与排名不应固定。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

@@ -1,0 +1,5037 @@
+{
+  "schema_version": 1,
+  "id": "global-representative-content",
+  "name": "全球热门网站代表性公开内容扩展组",
+  "tool": "web_fetch",
+  "dynamic_scoring": "列表只验收具名详情入口结构与稳定页面文字；详情/落地页验收稳定身份与功能文字，不冻结动态值。",
+  "coverage_plan": {
+    "challenge": []
+  },
+  "comparison": {
+    "kind": "representative_public_content_extension",
+    "timeout_seconds": 45,
+    "concurrency": 1,
+    "runs_per_case": 1,
+    "publication_state": "dataset_only_not_run",
+    "require_independent_result_review": true,
+    "source_rule_registry": "research/global-popular-per-site-rules.json",
+    "source_rule_registry_sha256": "7a14287375592c37cc09ba1bfbb77d63046d6f47b94da6a060addbc1c476a03a"
+  },
+  "cases": [
+    {
+      "id": "global-popular-01-youtube",
+      "name": "youtube.com · body_detail",
+      "url": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开单个视频详情页，包含标题、发布者和说明。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "body_detail"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-01-youtube/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Me at the zoo；jawed。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Me at the zoo；jawed。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "detail_fields",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "body_detail",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "view_count",
+            "subscriber_count",
+            "recommendations",
+            "comments",
+            "relative_date"
+          ],
+          "anchor_evidence": "sources/global-popular-01-youtube/stable-page.txt",
+          "anchor_evidence_sha256": "f06a9f475410f3816755934b1efbce891d3fb3f52f6e3c87185a02399003fe1d",
+          "record_requirement": "No structured records; all registered stable page-text groups are required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Me at the zoo"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "jawed"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-02-reddit",
+      "name": "reddit.com · content_list",
+      "url": "https://www.reddit.com/r/technology/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开社区信息流，直接呈现多个帖子。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "content_list"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-02-reddit/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：r/technology / r/Technology；Community highlights / 社区置顶帖；Related communities / 相关社区。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：r/technology / r/Technology；Community highlights / 社区置顶帖；Related communities / 相关社区。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "content_list",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "post_titles",
+            "votes",
+            "comment_counts",
+            "authors",
+            "relative_dates"
+          ],
+          "anchor_evidence": "sources/global-popular-02-reddit/stable-page.txt",
+          "anchor_evidence_sha256": "28a18615a4ba5a5435f9c7df2f706a98ce423be6442b3234c14278a1e630727c",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.reddit.com",
+          "reddit.com"
+        ],
+        "entry_path": "/r/technology/comments/[a-z0-9]+(?:/[^/?#]+)?",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "r/technology",
+              "r/Technology"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Community highlights",
+              "社区置顶帖"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Related communities",
+              "相关社区"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-04-yahoo-japan",
+      "name": "yahoo.co.jp · content_list",
+      "url": "https://www.yahoo.co.jp/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开门户首页，呈现新闻和服务条目。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "content_list"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-04-yahoo-japan/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Yahoo! JAPAN；主なサービス；ニュース；社会的な取り組み。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Yahoo! JAPAN；主なサービス；ニュース；社会的な取り組み。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready_from_prior_chromium_evidence",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "content_list",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "headlines",
+            "weather",
+            "market_values",
+            "rankings",
+            "advertisements"
+          ],
+          "anchor_evidence": "sources/global-popular-04-yahoo-japan/stable-page.txt",
+          "anchor_evidence_sha256": "2cc04b8f3df6163e30527c108810d9c6ad0459a5c93d9dbcfd9b78f48747284d",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.yahoo.co.jp",
+          "sports.yahoo.co.jp",
+          "finance.yahoo.co.jp"
+        ],
+        "entry_path": "/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Yahoo! JAPAN"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "主なサービス"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "ニュース"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "社会的な取り組み"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-06-yahoo",
+      "name": "yahoo.com · content_list",
+      "url": "https://www.yahoo.com/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开门户首页，包含多条新闻详情入口。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "content_list"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-06-yahoo/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Horoscope；Yahoo Scout；What to Watch；Today in History；What to play。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Horoscope；Yahoo Scout；What to Watch；Today in History；What to play。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready_from_prior_chromium_evidence",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "content_list",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "headlines",
+            "events",
+            "scores",
+            "market_values",
+            "advertisements"
+          ],
+          "anchor_evidence": "sources/global-popular-06-yahoo/stable-page.txt",
+          "anchor_evidence_sha256": "042b247df6bbf2d4bfc5f0b3482e07bd205937d00fdf6c53bcbc2e4fd3783362",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.yahoo.com",
+          "news.yahoo.com",
+          "sports.yahoo.com",
+          "finance.yahoo.com"
+        ],
+        "entry_path": "/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Horoscope"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Yahoo Scout"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "What to Watch"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Today in History"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "What to play"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-07-amazon-us",
+      "name": "amazon.com · product_catalog",
+      "url": "https://www.amazon.com/s?k=headphones",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "固定关键词的公开商品目录。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "product_catalog"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-07-amazon-us/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：headphones；Results；Filters。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：headphones；Results；Filters。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "product_catalog",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "product_names",
+            "prices",
+            "ratings",
+            "review_counts",
+            "availability",
+            "result_count",
+            "order"
+          ],
+          "anchor_evidence": "sources/global-popular-07-amazon-us/stable-page.txt",
+          "anchor_evidence_sha256": "44e09c36fb3e4d3ca59e15c2fa3322c4344363f695fd849dbda2703f15c099a9",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.amazon.com"
+        ],
+        "entry_path": "(?:/[^/]+)?/dp/[A-Z0-9]{10}",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "headphones"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Results"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Filters"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-08-linkedin",
+      "name": "linkedin.com · search_results",
+      "url": "https://www.linkedin.com/jobs/search/?keywords=Software%20Engineer",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "匿名可见的公开职位搜索结果。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "search_results"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-08-linkedin/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Software Engineer；Date posted / 发布日期；Quick Apply / 快速申请；Get notified about new jobs / 新职位发布时接收通知。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Software Engineer；Date posted / 发布日期；Quick Apply / 快速申请；Get notified about new jobs / 新职位发布时接收通知。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "search_results",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "job_titles",
+            "companies",
+            "locations",
+            "result_count",
+            "posting_dates",
+            "order"
+          ],
+          "anchor_evidence": "sources/global-popular-08-linkedin/stable-page.txt",
+          "anchor_evidence_sha256": "1c05f5eec3ab43ae9644e7b6863ec97a18112b3fbe2e144f1cf1351c8c7cc9dc",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.linkedin.com"
+        ],
+        "entry_path": "/jobs/view/[^/?#]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Software Engineer"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Date posted",
+              "发布日期"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Quick Apply",
+              "快速申请"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Get notified about new jobs",
+              "新职位发布时接收通知"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-11-netflix",
+      "name": "netflix.com · body_detail",
+      "url": "https://www.netflix.com/title/80057281",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "匿名可见的影视作品详情页，包含剧情、主创和剧集信息。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "body_detail"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-11-netflix/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Stranger Things / 怪奇物语；Episodes；More Details；Cast；Genres。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Stranger Things / 怪奇物语；Episodes；More Details；Cast；Genres。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "detail_fields",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "body_detail",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "plan_price",
+            "recommendations",
+            "season_marketing",
+            "availability_by_region"
+          ],
+          "anchor_evidence": "sources/global-popular-11-netflix/stable-page.txt",
+          "anchor_evidence_sha256": "cf9256e2ec673bffe62ef70aef08bf84f2fa746a2be32626bf6564265cf4e070",
+          "record_requirement": "No structured records; all registered stable page-text groups are required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Stranger Things",
+              "怪奇物语"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Episodes"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "More Details"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Cast"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Genres"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-12-bilibili",
+      "name": "bilibili.com · content_list",
+      "url": "https://www.bilibili.com/v/popular/all/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开热门视频列表。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "content_list"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-12-bilibili/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：综合热门；每周必看；入站必刷；全站音乐榜；各个领域中新奇好玩的优质内容都在这里。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：综合热门；每周必看；入站必刷；全站音乐榜；各个领域中新奇好玩的优质内容都在这里。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "content_list",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "video_titles",
+            "creators",
+            "play_counts",
+            "rank_order"
+          ],
+          "anchor_evidence": "sources/global-popular-12-bilibili/stable-page.txt",
+          "anchor_evidence_sha256": "a9057a28c3a26664413f5d783666dea23ac2a877a036ad337c1338b97e92faf7",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.bilibili.com"
+        ],
+        "entry_path": "/video/(?:BV[A-Za-z0-9]+|av[0-9]+)",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "综合热门"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "每周必看"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "入站必刷"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "全站音乐榜"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "各个领域中新奇好玩的优质内容都在这里"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-15-microsoft",
+      "name": "microsoft.com · landing_page",
+      "url": "https://www.microsoft.com/en-us/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开产品落地页，呈现核心产品与服务说明。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "landing_page"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-15-microsoft/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Hi there, welcome to Microsoft；Your productivity, supercharged；Get to know AI and Copilot。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Hi there, welcome to Microsoft；Your productivity, supercharged；Get to know AI and Copilot。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "landing_sections",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "landing_page",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "discounts",
+            "campaign_dates",
+            "featured_products"
+          ],
+          "anchor_evidence": "sources/global-popular-15-microsoft/stable-page.txt",
+          "anchor_evidence_sha256": "14621baeedefde1941973da425476e00526b4c4c5a2d818c506aea5a99d878ae",
+          "record_requirement": "No structured records; all registered stable page-text groups are required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Hi there, welcome to Microsoft"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Your productivity, supercharged"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Get to know AI and Copilot"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-16-twitch",
+      "name": "twitch.tv · content_list",
+      "url": "https://www.twitch.tv/directory/category/just-chatting",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开直播分类页，呈现多个频道入口。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "content_list"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-16-twitch/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Live Channels / 直播频道；Just Chatting / 谈天说地；All Channels / 所有频道。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Live Channels / 直播频道；Just Chatting / 谈天说地；All Channels / 所有频道。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "content_list",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "channel_names",
+            "stream_titles",
+            "viewer_counts",
+            "live_status"
+          ],
+          "anchor_evidence": "sources/global-popular-16-twitch/stable-page.txt",
+          "anchor_evidence_sha256": "9eb693b70ed2ecd78305a3ddf8205686eae357c27ba95b6f56fa0b811e3450ad",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.twitch.tv"
+        ],
+        "entry_path": "/[A-Za-z0-9_]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Live Channels",
+              "直播频道"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Just Chatting",
+              "谈天说地"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "All Channels",
+              "所有频道"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-17-weather",
+      "name": "weather.com · body_detail",
+      "url": "https://weather.com/weather/hourbyhour/l/f892433d7660da170347398eb8e3d722d8d362fe7dd15af16ce88324e1b96e70",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开地点逐小时天气详情。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "body_detail"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-17-weather/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：New York City Hourly Forecast；Hourly；Temperature；Precipitation；Wind；Humidity。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：New York City Hourly Forecast；Hourly；Temperature；Precipitation；Wind；Humidity。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "detail_fields",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "body_detail",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "temperature_values",
+            "precipitation_values",
+            "wind_values",
+            "forecast_date"
+          ],
+          "anchor_evidence": "sources/global-popular-17-weather/stable-page.txt",
+          "anchor_evidence_sha256": "26ea60fb1496768278c710fed93a5129461c1e9d2b6802e453ff868421e4f293",
+          "record_requirement": "No structured records; all registered stable page-text groups are required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "New York City Hourly Forecast"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Hourly"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Temperature"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Precipitation"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Wind"
+            ]
+          },
+          {
+            "id": "stable-anchor-6",
+            "alternatives": [
+              "Humidity"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-18-canva",
+      "name": "canva.com · product_catalog",
+      "url": "https://www.canva.com/templates/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开模板目录，代表 Canva 的模板发现表面。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "product_catalog"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-18-canva/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Free templates；Explore thousands of beautiful free templates.；Browse by category；New in Canva。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Free templates；Explore thousands of beautiful free templates.；Browse by category；New in Canva。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "product_catalog",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "template_names",
+            "featured_order",
+            "campaigns"
+          ],
+          "anchor_evidence": "sources/global-popular-18-canva/stable-page.txt",
+          "anchor_evidence_sha256": "0d8dacc65c0166aaf8c9e64853ac7cf8a8a76b4feb7ad42e7a0a2579b289a2c8",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.canva.com"
+        ],
+        "entry_path": "/templates/[A-Za-z0-9_-]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Free templates"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Explore thousands of beautiful free templates."
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Browse by category"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "New in Canva"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-19-yahoo-news-japan",
+      "name": "news.yahoo.co.jp · content_list",
+      "url": "https://news.yahoo.co.jp/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开新闻首页，包含多条新闻详情链接。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "content_list"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-19-yahoo-news-japan/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Yahoo!ニュース；トピックス；全カテゴリのトピックス一覧；Yahoo!ニュース ライブ。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Yahoo!ニュース；トピックス；全カテゴリのトピックス一覧；Yahoo!ニュース ライブ。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready_from_prior_chromium_evidence",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "content_list",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "headlines",
+            "ranking_terms",
+            "viewer_counts",
+            "timestamps"
+          ],
+          "anchor_evidence": "sources/global-popular-19-yahoo-news-japan/stable-page.txt",
+          "anchor_evidence_sha256": "af46c352cb988fb571836d1c2de83a5a58b600f414c870ed7c2256ae045f99fa",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.yahoo.co.jp"
+        ],
+        "entry_path": "/articles/[A-Za-z0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Yahoo!ニュース"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "トピックス"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "全カテゴリのトピックス一覧"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Yahoo!ニュース ライブ"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-22-mail-ru",
+      "name": "mail.ru · content_list",
+      "url": "https://news.mail.ru/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "同一注册域名下的公开新闻列表。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "content_list"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-22-mail-ru/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Новости сегодня；Лента новостей；Политика；Экономика；Общество；Происшествия。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Новости сегодня；Лента новостей；Политика；Экономика；Общество；Происшествия。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "content_list",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "headlines",
+            "timestamps",
+            "exchange_rates"
+          ],
+          "anchor_evidence": "sources/global-popular-22-mail-ru/stable-page.txt",
+          "anchor_evidence_sha256": "e74e97ce29eae6f691dc4d76d551b66ec71194b432054d5a004e9e235a5f1153",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.mail.ru"
+        ],
+        "entry_path": "/[^/]+/[0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Новости сегодня"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Лента новостей"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Политика"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Экономика"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Общество"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-6",
+            "alternatives": [
+              "Происшествия"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-24-telegram-channel",
+      "name": "t.me · content_list",
+      "url": "https://t.me/s/telegram",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开 Telegram 频道消息列表。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "content_list"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-24-telegram-channel/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Telegram News；@telegram；The official Telegram on Telegram. Much recursion. Very Telegram. Wow.。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Telegram News；@telegram；The official Telegram on Telegram. Much recursion. Very Telegram. Wow.。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "content_list",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "subscriber_count",
+            "media_counts",
+            "message_text",
+            "message_dates"
+          ],
+          "anchor_evidence": "sources/global-popular-24-telegram-channel/stable-page.txt",
+          "anchor_evidence_sha256": "8f2b36a892b7b7220ba906e61fd5c8e8389fd9d28b7c7f512615f5884521d47b",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "t.me"
+        ],
+        "entry_path": "/telegram/[0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Telegram News"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "@telegram"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "The official Telegram on Telegram. Much recursion. Very Telegram. Wow."
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-25-github",
+      "name": "github.com · content_list",
+      "url": "https://github.com/trending",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开趋势仓库列表，包含仓库名称和详情链接。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "content_list"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-25-github/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Trending；See what the GitHub community is most excited about today.；Repositories；Developers；Spoken Language。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Trending；See what the GitHub community is most excited about today.；Repositories；Developers；Spoken Language。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready_with_partial_page_error_exclusion",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "content_list",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "repository_names",
+            "descriptions",
+            "languages",
+            "stars",
+            "rank_order"
+          ],
+          "anchor_evidence": "sources/global-popular-25-github/stable-page.txt",
+          "anchor_evidence_sha256": "ed0c5310cb15b4d976a9b60d870b996fd0e4e383984c617573674475cfda4ee5",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "github.com"
+        ],
+        "entry_path": "/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Trending"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "See what the GitHub community is most excited about today."
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Repositories"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Developers"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Spoken Language"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-26-ebay",
+      "name": "ebay.com · product_catalog",
+      "url": "https://www.ebay.com/deals",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开促销商品目录。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "product_catalog"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-26-ebay/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Deals；Featured Deals；Tech；Home & Garden。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Deals；Featured Deals；Tech；Home & Garden。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "product_catalog",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "product_names",
+            "prices",
+            "discounts",
+            "availability",
+            "order"
+          ],
+          "anchor_evidence": "sources/global-popular-26-ebay/stable-page.txt",
+          "anchor_evidence_sha256": "778e8785395edb2b1547f705f470f41024202d67b18eb9678cccde8ab5051e99",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.ebay.com"
+        ],
+        "entry_path": "/itm/[0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Deals"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Featured Deals"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Tech"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Home & Garden"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-28-nytimes",
+      "name": "nytimes.com · content_list",
+      "url": "https://www.nytimes.com/international/section/world",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开世界新闻频道页。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "content_list"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-28-nytimes/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：World News；Africa；Americas；Asia；Europe；Middle East。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：World News；Africa；Americas；Asia；Europe；Middle East。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready_from_prior_chromium_evidence",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "content_list",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "headlines",
+            "summaries",
+            "authors",
+            "timestamps",
+            "order"
+          ],
+          "anchor_evidence": "sources/global-popular-28-nytimes/stable-page.txt",
+          "anchor_evidence_sha256": "7c3372f15c0f74cc96666ea79754564aba02f758831e7948cd15413318a4a729",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.nytimes.com"
+        ],
+        "entry_path": "/(?:[0-9]{4}/[0-9]{2}/[0-9]{2}/)?(?:world|interactive)/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "World News"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Africa"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Americas"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Asia"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Europe"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-6",
+            "alternatives": [
+              "Middle East"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-29-booking",
+      "name": "booking.com · product_catalog",
+      "url": "https://www.booking.com/city/us/new-york.html",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开城市住宿目录。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "product_catalog"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-29-booking/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Search hotels in New York / 搜索酒店：纽约，NY；Narrow your search / 缩小搜索范围；Enter your dates / 输入日期。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Search hotels in New York / 搜索酒店：纽约，NY；Narrow your search / 缩小搜索范围；Enter your dates / 输入日期。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "product_catalog",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "hotel_names",
+            "prices",
+            "availability",
+            "property_count",
+            "dates",
+            "ratings",
+            "order"
+          ],
+          "anchor_evidence": "sources/global-popular-29-booking/stable-page.txt",
+          "anchor_evidence_sha256": "a96490a83366eae898fa28804484b8ce44f5cff8cea042fd2054246904607f3a",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.booking.com"
+        ],
+        "entry_path": "/hotel/us/[^/?#]+\\.html",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Search hotels in New York",
+              "搜索酒店：纽约，NY"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Narrow your search",
+              "缩小搜索范围"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Enter your dates",
+              "输入日期"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-30-bbc-uk",
+      "name": "bbc.co.uk · content_list",
+      "url": "https://www.bbc.co.uk/news",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开 BBC 新闻首页。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "content_list"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-30-bbc-uk/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：BBC News；News。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：BBC News；News。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready_with_declared_redirect_to_bbc_com",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "content_list",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "headlines",
+            "summaries",
+            "timestamps",
+            "order"
+          ],
+          "anchor_evidence": "sources/global-popular-30-bbc-uk/stable-page.txt",
+          "anchor_evidence_sha256": "62ce853b565bacbb7903d1d7f1640ac797f6ab774d3d4a7e7aba5e7ac95ba909",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.bbc.com"
+        ],
+        "entry_path": "/news/articles/[a-z0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "BBC News"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "News"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-31-apple",
+      "name": "apple.com · landing_page",
+      "url": "https://www.apple.com/iphone/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开 iPhone 产品落地页。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "landing_page"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-31-apple/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：iPhone；Explore the lineup.；Why Apple is the best place to shop iPhone.；Get to know iPhone.；Cutting-Edge Cameras；Privacy。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：iPhone；Explore the lineup.；Why Apple is the best place to shop iPhone.；Get to know iPhone.；Cutting-Edge Cameras；Privacy。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "landing_sections",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "landing_page",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "current_model_names",
+            "prices",
+            "preorder_dates",
+            "promotions"
+          ],
+          "anchor_evidence": "sources/global-popular-31-apple/stable-page.txt",
+          "anchor_evidence_sha256": "d7ae30ceb1aa3b5fd384d98177a8a9faa6c3d3f8134400ff65057d6549a91bef",
+          "record_requirement": "No structured records; all registered stable page-text groups are required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "iPhone"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Explore the lineup."
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Why Apple is the best place to shop iPhone."
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Get to know iPhone."
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Cutting-Edge Cameras"
+            ]
+          },
+          {
+            "id": "stable-anchor-6",
+            "alternatives": [
+              "Privacy"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-32-docomo",
+      "name": "docomo.ne.jp · landing_page",
+      "url": "https://www.docomo.ne.jp/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开运营商产品与服务首页。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "landing_page"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-32-docomo/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：よく利用されるサービス・情報；スマートフォン・携帯電話；製品；料金・割引；金融・決済・ポイント。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：よく利用されるサービス・情報；スマートフォン・携帯電話；製品；料金・割引；金融・決済・ポイント。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "landing_sections",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "landing_page",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "disaster_notices",
+            "campaigns",
+            "product_promotions"
+          ],
+          "anchor_evidence": "sources/global-popular-32-docomo/stable-page.txt",
+          "anchor_evidence_sha256": "7dafd652c35e8363d2bf8e71bb46307ac4640a171d05b9830240329299035d6b",
+          "record_requirement": "No structured records; all registered stable page-text groups are required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "よく利用されるサービス・情報"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "スマートフォン・携帯電話"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "製品"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "料金・割引"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "金融・決済・ポイント"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-33-amazon-india",
+      "name": "amazon.in · product_catalog",
+      "url": "https://www.amazon.in/s?k=headphones",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "固定关键词的公开商品目录。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "product_catalog"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-33-amazon-india/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：headphones；Results；Filters。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：headphones；Results；Filters。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "product_catalog",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "product_names",
+            "prices",
+            "ratings",
+            "review_counts",
+            "availability",
+            "result_count",
+            "order"
+          ],
+          "anchor_evidence": "sources/global-popular-33-amazon-india/stable-page.txt",
+          "anchor_evidence_sha256": "44e09c36fb3e4d3ca59e15c2fa3322c4344363f695fd849dbda2703f15c099a9",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.amazon.in"
+        ],
+        "entry_path": "(?:/[^/]+)?/dp/[A-Z0-9]{10}",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "headphones"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Results"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Filters"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-34-espn",
+      "name": "espn.com · content_list",
+      "url": "https://www.espn.com/nba/standings",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开 NBA 排名列表，含队伍详情入口。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "content_list"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-34-espn/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：NBA Standings；Eastern Conference；Western Conference；GLOSSARY / Glossary。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：NBA Standings；Eastern Conference；Western Conference；GLOSSARY / Glossary。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "content_list",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "season_label",
+            "team_order",
+            "wins",
+            "losses",
+            "percentages",
+            "streaks"
+          ],
+          "anchor_evidence": "sources/global-popular-34-espn/stable-page.txt",
+          "anchor_evidence_sha256": "9d351459948548201b4f8290bade300e500438108824c199e0aa80c3156dd453",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.espn.com"
+        ],
+        "entry_path": "/nba/team/_/name/[a-z0-9]+/[a-z0-9-]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "NBA Standings"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Eastern Conference"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Western Conference"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "GLOSSARY",
+              "Glossary"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-35-amazon-japan",
+      "name": "amazon.co.jp · product_catalog",
+      "url": "https://www.amazon.co.jp/s?k=headphones",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "固定关键词的公开商品目录。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "product_catalog"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-35-amazon-japan/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：headphones；Results / 結果；Filters / 絞り込み / 筛选条件。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：headphones；Results / 結果；Filters / 絞り込み / 筛选条件。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "product_catalog",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "product_names",
+            "prices",
+            "ratings",
+            "review_counts",
+            "availability",
+            "result_count",
+            "order"
+          ],
+          "anchor_evidence": "sources/global-popular-35-amazon-japan/stable-page.txt",
+          "anchor_evidence_sha256": "36d467d57cf43bf62e05ab089680e198e1120dffce68c1316951aa12892e84db",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.amazon.co.jp"
+        ],
+        "entry_path": "(?:/[^/]+)?/dp/[A-Z0-9]{10}",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "headphones"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Results",
+              "結果"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Filters",
+              "絞り込み",
+              "筛选条件"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-36-bbc-global",
+      "name": "bbc.com · content_list",
+      "url": "https://www.bbc.com/news/world",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开世界新闻列表。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "content_list"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-36-bbc-global/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：World；FEATURES / Features；LATEST UPDATES / Latest updates。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：World；FEATURES / Features；LATEST UPDATES / Latest updates。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "content_list",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "headlines",
+            "summaries",
+            "timestamps",
+            "order"
+          ],
+          "anchor_evidence": "sources/global-popular-36-bbc-global/stable-page.txt",
+          "anchor_evidence_sha256": "98f32b3fc0077da238957de47e8f48af45c885bde8bbdfac740f5ee37e53cbb4",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.bbc.com"
+        ],
+        "entry_path": "/news/articles/[a-z0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "World"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "FEATURES",
+              "Features"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "LATEST UPDATES",
+              "Latest updates"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-38-indeed",
+      "name": "indeed.com · search_results",
+      "url": "https://www.indeed.com/jobs?q=software+engineer",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开职位搜索结果。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "search_results"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-38-indeed/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：software engineer jobs；Date posted；Keyword；Edit location input box label。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：software engineer jobs；Date posted；Keyword；Edit location input box label。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "search_results",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "job_titles",
+            "companies",
+            "locations",
+            "result_count",
+            "posting_dates",
+            "order"
+          ],
+          "anchor_evidence": "sources/global-popular-38-indeed/stable-page.txt",
+          "anchor_evidence_sha256": "5076d6a7ffb6f27569a32718df452a476e2767c8ac8833897f8370ee633209a7",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.indeed.com"
+        ],
+        "entry_path": "/(?:viewjob|pagead/clk)",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "software engineer jobs"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Date posted"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Keyword"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Edit location input box label"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-39-disney-plus",
+      "name": "disneyplus.com · landing_page",
+      "url": "https://www.disneyplus.com/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "匿名可见的流媒体方案与内容落地页。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "landing_page"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-39-disney-plus/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Disney+；Choose your plan；Watch the way you want；Frequently Asked Questions。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Disney+；Choose your plan；Watch the way you want；Frequently Asked Questions。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "landing_sections",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "landing_page",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "prices",
+            "discounts",
+            "bundle_terms",
+            "top_ten_titles",
+            "upcoming_titles"
+          ],
+          "anchor_evidence": "sources/global-popular-39-disney-plus/stable-page.txt",
+          "anchor_evidence_sha256": "ccdbe1a32130ac2c4027de11dae11593ff62ef5acc683bcc164cb0fd9252b50e",
+          "record_requirement": "No structured records; all registered stable page-text groups are required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Disney+"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Choose your plan"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Watch the way you want"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Frequently Asked Questions"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-41-rakuten",
+      "name": "rakuten.co.jp · product_catalog",
+      "url": "https://www.rakuten.co.jp/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开购物首页，呈现商品分类和条目。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "product_catalog"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-41-rakuten/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：ようこそ楽天市場へ；Rakuten AIで探す；楽天スーパーDEAL；人気商品ランキング。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：ようこそ楽天市場へ；Rakuten AIで探す；楽天スーパーDEAL；人気商品ランキング。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready_from_prior_chromium_evidence",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "product_catalog",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "product_names",
+            "prices",
+            "discounts",
+            "points",
+            "rankings",
+            "order"
+          ],
+          "anchor_evidence": "sources/global-popular-41-rakuten/stable-page.txt",
+          "anchor_evidence_sha256": "33a94df7c57c221ea6cf210c89f02706eee782b1a7f9e2c6074809ec04203660",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "item.rakuten.co.jp",
+          "product.rakuten.co.jp"
+        ],
+        "entry_path": "/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "ようこそ楽天市場へ"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Rakuten AIで探す"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "楽天スーパーDEAL"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "人気商品ランキング"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-42-namu-wiki",
+      "name": "namu.wiki · landing_page",
+      "url": "https://namu.wiki/w/%EB%82%98%EB%AC%B4%EC%9C%84%ED%82%A4:%EB%8C%80%EB%AC%B8",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开 Wiki 门户入口，直接呈现站点说明、注意事项和帮助入口。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "landing_page"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-42-namu-wiki/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：나무위키에 오신 것을 환영합니다!；나무위키는 누구나 기여할 수 있는 위키입니다.；검증되지 않았거나 편향된 내용이 있을 수 있습니다.；나무위키 게시판；나무위키의 규정；나무위키의 도움말。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：나무위키에 오신 것을 환영합니다!；나무위키는 누구나 기여할 수 있는 위키입니다.；검증되지 않았거나 편향된 내용이 있을 수 있습니다.；나무위키 게시판；나무위키의 규정；나무위키의 도움말。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "landing_sections",
+        "review_status": "relabel_ready_from_prior_chromium_evidence",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "landing_page",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "last_modified_time",
+            "current_notices",
+            "projects",
+            "recent_changes"
+          ],
+          "anchor_evidence": "sources/global-popular-42-namu-wiki/stable-page.txt",
+          "anchor_evidence_sha256": "7b5ffb93c423763f30646eab4f8ba6c9a138903777425ccee95c00c5ef200f5d",
+          "record_requirement": "No structured records; all registered stable page-text groups are required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "나무위키에 오신 것을 환영합니다!"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "나무위키는 누구나 기여할 수 있는 위키입니다."
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "검증되지 않았거나 편향된 내용이 있을 수 있습니다."
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "나무위키 게시판"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "나무위키의 규정"
+            ]
+          },
+          {
+            "id": "stable-anchor-6",
+            "alternatives": [
+              "나무위키의 도움말"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-43-qq",
+      "name": "qq.com · content_list",
+      "url": "https://www.qq.com/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开中文新闻门户。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "content_list"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-43-qq/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：产品推荐；热点精选；今日热播；腾讯新闻出品；热门问答。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：产品推荐；热点精选；今日热播；腾讯新闻出品；热门问答。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "content_list",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "headlines",
+            "summaries",
+            "timestamps",
+            "order"
+          ],
+          "anchor_evidence": "sources/global-popular-43-qq/stable-page.txt",
+          "anchor_evidence_sha256": "211db5e3e3b135b5cfc6630ac8da2f642d61b13d09a176a5f62ff252d8ddf54a",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.qq.com"
+        ],
+        "entry_path": "/rain/a/[A-Za-z0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "产品推荐"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "热点精选"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "今日热播"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "腾讯新闻出品"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "热门问答"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-45-usps",
+      "name": "usps.com · product_catalog",
+      "url": "https://store.usps.com/store/stamps",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "同一注册域名下的公开邮票商品目录。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "product_catalog"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-45-usps/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Stamps；Filter By；Product Type。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Stamps；Filter By；Product Type。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "product_catalog",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "product_names",
+            "prices",
+            "availability",
+            "order"
+          ],
+          "anchor_evidence": "sources/global-popular-45-usps/stable-page.txt",
+          "anchor_evidence_sha256": "fb15368b7fb4273bdc4702887b2a2cf4b9aea278a49dd689ca4754caca382309",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "store.usps.com"
+        ],
+        "entry_path": "/store/product/[^/?#]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Stamps"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Filter By"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Product Type"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-46-prime-video",
+      "name": "primevideo.com · content_list",
+      "url": "https://www.primevideo.com/-/en/collection/SVODTop10",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "匿名可见的流媒体 Top 10 与内容列表。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "content_list"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-46-prime-video/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Top 10 in the US / 美国前十榜单；Popular movies / 热门电影；Popular TV / 热门电视剧；Top-rated movies / 评分最高的电影。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Top 10 in the US / 美国前十榜单；Popular movies / 热门电影；Popular TV / 热门电视剧；Top-rated movies / 评分最高的电影。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "content_list",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "titles",
+            "rank_order",
+            "availability_by_region"
+          ],
+          "anchor_evidence": "sources/global-popular-46-prime-video/stable-page.txt",
+          "anchor_evidence_sha256": "c10b0cf46cc32069bd13f3274794bb91f166b4e64b9c196b4aa44891da2aca95",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.primevideo.com"
+        ],
+        "entry_path": "/-/[^/]+/detail/[A-Za-z0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Top 10 in the US",
+              "美国前十榜单"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Popular movies",
+              "热门电影"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Popular TV",
+              "热门电视剧"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Top-rated movies",
+              "评分最高的电影"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-47-rutube",
+      "name": "rutube.ru · content_list",
+      "url": "https://rutube.ru/feeds/popular/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开热门频道与视频列表。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "content_list"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-47-rutube/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Популярное；Каналы；Новинки блогеров。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Популярное；Каналы；Новинки блогеров。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "content_list",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "video_titles",
+            "creators",
+            "views",
+            "relative_dates",
+            "order"
+          ],
+          "anchor_evidence": "sources/global-popular-47-rutube/stable-page.txt",
+          "anchor_evidence_sha256": "0edcc67d3f7dc836d5adb812f5ba08a7c27afe688317aa03579bcc89e12ccc42",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "rutube.ru"
+        ],
+        "entry_path": "/video/[A-Za-z0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Популярное"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Каналы"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Новинки блогеров"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-48-pinterest",
+      "name": "pinterest.com · content_list",
+      "url": "https://www.pinterest.com/ideas/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "匿名可见的灵感主题列表。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "content_list"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-48-pinterest/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Explore the best of Pinterest / 探索 Pinterest 上的最佳内容；Browse by category / 按类别浏览；Explore featured boards / 探索精选图板；What's new on Pinterest / Pinterest 的新增功能。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Explore the best of Pinterest / 探索 Pinterest 上的最佳内容；Browse by category / 按类别浏览；Explore featured boards / 探索精选图板；What's new on Pinterest / Pinterest 的新增功能。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "content_list",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "featured_topics",
+            "board_titles",
+            "order"
+          ],
+          "anchor_evidence": "sources/global-popular-48-pinterest/stable-page.txt",
+          "anchor_evidence_sha256": "121a75279db0f78aa4a5779bbb2a93ac7d6bed5c6c85c7d436cf547534911aa8",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.pinterest.com"
+        ],
+        "entry_path": "/[A-Za-z0-9_-]+/[A-Za-z0-9_-]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Explore the best of Pinterest",
+              "探索 Pinterest 上的最佳内容"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Browse by category",
+              "按类别浏览"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Explore featured boards",
+              "探索精选图板"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "What's new on Pinterest",
+              "Pinterest 的新增功能"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-49-whatsapp",
+      "name": "whatsapp.com · landing_page",
+      "url": "https://www.whatsapp.com/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开产品功能落地页，正文不依赖登录。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "landing_page"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-49-whatsapp/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Message privately；Never miss a moment with voice and video calls；Speak freely；Keep in touch with your groups；Transform your business。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Message privately；Never miss a moment with voice and video calls；Speak freely；Keep in touch with your groups；Transform your business。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "landing_sections",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "landing_page",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "download_promotions",
+            "announcements"
+          ],
+          "anchor_evidence": "sources/global-popular-49-whatsapp/stable-page.txt",
+          "anchor_evidence_sha256": "df3182602c166ecccef0f092854cee44ccfcbe0e6b55ac9c10afdb3c61555ab4",
+          "record_requirement": "No structured records; all registered stable page-text groups are required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Message privately"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Never miss a moment with voice and video calls"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Speak freely"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Keep in touch with your groups"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Transform your business"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-50-discord",
+      "name": "discord.com · landing_page",
+      "url": "https://discord.com/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开群聊产品功能落地页。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "landing_page"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-50-discord/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：GROUP CHAT THAT’S ALL FUN & GAMES / GROUP CHAT THAT'S ALL FUN & GAMES；MAKE YOUR GROUP CHATS MORE FUN；STREAM LIKE YOU’RE IN THE SAME ROOM / STREAM LIKE YOU'RE IN THE SAME ROOM；HOP IN WHEN YOU’RE FREE, NO NEED TO CALL / HOP IN WHEN YOU'RE FREE, NO NEED TO CALL。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：GROUP CHAT THAT’S ALL FUN & GAMES / GROUP CHAT THAT'S ALL FUN & GAMES；MAKE YOUR GROUP CHATS MORE FUN；STREAM LIKE YOU’RE IN THE SAME ROOM / STREAM LIKE YOU'RE IN THE SAME ROOM；HOP IN WHEN YOU’RE FREE, NO NEED TO CALL / HOP IN WHEN YOU'RE FREE, NO NEED TO CALL。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "landing_sections",
+        "review_status": "ready_from_prior_chromium_evidence",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "landing_page",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "download_platform_label",
+            "campaigns"
+          ],
+          "anchor_evidence": "sources/global-popular-50-discord/stable-page.txt",
+          "anchor_evidence_sha256": "b6fff7dbea93db8dc6b6eb1ffad62fcf8b588f1ee5d3cfea7e4efbb7b788f6d5",
+          "record_requirement": "No structured records; all registered stable page-text groups are required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "GROUP CHAT THAT’S ALL FUN & GAMES",
+              "GROUP CHAT THAT'S ALL FUN & GAMES"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "MAKE YOUR GROUP CHATS MORE FUN"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "STREAM LIKE YOU’RE IN THE SAME ROOM",
+              "STREAM LIKE YOU'RE IN THE SAME ROOM"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "HOP IN WHEN YOU’RE FREE, NO NEED TO CALL",
+              "HOP IN WHEN YOU'RE FREE, NO NEED TO CALL"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-51-zoom",
+      "name": "zoom.us · landing_page",
+      "url": "https://www.zoom.com/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "榜单域名自动跳转到 Zoom 产品落地页，正文匿名可见。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "landing_page"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-51-zoom/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Find out what's possible when work connects；One platform. Endless ways to work together.；Trusted by millions. Built for you.；Businesses achieve more with Zoom。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Find out what's possible when work connects；One platform. Endless ways to work together.；Trusted by millions. Built for you.；Businesses achieve more with Zoom。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "landing_sections",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "landing_page",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "news_cards",
+            "customer_stories",
+            "promotions"
+          ],
+          "anchor_evidence": "sources/global-popular-51-zoom/stable-page.txt",
+          "anchor_evidence_sha256": "6647f5a5ab07e2445b5dee63240b4c123a105ada1c4239b4b4ae36539d1cba92",
+          "record_requirement": "No structured records; all registered stable page-text groups are required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Find out what's possible when work connects"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "One platform. Endless ways to work together."
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Trusted by millions. Built for you."
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Businesses achieve more with Zoom"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-52-brave",
+      "name": "brave.com · landing_page",
+      "url": "https://brave.com/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开浏览器产品功能落地页。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "landing_page"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-52-brave/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：The browser that puts you first；Private search；Powerful VPN；A Web with fewer ads；Winning on privacy, performance, and features。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：The browser that puts you first；Private search；Powerful VPN；A Web with fewer ads；Winning on privacy, performance, and features。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "landing_sections",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "landing_page",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "release_announcements",
+            "campaigns"
+          ],
+          "anchor_evidence": "sources/global-popular-52-brave/stable-page.txt",
+          "anchor_evidence_sha256": "68c31eca11a9a148534d9be6e215b43816755b313d7a5e8e8bd095f7741a845e",
+          "record_requirement": "No structured records; all registered stable page-text groups are required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "The browser that puts you first"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Private search"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Powerful VPN"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "A Web with fewer ads"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Winning on privacy, performance, and features"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-53-paypal",
+      "name": "paypal.com · landing_page",
+      "url": "https://www.paypal.com/us/home",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开支付产品功能落地页。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "landing_page"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-53-paypal/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Pay, send, and save smarter；Shop in stores and online；Pay now or pay over time.；Safety and privacy are our priority；Send money to just about anyone, anywhere。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Pay, send, and save smarter；Shop in stores and online；Pay now or pay over time.；Safety and privacy are our priority；Send money to just about anyone, anywhere。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "landing_sections",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "landing_page",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "cashback_rates",
+            "offer_brands",
+            "installment_terms",
+            "promotions"
+          ],
+          "anchor_evidence": "sources/global-popular-53-paypal/stable-page.txt",
+          "anchor_evidence_sha256": "5e8a117f6186bb09d91655046a613b9fa7ded0611343d091316d39e46123e636",
+          "record_requirement": "No structured records; all registered stable page-text groups are required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Pay, send, and save smarter"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Shop in stores and online"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Pay now or pay over time."
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Safety and privacy are our priority"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Send money to just about anyone, anywhere"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-54-deepseek",
+      "name": "deepseek.com · landing_page",
+      "url": "https://www.deepseek.com/en/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开模型与产品入口落地页。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "landing_page"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-54-deepseek/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Into the Unknown；DeepSeek Web；API Platform；API Docs。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Into the Unknown；DeepSeek Web；API Platform；API Docs。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "landing_sections",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "landing_page",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "model_release_announcement",
+            "current_model_name"
+          ],
+          "anchor_evidence": "sources/global-popular-54-deepseek/stable-page.txt",
+          "anchor_evidence_sha256": "1921f914eb6146b1b962c5290f99e9049ed30e726f50ee53f1e8f403cf4ae71b",
+          "record_requirement": "No structured records; all registered stable page-text groups are required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Into the Unknown"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "DeepSeek Web"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "API Platform"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "API Docs"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-55-telegram",
+      "name": "telegram.org · landing_page",
+      "url": "https://telegram.org/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开通讯产品功能落地页。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "landing_page"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-55-telegram/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Why Telegram?；Simple；Private；Synced；Fast；Powerful；Open；Secure；Social。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Why Telegram?；Simple；Private；Synced；Fast；Powerful；Open；Secure；Social。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "landing_sections",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "landing_page",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "recent_news_titles",
+            "release_dates"
+          ],
+          "anchor_evidence": "sources/global-popular-55-telegram/stable-page.txt",
+          "anchor_evidence_sha256": "8a8e800f35ca63f2a550d32767f04a7522e5e610895c4c8439b1cab5aeef8410",
+          "record_requirement": "No structured records; all registered stable page-text groups are required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Why Telegram?"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Simple"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Private"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Synced"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Fast"
+            ]
+          },
+          {
+            "id": "stable-anchor-6",
+            "alternatives": [
+              "Powerful"
+            ]
+          },
+          {
+            "id": "stable-anchor-7",
+            "alternatives": [
+              "Open"
+            ]
+          },
+          {
+            "id": "stable-anchor-8",
+            "alternatives": [
+              "Secure"
+            ]
+          },
+          {
+            "id": "stable-anchor-9",
+            "alternatives": [
+              "Social"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-56-instructure",
+      "name": "instructure.com · landing_page",
+      "url": "https://www.instructure.com/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开教育技术产品与服务落地页。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "landing_page"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-56-instructure/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Welcome to the most-visited education website in the world.；Solutions for every age, stage, and transitional moment；Explore the Instructure ecosystem；Ready for the next step?。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Welcome to the most-visited education website in the world.；Solutions for every age, stage, and transitional moment；Explore the Instructure ecosystem；Ready for the next step?。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "landing_sections",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "landing_page",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "article_cards",
+            "event_announcements",
+            "campaigns",
+            "numeric_claims"
+          ],
+          "anchor_evidence": "sources/global-popular-56-instructure/stable-page.txt",
+          "anchor_evidence_sha256": "a7b1e520971d1471488bc7fac43c58a09bf3e884f7af59f9f663c01c7b787b67",
+          "record_requirement": "No structured records; all registered stable page-text groups are required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Welcome to the most-visited education website in the world."
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Solutions for every age, stage, and transitional moment"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Explore the Instructure ecosystem"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Ready for the next step?"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-57-duckduckgo",
+      "name": "duckduckgo.com · landing_page",
+      "url": "https://duckduckgo.com/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开搜索与隐私产品首页，正文匿名可见。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "landing_page"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-57-duckduckgo/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Switch to DuckDuckGo / 改用 DuckDuckGo；It’s private and free / 它是私密的且免费的；The browser that actively protects your personal information / 积极保护个人信息的浏览器；Take back control of your personal information / 重新掌控个人信息。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面并保留这些已登记的页面身份或核心功能文字：Switch to DuckDuckGo / 改用 DuckDuckGo；It’s private and free / 它是私密的且免费的；The browser that actively protects your personal information / 积极保护个人信息的浏览器；Take back control of your personal information / 重新掌控个人信息。不要求列表记录，不点击或递归访问子页面；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "landing_sections",
+        "review_status": "ready",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "landing_page",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "latest_feature_promotions"
+          ],
+          "anchor_evidence": "sources/global-popular-57-duckduckgo/stable-page.txt",
+          "anchor_evidence_sha256": "8ceb75137ac0bed48ebcc0421f6e17abcaae45430028983061bce049dcb84c38",
+          "record_requirement": "No structured records; all registered stable page-text groups are required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Switch to DuckDuckGo",
+              "改用 DuckDuckGo"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "It’s private and free",
+              "它是私密的且免费的"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "The browser that actively protects your personal information",
+              "积极保护个人信息的浏览器"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Take back control of your personal information",
+              "重新掌控个人信息"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {}
+    },
+    {
+      "id": "global-popular-60-roblox",
+      "name": "roblox.com · content_list",
+      "url": "https://www.roblox.com/games/",
+      "category": "representative_public_content",
+      "expected_any": [],
+      "description": "公开游戏发现与排行页面。",
+      "tags": [
+        "global-popular",
+        "representative-content",
+        "content_list"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access denied",
+        "403 Forbidden",
+        "Verify that you are human",
+        "Checking your browser",
+        "Just a moment...",
+        "Attention Required!",
+        "CAPTCHA"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "ground_truth_evidence": [
+        {
+          "source": "sources/global-popular-60-roblox/stable-page.txt",
+          "supports": "此前独立浏览器逐页审阅所保留的稳定页面文字；不包含供应商输出"
+        }
+      ],
+      "task_prompt": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Charts；Computer；United States；Top Trending。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "reference_answer": "直接获取给定页面，返回至少 3 条不同的具名详情入口，链接须符合登记的主机和路径；同时保留这些稳定页面文字：Charts；Computer；United States；Top Trending。不点击条目，不固定当前成员、顺序、价格、排名、数量或热度；登录、空白、验证码和错误页不能代替目标内容。",
+      "source_benchmark": {
+        "mode": "representative_public_content",
+        "selection_role": "extension_cohort_not_ranked_domain_homepage",
+        "rule_model": "named_link",
+        "review_status": "ready_from_prior_chromium_evidence",
+        "stable_annotation": {
+          "registry": "global-popular-per-site-rules",
+          "version": 1,
+          "content_kind": "content_list",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "game_titles",
+            "ratings",
+            "player_counts",
+            "rank_order"
+          ],
+          "anchor_evidence": "sources/global-popular-60-roblox/stable-page.txt",
+          "anchor_evidence_sha256": "c10bef1f792f15750d115e8f3cfb68b0254de9860fe13061107daca91266cea8",
+          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Packaged from retained independent browser-review rules; this suite is delivered but not run."
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-10",
+        "method": "Retained direct-page browser review; hash-bound stable-text evidence",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable-rule evidence only; no claim of frozen list membership or full-body truth."
+      },
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.roblox.com"
+        ],
+        "entry_path": "/games/[0-9]+(?:/[^/?#]+)?",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Charts"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Computer"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "United States"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Top Trending"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "body_requirements": {}
+    }
+  ]
+}

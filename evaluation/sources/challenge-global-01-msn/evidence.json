@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-01-msn",
+  "url": "https://www.msn.com/en-us/news",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "9cc089439c5db9d498b4e3d1c6c7df3032a032e42063f609b0f80b410145461b",
+  "items_sha256": "6c7644f421aaccbc7d7d202c3fcb1fce15d59c5024f5a75d80b445c3e0d5a3fb",
+  "reference_sha256": "53bd9a4a4ba77d55092d3911bd873695dea52a0a4a842a69787fe78beeaaa705",
+  "list_reference_sha256": "b7f3be9666bdab99bc4b907028c1bb5061ece8bb9cef760722eeec6beb805ec5",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "请求仍会落到 `/en-us` 信息流，评分器不会验证这次重定向。只保留内容分区 `Top stories`；已删除受卡片组件、登录状态或个性化状态影响的操作文字。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

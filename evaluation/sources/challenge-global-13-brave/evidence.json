@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-13-brave",
+  "url": "https://brave.com/blog/",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "d615449c6a5adb2e844435193d29f8136e5a416d1d343c8c588d943642c0c26a",
+  "items_sha256": "0df43c4c097f3316eca02779f87623acb1347f6e241796f8ddc1719c2c1946b6",
+  "reference_sha256": "62ea5c93b9e6940bbf54c0372f3ed076adc3e59d86a3ba7711dbaab2171a5494",
+  "list_reference_sha256": "fd7e9dad2e0a9d09c65c20830eb804a5d59008b15989561466e32f6841ffc991",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "此草案有意只接收 `/blog/<slug>`，不会接收列表中可能混入的其他内容栏目。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

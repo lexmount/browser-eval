@@ -1,0 +1,429 @@
+{
+  "schema_version": 1,
+  "status": "draft_for_human_review",
+  "purpose": "Per-site acceptance rules derived from the selected URL's directly rendered page; no recursive detail-page evidence.",
+  "source_selection": "research/global-popular-selection.json",
+  "source_observations": [
+    "research/global-popular-60-verification.json",
+    "Codex in-app browser direct-page review on 2026-09-10"
+  ],
+  "execution_policy": {
+    "first_run_scope": "only cases honestly expressible by the six confirmed page models and backed by executable rules",
+    "scorer_gap_is_not_a_special_page": true,
+    "deferred_special_cases_in_first_run": false,
+    "deferred_special_cases_in_denominator": false,
+    "deferred_special_cases_require_user_review_after_first_run": true
+  },
+  "common": {
+    "minimum_content_chars": 1,
+    "length_gate_applicable": false,
+    "all_registered_anchor_groups_required": true,
+    "minimum_unique_records": 3,
+    "record_values_may_change": true,
+    "recursive_navigation_allowed": false,
+    "forbidden_page_types": [
+      "login_only",
+      "blank",
+      "captcha_or_security_verification",
+      "access_denied",
+      "generic_error"
+    ]
+  },
+  "cases": [
+    {
+      "id": "global-popular-01-youtube",
+      "label": "body_detail",
+      "url": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+      "rule_model": "detail_fields",
+      "anchor_groups": [["Me at the zoo"], ["jawed"]],
+      "required_field_groups": ["video_title", "publisher_name"],
+      "volatile_exclusions": ["view_count", "subscriber_count", "recommendations", "comments", "relative_date"],
+      "review_status": "ready"
+    },
+    {
+      "id": "global-popular-02-reddit",
+      "label": "content_list",
+      "url": "https://www.reddit.com/r/technology/",
+      "rule_model": "named_link",
+      "anchor_groups": [["r/technology", "r/Technology"], ["Community highlights", "社区置顶帖"], ["Related communities", "相关社区"]],
+      "record_contract": {"hosts": ["www.reddit.com", "reddit.com"], "entry_path": "/r/technology/comments/[a-z0-9]+(?:/[^/?#]+)?", "minimum_records": 3},
+      "volatile_exclusions": ["post_titles", "votes", "comment_counts", "authors", "relative_dates"],
+      "review_status": "ready"
+    },
+    {
+      "id": "global-popular-03-wikipedia",
+      "label": "article",
+      "url": "https://en.wikipedia.org/wiki/Web_scraping",
+      "rule_model": "distributed_body",
+      "anchor_groups": [["Web scraping"], ["History"], ["Techniques"], ["Legal issues"]],
+      "body_contract": {"reference_scope": "article main body only; exclude site chrome, donation banners, navigation and references", "maximum_regions": 5, "minimum_floor": 0.6, "minimum_target": 0.8, "allowed_regions_below_target": 1, "unit": "normalized compact six-character shingles"},
+      "volatile_exclusions": ["donation_banner", "last_modified_ui"],
+      "review_status": "reference_capture_required"
+    },
+    {
+      "id": "global-popular-04-yahoo-japan",
+      "label": "content_list",
+      "url": "https://www.yahoo.co.jp/",
+      "rule_model": "named_link",
+      "anchor_groups": [["Yahoo! JAPAN"], ["主なサービス"], ["ニュース"], ["社会的な取り組み"]],
+      "record_contract": {"host_policy": "reviewed_yahoo_japan_content_hosts", "hosts": ["news.yahoo.co.jp", "sports.yahoo.co.jp", "finance.yahoo.co.jp"], "entry_path": "/.+", "minimum_records": 3},
+      "volatile_exclusions": ["headlines", "weather", "market_values", "rankings", "advertisements"],
+      "review_status": "ready_from_prior_chromium_evidence"
+    },
+    {
+      "id": "global-popular-05-yandex",
+      "label": "search_results",
+      "url": "https://yandex.ru/search/?text=OpenAI",
+      "rule_model": "external_named_link",
+      "anchor_groups": [["OpenAI"], ["Поиск"]],
+      "record_contract": {"host_policy": "any_http_result_link_excluding_search_navigation", "minimum_records": 3},
+      "volatile_exclusions": ["result_titles", "result_hosts", "result_order", "result_count", "ads"],
+      "review_status": "scorer_extension_required"
+    },
+    {
+      "id": "global-popular-06-yahoo",
+      "label": "content_list",
+      "url": "https://www.yahoo.com/",
+      "rule_model": "named_link",
+      "anchor_groups": [["Horoscope"], ["Yahoo Scout"], ["What to Watch"], ["Today in History"], ["What to play"]],
+      "record_contract": {"host_policy": "reviewed_yahoo_content_hosts", "hosts": ["www.yahoo.com", "news.yahoo.com", "sports.yahoo.com", "finance.yahoo.com"], "entry_path": "/.+", "minimum_records": 3},
+      "volatile_exclusions": ["headlines", "events", "scores", "market_values", "advertisements"],
+      "review_status": "ready_from_prior_chromium_evidence"
+    },
+    {
+      "id": "global-popular-07-amazon-us",
+      "label": "product_catalog",
+      "url": "https://www.amazon.com/s?k=headphones",
+      "rule_model": "named_link",
+      "anchor_groups": [["headphones"], ["Results"], ["Filters"]],
+      "record_contract": {"hosts": ["www.amazon.com"], "entry_path": "(?:/[^/]+)?/dp/[A-Z0-9]{10}", "minimum_records": 3},
+      "volatile_exclusions": ["product_names", "prices", "ratings", "review_counts", "availability", "result_count", "order"],
+      "review_status": "ready"
+    },
+    {
+      "id": "global-popular-08-linkedin",
+      "label": "search_results",
+      "url": "https://www.linkedin.com/jobs/search/?keywords=Software%20Engineer",
+      "rule_model": "named_link",
+      "anchor_groups": [["Software Engineer"], ["Date posted", "发布日期"], ["Quick Apply", "快速申请"], ["Get notified about new jobs", "新职位发布时接收通知"]],
+      "record_contract": {"hosts": ["www.linkedin.com"], "entry_path": "/jobs/view/[^/?#]+", "minimum_records": 3},
+      "volatile_exclusions": ["job_titles", "companies", "locations", "result_count", "posting_dates", "order"],
+      "review_status": "ready"
+    },
+    {
+      "id": "global-popular-09-baidu",
+      "label": "search_results",
+      "url": "https://www.baidu.com/s?wd=OpenAI",
+      "rule_model": "external_named_link",
+      "anchor_groups": [["OpenAI"], ["百度一下"], ["搜索工具"], ["相关搜索"]],
+      "record_contract": {"host_policy": "baidu_result_redirect_or_external_http", "minimum_records": 3},
+      "volatile_exclusions": ["result_titles", "result_order", "result_count", "hot_searches", "ads"],
+      "review_status": "scorer_extension_required"
+    },
+    {
+      "id": "global-popular-10-naver",
+      "label": "search_results",
+      "url": "https://search.naver.com/search.naver?query=OpenAI",
+      "rule_model": "external_named_link",
+      "anchor_groups": [["OpenAI 검색 결과"], ["관련문서"], ["뉴스"], ["블로그"]],
+      "record_contract": {"host_policy": "any_http_result_link_excluding_search_navigation", "minimum_records": 3},
+      "volatile_exclusions": ["result_titles", "result_hosts", "result_order", "ads"],
+      "review_status": "scorer_extension_required_prior_evidence"
+    },
+    {
+      "id": "global-popular-11-netflix",
+      "label": "body_detail",
+      "url": "https://www.netflix.com/title/80057281",
+      "rule_model": "detail_fields",
+      "anchor_groups": [["Stranger Things", "怪奇物语"], ["Episodes"], ["More Details"], ["Cast"], ["Genres"]],
+      "required_field_groups": ["title", "synopsis", "cast", "creators", "genres"],
+      "volatile_exclusions": ["plan_price", "recommendations", "season_marketing", "availability_by_region"],
+      "review_status": "ready"
+    },
+    {
+      "id": "global-popular-12-bilibili", "label": "content_list", "url": "https://www.bilibili.com/v/popular/all/", "rule_model": "named_link",
+      "anchor_groups": [["综合热门"], ["每周必看"], ["入站必刷"], ["全站音乐榜"], ["各个领域中新奇好玩的优质内容都在这里"]],
+      "record_contract": {"hosts": ["www.bilibili.com"], "entry_path": "/video/(?:BV[A-Za-z0-9]+|av[0-9]+)", "minimum_records": 3},
+      "volatile_exclusions": ["video_titles", "creators", "play_counts", "rank_order"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-14-dzen", "label": "content_list", "url": "https://dzen.ru/", "rule_model": "named_link",
+      "anchor_groups": [["Дзен"], ["Главное"], ["Свежее"], ["Все темы"]],
+      "record_contract": {"hosts": ["dzen.ru"], "entry_path": "/a/[A-Za-z0-9_-]+", "minimum_records": 3},
+      "volatile_exclusions": ["headlines", "weather", "exchange_rates", "current_topics"], "review_status": "path_review_required_prior_evidence"
+    },
+    {
+      "id": "global-popular-15-microsoft", "label": "landing_page", "url": "https://www.microsoft.com/en-us/", "rule_model": "landing_sections",
+      "anchor_groups": [["Hi there, welcome to Microsoft"], ["Your productivity, supercharged"], ["Get to know AI and Copilot"]],
+      "section_positions": ["hero", "middle_product_section", "later_ai_section"],
+      "volatile_exclusions": ["discounts", "campaign_dates", "featured_products"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-16-twitch", "label": "content_list", "url": "https://www.twitch.tv/directory/category/just-chatting", "rule_model": "named_link",
+      "anchor_groups": [["Live Channels", "直播频道"], ["Just Chatting", "谈天说地"], ["All Channels", "所有频道"]],
+      "record_contract": {"hosts": ["www.twitch.tv"], "entry_path": "/[A-Za-z0-9_]+", "minimum_records": 3},
+      "volatile_exclusions": ["channel_names", "stream_titles", "viewer_counts", "live_status"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-17-weather", "label": "body_detail", "url": "https://weather.com/weather/hourbyhour/l/f892433d7660da170347398eb8e3d722d8d362fe7dd15af16ce88324e1b96e70", "rule_model": "detail_fields",
+      "anchor_groups": [["New York City Hourly Forecast"], ["Hourly"], ["Temperature"], ["Precipitation"], ["Wind"], ["Humidity"]],
+      "required_field_groups": ["location", "hourly_time", "temperature_field", "precipitation_field", "wind_field"],
+      "structural_patterns": [{"id": "hourly_rows", "minimum": 3, "description": "three distinct hourly forecast records"}],
+      "volatile_exclusions": ["temperature_values", "precipitation_values", "wind_values", "forecast_date"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-18-canva", "label": "product_catalog", "url": "https://www.canva.com/templates/", "rule_model": "named_link",
+      "anchor_groups": [["Free templates"], ["Explore thousands of beautiful free templates."], ["Browse by category"], ["New in Canva"]],
+      "record_contract": {"hosts": ["www.canva.com"], "entry_path": "/templates/[A-Za-z0-9_-]+", "minimum_records": 3},
+      "volatile_exclusions": ["template_names", "featured_order", "campaigns"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-19-yahoo-news-japan", "label": "content_list", "url": "https://news.yahoo.co.jp/", "rule_model": "named_link",
+      "anchor_groups": [["Yahoo!ニュース"], ["トピックス"], ["全カテゴリのトピックス一覧"], ["Yahoo!ニュース ライブ"]],
+      "record_contract": {"hosts": ["news.yahoo.co.jp"], "entry_path": "/articles/[A-Za-z0-9]+", "minimum_records": 3},
+      "volatile_exclusions": ["headlines", "ranking_terms", "viewer_counts", "timestamps"], "review_status": "ready_from_prior_chromium_evidence"
+    },
+    {
+      "id": "global-popular-20-fandom", "label": "content_list", "url": "https://www.fandom.com/topics/games", "rule_model": "external_named_link",
+      "anchor_groups": [["Games", "GAMES"], ["Gaming News", "GAMING NEWS"]],
+      "record_contract": {"host_policy": "external_editorial_links_excluding_site_navigation", "minimum_records": 3},
+      "volatile_exclusions": ["headlines", "source_names", "timestamps", "topic_tags"], "review_status": "scorer_extension_required_prior_evidence"
+    },
+    {
+      "id": "global-popular-21-globo", "label": "content_list", "url": "https://www.globo.com/", "rule_model": "external_named_link",
+      "anchor_groups": [["Deu o que falar"], ["Jornalismo"], ["Economia"], ["Esporte"], ["Veja mais notícias"]],
+      "record_contract": {"host_policy": "reviewed_globo_editorial_hosts", "hosts": ["g1.globo.com", "oglobo.globo.com", "ge.globo.com", "globoplay.globo.com"], "minimum_records": 3},
+      "volatile_exclusions": ["headlines", "story_summaries", "order"], "review_status": "ready_scorer_extension_required"
+    },
+    {
+      "id": "global-popular-22-mail-ru", "label": "content_list", "url": "https://news.mail.ru/", "rule_model": "named_link",
+      "anchor_groups": [["Новости сегодня"], ["Лента новостей"], ["Политика"], ["Экономика"], ["Общество"], ["Происшествия"]],
+      "record_contract": {"hosts": ["news.mail.ru"], "entry_path": "/[^/]+/[0-9]+", "minimum_records": 3},
+      "volatile_exclusions": ["headlines", "timestamps", "exchange_rates"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-23-samsung", "label": "product_catalog", "url": "https://www.samsung.com/us/smartphones/", "rule_model": "named_link",
+      "anchor_groups": [["Smartphones"], ["What's new"], ["Switch to Galaxy"], ["Compare"]],
+      "record_contract": {"hosts": ["www.samsung.com"], "entry_path": "/us/smartphones/[^/?#]+(?:/buy)?", "minimum_records": 3},
+      "volatile_exclusions": ["model_names", "prices", "promotions", "availability", "order"], "review_status": "record_title_ownership_review_required"
+    },
+    {
+      "id": "global-popular-24-telegram-channel", "label": "content_list", "url": "https://t.me/s/telegram", "rule_model": "named_link",
+      "anchor_groups": [["Telegram News"], ["@telegram"], ["The official Telegram on Telegram. Much recursion. Very Telegram. Wow."]],
+      "record_contract": {"hosts": ["t.me"], "entry_path": "/telegram/[0-9]+", "minimum_records": 3},
+      "volatile_exclusions": ["subscriber_count", "media_counts", "message_text", "message_dates"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-25-github", "label": "content_list", "url": "https://github.com/trending", "rule_model": "named_link",
+      "anchor_groups": [["Trending"], ["See what the GitHub community is most excited about today."], ["Repositories"], ["Developers"], ["Spoken Language"]],
+      "record_contract": {"hosts": ["github.com"], "entry_path": "/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", "minimum_records": 3},
+      "volatile_exclusions": ["repository_names", "descriptions", "languages", "stars", "rank_order"], "review_status": "ready_with_partial_page_error_exclusion"
+    },
+    {
+      "id": "global-popular-26-ebay", "label": "product_catalog", "url": "https://www.ebay.com/deals", "rule_model": "named_link",
+      "anchor_groups": [["Deals"], ["Featured Deals"], ["Tech"], ["Home & Garden"]],
+      "record_contract": {"hosts": ["www.ebay.com"], "entry_path": "/itm/[0-9]+", "minimum_records": 3},
+      "volatile_exclusions": ["product_names", "prices", "discounts", "availability", "order"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-27-spotify", "label": "content_list", "url": "https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M", "rule_model": "named_item",
+      "anchor_groups": [["Today’s Top Hits", "Today's Top Hits"], ["Spotify"]],
+      "record_contract": {"minimum_records": 3, "required_fields": ["track_name", "artist_name"], "detail_link_required": false},
+      "volatile_exclusions": ["track_names", "artists", "durations", "track_order"], "review_status": "scorer_extension_required"
+    },
+    {
+      "id": "global-popular-28-nytimes", "label": "content_list", "url": "https://www.nytimes.com/international/section/world", "rule_model": "named_link",
+      "anchor_groups": [["World News"], ["Africa"], ["Americas"], ["Asia"], ["Europe"], ["Middle East"]],
+      "record_contract": {"hosts": ["www.nytimes.com"], "entry_path": "/(?:[0-9]{4}/[0-9]{2}/[0-9]{2}/)?(?:world|interactive)/.+", "minimum_records": 3},
+      "volatile_exclusions": ["headlines", "summaries", "authors", "timestamps", "order"], "review_status": "ready_from_prior_chromium_evidence"
+    },
+    {
+      "id": "global-popular-29-booking", "label": "product_catalog", "url": "https://www.booking.com/city/us/new-york.html", "rule_model": "named_link",
+      "anchor_groups": [["Search hotels in New York", "搜索酒店：纽约，NY"], ["Narrow your search", "缩小搜索范围"], ["Enter your dates", "输入日期"]],
+      "record_contract": {"hosts": ["www.booking.com"], "entry_path": "/hotel/us/[^/?#]+\\.html", "minimum_records": 3},
+      "volatile_exclusions": ["hotel_names", "prices", "availability", "property_count", "dates", "ratings", "order"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-30-bbc-uk", "label": "content_list", "url": "https://www.bbc.co.uk/news", "rule_model": "named_link",
+      "anchor_groups": [["BBC News"], ["News"]],
+      "record_contract": {"hosts": ["www.bbc.com"], "entry_path": "/news/articles/[a-z0-9]+", "minimum_records": 3},
+      "volatile_exclusions": ["headlines", "summaries", "timestamps", "order"], "review_status": "ready_with_declared_redirect_to_bbc_com"
+    },
+    {
+      "id": "global-popular-31-apple", "label": "landing_page", "url": "https://www.apple.com/iphone/", "rule_model": "landing_sections",
+      "anchor_groups": [["iPhone"], ["Explore the lineup."], ["Why Apple is the best place to shop iPhone."], ["Get to know iPhone."], ["Cutting-Edge Cameras"], ["Privacy"]],
+      "section_positions": ["hero", "lineup", "shopping", "feature_intro", "camera", "privacy"],
+      "volatile_exclusions": ["current_model_names", "prices", "preorder_dates", "promotions"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-32-docomo", "label": "landing_page", "url": "https://www.docomo.ne.jp/", "rule_model": "landing_sections",
+      "anchor_groups": [["よく利用されるサービス・情報"], ["スマートフォン・携帯電話"], ["製品"], ["料金・割引"], ["金融・決済・ポイント"]],
+      "section_positions": ["service_intro", "mobile_section", "product_section", "pricing_section", "finance_section"],
+      "volatile_exclusions": ["disaster_notices", "campaigns", "product_promotions"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-33-amazon-india", "label": "product_catalog", "url": "https://www.amazon.in/s?k=headphones", "rule_model": "named_link",
+      "anchor_groups": [["headphones"], ["Results"], ["Filters"]],
+      "record_contract": {"hosts": ["www.amazon.in"], "entry_path": "(?:/[^/]+)?/dp/[A-Z0-9]{10}", "minimum_records": 3},
+      "volatile_exclusions": ["product_names", "prices", "ratings", "review_counts", "availability", "result_count", "order"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-34-espn", "label": "content_list", "url": "https://www.espn.com/nba/standings", "rule_model": "named_link",
+      "anchor_groups": [["NBA Standings"], ["Eastern Conference"], ["Western Conference"], ["GLOSSARY", "Glossary"]],
+      "record_contract": {"hosts": ["www.espn.com"], "entry_path": "/nba/team/_/name/[a-z0-9]+/[a-z0-9-]+", "minimum_records": 3},
+      "volatile_exclusions": ["season_label", "team_order", "wins", "losses", "percentages", "streaks"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-35-amazon-japan", "label": "product_catalog", "url": "https://www.amazon.co.jp/s?k=headphones", "rule_model": "named_link",
+      "anchor_groups": [["headphones"], ["Results", "結果"], ["Filters", "絞り込み", "筛选条件"]],
+      "record_contract": {"hosts": ["www.amazon.co.jp"], "entry_path": "(?:/[^/]+)?/dp/[A-Z0-9]{10}", "minimum_records": 3},
+      "volatile_exclusions": ["product_names", "prices", "ratings", "review_counts", "availability", "result_count", "order"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-36-bbc-global", "label": "content_list", "url": "https://www.bbc.com/news/world", "rule_model": "named_link",
+      "anchor_groups": [["World"], ["FEATURES", "Features"], ["LATEST UPDATES", "Latest updates"]],
+      "record_contract": {"hosts": ["www.bbc.com"], "entry_path": "/news/articles/[a-z0-9]+", "minimum_records": 3},
+      "volatile_exclusions": ["headlines", "summaries", "timestamps", "order"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-37-ya-search", "label": "search_results", "url": "https://ya.ru/search/?text=OpenAI", "rule_model": "external_named_link",
+      "anchor_groups": [["OpenAI"], ["Поиск"]],
+      "record_contract": {"host_policy": "any_http_result_link_excluding_search_navigation", "minimum_records": 3},
+      "volatile_exclusions": ["result_titles", "result_hosts", "result_order", "result_count", "ads"], "review_status": "scorer_extension_and_captcha_risk_review_required"
+    },
+    {
+      "id": "global-popular-38-indeed", "label": "search_results", "url": "https://www.indeed.com/jobs?q=software+engineer", "rule_model": "named_link",
+      "anchor_groups": [["software engineer jobs"], ["Date posted"], ["Keyword"], ["Edit location input box label"]],
+      "record_contract": {"hosts": ["www.indeed.com"], "entry_path": "/(?:viewjob|pagead/clk)", "minimum_records": 3},
+      "volatile_exclusions": ["job_titles", "companies", "locations", "result_count", "posting_dates", "order"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-39-disney-plus", "label": "landing_page", "url": "https://www.disneyplus.com/", "rule_model": "landing_sections",
+      "anchor_groups": [["Disney+"], ["Choose your plan"], ["Watch the way you want"], ["Frequently Asked Questions"]],
+      "section_positions": ["hero_brand", "plan_section", "watching_features", "faq"],
+      "volatile_exclusions": ["prices", "discounts", "bundle_terms", "top_ten_titles", "upcoming_titles"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-41-rakuten", "label": "product_catalog", "url": "https://www.rakuten.co.jp/", "rule_model": "named_link",
+      "anchor_groups": [["ようこそ楽天市場へ"], ["Rakuten AIで探す"], ["楽天スーパーDEAL"], ["人気商品ランキング"]],
+      "record_contract": {"host_policy": "rakuten_product_hosts", "hosts": ["item.rakuten.co.jp", "product.rakuten.co.jp"], "entry_path": "/.+", "minimum_records": 3},
+      "volatile_exclusions": ["product_names", "prices", "discounts", "points", "rankings", "order"], "review_status": "ready_from_prior_chromium_evidence"
+    },
+    {
+      "id": "global-popular-42-namu-wiki", "label": "landing_page", "previous_label": "article", "url": "https://namu.wiki/w/%EB%82%98%EB%AC%B4%EC%9C%84%ED%82%A4:%EB%8C%80%EB%AC%B8", "rule_model": "landing_sections",
+      "anchor_groups": [["나무위키에 오신 것을 환영합니다!"], ["나무위키는 누구나 기여할 수 있는 위키입니다."], ["검증되지 않았거나 편향된 내용이 있을 수 있습니다."], ["나무위키 게시판"], ["나무위키의 규정"], ["나무위키의 도움말"]],
+      "section_positions": ["welcome", "identity", "caution", "board", "rules", "help"],
+      "volatile_exclusions": ["last_modified_time", "current_notices", "projects", "recent_changes"], "review_status": "relabel_ready_from_prior_chromium_evidence"
+    },
+    {
+      "id": "global-popular-43-qq", "label": "content_list", "url": "https://www.qq.com/", "rule_model": "named_link",
+      "anchor_groups": [["产品推荐"], ["热点精选"], ["今日热播"], ["腾讯新闻出品"], ["热门问答"]],
+      "record_contract": {"hosts": ["news.qq.com"], "entry_path": "/rain/a/[A-Za-z0-9]+", "minimum_records": 3},
+      "volatile_exclusions": ["headlines", "summaries", "timestamps", "order"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-44-douyin", "label": "content_list", "url": "https://www.douyin.com/jingxuan", "rule_model": "named_item",
+      "anchor_groups": [["精选"], ["公开课"], ["游戏"], ["二次元"], ["音乐"], ["影视"]],
+      "record_contract": {"minimum_records": 3, "required_fields": ["video_title", "creator_name"], "detail_link_required": false},
+      "volatile_exclusions": ["video_titles", "creators", "play_counts", "dates", "order"], "review_status": "scorer_extension_required"
+    },
+    {
+      "id": "global-popular-45-usps", "label": "product_catalog", "url": "https://store.usps.com/store/stamps", "rule_model": "named_link",
+      "anchor_groups": [["Stamps"], ["Filter By"], ["Product Type"]],
+      "record_contract": {"hosts": ["store.usps.com"], "entry_path": "/store/product/[^/?#]+", "minimum_records": 3},
+      "volatile_exclusions": ["product_names", "prices", "availability", "order"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-46-prime-video", "label": "content_list", "url": "https://www.primevideo.com/-/en/collection/SVODTop10", "rule_model": "named_link",
+      "anchor_groups": [["Top 10 in the US", "美国前十榜单"], ["Popular movies", "热门电影"], ["Popular TV", "热门电视剧"], ["Top-rated movies", "评分最高的电影"]],
+      "record_contract": {"hosts": ["www.primevideo.com"], "entry_path": "/-/[^/]+/detail/[A-Za-z0-9]+", "minimum_records": 3},
+      "volatile_exclusions": ["titles", "rank_order", "availability_by_region"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-47-rutube", "label": "content_list", "url": "https://rutube.ru/feeds/popular/", "rule_model": "named_link",
+      "anchor_groups": [["Популярное"], ["Каналы"], ["Новинки блогеров"]],
+      "record_contract": {"hosts": ["rutube.ru"], "entry_path": "/video/[A-Za-z0-9]+", "minimum_records": 3},
+      "volatile_exclusions": ["video_titles", "creators", "views", "relative_dates", "order"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-48-pinterest", "label": "content_list", "url": "https://www.pinterest.com/ideas/", "rule_model": "named_link",
+      "anchor_groups": [["Explore the best of Pinterest", "探索 Pinterest 上的最佳内容"], ["Browse by category", "按类别浏览"], ["Explore featured boards", "探索精选图板"], ["What's new on Pinterest", "Pinterest 的新增功能"]],
+      "record_contract": {"hosts": ["www.pinterest.com"], "entry_path": "/[A-Za-z0-9_-]+/[A-Za-z0-9_-]+", "minimum_records": 3},
+      "volatile_exclusions": ["featured_topics", "board_titles", "order"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-49-whatsapp", "label": "landing_page", "url": "https://www.whatsapp.com/", "rule_model": "landing_sections",
+      "anchor_groups": [["Message privately"], ["Never miss a moment with voice and video calls"], ["Speak freely"], ["Keep in touch with your groups"], ["Transform your business"]],
+      "section_positions": ["hero", "calls", "privacy", "groups", "business"],
+      "volatile_exclusions": ["download_promotions", "announcements"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-50-discord", "label": "landing_page", "url": "https://discord.com/", "rule_model": "landing_sections",
+      "anchor_groups": [["GROUP CHAT THAT’S ALL FUN & GAMES", "GROUP CHAT THAT'S ALL FUN & GAMES"], ["MAKE YOUR GROUP CHATS MORE FUN"], ["STREAM LIKE YOU’RE IN THE SAME ROOM", "STREAM LIKE YOU'RE IN THE SAME ROOM"], ["HOP IN WHEN YOU’RE FREE, NO NEED TO CALL", "HOP IN WHEN YOU'RE FREE, NO NEED TO CALL"]],
+      "section_positions": ["hero", "customization", "streaming", "voice_text_chat"],
+      "volatile_exclusions": ["download_platform_label", "campaigns"], "review_status": "ready_from_prior_chromium_evidence"
+    },
+    {
+      "id": "global-popular-51-zoom", "label": "landing_page", "url": "https://www.zoom.com/", "rule_model": "landing_sections",
+      "anchor_groups": [["Find out what's possible when work connects"], ["One platform. Endless ways to work together."], ["Trusted by millions. Built for you."], ["Businesses achieve more with Zoom"]],
+      "section_positions": ["hero", "platform", "trust", "business_results"],
+      "volatile_exclusions": ["news_cards", "customer_stories", "promotions"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-52-brave", "label": "landing_page", "url": "https://brave.com/", "rule_model": "landing_sections",
+      "anchor_groups": [["The browser that puts you first"], ["Private search"], ["Powerful VPN"], ["A Web with fewer ads"], ["Winning on privacy, performance, and features"]],
+      "section_positions": ["hero", "search", "vpn", "web_principle", "comparison"],
+      "volatile_exclusions": ["release_announcements", "campaigns"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-53-paypal", "label": "landing_page", "url": "https://www.paypal.com/us/home", "rule_model": "landing_sections",
+      "anchor_groups": [["Pay, send, and save smarter"], ["Shop in stores and online"], ["Pay now or pay over time."], ["Safety and privacy are our priority"], ["Send money to just about anyone, anywhere"]],
+      "section_positions": ["hero", "shopping", "installments", "safety", "send_money"],
+      "volatile_exclusions": ["cashback_rates", "offer_brands", "installment_terms", "promotions"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-54-deepseek", "label": "landing_page", "url": "https://www.deepseek.com/en/", "rule_model": "landing_sections",
+      "anchor_groups": [["Into the Unknown"], ["DeepSeek Web"], ["API Platform"], ["API Docs"]],
+      "section_positions": ["brand_hero", "web_entry", "platform_entry", "docs_entry"],
+      "volatile_exclusions": ["model_release_announcement", "current_model_name"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-55-telegram", "label": "landing_page", "url": "https://telegram.org/", "rule_model": "landing_sections",
+      "anchor_groups": [["Why Telegram?"], ["Simple"], ["Private"], ["Synced"], ["Fast"], ["Powerful"], ["Open"], ["Secure"], ["Social"]],
+      "section_positions": ["why_telegram", "feature_grid"],
+      "volatile_exclusions": ["recent_news_titles", "release_dates"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-56-instructure", "label": "landing_page", "url": "https://www.instructure.com/", "rule_model": "landing_sections",
+      "anchor_groups": [["Welcome to the most-visited education website in the world."], ["Solutions for every age, stage, and transitional moment"], ["Explore the Instructure ecosystem"], ["Ready for the next step?"]],
+      "section_positions": ["identity", "solutions", "ecosystem", "closing_action"],
+      "volatile_exclusions": ["article_cards", "event_announcements", "campaigns", "numeric_claims"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-57-duckduckgo", "label": "landing_page", "url": "https://duckduckgo.com/", "rule_model": "landing_sections",
+      "anchor_groups": [["Switch to DuckDuckGo", "改用 DuckDuckGo"], ["It’s private and free", "它是私密的且免费的"], ["The browser that actively protects your personal information", "积极保护个人信息的浏览器"], ["Take back control of your personal information", "重新掌控个人信息"]],
+      "section_positions": ["hero", "privacy_claim", "browser_section", "control_section"],
+      "volatile_exclusions": ["latest_feature_promotions"], "review_status": "ready"
+    },
+    {
+      "id": "global-popular-59-bing-news", "label": "content_list", "url": "https://www.bing.com/news/search", "rule_model": "external_named_link",
+      "anchor_groups": [["Top stories"], ["World"], ["Science"], ["Technology"], ["Entertainment"], ["Business"]],
+      "record_contract": {"host_policy": "external_news_result_links_excluding_bing_navigation", "minimum_records": 3},
+      "volatile_exclusions": ["headlines", "publishers", "timestamps", "order"], "review_status": "scorer_extension_required"
+    },
+    {
+      "id": "global-popular-60-roblox", "label": "content_list", "url": "https://www.roblox.com/games/", "rule_model": "named_link",
+      "anchor_groups": [["Charts"], ["Computer"], ["United States"], ["Top Trending"]],
+      "record_contract": {"hosts": ["www.roblox.com"], "entry_path": "/games/[0-9]+(?:/[^/?#]+)?", "minimum_records": 3},
+      "volatile_exclusions": ["game_titles", "ratings", "player_counts", "rank_order"], "review_status": "ready_from_prior_chromium_evidence"
+    }
+  ],
+  "deferred_special_cases": [],
+  "excluded_during_rule_review": [
+    {
+      "id": "global-popular-40-amazon-germany",
+      "url": "https://www.amazon.de/s?k=headphones",
+      "reason": "The selected URL's initial direct load presented only the cookie/advertising consent layer, not a product catalog; interaction is outside the accepted scope."
+    }
+  ]
+}

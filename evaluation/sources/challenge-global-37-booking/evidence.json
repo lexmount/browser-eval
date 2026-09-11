@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-37-booking",
+  "url": "https://www.booking.com/city/us/new-york.zh-cn.html",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "541bc0db548b779f25758ec1c1c3bdcefdc0da6be347fbdfe39e414de144379b",
+  "items_sha256": "04f670d0024b4de6321e2a2f451d0e45a91e9ab661c00cafc936c7d7c10f0e42",
+  "reference_sha256": "b8bdb74e57c7cf0901c2a44f5615125976e20b34bbad76ce7852b9b7701abb50",
+  "list_reference_sha256": "5a0852c91ff6e1b3b5bc8b430de04bb53c1aa7aac7370f8153fb7060c572c1df",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "规则固定为实际核验的中文纽约列表及 `.zh-cn.html` 详情，不泛化到无证据的其他语言。锚点证明查询语境是纽约，但现评分器仍不会逐条验证每家酒店位于纽约。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

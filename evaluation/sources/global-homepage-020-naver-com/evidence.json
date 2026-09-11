@@ -1,0 +1,30 @@
+{
+  "case_id": "global-homepage-020-naver-com",
+  "domain": "naver.com",
+  "url": "https://naver.com/",
+  "final_url": "https://www.naver.com/",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "1772bf607660fa41d64720a68165e430ef8e81248b6c69f969a69f0d350ded2b",
+  "stable_page_sha256": "0effb7cc2c0504d4fe8552afaed6580189e4fef225869ef6f0c5b33759180294",
+  "anchor_groups": [
+    [
+      "NAVER"
+    ],
+    [
+      "공지사항"
+    ],
+    [
+      "Partners"
+    ],
+    [
+      "Developers"
+    ]
+  ],
+  "matching_named_link_count": 10,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

@@ -1,0 +1,17 @@
+{
+  "purpose": "Bounded second-pass alternatives for domains whose first representative page was blank, blocked, or invalid.",
+  "candidates": [
+    {"domain": "pinterest.com", "candidate_url": "https://www.pinterest.com/ideas/"},
+    {"domain": "tiktok.com", "candidate_url": "https://www.tiktok.com/explore"},
+    {"domain": "fandom.com", "candidate_url": "https://www.fandom.com/topics/games"},
+    {"domain": "spotify.com", "candidate_url": "https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M"},
+    {"domain": "imdb.com", "candidate_url": "https://www.imdb.com/title/tt0111161/"},
+    {"domain": "walmart.com", "candidate_url": "https://www.walmart.com/browse/electronics/headphones/3944_133251_1095191"},
+    {"domain": "amazon.co.uk", "candidate_url": "https://www.amazon.co.uk/"},
+    {"domain": "rakuten.co.jp", "candidate_url": "https://www.rakuten.co.jp/"},
+    {"domain": "adobe.com", "candidate_url": "https://www.adobe.com/products/catalog.html"},
+    {"domain": "namu.wiki", "candidate_url": "https://namu.wiki/w/%EB%82%98%EB%AC%B4%EC%9C%84%ED%82%A4:%EB%8C%80%EB%AC%B8"},
+    {"domain": "duckduckgo.com", "candidate_url": "https://duckduckgo.com/"},
+    {"domain": "google.com", "candidate_url": "https://www.google.com/"}
+  ]
+}

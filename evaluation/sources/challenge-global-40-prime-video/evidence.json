@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-40-prime-video",
+  "url": "https://www.primevideo.com/-/zh/collection/SVODTop10",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "cda4825ae030c0008a2aebab2cdf3f8336fcba579c798a50bbc69e289691dbc9",
+  "items_sha256": "b7ac7a34d3348c7f8c5c8aea2ad0dd8c1126fac419f85646570b1c2e7e559997",
+  "reference_sha256": "485afeff235ee73c16174de108893a4662bd43032c5885133bc0675500ffef84",
+  "list_reference_sha256": "928653552de43696fb22ff182e8b189e25719f594f038b362ddcb742cf859581",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "规则固定为实际核验的中文落地页和中文详情路由，不声称覆盖其他 locale；地区可播放性和 Top 10 成员变化不属于固定答案。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

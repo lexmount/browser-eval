@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-04-roblox",
+  "url": "https://www.roblox.com/charts?device=computer&country=us",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "3de9f2158791b1f1844c210606dd4dc6ffc162c9925d6a2c1e23ee73e90000e4",
+  "items_sha256": "a348e8fd3d20cc95dd7770b29878166ced2d733c4c68e69089ee3d157c8982e1",
+  "reference_sha256": "b343ed26b3d7273373aab3a0eeb281cc6480ad78394c9c77b53d8f02e71b3a22",
+  "list_reference_sha256": "b7ea42285f31f4b70b369537067e1b1b51a1ae5d41586aa14385bb8b98f41d85",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "页面强动态加载。现评分器不会跟随重定向；原始 `/games/<id>/unnamed` 与规范 `/games/<id>/<slug>` 都会按同一 path 规则通过，这是本草案明确接受的行为。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-18-paypal",
+  "url": "https://newsroom.paypal-corp.com/",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "7e447c07b2e1d2d8e74b8cde4b2aa99cad7c321f10c23ee2e1db4e6b4f8eb745",
+  "items_sha256": "910b30003f901202f44bce95903aef0a1733c005953b91fc06bf3a9a7d0d847e",
+  "reference_sha256": "a4d30551ac2acdea2614d8085734394e0f4ceb88b3aae3ed0d8365c2dde3d781",
+  "list_reference_sha256": "5dcf40b7dbedd8b772a8e39533fb1af7aa75c242a823d4f1a14727b478aa4aca",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "标题不一定出现在语义 H1，而可能出现在正文标题和浏览器标题；路径允许标点是为了覆盖已验证的逗号 URL。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

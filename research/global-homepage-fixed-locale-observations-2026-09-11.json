@@ -1,0 +1,191 @@
+{
+  "schema_version": 1,
+  "observation_started_at": "2026-09-11T04:27:53Z",
+  "observation_completed_at": "2026-09-11T08:45:00Z",
+  "purpose": "Independent browser review of homepage cases flagged for possible cross-locale matching during the initial 12-case review and the later failed-case audit.",
+  "provider_calls": false,
+  "reference_policy": "Rules in this file come only from Codex in-app Chromium accessibility snapshots of the requested homepage. LexMount output was not consulted.",
+  "cases": [
+    {
+      "case_id": "global-homepage-001-google-com",
+      "requested_url": "https://www.google.com/?hl=en",
+      "observed_final_url": "https://www.google.com.hk/?hl=en",
+      "fixed_language": "en",
+      "stable_text_groups": [["Google"], ["About"], ["Advertising"], ["Business"], ["Privacy"], ["Terms"]],
+      "decision": "change_url_and_contract"
+    },
+    {
+      "case_id": "global-homepage-002-youtube-com",
+      "requested_url": "https://www.youtube.com/?hl=en&gl=US&persist_hl=1",
+      "observed_final_url": "https://www.youtube.com/",
+      "fixed_language": "en",
+      "stable_text_groups": [["YouTube Home"], ["Guide"], ["Search"], ["Settings"], ["Sign in"]],
+      "decision": "change_url_and_contract",
+      "note": "The weaker ?hl=en candidate remained Chinese in the existing browser state; adding gl=US and persist_hl=1 produced an English interface."
+    },
+    {
+      "case_id": "global-homepage-005-chatgpt-com",
+      "requested_url": "https://chatgpt.com/",
+      "observed_final_url": "https://chatgpt.com/",
+      "observed_language": "en",
+      "stable_text_groups": [["ChatGPT"], ["Where should we begin?"], ["Chat with ChatGPT"], ["New chat"]],
+      "decision": "keep_existing_url_single_language_contract"
+    },
+    {
+      "case_id": "global-homepage-010-bing-com",
+      "requested_url": "https://bing.com/",
+      "observed_final_url": "https://www.bing.com/?toWww=1&redig=664889C106914BE786F166BF5F44DAFE",
+      "observed_language": "en",
+      "stable_text_groups": [["Microsoft Bing"], ["Images"], ["Maps"], ["Search using an image"], ["Sign in"]],
+      "decision": "refresh_contract_same_url",
+      "note": "The URL remains unchanged. The former Try Visual Search heading was replaced with the directly exposed search-image control and stable navigation labels observed on the homepage; no provider output was used."
+    },
+    {
+      "case_id": "global-homepage-012-gemini-google-com",
+      "requested_url": "https://gemini.google.com/",
+      "observed_final_url": "https://gemini.google.com/app",
+      "observed_language": "en",
+      "stable_text_groups": [["Gemini"], ["Conversation with Gemini"], ["Meet Gemini, your personal AI assistant"]],
+      "decision": "keep_existing_url_single_language_contract"
+    },
+    {
+      "case_id": "global-homepage-013-yahoo-co-jp",
+      "requested_url": "https://www.yahoo.co.jp/",
+      "observed_final_url": "https://www.yahoo.co.jp/",
+      "fixed_language": "ja",
+      "stable_text_groups": [["Yahoo! JAPAN"], ["主なサービス"], ["お知らせ"], ["ニュース"]],
+      "decision": "keep_existing_native_language_case",
+      "note": "The audit flag was caused by Latin characters inside the Japanese brand name, not by alternative locale contracts."
+    },
+    {
+      "case_id": "global-homepage-015-yahoo-com",
+      "requested_url": "https://www.yahoo.com/?p=us",
+      "observed_final_url": "https://www.yahoo.com/?p=us",
+      "fixed_language": "en-US",
+      "stable_text_groups": [["Search the web"], ["News"], ["Finance"], ["Sports"], ["Trending"]],
+      "observed_links": [
+        {
+          "text": "Republicans start looking past Trump",
+          "url": "https://www.yahoo.com/news/politics/articles/trump-touts-5-000-payout-070241394.html"
+        },
+        {
+          "text": "Jimmy Kimmel says FCC 'threatened our show' over James Talarico interview",
+          "url": "https://www.yahoo.com/entertainment/tv/article/jimmy-kimmel-says-fcc-threatened-our-show-over-interview-with-texas-democratic-senate-nominee-james-talarico-173518815.html"
+        },
+        {
+          "text": "Anthropic says it blocked AI bioweapon misuse",
+          "url": "https://www.yahoo.com/news/science/articles/anthropic-reports-blocked-potential-bioweapons-221658622.html"
+        }
+      ],
+      "decision": "change_url_and_contract",
+      "note": "The bare homepage can resolve to a regional-language variant. The independently observed p=us homepage retained the English US navigation contract."
+    },
+    {
+      "case_id": "global-homepage-029-twitch-tv",
+      "requested_url": "https://www.twitch.tv/?lang=en",
+      "observed_final_url": "https://www.twitch.tv/?lang=en",
+      "fixed_language": "en",
+      "stable_text_groups": [["Live Channels"], ["Live on Twitch"], ["Categories we think you’ll like"]],
+      "observed_links": [
+        {"text": "yourragegaming", "url": "https://www.twitch.tv/yourragegaming"},
+        {"text": "ironmouse", "url": "https://www.twitch.tv/ironmouse"},
+        {"text": "summit1g", "url": "https://www.twitch.tv/summit1g"}
+      ],
+      "decision": "change_url_and_contract",
+      "note": "The bare homepage independently appeared in Chinese. The official lang=en query produced an English homepage and directly exposed all three existing stable section labels; current channel names and viewer counts remain excluded."
+    },
+    {
+      "case_id": "global-homepage-032-canva-com",
+      "requested_url": "https://canva.com/",
+      "observed_final_url": "https://www.canva.com/",
+      "observed_language": "en",
+      "stable_text_groups": [["Canva home"], ["What will you design today?"], ["Start designing"], ["Canva AI"]],
+      "decision": "keep_existing_url_single_language_contract",
+      "rejected_candidate": {
+        "url": "https://www.canva.com/en_us/",
+        "reason": "The independently observed page was a 404 error page."
+      }
+    },
+    {
+      "case_id": "global-homepage-039-duckduckgo-com",
+      "requested_url": "https://duckduckgo.com/?kad=en_US&kl=us-en",
+      "observed_final_url": "https://duckduckgo.com/?kad=en_US&kl=us-en",
+      "fixed_language": "en-US",
+      "stable_text_groups": [["DuckDuckGo"], ["Search"], ["Duck.ai"], ["Settings"], ["Privacy Policy"]],
+      "decision": "change_url_and_contract",
+      "note": "kl=us-en alone did not change the independently observed Chinese interface. kad=en_US together with kl=us-en produced an English interface. The prior long marketing sentence was replaced with stable brand and core navigation text."
+    },
+    {
+      "case_id": "global-homepage-047-booking-com",
+      "requested_url": "https://www.booking.com/?lang=en-us",
+      "observed_final_url": "https://www.booking.com/?lang=en-us",
+      "fixed_language": "en-US",
+      "stable_text_groups": [["Booking.com"], ["Stays"], ["Flights"], ["Car rental"], ["Search"]],
+      "decision": "change_url_and_contract",
+      "note": "The bare homepage resolved to Chinese in the independent audit. The lang=en-us homepage remained English. Prior experimental marketing headings were replaced with stable brand and core travel-search navigation text."
+    },
+    {
+      "case_id": "global-homepage-044-spotify-com",
+      "requested_url": "https://open.spotify.com/?locale=en_US",
+      "observed_final_url": "https://open.spotify.com/?locale=en_US",
+      "fixed_language": "en-US",
+      "stable_text_groups": [["Your Library"], ["Trending songs"], ["Popular artists"], ["Popular albums and singles"]],
+      "decision": "change_url_and_contract",
+      "note": "The bare web-player homepage appeared in Chinese during the independent audit. The locale=en_US URL exposed the same homepage structure in English and retained the existing independently selected stable section labels."
+    },
+    {
+      "case_id": "global-homepage-052-roblox-com",
+      "requested_url": "https://roblox.com/",
+      "observed_final_url": "https://www.roblox.com/",
+      "observed_language": "variable",
+      "stable_text_groups": [],
+      "decision": "defer_no_deterministic_locale_contract",
+      "note": "Independent observations of the same homepage differed between English and Chinese. The tested locale=en_us URL did not reliably switch the page body to English, and the current contract format does not express a whole-page locale bundle without mixing languages. The case is explicitly deferred rather than weakened or scored against an unstable language contract."
+    },
+    {
+      "case_id": "global-homepage-067-deepseek-com",
+      "requested_url": "https://www.deepseek.com/en/",
+      "observed_final_url": "https://www.deepseek.com/en/",
+      "fixed_language": "en",
+      "stable_text_groups": [["Into the Unknown"], ["DeepSeek Web"], ["API Platform"], ["API Docs"]],
+      "decision": "change_url_and_contract",
+      "note": "The bare homepage displayed Chinese in the independent failed-case audit. The official /en/ path retained the English contract."
+    },
+    {
+      "case_id": "global-homepage-072-rakuten-co-jp",
+      "requested_url": "https://www.rakuten.co.jp/",
+      "observed_final_url": "https://www.rakuten.co.jp/",
+      "fixed_language": "ja",
+      "stable_text_groups": [["ようこそ楽天市場へ"], ["楽天スーパーDEAL"], ["ジャンル"]],
+      "decision": "keep_existing_native_language_case",
+      "note": "The audit flag was caused by Latin text embedded in Japanese product names, not by alternative locale contracts. Existing rules remain unchanged."
+    },
+    {
+      "case_id": "global-homepage-082-shein-com",
+      "requested_url": "https://us.shein.com/",
+      "observed_final_url": "https://us.shein.com/",
+      "fixed_language": "en-US",
+      "stable_text_groups": [["SHEIN"], ["Women Clothing"], ["Home & Living"], ["Electronics"]],
+      "decision": "change_url_and_contract",
+      "note": "The bare domain can resolve to different regional-language storefronts. The independently observed US storefront retained the English navigation contract."
+    },
+    {
+      "case_id": "global-homepage-088-primevideo-com",
+      "requested_url": "https://www.primevideo.com/-/zh/storefront",
+      "observed_final_url": "https://www.primevideo.com/-/zh/offers/nonprimehomepage?ref_=dv_web_force_root&language=zh",
+      "fixed_language": "zh",
+      "stable_text_groups": [["Prime Video"], ["电影"], ["电视节目"], ["体育"]],
+      "decision": "change_url_and_contract",
+      "rejected_candidates": [
+        {
+          "url": "https://www.primevideo.com/?language=en_US",
+          "reason": "The independently observed page remained Chinese."
+        },
+        {
+          "url": "https://www.primevideo.com/-/en/storefront/home",
+          "reason": "The independently observed navigation and storefront remained Chinese."
+        }
+      ]
+    }
+  ]
+}

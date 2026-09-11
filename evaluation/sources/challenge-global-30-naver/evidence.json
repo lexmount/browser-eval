@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-30-naver",
+  "url": "https://news.naver.com/main/ranking/popularDay.naver",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "2e992025e5e868819266b024da40150bb8b1ede3f824a080df97fc127721d734",
+  "items_sha256": "bd3ed43d8ebc5251628f1d63852ea23f45840cc893a3447a7cedad171eecccf5",
+  "reference_sha256": "6c30909e481145bd3964d8585dddee791d7812dc1d7f1a628a1a5926b0950b4c",
+  "list_reference_sha256": "623560fe8034cd09f221ab238b0064b8205d861bea2998ef0bc188f9a4362b80",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "列表与详情使用不同 Naver 子域名；查询参数 `ntype=RANKING` 不参与 path 判定，文章标题位于正文标题区而非 H1。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

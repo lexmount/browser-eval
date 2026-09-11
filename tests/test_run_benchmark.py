@@ -63,6 +63,15 @@ class BenchmarkSelectionTests(unittest.TestCase):
         build.assert_not_called()
         self.assertFalse(self.output.exists())
 
+    def test_exact_case_subset_can_skip_report(self):
+        build = self.run_main(['--case-ids','dynamic-b','--providers','fixture-one','--skip-report'])
+        build.assert_not_called()
+        data = json.loads((self.output/'dataset.json').read_text())
+        self.assertEqual([case['id'] for case in data['cases']], ['dynamic-b'])
+        records = [json.loads(s) for s in (self.output/'results.jsonl').read_text().splitlines()]
+        self.assertEqual([(row['provider'],row['case_id']) for row in records],
+                         [('fixture-one','dynamic-b')])
+
     def test_dynamic_subset_builds_a_real_report(self):
         with patch.object(run_benchmark, 'ROOT', self.root), \
                 patch.object(run_benchmark, 'load_runtime_env'), \
@@ -82,7 +91,8 @@ class BenchmarkSelectionTests(unittest.TestCase):
 
     def test_invalid_selection_rejected_before_output_creation(self):
         for args in [['--track','absent'], ['--providers','fixture-one,fixture-one'],
-                     ['--providers',','], ['--workers','0']]:
+                     ['--providers',','], ['--workers','0'],
+                     ['--case-ids','absent'], ['--case-ids','dynamic-a,dynamic-a']]:
             with self.subTest(args=args), redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 self.run_main(args)
             self.assertFalse(self.output.exists())

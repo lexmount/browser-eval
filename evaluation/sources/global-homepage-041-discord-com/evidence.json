@@ -1,0 +1,30 @@
+{
+  "case_id": "global-homepage-041-discord-com",
+  "domain": "discord.com",
+  "url": "https://discord.com/",
+  "final_url": "https://discord.com/",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "9ec41794eb75de99f18ed2cdd2f743d143f81b219bbebdab1cdb5c9e88600502",
+  "stable_page_sha256": "59f5ce79d7a6385c0483565a85fcfa5782eea8875ed855733ba498613e2f0674",
+  "anchor_groups": [
+    [
+      "GROUP CHAT THAT’S ALL FUN & GAMES"
+    ],
+    [
+      "MAKE YOUR GROUP CHATS MORE FUN"
+    ],
+    [
+      "STREAM LIKE YOU’RE IN THE SAME ROOM"
+    ],
+    [
+      "HOP IN WHEN YOU'RE FREE, NO NEED TO CALL"
+    ]
+  ],
+  "matching_named_link_count": 0,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

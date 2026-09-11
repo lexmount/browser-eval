@@ -1,0 +1,3684 @@
+{
+  "schema_version": 1,
+  "purpose": "Per-homepage executable acceptance rules",
+  "status": "frozen",
+  "source_selection": "research/global-homepage-selected-pages.json",
+  "source_selection_sha256": "483955672354f342ab68a4d261d1469d89b8c91f4904a9d3329aa70858710bfb",
+  "source_capture": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "source_capture_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
+  "visual_spot_check_sha256": "73e11e0d50ca06cba8309d528df83ca38aac9b970c741a29383eccd30a7b2f01",
+  "variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
+  "variant_review_sha256": "f4169e1837fef829088147c42363ca1f3a8ebe80dbe9566fd11a4631a363741b",
+  "locale_review": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+  "locale_review_sha256": "823d1b8d2819f3f30be1a7f02b0d1891122b54b87ddcce30db0d3c6eefa8d846",
+  "common": {
+    "minimum_content_chars": 1,
+    "length_gate_applicable": false,
+    "all_registered_anchor_groups_required": true,
+    "recursive_navigation_allowed": false,
+    "dynamic_members_and_values_frozen": false
+  },
+  "cases": [
+    {
+      "id": "global-homepage-001-google-com",
+      "domain": "google.com",
+      "url": "https://www.google.com/?hl=en",
+      "observed_final_url": "https://www.google.com.hk/?hl=en",
+      "label": "entry_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Google"
+        ],
+        [
+          "About"
+        ],
+        [
+          "Advertising"
+        ],
+        [
+          "Business"
+        ],
+        [
+          "Privacy"
+        ],
+        [
+          "Terms"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Google"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "About"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Advertising"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Business"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Privacy"
+            ]
+          },
+          {
+            "id": "stable-anchor-6",
+            "alternatives": [
+              "Terms"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-001-google-com/stable-page.txt",
+      "evidence_sha256": "fcfce0574271855129be80fc4616f7ea0e2121869d7bca60889dcea0099ad15e",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-002-youtube-com",
+      "domain": "youtube.com",
+      "url": "https://www.youtube.com/?hl=en&gl=US&persist_hl=1",
+      "observed_final_url": "https://www.youtube.com/",
+      "label": "content_list",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "YouTube Home"
+        ],
+        [
+          "Guide"
+        ],
+        [
+          "Search"
+        ],
+        [
+          "Settings"
+        ],
+        [
+          "Sign in"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "YouTube Home"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Guide"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Search"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Settings"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Sign in"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-002-youtube-com/stable-page.txt",
+      "evidence_sha256": "cbe84936a39cd1c8ec5908afe8f5cbbd0d6944c79a4d1a446f5c8c692ea3284c",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-005-chatgpt-com",
+      "domain": "chatgpt.com",
+      "url": "https://chatgpt.com/",
+      "observed_final_url": "https://chatgpt.com/",
+      "label": "entry_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "ChatGPT"
+        ],
+        [
+          "Where should we begin?"
+        ],
+        [
+          "Chat with ChatGPT"
+        ],
+        [
+          "New chat"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "ChatGPT"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Where should we begin?"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Chat with ChatGPT"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "New chat"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-005-chatgpt-com/stable-page.txt",
+      "evidence_sha256": "78adf20a2decaecec19c1995d81a5bdde694cbd35d94e13e015d044734b1a6f2",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-006-reddit-com",
+      "domain": "reddit.com",
+      "url": "https://reddit.com/",
+      "observed_final_url": "https://www.reddit.com/?solution=b29b419a63795e65b29b419a63795e65&js_challenge=1&jsc_token=7afd7253fec22262ff1c52b1703fe9ec353b328cf9977367be9d31a482035156&jsc_orig_r=",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "POPULAR COMMUNITIES"
+        ],
+        [
+          "Best"
+        ],
+        [
+          "Hot"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.reddit.com",
+          "reddit.com"
+        ],
+        "entry_path": "/r/[^/]+/comments/[a-z0-9]+(?:/[^/?#]+)?",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "POPULAR COMMUNITIES"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Best"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Hot"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 28,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-006-reddit-com/stable-page.txt",
+      "evidence_sha256": "b7c2e12cec014c16b98f27134f318d7f9aaa51e2b56b4fdbb6f2880d22cb9205",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-008-whatsapp-com",
+      "domain": "whatsapp.com",
+      "url": "https://whatsapp.com/",
+      "observed_final_url": "https://www.whatsapp.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Message privately"
+        ],
+        [
+          "Never miss a moment with voice and video calls"
+        ],
+        [
+          "Keep in touch with your groups"
+        ],
+        [
+          "Transform your business"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Message privately"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Never miss a moment with voice and video calls"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Keep in touch with your groups"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Transform your business"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-008-whatsapp-com/stable-page.txt",
+      "evidence_sha256": "5f0ee5ebc01c0750ab0a09e39ec122ffe1625ad9debe3f0b93d406725da76a2e",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-010-bing-com",
+      "domain": "bing.com",
+      "url": "https://bing.com/",
+      "observed_final_url": "https://www.bing.com/?toWww=1&redig=664889C106914BE786F166BF5F44DAFE",
+      "label": "entry_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Microsoft Bing"
+        ],
+        [
+          "Images"
+        ],
+        [
+          "Maps"
+        ],
+        [
+          "Search using an image"
+        ],
+        [
+          "Sign in"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Microsoft Bing"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Images"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Maps"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Search using an image"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Sign in"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-010-bing-com/stable-page.txt",
+      "evidence_sha256": "b4764770e7c3e4d6087503c61367f415885dfa5099e673cc197a29b65931b180",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-011-wikipedia-org",
+      "domain": "wikipedia.org",
+      "url": "https://wikipedia.org/",
+      "observed_final_url": "https://www.wikipedia.org/",
+      "label": "entry_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Wikipedia"
+        ],
+        [
+          "The Free Encyclopedia"
+        ],
+        [
+          "English"
+        ],
+        [
+          "日本語"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Wikipedia"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "The Free Encyclopedia"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "English"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "日本語"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-011-wikipedia-org/stable-page.txt",
+      "evidence_sha256": "9f4bcc8bbfdbcae2a7f219c3d9fd049bee0041c5fa768a550511ad09733de560",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-012-gemini-google-com",
+      "domain": "gemini.google.com",
+      "url": "https://gemini.google.com/",
+      "observed_final_url": "https://gemini.google.com/app",
+      "label": "entry_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Gemini"
+        ],
+        [
+          "Conversation with Gemini"
+        ],
+        [
+          "Meet Gemini, your personal AI assistant"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Gemini"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Conversation with Gemini"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Meet Gemini, your personal AI assistant"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-012-gemini-google-com/stable-page.txt",
+      "evidence_sha256": "d3e1bf4c054ace6980eef81d3f3c1de7b5a7b07e34c6eebe1382494653b321be",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-013-yahoo-co-jp",
+      "domain": "yahoo.co.jp",
+      "url": "https://yahoo.co.jp/",
+      "observed_final_url": "https://www.yahoo.co.jp/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "Yahoo! JAPAN"
+        ],
+        [
+          "主なサービス"
+        ],
+        [
+          "お知らせ"
+        ],
+        [
+          "ニュース"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.yahoo.co.jp"
+        ],
+        "entry_path": "/pickup/[0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Yahoo! JAPAN"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "主なサービス"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "お知らせ"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "ニュース"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 8,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-013-yahoo-co-jp/stable-page.txt",
+      "evidence_sha256": "14b3b42e7e6c46f9a7966c0395d7c1e9d12d518ca32b7826012813747a12009a",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-015-yahoo-com",
+      "domain": "yahoo.com",
+      "url": "https://www.yahoo.com/?p=us",
+      "observed_final_url": "https://www.yahoo.com/?p=us",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "Search the web"
+        ],
+        [
+          "News"
+        ],
+        [
+          "Finance"
+        ],
+        [
+          "Sports"
+        ],
+        [
+          "Trending"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.yahoo.com",
+          "hk.news.yahoo.com",
+          "hk.finance.yahoo.com"
+        ],
+        "entry_path": "/(?:news|entertainment|finance)/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Search the web"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "News"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Finance"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Sports"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Trending"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 3,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-015-yahoo-com/stable-page.txt",
+      "evidence_sha256": "82846f3cf012bf64eaff6a044993dc2369b438717a3749baee6f89b12bdba44c",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-016-amazon-com",
+      "domain": "amazon.com",
+      "url": "https://amazon.com/",
+      "observed_final_url": "https://www.amazon.com/",
+      "label": "product_catalog",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "Amazon"
+        ],
+        [
+          "Today's Deals"
+        ],
+        [
+          "Customer Service"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.amazon.com"
+        ],
+        "entry_path": "(?:/[^/]+)?/dp/[A-Z0-9]{10}",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Amazon"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Today's Deals"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Customer Service"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 11,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-016-amazon-com/stable-page.txt",
+      "evidence_sha256": "303160c654a03e8de58661ec73f875408fe494abe7933ac79b78246211554dcd",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-018-baidu-com",
+      "domain": "baidu.com",
+      "url": "https://baidu.com/",
+      "observed_final_url": "https://www.baidu.com/",
+      "label": "entry_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "百度一下"
+        ],
+        [
+          "新闻"
+        ],
+        [
+          "地图"
+        ],
+        [
+          "更多"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "百度一下"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "新闻"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "地图"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "更多"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-018-baidu-com/stable-page.txt",
+      "evidence_sha256": "be11e9b55e34187f20dfbbe681616327dd8be8b8f17ea060996f10405e08b416",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-020-naver-com",
+      "domain": "naver.com",
+      "url": "https://naver.com/",
+      "observed_final_url": "https://www.naver.com/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "NAVER"
+        ],
+        [
+          "공지사항"
+        ],
+        [
+          "Partners"
+        ],
+        [
+          "Developers"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.naver.com",
+          "blog.naver.com",
+          "cafe.naver.com",
+          "in.naver.com",
+          "m.naver.com"
+        ],
+        "entry_path": "/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "NAVER"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "공지사항"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Partners"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Developers"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 10,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-020-naver-com/stable-page.txt",
+      "evidence_sha256": "0effb7cc2c0504d4fe8552afaed6580189e4fef225869ef6f0c5b33759180294",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-021-netflix-com",
+      "domain": "netflix.com",
+      "url": "https://netflix.com/",
+      "observed_final_url": "https://www.netflix.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Unlimited movies, TV shows, and more"
+        ],
+        [
+          "More Reasons to Join"
+        ],
+        [
+          "Frequently Asked Questions"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Unlimited movies, TV shows, and more"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "More Reasons to Join"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Frequently Asked Questions"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-021-netflix-com/stable-page.txt",
+      "evidence_sha256": "38c55d072d8d17987ed8ee06d2f8fe994d80d99a5cbc3ac6ecc73e613a4c6f9f",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-023-cloud-microsoft",
+      "domain": "cloud.microsoft",
+      "url": "https://cloud.microsoft/",
+      "observed_final_url": "https://m365.cloud.microsoft/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Work smarter across Microsoft 365 with Copilot"
+        ],
+        [
+          "Popular prompts to try"
+        ],
+        [
+          "Jump into your favorite app"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Work smarter across Microsoft 365 with Copilot"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Popular prompts to try"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Jump into your favorite app"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-023-cloud-microsoft/stable-page.txt",
+      "evidence_sha256": "c02231b36b4da044a716872f77f0f1505e796d51e8752534061e85f80e4e7af2",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-025-bilibili-com",
+      "domain": "bilibili.com",
+      "url": "https://bilibili.com/",
+      "observed_final_url": "https://www.bilibili.com/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "首页"
+        ],
+        [
+          "番剧"
+        ],
+        [
+          "直播"
+        ],
+        [
+          "热门"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.bilibili.com"
+        ],
+        "entry_path": "/video/(?:BV[A-Za-z0-9]+|av[0-9]+)",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "首页"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "番剧"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "直播"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "热门"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 14,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-025-bilibili-com/stable-page.txt",
+      "evidence_sha256": "49849d8a8d59530c54a3db1c7b4e9b33c2914a5c094ed1bb05e54a663836c5bb",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-027-dzen-ru",
+      "domain": "dzen.ru",
+      "url": "https://dzen.ru/",
+      "observed_final_url": "https://dzen.ru/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "Поиск Яндекса"
+        ],
+        [
+          "Новости"
+        ],
+        [
+          "Статьи"
+        ],
+        [
+          "Видео"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "dzen.ru"
+        ],
+        "entry_path": "/(?:a/[A-Za-z0-9_-]+|news/story/[A-Za-z0-9_-]+)",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Поиск Яндекса"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Новости"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Статьи"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Видео"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 25,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-027-dzen-ru/stable-page.txt",
+      "evidence_sha256": "49399e6094d8d575423ccc227682c58edf37e38b377e30e0363884c682abeb44",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-028-microsoft-com",
+      "domain": "microsoft.com",
+      "url": "https://microsoft.com/",
+      "observed_final_url": "https://www.microsoft.com/en-us",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Microsoft"
+        ],
+        [
+          "Microsoft 365"
+        ],
+        [
+          "Windows"
+        ],
+        [
+          "Surface"
+        ],
+        [
+          "XBOX"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Microsoft"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Microsoft 365"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Windows"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Surface"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "XBOX"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-028-microsoft-com/stable-page.txt",
+      "evidence_sha256": "37dc37dbcb80f76f34ab351b53b8c05f0b32f3a7d151ebfe554bcfb4687f35bc",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-029-twitch-tv",
+      "domain": "twitch.tv",
+      "url": "https://www.twitch.tv/?lang=en",
+      "observed_final_url": "https://www.twitch.tv/?lang=en",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "Live Channels"
+        ],
+        [
+          "Live on Twitch"
+        ],
+        [
+          "Categories we think you’ll like"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.twitch.tv"
+        ],
+        "entry_path": "/(?!directory(?:/|$)|downloads?$|jobs?$|settings|login|signup|search|subscriptions|wallet|turbo|videos|friends|inventory|store|drops|creatorcamp|prime|about|legal|brand|security|partners|press|advertisers|blog)[A-Za-z0-9_]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Live Channels"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Live on Twitch"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Categories we think you’ll like"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 3,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-029-twitch-tv/stable-page.txt",
+      "evidence_sha256": "69dbbb17335e8a1bfd25c1e830490f472c3b30e64a26ae2c3a06887669eaa9ad",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-030-weather-com",
+      "domain": "weather.com",
+      "url": "https://weather.com/",
+      "observed_final_url": "https://weather.com/",
+      "label": "entry_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Forecasts"
+        ],
+        [
+          "Radar"
+        ],
+        [
+          "Today's Outlook"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Forecasts"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Radar"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Today's Outlook"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-030-weather-com/stable-page.txt",
+      "evidence_sha256": "ac02e70b884e4814991a25a8fc13b1ccd4da782d1c77abad280143764a30c0c9",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-032-canva-com",
+      "domain": "canva.com",
+      "url": "https://canva.com/",
+      "observed_final_url": "https://www.canva.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Canva home"
+        ],
+        [
+          "What will you design today?"
+        ],
+        [
+          "Start designing"
+        ],
+        [
+          "Canva AI"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Canva home"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "What will you design today?"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Start designing"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Canva AI"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-032-canva-com/stable-page.txt",
+      "evidence_sha256": "bb1e9c220f2913d0550e483c86c125170ff734f2a89efaeb5645607683a0d28e",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-034-news-yahoo-co-jp",
+      "domain": "news.yahoo.co.jp",
+      "url": "https://news.yahoo.co.jp/",
+      "observed_final_url": "https://news.yahoo.co.jp/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "Yahoo!ニュース"
+        ],
+        [
+          "トピックス"
+        ],
+        [
+          "アクセスランキング"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.yahoo.co.jp"
+        ],
+        "entry_path": "/pickup/[0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Yahoo!ニュース"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "トピックス"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "アクセスランキング"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 8,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-034-news-yahoo-co-jp/stable-page.txt",
+      "evidence_sha256": "6b65ef77b3b964ed5775de6aae128687821e978dd140fbf5527b15a536010a51",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-035-fandom-com",
+      "domain": "fandom.com",
+      "url": "https://fandom.com/",
+      "observed_final_url": "https://www.fandom.com/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "Fandom"
+        ],
+        [
+          "GAMES"
+        ],
+        [
+          "MOVIES"
+        ],
+        [
+          "TV"
+        ],
+        [
+          "EXPLORE PROPERTIES"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.fandom.com"
+        ],
+        "entry_path": "/topics/(?:games|movies|tv)",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Fandom"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "GAMES"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "MOVIES"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "TV"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "EXPLORE PROPERTIES"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 3,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-035-fandom-com/stable-page.txt",
+      "evidence_sha256": "119ad75d884f23f09be5416f38c3eefdc9c52624b5047e4a04acdf5d1420ab6d",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-036-globo-com",
+      "domain": "globo.com",
+      "url": "https://globo.com/",
+      "observed_final_url": "https://www.globo.com/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "globo.com"
+        ],
+        [
+          "Guia de Compras"
+        ],
+        [
+          "Previsão do tempo"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "g1.globo.com"
+        ],
+        "entry_path": "/.+/(?:noticia|blog)/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "globo.com"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Guia de Compras"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Previsão do tempo"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 17,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-036-globo-com/stable-page.txt",
+      "evidence_sha256": "0c7bc54b413ae9971e2bd2ccec7957213ab352ef294bcc7382e4a781c29e09e0",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-037-mail-ru",
+      "domain": "mail.ru",
+      "url": "https://mail.ru/",
+      "observed_final_url": "https://mail.ru/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "Mail.ru"
+        ],
+        [
+          "Почта"
+        ],
+        [
+          "Облако"
+        ],
+        [
+          "Календарь"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.mail.ru"
+        ],
+        "entry_path": "/[^/]+/[0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Mail.ru"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Почта"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Облако"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Календарь"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 8,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-037-mail-ru/stable-page.txt",
+      "evidence_sha256": "a55c522b6d5cb2ab493f43f9d49c1ea4877b2714c33a9c1ec973b9e4a45db5ef",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-038-samsung-com",
+      "domain": "samsung.com",
+      "url": "https://samsung.com/",
+      "observed_final_url": "https://www.samsung.com/us/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Samsung"
+        ],
+        [
+          "Mobile"
+        ],
+        [
+          "TV & AV"
+        ],
+        [
+          "Appliances"
+        ],
+        [
+          "Computers & Monitors"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Samsung"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Mobile"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "TV & AV"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Appliances"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Computers & Monitors"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-038-samsung-com/stable-page.txt",
+      "evidence_sha256": "2aab53c1dace41cfc030eeeb99090a13ba02529ff0535f42beea8ab1d11d47cb",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-039-duckduckgo-com",
+      "domain": "duckduckgo.com",
+      "url": "https://duckduckgo.com/?kad=en_US&kl=us-en",
+      "observed_final_url": "https://duckduckgo.com/?kad=en_US&kl=us-en",
+      "label": "entry_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "DuckDuckGo"
+        ],
+        [
+          "Search"
+        ],
+        [
+          "Duck.ai"
+        ],
+        [
+          "Settings"
+        ],
+        [
+          "Privacy Policy"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "DuckDuckGo"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Search"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Duck.ai"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Settings"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Privacy Policy"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-039-duckduckgo-com/stable-page.txt",
+      "evidence_sha256": "b64c7d5a4c78e6835b467aa1906ab277f3e01a0ba6478c490d9d85e780f83d54",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-041-discord-com",
+      "domain": "discord.com",
+      "url": "https://discord.com/",
+      "observed_final_url": "https://discord.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "GROUP CHAT THAT’S ALL FUN & GAMES"
+        ],
+        [
+          "MAKE YOUR GROUP CHATS MORE FUN"
+        ],
+        [
+          "STREAM LIKE YOU’RE IN THE SAME ROOM"
+        ],
+        [
+          "HOP IN WHEN YOU'RE FREE, NO NEED TO CALL"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "GROUP CHAT THAT’S ALL FUN & GAMES"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "MAKE YOUR GROUP CHATS MORE FUN"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "STREAM LIKE YOU’RE IN THE SAME ROOM"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "HOP IN WHEN YOU'RE FREE, NO NEED TO CALL"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-041-discord-com/stable-page.txt",
+      "evidence_sha256": "59f5ce79d7a6385c0483565a85fcfa5782eea8875ed855733ba498613e2f0674",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-042-github-com",
+      "domain": "github.com",
+      "url": "https://github.com/",
+      "observed_final_url": "https://github.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "GitHub features"
+        ],
+        [
+          "GitHub Copilot"
+        ],
+        [
+          "GitHub Actions"
+        ],
+        [
+          "GitHub Codespaces"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "GitHub features"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "GitHub Copilot"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "GitHub Actions"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "GitHub Codespaces"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-042-github-com/stable-page.txt",
+      "evidence_sha256": "9169693655147243e5a573783ba532da6f56a1bcd2b18c05ef3f73f6a4b99201",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-044-spotify-com",
+      "domain": "spotify.com",
+      "url": "https://open.spotify.com/?locale=en_US",
+      "observed_final_url": "https://open.spotify.com/?locale=en_US",
+      "label": "entry_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Your Library"
+        ],
+        [
+          "Trending songs"
+        ],
+        [
+          "Popular artists"
+        ],
+        [
+          "Popular albums and singles"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Your Library"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Trending songs"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Popular artists"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Popular albums and singles"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-044-spotify-com/stable-page.txt",
+      "evidence_sha256": "eedbf95b23603cd653ca13da971fc5d1ece7604230738892e0d98d3aebe802d7",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-045-nytimes-com",
+      "domain": "nytimes.com",
+      "url": "https://nytimes.com/",
+      "observed_final_url": "https://www.nytimes.com/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "The New York Times"
+        ],
+        [
+          "TOP STORIES"
+        ],
+        [
+          "NEWSLETTERS"
+        ],
+        [
+          "PODCASTS"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.nytimes.com"
+        ],
+        "entry_path": "/[0-9]{4}/[0-9]{2}/[0-9]{2}/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "The New York Times"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "TOP STORIES"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "NEWSLETTERS"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "PODCASTS"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 95,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-045-nytimes-com/stable-page.txt",
+      "evidence_sha256": "32ec28043df1c5747fa6a7c0b4c359e7ec6f040d59ec4f830c8002144a4cb884",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-046-zoom-us",
+      "domain": "zoom.us",
+      "url": "https://zoom.us/",
+      "observed_final_url": "https://www.zoom.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Find out what's possible when work connects"
+        ],
+        [
+          "One platform. Endless ways to work together."
+        ],
+        [
+          "Trusted by millions. Built for you."
+        ],
+        [
+          "Businesses achieve more with Zoom"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Find out what's possible when work connects"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "One platform. Endless ways to work together."
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Trusted by millions. Built for you."
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Businesses achieve more with Zoom"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-046-zoom-us/stable-page.txt",
+      "evidence_sha256": "6647f5a5ab07e2445b5dee63240b4c123a105ada1c4239b4b4ae36539d1cba92",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-047-booking-com",
+      "domain": "booking.com",
+      "url": "https://www.booking.com/?lang=en-us",
+      "observed_final_url": "https://www.booking.com/?lang=en-us",
+      "label": "entry_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Booking.com"
+        ],
+        [
+          "Stays"
+        ],
+        [
+          "Flights"
+        ],
+        [
+          "Car rental"
+        ],
+        [
+          "Search"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Booking.com"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Stays"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Flights"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Car rental"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Search"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-047-booking-com/stable-page.txt",
+      "evidence_sha256": "5fb5a20687cd89cb39fb9eff5eb4935bb4e240df9eb9a2a0d36df251e063a8af",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-049-brave-com",
+      "domain": "brave.com",
+      "url": "https://brave.com/",
+      "observed_final_url": "https://brave.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "The browser that puts you first"
+        ],
+        [
+          "Private search"
+        ],
+        [
+          "Powerful VPN"
+        ],
+        [
+          "A Web with fewer ads"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "The browser that puts you first"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Private search"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Powerful VPN"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "A Web with fewer ads"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-049-brave-com/stable-page.txt",
+      "evidence_sha256": "0563f80dfca00dcbbe6a0828f72b097bbc8661a82d862c9b314fa75c5b42e3a4",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-056-apple-com",
+      "domain": "apple.com",
+      "url": "https://apple.com/",
+      "observed_final_url": "https://www.apple.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Apple"
+        ],
+        [
+          "Mac"
+        ],
+        [
+          "iPhone"
+        ],
+        [
+          "Watch"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Apple"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Mac"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "iPhone"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Watch"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-056-apple-com/stable-page.txt",
+      "evidence_sha256": "97d960ca022813ff17bc67ee2314d8f9dcac57c0f1dd608958ca49c9cd8e7ecc",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-060-espn-com",
+      "domain": "espn.com",
+      "url": "https://espn.com/",
+      "observed_final_url": "https://www.espn.com/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "ESPN"
+        ],
+        [
+          "Quick Links"
+        ],
+        [
+          "Top Headlines"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.espn.com"
+        ],
+        "entry_path": "/[a-z0-9-]+/story/_/id/[0-9]+/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "ESPN"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Quick Links"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Top Headlines"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 40,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-060-espn-com/stable-page.txt",
+      "evidence_sha256": "d98c11001c3a30fb7a47b3f30cd37f3194c6f74a31bcdf34ab0b98ec0aedbbba",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-062-bbc-com",
+      "domain": "bbc.com",
+      "url": "https://bbc.com/",
+      "observed_final_url": "https://www.bbc.com/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "BBC"
+        ],
+        [
+          "News"
+        ],
+        [
+          "Sport"
+        ],
+        [
+          "Business"
+        ],
+        [
+          "Technology"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.bbc.com"
+        ],
+        "entry_path": "/news/articles/[a-z0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "BBC"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "News"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Sport"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Business"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Technology"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 29,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-062-bbc-com/stable-page.txt",
+      "evidence_sha256": "5e13057c74ab28e959b4d54c9fbb7d83eed04c8df90bc56a635fa4082f5f1628",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-063-paypal-com",
+      "domain": "paypal.com",
+      "url": "https://paypal.com/",
+      "observed_final_url": "https://www.paypal.com/us/home",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "PayPal"
+        ],
+        [
+          "Personal"
+        ],
+        [
+          "Business"
+        ],
+        [
+          "Get the PayPal app"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "PayPal"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Personal"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Business"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Get the PayPal app"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-063-paypal-com/stable-page.txt",
+      "evidence_sha256": "920af254358c705a6d9a7d1ab6cc582560287c111db6ccc146280ad805bb8746",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-065-ya-ru",
+      "domain": "ya.ru",
+      "url": "https://ya.ru/",
+      "observed_final_url": "https://ya.ru/",
+      "label": "entry_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Запрос"
+        ],
+        [
+          "Поиск по картинке"
+        ],
+        [
+          "Сервисы"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Запрос"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Поиск по картинке"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Сервисы"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-065-ya-ru/stable-page.txt",
+      "evidence_sha256": "16e4af212056abf501ae3471860e0bb4fc60ae7f1f69470bccb7650372418910",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-067-deepseek-com",
+      "domain": "deepseek.com",
+      "url": "https://www.deepseek.com/en/",
+      "observed_final_url": "https://www.deepseek.com/en/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Into the Unknown"
+        ],
+        [
+          "DeepSeek Web"
+        ],
+        [
+          "API Platform"
+        ],
+        [
+          "API Docs"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Into the Unknown"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "DeepSeek Web"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "API Platform"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "API Docs"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-067-deepseek-com/stable-page.txt",
+      "evidence_sha256": "1921f914eb6146b1b962c5290f99e9049ed30e726f50ee53f1e8f403cf4ae71b",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-068-indeed-com",
+      "domain": "indeed.com",
+      "url": "https://indeed.com/",
+      "observed_final_url": "https://www.indeed.com/",
+      "label": "entry_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Your next job starts here"
+        ],
+        [
+          "Trending Searches"
+        ],
+        [
+          "Trending Jobs"
+        ],
+        [
+          "Search"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Your next job starts here"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Trending Searches"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Trending Jobs"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Search"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-068-indeed-com/stable-page.txt",
+      "evidence_sha256": "805312082247fdc8dfd120b2c9066c60129ed82b93c036bfad647f6afb0c1ebd",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-072-rakuten-co-jp",
+      "domain": "rakuten.co.jp",
+      "url": "https://rakuten.co.jp/",
+      "observed_final_url": "https://www.rakuten.co.jp/",
+      "label": "product_catalog",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "ようこそ楽天市場へ"
+        ],
+        [
+          "楽天スーパーDEAL"
+        ],
+        [
+          "人気商品ランキング"
+        ],
+        [
+          "ジャンル"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "item.rakuten.co.jp"
+        ],
+        "entry_path": "/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "ようこそ楽天市場へ"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "楽天スーパーDEAL"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "人気商品ランキング"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "ジャンル"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 9,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-072-rakuten-co-jp/stable-page.txt",
+      "evidence_sha256": "a9f37780ae3478a1fae7f7c875a262e5881794a4fa108f4c0b630bafd842453b",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-075-telegram-org",
+      "domain": "telegram.org",
+      "url": "https://telegram.org/",
+      "observed_final_url": "https://telegram.org/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Why Telegram?"
+        ],
+        [
+          "Simple"
+        ],
+        [
+          "Private"
+        ],
+        [
+          "Secure"
+        ],
+        [
+          "Powerful"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Why Telegram?"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Simple"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Private"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Secure"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Powerful"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-075-telegram-org/stable-page.txt",
+      "evidence_sha256": "5bf1ffe8b5f44c8e9dc383e3b4449af1dcf3161791d816be6d33bf63adbcd10d",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-080-cnn-com",
+      "domain": "cnn.com",
+      "url": "https://cnn.com/",
+      "observed_final_url": "https://www.cnn.com/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "CNN"
+        ],
+        [
+          "MORE TOP STORIES"
+        ],
+        [
+          "CNN UNDERSCORED"
+        ],
+        [
+          "Across our coverage"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.cnn.com",
+          "edition.cnn.com"
+        ],
+        "entry_path": "/[0-9]{4}/[0-9]{2}/[0-9]{2}/.+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "CNN"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "MORE TOP STORIES"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "CNN UNDERSCORED"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Across our coverage"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 96,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-080-cnn-com/stable-page.txt",
+      "evidence_sha256": "5d863ee7b7c74bfdc2dd433da8f2c3aaec7883c0e50e7675eef27fb83533fc77",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-081-namu-wiki",
+      "domain": "namu.wiki",
+      "url": "https://namu.wiki/",
+      "observed_final_url": "https://namu.wiki/w/%EB%82%98%EB%AC%B4%EC%9C%84%ED%82%A4:%EB%8C%80%EB%AC%B8",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "나무위키에 오신 것을 환영합니다!"
+        ],
+        [
+          "나무위키는 누구나 기여할 수 있는 위키입니다."
+        ],
+        [
+          "검증되지 않았거나 편향된 내용이 있을 수 있습니다."
+        ],
+        [
+          "나무위키의 도움말"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "나무위키에 오신 것을 환영합니다!"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "나무위키는 누구나 기여할 수 있는 위키입니다."
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "검증되지 않았거나 편향된 내용이 있을 수 있습니다."
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "나무위키의 도움말"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-081-namu-wiki/stable-page.txt",
+      "evidence_sha256": "8a4b777332df56607037ee90fdb2f1ab044aaf321921d04d37b9816e3fc3aac6",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-082-shein-com",
+      "domain": "shein.com",
+      "url": "https://us.shein.com/",
+      "observed_final_url": "https://us.shein.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "SHEIN"
+        ],
+        [
+          "Women Clothing"
+        ],
+        [
+          "Home & Living"
+        ],
+        [
+          "Electronics"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "SHEIN"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Women Clothing"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Home & Living"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Electronics"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-082-shein-com/stable-page.txt",
+      "evidence_sha256": "f46e21d27ba644e3fd6314b06f764e6eb109ca2054e2adf05015ec4abca3eb03",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-084-qq-com",
+      "domain": "qq.com",
+      "url": "https://qq.com/",
+      "observed_final_url": "https://www.qq.com/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "产品推荐"
+        ],
+        [
+          "热点精选"
+        ],
+        [
+          "腾讯新闻出品"
+        ],
+        [
+          "热门问答"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "news.qq.com"
+        ],
+        "entry_path": "/rain/a/[A-Za-z0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "产品推荐"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "热点精选"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "腾讯新闻出品"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "热门问答"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 30,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-084-qq-com/stable-page.txt",
+      "evidence_sha256": "0d4bf6193aae45787c0359167d5d5316548a896c775e3bc2abb707d03de7695e",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-085-douyin-com",
+      "domain": "douyin.com",
+      "url": "https://douyin.com/",
+      "observed_final_url": "https://www.douyin.com/jingxuan",
+      "label": "entry_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "精选"
+        ],
+        [
+          "推荐"
+        ],
+        [
+          "放映厅"
+        ],
+        [
+          "短剧"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "精选"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "推荐"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "放映厅"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "短剧"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-085-douyin-com/stable-page.txt",
+      "evidence_sha256": "8293efde3f5a18095d4c56a4f07518eb6fc4259af2eef3b116a2cd58042d541f",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-086-usps-com",
+      "domain": "usps.com",
+      "url": "https://usps.com/",
+      "observed_final_url": "https://www.usps.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Quick Tools"
+        ],
+        [
+          "Track a Package"
+        ],
+        [
+          "Find USPS Locations"
+        ],
+        [
+          "Buy Stamps"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Quick Tools"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Track a Package"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Find USPS Locations"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Buy Stamps"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-086-usps-com/stable-page.txt",
+      "evidence_sha256": "bf451858366c903d6fc371d17cae40a38eacfe310ab3feb493cee02db5467e1e",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-087-instructure-com",
+      "domain": "instructure.com",
+      "url": "https://instructure.com/",
+      "observed_final_url": "https://www.instructure.com/",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Instructure"
+        ],
+        [
+          "Canvas"
+        ],
+        [
+          "Explore Canvas"
+        ],
+        [
+          "Why Instructure"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Instructure"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Canvas"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Explore Canvas"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Why Instructure"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-087-instructure-com/stable-page.txt",
+      "evidence_sha256": "19fcc0d08bf4a8e7f86b5e96a601ba8771352cd55c414e1af5bb6ca12dd8bc15",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-088-primevideo-com",
+      "domain": "primevideo.com",
+      "url": "https://www.primevideo.com/-/zh/storefront",
+      "observed_final_url": "https://www.primevideo.com/-/zh/offers/nonprimehomepage?ref_=dv_web_force_root&language=zh",
+      "label": "landing_page",
+      "rule_model": "page_identity",
+      "anchor_groups": [
+        [
+          "Prime Video"
+        ],
+        [
+          "电影"
+        ],
+        [
+          "电视节目"
+        ],
+        [
+          "体育"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Prime Video"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "电影"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "电视节目"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "体育"
+            ]
+          }
+        ]
+      },
+      "observed_matching_named_links": 0,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-088-primevideo-com/stable-page.txt",
+      "evidence_sha256": "9afaaece5a5a29d7b6db3eced9524529b93a58ac7f47f9114646e9d1d9ab457d",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-090-rutube-ru",
+      "domain": "rutube.ru",
+      "url": "https://rutube.ru/",
+      "observed_final_url": "https://rutube.ru/",
+      "label": "content_list",
+      "rule_model": "named_link",
+      "anchor_groups": [
+        [
+          "RUTUBE"
+        ],
+        [
+          "Для вас"
+        ],
+        [
+          "Shorts"
+        ],
+        [
+          "ТВ-каналы"
+        ],
+        [
+          "Рекомендации"
+        ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "rutube.ru"
+        ],
+        "entry_path": "/video/[a-f0-9]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "RUTUBE"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Для вас"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Shorts"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "ТВ-каналы"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "Рекомендации"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
+      },
+      "observed_matching_named_links": 64,
+      "min_content_chars": 1,
+      "length_gate_applicable": false,
+      "volatile_exclusions": [
+        "current_items",
+        "ordering",
+        "rank",
+        "price",
+        "count",
+        "date"
+      ],
+      "evidence": "sources/global-homepage-090-rutube-ru/stable-page.txt",
+      "evidence_sha256": "73c2c66598b256be890d934da60b277ca040fc3e6f0eaff0801828cc00904b9b",
+      "review_status": "ready_from_final_independent_browser_evidence"
+    }
+  ]
+}

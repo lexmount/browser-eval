@@ -162,6 +162,13 @@ def build_report(source: Path, output: Path) -> Path:
         (staging/'results.jsonl').write_bytes(contained_path(source,'results.jsonl').read_bytes())
         if result_review is not None:
             (staging/'result-review.json').write_text(json.dumps(result_review,ensure_ascii=False,indent=2)+'\n')
+        if (source/'source-selection.json').is_file():
+            selection=json.loads((source/'source-selection.json').read_text())
+            selected_ids={row.get('id') for row in selection.get('cases',[])}
+            if (selection.get('selected_count') != len(selection.get('cases',[]))
+                    or selected_ids != set(cases)):
+                raise ValueError('Source selection does not match the measured dataset')
+            shutil.copy2(source/'source-selection.json', staging/'source-selection.json')
         copy_methodology_assets(staging)
         provenance=Path(__file__).resolve().parents[2]/'research/headless-implementation-provenance.json'
         if provenance.is_file():
@@ -172,6 +179,14 @@ def build_report(source: Path, output: Path) -> Path:
             shutil.copy2(source/'reference-revisions.json', staging/'reference-revisions.json')
         if (source/'latency-corrections.json').is_file():
             shutil.copy2(source/'latency-corrections.json', staging/'latency-corrections.json')
+        if (source/'task-rerun.json').is_file():
+            shutil.copy2(source/'task-rerun.json', staging/'task-rerun.json')
+        if (source/'failed-rule-audit.json').is_file():
+            shutil.copy2(source/'failed-rule-audit.json', staging/'failed-rule-audit.json')
+        if (source/'verification-observations.json').is_file():
+            shutil.copy2(source/'verification-observations.json', staging/'verification-observations.json')
+        if (source/'verification-artifacts').is_dir():
+            shutil.copytree(source/'verification-artifacts', staging/'verification-artifacts')
         if (source/'file-rerun-selection.json').is_file():
             shutil.copy2(source/'file-rerun-selection.json', staging/'file-rerun-selection.json')
             shutil.copytree(source/'history/file-baseline', staging/'history/file-baseline')

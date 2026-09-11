@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-36-hbo-max",
+  "url": "https://www.hbomax.com/movies",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "bba38fc84f27d34c1058925b49530f8dba174f6dd21b3c1a20ea19dfa87c37e1",
+  "items_sha256": "8887c04ca2f0a0efb0f536778f7f38ec16e807ffac801d9cec5336f0ea3b79fd",
+  "reference_sha256": "543795b1be46440f9b6689806282b6f1a4f52933cc1808f498e9f57366c2ffa9",
+  "list_reference_sha256": "0c3d01e47413874e7280d297c7b12295522fd1b2e077c04d592727c00db96278",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "地区版权与订阅影响播放但不应影响公开详情判定；已用三个已观察分区替换易受改文影响的长说明。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-43-zillow",
+  "url": "https://www.zillow.com/new-york-ny/",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "516bc850ef46a665ce113053940b1df792c0e6171eefd3dd725b7f580f9491a2",
+  "items_sha256": "a45193e9ead5d7907e3f87ce661fb89ce16851ea1dc2416a20464b1875e62a9d",
+  "reference_sha256": "3a46c1f33ebf55877ccede21374c5074b972bcb41ef6d59206258b68603eff49",
+  "list_reference_sha256": "1da7a05aca11fa21c5d69998e6c61631faff36bfc6870460f25dc3c3b1f61eb3",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "第三条存在地址显示与规范 URL/详情标题的格式和地名差异；ID 与详情落地一致，但建议人工确认身份容差。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

@@ -1,0 +1,1601 @@
+{
+  "schema_version": 1,
+  "purpose": "Final selected and labeled ranked-domain homepage cohort",
+  "selection_policy": {
+    "ranked_domain_root_input": true,
+    "natural_redirects_allowed": true,
+    "manual_content_page_substitution_allowed": false,
+    "excluded_page_types": [
+      "login_page",
+      "blank",
+      "captcha_or_security_verification",
+      "access_denied",
+      "generic_error",
+      "unavailable"
+    ],
+    "exact_final_page_duplicates_deduplicated": true,
+    "highly_repetitive_amazon_regional_homepages_deduplicated": true,
+    "target_count_is_not_a_quota": true
+  },
+  "source": {
+    "candidate_file": "research/similarweb-global-candidate-domains-2026-05.json",
+    "candidate_file_sha256": "d6556370102c867518d7cbf6fa11b79c7bb3b7280d98e29b420f94b9947a2bff",
+    "observation_file": "research/global-site-root-observations-2026-09-11.json",
+    "observation_file_sha256": "4dedca210d65a996425936039ba49acede3f1b1e48ec224519e90f5d0daa1e6e",
+    "observation_method": "Playwright Chromium, fresh anonymous context per ranked domain, initial load only",
+    "adult_policy": "Adult-content domains were omitted upstream and never visited.",
+    "initial_selection_file": "research/global-homepage-selection.json",
+    "initial_selection_sha256": "4297073494c42b6ad01aa58417c2aa13bc3398990f4812e4e498501ba3d8b371",
+    "rule_evidence_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+    "rule_evidence_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+    "rule_evidence_scope": "Full visible text, headings and links from the selected ranked-domain root; no clicks",
+    "final_rule_capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+    "final_rule_capture_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+    "visual_spot_check_file": "research/global-homepage-visual-spot-check-2026-09-11.json",
+    "visual_spot_check_sha256": "73e11e0d50ca06cba8309d528df83ca38aac9b970c741a29383eccd30a7b2f01",
+    "locale_review_file": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+    "locale_review_sha256": "823d1b8d2819f3f30be1a7f02b0d1891122b54b87ddcce30db0d3c6eefa8d846"
+  },
+  "selected_count": 52,
+  "excluded_non_adult_count": 38,
+  "cases": [
+    {
+      "id": "global-homepage-001-google-com",
+      "domain": "google.com",
+      "url": "https://www.google.com/?hl=en",
+      "observed_final_url": "https://www.google.com.hk/?hl=en",
+      "label": "entry_page",
+      "reason": "首页主要提供搜索、问答、位置查询或应用入口；按入口页模型核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": null,
+        "final_url": "https://www.google.com.hk/?hl=en",
+        "title": "Google",
+        "visible_text_length": 47,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-002-youtube-com",
+      "domain": "youtube.com",
+      "url": "https://www.youtube.com/?hl=en&gl=US&persist_hl=1",
+      "observed_final_url": "https://www.youtube.com/",
+      "label": "content_list",
+      "reason": "匿名首页可公开显示视频内容流；当前视频、排序、观看量和发布时间均为动态内容，只按稳定页面身份核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": null,
+        "final_url": "https://www.youtube.com/",
+        "title": "YouTube Home",
+        "visible_text_length": 42,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-005-chatgpt-com",
+      "domain": "chatgpt.com",
+      "url": "https://chatgpt.com/",
+      "observed_final_url": "https://chatgpt.com/",
+      "label": "entry_page",
+      "reason": "首页主要提供搜索、问答、位置查询或应用入口；按入口页模型核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://chatgpt.com/",
+        "title": "ChatGPT: Chat, Work, Create & Code with AI",
+        "visible_text_length": 431,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-006-reddit-com",
+      "domain": "reddit.com",
+      "url": "https://reddit.com/",
+      "observed_final_url": "https://www.reddit.com/?solution=b29b419a63795e65b29b419a63795e65&js_challenge=1&jsc_token=7afd7253fec22262ff1c52b1703fe9ec353b328cf9977367be9d31a482035156&jsc_orig_r=",
+      "label": "content_list",
+      "reason": "首页直接呈现多条公开内容或导航栏目；按实际列表与稳定页面文字核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.reddit.com/?solution=b29b419a63795e65b29b419a63795e65&js_challenge=1&jsc_token=7afd7253fec22262ff1c52b1703fe9ec353b328cf9977367be9d31a482035156&jsc_orig_r=",
+        "title": "Reddit - The heart of the internet",
+        "visible_text_length": 13841,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-008-whatsapp-com",
+      "domain": "whatsapp.com",
+      "url": "https://whatsapp.com/",
+      "observed_final_url": "https://www.whatsapp.com/",
+      "label": "landing_page",
+      "reason": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.whatsapp.com/",
+        "title": "WhatsApp | Secure and Reliable Free Private Messaging and Calling",
+        "visible_text_length": 1932,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-010-bing-com",
+      "domain": "bing.com",
+      "url": "https://bing.com/",
+      "observed_final_url": "https://www.bing.com/?toWww=1&redig=664889C106914BE786F166BF5F44DAFE",
+      "label": "entry_page",
+      "reason": "首页主要提供搜索、问答、位置查询或应用入口；按入口页模型核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": null,
+        "final_url": "https://www.bing.com/?toWww=1&redig=664889C106914BE786F166BF5F44DAFE",
+        "title": "Microsoft Bing",
+        "visible_text_length": 56,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-011-wikipedia-org",
+      "domain": "wikipedia.org",
+      "url": "https://wikipedia.org/",
+      "observed_final_url": "https://www.wikipedia.org/",
+      "label": "entry_page",
+      "reason": "首页主要提供搜索、问答、位置查询或应用入口；按入口页模型核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.wikipedia.org/",
+        "title": "Wikipedia",
+        "visible_text_length": 4056,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-012-gemini-google-com",
+      "domain": "gemini.google.com",
+      "url": "https://gemini.google.com/",
+      "observed_final_url": "https://gemini.google.com/app",
+      "label": "entry_page",
+      "reason": "首页主要提供搜索、问答、位置查询或应用入口；按入口页模型核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://gemini.google.com/app",
+        "title": "Google Gemini",
+        "visible_text_length": 317,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-013-yahoo-co-jp",
+      "domain": "yahoo.co.jp",
+      "url": "https://yahoo.co.jp/",
+      "observed_final_url": "https://www.yahoo.co.jp/",
+      "label": "content_list",
+      "reason": "首页直接呈现多条公开内容或导航栏目；按实际列表与稳定页面文字核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.yahoo.co.jp/",
+        "title": "Yahoo! JAPAN",
+        "visible_text_length": 6214,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-015-yahoo-com",
+      "domain": "yahoo.com",
+      "url": "https://www.yahoo.com/?p=us",
+      "observed_final_url": "https://www.yahoo.com/?p=us",
+      "label": "content_list",
+      "reason": "首页直接呈现多条公开内容或导航栏目；按实际列表与稳定页面文字核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": null,
+        "final_url": "https://www.yahoo.com/?p=us",
+        "title": "Search the web",
+        "visible_text_length": 43,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-016-amazon-com",
+      "domain": "amazon.com",
+      "url": "https://amazon.com/",
+      "observed_final_url": "https://www.amazon.com/",
+      "label": "product_catalog",
+      "reason": "首页直接呈现商品或购物目录内容；不冻结当前商品、价格或排序。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 202,
+        "final_url": "https://www.amazon.com/",
+        "title": "Amazon.com. Spend less. Smile more.",
+        "visible_text_length": 6974,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-018-baidu-com",
+      "domain": "baidu.com",
+      "url": "https://baidu.com/",
+      "observed_final_url": "https://www.baidu.com/",
+      "label": "entry_page",
+      "reason": "首页主要提供搜索、问答、位置查询或应用入口；按入口页模型核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.baidu.com/",
+        "title": "百度一下，你就知道",
+        "visible_text_length": 351,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-020-naver-com",
+      "domain": "naver.com",
+      "url": "https://naver.com/",
+      "observed_final_url": "https://www.naver.com/",
+      "label": "content_list",
+      "reason": "首页直接呈现多条公开内容或导航栏目；按实际列表与稳定页面文字核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.naver.com/",
+        "title": "NAVER",
+        "visible_text_length": 2015,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-021-netflix-com",
+      "domain": "netflix.com",
+      "url": "https://netflix.com/",
+      "observed_final_url": "https://www.netflix.com/",
+      "label": "landing_page",
+      "reason": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.netflix.com/",
+        "title": "Netflix - Watch TV Shows Online, Watch Movies Online",
+        "visible_text_length": 1681,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-023-cloud-microsoft",
+      "domain": "cloud.microsoft",
+      "url": "https://cloud.microsoft/",
+      "observed_final_url": "https://m365.cloud.microsoft/",
+      "label": "landing_page",
+      "reason": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://m365.cloud.microsoft/",
+        "title": "Microsoft 365 - Sign into Copilot",
+        "visible_text_length": 4237,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-025-bilibili-com",
+      "domain": "bilibili.com",
+      "url": "https://bilibili.com/",
+      "observed_final_url": "https://www.bilibili.com/",
+      "label": "content_list",
+      "reason": "首页直接呈现多条公开内容或导航栏目；按实际列表与稳定页面文字核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.bilibili.com/",
+        "title": "哔哩哔哩 (゜-゜)つロ 干杯~-bilibili",
+        "visible_text_length": 675,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-027-dzen-ru",
+      "domain": "dzen.ru",
+      "url": "https://dzen.ru/",
+      "observed_final_url": "https://dzen.ru/",
+      "label": "content_list",
+      "reason": "首页直接呈现多条公开内容或导航栏目；按实际列表与稳定页面文字核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://dzen.ru/",
+        "title": "Дзен — главная новостная информационная платформа, которая помогает миллионам людей узнавать, что происходит в мире.",
+        "visible_text_length": 8523,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-028-microsoft-com",
+      "domain": "microsoft.com",
+      "url": "https://microsoft.com/",
+      "observed_final_url": "https://www.microsoft.com/en-us",
+      "label": "landing_page",
+      "reason": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.microsoft.com/en-us",
+        "title": "Microsoft – AI, Cloud, Productivity, Computing, Gaming & Apps",
+        "visible_text_length": 3551,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-029-twitch-tv",
+      "domain": "twitch.tv",
+      "url": "https://www.twitch.tv/?lang=en",
+      "observed_final_url": "https://www.twitch.tv/?lang=en",
+      "label": "content_list",
+      "reason": "首页直接呈现多条公开内容或导航栏目；按实际列表与稳定页面文字核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": null,
+        "final_url": "https://www.twitch.tv/?lang=en",
+        "title": "Live Channels",
+        "visible_text_length": 60,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-030-weather-com",
+      "domain": "weather.com",
+      "url": "https://weather.com/",
+      "observed_final_url": "https://weather.com/",
+      "label": "entry_page",
+      "reason": "首页主要提供搜索、问答、位置查询或应用入口；按入口页模型核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://weather.com/",
+        "title": "National and Local Weather Radar, Daily Forecast, Hurricane and information from The Weather Channel and weather.com",
+        "visible_text_length": 4041,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-032-canva-com",
+      "domain": "canva.com",
+      "url": "https://canva.com/",
+      "observed_final_url": "https://www.canva.com/",
+      "label": "landing_page",
+      "reason": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.canva.com/",
+        "title": "Canva: Visual Suite for Everyone",
+        "visible_text_length": 4802,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-034-news-yahoo-co-jp",
+      "domain": "news.yahoo.co.jp",
+      "url": "https://news.yahoo.co.jp/",
+      "observed_final_url": "https://news.yahoo.co.jp/",
+      "label": "content_list",
+      "reason": "首页直接呈现多条公开内容或导航栏目；按实际列表与稳定页面文字核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://news.yahoo.co.jp/",
+        "title": "Yahoo!ニュース",
+        "visible_text_length": 5658,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-035-fandom-com",
+      "domain": "fandom.com",
+      "url": "https://fandom.com/",
+      "observed_final_url": "https://www.fandom.com/",
+      "label": "content_list",
+      "reason": "首页直接呈现多条公开内容或导航栏目；按实际列表与稳定页面文字核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.fandom.com/",
+        "title": "Fandom",
+        "visible_text_length": 4236,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-036-globo-com",
+      "domain": "globo.com",
+      "url": "https://globo.com/",
+      "observed_final_url": "https://www.globo.com/",
+      "label": "content_list",
+      "reason": "首页直接呈现多条公开内容或导航栏目；按实际列表与稳定页面文字核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.globo.com/",
+        "title": "globo.com - Absolutamente tudo sobre notícias, esportes e entretenimento",
+        "visible_text_length": 13794,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-037-mail-ru",
+      "domain": "mail.ru",
+      "url": "https://mail.ru/",
+      "observed_final_url": "https://mail.ru/",
+      "label": "content_list",
+      "reason": "首页直接呈现多条公开内容或导航栏目；按实际列表与稳定页面文字核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://mail.ru/",
+        "title": "Mail: Почта, Облако, Календарь, Заметки, Покупки — сервисы для работы и жизни",
+        "visible_text_length": 3985,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-038-samsung-com",
+      "domain": "samsung.com",
+      "url": "https://samsung.com/",
+      "observed_final_url": "https://www.samsung.com/us/",
+      "label": "landing_page",
+      "reason": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.samsung.com/us/",
+        "title": "Samsung US | Mobile | TV | Home Electronics | Home Appliances | Samsung US",
+        "visible_text_length": 3873,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-039-duckduckgo-com",
+      "domain": "duckduckgo.com",
+      "url": "https://duckduckgo.com/?kad=en_US&kl=us-en",
+      "observed_final_url": "https://duckduckgo.com/?kad=en_US&kl=us-en",
+      "label": "entry_page",
+      "reason": "首页主要提供搜索、问答、位置查询或应用入口；按入口页模型核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": null,
+        "final_url": "https://duckduckgo.com/?kad=en_US&kl=us-en",
+        "title": "DuckDuckGo",
+        "visible_text_length": 49,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-041-discord-com",
+      "domain": "discord.com",
+      "url": "https://discord.com/",
+      "observed_final_url": "https://discord.com/",
+      "label": "landing_page",
+      "reason": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://discord.com/",
+        "title": "Discord - Group Chat That’s All Fun & Games",
+        "visible_text_length": 2106,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-042-github-com",
+      "domain": "github.com",
+      "url": "https://github.com/",
+      "observed_final_url": "https://github.com/",
+      "label": "landing_page",
+      "reason": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://github.com/",
+        "title": "GitHub · Change is constant. GitHub keeps you ahead. · GitHub",
+        "visible_text_length": 5994,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-044-spotify-com",
+      "domain": "spotify.com",
+      "url": "https://open.spotify.com/?locale=en_US",
+      "observed_final_url": "https://open.spotify.com/?locale=en_US",
+      "label": "entry_page",
+      "reason": "首页主要提供搜索、问答、位置查询或应用入口；按入口页模型核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": null,
+        "final_url": "https://open.spotify.com/?locale=en_US",
+        "title": "Your Library",
+        "visible_text_length": 70,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-045-nytimes-com",
+      "domain": "nytimes.com",
+      "url": "https://nytimes.com/",
+      "observed_final_url": "https://www.nytimes.com/",
+      "label": "content_list",
+      "reason": "首页直接呈现多条公开内容或导航栏目；按实际列表与稳定页面文字核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.nytimes.com/",
+        "title": "The New York Times - Breaking News, US News, World News and Videos",
+        "visible_text_length": 13934,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-046-zoom-us",
+      "domain": "zoom.us",
+      "url": "https://zoom.us/",
+      "observed_final_url": "https://www.zoom.com/",
+      "label": "landing_page",
+      "reason": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.zoom.com/",
+        "title": "One platform to connect | Zoom",
+        "visible_text_length": 5481,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-047-booking-com",
+      "domain": "booking.com",
+      "url": "https://www.booking.com/?lang=en-us",
+      "observed_final_url": "https://www.booking.com/?lang=en-us",
+      "label": "entry_page",
+      "reason": "首页主要提供搜索、问答、位置查询或应用入口；按入口页模型核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": null,
+        "final_url": "https://www.booking.com/?lang=en-us",
+        "title": "Booking.com",
+        "visible_text_length": 43,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-049-brave-com",
+      "domain": "brave.com",
+      "url": "https://brave.com/",
+      "observed_final_url": "https://brave.com/",
+      "label": "landing_page",
+      "reason": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://brave.com/",
+        "title": "The browser that puts you first | Brave",
+        "visible_text_length": 4100,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-056-apple-com",
+      "domain": "apple.com",
+      "url": "https://apple.com/",
+      "observed_final_url": "https://www.apple.com/",
+      "label": "landing_page",
+      "reason": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.apple.com/",
+        "title": "Apple",
+        "visible_text_length": 3921,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-060-espn-com",
+      "domain": "espn.com",
+      "url": "https://espn.com/",
+      "observed_final_url": "https://www.espn.com/",
+      "label": "content_list",
+      "reason": "首页直接呈现多条公开内容或导航栏目；按实际列表与稳定页面文字核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.espn.com/",
+        "title": "ESPN - Serving Sports Fans. Anytime. Anywhere.",
+        "visible_text_length": 6658,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-062-bbc-com",
+      "domain": "bbc.com",
+      "url": "https://bbc.com/",
+      "observed_final_url": "https://www.bbc.com/",
+      "label": "content_list",
+      "reason": "首页直接呈现多条公开内容或导航栏目；按实际列表与稳定页面文字核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.bbc.com/",
+        "title": "BBC Home - Breaking News, World News, US News, Sports, Business, Innovation, Climate, Culture, Travel, Video & Audio",
+        "visible_text_length": 13808,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-063-paypal-com",
+      "domain": "paypal.com",
+      "url": "https://paypal.com/",
+      "observed_final_url": "https://www.paypal.com/us/home",
+      "label": "landing_page",
+      "reason": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.paypal.com/us/home",
+        "title": "Pay, Send and Save Money with PayPal | PayPal US",
+        "visible_text_length": 8833,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-065-ya-ru",
+      "domain": "ya.ru",
+      "url": "https://ya.ru/",
+      "observed_final_url": "https://ya.ru/",
+      "label": "entry_page",
+      "reason": "首页主要提供搜索、问答、位置查询或应用入口；按入口页模型核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://ya.ru/",
+        "title": "Яндекс — быстрый поиск в интернете",
+        "visible_text_length": 312,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-067-deepseek-com",
+      "domain": "deepseek.com",
+      "url": "https://www.deepseek.com/en/",
+      "observed_final_url": "https://www.deepseek.com/en/",
+      "label": "landing_page",
+      "reason": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": null,
+        "final_url": "https://www.deepseek.com/en/",
+        "title": "Into the Unknown",
+        "visible_text_length": 51,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-068-indeed-com",
+      "domain": "indeed.com",
+      "url": "https://indeed.com/",
+      "observed_final_url": "https://www.indeed.com/",
+      "label": "entry_page",
+      "reason": "首页主要提供搜索、问答、位置查询或应用入口；按入口页模型核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.indeed.com/",
+        "title": "Job Search | Indeed",
+        "visible_text_length": 611,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-072-rakuten-co-jp",
+      "domain": "rakuten.co.jp",
+      "url": "https://rakuten.co.jp/",
+      "observed_final_url": "https://www.rakuten.co.jp/",
+      "label": "product_catalog",
+      "reason": "首页直接呈现商品或购物目录内容；不冻结当前商品、价格或排序。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.rakuten.co.jp/",
+        "title": "【楽天市場】Shopping is Entertainment! ： インターネット最大級の通信販売、通販オンラインショッピングコミュニティ",
+        "visible_text_length": 3857,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-075-telegram-org",
+      "domain": "telegram.org",
+      "url": "https://telegram.org/",
+      "observed_final_url": "https://telegram.org/",
+      "label": "landing_page",
+      "reason": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://telegram.org/",
+        "title": "Telegram Messenger",
+        "visible_text_length": 1881,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-080-cnn-com",
+      "domain": "cnn.com",
+      "url": "https://cnn.com/",
+      "observed_final_url": "https://www.cnn.com/",
+      "label": "content_list",
+      "reason": "首页直接呈现多条公开内容或导航栏目；按实际列表与稳定页面文字核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.cnn.com/",
+        "title": "Breaking News, Latest News and Videos | CNN",
+        "visible_text_length": 7633,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-081-namu-wiki",
+      "domain": "namu.wiki",
+      "url": "https://namu.wiki/",
+      "observed_final_url": "https://namu.wiki/w/%EB%82%98%EB%AC%B4%EC%9C%84%ED%82%A4:%EB%8C%80%EB%AC%B8",
+      "label": "landing_page",
+      "reason": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://namu.wiki/w/%EB%82%98%EB%AC%B4%EC%9C%84%ED%82%A4:%EB%8C%80%EB%AC%B8",
+        "title": "나무위키:대문 - 나무위키",
+        "visible_text_length": 5977,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-082-shein-com",
+      "domain": "shein.com",
+      "url": "https://us.shein.com/",
+      "observed_final_url": "https://us.shein.com/",
+      "label": "landing_page",
+      "reason": "首页以品类导航和品牌入口为主，没有三个可验证的商品详情链接。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": null,
+        "final_url": "https://us.shein.com/",
+        "title": "SHEIN",
+        "visible_text_length": 46,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-084-qq-com",
+      "domain": "qq.com",
+      "url": "https://qq.com/",
+      "observed_final_url": "https://www.qq.com/",
+      "label": "content_list",
+      "reason": "首页直接呈现多条公开内容或导航栏目；按实际列表与稳定页面文字核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.qq.com/",
+        "title": "腾讯网",
+        "visible_text_length": 9209,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-085-douyin-com",
+      "domain": "douyin.com",
+      "url": "https://douyin.com/",
+      "observed_final_url": "https://www.douyin.com/jingxuan",
+      "label": "entry_page",
+      "reason": "页面呈现公开应用导航和视频流，但没有逐条可提取详情链接；按入口页核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.douyin.com/jingxuan",
+        "title": "抖音精选电脑版 - 抖音旗下优质视频平台",
+        "visible_text_length": 3540,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-086-usps-com",
+      "domain": "usps.com",
+      "url": "https://usps.com/",
+      "observed_final_url": "https://www.usps.com/",
+      "label": "landing_page",
+      "reason": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.usps.com/",
+        "title": "Welcome | USPS",
+        "visible_text_length": 6203,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-087-instructure-com",
+      "domain": "instructure.com",
+      "url": "https://instructure.com/",
+      "observed_final_url": "https://www.instructure.com/",
+      "label": "landing_page",
+      "reason": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.instructure.com/",
+        "title": "Instructure: Leading EdTech for K–12, Higher Ed & Business",
+        "visible_text_length": 10621,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-088-primevideo-com",
+      "domain": "primevideo.com",
+      "url": "https://www.primevideo.com/-/zh/storefront",
+      "observed_final_url": "https://www.primevideo.com/-/zh/offers/nonprimehomepage?ref_=dv_web_force_root&language=zh",
+      "label": "landing_page",
+      "reason": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": null,
+        "final_url": "https://www.primevideo.com/-/zh/offers/nonprimehomepage?ref_=dv_web_force_root&language=zh",
+        "title": "Prime Video",
+        "visible_text_length": 22,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    },
+    {
+      "id": "global-homepage-090-rutube-ru",
+      "domain": "rutube.ru",
+      "url": "https://rutube.ru/",
+      "observed_final_url": "https://rutube.ru/",
+      "label": "content_list",
+      "reason": "首页直接呈现多条公开内容或导航栏目；按实际列表与稳定页面文字核验。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://rutube.ru/",
+        "title": "RUTUBE - смотрите видео онлайн, бесплатно.",
+        "visible_text_length": 10008,
+        "navigation_error": null
+      },
+      "rule_status": "ready_from_final_independent_browser_evidence"
+    }
+  ],
+  "excluded": [
+    {
+      "domain": "facebook.com",
+      "url": "https://facebook.com/",
+      "reason_code": "login_page",
+      "reason": "首页主体是账号登录/注册表单。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.facebook.com/",
+        "title": "Facebook",
+        "visible_text_length": 464,
+        "has_password_input": true,
+        "has_login_language": true,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "instagram.com",
+      "url": "https://instagram.com/",
+      "reason_code": "login_page",
+      "reason": "首页主体是账号登录/注册表单。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.instagram.com/",
+        "title": "Instagram",
+        "visible_text_length": 811,
+        "has_password_input": true,
+        "has_login_language": true,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "x.com",
+      "url": "https://x.com/",
+      "reason_code": "access_denied",
+      "reason": "首次加载返回 HTTP 403 且没有可见正文。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 403,
+        "final_url": "https://x.com/",
+        "title": "",
+        "visible_text_length": 0,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "tiktok.com",
+      "url": "https://tiktok.com/",
+      "reason_code": "capture_error",
+      "reason": "浏览器未能取得可审阅页面。",
+      "evidence": {
+        "observation_state": "capture_error",
+        "http_status": null,
+        "final_url": null,
+        "title": null,
+        "visible_text_length": null,
+        "has_password_input": null,
+        "has_login_language": null,
+        "has_captcha_language": null,
+        "has_error_language": null,
+        "navigation_error": "Page.goto: Timeout 20000ms exceeded. Call log: - navigating to \"https://tiktok.com/\", waiting until \"domcontentloaded\" "
+      }
+    },
+    {
+      "domain": "yandex.ru",
+      "url": "https://yandex.ru/",
+      "reason_code": "duplicate_final_page",
+      "reason": "自然重定向到 dzen.ru，与保留案例完全重合。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://dzen.ru/?yredirect=true",
+        "title": "Дзен — главная новостная информационная платформа, которая помогает миллионам людей узнавать, что происходит в мире.",
+        "visible_text_length": 4372,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "linkedin.com",
+      "url": "https://linkedin.com/",
+      "reason_code": "login_page",
+      "reason": "页面标题与主体均以登录或注册为中心。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.linkedin.com/",
+        "title": "Log In or Sign Up | LinkedIn",
+        "visible_text_length": 2114,
+        "has_password_input": false,
+        "has_login_language": true,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "bet.br",
+      "url": "https://bet.br/",
+      "reason_code": "blank_or_error",
+      "reason": "最终进入浏览器错误页且可见正文为空。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": null,
+        "final_url": "chrome-error://chromewebdata/",
+        "title": "",
+        "visible_text_length": 0,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": "Page.goto: net::ERR_NAME_NOT_RESOLVED at https://bet.br/ Call log: - navigating to \"https://bet.br/\", waiting until \"domcontentloaded\" "
+      }
+    },
+    {
+      "domain": "pinterest.com",
+      "url": "https://pinterest.com/",
+      "reason_code": "login_page",
+      "reason": "首次页面包含密码登录/注册界面；不把登录门后的内容作为首页正文。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.pinterest.com/",
+        "title": "Pinterest",
+        "visible_text_length": 2174,
+        "has_password_input": true,
+        "has_login_language": true,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "live.com",
+      "url": "https://live.com/",
+      "reason_code": "capture_error",
+      "reason": "浏览器未能取得可审阅页面。",
+      "evidence": {
+        "observation_state": "capture_error",
+        "http_status": 200,
+        "final_url": null,
+        "title": null,
+        "visible_text_length": null,
+        "has_password_input": null,
+        "has_login_language": null,
+        "has_captcha_language": null,
+        "has_error_language": null,
+        "navigation_error": "Page.evaluate: Execution context was destroyed, most likely because of a navigation"
+      }
+    },
+    {
+      "domain": "vk.com",
+      "url": "https://vk.com/",
+      "reason_code": "login_page",
+      "reason": "首次页面主体是 VK 登录和注册入口。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://vk.ru/",
+        "title": "VK | Welcome!",
+        "visible_text_length": 244,
+        "has_password_input": false,
+        "has_login_language": true,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "claude.ai",
+      "url": "https://claude.ai/",
+      "reason_code": "login_page",
+      "reason": "自然重定向到 /login，主体是登录表单。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://claude.ai/login",
+        "title": "Sign in - Claude",
+        "visible_text_length": 3088,
+        "has_password_input": false,
+        "has_login_language": true,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "t.me",
+      "url": "https://t.me/",
+      "reason_code": "duplicate_final_page",
+      "reason": "自然重定向到 telegram.org，与保留案例完全重合。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://telegram.org/",
+        "title": "Telegram Messenger",
+        "visible_text_length": 1881,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "ebay.com",
+      "url": "https://ebay.com/",
+      "reason_code": "generic_error",
+      "reason": "HTTP 403 页面显示站点错误信息。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 403,
+        "final_url": "https://www.ebay.com/",
+        "title": "Error Page | eBay",
+        "visible_text_length": 188,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "imdb.com",
+      "url": "https://imdb.com/",
+      "reason_code": "captcha_or_security_verification",
+      "reason": "页面为 Human Verification 安全检查。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 202,
+        "final_url": "https://www.imdb.com/",
+        "title": "Human Verification",
+        "visible_text_length": 316,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "cricbuzz.com",
+      "url": "https://cricbuzz.com/",
+      "reason_code": "access_denied",
+      "reason": "HTTP 403 Access Denied。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 403,
+        "final_url": "https://www.cricbuzz.com/",
+        "title": "Access Denied",
+        "visible_text_length": 196,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": true,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "ozon.ru",
+      "url": "https://ozon.ru/",
+      "reason_code": "generic_error",
+      "reason": "HTTP 403，页面提示连接不可用。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 403,
+        "final_url": "https://ozon.ru/?__rr=1",
+        "title": "Похоже, нет соединения",
+        "visible_text_length": 190,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "aliexpress.com",
+      "url": "https://aliexpress.com/",
+      "reason_code": "login_page",
+      "reason": "自然重定向到登录页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.aliexpress.com/p/ug-login-page/login.html?from=sm&return_url=https%3A%2F%2Faliexpress.com%3A443%2F_____tmd_____%2Fpage%2Flogin_jump%3Frand%3DS3WxGHAgAt756EpznwfNzJq2AFA2qBNla3j6EINUS8We9dazM_iKElp8DwVSHZUevpC41Bx7RzivXIj9RnZgdg%26_lgt_%3Daf31fc9b2089bf84da2569365bba8edc___113745___ea7d845018a48f2f14ba1b7411022aa5___eaebc79cac1eb5d2f7d8b4595e00ec73344a42d5a0b8cf56539c823cd24ac06cb0fdadb7010d7c9570914d1cfea4b6e32e9e1d9534eecc58ed05cc7f9c1995f33b055fda86dd6032469ecc6dd920bfc322345d12e80211580358cc5a1c7fbf90c54780dd857f205ca39e022890bde9cbeafa8c6e22f6202f79c25726980eaa86b7ed375d33d2e58f529bdad76729d337e5128e58ca6afd45a61132253d27aab7af5636fd5473ef0142ee3adc6aea388859fab2efc84b1ea39443e5a1cc3aee2108ab6d8e3b13074c4b61f67eb01abe1ca42d3274f7e9153711cf1ed7f969dea0ba6354d44cdaa037ce7e8424ab31195f3b968fadc030b674fd60bdf861901841c13bdaed4121e9fa6cdb337ea1161f0a9bf4181e38db93c0aaf757af8bc5ea5c3d4a43213597d5e2249ec2536825bd75918316a8d62033b9ebf7b284e2a36b48&uuid=af31fc9b2089bf84da2569365bba8edc",
+        "title": "Buy Products Online from China Wholesalers at Aliexpress.com",
+        "visible_text_length": 864,
+        "has_password_input": false,
+        "has_login_language": true,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "bbc.co.uk",
+      "url": "https://bbc.co.uk/",
+      "reason_code": "duplicate_final_page",
+      "reason": "自然重定向到 bbc.com，与保留案例完全重合。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.bbc.com/",
+        "title": "BBC Home - Breaking News, World News, US News, Sports, Business, Innovation, Climate, Culture, Travel, Video & Audio",
+        "visible_text_length": 13880,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "office.com",
+      "url": "https://office.com/",
+      "reason_code": "duplicate_final_page",
+      "reason": "自然重定向到 m365.cloud.microsoft，与 cloud.microsoft 保留案例重合。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://m365.cloud.microsoft/",
+        "title": "Microsoft 365 - Sign into Copilot",
+        "visible_text_length": 4237,
+        "has_password_input": false,
+        "has_login_language": true,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "docomo.ne.jp",
+      "url": "https://docomo.ne.jp/",
+      "reason_code": "not_found",
+      "reason": "HTTP 404，正文仅为 Not Found。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 404,
+        "final_url": "https://docomo.ne.jp/",
+        "title": "",
+        "visible_text_length": 9,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "amazon.in",
+      "url": "https://amazon.in/",
+      "reason_code": "regional_duplicate",
+      "reason": "与 amazon.com 属于高度重复的 Amazon 地区首页；主集透明去重。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.amazon.in/",
+        "title": "Online Shopping site in India: Shop Online for Mobiles, Books, Watches, Shoes and More - Amazon.in",
+        "visible_text_length": 7140,
+        "has_password_input": false,
+        "has_login_language": true,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "amazon.co.jp",
+      "url": "https://amazon.co.jp/",
+      "reason_code": "regional_duplicate",
+      "reason": "与 amazon.com 属于高度重复的 Amazon 地区首页；主集透明去重。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 202,
+        "final_url": "https://www.amazon.co.jp/",
+        "title": "Amazon.co.jp | Books, Apparel, Electronics, Groceries & more",
+        "visible_text_length": 3614,
+        "has_password_input": false,
+        "has_login_language": true,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "msn.com",
+      "url": "https://msn.com/",
+      "reason_code": "blank",
+      "reason": "HTTP 200 但渲染后可见正文长度为 0。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.msn.com/",
+        "title": "MSN | Personalized News, Top Headlines, Live Updates and more",
+        "visible_text_length": 0,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "etsy.com",
+      "url": "https://etsy.com/",
+      "reason_code": "blank_or_blocked",
+      "reason": "HTTP 403 且渲染后可见正文为空。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 403,
+        "final_url": "https://www.etsy.com/",
+        "title": "etsy.com",
+        "visible_text_length": 0,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "music.youtube.com",
+      "url": "https://music.youtube.com/",
+      "reason_code": "unavailable",
+      "reason": "页面明确显示该服务在当前地区不可用。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://music.youtube.com/",
+        "title": "YouTube Music is not available in your area",
+        "visible_text_length": 43,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "disneyplus.com",
+      "url": "https://disneyplus.com/",
+      "reason_code": "blank_or_error",
+      "reason": "最终进入浏览器错误页且可见正文为空。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": null,
+        "final_url": "chrome-error://chromewebdata/",
+        "title": "",
+        "visible_text_length": 0,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": "Page.goto: net::ERR_NAME_NOT_RESOLVED at https://disneyplus.com/ Call log: - navigating to \"https://disneyplus.com/\", waiting until \"domcontentloaded\" "
+      }
+    },
+    {
+      "domain": "amazon.de",
+      "url": "https://amazon.de/",
+      "reason_code": "regional_duplicate",
+      "reason": "与 amazon.com 属于高度重复的 Amazon 地区首页；主集透明去重。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 202,
+        "final_url": "https://www.amazon.de/",
+        "title": "Amazon.de: Low Prices in Electronics, Books, Sports Equipment & more",
+        "visible_text_length": 4204,
+        "has_password_input": false,
+        "has_login_language": true,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "adobe.com",
+      "url": "https://adobe.com/",
+      "reason_code": "blank_or_error",
+      "reason": "最终进入浏览器错误页且可见正文为空。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": null,
+        "final_url": "chrome-error://chromewebdata/",
+        "title": "",
+        "visible_text_length": 0,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": "Page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://adobe.com/ Call log: - navigating to \"https://adobe.com/\", waiting until \"domcontentloaded\" "
+      }
+    },
+    {
+      "domain": "chat.deepseek.com",
+      "url": "https://chat.deepseek.com/",
+      "reason_code": "login_page",
+      "reason": "自然重定向到 /sign_in，主体是登录表单。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://chat.deepseek.com/sign_in",
+        "title": "DeepSeek - Into the Unknown",
+        "visible_text_length": 253,
+        "has_password_input": false,
+        "has_login_language": true,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "hbomax.com",
+      "url": "https://hbomax.com/",
+      "reason_code": "access_denied",
+      "reason": "HTTP 403 Access Denied。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 403,
+        "final_url": "https://www.hbomax.com/",
+        "title": "Access Denied",
+        "visible_text_length": 194,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": true,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "zillow.com",
+      "url": "https://zillow.com/",
+      "reason_code": "captcha_or_security_verification",
+      "reason": "HTTP 403，要求按住控件完成人机验证。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 403,
+        "final_url": "https://www.zillow.com/",
+        "title": "Access to this page has been denied",
+        "visible_text_length": 134,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "amazon.co.uk",
+      "url": "https://amazon.co.uk/",
+      "reason_code": "regional_duplicate",
+      "reason": "与 amazon.com 属于高度重复的 Amazon 地区首页；主集透明去重。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.amazon.co.uk/",
+        "title": "Amazon.co.uk: Low Prices in Electronics, Books, Sports Equipment & more",
+        "visible_text_length": 8339,
+        "has_password_input": false,
+        "has_login_language": true,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "ok.ru",
+      "url": "https://ok.ru/",
+      "reason_code": "login_page",
+      "reason": "首次页面主体是社交网络登录和注册入口。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://ok.ru/",
+        "title": "OK social network. Communication with friends on OK. Your meeting place with classmates",
+        "visible_text_length": 345,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "wildberries.ru",
+      "url": "https://wildberries.ru/",
+      "reason_code": "captcha_or_security_verification",
+      "reason": "HTTP 498，页面仅显示正在检查浏览器。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 498,
+        "final_url": "https://www.wildberries.ru/",
+        "title": "...",
+        "visible_text_length": 17,
+        "has_password_input": false,
+        "has_login_language": false,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "quora.com",
+      "url": "https://quora.com/",
+      "reason_code": "login_page",
+      "reason": "首页主体是第三方登录、邮箱注册和密码登录表单。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.quora.com/",
+        "title": "Quora - A place to share knowledge and better understand the world",
+        "visible_text_length": 397,
+        "has_password_input": true,
+        "has_login_language": true,
+        "has_captcha_language": false,
+        "has_error_language": false,
+        "navigation_error": null
+      }
+    },
+    {
+      "domain": "temu.com",
+      "url": "https://temu.com/",
+      "reason_code": "login_page",
+      "reason": "第二轮完整取证时自然重定向到 /login.html，页面标题为 Temu | Login，主体为登录/注册。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.temu.com/login.html?from=https%3A%2F%2Fwww.temu.com%2F&login_scene=2&refer_page_name=home&refer_page_id=10005_1789059005022_300va9id7g&refer_page_sn=10005&_x_sessn_id=g0fs6hdtsd",
+        "title": "Temu | Login",
+        "visible_text_length": 1952,
+        "navigation_error": null
+      },
+      "excluded_at": "full_rule_evidence_pass"
+    },
+    {
+      "domain": "walmart.com",
+      "url": "https://walmart.com/",
+      "reason_code": "captcha_or_security_verification",
+      "reason": "第二轮完整取证出现 Robot or human? 安全检查，不能把其后的页面片段当作正常商品首页。",
+      "evidence": {
+        "observation_state": "captured",
+        "http_status": 200,
+        "final_url": "https://www.walmart.com/",
+        "title": "Walmart | Save Money. Live better.",
+        "visible_text_length": 774,
+        "navigation_error": null
+      },
+      "excluded_at": "full_rule_evidence_pass"
+    },
+    {
+      "domain": "roblox.com",
+      "url": "https://roblox.com/",
+      "reason_code": "locale_contract_not_deterministic",
+      "reason": "Independent observations of the same homepage differed between English and Chinese. The tested locale=en_us URL did not reliably switch the page body to English, and the current contract format does not express a whole-page locale bundle without mixing languages. The case is explicitly deferred rather than weakened or scored against an unstable language contract.",
+      "evidence": {
+        "requested_url": "https://roblox.com/",
+        "observed_final_url": "https://www.roblox.com/",
+        "source": "research/global-homepage-fixed-locale-observations-2026-09-11.json"
+      },
+      "excluded_at": "final_locale_contract_audit"
+    }
+  ]
+}

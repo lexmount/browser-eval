@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-17-x",
+  "url": "https://blog.x.com/",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "694cebc31cfdadf8dff055f4509feedc75ce65eaef223c5d8811bb8a3830c884",
+  "items_sha256": "11bbc1041a8ed23bfd9be7bfbc1b18107e385cfc257fa7ac149fad3dd1ae1b16",
+  "reference_sha256": "e522f5f65fa63aeda62cf090301fb206434a34cd0342e09bc9c4a09cf8f522b2",
+  "list_reference_sha256": "50029cee14558046745c6c90e1a70a504208732ea9f7d7c9c481c7006be615ca",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "只允许已验证的 `en_us` 路由；删除兼具当前分类和导航含义的 `Company`，避免栏目变化造成假失败。年份是路由结构，不表示固定某年或要求内容新鲜。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

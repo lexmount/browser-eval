@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-20-cricbuzz",
+  "url": "https://www.cricbuzz.com/cricket-stats/icc-rankings/men/batting",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "6793bdfeae661cf6198561ee3c3f3aa1bae28c0dacdbed6812d1ba46455b7ff4",
+  "items_sha256": "2ddd5db17f8a76556f4786d5e5a8ab991edbd8b84646f605b9ff683fff3786f2",
+  "reference_sha256": "653f5019a15900797f921bafb7d5fcddf39f195329f2ce90f2060bd4e1f3ce2e",
+  "list_reference_sha256": "9057443f8c768ce86bb4b56c824f2502c4982e265cff6938b2099623ff50d0ca",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "球员页无语义 H1，名称对应主要依靠浏览器标题和正文；排名、积分及成员动态变化。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

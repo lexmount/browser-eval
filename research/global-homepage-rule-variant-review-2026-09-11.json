@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "purpose": "Independent post-run review of locale and natural homepage variants used to correct under-specified homepage rules",
+  "checked_at": "2026-09-11",
+  "provider_calls": false,
+  "recursive_content_navigation": false,
+  "observations": [
+    {
+      "domain": "google.com",
+      "requested_urls": ["https://www.google.com.hk/", "https://www.google.com/?hl=zh-TW"],
+      "final_urls": ["https://www.google.com.hk/", "https://www.google.com.hk/?hl=zh-TW"],
+      "independently_observed_stable_groups": [
+        ["Google"],
+        ["关于 Google", "關於 Google"],
+        ["广告", "廣告"],
+        ["商务", "商業"],
+        ["隐私权", "隱私權"],
+        ["条款", "服務條款"]
+      ],
+      "source": "In-app Chromium accessibility snapshots of the initial homepage"
+    },
+    {
+      "domain": "youtube.com",
+      "requested_urls": ["https://www.youtube.com/"],
+      "final_urls": ["https://www.youtube.com/"],
+      "independently_observed_stable_groups": [
+        ["YouTube"], ["关于"], ["版权"], ["条款"], ["隐私权"]
+      ],
+      "source": "In-app Chromium accessibility snapshot after expanding the homepage guide; no content item was opened"
+    },
+    {
+      "domain": "yahoo.com",
+      "requested_urls": ["https://www.yahoo.com/", "https://hk.yahoo.com/"],
+      "final_urls": ["https://www.yahoo.com/", "https://hk.yahoo.com/"],
+      "independently_observed_stable_groups": [["Search the web", "搜尋"], ["News", "新聞"], ["Finance", "財經"], ["Sports", "體育"], ["Trending", "熱搜"]],
+      "independently_observed_detail_hosts": ["www.yahoo.com", "hk.news.yahoo.com", "hk.finance.yahoo.com"],
+      "source": "In-app Chromium accessibility snapshots of US and Hong Kong homepages"
+    },
+    {
+      "domain": "microsoft.com",
+      "requested_urls": ["https://microsoft.com/"],
+      "final_urls": ["https://www.microsoft.com/en-us"],
+      "independently_observed_stable_groups": [["Microsoft"], ["Microsoft 365"], ["Windows"], ["Surface"], ["XBOX"]],
+      "finding": "The previously frozen campaign sentence was no longer present; stable product navigation remained.",
+      "source": "In-app Chromium accessibility snapshot of the natural homepage redirect"
+    },
+    {
+      "domain": "paypal.com",
+      "requested_urls": ["https://paypal.com/", "https://www.paypal.com/hk/home"],
+      "final_urls": ["https://www.paypal.com/us/home", "https://www.paypal.com/hk/home"],
+      "independently_observed_stable_groups": [["PayPal"], ["Personal"], ["Business"], ["Get the PayPal app"]],
+      "source": "In-app Chromium accessibility snapshots of US and Hong Kong homepage variants"
+    },
+    {
+      "domain": "deepseek.com",
+      "requested_urls": ["https://deepseek.com/"],
+      "final_urls": ["https://www.deepseek.com/"],
+      "independently_observed_stable_groups": [["探索未至之境"], ["DeepSeek 网页版"], ["API 开放平台"], ["API 文档"]],
+      "source": "In-app Chromium accessibility snapshot of the natural homepage redirect"
+    },
+    {
+      "domain": "shein.com",
+      "requested_urls": ["https://shein.com/", "https://www.shein.com.hk/"],
+      "final_urls": ["https://us.shein.com/", "https://www.shein.com.hk/"],
+      "independently_observed_stable_groups": [["SHEIN"], ["Women Clothing", "常規女士服裝"], ["Home & Living", "家居及廚房"], ["Electronics", "電子產品"]],
+      "source": "In-app Chromium accessibility snapshots of US and Hong Kong homepage variants"
+    },
+    {
+      "domain": "primevideo.com",
+      "requested_urls": ["https://primevideo.com/"],
+      "final_urls": ["https://www.primevideo.com/offers/nonprimehomepage"],
+      "independently_observed_stable_groups": [["Prime Video"], ["电影"], ["电视节目"], ["体育"]],
+      "source": "In-app Chromium accessibility snapshot of the natural homepage redirect"
+    },
+    {
+      "domain": "cnn.com",
+      "requested_urls": ["https://cnn.com/", "https://edition.cnn.com/"],
+      "final_urls": ["https://www.cnn.com/", "https://edition.cnn.com/"],
+      "independently_observed_detail_hosts": ["www.cnn.com", "edition.cnn.com"],
+      "source": "In-app Chromium navigation and accessibility snapshots of both official homepage hosts"
+    },
+    {
+      "domain": "chatgpt.com",
+      "requested_urls": ["https://chatgpt.com/"],
+      "final_urls": ["https://chatgpt.com/"],
+      "independently_observed_stable_groups": [
+        ["ChatGPT"],
+        ["我们先从哪里开始呢？"],
+        ["与 ChatGPT 聊天"],
+        ["新聊天"]
+      ],
+      "finding": "The current anonymous Chinese homepage uses localized identity and composer text; the earlier Web search label is not a locale-independent homepage requirement.",
+      "source": "In-app Chromium accessibility snapshot of the initial anonymous homepage"
+    },
+    {
+      "domain": "bing.com",
+      "requested_urls": ["https://bing.com/"],
+      "final_urls": ["https://www.bing.com/?toWww=1"],
+      "independently_observed_stable_groups": [
+        ["必应", "Microsoft 必应"],
+        ["使用图像搜索"],
+        ["图片"],
+        ["地图"]
+      ],
+      "finding": "The natural homepage localized to Chinese while retaining the same brand, image-search control, and product navigation.",
+      "source": "In-app Chromium accessibility snapshot of the initial anonymous homepage"
+    },
+    {
+      "domain": "gemini.google.com",
+      "requested_urls": ["https://gemini.google.com/"],
+      "final_urls": ["https://gemini.google.com/app"],
+      "independently_observed_stable_groups": [
+        ["Gemini"],
+        ["与 Gemini 对话"],
+        ["认识 Gemini：你的私人 AI 助理"]
+      ],
+      "finding": "The current anonymous Chinese entry page localizes the conversation and product-introduction headings; these are the direct counterparts of the independently captured English homepage text.",
+      "source": "In-app Chromium accessibility snapshot of the initial anonymous homepage"
+    },
+    {
+      "domain": "canva.com",
+      "requested_urls": ["https://canva.com/"],
+      "final_urls": ["https://www.canva.com/zh_cn/"],
+      "independently_observed_stable_groups": [
+        ["Canva 首页"],
+        ["今天你想设计什么？"],
+        ["开始设计"],
+        ["Canva AI"]
+      ],
+      "finding": "The ranked-domain root naturally redirected to the Chinese homepage; the previous Digital design and Print design labels are not present in that locale, while the brand, primary heading, primary action, and Canva AI entry remain stable.",
+      "source": "In-app Chromium accessibility snapshot of the natural initial-page redirect"
+    }
+  ],
+  "decision_boundary": "Only independently observed locale equivalents, stable product navigation, and official natural homepage hosts are used. Provider output was not used to create a rule. Dynamic items and values remain excluded."
+}

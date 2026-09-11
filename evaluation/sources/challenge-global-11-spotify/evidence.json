@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-11-spotify",
+  "url": "https://newsroom.spotify.com/",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "b1f85160e8756cecfb6df58d019181da7a9382e9d9f98674d9ffc199b21c83a9",
+  "items_sha256": "9a6c95480853c9070c9099e748ffb88112d7e037a5e8df9c1995a1a27b8c4d48",
+  "reference_sha256": "0391369ecd585b2273815b311bbf05343b884a1087e92ef82f62d7013fd0874c",
+  "list_reference_sha256": "e96362eff649139c5a7c30ef422e877d0ba644ede8e36e8da4beeccc7a466877",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "发布日期属于 URL 结构但具体日期不固定；首页文章和排序持续变化。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

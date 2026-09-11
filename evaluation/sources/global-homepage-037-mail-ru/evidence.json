@@ -1,0 +1,30 @@
+{
+  "case_id": "global-homepage-037-mail-ru",
+  "domain": "mail.ru",
+  "url": "https://mail.ru/",
+  "final_url": "https://mail.ru/",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "feff511c633932d0d71ab74ff04ecc8e9569608ec2e5e95bdff765b5fb88130e",
+  "stable_page_sha256": "a55c522b6d5cb2ab493f43f9d49c1ea4877b2714c33a9c1ec973b9e4a45db5ef",
+  "anchor_groups": [
+    [
+      "Mail.ru"
+    ],
+    [
+      "Почта"
+    ],
+    [
+      "Облако"
+    ],
+    [
+      "Календарь"
+    ]
+  ],
+  "matching_named_link_count": 8,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

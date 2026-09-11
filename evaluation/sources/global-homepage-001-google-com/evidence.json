@@ -1,0 +1,36 @@
+{
+  "case_id": "global-homepage-001-google-com",
+  "domain": "google.com",
+  "url": "https://www.google.com/?hl=en",
+  "final_url": "https://www.google.com.hk/?hl=en",
+  "checked_at": "2026-09-11",
+  "source": "Codex in-app Chromium, independently reviewed homepage contract",
+  "capture_file": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+  "capture_file_sha256": "823d1b8d2819f3f30be1a7f02b0d1891122b54b87ddcce30db0d3c6eefa8d846",
+  "visible_text_sha256": "0cabea77bce35c27271fc798de9e280a8fd2ee1aa883d15b3b4e2245293e5426",
+  "stable_page_sha256": "fcfce0574271855129be80fc4616f7ea0e2121869d7bca60889dcea0099ad15e",
+  "anchor_groups": [
+    [
+      "Google"
+    ],
+    [
+      "About"
+    ],
+    [
+      "Advertising"
+    ],
+    [
+      "Business"
+    ],
+    [
+      "Privacy"
+    ],
+    [
+      "Terms"
+    ]
+  ],
+  "matching_named_link_count": 0,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

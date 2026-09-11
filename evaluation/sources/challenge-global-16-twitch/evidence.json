@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-16-twitch",
+  "url": "https://blog.twitch.tv/",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "4944f38ac7a3ca0f50f4cfc9437f5068958e0b9d7b90666ca2014111ab6c4fa0",
+  "items_sha256": "a1337234f0a3c007b6c854027c90f49bfcd614d711f2e21a254a7db395cec409",
+  "reference_sha256": "f390b683644d3ea3d1963c5750532d63d3ff680b36b512bbf0dfb98468706af2",
+  "list_reference_sha256": "6298c0c3c7683f06d3340bc47a8bd288250ca7de5705019af32cac9778e5a641",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "只允许已有正例证明的 `/en/<日期>/<slug>`；删除交接中明确位于页脚的 `Newsroom`，不为凑足三组而要求通用导航。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

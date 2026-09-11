@@ -80,6 +80,25 @@ class UnifiedTextFailureTests(unittest.TestCase):
         without_code['stable_task_errors'].remove('blocked_page')
         self.assert_category(without_code, '返回非目标内容')
 
+    def test_successful_auth_redirect_is_not_reported_as_missing_stable_text(self):
+        metrics = {
+            'stable_task_pass': False,
+            'stable_task_schema': 'named_link',
+            'stable_task_errors': ['too_few_complete_records', 'missing_stable_anchor:one'],
+            'stable_unique_record_count': 0,
+            'stable_minimum_records': 3,
+        }
+        record = self.record(
+            metrics,
+            url='https://dzen.ru/',
+            final_url='https://sso.passport.yandex.ru/push?retpath=https%3A%2F%2Fdzen.ru%2F',
+        )
+        case = {'url': 'https://dzen.ru/', 'track': 'challenge', 'task_kind': 'structure'}
+        result = diagnose(record, case, '')
+        self.assertEqual(result['category'], '返回非目标登录 / 跳转页')
+        self.assertEqual(result['stage'], '页面落点')
+        self.assertIn('HTTP 200', result['evidence'])
+
     def test_forbidden_and_blocked_page_have_same_semantics(self):
         metrics = evaluate_content('Access denied', [], forbidden_any=['Access denied'])
         self.assert_category(metrics, '返回非目标内容')
@@ -99,17 +118,21 @@ class UnifiedTextFailureTests(unittest.TestCase):
         self.assertIn('最多允许 3 条', result['evidence'])
         self.assertNotIn('不足', result['evidence'])
 
-    def test_stable_anchor_and_ordinary_fact_missing_share_label(self):
+    def test_stable_anchor_failure_has_contract_specific_label(self):
         anchor = {'id': 'heading', 'alternatives': ['Browse products']}
         contract = self.contract(stable_text_anchors=[anchor])
         stable = evaluate_stable_task(self.links, contract, self.base_url)
         body = evaluate_content(self.links, [], required_facts=[anchor])
         self.assertEqual(stable['stable_task_errors'], ['missing_stable_anchor:heading'])
-        for metrics in (stable, body):
-            result = self.assert_category(metrics, '缺少关键信息')
-            self.assertIn('heading', result['evidence'])
-        identity = evaluate_stable_task(self.links, self.contract(page_patterns=['Catalog']), self.base_url)
-        self.assert_category(identity, '缺少关键信息')
+        result = self.assert_category(stable, '稳定文字未全部命中')
+        self.assertIn('heading', result['evidence'])
+        result = self.assert_category(body, '缺少关键信息')
+        self.assertIn('heading', result['evidence'])
+        identity_contract = dict(version=1, schema='page_identity', minimum_records=0,
+                                 stable_text_anchors=[anchor])
+        identity = evaluate_stable_task('Other description', identity_contract, self.base_url)
+        result = self.assert_category(identity, '稳定文字未全部命中')
+        self.assertIn('稳定文字命中 0/1 组', result['evidence'])
         marker = evaluate_content('Other description', ['Browse products'])
         self.assert_category(marker, '缺少关键信息')
 
@@ -122,7 +145,7 @@ class UnifiedTextFailureTests(unittest.TestCase):
 
     def test_record_shortfall_uses_real_counts_for_stable_and_legacy_tasks(self):
         stable = evaluate_stable_task('[Alpha](/item/1)', self.contract(), self.base_url)
-        self.assert_category(stable, '有效条目不足')
+        self.assert_category(stable, '具名入口不足')
         body = evaluate_content('entry-1', [], required_patterns=[
             {'id': 'entries', 'pattern': r'entry-\d+', 'minimum': 3}])
         self.assert_category(body, '有效条目不足')
@@ -211,9 +234,14 @@ class UnifiedTextFailureTests(unittest.TestCase):
                 else:
                     self.assertIn('data-result="fail"', attrs)
                     self.assertIn('data-failure-stage="task"', attrs)
-                    self.assertIn('data-failure-category="缺少关键信息"', attrs)
+                    expected = ('稳定文字未全部命中'
+                                if 'stable_task_pass' in metrics else '缺少关键信息')
+                    self.assertIn(f'data-failure-category="{expected}"', attrs)
         filters = failure_filters(rows, cases)
-        self.assertEqual(filters[1][2], [('缺少关键信息', '缺少关键信息')])
+        self.assertEqual(filters[1][2], [
+            ('稳定文字未全部命中', '稳定文字未全部命中'),
+            ('缺少关键信息', '缺少关键信息'),
+        ])
         html = filter_controls([('result', '结果', [('pass', '任务通过'), ('fail', '任务失败')])] + filters)
         self.assertIn('value="fail" selected', html)
         for key in ('failureStage', 'failureCategory'):

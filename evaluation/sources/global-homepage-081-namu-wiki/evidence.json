@@ -1,0 +1,30 @@
+{
+  "case_id": "global-homepage-081-namu-wiki",
+  "domain": "namu.wiki",
+  "url": "https://namu.wiki/",
+  "final_url": "https://namu.wiki/w/%EB%82%98%EB%AC%B4%EC%9C%84%ED%82%A4:%EB%8C%80%EB%AC%B8",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "b9cb657ec786eab88f2725e828106721b9b29033a5833a1db281059606c2a102",
+  "stable_page_sha256": "8a4b777332df56607037ee90fdb2f1ab044aaf321921d04d37b9816e3fc3aac6",
+  "anchor_groups": [
+    [
+      "나무위키에 오신 것을 환영합니다!"
+    ],
+    [
+      "나무위키는 누구나 기여할 수 있는 위키입니다."
+    ],
+    [
+      "검증되지 않았거나 편향된 내용이 있을 수 있습니다."
+    ],
+    [
+      "나무위키의 도움말"
+    ]
+  ],
+  "matching_named_link_count": 0,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

@@ -24,12 +24,14 @@ SCHEMA_FIELDS = {
     "api_operation": ("method", "path", "summary"),
     "taxonomy_family": ("family",),
     "named_link": ("title", "url"),
+    "page_identity": (),
 }
 UNIQUE_FIELDS = {
     "quote": ("quote",), "product": ("name",),
     "catalog_product": ("title", "description"), "review": ("date", "text"),
     "name_description": ("name",), "api_operation": ("method", "path"),
     "taxonomy_family": ("family",), "named_link": ("url",),
+    "page_identity": (),
 }
 _AMOUNT = r"(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?"
 _MONEY = rf"(?:[$£€¥]\s*{_AMOUNT}|(?:USD|EUR|GBP|CNY)\s+{_AMOUNT}|{_AMOUNT}\s+(?:USD|EUR|GBP|CNY))"
@@ -434,10 +436,17 @@ def _anchor_matches(anchor, records, visible, schema):
     from .metrics import fact_in_text, normalize_for_match
     if anchor.get('match_scope') == 'non_record_lines':
         # A known record label cannot stand in for page context. This is a
-        # conservative text-layout rule, not a claim of recovered DOM ownership.
+        # conservative ownership rule, not a claim of recovered DOM ownership.
+        # Some providers flatten the whole rendered page onto one physical line;
+        # dropping that line would also erase genuine page headings. Mask the
+        # independently parsed record titles instead, preserving surrounding
+        # page text while still preventing a title from supplying an anchor.
         titles = [normalize_for_match(r['fields']['title']) for r in records if r.get('valid') and r.get('fields',{}).get('title')]
-        visible = '\n'.join(line for line in visible.splitlines()
-            if not any(title in normalize_for_match(line) for title in titles))
+        folded = normalize_for_match(visible)
+        for title in sorted(set(titles), key=len, reverse=True):
+            folded = folded.replace(title, ' ')
+        return [value for value in anchor["alternatives"]
+                if fact_in_text(folded, normalize_for_match(_visible(value)))]
     owned = []
     if schema != "named_link":
         for value in anchor["alternatives"]:
@@ -476,8 +485,11 @@ def validate_acceptance_contract(contract: dict) -> None:
     if not isinstance(field_counts, dict) or any(k not in _LABELS or type(v) is not int or v < 1 for k,v in field_counts.items()):
         raise ValueError('Invalid required field counts')
     minimum, maximum = contract.get("minimum_records"), contract.get("maximum_records")
-    if type(minimum) is not int or minimum < 1 or maximum is not None and (type(maximum) is not int or maximum < minimum):
-        raise ValueError("Stable contract requires positive bounded record counts")
+    minimum_allowed = 0 if contract["schema"] == "page_identity" else 1
+    if (type(minimum) is not int or minimum < minimum_allowed
+            or contract["schema"] == "page_identity" and minimum != 0
+            or maximum is not None and (type(maximum) is not int or maximum < minimum)):
+        raise ValueError("Stable contract requires a valid bounded record count")
     patterns = contract.get("page_patterns", [])
     if not isinstance(patterns, list) or any(not isinstance(p, str) or not p for p in patterns):
         raise ValueError("Invalid stable page patterns")
@@ -503,6 +515,8 @@ def validate_acceptance_contract(contract: dict) -> None:
         patterns = [*patterns, contract["entry_path"]]
     elif "hosts" in contract or "entry_path" in contract:
         raise ValueError("Host/path contracts apply only to named_link records")
+    if contract["schema"] == "page_identity" and not anchors:
+        raise ValueError("Page identity contracts require stable text anchors")
     try:
         for pattern in patterns:
             re.compile(pattern)
@@ -519,7 +533,9 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     stable_text_anchors contains explicit {id, alternatives} groups; every group
     must match, independently of record shape and optional snapshot word metrics.
     named_link additionally requires hosts and entry_path, using the existing
-    same-site detail-link parser. Raw URL identity is not factual verification.
+    same-site detail-link parser. page_identity requires no records and passes
+    only when every independently registered stable text group is present. Raw
+    URL identity is not factual verification.
     """
     validate_acceptance_contract(contract)
     schema = contract["schema"]

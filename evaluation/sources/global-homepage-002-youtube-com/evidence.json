@@ -1,0 +1,33 @@
+{
+  "case_id": "global-homepage-002-youtube-com",
+  "domain": "youtube.com",
+  "url": "https://www.youtube.com/?hl=en&gl=US&persist_hl=1",
+  "final_url": "https://www.youtube.com/",
+  "checked_at": "2026-09-11",
+  "source": "Codex in-app Chromium, independently reviewed homepage contract",
+  "capture_file": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
+  "capture_file_sha256": "823d1b8d2819f3f30be1a7f02b0d1891122b54b87ddcce30db0d3c6eefa8d846",
+  "visible_text_sha256": "40bf601f3065d45f777bdc0f5a45b67943a2b624f212dc1ddf1673d68bab65f7",
+  "stable_page_sha256": "cbe84936a39cd1c8ec5908afe8f5cbbd0d6944c79a4d1a446f5c8c692ea3284c",
+  "anchor_groups": [
+    [
+      "YouTube Home"
+    ],
+    [
+      "Guide"
+    ],
+    [
+      "Search"
+    ],
+    [
+      "Settings"
+    ],
+    [
+      "Sign in"
+    ]
+  ],
+  "matching_named_link_count": 0,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

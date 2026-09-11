@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-26-canva",
+  "url": "https://www.canva.com/templates/",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "f73c9df23b11da83adf3ab4513766936e243f5f6603af7da29db4181bb9447e8",
+  "items_sha256": "85b82595ae223d66f9bcd0c14cb50446bfb393298ff923e81d719a89dd2f3138",
+  "reference_sha256": "65107fe6104eb9c5b210912e710b866b56bd7adc99d164bc267abc457d65d2d2",
+  "list_reference_sha256": "492e42d9993dd186720103e8a661da741350ff7f2555689631d69c9d67ec1fc1",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "模板详情可能短暂只加载页面框架；长说明锚点有编辑改文风险。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

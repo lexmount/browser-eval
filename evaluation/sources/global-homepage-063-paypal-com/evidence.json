@@ -1,0 +1,30 @@
+{
+  "case_id": "global-homepage-063-paypal-com",
+  "domain": "paypal.com",
+  "url": "https://paypal.com/",
+  "final_url": "https://www.paypal.com/us/home",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "1a25facd7b47d98f1d956d01b7a718073638e5080a68c40f67f5b13a06cd9e97",
+  "stable_page_sha256": "920af254358c705a6d9a7d1ab6cc582560287c111db6ccc146280ad805bb8746",
+  "anchor_groups": [
+    [
+      "PayPal"
+    ],
+    [
+      "Personal"
+    ],
+    [
+      "Business"
+    ],
+    [
+      "Get the PayPal app"
+    ]
+  ],
+  "matching_named_link_count": 0,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

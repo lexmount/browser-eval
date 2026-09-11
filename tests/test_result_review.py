@@ -36,6 +36,17 @@ class ResultReviewTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'different results'):
                 require_result_review(root,dataset,records)
 
+    def test_optional_audit_classification_must_be_complete_and_known(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);dataset,records,review=self.fixture(root)
+            review['attempts'][0]['classification']='verified_contract_pass'
+            (root/'result-review.json').write_text(json.dumps(review))
+            self.assertEqual(require_result_review(root,dataset,records)['reviewed_attempts'],1)
+            review['attempts'][0]['classification']='invented'
+            (root/'result-review.json').write_text(json.dumps(review))
+            with self.assertRaisesRegex(ValueError,'invalid classifications'):
+                require_result_review(root,dataset,records)
+
     def test_missing_or_unresolved_review_blocks_required_report(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);dataset,records,review=self.fixture(root)

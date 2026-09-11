@@ -1,0 +1,30 @@
+{
+  "case_id": "global-homepage-042-github-com",
+  "domain": "github.com",
+  "url": "https://github.com/",
+  "final_url": "https://github.com/",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "a431bf99b64f01ef5486a92ea076f169b776b703a448047c0477fe87ba4c6eae",
+  "stable_page_sha256": "9169693655147243e5a573783ba532da6f56a1bcd2b18c05ef3f73f6a4b99201",
+  "anchor_groups": [
+    [
+      "GitHub features"
+    ],
+    [
+      "GitHub Copilot"
+    ],
+    [
+      "GitHub Actions"
+    ],
+    [
+      "GitHub Codespaces"
+    ]
+  ],
+  "matching_named_link_count": 0,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

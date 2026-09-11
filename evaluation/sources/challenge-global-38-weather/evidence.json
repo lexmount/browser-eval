@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-38-weather",
+  "url": "https://weather.com/news",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "6d720befd07a43dae8a67f9bbe3a21e126bdf2c4017ded2e3ef934c89d20f28b",
+  "items_sha256": "cd62fc5ce78e1292bc12269a514d7513b017168972c15633c42d4bd7a0005dac",
+  "reference_sha256": "8042cdba653e1c136aaa1efd25b7639d4fffd69e435a3b9d3d9925bf8b4268fe",
+  "list_reference_sha256": "f81b4ac2f81cb6aea9f369364cc7b1ea99ee018996b3b56aa36212fe0a189b59",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "列表异步加载且混有短视频；本规则按三个长正文文章归纳至少两级栏目，不保证覆盖站点所有文章路由。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

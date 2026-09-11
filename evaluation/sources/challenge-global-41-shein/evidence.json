@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-global-41-shein",
+  "url": "https://us.shein.com/pdsearch/headphones/",
+  "checked_at": "2026-09-08",
+  "source": "Independent browser evidence formalized from reviewed Markdown",
+  "source_handoff_sha256": "f28c55dfa25cc5ff544fd1d69f1bcf46e99650038a30834e0fe1a75bfb130746",
+  "rule_review_sha256": "77376a1dc61a3fb6a38f5c1cc18b484c76b7edfeb8a5f7681520533a02574710",
+  "stable_page_sha256": "265f82d648082ca899d876a37285bbcc44dc14d3dda0eb27aef4b05ead0b2aa4",
+  "items_sha256": "ffbb877f71c6e4a3480ac5c48702d056955fe6c502d2c1cc4fa8ea7b644018d2",
+  "reference_sha256": "1e6607488d1fb4b08f63520f511ec9e6cb0db475f25c77586567b7a4832fc1c6",
+  "list_reference_sha256": "6d37c1c27707c7d3b349ab358585c2eab75e3375be45c7bf8f3ebbe873255e3f",
+  "scope": "Three verified name-detail pairs plus selected stable list-page text",
+  "items": 3,
+  "risk": "站点可能触发验证码；路径字符集根据三个英文 URL 归纳，若未来商品 slug 含百分号编码需凭新证据放宽。",
+  "privacy": "Public list content only; no account data, cookies, scripts or raw HTML",
+  "dynamic_values_are_not_fixed_answers": true
+}

@@ -1,0 +1,27 @@
+{
+  "case_id": "global-homepage-021-netflix-com",
+  "domain": "netflix.com",
+  "url": "https://netflix.com/",
+  "final_url": "https://www.netflix.com/",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "5f035b3866e1f76c02664f89a76dac51117cc431d4b0a0b530ca05a3b91fb8ac",
+  "stable_page_sha256": "38c55d072d8d17987ed8ee06d2f8fe994d80d99a5cbc3ac6ecc73e613a4c6f9f",
+  "anchor_groups": [
+    [
+      "Unlimited movies, TV shows, and more"
+    ],
+    [
+      "More Reasons to Join"
+    ],
+    [
+      "Frequently Asked Questions"
+    ]
+  ],
+  "matching_named_link_count": 0,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

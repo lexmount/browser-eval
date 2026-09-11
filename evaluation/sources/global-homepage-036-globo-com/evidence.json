@@ -1,0 +1,27 @@
+{
+  "case_id": "global-homepage-036-globo-com",
+  "domain": "globo.com",
+  "url": "https://globo.com/",
+  "final_url": "https://www.globo.com/",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "c07c464afdb42e7c55dd3f354350b7a0ca8694ef815a1c2473a4e5a8832a408d",
+  "stable_page_sha256": "0c7bc54b413ae9971e2bd2ccec7957213ab352ef294bcc7382e4a781c29e09e0",
+  "anchor_groups": [
+    [
+      "globo.com"
+    ],
+    [
+      "Guia de Compras"
+    ],
+    [
+      "Previsão do tempo"
+    ]
+  ],
+  "matching_named_link_count": 17,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}

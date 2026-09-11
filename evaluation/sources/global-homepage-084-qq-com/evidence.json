@@ -1,0 +1,30 @@
+{
+  "case_id": "global-homepage-084-qq-com",
+  "domain": "qq.com",
+  "url": "https://qq.com/",
+  "final_url": "https://www.qq.com/",
+  "checked_at": "2026-09-11",
+  "source": "Playwright Chromium, fresh anonymous context, initial ranked-domain page only",
+  "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
+  "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
+  "visible_text_sha256": "4497eec1712eadc1418a710ccd057fbf1e261e10f872159e4e69ea680b94961e",
+  "stable_page_sha256": "0d4bf6193aae45787c0359167d5d5316548a896c775e3bc2abb707d03de7695e",
+  "anchor_groups": [
+    [
+      "产品推荐"
+    ],
+    [
+      "热点精选"
+    ],
+    [
+      "腾讯新闻出品"
+    ],
+    [
+      "热门问答"
+    ]
+  ],
+  "matching_named_link_count": 30,
+  "clicks_or_recursive_navigation": false,
+  "provider_output_used": false,
+  "scope": "Task-relevant stable page text plus declared list structure; dynamic members and values are not frozen"
+}
