@@ -17,7 +17,12 @@ from harness.browser_use.report import (
 )
 from harness.browser_use.report_i18n import localize_html
 from harness.browser_use.selection import load_pilot
-from scripts.check_browser_use_report import _check_execution_artifacts, _check_public_privacy
+from scripts.check_browser_use_report import (
+    FORBIDDEN_READER_TERMS,
+    _check_execution_artifacts,
+    _check_public_privacy,
+    _check_reader_facing_ux,
+)
 
 
 def test_best_marks_only_one_visibly_distinct_winner() -> None:
@@ -44,6 +49,36 @@ def test_english_localization_includes_visible_attributes() -> None:
     assert 'title="Better"' in localized
     assert 'aria-label="Better"' in localized
     assert 'placeholder="Task, intent, or acceptance contract"' in localized
+
+
+def test_reader_facing_ux_requires_home_core_tables_without_current_data(
+    tmp_path: Path,
+) -> None:
+    pages = {
+        tmp_path / "index.html": '<table id="core-metrics-table"></table>',
+        tmp_path / "en/index.html": '<table id="core-metrics-table"></table>',
+        tmp_path / "analysis/index.html": "普通读者可理解的说明",
+    }
+
+    _check_reader_facing_ux(tmp_path, pages)
+
+    pages[tmp_path / "index.html"] = "<main>只有指标卡，没有核心比较表</main>"
+    with pytest.raises(ValueError, match="core metrics table"):
+        _check_reader_facing_ux(tmp_path, pages)
+
+
+@pytest.mark.parametrize("term", FORBIDDEN_READER_TERMS)
+def test_reader_facing_ux_rejects_unexplained_internal_terms(
+    tmp_path: Path, term: str
+) -> None:
+    pages = {
+        tmp_path / "index.html": '<table id="core-metrics-table"></table>',
+        tmp_path / "en/index.html": '<table id="core-metrics-table"></table>',
+        tmp_path / "analysis/index.html": f"<p>{term}</p>",
+    }
+
+    with pytest.raises(ValueError, match="unexplained internal term"):
+        _check_reader_facing_ux(tmp_path, pages)
 
 
 def test_result_verification_is_readable_and_does_not_duplicate_raw_panels() -> None:
@@ -471,7 +506,7 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch)
     assert report.is_file()
     assert (output / "assets/webarena-autonomous-evaluation-flow.png").is_file()
     home_text = report.read_text(encoding="utf-8")
-    assert "浏览器 Browser Use 能力对比" in home_text
+    assert "Chromium 与 Moli 的 Browser Use 能力对比" in home_text
     methodology_text = (output / "methodology/index.html").read_text(encoding="utf-8")
     assert "webarena-autonomous-evaluation-flow.png" in methodology_text
     assert "ContainerManager.start(reset=True)" in methodology_text

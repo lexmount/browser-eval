@@ -72,13 +72,15 @@ def validate_package() -> None:
         )
 
 
-def publication_target() -> tuple[str, str, str]:
+def publication_target(*, require_existing: bool = True) -> tuple[str, str, str]:
     profile = json.loads(PROFILE.read_text(encoding="utf-8"))
     publication = profile.get("publication") or {}
     base = str(publication.get("base_url") or "").rstrip("/")
     slug = str(publication.get("site_slug") or "")
     version = str(publication.get("expected_version") or "")
-    if not base.startswith("https://") or not slug or not version.startswith("ver_"):
+    if not base.startswith("https://"):
+        raise ValueError("current Browser Use report has no valid publication base")
+    if require_existing and (not slug or not version.startswith("ver_")):
         raise ValueError("current Browser Use report has no valid publication target")
     return base, slug, version
 
@@ -90,7 +92,7 @@ def request(
     *,
     method: str | None = None,
 ):
-    base, _, _ = publication_target()
+    base, _, _ = publication_target(require_existing=False)
     headers = {
         "Authorization": "Bearer " + load_token(base_url=base),
         "User-Agent": "Browser-Use-Report-Publisher/1.0",
@@ -112,7 +114,7 @@ def multipart_archive() -> tuple[bytes, str]:
     parts = []
     for key, value in (
         ("mode", "zip"),
-        ("title", "浏览器 Browser Use 能力对比"),
+        ("title", "Chromium 与 Moli 的 Browser Use 能力对比"),
     ):
         parts.append(
             (
@@ -142,7 +144,7 @@ def save_receipt(result: dict) -> None:
 def main(*, create: bool = False) -> None:
     validate_package()
     payload, content_type = multipart_archive()
-    base, expected_slug, expected_version = publication_target()
+    base, expected_slug, expected_version = publication_target(require_existing=not create)
     if create:
         status, raw = request("/api/sites", payload, content_type)
         result = json.loads(raw)
@@ -180,13 +182,13 @@ def main(*, create: bool = False) -> None:
         )
     title_status, title_raw = request(
         f"/api/sites/{result['slug']}",
-        json.dumps({"title": "浏览器 Browser Use 能力对比"}).encode(),
+        json.dumps({"title": "Chromium 与 Moli 的 Browser Use 能力对比"}).encode(),
         "application/json",
         method="PATCH",
     )
     if not 200 <= title_status < 300:
         raise RuntimeError(json.loads(title_raw))
-    result["title"] = "浏览器 Browser Use 能力对比"
+    result["title"] = "Chromium 与 Moli 的 Browser Use 能力对比"
     if not result.get("share_url"):
         status, raw = request(
             f"/api/sites/{result['slug']}/shares",
@@ -209,9 +211,20 @@ def main(*, create: bool = False) -> None:
     )
     with urllib.request.urlopen(preview, timeout=60) as response:
         body = response.read().decode("utf-8", errors="replace")
-        if response.status != 200 or "浏览器 Browser Use 能力对比" not in body:
+        if response.status != 200 or "Chromium 与 Moli 的 Browser Use 能力对比" not in body:
             raise RuntimeError("public preview is unavailable or missing the report heading")
-    print(json.dumps({"slug": result["slug"], "url": result["share_url"]}, ensure_ascii=False))
+    print(
+        json.dumps(
+            {
+                "slug": result["slug"],
+                "url": result["share_url"],
+                "version": result.get("versionId")
+                or result.get("version_id")
+                or result.get("currentVersionId"),
+            },
+            ensure_ascii=False,
+        )
+    )
 
 
 if __name__ == "__main__":

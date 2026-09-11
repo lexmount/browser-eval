@@ -148,6 +148,53 @@
   ],
   "browser_use_releases": [
     {
+      "id": "2026-09-11-reader-first-report-and-sites-migration",
+      "date": "2026-09-11",
+      "title": "重排结果首页并迁移到正式 Sites",
+      "summary": "首页先展示四组核心成绩与耗时，再给出同题差异、75 个失败的核验原因和三类任务成绩。此次只调整报告表达、检查流程与发布地址，不修改任何评测分数。",
+      "attempts_sha256_by_model": {
+        "gpt-5.6-sol": "73146500152db62d79f84b63c85a14027c005a6320c19bce7426651f167466bd",
+        "gpt-6-astra": "0659d227cf6d29fbfaf64d39f8e77a56bec73c87f7f6e1f2ac23ea13fd9b667c"
+      },
+      "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+      "changes": [
+        [
+          "首页结构",
+          "核心成绩被拆成多张卡片，关键对比不易浏览。",
+          "改为一张按模型和浏览器展开的核心指标表，并把它放在首页第一节。",
+          "通过数、通过率、Agent 总耗时、BrowserTool 耗时和 Tokens 可直接横向比较。"
+        ],
+        [
+          "结果解释",
+          "部分短标签需要读者了解内部实现才能理解。",
+          "改用完整句子和明确列名说明同题关系、失败原因、统计范围与限制。",
+          "不改变计算口径；只降低理解成本。"
+        ],
+        [
+          "失败原因",
+          "75 个失败原因以大量卡片堆叠，难以判断责任分布。",
+          "按 Agent、任务或 evaluator、测试网站、浏览器证据、共享环境和混合原因汇总为表格，并保留逐结果核验入口。",
+          "所有失败仍各计一次，逐结果核验结论和原始证据保持不变。"
+        ],
+        [
+          "检查与发布",
+          "日常修改也会启动完整浏览器视觉检查，反馈较慢。",
+          "日常检查只验证数据、结构、链接和文案；正式打包发布时再执行全部语言、主题和屏幕宽度的视觉检查。",
+          "发布质量门槛不降低，常规迭代时间缩短。"
+        ]
+      ],
+      "i18n": {"en": {
+        "title": "Reorder the results report and migrate to production Sites",
+        "summary": "The home page now starts with the four core score and latency rows, followed by same-task differences, verified causes for 75 failures, and results for the three task types. This release changes presentation, checks, and the publication target only; no evaluation score changes.",
+        "changes": [
+          ["Home-page structure", "Core results were split across cards, making comparison difficult.", "Replaced them with one model-by-browser core-metrics table at the start of the home page.", "Pass count, pass rate, agent total time, BrowserTool time, and tokens can now be compared directly."],
+          ["Result interpretation", "Several short labels required implementation context.", "Replaced them with explicit sentences and column names for paired outcomes, failure causes, scope, and limitations.", "Calculation rules are unchanged; the report is easier to understand."],
+          ["Failure causes", "The 75 failure causes were spread across a large card grid.", "Grouped them into a table covering agent, task or evaluator, test site, browser evidence, shared environment, and mixed causes, while retaining links to every reviewed result.", "Each failure is still counted once, and its reviewed cause and evidence remain unchanged."],
+          ["Checks and publication", "Routine edits also launched the complete browser-based visual suite.", "Routine checks now cover data, structure, links, and copy; packaging still runs every language, theme, and viewport visual check.", "Release quality gates remain intact while ordinary iteration is faster."]
+        ]
+      }}
+    },
+    {
       "id": "2026-09-11-astra-two-model-browser-comparison",
       "date": "2026-09-11",
       "title": "加入 GPT-6 Astra 模型层并完成双模型浏览器对照",
@@ -444,8 +491,8 @@
         ],
         [
           "报告模型",
-          "评测集页混入成功/失败，多浏览器结果结构写死为两列，方法介绍没有明确参评选手。",
-          "评测集页只保留任务与验收合同；结果页使用动态浏览器矩阵和自动两两比较；参评浏览器页把 Chromium/Moli 定义为选手，把 CowAgent、模型、站点和 evaluator 列为共同条件。",
+          "评测集页混入成功/失败，多浏览器结果结构写死为两列，方法介绍没有明确比较对象。",
+          "评测集页只保留任务与验收合同；结果页使用动态浏览器矩阵和自动两两比较；被测浏览器页列出 Chromium、Moli 及固定实验条件。",
           "信息职责和未来扩展方式改变，当前两浏览器数据与成绩不变。"
         ],
         [

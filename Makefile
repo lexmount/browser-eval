@@ -1,7 +1,7 @@
 UV ?= uv
 PY := $(UV) run --frozen python
 
-.PHONY: setup runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check browser-use-review browser-use-report browser-use-report-check browser-use-visual-check
+.PHONY: setup runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check
 
 setup:
 	$(UV) sync --frozen --all-extras
@@ -55,4 +55,6 @@ browser-use-report-check: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE="/absolute/path [/absolute/path...]" is required' >&2; exit 2)
 	$(PY) scripts/check_browser_use_report.py reports/browser-use $(foreach path,$(EVIDENCE),--evidence "$(path)") --require-complete
 	$(PY) scripts/check_report_links.py reports/browser-use
+
+browser-use-release-check: browser-use-report-check
 	$(MAKE) browser-use-visual-check

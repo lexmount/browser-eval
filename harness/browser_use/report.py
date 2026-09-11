@@ -711,6 +711,101 @@ def _task_family_summary(
     return result
 
 
+TASK_TYPE_COPY = {
+    "RETRIEVE": ("信息提取", "从页面读取、筛选或汇总信息，不修改站点状态"),
+    "NAVIGATE": ("页面导航", "打开符合指定条件的页面或列表"),
+    "MUTATE": ("页面操作", "提交表单、修改记录、结账等会改变站点状态的任务"),
+}
+
+
+def _task_family_table(families: list[dict[str, Any]]) -> str:
+    headers = ["任务类型", "任务数", "测什么"] + [
+        f"{MODEL_LABELS[model]} · {ENGINE_LABELS[engine]}"
+        for model in MODEL_LABELS
+        for engine in ENGINE_LABELS
+    ]
+    rows: list[list[Any]] = []
+    for family in families:
+        kind = str(family["kind"])
+        label, description = TASK_TYPE_COPY[kind]
+        rows.append(
+            [
+                Safe(
+                    f'<a href="datasets/?f_kind={_e(kind)}"><strong>{_e(label)}</strong>'
+                    f'<span class="table-kicker">{_e(kind)}</span></a>'
+                ),
+                family["count"],
+                description,
+                *[
+                    f"{family['scores'][model][engine]}/{family['count']}"
+                    for model in MODEL_LABELS
+                    for engine in ENGINE_LABELS
+                ],
+            ]
+        )
+    return _table(headers, rows, table_id="task-family-table", classes="wide-data-table")
+
+
+def _failure_cause_table(verified_causes: dict[str, dict[str, Any]]) -> str:
+    groups = {
+        "agent": ("Agent 决策或操作", "检索不完整、候选选择错误、走错页面、字段遗漏，或没有在步骤上限内完成。"),
+        "benchmark": ("任务或 evaluator", "任务要求与验收条件冲突，或 evaluator 的路由、表单和实现规则有缺陷。"),
+        "site": ("测试网站", "自托管网站的依赖、会话或保存接口失败。"),
+        "evidence": ("浏览器证据记录", "页面操作可能成功，但网络记录缺少响应正文或 Referer，evaluator 无法确认。"),
+        "environment": ("共享测试环境", "并发运行改写了同一网站状态；运行器现已串行化，历史结果仍按原证据保留。"),
+        "mixed": ("多项原因", "同一结果同时包含 Agent 遗漏和冻结参考状态差异。"),
+    }
+
+    def group_for(code: str) -> str:
+        for prefix in ("agent", "benchmark", "site", "environment", "mixed"):
+            if code.startswith(prefix + "_"):
+                return prefix
+        return "evidence"
+
+    counts: dict[str, Counter[str]] = defaultdict(Counter)
+    for diagnosis in verified_causes.values():
+        subcategory = diagnosis.get("subcategory") or {}
+        code = str(subcategory.get("code") or "evidence_capture")
+        label = str(subcategory.get("zh") or "未分类")
+        counts[group_for(code)][label] += 1
+
+    rows = []
+    for key in ("agent", "benchmark", "site", "evidence", "environment", "mixed"):
+        total = sum(counts[key].values())
+        if not total:
+            continue
+        details = "；".join(
+            f"{label} {count}"
+            for label, count in sorted(counts[key].items(), key=lambda item: (-item[1], item[0]))
+        )
+        rows.append([groups[key][0], total, details, groups[key][1]])
+    return _table(
+        ["原因所在", "失败结果数", "具体分类", "说明"],
+        rows,
+        table_id="failure-cause-table",
+        classes="wide-data-table",
+    )
+
+
+def _headline_findings(summary: dict[str, dict[str, dict[str, Any]]]) -> str:
+    lines = []
+    engines = list(ENGINE_LABELS)
+    for model, model_summary in summary.items():
+        results = [
+            f"{ENGINE_LABELS[engine]} {model_summary[engine]['passed']}/{model_summary[engine]['completed']}"
+            f"（{_pct(model_summary[engine]['score'])}）"
+            for engine in engines
+        ]
+        top = max(item["passed"] for item in model_summary.values())
+        winner_ids = [engine for engine in engines if model_summary[engine]["passed"] == top]
+        outcome = "通过数相同" if len(winner_ids) > 1 else f"{ENGINE_LABELS[winner_ids[0]]} 多通过"
+        if len(engines) == 2 and len(winner_ids) == 1:
+            loser = next(engine for engine in engines if engine not in winner_ids)
+            outcome += f" {top - model_summary[loser]['passed']} 题"
+        lines.append(f"<li><strong>{_e(MODEL_LABELS[model])}</strong>：{_e('，'.join(results))}；{_e(outcome)}。</li>")
+    return '<ul class="finding-list">' + "".join(lines) + "</ul>"
+
+
 def _adoption_top3(evidence: dict[str, Any]) -> str:
     families = sorted(
         (item for item in evidence.get("benchmark_families") or [] if item.get("interaction")),
@@ -1081,6 +1176,7 @@ REPORT_STYLE = (
 .comparison-winner{color:var(--good);font-weight:850}.winner-mark{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;margin-left:7px;border-radius:999px;background:var(--good);color:white;font-size:11px;line-height:1}.winner-cell{position:relative;padding:9px 10px;border:1px solid color-mix(in srgb,var(--good) 42%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--good) 9%,var(--panel))}.metric-stack{display:grid;gap:5px;min-width:150px}.metric-stack>span{display:flex;align-items:center;justify-content:space-between;gap:12px;white-space:nowrap}.metric-stack>span>b{font-size:12px;color:var(--muted)}.review-round{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:22px;margin:16px 0}.review-round header{display:flex;align-items:start;justify-content:space-between;gap:18px}.review-round h3{margin:5px 0}.review-status{flex:0 0 auto;padding:5px 10px;border-radius:999px;background:var(--wash);font-size:12px;font-weight:800}.review-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}.review-fields>div{border-top:1px solid var(--line);padding-top:12px}.review-fields b{display:block;margin-bottom:5px}.review-fields p{margin:0}
 .browser-comparison{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:24px;box-shadow:0 12px 32px rgba(25,45,70,.06)}.comparison-heading{display:flex;align-items:start;justify-content:space-between;gap:24px;margin-bottom:22px}.comparison-heading h3{margin:0 0 6px;font-size:22px}.comparison-heading p{margin:0;color:var(--muted);line-height:1.65}.comparison-controls{display:grid;grid-template-columns:minmax(170px,1fr) minmax(240px,1.4fr) minmax(170px,1fr);gap:14px}.comparison-controls label{display:grid;gap:6px;font-weight:750}.comparison-controls select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}.comparison-browsers{border:0;padding:0;margin:20px 0 0}.comparison-browsers legend{font-weight:750;margin-bottom:10px}.browser-checks{display:flex;gap:8px;flex-wrap:wrap}.browser-checks label{display:flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid var(--line);border-radius:999px;background:var(--bg);cursor:pointer}.browser-checks label.disabled{opacity:.45;cursor:not-allowed}.browser-checks input{accent-color:var(--accent)}.comparison-result{margin-top:20px}.table-wrap .comparison-table{min-width:720px;table-layout:fixed}.comparison-table th:first-child,.comparison-table td:first-child{width:48%}.comparison-table th:nth-child(2),.comparison-table td:nth-child(2),.comparison-table th:nth-child(3),.comparison-table td:nth-child(3){width:26%}.task-cell a{font-weight:750}.task-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:7px}.track-badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--panel2);color:var(--muted);font-size:12px;white-space:nowrap}.outcome-list{display:flex;gap:6px;flex-wrap:wrap}.outcome-pill{display:inline-block;padding:5px 8px;border-radius:8px;font-size:13px;text-decoration:none}.outcome-pill.pass{background:var(--success-bg);color:var(--good)}.outcome-pill.fail{background:var(--failure-bg);color:var(--bad)}
 .action-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.action-card{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:18px;min-width:0}.action-card>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.action-card>header code{font-size:16px;font-weight:800}.action-card>header span{font-size:12px;color:var(--muted)}.action-browser-row{padding:12px 0;border-top:1px solid var(--line)}.action-browser-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.action-bar{height:7px;border-radius:999px;background:var(--panel2);overflow:hidden;margin:8px 0}.action-bar i{display:block;height:100%;border-radius:inherit;background:var(--accent)}.action-browser-row.action-winner .action-bar i{background:var(--good)}.action-browser-meta{font-size:12px;color:var(--muted)}
+.finding-list{display:grid;gap:8px;margin:0 0 20px;padding:16px 20px 16px 38px;border-left:4px solid var(--accent);border-radius:0 12px 12px 0;background:var(--wash)}.finding-list li{padding-left:4px}.table-kicker{display:block;color:var(--muted);font:700 11px/1.4 ui-monospace,monospace;letter-spacing:.04em;margin-top:3px}.core-comparison-table{min-width:1040px}.core-comparison-table td:nth-child(1),.core-comparison-table td:nth-child(2){font-weight:750}.pair-outcome-table{min-width:900px}.wide-data-table td{line-height:1.65}.report-entry-links{margin-top:18px}.report-entry-links a{font-weight:750}.source-note a{margin-left:5px}
 .attempt-summary{display:grid;grid-template-columns:minmax(270px,1.4fr) repeat(4,minmax(135px,.7fr));gap:12px;align-items:stretch}.attempt-verdict{padding:20px 22px;border:1px solid var(--line);border-left:5px solid var(--good);border-radius:12px;background:var(--success-bg)}.attempt-verdict.failure{border-left-color:var(--bad);background:var(--failure-bg)}.attempt-verdict .status-line{display:block;font-size:24px;font-weight:850;margin-bottom:6px}.attempt-verdict p{margin:0;line-height:1.65}.attempt-jumps{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-weight:750}.attempt-fact{padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow-wrap:anywhere}.attempt-fact b{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}.attempt-secondary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:12px}
 .task-goal{padding:22px 24px;border-radius:16px;background:var(--wash);border:1px solid var(--line);margin-bottom:18px}.task-goal span,.rule-index{display:block;color:var(--accent);font-size:12px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}.task-goal p{font-size:20px;font-weight:750;line-height:1.6;margin:7px 0}.task-goal small{color:var(--muted)}.verification-list{display:grid;gap:14px}.verification-rule{padding:20px 22px;border:1px solid var(--line);border-left:5px solid var(--good);border-radius:14px;background:var(--panel);min-width:0}.verification-rule.rule-fail{border-left-color:var(--bad)}.verification-rule>header{display:flex;align-items:start;justify-content:space-between;gap:18px}.verification-rule h3{margin:4px 0 0;font-size:19px}.rule-verdict{flex:0 0 auto;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:850}.rule-verdict.pass{background:var(--success-bg);color:var(--good)}.rule-verdict.fail{background:var(--failure-bg);color:var(--bad)}.rule-purpose{color:var(--muted);margin:12px 0 6px}.rule-summary{font-size:17px;font-weight:750;margin:0 0 14px}.verification-rule details{border-top:1px solid var(--line);padding-top:12px;margin-top:10px}.verification-rule summary{cursor:pointer;font-weight:750}.compact-evidence{margin-top:12px}.compact-evidence .json-view{max-height:360px}
 .page-main{overflow-x:clip}
@@ -1097,7 +1193,7 @@ NAV = [
     ("analysis/", "结果分析", "analysis"),
     ("review/", "核验记录", "review"),
     ("guide/", "报告解读", "guide"),
-    ("adoption/", "参评浏览器", "adoption"),
+    ("adoption/", "被测浏览器", "adoption"),
     ("reproduce/", "环境与复现", "reproduce"),
     ("changes/", "变更记录", "changes"),
     ("accounts/", "账号与安装", "accounts"),
@@ -1502,46 +1598,57 @@ def _article_body(
     ]
     if failed_result_count:
         cause_section = (
-            _table(
-                ["逻辑结果", "根因子类", "已核验根因"],
+            _failure_cause_table(verified_causes)
+            + '<details class="evidence-details"><summary>查看每个失败结果的核验结论</summary>'
+            + _table(
+                ["结果编号", "原因分类", "核验结论"],
                 cause_rows,
-                caption="表 2｜根因核验不修改官方分数；修复后必须产生新的执行证据。",
+                caption="人工核验用于解释官方失败结果，不修改分数。修复后需要重新运行才能产生新成绩。",
             )
+            + "</details>"
             if len(cause_rows) == failed_result_count
-            else f'<p class="callout">当前有 {failed_result_count} 个失败结果，根因核验尚未完成。正式发布前必须逐个绑定当前证据并补齐根因子类和具体原因。</p>'
+            else f'<p class="callout">当前有 {failed_result_count} 个失败结果，详细原因仍在核验中；未核验结果不展示推测。</p>'
         )
     else:
         cause_section = '<p class="callout success">本轮没有失败结果，无需生成失败根因记录。</p>'
     return (
         '<article class="publication-article"><header class="essay-head"><div class="eyebrow">Browser Use 实测解读</div>'
-        f"<h1>{len(MODEL_LABELS)} 个模型层中的浏览器对照：{discordant} 个不一致配对</h1>"
-        '<p class="lead">浏览器是参评选手，模型是分层实验变量。每个模型层内使用相同任务、站点状态和 evaluator；不同模型之间不做浏览器配对。</p>'
-        '<p class="source-note">测量口径：WebArena‑Verified 1.2.3；每题×模型×浏览器一个最终逻辑结果；官方确定性 evaluator；无 LLM judge。</p></header>'
-        "<section><h2>一、先看总分，再看同题分歧</h2>"
-        "<p>汇总按模型→浏览器组织；每个对比浏览器只与 profile 声明的基准浏览器配对。</p>"
+        f"<h1>{task_count} 个任务中，Chromium 与 Moli 的差异在哪里</h1>"
+        '<p class="lead">报告分别使用 GPT-5.6 Sol 和 GPT-6 Astra 驱动 CowAgent。每组都在相同任务、网站和验收规则下比较浏览器。</p>'
+        '<p class="source-note">WebArena‑Verified 1.2.3 · 官方程序化 evaluator · 不使用 LLM judge</p></header>'
+        "<section><h2>总体成绩和耗时</h2>"
+        + _table(
+            ["模型", "浏览器", "通过任务", "通过率", "Agent 总耗时", "BrowserTool 耗时", "Tokens"],
+            _summary_comparison_rows(summary),
+            table_id="guide-core-metrics",
+            classes="core-comparison-table",
+        )
+        + '<p>在 Sol 运行中，Chromium 比 Moli 多通过 3 题；在 Astra 运行中，两者都是 71/90。耗时需要结合下表和逐题记录看：Agent 总耗时还包含模型推理与页面等待，BrowserTool 耗时也包含工具封装和 CDP 往返。</p></section>'
+        "<section><h2>同一任务上的结果</h2>"
+        "<p>同题比较只在同一模型内进行。A、B 是表内所列的两个浏览器。</p>"
         + _table(
             [
                 "模型",
-                "基准浏览器",
-                "对比浏览器",
-                "完整配对",
-                "共同通过",
-                "仅基准通过",
-                "仅对比通过",
-                "共同失败",
+                "浏览器 A",
+                "浏览器 B",
+                "同题数",
+                "两边都通过",
+                "A 通过、B 失败",
+                "A 失败、B 通过",
+                "两边都失败",
             ],
             comparison_rows,
-            caption="表 1｜配对严格限制在同一模型层内。",
+            caption="每行只比较同一模型、同一任务和同一网站状态下的结果。",
         )
-        + f"<p>固定样本中观察到 {discordant} 个不一致配对。这个数字用于发现浏览器相关差异，但不能单独证明整个浏览器内核的优劣，也不对 WebArena‑Verified 全集作统计外推。</p></section>"
-        '<section><h2>二、模型层之间只作观察性对照</h2>'
-        '<p>更换模型没有带来一致的浏览器通过率提升：Sol 层是 Chromium 73/90、Moli 70/90；Astra 层两者都是 71/90。两个模型层来自不同运行，且 browser-eval 提交不同；Astra 的两个 Task 77 结果还受到已核验的共享环境并发污染。因此，跨模型差异不能单独归因于模型版本。</p>'
+        + f"<p>两次运行合计有 {discordant} 个同题结果不同。Sol 和 Astra 的方向并不一致，因此现有结果不足以支持某个浏览器在所有任务上更好。</p></section>"
+        '<section><h2>两个模型的结果不能直接当成模型排名</h2>'
+        '<p>Sol 与 Astra 在不同时间、不同代码提交上运行。Astra 的两个 Task 77 结果还受到已确认的共享环境并发污染。表格可以帮助观察差异，但不能把差值全部归因于模型。</p>'
         + _table(["模型", "浏览器", "任务通过", "通过率"], model_result_rows)
-        + '</section><section id="failure-findings"><h2>三、失败结果必须追到根因</h2>'
-        "<p>程序化 evaluator 先给出失败环节；核验再检查最终执行的任务合同、回答、网络记录和 Agent 轨迹，形成更具体的根因子类与原因。共同失败不默认是共同根因，单边失败也不默认是浏览器缺陷。</p>"
+        + '</section><section id="failure-findings"><h2>失败原因</h2>'
+        "<p>evaluator 的报错只说明哪条验收规则没有满足。我们继续核对任务要求、最终回答、网络记录和 Agent 轨迹，确认失败发生在 Agent、任务规则、测试网站、共享环境或浏览器证据记录中的哪一处。</p>"
         + cause_section
-        + f"</section><section><h2>四、简单、中等、困难都覆盖，但难度只表示操作长度</h2><p>WebArena‑Verified 没有官方 easy/medium/hard 三档。本项目在运行前按最少可见 UI 操作数注册为 1–4、5–7、8+ 三档，配额 {tier_counts['easy']}/{tier_counts['medium']}/{tier_counts['hard']}。它控制操作链覆盖，不等同于推理难度。</p>"
-        + f'</section><section><h2>五、选择 WebArena‑Verified 是为了可归因的结果验收</h2><p>Mind2Web 家族采用面更广，但原版主要评离线动作预测；Online‑Mind2Web 和 WebVoyager贴近实时网页，却引入网页漂移和模型裁判。WebArena‑Verified 可以自托管、逐题重置，并用结构化最终答案和必要网络副作用做程序化验收，更适合“只替换浏览器”的 A/B。</p><p>代价也明确：部署重，环境兼容本身会成为工程变量；官方 evaluator 不衡量路径效率，也不能覆盖开放互联网泛化。</p></section><section><h2>六、结论只适用于本轮受控样本</h2><p>本轮固定 {task_count} 题，覆盖四个已验证站点。结果只说明当前 CowAgent、模型、任务与运行协议下的浏览器差异；不支持把总分直接解释为浏览器内核等价、全面替代关系或纯内核速度。端到端耗时包含模型、调度、页面等待和工具开销，动作延迟也包含 CDP 往返。</p><div class="essay-note"><h3>决策边界</h3><p>先修复已核验根因并形成新证据，再扩大任务与浏览器范围；历史官方分数不被人工覆盖。</p></div></section></article>'
+        + f"</section><section><h2>样本覆盖简单、中等和困难任务</h2><p>WebArena‑Verified 没有官方 easy、medium、hard 三档。本项目在运行前按最少可见 UI 操作数分为 1–4、5–7、8+ 三档，各有 {tier_counts['easy']}、{tier_counts['medium']}、{tier_counts['hard']} 题。这个分组描述操作长度，不代表推理难度。</p>"
+        + f'</section><section><h2>为什么使用 WebArena‑Verified</h2><p>原版 Mind2Web 主要检查离线动作预测。Online‑Mind2Web 和 WebVoyager 使用实时网页，网页内容会变化，部分评分还依赖模型裁判。WebArena‑Verified 可以本地部署、逐题重置，并用最终答案和网络副作用做程序化验收，适合只替换浏览器的对照实验。</p><p>它的代价是部署较重，环境故障也会影响结果；官方 evaluator 不评价操作路径是否高效，也覆盖不了开放互联网的全部情况。</p></section><section><h2>这组结果能说明什么</h2><p>本轮固定 {task_count} 题，覆盖四个已验证站点。结果适用于当前 CowAgent、模型、任务和运行协议。它没有证明两个浏览器内核等价，也不能证明 Moli 已经可以全面替代 Chromium。端到端耗时包含模型、调度、页面等待和工具开销。</p><div class="essay-note"><h3>下一步</h3><p>按核验结论分别修复 Agent、评测任务、测试网站和浏览器证据记录，再重新运行受影响的任务；新增浏览器时继续使用同一组任务和验收规则。</p></div></section></article>'
     )
 
 
@@ -1964,14 +2071,6 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         )
         article = _article_body(paired_by_model, attempts, tasks, verified_causes)
         families = _task_family_summary(tasks, attempts)
-        participant_score_cards = "".join(
-            '<div class="card"><span class="tiny">'
-            + _e(f"{MODEL_LABELS[model_id]} · {ENGINE_LABELS[engine]} 任务通过")
-            + f'</span><div class="n">{values["passed"]}/{values["completed"]}</div>'
-            + f"<p>{_pct(values['score'])}</p></div>"
-            for model_id, model_summary in summary_by_model.items()
-            for engine, values in model_summary.items()
-        )
         pairing_rows = [
             [
                 MODEL_LABELS[model_id],
@@ -1987,21 +2086,11 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             for item in model_pairs["comparisons"].values()
         ]
         discordant_total = sum(row[5] + row[6] for row in pairing_rows)
-        paired_total = sum(row[3] for row in pairing_rows)
-        both_fail_total = sum(row[7] for row in pairing_rows)
-        cause_counts = Counter(
-            str((item.get("subcategory") or {}).get("zh") or "未分类")
-            for item in verified_causes.values()
-        )
-        cause_cards = "".join(
-            f'<div class="card"><span class="tiny">{_e(category)}</span><div class="n">{count}</div><p>个失败结果</p></div>'
-            for category, count in sorted(cause_counts.items())
-        )
         if failed_result_ids and set(verified_causes) == failed_result_ids:
             failure_overview = (
-                f'<div class="result-grid">{cause_cards}</div>'
-                f'<p class="callout success"><strong>根因核验：</strong>{len(verified_causes)}/{len(failed_result_ids)} 个失败结果已逐个绑定当前证据并完成核验。</p>'
-                '<p><a href="guide/#failure-findings">查看逐结果根因与证据边界 →</a></p>'
+                _failure_cause_table(verified_causes)
+                + f'<p class="source-note">以上共 {len(verified_causes)} 个失败结果；每个结果只计一次。'
+                '<a href="guide/#failure-findings">查看逐条核验原因 →</a></p>'
             )
         elif failed_result_ids:
             failure_overview = f'<p class="callout"><strong>根因核验：</strong>{len(verified_causes)}/{len(failed_result_ids)} 个失败结果已完成；未核验结果不展示推测性原因。</p>'
@@ -2009,70 +2098,58 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             failure_overview = (
                 '<p class="callout success"><strong>根因核验：</strong>本轮没有失败结果。</p>'
             )
-        family_cards = "".join(
-            '<article class="overview-card">'
-            f'<span class="tiny">{_e(family["kind"])}</span>'
-            f"<h3>{family['count']} 个任务</h3>"
-            + "".join(
-                f"<p>{_e(MODEL_LABELS[model_id])}："
-                + " · ".join(
-                    f"{_e(ENGINE_LABELS[engine])} {family['scores'][model_id][engine]}/{family['count']}"
-                    for engine in ENGINE_LABELS
-                )
-                + "</p>"
-                for model_id in MODEL_LABELS
-            )
-            + f'<a href="datasets/?f_kind={_e(family["kind"])}">查看这类任务 →</a></article>'
-            for family in families
-        )
         home = _hero(
             f"Browser Use Capability Evaluation · {run_date}",
-            "浏览器 Browser Use 能力对比",
-            f"在同一 CowAgent 和同一 WebArena‑Verified {task_count} 题样本下，以 {', '.join(MODEL_LABELS.values())} 分层比较 {', '.join(ENGINE_LABELS.values())}。",
+            "Chromium 与 Moli 的 Browser Use 能力对比",
+            f"CowAgent 使用 {', '.join(MODEL_LABELS.values())}，在同一组 WebArena‑Verified {task_count} 题上分别操作 {', '.join(ENGINE_LABELS.values())}。",
         )
         home += _section(
-            "先看结论",
-            f'<div class="result-grid">{participant_score_cards}<div class="card"><span class="tiny">单边通过</span><div class="n">{discordant_total}</div><p>{paired_total} 个模型内完整配对</p></div><div class="card"><span class="tiny">共同失败</span><div class="n">{both_fail_total}</div><p>不等于共同根因</p></div></div><p class="callout"><strong>结果边界：</strong>本轮观察到 {discordant_total} 个模型内浏览器不一致配对；模型之间不配对、不混排。结论只适用于这批受控任务，不证明内核等价或全面替代关系。</p><p class="fine">这是固定选择的 {task_count} 题试验，不是从全部 WebArena‑Verified 任务随机抽样；比例只描述本样本，不外推总体能力。</p>',
+            "评测结果",
+            _headline_findings(summary_by_model)
+            + _table(
+                ["模型", "浏览器", "通过任务", "通过率", "Agent 总耗时", "BrowserTool 耗时", "Tokens"],
+                _summary_comparison_rows(summary_by_model),
+                table_id="core-metrics-table",
+                classes="core-comparison-table",
+            )
+            + '<p class="source-note"><span class="winner-mark" aria-hidden="true">优</span> 只标记同一模型下数值唯一更好的浏览器。通过数越高越好；耗时和 Tokens 越低越好。Agent 总耗时包含模型推理、页面等待和浏览器操作，BrowserTool 耗时更接近浏览器执行层，但仍包含工具封装与 CDP 往返。</p>'
+            + f'<p class="callout">这 {task_count} 题是固定选择的样本，结果不能直接外推到 WebArena‑Verified 全集，也不能仅凭总耗时判断浏览器内核速度。</p>',
         )
         home += _section(
-            "失败根因是报告解读的核心证据",
-            "<p>官方 evaluator 的错误信息只定位未满足的验收规则；根因核验继续检查任务合同、最终回答、网络记录和自主轨迹。未完成核验前，报告保留自动分类，但不展示推测性根因。</p>"
+            "同一任务上的结果差异",
+            "<p>每行比较同一模型、同一任务和同一网站状态下的两个浏览器。A、B 对应表内所列浏览器。</p>"
+            + _table(
+                ["模型", "浏览器 A", "浏览器 B", "同题数", "两边都通过", "A 通过、B 失败", "A 失败、B 通过", "两边都失败"],
+                pairing_rows,
+                table_id="pair-outcomes",
+                classes="pair-outcome-table",
+            )
+            + f'<p class="source-note">两组模型合计有 {discordant_total} 个同题结果不同；不同模型的运行互不配对。<a href="analysis/#same-task">打开逐题对照 →</a></p>',
+        )
+        home += _section(
+            f"{len(failed_result_ids)} 个失败是怎么造成的",
+            "<p>官方 evaluator 说明哪条验收规则没有满足；下表来自对任务要求、最终回答、网络记录和自主执行轨迹的逐条核验。</p>"
             + failure_overview,
         )
         home += _section(
-            "任务族覆盖",
-            "<p>样本同时包含信息提取、页面导航和状态变更任务；类别来自每题官方最终答案合同。</p>"
-            f'<div class="overview-grid">{family_cards}</div>',
+            "三类任务的覆盖与成绩",
+            "<p>信息提取、页面导航和页面操作使用不同验收合同，因此分类型展示，不把难度或任务类型混成新的加权分。</p>"
+            + _task_family_table(families),
         )
         home += _section(
-            "运行与证据是否完整",
-            '<div class="audit-strip">'
-            f'<p class="callout success"><strong>逻辑结果：</strong>{len(attempts)} 个模型×浏览器×任务结果保持单条展示；其全部 {len(source_attempts)} 次物理执行均保留脱敏回答、官方 evaluator 结果、Agent 事件、轨迹和证据哈希。</p>'
-            f'<p class="callout success"><strong>证据完整性审计：</strong>{len(attempts)}/{len(attempts)} 个逻辑结果已覆盖，{len(review.get("unresolved") or [])} 个未决。它不重新判题，也不是独立语义复核。</p>'
-            f'<p class="callout"><strong>可完成性覆盖：</strong>{len(measured_solvable_ids)}/{len(tasks)} 题至少有一条自主成功轨迹；其余 {len(unproven_ids)} 题仅有官方验收合同。</p>'
-            "</div>",
-        )
-        home += _section(
-            "从结论进入证据",
-            f'<div class="grid"><article class="card article-entry" style="grid-column:span 6"><h3>报告解读</h3><p>解释配对结果、失败根因和结论边界。</p><a href="guide/">阅读完整解读 →</a></article><article class="card" style="grid-column:span 3"><h3>{task_count} 个任务</h3><p>筛选任务并下钻验收合同。</p><a href="datasets/">打开任务库 →</a></article><article class="card" style="grid-column:span 3"><h3>{result_count} 个逻辑结果</h3><p>查看最终判定、耗时、轨迹和核验状态。</p><a href="analysis/">打开结果库 →</a></article></div>',
-        )
-        home += _section(
-            "逐题配对比总分更重要",
+            "数据是否齐全",
             _table(
+                ["检查项", "结果", "说明"],
                 [
-                    "模型",
-                    "基准浏览器",
-                    "对比浏览器",
-                    "完整配对",
-                    "共同通过",
-                    "仅基准通过",
-                    "仅对比通过",
-                    "共同失败",
+                    ["任务结果", f"{len(attempts)}/{len(attempts)}", f"{len(MODEL_LABELS)} 个模型 × {len(ENGINE_LABELS)} 个浏览器 × {task_count} 题都有最终判定"],
+                    ["失败原因核验", f"{len(verified_causes)}/{len(failed_result_ids)}", "每个失败结果都有分类和具体原因"],
+                    ["未解决的证据问题", len(review.get("unresolved") or []), "完整性检查没有发现待处理项"],
+                    ["至少成功过一次的任务", f"{len(measured_solvable_ids)}/{len(tasks)}", f"另有 {len(unproven_ids)} 题在本轮没有成功轨迹"],
+                    ["保存的实际执行", len(source_attempts), "包含正式执行及按协议发生的一次重试"],
                 ],
-                pairing_rows,
-                caption="每个模型层内，从 profile 的基准浏览器动态生成配对。",
+                table_id="evidence-coverage",
             )
-            + f'<p class="fine">本轮共有 {discordant_total} 个模型内不一致配对，且方向随模型层变化；固定样本不支持对全部 Browser Use 任务作统计外推。</p><p class="page-links"><a href="analysis/#same-task">打开逐题横向对照 →</a></p>',
+            + f'<div class="page-links report-entry-links"><a href="guide/">报告解读</a><a href="datasets/">查看 {task_count} 个任务</a><a href="analysis/">查看 {result_count} 个结果</a><a href="reproduce/">环境与复现</a></div>',
         )
         (stage / "index.html").write_text(
             _page(title="首页", active="home", body=home), encoding="utf-8"
@@ -2513,13 +2590,13 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         participant_images = environment.get("browser_images") or {}
         adoption = _hero(
             "Participants",
-            "参评浏览器与统一实验条件",
-            "浏览器后端是参评选手；模型是分层实验变量，每个模型层内保持 Agent、任务、资源上限、站点与 evaluator 一致。",
+            "被测浏览器与固定实验条件",
+            "本报告比较浏览器。每个模型单独统计，CowAgent、任务、资源上限、网站和 evaluator 均保持一致。",
         )
         adoption += _section(
-            "参评浏览器",
+            "浏览器与版本",
             _table(
-                ["模型层", "参评浏览器", "运行版本", "镜像 ID", "接入方式", "本轮成绩"],
+                ["模型", "浏览器", "运行版本", "镜像 ID", "接入方式", "通过任务"],
                 [
                     [
                         MODEL_LABELS[model_id],
@@ -2533,7 +2610,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     for engine, label in ENGINE_LABELS.items()
                 ],
             )
-            + "<p>参评选手始终是浏览器；模型结果不跨层配对，也不把模型与浏览器混成同一排名。</p>",
+            + "<p>每个模型分别比较各浏览器，不把不同模型的结果合并排名。</p>",
         )
         adoption += _section(
             "共同实验条件",
@@ -2569,14 +2646,14 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     ],
                 ],
             )
-            + f"<p><strong>这 {task_count} 题由 CowAgent 自主执行。</strong>仓库中的 Browser Trajectory Replay（轨迹重放）固定动作微基准属于另一条实验轨道，不是本报告的参评选手，也不计入这 {task_count} 题成绩。</p>",
+            + f"<p><strong>这 {task_count} 题由 CowAgent 自主执行。</strong>仓库中的 Browser Trajectory Replay（轨迹重放）是另一项固定动作测试，不计入这里的成绩。</p>",
         )
         adoption += _section(
-            "如何增加下一名选手",
+            "增加新的浏览器",
             "<p>新增浏览器时，需要注册其容器镜像、版本与 CDP 端点，并在同一冻结任务集和共同条件下形成完整结果。总榜按浏览器逐行扩展；同题矩阵按浏览器增加列；统计比较按浏览器对单独生成，不能把多个浏览器压成一个总胜负。</p>",
         )
         (stage / "adoption/index.html").write_text(
-            _page(title="参评浏览器", active="adoption", body=adoption, depth=1), encoding="utf-8"
+            _page(title="被测浏览器", active="adoption", body=adoption, depth=1), encoding="utf-8"
         )
 
         versions, images = (

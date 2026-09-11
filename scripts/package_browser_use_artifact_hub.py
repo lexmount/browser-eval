@@ -9,10 +9,18 @@ import json
 import zipfile
 from pathlib import Path
 
-from check_browser_use_report import check
+if __package__:
+    from scripts.check_browser_use_report import check
+    from scripts.check_browser_use_visual import check as check_visual
+    from scripts.check_report_links import check as check_links
+else:  # Direct execution adds scripts/, not the repository root.
+    from check_browser_use_report import check
+    from check_browser_use_visual import check as check_visual
+    from check_report_links import check as check_links
 
 ATTESTATION = Path("publish/browser-use-sites.attestation.json")
 PROFILE = Path("evaluation/browser-use/current-report.json")
+VISUAL_RECEIPT = Path("publish/browser-use-visual-qa.json")
 
 
 def sha256(path: Path) -> str:
@@ -33,18 +41,27 @@ def tree_sha256(root: Path) -> str:
     return digest.hexdigest()
 
 
+def validate_release(report: Path, evidence: list[Path], visual_receipt: Path) -> None:
+    """Run every release gate before creating a publishable archive."""
+
+    check(
+        report,
+        evidence,
+        Path("evaluation/browser-use/webarena-verified-pilot.json"),
+        require_complete=True,
+    )
+    check_links(report)
+    check_visual(report, visual_receipt)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--report", type=Path, default=Path("reports/browser-use"))
     parser.add_argument("--evidence", required=True, action="append", type=Path)
     parser.add_argument("--output", type=Path, default=Path("publish/browser-use-sites.zip"))
+    parser.add_argument("--visual-receipt", type=Path, default=VISUAL_RECEIPT)
     args = parser.parse_args()
-    check(
-        args.report,
-        args.evidence,
-        Path("evaluation/browser-use/webarena-verified-pilot.json"),
-        require_complete=True,
-    )
+    validate_release(args.report, args.evidence, args.visual_receipt)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(args.output, "w", zipfile.ZIP_DEFLATED) as archive:
         for path in sorted(args.report.rglob("*")):

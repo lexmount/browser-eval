@@ -61,10 +61,11 @@ def check(report: Path, receipt: Path) -> None:
     states = []
     failures = []
     executable = _browser_executable()
+    routes = _route_classes(report)
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(executable_path=executable, headless=True)
         try:
-            for route in _route_classes(report):
+            for route in routes:
                 for width, height in ((1440, 1000), (390, 844)):
                     for theme in ("light", "dark"):
                         page = browser.new_page(viewport={"width": width, "height": height})
@@ -119,7 +120,7 @@ return {overflow,clipped:[...new Set(clipped)],vertical,textOverflow};
             {
                 "schema": "lex_browser_use_visual_qa/1",
                 "browser_executable": executable,
-                "route_classes": len(_route_classes(report)),
+                "route_classes": len(routes),
                 "states_checked": len(states),
                 "failures": failures,
             },

@@ -1114,7 +1114,7 @@ def parse_args() -> argparse.Namespace:
         "--cowagent-repo",
         help="trusted, clean CowAgent Git checkout; Python code is imported and executed from it",
     )
-    parser.add_argument("--model", default="gpt-6-astra")
+    parser.add_argument("--model", required=True)
     parser.add_argument("--cpus", type=float, default=2.0)
     parser.add_argument("--memory", default="2g")
     parser.add_argument("--sample-interval-ms", type=int, default=100)

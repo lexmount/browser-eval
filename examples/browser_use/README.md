@@ -64,3 +64,9 @@ building or publishing the report:
     make browser-use-review EVIDENCE="$BROWSER_USE_OUTPUT_DIR"
     make browser-use-report EVIDENCE="$BROWSER_USE_OUTPUT_DIR"
     make browser-use-report-check EVIDENCE="$BROWSER_USE_OUTPUT_DIR"
+
+The report check is the routine fast gate and does not launch a browser. Before
+packaging or publishing, run the full release gate, which additionally renders
+every representative route in both languages, themes, and viewport sizes:
+
+    make browser-use-release-check EVIDENCE="$BROWSER_USE_OUTPUT_DIR"

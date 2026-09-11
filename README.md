@@ -63,6 +63,8 @@ directory, and the report builder merges those immutable cohorts in memory.
 make browser-use-review EVIDENCE="$HOME/.browser-eval/browser-use/current"
 make browser-use-report EVIDENCE="$HOME/.browser-eval/browser-use/current"
 make browser-use-report-check EVIDENCE="$HOME/.browser-eval/browser-use/current"
+# Before packaging or publishing; adds full responsive, theme, and language visual QA.
+make browser-use-release-check EVIDENCE="$HOME/.browser-eval/browser-use/current"
 ```
 
 For a joint report, repeat `--evidence` once per model cohort; never concatenate

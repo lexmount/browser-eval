@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import scripts.publish_browser_use_artifact_hub as publisher
+import scripts.package_browser_use_artifact_hub as packager
 
 
 def _sha256(path: Path) -> str:
@@ -61,3 +62,30 @@ def test_validate_package_requires_and_checks_every_evidence_root(
         assert "evidence" in str(error)
     else:
         raise AssertionError("changed secondary evidence must invalidate the package")
+
+
+def test_packaging_runs_complete_release_gate(monkeypatch, tmp_path: Path) -> None:
+    report = tmp_path / "report"
+    evidence = [tmp_path / "evidence-a", tmp_path / "evidence-b"]
+    receipt = tmp_path / "visual.json"
+    calls = []
+
+    monkeypatch.setattr(
+        packager,
+        "check",
+        lambda report_dir, evidence_dirs, selection, *, require_complete: calls.append(
+            ("report", report_dir, evidence_dirs, selection, require_complete)
+        ),
+    )
+    monkeypatch.setattr(packager, "check_links", lambda report_dir: calls.append(("links", report_dir)))
+    monkeypatch.setattr(
+        packager,
+        "check_visual",
+        lambda report_dir, receipt_path: calls.append(("visual", report_dir, receipt_path)),
+    )
+
+    packager.validate_release(report, evidence, receipt)
+
+    assert [call[0] for call in calls] == ["report", "links", "visual"]
+    assert calls[0][-1] is True
+    assert calls[2] == ("visual", report, receipt)

@@ -25,8 +25,8 @@ class Links(HTMLParser):
                 self.ids.add(value)
 
 
-def main() -> int:
-    root = Path(sys.argv[1]).resolve()
+def check(root: Path) -> None:
+    root = root.resolve()
     missing: list[str] = []
     pages = list(root.rglob("*.html"))
     parsed_pages: dict[Path, Links] = {}
@@ -57,10 +57,16 @@ def main() -> int:
                 if fragment not in parse_page(target).ids:
                     missing.append(f"{page.relative_to(root)} -> {value} (missing fragment)")
     if missing:
-        print("Broken local links:")
-        print("\n".join(missing))
-        return 1
+        raise ValueError("Broken local links:\n" + "\n".join(missing))
     print(f"Report link check: {len(pages)} logical report routes, 0 broken local links")
+
+
+def main() -> int:
+    try:
+        check(Path(sys.argv[1]))
+    except ValueError as error:
+        print(error)
+        return 1
     return 0
 
 

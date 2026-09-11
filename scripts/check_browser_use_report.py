@@ -33,6 +33,29 @@ from harness.browser_use.report import (
 from harness.browser_use.selection import load_pilot
 
 
+FORBIDDEN_READER_TERMS = (
+    "模型内完整配对",
+    "不等于共同根因",
+    "仅基准通过",
+    "仅对比通过",
+)
+
+
+def _check_reader_facing_ux(
+    report_dir: Path, rendered_pages: dict[Path, str]
+) -> None:
+    """Enforce stable, data-independent report presentation contracts."""
+
+    for page, text in rendered_pages.items():
+        term = next((term for term in FORBIDDEN_READER_TERMS if term in text), None)
+        if term:
+            raise ValueError(f"formal report contains unexplained internal term {term}: {page}")
+    for homepage in (report_dir / "index.html", report_dir / "en/index.html"):
+        text = rendered_pages[homepage]
+        if not re.search(r'<table\b[^>]*\bid=["\']core-metrics-table["\']', text, flags=re.I):
+            raise ValueError(f"report home page is missing the core metrics table: {homepage}")
+
+
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -352,6 +375,7 @@ def check(
     rendered_pages = {
         page: page.read_text(encoding="utf-8") for page in (*chinese_pages, *english_pages)
     }
+    _check_reader_facing_ux(report_dir, rendered_pages)
     if any('<html lang="en">' not in rendered_pages[page] for page in english_pages):
         raise ValueError("every Chinese report route must have an English mirror")
     cjk = re.compile(r"[\u3400-\u9fff]")
@@ -407,8 +431,8 @@ def check(
             raise ValueError(f"analysis contains a redundant or retired presentation: {forbidden}")
     participant_index = rendered_pages[report_dir / "adoption/index.html"]
     if (
-        "参评浏览器与统一实验条件" not in participant_index
-        or "参评选手是浏览器后端，不是 Agent 或 benchmark" in participant_index
+        "被测浏览器与固定实验条件" not in participant_index
+        or "参评选手" in participant_index
     ):
         raise ValueError("participant page must use neutral reader-facing terminology")
     if result_pages and any(
@@ -434,7 +458,7 @@ def check(
     standalone = (report_dir / "guide/article.html").read_text(encoding="utf-8")
     if "<script" in standalone or "assets/" in standalone:
         raise ValueError("standalone article must be self-contained and JavaScript-free")
-    article_heading = "失败结果必须追到根因"
+    article_heading = "失败原因"
     if (
         article_heading not in standalone
         or article_heading not in rendered_pages[report_dir / "guide/index.html"]
