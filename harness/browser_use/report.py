@@ -18,10 +18,10 @@ ROOT = Path(__file__).resolve().parents[2]
 PAGES = tuple(
     (slug, label, f"{REPORT_STEM}{suffix}.html")
     for slug, label, suffix in (
-        ("index", "评测结论", ""),
-        ("results", "结果、失败与证据", "-results"),
-        ("suite", "评测任务", "-suite"),
-        ("research", "评测选型依据", "-research"),
+        ("index", "结论", ""),
+        ("results", "评测结果", "-results"),
+        ("suite", "数据集", "-suite"),
+        ("research", "选型依据", "-research"),
         ("method", "方法与核验", "-method"),
         ("appendix", "复现与变更", "-appendix"),
     )
@@ -265,7 +265,7 @@ def _shell(
         else "<span></span>"
     )
     header = (
-        f'<div class="case-header"><a href="{REPORT_STEM}-results.html#{_e(back_anchor)}">← 返回结果与失败</a>'
+        f'<div class="case-header"><a href="{REPORT_STEM}-results.html#{_e(back_anchor)}">← 返回评测结果</a>'
         f'<a href="{REPORT_STEM}.html">Chromium / Moli 评测</a><span class="muted">运行 {_e(manifest.get("run_id", "unknown"))}</span></div>'
         if detail_title
         else f'<div class="brand"><div class="eyebrow">WebArena Fixed-Trajectory Replay</div><h1>Chromium 与 Moli：WebArena 固定轨迹回放评测</h1><div class="muted">公开人工轨迹的确定性重放 · 排除 Agent 与模型变量 · 运行 {_e(manifest.get("run_id", "unknown"))}</div></div>{_nav(active)}'
@@ -279,6 +279,7 @@ def _shell(
 .case-header{{display:flex;align-items:center;gap:24px;padding:15px 0;font-size:13px}}.case-header a{{text-decoration:none}}.case-header span{{margin-left:auto}}.case-detail h1{{font-size:25px}}.case-detail h2{{font-size:19px}}.case-detail h3{{font-size:14px}}.case-id{{font-size:12px;overflow-wrap:anywhere}}.case-facts{{display:flex;gap:40px;padding:12px 0}}.case-facts span,.case-facts strong{{display:block}}.case-facts span{{font-size:12px;color:var(--muted)}}.case-facts strong{{font-size:19px}}.case-detail .diagnosis-panel{{padding:12px 14px;margin:10px 0}}.case-detail .diagnosis-panel>span{{margin-left:16px;font-size:13px}}.case-start{{font-size:13px;overflow-wrap:anywhere}}.case-nav{{position:sticky;top:0;z-index:2;background:#edf2f8;padding:8px 0;border-bottom:1px solid var(--line);margin-bottom:16px}}.case-nav a{{background:#fff;border:1px solid var(--line);font-size:13px}}.case-nav a:hover{{background:#e8eeff}}.case-detail [id]{{scroll-margin-top:66px}}.case-detail table{{min-width:600px}}.case-detail th,.case-detail td{{padding:9px 12px;font-size:13px;overflow-wrap:anywhere}}.step-comparison table{{table-layout:fixed}}.step-comparison th:first-child{{width:50px}}.step-comparison th:nth-child(2){{width:38%}}.step-comparison small{{display:block;color:var(--muted)}}.evidence-link{{display:block;font-size:12px;margin-top:3px}}.evidence-item{{border-top:1px solid var(--line);padding:16px 0 4px}}.evidence-item .section-heading{{margin-bottom:4px}}.evidence-item p{{font-size:12px}}.evidence-item pre{{max-height:260px;overflow:auto;margin:8px 0;line-height:1.55}}.evidence-item:target{{outline:2px solid var(--accent);outline-offset:5px}}.case-detail a:focus-visible,.case-detail pre:focus-visible,.case-header a:focus-visible{{outline:2px solid var(--accent);outline-offset:3px}}@media(max-width:650px){{.case-header{{flex-wrap:wrap;gap:8px 18px}}.case-header span{{margin-left:0;width:100%}}.case-facts{{flex-wrap:wrap;gap:12px 24px}}.case-detail .diagnosis-panel>span{{display:block;margin:4px 0}}.case-detail h1{{font-size:22px}}.case-detail .stackable table{{min-width:0}}.case-detail .stackable{{overflow:visible}}}}
 .action-name{{display:block;width:fit-content;background:#eaf0fb;color:#234887;border:1px solid #d8e3f4;border-radius:5px;padding:1px 6px;margin-bottom:5px;font-size:12px;font-weight:650}}.expected-values{{margin:10px 0 0}}.expected-values>div{{display:grid;grid-template-columns:minmax(90px,140px) 1fr;gap:16px;padding:6px 0;border-top:1px solid var(--line)}}.expected-values dt{{font:12px/1.8 ui-monospace,monospace;color:var(--muted);overflow-wrap:anywhere}}.expected-values dd{{margin:0;overflow-wrap:anywhere}}.source-mark{{font-family:system-ui;color:#5f6c81;background:#e2e8f0;border-radius:3px;padding:0 3px;margin-left:2px}}.task-verification .source-mark{{display:inline;margin:0 0 0 2px}}.source-mark-note{{font-size:12px;color:var(--muted);margin-top:8px}}.evidence-index{{display:none}}.evidence-enhanced .evidence-index{{display:block}}.evidence-enhanced .evidence-item{{display:none}}.evidence-index .evidence-link{{display:grid;grid-template-columns:64px 1fr 36px;gap:12px;align-items:start;border-top:1px solid var(--line);padding:10px 0;text-decoration:none;font-size:13px}}.evidence-index .evidence-link>span:nth-child(2){{color:var(--ink)}}.evidence-index .evidence-link:hover{{background:var(--panel)}}html.evidence-enhanced{{scrollbar-gutter:stable}}html.evidence-modal-open{{overflow:hidden}}#evidence-dialog{{width:min(960px,calc(100vw - 40px));max-height:85vh;padding:24px;border:1px solid var(--line);border-radius:14px;color:var(--ink);box-shadow:0 24px 80px #10182840}}#evidence-dialog[open]{{display:flex;flex-direction:column}}#evidence-dialog::backdrop{{background:rgba(15,23,42,.48)}}.dialog-heading{{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}}.dialog-heading h2{{font-size:19px;margin:0;line-height:1.4}}.dialog-heading p{{font-size:13px;margin:5px 0 12px}}.dialog-heading button{{padding:7px 14px;background:#f4f7fb;border:1px solid var(--line);border-radius:7px;color:var(--ink);cursor:pointer;white-space:nowrap}}#evidence-dialog pre{{min-height:70px;min-width:0;max-height:65vh;overflow:auto;margin:8px 0 0;font-size:13px;line-height:1.65;flex:1}}#evidence-action{{font-size:13px;margin:0 0 6px}}#evidence-dialog :focus-visible{{outline:2px solid var(--accent);outline-offset:3px}}@media(max-width:600px){{#evidence-dialog{{width:calc(100vw - 20px);padding:16px;max-height:90vh}}.expected-values>div{{grid-template-columns:90px 1fr;gap:8px}}}}@media print{{.evidence-enhanced .evidence-item{{display:block}}.evidence-index,#evidence-dialog{{display:none!important}}}}
 .rule-comparison table{{min-width:900px}}.rule-reason,.rule-actual{{display:block;margin-top:5px}}.rule-reason{{color:var(--bad)}}.rule-actual{{color:var(--muted)}}
+.benchmark-tabs,.comparison-controls{{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px}}.benchmark-tabs button,.comparison-controls button{{border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);padding:7px 12px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}}.benchmark-tabs button.active,.comparison-controls button.active{{color:#173fa8;background:#e8eeff;border-color:#c8d5fb}}.result-guide{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:16px}}.result-guide a{{display:block;text-decoration:none;border:1px solid var(--line);border-radius:9px;padding:11px 12px;color:var(--ink)}}.result-guide a:hover{{background:#edf3ff}}.result-guide strong,.result-guide span{{display:block}}.result-guide span{{color:var(--muted);font-size:12px;margin-top:2px}}.metric-module>summary{{display:flex;justify-content:space-between;align-items:center;font-size:16px}}.metric-module>summary small{{color:var(--muted);font-size:12px}}.rank-grid,.distribution-grid{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}}.rank-card,.distribution-item{{position:relative;min-width:0;border:1px solid var(--line);border-radius:11px;padding:15px;background:#fff}}.rank-card{{padding-left:48px}}.rank-card h3{{margin:0 0 3px}}.rank-card p{{font-size:13px;color:var(--muted)}}.rank-number{{position:absolute;left:14px;top:14px;width:24px;height:24px;border-radius:50%;background:#e8eeff;color:#173fa8;text-align:center;font-weight:800;line-height:24px}}.distribution-item strong,.distribution-item span{{display:block}}.distribution-item span{{font-size:12px;color:var(--muted);font-weight:750;margin-bottom:5px}}.distribution-item strong{{font-size:13px;line-height:1.5}}.benchmark-grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}}.benchmark-card{{min-width:0;border:1px solid var(--line);border-radius:13px;padding:18px;background:#fff}}.benchmark-title{{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}}.benchmark-title h3{{margin:0}}.benchmark-title p{{margin:2px 0;color:var(--muted);font-size:13px}}.category-chip{{flex:none;background:var(--panel);border-radius:999px;padding:3px 8px;font-size:11px;color:var(--muted)}}.benchmark-kpis{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:13px 0}}.benchmark-kpis span{{min-width:0;background:var(--panel);border-radius:8px;padding:9px;font-size:11px;color:var(--muted);overflow-wrap:anywhere}}.benchmark-kpis strong{{display:block;color:var(--ink);font-size:13px;line-height:1.35;margin-bottom:3px}}.benchmark-facts,.benchmark-more{{margin:0}}.benchmark-facts>div,.benchmark-more>div{{display:grid;grid-template-columns:92px minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid #e8edf5}}.benchmark-facts dt,.benchmark-more dt{{font-size:12px;font-weight:750;color:var(--muted)}}.benchmark-facts dd,.benchmark-more dd{{margin:0;font-size:13px}}.benchmark-sources{{font-size:12px;margin-bottom:0}}.comparison-toolbar{{display:flex;justify-content:space-between;gap:16px;align-items:end;flex-wrap:wrap}}.comparison-toolbar label{{font-size:12px;font-weight:700;color:var(--muted)}}.comparison-toolbar input{{display:block;min-width:260px;margin-top:4px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit}}.comparison-grid{{border:1px solid var(--line);border-radius:10px;overflow:hidden}}.comparison-head,.comparison-row{{display:grid;grid-template-columns:minmax(260px,2.1fr) minmax(125px,.75fr) minmax(125px,.75fr) minmax(150px,1fr);gap:12px;align-items:center;padding:10px 12px}}.comparison-head{{background:var(--panel);font-size:13px;font-weight:800}}.comparison-row{{border-top:1px solid var(--line)}}.comparison-row[hidden]{{display:none}}.comparison-row .task-name{{font-weight:700;overflow-wrap:anywhere}}.result-link{{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:750}}.comparison-note{{font-size:12px;color:var(--muted)}}@media(max-width:760px){{.result-guide{{grid-template-columns:repeat(2,minmax(0,1fr))}}.suite-stats,.rank-grid,.distribution-grid{{grid-template-columns:repeat(3,minmax(0,1fr))}}.benchmark-grid{{grid-template-columns:1fr}}.benchmark-kpis{{grid-template-columns:1fr 1fr}}.comparison-head{{display:none}}.comparison-grid{{border:0}}.comparison-row{{grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:9px;margin-bottom:9px}}.comparison-row .task-name,.comparison-row .comparison-note{{grid-column:1/-1}}.comparison-row>[data-label]::before{{content:attr(data-label);display:block;color:var(--muted);font-size:11px;font-weight:700}}.metric-module .stackable{{max-width:100%;overflow:auto;border:1px solid var(--line)}}.metric-module .stackable table{{display:table;width:100%;min-width:620px}}.metric-module .stackable thead{{display:table-header-group}}.metric-module .stackable tbody{{display:table-row-group}}.metric-module .stackable tr{{display:table-row;border:0}}.metric-module .stackable th,.metric-module .stackable td{{display:table-cell;width:auto}}.metric-module .stackable td::before{{content:none}}}}@media(max-width:560px){{.rank-grid,.distribution-grid{{grid-template-columns:1fr}}}}@media(max-width:480px){{.result-guide{{grid-template-columns:1fr}}.suite-stats{{grid-template-columns:1fr}}.benchmark-kpis{{grid-template-columns:1fr}}.benchmark-facts>div,.benchmark-more>div{{grid-template-columns:1fr;gap:2px}}.comparison-toolbar input{{min-width:0;width:100%}}}}
 </style></head><body><header><div class="wrap">{header}</div></header><main>{body}{pager}</main><footer>Lexmount WebArena Fixed-Trajectory Replay</footer></body></html>"""
 
 
@@ -432,43 +433,40 @@ def _research_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
                 ),
             ]
         )
+    adoption_cards = "".join(
+        f'<article class="rank-card"><span class="rank-number">{_e(row[0])}</span><h3>{_e(row[1])}</h3>'
+        f'<strong>{_e(row[2])} 家机构采用</strong><p>{_e(row[3])}</p>'
+        f'<details><summary>具体版本</summary><p>{_e(row[4])}</p></details></article>'
+        for row in adoption_rows[:3]
+    )
 
-    benchmark_headers = [
-        "Benchmark / 版本",
-        "任务数量",
-        "环境 / 在线",
-        "本地部署 / 账号",
-        "输入与参考轨迹",
-        "最终验收与评分",
-        "难度定义",
-        "许可证",
-        "成本",
-        "稳定性与已知问题",
-    ]
-    benchmark_sections = []
     benchmarks = catalog.get("benchmarks") or []
-    for category, label in CATEGORY_LABELS.items():
-        selected = [row for row in benchmarks if row.get("category") == category]
-        rows = []
-        for row in selected:
-            rows.append(
-                [
-                    f"{row.get('name')}；{row.get('version')}",
-                    row.get("task_count"),
-                    f"{row.get('environment')}\n在线：{row.get('online')}",
-                    f"本地：{row.get('local_deployment')}\n账号：{row.get('account_requirement')}",
-                    f"{row.get('input_and_trajectory')}\n参考轨迹：{row.get('reference_trajectory')}",
-                    f"验收：{row.get('final_acceptance')}\n评分：{row.get('scoring')}",
-                    row.get("difficulty"),
-                    row.get("license"),
-                    row.get("cost"),
-                    f"{row.get('stability')}\n已知问题：{row.get('known_issues')}",
-                ]
-            )
-        benchmark_sections.append(
-            f'<section class="card"><h2>{_e(label)}</h2>'
-            + _table(benchmark_headers, rows, f"{label}，仅在本类内比较")
-            + "</section>"
+    benchmark_cards = []
+    for row in benchmarks:
+        category = str(row.get("category"))
+        sources = " · ".join(
+            f'<a href="{_e(url)}" target="_blank" rel="noopener">来源 {index}</a>'
+            for index, url in enumerate(row.get("source_urls") or [], 1)
+        )
+        benchmark_cards.append(
+            f'<article class="benchmark-card" data-category="{_e(category)}">'
+            f'<div class="benchmark-title"><div><h3>{_e(row.get("name"))}</h3><p>{_e(row.get("version"))}</p></div>'
+            f'<span class="category-chip">{_e(CATEGORY_LABELS.get(category, category))}</span></div>'
+            f'<div class="benchmark-kpis"><span><strong>{_e(row.get("task_count"))}</strong>任务规模</span>'
+            f'<span><strong>{_e(row.get("online"))}</strong>是否在线</span>'
+            f'<span><strong>{_e(row.get("reference_trajectory"))}</strong>参考轨迹</span></div>'
+            '<dl class="benchmark-facts">'
+            f'<div><dt>环境</dt><dd>{_e(row.get("environment"))}</dd></div>'
+            f'<div><dt>部署与账号</dt><dd>{_e(row.get("local_deployment"))}；{_e(row.get("account_requirement"))}</dd></div>'
+            f'<div><dt>输入</dt><dd>{_e(row.get("input_and_trajectory"))}</dd></div>'
+            f'<div><dt>验收与评分</dt><dd>{_e(row.get("final_acceptance"))}；{_e(row.get("scoring"))}</dd></div>'
+            '</dl><details><summary>难度、成本与复现限制</summary><dl class="benchmark-more">'
+            f'<div><dt>难度</dt><dd>{_e(row.get("difficulty"))}</dd></div>'
+            f'<div><dt>许可证</dt><dd>{_e(row.get("license"))}</dd></div>'
+            f'<div><dt>成本</dt><dd>{_e(row.get("cost"))}</dd></div>'
+            f'<div><dt>稳定性</dt><dd>{_e(row.get("stability"))}</dd></div>'
+            f'<div><dt>已知问题</dt><dd>{_e(row.get("known_issues"))}</dd></div>'
+            f'</dl></details><p class="benchmark-sources">{sources}</p></article>'
         )
 
     engineering = sorted(
@@ -489,6 +487,11 @@ def _research_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         ]
         for row in engineering
     ]
+    engineering_cards = "".join(
+        f'<article class="rank-card"><span class="rank-number">{_e(row[0])}</span><h3>{_e(row[1])}</h3>'
+        f'<p>{_e(row[2])}</p></article>'
+        for row in engineering_rows
+    )
     source_links = []
     for record in records:
         source_links.append(
@@ -496,53 +499,46 @@ def _research_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
             f'<a href="{_e(record.get("url"))}" target="_blank" rel="noopener">'
             f'{_e(record.get("benchmark_version"))}</a></li>'
         )
-    benchmark_source_links = []
-    for row in benchmarks:
-        benchmark_source_links.append(
-            '<li>'
-            + _e(row.get("name"))
-            + '：'
-            + " · ".join(
-                f'<a href="{_e(url)}" target="_blank" rel="noopener">来源 {i}</a>'
-                for i, url in enumerate(row.get("source_urls") or [], 1)
-            )
-            + "</li>"
-        )
+    category_buttons = "".join(
+        f'<button type="button" data-category="{_e(category)}"'
+        + (' class="active" aria-pressed="true"' if category == "end_to_end_browser_use" else ' aria-pressed="false"')
+        + f'>{_e(label)}</button>'
+        for category, label in CATEGORY_LABELS.items()
+    )
+    catalog_script = """<script>(()=>{const buttons=[...document.querySelectorAll('.benchmark-tabs button')];
+const cards=[...document.querySelectorAll('.benchmark-card')];const count=document.getElementById('benchmark-count');
+function show(category){for(const card of cards)card.hidden=card.dataset.category!==category;for(const button of buttons){const active=button.dataset.category===category;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));}count.textContent=`显示 ${cards.filter(card=>!card.hidden).length} 个同类 benchmark`;}
+for(const button of buttons)button.onclick=()=>show(button.dataset.category);show('end_to_end_browser_use');})();</script>"""
     return (
-        '<section class="card note"><h2>选型结论</h2>'
+        '<section class="card note"><h2>为什么选择 WebArena-Verified</h2>'
         '<p><strong>固定轨迹比较浏览器内核，首选 WebArena-Verified。</strong>'
         '采用次数只能说明公开认可度，不能说明它最适合隔离浏览器变量。WebArena 与 Mind2Web 家族在限定的一方材料中各有 3 家机构采用；工程选择仍由自托管、可重放轨迹和程序化最终状态验收决定。</p>'
-        '<p>本报告把 benchmark 分为四类，不做跨类排名。原始 Mind2Web、Online-Mind2Web 与 Mind2Web 2 也分别统计，因为三者测量对象不同。</p></section>'
-        '<section class="card"><h2>公开轨迹正式结果</h2>'
-        f'<p>正式分母为资格验证后冻结的 {len(manifest.get("suite") or [])} 个 WebArena-Verified 任务。'
-        '两个浏览器执行相同轨迹；每个 task/browser 只有一个主样本，首次失败才补一次重试。主指标是首次成功，恢复数与最终成功率单独报告。</p>'
-        + _correctness_table(summary)
-        + '<p class="muted">这批任务用于验证固定操作路径的兼容性。它不能推出 Chromium 或 Moli 在任意网站、任意 agent 下的总体优势。仓库原有 30 例另属确定性工具微基准，不与这里合并分母。</p></section>'
+        '<p>候选集按端到端 browser-use、综合 computer-use、GUI grounding、网页搜索与研究分开整理，不跨类排名。原始 Mind2Web、Online-Mind2Web 与 Mind2Web 2 测量对象不同，因此分别统计。</p></section>'
         '<section class="card"><h2>端到端 browser-use 采用 Top 3</h2>'
         '<p>统计范围只含 OpenAI、Anthropic、Google、DeepSeek、智谱/ChatGLM、Moonshot/Kimi 的模型卡、技术报告和官方仓库。同一机构同一家族只计一次，保留具体版本。采用数相同后依次看最新官方采用、公开获取和可复现性。</p>'
-        + _table(["名次", "Benchmark 家族", "采用机构数", "机构", "具体版本"], adoption_rows[:3], "一方材料采用统计")
+        + f'<div class="rank-grid">{adoption_cards}</div>'
         + '<p class="muted">本次限定的一方材料中没有检出可计入 DeepSeek 或 Moonshot/Kimi 的端到端 browser-use benchmark 记录。这不等于这些机构从未做过内部评测。</p>'
         + '<details><summary>查看采用证据链接</summary><ul>'
         + "".join(source_links)
         + '</ul></details></section>'
         '<section class="card"><h2>工程适用性 Top 3</h2>'
-        + _table(["名次", "Benchmark", "用于本项目的理由"], engineering_rows, "比较 Chromium 与 Moli 的工程排序")
+        + f'<div class="rank-grid">{engineering_cards}</div>'
         + '<p>WebVoyager 只保留为历史参照。OSWorld 2.0 太宽，ScreenSpot-Pro 只测单步定位；它们都不会进入本轮固定轨迹正式分母。</p></section>'
-        '<section class="card"><h2>Mind2Web 家族不能合并</h2><ul>'
+        '<section class="card"><h2>Mind2Web 家族的三套评测</h2><ul>'
         '<li>原始 Mind2Web 是离线 HTML 和动作预测数据集。它适合比较元素选择与动作预测，不能真正比较 Chromium 和 Moli。</li>'
         '<li>Online-Mind2Web 在 300 个真实网站任务上判断最终任务是否完成。截图、URL 和轨迹是 judge 证据，并不要求复现固定动作序列；WebJudge 是 LLM-as-a-judge。</li>'
         '<li>Online-Mind2Web 的 easy、medium、hard 按人工参考路径长度划分，分别为不超过 5 步、6 到 10 步、至少 11 步。这个标签不是网站难度，也不是 agent 实际执行步数。</li>'
         '<li>Mind2Web 2 有 130 个长程研究任务，评估实时搜索、综合回答和引用归因，属于网页研究类。</li></ul></section>'
-        '<section class="card"><h2>Browser Use 官方实践怎么借鉴</h2>'
+        '<section class="card"><h2>Browser Use 官方实践</h2>'
         '<p>Browser Use 当前公开仓库同时维护 BU Bench V1 和 Online-Mind2Web 运行结果。前者有 100 个经过筛选的混合任务，后者便于与公开生态比较。两者都保留运行轨迹，但都没有可直接当作标准操作路径的 gold trajectory。</p>'
         '<p>本项目采用它们对任务失效、验证码、外部认证和不可验收任务的处理原则，也保留完整轨迹；不照搬多次采样或 bootstrapping，因为这里测的是固定路径与浏览器兼容性。</p></section>'
-        '<section class="card"><h2>架构结论</h2>'
+        '<section class="card"><h2>运行架构</h2>'
         '<p>这些用例不要求 AMD。远端 Intel x86-64 主机可以运行官方 amd64 镜像。179 条官方 WebArena 人类录制中，本项目在运行前排除了 4 条只适配 arm64 Wikipedia 环境的任务，并排除了 3 条已确认的 evaluator 缺陷；172 条进入 amd64 资格验证。最终只有冷 Chromium 重放、程序 evaluator 和证据完整性同时通过的 '
         f'{len(manifest.get("suite") or [])} 条轨迹进入正式双浏览器分母。</p></section>'
-        + "".join(benchmark_sections)
-        + '<section class="card"><h2>Benchmark 来源</h2><ul>'
-        + "".join(benchmark_source_links)
-        + "</ul></section>"
+        + '<section class="card"><div class="section-heading"><div><h2>候选评测集</h2><p class="muted">先按类别筛选，再展开单项的复现限制；不同类别不直接排名。</p></div><span id="benchmark-count" class="muted"></span></div>'
+        + f'<div class="benchmark-tabs" role="group" aria-label="Benchmark 类别">{category_buttons}</div>'
+        + '<div class="benchmark-grid">' + "".join(benchmark_cards) + '</div></section>'
+        + catalog_script
         + f'<section class="card"><p class="muted">资料核对日期：{_e(catalog.get("verified_on"))}。表内“成本”只描述成本来源，没有把未实测价格写成数字。</p></section>'
     )
 
@@ -748,20 +744,25 @@ def _results_page(
     paired = (summary.get("resource_comparison") or {}).get("intersection_attempts", 0)
     result_overview = (
         '<section class="card note"><h2>正确性优先，资源数据只看成功交集</h2><p>结果表覆盖全部 30 个任务；速度、CPU、内存与网络表只统计两个浏览器首次都成功的同任务。失败和重试不混入正常路径资源比较。</p></section>'
-        '<section class="card"><h2>总体结果</h2><p class="muted">同一行或同一分组中较优值以粗体绿色标出；相同值保持中性。</p>' + _correctness_table(summary) + '</section>'
+        '<section class="card result-guide" aria-label="结果页模块"><a href="#correctness"><strong>正确性</strong><span>首次、恢复与最终通过</span></a><a href="#performance"><strong>速度与资源</strong><span>时间、CPU、内存、网络</span></a><a href="#task-comparison"><strong>任务对照</strong><span>同任务双浏览器结果</span></a><a href="#failure-review"><strong>失败复核</strong><span>分类、日志与原始证据</span></a></section>'
+        '<section class="card" id="correctness"><h2>总体结果</h2><p class="muted">同一行或同一分组中较优值以粗体绿色标出；相同值保持中性。</p>' + _correctness_table(summary) + '</section>'
     )
-    breakdowns = (
+    resource_section = (
+        f'<section class="card" id="performance"><h2>速度、CPU、内存与网络</h2><p>统计范围：{paired} 个双方首次成功的配对任务。绿色表示当前表内较低值；配对比值定义为 <code>Moli / Chromium</code>。</p>{_metric_tables(summary)}{_duration_ratio_audit(summary)}</section>'
+    )
+    slices = (
         '<section class="card"><h2>按轨迹复杂度分组</h2><p class="muted">简单、中等、复杂是本项目基于参考轨迹操作数的公开分组，不是 WebArena 官方难度标签。</p>'
         + _table(["轨迹分组", "Chromium 首次", "Chromium 最终", "Moli 首次", "Moli 最终"], complexity_rows, "分组正确性") + '</section>'
         '<section class="card"><h2>按自托管站点分组</h2>'
         + _table(["站点", "任务数", "Chromium 最终", "Moli 最终"], site_rows, "站点兼容性切片") + '</section>'
-        f'<section class="card" id="performance"><h2>双方首次成功任务的速度与资源</h2><p>统计范围：{paired} 个配对任务。绿色表示当前表内较低值；配对比值定义为 <code>Moli / Chromium</code>。</p>{_metric_tables(summary)}{_duration_ratio_audit(summary)}</section>'
     )
     details = detail_pages if detail_pages is not None else {}
     return (
         result_overview
+        + resource_section
+        + _task_comparison(summary)
+        + slices
         + _execution_explorer(manifest, summary, details)
-        + breakdowns
         + '<section class="card"><h2>尚未确认的内部根因</h2><p>失败日志已经能区分环境准备、页面交互与最终验收，但还不能证明 Moli 内部具体是哪一层导致差异。后续对照实验应固定页面、选择器和调用，测量 DOM 更新、布局、可见性与 actionability 恢复时间；在证据出现前，不把 screencast、渲染器或适配层写成已确认根因。</p></section>'
     )
 
@@ -868,23 +869,13 @@ def _suite_page(manifest: dict[str, Any]) -> str:
         f'<div class="metric"><strong>{len(site_counts)}</strong><span>{"自托管站点" if webarena else "独立网站/域名"}</span></div>'
         f'<div class="metric"><strong>{sum(action_counts.values())}</strong><span>参考 BrowserTool 调用</span></div>'
         "</div>"
-        + _table(
-            ["维度", "分布"],
-            [
-                ["难度", difficulty_summary],
-                [
-                    "网站",
-                    "；".join(f"{host} {count}" for host, count in sorted(site_counts.items())),
-                ],
-                [
-                    "能力",
-                    "；".join(
-                        f"{action} {count}" for action, count in sorted(action_counts.items())
-                    ),
-                ],
-            ],
-            "评测集分布",
-        )
+        + '<div class="distribution-grid">'
+        + f'<div class="distribution-item"><span>轨迹复杂度</span><strong>{_e(difficulty_summary)}</strong></div>'
+        + '<div class="distribution-item"><span>网站分布</span><strong>'
+        + _e("；".join(f"{host} {count}" for host, count in sorted(site_counts.items())))
+        + '</strong></div><div class="distribution-item"><span>操作分布</span><strong>'
+        + _e("；".join(f"{action} {count}" for action, count in sorted(action_counts.items())))
+        + '</strong></div></div>'
     )
     cards = []
     for index, task in enumerate(suite, 1):
@@ -992,8 +983,20 @@ const match=(!q||d.search.toLowerCase().includes(q))&&(!controls.difficulty.valu
 card.hidden=!match;if(match)count++;}document.getElementById('suite-count').textContent=`显示 ${count} / ${cards.length} 个任务`;document.getElementById('suite-empty').hidden=count!==0;}
 for(const [key,el] of Object.entries(controls))el.addEventListener(key==='query'?'input':'change',apply);
 document.getElementById('suite-reset').onclick=()=>{for(const el of Object.values(controls))el.value='';apply();};apply();})();</script>"""
+    if webarena:
+        evaluator_count = sum(1 for task in suite if task.get("evaluator"))
+        validation_note = (
+            f'<p class="muted">程序 evaluator：{evaluator_count}/{len(suite)} 个任务已绑定。'
+            f'任务清单 SHA-256：<code>{_e(str(manifest.get("suite_sha256") or "")[:16])}</code>。</p>'
+        )
+    else:
+        validation_note = (
+            f'<p class="muted">答案核验：{_e(validation.get("validator") or "未记录")}，'
+            f'{_e(replay.get("passed"))}/{_e(replay.get("total"))} 已核验。数据集 SHA-256：'
+            f'<code>{_e(str(validation.get("dataset_sha256") or "")[:16])}</code>。</p>'
+        )
     return (
-        f'<section class="card note"><h2>评测集概览</h2>{distribution}<p class="muted">答案核验：{_e(validation.get("validator") or "未记录")}，{_e(replay.get("passed"))}/{_e(replay.get("total"))} 已核验。数据集 SHA-256：<code>{_e(str(validation.get("dataset_sha256") or "")[:16])}</code>。</p><details><summary>标注来源与版本</summary><p>{_e(validation.get("method") or "未记录")}</p></details></section>'
+        f'<section class="card note"><h2>评测集概览</h2>{distribution}{validation_note}<details><summary>标注来源与版本</summary><p>{_e(validation.get("method") or "WebArena 官方任务、公开人类录制与程序 evaluator；本轮清单由资格验证结果冻结。")}</p></details></section>'
         + filters
         + "".join(cards)
         + script
@@ -1067,23 +1070,20 @@ METRICS = (
 
 
 def _metric_tables(summary: dict[str, Any]) -> str:
-    absolute = "".join(
-        _grouped_resource_table(summary, metrics, f"{group}绝对值（均为越低越好）")
-        for group, metrics in METRICS
-    )
-    paired = "".join(
-        _paired_ratio_table(
-            summary,
-            metrics,
-            f"{group}逐任务 Moli / Chromium 配对比值（均为越低越好）",
+    modules = []
+    for index, (group, metrics) in enumerate(METRICS):
+        modules.append(
+            f'<details class="metric-module"{" open" if index == 0 else ""}><summary><span>{_e(group)}</span><small>{len(metrics)} 项指标</small></summary>'
+            + _grouped_resource_table(summary, metrics, f"{group}绝对值（均为越低越好）")
+            + '<p class="muted">逐任务先计算 <code>Moli / Chromium</code>，再汇总比值；不是两个浏览器边际分位数相除。</p>'
+            + _paired_ratio_table(
+                summary,
+                metrics,
+                f"{group}逐任务 Moli / Chromium 配对比值（均为越低越好）",
+            )
+            + "</details>"
         )
-        for group, metrics in METRICS
-    )
-    return (
-        absolute
-        + "<h3>逐任务配对比值分布</h3><p>先对每个同任务计算 <code>Moli / Chromium</code>，再汇总这些比值；P50、P95 与平均值都来自同一批逐任务比值，不是两个 Provider 边际分位数相除。</p>"
-        + paired
-    )
+    return "".join(modules)
 
 
 def _task_detail_body(
@@ -1614,6 +1614,64 @@ def _execution_details(
     return "".join(blocks) or "<p>没有可展示的执行样本。</p>"
 
 
+def _task_comparison(summary: dict[str, Any]) -> str:
+    rows = []
+    for task_id, task in (summary.get("by_task") or {}).items():
+        attempts_by_engine = task.get("attempts") or task.get("failures") or {}
+        statuses: dict[str, str] = {}
+        links = []
+        for engine in ("chromium", "moli"):
+            attempts = attempts_by_engine.get(engine) or []
+            final = attempts[-1] if attempts else {}
+            status = str(final.get("result_status") or final.get("status") or "missing")
+            statuses[engine] = status
+            label = "通过" if status == "pass" else "未通过" if status == "fail" else "缺少记录"
+            css = "ok" if status == "pass" else "bad"
+            links.append(
+                (
+                    f'<a class="result-link {css}" href="{_detail_filename(str(task_id), engine)}">'
+                    f'{label}<span aria-hidden="true">→</span></a>'
+                )
+                if attempts
+                else f'<span class="{css}">{label}</span>'
+            )
+        different = statuses["chromium"] != statuses["moli"]
+        any_fail = "fail" in statuses.values() or "missing" in statuses.values()
+        comparison = (
+            "结果不同，优先核对"
+            if different
+            else "双方均通过"
+            if statuses["chromium"] == "pass"
+            else "双方均未通过"
+        )
+        title = str(task.get("title") or task_id)
+        rows.append(
+            f'<div class="comparison-row" data-view="{"different" if different else "same"}" '
+            f'data-failure="{"true" if any_fail else "false"}" data-search="{_e(_trace_text(f"{task_id} {title}"))}">'
+            f'<span class="task-name" data-label="任务">{_e(title)}<small class="muted">{_e(task_id)}</small></span>'
+            f'<span data-label="Chromium">{links[0]}</span><span data-label="Moli">{links[1]}</span>'
+            f'<span class="comparison-note" data-label="对照结论">{comparison}</span></div>'
+        )
+    script = """<script>(()=>{const rows=[...document.querySelectorAll('.comparison-row')];
+const buttons=[...document.querySelectorAll('.comparison-controls button')],query=document.getElementById('comparison-query'),count=document.getElementById('comparison-count');let view='different';
+function apply(){const q=query.value.trim().toLowerCase();let n=0;for(const row of rows){const visible=(!q||row.dataset.search.toLowerCase().includes(q))&&(view==='all'||(view==='failure'&&row.dataset.failure==='true')||(view==='different'&&row.dataset.view==='different'));row.hidden=!visible;if(visible)n++;}count.textContent=`显示 ${n} / ${rows.length} 个任务`;}
+for(const button of buttons)button.onclick=()=>{view=button.dataset.view;for(const item of buttons){const active=item===button;item.classList.toggle('active',active);item.setAttribute('aria-pressed',String(active));}apply();};query.addEventListener('input',apply);apply();})();</script>"""
+    return (
+        '<section class="card" id="task-comparison"><div class="section-heading"><div><h2>任务对照</h2>'
+        '<p class="muted">同一任务并排查看两个浏览器的最终验收结果；点击“通过”或“未通过”进入该浏览器的完整证据。</p></div>'
+        '<span id="comparison-count" class="muted"></span></div><div class="comparison-toolbar">'
+        '<div class="comparison-controls" role="group" aria-label="任务对照范围">'
+        '<button type="button" class="active" aria-pressed="true" data-view="different">仅看结果不同</button>'
+        '<button type="button" aria-pressed="false" data-view="failure">任一侧未通过</button>'
+        '<button type="button" aria-pressed="false" data-view="all">全部任务</button></div>'
+        '<label>搜索任务<input id="comparison-query" type="search" placeholder="任务名称或编号"></label></div>'
+        '<div class="comparison-grid"><div class="comparison-head" aria-hidden="true"><span>任务</span><span>Chromium</span><span>Moli</span><span>对照结论</span></div>'
+        + "".join(rows)
+        + '</div><p class="muted">这里用于找差异；下方“失败复核”用于归类，“执行证据”用于搜索错误、操作和验收明细。</p></section>'
+        + script
+    )
+
+
 def _execution_explorer(
     manifest: dict[str, Any], summary: dict[str, Any], detail_pages: dict[str, str]
 ) -> str:
@@ -1727,7 +1785,7 @@ addEventListener('hashchange',reveal);apply();reveal();
         "失败日志审查结论",
     )
     grid_head = '<div class="record-grid-head" aria-hidden="true"><span>任务</span><span>浏览器</span><span>程序验收</span><span>工具调用</span><span>错误类别</span><span>最终尝试耗时</span></div>'
-    return f"""{filter_anchors}<section class="card" id="failure-review"><div class="section-heading"><h2>失败日志审查</h2><a href="#execution-results">下钻到逐任务证据</a></div><p>本轮共有 <strong>{failed_attempts}</strong> 条失败物理尝试。下表逐条审查 <strong>{final_failures}</strong> 条最终失败的任务 × 浏览器记录，读取其最终错误、BrowserTool trace 和 evaluator 输出；重试前后的完整日志保留在任务详情。</p>{review_table}<p class="muted">这是发布前的证据审查，不是第二套评分。分类只概括直接失败机制；“元素不可见”“HAR 未匹配”等不自动等于浏览器内部根因。</p></section><section class="card" id="execution-results"><h2>逐任务结果与原始证据</h2><p>{logical_executions} 条任务 × 浏览器记录，{physical_attempts} 次执行。默认显示最终失败记录；点击任务可查看每次执行的操作、答案、判定、错误栈和 BrowserTool trace。</p>{filters}<div id="execution-list" class="record-grid" role="region" aria-label="逐任务执行记录" tabindex="0">{grid_head}{_execution_details(manifest, summary, detail_pages)}</div><p id="execution-empty" class="empty-state" role="status" hidden></p>{script}</section>"""
+    return f"""{filter_anchors}<section class="card" id="failure-review"><div class="section-heading"><h2>失败复核</h2><a href="#execution-results">查看执行证据</a></div><p>本轮共有 <strong>{failed_attempts}</strong> 条失败物理尝试。下表逐条复核 <strong>{final_failures}</strong> 条最终失败的任务 × 浏览器记录，读取其最终错误、BrowserTool trace 和 evaluator 输出；重试前后的完整日志保留在任务详情。</p>{review_table}<p class="muted">这不是第二套评分。分类只概括直接失败机制；“元素不可见”“HAR 未匹配”等不自动等于浏览器内部根因。</p></section><section class="card" id="execution-results"><h2>执行证据</h2><p>{logical_executions} 条任务 × 浏览器记录，{physical_attempts} 次执行。默认显示最终失败记录；点击任务可查看每次执行的操作、答案、判定、错误栈和 BrowserTool trace。</p>{filters}<div id="execution-list" class="record-grid" role="region" aria-label="逐任务执行记录" tabindex="0">{grid_head}{_execution_details(manifest, summary, detail_pages)}</div><p id="execution-empty" class="empty-state" role="status" hidden></p>{script}</section>"""
 
 
 def _review_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
@@ -1752,7 +1810,7 @@ def _review_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         ["浏览器架构", str((manifest.get("environment") or {}).get("docker_architecture") or "未记录"), "通过"],
     ]
     return (
-        '<section class="card note" id="verification"><h2>核验结论</h2><p><strong>这里核验分母、数据绑定和评分链路；失败日志审查在“结果、失败与证据”页单独披露。</strong>代码评审不等于执行证据复判，程序评分也不冒充人工评分。正式数字由持久证据重算；发布包必须与当前运行档案和哈希一致。</p></section>'
+        '<section class="card note" id="verification"><h2>核验结论</h2><p><strong>这里核验分母、数据绑定和评分链路；失败复核在“评测结果”页披露。</strong>代码评审不等于执行证据复判，程序评分也不冒充人工评分。正式数字由持久证据重算；发布包必须与当前运行档案和哈希一致。</p></section>'
         '<section class="card"><h2>从公开录制到正式分母</h2>'
         + _table(["环节", "范围", "验收规则"], rows, "资格与正式运行审计") + '</section>'
         '<section class="card"><h2>数据完整性</h2>'

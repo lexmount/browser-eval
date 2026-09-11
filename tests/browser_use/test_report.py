@@ -283,7 +283,7 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     )
     assert "端到端 browser-use 采用 Top 3" in research
     assert "工程适用性 Top 3" in research
-    assert "本报告把 benchmark 分为四类，不做跨类排名" in research
+    assert "候选集按端到端 browser-use" in research
     assert "原始 Mind2Web 是离线 HTML 和动作预测数据集" in research
     assert "这些用例不要求 AMD" in research
     assert "1 条轨迹进入正式双浏览器分母" in research
@@ -295,6 +295,11 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert not (reports / "webarena-trajectory-replay-latest-review.html").exists()
     assert (reports / "webarena-trajectory-replay-latest-data.json").exists()
     assert "总体结果" in results
+    assert 'class="card result-guide"' in results
+    assert "速度、CPU、内存与网络" in results
+    assert results.index("<h2>总体结果</h2>") < results.index("<h2>速度、CPU、内存与网络</h2>")
+    assert results.index("<h2>速度、CPU、内存与网络</h2>") < results.index("<h2>任务对照</h2>")
+    assert results.count('class="metric-module"') == 3
     assert 'class="better">4/4' in results
     suite = (reports / "webarena-trajectory-replay-latest-suite.html").read_text(encoding="utf-8")
     assert "1</strong><span>公网任务" in suite
@@ -302,6 +307,7 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert 'href="https://example.com"' in suite
     assert "navigate → get_text" in suite
     assert "heading = Example" in suite
+    assert 'class="distribution-grid"' in suite
     assert suite.count('href="https://example.com"') == 1
     assert suite.count("navigate → get_text") == 1
     assert "机器判定答案" not in suite
@@ -318,7 +324,15 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert "RX = Receive" in method
     assert "P50 与中位数是同一个统计量" in method
     assert "核验结论" in method
-    assert "评测选型依据" in research
+    assert "选型依据" in research
+    assert "数据集" in suite
+    assert "候选评测集" in research
+    assert 'class="benchmark-grid"' in research
+    assert 'class="rank-grid"' in research
+    assert 'data-category="end_to_end_browser_use"' in research
+    assert 'data-category="computer_use"' in research
+    assert 'data-category="gui_grounding"' in research
+    assert 'data-category="web_research"' in research
     assert "失败日志审查" in results
     assert "Codex" in method
     assert "<table" in rendered
@@ -500,15 +514,21 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
         },
     )
     results = (reports / "webarena-trajectory-replay-latest-results.html").read_text(encoding="utf-8")
-    assert "逐任务结果与原始证据" in results
-    assert "失败日志审查" in results
+    assert "任务对照" in results
+    assert "执行证据" in results
+    assert 'class="comparison-row"' in results
+    assert 'data-view="different"' in results
+    assert 'data-view="failure"' in results
+    assert 'data-view="all"' in results
+    assert "失败复核" in results
     assert "TRACE_ONLY_SEARCH_MARKER" in results
     assert "c.dataset.search" in results
     assert "逐任务对比" not in results
-    assert "<details" not in results
+    assert '<details class="metric-module" open>' in results
     detail_files = list(reports.glob("*-task-*.html"))
     assert len(detail_files) == 1
     assert f'href="{detail_files[0].name}"' in results
+    assert "webarena-trajectory-replay-latest-task-7461736b-6368726f6d69756d.html" not in results
     detail = detail_files[0].read_text()
     assert "<details" not in detail
     assert 'href="#' not in detail
@@ -545,7 +565,7 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
     assert "LLM 根因假设" not in results
     assert "未启用 LLM" not in results
     assert "尚未确认的内部根因" in results
-    assert results.index("失败日志审查") < results.index("逐任务结果与原始证据")
+    assert results.index("任务对照") < results.index("失败复核") < results.index("执行证据")
     homepage = (reports / "webarena-trajectory-replay-latest.html").read_text(encoding="utf-8")
     assert 'class="failure-shortcut"' not in homepage
     assert f'href="{detail_files[0].name}"' not in homepage
