@@ -1623,7 +1623,14 @@ def _appendix_page(manifest: dict[str, Any]) -> str:
         ["summary.json SHA-256", str(provenance.get("summary_sha256") or "未记录")],
     ]
     change_path = ROOT / "evaluation/browser-use-public/report-changes.json"
-    change_records = json.loads(change_path.read_text(encoding="utf-8")).get("releases") or []
+    if not change_path.is_file():
+        raise ValueError(f"trajectory report change log is missing: {change_path}")
+    change_log = json.loads(change_path.read_text(encoding="utf-8"))
+    if change_log.get("schema") != "lexmount_webarena_trajectory_report_changes/1":
+        raise ValueError("trajectory report change log schema is invalid")
+    change_records = change_log.get("releases")
+    if not isinstance(change_records, list) or not change_records:
+        raise ValueError("trajectory report change log must contain at least one release")
     changes = [[row.get("date"), row.get("type"), row.get("effect")] for row in change_records]
     return f"""<section class="card"><h2>复现步骤</h2><ol><li>准备 Docker Engine、Python 3.11+、至少 4 CPU/6 GiB 内存。</li><li>运行 <code>./examples/browser_use/run.sh</code>；脚本执行完整基准，并依次生成原始记录、汇总数据和分页 HTML。</li><li>如需为失败任务补充一次同任务证据，设置 <code>BROWSER_USE_EVAL_FAILURE_RETRIES=1</code>；该记录不会另计为新任务。</li><li>如只需从已有 <code>attempts.jsonl</code> 重算全部指标和报告，运行 <code>uv run --frozen python examples/browser_use/rebuild_report.py</code>。</li><li>本地报告快路径使用 <code>make trajectory-report</code>；确认发布使用 <code>make trajectory-report-release</code>。数据集、runner 或 scorer 改动后，再人工触发 <code>make trajectory-report-audit</code>。</li></ol><p><a href="webarena-trajectory-replay-latest-data.json">下载本轮机器可读审计摘要</a></p></section><section class="card"><h2>运行与原始数据绑定</h2>{_table(["项目", "值"], provenance_rows, "可复核来源")}</section><section class="card"><h2>变更记录</h2>{_table(["日期", "类型", "读者可见影响"], changes, "同一 canonical 页面持续更新")}</section><section class="card"><h2>数据字段</h2>{_table(["对象", "关键字段", "用途"], fields, "数据结构")}</section><section class="card"><h2>复现限制</h2><ul><li>本轮是自托管环境，不受公网网页漂移影响；但镜像、源码和环境初态必须固定。</li><li>采样间隔 {p.get("sample_interval_ms", "?")} ms，持续时间短于采样间隔的尖峰可能遗漏。</li><li>浏览器进程保持运行且任务间清理状态；分配器保留内存不等于缓存污染。</li></ul></section><section class="card"><h2>原始环境 JSON</h2><details><summary>展开</summary><pre>{_e(json.dumps(manifest.get("environment") or {}, ensure_ascii=False, indent=2, sort_keys=True))}</pre></details></section>"""
 

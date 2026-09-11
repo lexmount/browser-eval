@@ -87,15 +87,23 @@ def main() -> None:
             f"FAST GATES PASS: report binding, internal links, privacy scan, archive hash; "
             f"{attestation['files']} files"
         )
+        print(
+            "AUDIT MODE: presentation-only fast gates. If the dataset, runner, scorer, "
+            "evidence, denominator, or claimed result changed, first run "
+            "`make trajectory-report-audit`."
+        )
         if not args.publish:
             print(
-                "LOCAL ONLY: no network write. Run `make trajectory-report-release` to publish. "
-                "If the dataset, runner, scorer, or evidence changed, first run "
-                "`make trajectory-report-audit`."
+                "LOCAL ONLY: no network write. Run `make trajectory-report-release` to publish."
             )
             return
 
         with tempfile.TemporaryDirectory(prefix="webarena-trajectory-receipt-") as receipt_dir:
+            if not RECEIPT.is_file():
+                raise ValueError(
+                    "the untracked Artifact Hub edit receipt is missing; restore or authorize "
+                    "the receipt for the site in current-report.json before publishing"
+                )
             pending_receipt = Path(receipt_dir) / "receipt.json"
             shutil.copy2(RECEIPT, pending_receipt)
             published = _run_json(
