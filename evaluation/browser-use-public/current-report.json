@@ -13,14 +13,22 @@
     "summary_sha256": "352cb3d6605262c11db6721ea942f4e1d24b8b1b7b4fc31f956768f05c373818"
   },
   "results": {
-    "chromium": {"first_passes": 28, "recovered": 1, "final_passes": 29},
-    "moli": {"first_passes": 11, "recovered": 2, "final_passes": 13}
+    "chromium": {
+      "first_passes": 28,
+      "recovered": 1,
+      "final_passes": 29
+    },
+    "moli": {
+      "first_passes": 11,
+      "recovered": 2,
+      "final_passes": 13
+    }
   },
   "publication": {
     "base_url": "https://artifact-hub.app.lexmount.com",
     "site_slug": "G_3dLaZQ1-4H",
-    "version_id": "ver_879bf45191504dd395070516c87c627e",
+    "version_id": "ver_23e61943a4874c72847af0d6c016bcf1",
     "share_url": "https://artifact-hub.app.lexmount.com/v/EpR29VQ99CAgQsT-xdCSX8yg_O7DlWyL",
-    "submitted_files_verified": 71
+    "submitted_files_verified": 69
   }
 }

@@ -1138,8 +1138,6 @@ def _task_detail_body(
         f'<div><span>工具调用链</span><strong class="{"ok" if process == "pass" else "bad"}">{"无中断" if process == "pass" else "中断"}</strong></div>'
         f"<div><span>执行记录</span><strong>{_e(attempt_label)}</strong></div></div>"
     )
-    if process == "pass" and result != "pass":
-        overview += '<p class="note-inline"><strong>为什么调用无中断仍未通过：</strong>所有预注册工具调用都返回了，但最终答案、服务状态或 HAR 网络事件没有满足 WebArena evaluator。工具返回不等于任务验收通过。</p>'
     if diagnostic:
         overview += (
             '<div class="diagnosis-panel">'
