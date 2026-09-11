@@ -7,18 +7,16 @@ import uuid
 from urllib.parse import urlsplit
 
 
-def token_path():
-    return Path.home() / '.config/artifact-hub/token'
-
-
-def host_token_path(base_url):
+def token_path(base_url):
+    root = Path.home() / '.config/artifact-hub'
     parsed = urlsplit(base_url)
-    if parsed.scheme not in {'http', 'https'} or not parsed.hostname:
-        raise ValueError('Invalid Artifact Hub base URL')
-    host = parsed.netloc
-    if any(part in host for part in ('/', '\\', '..')):
-        raise ValueError('Invalid Artifact Hub host')
-    return Path.home() / '.config/artifact-hub/tokens' / host
+    host = parsed.netloc.lower()
+    if (parsed.scheme not in {'http', 'https'} or not parsed.hostname
+            or parsed.username is not None or parsed.password is not None
+            or host in {'.', '..'} or any(c.isspace() or c in '/\\' for c in host)):
+        raise ValueError('Artifact Hub base URL requires an HTTP(S) host without credentials')
+    # Include an explicit port, matching the server manual's host key.
+    return root / 'tokens' / host
 
 
 def validate_token(token):
@@ -27,24 +25,18 @@ def validate_token(token):
     return token
 
 
-def load_token(path=None, *, base_url=None):
-    # Explicit environment/repository configuration takes precedence.
+def load_token(*, base_url):
+    # Explicit process environment, then the target host. Never .env.
+    path = token_path(base_url)
     token = os.environ.get('ARTIFACT_HUB_TOKEN', '').strip()
     if not token:
-        if path is not None:
-            token = Path(path).read_text().strip()
-        elif base_url is not None and host_token_path(base_url).is_file():
-            token = host_token_path(base_url).read_text().strip()
-        else:
-            token = token_path().read_text().strip()
+        token = path.read_text().strip()
     return validate_token(token)
 
 
-def save_token(token, path=None, *, base_url=None, replace_existing=False):
+def save_token(token, *, base_url, replace_existing=False):
     token = validate_token(token)
-    destination = Path(path) if path is not None else (
-        host_token_path(base_url) if base_url is not None else token_path()
-    )
+    destination = token_path(base_url)
     destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     try:
         descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL |
@@ -67,7 +59,7 @@ def save_token(token, path=None, *, base_url=None, replace_existing=False):
         if original.decode().strip() != token:
             if not replace_existing:
                 raise ValueError('A different user token already exists; will not overwrite it') from None
-            backup=destination.with_name('token.backup-'+uuid.uuid4().hex)
+            backup=destination.with_name(destination.name+'.backup-'+uuid.uuid4().hex)
             descriptor=os.open(backup,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
             with os.fdopen(descriptor,'wb') as stream:
                 stream.write(original)

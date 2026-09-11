@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/jiji262/humanizer-chinese",
+  "commit": "1d6c08e10fbfe0e1b36ac784834451c6aae0a92c",
+  "version": "1.0.0",
+  "license": "MIT",
+  "retrieved_on": "2026-09-10",
+  "unmodified_upstream_files": {
+    "SKILL.md": "d582f32dd18f5dfcba881a65b8718ab293761ec6ea0a5fad14d81e2fe0899c1a",
+    "LICENSE": "6e85ff980e3ecad4e609970f0d732785a5326086810ba11ed169208b65ca09c6"
+  },
+  "hash_algorithm": "sha256",
+  "integration": "Repository-local dependency of benchmark-editorial. Chinese prose uses humanizer-chinese; English prose uses the existing sibling humanizer. No upstream scripts or global installation."
+}

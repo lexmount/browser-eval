@@ -27,8 +27,13 @@ SOURCE=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/'reports/webfetc
 DEST=Path(tempfile.mkdtemp(prefix='artifact-hub-',dir=ROOT/'publish'))
 
 LOADER=r'''
-const manifestPromise=fetch('manifest.json').then(r=>{if(!r.ok)throw Error('数据目录加载失败');return r.json()});
+let manifestPromise;
+function manifest(){
+ if(!manifestPromise)manifestPromise=fetch('manifest.json').then(r=>{if(!r.ok)throw Error('数据目录加载失败');return r.json()}).catch(error=>{manifestPromise=undefined;throw error});
+ return manifestPromise;
+}
 const decoder=new TextDecoder();let currentPage='index.html',renderId=0;
+function reportText(zh,en,path=currentPage){return path.startsWith('en/')?en:zh}
 const LARGE_TEXT_BYTES=256*1024;
 const pageStates=new Map();
 function savePageState(){
@@ -43,13 +48,13 @@ function restorePageState(path){
 }
 const packs=new Map();
 async function pack(name){
- if(!packs.has(name))packs.set(name,fetch(name).then(async r=>{if(!r.ok)throw Error('内容加载失败');return new Uint8Array(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer())}));
+ if(!packs.has(name))packs.set(name,fetch(name).then(async r=>{if(!r.ok)throw Error('内容加载失败');return new Uint8Array(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer())}).catch(error=>{packs.delete(name);throw error}));
  const result=await packs.get(name);
  if(packs.size>6){const first=packs.keys().next().value;if(first!==name)packs.delete(first)}
  return result;
 }
 async function fileBytes(path){
- const m=await manifestPromise,f=m.files[path];if(!f)throw Error('文件不存在：'+path);
+ const m=await manifest(),f=m.files[path];if(!f)throw Error('文件不存在：'+path);
  const result=new Uint8Array(f.size);let offset=0;
  for(const hash of f.parts){const part=m.blocks[hash],bytes=await pack(part.pack);result.set(bytes.subarray(part.offset,part.offset+part.size),offset);offset+=part.size}
  return result;
@@ -57,13 +62,13 @@ async function fileBytes(path){
 async function textFile(path){return decoder.decode(await fileBytes(path))}
 let recordsPromise;
 async function metadata(index){
- if(!recordsPromise)recordsPromise=textFile('results.jsonl').then(s=>s.trim().split('\n').map(JSON.parse));
+ if(!recordsPromise)recordsPromise=textFile('results.jsonl').then(s=>s.trim().split('\n').map(JSON.parse)).catch(error=>{recordsPromise=undefined;throw error});
  return JSON.stringify((await recordsPromise)[index].provider_metadata||{},null,2);
 }
 function deferFill(pre,message='完整内容较大，点击后在只读文本框中加载；也可直接下载原始输出。'){
  if(pre.dataset.deferred)return;
  pre.dataset.deferred='1';
- pre.classList.add('deferred-evidence');pre.tabIndex=0;pre.setAttribute('role','button');pre.setAttribute('aria-label','加载完整内容');pre.textContent=message;
+ pre.classList.add('deferred-evidence');pre.tabIndex=0;pre.setAttribute('role','button');pre.setAttribute('aria-label',reportText('加载完整内容','Load complete content'));pre.textContent=message;
  const activate=event=>{if(event.type==='keydown'&&!['Enter',' '].includes(event.key))return;event.preventDefault();pre.removeEventListener('click',activate);pre.removeEventListener('keydown',activate);pre.dataset.deferred='';fill(pre,true)};
  pre.addEventListener('click',activate);pre.addEventListener('keydown',activate);
 }
@@ -98,20 +103,20 @@ async function fillImages(root,page,m){
 async function fill(pre,force=false){
  if(pre.dataset.loaded)return;
  let large=false;
- if(pre.dataset.file){const m=await manifestPromise;large=(m.files[pre.dataset.file]?.size||0)>LARGE_TEXT_BYTES}
+ if(pre.dataset.file){const m=await manifest();large=(m.files[pre.dataset.file]?.size||0)>LARGE_TEXT_BYTES}
  if(large&&!force){deferFill(pre);return}
  pre.dataset.loaded='1';pre.classList.remove('deferred-evidence');pre.removeAttribute('role');pre.textContent='正在加载完整内容…';
  try{let text=pre.dataset.record?await metadata(Number(pre.dataset.record)-1):await textFile(pre.dataset.file);
   if(pre.dataset.readable)text=text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,c=>'\\x'+c.charCodeAt(0).toString(16).padStart(2,'0'));
   if(large){const box=document.createElement('textarea');box.className='large-evidence-output';box.readOnly=true;box.value=text;box.setAttribute('aria-label','完整实际返回');pre.replaceWith(box)}else pre.textContent=text;
- }catch(error){pre.dataset.loaded='';pre.dataset.deferred='';if(large)deferFill(pre,'加载失败：'+error.message+'。点击重试，或下载原始输出。');else pre.textContent=error.message}
+ }catch(error){pre.dataset.loaded='';pre.dataset.deferred='';deferFill(pre,reportText('加载失败：'+error.message+'。点击重试，或下载原始输出。','Loading failed: '+error.message+'. Click to retry, or download the original output.'))}
 }
 async function render(){
  savePageState();
  const token=++renderId,params=new URLSearchParams(location.hash.slice(1)),path=params.get('page')||'index.html';
  let imageUrls=[];
  try{
-  const [m,text]=await Promise.all([manifestPromise,textFile(path)]);if(token!==renderId)return;
+  const [m,text]=await Promise.all([manifest(),textFile(path)]);if(token!==renderId)return;
   if(!path.endsWith('.html'))throw Error('不是报告页面');
   const page=new DOMParser().parseFromString(text,'text/html');
   imageUrls=await fillImages(page.body,path,m);
@@ -127,7 +132,8 @@ async function render(){
  }catch(error){
   if(token!==renderId)return;
   currentImageUrls.forEach(url=>URL.revokeObjectURL(url));currentImageUrls=[];
-  document.body.replaceChildren();const p=document.createElement('p');p.textContent=error.message;document.body.append(p)
+  document.body.replaceChildren();const p=document.createElement('p');p.textContent=reportText('报告页面加载失败：','Report page failed to load: ',path)+error.message;document.body.append(p);
+  const retry=document.createElement('button');retry.type='button';retry.textContent=reportText('重新加载','Reload',path);retry.addEventListener('click',render);document.body.append(retry)
  }finally{imageUrls.forEach(url=>URL.revokeObjectURL(url))}
 }
 async function downloadClick(event){
@@ -135,7 +141,7 @@ async function downloadClick(event){
  if(routeLink){event.preventDefault();location.hash=routeLink.getAttribute('href');return}
  const a=event.target.closest('a[data-download]');if(!a)return;event.preventDefault();
  const path=a.dataset.download,old=a.textContent;a.textContent='正在准备完整文件…';
- try{const bytes=await fileBytes(path),m=await manifestPromise,url=URL.createObjectURL(new Blob([bytes],{type:m.files[path].mime}));
+ try{const bytes=await fileBytes(path),m=await manifest(),url=URL.createObjectURL(new Blob([bytes],{type:m.files[path].mime}));
   const link=document.createElement('a');link.href=url;link.download=path.split('/').pop();link.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
  }catch(error){alert(error.message)}finally{a.textContent=old}
 }

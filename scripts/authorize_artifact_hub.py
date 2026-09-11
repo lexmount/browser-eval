@@ -9,7 +9,6 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harness.web_fetch.artifact_auth import save_token
-from harness.web_fetch.config import load_runtime_env
 
 
 def main():
@@ -22,9 +21,7 @@ def main():
     parser.add_argument('--base-url',default=os.environ.get('ARTIFACT_HUB_BASE_URL','https://artifact-hub.app.lexmount.com'))
     args = parser.parse_args()
     if args.persist_existing:
-        load_runtime_env()
-        backup=save_token(os.environ.get('ARTIFACT_HUB_TOKEN', '').strip(),base_url=args.base_url,
-                          replace_existing=args.replace_existing)
+        backup=save_token(os.environ.get('ARTIFACT_HUB_TOKEN', '').strip(),base_url=args.base_url,replace_existing=args.replace_existing)
         if backup:print('Previous credential backed up:',backup)
         print('Existing authorization saved to the user credential file; token not displayed.')
         return
