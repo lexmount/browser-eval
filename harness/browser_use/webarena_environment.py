@@ -42,8 +42,8 @@ _LEGACY_ORIGIN_RE = re.compile(
 
 
 @contextmanager
-def _wall_clock_timeout(seconds: float):
-    """Bound a complete reset, including blocking Docker SDK calls, on POSIX."""
+def _wall_clock_timeout(seconds: float, *, operation: str = "environment reset"):
+    """Bound one blocking environment phase, including Docker SDK calls, on POSIX."""
     if seconds <= 0:
         raise ValueError("wall-clock timeout must be positive")
     if (
@@ -57,9 +57,7 @@ def _wall_clock_timeout(seconds: float):
     previous_handler = signal.getsignal(signal.SIGALRM)
 
     def expire(_signum: int, _frame: Any) -> None:
-        raise TimeoutError(
-            f"WebArena environment reset exceeded {seconds:g}s wall-clock deadline"
-        )
+        raise TimeoutError(f"WebArena {operation} exceeded {seconds:g}s wall-clock deadline")
 
     signal.signal(signal.SIGALRM, expire)
     signal.setitimer(signal.ITIMER_REAL, seconds)
@@ -657,7 +655,13 @@ class WebArenaEnvironment:
             time.sleep(0.5)
         raise RuntimeError(f"WebArena site did not become ready: {last_error}")
 
-    def prepare(self, task: BrowserTask, page: Any) -> Any:
+    def prepare(
+        self, task: BrowserTask, page: Any, *, timeout_seconds: float = 300
+    ) -> Any:
+        with _wall_clock_timeout(timeout_seconds, operation="environment prepare"):
+            return self._prepare_impl(task, page)
+
+    def _prepare_impl(self, task: BrowserTask, page: Any) -> Any:
         environment = task.environment or {}
         if environment.get("kind") != "webarena_verified":
             return page

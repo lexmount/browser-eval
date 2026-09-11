@@ -44,6 +44,13 @@ ENGINE_PORTS = {"chromium": 9223, "moli": 9222}
 ENCODING = tiktoken.get_encoding("o200k_base")
 
 
+def _remaining_task_budget_ms(deadline: float, *, phase: str) -> int:
+    remaining_ms = int((deadline - time.perf_counter()) * 1000)
+    if remaining_ms < 1:
+        raise TimeoutError(f"task wall-clock budget exhausted before {phase}")
+    return remaining_ms
+
+
 def _external_websocket_url(endpoint: str, advertised: str) -> str:
     endpoint_parts = urllib.parse.urlsplit(endpoint)
     websocket_parts = urllib.parse.urlsplit(advertised)
@@ -915,7 +922,8 @@ def run_evaluation(
                         output / "tasks" / task.task_id / engine / f"attempt-{attempt}"
                     )
                     environment_reset = None
-                    prepare_started = time.perf_counter()
+                    attempt_started = time.perf_counter()
+                    attempt_deadline = attempt_started + task_timeout_ms / 1000
                     try:
                         pages[engine] = _prepare_page(
                             pages[engine],
@@ -936,10 +944,24 @@ def run_evaluation(
                                     "sites": sorted(task_sites),
                                 }
                             else:
-                                environment_reset = webarena_environment.reset(task, site_client)
+                                reset_budget_ms = _remaining_task_budget_ms(
+                                    attempt_deadline, phase="environment reset"
+                                )
+                                environment_reset = webarena_environment.reset(
+                                    task,
+                                    site_client,
+                                    timeout_seconds=reset_budget_ms / 1000,
+                                )
                                 if trajectory_authoring_run:
                                     authoring_initialized_sites.update(task_sites)
-                            pages[engine] = webarena_environment.prepare(task, pages[engine])
+                            prepare_budget_ms = _remaining_task_budget_ms(
+                                attempt_deadline, phase="environment prepare"
+                            )
+                            pages[engine] = webarena_environment.prepare(
+                                task,
+                                pages[engine],
+                                timeout_seconds=prepare_budget_ms / 1000,
+                            )
                     except Exception:
                         row = _environment_failure_row(
                             engine,
@@ -947,10 +969,13 @@ def run_evaluation(
                             attempt,
                             artifact_dir,
                             is_retry=attempt > 1,
-                            duration_ms=(time.perf_counter() - prepare_started) * 1000,
+                            duration_ms=(time.perf_counter() - attempt_started) * 1000,
                             error=traceback.format_exc(),
                         )
                     else:
+                        execution_budget_ms = _remaining_task_budget_ms(
+                            attempt_deadline, phase="trajectory execution"
+                        )
                         row = _run_task(
                             engine,
                             pages[engine],
@@ -962,7 +987,11 @@ def run_evaluation(
                             evaluator_registry,
                             artifact_dir,
                             is_retry=attempt > 1,
-                            task_timeout_ms=task_timeout_ms,
+                            task_timeout_ms=execution_budget_ms,
+                        )
+                        row["execution_duration_ms"] = row["duration_ms"]
+                        row["duration_ms"] = round(
+                            (time.perf_counter() - attempt_started) * 1000, 3
                         )
                     row["run_id"] = run_id
                     row["qualification_run"] = qualification_run

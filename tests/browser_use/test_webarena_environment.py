@@ -929,3 +929,12 @@ def test_reset_wall_clock_timeout_interrupts_blocking_operation():
     with pytest.raises(TimeoutError, match="wall-clock deadline"):
         with _wall_clock_timeout(0.01):
             time.sleep(1)
+
+
+def test_prepare_wall_clock_timeout_covers_login_and_start_page(monkeypatch):
+    environment = object.__new__(WebArenaEnvironment)
+    task = _task()
+    monkeypatch.setattr(environment, "_prepare_impl", lambda *_: time.sleep(1))
+
+    with pytest.raises(TimeoutError, match="environment prepare"):
+        environment.prepare(task, object(), timeout_seconds=0.01)

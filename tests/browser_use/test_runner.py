@@ -91,6 +91,22 @@ def test_environment_prepare_failure_is_a_fail_closed_physical_attempt(tmp_path)
     assert (tmp_path / "attempt-1").is_dir()
 
 
+def test_remaining_task_budget_is_shared_across_attempt_phases(monkeypatch):
+    readings = iter((10.0, 10.025, 10.100))
+    monkeypatch.setattr(runner.time, "perf_counter", lambda: next(readings))
+
+    assert runner._remaining_task_budget_ms(10.125, phase="reset") == 125
+    assert runner._remaining_task_budget_ms(10.125, phase="prepare") == 99
+    assert runner._remaining_task_budget_ms(10.125, phase="execution") == 25
+
+
+def test_remaining_task_budget_fails_closed_when_exhausted(monkeypatch):
+    monkeypatch.setattr(runner.time, "perf_counter", lambda: 20.0)
+
+    with pytest.raises(TimeoutError, match="before evaluator"):
+        runner._remaining_task_budget_ms(20.0, phase="evaluator")
+
+
 def test_browser_engines_publish_their_external_cdp_ports():
     assert ENGINE_PORTS == {"chromium": 9223, "moli": 9222}
 
