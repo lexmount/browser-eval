@@ -962,6 +962,9 @@ def run_evaluation(
                                 pages[engine],
                                 timeout_seconds=prepare_budget_ms / 1000,
                             )
+                        execution_budget_ms = _remaining_task_budget_ms(
+                            attempt_deadline, phase="trajectory execution"
+                        )
                     except Exception:
                         row = _environment_failure_row(
                             engine,
@@ -973,9 +976,6 @@ def run_evaluation(
                             error=traceback.format_exc(),
                         )
                     else:
-                        execution_budget_ms = _remaining_task_budget_ms(
-                            attempt_deadline, phase="trajectory execution"
-                        )
                         row = _run_task(
                             engine,
                             pages[engine],
