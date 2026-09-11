@@ -1199,7 +1199,7 @@ REPORT_STYLE = (
 .finding-list{display:grid;gap:8px;margin:0 0 20px;padding:16px 20px 16px 38px;border-left:4px solid var(--accent);border-radius:0 12px 12px 0;background:var(--wash)}.finding-list li{padding-left:4px}.table-kicker{display:block;color:var(--muted);font:700 11px/1.4 ui-monospace,monospace;letter-spacing:.04em;margin-top:3px}.core-comparison-table{min-width:1240px;table-layout:fixed}.core-comparison-table td:nth-child(1),.core-comparison-table td:nth-child(2){font-weight:750}.core-comparison-table th:nth-child(1),.core-comparison-table td:nth-child(1){width:145px}.core-comparison-table th:nth-child(2),.core-comparison-table td:nth-child(2){width:135px}.core-comparison-table th:nth-child(3),.core-comparison-table td:nth-child(3){width:115px}.core-comparison-table th:nth-child(4),.core-comparison-table td:nth-child(4){width:105px}.core-comparison-table th:nth-child(n+5),.core-comparison-table td:nth-child(n+5){width:245px}.pair-outcome-table{min-width:900px}.wide-data-table td{line-height:1.65}.report-entry-links{margin-top:18px}.report-entry-links a{font-weight:750}.source-note a{margin-left:5px}
 #task-family-table{min-width:1320px;table-layout:fixed}#task-family-table th:nth-child(1),#task-family-table td:nth-child(1){width:150px}#task-family-table th:nth-child(2),#task-family-table td:nth-child(2){width:90px}#task-family-table th:nth-child(3),#task-family-table td:nth-child(3){width:300px}#task-family-table th:nth-child(n+4),#task-family-table td:nth-child(n+4){width:190px;white-space:nowrap}.metric-note{margin:14px 0 0;border-top:1px solid var(--line);padding-top:12px;color:var(--muted)}.metric-note summary{cursor:pointer;font-weight:750;color:var(--ink)}
 .diagnosis-button,.dialog-actions button{border:1px solid var(--accent);background:var(--accent);color:white;padding:8px 12px;border-radius:9px;font:inherit;font-weight:750;cursor:pointer;white-space:nowrap}.diagnosis-button:hover,.dialog-actions button:hover{filter:brightness(.94)}.diagnosis-dialog{width:min(920px,calc(100% - 32px));max-height:88vh;padding:0;border:1px solid var(--line);border-radius:18px;background:var(--panel);color:var(--ink);box-shadow:0 28px 90px rgba(10,25,45,.28)}.diagnosis-dialog::backdrop{background:rgba(5,15,25,.62);backdrop-filter:blur(3px)}.diagnosis-dialog-head{position:sticky;top:0;z-index:1;display:flex;align-items:start;justify-content:space-between;gap:20px;padding:22px 24px 16px;border-bottom:1px solid var(--line);background:var(--panel)}.diagnosis-dialog-head h2{font-size:24px;margin:4px 0}.dialog-close{border:0;background:var(--panel2);color:var(--ink);width:36px;height:36px;border-radius:50%;font-size:24px;line-height:1;cursor:pointer}.diagnosis-dialog-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:18px 24px}.diagnosis-dialog-grid>div{padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--bg);min-width:0;overflow-wrap:anywhere}.diagnosis-dialog-grid b{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}.dialog-error,.dialog-review{padding:0 24px 18px}.dialog-error h3,.dialog-review h3{margin:8px 0}.dialog-error .log-view{max-height:240px}.dialog-review p{margin:6px 0}.dialog-actions{position:sticky;bottom:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:16px 24px;border-top:1px solid var(--line);background:var(--panel)}.dialog-actions a{padding:8px 10px;border:1px solid var(--line);border-radius:9px}.dialog-actions button{margin-left:auto}
-.failure-lead{padding:20px 22px;margin-bottom:14px;border:1px solid color-mix(in srgb,var(--bad) 35%,var(--line));border-left:6px solid var(--bad);border-radius:14px;background:var(--failure-bg)}.failure-lead .status-line{color:var(--bad);font-size:13px;font-weight:850}.failure-lead h3{font-size:24px;margin:5px 0}.failure-lead p{margin:4px 0}.success-lead{border-color:color-mix(in srgb,var(--good) 35%,var(--line));border-left-color:var(--good);background:var(--success-bg)}.success-lead .status-line{color:var(--good)}.runtime-strip{grid-template-columns:repeat(6,minmax(0,1fr));margin:14px 0}.failure-error{margin-top:16px}.failure-error .log-view{max-height:260px}.trajectory-step.failure-step{margin:8px 0;padding:14px;border:1px solid color-mix(in srgb,var(--bad) 40%,var(--line));border-left:5px solid var(--bad);border-radius:12px;background:var(--failure-bg)}.trajectory-step.failure-step:before{background:var(--bad)}.inline-evidence{margin:14px 0}.inline-evidence>summary{cursor:pointer;font-weight:750}
+.failure-lead{padding:20px 22px;margin-bottom:14px;border:1px solid color-mix(in srgb,var(--bad) 35%,var(--line));border-left:6px solid var(--bad);border-radius:14px;background:var(--failure-bg)}.failure-lead .status-line{color:var(--bad);font-size:13px;font-weight:850}.failure-lead h3{font-size:24px;margin:5px 0}.failure-lead p{margin:4px 0}.success-lead{border-color:color-mix(in srgb,var(--good) 35%,var(--line));border-left-color:var(--good);background:var(--success-bg)}.success-lead .status-line{color:var(--good)}.runtime-strip{grid-template-columns:repeat(6,minmax(0,1fr));margin:14px 0}.failure-error{margin-top:16px}.failure-error .log-view{max-height:260px}.trajectory-step.failure-step{margin:8px 0;padding:14px;border:1px solid color-mix(in srgb,var(--bad) 40%,var(--line));border-left:5px solid var(--bad);border-radius:12px;background:var(--failure-bg)}.trajectory-step.failure-step:before{background:var(--bad)}.evidence-viewer-head{display:flex;align-items:center;justify-content:space-between;gap:16px}.evidence-viewer-head h2{margin:0}.evidence-viewer-shell .json-view{max-height:none;min-height:60vh}
 .action-card-grid{grid-auto-rows:1fr}.action-card{height:100%}.dialog-step,.step-signature{padding:13px 16px;border-radius:10px;background:var(--wash);overflow-wrap:anywhere}.dialog-step{margin:0 24px 18px}.dialog-step b{margin-right:8px}.step-signature{margin:0 0 14px}
 .attempt-summary{display:grid;grid-template-columns:minmax(270px,1.4fr) repeat(4,minmax(135px,.7fr));gap:12px;align-items:stretch}.attempt-verdict{padding:20px 22px;border:1px solid var(--line);border-left:5px solid var(--good);border-radius:12px;background:var(--success-bg)}.attempt-verdict.failure{border-left-color:var(--bad);background:var(--failure-bg)}.attempt-verdict .status-line{display:block;font-size:24px;font-weight:850;margin-bottom:6px}.attempt-verdict p{margin:0;line-height:1.65}.attempt-jumps{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-weight:750}.attempt-fact{padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow-wrap:anywhere}.attempt-fact b{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}.attempt-secondary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:12px}
 .diagnosis-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.diagnosis-grid .attempt-fact{min-height:110px}.diagnosis-reason{margin-top:14px;padding:18px 20px;border-left:5px solid var(--bad);border-radius:10px;background:var(--failure-bg);line-height:1.7}.evidence-links{display:flex;gap:8px}.screenshot-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.screenshot-grid figure{margin:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}.screenshot-grid img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;object-position:top}.screenshot-grid figcaption{padding:10px 12px;color:var(--muted);font-size:12px}
@@ -1236,6 +1236,36 @@ def _page(*, title: str, active: str, body: str, depth: int = 0) -> str:
         for href, label, key in NAV
     )
     return f'<!doctype html><html lang="zh-CN"><head><base href="{local_base}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)} · Browser Use 评测</title><link rel="stylesheet" href="assets/style.css"><script defer src="assets/report.js"></script></head><body><header class="top"><nav class="wrap">{links}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main class="page-main">{body}</main><footer class="footer"><div class="wrap"><p>结论只适用于本轮预注册样本、Agent、模型与运行配置；展示调整不改变测量结果。</p></div></footer></body></html>'
+
+
+def _evidence_viewer_page() -> str:
+    body = _hero(
+        "Execution evidence",
+        "完整执行证据",
+        "按原始结构展示本次物理执行的脱敏回答、evaluator、事件流、轨迹、计量与公开画面索引。",
+    )
+    body += (
+        '<section class="section evidence-viewer-shell"><div class="wrap">'
+        '<div class="evidence-viewer-head"><h2>执行证据 JSON</h2>'
+        '<a id="evidence-raw-link" class="button-link" hidden target="_blank" rel="noopener">打开原始 JSON</a></div>'
+        '<p id="evidence-viewer-status" class="fine" role="status">正在读取证据…</p>'
+        '<pre id="evidence-viewer-content" class="json-view" tabindex="0"></pre>'
+        '</div></section><script>(()=>{'
+        'const status=document.getElementById("evidence-viewer-status");'
+        'const output=document.getElementById("evidence-viewer-content");'
+        'const raw=document.getElementById("evidence-raw-link");'
+        'const source=new URLSearchParams(location.search).get("src")||"";'
+        r'const valid=/^artifacts\/[a-z0-9._-]+\/executions\/[0-9]+\/execution-evidence[.]json$/i.test(source);'
+        'const english=document.documentElement.lang==="en";'
+        'if(!valid){status.textContent=english?"Invalid evidence path.":"证据路径无效。";return;}'
+        'raw.href=source;raw.hidden=false;'
+        'fetch(new URL(source,document.baseURI),{credentials:"same-origin"})'
+        '.then(response=>{if(!response.ok)throw new Error(`HTTP ${response.status}`);return response.json();})'
+        '.then(value=>{output.textContent=JSON.stringify(value,null,2);status.textContent=english?"Evidence loaded.":"证据已载入。";})'
+        '.catch(error=>{status.textContent=(english?"Unable to load evidence: ":"无法读取执行证据：")+error.message;});'
+        '})();</script>'
+    )
+    return _page(title="完整执行证据", active="analysis", body=body)
 
 
 def _english_page(body: str) -> str:
@@ -1653,8 +1683,10 @@ def _extract_trace_screenshots(
 
 def _artifact_links(result_id: str, execution: int) -> str:
     root = f"artifacts/{result_id}/executions/{execution}"
+    viewer = f"evidence-viewer.html?src={root}/execution-evidence.json"
     return (
         '<div class="page-links">'
+        f'<a href="{viewer}" target="_blank" rel="noopener">在页面中查看完整执行证据</a>'
         f'<a href="{root}/execution-evidence.json" target="_blank" rel="noopener">打开原始 JSON</a>'
         "</div>"
     )
@@ -1706,7 +1738,6 @@ def _write_execution_artifacts(
         **measurements,
         "artifacts": artifacts,
         "screenshots": screenshots,
-        "_inline_evidence": bundle,
     }, response, evaluation, steps
 
 
@@ -1752,9 +1783,6 @@ def _execution_evidence_html(result_id: str, executions: list[dict[str, Any]]) -
             f"BrowserTool {execution['action_count']} 次 / {_seconds(execution['browser_tool_duration_ms'])} · "
             f"模型 tokens {_number(usage['total_tokens'])}</p>"
             + _artifact_links(result_id, int(execution["execution"]))
-            + '<details class="inline-evidence"><summary>在页面中查看完整执行证据</summary>'
-            + _json_pre(execution.get("_inline_evidence") or {})
-            + "</details>"
             + hashes
             + "</article>"
         )
@@ -2312,6 +2340,9 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             (stage / folder).mkdir()
         (stage / "assets/style.css").write_text(REPORT_STYLE, encoding="utf-8")
         (stage / "assets/report.js").write_text(REPORT_JS, encoding="utf-8")
+        (stage / "evidence-viewer.html").write_text(
+            _evidence_viewer_page(), encoding="utf-8"
+        )
         if not METHODOLOGY_FIGURE.is_file():
             raise FileNotFoundError(f"missing methodology figure: {METHODOLOGY_FIGURE}")
         shutil.copy2(
@@ -2723,10 +2754,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     "authoritative_execution": int(row["attempt"]),
                     "task_page": f"datasets/{public['task_id']}.html",
                     "result_page": f"results/{public['id']}.html",
-                    "executions": [
-                        {key: value for key, value in execution.items() if key != "_inline_evidence"}
-                        for execution in execution_records
-                    ],
+                    "executions": execution_records,
                 }
             )
             usage, resource, checks = (

@@ -480,6 +480,12 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
     assert "物理执行 1" in attempt
     assert "物理执行 2 · 判分权威" in attempt
     assert "SHA-256" in attempt
+    assert "_inline_evidence" not in attempt
+    viewer = (output / "evidence-viewer.html").read_text(encoding="utf-8")
+    assert 'id="evidence-viewer-content"' in viewer
+    assert "execution-evidence[.]json" in viewer
+    assert "fetch(new URL(source,document.baseURI)" in viewer
+    assert (output / "en/evidence-viewer.html").is_file()
     public_results = [
         json.loads(line)
         for line in (output / "data/results.jsonl").read_text(encoding="utf-8").splitlines()
@@ -510,6 +516,7 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
         for execution in index_row["executions"]
         for artifact in execution["artifacts"].values()
     )
+    assert all("_inline_evidence" not in execution for execution in index_row["executions"])
     private_trace = output / f"artifacts/{result_id}/executions/1/agent_trace.zip"
     private_trace.write_bytes(b"private trace")
     with pytest.raises(ValueError, match="private HAR or trace"):

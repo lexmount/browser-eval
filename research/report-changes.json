@@ -174,7 +174,7 @@
           "失败定位",
           "结果清单混入长原因和耗时字段，行高失控，且无法直接进入失败证据。",
           "改为固定高度横向表；每行可打开页内诊断，直接查看失败位置、程序报错、复核根因、处理责任和证据入口。",
-          "完整 evaluator、轨迹、日志和原因留在结果详情；原始 JSON 同时提供页内阅读和独立打开入口。"
+          "完整 evaluator、轨迹、日志和原因留在结果详情；共享证据页按需读取 JSON，同时保留原始文件入口，避免在每个详情页重复完整载荷。"
         ],
         [
           "证据页面",
@@ -216,7 +216,7 @@
               "Failure location",
               "The result inventory mixed long causes and latency fields, producing uncontrolled row heights and no direct route to failure evidence.",
               "Replaced it with a fixed-height horizontal table whose rows open an in-page diagnosis with the failure stage, exact program error, reviewed cause, owner/treatment, and evidence links.",
-              "Complete evaluator output, trajectory, logs, and cause remain on the result detail page; raw JSON is available both inline and as a separate link."
+              "Complete evaluator output, trajectory, logs, and cause remain on the result detail page. A shared viewer loads JSON on demand while preserving a raw-file link, avoiding duplicate payloads in every detail page."
             ],
             [
               "Evidence pages",

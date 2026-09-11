@@ -28,6 +28,12 @@ NAV = (
 
 
 TEXT = {
+    "完整执行证据": "Complete execution evidence",
+    "按原始结构展示本次物理执行的脱敏回答、evaluator、事件流、轨迹、计量与公开画面索引。": "Shows the sanitized response, evaluator record, event stream, trajectory, measurements, and public-frame index for this physical execution in their original structure.",
+    "执行证据 JSON": "Execution evidence JSON",
+    "正在读取证据…": "Loading evidence…",
+    "在页面中查看完整执行证据": "View complete execution evidence in the page",
+    "打开原始 JSON": "Open raw JSON",
     "25 比 25 不是同因平局：五个零分包含四类根因": "25 vs. 25 is not a same-cause tie: five zero scores contain four root-cause classes",
     "同一 CowAgent 与同一模型替换浏览器后，30 个配对任务的官方分数没有出现单边胜出，但逐条追查证明相同分数并不代表相同执行结果。根因分别位于官方任务合同、Agent 完成策略、本项目响应协议和证据采集器；Task 506 的 Chromium 与 Moli 甚至不是同一种失败。": "With the same CowAgent and model and only the browser changed, none of the 30 paired tasks produced a one-sided official-score win. Case-by-case investigation shows that equal scores do not imply equal execution outcomes. Root causes lie in the official task contract, Agent completion policy, this project's response protocol, and the evidence collector; Chromium and Moli did not even fail Task 506 in the same way.",
     "二、五个零分的根因与修复边界": "2. Root causes and repair boundaries for the five zero scores",

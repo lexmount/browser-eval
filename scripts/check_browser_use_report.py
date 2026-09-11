@@ -314,6 +314,7 @@ def check(
         "adoption/index.html",
         "reproduce/index.html",
         "accounts/index.html",
+        "evidence-viewer.html",
         *(f"engines/{engine}.html" for engine in engines),
     )
     pages = tuple(report_dir / name for name in page_names)
@@ -512,9 +513,22 @@ def check(
             "运行、日志与证据",
             "runtime-strip",
             "任务与验收",
+            "在页面中查看完整执行证据",
+            "打开原始 JSON",
         )
     ):
         raise ValueError("every result page must expose result, evaluator, trajectory and logs")
+    evidence_viewer = report_dir / "evidence-viewer.html"
+    english_evidence_viewer = report_dir / "en/evidence-viewer.html"
+    if any(path not in rendered_pages for path in (evidence_viewer, english_evidence_viewer)):
+        raise ValueError("report is missing the shared HTML execution-evidence viewer")
+    for marker in (
+        'id="evidence-viewer-content"',
+        "execution-evidence[.]json",
+        "fetch(new URL(source,document.baseURI)",
+    ):
+        if marker not in rendered_pages[evidence_viewer]:
+            raise ValueError(f"execution-evidence viewer is incomplete: {marker}")
     failed_pages = [
         report_dir / "results" / f"{_attempt_id(row)}.html"
         for row in logical_rows
@@ -531,8 +545,6 @@ def check(
             "复核根因",
             "负责范围",
             "失败执行的最后页面画面",
-            "在页面中查看完整执行证据",
-            "打开原始 JSON",
         )
     ):
         raise ValueError("every failed result must expose a complete diagnosis path")
