@@ -10,7 +10,7 @@ from harness.browser_use.suite import BrowserTask
 from harness.browser_use.webarena_environment import (
     WebArenaEnvironment,
     _DockerClientBackend,
-    _wall_clock_timeout,
+    wall_clock_timeout,
 )
 
 
@@ -927,7 +927,7 @@ def test_official_form_login_paths_cover_all_stateful_sites(tmp_path, monkeypatc
 
 def test_reset_wall_clock_timeout_interrupts_blocking_operation():
     with pytest.raises(TimeoutError, match="wall-clock deadline"):
-        with _wall_clock_timeout(0.01):
+        with wall_clock_timeout(0.01):
             time.sleep(1)
 
 

@@ -224,9 +224,9 @@ def execute_steps(
                 expected_text = call.get("wait_for_text")
                 if isinstance(expected_text, str):
                     wait_timeout = min(timeout, int(call.get("wait_timeout_ms", 5_000)))
-                    deadline = time.monotonic() + wait_timeout / 1000
+                    action_deadline = time.monotonic() + wait_timeout / 1000
                     observation = ""
-                    while time.monotonic() < deadline:
+                    while time.monotonic() < action_deadline:
                         observation = locator.text_content(timeout=min(1_000, wait_timeout)) or ""
                         if observation.strip() == expected_text:
                             break
@@ -260,7 +260,7 @@ def execute_steps(
                     if wait_pattern is None
                     else min(timeout, int(call.get("wait_timeout_ms", 10_000)))
                 )
-                deadline = time.monotonic() + wait_timeout / 1000
+                action_deadline = time.monotonic() + wait_timeout / 1000
                 while True:
                     values = locator.evaluate(
                         TABLE_COLUMN_EXPRESSION,
@@ -272,7 +272,7 @@ def execute_steps(
                         for value in values
                     ):
                         break
-                    if time.monotonic() >= deadline:
+                    if time.monotonic() >= action_deadline:
                         raise TimeoutError(
                             f"table column {call['header']!r} did not match value regex "
                             f"{wait_pattern!r}"
@@ -312,9 +312,9 @@ def execute_steps(
                     if not isinstance(wait_pattern, str) or not wait_pattern:
                         raise ValueError("snapshot wait_for_text_regex must be non-empty")
                     wait_timeout = min(timeout, int(call.get("wait_timeout_ms", 10_000)))
-                    deadline = time.monotonic() + wait_timeout / 1000
+                    action_deadline = time.monotonic() + wait_timeout / 1000
                     observation = ""
-                    while time.monotonic() < deadline:
+                    while time.monotonic() < action_deadline:
                         observation = locator.inner_text(timeout=min(1_000, wait_timeout))
                         if re.search(wait_pattern, observation, flags=re.IGNORECASE):
                             break

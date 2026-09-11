@@ -116,7 +116,8 @@ def test_har_recorder_captures_new_tabs_and_evaluator_fields(tmp_path):
                     "content-type": "application/json",
                     "set-cookie": (
                         "sid=response-cookie; Path=/\r\n"
-                        "mage-messages=product%20added; Path=/"
+                        "mage-messages=product%20added; Path=/\r\n"
+                        "legacy=response-only; Path=/"
                     ),
                 },
                 "mimeType": "application/json",
@@ -175,6 +176,7 @@ def test_har_recorder_captures_new_tabs_and_evaluator_fields(tmp_path):
     assert entry["response"]["cookies"] == [
         {"name": "sid", "value": "[REDACTED]"},
         {"name": "mage-messages", "value": "product%20saved"},
+        {"name": "legacy", "value": "[REDACTED]"},
     ]
     assert entry["response"]["redirectURL"] == "/complete"
     navigation_entry = {

@@ -1,6 +1,10 @@
 {
   "schema": "lex_webarena_evaluator_exclusion_audit/1",
-  "suite_sha256": "170dbcbec33a7527e15cbd8d8d5ae7a80a41d27ccf360cd13f7e60fe16f182d7",
+  "suite_sha256": "ed2832f9c061726cd856d2949313f6a543c770277122eb42dd38cd0a8d27fe0c",
+  "audited_suite_sha256": "170dbcbec33a7527e15cbd8d8d5ae7a80a41d27ccf360cd13f7e60fe16f182d7",
+  "audited_suite_git_commit": "9c8d6c7e54c3c257bde1ea59d5dfe78e2532a4be",
+  "excluded_task_definitions_sha256": "259f832c3b22c5120c2a8e464f8a3c907f6b30a58f1275c4d58459c82e1fe00f",
+  "excluded_task_definitions_unchanged": true,
   "exclusions_sha256": "121292eec04ea31e9e5c1f2f6bf525d3565543c914daa8cdec61716dcf3e5298",
   "complete": true,
   "checks": [

@@ -3,8 +3,11 @@ from __future__ import annotations
 import hashlib
 import json
 import zipfile
+from pathlib import Path
 
 from scripts.verify_webarena_evaluator_exclusions import verify_exclusions
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def _write_trace(path, *, network_urls=(), network_requests=(), page_count):
@@ -116,3 +119,25 @@ def test_evaluator_exclusion_audit_binds_original_trace_anomalies(tmp_path):
     assert result["checks"][1]["max_action_tab_index"] == 2
     assert result["checks"][2]["recorded_methods"] == ["GET"]
     assert result["checks"][2]["expected_put_event_count"] == 0
+
+
+def test_committed_exclusion_audit_is_bound_to_current_task_definitions():
+    suite_path = ROOT / "evaluation/browser-use-public/webarena-human-suite.json"
+    audit_path = (
+        ROOT / "evaluation/browser-use-public/webarena-evaluator-exclusion-audit.json"
+    )
+    suite = json.loads(suite_path.read_text(encoding="utf-8"))
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+    excluded_ids = {row["task_id"] for row in audit["checks"]}
+    selected = [row for row in suite["tasks"] if str(row["id"]) in excluded_ids]
+    serialized = json.dumps(
+        selected, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode()
+
+    assert hashlib.sha256(suite_path.read_bytes()).hexdigest() == audit["suite_sha256"]
+    assert len(selected) == len(excluded_ids)
+    assert (
+        hashlib.sha256(serialized).hexdigest()
+        == audit["excluded_task_definitions_sha256"]
+    )
+    assert audit["excluded_task_definitions_unchanged"] is True

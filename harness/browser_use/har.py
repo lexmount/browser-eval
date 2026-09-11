@@ -103,27 +103,34 @@ def _post_data(request: dict[str, Any]) -> dict[str, str] | None:
     return {"mimeType": headers.get("content-type", "application/octet-stream"), "text": str(text)}
 
 
-def _response_cookies(values: dict[str, Any] | None) -> list[dict[str, str]]:
-    header = next(
-        (str(value) for key, value in (values or {}).items() if str(key).lower() == "set-cookie"),
-        "",
-    )
-    if not header:
-        return []
-    parsed = SimpleCookie()
-    try:
-        parsed.load(header)
-    except Exception:
-        return []
-    return [
-        {
-            "name": name,
-            "value": (
-                morsel.value if name.lower() in _EVALUATOR_SAFE_RESPONSE_COOKIES else _REDACTED
+def _response_cookies(
+    *sources: dict[str, Any] | None,
+) -> list[dict[str, str]]:
+    """Preserve cookies from base and ExtraInfo headers; later values win by name."""
+    cookies: dict[str, str] = {}
+    for values in sources:
+        header = next(
+            (
+                str(value)
+                for key, value in (values or {}).items()
+                if str(key).lower() == "set-cookie"
             ),
-        }
-        for name, morsel in parsed.items()
-    ]
+            "",
+        )
+        if not header:
+            continue
+        parsed = SimpleCookie()
+        try:
+            parsed.load(header)
+        except Exception:
+            continue
+        for name, morsel in parsed.items():
+            cookies[name] = (
+                morsel.value
+                if name.lower() in _EVALUATOR_SAFE_RESPONSE_COOKIES
+                else _REDACTED
+            )
+    return [{"name": name, "value": value} for name, value in cookies.items()]
 
 
 class CdpHarRecorder:
@@ -370,7 +377,10 @@ class CdpHarRecorder:
                 "statusText": str(response.get("statusText") or ""),
                 "httpVersion": str(response.get("protocol") or "HTTP/1.1"),
                 "headers": _headers(response_headers),
-                "cookies": _response_cookies(response_headers),
+                "cookies": _response_cookies(
+                    response.get("headers"),
+                    (response_extra_event or {}).get("headers"),
+                ),
                 "content": content,
                 "redirectURL": _header(response_headers, "location"),
                 "headersSize": -1,

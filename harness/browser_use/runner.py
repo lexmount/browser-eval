@@ -34,7 +34,7 @@ from .qualification import task_contract_sha256
 from .report import write_latest_report
 from .response_builder import build_agent_response
 from .suite import BrowserTask, load_suite, validate_ground_truth_evidence
-from .webarena_environment import WebArenaEnvironment, _wall_clock_timeout
+from .webarena_environment import WebArenaEnvironment, wall_clock_timeout
 
 ENGINE_IMAGES = {
     "chromium": "lex-browser-use-eval-chromium:local",
@@ -402,7 +402,7 @@ def _run_task(
         evidence_budget_ms = _remaining_task_budget_ms(
             task_deadline, phase="final evidence capture"
         )
-        with _wall_clock_timeout(
+        with wall_clock_timeout(
             evidence_budget_ms / 1000, operation="final evidence capture"
         ):
             final_page_evidence = _capture_final_page_evidence(page, artifact_dir)
@@ -413,7 +413,7 @@ def _run_task(
         evaluator_budget_ms = _remaining_task_budget_ms(
             task_deadline, phase="result evaluation"
         )
-        with _wall_clock_timeout(evaluator_budget_ms / 1000, operation="result evaluation"):
+        with wall_clock_timeout(evaluator_budget_ms / 1000, operation="result evaluation"):
             agent_response = build_agent_response(task, outputs)
             if agent_response is not None:
                 write_agent_response(artifact_dir / "agent_response.json", agent_response)

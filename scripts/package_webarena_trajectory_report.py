@@ -25,6 +25,7 @@ from harness.browser_use.publication import (  # noqa: E402
 )
 
 STEM = "browser-use-evaluation-latest"
+CURRENT_REPORT = ROOT / "evaluation/browser-use-public/current-report.json"
 DEFAULT_FORMAL_ROOT = (
     Path.home()
     / ".browser-eval/evidence/current/formal/webarena-public-trajectories"
@@ -68,6 +69,30 @@ def _validate_binding(formal_root: Path) -> tuple[dict, dict, dict]:
         raise ValueError("formal result must contain 30 tasks per engine")
     if any(manifest.get(key) is not None for key in ("agent", "model", "reasoning_effort")):
         raise ValueError("fixed-trajectory formal run must not bind an agent or model")
+    current = _read_json(CURRENT_REPORT)
+    expected_results = {
+        engine: {
+            "first_passes": row["first_passes"],
+            "recovered": row["recovered"],
+            "final_passes": row["final_passes"],
+        }
+        for engine, row in functional.items()
+    }
+    checks = {
+        "evaluation kind": current.get("evaluation_kind") == "fixed_trajectory_replay",
+        "agentic flag": current.get("agentic_browser_use") is False,
+        "task count": current.get("task_count_per_engine") == 30,
+        "run id": current.get("run_id") == manifest.get("run_id"),
+        "suite hash": current.get("suite_sha256") == manifest.get("suite_sha256"),
+        "manifest hash": (current.get("evidence") or {}).get("manifest_sha256")
+        == _sha256(manifest_path),
+        "summary hash": (current.get("evidence") or {}).get("summary_sha256")
+        == _sha256(summary_path),
+        "results": current.get("results") == expected_results,
+    }
+    failed = [name for name, passed in checks.items() if not passed]
+    if failed:
+        raise ValueError("current report authority mismatch: " + ", ".join(failed))
     return manifest, summary, audit
 
 

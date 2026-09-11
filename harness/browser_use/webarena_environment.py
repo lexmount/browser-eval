@@ -42,7 +42,7 @@ _LEGACY_ORIGIN_RE = re.compile(
 
 
 @contextmanager
-def _wall_clock_timeout(seconds: float, *, operation: str = "environment reset"):
+def wall_clock_timeout(seconds: float, *, operation: str = "environment reset"):
     """Bound one blocking environment phase, including Docker SDK calls, on POSIX."""
     if seconds <= 0:
         raise ValueError("wall-clock timeout must be positive")
@@ -406,7 +406,7 @@ class WebArenaEnvironment:
     def reset(
         self, task: BrowserTask, docker_client: Any, *, timeout_seconds: float = 900
     ) -> dict[str, Any]:
-        with _wall_clock_timeout(timeout_seconds):
+        with wall_clock_timeout(timeout_seconds):
             return self._reset_impl(task, docker_client, timeout_seconds=timeout_seconds)
 
     def _reset_impl(
@@ -658,7 +658,7 @@ class WebArenaEnvironment:
     def prepare(
         self, task: BrowserTask, page: Any, *, timeout_seconds: float = 300
     ) -> Any:
-        with _wall_clock_timeout(timeout_seconds, operation="environment prepare"):
+        with wall_clock_timeout(timeout_seconds, operation="environment prepare"):
             return self._prepare_impl(task, page)
 
     def _prepare_impl(self, task: BrowserTask, page: Any) -> Any:

@@ -227,6 +227,43 @@ def test_task_wall_clock_budget_stops_before_next_action(monkeypatch):
 
 
 @pytest.mark.parametrize(
+    "wait_call",
+    (
+        {
+            "action": "get_text",
+            "selector": "h1",
+            "wait_for_text": "Example Domain",
+        },
+        {
+            "action": "get_table_column",
+            "selector": "table",
+            "header": "Name",
+            "wait_for_value_regex": "First",
+        },
+        {
+            "action": "snapshot",
+            "selector": "body",
+            "wait_for_text_regex": "Example Domain",
+        },
+    ),
+)
+def test_action_wait_deadline_does_not_replace_task_deadline(wait_call):
+    page = FakePage()
+
+    execute_steps(
+        page,
+        (
+            wait_call,
+            {"action": "click", "selector": "#target", "timeout_ms": 55_000},
+        ),
+        task_timeout_ms=60_000,
+    )
+
+    click = next(call for call in page.calls if call[:2] == ("click", "#target"))
+    assert click[2]["timeout"] > 50_000
+
+
+@pytest.mark.parametrize(
     ("call", "record_prefix"),
     (
         ({"action": "click", "selector": "#target"}, ("click", "#target")),
