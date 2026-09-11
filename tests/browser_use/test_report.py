@@ -1,4 +1,5 @@
 import json
+import zipfile
 from pathlib import Path, PurePosixPath
 
 import pytest
@@ -37,6 +38,34 @@ def test_best_marks_only_one_visibly_distinct_winner() -> None:
         )
         == set()
     )
+
+
+def test_trace_screenshot_labels_count_only_publishable_frames(tmp_path: Path) -> None:
+    trace = tmp_path / "trace.zip"
+    image_payloads = {}
+    for sha1, size in (("large-a", (1280, 720)), ("small", (320, 200)), ("large-b", (1280, 720))):
+        buffer = report_module.BytesIO()
+        report_module.Image.new("RGB", size, "white").save(buffer, format="JPEG")
+        image_payloads[sha1] = buffer.getvalue()
+    events = b"\n".join(
+        json.dumps({"type": "screencast-frame", "sha1": sha1, "timestamp": index}).encode()
+        for index, sha1 in enumerate(image_payloads, start=1)
+    )
+    with zipfile.ZipFile(trace, "w") as archive:
+        archive.writestr("trace.trace", events)
+        for sha1, payload in image_payloads.items():
+            archive.writestr(f"resources/{sha1}", payload)
+
+    screenshots = report_module._extract_trace_screenshots(trace, tmp_path / "public")
+
+    assert [item["label"] for item in screenshots] == [
+        "最后页面画面 1/2",
+        "最后页面画面 2/2",
+    ]
+    assert [item["path"] for item in screenshots] == [
+        "screenshots/frame-1.jpeg",
+        "screenshots/frame-2.jpeg",
+    ]
 
 
 def test_failed_result_inventory_opens_exact_diagnosis_and_links_trajectory(

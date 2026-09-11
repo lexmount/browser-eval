@@ -1635,6 +1635,7 @@ def _extract_trace_screenshots(
         return []
     try:
         with zipfile.ZipFile(trace_path) as archive:
+            archive_names = set(archive.namelist())
             frames = []
             for raw_line in archive.read("trace.trace").splitlines():
                 try:
@@ -1644,7 +1645,7 @@ def _extract_trace_screenshots(
                 if event.get("type") != "screencast-frame" or not event.get("sha1"):
                     continue
                 name = "resources/" + str(event["sha1"])
-                if name not in archive.namelist():
+                if name not in archive_names:
                     continue
                 frames.append((float(event.get("timestamp") or 0), name))
             names = []
@@ -1654,23 +1655,29 @@ def _extract_trace_screenshots(
                 if len(names) == limit:
                     break
             names.reverse()
-            output = []
-            screenshot_dir = artifact_dir / "screenshots"
-            screenshot_dir.mkdir(parents=True, exist_ok=True)
-            for index, name in enumerate(names, start=1):
+            valid_frames = []
+            for name in names:
                 payload = archive.read(name)
                 with Image.open(BytesIO(payload)) as image:
                     width, height = image.size
                     if width < 800 or height < 450:
                         continue
                 suffix = ".png" if name.lower().endswith(".png") else ".jpeg"
+                valid_frames.append((payload, width, height, suffix))
+            output = []
+            screenshot_dir = artifact_dir / "screenshots"
+            screenshot_dir.mkdir(parents=True, exist_ok=True)
+            total = len(valid_frames)
+            for index, (payload, width, height, suffix) in enumerate(
+                valid_frames, start=1
+            ):
                 destination = screenshot_dir / f"frame-{index}{suffix}"
                 destination.write_bytes(payload)
                 output.append(
                     {
                         "path": f"screenshots/{destination.name}",
                         "sha256": _sha256(destination),
-                        "label": f"最后页面画面 {len(output) + 1}/{len(names)}",
+                        "label": f"最后页面画面 {index}/{total}",
                         "source": "playwright-screencast-frame",
                         "width": width,
                         "height": height,
