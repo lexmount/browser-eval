@@ -34,7 +34,7 @@ from .qualification import task_contract_sha256
 from .report import write_latest_report
 from .response_builder import build_agent_response
 from .suite import BrowserTask, load_suite, validate_ground_truth_evidence
-from .webarena_environment import WebArenaEnvironment
+from .webarena_environment import WebArenaEnvironment, _wall_clock_timeout
 
 ENGINE_IMAGES = {
     "chromium": "lex-browser-use-eval-chromium:local",
@@ -343,6 +343,7 @@ def _run_task(
     sampler = ResourceSampler(resources, interval_ms=sample_interval_ms)
     sampler.start()
     started = time.perf_counter()
+    task_deadline = started + task_timeout_ms / 1000
     outputs: dict[str, str] = {}
     trace: list[dict[str, Any]] = []
     validation: list[dict[str, Any]] = []
@@ -350,6 +351,9 @@ def _run_task(
     recorder: CdpHarRecorder | None = None
     execution_status = "fail"
     try:
+        execution_budget_ms = _remaining_task_budget_ms(
+            task_deadline, phase="trajectory execution"
+        )
         recorder = CdpHarRecorder(page)
         execute_steps(
             page,
@@ -357,7 +361,7 @@ def _run_task(
             trace=trace,
             outputs=outputs,
             page_observer=recorder.attach,
-            task_timeout_ms=task_timeout_ms,
+            task_timeout_ms=execution_budget_ms,
         )
         execution_status = "pass"
     except Exception:
@@ -383,23 +387,33 @@ def _run_task(
         har_summary = {"status": "error"}
         error = f"{error}\n{traceback.format_exc()}".strip()
     try:
-        final_page_evidence = _capture_final_page_evidence(page, artifact_dir)
+        evidence_budget_ms = _remaining_task_budget_ms(
+            task_deadline, phase="final evidence capture"
+        )
+        with _wall_clock_timeout(
+            evidence_budget_ms / 1000, operation="final evidence capture"
+        ):
+            final_page_evidence = _capture_final_page_evidence(page, artifact_dir)
     except Exception:
         final_page_evidence = {"status": "error"}
         error = f"{error}\n{traceback.format_exc()}".strip()
     try:
-        agent_response = build_agent_response(task, outputs)
-        if agent_response is not None:
-            write_agent_response(artifact_dir / "agent_response.json", agent_response)
-        evaluation = evaluator_registry.evaluate(
-            task,
-            TaskEvidence(
-                outputs=outputs,
-                process_passed=process_passed,
-                agent_response=agent_response,
-                network_har_path=har_path if har_path.is_file() else None,
-            ),
+        evaluator_budget_ms = _remaining_task_budget_ms(
+            task_deadline, phase="result evaluation"
         )
+        with _wall_clock_timeout(evaluator_budget_ms / 1000, operation="result evaluation"):
+            agent_response = build_agent_response(task, outputs)
+            if agent_response is not None:
+                write_agent_response(artifact_dir / "agent_response.json", agent_response)
+            evaluation = evaluator_registry.evaluate(
+                task,
+                TaskEvidence(
+                    outputs=outputs,
+                    process_passed=process_passed,
+                    agent_response=agent_response,
+                    network_har_path=har_path if har_path.is_file() else None,
+                ),
+            )
         validation = list(evaluation.checks)
         result_passed = evaluation.passed
         if evaluation.error:

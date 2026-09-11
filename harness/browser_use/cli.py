@@ -92,7 +92,15 @@ def main() -> None:
     parser.add_argument("--failure-retries", type=int, default=1)
     parser.add_argument("--sample-interval-ms", type=int, default=50)
     parser.add_argument("--settle-ms", type=int, default=1500)
-    parser.add_argument("--task-timeout-ms", type=int, default=300_000)
+    parser.add_argument(
+        "--task-timeout-ms",
+        type=int,
+        default=300_000,
+        help=(
+            "wall-clock budget for one task/browser attempt, including environment reset, "
+            "login preparation, trajectory execution, and result evaluation"
+        ),
+    )
     parser.add_argument("--cpus", type=float, default=2.0)
     parser.add_argument("--memory", default="2g")
     parser.add_argument("--llm-diagnostics", action="store_true")
