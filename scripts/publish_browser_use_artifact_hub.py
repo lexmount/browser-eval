@@ -107,6 +107,23 @@ def request(
         return error.code, error.read()
 
 
+def response_json(status: int, raw: bytes, *, operation: str) -> dict:
+    """Decode an Artifact Hub response without hiding its HTTP failure."""
+
+    if not 200 <= status < 300:
+        detail = raw.decode("utf-8", errors="replace").strip()[:500] or "empty response"
+        raise RuntimeError(f"{operation} failed with HTTP {status}: {detail}")
+    try:
+        value = json.loads(raw)
+    except (TypeError, ValueError) as error:
+        raise RuntimeError(
+            f"{operation} returned HTTP {status} without a valid JSON response"
+        ) from error
+    if not isinstance(value, dict):
+        raise RuntimeError(f"{operation} returned a non-object JSON response")
+    return value
+
+
 def multipart_archive() -> tuple[bytes, str]:
     if not ARCHIVE.is_file():
         raise ValueError(f"missing validated package: {ARCHIVE}")
@@ -147,9 +164,9 @@ def main(*, create: bool = False) -> None:
     base, expected_slug, expected_version = publication_target(require_existing=not create)
     if create:
         status, raw = request("/api/sites", payload, content_type)
-        result = json.loads(raw)
-        if status != 200 or not result.get("slug"):
-            raise RuntimeError(result)
+        result = response_json(status, raw, operation="site creation")
+        if not result.get("slug"):
+            raise RuntimeError("site creation response omitted slug")
         save_receipt(result)
     elif not RECEIPT.exists():
         raise ValueError(
@@ -160,9 +177,9 @@ def main(*, create: bool = False) -> None:
         if result.get("slug") != expected_slug:
             raise ValueError("Artifact Hub receipt differs from the bound Browser Use site")
         status, raw = request(f"/api/sites/{result['slug']}")
-        current = json.loads(raw)
+        current = response_json(status, raw, operation="site lookup")
         version_id = (current.get("site") or {}).get("currentVersionId")
-        if status != 200 or not version_id:
+        if not version_id:
             raise RuntimeError("could not resolve the current Artifact Hub version")
         if version_id != expected_version:
             raise ValueError("Artifact Hub current version differs from current-report authority")
@@ -170,9 +187,7 @@ def main(*, create: bool = False) -> None:
         status, raw = request(
             f"/api/sites/{result['slug']}/versions?{query}", payload, content_type
         )
-        updated = json.loads(raw)
-        if not 200 <= status < 300:
-            raise RuntimeError(updated)
+        updated = response_json(status, raw, operation="site version upload")
         result.update(
             {
                 key: value
@@ -187,7 +202,7 @@ def main(*, create: bool = False) -> None:
         method="PATCH",
     )
     if not 200 <= title_status < 300:
-        raise RuntimeError(json.loads(title_raw))
+        response_json(title_status, title_raw, operation="site title update")
     result["title"] = "Chromium 与 Moli 的 Browser Use 能力对比"
     if not result.get("share_url"):
         status, raw = request(
@@ -195,9 +210,8 @@ def main(*, create: bool = False) -> None:
             json.dumps({"policy": "public"}).encode(),
             "application/json",
         )
-        if not 200 <= status < 300:
-            raise RuntimeError(raw.decode(errors="replace"))
-        result["share_url"] = json.loads(raw)["url"]
+        share = response_json(status, raw, operation="public share creation")
+        result["share_url"] = share["url"]
     save_receipt(result)
     public = urllib.request.Request(
         result["share_url"], headers={"User-Agent": "Browser-Use-Report-Publisher/1.0"}

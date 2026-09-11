@@ -4,12 +4,27 @@ import hashlib
 import json
 from pathlib import Path
 
-import scripts.publish_browser_use_artifact_hub as publisher
 import scripts.package_browser_use_artifact_hub as packager
+import scripts.publish_browser_use_artifact_hub as publisher
 
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_response_json_preserves_http_failure_context() -> None:
+    assert publisher.response_json(200, b'{"ok": true}', operation="upload") == {"ok": True}
+    for status, payload, expected in (
+        (502, b"", "HTTP 502: empty response"),
+        (413, b"too large", "HTTP 413: too large"),
+        (200, b"", "HTTP 200 without a valid JSON response"),
+    ):
+        try:
+            publisher.response_json(status, payload, operation="upload")
+        except RuntimeError as error:
+            assert expected in str(error)
+        else:
+            raise AssertionError("invalid response must fail with diagnostic context")
 
 
 def test_validate_package_requires_and_checks_every_evidence_root(
@@ -90,7 +105,9 @@ def test_packaging_reuses_visual_gate_bound_to_current_report(monkeypatch, tmp_p
             ("report", report_dir, evidence_dirs, selection, require_complete)
         ),
     )
-    monkeypatch.setattr(packager, "check_links", lambda report_dir: calls.append(("links", report_dir)))
+    monkeypatch.setattr(
+        packager, "check_links", lambda report_dir: calls.append(("links", report_dir))
+    )
     monkeypatch.setattr(
         packager,
         "check_visual",
