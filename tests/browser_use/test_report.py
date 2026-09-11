@@ -184,6 +184,9 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert path.exists()
     assert not (reports / "browser-use-evaluation-20260101.md").exists()
     rendered = (reports / "browser-use-evaluation-latest.html").read_text(encoding="utf-8")
+    assert "Chromium 与 Moli：WebArena 固定轨迹回放评测" in rendered
+    assert "RPA 式公开人工轨迹重放" in rendered
+    assert "Chromium 与 Moli 浏览器工具调用评测" not in rendered
     assert "结论与产品建议" in rendered
     assert 'lang="zh-CN"' in rendered
     assert "报告分页" in rendered

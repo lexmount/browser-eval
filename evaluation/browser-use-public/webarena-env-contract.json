@@ -1,0 +1,16 @@
+{
+  "schema": "lexmount_webarena_cross_repo_contract/1",
+  "environment_repository": "https://github.com/lexmount/webarena-env",
+  "environment_pull_request": "https://github.com/lexmount/webarena-env/pull/1",
+  "webarena_verified_version": "1.2.3",
+  "environment_lock": "config/images.lock.json",
+  "evaluation_lock": "evaluation/browser-use-public/webarena-environment-images.json",
+  "required_sites": [
+    "shopping_admin",
+    "shopping",
+    "reddit",
+    "gitlab",
+    "wikipedia",
+    "map"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "schema": "lexmount_webarena_fixed_trajectory_current_report/1",
+  "title": "Chromium 与 Moli：WebArena 固定轨迹回放评测",
+  "evaluation_kind": "fixed_trajectory_replay",
+  "agentic_browser_use": false,
+  "benchmark": "WebArena",
+  "task_count_per_engine": 30,
+  "run_id": "342ae6e73a88",
+  "suite_sha256": "ed2832f9c061726cd856d2949313f6a543c770277122eb42dd38cd0a8d27fe0c",
+  "evidence": {
+    "location": "outside_git",
+    "manifest_sha256": "4fbb8404a102b4367e0b73c47fc3647c3b8facdb387fe795a4fdce3212bf87be",
+    "summary_sha256": "352cb3d6605262c11db6721ea942f4e1d24b8b1b7b4fc31f956768f05c373818"
+  },
+  "results": {
+    "chromium": {"first_passes": 28, "recovered": 1, "final_passes": 29},
+    "moli": {"first_passes": 11, "recovered": 2, "final_passes": 13}
+  },
+  "publication": {
+    "base_url": "https://artifact-hub.app.lexmount.com",
+    "site_slug": "G_3dLaZQ1-4H",
+    "version_id": "ver_e6e216ebc01f43d4898b39878a470247",
+    "share_url": "https://artifact-hub.app.lexmount.com/v/EpR29VQ99CAgQsT-xdCSX8yg_O7DlWyL",
+    "submitted_files_verified": 69
+  }
+}

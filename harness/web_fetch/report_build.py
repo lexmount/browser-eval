@@ -10,52 +10,6 @@ from .safety import contained_path, validate_report_ids
 from .reference_lifecycle import require_verified_reference_checks
 from .reliability import assess_reliability
 from .storage import require_selection_history
-from harness.browser_use.publication import public_projection
-
-BROWSER_USE_REPORT_ROOT = Path("formal/webarena-public-trajectories")
-BROWSER_USE_REPORT_STEM = "browser-use-evaluation-latest"
-
-
-def copy_browser_use_report(source: Path, output: Path) -> bool:
-    """Copy only a report whose public summary is bound to the formal raw run."""
-    formal = contained_path(source, BROWSER_USE_REPORT_ROOT)
-    reports = formal / "reports"
-    if not reports.is_dir():
-        return False
-    manifest_path = formal / "run" / "manifest.json"
-    summary_path = formal / "run" / "summary.json"
-    audit_path = reports / f"{BROWSER_USE_REPORT_STEM}-data.json"
-    for path in (manifest_path, summary_path, audit_path):
-        if not path.is_file() or path.is_symlink():
-            raise ValueError(f"Incomplete formal browser-use report binding: {path}")
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    summary = json.loads(summary_path.read_text(encoding="utf-8"))
-    audit = json.loads(audit_path.read_text(encoding="utf-8"))
-    if audit.get("suite_sha256") != manifest.get("suite_sha256"):
-        raise ValueError("Browser-use report suite binding mismatch")
-    if audit.get("artifact_provenance") != public_projection(
-        manifest.get("artifact_provenance") or {}
-    ):
-        raise ValueError("Browser-use report artifact binding mismatch")
-    for key in ("functional", "resource_comparison"):
-        if audit.get(key) != public_projection(summary.get(key) or {}):
-            raise ValueError(f"Browser-use report {key} binding mismatch")
-
-    files = sorted(reports.glob(f"{BROWSER_USE_REPORT_STEM}*"))
-    required = {
-        f"{BROWSER_USE_REPORT_STEM}.html",
-        f"{BROWSER_USE_REPORT_STEM}-research.html",
-        f"{BROWSER_USE_REPORT_STEM}-data.json",
-    }
-    if not required.issubset({path.name for path in files}):
-        raise ValueError("Browser-use report is missing required current pages")
-    target = output / "browser-use"
-    target.mkdir(parents=True, exist_ok=True)
-    for path in files:
-        if path.is_symlink() or not path.is_file():
-            raise ValueError(f"Unsafe browser-use report file: {path}")
-        shutil.copy2(path, target / path.name)
-    return True
 
 
 def scoring_scope(records, cases):
@@ -221,7 +175,6 @@ def build_report(source: Path, output: Path) -> Path:
         if (source/'file-rerun-selection.json').is_file():
             shutil.copy2(source/'file-rerun-selection.json', staging/'file-rerun-selection.json')
             shutil.copytree(source/'history/file-baseline', staging/'history/file-baseline')
-        copy_browser_use_report(source, staging)
         generate(staging,dataset,records,manifests)
         (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         # Replace only an explicitly marked generated directory; never merge stale pages.

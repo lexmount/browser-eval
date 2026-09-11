@@ -10,11 +10,11 @@ website accounts, or login state.
 
 ## Latest reports
 
-[Web Fetch 与浏览器轨迹评测](https://artifact-hub.app.lexmount.com/s/UUAhhQMnrGwm)
+- [Web Fetch 评测](https://artifact-hub.app.lexmount.com/s/UUAhhQMnrGwm)
+- [WebArena 固定轨迹回放评测（RPA 式）](https://artifact-hub.app.lexmount.com/v/EpR29VQ99CAgQsT-xdCSX8yg_O7DlWyL)
 
-This stable Artifact Hub link opens the current report library. The existing 30 browser-use cases
-are deterministic tool microbenchmarks. The library also contains the separate formal comparison
-that replays qualified official WebArena human trajectories; the two denominators are never merged.
+The WebArena report is an RPA-style replay of qualified public human trajectories.
+It compares browser and adapter compatibility and does not measure agent planning.
 Generated report files are local build outputs and are not committed to this repository.
 
 ## Run the browser evaluation
