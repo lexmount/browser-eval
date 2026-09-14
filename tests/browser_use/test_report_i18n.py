@@ -42,8 +42,16 @@ def test_browser_use_change_records_have_complete_structured_english() -> None:
                 assert not re.search(r"[\u4e00-\u9fff]", english[field])
             if collection.endswith("releases"):
                 assert len(english["changes"]) == len(record.get("changes") or [])
-                assert all(len(target) == len(source) == 4 for source, target in zip(record.get("changes") or [], english["changes"], strict=True))
-                assert not re.search(r"[\u4e00-\u9fff]", json.dumps(english["changes"], ensure_ascii=False))
+                assert all(
+                    len(target) == len(source) == 4
+                    for source, target in zip(
+                        record.get("changes") or [], english["changes"], strict=True
+                    )
+                )
+                assert not re.search(
+                    r"[\u4e00-\u9fff]",
+                    json.dumps(english["changes"], ensure_ascii=False),
+                )
 
 
 def test_english_ui_is_localized_but_measured_text_is_preserved() -> None:
@@ -57,7 +65,14 @@ def test_english_ui_is_localized_but_measured_text_is_preserved() -> None:
     parser = _VisibleText()
     parser.feed(localized)
     visible = " ".join(parser.values)
-    for leaked in ("联合多模型能力实测", "查看本题运行结果", "评测集页面保持", "程序自动定位", "核验根因子类", "核验原因"):
+    for leaked in (
+        "联合多模型能力实测",
+        "查看本题运行结果",
+        "评测集页面保持",
+        "程序自动定位",
+        "核验根因子类",
+        "核验原因",
+    ):
         assert leaked not in visible
     assert "原始测量证据" in localized
     assert "创建一个命名明确的空仓库" in visible

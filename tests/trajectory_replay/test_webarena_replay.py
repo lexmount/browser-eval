@@ -1,6 +1,17 @@
+import ast
+import inspect
+import json
+from pathlib import Path
+
+import pytest
+
 from harness.trajectory_replay.webarena_replay import (
+    RECEIPT_SCHEMA,
     _browser_context_needs_restart,
+    _origin,
     _rebind_url,
+    _validated_resume,
+    run_replay_suite,
     select_tasks,
 )
 
@@ -18,13 +29,26 @@ def test_select_tasks_requires_clean_canonical_candidates() -> None:
 
 def test_rebind_url_changes_only_known_local_site_ports() -> None:
     assert (
-        _rebind_url("http://192.168.5.2:8023/group/project/-/issues?state=opened", "192.168.9.2")
+        _rebind_url(
+            "http://192.168.5.2:8023/group/project/-/issues?state=opened",
+            "192.168.9.2",
+            {"192.168.5.2"},
+        )
         == "http://192.168.9.2:8023/group/project/-/issues?state=opened"
     )
-    assert _rebind_url("https://example.com:8023/path", "192.168.9.2") == (
-        "https://192.168.9.2:8023/path"
-    )
-    assert _rebind_url("https://example.com/path", "192.168.9.2") == ("https://example.com/path")
+    assert _rebind_url(
+        "https://example.com:8023/path", "192.168.9.2", {"example.com"}
+    ) == ("https://192.168.9.2:8023/path")
+    assert _rebind_url(
+        "https://attacker.invalid:8023/path", "192.168.9.2", {"example.com"}
+    ) == "https://attacker.invalid:8023/path"
+    assert _rebind_url(
+        "https://example.com/path", "192.168.9.2", {"example.com"}
+    ) == ("https://example.com/path")
+
+
+def test_origin_removes_environment_paths_before_storage_reset() -> None:
+    assert _origin("http://192.168.5.2:7780/admin") == "http://192.168.5.2:7780"
 
 
 def test_browser_context_restart_is_limited_to_pre_action_context_failure() -> None:
@@ -37,3 +61,152 @@ def test_browser_context_restart_is_limited_to_pre_action_context_failure() -> N
     assert not _browser_context_needs_restart({**failed_setup, "completed_action_count": 1})
     assert not _browser_context_needs_restart({**failed_setup, "error": "navigation failed"})
     assert not _browser_context_needs_restart({**failed_setup, "process_status": "pass"})
+
+
+def test_formal_orchestration_passes_trusted_hosts_only_to_replay_calls() -> None:
+    tree = ast.parse(inspect.getsource(run_replay_suite))
+    calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)]
+    run_one_calls = [
+        node for node in calls if isinstance(node.func, ast.Name) and node.func.id == "_run_one"
+    ]
+    journal_calls = [
+        node
+        for node in calls
+        if isinstance(node.func, ast.Name) and node.func.id == "_start_physical_execution"
+    ]
+
+    assert len(run_one_calls) == len(journal_calls) == 2
+    assert all(
+        "trusted_source_site_hosts" in {keyword.arg for keyword in node.keywords}
+        for node in run_one_calls
+    )
+    assert all(
+        "trusted_source_site_hosts" not in {keyword.arg for keyword in node.keywords}
+        for node in journal_calls
+    )
+
+
+def test_resume_rejects_noncanonical_or_out_of_plan_attempts(tmp_path: Path) -> None:
+    runtime = {"resources": {"cpus": 2.0}}
+    plan = {
+        "profile_sha256": "profile",
+        "seed_manifest_sha256": "seeds",
+        "seed_manifest": {
+            "tasks": [{"task_id": 1, "canonical_candidate_id": "canonical-1"}]
+        },
+    }
+    receipt = {
+        "schema": RECEIPT_SCHEMA,
+        "execution_scope": "formal",
+        "profile_sha256": "profile",
+        "source_seed_manifest_sha256": "seeds",
+        "task_ids": [1],
+        "engines": ["chromium"],
+        "runtime": runtime,
+        "run_id": "run",
+        "attempts": [
+            {
+                "schema": "lex_webarena_trajectory_replay_attempt/1",
+                "engine": "chromium",
+                "task_id": 1,
+                "source_candidate_id": "wrong",
+            }
+        ],
+    }
+    receipt_path = tmp_path / "receipt.json"
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="non-canonical"):
+        _validated_resume(
+            receipt_path,
+            plan=plan,
+            task_ids=[1],
+            engines=["chromium"],
+            scope="formal",
+            runtime=runtime,
+        )
+
+
+def test_resume_rejects_changed_runtime_binding(tmp_path: Path) -> None:
+    plan = {
+        "profile_sha256": "profile",
+        "seed_manifest_sha256": "seeds",
+        "seed_manifest": {
+            "tasks": [{"task_id": 1, "canonical_candidate_id": "canonical-1"}]
+        },
+    }
+    receipt_path = tmp_path / "receipt.json"
+    receipt_path.write_text(
+        json.dumps(
+            {
+                "schema": RECEIPT_SCHEMA,
+                "execution_scope": "formal",
+                "profile_sha256": "profile",
+                "source_seed_manifest_sha256": "seeds",
+                "task_ids": [1],
+                "engines": ["chromium"],
+                "runtime": {"resources": {"cpus": 1.0}},
+                "run_id": "run",
+                "attempts": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="runtime"):
+        _validated_resume(
+            receipt_path,
+            plan=plan,
+            task_ids=[1],
+            engines=["chromium"],
+            scope="formal",
+            runtime={"resources": {"cpus": 2.0}},
+        )
+
+
+def test_resume_rejects_interrupted_physical_execution(tmp_path: Path) -> None:
+    runtime = {"resources": {"cpus": 2.0}}
+    plan = {
+        "profile_sha256": "profile",
+        "seed_manifest_sha256": "seeds",
+        "seed_manifest": {
+            "tasks": [{"task_id": 1, "canonical_candidate_id": "canonical-1"}]
+        },
+    }
+    receipt_path = tmp_path / "receipt.json"
+    receipt_path.write_text(
+        json.dumps(
+            {
+                "schema": RECEIPT_SCHEMA,
+                "execution_scope": "formal",
+                "profile_sha256": "profile",
+                "source_seed_manifest_sha256": "seeds",
+                "task_ids": [1],
+                "engines": ["chromium"],
+                "runtime": runtime,
+                "run_id": "run",
+                "attempts": [],
+                "method_teardown": {"chromium": False},
+                "sessions": [],
+                "physical_executions": [
+                    {
+                        "engine": "chromium",
+                        "task_id": 1,
+                        "physical_execution": 1,
+                        "status": "running",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="interrupted physical execution"):
+        _validated_resume(
+            receipt_path,
+            plan=plan,
+            task_ids=[1],
+            engines=["chromium"],
+            scope="formal",
+            runtime=runtime,
+        )

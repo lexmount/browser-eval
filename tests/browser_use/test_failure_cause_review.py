@@ -6,7 +6,6 @@ from harness.browser_use.failure_cause_review import (
     validate_failure_cause_review,
 )
 
-
 MODEL_ID = "gpt-5.6-sol"
 RESULT_ID = f"{MODEL_ID}-chromium-124"
 

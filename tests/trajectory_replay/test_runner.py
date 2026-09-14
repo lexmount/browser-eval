@@ -118,7 +118,9 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
 
 
 def test_moli_image_installs_its_verified_dynamic_font_dependency():
-    dockerfile = Path("examples/trajectory_replay/docker/moli.Dockerfile").read_text(encoding="utf-8")
+    dockerfile = Path("examples/trajectory_replay/docker/moli.Dockerfile").read_text(
+        encoding="utf-8"
+    )
 
     assert "fontconfig" in dockerfile
 

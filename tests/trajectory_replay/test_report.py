@@ -222,7 +222,9 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
         assert "人工复核" not in html_path.read_text(encoding="utf-8")
     audit = json.loads((reports / "trajectory-replay-evaluation-latest-data.json").read_text())
     assert "human_review" not in audit["ground_truth_validation"]
-    method = (reports / "trajectory-replay-evaluation-latest-method.html").read_text(encoding="utf-8")
+    method = (reports / "trajectory-replay-evaluation-latest-method.html").read_text(
+        encoding="utf-8"
+    )
     assert "RX = Receive" in method
     assert "P50 与中位数是同一个统计量" in method
     assert "Codex" in method
@@ -487,7 +489,9 @@ def test_all_published_suite_tasks_link_to_public_web_targets(tmp_path):
         manifest={"run_id": "suite-links", "suite": suite},
         summary={"functional": {}, "resource_comparison": {"by_engine": {}}},
     )
-    rendered = (reports / "trajectory-replay-evaluation-latest-suite.html").read_text(encoding="utf-8")
+    rendered = (reports / "trajectory-replay-evaluation-latest-suite.html").read_text(
+        encoding="utf-8"
+    )
     links = re.findall(
         r'<strong>公网测试页面</strong><span><a[^>]+href="(https://[^\"]+)"',
         rendered,

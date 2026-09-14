@@ -1,0 +1,53 @@
+{
+  "schema": "lex_webarena_trajectory_replay_profile/1",
+  "benchmark": "WebArena-Verified",
+  "benchmark_version": "1.2.3",
+  "task_selection": {
+    "path": "evaluation/browser-use/webarena-verified-pilot.json",
+    "sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+    "task_count": 90
+  },
+  "seed_inventory": {
+    "base_kind": "successful Browser Use executions",
+    "expert_repairs_path": "evaluation/trajectory-replay/webarena-verified/expert-repairs.json",
+    "expert_repairs_sha256": "3f8ef291ad3ed92ecef3469763a93a1aa1a53967116202c73f09a9816ea39832",
+    "required_ready_tasks": 90,
+    "canonical_trajectories_per_task": 1
+  },
+  "methods": [
+    {
+      "id": "chromium",
+      "engine": "chromium",
+      "label": "Chromium"
+    },
+    {
+      "id": "moli-1.1.3",
+      "engine": "moli",
+      "label": "Moli 1.1.3"
+    }
+  ],
+  "runs_per_task": 1,
+  "resources": {
+    "cpus": 2.0,
+    "memory": "2g",
+    "sample_interval_ms": 100
+  },
+  "execution": {
+    "environment_pool_count": 1,
+    "method_parallelism": 1,
+    "task_parallelism": 1,
+    "schedule": "complete one method before starting the next",
+    "reset_before_every_task": true,
+    "teardown_between_methods": true,
+    "trusted_source_site_hosts": [
+      "192.168.5.2",
+      "host.docker.internal"
+    ],
+    "site_stack": "one fixed-port self-hosted WebArena environment"
+  },
+  "scoring": {
+    "authority": "official programmatic evaluator or a hash-bound replay correction",
+    "promotion_gate": "the same canonical trajectory passes execution and evaluation on every registered method",
+    "model_calls": 0
+  }
+}

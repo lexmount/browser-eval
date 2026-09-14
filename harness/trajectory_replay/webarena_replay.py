@@ -18,13 +18,17 @@ from harness.browser_use.har import CdpHarRecorder
 from harness.browser_use.runner import (
     SITE_PORTS,
     _allow_official_container_hostname,
+    _cdp_metadata,
     _configure_benchmark,
     _container_host_gateway,
+    _docker_image_metadata,
     _login_context,
     _physical_execution_lock,
     _physical_execution_lock_path,
     _prepare_sites,
+    _require_clean_git_checkout,
     _resource_summary,
+    _site_container_manager,
 )
 from harness.trajectory_replay.metrics import DockerStatsResources, ResourceSampler
 from harness.trajectory_replay.runner import (
@@ -40,6 +44,33 @@ from harness.trajectory_replay.webarena_corrections import (
     evaluate_corrected_contract,
     load_corrections,
 )
+from harness.trajectory_replay.webarena_plan import (
+    load_replay_plan,
+    replay_calls_binding_sha256,
+    replay_site_hosts,
+)
+
+RECEIPT_SCHEMA = "lex_webarena_trajectory_replay_suite/1"
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _json_sha256(value: Any) -> str:
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode()).hexdigest()
+
+
+def _origin(url: str) -> str:
+    parsed = urlsplit(url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise ValueError(f"invalid WebArena environment URL: {url}")
+    return urlunsplit((parsed.scheme, parsed.netloc, "", "", ""))
+
+
+def _evidence_file(path: Path) -> dict[str, str] | None:
+    return {"path": str(path), "sha256": _sha256(path)} if path.is_file() else None
 
 
 def _candidate(task: dict[str, Any]) -> dict[str, Any]:
@@ -62,25 +93,63 @@ def select_tasks(seed_manifest: dict[str, Any], task_ids: list[int]) -> list[dic
     return selected
 
 
-def _rebind_url(value: str, site_access_host: str) -> str:
+def _rebind_url(
+    value: str, site_access_host: str, trusted_source_site_hosts: set[str]
+) -> str:
     parsed = urlsplit(value)
-    if parsed.scheme not in {"http", "https"} or parsed.port not in {
-        port for pair in SITE_PORTS.values() for port in pair
-    }:
+    if (
+        parsed.scheme not in {"http", "https"}
+        or parsed.port not in {port for pair in SITE_PORTS.values() for port in pair}
+        or parsed.hostname not in trusted_source_site_hosts
+    ):
         return value
     host = f"[{site_access_host}]" if ":" in site_access_host else site_access_host
     netloc = f"{host}:{parsed.port}"
     return urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
 
 
-def _rebind_calls(calls: list[dict[str, Any]], site_access_host: str) -> list[dict[str, Any]]:
+def _rebind_calls(
+    calls: list[dict[str, Any]],
+    site_access_host: str,
+    trusted_source_site_hosts: set[str],
+) -> list[dict[str, Any]]:
     rebound = []
     for call in calls:
         item = dict(call)
         if isinstance(item.get("url"), str):
-            item["url"] = _rebind_url(item["url"], site_access_host)
+            item["url"] = _rebind_url(
+                item["url"], site_access_host, trusted_source_site_hosts
+            )
         rebound.append(item)
     return rebound
+
+
+def _clear_browser_state(service: Any, origins: set[str]) -> None:
+    """Fail closed unless all persistent browser state is cleared before a task."""
+
+    def clear() -> None:
+        context = service._context
+        page = service._page
+        if context is None or page is None:
+            raise RuntimeError("browser context is not ready for state reset")
+        context.clear_cookies()
+        context.clear_permissions()
+        cdp = context.new_cdp_session(page)
+        try:
+            cdp.send("Network.enable")
+            cdp.send("Network.clearBrowserCache")
+            cdp.send("Network.clearBrowserCookies")
+            for origin in sorted(origins):
+                cdp.send(
+                    "Storage.clearDataForOrigin",
+                    {"origin": origin, "storageTypes": "all"},
+                )
+            page.goto("about:blank", wait_until="load", timeout=10_000)
+            cdp.send("Page.resetNavigationHistory")
+        finally:
+            cdp.detach()
+
+    service._submit(clear)
 
 
 def _run_one(  # noqa: PLR0913
@@ -93,6 +162,8 @@ def _run_one(  # noqa: PLR0913
     cowagent_repo: Path,
     output_dir: Path,
     sample_interval_ms: int,
+    physical_execution: int,
+    trusted_source_site_hosts: set[str],
 ) -> dict[str, Any]:
     task_id = int(task_seed["task_id"])
     candidate = _candidate(task_seed)
@@ -105,8 +176,12 @@ def _run_one(  # noqa: PLR0913
     )
     sites = tuple(official_task.sites)
     start_urls = list(benchmark.config.render_url(list(official_task.start_urls), list(sites)))
-    calls = _rebind_calls(candidate["tool_calls"], _container_host_gateway(container))
-    attempt_dir = output_dir / engine / str(task_id)
+    site_access_host = _container_host_gateway(container)
+    calls = _rebind_calls(
+        candidate["tool_calls"], site_access_host, trusted_source_site_hosts
+    )
+    source_site_hosts = replay_site_hosts(candidate["tool_calls"])
+    attempt_dir = output_dir / engine / str(task_id) / f"physical-{physical_execution}"
     attempt_dir.mkdir(parents=True, exist_ok=True)
     har_path = attempt_dir / "network.har"
     trace_path = attempt_dir / "trace.json"
@@ -147,6 +222,10 @@ def _run_one(  # noqa: PLR0913
         setup_started = time.perf_counter()
         service = tool._get_service()
         service._submit(lambda: None)
+        origins = {
+            _origin(benchmark.config.get_environment(site).active_url) for site in SITE_PORTS
+        }
+        _clear_browser_state(service, origins)
         readiness_retries = _login_context(service, sites, benchmark, start_urls)
         service._submit(lambda: recorder.start(service._context))
         timings["browser_session_setup_ms"] = (time.perf_counter() - setup_started) * 1000
@@ -266,7 +345,16 @@ def _run_one(  # noqa: PLR0913
         "schema": "lex_webarena_trajectory_replay_attempt/1",
         "engine": engine,
         "task_id": task_id,
+        "physical_execution": physical_execution,
         "source_candidate_id": candidate["id"],
+        "source_tool_calls_sha256": _json_sha256(candidate["tool_calls"]),
+        "executed_tool_calls_sha256": _json_sha256(calls),
+        "source_site_hosts": sorted(source_site_hosts),
+        "runtime_site_host": site_access_host,
+        "replay_calls_binding_sha256": replay_calls_binding_sha256(
+            calls, allowed_hosts={site_access_host}
+        ),
+        "evaluation_input_sha256": _json_sha256(candidate["recorded_response"]),
         "source_model": (candidate.get("method") or {}).get("model"),
         "source_engine": (candidate.get("method") or {}).get("engine"),
         "source_kind": (candidate.get("source") or {}).get("kind", "browser_use_execution"),
@@ -294,6 +382,12 @@ def _run_one(  # noqa: PLR0913
             else {}
         ),
         "error": error,
+        "evidence": {
+            "trace": _evidence_file(trace_path),
+            "network_har": _evidence_file(har_path),
+            "evaluation": _evidence_file(evaluation_path),
+            "failure_screenshot": _evidence_file(screenshot_path),
+        },
         "paths": {
             "trace": str(trace_path),
             "network_har": str(har_path),
@@ -312,132 +406,453 @@ def _browser_context_needs_restart(attempt: dict[str, Any]) -> bool:
     )
 
 
-def run_canary_replay(  # noqa: PLR0913
+def _stop_all_sites() -> None:
+    """Stop the fixed-port site stack before another method can acquire it."""
+
+    for site in SITE_PORTS:
+        manager = _site_container_manager(site)
+        if manager.is_running():
+            manager.stop()
+
+
+def _teardown_method(client: Any, run_id: str, engine: str) -> None:
+    """Remove every runtime object for a method and fail if isolation is incomplete."""
+
+    errors = []
+    labels = [
+        f"lex.browser-use-eval.run=replay-{run_id}",
+        f"lex.browser-use-eval.engine={engine}",
+    ]
+    for container in client.containers.list(all=True, filters={"label": labels}):
+        try:
+            container.remove(force=True)
+        except Exception as exc:
+            errors.append(f"browser container {container.name}: {exc}")
+    network_name = f"lex-webarena-replay-{run_id}-{engine}"
+    for network in client.networks.list(names=[network_name]):
+        try:
+            network.remove()
+        except Exception as exc:
+            errors.append(f"browser network {network.name}: {exc}")
+    try:
+        _stop_all_sites()
+    except Exception as exc:
+        errors.append(f"site stack: {exc}")
+    if errors:
+        raise RuntimeError("method teardown failed: " + "; ".join(errors))
+
+
+def _remove_orphan_replay_runtimes(client: Any, current_run_id: str) -> None:
+    """Remove stale replay containers and networks while the global stack lock is held."""
+
+    errors = []
+    for container in client.containers.list(
+        all=True, filters={"label": "lex.browser-use-eval.run"}
+    ):
+        run_label = str((container.labels or {}).get("lex.browser-use-eval.run") or "")
+        if run_label.startswith("replay-") and run_label != f"replay-{current_run_id}":
+            try:
+                container.remove(force=True)
+            except Exception as exc:
+                errors.append(f"orphan container {container.name}: {exc}")
+    for network in client.networks.list():
+        if network.name.startswith("lex-webarena-replay-") and current_run_id not in network.name:
+            try:
+                network.remove()
+            except Exception as exc:
+                errors.append(f"orphan network {network.name}: {exc}")
+    if errors:
+        raise RuntimeError("orphan replay cleanup failed: " + "; ".join(errors))
+
+
+def _write_receipt(path: Path, receipt: dict[str, Any]) -> None:
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary.replace(path)
+
+
+def _next_physical_execution(output: Path, engine: str, task_id: int) -> int:
+    task_dir = output / engine / str(task_id)
+    existing = {
+        int(path.name.removeprefix("physical-"))
+        for path in task_dir.glob("physical-*")
+        if path.is_dir() and path.name.removeprefix("physical-").isdigit()
+    }
+    return max(existing, default=0) + 1
+
+
+def _start_physical_execution(
+    receipt: dict[str, Any], *, engine: str, task_id: int, physical_execution: int
+) -> dict[str, Any]:
+    entry = {
+        "engine": engine,
+        "task_id": task_id,
+        "physical_execution": physical_execution,
+        "status": "running",
+        "started_at_unix_ms": round(time.time() * 1000),
+    }
+    receipt.setdefault("physical_executions", []).append(entry)
+    return entry
+
+
+def _finish_physical_execution(entry: dict[str, Any], attempt: dict[str, Any]) -> None:
+    entry.update(
+        {
+            "status": "complete",
+            "finished_at_unix_ms": round(time.time() * 1000),
+            "attempt_status": attempt["status"],
+            "duration_ms": attempt["duration_ms"],
+            "evidence": attempt["evidence"],
+        }
+    )
+
+
+def _validated_resume(
+    receipt_path: Path,
     *,
-    seed_manifest_path: str | Path,
+    plan: dict[str, Any],
     task_ids: list[int],
     engines: list[str],
+    scope: str,
+    runtime: dict[str, Any],
+) -> tuple[
+    str,
+    list[dict[str, Any]],
+    dict[str, bool],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+]:
+    if not receipt_path.is_file():
+        return uuid.uuid4().hex[:12], [], {engine: False for engine in engines}, [], []
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    expected = {
+        "schema": RECEIPT_SCHEMA,
+        "execution_scope": scope,
+        "profile_sha256": plan["profile_sha256"],
+        "source_seed_manifest_sha256": plan["seed_manifest_sha256"],
+        "task_ids": task_ids,
+        "engines": engines,
+        "runtime": runtime,
+    }
+    for key, value in expected.items():
+        if receipt.get(key) != value:
+            raise ValueError(f"existing replay receipt differs on {key}")
+    attempts = list(receipt.get("attempts") or [])
+    canonical_ids = {
+        int(task["task_id"]): str(task["canonical_candidate_id"])
+        for task in plan["seed_manifest"].get("tasks") or []
+    }
+    allowed_keys = {(engine, task_id) for engine in engines for task_id in task_ids}
+    keys = []
+    for item in attempts:
+        if item.get("schema") != "lex_webarena_trajectory_replay_attempt/1":
+            raise ValueError("existing replay receipt contains an invalid attempt schema")
+        key = (str(item.get("engine")), int(item.get("task_id")))
+        if key not in allowed_keys:
+            raise ValueError("existing replay receipt contains an attempt outside the frozen plan")
+        if item.get("source_candidate_id") != canonical_ids[key[1]]:
+            raise ValueError("existing replay receipt contains a non-canonical trajectory")
+        keys.append(key)
+    if len(keys) != len(set(keys)):
+        raise ValueError("existing replay receipt contains duplicate method/task attempts")
+    method_teardown = receipt.get("method_teardown") or {}
+    if set(method_teardown) != set(engines) or any(
+        not isinstance(value, bool) for value in method_teardown.values()
+    ):
+        raise ValueError("existing replay receipt has invalid method teardown state")
+    physical_executions = list(receipt.get("physical_executions") or [])
+    if any(item.get("status") != "complete" for item in physical_executions):
+        raise ValueError(
+            "existing replay receipt contains an interrupted physical execution; "
+            "restart the complete formal scope in a new output directory"
+        )
+    physical_keys = [
+        (str(item.get("engine")), int(item.get("task_id")), int(item.get("physical_execution")))
+        for item in physical_executions
+    ]
+    if len(physical_keys) != len(set(physical_keys)):
+        raise ValueError("existing replay receipt contains duplicate physical executions")
+    physical_by_logical: dict[tuple[str, int], list[dict[str, Any]]] = {}
+    for item in physical_executions:
+        key = (str(item.get("engine")), int(item.get("task_id")))
+        if key not in allowed_keys:
+            raise ValueError(
+                "existing replay receipt contains a physical execution outside the plan"
+            )
+        physical_by_logical.setdefault(key, []).append(item)
+    attempts_by_key = {
+        (str(item["engine"]), int(item["task_id"])): item for item in attempts
+    }
+    if set(physical_by_logical) != set(attempts_by_key):
+        raise ValueError("existing replay receipt has an unbound physical execution")
+    for key, attempt in attempts_by_key.items():
+        physical = physical_by_logical[key]
+        if (
+            len(physical) != int(attempt.get("physical_execution_count") or 1)
+            or max(int(item["physical_execution"]) for item in physical)
+            != int(attempt["physical_execution"])
+        ):
+            raise ValueError("existing replay receipt has inconsistent physical execution history")
+    sessions = list(receipt.get("sessions") or [])
+    session_ids = [str(session.get("id") or "") for session in sessions]
+    if len(session_ids) != len(set(session_ids)) or any(not item for item in session_ids):
+        raise ValueError("existing replay receipt has invalid browser sessions")
+    sessions_by_id = {str(session["id"]): session for session in sessions}
+    for attempt in attempts:
+        session = sessions_by_id.get(str(attempt.get("browser_session_id") or ""))
+        if (
+            session is None
+            or session.get("engine") != attempt.get("engine")
+            or int(attempt["task_id"]) not in session.get("task_ids", [])
+        ):
+            raise ValueError("existing replay attempt is not bound to a browser session")
+    return (
+        str(receipt["run_id"]),
+        attempts,
+        dict(method_teardown),
+        sessions,
+        physical_executions,
+    )
+
+
+def run_replay_suite(  # noqa: PLR0913
+    *,
+    profile_path: str | Path,
+    seed_manifest_path: str | Path,
     output_dir: str | Path,
     cowagent_repo: str | Path,
-    cpus: float = 2.0,
-    memory: str = "2g",
-    sample_interval_ms: int = 100,
+    diagnostic_task_ids: list[int] | None = None,
 ) -> dict[str, Any]:
-    seeds = json.loads(Path(seed_manifest_path).read_text(encoding="utf-8"))
+    plan = load_replay_plan(profile_path, seed_manifest_path)
+    seeds = plan["seed_manifest"]
+    task_ids = list(plan["task_ids"] if diagnostic_task_ids is None else diagnostic_task_ids)
     tasks = select_tasks(seeds, task_ids)
-    unknown_engines = sorted(set(engines) - set(ENGINE_IMAGES))
-    if unknown_engines:
-        raise ValueError(f"unsupported replay engines: {unknown_engines}")
+    engines = list(plan["engines"])
+    scope = "formal" if diagnostic_task_ids is None else "diagnostic"
+    resources = plan["profile"].get("resources") or {}
+    cpus = float(resources["cpus"])
+    memory = str(resources["memory"])
+    sample_interval_ms = int(resources["sample_interval_ms"])
     output = Path(output_dir).expanduser().resolve()
     output.mkdir(parents=True, exist_ok=True)
+    receipt_path = output / "receipt.json"
+    if any(output.iterdir()) and not receipt_path.is_file():
+        raise ValueError("replay output directory is not empty and has no resumable receipt")
     cowagent = Path(cowagent_repo).expanduser().resolve()
     if not (cowagent / "agent/tools/browser/browser_tool.py").is_file():
         raise ValueError("cowagent_repo does not contain BrowserTool")
 
+    repo_root = Path(__file__).resolve().parents[2]
+    browser_eval_commit = _require_clean_git_checkout(repo_root)
+    cowagent_commit = _require_clean_git_checkout(cowagent)
     client = docker.from_env()
-    run_id = uuid.uuid4().hex[:12]
-    containers: dict[str, Any] = {}
-    networks: dict[str, Any] = {}
-    endpoints: dict[str, str] = {}
-    attempts: list[dict[str, Any]] = []
-    try:
-        for engine in engines:
-            network = client.networks.create(f"lex-webarena-replay-{run_id}-{engine}")
-            networks[engine] = network
-            container = _start_browser_container(
-                client,
-                engine=engine,
-                run_id=f"replay-{run_id}",
-                cpus=cpus,
-                memory=memory,
-                network=network.name,
-            )
-            containers[engine] = container
-            container.reload()
-            http_endpoint = _published_endpoint(
-                container, engine=engine, cdp_port=ENGINE_PORTS[engine]
-            )
-            endpoints[engine] = _wait_cdp(http_endpoint, container=container)
-
-        gateway_addresses = {
-            _container_host_gateway(container) for container in containers.values()
+    browser_images = {
+        engine: _docker_image_metadata(client.images.get(ENGINE_IMAGES[engine]))
+        for engine in engines
+    }
+    site_images = {}
+    for site in SITE_PORTS:
+        reference = _site_container_manager(site).config.docker_img
+        site_images[site.value] = {
+            "reference": reference,
+            **_docker_image_metadata(client.images.get(reference)),
         }
-        if len(gateway_addresses) != 1:
-            raise RuntimeError(f"browser containers disagree on host gateway: {gateway_addresses}")
-        benchmark = _configure_benchmark(hostname=gateway_addresses.pop())
-        lock_path = _physical_execution_lock_path()
-        for task_index, task in enumerate(tasks):
-            order = engines if task_index % 2 == 0 else list(reversed(engines))
-            for engine in order:
-                with _physical_execution_lock(lock_path):
+    runtime = {
+        "browser_eval_commit": browser_eval_commit,
+        "cowagent_commit": cowagent_commit,
+        "resources": {
+            "cpus": cpus,
+            "memory": memory,
+            "sample_interval_ms": sample_interval_ms,
+        },
+        "browser_images": browser_images,
+        "site_images": site_images,
+    }
+    run_id, attempts, method_teardown, sessions, physical_executions = _validated_resume(
+        receipt_path,
+        plan=plan,
+        task_ids=task_ids,
+        engines=engines,
+        scope=scope,
+        runtime=runtime,
+    )
+    completed = {(str(item["engine"]), int(item["task_id"])) for item in attempts}
+    lock_path = _physical_execution_lock_path()
+    receipt = {
+        "schema": RECEIPT_SCHEMA,
+        "run_id": run_id,
+        "execution_scope": scope,
+        "status": "running",
+        "profile": plan["profile_path"],
+        "profile_sha256": plan["profile_sha256"],
+        "source_seed_manifest": plan["seed_manifest_path"],
+        "source_seed_manifest_sha256": plan["seed_manifest_sha256"],
+        "task_ids": task_ids,
+        "engines": engines,
+        "runtime": runtime,
+        "method_teardown": method_teardown,
+        "sessions": sessions,
+        "physical_executions": physical_executions,
+        "isolation": {
+            **plan["profile"]["execution"],
+            "physical_execution_lock_namespace": lock_path.stem,
+        },
+        "attempts": attempts,
+    }
+    _write_receipt(receipt_path, receipt)
+    with _physical_execution_lock(lock_path) as lock_wait_ms:
+        _remove_orphan_replay_runtimes(client, run_id)
+        for engine in engines:
+            _teardown_method(client, run_id, engine)
+            method_teardown[engine] = True
+        receipt["method_teardown"] = method_teardown
+        receipt["isolation"]["lock_wait_ms"] = round(lock_wait_ms, 3)
+        _write_receipt(receipt_path, receipt)
+        for method in plan["methods"]:
+            engine = str(method["engine"])
+            pending = [task for task in tasks if (engine, int(task["task_id"])) not in completed]
+            if not pending:
+                continue
+            network = None
+            container = None
+            try:
+                _stop_all_sites()
+                method_teardown[engine] = False
+                receipt["method_teardown"] = method_teardown
+                _write_receipt(receipt_path, receipt)
+                network = client.networks.create(f"lex-webarena-replay-{run_id}-{engine}")
+                container = _start_browser_container(
+                    client,
+                    engine=engine,
+                    run_id=f"replay-{run_id}",
+                    cpus=cpus,
+                    memory=memory,
+                    network=network.name,
+                )
+                container.reload()
+                http_endpoint = _published_endpoint(
+                    container, engine=engine, cdp_port=ENGINE_PORTS[engine]
+                )
+                endpoint = _wait_cdp(http_endpoint, container=container)
+                benchmark = _configure_benchmark(hostname=_container_host_gateway(container))
+                session = {
+                    "id": uuid.uuid4().hex[:12],
+                    "engine": engine,
+                    "container_id": container.id,
+                    "browser_image": _docker_image_metadata(container.image),
+                    "browser": _cdp_metadata(http_endpoint),
+                    "site_access_host": _container_host_gateway(container),
+                    "task_ids": [],
+                }
+                sessions.append(session)
+                receipt["sessions"] = sessions
+                _write_receipt(receipt_path, receipt)
+                for task in pending:
+                    physical_execution = _next_physical_execution(
+                        output, engine, int(task["task_id"])
+                    )
+                    physical_entry = _start_physical_execution(
+                        receipt,
+                        engine=engine,
+                        task_id=int(task["task_id"]),
+                        physical_execution=physical_execution,
+                    )
+                    _write_receipt(receipt_path, receipt)
                     attempt = _run_one(
                         task_seed=task,
                         engine=engine,
-                        endpoint=endpoints[engine],
-                        container=containers[engine],
+                        endpoint=endpoint,
+                        container=container,
                         benchmark=benchmark,
                         cowagent_repo=cowagent,
                         output_dir=output,
                         sample_interval_ms=sample_interval_ms,
+                        physical_execution=physical_execution,
+                        trusted_source_site_hosts=plan["trusted_source_site_hosts"],
                     )
+                    attempt["browser_session_id"] = session["id"]
+                    _finish_physical_execution(physical_entry, attempt)
+                    _write_receipt(receipt_path, receipt)
                     if _browser_context_needs_restart(attempt):
                         # A long-lived Moli process can leave its default context permanently
                         # unloaded. Waiting on that same context cannot repair it, so restart
                         # the browser container and give this pre-action setup one opportunity.
-                        containers[engine].restart()
-                        containers[engine].reload()
+                        container.restart()
+                        container.reload()
                         http_endpoint = _published_endpoint(
-                            containers[engine], engine=engine, cdp_port=ENGINE_PORTS[engine]
+                            container, engine=engine, cdp_port=ENGINE_PORTS[engine]
                         )
-                        endpoints[engine] = _wait_cdp(
-                            http_endpoint, container=containers[engine]
+                        endpoint = _wait_cdp(http_endpoint, container=container)
+                        prior_setup_attempt = attempt
+                        session = {
+                            "id": uuid.uuid4().hex[:12],
+                            "engine": engine,
+                            "container_id": container.id,
+                            "browser_image": _docker_image_metadata(container.image),
+                            "browser": _cdp_metadata(http_endpoint),
+                            "site_access_host": _container_host_gateway(container),
+                            "task_ids": [],
+                        }
+                        sessions.append(session)
+                        receipt["sessions"] = sessions
+                        retry_entry = _start_physical_execution(
+                            receipt,
+                            engine=engine,
+                            task_id=int(task["task_id"]),
+                            physical_execution=physical_execution + 1,
                         )
+                        _write_receipt(receipt_path, receipt)
                         attempt = _run_one(
                             task_seed=task,
                             engine=engine,
-                            endpoint=endpoints[engine],
-                            container=containers[engine],
+                            endpoint=endpoint,
+                            container=container,
                             benchmark=benchmark,
                             cowagent_repo=cowagent,
                             output_dir=output,
                             sample_interval_ms=sample_interval_ms,
+                            physical_execution=physical_execution + 1,
+                            trusted_source_site_hosts=plan["trusted_source_site_hosts"],
                         )
-                attempts.append(attempt)
-                print(
-                    json.dumps(
-                        {
-                            "task_id": attempt["task_id"],
-                            "engine": attempt["engine"],
-                            "process_status": attempt["process_status"],
-                            "evaluator_status": attempt["evaluator_status"],
-                        }
-                    ),
-                    flush=True,
-                )
-    finally:
-        for container in containers.values():
-            try:
-                container.remove(force=True)
-            except Exception:
-                pass
-        for network in networks.values():
-            try:
-                network.remove()
-            except Exception:
-                pass
+                        attempt["browser_session_id"] = session["id"]
+                        attempt["prior_setup_attempts"] = [prior_setup_attempt]
+                        attempt["physical_execution_count"] = 2
+                        attempt["duration_ms"] = round(
+                            float(prior_setup_attempt["duration_ms"])
+                            + float(attempt["duration_ms"]),
+                            3,
+                        )
+                        _finish_physical_execution(retry_entry, attempt)
+                        _write_receipt(receipt_path, receipt)
+                    attempts.append(attempt)
+                    session["task_ids"].append(int(task["task_id"]))
+                    completed.add((engine, int(task["task_id"])))
+                    receipt["attempts"] = attempts
+                    _write_receipt(receipt_path, receipt)
+                    print(
+                        json.dumps(
+                            {
+                                "task_id": attempt["task_id"],
+                                "engine": attempt["engine"],
+                                "process_status": attempt["process_status"],
+                                "evaluator_status": attempt["evaluator_status"],
+                            }
+                        ),
+                        flush=True,
+                    )
+            finally:
+                _teardown_method(client, run_id, engine)
+                method_teardown[engine] = True
+                receipt["method_teardown"] = method_teardown
+                _write_receipt(receipt_path, receipt)
 
-    result = {
-        "schema": "lex_webarena_trajectory_replay_canary/1",
-        "run_id": run_id,
-        "source_seed_manifest": str(Path(seed_manifest_path).resolve()),
-        "source_seed_manifest_sha256": hashlib.sha256(
-            Path(seed_manifest_path).read_bytes()
-        ).hexdigest(),
-        "task_ids": task_ids,
-        "engines": engines,
-        "attempts": attempts,
-    }
-    (output / "canary.json").write_text(
-        json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    return result
+    expected = {(engine, task_id) for engine in engines for task_id in task_ids}
+    actual = {(str(item["engine"]), int(item["task_id"])) for item in attempts}
+    if actual != expected or len(attempts) != len(expected):
+        raise RuntimeError("formal replay did not produce the complete method-task matrix")
+    if not all(method_teardown.values()):
+        raise RuntimeError("formal replay did not complete method teardown")
+    receipt["status"] = "complete"
+    receipt["attempts"] = attempts
+    _write_receipt(receipt_path, receipt)
+    return receipt

@@ -2161,11 +2161,6 @@ def _article_body(
     task_count = total_task_count - len(excluded)
     summary = _primary_summary(eligible_attempts)
     paired = _paired_summary(eligible_attempts)
-    failed_result_count = sum(
-        item["completed"] - item["passed"]
-        for model_summary in summary.values()
-        for item in model_summary.values()
-    )
     raw_failed_result_count = sum(float(row.get("score") or 0) < 1 for row in attempts)
     comparison_rows = [
         [
@@ -2924,7 +2919,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         )
         methodology += _section(
             "Mac 上可以继续扩展哪些实例",
-            f"<p>官方完整集有 {MAC_COUNTS['full']} 题，hard 子集有 {MAC_COUNTS['hard']} 题；官方没有 179 题版本。若运行 179 题，必须把它标注为本项目自定义样本并冻结任务清单。当前四个已实跑站点可直接进入下一轮预检：覆盖 {MAC_COUNTS['current_four_sites_single_site']} 个单站任务，计入只依赖这四站的跨站任务后为 {MAC_COUNTS['current_four_sites_including_cross_site']} 个候选；hard 子集中可覆盖 {MAC_COUNTS['current_four_sites_hard_including_cross_site']} 个。</p>"
+            f"<p>下一轮轨迹重放固定使用本报告当前 {task_count} 题，不扩充任务范围。若未来另行扩充 Browser Use 评测，当前四个已实跑站点可预检 {MAC_COUNTS['current_four_sites_single_site']} 个单站任务；计入只依赖这四站的跨站任务后，共有 {MAC_COUNTS['current_four_sites_including_cross_site']} 个候选，其中 hard 子集 {MAC_COUNTS['current_four_sites_hard_including_cross_site']} 个。</p>"
             + _table(
                 ["环境", "Apple Silicon Mac 状态", "完整集单站题", "hard 单站题", "约束"],
                 MAC_ENVIRONMENT_CANDIDATES,

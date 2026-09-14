@@ -6,8 +6,7 @@
     "hard": 258,
     "current_four_sites_single_site": 655,
     "current_four_sites_including_cross_site": 678,
-    "current_four_sites_hard_including_cross_site": 233,
-    "official_179_subset": false
+    "current_four_sites_hard_including_cross_site": 233
   },
   "environments": [
     ["Shopping", "已在本机实跑", "187", "56", "amd64 镜像；已通过 Colima 转译运行"],

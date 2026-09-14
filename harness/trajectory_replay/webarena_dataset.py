@@ -6,10 +6,246 @@ import copy
 import hashlib
 import json
 from collections import defaultdict
+from functools import lru_cache
+from importlib.metadata import version
+from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
+from webarena_verified.core.utils.checksum import compute_evaluator_checksum
+
+from harness.trajectory_replay.webarena_plan import (
+    load_replay_plan,
+    replay_calls_binding_sha256,
+    replay_site_hosts,
+)
+
 SCHEMA = "lex_webarena_verified_trajectory_dataset/1"
+RECEIPT_SCHEMA = "lex_webarena_trajectory_replay_suite/1"
+
+
+@lru_cache(maxsize=1)
+def _official_evaluator_names() -> dict[int, tuple[str, ...]]:
+    dataset = json.loads(
+        files("webarena_verified")
+        .joinpath("assets/dataset/webarena-verified.json")
+        .read_text(encoding="utf-8")
+    )
+    return {
+        int(task["task_id"]): tuple(str(item["evaluator"]) for item in task["eval"])
+        for task in dataset
+    }
+
+
+def _validate_formal_receipt(
+    receipt: dict[str, Any],
+    *,
+    receipt_path: Path,
+    seed_sha256: str,
+    seed_task_ids: set[int],
+    required_engines: tuple[str, ...],
+    profile_sha256: str,
+    expected_resources: dict[str, Any],
+) -> None:
+    if receipt.get("schema") != RECEIPT_SCHEMA:
+        raise ValueError(f"unsupported replay receipt: {receipt_path}")
+    if receipt.get("execution_scope") != "formal" or receipt.get("status") != "complete":
+        raise ValueError(f"replay receipt is not a completed formal suite: {receipt_path}")
+    if receipt.get("source_seed_manifest_sha256") != seed_sha256:
+        raise ValueError(f"replay receipt is not bound to the selected seeds: {receipt_path}")
+    if receipt.get("profile_sha256") != profile_sha256:
+        raise ValueError(f"replay receipt is not bound to the selected profile: {receipt_path}")
+    runtime = receipt.get("runtime") or {}
+    if runtime.get("resources") != expected_resources:
+        raise ValueError(f"replay receipt has different runtime resources: {receipt_path}")
+    if not runtime.get("browser_eval_commit") or not runtime.get("cowagent_commit"):
+        raise ValueError(f"replay receipt is missing code identity: {receipt_path}")
+    browser_images = runtime.get("browser_images") or {}
+    if set(browser_images) != set(required_engines) or any(
+        not (browser_images.get(engine) or {}).get("id") for engine in required_engines
+    ):
+        raise ValueError(f"replay receipt is missing browser image identity: {receipt_path}")
+    if not runtime.get("site_images") or any(
+        not image.get("id") for image in runtime["site_images"].values()
+    ):
+        raise ValueError(f"replay receipt is missing site image identity: {receipt_path}")
+    receipt_task_ids = [int(task_id) for task_id in receipt.get("task_ids") or []]
+    if (
+        len(receipt_task_ids) != len(set(receipt_task_ids))
+        or set(receipt_task_ids) != seed_task_ids
+    ):
+        raise ValueError(f"replay receipt does not cover the frozen task set: {receipt_path}")
+    isolation = receipt.get("isolation") or {}
+    required_isolation = {
+        "environment_pool_count": 1,
+        "method_parallelism": 1,
+        "task_parallelism": 1,
+        "reset_before_every_task": True,
+        "teardown_between_methods": True,
+    }
+    if any(isolation.get(key) != value for key, value in required_isolation.items()):
+        raise ValueError(f"replay receipt does not prove the required isolation: {receipt_path}")
+    engines = [str(engine) for engine in receipt.get("engines") or []]
+    if len(engines) != len(set(engines)) or set(engines) != set(required_engines):
+        raise ValueError(f"replay receipt does not cover the required methods: {receipt_path}")
+    method_teardown = receipt.get("method_teardown") or {}
+    if set(method_teardown) != set(required_engines) or not all(method_teardown.values()):
+        raise ValueError(f"replay receipt does not prove completed method teardown: {receipt_path}")
+    sessions = receipt.get("sessions") or []
+    session_ids = [str(session.get("id") or "") for session in sessions]
+    if (
+        not sessions
+        or any(not session_id for session_id in session_ids)
+        or any(not session.get("site_access_host") for session in sessions)
+        or len(session_ids) != len(set(session_ids))
+    ):
+        raise ValueError(f"replay receipt has invalid browser sessions: {receipt_path}")
+    sessions_by_id = {str(session["id"]): session for session in sessions}
+    attempt_keys = []
+    for attempt in receipt.get("attempts") or []:
+        if attempt.get("schema") != "lex_webarena_trajectory_replay_attempt/1":
+            raise ValueError(f"replay receipt has an invalid attempt schema: {receipt_path}")
+        session = sessions_by_id.get(str(attempt.get("browser_session_id") or ""))
+        if (
+            session is None
+            or session.get("engine") != attempt.get("engine")
+            or int(attempt.get("task_id")) not in session.get("task_ids", [])
+        ):
+            raise ValueError(f"replay attempt is not bound to a browser session: {receipt_path}")
+        attempt_keys.append((str(attempt.get("engine")), int(attempt.get("task_id"))))
+    expected_keys = {
+        (engine, task_id) for engine in required_engines for task_id in seed_task_ids
+    }
+    if len(attempt_keys) != len(set(attempt_keys)) or set(attempt_keys) != expected_keys:
+        raise ValueError(
+            f"replay receipt does not contain the complete method-task matrix: {receipt_path}"
+        )
+    physical_executions = receipt.get("physical_executions") or []
+    physical_keys = [
+        (
+            str(item.get("engine")),
+            int(item.get("task_id")),
+            int(item.get("physical_execution")),
+        )
+        for item in physical_executions
+    ]
+    if (
+        not physical_executions
+        or any(item.get("status") != "complete" for item in physical_executions)
+        or len(physical_keys) != len(set(physical_keys))
+    ):
+        raise ValueError(f"replay receipt has invalid physical execution history: {receipt_path}")
+    physical_by_attempt: dict[tuple[str, int], list[dict[str, Any]]] = defaultdict(list)
+    for item in physical_executions:
+        key = (str(item["engine"]), int(item["task_id"]))
+        if key not in expected_keys:
+            raise ValueError(
+                f"replay receipt has a physical execution outside scope: {receipt_path}"
+            )
+        physical_by_attempt[key].append(item)
+    attempts_by_key = {
+        (str(item["engine"]), int(item["task_id"])): item
+        for item in receipt.get("attempts") or []
+    }
+    if set(physical_by_attempt) != expected_keys:
+        raise ValueError(f"replay receipt has unbound physical executions: {receipt_path}")
+    for key, attempt in attempts_by_key.items():
+        physical = physical_by_attempt[key]
+        if (
+            len(physical) != int(attempt.get("physical_execution_count") or 1)
+            or max(int(item["physical_execution"]) for item in physical)
+            != int(attempt.get("physical_execution") or 0)
+        ):
+            raise ValueError(
+                f"replay receipt has inconsistent physical executions: {receipt_path}"
+            )
+
+
+def _validate_passing_attempt_evidence(
+    attempt: dict[str, Any],
+    candidate: dict[str, Any],
+    runtime_site_host: str,
+    expected_data_checksum: str,
+    trusted_source_site_hosts: set[str],
+) -> None:
+    if attempt.get("process_status") != "pass" or attempt.get("evaluator_status") != "pass":
+        return
+    evidence = attempt.get("evidence") or {}
+    paths = {}
+    for kind in ("trace", "network_har", "evaluation"):
+        item = evidence.get(kind) or {}
+        path = Path(str(item.get("path") or "")).expanduser().resolve()
+        if not path.is_file() or _sha256(path) != item.get("sha256"):
+            raise ValueError(
+                f"passing replay attempt has missing or changed {kind} evidence: "
+                f"{attempt.get('engine')}/task-{attempt.get('task_id')}"
+            )
+        paths[kind] = path
+
+    if attempt.get("source_tool_calls_sha256") != _json_sha256(candidate["tool_calls"]):
+        raise ValueError("passing replay attempt is not bound to the canonical tool calls")
+    source_site_hosts = replay_site_hosts(candidate["tool_calls"])
+    if (
+        not source_site_hosts <= trusted_source_site_hosts
+        or set(attempt.get("source_site_hosts") or []) != source_site_hosts
+        or attempt.get("runtime_site_host") != runtime_site_host
+        or attempt.get("replay_calls_binding_sha256")
+        != replay_calls_binding_sha256(
+            candidate["tool_calls"], allowed_hosts=trusted_source_site_hosts
+        )
+    ):
+        raise ValueError("passing replay attempt differs from the canonical replay actions")
+    if attempt.get("evaluation_input_sha256") != _json_sha256(
+        candidate["recorded_response"]
+    ):
+        raise ValueError("passing replay attempt is not bound to the canonical evaluator input")
+
+    trace = _read_json(paths["trace"])
+    trace_arguments = [item.get("arguments") for item in trace] if isinstance(trace, list) else []
+    if (
+        len(trace_arguments) != int(candidate["action_count"])
+        or any(item.get("status") != "success" for item in trace)
+        or attempt.get("executed_tool_calls_sha256") != _json_sha256(trace_arguments)
+        or attempt.get("replay_calls_binding_sha256")
+        != replay_calls_binding_sha256(
+            trace_arguments, allowed_hosts={runtime_site_host}
+        )
+    ):
+        raise ValueError("passing replay trace does not prove every executed action")
+
+    network_har = _read_json(paths["network_har"])
+    if not isinstance(network_har, dict) or not isinstance(
+        (network_har.get("log") or {}).get("entries"), list
+    ):
+        raise ValueError("passing replay attempt has an invalid network HAR")
+
+    evaluation = _read_json(paths["evaluation"])
+    expected_evaluators = _official_evaluator_names().get(int(attempt["task_id"]))
+    if (
+        int(evaluation.get("task_id") or -1) != int(attempt["task_id"])
+        or float(evaluation.get("score") or 0) != 1.0
+        or str(evaluation.get("status") or "").lower() not in {"pass", "success"}
+        or evaluation.get("webarena_verified_version") != version("webarena-verified")
+        or evaluation.get("webarena_verified_evaluator_checksum")
+        != compute_evaluator_checksum()
+        or not expected_data_checksum
+        or evaluation.get("webarena_verified_data_checksum") != expected_data_checksum
+    ):
+        raise ValueError("passing replay evaluation evidence does not prove a passing score")
+    evaluator_rows = evaluation.get("evaluators_results") or []
+    if (
+        expected_evaluators is None
+        or tuple(str(row.get("evaluator_name") or "") for row in evaluator_rows)
+        != expected_evaluators
+        or any(
+        float(row.get("score") or 0) != 1.0
+        or str(row.get("status") or "").lower() not in {"pass", "success"}
+        for row in evaluator_rows
+        )
+    ):
+        raise ValueError("passing replay evaluator evidence does not match the canonical input")
+    if any(item.get("status") != "pass" for item in evaluation.get("replay_assertions") or []):
+        raise ValueError("passing replay evaluation contains a failed replay assertion")
 
 
 def _read_json(path: Path) -> Any:
@@ -18,6 +254,11 @@ def _read_json(path: Path) -> Any:
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _json_sha256(value: Any) -> str:
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode()).hexdigest()
 
 
 def _candidate_source(candidate: dict[str, Any]) -> dict[str, Any]:
@@ -47,7 +288,7 @@ def build_verified_trajectory_dataset(
     seed_manifest_path: str | Path,
     replay_receipt_paths: list[str | Path],
     *,
-    required_engines: tuple[str, ...] = ("chromium", "moli"),
+    profile_path: str | Path,
     prior_dataset_path: str | Path | None = None,
 ) -> dict[str, Any]:
     """Return compact trajectories that passed process and official evaluation gates."""
@@ -57,7 +298,15 @@ def build_verified_trajectory_dataset(
     seeds = _read_json(seed_path)
     if seeds.get("schema") != "lex_browser_use_replay_seeds/1":
         raise ValueError("unsupported replay seed manifest")
-    seed_tasks = {int(item["task_id"]): item for item in seeds.get("tasks") or []}
+    seed_rows = seeds.get("tasks") or []
+    seed_tasks = {int(item["task_id"]): item for item in seed_rows}
+    if len(seed_tasks) != len(seed_rows):
+        raise ValueError("replay seed manifest contains duplicate task IDs")
+    seed_task_ids = set(seed_tasks)
+    plan = load_replay_plan(profile_path, seed_path)
+    profile = plan["profile"]
+    required_engines = tuple(plan["engines"])
+    profile_sha256 = plan["profile_sha256"]
 
     attempts_by_key: dict[tuple[int, str], list[dict[str, Any]]] = defaultdict(list)
     receipt_runs_by_key: dict[tuple[int, str], set[str]] = defaultdict(set)
@@ -65,13 +314,42 @@ def build_verified_trajectory_dataset(
     for raw_path in replay_receipt_paths:
         receipt_path = Path(raw_path).expanduser().resolve()
         receipt = _read_json(receipt_path)
-        if receipt.get("schema") != "lex_webarena_trajectory_replay_canary/1":
-            raise ValueError(f"unsupported replay receipt: {receipt_path}")
-        if receipt.get("source_seed_manifest_sha256") != seed_sha256:
-            raise ValueError(f"replay receipt is not bound to the selected seeds: {receipt_path}")
+        _validate_formal_receipt(
+            receipt,
+            receipt_path=receipt_path,
+            seed_sha256=seed_sha256,
+            seed_task_ids=seed_task_ids,
+            required_engines=required_engines,
+            profile_sha256=profile_sha256,
+            expected_resources=profile["resources"],
+        )
         receipts.append({"sha256": _sha256(receipt_path)})
         for attempt in receipt.get("attempts") or []:
-            key = (int(attempt["task_id"]), str(attempt["source_candidate_id"]))
+            task_id = int(attempt["task_id"])
+            candidate_id = str(attempt["source_candidate_id"])
+            if candidate_id != seed_tasks[task_id].get("canonical_candidate_id"):
+                raise ValueError(f"receipt uses a non-canonical trajectory for task {task_id}")
+            candidate = next(
+                (
+                    item
+                    for item in seed_tasks[task_id].get("candidates") or []
+                    if item.get("id") == candidate_id
+                ),
+                None,
+            )
+            if candidate is None:
+                raise ValueError(f"receipt references candidate missing from seeds: {candidate_id}")
+            session = {
+                str(item["id"]): item for item in receipt.get("sessions") or []
+            }[str(attempt["browser_session_id"])]
+            _validate_passing_attempt_evidence(
+                attempt,
+                candidate,
+                str(session.get("site_access_host") or ""),
+                str((seeds.get("source") or {}).get("official_data_checksum") or ""),
+                plan["trusted_source_site_hosts"],
+            )
+            key = (task_id, candidate_id)
             attempts_by_key[key].append(attempt)
             receipt_runs_by_key[key].add(str(receipt.get("run_id") or ""))
 
@@ -199,6 +477,7 @@ def build_verified_trajectory_dataset(
         },
         "provenance": {
             "seed_manifest_sha256": seed_sha256,
+            "profile_sha256": profile_sha256,
             "replay_receipts": receipts,
             "prior_dataset_sha256": prior_dataset_sha256,
         },

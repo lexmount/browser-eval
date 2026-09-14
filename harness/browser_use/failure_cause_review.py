@@ -7,7 +7,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-
 LAYERED_REVIEW_SCHEMA = "lex_browser_use_layered_failure_cause_review/2"
 DEFAULT_REVIEW_PATH = (
     Path(__file__).parents[2] / "research/browser-use-failure-cause-review.json"
