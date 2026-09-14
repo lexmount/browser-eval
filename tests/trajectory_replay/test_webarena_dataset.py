@@ -7,6 +7,7 @@ from webarena_verified.core.utils.checksum import compute_evaluator_checksum
 
 from harness.trajectory_replay.webarena_dataset import (
     _effective_correction_bindings,
+    _has_stale_correction_binding,
     _official_evaluator_names,
     build_verified_trajectory_dataset,
 )
@@ -29,6 +30,18 @@ def _sha256(path: Path) -> str:
 def _json_sha256(value: object) -> str:
     payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode()).hexdigest()
+
+
+def test_stale_correction_binding_is_task_local() -> None:
+    correction = _effective_correction_bindings()[339]
+    current = {
+        "contract_correction_id": correction[0],
+        "contract_correction_source_sha256": correction[1],
+        "corrected_task_sha256": correction[2],
+    }
+    assert _has_stale_correction_binding(current, 339) is False
+    assert _has_stale_correction_binding({**current, "corrected_task_sha256": "old"}, 339)
+    assert _has_stale_correction_binding({}, 44) is False
 
 
 def _materialize_autonomous_sources(seeds: Path) -> dict[str, object]:

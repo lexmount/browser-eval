@@ -299,6 +299,18 @@ def _validate_passing_attempt_evidence(
         raise ValueError("passing replay evaluation contains a failed replay assertion")
 
 
+def _has_stale_correction_binding(attempt: dict[str, Any], task_id: int) -> bool:
+    """Return whether a historical proof predates the task's current correction."""
+
+    correction = _effective_correction_bindings().get(task_id)
+    actual = (
+        str(attempt.get("contract_correction_id") or ""),
+        str(attempt.get("contract_correction_source_sha256") or ""),
+        str(attempt.get("corrected_task_sha256") or ""),
+    )
+    return correction is not None and actual != correction[:3]
+
+
 def _read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -401,6 +413,11 @@ def build_verified_trajectory_dataset(
                     raise ValueError(
                         f"receipt references candidate missing from seeds: {candidate_id}"
                     )
+                continue
+            if (
+                receipt.get("source_seed_manifest_sha256") != seed_sha256
+                and _has_stale_correction_binding(attempt, task_id)
+            ):
                 continue
             session = {
                 str(item["id"]): item for item in receipt.get("sessions") or []
