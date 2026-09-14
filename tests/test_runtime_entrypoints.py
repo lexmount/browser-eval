@@ -65,14 +65,14 @@ class RuntimeEntrypointTests(unittest.TestCase):
         declared = {provider for providers in dataset['coverage_plan'].values() for provider in providers}
         self.assertEqual(set(profile['providers']), declared)
         self.assertEqual(profile['artifact_hub_base_url'], 'https://artifact-hub.app.lexmount.com')
-        self.assertEqual(profile['artifact_hub_site'], 'l9jZU6GPMLn6')
+        self.assertEqual(profile['artifact_hub_site'], 'HMHGx1jcMz-z')
 
     def test_publication_receipt_must_target_current_site(self) -> None:
         profile = ROOT / 'evaluation/current-report.json'
         self.assertEqual(
-            require_publication_site({'slug':'l9jZU6GPMLn6'}, profile,
+            require_publication_site({'slug':'HMHGx1jcMz-z'}, profile,
                                      'https://artifact-hub.app.lexmount.com'),
-            'l9jZU6GPMLn6',
+            'HMHGx1jcMz-z',
         )
         with self.assertRaisesRegex(ValueError, 'expected'):
             require_publication_site({'slug':'UeZE1vfcEOrM'}, profile,
@@ -82,7 +82,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
                                      'https://artifact-hub.dev.lexmount.net')
         with self.assertRaisesRegex(ValueError, 'requested'):
             require_publication_site(
-                {'slug':'l9jZU6GPMLn6','base_url':'https://artifact-hub.dev.lexmount.net'},
+                {'slug':'HMHGx1jcMz-z','base_url':'https://artifact-hub.dev.lexmount.net'},
                 profile,'https://artifact-hub.app.lexmount.com')
 
     def test_publication_scripts_do_not_load_repository_eval_credentials(self) -> None:

@@ -6,7 +6,18 @@
   "dynamic_scoring": "按独立观察的稳定页面文字与页面实际结构验收；不冻结动态条目和值。",
   "coverage_plan": {
     "challenge": [
-      "lexmount-global"
+      "cloudflare-markdown",
+      "firecrawl",
+      "crawl4ai",
+      "moli-webfetch",
+      "tavily",
+      "deepseek-harness-built-in",
+      "lexmount-cn",
+      "lexmount-global",
+      "cowagent-built-in",
+      "exa",
+      "langchain-webbase",
+      "openclaw-built-in"
     ]
   },
   "comparison": {
@@ -14,17 +25,21 @@
     "timeout_seconds": 45,
     "concurrency": 1,
     "runs_per_case": 1,
-    "publication_state": "measured_independently_reviewed",
+    "publication_state": "frozen_pending_environment_preflight",
     "require_independent_result_review": true,
-    "inherited_result_count": 52,
-    "new_provider_call_count": 48,
+    "fresh_formal_result_count": 1200,
+    "provider_results_reused": 0,
+    "methods_run_in_parallel": true,
+    "retry_policy": "No retry to improve a score. A proven command, version, scorer, reference, or timing error requires an append-only formal correction that replaces the full affected scope.",
+    "body_reference_case_count": 0,
+    "body_metrics": "unavailable",
+    "conversion": "Each method's native known-URL fetch output is normalized once into text plus explicit structured links when available.",
     "source_rule_registry": "research/popular-sites-rules.json",
-    "source_rule_registry_sha256": "2dc23e3495c26733313ef07e3e91dd783baa7cd6e94920ab42d08f8c7931da20",
+    "source_rule_registry_sha256": "1386b46fa954efe31ff2b352c824cce7fac557506f2e7a083ada9188590566a5",
     "approval_record": "research/china-homepage-rules-approval.json",
     "approval_record_sha256": "8bf2cda6f77089680ee537f5405bf9169a35dd6432e2276b5770aa5c4043b160",
-    "conversion": "Lexmount Global API native text plus structured name-link fields",
-    "reference_binding_mode": "hash_bound_stable_text_and_structure",
-    "unverified_reference_cases": []
+    "execution_contract": "research/popular-sites-12-method-contract.json",
+    "execution_contract_sha256": "630ac4e0375de62d276c180eb5a5046687bcb5bddeb8c98277d8d790f6878152"
   },
   "cases": [
     {
@@ -2573,7 +2588,7 @@
     {
       "id": "global-homepage-038-samsung-com",
       "name": "samsung.com 首页",
-      "url": "https://samsung.com/",
+      "url": "https://www.samsung.com/us/",
       "category": "global_homepage",
       "expected_any": [],
       "description": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
@@ -2595,8 +2610,8 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/global-homepage-038-samsung-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-12-method/global-homepage-038-samsung-com/stable-page.txt",
+          "supports": "两次独立 Chromium 首次加载观察中的稳定页面文字"
         }
       ],
       "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Samsung；Mobile；TV & AV；Appliances；Computers & Monitors。不点击、不递归，不要求长正文或三个详情链接。",
@@ -2614,7 +2629,7 @@
             "task_related_page_text"
           ],
           "structural_only_fields": [],
-          "anchor_evidence": "sources/global-homepage-038-samsung-com/stable-page.txt",
+          "anchor_evidence": "sources/popular-sites-12-method/global-homepage-038-samsung-com/stable-page.txt",
           "anchor_evidence_sha256": "2aab53c1dace41cfc030eeeb99090a13ba02529ff0535f42beea8ab1d11d47cb",
           "record_requirement": "No structured records; every registered stable page-text group is required.",
           "task_decision_scope": "structure_and_explicit_stable_content",
@@ -2628,8 +2643,8 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent headless Chromium initial-page capture with hash-bound stable evidence",
+        "checked_at": "2026-09-14",
+        "method": "Two independent anonymous Chromium initial-page observations",
         "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
       },
@@ -3266,109 +3281,6 @@
             "id": "stable-anchor-4",
             "alternatives": [
               "Businesses achieve more with Zoom"
-            ]
-          }
-        ]
-      },
-      "body_requirements": {}
-    },
-    {
-      "id": "global-homepage-047-booking-com",
-      "name": "booking.com 首页",
-      "url": "https://www.booking.com/?lang=en-us",
-      "category": "global_homepage",
-      "expected_any": [],
-      "description": "首页主要提供搜索、问答、位置查询或应用入口；按入口页模型核验。",
-      "tags": [
-        "global-popular",
-        "ranked-domain-homepage",
-        "entry_page"
-      ],
-      "required_facts": [],
-      "forbidden_any": [
-        "Access Denied",
-        "Human Verification",
-        "Verify that you are human",
-        "Robot or human?",
-        "Checking your browser",
-        "Not Found"
-      ],
-      "min_content_chars": 1,
-      "fact_coverage_threshold": 1.0,
-      "ground_truth_evidence": [
-        {
-          "source": "sources/global-homepage-047-booking-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
-        }
-      ],
-      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Booking.com；Stays；Flights；Car rental；Search。不点击、不递归，不要求长正文或三个详情链接。",
-      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Booking.com；Stays；Flights；Car rental；Search。不点击、不递归，不要求长正文或三个详情链接。",
-      "source_benchmark": {
-        "mode": "ranked_domain_homepage",
-        "rank_metadata_used_for_scoring": false,
-        "requested_ranked_domain": "booking.com",
-        "observed_final_url": "https://www.booking.com/?lang=en-us",
-        "stable_annotation": {
-          "registry": "global-homepage-rules",
-          "version": 1,
-          "content_kind": "entry_page",
-          "stable_fields": [
-            "task_related_page_text"
-          ],
-          "structural_only_fields": [],
-          "anchor_evidence": "sources/global-homepage-047-booking-com/stable-page.txt",
-          "anchor_evidence_sha256": "5fb5a20687cd89cb39fb9eff5eb4935bb4e240df9eb9a2a0d36df251e063a8af",
-          "record_requirement": "No structured records; every registered stable page-text group is required.",
-          "task_decision_scope": "structure_and_explicit_stable_content",
-          "live_factual_correctness": null,
-          "note": "Independent browser evidence came from the ranked-domain homepage; only a proven locale-variant homepage uses a fixed-language URL. No provider output or recursive page was used."
-        }
-      },
-      "ground_truth_main_content": "",
-      "content_score_applicable": false,
-      "track": "challenge",
-      "required_patterns": [],
-      "source_verification": {
-        "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent headless Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
-      },
-      "task_kind": "structure",
-      "acceptance_contract": {
-        "version": 1,
-        "schema": "page_identity",
-        "minimum_records": 0,
-        "stable_text_anchors": [
-          {
-            "id": "stable-anchor-1",
-            "alternatives": [
-              "Booking.com"
-            ]
-          },
-          {
-            "id": "stable-anchor-2",
-            "alternatives": [
-              "Stays"
-            ]
-          },
-          {
-            "id": "stable-anchor-3",
-            "alternatives": [
-              "Flights"
-            ]
-          },
-          {
-            "id": "stable-anchor-4",
-            "alternatives": [
-              "Car rental"
-            ]
-          },
-          {
-            "id": "stable-anchor-5",
-            "alternatives": [
-              "Search"
             ]
           }
         ]
@@ -5060,103 +4972,6 @@
             "id": "stable-anchor-4",
             "alternatives": [
               "Why Instructure"
-            ]
-          }
-        ]
-      },
-      "body_requirements": {}
-    },
-    {
-      "id": "global-homepage-088-primevideo-com",
-      "name": "primevideo.com 首页",
-      "url": "https://www.primevideo.com/-/zh/storefront",
-      "category": "global_homepage",
-      "expected_any": [],
-      "description": "首页包含公开品牌、产品或服务说明，不是纯登录页。",
-      "tags": [
-        "global-popular",
-        "ranked-domain-homepage",
-        "landing_page"
-      ],
-      "required_facts": [],
-      "forbidden_any": [
-        "Access Denied",
-        "Human Verification",
-        "Verify that you are human",
-        "Robot or human?",
-        "Checking your browser",
-        "Not Found"
-      ],
-      "min_content_chars": 1,
-      "fact_coverage_threshold": 1.0,
-      "ground_truth_evidence": [
-        {
-          "source": "sources/global-homepage-088-primevideo-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
-        }
-      ],
-      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Prime Video；电影；电视节目；体育。不点击、不递归，不要求长正文或三个详情链接。",
-      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Prime Video；电影；电视节目；体育。不点击、不递归，不要求长正文或三个详情链接。",
-      "source_benchmark": {
-        "mode": "ranked_domain_homepage",
-        "rank_metadata_used_for_scoring": false,
-        "requested_ranked_domain": "primevideo.com",
-        "observed_final_url": "https://www.primevideo.com/-/zh/offers/nonprimehomepage?ref_=dv_web_force_root&language=zh",
-        "stable_annotation": {
-          "registry": "global-homepage-rules",
-          "version": 1,
-          "content_kind": "landing_page",
-          "stable_fields": [
-            "task_related_page_text"
-          ],
-          "structural_only_fields": [],
-          "anchor_evidence": "sources/global-homepage-088-primevideo-com/stable-page.txt",
-          "anchor_evidence_sha256": "9afaaece5a5a29d7b6db3eced9524529b93a58ac7f47f9114646e9d1d9ab457d",
-          "record_requirement": "No structured records; every registered stable page-text group is required.",
-          "task_decision_scope": "structure_and_explicit_stable_content",
-          "live_factual_correctness": null,
-          "note": "Independent browser evidence came from the ranked-domain homepage; only a proven locale-variant homepage uses a fixed-language URL. No provider output or recursive page was used."
-        }
-      },
-      "ground_truth_main_content": "",
-      "content_score_applicable": false,
-      "track": "challenge",
-      "required_patterns": [],
-      "source_verification": {
-        "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent headless Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
-      },
-      "task_kind": "structure",
-      "acceptance_contract": {
-        "version": 1,
-        "schema": "page_identity",
-        "minimum_records": 0,
-        "stable_text_anchors": [
-          {
-            "id": "stable-anchor-1",
-            "alternatives": [
-              "Prime Video"
-            ]
-          },
-          {
-            "id": "stable-anchor-2",
-            "alternatives": [
-              "电影"
-            ]
-          },
-          {
-            "id": "stable-anchor-3",
-            "alternatives": [
-              "电视节目"
-            ]
-          },
-          {
-            "id": "stable-anchor-4",
-            "alternatives": [
-              "体育"
             ]
           }
         ]
@@ -10042,7 +9857,7 @@
     {
       "id": "china-homepage-081-elsevier-com",
       "name": "elsevier.com 首页",
-      "url": "https://elsevier.com/",
+      "url": "https://www.elsevier.com/en-us",
       "category": "popular_site",
       "expected_any": [],
       "description": "按稳定页面身份与主要功能文字验收。",
@@ -10066,8 +9881,8 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/china-homepage-081-elsevier-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-12-method/china-homepage-081-elsevier-com/stable-page.txt",
+          "supports": "两次独立 Chromium 首次加载观察中的稳定页面文字"
         }
       ],
       "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Elsevier；Academic & Government；Health；Publish with us。不点击、不递归，不要求长正文或三个详情链接。",
@@ -10078,7 +9893,7 @@
         "ranking_source": "Semrush Most Visited Websites in China, July 2026",
         "china_rank": 81,
         "requested_ranked_domain": "elsevier.com",
-        "observed_final_url": "https://www.elsevier.com/",
+        "observed_final_url": "https://www.elsevier.cn/",
         "stable_annotation": {
           "registry": "popular-sites-rules",
           "version": 1,
@@ -10087,8 +9902,8 @@
             "task_related_page_text"
           ],
           "structural_only_fields": [],
-          "anchor_evidence": "sources/china-homepage-081-elsevier-com/stable-page.txt",
-          "anchor_evidence_sha256": "2b466cf5afec330afdd476d5ba5182b455be5a650f606dfb81b1a878d66f2556",
+          "anchor_evidence": "sources/popular-sites-12-method/china-homepage-081-elsevier-com/stable-page.txt",
+          "anchor_evidence_sha256": "5265d4d7cef257ea60f8ced5140b0b3f7bef183cd35784b232565decd60cfedc",
           "record_requirement": "No structured records; every registered stable page-text group is required.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
@@ -10101,8 +9916,8 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent Chromium initial-page capture with hash-bound stable evidence",
+        "checked_at": "2026-09-14",
+        "method": "Two independent anonymous Chromium initial-page observations",
         "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
       },
@@ -10121,19 +9936,23 @@
           {
             "id": "stable-anchor-2",
             "alternatives": [
-              "Academic & Government"
+              "Academic & Government",
+              "科研学术"
             ]
           },
           {
             "id": "stable-anchor-3",
             "alternatives": [
-              "Health"
+              "Health",
+              "医疗健康"
             ]
           },
           {
             "id": "stable-anchor-4",
             "alternatives": [
-              "Publish with us"
+              "Publish with us",
+              "通过我们出版",
+              "通过Elsevier出版"
             ]
           }
         ]
@@ -10240,6 +10059,220 @@
         ]
       },
       "body_requirements": {}
+    },
+    {
+      "id": "china-homepage-083-grok-com",
+      "name": "grok.com 首页",
+      "url": "https://grok.com/",
+      "category": "popular_site",
+      "expected_any": [],
+      "description": "按候补排名补入；两次独立匿名首次加载均呈现稳定页面身份和主要功能文字。",
+      "tags": [
+        "popular-site",
+        "china-ranked-homepage",
+        "entry_page"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access Denied",
+        "Human Verification",
+        "Verify that you are human",
+        "Robot or human?",
+        "Checking your browser",
+        "Just a moment...",
+        "Prove your humanity",
+        "Not Found"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Grok；Imagine；Sign in / 登录；Sign up / 注册；What should we explore? / 我们应该探索什么？。不点击、不递归，不要求长正文或三个详情链接。",
+      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Grok；Imagine；Sign in / 登录；Sign up / 注册；What should we explore? / 我们应该探索什么？。不点击、不递归，不要求长正文或三个详情链接。",
+      "source_benchmark": {
+        "mode": "ranked_domain_homepage",
+        "rank_metadata_used_for_scoring": false,
+        "ranking_source": "Semrush Most Visited Websites in China, July 2026",
+        "china_rank": 83,
+        "requested_ranked_domain": "grok.com",
+        "observed_final_url": "https://grok.com/",
+        "stable_annotation": {
+          "registry": "popular-sites-rules",
+          "version": 2,
+          "content_kind": "entry_page",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [],
+          "record_requirement": "No structured records; every registered stable page-text group is required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Two independent browser observations; no provider output or recursive navigation was used.",
+          "anchor_evidence": "sources/popular-sites-12-method/china-homepage-083-grok-com/stable-page.txt",
+          "anchor_evidence_sha256": "1bb4986621dbc7ddfd7b809ebd8c8d70f773c474a38c2553011fbd8b2ddfd88f"
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Grok"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Imagine"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Sign in",
+              "登录"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Sign up",
+              "注册"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "What should we explore?",
+              "我们应该探索什么？"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {},
+      "ground_truth_evidence": [
+        {
+          "source": "sources/popular-sites-12-method/china-homepage-083-grok-com/stable-page.txt",
+          "supports": "两次独立 Chromium 首次加载观察中的稳定页面文字"
+        }
+      ],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-14",
+        "method": "Two independent anonymous Chromium initial-page observations",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+      }
+    },
+    {
+      "id": "china-homepage-085-shopify-com",
+      "name": "shopify.com 首页",
+      "url": "https://www.shopify.com/",
+      "category": "popular_site",
+      "expected_any": [],
+      "description": "按候补排名补入；两次独立匿名首次加载均呈现稳定页面身份和主要功能文字。",
+      "tags": [
+        "popular-site",
+        "china-ranked-homepage",
+        "landing_page"
+      ],
+      "required_facts": [],
+      "forbidden_any": [
+        "Access Denied",
+        "Human Verification",
+        "Verify that you are human",
+        "Robot or human?",
+        "Checking your browser",
+        "Just a moment...",
+        "Prove your humanity",
+        "Not Found"
+      ],
+      "min_content_chars": 1,
+      "fact_coverage_threshold": 1.0,
+      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Shopify；Products / 产品；Pricing / 定价；Start free trial / 开始免费试用。不点击、不递归，不要求长正文或三个详情链接。",
+      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Shopify；Products / 产品；Pricing / 定价；Start free trial / 开始免费试用。不点击、不递归，不要求长正文或三个详情链接。",
+      "source_benchmark": {
+        "mode": "ranked_domain_homepage",
+        "rank_metadata_used_for_scoring": false,
+        "ranking_source": "Semrush Most Visited Websites in China, July 2026",
+        "china_rank": 85,
+        "requested_ranked_domain": "shopify.com",
+        "observed_final_url": "https://www.shopify.com/",
+        "stable_annotation": {
+          "registry": "popular-sites-rules",
+          "version": 2,
+          "content_kind": "landing_page",
+          "stable_fields": [
+            "task_related_page_text"
+          ],
+          "structural_only_fields": [],
+          "record_requirement": "No structured records; every registered stable page-text group is required.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "live_factual_correctness": null,
+          "note": "Two independent browser observations; no provider output or recursive navigation was used.",
+          "anchor_evidence": "sources/popular-sites-12-method/china-homepage-085-shopify-com/stable-page.txt",
+          "anchor_evidence_sha256": "2ff2892862d8b480cef83af10611b4016972d6c4092b626fd099dae0a48dd7d1"
+        }
+      },
+      "ground_truth_main_content": "",
+      "content_score_applicable": false,
+      "track": "challenge",
+      "required_patterns": [],
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Shopify"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Products",
+              "产品"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Pricing",
+              "定价"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Start free trial",
+              "开始免费试用"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {},
+      "ground_truth_evidence": [
+        {
+          "source": "sources/popular-sites-12-method/china-homepage-085-shopify-com/stable-page.txt",
+          "supports": "两次独立 Chromium 首次加载观察中的稳定页面文字"
+        }
+      ],
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-14",
+        "method": "Two independent anonymous Chromium initial-page observations",
+        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+      }
     }
   ]
 }

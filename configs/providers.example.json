@@ -119,7 +119,10 @@
       "type": "subprocess_jsonl",
       "method_type": "crawl4ai",
       "repo_path": ".",
-      "command": ["${OSS_PYTHON:-python3}", "{harness_root}/scripts/oss/crawl4ai_worker.py"]
+      "command": ["${OSS_PYTHON:-python3}", "{harness_root}/scripts/oss/crawl4ai_worker.py"],
+      "env": {
+        "CRAWL4_AI_BASE_DIRECTORY": "${CRAWL4_AI_BASE_DIRECTORY:-~/.browser-eval/runtime/crawl4ai}"
+      }
     }
   }
 }

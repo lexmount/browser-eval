@@ -1,16 +1,21 @@
 {
   "schema_version": 1,
-  "status": "frozen_for_execution",
-  "purpose": "One scoring registry for the 100-site lexmount-global report",
+  "status": "frozen_pending_environment_preflight",
+  "purpose": "One scoring registry for the fresh 100-site by 12-method report",
   "counts": {
-    "inherited_formal_results": 52,
-    "new_provider_calls": 48,
-    "total": 100
+    "cases": 100,
+    "methods": 12,
+    "fresh_formal_results": 1200,
+    "provider_results_reused": 0
+  },
+  "execution_contract": {
+    "path": "research/popular-sites-12-method-contract.json",
+    "sha256": "630ac4e0375de62d276c180eb5a5046687bcb5bddeb8c98277d8d790f6878152"
   },
   "components": [
     {
       "kind": "global_homepage",
-      "count": 52,
+      "count": 50,
       "path": "evaluation/global-homepages-dataset.json",
       "sha256": "908607a9b4f08734348b7259daa92e019bfdf840c4753ab0082ff979b062dd83"
     },
@@ -35,6 +40,16 @@
       "count": 40,
       "path": "research/china-homepage-rules.json",
       "sha256": "d2d0c87cd085428a0cb0bb452b094e4f776219c81b768b1c394b4be4a3b6c8ac"
+    },
+    {
+      "kind": "china_ranked_reserve_replacements",
+      "count": 2,
+      "path": "research/popular-sites-12-method-contract.json",
+      "sha256": "630ac4e0375de62d276c180eb5a5046687bcb5bddeb8c98277d8d790f6878152",
+      "case_ids": [
+        "china-homepage-083-grok-com",
+        "china-homepage-085-shopify-com"
+      ]
     }
   ],
   "approval": {
@@ -45,7 +60,7 @@
     {
       "id": "global-homepage-001-google-com",
       "url": "https://www.google.com/?hl=en",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -93,7 +108,7 @@
     {
       "id": "global-homepage-002-youtube-com",
       "url": "https://www.youtube.com/?hl=en&gl=US&persist_hl=1",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -135,7 +150,7 @@
     {
       "id": "global-homepage-005-chatgpt-com",
       "url": "https://chatgpt.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -171,7 +186,7 @@
     {
       "id": "global-homepage-006-reddit-com",
       "url": "https://reddit.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -209,7 +224,7 @@
     {
       "id": "global-homepage-008-whatsapp-com",
       "url": "https://whatsapp.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -245,7 +260,7 @@
     {
       "id": "global-homepage-010-bing-com",
       "url": "https://bing.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -281,7 +296,7 @@
     {
       "id": "global-homepage-011-wikipedia-org",
       "url": "https://wikipedia.org/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -317,7 +332,7 @@
     {
       "id": "global-homepage-012-gemini-google-com",
       "url": "https://gemini.google.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -347,7 +362,7 @@
     {
       "id": "global-homepage-013-yahoo-co-jp",
       "url": "https://yahoo.co.jp/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -391,7 +406,7 @@
     {
       "id": "global-homepage-015-yahoo-com",
       "url": "https://www.yahoo.com/?p=us",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -444,7 +459,7 @@
     {
       "id": "global-homepage-016-amazon-com",
       "url": "https://amazon.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -481,7 +496,7 @@
     {
       "id": "global-homepage-018-baidu-com",
       "url": "https://baidu.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -517,7 +532,7 @@
     {
       "id": "global-homepage-020-naver-com",
       "url": "https://naver.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -565,7 +580,7 @@
     {
       "id": "global-homepage-021-netflix-com",
       "url": "https://netflix.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -595,7 +610,7 @@
     {
       "id": "global-homepage-023-cloud-microsoft",
       "url": "https://cloud.microsoft/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -625,7 +640,7 @@
     {
       "id": "global-homepage-025-bilibili-com",
       "url": "https://bilibili.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -669,7 +684,7 @@
     {
       "id": "global-homepage-027-dzen-ru",
       "url": "https://dzen.ru/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -713,7 +728,7 @@
     {
       "id": "global-homepage-028-microsoft-com",
       "url": "https://microsoft.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -755,7 +770,7 @@
     {
       "id": "global-homepage-029-twitch-tv",
       "url": "https://www.twitch.tv/?lang=en",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -792,7 +807,7 @@
     {
       "id": "global-homepage-030-weather-com",
       "url": "https://weather.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -822,7 +837,7 @@
     {
       "id": "global-homepage-032-canva-com",
       "url": "https://canva.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -858,7 +873,7 @@
     {
       "id": "global-homepage-034-news-yahoo-co-jp",
       "url": "https://news.yahoo.co.jp/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -895,7 +910,7 @@
     {
       "id": "global-homepage-035-fandom-com",
       "url": "https://fandom.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -946,7 +961,7 @@
     {
       "id": "global-homepage-036-globo-com",
       "url": "https://globo.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -983,7 +998,7 @@
     {
       "id": "global-homepage-037-mail-ru",
       "url": "https://mail.ru/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -1026,8 +1041,8 @@
     },
     {
       "id": "global-homepage-038-samsung-com",
-      "url": "https://samsung.com/",
-      "cohort": "inherited_global_homepage",
+      "url": "https://www.samsung.com/us/",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -1069,7 +1084,7 @@
     {
       "id": "global-homepage-039-duckduckgo-com",
       "url": "https://duckduckgo.com/?kad=en_US&kl=us-en",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -1111,7 +1126,7 @@
     {
       "id": "global-homepage-041-discord-com",
       "url": "https://discord.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -1147,7 +1162,7 @@
     {
       "id": "global-homepage-042-github-com",
       "url": "https://github.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -1183,7 +1198,7 @@
     {
       "id": "global-homepage-044-spotify-com",
       "url": "https://open.spotify.com/?locale=en_US",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -1219,7 +1234,7 @@
     {
       "id": "global-homepage-045-nytimes-com",
       "url": "https://nytimes.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -1263,7 +1278,7 @@
     {
       "id": "global-homepage-046-zoom-us",
       "url": "https://zoom.us/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -1297,51 +1312,9 @@
       }
     },
     {
-      "id": "global-homepage-047-booking-com",
-      "url": "https://www.booking.com/?lang=en-us",
-      "cohort": "inherited_global_homepage",
-      "acceptance_contract": {
-        "version": 1,
-        "schema": "page_identity",
-        "minimum_records": 0,
-        "stable_text_anchors": [
-          {
-            "id": "stable-anchor-1",
-            "alternatives": [
-              "Booking.com"
-            ]
-          },
-          {
-            "id": "stable-anchor-2",
-            "alternatives": [
-              "Stays"
-            ]
-          },
-          {
-            "id": "stable-anchor-3",
-            "alternatives": [
-              "Flights"
-            ]
-          },
-          {
-            "id": "stable-anchor-4",
-            "alternatives": [
-              "Car rental"
-            ]
-          },
-          {
-            "id": "stable-anchor-5",
-            "alternatives": [
-              "Search"
-            ]
-          }
-        ]
-      }
-    },
-    {
       "id": "global-homepage-049-brave-com",
       "url": "https://brave.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -1377,7 +1350,7 @@
     {
       "id": "global-homepage-056-apple-com",
       "url": "https://apple.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -1413,7 +1386,7 @@
     {
       "id": "global-homepage-060-espn-com",
       "url": "https://espn.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -1450,7 +1423,7 @@
     {
       "id": "global-homepage-062-bbc-com",
       "url": "https://bbc.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -1501,7 +1474,7 @@
     {
       "id": "global-homepage-063-paypal-com",
       "url": "https://paypal.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -1537,7 +1510,7 @@
     {
       "id": "global-homepage-065-ya-ru",
       "url": "https://ya.ru/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -1567,7 +1540,7 @@
     {
       "id": "global-homepage-067-deepseek-com",
       "url": "https://www.deepseek.com/en/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -1603,7 +1576,7 @@
     {
       "id": "global-homepage-068-indeed-com",
       "url": "https://indeed.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -1639,7 +1612,7 @@
     {
       "id": "global-homepage-072-rakuten-co-jp",
       "url": "https://rakuten.co.jp/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -1683,7 +1656,7 @@
     {
       "id": "global-homepage-075-telegram-org",
       "url": "https://telegram.org/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -1725,7 +1698,7 @@
     {
       "id": "global-homepage-080-cnn-com",
       "url": "https://cnn.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -1756,7 +1729,7 @@
     {
       "id": "global-homepage-081-namu-wiki",
       "url": "https://namu.wiki/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -1792,7 +1765,7 @@
     {
       "id": "global-homepage-082-shein-com",
       "url": "https://us.shein.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -1828,7 +1801,7 @@
     {
       "id": "global-homepage-084-qq-com",
       "url": "https://qq.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -1872,7 +1845,7 @@
     {
       "id": "global-homepage-085-douyin-com",
       "url": "https://douyin.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -1908,7 +1881,7 @@
     {
       "id": "global-homepage-086-usps-com",
       "url": "https://usps.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -1944,7 +1917,7 @@
     {
       "id": "global-homepage-087-instructure-com",
       "url": "https://instructure.com/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -1978,45 +1951,9 @@
       }
     },
     {
-      "id": "global-homepage-088-primevideo-com",
-      "url": "https://www.primevideo.com/-/zh/storefront",
-      "cohort": "inherited_global_homepage",
-      "acceptance_contract": {
-        "version": 1,
-        "schema": "page_identity",
-        "minimum_records": 0,
-        "stable_text_anchors": [
-          {
-            "id": "stable-anchor-1",
-            "alternatives": [
-              "Prime Video"
-            ]
-          },
-          {
-            "id": "stable-anchor-2",
-            "alternatives": [
-              "电影"
-            ]
-          },
-          {
-            "id": "stable-anchor-3",
-            "alternatives": [
-              "电视节目"
-            ]
-          },
-          {
-            "id": "stable-anchor-4",
-            "alternatives": [
-              "体育"
-            ]
-          }
-        ]
-      }
-    },
-    {
       "id": "global-homepage-090-rutube-ru",
       "url": "https://rutube.ru/",
-      "cohort": "inherited_global_homepage",
+      "cohort": "global_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -2067,7 +2004,7 @@
     {
       "id": "challenge-01",
       "url": "https://www.anthropologie.com/collection-decorative-candles",
-      "cohort": "new_legacy_popular_list",
+      "cohort": "legacy_popular_list",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -2108,7 +2045,7 @@
     {
       "id": "challenge-02",
       "url": "https://search.jd.com/Search?keyword=%E8%80%B3%E6%9C%BA&enc=utf-8",
-      "cohort": "new_legacy_popular_list",
+      "cohort": "legacy_popular_list",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -2142,7 +2079,7 @@
     {
       "id": "challenge-03",
       "url": "https://www.xiaohongshu.com/explore",
-      "cohort": "new_legacy_popular_list",
+      "cohort": "legacy_popular_list",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -2182,7 +2119,7 @@
     {
       "id": "challenge-04",
       "url": "https://www.zhihu.com/hot",
-      "cohort": "new_legacy_popular_list",
+      "cohort": "legacy_popular_list",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -2197,7 +2134,7 @@
     {
       "id": "challenge-05",
       "url": "https://movie.douban.com/top250",
-      "cohort": "new_legacy_popular_list",
+      "cohort": "legacy_popular_list",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -2231,7 +2168,7 @@
     {
       "id": "challenge-06",
       "url": "https://www.dianping.com/shanghai/ch10",
-      "cohort": "new_legacy_popular_list",
+      "cohort": "legacy_popular_list",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -2265,7 +2202,7 @@
     {
       "id": "challenge-09",
       "url": "https://www.imdb.com/chart/top/",
-      "cohort": "new_legacy_popular_list",
+      "cohort": "legacy_popular_list",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -2294,7 +2231,7 @@
     {
       "id": "challenge-10-justwatch",
       "url": "https://www.justwatch.com/us/tv-shows",
-      "cohort": "new_legacy_popular_list",
+      "cohort": "legacy_popular_list",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -2328,7 +2265,7 @@
     {
       "id": "china-homepage-008-doubao-com",
       "url": "https://doubao.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -2364,7 +2301,7 @@
     {
       "id": "china-homepage-012-feishu-cn",
       "url": "https://feishu.cn/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -2400,7 +2337,7 @@
     {
       "id": "china-homepage-018-163-com",
       "url": "https://163.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -2444,7 +2381,7 @@
     {
       "id": "china-homepage-019-taobao-com",
       "url": "https://taobao.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -2480,7 +2417,7 @@
     {
       "id": "china-homepage-026-aliyun-com",
       "url": "https://aliyun.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -2522,7 +2459,7 @@
     {
       "id": "china-homepage-028-weibo-com",
       "url": "https://weibo.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -2558,7 +2495,7 @@
     {
       "id": "china-homepage-029-360-com",
       "url": "https://360.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -2594,7 +2531,7 @@
     {
       "id": "china-homepage-033-dingtalk-com",
       "url": "https://dingtalk.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -2636,7 +2573,7 @@
     {
       "id": "china-homepage-036-hao123-com",
       "url": "https://hao123.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -2672,7 +2609,7 @@
     {
       "id": "china-homepage-039-1688-com",
       "url": "https://1688.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -2708,7 +2645,7 @@
     {
       "id": "china-homepage-040-quark-cn",
       "url": "https://quark.cn/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -2744,7 +2681,7 @@
     {
       "id": "china-homepage-042-kdocs-cn",
       "url": "https://kdocs.cn/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -2780,7 +2717,7 @@
     {
       "id": "china-homepage-044-kimi-com",
       "url": "https://kimi.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -2816,7 +2753,7 @@
     {
       "id": "china-homepage-045-tmall-com",
       "url": "https://tmall.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -2852,7 +2789,7 @@
     {
       "id": "china-homepage-046-wedoany-com",
       "url": "https://wedoany.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -2896,7 +2833,7 @@
     {
       "id": "china-homepage-047-qianwen-com",
       "url": "https://qianwen.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -2932,7 +2869,7 @@
     {
       "id": "china-homepage-048-douyu-com",
       "url": "https://douyu.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -2976,7 +2913,7 @@
     {
       "id": "china-homepage-050-openai-com",
       "url": "https://openai.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -3018,7 +2955,7 @@
     {
       "id": "china-homepage-052-alipay-com",
       "url": "https://alipay.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -3054,7 +2991,7 @@
     {
       "id": "china-homepage-053-sohu-com",
       "url": "https://sohu.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -3098,7 +3035,7 @@
     {
       "id": "china-homepage-055-huya-com",
       "url": "https://huya.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -3142,7 +3079,7 @@
     {
       "id": "china-homepage-056-cnki-net",
       "url": "https://cnki.net/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -3178,7 +3115,7 @@
     {
       "id": "china-homepage-057-nih-gov",
       "url": "https://nih.gov/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -3214,7 +3151,7 @@
     {
       "id": "china-homepage-058-huaban-com",
       "url": "https://huaban.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -3258,7 +3195,7 @@
     {
       "id": "china-homepage-059-jianying-com",
       "url": "https://jianying.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -3294,7 +3231,7 @@
     {
       "id": "china-homepage-060-eastmoney-com",
       "url": "https://eastmoney.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -3338,7 +3275,7 @@
     {
       "id": "china-homepage-063-sina-com-cn",
       "url": "https://sina.com.cn/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -3384,7 +3321,7 @@
     {
       "id": "china-homepage-064-gamer520-com",
       "url": "https://gamer520.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -3421,7 +3358,7 @@
     {
       "id": "china-homepage-065-lingxing-com",
       "url": "https://lingxing.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -3457,7 +3394,7 @@
     {
       "id": "china-homepage-067-alibaba-com",
       "url": "https://alibaba.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -3501,7 +3438,7 @@
     {
       "id": "china-homepage-068-youdao-com",
       "url": "https://youdao.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -3537,7 +3474,7 @@
     {
       "id": "china-homepage-069-3dmgame-com",
       "url": "https://3dmgame.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -3581,7 +3518,7 @@
     {
       "id": "china-homepage-071-2345-com",
       "url": "https://2345.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -3626,7 +3563,7 @@
     {
       "id": "china-homepage-072-cctv-com",
       "url": "https://cctv.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
@@ -3671,7 +3608,7 @@
     {
       "id": "china-homepage-073-so-com",
       "url": "https://so.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -3707,7 +3644,7 @@
     {
       "id": "china-homepage-075-volcengine-com",
       "url": "https://volcengine.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -3743,7 +3680,7 @@
     {
       "id": "china-homepage-078-nga-cn",
       "url": "https://nga.cn/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -3779,7 +3716,7 @@
     {
       "id": "china-homepage-080-yandex-com",
       "url": "https://yandex.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -3808,8 +3745,8 @@
     },
     {
       "id": "china-homepage-081-elsevier-com",
-      "url": "https://elsevier.com/",
-      "cohort": "new_china_ranked_homepage",
+      "url": "https://www.elsevier.com/en-us",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -3824,19 +3761,23 @@
           {
             "id": "stable-anchor-2",
             "alternatives": [
-              "Academic & Government"
+              "Academic & Government",
+              "科研学术"
             ]
           },
           {
             "id": "stable-anchor-3",
             "alternatives": [
-              "Health"
+              "Health",
+              "医疗健康"
             ]
           },
           {
             "id": "stable-anchor-4",
             "alternatives": [
-              "Publish with us"
+              "Publish with us",
+              "通过我们出版",
+              "通过Elsevier出版"
             ]
           }
         ]
@@ -3845,7 +3786,7 @@
     {
       "id": "china-homepage-082-huawei-com",
       "url": "https://huawei.com/",
-      "cohort": "new_china_ranked_homepage",
+      "cohort": "china_ranked_homepage",
       "acceptance_contract": {
         "version": 1,
         "schema": "page_identity",
@@ -3873,6 +3814,90 @@
             "id": "stable-anchor-4",
             "alternatives": [
               "Huawei Cloud"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-083-grok-com",
+      "url": "https://grok.com/",
+      "cohort": "china_ranked_reserve_replacement",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Grok"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Imagine"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Sign in",
+              "登录"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Sign up",
+              "注册"
+            ]
+          },
+          {
+            "id": "stable-anchor-5",
+            "alternatives": [
+              "What should we explore?",
+              "我们应该探索什么？"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "china-homepage-085-shopify-com",
+      "url": "https://www.shopify.com/",
+      "cohort": "china_ranked_reserve_replacement",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "stable-anchor-1",
+            "alternatives": [
+              "Shopify"
+            ]
+          },
+          {
+            "id": "stable-anchor-2",
+            "alternatives": [
+              "Products",
+              "产品"
+            ]
+          },
+          {
+            "id": "stable-anchor-3",
+            "alternatives": [
+              "Pricing",
+              "定价"
+            ]
+          },
+          {
+            "id": "stable-anchor-4",
+            "alternatives": [
+              "Start free trial",
+              "开始免费试用"
             ]
           }
         ]

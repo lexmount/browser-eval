@@ -1,0 +1,53 @@
+import { defineConfig } from 'tsdown'
+import { typertPlugin } from './packages/typert/generator/lib/types/tsdown-plugin.js'
+
+// Copied into the pinned DeepSeek Harness checkout by the bootstrap script.
+// The upstream repository build spans every app and package; this workspace is
+// the exact dependency closure needed by the built-in web_fetch worker.
+export default defineConfig({
+  workspace: [
+    'vendor/cordis',
+    'vendor/cosmokit',
+    'vendor/include',
+    'vendor/loader',
+    'vendor/schemastery',
+    'packages/attachment/attachment',
+    'packages/code-runtime/code-runtime',
+    'packages/code-runtime/code-runtime-worker-thread',
+    'packages/core/agent',
+    'packages/core/scope',
+    'packages/core/session',
+    'packages/core/system-prompt',
+    'packages/core/tools',
+    'packages/guard/timeout-policy',
+    'packages/interaction/user-approval',
+    'packages/llm/llm',
+    'packages/runtime-diagnostics/invariants',
+    'packages/session/session-projection',
+    'packages/spill/spill',
+    'packages/spill/spill-local',
+    'packages/spill/spill-policy',
+    'packages/typert/protocol',
+    'packages/typert/registry',
+    'packages/util/brand',
+    'packages/util/crypto',
+    'packages/util/http-proxy',
+    'packages/util/launch-environment',
+    'packages/util/output-retention',
+    'packages/util/timeout',
+    'packages/util/values',
+    'packages/web/tool-web',
+    'packages/web/web',
+    'packages/web/web-fetch-http',
+    'packages/web/web-search-exa',
+  ],
+  entry: ['lib/types/{index,invariant,startup}.js'],
+  outDir: 'lib',
+  format: ['esm'],
+  platform: 'node',
+  target: 'es2024',
+  fixedExtension: false,
+  dts: false,
+  clean: false,
+  plugins: [typertPlugin({ mode: 'workspace', faces: ['host'] })],
+})

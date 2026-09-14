@@ -40,7 +40,9 @@ async def main() -> None:
     download_dir = tempfile.TemporaryDirectory(prefix="webfetch-crawl-downloads-")
     browser_config = BrowserConfig(
         browser_type="chromium",
-        chrome_channel="chrome",
+        # Use the browser revision pinned by the isolated Playwright runtime.
+        # "chrome" would silently depend on a mutable system installation.
+        chrome_channel="chromium",
         headless=True,
         verbose=False,
         accept_downloads=True,

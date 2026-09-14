@@ -19,6 +19,7 @@ LEGACY = ROOT / "evaluation/dataset.json"
 CHINA_RULES = ROOT / "research/china-homepage-rules.json"
 CHINA_SELECTION = ROOT / "research/china-homepage-selection.json"
 APPROVAL = ROOT / "research/china-homepage-rules-approval.json"
+TWELVE_METHOD_CONTRACT = ROOT / "research/popular-sites-12-method-contract.json"
 RULES_OUTPUT = ROOT / "research/popular-sites-rules.json"
 REVIEW_OUTPUT = ROOT / "research/popular-sites-rules-review.md"
 DATASET_OUTPUT = ROOT / "evaluation/popular-sites-dataset.json"
@@ -175,6 +176,121 @@ def build_china_case(rule: dict) -> dict:
     }
 
 
+def stable_contract(anchors: list[list[str]]) -> dict:
+    return {
+        "version": 1,
+        "schema": "page_identity",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+            {"id": f"stable-anchor-{index}", "alternatives": alternatives}
+            for index, alternatives in enumerate(anchors, 1)
+        ],
+    }
+
+
+def write_contract_evidence(case: dict, anchors: list[list[str]], contract_hash: str) -> str:
+    relative = Path("sources") / "popular-sites-12-method" / case["id"] / "stable-page.txt"
+    target = ROOT / "evaluation" / relative
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("\n\n".join(" / ".join(group) for group in anchors) + "\n", encoding="utf-8")
+    write_json(
+        target.with_name("evidence.json"),
+        {
+            "case_id": case["id"],
+            "url": case["url"],
+            "checked_at": "2026-09-14",
+            "source": "Two fresh anonymous Chromium initial-load observations",
+            "contract_record": str(TWELVE_METHOD_CONTRACT.relative_to(ROOT)),
+            "contract_record_sha256": contract_hash,
+            "stable_page_sha256": sha256(target),
+            "provider_output_used": False,
+            "clicks_or_recursive_navigation": False,
+        },
+    )
+    return relative.as_posix()
+
+
+def bind_changed_case(case: dict, anchors: list[list[str]], contract_hash: str) -> dict:
+    contract = stable_contract(anchors)
+    validate_acceptance_contract(contract)
+    case["acceptance_contract"] = contract
+    evidence_path = write_contract_evidence(case, anchors, contract_hash)
+    evidence_hash = sha256(ROOT / "evaluation" / evidence_path)
+    case["ground_truth_evidence"] = [
+        {
+            "source": evidence_path,
+            "supports": "两次独立 Chromium 首次加载观察中的稳定页面文字",
+        }
+    ]
+    annotation = case["source_benchmark"]["stable_annotation"]
+    annotation["anchor_evidence"] = evidence_path
+    annotation["anchor_evidence_sha256"] = evidence_hash
+    annotation["record_requirement"] = (
+        "No structured records; every registered stable page-text group is required."
+    )
+    case["source_verification"] = {
+        "state": "valid",
+        "checked_at": "2026-09-14",
+        "method": "Two independent anonymous Chromium initial-page observations",
+        "reference_sha256": hashlib.sha256(b"").hexdigest(),
+        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth.",
+    }
+    return case
+
+
+def build_reserve_case(spec: dict, contract_hash: str) -> dict:
+    anchors = spec["anchors"]
+    contract = stable_contract(anchors)
+    validate_acceptance_contract(contract)
+    prompt = (
+        "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字："
+        + "；".join(" / ".join(group) for group in anchors)
+        + "。不点击、不递归，不要求长正文或三个详情链接。"
+    )
+    case = {
+        "id": spec["id"],
+        "name": f"{spec['domain']} 首页",
+        "url": spec["url"],
+        "category": "popular_site",
+        "expected_any": [],
+        "description": "按候补排名补入；两次独立匿名首次加载均呈现稳定页面身份和主要功能文字。",
+        "tags": ["popular-site", "china-ranked-homepage", spec["label"]],
+        "required_facts": [],
+        "forbidden_any": BLOCKED_TEXT,
+        "min_content_chars": 1,
+        "fact_coverage_threshold": 1.0,
+        "task_prompt": prompt,
+        "reference_answer": prompt,
+        "source_benchmark": {
+            "mode": "ranked_domain_homepage",
+            "rank_metadata_used_for_scoring": False,
+            "ranking_source": "Semrush Most Visited Websites in China, July 2026",
+            "china_rank": spec["china_rank"],
+            "requested_ranked_domain": spec["domain"],
+            "observed_final_url": spec["observed_final_url"],
+            "stable_annotation": {
+                "registry": "popular-sites-rules",
+                "version": 2,
+                "content_kind": spec["label"],
+                "stable_fields": ["task_related_page_text"],
+                "structural_only_fields": [],
+                "record_requirement": "No structured records; every registered stable page-text group is required.",
+                "task_decision_scope": "structure_and_explicit_stable_content",
+                "live_factual_correctness": None,
+                "note": "Two independent browser observations; no provider output or recursive navigation was used.",
+            },
+        },
+        "ground_truth_main_content": "",
+        "content_score_applicable": False,
+        "track": "challenge",
+        "required_patterns": [],
+        "task_kind": "structure",
+        "acceptance_contract": contract,
+        "body_requirements": {},
+    }
+    return bind_changed_case(case, anchors, contract_hash)
+
+
 def bind_legacy_evidence(case: dict) -> dict:
     """Copy old immutable anchor bytes into a current evidence-record shape."""
     annotation = case["source_benchmark"]["stable_annotation"]
@@ -216,6 +332,8 @@ def main() -> None:
     china_rules = json.loads(CHINA_RULES.read_text())
     china_selection = json.loads(CHINA_SELECTION.read_text())
     approval = json.loads(APPROVAL.read_text())
+    twelve_method_contract = json.loads(TWELVE_METHOD_CONTRACT.read_text())
+    contract_hash = sha256(TWELVE_METHOD_CONTRACT)
 
     if approval["status"] != "approved_for_execution":
         raise SystemExit("China rules are not approved for execution")
@@ -226,7 +344,41 @@ def main() -> None:
     if china_selection["selected_count"] != 40:
         raise SystemExit("Expected the approved 40-case China selection")
 
-    homepages = deepcopy(homepage_data["cases"])
+    providers = twelve_method_contract["providers"]
+    execution = twelve_method_contract["execution"]
+    if (
+        len(providers) != 12
+        or len(set(providers)) != 12
+        or execution["formal_result_count"] != 1200
+        or execution["runs_per_case"] != 1
+        or execution["timeout_seconds"] != 45
+        or execution["within_method_concurrency"] != 1
+        or not execution["methods_run_in_parallel"]
+    ):
+        raise SystemExit("The fresh 12-method execution contract is incomplete")
+
+    changes = twelve_method_contract["case_changes"]
+    removed_ids = {item["case_id"] for item in changes["removed"]}
+    if removed_ids != {
+        "global-homepage-047-booking-com",
+        "global-homepage-088-primevideo-com",
+    }:
+        raise SystemExit("Only Booking.com and Prime Video may be replaced")
+
+    homepages = [
+        deepcopy(case) for case in homepage_data["cases"] if case["id"] not in removed_ids
+    ]
+    samsung = next(
+        case for case in homepages if case["id"] == "global-homepage-038-samsung-com"
+    )
+    samsung_change = changes["url_changes"][0]
+    samsung["url"] = samsung_change["to"]
+    samsung["source_benchmark"]["observed_final_url"] = samsung_change["to"]
+    samsung = bind_changed_case(
+        samsung,
+        [[item["alternatives"][0]] for item in samsung["acceptance_contract"]["stable_text_anchors"]],
+        contract_hash,
+    )
     legacy_by_id = {case["id"]: case for case in legacy_data["cases"]}
     legacy = []
     for case_id in LEGACY_IDS:
@@ -235,13 +387,30 @@ def main() -> None:
         case["tags"] = ["popular-site", "legacy-popular-list", "content_list"]
         case.setdefault("description", "旧热门网站结构案例；保留原冻结 URL 与验收契约。")
         legacy.append(bind_legacy_evidence(case))
-    china = [build_china_case(rule) for rule in china_rules["cases"]]
+    elsevier_change = changes["semantic_alternatives"][0]
+    china = []
+    for rule in china_rules["cases"]:
+        case = build_china_case(rule)
+        if case["id"] == elsevier_change["case_id"]:
+            case["url"] = elsevier_change["requested_url"]
+            case["source_benchmark"]["observed_final_url"] = elsevier_change[
+                "observed_redirect"
+            ]
+            case = bind_changed_case(case, elsevier_change["anchors"], contract_hash)
+        china.append(case)
+    reserves = [build_reserve_case(spec, contract_hash) for spec in changes["added"]]
 
-    combined = homepages + legacy + china
+    combined = homepages + legacy + china + reserves
     ids = [case["id"] for case in combined]
     domains = [page_domain(case) for case in combined]
-    if (len(homepages), len(legacy), len(china), len(combined)) != (52, 8, 40, 100):
-        raise SystemExit("Expected 52 inherited + 8 legacy unique + 40 China-ranked cases")
+    if (len(homepages), len(legacy), len(china), len(reserves), len(combined)) != (
+        50,
+        8,
+        40,
+        2,
+        100,
+    ):
+        raise SystemExit("Expected 50 global + 8 legacy + 40 China-ranked + 2 reserve cases")
     if len(ids) != len(set(ids)):
         raise SystemExit("Combined suite contains duplicate case IDs")
     if len(domains) != len(set(domains)):
@@ -250,13 +419,22 @@ def main() -> None:
 
     rules_payload = {
         "schema_version": 1,
-        "status": "frozen_for_execution",
-        "purpose": "One scoring registry for the 100-site lexmount-global report",
-        "counts": {"inherited_formal_results": 52, "new_provider_calls": 48, "total": 100},
+        "status": "frozen_pending_environment_preflight",
+        "purpose": "One scoring registry for the fresh 100-site by 12-method report",
+        "counts": {
+            "cases": 100,
+            "methods": 12,
+            "fresh_formal_results": 1200,
+            "provider_results_reused": 0,
+        },
+        "execution_contract": {
+            "path": str(TWELVE_METHOD_CONTRACT.relative_to(ROOT)),
+            "sha256": contract_hash,
+        },
         "components": [
             {
                 "kind": "global_homepage",
-                "count": 52,
+                "count": 50,
                 "path": str(HOMEPAGES.relative_to(ROOT)),
                 "sha256": sha256(HOMEPAGES),
             },
@@ -273,6 +451,13 @@ def main() -> None:
                 "path": str(CHINA_RULES.relative_to(ROOT)),
                 "sha256": sha256(CHINA_RULES),
             },
+            {
+                "kind": "china_ranked_reserve_replacements",
+                "count": 2,
+                "path": str(TWELVE_METHOD_CONTRACT.relative_to(ROOT)),
+                "sha256": contract_hash,
+                "case_ids": [item["id"] for item in changes["added"]],
+            },
         ],
         "approval": {"path": str(APPROVAL.relative_to(ROOT)), "sha256": sha256(APPROVAL)},
         "cases": [
@@ -280,11 +465,13 @@ def main() -> None:
                 "id": case["id"],
                 "url": case["url"],
                 "cohort": (
-                    "inherited_global_homepage"
-                    if index < 52
-                    else "new_legacy_popular_list"
-                    if index < 60
-                    else "new_china_ranked_homepage"
+                    "global_homepage"
+                    if index < 50
+                    else "legacy_popular_list"
+                    if index < 58
+                    else "china_ranked_homepage"
+                    if index < 98
+                    else "china_ranked_reserve_replacement"
                 ),
                 "acceptance_contract": case["acceptance_contract"],
             }
@@ -299,20 +486,27 @@ def main() -> None:
         "name": "全球热门网站 100 站 Web Fetch 评测",
         "tool": "web_fetch",
         "dynamic_scoring": "按独立观察的稳定页面文字与页面实际结构验收；不冻结动态条目和值。",
-        "coverage_plan": {"challenge": ["lexmount-global"]},
+        "coverage_plan": {"challenge": providers},
         "comparison": {
             "kind": "popular_sites",
             "timeout_seconds": 45,
-            "concurrency": 1,
+            "concurrency": execution["within_method_concurrency"],
             "runs_per_case": 1,
-            "publication_state": "frozen_not_run",
+            "publication_state": "frozen_pending_environment_preflight",
             "require_independent_result_review": True,
-            "inherited_result_count": 52,
-            "new_provider_call_count": 48,
+            "fresh_formal_result_count": execution["formal_result_count"],
+            "provider_results_reused": 0,
+            "methods_run_in_parallel": True,
+            "retry_policy": execution["retry_policy"],
+            "body_reference_case_count": 0,
+            "body_metrics": "unavailable",
+            "conversion": "Each method's native known-URL fetch output is normalized once into text plus explicit structured links when available.",
             "source_rule_registry": str(RULES_OUTPUT.relative_to(ROOT)),
             "source_rule_registry_sha256": sha256(RULES_OUTPUT),
             "approval_record": str(APPROVAL.relative_to(ROOT)),
             "approval_record_sha256": sha256(APPROVAL),
+            "execution_contract": str(TWELVE_METHOD_CONTRACT.relative_to(ROOT)),
+            "execution_contract_sha256": contract_hash,
         },
         "cases": combined,
     }
@@ -324,9 +518,10 @@ def main() -> None:
     lines = [
         "# 全球热门网站 100 站规则冻结记录",
         "",
-        "- 总计 100 站：52 条沿用当前正式结果，48 条需要新的 `lexmount-global` 调用。",
-        "- 新调用由 8 个旧热门列表案例和 40 个中国榜首页组成；Amazon、Reddit 因重复只保留首页案例。",
-        "- 旧 52 条 URL、契约和原始调用不变，不重复付费调用。",
+        "- 总计 100 站 × 12 方法 = 1,200 条全新正式结果；旧 46/100 Lexmount Global 结果不复用、不覆盖。",
+        "- Samsung 固定到美国站；Elsevier 允许独立观察到的同语义中英文页面文字。",
+        "- Booking.com 与 Prime Video 因当前地区访问契约不可复现而移出新矩阵，由候补 Grok、Shopify 补足。",
+        "- 每案例每方法 1 次、45 秒截止；方法内串行、方法间并行，禁止为提高分数而重试。",
         "- 报告继续使用仓库唯一的 `harness/web_fetch/report.py` 和 `scripts/build_report.py`。",
         "- `named_link` 的稳定文字属于直接加载页面，不要求每条记录包含；每条计数记录必须独立具备有效标题和匹配主机、完整路径的 URL。",
         "",
@@ -340,7 +535,7 @@ def main() -> None:
             f"| {index} | `{item['id']}` | `{item['cohort']}` | {item['url']} | `{item['acceptance_contract']['schema']}` |"
         )
     REVIEW_OUTPUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print("Built frozen 100-site suite: 52 inherited results + 48 new calls")
+    print("Built fresh frozen 100-site x 12-method suite: 1,200 formal results")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,11 @@
+{
+  "case_id": "china-homepage-083-grok-com",
+  "url": "https://grok.com/",
+  "checked_at": "2026-09-14",
+  "source": "Two fresh anonymous Chromium initial-load observations",
+  "contract_record": "research/popular-sites-12-method-contract.json",
+  "contract_record_sha256": "630ac4e0375de62d276c180eb5a5046687bcb5bddeb8c98277d8d790f6878152",
+  "stable_page_sha256": "1bb4986621dbc7ddfd7b809ebd8c8d70f773c474a38c2553011fbd8b2ddfd88f",
+  "provider_output_used": false,
+  "clicks_or_recursive_navigation": false
+}

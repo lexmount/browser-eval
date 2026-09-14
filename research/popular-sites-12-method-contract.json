@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "status": "frozen_pending_environment_preflight",
+  "purpose": "Fresh 100-site by 12-method popular-site Web Fetch comparison",
+  "baseline": {
+    "git_commit": "4b34ddfb",
+    "result_policy": "The reviewed 46/100 Lexmount Global evidence remains historical and is not reused in this fresh matrix.",
+    "provider_calls_reused": 0
+  },
+  "providers": [
+    "cloudflare-markdown",
+    "firecrawl",
+    "crawl4ai",
+    "moli-webfetch",
+    "tavily",
+    "deepseek-harness-built-in",
+    "lexmount-cn",
+    "lexmount-global",
+    "cowagent-built-in",
+    "exa",
+    "langchain-webbase",
+    "openclaw-built-in"
+  ],
+  "execution": {
+    "cases": 100,
+    "methods": 12,
+    "runs_per_case": 1,
+    "timeout_seconds": 45,
+    "within_method_concurrency": 1,
+    "methods_run_in_parallel": true,
+    "formal_result_count": 1200,
+    "formal_batches": [
+      {
+        "batch": 1,
+        "kind": "local",
+        "providers": [
+          "crawl4ai",
+          "moli-webfetch",
+          "deepseek-harness-built-in",
+          "cowagent-built-in",
+          "langchain-webbase",
+          "openclaw-built-in"
+        ]
+      },
+      {
+        "batch": 2,
+        "kind": "hosted",
+        "providers": [
+          "cloudflare-markdown",
+          "firecrawl",
+          "tavily",
+          "lexmount-cn",
+          "lexmount-global",
+          "exa"
+        ]
+      }
+    ],
+    "batch_freeze_policy": "Both six-method memberships are frozen before preflight. Batch 1 results must not change Batch 2 membership or contract. No ranking may be published until all 12 methods finish formal execution and review.",
+    "retry_policy": "No retry to improve a score. A proven command, version, scorer, reference, or timing error requires an append-only formal correction that replaces the full affected scope.",
+    "formal_calls_require_separate_user_confirmation": true,
+    "diagnostic_preflight": {
+      "cases_per_method": 2,
+      "page_identity_cases": 1,
+      "named_link_cases": 1,
+      "total_executions": 24,
+      "case_ids": [
+        "global-homepage-038-samsung-com",
+        "global-homepage-005-reddit-com"
+      ],
+      "requires_separate_user_confirmation": true,
+      "authorized_at": "2026-09-14",
+      "authorization_scope": "Exactly two diagnostic executions per method; no formal 100-case execution."
+    }
+  },
+  "scoring": {
+    "reference_binding_mode": "hash_bound_stable_text_and_structure",
+    "body_reference_cases": 0,
+    "body_metrics": "unavailable",
+    "stable_text_is_not_full_body_reference": true,
+    "independent_result_review_required": true
+  },
+  "case_changes": {
+    "url_changes": [
+      {
+        "case_id": "global-homepage-038-samsung-com",
+        "from": "https://samsung.com/",
+        "to": "https://www.samsung.com/us/",
+        "reason": "Two fresh anonymous Chromium observations retained the five existing English anchors at the fixed US homepage."
+      }
+    ],
+    "semantic_alternatives": [
+      {
+        "case_id": "china-homepage-081-elsevier-com",
+        "requested_url": "https://www.elsevier.com/en-us",
+        "observed_redirect": "https://www.elsevier.cn/",
+        "anchors": [
+          ["Elsevier"],
+          ["Academic & Government", "科研学术"],
+          ["Health", "医疗健康"],
+          ["Publish with us", "通过我们出版", "通过Elsevier出版"]
+        ],
+        "reason": "The same Elsevier homepage semantics are independently observed in English historical evidence and the current Chinese geolocation variant."
+      }
+    ],
+    "removed": [
+      {
+        "case_id": "global-homepage-047-booking-com",
+        "domain": "booking.com",
+        "reason": "Anonymous initial loads currently resolve to a consent-only page rather than a reproducible public homepage contract."
+      },
+      {
+        "case_id": "global-homepage-088-primevideo-com",
+        "domain": "primevideo.com",
+        "reason": "The storefront currently resolves to a regional service-restriction page from the benchmark environment."
+      }
+    ],
+    "added": [
+      {
+        "id": "china-homepage-083-grok-com",
+        "china_rank": 83,
+        "domain": "grok.com",
+        "url": "https://grok.com/",
+        "observed_final_url": "https://grok.com/",
+        "label": "entry_page",
+        "anchors": [
+          ["Grok"],
+          ["Imagine"],
+          ["Sign in", "登录"],
+          ["Sign up", "注册"],
+          ["What should we explore?", "我们应该探索什么？"]
+        ]
+      },
+      {
+        "id": "china-homepage-085-shopify-com",
+        "china_rank": 85,
+        "domain": "shopify.com",
+        "url": "https://www.shopify.com/",
+        "observed_final_url": "https://www.shopify.com/",
+        "label": "landing_page",
+        "anchors": [
+          ["Shopify"],
+          ["Products", "产品"],
+          ["Pricing", "定价"],
+          ["Start free trial", "开始免费试用"]
+        ]
+      }
+    ],
+    "fallback_order": ["figma.com", "yuque.com"]
+  },
+  "independent_observations": {
+    "checked_at": "2026-09-14",
+    "browser": "Codex in-app Chromium",
+    "mode": "new hidden tab, anonymous initial load, no clicks, no recursive navigation",
+    "observations_per_changed_or_added_case": 2,
+    "provider_output_used": false,
+    "cases": [
+      {
+        "case_id": "global-homepage-038-samsung-com",
+        "final_urls": ["https://www.samsung.com/us/", "https://www.samsung.com/us/"],
+        "observed_stable_text": ["Samsung", "Mobile", "TV & AV", "Appliances", "Computers & Monitors"]
+      },
+      {
+        "case_id": "china-homepage-081-elsevier-com",
+        "final_urls": ["https://www.elsevier.cn/", "https://www.elsevier.cn/"],
+        "observed_stable_text": ["Elsevier", "科研学术", "医疗健康", "通过我们出版", "通过Elsevier出版"]
+      },
+      {
+        "case_id": "china-homepage-083-grok-com",
+        "final_urls": ["https://grok.com/", "https://grok.com/"],
+        "observed_stable_text": ["Grok", "Imagine", "登录", "注册", "我们应该探索什么？"]
+      },
+      {
+        "case_id": "china-homepage-085-shopify-com",
+        "final_urls": ["https://www.shopify.com/", "https://www.shopify.com/"],
+        "observed_stable_text": ["Shopify", "产品", "定价", "开始免费试用"]
+      }
+    ]
+  }
+}

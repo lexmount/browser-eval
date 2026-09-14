@@ -1,0 +1,11 @@
+{
+  "case_id": "china-homepage-081-elsevier-com",
+  "url": "https://www.elsevier.com/en-us",
+  "checked_at": "2026-09-14",
+  "source": "Two fresh anonymous Chromium initial-load observations",
+  "contract_record": "research/popular-sites-12-method-contract.json",
+  "contract_record_sha256": "630ac4e0375de62d276c180eb5a5046687bcb5bddeb8c98277d8d790f6878152",
+  "stable_page_sha256": "5265d4d7cef257ea60f8ced5140b0b3f7bef183cd35784b232565decd60cfedc",
+  "provider_output_used": false,
+  "clicks_or_recursive_navigation": false
+}

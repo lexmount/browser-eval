@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-14T16:01:00+08:00",
+  "scope": "environment freeze before the 24-call diagnostic preflight",
+  "private_artifact_site": {
+    "base_url": "https://artifact-hub.app.lexmount.com",
+    "slug": "HMHGx1jcMz-z",
+    "visibility": "private",
+    "public_share_created": false,
+    "old_global_only_site_unchanged": "l9jZU6GPMLn6"
+  },
+  "matrix": {
+    "dataset_sha256": "a31048fa62d46ca83c8ea960ac1bb02e0eed4bbba2e2d94d3d8e28cd251b134e",
+    "rules_sha256": "1386b46fa954efe31ff2b352c824cce7fac557506f2e7a083ada9188590566a5",
+    "contract_sha256": "630ac4e0375de62d276c180eb5a5046687bcb5bddeb8c98277d8d790f6878152",
+    "cases": 100,
+    "methods": 12,
+    "formal_results_planned": 1200
+  },
+  "formal_batches": {
+    "batch_1": [
+      "crawl4ai",
+      "moli-webfetch",
+      "deepseek-harness-built-in",
+      "cowagent-built-in",
+      "langchain-webbase",
+      "openclaw-built-in"
+    ],
+    "batch_2": [
+      "cloudflare-markdown",
+      "firecrawl",
+      "tavily",
+      "lexmount-cn",
+      "lexmount-global",
+      "exa"
+    ],
+    "membership_frozen": true,
+    "batch_1_results_may_change_batch_2_membership": false,
+    "publish_ranking_before_all_12_complete": false
+  },
+  "shared_local_runtime": {
+    "python": "3.11.16",
+    "python_dependency_freeze_sha256": "f8ddd13e4be40244f72fc6466aea9e16d0a4301986e55d80b4544a42cb1c6363",
+    "node_for_openclaw": "24.16.0"
+  },
+  "local_methods": {
+    "moli-webfetch": {
+      "version": "1.1.5",
+      "source_commit": "a4b2ad7bc10b0f02386c08ebc353c75a3073f2d2",
+      "release_archive_sha256": "8ce3bff3d003b4e04b366908ad14656456e1bf347b2be251b734cf1d60d654a6",
+      "executable_sha256": "4a947148f9af8726b619558fb72c05def75e1c347464c64af178e2f4ddfa71a5",
+      "startup_check": "passed",
+      "local_fixture_check": "passed"
+    },
+    "cowagent-built-in": {
+      "commit": "be1782cb3977ee9fa56482d4a5a7d405feb35c8c",
+      "tracked_checkout_clean": true,
+      "startup_check": "passed",
+      "local_fixture_check": "passed with private-network guard disabled only for the loopback fixture",
+      "preflight_private_network_guard": true,
+      "anomaly": "Import logs an optional scheduler warning because croniter is absent; the Web Fetch module imports and executes successfully."
+    },
+    "openclaw-built-in": {
+      "version": "2026.9.4",
+      "commit": "e0d05367870048cb2f66d611c97b391aadf40c63",
+      "pnpm_lock_sha256": "d85e0f5076d79e8405aca594cda26ceade2b3b5b673946eafc6b70b08974705e",
+      "tracked_checkout_clean": true,
+      "startup_check": "passed",
+      "local_fixture_check": "passed by returning the expected SSRF rejection as structured JSON"
+    },
+    "deepseek-harness-built-in": {
+      "version": "0.1.5-rc.2",
+      "commit": "c291e7961a515f6d7af9304e7fd1d257929aef26",
+      "pnpm_lock_sha256": "66d87ed26fe3205172560351e13fe4aa736b66c15a29f7dd873c629fc80906de",
+      "tracked_checkout_clean": true,
+      "build_scope": "web_fetch worker dependency closure",
+      "startup_check": "passed",
+      "local_fixture_check": "passed by returning WEB_BLOCKED_URL as structured JSON"
+    },
+    "langchain-webbase": {
+      "distribution": "langchain-community",
+      "version": "0.3.30",
+      "startup_check": "passed",
+      "local_fixture_check": "passed"
+    },
+    "crawl4ai": {
+      "version": "0.9.3",
+      "commit": "862f6bccb9c063f49b9d42701baa0eea17a4993f",
+      "tracked_checkout_clean": true,
+      "python_requirement": ">=3.10",
+      "playwright_version": "1.62.0",
+      "chromium_revision": "1234",
+      "chromium_version": "151.0.7922.34",
+      "startup_check": "passed",
+      "local_fixture_check": "passed",
+      "anomaly": "The library defaults to a user-home data directory; the benchmark now binds CRAWL4_AI_BASE_DIRECTORY to an isolated runtime directory."
+    }
+  },
+  "hosted_methods": {
+    "cloudflare-markdown": {"credentials_present": false},
+    "firecrawl": {"credentials_present": false},
+    "tavily": {"credentials_present": false},
+    "lexmount-cn": {"credentials_present": false},
+    "lexmount-global": {"credentials_present": false},
+    "exa": {"credentials_present": false}
+  },
+  "environment_preparation_provider_charges_usd": 0,
+  "diagnostic_preflight_results_recorded": 0
+}
