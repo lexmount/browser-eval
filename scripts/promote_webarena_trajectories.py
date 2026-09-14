@@ -16,7 +16,6 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--seeds", required=True)
     parser.add_argument("--receipt", action="append", required=True)
-    parser.add_argument("--prior-dataset")
     parser.add_argument("--output", required=True)
     return parser.parse_args()
 
@@ -27,7 +26,6 @@ def main() -> None:
         args.seeds,
         args.receipt,
         profile_path=CURRENT_PROFILE,
-        prior_dataset_path=args.prior_dataset,
     )
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)

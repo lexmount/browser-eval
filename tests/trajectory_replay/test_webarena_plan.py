@@ -59,6 +59,7 @@ def _profile(tmp_path: Path) -> tuple[Path, Path]:
             {"id": "chromium", "engine": "chromium"},
             {"id": "moli", "engine": "moli"},
         ],
+        "qualification": {"reference_engine": "chromium", "required_task_count": 2},
         "execution": {
             "environment_pool_count": 1,
             "method_parallelism": 1,

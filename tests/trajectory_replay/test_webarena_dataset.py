@@ -163,6 +163,10 @@ def _profile(tmp_path: Path, task_ids: list[int]) -> tuple[Path, str, str]:
                 {"id": "chromium", "engine": "chromium"},
                 {"id": "moli", "engine": "moli"},
             ],
+            "qualification": {
+                "reference_engine": "chromium",
+                "required_task_count": len(task_ids),
+            },
             "runs_per_task": 1,
             "resources": {"cpus": 2.0, "memory": "2g", "sample_interval_ms": 100},
             "execution": {
@@ -186,7 +190,7 @@ def _receipt(
     task_ids: list[int],
     attempts: list[dict[str, object]],
     run_id: str = "run",
-    execution_scope: str = "formal",
+    execution_scope: str = "qualification",
 ) -> dict[str, object]:
     attempts = json.loads(json.dumps(attempts))
     seed_payload = _materialize_autonomous_sources(seeds)
@@ -278,18 +282,15 @@ def _receipt(
         "profile_sha256": _sha256(profile),
         "source_seed_manifest_sha256": _sha256(seeds),
         "task_ids": task_ids,
-        "engines": ["chromium", "moli"],
+        "engines": ["chromium"],
         "runtime": {
             "browser_eval_commit": "browser-eval-commit",
             "cowagent_commit": "cowagent-commit",
             "resources": {"cpus": 2.0, "memory": "2g", "sample_interval_ms": 100},
-            "browser_images": {
-                "chromium": {"id": "chromium-image"},
-                "moli": {"id": "moli-image"},
-            },
+            "browser_images": {"chromium": {"id": "chromium-image"}},
             "site_images": {"gitlab": {"id": "gitlab-image"}},
         },
-        "method_teardown": {"chromium": True, "moli": True},
+        "method_teardown": {"chromium": True},
         "sessions": sessions,
         "physical_executions": physical_executions,
         "isolation": {
@@ -304,7 +305,7 @@ def _receipt(
     }
 
 
-def test_promotion_requires_same_candidate_to_pass_every_browser(tmp_path: Path) -> None:
+def test_promotion_requires_candidate_to_pass_reference_qualification(tmp_path: Path) -> None:
     profile, selection_sha256, repair_sha256 = _profile(tmp_path, [44])
     seeds = _write(
         tmp_path / "seeds.json",
@@ -355,7 +356,7 @@ def test_promotion_requires_same_candidate_to_pass_every_browser(tmp_path: Path)
                     "evaluator_status": "pass",
                     "completed_action_count": 1,
                 }
-                for engine in ("chromium", "moli")
+                for engine in ("chromium",)
             ],
         ),
     )
@@ -364,6 +365,8 @@ def test_promotion_requires_same_candidate_to_pass_every_browser(tmp_path: Path)
 
     assert result["counts"] == {"verified_tasks": 1, "verified_trajectories": 1}
     assert result["trajectories"][0]["verification"]["model_calls"] == 0
+    assert result["trajectories"][0]["verification"]["browsers"] == ["chromium"]
+    assert result["promotion_policy"]["measured_browsers_are_not_promotion_gates"] is True
     assert result["trajectories"][0]["verification"]["contract"] == {
         "kind": "official_task_contract"
     }
@@ -403,31 +406,30 @@ def test_promotion_rejects_incomplete_method_task_matrix(tmp_path: Path) -> None
             ],
         },
     )
-    receipt = _write(
-        tmp_path / "receipt.json",
-        _receipt(
-            seeds,
-            profile,
-            task_ids=[1],
-            attempts=[
-                {
-                    "task_id": 1,
-                    "source_candidate_id": "candidate",
-                    "engine": "chromium",
-                    "process_status": "pass",
-                    "evaluator_status": "pass",
-                    "completed_action_count": 1,
-                }
-            ],
-        ),
+    receipt_payload = _receipt(
+        seeds,
+        profile,
+        task_ids=[1],
+        attempts=[
+            {
+                "task_id": 1,
+                "source_candidate_id": "candidate",
+                "engine": "chromium",
+                "process_status": "pass",
+                "evaluator_status": "pass",
+                "completed_action_count": 1,
+            }
+        ],
     )
+    receipt_payload["attempts"] = []
+    receipt = _write(tmp_path / "receipt.json", receipt_payload)
 
     try:
         build_verified_trajectory_dataset(seeds, [receipt], profile_path=profile)
     except ValueError as error:
         assert "complete method-task matrix" in str(error)
     else:
-        raise AssertionError("partial formal receipt must not be promotable")
+        raise AssertionError("partial qualification receipt must not be promotable")
 
 
 def test_promotion_supports_hash_bound_expert_repair(tmp_path: Path) -> None:
@@ -481,7 +483,7 @@ def test_promotion_supports_hash_bound_expert_repair(tmp_path: Path) -> None:
                     "contract_correction_source_sha256": "catalog-sha",
                     "corrected_task_sha256": "task-sha",
                 }
-                for engine in ("chromium", "moli")
+                for engine in ("chromium",)
             ],
         ),
     )
@@ -497,22 +499,6 @@ def test_promotion_supports_hash_bound_expert_repair(tmp_path: Path) -> None:
         "correction_source_sha256": "catalog-sha",
         "corrected_task_sha256": "task-sha",
     }
-
-    prior = _write(
-        tmp_path / "prior.json",
-        {
-            "schema": "lex_webarena_verified_trajectory_dataset/1",
-            "official_data_checksum": None,
-            "trajectories": [{"id": "webarena-verified-44-trajectory-1", "task_id": 44}],
-        },
-    )
-    incremented = build_verified_trajectory_dataset(
-        seeds, [receipt], profile_path=profile, prior_dataset_path=prior
-    )
-    assert [item["task_id"] for item in incremented["trajectories"]] == [44, 339]
-    assert incremented["counts"] == {"verified_tasks": 2, "verified_trajectories": 2}
-    assert incremented["provenance"]["prior_dataset_sha256"] == _sha256(prior)
-
 
 def test_promotion_rejects_diagnostic_or_nonisolated_receipts(tmp_path: Path) -> None:
     profile, selection_sha256, repair_sha256 = _profile(tmp_path, [1])
@@ -553,7 +539,7 @@ def test_promotion_rejects_diagnostic_or_nonisolated_receipts(tmp_path: Path) ->
     try:
         build_verified_trajectory_dataset(seeds, [diagnostic_path], profile_path=profile)
     except ValueError as error:
-        assert "completed formal suite" in str(error)
+        assert "completed qualification suite" in str(error)
     else:
         raise AssertionError("diagnostic receipt must not be promotable")
 
@@ -617,7 +603,7 @@ def test_promotion_rejects_receipt_claim_when_evaluation_evidence_failed(
                 "evaluator_status": "pass",
                 "completed_action_count": 1,
             }
-            for engine in ("chromium", "moli")
+            for engine in ("chromium",)
         ],
     )
     evaluation = Path(receipt_payload["attempts"][0]["evidence"]["evaluation"]["path"])
@@ -676,7 +662,7 @@ def test_promotion_rejects_trace_that_differs_from_canonical_actions(tmp_path: P
                 "evaluator_status": "pass",
                 "completed_action_count": 1,
             }
-            for engine in ("chromium", "moli")
+            for engine in ("chromium",)
         ],
     )
     attempt = receipt_payload["attempts"][0]
@@ -744,7 +730,7 @@ def test_promotion_rejects_missing_official_evaluator(tmp_path: Path) -> None:
                 "evaluator_status": "pass",
                 "completed_action_count": 1,
             }
-            for engine in ("chromium", "moli")
+            for engine in ("chromium",)
         ],
     )
     attempt = receipt_payload["attempts"][0]

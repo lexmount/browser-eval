@@ -276,6 +276,13 @@ def load_replay_plan(
     ):
         raise ValueError("trajectory replay methods must be unique registered engines")
 
+    qualification = profile.get("qualification") or {}
+    qualification_engine = str(qualification.get("reference_engine") or "")
+    if qualification_engine not in engines:
+        raise ValueError("trajectory qualification requires one registered reference engine")
+    if int(qualification.get("required_task_count") or 0) != len(task_ids):
+        raise ValueError("trajectory qualification must cover the frozen task set")
+
     execution = profile.get("execution") or {}
     if execution.get("environment_pool_count") != 1:
         raise ValueError("the fixed-port WebArena stack supports exactly one environment pool")
@@ -321,5 +328,6 @@ def load_replay_plan(
         "task_ids": task_ids,
         "methods": methods,
         "engines": engines,
+        "qualification_engine": qualification_engine,
         "trusted_source_site_hosts": trusted_source_site_hosts,
     }

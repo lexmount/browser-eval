@@ -24,7 +24,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--diagnostic-engine",
         action="append",
-        help="run only a registered browser as an explicitly non-promotable qualification scan",
+        help="run only selected registered browsers as an explicitly non-promotable diagnostic",
+    )
+    parser.add_argument(
+        "--qualification-engine",
+        help="qualify the complete frozen trajectory set on the registered reference browser",
+    )
+    parser.add_argument(
+        "--qualified-dataset",
+        help="complete qualified trajectory dataset required by a formal comparison",
     )
     return parser.parse_args()
 
@@ -38,6 +46,8 @@ def main() -> None:
         cowagent_repo=args.cowagent_repo,
         diagnostic_task_ids=args.diagnostic_task,
         diagnostic_engines=args.diagnostic_engine,
+        qualification_engine=args.qualification_engine,
+        qualified_dataset_path=args.qualified_dataset,
     )
 
 

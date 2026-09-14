@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import copy
 import hashlib
 import json
 from collections import defaultdict
@@ -37,7 +36,7 @@ def _official_evaluator_names() -> dict[int, tuple[str, ...]]:
     }
 
 
-def _validate_formal_receipt(
+def _validate_qualification_receipt(
     receipt: dict[str, Any],
     *,
     receipt_path: Path,
@@ -49,8 +48,8 @@ def _validate_formal_receipt(
 ) -> None:
     if receipt.get("schema") != RECEIPT_SCHEMA:
         raise ValueError(f"unsupported replay receipt: {receipt_path}")
-    if receipt.get("execution_scope") != "formal" or receipt.get("status") != "complete":
-        raise ValueError(f"replay receipt is not a completed formal suite: {receipt_path}")
+    if receipt.get("execution_scope") != "qualification" or receipt.get("status") != "complete":
+        raise ValueError(f"replay receipt is not a completed qualification suite: {receipt_path}")
     if receipt.get("source_seed_manifest_sha256") != seed_sha256:
         raise ValueError(f"replay receipt is not bound to the selected seeds: {receipt_path}")
     if receipt.get("profile_sha256") != profile_sha256:
@@ -289,9 +288,8 @@ def build_verified_trajectory_dataset(
     replay_receipt_paths: list[str | Path],
     *,
     profile_path: str | Path,
-    prior_dataset_path: str | Path | None = None,
 ) -> dict[str, Any]:
-    """Return compact trajectories that passed process and official evaluation gates."""
+    """Return trajectories qualified before the measured browser comparison."""
 
     seed_path = Path(seed_manifest_path).expanduser().resolve()
     seed_sha256 = _sha256(seed_path)
@@ -305,7 +303,8 @@ def build_verified_trajectory_dataset(
     seed_task_ids = set(seed_tasks)
     plan = load_replay_plan(profile_path, seed_path)
     profile = plan["profile"]
-    required_engines = tuple(plan["engines"])
+    qualification_engine = str(plan["qualification_engine"])
+    required_engines = (qualification_engine,)
     profile_sha256 = plan["profile_sha256"]
 
     attempts_by_key: dict[tuple[int, str], list[dict[str, Any]]] = defaultdict(list)
@@ -314,7 +313,7 @@ def build_verified_trajectory_dataset(
     for raw_path in replay_receipt_paths:
         receipt_path = Path(raw_path).expanduser().resolve()
         receipt = _read_json(receipt_path)
-        _validate_formal_receipt(
+        _validate_qualification_receipt(
             receipt,
             receipt_path=receipt_path,
             seed_sha256=seed_sha256,
@@ -434,27 +433,6 @@ def build_verified_trajectory_dataset(
             }
         )
 
-    prior_dataset_sha256 = None
-    if prior_dataset_path is not None:
-        prior_path = Path(prior_dataset_path).expanduser().resolve()
-        prior = _read_json(prior_path)
-        if prior.get("schema") != SCHEMA:
-            raise ValueError("unsupported prior trajectory dataset")
-        if (
-            prior.get("official_data_checksum")
-            and seeds["source"].get("official_data_checksum")
-            and prior["official_data_checksum"] != seeds["source"]["official_data_checksum"]
-        ):
-            raise ValueError("prior trajectory dataset uses a different official dataset")
-        new_task_ids = {item["task_id"] for item in trajectories}
-        prior_trajectories = copy.deepcopy(prior.get("trajectories") or [])
-        overlap = sorted(new_task_ids & {item["task_id"] for item in prior_trajectories})
-        if overlap:
-            raise ValueError(f"prior trajectory dataset overlaps new proofs: {overlap}")
-        trajectories.extend(prior_trajectories)
-        trajectories.sort(key=lambda item: int(item["task_id"]))
-        prior_dataset_sha256 = _sha256(prior_path)
-
     return {
         "schema": SCHEMA,
         "benchmark": seeds["source"].get("benchmark") or "WebArena-Verified",
@@ -470,7 +448,8 @@ def build_verified_trajectory_dataset(
             "evaluation_input_role": "official evaluator input only; never an Agent prompt",
         },
         "promotion_policy": {
-            "required_browsers": list(required_engines),
+            "qualification_browser": qualification_engine,
+            "measured_browsers_are_not_promotion_gates": True,
             "process_status": "pass",
             "evaluator_status": "pass",
             "model_calls": 0,
@@ -479,7 +458,6 @@ def build_verified_trajectory_dataset(
             "seed_manifest_sha256": seed_sha256,
             "profile_sha256": profile_sha256,
             "replay_receipts": receipts,
-            "prior_dataset_sha256": prior_dataset_sha256,
         },
         "counts": {
             "verified_tasks": len({item["task_id"] for item in trajectories}),

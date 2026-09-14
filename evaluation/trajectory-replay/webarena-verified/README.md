@@ -24,10 +24,12 @@ candidate evidence, not additional tasks.
 - A Browser Use success is only a candidate. A reviewed expert repair may also provide a candidate
   when every autonomous run failed or a successful trace contains failed actions. Expert candidates
   retain their repair basis and repair-spec hash and may not contain ephemeral accessibility refs.
-- Promotion requires the same candidate to replay without a model call and pass both execution and
-  evaluation on every required browser. Where `task-corrections.json` records a proven upstream
-  contract defect, both browser proofs must bind the same correction ID, catalog hash and corrected
-  task hash; historical Browser Use scores remain unchanged.
+- Before comparison, promotion requires each canonical candidate to replay without a model call and
+  pass both execution and evaluation on the frozen reference browser. The measured Chromium and
+  Moli runs consume that already-qualified trajectory set; their failures remain benchmark outcomes
+  and never remove a task from the comparison. Where `task-corrections.json` records a proven
+  upstream contract defect, the qualification proof binds its correction ID, catalog hash and
+  corrected task hash; historical Browser Use scores remain unchanged.
 - Full HAR, screenshots, traces, resource samples and replay receipts remain outside Git under
   `BROWSER_EVAL_DATA_HOME`; this directory stores deterministic actions and provenance hashes.
 - The current self-hosted WebArena deployment has one fixed-port site stack, so a formal suite owns
@@ -46,7 +48,9 @@ candidate evidence, not additional tasks.
   independently satisfy the same promotion gate.
 
 Run the frozen suite with `scripts/run_webarena_trajectory_replay.py`. Diagnostic subsets are
-explicitly non-promotable. `--diagnostic-engine chromium` runs the complete frozen task set only on
-the reference browser so trajectory defects can be corrected before the measured method matrix.
-Promote a completed formal receipt with
-`scripts/promote_webarena_trajectories.py`; never edit a verdict or verification claim by hand.
+explicitly non-promotable. `--qualification-engine chromium` runs the complete frozen task set on
+the reference browser and is the only scope that may promote the standard trajectory dataset.
+After all 90 qualify, promote that receipt with `scripts/promote_webarena_trajectories.py`, then run
+the measured method matrix with `--qualified-dataset` and no scope option. The runner rejects formal
+execution when that dataset is missing, incomplete, or differs from the frozen profile, seeds, or
+canonical actions. Never edit a verdict or verification claim by hand.

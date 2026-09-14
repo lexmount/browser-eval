@@ -167,6 +167,34 @@ def select_methods(plan: dict[str, Any], engines: list[str]) -> list[dict[str, A
     return selected
 
 
+def validate_qualification_dataset(plan: dict[str, Any], path: str | Path) -> str:
+    """Bind a formal comparison to the complete pre-qualified trajectory set."""
+
+    dataset_path = Path(path).expanduser().resolve()
+    dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
+    if dataset.get("schema") != "lex_webarena_verified_trajectory_dataset/1":
+        raise ValueError("formal replay requires the current qualified trajectory dataset")
+    provenance = dataset.get("provenance") or {}
+    if provenance.get("seed_manifest_sha256") != plan["seed_manifest_sha256"]:
+        raise ValueError("qualified trajectories differ from the frozen replay seeds")
+    if provenance.get("profile_sha256") != plan["profile_sha256"]:
+        raise ValueError("qualified trajectories differ from the frozen replay profile")
+    policy = dataset.get("promotion_policy") or {}
+    if policy.get("qualification_browser") != plan["qualification_engine"]:
+        raise ValueError("qualified trajectories use a different reference browser")
+    trajectories = dataset.get("trajectories") or []
+    by_task = {int(item["task_id"]): item for item in trajectories}
+    if len(by_task) != len(trajectories) or set(by_task) != set(plan["task_ids"]):
+        raise ValueError("qualified trajectories do not cover the frozen task set")
+    seed_tasks = {
+        int(item["task_id"]): item for item in plan["seed_manifest"].get("tasks") or []
+    }
+    for task_id, trajectory in by_task.items():
+        if trajectory.get("tool_calls") != _candidate(seed_tasks[task_id]).get("tool_calls"):
+            raise ValueError(f"qualified trajectory differs from task {task_id} canonical input")
+    return _sha256(dataset_path)
+
+
 def _rebind_url(
     value: str, site_access_host: str, trusted_source_site_hosts: set[str]
 ) -> str:
@@ -598,6 +626,7 @@ def _validated_resume(
     engines: list[str],
     scope: str,
     runtime: dict[str, Any],
+    qualification_dataset_sha256: str | None = None,
 ) -> tuple[
     str,
     list[dict[str, Any]],
@@ -613,6 +642,7 @@ def _validated_resume(
         "execution_scope": scope,
         "profile_sha256": plan["profile_sha256"],
         "source_seed_manifest_sha256": plan["seed_manifest_sha256"],
+        "qualification_dataset_sha256": qualification_dataset_sha256,
         "task_ids": task_ids,
         "engines": engines,
         "runtime": runtime,
@@ -706,24 +736,40 @@ def run_replay_suite(  # noqa: PLR0913
     cowagent_repo: str | Path,
     diagnostic_task_ids: list[int] | None = None,
     diagnostic_engines: list[str] | None = None,
+    qualification_engine: str | None = None,
+    qualified_dataset_path: str | Path | None = None,
 ) -> dict[str, Any]:
     plan = load_replay_plan(profile_path, seed_manifest_path)
     seeds = plan["seed_manifest"]
     task_ids = list(plan["task_ids"] if diagnostic_task_ids is None else diagnostic_task_ids)
     tasks = select_tasks(seeds, task_ids)
     engines = list(plan["engines"])
-    if diagnostic_engines is not None:
+    if qualification_engine is not None:
+        if diagnostic_task_ids is not None or diagnostic_engines is not None:
+            raise ValueError("qualification and diagnostic scopes cannot be combined")
+        if qualification_engine != plan["qualification_engine"]:
+            raise ValueError("qualification engine differs from the frozen reference engine")
+        engines = [qualification_engine]
+        scope = "qualification"
+    elif diagnostic_engines is not None:
         unknown_engines = sorted(set(diagnostic_engines) - set(engines))
         if unknown_engines:
             raise ValueError(f"diagnostic engines are not registered: {unknown_engines}")
         engines = [engine for engine in engines if engine in set(diagnostic_engines)]
         if not engines:
             raise ValueError("diagnostic engine selection is empty")
-    scope = (
-        "formal"
-        if diagnostic_task_ids is None and diagnostic_engines is None
-        else "diagnostic"
-    )
+        scope = "diagnostic"
+    else:
+        scope = "formal" if diagnostic_task_ids is None else "diagnostic"
+    qualification_dataset_sha256 = None
+    if scope == "formal":
+        if qualified_dataset_path is None:
+            raise ValueError("formal replay requires a complete qualified trajectory dataset")
+        qualification_dataset_sha256 = validate_qualification_dataset(
+            plan, qualified_dataset_path
+        )
+    elif qualified_dataset_path is not None:
+        raise ValueError("a qualified trajectory dataset is only accepted for formal replay")
     resources = plan["profile"].get("resources") or {}
     cpus = float(resources["cpus"])
     memory = str(resources["memory"])
@@ -770,6 +816,7 @@ def run_replay_suite(  # noqa: PLR0913
         engines=engines,
         scope=scope,
         runtime=runtime,
+        qualification_dataset_sha256=qualification_dataset_sha256,
     )
     completed = {(str(item["engine"]), int(item["task_id"])) for item in attempts}
     lock_path = _physical_execution_lock_path()
@@ -782,6 +829,7 @@ def run_replay_suite(  # noqa: PLR0913
         "profile_sha256": plan["profile_sha256"],
         "source_seed_manifest": plan["seed_manifest_path"],
         "source_seed_manifest_sha256": plan["seed_manifest_sha256"],
+        "qualification_dataset_sha256": qualification_dataset_sha256,
         "task_ids": task_ids,
         "engines": engines,
         "runtime": runtime,
