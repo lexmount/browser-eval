@@ -12,6 +12,7 @@ REPAIRS = (
 )
 TASK_IDS = {
     28,
+    50,
     124,
     183,
     184,
@@ -87,13 +88,19 @@ def test_mutation_repairs_preserve_task_specific_semantics() -> None:
     assert "WorcesterMA/new" in calls[28]
     assert "/f/Worcester\"" not in calls[28]
     assert "Clear all" not in calls[184]
-    assert "a.product-item-link" in calls[284]
+    assert "onlyeasy-over-the-door-shoe-storage-organizer" in calls[284]
+    assert "location.origin" in calls[284]
+    assert "sales/order/history/?limit=50" in calls[50]
+    assert "incomplete order history" in calls[50]
     assert "order_id/156" in calls[320] and "order_id/158" in calls[320]
     assert "order_id/180" in calls[334]
     assert "merge_requests/40" in calls[415]
     assert "@davepgreene" in calls[415]
     assert "nth-match" not in calls[506]
+    assert "cart removal contract" in calls[506]
+    assert "cart isolation failed" in calls[506]
     assert "abisubramanya27" in calls[576] and "lahwaacz" in calls[576]
+    assert ".modal select:visible" in calls[576]
     assert 'ratings[4]\\\"][value=\\\"20' in calls[585]
     assert "/submit/consoles" in calls[600]
     assert "/submit/consoles" in calls[605]

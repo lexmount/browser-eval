@@ -669,6 +669,52 @@
       }
     },
     {
+      "task_id": 50,
+      "candidate_id": "expert__task-50__annual-complete-orders",
+      "replaces_canonical": true,
+      "source": {
+        "kind": "reviewed_task_contract_and_existing_browser_evidence",
+        "task_revision": 2
+      },
+      "repair_basis": {
+        "root_cause": "Magento's account-page redirect was still navigating when the source trajectory issued a second goto, so Playwright canceled the order-history navigation before replay began.",
+        "strategy": "Establish Magento's canonical origin, navigate to order history from within that document, and verify the full 50-row view before returning the previously evaluator-approved answer."
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7770/"
+        },
+        {
+          "action": "wait",
+          "seconds": 1
+        },
+        {
+          "action": "evaluate",
+          "script": "location.assign(location.origin + '/sales/order/history/?limit=50'); return true;"
+        },
+        {
+          "action": "wait",
+          "seconds": 3
+        },
+        {
+          "action": "evaluate",
+          "script": "const rows=[...document.querySelectorAll('table tbody tr')].map(r=>[...r.querySelectorAll('td')].map(c=>c.innerText.trim())); if(rows.length<21) throw new Error(`incomplete order history: ${rows.length}`); const eligible=rows.filter(r=>r[3]==='Complete'&&new Date(r[1])>=new Date('2022-06-12')&&new Date(r[1])<=new Date('2023-06-12')); return {order_count:eligible.length,amount:eligible.reduce((sum,row)=>sum+Math.round(Number(row[2].replace(/[$,]/g,''))*100),0)/100};"
+        }
+      ],
+      "expected_response": {
+        "task_type": "RETRIEVE",
+        "status": "SUCCESS",
+        "retrieved_data": [
+          {
+            "order_count": 21,
+            "amount": 6560.69
+          }
+        ],
+        "error_details": null
+      }
+    },
+    {
       "task_id": 184,
       "candidate_id": "expert__task-184__zero-simple-products",
       "replaces_canonical": true,
@@ -731,21 +777,21 @@
         "task_revision": 2
       },
       "repair_basis": {
-        "root_cause": "A rebound deep URL returned to the storefront root, after which a positional selector clicked Wishlist and raced the next navigation.",
-        "strategy": "Search from the canonical storefront and follow the contract-bound product by its rendered name."
+        "root_cause": "The Colima gateway rebound dropped the Magento deep-link path and returned the storefront root, so the contract product was never present.",
+        "strategy": "Establish Magento's canonical browser origin first, then navigate from inside the page to the exact contract-bound product path."
       },
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://host.docker.internal:7770/catalogsearch/result/?q=Onlyeasy%20Over%20The%20Door%20Shoe%20Storage%20Organizer"
+          "url": "http://host.docker.internal:7770/"
         },
         {
           "action": "wait",
-          "seconds": 2
+          "seconds": 1
         },
         {
           "action": "evaluate",
-          "script": "const link=[...document.querySelectorAll('a.product-item-link')].find(e=>e.textContent.includes('Onlyeasy Over The Door Shoe Storage Organizer')); if(!link) throw new Error('contract product not found'); link.click(); return {href:link.href};"
+          "script": "location.assign(location.origin + '/onlyeasy-over-the-door-shoe-storage-organizer-hanging-shoe-rack-holder-with-24-large-fabric-pockets-22-1-x-61-4-herringbone-grey-mxrodsb1p.html'); return true;"
         },
         {
           "action": "wait",
@@ -850,10 +896,26 @@
         "task_revision": 2
       },
       "repair_basis": {
-        "root_cause": "The selected trajectory depended on a second cart link and three href-number-positioned cleanup controls inherited from the source run's cart state.",
-        "strategy": "Rely on the task reset for an empty cart, add the contract product, and use stable checkout controls only."
+        "root_cause": "The shopping reset left three unrelated products in the account cart, so checkout contained four items and violated the evaluator contract.",
+        "strategy": "Clear every server-backed cart item through its own Magento removal contract before adding and purchasing the required product."
       },
       "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7770/checkout/cart/"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "evaluate",
+          "script": "(async()=>{const links=[...document.querySelectorAll('a.action-delete, a[title=\"Remove item\"]')]; for(const link of links){const raw=link.getAttribute('data-post'); if(!raw) throw new Error('cart removal contract missing'); const request=JSON.parse(raw); const response=await fetch(request.action,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest'},body:new URLSearchParams(request.data)}); if(!response.ok) throw new Error(`cart removal failed: ${response.status}`);} return {removed:links.length};})()"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
         {
           "action": "navigate",
           "url": "http://host.docker.internal:7770/beyond-meat-beef-beefy-crumble-5-pound-2-per-case.html"
@@ -874,6 +936,10 @@
         {
           "action": "wait",
           "seconds": 2
+        },
+        {
+          "action": "evaluate",
+          "script": "const names=[...document.querySelectorAll('.cart.item .product-item-name, .cart.item strong.product-item-name')].map(e=>e.textContent.trim()); if(names.length!==1 || !names[0].includes('Beyond Meat Beef Beefy Crumble')) throw new Error(`cart isolation failed: ${JSON.stringify(names)}`); return names;"
         },
         {
           "action": "click",
@@ -1222,7 +1288,7 @@
         },
         {
           "action": "select",
-          "selector": "select[type=\"select-one\"]:visible",
+          "selector": ".modal select:visible",
           "value": "30",
           "replay_mode": "snapshot_ref_semantics"
         },
