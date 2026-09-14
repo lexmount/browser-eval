@@ -17,6 +17,44 @@ from harness.trajectory_replay.webarena_plan import (
 )
 
 
+def test_repository_dataset_covers_the_current_frozen_selection() -> None:
+    root = Path(__file__).resolve().parents[2]
+    profile = json.loads(
+        (
+            root
+            / "evaluation/trajectory-replay/webarena-verified/current-run.json"
+        ).read_text(encoding="utf-8")
+    )
+    selection = json.loads(
+        (root / profile["task_selection"]["path"]).read_text(encoding="utf-8")
+    )
+    dataset = json.loads(
+        (
+            root
+            / "evaluation/trajectory-replay/webarena-verified/trajectories.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    expected_ids = {int(item["task_id"]) for item in selection["tasks"]}
+    actual_ids = {int(item["task_id"]) for item in dataset["trajectories"]}
+    required = int(profile["qualification"]["required_task_count"])
+
+    assert required == 90
+    assert expected_ids == actual_ids
+    assert dataset["counts"] == {
+        "verified_tasks": required,
+        "verified_trajectories": required,
+    }
+    for item in dataset["trajectories"]:
+        verification = item["verification"]
+        assert verification["browsers"] == [
+            profile["qualification"]["reference_engine"]
+        ]
+        assert verification["process_status"] == "pass"
+        assert verification["evaluator_status"] == "pass"
+        assert verification["model_calls"] == 0
+
+
 def _write(path: Path, value: object) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value), encoding="utf-8")

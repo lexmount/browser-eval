@@ -6,8 +6,8 @@ Each trajectory is one verified feasible BrowserTool path, not the task's only c
 `current-run.json` is the run authority for the next formal replay. It freezes the same 90-task
 selection used by the current Browser Use evaluation, the two registered browser methods, resource
 limits, and the isolation schedule. The private ready-to-run seed manifest must contain exactly one
-canonical candidate for each of those 90 tasks. The current inventory is assembled from 76 clean
-autonomous successes and 14 reviewed repairs; successful executions from different methods are
+canonical candidate for each of those 90 tasks. The current inventory is assembled from 60 clean
+autonomous successes and 30 reviewed repairs; successful executions from different methods are
 candidate evidence, not additional tasks.
 
 - Browser Trajectory Replay consumes `tool_calls` as fixed inputs and uses
