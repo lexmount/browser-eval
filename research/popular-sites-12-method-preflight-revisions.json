@@ -3,8 +3,9 @@
   "revisions": [
     {
       "revision_id": "crawl4ai-wait-policy-correction-001",
-      "status": "frozen_pending_replacement_preflight",
+      "status": "replacement_preflight_completed",
       "authorized_at": "2026-09-14",
+      "runtime_commit": "2e0a719e5419584a8357ac337ca69562e74b08c6",
       "reason": "Both Crawl4AI diagnostic cases reached the 45-second outer deadline without returning a structured result. The adapter had overridden Crawl4AI 0.9.3's lighter defaults with networkidle and iframe processing while giving the inner page operation the entire outer deadline.",
       "scope": {
         "provider": "crawl4ai",
@@ -42,6 +43,34 @@
         "remove_overlay_elements": true
       },
       "replacement_provider_calls_planned": 2,
+      "replacement_evidence": {
+        "directory": "~/.browser-eval/evidence/preflight/popular-sites-12-method-2026-09-14/crawl4ai-wait-policy-correction-001",
+        "manifest_sha256": "aedc8f39b9f59c927b2861cfddb5eefc8f4a0ffc80657700d00c381bfa0b4e16",
+        "results_sha256": "ee07d17765d7954d5ca4351f808fcf3671dd5610985b556c7173b018dc645469",
+        "summary_sha256": "b4fdf5b78a4524094825a5a7f018958cef7e92d2ba33e05b9fab478f2a1463ce",
+        "physical_calls": 2,
+        "retry_calls": 0,
+        "outer_deadline_timeouts": 0,
+        "results": [
+          {
+            "case_id": "global-homepage-006-reddit-com",
+            "elapsed_ms": 6457.91,
+            "request_ok": true,
+            "task_pass": false,
+            "stable_anchor_hits": "2/3",
+            "complete_named_link_records": 1
+          },
+          {
+            "case_id": "global-homepage-038-samsung-com",
+            "elapsed_ms": 12809.15,
+            "request_ok": true,
+            "task_pass": false,
+            "stable_anchor_hits": "1/5",
+            "content_chars": 11544
+          }
+        ],
+        "conclusion": "The runtime correction resolved the blank outer-deadline failure. Both calls returned scoreable content before the deadline; task failures remain measured content limitations rather than environment failures."
+      },
       "provider_charge": "none; local open-source runtime"
     }
   ]
