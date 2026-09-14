@@ -102,6 +102,13 @@ def _execute_replay_call(tool: Any, arguments: dict[str, Any]) -> tuple[str, str
 
     replay_mode = arguments.get("replay_mode")
     public_arguments = {key: value for key, value in arguments.items() if key != "replay_mode"}
+    if public_arguments.get("action") == "wait" and "seconds" in public_arguments:
+        if "timeout" in public_arguments:
+            return "error", "Wait call cannot declare both seconds and timeout"
+        seconds = public_arguments.pop("seconds")
+        if not isinstance(seconds, (int, float)) or isinstance(seconds, bool) or seconds <= 0:
+            return "error", "Wait seconds must be a positive number"
+        public_arguments["timeout"] = round(seconds * 1000)
     if replay_mode != "snapshot_ref_semantics":
         result = tool.execute(public_arguments)
         return str(result.status), str(result.result)

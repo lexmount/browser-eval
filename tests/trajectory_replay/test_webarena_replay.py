@@ -264,6 +264,26 @@ def test_compiled_snapshot_ref_fill_and_select_preserve_dom_semantics() -> None:
     assert any(event[0] == "evaluate" and event[2] == ("open",) for event in events)
 
 
+def test_declared_wait_seconds_are_dispatched_as_browser_tool_milliseconds() -> None:
+    calls = []
+
+    class Result:
+        status = "success"
+        result = "waited"
+
+    class Tool:
+        def execute(self, arguments):
+            calls.append(arguments)
+            return Result()
+
+    status, result = _execute_replay_call(
+        Tool(), {"action": "wait", "seconds": 20}
+    )
+
+    assert (status, result) == ("success", "waited")
+    assert calls == [{"action": "wait", "timeout": 20_000}]
+
+
 def test_formal_orchestration_passes_trusted_hosts_only_to_replay_calls() -> None:
     tree = ast.parse(inspect.getsource(run_replay_suite))
     calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)]

@@ -966,7 +966,7 @@
         },
         {
           "action": "click",
-          "selector": "button:visible:has-text(\"Place Order\")",
+          "selector": ".payment-method._active button.action.primary.checkout:visible",
           "replay_mode": "snapshot_ref_semantics"
         },
         {
