@@ -21,17 +21,36 @@ def check(report_dir: Path) -> dict[str, int]:
     root = report_dir.resolve()
     manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
     results = json.loads((root / "data/results.json").read_text(encoding="utf-8"))
-    if manifest["logical_results"] != 180 or len(results) != 180:
-        raise ValueError("report must contain the complete 90-task participant matrix")
+    participants = manifest.get("participants") or []
+    task_count = int(manifest.get("task_count") or 0)
+    participant_count = int(manifest.get("participant_count") or 0)
+    expected_results = task_count * participant_count
+    if (
+        task_count < 1
+        or participant_count < 1
+        or len(participants) != participant_count
+        or len(set(participants)) != participant_count
+        or manifest["logical_results"] != expected_results
+        or len(results) != expected_results
+    ):
+        raise ValueError("report must contain the complete manifest-declared participant-task matrix")
+    task_ids = {int(item["task_id"]) for item in results}
+    result_keys = {(str(item["engine"]), int(item["task_id"])) for item in results}
+    expected_keys = {(participant, task_id) for participant in participants for task_id in task_ids}
+    if len(task_ids) != task_count or result_keys != expected_keys:
+        raise ValueError("report results do not match the manifest-declared participant-task matrix")
     failures = [item for item in results if item["status"] != "pass"]
-    if len(failures) != 36 or manifest["reviewed_failures"] != 36:
-        raise ValueError("report must contain all 36 reviewed final failures")
+    if (
+        manifest["failed_results"] != len(failures)
+        or manifest["reviewed_failures"] != len(failures)
+    ):
+        raise ValueError("report must contain a review for every final failure")
     if any(not item["reason_zh"] or not item["reason_en"] for item in failures):
         raise ValueError("every failed result needs a bilingual reviewed cause")
 
     zh_details = {path.name for path in (root / "result").glob("*.html")}
     en_details = {path.name for path in (root / "en/result").glob("*.html")}
-    if zh_details != en_details or len(zh_details) != 180:
+    if zh_details != en_details or len(zh_details) != expected_results:
         raise ValueError("Chinese and English result routes must match one-to-one")
     core_names = (
         "index.html",
