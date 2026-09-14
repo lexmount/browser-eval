@@ -910,7 +910,7 @@
         },
         {
           "action": "evaluate",
-          "script": "(async()=>{const links=[...document.querySelectorAll('a.action-delete, a[title=\"Remove item\"]')]; for(const link of links){const raw=link.getAttribute('data-post'); if(!raw) throw new Error('cart removal contract missing'); const request=JSON.parse(raw); const response=await fetch(request.action,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest'},body:new URLSearchParams(request.data)}); if(!response.ok) throw new Error(`cart removal failed: ${response.status}`);} return {removed:links.length};})()"
+          "script": "(async()=>{const links=[...document.querySelectorAll('a.action-delete, a[title=\"Remove item\"]')]; const formKey=document.querySelector('input[name=\"form_key\"]')?.value; if(links.length&&!formKey) throw new Error('Magento form_key missing'); for(const link of links){const raw=link.getAttribute('data-post'); if(!raw) throw new Error('cart removal contract missing'); const request=JSON.parse(raw); const response=await fetch(request.action,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest'},body:new URLSearchParams({...request.data,form_key:formKey})}); if(!response.ok) throw new Error(`cart removal failed: ${response.status}`);} return {removed:links.length};})()"
         },
         {
           "action": "wait",
@@ -1294,7 +1294,7 @@
         },
         {
           "action": "click",
-          "selector": "button:visible:has-text(\"Invite\")",
+          "selector": ":nth-match(button:visible:has-text(\"Invite\"), 3)",
           "replay_mode": "snapshot_ref_semantics"
         },
         {
