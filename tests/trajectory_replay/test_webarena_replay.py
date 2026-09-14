@@ -13,6 +13,7 @@ from harness.trajectory_replay.webarena_replay import (
     _execute_replay_call,
     _origin,
     _rebind_url,
+    _run_one,
     _validated_resume,
     run_replay_suite,
     select_methods,
@@ -55,6 +56,16 @@ def test_qualification_scope_is_separate_from_diagnostics() -> None:
     assert 'scope = "formal_correction_shard"' in source
     assert 'scope in {"formal", "formal_correction_shard"}' in source
     assert "formal correction shards must cover every registered browser" in source
+
+
+def test_replay_cleanup_and_locking_preserve_run_isolation() -> None:
+    source = inspect.getsource(run_replay_suite)
+    run_one_source = inspect.getsource(_run_one)
+
+    assert "_docker_daemon_lock_namespace(docker_info)" in source
+    assert 'cleanup_errors.append(f"resource sampler stop failed: {exc}")' in run_one_source
+    assert 'cleanup_errors.append(f"browser tool close failed: {exc}")' in run_one_source
+    assert '"cleanup_errors": cleanup_errors' in run_one_source
 
 
 def test_formal_dataset_binding_requires_all_canonical_trajectories(tmp_path: Path) -> None:

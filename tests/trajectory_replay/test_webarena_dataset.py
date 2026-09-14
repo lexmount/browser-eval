@@ -3,6 +3,7 @@ import json
 from importlib.metadata import version
 from pathlib import Path
 
+import pytest
 from webarena_verified.core.utils.checksum import compute_evaluator_checksum
 
 from harness.trajectory_replay.webarena_dataset import (
@@ -355,6 +356,51 @@ def _receipt(
         "run_id": run_id,
         "attempts": attempts,
     }
+
+
+def test_qualification_receipt_rejects_missing_attempt_identifier(tmp_path: Path) -> None:
+    profile, selection_sha256, repair_sha256 = _profile(tmp_path, [1])
+    seeds = _write(
+        tmp_path / "seeds.json",
+        {
+            "schema": "lex_browser_use_replay_seeds/2",
+            "source": {"selection_sha256": selection_sha256},
+            "expert_repairs": {"repair_spec_sha256": repair_sha256},
+            "tasks": [
+                {
+                    "task_id": 1,
+                    "canonical_candidate_id": "candidate",
+                    "replay_status": "ready",
+                    "candidates": [
+                        {
+                            "id": "candidate",
+                            "tool_calls": [{"action": "snapshot"}],
+                            "recorded_response": {},
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    payload = _receipt(
+        seeds,
+        profile,
+        task_ids=[1],
+        attempts=[
+            {
+                "task_id": 1,
+                "source_candidate_id": "candidate",
+                "engine": "chromium",
+                "process_status": "pass",
+                "evaluator_status": "pass",
+            }
+        ],
+    )
+    payload["attempts"][0]["task_id"] = None
+    receipt = _write(tmp_path / "receipt.json", payload)
+
+    with pytest.raises(ValueError, match="invalid attempt task_id"):
+        build_verified_trajectory_dataset(seeds, [receipt], profile_path=profile)
 
 
 def test_promotion_requires_candidate_to_pass_reference_qualification(tmp_path: Path) -> None:

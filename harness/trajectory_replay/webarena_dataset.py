@@ -77,6 +77,14 @@ def _validate_qualification_receipt(
     required_engines: tuple[str, ...],
     expected_resources: dict[str, Any],
 ) -> None:
+    def required_int(value: Any, field: str) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"replay receipt has invalid {field}: {receipt_path}"
+            ) from exc
+
     if receipt.get("schema") != RECEIPT_SCHEMA:
         raise ValueError(f"unsupported replay receipt: {receipt_path}")
     if (
@@ -100,7 +108,9 @@ def _validate_qualification_receipt(
         not image.get("id") for image in runtime["site_images"].values()
     ):
         raise ValueError(f"replay receipt is missing site image identity: {receipt_path}")
-    receipt_task_ids = [int(task_id) for task_id in receipt.get("task_ids") or []]
+    receipt_task_ids = [
+        required_int(task_id, "task_id") for task_id in receipt.get("task_ids") or []
+    ]
     if (
         not receipt_task_ids
         or len(receipt_task_ids) != len(set(receipt_task_ids))
@@ -137,14 +147,15 @@ def _validate_qualification_receipt(
     for attempt in receipt.get("attempts") or []:
         if attempt.get("schema") != "lex_webarena_trajectory_replay_attempt/1":
             raise ValueError(f"replay receipt has an invalid attempt schema: {receipt_path}")
+        attempt_task_id = required_int(attempt.get("task_id"), "attempt task_id")
         session = sessions_by_id.get(str(attempt.get("browser_session_id") or ""))
         if (
             session is None
             or session.get("engine") != attempt.get("engine")
-            or int(attempt.get("task_id")) not in session.get("task_ids", [])
+            or attempt_task_id not in session.get("task_ids", [])
         ):
             raise ValueError(f"replay attempt is not bound to a browser session: {receipt_path}")
-        attempt_keys.append((str(attempt.get("engine")), int(attempt.get("task_id"))))
+        attempt_keys.append((str(attempt.get("engine")), attempt_task_id))
     expected_keys = {
         (engine, task_id) for engine in required_engines for task_id in receipt_task_ids
     }
@@ -153,14 +164,17 @@ def _validate_qualification_receipt(
             f"replay receipt does not contain the complete method-task matrix: {receipt_path}"
         )
     physical_executions = receipt.get("physical_executions") or []
-    physical_keys = [
-        (
-            str(item.get("engine")),
-            int(item.get("task_id")),
-            int(item.get("physical_execution")),
+    physical_keys = []
+    for item in physical_executions:
+        physical_keys.append(
+            (
+                str(item.get("engine")),
+                required_int(item.get("task_id"), "physical task_id"),
+                required_int(
+                    item.get("physical_execution"), "physical execution number"
+                ),
+            )
         )
-        for item in physical_executions
-    ]
     if (
         not physical_executions
         or any(item.get("status") != "complete" for item in physical_executions)

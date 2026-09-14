@@ -21,6 +21,7 @@ from harness.browser_use.runner import (
     _cdp_metadata,
     _configure_benchmark,
     _container_host_gateway,
+    _docker_daemon_lock_namespace,
     _docker_image_metadata,
     _login_context,
     _physical_execution_lock,
@@ -451,14 +452,25 @@ def _run_one(  # noqa: PLR0913
             pass
         readiness_retries = locals().get("readiness_retries", 0)
     finally:
+        cleanup_errors: list[str] = []
         duration_ms = (time.perf_counter() - started) * 1000
         if sampler_started:
-            sampler.stop()
-        after = resources.counters() if before is not None else None
+            try:
+                sampler.stop()
+            except Exception as exc:
+                cleanup_errors.append(f"resource sampler stop failed: {exc}")
+        try:
+            after = resources.counters() if before is not None else None
+        except Exception as exc:
+            after = None
+            cleanup_errors.append(f"final resource counters failed: {exc}")
         resource_duration_ms = (
             (time.perf_counter() - resource_started) * 1000 if resource_started is not None else 0.0
         )
-        tool.close()
+        try:
+            tool.close()
+        except Exception as exc:
+            cleanup_errors.append(f"browser tool close failed: {exc}")
 
     timings["browser_resource_measurement_ms"] = resource_duration_ms
 
@@ -504,6 +516,7 @@ def _run_one(  # noqa: PLR0913
             else {}
         ),
         "error": error,
+        "cleanup_errors": cleanup_errors,
         "evidence": {
             "trace": _evidence_file(trace_path),
             "network_har": _evidence_file(har_path),
@@ -838,6 +851,7 @@ def run_replay_suite(  # noqa: PLR0913
     browser_eval_commit = _require_clean_git_checkout(repo_root)
     cowagent_commit = _require_clean_git_checkout(cowagent)
     client = docker.from_env()
+    docker_info = client.info()
     browser_images = {
         engine: _docker_image_metadata(client.images.get(ENGINE_IMAGES[engine]))
         for engine in engines
@@ -870,7 +884,9 @@ def run_replay_suite(  # noqa: PLR0913
         qualification_dataset_sha256=qualification_dataset_sha256,
     )
     completed = {(str(item["engine"]), int(item["task_id"])) for item in attempts}
-    lock_path = _physical_execution_lock_path()
+    lock_path = _physical_execution_lock_path(
+        _docker_daemon_lock_namespace(docker_info)
+    )
     receipt = {
         "schema": RECEIPT_SCHEMA,
         "run_id": run_id,
