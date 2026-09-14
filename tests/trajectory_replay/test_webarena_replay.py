@@ -7,7 +7,7 @@ import pytest
 
 from harness.trajectory_replay.webarena_replay import (
     RECEIPT_SCHEMA,
-    _browser_context_needs_restart,
+    _attempt_needs_retry,
     _click_was_dispatched_before_navigation_timeout,
     _execute_replay_call,
     _origin,
@@ -121,24 +121,29 @@ def test_origin_removes_environment_paths_before_storage_reset() -> None:
     assert _origin("http://192.168.5.2:7780/admin") == "http://192.168.5.2:7780"
 
 
-def test_browser_context_restart_is_limited_to_pre_action_setup_failure() -> None:
-    failed_setup = {
-        "process_status": "fail",
-        "completed_action_count": 0,
-        "evaluator_status": "not_run",
-        "timings": {"environment_prepare_ms": 10.0},
-        "error": "Protocol error: BrowserContextNotLoaded",
-    }
-    assert _browser_context_needs_restart(failed_setup)
-    assert _browser_context_needs_restart(
-        {**failed_setup, "error": "Page.goto: Timeout 90000ms exceeded"}
+def test_every_failed_logical_replay_gets_one_clean_retry() -> None:
+    assert _attempt_needs_retry(
+        {
+            "status": "fail",
+            "process_status": "fail",
+            "evaluator_status": "not_run",
+            "completed_action_count": 4,
+        }
     )
-    assert not _browser_context_needs_restart({**failed_setup, "completed_action_count": 1})
-    assert not _browser_context_needs_restart(
-        {**failed_setup, "timings": {"trajectory_replay_ms": 1.0}}
+    assert _attempt_needs_retry(
+        {
+            "status": "fail",
+            "process_status": "pass",
+            "evaluator_status": "fail",
+        }
     )
-    assert not _browser_context_needs_restart({**failed_setup, "evaluator_status": "fail"})
-    assert not _browser_context_needs_restart({**failed_setup, "process_status": "pass"})
+    assert not _attempt_needs_retry(
+        {
+            "status": "pass",
+            "process_status": "pass",
+            "evaluator_status": "pass",
+        }
+    )
 
 
 def test_completed_click_is_not_replayed_when_only_navigation_wait_times_out() -> None:

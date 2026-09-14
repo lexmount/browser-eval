@@ -515,14 +515,9 @@ def _run_one(  # noqa: PLR0913
     }
 
 
-def _browser_context_needs_restart(attempt: dict[str, Any]) -> bool:
-    """Give a failed pre-replay setup one clean browser restart."""
-    return (
-        attempt.get("process_status") == "fail"
-        and attempt.get("completed_action_count") == 0
-        and attempt.get("evaluator_status") == "not_run"
-        and "trajectory_replay_ms" not in (attempt.get("timings") or {})
-    )
+def _attempt_needs_retry(attempt: dict[str, Any]) -> bool:
+    """Give every failed logical replay exactly one clean physical retry."""
+    return attempt.get("status") != "pass"
 
 
 def _stop_all_sites() -> None:
@@ -934,17 +929,18 @@ def run_replay_suite(  # noqa: PLR0913
                     attempt["browser_session_id"] = session["id"]
                     _finish_physical_execution(physical_entry, attempt)
                     _write_receipt(receipt_path, receipt)
-                    if _browser_context_needs_restart(attempt):
-                        # A long-lived Moli process can leave its default context permanently
-                        # unloaded. Waiting on that same context cannot repair it, so restart
-                        # the browser container and give this pre-action setup one opportunity.
+                    if _attempt_needs_retry(attempt):
+                        # A declared replay gets one clean retry regardless of where the first
+                        # physical execution failed. Restarting the browser and rerunning
+                        # _run_one also repeats site preparation, so failed page/session state
+                        # cannot leak into the final physical execution.
                         container.restart()
                         container.reload()
                         http_endpoint = _published_endpoint(
                             container, engine=engine, cdp_port=ENGINE_PORTS[engine]
                         )
                         endpoint = _wait_cdp(http_endpoint, container=container)
-                        prior_setup_attempt = attempt
+                        prior_attempt = attempt
                         session = {
                             "id": uuid.uuid4().hex[:12],
                             "engine": engine,
@@ -976,10 +972,10 @@ def run_replay_suite(  # noqa: PLR0913
                             trusted_source_site_hosts=plan["trusted_source_site_hosts"],
                         )
                         attempt["browser_session_id"] = session["id"]
-                        attempt["prior_setup_attempts"] = [prior_setup_attempt]
+                        attempt["prior_attempts"] = [prior_attempt]
                         attempt["physical_execution_count"] = 2
                         attempt["duration_ms"] = round(
-                            float(prior_setup_attempt["duration_ms"])
+                            float(prior_attempt["duration_ms"])
                             + float(attempt["duration_ms"]),
                             3,
                         )
