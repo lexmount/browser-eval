@@ -103,6 +103,22 @@ class StorageTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "sources"):
                 require_canonical_inputs(evidence, canonical, canonical_dataset=selected)
 
+    def test_selected_dataset_scopes_list_references_by_filename_stem(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            canonical = root / "evaluation"
+            evidence = root / "evidence"
+            (canonical / "list-references").mkdir(parents=True)
+            (evidence / "list-references").mkdir(parents=True)
+            selected = canonical / "selected.json"
+            payload = {"schema_version": 1, "tool": "web_fetch", "cases": [{"id": "case-a"}]}
+            selected.write_text(json.dumps(payload))
+            (evidence / "dataset.json").write_text(json.dumps(payload))
+            for base in (canonical, evidence):
+                (base / "list-references" / "case-a.json").write_text("{}")
+            (canonical / "list-references" / "case-b.json").write_text("{}")
+            require_canonical_inputs(evidence, canonical, canonical_dataset=selected)
+
     def test_rerun_selection_requires_complete_baseline(self):
         with tempfile.TemporaryDirectory() as folder:
             evidence = Path(folder)

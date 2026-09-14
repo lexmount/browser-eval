@@ -94,11 +94,18 @@ def require_canonical_inputs(
                     f"Persistent evidence has unknown dataset fields: {sorted(unexpected)}"
                 )
             continue
+        def in_scope(path: Path) -> bool:
+            if canonical_dataset is None:
+                return True
+            first = path.relative_to(expected).parts[0]
+            return first in scoped_roots or (
+                relative == Path("list-references") and Path(first).stem in scoped_roots
+            )
+
         expected_files = {
             path.relative_to(expected): path.read_bytes()
             for path in expected.rglob("*")
-            if path.is_file()
-            and (canonical_dataset is None or path.relative_to(expected).parts[0] in scoped_roots)
+            if path.is_file() and in_scope(path)
         }
         actual_files = (
             {

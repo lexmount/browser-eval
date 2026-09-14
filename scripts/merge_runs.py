@@ -49,20 +49,37 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
     parser.add_argument("runs", nargs="+", type=Path)
+    parser.add_argument("--canonical-dataset", type=Path)
     args = parser.parse_args()
     if args.output.exists():
         raise SystemExit(f"output already exists: {args.output}")
 
     manifests = [json.loads((path / "manifest.json").read_text(encoding="utf-8")) for path in args.runs]
     datasets = [json.loads((path / "dataset.json").read_text(encoding="utf-8")) for path in args.runs]
-    canonical = datasets[0]
+    run_canonical = datasets[0]
+    canonical = run_canonical
+    if args.canonical_dataset:
+        frozen = json.loads(args.canonical_dataset.read_text(encoding="utf-8"))
+        for key in ("schema_version", "id", "tool", "dynamic_scoring", "cases"):
+            if frozen.get(key) != run_canonical.get(key):
+                raise SystemExit(f"canonical dataset mismatch: {key}")
+        frozen_comparison = frozen.get("comparison", {})
+        run_comparison = run_canonical.get("comparison", {})
+        binding_fields = {"reference_binding_mode", "unverified_reference_cases"}
+        if {
+            key: value for key, value in frozen_comparison.items() if key not in binding_fields
+        } != {
+            key: value for key, value in run_comparison.items() if key not in binding_fields
+        }:
+            raise SystemExit("canonical dataset mismatch: comparison")
+        canonical = frozen
     canonical_cases = canonical.get("cases", [])
     case_ids = [case.get("id") for case in canonical_cases]
     if not case_ids or len(case_ids) != len(set(case_ids)):
         raise SystemExit("canonical run has empty or duplicate case IDs")
     for dataset in datasets[1:]:
         for key in ("schema_version", "id", "tool", "dynamic_scoring", "comparison", "cases"):
-            if dataset.get(key) != canonical.get(key):
+            if dataset.get(key) != run_canonical.get(key):
                 raise SystemExit(f"dataset mismatch: {key}")
     for folder in ("sources", "list-references"):
         expected = tree_bytes(args.runs[0] / folder)
@@ -98,10 +115,28 @@ def main() -> None:
         by_provider[provider] = (path, records, infos[0], manifest)
 
     args.output.mkdir(parents=True)
-    for folder in ("sources", "list-references"):
-        source = args.runs[0] / folder
-        if source.exists():
-            shutil.copytree(source, args.output / folder)
+    if args.canonical_dataset:
+        canonical_root = args.canonical_dataset.parent
+        scoped_roots = set(case_ids) | {canonical["id"]}
+        source_root = canonical_root / "sources"
+        for source in source_root.rglob("*"):
+            if not source.is_file() or source.relative_to(source_root).parts[0] not in scoped_roots:
+                continue
+            target = args.output / "sources" / source.relative_to(source_root)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+        references = canonical_root / "list-references"
+        for source in references.glob("*.json") if references.is_dir() else []:
+            if source.stem not in case_ids:
+                continue
+            target = args.output / "list-references" / source.name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+    else:
+        for folder in ("sources", "list-references"):
+            source = args.runs[0] / folder
+            if source.exists():
+                shutil.copytree(source, args.output / folder)
     (args.output / "artifacts").mkdir()
 
     merged: list[dict] = []
