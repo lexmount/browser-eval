@@ -64,9 +64,9 @@ SPECS={
  'loader = WebBaseLoader(\n    web_paths=("https://example.com/",),\n    requests_kwargs={"timeout": 45},\n    raise_for_status=True,\n    continue_on_failure=False,\n)\ndocs = loader.load()',
  'scripts/oss/langchain_webbase_worker.py','不运行网页 JavaScript；本轮没有把它替换成其他 LangChain loader。'),
  'crawl4ai':spec('Python · await AsyncWebCrawler(...).arun(url, config)','本地 Chromium；无云端抓取 Key',
- [('url','string · 必填','目标网址'),('cache_mode','CacheMode','本轮 BYPASS'),('page_timeout','number','45000 毫秒'),('wait_until','string','networkidle'),('process_iframes / remove_overlay_elements','boolean','本轮均为 true')],
+ [('url','string · 必填','目标网址'),('cache_mode','CacheMode','本轮 BYPASS'),('page_timeout','number','40000 毫秒；为 45 秒端到端截止预留 5 秒'),('wait_until','string','domcontentloaded，随后固定等待 1 秒'),('process_iframes / remove_overlay_elements','boolean','本轮为 false / true')],
  [('result.success','boolean','爬取是否成功'),('result.markdown.raw_markdown','string','Markdown → content'),('result.media','dict','images、videos、audios'),('result.links','dict','internal / external'),('result.status_code / error_message','number / string','源站状态或失败信息')],
- 'config = CrawlerRunConfig(\n    cache_mode=CacheMode.BYPASS,\n    page_timeout=45000,\n    wait_until="networkidle",\n    process_iframes=True,\n    remove_overlay_elements=True,\n)\nresult = await crawler.arun(\n    url="https://example.com/", config=config\n)',
+ 'config = CrawlerRunConfig(\n    cache_mode=CacheMode.BYPASS,\n    page_timeout=40000,\n    wait_until="domcontentloaded",\n    delay_before_return_html=1.0,\n    process_iframes=False,\n    remove_overlay_elements=True,\n)\nresult = await crawler.arun(\n    url="https://example.com/", config=config\n)',
  'scripts/oss/crawl4ai_worker.py','正文使用本地无头 Chrome；文件任务在调用前选择原生 AsyncHTTPCrawlerStrategy.crawl(url, config)，读取其 downloaded_files 并统一验收字节。媒体链接不等于下载；文件字节校验不等于理解媒体。'),
 }
 SPECS['lexmount-cn']={**SPECS['lexmount-global'],'entry':'POST https://api.lexmount.cn/v1/extract','auth':'X-API-Key: <CN_API_KEY>；X-Project-Id: <CN_PROJECT_ID>'}

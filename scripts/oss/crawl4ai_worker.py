@@ -14,6 +14,25 @@ from crawl4ai.async_crawler_strategy import AsyncHTTPCrawlerStrategy
 from crawl4ai.async_configs import HTTPCrawlerConfig
 
 
+PAGE_TIMEOUT_HEADROOM_MS = 5000
+PAGE_SETTLE_SECONDS = 1.0
+
+
+def build_browser_run_config(request):
+    # Return a structured Crawl4AI result before the harness-wide deadline so
+    # browser cleanup and JSONL serialization are not mistaken for a timeout.
+    deadline_ms = int(request["timeout_seconds"] * 1000)
+    page_timeout_ms = max(1000, deadline_ms - PAGE_TIMEOUT_HEADROOM_MS)
+    return CrawlerRunConfig(
+        cache_mode=CacheMode.BYPASS,
+        page_timeout=page_timeout_ms,
+        wait_until="domcontentloaded",
+        delay_before_return_html=PAGE_SETTLE_SECONDS,
+        remove_overlay_elements=True,
+        process_iframes=False,
+    )
+
+
 def encode_downloads(paths, directory):
     files = []
     for filename in paths or []:
@@ -65,13 +84,7 @@ async def main() -> None:
                     continue
                 if crawler is None:
                     crawler = await stack.enter_async_context(AsyncWebCrawler(config=browser_config))
-                run_config = CrawlerRunConfig(
-                    cache_mode=CacheMode.BYPASS,
-                    page_timeout=int(request["timeout_seconds"] * 1000),
-                    wait_until="networkidle",
-                    remove_overlay_elements=True,
-                    process_iframes=True,
-                )
+                run_config = build_browser_run_config(request)
                 result = await crawler.arun(url=request["url"], config=run_config)
                 markdown = result.markdown.raw_markdown if result.markdown else ""
                 files = encode_downloads(result.downloaded_files, download_dir.name)
@@ -85,6 +98,10 @@ async def main() -> None:
                     "error_message": None if result.success else result.error_message,
                     "metadata": {
                         "implementation": "crawl4ai.AsyncWebCrawler",
+                        "wait_until": run_config.wait_until,
+                        "page_timeout_ms": run_config.page_timeout,
+                        "delay_before_return_html_seconds": run_config.delay_before_return_html,
+                        "process_iframes": run_config.process_iframes,
                         "images": result.media.get("images", []),
                         "videos": result.media.get("videos", []),
                         "audios": result.media.get("audios", []),

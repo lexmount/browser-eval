@@ -15,7 +15,7 @@ class NativeFileWorkerTests(unittest.TestCase):
     def load_worker(self, strategy):
         def config(**kwargs):return SimpleNamespace(**kwargs)
         modules={'crawl4ai':SimpleNamespace(AsyncWebCrawler=object, BrowserConfig=config,
-                    CrawlerRunConfig=config, CacheMode=object),
+                    CrawlerRunConfig=config, CacheMode=SimpleNamespace(BYPASS='bypass')),
                  'crawl4ai.async_crawler_strategy':SimpleNamespace(AsyncHTTPCrawlerStrategy=strategy),
                  'crawl4ai.async_configs':SimpleNamespace(HTTPCrawlerConfig=config)}
         spec=importlib.util.spec_from_file_location('file_worker_test',Path(__file__).resolve().parents[1]/'scripts/oss/crawl4ai_worker.py')
@@ -41,6 +41,15 @@ class NativeFileWorkerTests(unittest.TestCase):
             self.assertTrue(result['ok'])
             self.assertEqual(base64.b64decode(result['files'][0]['base64']),raw)
             self.assertEqual(result['metadata']['implementation'],'crawl4ai.AsyncHTTPCrawlerStrategy')
+
+    def test_browser_config_finishes_before_outer_deadline_without_iframes(self):
+        worker=self.load_worker(object)
+        config=worker.build_browser_run_config({'timeout_seconds':45})
+        self.assertEqual(config.page_timeout,40000)
+        self.assertEqual(config.wait_until,'domcontentloaded')
+        self.assertEqual(config.delay_before_return_html,1.0)
+        self.assertFalse(config.process_iframes)
+        self.assertTrue(config.remove_overlay_elements)
 
     def test_download_paths_cannot_escape(self):
         worker=self.load_worker(object)
