@@ -1564,7 +1564,8 @@ TEXT.update(
         "前者确认“证据包与 evaluator 记录一致”；后者检查 evaluator 语义，并识别出 Task 699 等问题。已通过结果没有再做独立语义盲审，其判定依据仍是官方 evaluator。": "The first confirms that evidence bundles agree with evaluator records. The second checks evaluator semantics and identified issues such as Task 699. Passed results did not receive a separate blinded semantic review and still rely on the official evaluator.",
         "查看核验记录 →": "View review records →",
         "性能与资源：只在四种配置首次都成功的任务上看": "Performance and resources on tasks all four configurations passed on the first attempt",
-        "共同成功任务的性能与资源": "Performance and resources on common first-attempt successes",
+        "共同成功任务的性能与资源": "Performance and resources on common final successes",
+        "当前没有四种配置最终都成功的任务，资源差异暂不比较。": "No task was finally passed by all four configurations, so resource differences are unavailable.",
         "首次共同成功任务的资源差异": "Resource differences on common first-attempt successes",
         "当前没有四种配置首次都成功的任务，资源差异暂不比较。": "No task was passed on the first attempt by all four configurations, so resource differences are unavailable.",
         "Agent 链路还包含模型推理和页面等待，因此不能解读为纯内核性能。": "The agent path also includes model inference and page waits, so it is not a pure browser-core measurement.",
@@ -1754,8 +1755,16 @@ def translate_text(value: str) -> str:
                 lambda m: f"The table uses the {m.group(1)} tasks that all four configurations passed on the first attempt. It reports P50 from the first execution only, excluding retry accumulation and the false speed advantage of fast failures.",
             ),
             (
+                r"下表限定为四种配置最终都通过的 (\d+) 题，并以每题最终逻辑结果包含的全部物理执行计算 P50；这样不会把快速失败误当成性能优势。",
+                lambda m: f"The table uses the {m.group(1)} tasks finally passed by all four configurations. P50 includes every physical execution belonging to each final logical result, so fast failures are not mistaken for a performance advantage.",
+            ),
+            (
                 r"(\d+) 题首次共同成功样本中，Moli 峰值内存 P50 为 ([0-9.]+)–([0-9.]+) MiB；Chromium 为 ([0-9.]+)–([0-9.]+) MiB。",
                 lambda m: f"Across {m.group(1)} common first-attempt successes, Moli's P50 peak memory spans {m.group(2)}-{m.group(3)} MiB, versus {m.group(4)}-{m.group(5)} MiB for Chromium.",
+            ),
+            (
+                r"(\d+) 题最终共同成功样本中，Moli 峰值内存 P50 为 ([0-9.]+)–([0-9.]+) MiB；Chromium 为 ([0-9.]+)–([0-9.]+) MiB。",
+                lambda m: f"Across {m.group(1)} common final successes, Moli's P50 peak memory spans {m.group(2)}-{m.group(3)} MiB, versus {m.group(4)}-{m.group(5)} MiB for Chromium.",
             ),
             (
                 r"BrowserTool P50：Chromium ([0-9.]+)–([0-9.]+) 秒，Moli ([0-9.]+)–([0-9.]+) 秒；CPU 时间 P50：Chromium ([0-9.]+)–([0-9.]+) 秒，Moli ([0-9.]+)–([0-9.]+) 秒。",

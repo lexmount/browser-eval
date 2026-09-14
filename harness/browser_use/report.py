@@ -1949,38 +1949,10 @@ def _execution_evidence_html(result_id: str, executions: list[dict[str, Any]]) -
     )
 
 
-def _first_final_rows(attempts: list[dict[str, Any]]) -> list[list[Any]]:
-    rows: list[list[Any]] = []
-    for model in MODEL_LABELS:
-        for engine in ENGINE_LABELS:
-            logical = [
-                row for row in attempts if row["model"] == model and row["engine"] == engine
-            ]
-            first = sum(
-                float((row.get("_source_executions") or [row])[0].get("score") or 0) == 1
-                for row in logical
-            )
-            final = sum(float(row.get("score") or 0) == 1 for row in logical)
-            retried = sum(len(row.get("_source_executions") or [row]) > 1 for row in logical)
-            rows.append(
-                [
-                    MODEL_LABELS[model],
-                    ENGINE_LABELS[engine],
-                    f"{first}/{len(logical)}",
-                    retried,
-                    f"+{final - first}" if final > first else "0",
-                    f"{final}/{len(logical)}",
-                ]
-            )
-    return rows
-
-
-def _common_success_resource_rows(attempts: list[dict[str, Any]]) -> tuple[int, list[list[Any]]]:
+def _common_final_success_resource_rows(
+    attempts: list[dict[str, Any]],
+) -> tuple[int, list[list[Any]]]:
     task_ids = {int(row["task_id"]) for row in attempts}
-
-    def first_execution(row: dict[str, Any]) -> dict[str, Any]:
-        return (row.get("_source_executions") or [row])[0]
-
     common = {
         task_id
         for task_id in task_ids
@@ -1989,7 +1961,7 @@ def _common_success_resource_rows(attempts: list[dict[str, Any]]) -> tuple[int, 
                 row["model"] == model
                 and row["engine"] == engine
                 and int(row["task_id"]) == task_id
-                and float(first_execution(row).get("score") or 0) == 1
+                and float(row.get("score") or 0) == 1
                 for row in attempts
             )
             for model in MODEL_LABELS
@@ -2005,8 +1977,8 @@ def _common_success_resource_rows(attempts: list[dict[str, Any]]) -> tuple[int, 
         for engine in ENGINE_LABELS:
             cohort = [
                 {
-                    **first_execution(row),
-                    **_execution_tool_metrics(first_execution(row)),
+                    **row,
+                    **_execution_tool_metrics(row),
                 }
                 for row in attempts
                 if row["model"] == model
@@ -2068,23 +2040,6 @@ def _failure_scope_counts(verified_causes: dict[str, dict[str, Any]]) -> list[tu
     ]
 
 
-def _score_flow_figure(attempts: list[dict[str, Any]]) -> str:
-    rows = _first_final_rows(attempts)
-    cards = []
-    for model, engine, first, retried, recovered, final in rows:
-        first_count, total = (int(value) for value in str(first).split("/"))
-        recovered_count = int(str(recovered).lstrip("+"))
-        first_width = first_count / total * 100 if total else 0
-        recovered_width = recovered_count / total * 100 if total else 0
-        cards.append(
-            '<article class="score-flow-card"><header><b>'
-            + _e(f"{model} · {engine}")
-            + f'</b><span>{_e(final)}</span></header><div class="score-track" aria-label="首次通过 {first}，重试恢复 {recovered_count} 题，最终通过 {final}"><i style="width:{first_width:.1f}%"></i><i class="recovered" style="width:{recovered_width:.1f}%"></i></div>'
-            + f'<p>首次 {_e(first)} <span>→</span> 失败后重试 {_e(retried)} 题 <span>→</span> 恢复 {_e(recovered)} 题</p></article>'
-        )
-    return '<div class="score-flow-grid">' + "".join(cards) + "</div>"
-
-
 def _failure_scope_figure(verified_causes: dict[str, dict[str, Any]]) -> str:
     rows = _failure_scope_counts(verified_causes)
     maximum = max((count for _, count, _ in rows), default=1)
@@ -2125,7 +2080,7 @@ def _automatic_failure_figure(counts: Counter[str]) -> str:
 def _resource_summary_cards(common_resources: tuple[int, list[list[Any]]]) -> str:
     task_count, rows = common_resources
     if not task_count:
-        return '<p class="callout">当前没有四种配置首次都成功的任务，资源差异暂不比较。</p>'
+        return '<p class="callout">当前没有四种配置最终都成功的任务，资源差异暂不比较。</p>'
 
     def values(engine: str, column: int) -> list[float]:
         label = ENGINE_LABELS[engine]
@@ -2136,7 +2091,7 @@ def _resource_summary_cards(common_resources: tuple[int, list[list[Any]]]) -> st
     chromium_cpu, moli_cpu = values("chromium", 6), values("moli", 6)
     return (
         '<div class="decision-grid"><article><h3>Moli 的内存区间更低</h3><p>'
-        f'{task_count} 题首次共同成功样本中，Moli 峰值内存 P50 为 {min(moli_memory):.1f}–{max(moli_memory):.1f} MiB；'
+        f'{task_count} 题最终共同成功样本中，Moli 峰值内存 P50 为 {min(moli_memory):.1f}–{max(moli_memory):.1f} MiB；'
         f'Chromium 为 {min(chromium_memory):.1f}–{max(chromium_memory):.1f} MiB。</p></article>'
         '<article><h3>Chromium 的工具耗时与 CPU 更低</h3><p>'
         f'BrowserTool P50：Chromium {min(chromium_tool):.1f}–{max(chromium_tool):.1f} 秒，Moli {min(moli_tool):.1f}–{max(moli_tool):.1f} 秒；'
@@ -2201,7 +2156,7 @@ def _article_body(
         )
     else:
         cause_section = '<p class="callout success">本轮没有失败结果，无需生成失败根因记录。</p>'
-    common_count, resource_rows = _common_success_resource_rows(attempts)
+    common_count, resource_rows = _common_final_success_resource_rows(attempts)
     clean = _primary_summary(eligible_attempts)
     clean_rows = [
         [
@@ -2249,9 +2204,9 @@ def _article_body(
         f'<section><h2>完整 {task_count} 题的速度与浏览器资源</h2><p>均值、P50、P95 都在四种完整配置中统一比较。CPU、内存和网络只计浏览器容器，不含 CowAgent 或模型服务；模型会改变动作数量和页面停留时间，因此这里比较整套配置，不能单独归因于浏览器内核。</p>'
         + _resource_comparison_table(summary)
         + '<p class="source-note"><span class="winner-mark" aria-hidden="true">优</span> 每项只标记四种配置中数值唯一最低者。CPU 时间与网络总量累计逻辑结果使用的全部执行；内存来自 Browser Use 执行阶段的浏览器容器采样。</p></section>'
-        '<section><h2>共同成功任务的性能与资源</h2><p>下表限定为首次执行共同成功的 '
+        '<section><h2>共同成功任务的性能与资源</h2><p>下表限定为四种配置最终都通过的 '
         + str(common_count)
-        + ' 题，每个配置只取第一次执行并报告 P50。这既排除了重试累计，也避免把“很快失败”错当成速度优势。</p>'
+        + ' 题，并以每题最终逻辑结果包含的全部物理执行计算 P50；这样不会把快速失败误当成性能优势。</p>'
         + _table(["模型", "浏览器", "Agent 链路 P50", "BrowserTool P50", "Tokens P50", "峰值内存 P50", "CPU 时间 P50"], resource_rows, table_id="home-resource-table", classes="core-comparison-table")
         + _resource_summary_cards((common_count, resource_rows))
         + '<p class="source-note">Agent 链路还包含模型推理和页面等待，因此不能解读为纯内核性能。</p></section>'
@@ -3444,7 +3399,6 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         claims = {
             "schema": "lex_browser_use_interpretation/1",
             "claims": [
-                {"claim": "审查合格比较集的首次执行、重试与最终成绩", "basis": _first_final_rows(qualified_attempts)},
                 {"claim": "审查合格比较集的模型内浏览器配对结果", "basis": _paired_summary(qualified_attempts)},
                 {"claim": "失败根因以当前证据绑定的逐结果核验为准", "basis": verified_causes},
                 {
@@ -3477,11 +3431,11 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     },
                 },
                 {
-                    "claim": "四配置首次共同成功任务的性能与资源 P50",
+                    "claim": "四配置最终共同成功任务的性能与资源 P50",
                     "basis": dict(
                         zip(
                             ("task_count", "rows"),
-                            _common_success_resource_rows(qualified_attempts),
+                            _common_final_success_resource_rows(qualified_attempts),
                             strict=True,
                         )
                     ),

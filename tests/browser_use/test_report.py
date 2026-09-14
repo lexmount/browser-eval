@@ -10,10 +10,9 @@ from harness.browser_use.report import (
     _attempt_table,
     _automatic_failure_type,
     _best,
-    _common_success_resource_rows,
+    _common_final_success_resource_rows,
     _failure_diagnosis,
     _failure_scope_counts,
-    _first_final_rows,
     _load_evidence_bundles,
     _logical_results,
     _paired_summary,
@@ -43,38 +42,6 @@ def test_best_marks_only_one_visibly_distinct_winner() -> None:
         )
         == set()
     )
-
-
-def test_interpretation_keeps_first_attempt_and_retry_recovery_separate(
-    monkeypatch,
-) -> None:
-    monkeypatch.setattr(report_module, "MODEL_LABELS", {"model": "Model"})
-    monkeypatch.setattr(report_module, "ENGINE_LABELS", {"chromium": "Chromium"})
-    rows = [
-        {
-            "model": "model",
-            "engine": "chromium",
-            "task_id": 1,
-            "score": 1,
-            "_source_executions": [{"score": 1}],
-        },
-        {
-            "model": "model",
-            "engine": "chromium",
-            "task_id": 2,
-            "score": 1,
-            "_source_executions": [{"score": 0}, {"score": 1}],
-        },
-        {
-            "model": "model",
-            "engine": "chromium",
-            "task_id": 3,
-            "score": 0,
-            "_source_executions": [{"score": 0}, {"score": 0}],
-        },
-    ]
-
-    assert _first_final_rows(rows) == [["Model", "Chromium", "1/3", 2, "+1", "2/3"]]
 
 
 def test_failure_scope_summary_does_not_merge_browser_evidence_into_agent() -> None:
@@ -640,7 +607,7 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
     assert not list(output.rglob("*.svg"))
 
 
-def test_common_success_resources_use_only_shared_first_attempts(
+def test_common_success_resources_use_final_logical_results(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setattr(report_module, "MODEL_LABELS", {"a": "A", "b": "B"})
@@ -677,13 +644,20 @@ def test_common_success_resources_use_only_shared_first_attempts(
                 if task_id == 2 and first_score == 0:
                     sources.append(execution(task_id, model, engine, 2, 1))
                     final_score = 1
-                logical.append({**sources[-1], "score": final_score, "_source_executions": sources})
+                logical.append(
+                    {
+                        **sources[-1],
+                        "score": final_score,
+                        "duration_ms": sum(item["duration_ms"] for item in sources),
+                        "_source_executions": sources,
+                    }
+                )
 
-    count, rows = _common_success_resource_rows(logical)
+    count, rows = _common_final_success_resource_rows(logical)
 
-    assert count == 1
-    assert {row[2] for row in rows} == {"1.0 秒"}
-    assert {row[5] for row in rows} == {"1.0 MiB"}
+    assert count == 2
+    assert {row[2] for row in rows} == {"1.5 秒", "2.5 秒"}
+    assert {row[5] for row in rows} == {"1.5 MiB"}
 
 
 def test_summary_winners_are_scoped_to_all_configurations(monkeypatch) -> None:
