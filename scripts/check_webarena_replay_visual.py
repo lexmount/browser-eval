@@ -45,8 +45,11 @@ class _QuietHandler(http.server.SimpleHTTPRequestHandler):
 
 
 def _routes(report: Path) -> list[str]:
-    failed = json.loads((report / "data/results.json").read_text(encoding="utf-8"))
-    failed_key = next(item["key"] for item in failed if item["status"] == "fail")
+    results = json.loads((report / "data/results.json").read_text(encoding="utf-8"))
+    failed_key = next(
+        (item["key"] for item in results if item["status"] == "fail"),
+        None,
+    )
     fixed = [
         "index.html",
         "dataset.html",
@@ -55,14 +58,15 @@ def _routes(report: Path) -> list[str]:
         "review.html",
     ]
     routes = [*fixed, *(f"en/{item}" for item in fixed)]
-    routes.extend(
-        (
-            f"result/{failed_key}.html",
-            f"en/result/{failed_key}.html",
-            f"evidence-viewer.html?file=data/evidence/{failed_key}.json",
-            f"en/evidence-viewer.html?file=../data/evidence/{failed_key}.json",
+    if failed_key is not None:
+        routes.extend(
+            (
+                f"result/{failed_key}.html",
+                f"en/result/{failed_key}.html",
+                f"evidence-viewer.html?file=data/evidence/{failed_key}.json",
+                f"en/evidence-viewer.html?file=../data/evidence/{failed_key}.json",
+            )
         )
-    )
     return routes
 
 

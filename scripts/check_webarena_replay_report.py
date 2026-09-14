@@ -21,6 +21,22 @@ def check(report_dir: Path) -> dict[str, int]:
     root = report_dir.resolve()
     manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
     results = json.loads((root / "data/results.json").read_text(encoding="utf-8"))
+    required_manifest_fields = (
+        "task_count",
+        "participant_count",
+        "participants",
+        "logical_results",
+        "failed_results",
+        "reviewed_failures",
+    )
+    missing_manifest_fields = [
+        field for field in required_manifest_fields if field not in manifest
+    ]
+    if missing_manifest_fields:
+        raise ValueError(
+            "report manifest is missing required fields: "
+            + ", ".join(missing_manifest_fields)
+        )
     participants = manifest.get("participants") or []
     task_count = int(manifest.get("task_count") or 0)
     participant_count = int(manifest.get("participant_count") or 0)
