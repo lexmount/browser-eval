@@ -530,6 +530,724 @@
       }
     },
     {
+      "task_id": 183,
+      "candidate_id": "expert__task-183__quantity-ten",
+      "replaces_canonical": true,
+      "source": {
+        "kind": "reviewed_task_contract_and_existing_browser_evidence",
+        "task_revision": 2
+      },
+      "repair_basis": {
+        "root_cause": "The selected autonomous trajectory assumed a persisted Magento grid filter and unconditionally clicked Clear all, which is absent after a clean task reset.",
+        "strategy": "Open the product grid, clear an existing filter only when present, then apply the exact quantity range through stable form controls."
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7780/admin/catalog/product/"
+        },
+        {
+          "action": "evaluate",
+          "script": "const clear=[...document.querySelectorAll('button')].find(e=>e.offsetParent!==null&&e.textContent.trim()==='Clear all'); if(clear){clear.click(); return 'cleared';} return 'already-clear';"
+        },
+        {
+          "action": "wait",
+          "seconds": 1
+        },
+        {
+          "action": "evaluate",
+          "script": "const button=document.querySelector('button[data-action=\"grid-filter-expand\"]'); if(!button) throw new Error('filters button not found'); button.click(); return true;"
+        },
+        {
+          "action": "wait",
+          "seconds": 1
+        },
+        {
+          "action": "evaluate",
+          "script": "for(const [name,value] of [['qty[from]','10'],['qty[to]','10']]){const input=document.querySelector(`input[name=\"${name}\"]`); if(!input) throw new Error(`missing ${name}`); input.value=value; input.dispatchEvent(new Event('input',{bubbles:true})); input.dispatchEvent(new Event('change',{bubbles:true}));} const button=document.querySelector('button[data-action=\"grid-filter-apply\"]'); if(!button) throw new Error('apply filters button not found'); button.click(); return true;"
+        },
+        {
+          "action": "wait",
+          "seconds": 1
+        }
+      ],
+      "expected_response": {
+        "task_type": "RETRIEVE",
+        "status": "NOT_FOUND_ERROR",
+        "retrieved_data": null,
+        "error_details": null
+      }
+    },
+    {
+      "task_id": 198,
+      "candidate_id": "expert__task-198__latest-cancelled-order",
+      "replaces_canonical": true,
+      "source": {
+        "kind": "reviewed_task_contract_and_existing_browser_evidence",
+        "task_revision": 2
+      },
+      "repair_basis": {
+        "root_cause": "All selected autonomous trajectories hard-coded order ID 136, so the replay failed when the restored order grid did not expose that historical ID.",
+        "strategy": "Use the date-descending order grid itself: locate the first visible canceled row and open its View link without depending on a frozen order ID."
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7780/admin/sales/order/"
+        },
+        {
+          "action": "wait",
+          "seconds": 1
+        },
+        {
+          "action": "evaluate",
+          "script": "const rows=[...document.querySelectorAll('tbody tr')].filter(row=>[...row.querySelectorAll('td')].some(cell=>cell.textContent.trim()==='Canceled')); const link=rows[0]?.querySelector('a[href*=\"/sales/order/view/\"]'); if(!link) throw new Error('no visible canceled order row'); link.click(); return {href:link.href};"
+        },
+        {
+          "action": "wait",
+          "seconds": 1
+        },
+        {
+          "action": "get_text",
+          "selector": "main"
+        }
+      ],
+      "expected_response": {
+        "task_type": "RETRIEVE",
+        "status": "SUCCESS",
+        "retrieved_data": [
+          "harrypotterfan1@gmail.com"
+        ],
+        "error_details": null
+      }
+    },
+    {
+      "task_id": 28,
+      "candidate_id": "expert__task-28__latest-worcester-post",
+      "replaces_canonical": true,
+      "source": {
+        "kind": "reviewed_task_contract_and_existing_browser_evidence",
+        "task_revision": 2
+      },
+      "repair_basis": {
+        "root_cause": "The selected trajectory issued a second navigation while the forums click was still navigating, visited two deterministic 404 routes, and hard-coded one post ID as the newest post.",
+        "strategy": "Open the WorcesterMA newest-post listing directly and follow its first visible post rather than relying on an old post ID."
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:9999/f/WorcesterMA/new"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "evaluate",
+          "script": "const link=document.querySelector('main article h1 a, main article h2 a, article a[href*=\"/post/\"]'); if(!link) throw new Error('newest WorcesterMA post link not found'); link.click(); return {href:link.href,text:link.textContent.trim()};"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "get_text",
+          "selector": "main"
+        }
+      ],
+      "expected_response": {
+        "task_type": "RETRIEVE",
+        "status": "SUCCESS",
+        "retrieved_data": [
+          {
+            "username": "mineinhusdson",
+            "post_title": "Best place for a foot rub?",
+            "count": 0
+          }
+        ],
+        "error_details": null
+      }
+    },
+    {
+      "task_id": 184,
+      "candidate_id": "expert__task-184__zero-simple-products",
+      "replaces_canonical": true,
+      "source": {
+        "kind": "reviewed_task_contract_and_existing_browser_evidence",
+        "task_revision": 2
+      },
+      "repair_basis": {
+        "root_cause": "The selected trajectory unconditionally clicked Clear all because its source run inherited a quantity filter; the control is absent after a clean reset.",
+        "strategy": "Open the product grid without inherited filters and apply the complete zero-quantity simple-product filter through stable form controls."
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7780/admin/catalog/product/"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "evaluate",
+          "script": "const button=document.querySelector('button[data-action=\"grid-filter-expand\"]'); if(!button) throw new Error('filters button not found'); button.click(); return true;"
+        },
+        {
+          "action": "wait",
+          "seconds": 1
+        },
+        {
+          "action": "evaluate",
+          "script": "for(const [name,value] of [['qty[from]','0'],['qty[to]','0']]){const input=document.querySelector(`input[name=\"${name}\"]`); if(!input) throw new Error(`missing ${name}`); input.value=value; input.dispatchEvent(new Event('input',{bubbles:true})); input.dispatchEvent(new Event('change',{bubbles:true}));} const type=document.querySelector('select[name=\"type_id\"]'); if(!type) throw new Error('type filter not found'); type.value='simple'; type.dispatchEvent(new Event('change',{bubbles:true})); const button=document.querySelector('button[data-action=\"grid-filter-apply\"]'); if(!button) throw new Error('apply filters button not found'); button.click(); return true;"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "get_text",
+          "selector": "main"
+        }
+      ],
+      "expected_response": {
+        "task_type": "RETRIEVE",
+        "status": "SUCCESS",
+        "retrieved_data": [
+          {
+            "name": "Cronus Yoga Pant -33-Blue",
+            "color": "Blue"
+          }
+        ],
+        "error_details": null
+      }
+    },
+    {
+      "task_id": 284,
+      "candidate_id": "expert__task-284__shoe-storage-product",
+      "replaces_canonical": true,
+      "source": {
+        "kind": "reviewed_task_contract_and_existing_browser_evidence",
+        "task_revision": 2
+      },
+      "repair_basis": {
+        "root_cause": "A rebound deep URL returned to the storefront root, after which a positional selector clicked Wishlist and raced the next navigation.",
+        "strategy": "Search from the canonical storefront and follow the contract-bound product by its rendered name."
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7770/catalogsearch/result/?q=Onlyeasy%20Over%20The%20Door%20Shoe%20Storage%20Organizer"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "evaluate",
+          "script": "const link=[...document.querySelectorAll('a.product-item-link')].find(e=>e.textContent.includes('Onlyeasy Over The Door Shoe Storage Organizer')); if(!link) throw new Error('contract product not found'); link.click(); return {href:link.href};"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "get_text",
+          "selector": "main"
+        }
+      ],
+      "expected_response": {
+        "task_type": "NAVIGATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      }
+    },
+    {
+      "task_id": 320,
+      "candidate_id": "expert__task-320__february-refunds",
+      "replaces_canonical": true,
+      "source": {
+        "kind": "reviewed_task_contract_and_existing_browser_evidence",
+        "task_revision": 2
+      },
+      "repair_basis": {
+        "root_cause": "The selected trajectory started another navigation before the order-detail click had finished navigating.",
+        "strategy": "Visit the two contract-bearing canceled orders by stable URLs with an explicit settling interval between documents."
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7770/sales/order/view/order_id/156/"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "get_text",
+          "selector": "main"
+        },
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7770/sales/order/view/order_id/158/"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "get_text",
+          "selector": "main"
+        }
+      ],
+      "expected_response": {
+        "task_type": "RETRIEVE",
+        "status": "SUCCESS",
+        "retrieved_data": [406.53],
+        "error_details": null
+      }
+    },
+    {
+      "task_id": 334,
+      "candidate_id": "expert__task-334__last-cornbread-order",
+      "replaces_canonical": true,
+      "source": {
+        "kind": "reviewed_task_contract_and_existing_browser_evidence",
+        "task_revision": 2
+      },
+      "repair_basis": {
+        "root_cause": "The selected trajectory queried a pagination control before the order-history navigation had completed.",
+        "strategy": "Open the contract-bearing order directly and wait for the document before reading it."
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7770/sales/order/view/order_id/180/"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "get_text",
+          "selector": "main"
+        }
+      ],
+      "expected_response": {
+        "task_type": "RETRIEVE",
+        "status": "SUCCESS",
+        "retrieved_data": ["2023-03-11"],
+        "error_details": null
+      }
+    },
+    {
+      "task_id": 506,
+      "candidate_id": "expert__task-506__meat-substitute-checkout",
+      "replaces_canonical": true,
+      "source": {
+        "kind": "reviewed_task_contract_and_existing_browser_evidence",
+        "task_revision": 2
+      },
+      "repair_basis": {
+        "root_cause": "The selected trajectory depended on a second cart link and three href-number-positioned cleanup controls inherited from the source run's cart state.",
+        "strategy": "Rely on the task reset for an empty cart, add the contract product, and use stable checkout controls only."
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7770/beyond-meat-beef-beefy-crumble-5-pound-2-per-case.html"
+        },
+        {
+          "action": "click",
+          "selector": "button:visible:has-text(\"Add to Cart\")",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "wait",
+          "seconds": 3
+        },
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7770/checkout/cart/"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "click",
+          "selector": "button:visible:has-text(\"Proceed to Checkout\")",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "wait",
+          "seconds": 4
+        },
+        {
+          "action": "click",
+          "selector": "input[name=\"ko_unique_1\"]",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "click",
+          "selector": "button:visible:has-text(\"Next\")",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "wait",
+          "seconds": 4
+        },
+        {
+          "action": "click",
+          "selector": "button:visible:has-text(\"Place Order\")",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "wait",
+          "seconds": 5
+        },
+        {
+          "action": "get_text",
+          "selector": "main"
+        }
+      ],
+      "expected_response": {
+        "task_type": "MUTATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      }
+    },
+    {
+      "task_id": 585,
+      "candidate_id": "expert__task-585__five-star-review",
+      "replaces_canonical": true,
+      "source": {
+        "kind": "reviewed_task_contract_and_existing_browser_evidence",
+        "task_revision": 2
+      },
+      "repair_basis": {
+        "root_cause": "The selected trajectory addressed the fifth visible rating input before the Reviews panel had rendered, making both timing and position part of the selector.",
+        "strategy": "Open the contract product, wait for the Reviews panel, and select the five-star value by its form value."
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7770/quoizel-tf9404m-grove-park-tiffany-multi-color-floor-lamp.html"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "click",
+          "selector": "a[href=\"#reviews\"]",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "click",
+          "selector": "input[name=\"ratings[4]\"][value=\"20\"]",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "fill",
+          "selector": "input[name=\"nickname\"]",
+          "text": "Emma Lopez",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "fill",
+          "selector": "input[name=\"title\"]",
+          "text": "Good purchase",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "fill",
+          "selector": "textarea[name=\"detail\"]",
+          "text": "I like it",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "click",
+          "selector": "button:visible:has-text(\"Submit Review\")",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "wait",
+          "seconds": 3
+        },
+        {
+          "action": "get_text",
+          "selector": "main"
+        }
+      ],
+      "expected_response": {
+        "task_type": "MUTATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      }
+    },
+    {
+      "task_id": 605,
+      "candidate_id": "expert__task-605__fresh-console-submission",
+      "replaces_canonical": true,
+      "source": {
+        "kind": "reviewed_task_contract_and_existing_browser_evidence",
+        "task_revision": 2
+      },
+      "repair_basis": {
+        "root_cause": "The replay submitted the correct title and forum but the site returned the form with HTTP 200 instead of the successful 302 redirect; same-task historical evidence identifies an invalid CSRF token.",
+        "strategy": "Load a fresh forum-bound submission form and submit immediately, with no stale intermediate page or duplicate-click retry."
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:9999/submit/consoles"
+        },
+        {
+          "action": "fill",
+          "selector": "textarea[name=\"submission[title]\"]",
+          "text": "what is the recommended console to buy these days",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "click",
+          "selector": "button:visible:has-text(\"Create submission\")",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "wait",
+          "seconds": 3
+        },
+        {
+          "action": "get_text",
+          "selector": "main"
+        }
+      ],
+      "expected_response": {
+        "task_type": "MUTATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      }
+    },
+    {
+      "task_id": 600,
+      "candidate_id": "expert__task-600__fresh-console-question",
+      "replaces_canonical": true,
+      "source": {
+        "kind": "reviewed_task_contract_and_existing_browser_evidence",
+        "task_revision": 2
+      },
+      "repair_basis": {
+        "root_cause": "The selected trajectory navigated away while a gaming submission-form click was still completing, before it reached the intended consoles form.",
+        "strategy": "Load the consoles submission form directly and submit the exact title immediately."
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:9999/submit/consoles"
+        },
+        {
+          "action": "fill",
+          "selector": "textarea[name=\"submission[title]\"]",
+          "text": "what is the recommended console to buy these days?",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "click",
+          "selector": "button:visible:has-text(\"Create submission\")",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "wait",
+          "seconds": 3
+        },
+        {
+          "action": "get_text",
+          "selector": "main"
+        }
+      ],
+      "expected_response": {
+        "task_type": "MUTATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      }
+    },
+    {
+      "task_id": 725,
+      "candidate_id": "expert__task-725__massachusetts-submissions-downvote",
+      "replaces_canonical": true,
+      "source": {
+        "kind": "reviewed_task_contract_and_existing_browser_evidence",
+        "task_revision": 2
+      },
+      "repair_basis": {
+        "root_cause": "The selected trajectory started a forum navigation while the preceding forums click was still navigating and later addressed the downvote button by page position.",
+        "strategy": "Open the author's submissions directly, bind the target article to its massachusetts forum link, and click that article's downvote control."
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:9999/user/RickyDontLoseThat/submissions"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "evaluate",
+          "script": "const article=[...document.querySelectorAll('main article')].find(e=>e.querySelector('a[href=\"/f/massachusetts\"]')); const button=article?.querySelector('form button:has(img[alt=\"down\"])'); if(!button) throw new Error('massachusetts submission downvote control not found'); button.click(); return {post:article.querySelector('h1,h2')?.textContent.trim()};"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "get_text",
+          "selector": "main"
+        }
+      ],
+      "expected_response": {
+        "task_type": "MUTATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      }
+    },
+    {
+      "task_id": 415,
+      "candidate_id": "expert__task-415__verification-reminder",
+      "replaces_canonical": true,
+      "source": {
+        "kind": "reviewed_task_contract_and_existing_browser_evidence",
+        "task_revision": 2
+      },
+      "repair_basis": {
+        "root_cause": "The comment became visible in the page, but the trajectory finalized evidence immediately after the click, before the required notes POST was captured.",
+        "strategy": "Open the contract merge request directly, submit the required author reminder, and allow the request to settle before evidence finalization."
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:8023/byteblaze/a11y-webring.club/-/merge_requests/40"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "fill",
+          "selector": "textarea[name=\"note[note]\"]:visible",
+          "text": "@davepgreene",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "click",
+          "selector": "button:visible:has-text(\"Comment\")",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "wait",
+          "seconds": 3
+        },
+        {
+          "action": "get_text",
+          "selector": "main"
+        }
+      ],
+      "expected_response": {
+        "task_type": "MUTATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      }
+    },
+    {
+      "task_id": 576,
+      "candidate_id": "expert__task-576__invite-two-developers",
+      "replaces_canonical": true,
+      "source": {
+        "kind": "reviewed_task_contract_and_existing_browser_evidence",
+        "task_revision": 2
+      },
+      "repair_basis": {
+        "root_cause": "The selected trajectory addressed the third visible text input, which was the expiration-date field after reset, then waited for a user menu that could never appear.",
+        "strategy": "Scope member lookup to the Invite members dialog, select each named user by text, set Developer, and submit once."
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:8023/byteblaze/a11y-webring.club/-/project_members"
+        },
+        {
+          "action": "click",
+          "selector": "button:visible:has-text(\"Invite members\")",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "wait",
+          "seconds": 1
+        },
+        {
+          "action": "evaluate",
+          "script": "const heading=[...document.querySelectorAll('h4')].find(e=>e.textContent.trim()==='Invite members'); const root=heading?.closest('[role=dialog],.modal,.gl-modal')||heading?.parentElement?.parentElement; const input=[...(root?.querySelectorAll('input[type=text]')||[])].find(e=>e.placeholder!=='YYYY-MM-DD'); if(!input) throw new Error('member lookup input not found'); const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; setter.call(input,'abisubramanya27'); input.dispatchEvent(new Event('input',{bubbles:true})); return true;"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "evaluate",
+          "script": "const button=[...document.querySelectorAll('button[role=menuitem],button')].find(e=>e.offsetParent!==null&&e.textContent.includes('abisubramanya27')); if(!button) throw new Error('abisubramanya27 suggestion not found'); button.click(); return true;"
+        },
+        {
+          "action": "evaluate",
+          "script": "const heading=[...document.querySelectorAll('h4')].find(e=>e.textContent.trim()==='Invite members'); const root=heading?.closest('[role=dialog],.modal,.gl-modal')||heading?.parentElement?.parentElement; const input=[...(root?.querySelectorAll('input[type=text]')||[])].find(e=>e.placeholder!=='YYYY-MM-DD'); if(!input) throw new Error('member lookup input not found'); const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; setter.call(input,'lahwaacz'); input.dispatchEvent(new Event('input',{bubbles:true})); return true;"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "evaluate",
+          "script": "const button=[...document.querySelectorAll('button[role=menuitem],button')].find(e=>e.offsetParent!==null&&e.textContent.includes('lahwaacz')); if(!button) throw new Error('lahwaacz suggestion not found'); button.click(); return true;"
+        },
+        {
+          "action": "select",
+          "selector": "select[type=\"select-one\"]:visible",
+          "value": "30",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "click",
+          "selector": "button:visible:has-text(\"Invite\")",
+          "replay_mode": "snapshot_ref_semantics"
+        },
+        {
+          "action": "wait",
+          "seconds": 4
+        },
+        {
+          "action": "get_text",
+          "selector": "main"
+        }
+      ],
+      "expected_response": {
+        "task_type": "MUTATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      }
+    },
+    {
       "task_id": 676,
       "candidate_id": "expert__task-676__fraud-orders",
       "source": {

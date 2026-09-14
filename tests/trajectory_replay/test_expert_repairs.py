@@ -10,7 +10,36 @@ REPAIRS = (
     / "webarena-verified"
     / "expert-repairs.json"
 )
-TASK_IDS = {124, 225, 258, 279, 339, 464, 470, 475, 510, 528, 547, 676, 694, 699}
+TASK_IDS = {
+    28,
+    124,
+    183,
+    184,
+    198,
+    225,
+    258,
+    279,
+    284,
+    320,
+    334,
+    339,
+    415,
+    464,
+    470,
+    475,
+    506,
+    510,
+    528,
+    547,
+    576,
+    585,
+    600,
+    605,
+    676,
+    694,
+    699,
+    725,
+}
 
 
 def _payload() -> dict:
@@ -54,6 +83,22 @@ def test_mutation_repairs_preserve_task_specific_semantics() -> None:
     assert "sales/order/view/order_id/302" in calls[470]
     assert "projects/new#blank_project" in calls[475]
     assert "sales/order/" in calls[676]
+
+    assert "WorcesterMA/new" in calls[28]
+    assert "/f/Worcester\"" not in calls[28]
+    assert "Clear all" not in calls[184]
+    assert "a.product-item-link" in calls[284]
+    assert "order_id/156" in calls[320] and "order_id/158" in calls[320]
+    assert "order_id/180" in calls[334]
+    assert "merge_requests/40" in calls[415]
+    assert "@davepgreene" in calls[415]
+    assert "nth-match" not in calls[506]
+    assert "abisubramanya27" in calls[576] and "lahwaacz" in calls[576]
+    assert 'ratings[4]\\\"][value=\\\"20' in calls[585]
+    assert "/submit/consoles" in calls[600]
+    assert "/submit/consoles" in calls[605]
+    assert "RickyDontLoseThat/submissions" in calls[725]
+    assert "img[alt=\\\"down\\\"]" in calls[725]
 
     assert len(repairs[528]["tool_calls"]) == 2
     assert "Emma Lopez" in calls[528]

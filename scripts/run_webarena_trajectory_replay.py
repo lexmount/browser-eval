@@ -31,6 +31,15 @@ def parse_args() -> argparse.Namespace:
         help="qualify the complete frozen trajectory set on the registered reference browser",
     )
     parser.add_argument(
+        "--qualification-task",
+        action="append",
+        type=int,
+        help=(
+            "qualify a repaired task shard whose passing proofs will be merged "
+            "with prior qualification receipts"
+        ),
+    )
+    parser.add_argument(
         "--qualified-dataset",
         help="complete qualified trajectory dataset required by a formal comparison",
     )
@@ -47,6 +56,7 @@ def main() -> None:
         diagnostic_task_ids=args.diagnostic_task,
         diagnostic_engines=args.diagnostic_engine,
         qualification_engine=args.qualification_engine,
+        qualification_task_ids=args.qualification_task,
         qualified_dataset_path=args.qualified_dataset,
     )
 

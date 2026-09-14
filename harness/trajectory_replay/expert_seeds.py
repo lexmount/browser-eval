@@ -98,7 +98,7 @@ def merge_expert_seed_manifest(
     base_manifest_sha256: str | None = None,
     repair_spec_sha256: str | None = None,
 ) -> dict[str, Any]:
-    """Append expert candidates without replacing an existing ready candidate."""
+    """Append expert candidates, replacing a ready canonical only when explicit."""
 
     if base_manifest.get("schema") != BASE_SCHEMA:
         raise ValueError("unsupported base replay seed manifest")
@@ -129,7 +129,10 @@ def merge_expert_seed_manifest(
         task = tasks.get(task_id)
         if task is None:
             raise ValueError(f"expert repair references task missing from base seeds: {task_id}")
-        if task.get("replay_status") == "ready" or task.get("canonical_candidate_id"):
+        replaces_canonical = repair.get("replaces_canonical") is True
+        if (
+            task.get("replay_status") == "ready" or task.get("canonical_candidate_id")
+        ) and not replaces_canonical:
             raise ValueError(f"expert repair cannot replace ready task {task_id}")
 
         candidate_id = str(repair.get("candidate_id") or f"expert__task-{task_id}")
@@ -159,6 +162,7 @@ def merge_expert_seed_manifest(
                 "repair_spec_sha256": spec_sha256,
             },
             "repair_basis": _required_record(repair, task_id, "repair_basis"),
+            "replaces_canonical": replaces_canonical,
         }
         task.setdefault("candidates", []).append(candidate)
         task["canonical_candidate_id"] = candidate_id
@@ -172,7 +176,7 @@ def merge_expert_seed_manifest(
         "repair_spec_sha256": spec_sha256,
         "candidate_count": len(repairs),
         "policy": {
-            "existing_ready_candidates_immutable": True,
+            "existing_ready_candidates_immutable_unless_explicitly_replaced": True,
             "browser_tool_refs_forbidden": True,
             "status_meaning": "ready for replay; not yet replay-verified",
         },

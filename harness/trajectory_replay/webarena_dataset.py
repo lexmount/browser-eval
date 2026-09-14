@@ -40,20 +40,19 @@ def _validate_qualification_receipt(
     receipt: dict[str, Any],
     *,
     receipt_path: Path,
-    seed_sha256: str,
     seed_task_ids: set[int],
     required_engines: tuple[str, ...],
-    profile_sha256: str,
     expected_resources: dict[str, Any],
 ) -> None:
     if receipt.get("schema") != RECEIPT_SCHEMA:
         raise ValueError(f"unsupported replay receipt: {receipt_path}")
-    if receipt.get("execution_scope") != "qualification" or receipt.get("status") != "complete":
-        raise ValueError(f"replay receipt is not a completed qualification suite: {receipt_path}")
-    if receipt.get("source_seed_manifest_sha256") != seed_sha256:
-        raise ValueError(f"replay receipt is not bound to the selected seeds: {receipt_path}")
-    if receipt.get("profile_sha256") != profile_sha256:
-        raise ValueError(f"replay receipt is not bound to the selected profile: {receipt_path}")
+    if (
+        receipt.get("execution_scope") not in {"qualification", "qualification_shard"}
+        or receipt.get("status") != "complete"
+    ):
+        raise ValueError(f"replay receipt is not a completed qualification proof: {receipt_path}")
+    if not receipt.get("source_seed_manifest_sha256") or not receipt.get("profile_sha256"):
+        raise ValueError(f"replay receipt is missing source bindings: {receipt_path}")
     runtime = receipt.get("runtime") or {}
     if runtime.get("resources") != expected_resources:
         raise ValueError(f"replay receipt has different runtime resources: {receipt_path}")
@@ -70,10 +69,11 @@ def _validate_qualification_receipt(
         raise ValueError(f"replay receipt is missing site image identity: {receipt_path}")
     receipt_task_ids = [int(task_id) for task_id in receipt.get("task_ids") or []]
     if (
-        len(receipt_task_ids) != len(set(receipt_task_ids))
-        or set(receipt_task_ids) != seed_task_ids
+        not receipt_task_ids
+        or len(receipt_task_ids) != len(set(receipt_task_ids))
+        or not set(receipt_task_ids) <= seed_task_ids
     ):
-        raise ValueError(f"replay receipt does not cover the frozen task set: {receipt_path}")
+        raise ValueError(f"replay receipt has an invalid qualification task scope: {receipt_path}")
     isolation = receipt.get("isolation") or {}
     required_isolation = {
         "environment_pool_count": 1,
@@ -113,7 +113,7 @@ def _validate_qualification_receipt(
             raise ValueError(f"replay attempt is not bound to a browser session: {receipt_path}")
         attempt_keys.append((str(attempt.get("engine")), int(attempt.get("task_id"))))
     expected_keys = {
-        (engine, task_id) for engine in required_engines for task_id in seed_task_ids
+        (engine, task_id) for engine in required_engines for task_id in receipt_task_ids
     }
     if len(attempt_keys) != len(set(attempt_keys)) or set(attempt_keys) != expected_keys:
         raise ValueError(
@@ -316,18 +316,26 @@ def build_verified_trajectory_dataset(
         _validate_qualification_receipt(
             receipt,
             receipt_path=receipt_path,
-            seed_sha256=seed_sha256,
             seed_task_ids=seed_task_ids,
             required_engines=required_engines,
-            profile_sha256=profile_sha256,
             expected_resources=profile["resources"],
         )
-        receipts.append({"sha256": _sha256(receipt_path)})
+        receipts.append(
+            {
+                "sha256": _sha256(receipt_path),
+                "source_seed_manifest_sha256": str(
+                    receipt.get("source_seed_manifest_sha256") or ""
+                ),
+                "profile_sha256": str(receipt.get("profile_sha256") or ""),
+            }
+        )
         for attempt in receipt.get("attempts") or []:
             task_id = int(attempt["task_id"])
             candidate_id = str(attempt["source_candidate_id"])
             if candidate_id != seed_tasks[task_id].get("canonical_candidate_id"):
-                raise ValueError(f"receipt uses a non-canonical trajectory for task {task_id}")
+                if receipt.get("source_seed_manifest_sha256") == seed_sha256:
+                    raise ValueError(f"receipt uses a non-canonical trajectory for task {task_id}")
+                continue
             candidate = next(
                 (
                     item
@@ -337,7 +345,11 @@ def build_verified_trajectory_dataset(
                 None,
             )
             if candidate is None:
-                raise ValueError(f"receipt references candidate missing from seeds: {candidate_id}")
+                if receipt.get("source_seed_manifest_sha256") == seed_sha256:
+                    raise ValueError(
+                        f"receipt references candidate missing from seeds: {candidate_id}"
+                    )
+                continue
             session = {
                 str(item["id"]): item for item in receipt.get("sessions") or []
             }[str(attempt["browser_session_id"])]

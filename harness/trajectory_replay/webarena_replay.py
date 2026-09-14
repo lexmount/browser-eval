@@ -509,11 +509,12 @@ def _run_one(  # noqa: PLR0913
 
 
 def _browser_context_needs_restart(attempt: dict[str, Any]) -> bool:
-    """Return whether setup failed before replay because the browser context is unusable."""
+    """Give a failed pre-replay setup one clean browser restart."""
     return (
         attempt.get("process_status") == "fail"
         and attempt.get("completed_action_count") == 0
-        and "BrowserContextNotLoaded" in str(attempt.get("error") or "")
+        and attempt.get("evaluator_status") == "not_run"
+        and "trajectory_replay_ms" not in (attempt.get("timings") or {})
     )
 
 
@@ -737,11 +738,19 @@ def run_replay_suite(  # noqa: PLR0913
     diagnostic_task_ids: list[int] | None = None,
     diagnostic_engines: list[str] | None = None,
     qualification_engine: str | None = None,
+    qualification_task_ids: list[int] | None = None,
     qualified_dataset_path: str | Path | None = None,
 ) -> dict[str, Any]:
     plan = load_replay_plan(profile_path, seed_manifest_path)
     seeds = plan["seed_manifest"]
-    task_ids = list(plan["task_ids"] if diagnostic_task_ids is None else diagnostic_task_ids)
+    if diagnostic_task_ids is not None and qualification_task_ids is not None:
+        raise ValueError("diagnostic and qualification-shard task scopes cannot be combined")
+    selected_task_ids = (
+        qualification_task_ids
+        if qualification_task_ids is not None
+        else diagnostic_task_ids
+    )
+    task_ids = list(plan["task_ids"] if selected_task_ids is None else selected_task_ids)
     tasks = select_tasks(seeds, task_ids)
     engines = list(plan["engines"])
     if qualification_engine is not None:
@@ -750,7 +759,9 @@ def run_replay_suite(  # noqa: PLR0913
         if qualification_engine != plan["qualification_engine"]:
             raise ValueError("qualification engine differs from the frozen reference engine")
         engines = [qualification_engine]
-        scope = "qualification"
+        scope = "qualification_shard" if qualification_task_ids is not None else "qualification"
+    elif qualification_task_ids is not None:
+        raise ValueError("qualification-task requires qualification-engine")
     elif diagnostic_engines is not None:
         unknown_engines = sorted(set(diagnostic_engines) - set(engines))
         if unknown_engines:

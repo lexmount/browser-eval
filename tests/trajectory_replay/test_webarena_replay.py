@@ -48,7 +48,7 @@ def test_select_methods_rejects_profile_order_mismatch() -> None:
 def test_qualification_scope_is_separate_from_diagnostics() -> None:
     source = inspect.getsource(run_replay_suite)
 
-    assert 'scope = "qualification"' in source
+    assert '"qualification_shard" if qualification_task_ids is not None' in source
     assert "qualification and diagnostic scopes cannot be combined" in source
     assert "qualification engine differs from the frozen reference engine" in source
 
@@ -121,15 +121,23 @@ def test_origin_removes_environment_paths_before_storage_reset() -> None:
     assert _origin("http://192.168.5.2:7780/admin") == "http://192.168.5.2:7780"
 
 
-def test_browser_context_restart_is_limited_to_pre_action_context_failure() -> None:
+def test_browser_context_restart_is_limited_to_pre_action_setup_failure() -> None:
     failed_setup = {
         "process_status": "fail",
         "completed_action_count": 0,
+        "evaluator_status": "not_run",
+        "timings": {"environment_prepare_ms": 10.0},
         "error": "Protocol error: BrowserContextNotLoaded",
     }
     assert _browser_context_needs_restart(failed_setup)
+    assert _browser_context_needs_restart(
+        {**failed_setup, "error": "Page.goto: Timeout 90000ms exceeded"}
+    )
     assert not _browser_context_needs_restart({**failed_setup, "completed_action_count": 1})
-    assert not _browser_context_needs_restart({**failed_setup, "error": "navigation failed"})
+    assert not _browser_context_needs_restart(
+        {**failed_setup, "timings": {"trajectory_replay_ms": 1.0}}
+    )
+    assert not _browser_context_needs_restart({**failed_setup, "evaluator_status": "fail"})
     assert not _browser_context_needs_restart({**failed_setup, "process_status": "pass"})
 
 

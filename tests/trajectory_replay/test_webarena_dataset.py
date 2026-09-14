@@ -500,7 +500,9 @@ def test_promotion_supports_hash_bound_expert_repair(tmp_path: Path) -> None:
         "corrected_task_sha256": "task-sha",
     }
 
-def test_promotion_rejects_diagnostic_or_nonisolated_receipts(tmp_path: Path) -> None:
+def test_promotion_accepts_qualification_shard_but_rejects_nonisolated_receipt(
+    tmp_path: Path,
+) -> None:
     profile, selection_sha256, repair_sha256 = _profile(tmp_path, [1])
     seeds = _write(
         tmp_path / "seeds.json",
@@ -532,16 +534,27 @@ def test_promotion_rejects_diagnostic_or_nonisolated_receipts(tmp_path: Path) ->
             ],
         },
     )
-    diagnostic_path = _write(
-        tmp_path / "diagnostic.json",
-        _receipt(seeds, profile, task_ids=[1], attempts=[], execution_scope="diagnostic"),
+    shard_path = _write(
+        tmp_path / "qualification-shard.json",
+        _receipt(
+            seeds,
+            profile,
+            task_ids=[1],
+            attempts=[
+                {
+                    "task_id": 1,
+                    "source_candidate_id": "expert-1",
+                    "engine": "chromium",
+                    "process_status": "pass",
+                    "evaluator_status": "pass",
+                    "completed_action_count": 1,
+                }
+            ],
+            execution_scope="qualification_shard",
+        ),
     )
-    try:
-        build_verified_trajectory_dataset(seeds, [diagnostic_path], profile_path=profile)
-    except ValueError as error:
-        assert "completed qualification suite" in str(error)
-    else:
-        raise AssertionError("diagnostic receipt must not be promotable")
+    result = build_verified_trajectory_dataset(seeds, [shard_path], profile_path=profile)
+    assert result["counts"]["verified_tasks"] == 1
 
     nonisolated = _receipt(seeds, profile, task_ids=[1], attempts=[])
     isolation = nonisolated["isolation"]

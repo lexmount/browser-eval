@@ -124,6 +124,19 @@ def test_merge_refuses_to_replace_ready_candidate() -> None:
         )
 
 
+def test_merge_allows_explicit_replacement_after_replay_failure() -> None:
+    repair = _repair(1)
+    repair["replaces_canonical"] = True
+
+    merged = merge_expert_seed_manifest(
+        _base_manifest(), {"schema": REPAIR_SCHEMA, "repairs": [repair]}
+    )
+
+    task = merged["tasks"][0]
+    assert task["canonical_candidate_id"] == "expert__task-1"
+    assert task["candidates"][-1]["replaces_canonical"] is True
+
+
 def test_build_binds_exact_input_files(tmp_path: Path) -> None:
     base_path = tmp_path / "base.json"
     repairs_path = tmp_path / "repairs.json"
