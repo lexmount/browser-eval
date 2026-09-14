@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 from harness.web_fetch.result_review import require_result_review
-from scripts.merge_result_review_revision import merge, merge_replacement
+from scripts.merge_result_review_revision import merge, merge_refresh, merge_replacement
 from scripts.rebase_blind_result_review import rebase
 from scripts.revise_body_scoring import (
     IndependentReviewRequired, archive_superseded_result_review,
@@ -463,19 +463,31 @@ class ResultReviewTests(unittest.TestCase):
             # A task-definition change on b invalidates both providers, even
             # though only one result object happened to change.
             new_records[1]['metrics']['content_pass']=True
+            # A staged blind review may already identify a score-only error.
+            # The corrected score can then reuse that judgment even though
+            # the old machine_verdict field itself is stale.
+            new_records[2]['metrics']['content_pass']=True
             for path,dataset,records in ((prior_root,old_dataset,old_records),(current_root,new_dataset,new_records)):
                 (path/'dataset.json').write_text(json.dumps(dataset))
                 (path/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records))
             prior_review={'schema_version':1,'bindings':{
                 'dataset_sha256':hashlib.sha256((prior_root/'dataset.json').read_bytes()).hexdigest(),
                 'results_sha256':hashlib.sha256((prior_root/'results.jsonl').read_bytes()).hexdigest()},
-                'reviewer':{'agent':'Codex'},'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
+                'reviewer':{'agent':'Codex'},'review_protocol':{
+                    'machine_judgments_withheld':True,
+                    'production_scorer_forbidden':True,
+                    'direct_artifact_evidence_required':True,
+                    'scope':'all'},
+                'unresolved':0,
                 'attempts':[]}
             for row in old_records:
                 verdict='pass' if row['metrics']['content_pass'] else 'fail'
+                reviewed_verdict=('pass' if row['attempt_id']=='q__a__r001' else verdict)
                 prior_review['attempts'].append({
                     'attempt_id':row['attempt_id'],'machine_verdict':verdict,
-                    'agent_verdict':verdict,'final_verdict':verdict})
+                    'agent_verdict':reviewed_verdict,'agent_evidence':'direct artifact evidence',
+                    'final_verdict':reviewed_verdict,
+                    'adjudication':('confirmed score error' if reviewed_verdict!=verdict else None)})
             (prior_root/'result-review.json').write_text(json.dumps(prior_review))
             required_ids={'p__a__r001','p__b__r001','q__b__r001'}
             required_records=[row for row in new_records if row['attempt_id'] in required_ids]
@@ -495,7 +507,8 @@ class ResultReviewTests(unittest.TestCase):
                     'attempt_id':row['attempt_id'],'machine_verdict':verdict,
                     'agent_verdict':verdict,'final_verdict':verdict})
             (supplement/'result-review.json').write_text(json.dumps(supplemental))
-            merge_replacement(current_root,prior_root,supplement)
+            merge_refresh(current_root,prior_root,supplement,
+                          prior_review_path=prior_root/'result-review.json')
             merged=json.loads((current_root/'result-review.json').read_text())
             refresh=merged['review_protocol']['matrix_refresh_review']
             self.assertEqual(refresh['changed_task_cases'],['b'])
@@ -505,6 +518,7 @@ class ResultReviewTests(unittest.TestCase):
             self.assertEqual(merged['reviewed_attempts'],4)
             self.assertEqual(merged['accepted_unreviewed_passes'],0)
             self.assertEqual(merged['unresolved'],0)
+            self.assertEqual(merged['confirmed_scoring_errors'],0)
 
             changed=json.loads(json.dumps(new_records));changed[2]['provider_metadata']={'images':['https://example.test/also-new.png']}
             (current_root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in changed))

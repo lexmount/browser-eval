@@ -49,6 +49,34 @@ def blocked_page_hits(text: str) -> list[str]:
     return [match.group(0).strip() for match in _BLOCKED_PAGE.finditer(visible)]
 
 
+_SCRIPT_SHELL_LINE = re.compile(
+    r"(?m)^\s*(?:window(?:\.[A-Za-z_$][\w$]*)+\s*=|"
+    r"(?:var|let|const)\s+[A-Za-z_$][\w$]*\s*=|"
+    r"function\s+[A-Za-z_$][\w$]*\s*\(|//\# sourceURL=)"
+)
+
+
+def script_payload_shell(text: str) -> bool:
+    """Detect a minified script/state dump presented as page body text.
+
+    This deliberately requires several independent structural signals.  A
+    normal article containing JavaScript examples must remain valid; a huge
+    serialized application state or bundle with a title above it is not the
+    readable body requested by a text task, even if target phrases occur
+    inside quoted state.
+    """
+    if len(text) < 1_000:
+        return False
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if not lines:
+        return False
+    longest_ratio = max(map(len, lines)) / len(text)
+    short_prose_ratio = sum(len(line) for line in lines if len(line) < 1_000) / len(text)
+    return (len(_SCRIPT_SHELL_LINE.findall(text)) >= 10
+            and longest_ratio >= 0.5
+            and short_prose_ratio < 0.15)
+
+
 @dataclass(frozen=True)
 class MarkdownLink:
     label: str

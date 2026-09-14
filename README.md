@@ -59,7 +59,7 @@ Moli 1.0.6、Moli 1.1.1、Moli 1.1.3 与 Chromium。完整的参考冻结、调�
 [运行协议](harness/web_fetch/HEADLESS.md)。实测输出保留在用户目录的持久化证据中，
 不提交到 Git；这组数据不与下面的历史 12 方法混排。
 
-当前十二方法主矩阵为 150 个任务 × 12 种方法：网页正文 100 个，动态网页正文、文档、图片、视频、复杂热门网站各 10 个，共 1,800 条权威逻辑结果。六类任务进入同一个等权综合总榜，并保留各自分榜；动态组的异步接口、前端应用、内嵌数据、延迟呈现和 iframe 子文档仍按独立类别解释，不与静态网页质量混算。`evaluation/dataset.json` 的 `coverage_plan` 显式规定参评范围，未运行或缺少判分证据时禁止发布。
+当前十方法主矩阵为 150 个任务 × 10 种方法：网页正文 100 个，动态网页正文、文档、图片、视频、复杂热门网站各 10 个，共 1,500 条权威逻辑结果。六类任务进入同一个等权综合总榜，并保留各自分榜；动态组的异步接口、前端应用、内嵌数据、延迟呈现和 iframe 子文档仍按独立类别解释，不与静态网页质量混算。`evaluation/dataset.json` 的 `coverage_plan` 显式规定参评范围，未运行或缺少判分证据时禁止发布。
 
 ## 唯一当前入口
 
@@ -108,15 +108,15 @@ uv run --frozen python scripts/run_benchmark.py --dataset ~/.browser-eval/runs/n
 uv run --frozen python scripts/run_benchmark.py --track dynamic --providers lexmount-global,lexmount-cn,firecrawl,tavily,exa,cloudflare-markdown --output ~/.browser-eval/runs/dynamic-hosted
 ```
 
-使用具备当前全部解析依赖的 Python 环境执行。当前 profile 固定 12 种方法，可用 `--providers` 选择；云端方法可能消耗配额。所有选中方法先通过配置检查，再开始调用。不同方法并发，同一方法先完成网页组，再测其他组；正文与资源配置分开。已有输出目录会被拒绝覆盖。新结果核验后才能组装进 Git 外的当前证据，不能把测量输出写入 `evaluation/`，也不自动替换已发布成绩。本次从旧 12 方法证据升级的精确主矩阵与同窗测速范围见 `evaluation/current-rerun.json`；未列入其中的调用只离线重评分，不为改善分数而重跑。
+使用具备当前全部解析依赖的 Python 环境执行。当前 profile 固定 10 种方法，可用 `--providers` 选择；云端方法可能消耗配额。所有选中方法先通过配置检查，再开始调用。不同方法并发，同一方法先完成网页组，再测其他组；正文与资源配置分开。已有输出目录会被拒绝覆盖。新结果核验后才能组装进 Git 外的当前证据，不能把测量输出写入 `evaluation/`，也不自动替换已发布成绩。本次从旧 12 方法证据升级的精确主矩阵与同窗测速范围见 `evaluation/current-rerun.json`；未列入其中的调用只离线重评分，不为改善分数而重跑。
 
 新增方法完成同一评测集后，可执行 `uv run --frozen python scripts/add_provider_results.py ~/.browser-eval/runs/<完整运行目录> --provider <新方法>`。已有方法补测尚未执行的组时，使用 `--provider <方法> --track dynamic`；输入必须完整覆盖该组，案例与参考须与当前评测集完全一致。此入口拒绝缺失/重复任务、参考变化、输出哈希不符或执行批次不完整；原有 JSONL 行和输出字节不变，禁止覆盖已测任务。补测后同步审查 `configs/evaluation-inventory.json` 的方法覆盖，再重建报告。原始执行组、运行 ID 与时间仍各自保留，不能把不同时间的调用描述成同时测量。
 
 ### Moli WebFetch
 
-当前十二方法矩阵按 [Moli 1.1.4 官方 skill](https://github.com/lexmount/moli/tree/v1.1.4/skills/moli-webfetch) 安装并固定 `MOLI_BINARY`（不需要账号/API Key）。普通正文使用 `moli fetch --dump markdown`；挑战题使用一次 `moli fetch --dump json --trace-network`，同时保留最终 DOM、HTTP 状态、最终 URL 和有界网络诊断，DOM 在同一截止预算内本地转为 Markdown；资源页通过一次 `--eval` 从渲染 DOM、已加载同源 iframe 与有界同源模块中返回结构化 URL；动态任务把数据集预先声明的通用 selector、最少数量和有界等待转换为 Moli 等价参数，并用一次 `--eval` 返回有界记录文本，不把标准答案写进命令。直接 PDF、DOCX、图片和视频地址在调用前选择裸 `moli fetch URL`，由 CLI 自动返回原始响应或序列化页面；嵌入式文档查看器用页面运行时读取文档。PDF 等取得原始字节后，文档正文在同一截止预算内解析。直接文件任务一直验收到格式、长度和 SHA-256，不做无关 Markdown 转换。适配器保留 stdout 原文、独立 stderr 和退出状态；JSON 路线对原包只公开安全摘要，不公开 cookie 或完整响应头；不发第二次请求拼接元数据。工具成功不等于任务通过，仍使用同一套机械评分规则。
+当前十方法矩阵按 [Moli 1.1.4 官方 skill](https://github.com/lexmount/moli/tree/v1.1.4/skills/moli-webfetch) 安装并固定 `MOLI_BINARY`（不需要账号/API Key）。普通正文使用 `moli fetch --dump markdown`；挑战题使用一次 `moli fetch --dump json --trace-network`，同时保留最终 DOM、HTTP 状态、最终 URL 和有界网络诊断，DOM 在同一截止预算内本地转为 Markdown；资源页通过一次 `--eval` 从渲染 DOM、已加载同源 iframe 与有界同源模块中返回结构化 URL；动态任务把数据集预先声明的通用 selector、最少数量和有界等待转换为 Moli 等价参数，并用一次 `--eval` 返回有界记录文本，不把标准答案写进命令。直接 PDF、DOCX、图片和视频地址在调用前选择裸 `moli fetch URL`，由 CLI 自动返回原始响应或序列化页面；嵌入式文档查看器用页面运行时读取文档。PDF 等取得原始字节后，文档正文在同一截止预算内解析。直接文件任务一直验收到格式、长度和 SHA-256，不做无关 Markdown 转换。适配器保留 stdout 原文、独立 stderr 和退出状态；JSON 路线对原包只公开安全摘要，不公开 cookie 或完整响应头；不发第二次请求拼接元数据。工具成功不等于任务通过，仍使用同一套机械评分规则。
 
-官方还提供 JSON/HTML/semantic tree、DOM eval、授权会话及需 layout 的截图/PDF 输出。这些能力与正文和原始响应路线分开说明；生成 PDF 不等于解析已有 PDF，媒体链接也不等于取得原文件。当前十二方法矩阵对直接非 HTML 响应使用自动原始输出，不能强制 `--dump html/markdown`；本地文档解析属于正文任务的计时内后处理，不暗中借用其他 provider。上文的独立五浏览器报告仍保留 Moli 1.0.6、1.1.1、1.1.3 的历史实测身份和成绩，不用 1.1.4 倒改旧结果。
+官方还提供 JSON/HTML/semantic tree、DOM eval、授权会话及需 layout 的截图/PDF 输出。这些能力与正文和原始响应路线分开说明；生成 PDF 不等于解析已有 PDF，媒体链接也不等于取得原文件。当前十方法矩阵对直接非 HTML 响应使用自动原始输出，不能强制 `--dump html/markdown`；本地文档解析属于正文任务的计时内后处理，不暗中借用其他 provider。上文的独立五浏览器报告仍保留 Moli 1.0.6、1.1.1、1.1.3 的历史实测身份和成绩，不用 1.1.4 倒改旧结果。
 
 独立源页检查：`uv run --frozen python scripts/audit_sources.py`，需要 requests、BeautifulSoup4 和文档解析依赖。HTTP 失败只触发进一步检查，不能据此自动删除任务。复杂热门网站的列表按字段结构评分，不耦合当前标题、排序或价格。动态正文参考采集须遵守 `harness/web_fetch/README.md` 的配对证据与有界完成条件；页面分类不是 JS 必要性的证据。
 
@@ -133,7 +133,7 @@ ARTIFACT_HUB_BASE_URL=https://artifact-hub.app.lexmount.com uv run --frozen pyth
 # 发布脚本只确认上传响应、新版本与 share URL；随后在浏览器打开 share_url 做页面冒烟检查。
 ```
 
-打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。Sites 发布令牌依次从显式进程环境 `ARTIFACT_HUB_TOKEN`、目标服务的 `~/.config/artifact-hub/tokens/<host>` 读取，不加载仓库 `.env`。新授权按目标 host 保存，文件权限为 0600；不同部署的令牌不通用，也不互相覆盖，host 包含显式端口（如有）。其他评测密钥仍只读取仓库配置。当前报告绑定 `https://artifact-hub.app.lexmount.com` 的 12 方法站点 `RSdbALdbdNG6`；此前的 dev 域站点 `MblD_VwSPBRX`、旧 12 方法站点 `UeZE1vfcEOrM` 和五类浏览器参考报告站点 `UUAhhQMnrGwm` 均保持不变。构建、打包与发布都从 `evaluation/current-report.json` 读取公开地址、站点和预期远端版本；回执的服务地址与 slug 共同决定更新目标，回执、请求地址或命令行版本只要不一致就拒绝更新。服务端版本标识仅用于并发保护；成功发布后，把 profile 的预期版本更新为服务端新版本。例行发布只检查提交响应、轻量站点元数据和公开页面渲染，不回下载 ZIP 或逐文件镜像；`verify_artifact_hub.py --export` 与 `--public-files` 仅用于明确的服务端排障。发布令牌和管理回执不得提交或放入站点。
+打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。Sites 发布令牌依次从显式进程环境 `ARTIFACT_HUB_TOKEN`、目标服务的 `~/.config/artifact-hub/tokens/<host>` 读取，不加载仓库 `.env`。新授权按目标 host 保存，文件权限为 0600；不同部署的令牌不通用，也不互相覆盖，host 包含显式端口（如有）。其他评测密钥仍只读取仓库配置。当前报告绑定 `https://artifact-hub.app.lexmount.com` 的 10 方法站点 `RSdbALdbdNG6`；此前的 dev 域站点 `MblD_VwSPBRX`、旧 12 方法站点 `UeZE1vfcEOrM` 和五类浏览器参考报告站点 `UUAhhQMnrGwm` 均保持不变。构建、打包与发布都从 `evaluation/current-report.json` 读取公开地址、站点和预期远端版本；回执的服务地址与 slug 共同决定更新目标，回执、请求地址或命令行版本只要不一致就拒绝更新。服务端版本标识仅用于并发保护；成功发布后，把 profile 的预期版本更新为服务端新版本。例行发布只检查提交响应、轻量站点元数据和公开页面渲染，不回下载 ZIP 或逐文件镜像；`verify_artifact_hub.py --export` 与 `--public-files` 仅用于明确的服务端排障。发布令牌和管理回执不得提交或放入站点。
 
 ## 内容规范
 

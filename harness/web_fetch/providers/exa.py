@@ -22,6 +22,21 @@ _PUBLIC_ERROR_TAGS = frozenset({
 })
 
 
+def _rich_answer_links(extras: object) -> list[dict[str, str]]:
+    """Project only Exa's explicit anchor/destination pairs into answer input."""
+    if not isinstance(extras, dict) or not isinstance(extras.get("richLinks"), list):
+        return []
+    links = []
+    for item in extras["richLinks"]:
+        if not isinstance(item, dict):
+            continue
+        anchor, url = item.get("anchor"), item.get("url")
+        if (isinstance(anchor, str) and anchor.strip()
+                and isinstance(url, str) and url.strip()):
+            links.append({"text": anchor, "href": url})
+    return links
+
+
 def _public_url_error(value: object) -> dict[str, object]:
     if not isinstance(value, dict):
         return {}
@@ -49,6 +64,13 @@ class ExaContentsProvider(Provider):
             int(self.config.get("livecrawl_timeout_ms", 15_000)),
             max(1, int(http_timeout * 1000)),
         )
+        extras = ({"links": 20, "imageLinks": 20}
+                  if self.config.get("include_resource_links") else {})
+        if case.acceptance_contract.get("schema") == "named_link":
+            # Bare links and surrounding text do not prove record ownership.
+            # Exa's richLinks route returns the explicit anchor/URL pair needed
+            # by the shared named-link answer contract.
+            extras["richLinks"] = int(self.config.get("rich_links_limit", 100))
         response = request(
             f"{str(self.config.get('base_url', 'https://api.exa.ai')).rstrip('/')}/contents",
             method="POST",
@@ -64,11 +86,7 @@ class ExaContentsProvider(Provider):
                 # runner's shorter HTTP budget rather than relying on Exa's
                 # default and letting the client abandon a still-running job.
                 "livecrawlTimeout": livecrawl_timeout_ms,
-                **(
-                    {"extras": {"links": 20, "imageLinks": 20}}
-                    if self.config.get("include_resource_links")
-                    else {}
-                ),
+                **({"extras": extras} if extras else {}),
             },
         )
         try:
@@ -104,6 +122,7 @@ class ExaContentsProvider(Provider):
             error_type, error_message = "api_error", "Exa reported an unsuccessful URL status"
         else:
             error_type, error_message = "empty_content", "Exa returned no extractable text"
+        result_extras = (result.get("extras") or {}) if ok else {}
         return ProviderResult(
             ok=ok,
             content=content,
@@ -130,6 +149,7 @@ class ExaContentsProvider(Provider):
                     and not isinstance(payload.get("costDollars"), bool)
                     else None
                 ),
-                "extras": (result.get("extras") or {}) if ok else {},
+                "extras": result_extras,
+                "links": _rich_answer_links(result_extras),
             },
         )

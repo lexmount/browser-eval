@@ -35,6 +35,7 @@ def merge_reviews(evidence: Path, shard_paths: list[Path], output: Path, *,
 
     prior_rows: dict[str, dict] = {}
     prior_model = None
+    prior_independent = False
     if prior_review is not None:
         current_review = evidence / "result-review.json"
         if sha256(prior_review) != sha256(current_review):
@@ -44,12 +45,21 @@ def merge_reviews(evidence: Path, shard_paths: list[Path], output: Path, *,
             raise ValueError("Prior review must cover exactly the machine-failure scope")
         prior_rows = {row["attempt_id"]: row for row in prior["attempts"]}
         prior_model = prior.get("reviewer", {}).get("model")
+        prior_independent = (
+            prior["review_protocol"].get("production_scorer_forbidden") is True
+            and prior["review_protocol"].get("direct_artifact_evidence_required") is True
+        )
+        if not prior_independent:
+            raise ValueError("Prior review does not enforce scorer-independent artifact evidence")
 
     supplied: dict[str, dict] = {}
     shard_metadata = []
     for path in shard_paths:
         shard = json.loads(path.read_text())
         if shard.get("schema_version") == 1 and shard.get("review_protocol", {}).get("scope") == "machine-passes":
+            if (shard["review_protocol"].get("production_scorer_forbidden") is not True
+                    or shard["review_protocol"].get("direct_artifact_evidence_required") is not True):
+                raise ValueError(f"Review shard is not scorer-independent: {path}")
             if shard.get("bindings") != {
                     "dataset_sha256": sha256(evidence / "dataset.json"),
                     "results_sha256": sha256(evidence / "results.jsonl")}:
@@ -139,6 +149,8 @@ def merge_reviews(evidence: Path, shard_paths: list[Path], output: Path, *,
         },
         "review_protocol": {
             "machine_judgments_withheld": True,
+            "production_scorer_forbidden": True,
+            "direct_artifact_evidence_required": True,
             "complete_artifact_paths_supplied": True,
             "source_answer_metadata_supplied": True,
             "declared_acceptance_evidence_supplied": True,

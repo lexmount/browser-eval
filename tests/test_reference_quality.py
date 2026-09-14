@@ -1,12 +1,27 @@
 import unittest
 from harness.web_fetch.reference_quality import (audit_reference, clean_reference_text,
     blocked_page_hits, markdown_link_destinations, markdown_links, reference_anchor_in_text,
-    visible_markdown_links)
+    script_payload_shell, visible_markdown_links)
 from harness.web_fetch.metrics import normalize_for_match
 from harness.web_fetch.models import execution_id
 
 
 class ReferenceQualityTests(unittest.TestCase):
+    def test_script_payload_shell_rejects_state_dump_but_not_readable_js_article(self):
+        state = '\n'.join(
+            f'window.__STATE{i}__ = {{"article":"Required readable sentence {i}",'
+            + '"payload":"' + ('x' * 900) + '"};'
+            for i in range(12)
+        )
+        # One dominant minified line is the actual failure shape.
+        state = 'Page title\n' + state.replace('\n', '') + '\n' + '\n'.join(
+            f'//# sourceURL=/bundle-{i}.js' for i in range(12))
+        self.assertTrue(script_payload_shell(state))
+
+        article = ('# Reading JavaScript application state\n' +
+                   ('This article explains why readable prose remains the task output.\n' * 120) +
+                   '```js\nwindow.__STATE__ = {article: "example"};\n```\n')
+        self.assertFalse(script_payload_shell(article))
     def test_blocked_page_heading_accepts_markdown_emphasis_without_prose_false_positive(self):
         self.assertEqual(blocked_page_hits('**Error: Forbidden / 403**'),
                          ['**Error: Forbidden / 403**'])

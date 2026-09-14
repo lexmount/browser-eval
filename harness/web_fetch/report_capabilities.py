@@ -84,10 +84,10 @@ CAPABILITIES = {
   'image': c('仅链接', 'extras.imageLinks'), 'av': c('未声明', '普通 links 不保证媒体流'),
   'file': c('未声明', '无原文件返回字段'), 'js': c('支持', 'Contents 动态页抓取'),
   'input': '一组 URL；可配置 subpages，不是任意本地文件上传接口。',
-  'structure': 'text、highlights、summary；摘要可用 schema，含模型生成环节。',
+ 'structure': 'text、highlights、summary；摘要可用 schema，含模型生成环节。',
   'access': 'maxAgeHours 控制缓存/实时抓取，不提供登录成功保证。',
-  'notes': 'extras.links 和 imageLinks 是地址；PDF text 是解析后的文字，不是原 PDF。summary/highlights 与正文原文提取的语义不同，生成摘要不能作为独立 ground truth。',
-  'tested': 'text.verbosity=full、maxAgeHours=0，并取 links/imageLinks；本轮没有调用摘要或高亮生成。',
+  'notes': 'extras.links 和 imageLinks 是不带名称归属的地址；richLinks 返回明确的 anchor—URL 对。PDF text 是解析后的文字，不是原 PDF。summary/highlights 与正文原文提取的语义不同，生成摘要不能作为独立 ground truth。',
+  'tested': 'text.verbosity=full、maxAgeHours=0；资源题取 links/imageLinks，具名列表题取 richLinks 并只接收非空 anchor—URL 对。本轮没有调用摘要或高亮生成。',
  },
  'cloudflare-markdown': {
   'scope': 'Browser Run · /markdown', 'sources': ['cf'],

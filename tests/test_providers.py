@@ -495,6 +495,44 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(request_body["extras"], {"links": 20, "imageLinks": 20})
 
     @patch("harness.web_fetch.providers.exa.request")
+    def test_exa_named_link_uses_explicit_rich_pairs(self, mock_request) -> None:
+        case = EvalCase(
+            id="list", name="List", url="https://example.com/catalog",
+            category="challenge", expected_any=[], task_kind="structure",
+            acceptance_contract={
+                "version": 1, "schema": "named_link", "minimum_records": 3,
+                "hosts": ["example.com"], "entry_path": r"/item/\d+",
+            },
+        )
+        body = json.dumps({
+            "results": [{
+                "url": case.url,
+                "text": "Alpha Beta Gamma",
+                "extras": {
+                    "links": ["/item/1", "/item/2"],
+                    "richLinks": [
+                        {"url": "/item/1", "anchor": "Alpha"},
+                        {"url": "/item/2", "anchor": ""},
+                        {"url": "/item/3"},
+                        {"url": "/item/4", "anchor": "Delta"},
+                    ],
+                },
+            }],
+            "statuses": [{"status": "success"}],
+        }).encode()
+        mock_request.return_value = HttpResponse(200, "u", {}, body)
+
+        result = ExaContentsProvider("exa", {"api_key": "x"}).fetch(case, 45)
+
+        request_body = mock_request.call_args.kwargs["json_body"]
+        self.assertEqual(request_body["extras"], {"richLinks": 100})
+        self.assertEqual(result.metadata["links"], [
+            {"text": "Alpha", "href": "/item/1"},
+            {"text": "Delta", "href": "/item/4"},
+        ])
+        self.assertEqual(result.metadata["extras"]["links"], ["/item/1", "/item/2"])
+
+    @patch("harness.web_fetch.providers.exa.request")
     def test_exa_livecrawl_timeout_is_capped_by_inner_http_budget(self, mock_request) -> None:
         mock_request.return_value = HttpResponse(200, "u", {}, b'{"results":[]}')
         ExaContentsProvider(

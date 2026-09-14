@@ -336,6 +336,9 @@ def stable_failure_summary(metrics):
   parts.append(f'输出存在明显乱码：{metrics.get("replacement_character_count",0):,} 个替换字符，占 {pct(metrics.get("replacement_character_ratio"))}')
  errors=set(metrics.get('stable_task_errors') or [])
  labels=[
+  ('declared_truncation','方法明确声明正文已截断'),
+  ('script_payload_shell','返回的是脚本或序列化状态，不是可读正文'),
+  ('content_too_short','正文短于任务声明的最低长度'),
   ('duplicate_records','返回记录存在重复'),('incomplete_records','部分记录缺少必需字段'),
   ('too_many_complete_records','完整记录数超过任务声明范围'),
   ('blocked_page','实际返回是访问限制或验证页面'),
@@ -349,8 +352,10 @@ def reason(r,c):
  if r['metrics'].get('deadline_overrun'):return '超过该调用登记的端到端时间预算；保留实际耗时和返回内容，但不计为按时交付。'
  if r['ok'] and 'stable_task_pass' in r['metrics']:
   m=r['metrics']
-  counts=f"检出 {m.get('stable_record_count','—')} 条，字段完整 {m.get('stable_complete_record_count','—')} 条，完整且唯一 {m.get('stable_unique_record_count','—')} 条，要求至少 {m.get('stable_minimum_records','—')} 条。"
   success='稳定内容与结构检查通过。' if m.get('stable_anchor_results') or m.get('stable_page_pattern_results') else '条目结构检查通过；本例未设置稳定文字核对点。'
+  if m.get('stable_task_schema') == 'body_text':
+   return success if succeeded(r,c) else stable_failure_summary(m)+'。'
+  counts=f"检出 {m.get('stable_record_count','—')} 条，字段完整 {m.get('stable_complete_record_count','—')} 条，完整且唯一 {m.get('stable_unique_record_count','—')} 条，要求至少 {m.get('stable_minimum_records','—')} 条。"
   return counts+(success if succeeded(r,c) else stable_failure_summary(m)+'。')
  if not r['ok']:
   if r.get('diagnosis'):return r['diagnosis']['evidence']
@@ -663,6 +668,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  cases={c['id']:c for c in dataset['cases']};names=sorted(set(r['provider'] for r in records))
  tracks=active_tracks(cases);track_count=len(tracks);track_label=track_count_label(track_count)
  audit=json.loads((out/'result-review.json').read_text()) if (out/'result-review.json').is_file() else None
+ audited_attempts=review_index(audit)
  dynamic=any(c.get('task_kind')=='structure' for c in cases.values())
  bycase=defaultdict(list);byprovider=defaultdict(list)
  for r in records:bycase[r['case_id']].append(r);byprovider[r['provider']].append(r)
@@ -851,6 +857,21 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
    if s:facts.extend([('独立源页复查',f"{s.get('checked_at','')} · HTTP {s.get('status','未取得')} · {s.get('title') or s.get('error','')}"),('复查边界',d['source_check_boundary'])])
    summary+='<details class="technical-details"><summary>查看失败分类与归因边界</summary>'+table(['项目','依据'],[('',cell(esc(k))+cell(esc(v))) for k,v in facts],metrics=[])+"</details>"
   body=hero(esc(c['name']),hero_meta)+section('结论',summary,'overview')
+  reviewed=audited_attempts.get(r['attempt_id'])
+  if reviewed:
+   independent='通过' if reviewed.get('agent_verdict')=='pass' else '未通过'
+   final='通过' if reviewed.get('final_verdict')=='pass' else '未通过'
+   review_rows=[
+    ('独立核验结论',independent),
+    ('直接证据',reviewed.get('agent_evidence') or '—'),
+    ('最终结论',final),
+   ]
+   if reviewed.get('adjudication'):
+    review_rows.append(('分歧裁定',reviewed['adjudication']))
+   body+=section('独立结果核验',table(
+       ['项目','核验记录'],
+       [('',cell(esc(label))+cell(esc(value))) for label,value in review_rows],
+       metrics=[]),'independent-review')
   reference_heading='完整标准答案' if c.get('task_kind')!='structure' else '标准答案与验收规则'
   reference_kind='reference';reference_download='../references/'+c['id']+'.txt'
   source_body=f'<pre data-kind="reference">{esc(ref)}</pre>'
@@ -919,7 +940,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
                  '两边先统一大小写和常见排版差异，去掉 Markdown 链接地址、空白及标点，再切成连续六字符片段。'
                  f'标准答案按前后位置分成 {region_count} 份；每份覆盖率 = 在完整实际返回中找到的片段数 ÷ 该份标准片段总数。'
                  f'本任务要求每个位置至少达到 {pct(rules.get("minimum_floor",rules.get("minimum_coverage")))}，且至少 {required}/{region_count} 个位置达到 {pct(rules.get("minimum_coverage"))}。'
-                 '同一个实际片段只能计入一个位置，避免重复文字被多次借用。全文完整度、纯净度和 F1 仍按完整文本另行计算。</div>')
+                 '所有位置同时做全局容量分配，且同一个实际片段实例只能计入一个位置；因此重复文字不会被多次借用，位置排列顺序也不会改变判定。全文完整度、纯净度和 F1 仍按完整文本另行计算。</div>')
    body+=section('正文是否抓全',region_intro+table(['标准答案位置','标准片段数','命中片段数','覆盖率','判定'],region_rows,metrics=[])+
                  '<details class="technical-details"><summary>查看各位置的完整标准正文和人工定位样例</summary>'+''.join(region_cards)+'</details>','body-coverage')
   if title_details:body+=section('标题文字质量',title_details)
@@ -995,7 +1016,7 @@ def write_support(out,records,manifests):
   methodology+=section('从参考到发布','<div class="guide-grid"><article class="guide-card"><h3>1 · 冻结参考</h3><p>独立采集源页；需要渲染的页面另做浏览器观测，通过完整范围校验后才冻结。</p></article><article class="guide-card"><h3>2 · 执行调用</h3><p>同一 URL、任务和截止时间；各方法使用其最快的正式任务原生产物路线，保留版本、输出与哈希。</p></article><article class="guide-card"><h3>3 · 测后核验</h3><p>独立重取精确参考页，确认调用期间标准答案未改变；不把参考变化算成浏览器失败。</p></article><article class="guide-card"><h3>4 · 结果独立审查</h3><p>强代理逐次读取完整输出、标准答案与任务规则；分歧必须裁定，未裁定项会阻止构建。</p></article></div>'+review_summary(out,'../'),'评测流程')
  examples_html=re.sub(r'<a href="../datasets/([^"#]+).html">([^<]*)</a>',lambda m:m[0] if (out/'datasets'/(m[1]+'.html')).exists() else m[2],examples())
  methodology+=section('每类怎么测',examples_html)+section('指标说明',metric_guide())
- methodology+=section('共同输入、计时边界与调用预算','<p>所有方法进入同一个评分入口，但按任务交付物验收，而不是强制使用同一种中间格式。网页与文档正文最终验收可读文本；原始文件任务验收 PDF、DOCX、图片或视频字节；结构任务验收字段和稳定文字。HTML/Markdown 链接与明确配对的结构化名称—链接字段按同一规则核验；不把请求回显或诊断日志当成答案。原始输出与原始适配器状态保留，报告层不按方法名称改写任务结果。</p><div class="guide-grid"><article class="guide-card"><h3>计入耗时</h3><p>从准备发起该次 provider 调用开始，到形成可送入统一评分器的最终答案为止：线程调度、SDK/CLI/HTTP 调用、远端处理与网络下载、浏览器渲染与正文提取、本地解析、统一输入转换，以及文件字节读取、格式识别和 SHA-256 计算均在计时内。</p></article><article class="guide-card"><h3>不计入耗时</h3><p>数据集与参考加载、provider 配置校验、调用间限速等待、最终答案形成后的证据落盘、统一评分计算、报告汇总与页面生成不计入。供应商上报的服务端耗时只作附加证据，排名使用客户端观测的端到端耗时。</p></article></div><p>这个边界比较的是“拿到本任务最终交付物”所需时间：服务直接返回成品时计完整往返；本地方法若还需下载、渲染或解析，也必须完成后才停表。正文任务中，方法只返回原始 PDF 或 DOCX 时，本地正文解析也计时；原始文件任务则到字节校验完成即停止，不做无关的 Markdown 转换。所有方法使用同一外层计时器和截止预算。超时答案不接收；无法取消的调用会被隔离，整批结果因此不完整并触发不可靠状态，构建产物不得发布。</p><p>完整正文任务除原有核对点外，按参考正文最多五个连续位置检查字符六元组覆盖：每个位置至少达到 60%，通常要求至少四处达到 80%；若页面存在经独立证据确认的合法重排，案例可显式登记不同位置门槛。比较忽略空白和排版符号但保留文字顺序；全文 F1 独立保留实际值。文件任务必须有字节验收，资源 URL 不等于文件。</p>')
+ methodology+=section('共同输入、计时边界与调用预算','<p>所有方法进入同一个评分入口，但按任务交付物验收，而不是强制使用同一种中间格式。网页与文档正文最终验收可读文本；原始文件任务验收 PDF、DOCX、图片或视频字节；结构任务验收字段和稳定文字。HTML/Markdown 链接与明确配对的结构化名称—链接字段按同一规则核验；不把请求回显或诊断日志当成答案。原始输出与原始适配器状态保留，报告层不按方法名称改写任务结果。</p><div class="guide-grid"><article class="guide-card"><h3>计入耗时</h3><p>从准备发起该次 provider 调用开始，到形成可送入统一评分器的最终答案为止：线程调度、SDK/CLI/HTTP 调用、远端处理与网络下载、浏览器渲染与正文提取、本地解析、统一输入转换，以及文件字节读取、格式识别和 SHA-256 计算均在计时内。</p></article><article class="guide-card"><h3>不计入耗时</h3><p>数据集与参考加载、provider 配置校验、调用间限速等待、最终答案形成后的证据落盘、统一评分计算、报告汇总与页面生成不计入。供应商上报的服务端耗时只作附加证据，排名使用客户端观测的端到端耗时。</p></article></div><p>这个边界比较的是“拿到本任务最终交付物”所需时间：服务直接返回成品时计完整往返；本地方法若还需下载、渲染或解析，也必须完成后才停表。正文任务中，方法只返回原始 PDF 或 DOCX 时，本地正文解析也计时；原始文件任务则到字节校验完成即停止，不做无关的 Markdown 转换。所有方法使用同一外层计时器和截止预算。超时答案不接收；无法取消的调用会被隔离，整批结果因此不完整并触发不可靠状态，构建产物不得发布。</p><p>完整正文任务除原有核对点外，按参考正文最多五个连续位置检查字符六元组覆盖：每个位置至少达到 60%，通常要求至少四处达到 80%。所有位置一次性做全局容量分配；同一返回片段实例只能计入一个位置，位置排列顺序不影响结论。若页面存在经独立证据确认的合法重排，案例可显式登记不同位置门槛。比较忽略空白和排版符号但保留文字顺序；全文 F1 独立保留实际值。文件任务必须有字节验收，资源 URL 不等于文件。</p>')
  if (out/'scoring-revisions.json').exists():
   revision_links=[link('../scoring-revisions.json','评分规则修订收据')]
   if (out/'reference-revisions.json').exists():revision_links.append(link('../reference-revisions.json','参考答案修订收据'))

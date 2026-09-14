@@ -6,7 +6,9 @@ import tempfile
 from unittest.mock import patch
 from pathlib import Path
 
-from harness.web_fetch.body_coverage import body_requirements, evaluate_body_requirements
+from harness.web_fetch.body_coverage import (
+    body_requirements, compact_ngrams, evaluate_body_requirements,
+)
 from harness.web_fetch.call_boundary import fetch_with_deadline, prepare_answer
 from harness.web_fetch.metrics import evaluate_content, task_passed, task_measured
 from harness.web_fetch.models import EvalCase, ProviderResult
@@ -51,8 +53,80 @@ class FairnessTests(unittest.TestCase):
         self.assertFalse(result['body_coverage_pass'])
         self.assertLess(result['body_target_regions'], result['body_required_target_regions'])
 
+    def test_v3_body_regions_allocate_shared_fragments_globally(self):
+        shared = 'abcdefghijklmnopqrstuvwx' * 3
+        contract = {
+            'version': 3,
+            'unit': 'region_compact_hexagram_recall',
+            'minimum_coverage': .8,
+            'minimum_floor': .6,
+            'minimum_region_passes': 1,
+            'regions': [
+                {'id': 'opening', 'text': shared + 'AAAAAAAABBBBBBBB'},
+                {'id': 'ending', 'text': shared + 'CCCCCCCCDDDDDDDD'},
+            ],
+        }
+        # There is enough shared capacity for one target and both floors, but a
+        # sequential first-region match consumes too much and falsely fails ending.
+        content = shared + shared[:30] + 'AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD'
+        result = evaluate_body_requirements(content, contract)
+        self.assertTrue(result['body_coverage_pass'])
+        self.assertEqual(result['body_target_regions'], 1)
+        self.assertTrue(all(row['floor_pass'] for row in result['body_region_results']))
+        self.assertEqual(
+            sum(row['matched_units'] for row in result['body_region_results']),
+            119,
+        )
+
+    def test_v3_body_verdict_and_counts_ignore_region_order(self):
+        shared = 'abcdefghijklmnopqrstuvwx' * 3
+        contract = {
+            'version': 3,
+            'unit': 'region_compact_hexagram_recall',
+            'minimum_coverage': .8,
+            'minimum_floor': .6,
+            'minimum_region_passes': 1,
+            'regions': [
+                {'id': 'opening', 'text': shared + 'AAAAAAAABBBBBBBB'},
+                {'id': 'ending', 'text': shared + 'CCCCCCCCDDDDDDDD'},
+            ],
+        }
+        content = shared + shared[:30] + 'AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD'
+        forward = evaluate_body_requirements(content, contract)
+        reverse_contract = dict(contract, regions=list(reversed(contract['regions'])))
+        reverse = evaluate_body_requirements(content, reverse_contract)
+        self.assertEqual(forward['body_coverage_pass'], reverse['body_coverage_pass'])
+        self.assertEqual(
+            {row['id']: (row['matched_units'], row['coverage'])
+             for row in forward['body_region_results']},
+            {row['id']: (row['matched_units'], row['coverage'])
+             for row in reverse['body_region_results']},
+        )
+
+    def test_v3_one_fragment_instance_cannot_fill_two_regions(self):
+        shared = 'abcdefghijklmnopqrstuvwx' * 3
+        contract = {
+            'version': 3,
+            'unit': 'region_compact_hexagram_recall',
+            'minimum_coverage': .8,
+            'minimum_floor': .6,
+            'minimum_region_passes': 1,
+            'regions': [
+                {'id': 'opening', 'text': shared},
+                {'id': 'ending', 'text': shared},
+            ],
+        }
+        result = evaluate_body_requirements(shared, contract)
+        self.assertFalse(result['body_coverage_pass'])
+        self.assertLessEqual(
+            sum(row['matched_units'] for row in result['body_region_results']),
+            len(compact_ngrams(shared, 6)),
+        )
+
     def test_v3_allows_one_mild_conversion_region_but_not_a_missing_region(self):
-        reference = ' '.join(f'region{i}value{j}unique{i}item{j}' for i in range(1, 6) for j in range(25))
+        reference = ' '.join(
+            f'{chr(97+i)*8}{j:02d}{chr(107+i)*8}{j:02d}'
+            for i in range(5) for j in range(25))
         contract = body_requirements(reference)
         regions = [r['text'] for r in contract['regions']]
         mild = ' '.join(regions[:4] + [regions[4][:int(len(regions[4])*.7)]])
@@ -62,7 +136,8 @@ class FairnessTests(unittest.TestCase):
 
     def test_reviewed_region_threshold_keeps_every_floor_but_allows_reordering(self):
         contract = body_requirements(' '.join(
-            f'region{i}value{j}unique{i}item{j}' for i in range(1, 6) for j in range(25)))
+            f'{chr(97+i)*8}{j:02d}{chr(107+i)*8}{j:02d}'
+            for i in range(5) for j in range(25)))
         contract['minimum_region_passes'] = 3
         regions = [row['text'] for row in contract['regions']]
         content = ' '.join(regions[:3] + [row[:int(len(row)*.7)] for row in regions[3:]])

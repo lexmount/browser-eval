@@ -348,6 +348,13 @@ def normalize_for_match(value: str) -> str:
     normalized = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\\\]^_`{|}~])', r'\1', normalized)
     normalized = re.sub(r'`([^`\n]+)`', r'\1', normalized)
     normalized = re.sub(r'\*\*(?=\S)([^*\n]*\S)\*\*', r'\1', normalized)
+    # Markdown table pipes are layout boundaries, not readable cell content.
+    # Restrict this to rows with at least two pipes so an ordinary prose/code
+    # expression containing a single literal ``|`` is not silently rewritten.
+    normalized = '\n'.join(
+        re.sub(r'\s*\|\s*', ' ', line) if line.count('|') >= 2 else line
+        for line in normalized.splitlines()
+    )
     normalized = normalized.translate(str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"', "–": "-", "—": "-", "−": "-"}))
     # CJK text can be split at inline DOM boundaries. English word boundaries,
     # signs, digits and punctuation are deliberately retained.
@@ -427,8 +434,9 @@ def evaluate_content(
     allow_reference_block_exemptions: bool = False,
 ) -> dict[str, Any]:
     answer_text = ((title.strip() + '\n') if title and title.strip() else '') + content
-    from .reference_quality import blocked_page_hits
+    from .reference_quality import blocked_page_hits, script_payload_shell
     block_hits = blocked_page_hits(answer_text)
+    script_shell = script_payload_shell(answer_text)
     replacement_count, replacement_ratio, encoding_corruption = text_corruption(answer_text)
     truncation_hits = declared_truncation_hits(answer_text)
     folded = normalize_for_match(answer_text)
@@ -478,7 +486,8 @@ def evaluate_content(
     legacy_pass = bool(matched) if expected else True
     length_pass = len(content) >= min_content_chars
     content_pass = (legacy_pass and length_pass and fact_coverage >= fact_coverage_threshold
-                    and not forbidden and not block_hits and not encoding_corruption)
+                    and not forbidden and not block_hits and not encoding_corruption
+                    and not script_shell)
     pattern_results = []
     for rule in required_patterns or []:
         count = len(set(re.findall(rule['pattern'], answer_text, re.I)))
@@ -509,6 +518,7 @@ def evaluate_content(
         "blocked_page": bool(block_hits),
         "blocked_page_hits": block_hits,
         "blocked_page_reference_exemptions": block_reference_exemptions,
+        "script_payload_shell": script_shell,
         "reference_term_exemptions": reference_exemptions,
         "minimum_content_chars": min_content_chars,
         "length_pass": length_pass,
@@ -545,6 +555,11 @@ def evaluate_content(
             result["stable_task_pass"] = False
             result["stable_content_pass"] = False
             result["stable_task_errors"].append("forbidden_content")
+        if script_shell and acceptance_contract.get("schema") == "body_text":
+            result["stable_task_pass"] = False
+            result["stable_content_pass"] = False
+            if "script_payload_shell" not in result["stable_task_errors"]:
+                result["stable_task_errors"].append("script_payload_shell")
         # A ``body_text`` contract has no structural record-count floor, so
         # stable anchors must not let a tiny title/snippet bypass the declared
         # minimum amount of returned body text. Structured schemas retain their

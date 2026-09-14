@@ -169,7 +169,7 @@ def _unique_by(rows, key, label):
 
 
 def merge_refresh(evidence: Path, prior_evidence: Path,
-                  supplemental_evidence: Path):
+                  supplemental_evidence: Path, prior_review_path: Path | None = None):
     """Safely reuse reviews across an arbitrarily refreshed complete matrix.
 
     A prior per-attempt review is reusable only when the complete current case
@@ -182,7 +182,21 @@ def merge_refresh(evidence: Path, prior_evidence: Path,
     current_records=[json.loads(line) for line in (evidence/'results.jsonl').read_text().splitlines()]
     prior_dataset=json.loads((prior_evidence/'dataset.json').read_text())
     prior_records=[json.loads(line) for line in (prior_evidence/'results.jsonl').read_text().splitlines()]
-    prior=require_result_review(prior_evidence,prior_dataset,prior_records)
+    if prior_review_path is None:
+        prior=require_result_review(prior_evidence,prior_dataset,prior_records)
+    else:
+        prior=json.loads(prior_review_path.read_text())
+        if prior.get('bindings') != {
+                'dataset_sha256':sha(prior_evidence/'dataset.json'),
+                'results_sha256':sha(prior_evidence/'results.jsonl')}:
+            raise ValueError('Staged prior review is bound to different evidence')
+        protocol=prior.get('review_protocol', {})
+        if (protocol.get('machine_judgments_withheld') is not True
+                or protocol.get('production_scorer_forbidden') is not True
+                or protocol.get('direct_artifact_evidence_required') is not True):
+            raise ValueError('Staged prior review is not an independent blind review')
+        if prior.get('unresolved') != 0:
+            raise ValueError('Staged prior review has unresolved judgments')
 
     current_cases=_unique_by(current_dataset.get('cases', []), 'id', 'Current dataset')
     prior_cases=_unique_by(prior_dataset.get('cases', []), 'id', 'Prior dataset')
@@ -248,6 +262,24 @@ def merge_refresh(evidence: Path, prior_evidence: Path,
               for row in current_records]
     if any(row is None for row in attempts):
         raise ValueError('Merged review is missing an attempt')
+    # Retained blind judgments may come from a staged review that already
+    # identified a scorer error. After the scorer is corrected, carry the
+    # independent judgment forward but bind machine/final verdict fields to
+    # the current persisted score. Reviewer-visible inputs were checked above.
+    normalized_attempts=[]
+    for record,reviewed in zip(current_records,attempts):
+        machine=('pass' if task_passed(
+            record['ok'],record['metrics'],
+            current_cases[record['case_id']].get('task_kind','body')) else 'fail')
+        reviewed=dict(reviewed)
+        reviewed['machine_verdict']=machine
+        reviewed['final_verdict']=machine
+        if reviewed.get('agent_verdict') == machine:
+            reviewed['adjudication']=None
+        elif not str(reviewed.get('adjudication') or '').strip():
+            raise ValueError('Retained disagreement lacks adjudication: '+record['attempt_id'])
+        normalized_attempts.append(reviewed)
+    attempts=normalized_attempts
     merged=json.loads(json.dumps(prior))
     merged['bindings']={'dataset_sha256':sha(evidence/'dataset.json'),
                         'results_sha256':sha(evidence/'results.jsonl')}
@@ -271,6 +303,8 @@ def merge_refresh(evidence: Path, prior_evidence: Path,
     merged['accepted_unreviewed_passes']=0
     merged['disagreements']=sum(row['agent_verdict']!=row['machine_verdict'] for row in attempts)
     merged['unresolved']=sum(row['final_verdict'] not in {'pass','fail'} for row in attempts)
+    merged['confirmed_scoring_errors']=sum(
+        row['final_verdict']!=row['machine_verdict'] for row in attempts)
     return _install_review(evidence,merged)
 
 
@@ -288,7 +322,9 @@ if __name__ == '__main__':
     parser.add_argument('--prior-evidence',type=Path)
     args=parser.parse_args()
     if args.prior_evidence:
-        print(merge_replacement(args.evidence,args.prior_evidence,args.supplemental_evidence))
+        print(merge_refresh(
+            args.evidence,args.prior_evidence,args.supplemental_evidence,
+            args.prior_review))
     else:
         if not args.prior_review:
             parser.error('--prior-review is required without --prior-evidence')

@@ -10741,9 +10741,41 @@
           ]
         },
         {
+          "id": "物品表内容",
+          "alternatives": [
+            "Highlighter 2 colors"
+          ]
+        },
+        {
+          "id": "点位表内容",
+          "alternatives": [
+            "Point E 93 35 54 43"
+          ]
+        },
+        {
+          "id": "院校表内容",
+          "alternatives": [
+            "Oak Institute 202 210 -8",
+            "Oak Institute 202 210-8"
+          ]
+        },
+        {
+          "id": "日历内容",
+          "alternatives": [
+            "December 2007 Sun Mon Tue Wed Thu Fri Sat"
+          ]
+        },
+        {
           "id": "脚注章节",
           "alternatives": [
             "Footnotes & Endnotes"
+          ]
+        },
+        {
+          "id": "尾注正文",
+          "alternatives": [
+            "Endnotes are typically used for longer notes, they remain endnotes when converted into ebook form",
+            "In paged media, footnotes are usually displayed at the bottom of the text"
           ]
         }
       ],

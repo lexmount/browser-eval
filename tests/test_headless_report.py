@@ -17,6 +17,7 @@ from scripts.assemble_headless import (assemble, copy_bound_review, copy_project
                                        copy_scoring_revision_history,
                                        read_verified_batches,
                                        bind_assembled_scoring_revision,
+                                       bind_missing_assembled_scoring_gap,
                                        _selected_record,
                                        _copy_speed_bundle,
                                        _prune_shadowed_batch_attempts,
@@ -219,6 +220,45 @@ class HeadlessReportTests(unittest.TestCase):
             history[0]['changed_cases']=[{'case_id':'tampered','fields':[]}]
             (root/'scoring-revisions.json').write_text(json.dumps(history))
             self.assertFalse(valid_scoring_revision(root))
+
+    def test_late_full_review_can_bind_one_missing_assembly_edge(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            dataset={'comparison':{'require_independent_result_review':True},
+                     'cases':[{'id':'body','task_kind':'body'}]}
+            record={'attempt_id':'p__body__r001','provider':'p','case_id':'body','ok':True,
+                    'metrics':{'content_pass':True}}
+            (root/'dataset.json').write_text(json.dumps(dataset))
+            (root/'results.jsonl').write_text(json.dumps(record)+'\n')
+            current_bindings={
+                'dataset_sha256':hashlib.sha256((root/'dataset.json').read_bytes()).hexdigest(),
+                'results_sha256':hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()}
+            current_review={'schema_version':1,'bindings':current_bindings,
+                'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
+                'attempts':[{'attempt_id':record['attempt_id'],'machine_verdict':'pass',
+                             'agent_verdict':'pass','final_verdict':'pass'}]}
+            (root/'result-review.json').write_text(json.dumps(current_review))
+            gap_target={'dataset_sha256':'e'*64,'results_sha256':'f'*64}
+            staged=current_review | {
+                'bindings':gap_target,'unresolved':0,'accepted_unreviewed_passes':0}
+            staged_path=root/'assembly-review.json';staged_path.write_text(json.dumps(staged))
+            history=[
+                {'kind':'audited_scoring_rule_revision','provider_calls':0,
+                 'input_dataset_sha256':'a'*64,'input_results_sha256':'b'*64,
+                 'output_dataset_sha256':'c'*64,'output_results_sha256':'d'*64,
+                 'changed_cases':[],'task_decision_changes':[]},
+                {'kind':'audited_scoring_rule_revision','provider_calls':0,
+                 'input_dataset_sha256':'e'*64,'input_results_sha256':'f'*64,
+                 'output_dataset_sha256':current_bindings['dataset_sha256'],
+                 'output_results_sha256':current_bindings['results_sha256'],
+                 'changed_cases':[],'task_decision_changes':[]},
+            ]
+            (root/'scoring-revisions.json').write_text(json.dumps(history))
+            self.assertTrue(bind_missing_assembled_scoring_gap(root,staged_path))
+            self.assertTrue(valid_scoring_revision(root))
+            repaired=json.loads((root/'scoring-revisions.json').read_text())
+            self.assertEqual(repaired[1]['kind'],'audited_assembled_scoring_revision')
+            self.assertEqual(repaired[1]['output_results_sha256'],'f'*64)
 
     def test_prior_review_is_copied_only_when_dataset_and_results_are_identical(self):
         import hashlib

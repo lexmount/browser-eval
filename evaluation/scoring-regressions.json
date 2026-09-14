@@ -145,6 +145,54 @@
       "expected_metrics": {"body_coverage_pass": false}
     },
     {
+      "id": "overlapping-body-regions-use-global-capacity",
+      "category": "body-scope",
+      "root_cause": "body_region_order_greedy_allocation",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/overlapping-article",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "regions": [
+            {"id": "opening", "text": "abcdefghijklmnopqrstuvwxabcdefghijklmnopqrstuvwxabcdefghijklmnopqrstuvwxAAAAAAAABBBBBBBB"},
+            {"id": "ending", "text": "abcdefghijklmnopqrstuvwxabcdefghijklmnopqrstuvwxabcdefghijklmnopqrstuvwxCCCCCCCCDDDDDDDD"}
+          ]
+        }
+      },
+      "artifact": "abcdefghijklmnopqrstuvwxabcdefghijklmnopqrstuvwxabcdefghijklmnopqrstuvwxabcdefghijklmnopqrstuvwxabcdefAAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"body_coverage_pass": true, "body_target_regions": 1}
+    },
+    {
+      "id": "one-body-fragment-instance-cannot-fill-two-regions",
+      "category": "body-scope",
+      "root_cause": "body_region_order_greedy_allocation",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/duplicated-regions",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "regions": [
+            {"id": "opening", "text": "abcdefghijklmnopqrstuvwxabcdefghijklmnopqrstuvwxabcdefghijklmnopqrstuvwx"},
+            {"id": "ending", "text": "abcdefghijklmnopqrstuvwxabcdefghijklmnopqrstuvwxabcdefghijklmnopqrstuvwx"}
+          ]
+        }
+      },
+      "artifact": "abcdefghijklmnopqrstuvwxabcdefghijklmnopqrstuvwxabcdefghijklmnopqrstuvwx",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"body_coverage_pass": false}
+    },
+    {
       "id": "declared-truncation-cannot-pass-full-body-task",
       "category": "body-scope",
       "root_cause": "declared_truncation",
@@ -1093,6 +1141,123 @@
         "length_pass": true,
         "stable_content_pass": true
       }
+    },
+    {
+      "id": "document-headings-cannot-replace-declared-table-and-note-content",
+      "category": "acceptance-contract",
+      "root_cause": "document_contract_only_required_section_headings",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/document.docx",
+        "task_kind": "body",
+        "min_content_chars": 20,
+        "required_facts": [
+          {"id": "title", "alternatives": ["Document conversion demonstration"]},
+          {"id": "table", "alternatives": ["Highlighter 2 colors"]},
+          {"id": "note", "alternatives": ["Endnotes retain a backlink to the current position"]}
+        ]
+      },
+      "artifact": "Document conversion demonstration\nTables\nFootnotes & Endnotes\nLists and images",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"fact_coverage": 0.3333}
+    },
+    {
+      "id": "document-content-landmarks-pass-with-complete-table-and-note-content",
+      "category": "acceptance-contract",
+      "root_cause": "document_contract_only_required_section_headings",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/document.docx",
+        "task_kind": "body",
+        "min_content_chars": 20,
+        "required_facts": [
+          {"id": "title", "alternatives": ["Document conversion demonstration"]},
+          {"id": "table", "alternatives": ["Highlighter 2 colors"]},
+          {"id": "note", "alternatives": ["Endnotes retain a backlink to the current position"]}
+        ]
+      },
+      "artifact": "Document conversion demonstration\n| ITEM | NEEDED |\n| --- | --- |\n| Highlighter | 2 colors |\nEndnotes retain a backlink to the current position",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"fact_coverage": 1.0}
+    },
+    {
+      "id": "markdown-table-cells-match-readable-content-landmarks",
+      "category": "format-normalization",
+      "root_cause": "markdown_table_delimiters_blocked_readable_fact_matching",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/document.docx",
+        "task_kind": "body",
+        "required_facts": [
+          {"id": "table", "alternatives": ["Highlighter 2 colors"]}
+        ]
+      },
+      "artifact": "| ITEM | NEEDED |\n| --- | --- |\n| Highlighter | 2 colors |",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"fact_coverage": 1.0}
+    },
+    {
+      "id": "single-literal-pipe-is-not-a-table-boundary",
+      "category": "format-normalization",
+      "root_cause": "markdown_table_delimiters_blocked_readable_fact_matching",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/code",
+        "task_kind": "body",
+        "required_facts": [
+          {"id": "expression", "alternatives": ["alpha beta"]}
+        ]
+      },
+      "artifact": "The literal expression is alpha | beta.",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"fact_coverage": 0.0}
+    },
+    {
+      "id": "script-state-anchor-is-not-readable-body",
+      "category": "answer-surface",
+      "root_cause": "serialized_script_state_accepted_as_body_text",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/help",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {"id": "answer", "alternatives": ["Required readable answer"]}
+          ]
+        }
+      },
+      "artifact": "window.__S0__={\"text\":\"Required readable answer\",\"payload\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"};window.__S1__={};window.__S2__={};window.__S3__={};window.__S4__={};window.__S5__={};window.__S6__={};window.__S7__={};window.__S8__={};window.__S9__={};window.__S10__={};window.__S11__={};//# sourceURL=/bundle.js\n//# sourceURL=/1.js\n//# sourceURL=/2.js\n//# sourceURL=/3.js\n//# sourceURL=/4.js\n//# sourceURL=/5.js\n//# sourceURL=/6.js\n//# sourceURL=/7.js\n//# sourceURL=/8.js\n//# sourceURL=/9.js\n//# sourceURL=/10.js",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"script_payload_shell": true, "stable_task_pass": false}
+    },
+    {
+      "id": "readable-javascript-article-with-code-still-passes",
+      "category": "answer-surface",
+      "root_cause": "serialized_script_state_accepted_as_body_text",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/js-docs",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {"id": "identity", "alternatives": ["Reading JavaScript application state"]},
+            {"id": "purpose", "alternatives": ["readable prose remains the task output"]}
+          ]
+        }
+      },
+      "artifact": "# Reading JavaScript application state\nThis article explains why readable prose remains the task output. It discusses serialization, hydration, accessibility, extraction boundaries, and testing in ordinary paragraphs.\n```js\nwindow.__STATE__ = {article: 'example'};\n```",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"script_payload_shell": false, "stable_task_pass": true}
     }
   ]
 }

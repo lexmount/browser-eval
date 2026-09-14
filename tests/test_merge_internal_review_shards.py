@@ -36,6 +36,8 @@ class MergeInternalReviewShardsTests(unittest.TestCase):
             "schema_version": 1, "bindings": bindings,
             "reviewer": {"model": "prior-model"},
             "review_protocol": {"machine_judgments_withheld": True,
+                                "production_scorer_forbidden": True,
+                                "direct_artifact_evidence_required": True,
                                 "scope": "machine-failures"},
             "attempts": [{"attempt_id": "failed", "machine_verdict": "fail",
                           "agent_verdict": "fail", "agent_evidence": "missing",
@@ -46,7 +48,9 @@ class MergeInternalReviewShardsTests(unittest.TestCase):
         shard = {
             "schema_version": 1, "bindings": bindings,
             "reviewer": {"model": "new-model"},
-            "review_protocol": {"scope": "machine-passes", "provider_filter": ["b"]},
+            "review_protocol": {"scope": "machine-passes", "provider_filter": ["b"],
+                                "production_scorer_forbidden": True,
+                                "direct_artifact_evidence_required": True},
             "attempts": [{"attempt_id": "passed", "agent_verdict": "pass",
                           "agent_evidence": "required text present"}],
         }
@@ -66,6 +70,18 @@ class MergeInternalReviewShardsTests(unittest.TestCase):
             self.assertEqual(review["accepted_unreviewed_passes"], 0)
             self.assertEqual(review["disagreements"], 0)
             self.assertEqual(review["reviewer"]["model"], "new-model, prior-model")
+            self.assertTrue(review["review_protocol"]["production_scorer_forbidden"])
+            self.assertTrue(review["review_protocol"]["direct_artifact_evidence_required"])
+
+    def test_merge_rejects_review_that_can_share_the_production_scorer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            evidence, prior, shard = self.fixture(root)
+            document = json.loads(shard.read_text())
+            document["review_protocol"].pop("production_scorer_forbidden")
+            shard.write_text(json.dumps(document))
+            with self.assertRaisesRegex(ValueError, "not scorer-independent"):
+                merge_reviews(evidence, [shard], root / "full.json", prior_review=prior)
 
     def test_pass_disagreement_cannot_be_installed_without_correction(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -13,9 +13,63 @@ from harness.web_fetch.runner import run_evaluation
 from scripts.headless_worker import fetch
 from scripts.review_headless_results import independent_attempt
 from scripts.review_headless_results import main as review_main
+from scripts.review_headless_results import INDEPENDENCE_RULES, validate_review_evidence
 
 
 class HeadlessTests(unittest.TestCase):
+    def test_body_review_rejects_machine_percentage_as_evidence(self):
+        with self.assertRaisesRegex(ValueError, 'scores and percentages'):
+            validate_review_evidence({
+                'attempt_id':'p__pdf__r001', 'verdict':'pass',
+                'evidence':'Coverage is 100%, above the 80% threshold.',
+            }, 'body')
+        with self.assertRaisesRegex(ValueError, 'scores and percentages'):
+            validate_review_evidence({
+                'attempt_id':'p__pdf__r002', 'verdict':'fail',
+                'evidence':'The middle region scored 42%.',
+            }, 'body')
+        with self.assertRaisesRegex(ValueError, 'scores and percentages'):
+            validate_review_evidence({
+                'attempt_id':'p__pdf__r003', 'verdict':'pass',
+                'evidence':(
+                    'beginning: <actual passage>; middle: <actual passage>; '
+                    'end: <actual passage>'),
+            }, 'body')
+
+    def test_body_review_accepts_direct_positive_and_negative_observations(self):
+        validate_review_evidence({
+            'attempt_id':'p__pdf__r001', 'verdict':'pass',
+            'evidence':(
+                'beginning: Annual Climate Report; '
+                'middle: Global temperature anomalies by region; '
+                'end: Methods and references'),
+        }, 'body')
+        validate_review_evidence({
+            'attempt_id':'p__pdf__r002', 'verdict':'fail',
+            'evidence':(
+                'missing: Methods and references section; '
+                'observed: artifact stops after the regional temperature table'),
+        }, 'body')
+        validate_review_evidence({
+            'attempt_id':'p__docx__r001', 'verdict':'fail',
+            'evidence':(
+                'missing: readable document title and tables; '
+                'observed: raw response begins <html><body>PK archive bytes'),
+        }, 'body')
+
+    def test_independence_prompt_forbids_production_scorer_recalculation(self):
+        self.assertIn('Do not import, execute, or reimplement the production scorer',
+                      INDEPENDENCE_RULES)
+        self.assertIn('Judge the saved artifact directly', INDEPENDENCE_RULES)
+        self.assertIn('beginning:', INDEPENDENCE_RULES)
+        self.assertIn('missing:', INDEPENDENCE_RULES)
+
+    def test_review_source_guards_case_only_and_declared_truncation_mistakes(self):
+        source = Path(__file__).resolve().parents[1].joinpath(
+            'scripts/review_headless_results.py').read_text()
+        self.assertIn('Capitalization alone is an ordinary presentation difference', source)
+        self.assertIn('provider-authored notice that explicitly says', source)
+
     def test_explicit_empty_chromium_binary_never_uses_playwright_fallback(self):
         self.assertIsNone(_resolve_binary('chromium', ''))
 

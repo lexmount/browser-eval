@@ -209,6 +209,73 @@ def bind_assembled_scoring_revision(output):
     return True
 
 
+def bind_missing_assembled_scoring_gap(output: Path, assembly_review: Path) -> bool:
+    """Insert the one missing assembly edge after a review completed later.
+
+    Pair-only replacement may be assembled before its full blind review exists.
+    Later score revisions must not make that provider-replacement transition
+    disappear from the hash chain. The supplied historical review must bind
+    exactly to the gap target; the current complete review validates the final
+    end of the repaired chain.
+    """
+    path=output/'scoring-revisions.json'
+    history=json.loads(path.read_text())
+    review=json.loads(assembly_review.read_text())
+    if (review.get('review_protocol',{}).get('scope') != 'all'
+            or review.get('review_protocol',{}).get('machine_judgments_withheld') is not True
+            or review.get('unresolved') != 0
+            or review.get('accepted_unreviewed_passes') != 0):
+        raise ValueError('Assembly review must be a complete resolved blind review')
+    gaps=[]
+    for index in range(1,len(history)):
+        previous=(history[index-1].get('output_dataset_sha256'),
+                  history[index-1].get('output_results_sha256'))
+        current=(history[index].get('input_dataset_sha256'),
+                 history[index].get('input_results_sha256'))
+        if previous != current:
+            gaps.append((index,previous,current))
+    if not gaps:
+        return False
+    if len(gaps) != 1:
+        raise ValueError('Scoring history has more than one missing assembly edge')
+    index,before,after=gaps[0]
+    if review.get('bindings') != {
+            'dataset_sha256':after[0],'results_sha256':after[1]}:
+        raise ValueError('Assembly review is not bound to the missing edge target')
+    changed={};decisions={}
+    for row in history[:index]:
+        for change in row.get('changed_cases',[]):
+            changed[json.dumps(change,ensure_ascii=False,sort_keys=True)]=change
+        for decision in row.get('task_decision_changes',[]):
+            decisions[json.dumps(decision,ensure_ascii=False,sort_keys=True)]=decision
+    bridge={
+        'kind':'audited_assembled_scoring_revision',
+        'scored_at':datetime.now(timezone.utc).isoformat(),
+        'input_dataset_sha256':before[0],
+        'input_results_sha256':before[1],
+        'output_dataset_sha256':after[0],
+        'output_results_sha256':after[1],
+        'changed_cases':list(changed.values()),
+        'task_decision_changes':list(decisions.values()),
+        'provider_calls':0,
+        'immutable_call_fields':'attempt identity, output bytes/hash, timestamps, elapsed time, metrics and verdicts retained',
+        'source_scoring_receipts_sha256':scoring_revision_history_sha256(history[:index]),
+        'independent_result_review_sha256':hashlib.sha256(assembly_review.read_bytes()).hexdigest(),
+    }
+    repaired=[*history[:index],bridge,*history[index:]]
+    candidate=json.dumps(repaired,ensure_ascii=False,indent=2)+'\n'
+    with tempfile.TemporaryDirectory() as directory:
+        check=Path(directory)
+        for name in ('dataset.json','results.jsonl','result-review.json','reference-revisions.json'):
+            source=output/name
+            if source.is_file():shutil.copy2(source,check/name)
+        (check/'scoring-revisions.json').write_text(candidate)
+        if not valid_scoring_revision(check):
+            raise ValueError('Repaired assembly scoring history is still invalid')
+    path.write_text(candidate)
+    return True
+
+
 def read_verified_batches(root, dataset, rows):
     """Accept either one physical run or a previously verified assembly."""
     manifest_path=root/'manifest.json'
@@ -844,8 +911,12 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     if not failed:require_verified_reference_checks(batches,cases=dataset,records=records,source=output,
         equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
         'equivalent_reference_bytes_with_independent_batch_captures',
-        allow_scoring_rule_revision=all(
-            has_bound_direct_scoring_revision(root) for root in dict.fromkeys(evidence)))
+        # A pair-only provider rerun is already scored against the current
+        # canonical dataset.  It must not make an inherited, provenance-bound
+        # scoring correction invalid merely because the fresh call bundle has
+        # no scoring-revision receipt of its own.  The receipt belongs to the
+        # baseline rows whose original certified batches predate that scorer.
+        allow_scoring_rule_revision=has_bound_direct_scoring_revision(run))
     print('Assembled',len(records),'calls; publication:',dataset['comparison']['publication_state'],'unverified:',failed)
 
 

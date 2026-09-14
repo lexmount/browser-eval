@@ -34,6 +34,23 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(result['replacement_character_count'], 25)
         self.assertFalse(result['content_pass'])
 
+    def test_stable_anchors_inside_minified_script_state_are_not_readable_body(self):
+        contract = {
+            'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+            'stable_text_anchors': [
+                {'id': 'answer', 'alternatives': ['Required readable answer']},
+            ],
+        }
+        bundle = ''.join(
+            f'window.__STATE{i}__={{"text":"Required readable answer",'
+            f'"payload":"{"x" * 900}"}};'
+            for i in range(12)
+        ) + '\n' + '\n'.join(f'//# sourceURL=/bundle-{i}.js' for i in range(12))
+        result = evaluate_content(bundle, [], acceptance_contract=contract)
+        self.assertTrue(result['script_payload_shell'])
+        self.assertFalse(result['stable_task_pass'])
+        self.assertIn('script_payload_shell', result['stable_task_errors'])
+
     def test_adjacent_numeric_links_cannot_invent_positive_number_hits(self):
         for text, visible in [('[-](u)[10](v)','-10'),('[10](u)[.5](v)','10.5'),
                               ('[10](u)[0](v)','100'),('[+](u)[10](v)','+10')]:
