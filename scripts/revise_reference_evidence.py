@@ -20,6 +20,7 @@ from harness.web_fetch.scoring_regressions import (
     ROOT_CAUSE_CATEGORIES, build_correction_provenance,
 )
 from scripts.rescore_content import rescore
+from scripts.revise_body_scoring import archive_superseded_result_review
 
 ALLOWED_FIELDS = {
     "ground_truth_main_content", "source_verification", "body_requirements",
@@ -29,11 +30,37 @@ SEPARATE_SCORING_FIELDS = {
     "required_facts", "acceptance_contract", "forbidden_any",
     "expected_resources", "resource_output_contract", "task_prompt",
     "retrieval_hints",
+    "mutable_body_policy",
+}
+CAPTURE_INSTANCE_FIELDS = {
+    "checked_at", "http_status", "source_snapshot_sha256",
+    "extracted_reference_sha256", "browser_observation_sha256",
 }
 
 
 def digest(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
+
+
+def equivalent_source_verification(old: dict, new: dict) -> bool:
+    """Ignore a fresh capture's identity when its frozen contract is unchanged."""
+    left = {key: value for key, value in (old or {}).items()
+            if key not in CAPTURE_INSTANCE_FIELDS}
+    right = {key: value for key, value in (new or {}).items()
+             if key not in CAPTURE_INSTANCE_FIELDS}
+    return left == right
+
+
+def reference_fields_for_case(old: dict, new: dict) -> set[str]:
+    """Keep scoring-only body changes out of a reference correction."""
+    reference_changed = (
+        old.get("ground_truth_main_content") != new.get("ground_truth_main_content")
+        or not equivalent_source_verification(
+            old.get("source_verification", {}), new.get("source_verification", {}))
+    )
+    return ALLOWED_FIELDS if reference_changed else {
+        "ground_truth_main_content", "source_verification"
+    }
 
 
 def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
@@ -46,6 +73,13 @@ def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
     results_path = contained_path(source, "results.jsonl")
     before_dataset = dataset_path.read_bytes()
     before_results = results_path.read_bytes()
+    review_path = source / "result-review.json"
+    if review_path.is_file():
+        review = json.loads(review_path.read_text())
+        if review.get("bindings") != {
+                "dataset_sha256": digest(before_dataset),
+                "results_sha256": digest(before_results)}:
+            raise ValueError("Existing result review is not bound to reference revision inputs")
     dataset = json.loads(before_dataset)
     canonical = json.loads(canonical_path.read_text())
     old_cases = {case["id"]: case for case in dataset["cases"]}
@@ -63,6 +97,7 @@ def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
     updated = []
     for case_id, old in old_cases.items():
         new = new_cases[case_id]
+        reference_fields = reference_fields_for_case(old, new)
         # A reference correction and an independently reviewed scoring-contract
         # correction may be pending at the same time. Preserve the old scoring
         # fields for the later scoring revision instead of either importing them
@@ -74,7 +109,10 @@ def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
             raise ValueError(f"{case_id}: reference revision changed task fields {forbidden}")
         row = deepcopy(old)
         fields = []
-        for key in ALLOWED_FIELDS:
+        for key in reference_fields:
+            if (key == "source_verification"
+                    and equivalent_source_verification(old.get(key, {}), new.get(key, {}))):
+                continue
             if old.get(key) != new.get(key):
                 fields.append(key)
                 if key in new:
@@ -133,37 +171,30 @@ def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
             provenance["category"], provenance["root_cause"],
             provenance["regression_ids"], decisions
         ),
+        **(archive_superseded_result_review(
+            review_path, before_dataset=before_dataset, before_results=before_results)
+           if review_path.is_file() else {}),
     }
+    receipt["revision_transitions"] = [{key: receipt[key] for key in (
+        "input_dataset_sha256", "input_results_sha256",
+        "output_dataset_sha256", "output_results_sha256",
+    )}]
     receipt_path = source / "reference-revisions.json"
     history = json.loads(receipt_path.read_text()) if receipt_path.exists() else []
     if not isinstance(history, list):
         raise ValueError("Reference revision history must be a list")
-    receipt_sha = digest(json.dumps(
-        receipt, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    ).encode())
-    for prior in history:
-        prior["prior_output_dataset_sha256"] = prior["output_dataset_sha256"]
-        prior["prior_output_results_sha256"] = prior["output_results_sha256"]
-        prior["output_dataset_sha256"] = receipt["output_dataset_sha256"]
-        prior["output_results_sha256"] = receipt["output_results_sha256"]
-        prior["rebound_after_reference_revision_at"] = receipt["corrected_at"]
-        prior["rebound_by_reference_revision_receipt_sha256"] = receipt_sha
+    # Append-only history: a later reference correction is a new graph edge,
+    # never a reason to rewrite an earlier receipt's endpoint.
     receipt_path.write_text(
         json.dumps([*history, receipt], ensure_ascii=False, indent=2) + "\n")
+    # A reference correction is a separate, hash-bound transition.  Never
+    # rewrite historical scoring outputs to the new reference result: doing so
+    # destroys the chronological scoring chain.  The validator follows the
+    # audited reference receipt as an explicit bridge before later scoring
+    # revisions.
     scoring_path = source / "scoring-revisions.json"
-    if scoring_path.exists():
-        scoring_history = json.loads(scoring_path.read_text())
-        if not isinstance(scoring_history, list):
-            raise ValueError("Scoring revision history must be a list")
-        for prior in scoring_history:
-            prior["prior_output_dataset_sha256"] = prior["output_dataset_sha256"]
-            prior["prior_output_results_sha256"] = prior["output_results_sha256"]
-            prior["output_dataset_sha256"] = receipt["output_dataset_sha256"]
-            prior["output_results_sha256"] = receipt["output_results_sha256"]
-            prior["rebound_after_reference_revision_at"] = receipt["corrected_at"]
-            prior["rebound_by_reference_revision_receipt_sha256"] = receipt_sha
-        scoring_path.write_text(
-            json.dumps(scoring_history, ensure_ascii=False, indent=2) + "\n")
+    if scoring_path.exists() and not isinstance(json.loads(scoring_path.read_text()), list):
+        raise ValueError("Scoring revision history must be a list")
     return receipt
 
 

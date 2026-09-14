@@ -336,46 +336,46 @@
         "case_id": "stable-wikipedia-ai-revision",
         "category": "reference_only_correction",
         "reason": "Correct the independent reference only; rescore all immutable method attempts without adding provider calls, then complete full result review.",
-        "attempts": 12,
+        "attempts": 10,
         "full_review": true
       },
       {
         "case_id": "stable-wcag21-recommendation",
         "category": "reference_only_correction",
         "reason": "Remove a non-content back-to-top glyph from the immutable document reference; rescore all immutable method attempts without adding provider calls, then complete full result review.",
-        "attempts": 12,
+        "attempts": 10,
         "full_review": true
       },
       {
         "case_id": "live-041-python-programming-language",
         "category": "reference_only_correction",
         "reason": "Replace citation and navigation-template anchors with independently observed article-body anchors; rescore immutable outputs without provider calls, then complete full result review.",
-        "attempts": 12,
+        "attempts": 10,
         "full_review": true
       },
       {
         "case_id": "live-060-database",
         "category": "reference_only_correction",
         "reason": "Correct article-body reference scope and rescore immutable outputs without provider calls, then complete full result review.",
-        "attempts": 12,
+        "attempts": 10,
         "full_review": true
       },
       {
         "case_id": "live-061-version-control",
         "category": "reference_only_correction",
         "reason": "Correct article-body reference scope and rescore immutable outputs without provider calls, then complete full result review.",
-        "attempts": 12,
+        "attempts": 10,
         "full_review": true
       },
       {
         "case_id": "live-062-natural-language-processing",
         "category": "reference_only_correction",
         "reason": "Correct article-body reference scope and rescore immutable outputs without provider calls, then complete full result review.",
-        "attempts": 12,
+        "attempts": 10,
         "full_review": true
       }
     ],
-    "planned_new_calls": 824,
+    "planned_new_calls": 816,
     "final_logical_attempts": 1800
   },
   "same_window_speed_cohort": {
@@ -392,5 +392,5 @@
     },
     "planned_new_calls": 0
   },
-  "total_planned_new_calls": 824
+  "total_planned_new_calls": 816
 }

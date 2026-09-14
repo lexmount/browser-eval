@@ -23,6 +23,7 @@ ALLOWED_FIELDS = {
     'body_requirements', 'required_patterns', 'required_facts',
     'acceptance_contract', 'forbidden_any', 'expected_resources',
     'resource_output_contract', 'task_prompt',
+    'mutable_body_policy',
 }
 class IndependentReviewRequired(ValueError):
     """The prior review is valid history but cannot certify revised scores."""
@@ -208,6 +209,8 @@ def _revise_unlocked(source: Path, canonical_path: Path, *, root_cause_category:
     # original live-call bindings.
     revised_reference_hashes = reference_revision_cases(source)
     reference_receipt_path = source/'reference-revisions.json'
+    prior_reference_bytes = (reference_receipt_path.read_bytes()
+                             if reference_receipt_path.is_file() else None)
     prior_reference_receipts = (json.loads(reference_receipt_path.read_text())
                                 if revised_reference_hashes else None)
     dataset = json.loads(before_dataset)
@@ -295,21 +298,11 @@ def _revise_unlocked(source: Path, canonical_path: Path, *, root_cause_category:
     }
     history.append(receipt)
     receipt_path.write_text(json.dumps(history, ensure_ascii=False, indent=2)+'\n')
+    # Reference receipts are immutable history.  Their output can remain an
+    # ancestor of the current bundle; lifecycle validation follows the later
+    # scoring edge instead of rebinding the historical receipt in place.
     if prior_reference_receipts is not None:
-        receipt_sha = hashlib.sha256(json.dumps(
-            receipt, ensure_ascii=False, sort_keys=True,
-            separators=(',', ':')).encode()).hexdigest()
-        current_dataset = hashlib.sha256(dataset_path.read_bytes()).hexdigest()
-        current_results = hashlib.sha256(results_path.read_bytes()).hexdigest()
-        for row in prior_reference_receipts:
-            row['prior_output_dataset_sha256'] = row['output_dataset_sha256']
-            row['prior_output_results_sha256'] = row['output_results_sha256']
-            row['output_dataset_sha256'] = current_dataset
-            row['output_results_sha256'] = current_results
-            row['rebound_after_scoring_revision_at'] = receipt['scored_at']
-            row['rebound_by_scoring_revision_receipt_sha256'] = receipt_sha
-        reference_receipt_path.write_text(json.dumps(
-            prior_reference_receipts, ensure_ascii=False, indent=2)+'\n')
+        assert reference_receipt_path.read_bytes() == prior_reference_bytes
     return receipt
 
 

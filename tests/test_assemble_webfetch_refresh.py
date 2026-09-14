@@ -658,6 +658,19 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
             )
         self.assertFalse(output.exists())
 
+        shard_execution["batches"][0]["provider_config_source"] = "/repo/configs/providers.resources.json"
+        self.write_json(shard / "execution.json", shard_execution)
+        route_output = self.root / "different-declared-config-route-output"
+        assemble(
+            self.baseline,
+            [self.main, shard],
+            self.speed,
+            route_output,
+            canonical_dataset=self.canonical_path,
+            plan=self.plan_path,
+        )
+        self.assertTrue((route_output / "results.jsonl").is_file())
+
     def test_main_rerun_rejects_explicit_account_capacity_failure(self) -> None:
         rows = [json.loads(line) for line in (self.main / "results.jsonl").read_text().splitlines()]
         rows[0].update(
@@ -726,6 +739,8 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
             "checked_at": "2026-09-10T00:00:00+00:00",
             "http_status": 200,
             "reference_sha256": "a" * 64,
+            "rendered_content_sha256": "e" * 64,
+            "browser_observation_sha256": "f" * 64,
         }
         self.write_json(self.canonical_path, self.canonical)
         dataset = json.loads((self.main / "dataset.json").read_text())
@@ -737,6 +752,8 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
             "source_snapshot_sha256": "c" * 64,
             "extracted_reference_sha256": "d" * 64,
             "reference_sha256": "a" * 64,
+            "rendered_content_sha256": "e" * 64,
+            "browser_observation_sha256": "1" * 64,
         }
         self.write_json(self.main / "dataset.json", dataset)
         assemble(

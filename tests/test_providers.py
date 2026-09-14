@@ -30,6 +30,46 @@ class ProviderTest(unittest.TestCase):
             category="static", expected_any=["Example"],
         )
 
+    @patch("harness.web_fetch.providers.lexmount.request")
+    def test_lexmount_engine_uses_nested_extract_options(self, mock_request) -> None:
+        mock_request.return_value = HttpResponse(
+            200,
+            "u",
+            {},
+            b'{"result":{"main_text":"Example","engine":"lightmount_dcl"}}',
+        )
+
+        result = LexmountProvider(
+            "lexmount",
+            {"api_key": "x", "project_id": "p", "engine": "lightmount_dcl"},
+        ).fetch(self.case, 45)
+
+        self.assertTrue(result.ok)
+        self.assertEqual(mock_request.call_args.kwargs["json_body"], {
+            "extract": {
+                "url": "https://example.com",
+                "options": {"engine_preference": "lightmount_dcl"},
+            }
+        })
+        self.assertNotIn("engine", mock_request.call_args.kwargs["json_body"]["extract"])
+
+    @patch("harness.web_fetch.providers.lexmount.request")
+    def test_lexmount_never_uses_api_envelope_as_page_content(self, mock_request) -> None:
+        mock_request.return_value = HttpResponse(
+            200,
+            "u",
+            {},
+            b'{"result":{"main_text":"","title":"Envelope only"}}',
+        )
+
+        result = LexmountProvider(
+            "lexmount", {"api_key": "x", "project_id": "p"}
+        ).fetch(self.case, 45)
+
+        self.assertTrue(result.ok)
+        self.assertEqual(result.content, "")
+        self.assertNotIn("Envelope only", result.content)
+
     @patch("harness.web_fetch.providers.firecrawl.request")
     def test_firecrawl_rate_limit_is_actionable(self, mock_request) -> None:
         mock_request.return_value = HttpResponse(

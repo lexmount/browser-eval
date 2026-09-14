@@ -107,7 +107,7 @@ class StableAnnotationTests(unittest.TestCase):
         layouts = {
             "dynamic-quotes-api": ("crawl4ai", "tavily", "cloudflare-markdown"),
             "dynamic-products-api": ("crawl4ai", "moli-webfetch"),
-            "dynamic-angular-phones": ("crawl4ai", "cloudflare-markdown", "moli-webfetch", "tavily"),
+            "dynamic-angular-phones": ("crawl4ai", "cloudflare-markdown", "firecrawl", "moli-webfetch", "tavily"),
             "dynamic-swagger": ("cloudflare-markdown", "moli-webfetch"),
         }
         for identifier, sources in layouts.items():
@@ -123,8 +123,7 @@ class StableAnnotationTests(unittest.TestCase):
         evidence=current_evidence_dir()
         if not (evidence/'artifacts').is_dir():self.skipTest('requires persisted benchmark evidence')
         for source, identifier in (("firecrawl", "dynamic-quotes-api"),
-                                   ("tavily", "dynamic-products-api"),
-                                   ("firecrawl", "dynamic-angular-phones")):
+                                   ("tavily", "dynamic-products-api")):
             path = evidence / "artifacts" / source / identifier / "run-001.txt"
             if not path.is_file():
                 self.skipTest('requires persisted general benchmark artifacts')
@@ -132,6 +131,10 @@ class StableAnnotationTests(unittest.TestCase):
             self.assertFalse(result["stable_task_pass"], (source, identifier))
             if identifier == "dynamic-quotes-api":
                 self.assertFalse(result["stable_content_pass"])
+        # Keep the label-boundary regression independent of a provider result:
+        # Firecrawl's corrected wait route now returns all 20 owned records.
+        flattened = self.reference("dynamic-angular-phones").replace("\n", " ")
+        self.assertFalse(self.score("dynamic-angular-phones", flattened)["stable_task_pass"])
 
     def test_fixed_phone_descriptions_and_swagger_operations_not_replaced_by_count(self):
         phone = self.reference("dynamic-angular-phones")

@@ -196,6 +196,41 @@ class ScoringRegressionTests(unittest.TestCase):
             (root / "scoring-revisions.json").write_text(json.dumps([first, final]))
             self.assertTrue(valid_scoring_revision(root))
 
+    def test_scoring_history_crosses_explicit_reference_revision_transition(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dataset = b'{"cases": []}\n'
+            results = b''
+            (root / "dataset.json").write_bytes(dataset)
+            (root / "results.jsonl").write_bytes(results)
+            current = (hashlib.sha256(dataset).hexdigest(),
+                       hashlib.sha256(results).hexdigest())
+            base = {
+                "kind": "audited_scoring_rule_revision", "provider_calls": 0,
+                "changed_cases": [], "task_decision_changes": [],
+            }
+            first = {**base,
+                "input_dataset_sha256": "a" * 64, "input_results_sha256": "b" * 64,
+                "output_dataset_sha256": "c" * 64, "output_results_sha256": "d" * 64}
+            final = {**base,
+                "input_dataset_sha256": "e" * 64, "input_results_sha256": "f" * 64,
+                "output_dataset_sha256": current[0], "output_results_sha256": current[1]}
+            (root / "scoring-revisions.json").write_text(json.dumps([first, final]))
+            reference = {
+                "kind": "audited_reference_correction", "provider_calls": 0,
+                "output_dataset_sha256": current[0], "output_results_sha256": current[1],
+                "changed_cases": [], "task_decision_changes": [],
+                "revision_transitions": [{
+                    "input_dataset_sha256": "c" * 64, "input_results_sha256": "d" * 64,
+                    "output_dataset_sha256": "e" * 64, "output_results_sha256": "f" * 64,
+                }],
+            }
+            (root / "reference-revisions.json").write_text(json.dumps([reference]))
+            self.assertTrue(valid_scoring_revision(root))
+            reference["revision_transitions"][0]["output_results_sha256"] = "0" * 64
+            (root / "reference-revisions.json").write_text(json.dumps([reference]))
+            self.assertFalse(valid_scoring_revision(root))
+
     def test_reference_revision_requires_the_same_root_cause_binding(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -2,6 +2,16 @@
 import json,re
 
 
+def _platform_capability_restricted(message):
+    """Match an explicit service-side regional capability restriction."""
+    return bool(re.search(
+        r'\buse of\b.{1,500}\bis not allowed(?: by default)? in '
+        r'(?:your|this) (?:country|region)\b',
+        message,
+        re.S,
+    ))
+
+
 def _stable_failure(metrics):
     """Describe measured contract errors; never infer a shortfall by default."""
     errors = metrics.get('stable_task_errors', [])
@@ -70,6 +80,9 @@ def diagnose(r,c,raw,source=None):
             category,stage,proof=set_result('限流 / 配额','服务接口',message[:650])
         elif nested.get('code')=='browser_fetch_failed' and 'deadline exceeded' in low:
             category,stage,proof=set_result('服务内浏览器超时','服务取页',str(nested.get('message')))
+        elif _platform_capability_restricted(low):
+            category,stage,proof=set_result('平台调用能力受限','服务接口',message[:650])
+            certainty='服务明确返回按调用地区限制请求能力；不据此归责源站'
         elif 'execution context was destroyed' in low:
             category,stage,proof=set_result('浏览器执行上下文中断','浏览器执行',message[:650])
         elif re.search(r'timed out|(?<![a-z])timeout(?![a-z])|deadline exceeded',low):

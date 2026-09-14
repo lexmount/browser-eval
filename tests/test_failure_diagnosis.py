@@ -11,6 +11,17 @@ class FailureDiagnosisTests(unittest.TestCase):
  def test_nested_upstream_not_generic_502(self):
   r=self.record();d=diagnose(r,{},json.dumps({'error':{'upstream_status_code':403,'message':'unexpected status code: 403'}}))
   self.assertEqual(d['category'],'源站拒绝该次访问')
+ def test_platform_regional_capability_restriction_is_not_origin_rejection(self):
+  raw=json.dumps({'error':{'upstream_status_code':403,'message':
+   'Use of headers, actions, and the FIRE-1 agent is not allowed by default in your country'}})
+  d=diagnose(self.record(error_type='CRAWL_HTTP_403'),{},raw)
+  self.assertEqual(d['category'],'平台调用能力受限')
+  self.assertEqual(d['stage'],'服务接口')
+  self.assertIn('不据此归责源站',d['certainty'])
+ def test_platform_capability_rule_does_not_swallow_ordinary_upstream_403(self):
+  raw=json.dumps({'error':{'upstream_status_code':403,'message':'unexpected status code: 403'}})
+  d=diagnose(self.record(error_type='CRAWL_HTTP_403'),{},raw)
+  self.assertEqual(d['category'],'源站拒绝该次访问')
  def test_empty_api_success_is_extraction_failure(self):
   r=self.record(provider='cloudflare-markdown',status_code=200);raw='{"success":true,"result":""}'
   r['metrics']=score_attempt({'url':'https://example.com'},raw.encode(),ok=False,status_code=200)

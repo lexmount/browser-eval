@@ -545,6 +545,15 @@ def evaluate_content(
             result["stable_task_pass"] = False
             result["stable_content_pass"] = False
             result["stable_task_errors"].append("forbidden_content")
+        # A ``body_text`` contract has no structural record-count floor, so
+        # stable anchors must not let a tiny title/snippet bypass the declared
+        # minimum amount of returned body text. Structured schemas retain their
+        # record-based sufficiency rule.
+        if acceptance_contract.get("schema") == "body_text" and not length_pass:
+            result["stable_task_pass"] = False
+            result["stable_content_pass"] = False
+            if "content_too_short" not in result["stable_task_errors"]:
+                result["stable_task_errors"].append("content_too_short")
         result["content_pass"] = result["stable_task_pass"]
         result["content_decision_basis"] = "stable_acceptance_contract"
     return result

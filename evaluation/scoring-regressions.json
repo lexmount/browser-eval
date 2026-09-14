@@ -983,6 +983,116 @@
         "stable_complete_record_count": 3,
         "stable_structure_pass": true
       }
+    },
+    {
+      "id": "volatile-body-change-preserves-stable-anchor-pass",
+      "category": "acceptance-contract",
+      "root_cause": "volatile_full_body_snapshot_gate",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/current-page",
+        "min_content_chars": 20,
+        "required_facts": [
+          {"id": "identity", "alternatives": ["Stable page identity"]},
+          {"id": "purpose", "alternatives": ["Stable purpose statement"]}
+        ],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {"id": "identity", "alternatives": ["Stable page identity"]},
+            {"id": "purpose", "alternatives": ["Stable purpose statement"]}
+          ]
+        }
+      },
+      "artifact": "Stable page identity\nNew rotating news cards and dates\nStable purpose statement",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_anchor_coverage": 1.0,
+        "stable_record_count": 0
+      }
+    },
+    {
+      "id": "volatile-body-content-cannot-replace-stable-page-identity",
+      "category": "acceptance-contract",
+      "root_cause": "volatile_full_body_snapshot_gate",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/current-page",
+        "min_content_chars": 20,
+        "required_facts": [
+          {"id": "identity", "alternatives": ["Stable page identity"]},
+          {"id": "purpose", "alternatives": ["Stable purpose statement"]}
+        ],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {"id": "identity", "alternatives": ["Stable page identity"]},
+            {"id": "purpose", "alternatives": ["Stable purpose statement"]}
+          ]
+        }
+      },
+      "artifact": "Latest news\nSeptember 2026 highlights\nNew rotating cards without page identity",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_anchor_coverage": 0.0,
+        "stable_record_count": 0
+      }
+    },
+    {
+      "id": "stable-contract-short-summary-cannot-bypass-minimum-body-length",
+      "category": "acceptance-contract",
+      "root_cause": "stable_contract_bypassed_minimum_body_length",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/current-page",
+        "min_content_chars": 80,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {"id": "identity", "alternatives": ["Stable page identity"]}
+          ]
+        }
+      },
+      "artifact": "Stable page identity",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "length_pass": false,
+        "stable_content_pass": false
+      }
+    },
+    {
+      "id": "stable-contract-complete-body-still-passes-minimum-body-length",
+      "category": "acceptance-contract",
+      "root_cause": "stable_contract_bypassed_minimum_body_length",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/current-page",
+        "min_content_chars": 80,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {"id": "identity", "alternatives": ["Stable page identity"]}
+          ]
+        }
+      },
+      "artifact": "Stable page identity\nUseful independently captured body text. Useful independently captured body text.",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "length_pass": true,
+        "stable_content_pass": true
+      }
     }
   ]
 }

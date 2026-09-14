@@ -514,7 +514,10 @@ class ReportBodyScopeTests(unittest.TestCase):
             if schema=='named_link':c['acceptance_contract'].update(hosts=['example.com'],entry_path='/items/.*')
             rendered=stable_contract_details(c)
             with self.subTest(schema=schema):
-                self.assertIn('必需字段与要求',rendered)
+                if schema == 'body_text':
+                    self.assertNotIn('必需字段与要求',rendered)
+                else:
+                    self.assertIn('必需字段与要求',rendered)
                 for field in fields:self.assertIn(FIELD_REQUIREMENTS[field][0],rendered)
                 self.assertIn('＋'.join(FIELD_REQUIREMENTS[f][0] for f in UNIQUE_FIELDS[schema]),rendered)
                 self.assertNotIn('v1',rendered)

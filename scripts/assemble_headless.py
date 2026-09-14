@@ -22,16 +22,46 @@ from harness.web_fetch.artifacts import (
     verify_record_private_artifacts,
 )
 from scripts.run_benchmark import artifact_bindings
+from harness.web_fetch.scoring_regressions import (
+    build_correction_provenance, valid_correction_provenance,
+)
+from scripts.package_headless_speed import build_summary as build_speed_summary
 
 
 ALLOWED_REVISION_FIELDS = {
     'body_requirements', 'required_patterns', 'required_facts', 'acceptance_contract',
     'forbidden_any', 'expected_resources', 'resource_output_contract', 'task_prompt',
+    'mutable_body_policy',
 }
 
 
 def read_records(root):
     return [json.loads(line) for line in (root/'results.jsonl').read_text().splitlines()]
+
+
+def has_bound_direct_scoring_revision(root):
+    """Require a provenance-checked receipt bound to this exact source bundle."""
+    path = root/'scoring-revisions.json'
+    if not path.is_file():
+        return False
+    dataset_hash = hashlib.sha256((root/'dataset.json').read_bytes()).hexdigest()
+    results_hash = hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()
+    try:
+        receipts = json.loads(path.read_text())
+    except (OSError, ValueError, TypeError):
+        return False
+    return any(
+        isinstance(row, dict)
+        and row.get('kind') in {'audited_body_scoring_revision', 'audited_scoring_rule_revision'}
+        and row.get('provider_calls') == 0
+        and row.get('output_dataset_sha256') == dataset_hash
+        and row.get('output_results_sha256') == results_hash
+        and valid_correction_provenance(row)
+        and all(isinstance(change, dict)
+                and set(change.get('fields', ())) <= ALLOWED_REVISION_FIELDS
+                for change in row.get('changed_cases', ()))
+        for row in receipts if isinstance(receipts, list)
+    )
 
 
 def copy_bound_review(source, output):
@@ -44,6 +74,75 @@ def copy_bound_review(source, output):
             or bindings.get('results_sha256') != hashlib.sha256((output/'results.jsonl').read_bytes()).hexdigest()):
         return False
     shutil.copy2(prior,output/'result-review.json')
+    return True
+
+
+def copy_scoring_revision_history(source, output):
+    """Copy scoring receipts together with every hash-bound review archive."""
+    receipt_path = source/'scoring-revisions.json'
+    if not receipt_path.is_file():
+        return False
+    receipts = json.loads(receipt_path.read_text())
+    if not isinstance(receipts, list):
+        raise ValueError('Invalid scoring revision history')
+    archives = {}
+    for receipt in receipts:
+        if not isinstance(receipt, dict):
+            raise ValueError('Invalid scoring revision history')
+        relative = receipt.get('prior_result_review_path')
+        expected = receipt.get('prior_result_review_sha256')
+        if not relative:
+            continue
+        archived = contained_path(source, relative)
+        if not archived.is_file() or archived.is_symlink():
+            raise ValueError('Archived result review is missing or unsafe')
+        actual = hashlib.sha256(archived.read_bytes()).hexdigest()
+        if not isinstance(expected, str) or actual != expected:
+            raise ValueError('Archived result review hash does not match scoring receipt')
+        archives[relative] = archived
+    shutil.copy2(receipt_path, output/'scoring-revisions.json')
+    for relative, archived in archives.items():
+        target = contained_path(output, relative)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(archived, target)
+    return True
+
+
+def copy_projected_review(source, output, excluded_providers):
+    """Project a valid review onto a provider-subset without re-judging attempts."""
+    prior=source/'result-review.json'
+    if not prior.is_file():return False
+    source_dataset=json.loads((source/'dataset.json').read_text())
+    source_records=read_records(source)
+    require_result_review(source,source_dataset,source_records)
+    output_dataset=json.loads((output/'dataset.json').read_text())
+    output_records=read_records(output)
+    if source_dataset.get('cases') != output_dataset.get('cases'):
+        raise ValueError('Cannot project a result review across changed cases')
+    review=json.loads(prior.read_text())
+    retained={row['attempt_id'] for row in output_records}
+    reviewed={row.get('attempt_id') for row in review.get('attempts',[])}
+    scope=review.get('review_protocol',{}).get('scope','all')
+    if scope == 'all' and not retained <= reviewed:
+        raise ValueError('Source result review does not cover the retained provider matrix')
+    review['attempts']=[row for row in review.get('attempts',[])
+                        if row.get('attempt_id') in retained]
+    review['bindings']={
+        'dataset_sha256':hashlib.sha256((output/'dataset.json').read_bytes()).hexdigest(),
+        'results_sha256':hashlib.sha256((output/'results.jsonl').read_bytes()).hexdigest(),
+    }
+    review.setdefault('review_protocol',{})['provider_projection']={
+        'excluded_providers':sorted(excluded_providers),
+        'provider_calls':0,
+        'judgments_reused_only_for_byte_identical_attempt_evidence':True,
+    }
+    path=output/'result-review.json'
+    path.write_text(json.dumps(review,ensure_ascii=False,indent=2)+'\n')
+    checked=require_result_review(output,output_dataset,output_records)
+    for key in ('expected_attempts','reviewed_attempts','total_attempts',
+                'accepted_unreviewed_passes','disagreements','unresolved'):
+        review[key]=checked[key]
+    path.write_text(json.dumps(review,ensure_ascii=False,indent=2)+'\n')
     return True
 
 
@@ -86,7 +185,18 @@ def bind_assembled_scoring_revision(output):
         'source_scoring_receipts_sha256':scoring_revision_history_sha256(history),
         'independent_result_review_sha256':hashlib.sha256(review_path.read_bytes()).hexdigest(),
     })
-    path.write_text(json.dumps(history,ensure_ascii=False,indent=2)+'\n')
+    candidate=json.dumps(history,ensure_ascii=False,indent=2)+'\n'
+    # Validate the complete candidate chain before replacing the real receipt.
+    # A failed inherited chain must never be persisted even transiently.
+    with tempfile.TemporaryDirectory() as directory:
+        check=Path(directory)
+        for name in ('dataset.json','results.jsonl','result-review.json','reference-revisions.json'):
+            source=output/name
+            if source.is_file():shutil.copy2(source,check/name)
+        (check/'scoring-revisions.json').write_text(candidate)
+        if not valid_scoring_revision(check):
+            raise ValueError('Assembled scoring revision would leave an invalid history')
+    path.write_text(candidate)
     return True
 
 
@@ -134,6 +244,15 @@ def _provider_request_contract(case, provider):
     equivalent for Firecrawl, while every other task field remains exact.
     """
     value = _without_reference(case)
+    benchmark = value.get("source_benchmark", {})
+    annotation = benchmark.get("stable_annotation", {})
+    if annotation.get("content_kind") == "changing_public_body":
+        # An early dataset migration stored acceptance/report metadata beside
+        # source-capture metadata.  It never entered any provider request.
+        # Normalize that draft representation so certified calls can migrate
+        # to the explicit mutable_body_policy field without being rerun.
+        benchmark.pop("snapshot_metric_scope", None)
+        benchmark.pop("stable_annotation", None)
     if provider == "firecrawl":
         completion = value.get("retrieval_hints", {}).get("completion", {})
         completion.pop("minimum_text_fragments", None)
@@ -164,6 +283,10 @@ def _prune_shadowed_batch_attempts(batches, records):
         if not kept:
             continue
         batch={**batch,'attempt_ids':kept,'attempt_count':len(kept)}
+        if isinstance(batch.get('providers'),list):
+            retained_providers={by_id[attempt_id]['provider'] for attempt_id in kept}
+            batch['providers']=[row for row in batch['providers']
+                                if isinstance(row,dict) and row.get('name') in retained_providers]
         retained_cases={by_id[attempt_id]['case_id'] for attempt_id in kept}
         checks=batch.get('reference_checks')
         if checks:
@@ -182,7 +305,107 @@ def _prune_shadowed_batch_attempts(batches, records):
     return result
 
 
-def _copy_speed_bundle(source, target, dataset, rows, batches):
+def _project_provider_subset(dataset, records, batches, audit, excluded_providers):
+    """Return a complete publication matrix with explicitly excluded providers removed."""
+    excluded=set(excluded_providers)
+    if not excluded:
+        return dataset,records,batches,audit
+    if any(not isinstance(name,str) or not name for name in excluded):
+        raise ValueError('Excluded provider names must be non-empty strings')
+    coverage=dataset.get('coverage_plan',{})
+    declared={name for providers in coverage.values() for name in providers}
+    unknown=excluded-declared
+    if unknown:
+        raise ValueError('Cannot exclude providers absent from the declared matrix: '+', '.join(sorted(unknown)))
+    projected=deepcopy(dataset)
+    active_tracks={case.get('track','web') for case in projected.get('cases',[])}
+    for track,providers in projected.get('coverage_plan',{}).items():
+        kept=[name for name in providers if name not in excluded]
+        if track in active_tracks and not kept:
+            raise ValueError('Provider exclusion would leave an active track empty: '+track)
+        projected['coverage_plan'][track]=kept
+    kept_records=[row for row in records if row['provider'] not in excluded]
+    expected={(case['id'],provider) for case in projected.get('cases',[])
+              for provider in projected['coverage_plan'][case.get('track','web')]}
+    actual={(row['case_id'],row['provider']) for row in kept_records}
+    if len(kept_records)!=len(expected) or actual!=expected:
+        raise ValueError('Provider exclusion did not preserve a complete case/provider matrix')
+    known_providers=sorted(declared,key=len,reverse=True)
+    def attempt_provider(attempt_id):
+        return next((name for name in known_providers
+                     if isinstance(attempt_id,str) and attempt_id.startswith(name+'__')),None)
+    projected_audit=[]
+    for row in audit:
+        if row.get('provider') in excluded:
+            continue
+        value=deepcopy(row)
+        if isinstance(value.get('excluded_attempts'),list):
+            value['excluded_attempts']=[attempt for attempt in value['excluded_attempts']
+                if attempt_provider(attempt.get('attempt_id')) not in excluded]
+        projected_audit.append(value)
+    projected_batches=_prune_shadowed_batch_attempts(batches,kept_records)
+    projected.setdefault('comparison',{})['excluded_providers']=sorted(excluded)
+    projected['comparison']['provider_projection']=(
+        'Explicit publication projection only; provider adapters and immutable source calls are retained outside this bundle.')
+    return projected,kept_records,projected_batches,projected_audit
+
+
+def _write_projected_reference_revisions(source, target, case_ids):
+    """Rebind validated reference corrections to an exact provider projection."""
+    covered=reference_revision_cases(source)
+    path=source/'reference-revisions.json'
+    if not covered or not path.is_file():
+        return False
+    receipts=json.loads(path.read_text())
+    changes=[];transitions=[];provenance=[]
+    for receipt in receipts if isinstance(receipts,list) else ():
+        if (not isinstance(receipt,dict)
+                or receipt.get('kind') != 'audited_reference_correction'
+                or receipt.get('provider_calls') != 0
+                or not valid_correction_provenance(receipt)):
+            continue
+        selected=[deepcopy(change) for change in receipt.get('changed_cases',())
+                  if isinstance(change,dict)
+                  and change.get('case_id') in case_ids
+                  and change.get('old_reference_sha256') in
+                      covered.get(change.get('case_id'),set())]
+        if not selected:
+            continue
+        changes.extend(selected)
+        provenance.append(receipt['correction_provenance'])
+        if isinstance(receipt.get('revision_transitions'),list):
+            transitions.extend(deepcopy(receipt['revision_transitions']))
+    if not changes:
+        return False
+    unique={(row['case_id'],row['old_reference_sha256'],row['new_reference_sha256']):row
+            for row in changes}
+    categories={row['category'] for row in provenance}
+    regression_ids=list(dict.fromkeys(identifier for row in provenance
+                                       for identifier in row['regression_ids']))
+    root_causes=list(dict.fromkeys(row['root_cause'] for row in provenance))
+    receipt={
+        'kind':'audited_reference_correction',
+        'corrected_at':datetime.now(timezone.utc).isoformat(),
+        'output_dataset_sha256':hashlib.sha256((target/'dataset.json').read_bytes()).hexdigest(),
+        'output_results_sha256':hashlib.sha256((target/'results.jsonl').read_bytes()).hexdigest(),
+        'changed_cases':list(unique.values()),
+        'task_decision_changes':[],
+        'provider_calls':0,
+        'immutable_call_fields':'attempt identity, output bytes/hash, timestamps and elapsed time retained',
+        'source_receipts_sha256':[hashlib.sha256(path.read_bytes()).hexdigest()],
+        'revision_transitions':list({json.dumps(row,sort_keys=True):row
+                                     for row in transitions}.values()),
+    }
+    receipt['correction_provenance']=build_correction_provenance(
+        next(iter(categories)) if len(categories)==1 else 'multi-root',
+        'Projected validated reference corrections: '+'; '.join(root_causes),
+        regression_ids)
+    (target/'reference-revisions.json').write_text(
+        json.dumps([receipt],ensure_ascii=False,indent=2)+'\n')
+    return True
+
+
+def _copy_speed_bundle(source, target, dataset, rows, batches, excluded_providers=()):
     """Copy only explicitly bound speed evidence into an aggregate tree."""
     if source.is_symlink():
         raise ValueError('Speed cohort root must not be a symlink')
@@ -191,12 +414,29 @@ def _copy_speed_bundle(source, target, dataset, rows, batches):
         if child.is_symlink():
             raise ValueError('Speed cohort contains a symlink: '+str(child.relative_to(source)))
 
-    allowed={
-        'dataset.json','results.jsonl','execution.json','speed-comparison.json',
-    }
-    for optional in ('result-review.json','scoring-revisions.json','reference-revisions.json'):
-        if (source/optional).is_file():allowed.add(optional)
-    for row in rows:
+    speed_declared={name for providers in dataset.get('coverage_plan',{}).values()
+                    for name in providers}
+    excluded_providers=sorted(set(excluded_providers)&speed_declared)
+    source_execution=json.loads((source/'execution.json').read_text())
+    source_aggregate=source_execution.get('aggregate')
+    projected_dataset,projected_rows,projected_batches=dataset,rows,batches
+    if excluded_providers:
+        source_summary=json.loads((source/'speed-comparison.json').read_text())
+        rebuilt=build_speed_summary(dataset,rows,batches,source_aggregate)
+        if ({key:value for key,value in source_summary.items() if key!='bindings'} != rebuilt
+                or source_summary.get('bindings') != {
+                    'dataset_sha256':hashlib.sha256((source/'dataset.json').read_bytes()).hexdigest(),
+                    'results_sha256':hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()}):
+            raise ValueError('Speed comparison is not bound to its complete source cohort')
+        projected_dataset,projected_rows,projected_batches,_=_project_provider_subset(
+            deepcopy(dataset),rows,batches,[],excluded_providers)
+
+    allowed=set()
+    if not excluded_providers:
+        allowed.update({'dataset.json','results.jsonl','execution.json','speed-comparison.json'})
+        for optional in ('result-review.json','scoring-revisions.json','reference-revisions.json'):
+            if (source/optional).is_file():allowed.add(optional)
+    for row in projected_rows:
         for relative,digest in artifact_bindings(row):
             artifact=contained_path(source,relative)
             if (not artifact.is_file()
@@ -205,10 +445,10 @@ def _copy_speed_bundle(source, target, dataset, rows, batches):
             allowed.add(relative)
         verify_record_private_artifacts(source,row)
         allowed.update(binding['path'] for binding in record_private_bindings(row))
-    for batch in batches:
+    for batch in projected_batches:
         evidence=batch.get('reference_checks',{}).get('postcheck',{}).get('evidence_path')
         if evidence:allowed.add(evidence)
-    for case in dataset.get('cases',[]):
+    for case in projected_dataset.get('cases',[]):
         case_id=case['id']
         source_dir=contained_path(source,'sources/'+case_id)
         if source_dir.is_dir():
@@ -225,13 +465,36 @@ def _copy_speed_bundle(source, target, dataset, rows, batches):
         target_file=contained_path(target,relative)
         target_file.parent.mkdir(parents=True,exist_ok=True)
         shutil.copy2(source_file,target_file)
+    if excluded_providers:
+        aggregate=deepcopy(source_aggregate)
+        aggregate['providers']=[name for name in aggregate['providers']
+                                if name not in set(excluded_providers)]
+        aggregate['batch_count']=len(projected_batches)
+        execution={**source_execution,'batches':projected_batches,'aggregate':aggregate}
+        (target/'dataset.json').write_text(json.dumps(projected_dataset,ensure_ascii=False,indent=2)+'\n')
+        (target/'results.jsonl').write_text(''.join(
+            json.dumps(row,ensure_ascii=True)+'\n' for row in projected_rows))
+        (target/'execution.json').write_text(json.dumps(execution,ensure_ascii=False,indent=2)+'\n')
+        summary=build_speed_summary(projected_dataset,projected_rows,projected_batches,aggregate)
+        summary['bindings']={
+            'dataset_sha256':hashlib.sha256((target/'dataset.json').read_bytes()).hexdigest(),
+            'results_sha256':hashlib.sha256((target/'results.jsonl').read_bytes()).hexdigest(),
+        }
+        (target/'speed-comparison.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n')
+        copy_projected_review(source,target,excluded_providers)
+        _write_projected_reference_revisions(
+            source,target,{case['id'] for case in projected_dataset.get('cases',[])})
+        require_verified_reference_checks(projected_batches,cases=projected_dataset,
+            records=projected_rows,source=target,allow_scoring_rule_revision=True)
 
 
 def _assemble(run, certificates, replacements, output, additions=None, provider_replacements=None,
-              provider_additions=None, speed_cohort=None, canonical_dataset=None, retain_unverified=False):
+              provider_additions=None, speed_cohort=None, canonical_dataset=None,
+              retain_unverified=False, exclude_providers=None):
     additions = additions or []
     provider_replacements = provider_replacements or []
     provider_additions = provider_additions or []
+    exclude_providers = exclude_providers or []
     if output.exists():raise ValueError('Destination exists; evidence must not be overwritten')
     dataset=json.loads((run/'dataset.json').read_text())
     cases={c['id']:c for c in dataset['cases']}
@@ -400,13 +663,20 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     source_order={row['attempt_id']:index for index,row in enumerate(original)}
     records.sort(key=lambda row: source_order.get(row['attempt_id'], len(source_order)))
     batches=_prune_shadowed_batch_attempts(batches,records)
-    validate_report_ids(dataset,records)
-    if len(records)!=len(expected) or {(r['case_id'],r['provider']) for r in records}!=expected:
-        raise ValueError('Assembled coverage differs from the complete cohort')
     if provider_replacements:
         dataset['comparison']['reference_binding_mode']='equivalent_reference_bytes_with_independent_batch_captures'
     for track in dataset.get('coverage_plan',{}):
         dataset['coverage_plan'][track]=list(dict.fromkeys(dataset['coverage_plan'][track]+sorted(added_providers)))
+    dataset,records,batches,audit=_project_provider_subset(
+        dataset,records,batches,audit,exclude_providers)
+    retained_attempt_ids={row['attempt_id'] for row in records}
+    selected=[(row,root) for row,root in selected
+              if row['attempt_id'] in retained_attempt_ids]
+    expected={(case['id'],provider) for case in dataset['cases']
+              for provider in dataset['coverage_plan'][case.get('track','web')]}
+    validate_report_ids(dataset,records)
+    if len(records)!=len(expected) or {(r['case_id'],r['provider']) for r in records}!=expected:
+        raise ValueError('Assembled coverage differs from the complete cohort')
     if added_providers:
         dataset.setdefault('comparison',{})['require_independent_result_review']=True
     failed=[cid for batch in batches for cid,row in batch.get('reference_checks',{}).get('postcheck',{}).get('cases',{}).items() if row['status']!='verified']
@@ -477,20 +747,45 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     for name,payload in [('dataset.json',dataset),('execution.json',{'batches':batches}),('selection-audit.json',audit)]:
         (output/name).write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n')
     (output/'results.jsonl').write_text(''.join(json.dumps(r, ensure_ascii=True)+'\n' for r in records))
-    if (run/'scoring-revisions.json').is_file():
-        shutil.copy2(run/'scoring-revisions.json',output/'scoring-revisions.json')
+    copy_scoring_revision_history(run, output)
     # Consolidate independently validated source reference-correction receipts
     # and bind them to the exact assembled dataset/results pair.
     revision_rows=[]
+    revision_transitions=[]
+    revision_provenance=[]
     for root in dict.fromkeys(evidence):
         covered=reference_revision_cases(root)
         if not covered:continue
         receipts=json.loads((root/'reference-revisions.json').read_text())
         for receipt in receipts:
-            if (receipt.get('output_dataset_sha256') != hashlib.sha256((root/'dataset.json').read_bytes()).hexdigest()
-                    or receipt.get('output_results_sha256') != hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()):
+            if (not isinstance(receipt,dict)
+                    or receipt.get('kind') != 'audited_reference_correction'
+                    or receipt.get('provider_calls') != 0
+                    or not valid_correction_provenance(receipt)):
                 continue
-            revision_rows.extend(deepcopy(receipt.get('changed_cases',[])))
+            reachable=[]
+            for change in receipt.get('changed_cases',[]):
+                if (isinstance(change,dict)
+                        and change.get('old_reference_sha256') in
+                        covered.get(change.get('case_id'),set())):
+                    reachable.append(deepcopy(change))
+            if not reachable:
+                continue
+            revision_rows.extend(reachable)
+            revision_provenance.append(deepcopy(receipt['correction_provenance']))
+            transitions=receipt.get('revision_transitions')
+            if isinstance(transitions,list):
+                revision_transitions.extend(deepcopy(transitions))
+            elif all(isinstance(receipt.get(key),str) for key in (
+                    'input_dataset_sha256','input_results_sha256')):
+                revision_transitions.append({
+                    'input_dataset_sha256':receipt['input_dataset_sha256'],
+                    'input_results_sha256':receipt['input_results_sha256'],
+                    'output_dataset_sha256':receipt.get(
+                        'prior_output_dataset_sha256',receipt['output_dataset_sha256']),
+                    'output_results_sha256':receipt.get(
+                        'prior_output_results_sha256',receipt['output_results_sha256']),
+                })
     if revision_rows:
         unique={(row['case_id'],row['old_reference_sha256'],row['new_reference_sha256']):row
                 for row in revision_rows}
@@ -506,9 +801,25 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             'source_receipts_sha256':sorted({hashlib.sha256((root/'reference-revisions.json').read_bytes()).hexdigest()
                                              for root in dict.fromkeys(evidence)
                                              if (root/'reference-revisions.json').is_file()}),
+            'revision_transitions':list({json.dumps(row,sort_keys=True):row
+                                         for row in revision_transitions}.values()),
         }
+        categories={row['category'] for row in revision_provenance}
+        regression_ids=list(dict.fromkeys(identifier for row in revision_provenance
+                                           for identifier in row['regression_ids']))
+        root_causes=list(dict.fromkeys(row['root_cause'] for row in revision_provenance))
+        consolidated['correction_provenance']=build_correction_provenance(
+            next(iter(categories)) if len(categories)==1 else 'multi-root',
+            'Consolidated validated reference corrections: '+'; '.join(root_causes),
+            regression_ids)
         (output/'reference-revisions.json').write_text(json.dumps([consolidated],ensure_ascii=False,indent=2)+'\n')
-    copy_bound_review(run,output)
+    if exclude_providers:
+        review_copied=copy_projected_review(run,output,exclude_providers)
+        if (dataset.get('comparison',{}).get('require_independent_result_review')
+                and not review_copied):
+            raise ValueError('Provider projection requires a projectable independent result review')
+    else:
+        copy_bound_review(run,output)
     bind_assembled_scoring_revision(output)
     if speed_cohort:
         if not (speed_cohort/'speed-comparison.json').is_file():
@@ -520,15 +831,18 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         if not isinstance(speed_batches,list):
             raise ValueError('Speed cohort execution has no batches')
         _copy_speed_bundle(speed_cohort,output/'speed-cohort',speed_dataset,
-                           speed_rows,speed_batches)
+                           speed_rows,speed_batches,excluded_providers=exclude_providers)
     if not failed:require_verified_reference_checks(batches,cases=dataset,records=records,source=output,
         equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
-        'equivalent_reference_bytes_with_independent_batch_captures')
+        'equivalent_reference_bytes_with_independent_batch_captures',
+        allow_scoring_rule_revision=all(
+            has_bound_direct_scoring_revision(root) for root in dict.fromkeys(evidence)))
     print('Assembled',len(records),'calls; publication:',dataset['comparison']['publication_state'],'unverified:',failed)
 
 
 def assemble(run, certificates, replacements, output, additions=None, provider_replacements=None,
-             provider_additions=None, speed_cohort=None, canonical_dataset=None, retain_unverified=False):
+             provider_additions=None, speed_cohort=None, canonical_dataset=None,
+             retain_unverified=False, exclude_providers=None):
     """Build and verify in a sibling staging directory, then publish atomically."""
     if output.exists():raise ValueError('Destination exists; evidence must not be overwritten')
     output.parent.mkdir(parents=True,exist_ok=True)
@@ -538,7 +852,7 @@ def assemble(run, certificates, replacements, output, additions=None, provider_r
         _assemble(run,certificates,replacements,staging,additions=additions,
             provider_replacements=provider_replacements,provider_additions=provider_additions,
             speed_cohort=speed_cohort,canonical_dataset=canonical_dataset,
-            retain_unverified=retain_unverified)
+            retain_unverified=retain_unverified,exclude_providers=exclude_providers)
         staging.replace(output)
         work.rmdir()
     except BaseException:
@@ -558,8 +872,10 @@ if __name__=='__main__':
     parser.add_argument('--canonical-dataset',type=Path)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--retain-unverified',action='store_true',help='Retain a blocked diagnostic cohort; the report builder will still reject it')
+    parser.add_argument('--exclude-providers',nargs='*',default=[],help='Explicitly omit providers from the assembled publication and speed matrices; source calls and adapters remain unchanged')
     args=parser.parse_args()
     assemble(args.run_dir,args.certificates,args.replacements,args.output,
         additions=args.additions,provider_replacements=args.provider_replacements,
         provider_additions=args.provider_additions,
-        speed_cohort=args.speed_cohort,canonical_dataset=args.canonical_dataset,retain_unverified=args.retain_unverified)
+        speed_cohort=args.speed_cohort,canonical_dataset=args.canonical_dataset,
+        retain_unverified=args.retain_unverified,exclude_providers=args.exclude_providers)

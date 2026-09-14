@@ -145,17 +145,16 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertNotIn('"final_url"', worker)
         self.assertIn('"document_metadata": metadata', worker)
 
-    def test_current_coverage_declares_all_twelve_methods(self) -> None:
+    def test_current_coverage_declares_all_reported_methods(self) -> None:
         dataset = json.loads((ROOT / "evaluation/dataset.json").read_text())
         expected = {
             "cloudflare-markdown", "cowagent-built-in", "crawl4ai",
             "deepseek-harness-built-in", "exa", "firecrawl",
-            "langchain-webbase", "lexmount-cn", "lexmount-global",
-            "moli-webfetch", "openclaw-built-in", "tavily",
+            "langchain-webbase", "moli-webfetch", "openclaw-built-in", "tavily",
         }
         for track, providers in dataset["coverage_plan"].items():
             self.assertEqual(set(providers), expected, track)
-            self.assertEqual(len(providers), 12, track)
+            self.assertEqual(len(providers), 10, track)
 
     def test_current_report_profile_matches_runner_and_canonical_dataset(self) -> None:
         profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
@@ -242,7 +241,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         for entry in main['offline_rescore_cases']:
             self.assertEqual(entry['category'], 'reference_only_correction')
             self.assertTrue(entry['reason'].strip())
-            self.assertEqual(entry['attempts'], 12)
+            self.assertEqual(entry['attempts'], 10)
             self.assertTrue(entry['full_review'])
         expected_pairs = (
             {(provider, case_id) for provider in main['full_rerun_providers']
@@ -252,7 +251,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
             | pair_keys
         )
         self.assertEqual(main['planned_new_calls'], len(expected_pairs))
-        self.assertEqual(main['planned_new_calls'], 824)
+        self.assertEqual(main['planned_new_calls'], 816)
         self.assertFalse(speed['required'])
         self.assertTrue(speed['reuse_existing'])
         self.assertEqual(speed['planned_new_calls'], 0)

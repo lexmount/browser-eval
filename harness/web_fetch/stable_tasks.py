@@ -16,6 +16,7 @@ from .reference_quality import clean_reference_text
 
 
 SCHEMA_FIELDS = {
+    "body_text": (),
     "quote": ("quote", "author", "tags"),
     "product": ("name", "price"),
     "catalog_product": ("title", "price", "description", "reviews"),
@@ -26,6 +27,7 @@ SCHEMA_FIELDS = {
     "named_link": ("title", "url"),
 }
 UNIQUE_FIELDS = {
+    "body_text": (),
     "quote": ("quote",), "product": ("name",),
     "catalog_product": ("title", "description"), "review": ("date", "text"),
     "name_description": ("name",), "api_operation": ("method", "path"),
@@ -474,7 +476,10 @@ def validate_acceptance_contract(contract: dict) -> None:
     if not isinstance(field_counts, dict) or any(k not in _LABELS or type(v) is not int or v < 1 for k,v in field_counts.items()):
         raise ValueError('Invalid required field counts')
     minimum, maximum = contract.get("minimum_records"), contract.get("maximum_records")
-    if type(minimum) is not int or minimum < 1 or maximum is not None and (type(maximum) is not int or maximum < minimum):
+    if contract["schema"] == "body_text":
+        if minimum != 0 or maximum not in {None, 0} or field_counts:
+            raise ValueError("Stable body-text contracts do not declare records")
+    elif type(minimum) is not int or minimum < 1 or maximum is not None and (type(maximum) is not int or maximum < minimum):
         raise ValueError("Stable contract requires positive bounded record counts")
     patterns = contract.get("page_patterns", [])
     if not isinstance(patterns, list) or any(not isinstance(p, str) or not p for p in patterns):
@@ -492,6 +497,8 @@ def validate_acceptance_contract(contract: dict) -> None:
                 or any(not isinstance(value, str) or not _visible(value).strip() for value in anchor["alternatives"])):
             raise ValueError("Invalid or duplicate stable text anchor group")
         ids.add(anchor["id"])
+    if contract["schema"] == "body_text" and not anchors and not patterns:
+        raise ValueError("Stable body-text contracts require text anchors or page patterns")
     if contract["schema"] == "named_link":
         hosts = contract.get("hosts")
         if (not isinstance(hosts, list) or not hosts
@@ -564,7 +571,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             records.append({"fields": entry, "valid": True, "errors": []})
     else:
         excluded_entries = []
-        records = _parse_records(visible, schema)
+        records = [] if schema == "body_text" else _parse_records(visible, schema)
     anchors = []
     for anchor in contract.get("stable_text_anchors", []):
         matched = _anchor_matches(anchor, records, visible, schema)

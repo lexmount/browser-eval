@@ -6,6 +6,7 @@ import unittest
 
 from harness.web_fetch.result_review import require_result_review
 from scripts.merge_result_review_revision import merge, merge_replacement
+from scripts.rebase_blind_result_review import rebase
 from scripts.revise_body_scoring import (
     IndependentReviewRequired, archive_superseded_result_review,
     rebind_unchanged_result_review,
@@ -114,6 +115,39 @@ class ResultReviewTests(unittest.TestCase):
             with self.assertRaisesRegex(IndependentReviewRequired,'verdict changed'):
                 rebind_unchanged_result_review(
                     path,dataset,new_bytes,dataset,(json.dumps(changed)+'\n').encode(),rebound_at='later')
+
+    def test_completed_blind_review_rebases_across_score_only_fix(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);reviewed=root/'reviewed';current=root/'current'
+            reviewed.mkdir();current.mkdir()
+            dataset={'comparison':{'require_independent_result_review':True},
+                     'cases':[{'id':'a','task_kind':'body'}]}
+            old={'attempt_id':'p__a__r001','provider':'p','case_id':'a',
+                 'artifact_path':'artifacts/a.txt','ok':True,'error_type':None,
+                 'metrics':{'content_pass':True,'content_sha256':'a'*64}}
+            new=json.loads(json.dumps(old));new['metrics']['content_pass']=False
+            for evidence,row in ((reviewed,old),(current,new)):
+                (evidence/'dataset.json').write_text(json.dumps(dataset))
+                (evidence/'results.jsonl').write_text(json.dumps(row)+'\n')
+            review={'schema_version':1,'bindings':{
+                'dataset_sha256':hashlib.sha256((reviewed/'dataset.json').read_bytes()).hexdigest(),
+                'results_sha256':hashlib.sha256((reviewed/'results.jsonl').read_bytes()).hexdigest()},
+                'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
+                'attempts':[{'attempt_id':old['attempt_id'],'machine_verdict':'pass',
+                             'agent_verdict':'fail','agent_evidence':'Body is too short.',
+                             'final_verdict':None,'adjudication':None}]}
+            (reviewed/'result-review.json').write_text(json.dumps(review))
+            output=root/'rebased.json'
+            result=rebase(current,reviewed,output,None,install=True)
+            self.assertEqual(result['attempts'][0]['machine_verdict'],'fail')
+            self.assertEqual(result['attempts'][0]['agent_verdict'],'fail')
+            self.assertEqual(result['unresolved'],0)
+            self.assertIsNotNone(require_result_review(current,dataset,[new]))
+
+            changed=json.loads(json.dumps(new));changed['metrics']['content_sha256']='b'*64
+            (current/'results.jsonl').write_text(json.dumps(changed)+'\n')
+            with self.assertRaisesRegex(ValueError,'Reviewer-visible evidence changed'):
+                rebase(current,reviewed,output,None)
 
     def test_nonjudgmental_dataset_metadata_can_rebind_but_cases_cannot(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -425,7 +459,7 @@ class ResultReviewTests(unittest.TestCase):
                     })
             new_records=json.loads(json.dumps(old_records))
             # A provider-only rerun on unchanged task a invalidates only p/a.
-            new_records[0]['provider_metadata']={'route':'refreshed'}
+            new_records[0]['provider_metadata']={'images':['https://example.test/new.png']}
             # A task-definition change on b invalidates both providers, even
             # though only one result object happened to change.
             new_records[1]['metrics']['content_pass']=True
@@ -472,7 +506,7 @@ class ResultReviewTests(unittest.TestCase):
             self.assertEqual(merged['accepted_unreviewed_passes'],0)
             self.assertEqual(merged['unresolved'],0)
 
-            changed=json.loads(json.dumps(new_records));changed[2]['provider_metadata']={'route':'also-refreshed'}
+            changed=json.loads(json.dumps(new_records));changed[2]['provider_metadata']={'images':['https://example.test/also-new.png']}
             (current_root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in changed))
             with self.assertRaisesRegex(ValueError,'exactly every non-reusable current attempt'):
                 merge_replacement(current_root,prior_root,supplement)

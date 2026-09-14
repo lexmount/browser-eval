@@ -133,6 +133,35 @@ class ScoringTests(unittest.TestCase):
         self.assertIn("declared_truncation", measured["stable_task_errors"])
         self.assertFalse(task_passed(True, measured))
 
+    def test_minimum_body_length_remains_a_gate_for_stable_contracts(self):
+        body_contract = {
+            "version": 1,
+            "schema": "body_text",
+            "minimum_records": 0,
+            "stable_text_anchors": [
+                {"id": "identity", "alternatives": ["Stable page identity"]},
+            ],
+        }
+        short = score_attempt(
+            case(acceptance_contract=body_contract, min_content_chars=80),
+            b"Stable page identity",
+            ok=True,
+        )
+        self.assertFalse(short["length_pass"])
+        self.assertFalse(short["stable_content_pass"])
+        self.assertFalse(short["stable_task_pass"])
+        self.assertIn("content_too_short", short["stable_task_errors"])
+        self.assertFalse(task_passed(True, short))
+
+        complete = score_attempt(
+            case(acceptance_contract=body_contract, min_content_chars=80),
+            ("Stable page identity\n" + "Useful independently captured body text. " * 2).encode(),
+            ok=True,
+        )
+        self.assertTrue(complete["length_pass"])
+        self.assertTrue(complete["stable_task_pass"])
+        self.assertTrue(task_passed(True, complete))
+
     def test_declared_truncation_notice_does_not_override_non_body_contracts(self):
         notice = "[Content truncated: showing 10 of 20 lines]"
         structure = score_attempt(

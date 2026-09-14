@@ -59,6 +59,17 @@ class SourceExtractionTests(unittest.TestCase):
         self.assertNotIn('Share', text)
         self.assertNotIn('Link Copied', text)
 
+    def test_excludes_mdn_last_modified_timestamp_but_keeps_article_body(self):
+        from scripts.collect_source_evidence import extract_html
+        raw = b'''<html><body><main><article>
+        <p>WebSocket article body</p>
+        <p class="article-footer__last-modified">This page was last modified on
+        <time>Sep 12, 2026</time> by MDN contributors.</p>
+        </article></main></body></html>'''
+        _, text, _, _ = extract_html(
+            raw, 'https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API')
+        self.assertEqual(text, 'WebSocket article body')
+
     def test_excludes_lexmount_breadcrumb_and_adjacent_page_cards(self):
         from scripts.collect_source_evidence import extract_html
         raw = b'''<html><body><article>

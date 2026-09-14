@@ -55,8 +55,8 @@
       "commitment":"按量 $0.008/credit；月套餐 $30 起",
       "discount":"积分量大折扣；未找到公开年付优惠",
       "headline":"按成功 URL 累积扣积分",
-      "scope":"本轮使用 Basic Extract。套餐表按 Basic 满额换算；Advanced 用量相同则积分翻倍、每千页价格翻倍，不能把搜索的一次调用价格套给 Extract。",
-      "credits_per_page":0.2,
+      "scope":"本轮使用 Advanced Extract。套餐表按 Basic 满额换算；本轮 Advanced 用量相同则积分翻倍、每千页价格翻倍，不能把搜索的一次调用价格套给 Extract。",
+      "credits_per_page":0.4,
       "sources":[
         {"label":"积分单价与套餐", "url":"https://docs.tavily.com/documentation/api-credits"},
         {"label":"Extract 用量说明", "url":"https://docs.tavily.com/documentation/api-reference/endpoint/extract"}
@@ -68,7 +68,7 @@
         {"name":"Growth", "credits_monthly":100000, "monthly_usd":500, "overage":"按量 $0.008/credit"}
       ],
       "rate_headers":["模式", "每千成功页积分", "按量每千页", "月套餐满额每千页"],
-      "rates":[["Basic（本轮）", "200", "$1.6", "$1–1.5"],["Advanced", "400", "$3.2", "$2–3"]],
+      "rates":[["Basic", "200", "$1.6", "$1–1.5"],["Advanced（本轮）", "400", "$3.2", "$2–3"]],
       "terms":[
         ["免费额度", "每月 1,000 credits，无需绑卡。若全部用于 Extract，可换算为 5,000 个 Basic 或 2,500 个 Advanced 成功 URL；不是额外赠送的独立页额度。"],
         ["扣费与批量调用", "失败 URL 不扣费。接口说明尚未累计到 5 个成功 URL 时 usage.credits 可为 0；不能对每次单 URL 调用单独向上取整为 1 credit。未公开跨账期余数的完整结算规则。"],

@@ -15,6 +15,8 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness.web_fetch.result_review import require_result_review
+from harness.web_fetch.result_review import review_input_identity
+from harness.web_fetch.metrics import task_passed
 
 
 def sha(path):
@@ -171,11 +173,10 @@ def merge_refresh(evidence: Path, prior_evidence: Path,
     """Safely reuse reviews across an arbitrarily refreshed complete matrix.
 
     A prior per-attempt review is reusable only when the complete current case
-    object and complete current result object compare equal to their prior
-    JSON objects. This deliberately invalidates all providers for a changed
-    task, while a provider-only rerun of an unchanged task invalidates only
-    that provider's attempt. Every non-reusable current attempt must appear in
-    one blinded, full-scope supplemental review bound to its exact subset.
+    and every reviewer-visible evidence binding are unchanged, and the prior
+    independent verdict still agrees with the current machine verdict. This
+    ignores timestamps and diagnostic metrics that were never shown to the
+    reviewer, while invalidating all providers for a changed task.
     """
     current_dataset=json.loads((evidence/'dataset.json').read_text())
     current_records=[json.loads(line) for line in (evidence/'results.jsonl').read_text().splitlines()]
@@ -187,6 +188,7 @@ def merge_refresh(evidence: Path, prior_evidence: Path,
     prior_cases=_unique_by(prior_dataset.get('cases', []), 'id', 'Prior dataset')
     current=_unique_by(current_records, 'attempt_id', 'Current results')
     previous=_unique_by(prior_records, 'attempt_id', 'Prior results')
+    prior_attempts=_unique_by(prior.get('attempts', []), 'attempt_id', 'Prior review')
     if any(row.get('case_id') not in current_cases for row in current_records):
         raise ValueError('Current result refers to a task absent from the current dataset')
 
@@ -200,9 +202,13 @@ def merge_refresh(evidence: Path, prior_evidence: Path,
     for attempt_id,row in current.items():
         old=previous.get(attempt_id)
         case_id=row['case_id']
+        current_machine = ('pass' if task_passed(
+            row['ok'], row['metrics'], current_cases[case_id].get('task_kind', 'body'))
+            else 'fail')
         if (old is not None and old.get('case_id') == case_id
                 and prior_cases.get(case_id) == current_cases[case_id]
-                and old == row):
+                and review_input_identity(old) == review_input_identity(row)
+                and prior_attempts.get(attempt_id, {}).get('final_verdict') == current_machine):
             reusable.add(attempt_id)
     required=set(current)-reusable
     if not required:
@@ -237,7 +243,6 @@ def merge_refresh(evidence: Path, prior_evidence: Path,
     replacements={row['attempt_id']:row for row in supplemental['attempts']}
     if set(replacements) != required:
         raise ValueError('Supplemental review must independently review every non-reusable attempt')
-    prior_attempts=_unique_by(prior.get('attempts', []), 'attempt_id', 'Prior review')
     retained={attempt_id:prior_attempts[attempt_id] for attempt_id in reusable}
     attempts=[replacements.get(row['attempt_id'],retained.get(row['attempt_id']))
               for row in current_records]
@@ -258,7 +263,7 @@ def merge_refresh(evidence: Path, prior_evidence: Path,
         'reviewed_attempts':len(replacements),
         'reviewer':supplemental['reviewer'],
         'machine_judgments_withheld':True,
-        'reuse_rule':'Only JSON-identical complete task definitions and complete result records retained prior reviews.',
+        'reuse_rule':'Only identical complete task definitions and identical reviewer-visible evidence bindings retained prior reviews; the prior adjudicated final verdict must still equal the current machine verdict.',
     }
     merged['total_attempts']=len(current_records)
     merged['expected_attempts']=len(current_records)

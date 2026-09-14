@@ -350,6 +350,7 @@ def _validate_consistent_provider_run_identities(
 ) -> None:
     """Reject provider shards produced with different code, config, or parameters."""
     identities: dict[str, list[tuple[dict, Path]]] = defaultdict(list)
+    config_identities: dict[tuple[str, str | None], list[tuple[str | None, Path]]] = defaultdict(list)
     for batches, rows, root, _source_path in rerun_batches:
         rows_by_attempt = {row["attempt_id"]: row for row in rows}
         for batch in batches:
@@ -378,10 +379,14 @@ def _validate_consistent_provider_run_identities(
             for provider in providers:
                 identities[provider["name"]].append(({
                     "runtime_source_sha256": batch.get("runtime_source_sha256"),
-                    "provider_config_sha256": batch.get("provider_config_sha256"),
                     "implementation_identity": provider.get("implementation_identity"),
                     "parameters": parameters,
                 }, root))
+                source = batch.get("provider_config_source")
+                route = Path(source).name if isinstance(source, str) else None
+                config_identities[(provider["name"], route)].append((
+                    batch.get("provider_config_sha256"), root
+                ))
     for provider, entries in identities.items():
         if len(entries) < 2:
             continue
@@ -394,6 +399,15 @@ def _validate_consistent_provider_run_identities(
                 raise ValueError(
                     f"Main rerun provider {provider} has inconsistent run identity across "
                     f"{expected_root} and {actual_root}: {changed}"
+                )
+    for (provider, route), entries in config_identities.items():
+        expected, expected_root = entries[0]
+        for actual, actual_root in entries[1:]:
+            if actual != expected:
+                raise ValueError(
+                    f"Main rerun provider {provider} has inconsistent run identity across "
+                    f"{expected_root} and {actual_root}: provider_config_sha256 "
+                    f"for {route or 'unspecified config route'}"
                 )
 
 
@@ -429,6 +443,7 @@ def _require_canonical_cases(
                     "reference_sha256",
                     "source_snapshot_sha256",
                     "extracted_reference_sha256",
+                    "browser_observation_sha256",
                 ):
                     digest = verification.get(field)
                     if digest is not None and (
@@ -440,6 +455,7 @@ def _require_canonical_cases(
                 "http_status",
                 "source_snapshot_sha256",
                 "extracted_reference_sha256",
+                "browser_observation_sha256",
             ):
                 incoming.get("source_verification", {}).pop(field, None)
                 canonical.get("source_verification", {}).pop(field, None)
@@ -572,10 +588,14 @@ def _write_composite_revisions(output: Path, selections: list[tuple[dict, Path]]
                     for batch in batches
                 )
                 derived_bundle = projected or (root / "selection-audit.json").is_file()
+                if (derived_bundle and not valid_scoring_revision(root)):
+                    raise ValueError(f"Selected source has invalid scoring revision binding: {root}")
+                allowed_kinds = {
+                    "audited_body_scoring_revision", "audited_scoring_rule_revision",
+                    *( ["audited_assembled_scoring_revision"] if derived_bundle else [] ),
+                }
                 if any(not isinstance(receipt, dict)
-                       or receipt.get("kind") not in {
-                           "audited_body_scoring_revision", "audited_scoring_rule_revision"
-                       }
+                       or receipt.get("kind") not in allowed_kinds
                        or receipt.get("provider_calls") != 0
                        or ((receipt.get("output_dataset_sha256"),
                            receipt.get("output_results_sha256")) != current and not derived_bundle)
@@ -853,13 +873,19 @@ def _assemble(
     if _provider_order(speed_dataset) != providers:
         raise ValueError("Speed provider cohort differs from the main cohort")
     expected_speed = {(provider, case_id) for provider in providers for case_id in speed_cases}
-    _require_canonical_cases(
-        speed_dataset,
-        canonical_cases,
-        speed_rows,
-        "speed cohort",
-        equivalent_capture_bindings=equivalent_capture_bindings,
-    )
+    # A hash-bound reused speed cohort is historical measured evidence, not a
+    # fresh execution against today's canonical scoring annotations.  Its exact
+    # dataset/results/execution/summary and auxiliary receipts were verified
+    # above, so do not reinterpret it as if those calls used later task rules.
+    # A newly measured cohort must still match the current canonical cases.
+    if required_speed:
+        _require_canonical_cases(
+            speed_dataset,
+            canonical_cases,
+            speed_rows,
+            "speed cohort",
+            equivalent_capture_bindings=equivalent_capture_bindings,
+        )
     _validate_record_identity(speed_rows, allowed_pairs=expected_speed, label="speed cohort")
     _verify_artifacts(speed_cohort, speed_rows)
     _speed_batches, speed_execution = _validate_source_batches(

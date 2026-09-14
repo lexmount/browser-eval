@@ -269,13 +269,30 @@ def evaluation_scope_identity(case) -> dict[str, Any]:
     """
     identity = scope_identity(case)
     identity.pop("selector", None)
+    _normalize_draft_mutable_body_metadata(identity)
     return identity
 
 
 def _binding_evaluation_scope_identity(binding: dict) -> dict[str, Any]:
     identity = deepcopy(binding.get("scope_identity", {}))
     identity.pop("selector", None)
+    _normalize_draft_mutable_body_metadata(identity)
     return identity
+
+
+def _normalize_draft_mutable_body_metadata(identity: dict[str, Any]) -> None:
+    """Remove report-only body metadata that never affected a provider call.
+
+    A short-lived dataset revision placed this policy under source_benchmark.
+    The authoritative schema now binds it through mutable_body_policy and the
+    scoring revision receipt.  List-task annotations remain capture scope and
+    must not be normalized away.
+    """
+    benchmark = identity.get("source_benchmark", {})
+    annotation = benchmark.get("stable_annotation", {})
+    if annotation.get("content_kind") == "changing_public_body":
+        benchmark.pop("snapshot_metric_scope", None)
+        benchmark.pop("stable_annotation", None)
 
 
 def _completion(completion) -> None:
@@ -401,7 +418,8 @@ def check_case_equivalent_reference_binding(case, binding: dict) -> None:
             or ("render_evidence" in binding and
                 (_get(case, "source_benchmark", {}) or {}).get("render_evidence") != binding["render_evidence"])):
         raise ReferenceLifecycleError(
-            "Assembled batch differs in reference bytes or evaluation scope", "reference_changed")
+            f"{_get(case, 'id')}: assembled batch differs in reference bytes or evaluation scope",
+            "reference_changed")
 
 
 def check_case_scoring_revision_binding(case, binding: dict) -> None:
@@ -649,6 +667,57 @@ def valid_scoring_revision(source) -> bool:
         except (OSError, ValueError, TypeError, KeyError, StopIteration):
             assembled_review_valid = False
 
+    from .scoring_regressions import valid_correction_provenance
+
+    def revision_edge(value):
+        if not isinstance(value, dict):
+            return None
+        before = (value.get('input_dataset_sha256'), value.get('input_results_sha256'))
+        after = (value.get('output_dataset_sha256'), value.get('output_results_sha256'))
+        if not all(isinstance(item, str) and re.fullmatch(r'[0-9a-f]{64}', item)
+                   for item in (*before, *after)):
+            return None
+        return before, after
+
+    reference_edges = set()
+    reference_path = root/'reference-revisions.json'
+    if reference_path.is_file():
+        try:
+            reference_rows = json.loads(reference_path.read_text())
+        except (OSError, ValueError, TypeError):
+            return False
+        for receipt in reference_rows if isinstance(reference_rows, list) else ():
+            if (receipt.get('kind') == 'audited_reference_correction'
+                    and receipt.get('provider_calls') == 0
+                    and valid_correction_provenance(receipt)):
+                transitions = receipt.get('revision_transitions')
+                if isinstance(transitions, list):
+                    reference_edges.update(filter(None, map(revision_edge, transitions)))
+                else:
+                    # Legacy rebinding changed the top-level output to the later
+                    # bundle identity.  Its prior_output fields retain the true
+                    # reference-correction endpoint.
+                    legacy = dict(receipt)
+                    if receipt.get('prior_output_dataset_sha256') is not None:
+                        legacy['output_dataset_sha256'] = receipt['prior_output_dataset_sha256']
+                        legacy['output_results_sha256'] = receipt['prior_output_results_sha256']
+                    edge = revision_edge(legacy)
+                    if edge is not None:
+                        reference_edges.add(edge)
+
+    def bridged(before, after):
+        frontier = {before}
+        seen = set()
+        while frontier:
+            current = frontier.pop()
+            if current == after:
+                return True
+            if current in seen:
+                continue
+            seen.add(current)
+            frontier.update(target for source, target in reference_edges if source == current)
+        return False
+
     def valid_assembled_binding(row, index):
         source_hash = row.get('source_scoring_receipts_sha256')
         review_binding = row.get('independent_result_review_sha256')
@@ -661,13 +730,13 @@ def valid_scoring_revision(source) -> bool:
                 and (index != len(rows) - 1
                      or (assembled_review_valid and review_binding == review_hash)))
 
-    from .scoring_regressions import valid_correction_provenance
     if not isinstance(rows, list) or not rows:
         return False
     allowed_fields = {
         'body_requirements', 'required_patterns', 'required_facts',
         'acceptance_contract', 'forbidden_any', 'expected_resources',
         'resource_output_contract', 'task_prompt',
+        'mutable_body_policy',
     }
     previous_output = None
     for index, row in enumerate(rows):
@@ -680,7 +749,8 @@ def valid_scoring_revision(source) -> bool:
         if (any(not isinstance(value, str)
                 or re.fullmatch(r'[0-9a-f]{64}', value) is None
                 for value in (*input_binding, *output_binding))
-                or (previous_output is not None and input_binding != previous_output)):
+                or (previous_output is not None and input_binding != previous_output
+                    and not bridged(previous_output, input_binding))):
             return False
         if (row.get('kind') not in {'audited_body_scoring_revision',
                                     'audited_scoring_rule_revision'}
@@ -769,14 +839,88 @@ def reference_revision_cases(source) -> dict[str, set[str]]:
     current_dataset = sha256((root / "dataset.json").read_bytes())
     current_results = sha256((root / "results.jsonl").read_bytes())
     from .scoring_regressions import valid_correction_provenance
-    covered: dict[str, set[str]] = {}
-    for receipt in receipts if isinstance(receipts, list) else ():
+    if not isinstance(receipts, list):
+        return {}
+
+    def hash_pair(row, prefix):
+        pair = (row.get(prefix + "_dataset_sha256"), row.get(prefix + "_results_sha256"))
+        return pair if all(isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value)
+                           for value in pair) else None
+
+    def receipt_transitions(receipt):
+        transitions = receipt.get("revision_transitions")
+        if isinstance(transitions, list):
+            return [edge for row in transitions
+                    if isinstance(row, dict)
+                    for edge in [(hash_pair(row, "input"), hash_pair(row, "output"))]
+                    if all(edge)]
+        before = hash_pair(receipt, "input")
+        if receipt.get("prior_output_dataset_sha256") is not None:
+            after = (receipt.get("prior_output_dataset_sha256"),
+                     receipt.get("prior_output_results_sha256"))
+            if not all(isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value)
+                       for value in after):
+                after = None
+        else:
+            after = hash_pair(receipt, "output")
+        return [(before, after)] if before and after else []
+
+    valid_references = []
+    edges = set()
+    for receipt in receipts:
         if (not isinstance(receipt, dict)
                 or receipt.get("kind") != "audited_reference_correction"
                 or receipt.get("provider_calls") != 0
-                or receipt.get("output_dataset_sha256") != current_dataset
-                or receipt.get("output_results_sha256") != current_results
                 or not valid_correction_provenance(receipt)):
+            continue
+        valid_references.append(receipt)
+        edges.update(receipt_transitions(receipt))
+
+    scoring_path = root / "scoring-revisions.json"
+    if scoring_path.is_file():
+        try:
+            scoring = json.loads(scoring_path.read_text())
+        except (OSError, ValueError, TypeError):
+            return {}
+        allowed = {
+            "body_requirements", "required_patterns", "required_facts",
+            "acceptance_contract", "forbidden_any", "expected_resources",
+            "resource_output_contract", "task_prompt", "mutable_body_policy",
+        }
+        for receipt in scoring if isinstance(scoring, list) else ():
+            before, after = hash_pair(receipt, "input"), hash_pair(receipt, "output")
+            if (isinstance(receipt, dict) and before and after
+                    and receipt.get("provider_calls") == 0
+                    and valid_correction_provenance(receipt)
+                    and isinstance(receipt.get("changed_cases"), list)
+                    and all(isinstance(change, dict)
+                            and set(change.get("fields", ())) <= allowed
+                            for change in receipt["changed_cases"])):
+                edges.add((before, after))
+
+    current = (current_dataset, current_results)
+
+    def reaches_current(start):
+        frontier, seen = {start}, set()
+        while frontier:
+            node = frontier.pop()
+            if node == current:
+                return True
+            if node in seen:
+                continue
+            seen.add(node)
+            frontier.update(after for before, after in edges if before == node)
+        return False
+
+    covered: dict[str, set[str]] = {}
+    for receipt in valid_references:
+        # Legacy rebound receipts use prior_output as their immutable endpoint;
+        # consolidated assembly indexes may instead bind directly to current.
+        terminals = {after for _, after in receipt_transitions(receipt)}
+        top = hash_pair(receipt, "output")
+        if receipt.get("prior_output_dataset_sha256") is None and top:
+            terminals.add(top)
+        if not any(reaches_current(terminal) for terminal in terminals):
             continue
         for change in receipt.get("changed_cases", ()):
             if (not isinstance(change, dict) or not isinstance(change.get("case_id"), str)

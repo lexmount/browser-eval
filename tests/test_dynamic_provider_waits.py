@@ -6,6 +6,7 @@ from harness.web_fetch.models import EvalCase
 from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
 from harness.web_fetch.providers.firecrawl import FirecrawlProvider
 from harness.web_fetch.providers.http_client import HttpResponse
+from harness.web_fetch.providers.lexmount import LexmountProvider
 
 
 def dynamic_case(**completion_overrides):
@@ -40,6 +41,89 @@ def test_release_configs_select_firecrawl_wait_for_route():
         assert providers["firecrawl-resources"]["proxy"] == "auto"
         assert providers["firecrawl"]["capacity_credits_per_call"] == 1
         assert providers["firecrawl-resources"]["capacity_credits_per_call"] == 1
+
+
+@patch("harness.web_fetch.providers.lexmount.request")
+def test_lexmount_dynamic_uses_all_in_one_extract_with_domstable_engine(mock_request):
+    mock_request.return_value = HttpResponse(
+        200,
+        "u",
+        {},
+        json.dumps({
+            "request_id": "req-1",
+            "result": {
+                "main_text": "Example rendered rows",
+                "final_url": "https://example.com/dynamic",
+                "engine": "lightmount_domstable",
+                "dom_id": "dom-1",
+            },
+            "metadata": {"server_elapsed_ms": 1234},
+        }).encode(),
+    )
+
+    result = LexmountProvider(
+        "lexmount-global", {"api_key": "x", "project_id": "p"}
+    ).fetch(dynamic_case(), 45)
+
+    assert mock_request.call_args.args[0] == "https://api.lexmount.com/v1/extract"
+    assert mock_request.call_args.kwargs["json_body"] == {
+        "extract": {
+            "url": "https://example.com/dynamic",
+            "options": {
+                "engine_preference": "lightmount_domstable",
+                "timeout_ms": 30_000,
+            },
+        }
+    }
+    assert mock_request.call_args.kwargs["timeout"] == 40.5
+    assert result.ok is True
+    assert result.content == "Example rendered rows"
+    assert result.metadata["route"] == "v1_extract_dynamic"
+    assert result.metadata["requested_engine"] == "lightmount_domstable"
+    assert result.metadata["wait"] == {
+        "strategy": "dom_stability",
+        "engine_preference": "lightmount_domstable",
+        "selector": ".row",
+        "frame_selector": None,
+        "minimum_count": 10,
+        "selector_enforced": False,
+        "minimum_count_enforced": False,
+        "completion_support": "approximate",
+        "unsupported": ["selector", "minimum_count", "post_completion_delay"],
+        "delay_ms": 250,
+        "timeout_ms": 30_000,
+        "wait_until": "domcontentloaded",
+    }
+
+
+@patch("harness.web_fetch.providers.lexmount.request")
+def test_lexmount_dynamic_timeout_is_capped_by_client_deadline(mock_request):
+    mock_request.return_value = HttpResponse(
+        200, "u", {}, b'{"result":{"main_text":"Example","engine":"lightmount_domstable"}}'
+    )
+
+    result = LexmountProvider(
+        "lexmount-global", {"api_key": "x", "project_id": "p"}
+    ).fetch(dynamic_case(timeout_ms=60_000), 12.5)
+
+    extract = mock_request.call_args.kwargs["json_body"]["extract"]
+    assert extract["options"]["timeout_ms"] == 11_250
+    assert result.metadata["wait"]["timeout_ms"] == 11_250
+
+
+@patch("harness.web_fetch.providers.lexmount.request")
+def test_lexmount_rejects_non_browser_dynamic_engine(mock_request):
+    result = LexmountProvider(
+        "lexmount-global",
+        {"api_key": "x", "project_id": "p", "dynamic_engine": "http"},
+    ).fetch(dynamic_case(), 45)
+
+    assert result.error_type == "configuration"
+    assert result.error_message == (
+        "Lexmount dynamic_engine must be chrome, chrome_cdp, "
+        "lightmount_dcl or lightmount_domstable"
+    )
+    mock_request.assert_not_called()
 
 
 @patch("harness.web_fetch.providers.cloudflare.request")

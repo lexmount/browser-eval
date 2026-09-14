@@ -89,6 +89,7 @@ def extract_html(raw: bytes, url: str):
     for node in root.select(
             'script,style,noscript,nav,footer,[aria-hidden=true],.mw-editsection,'
             '.vector-toc,.sidebar,.sphinxsidebar,.ws-share,.navbox,.navbox-styles,'
+            '.article-footer__last-modified,'
             '[role="navigation"]'):
         node.decompose()
     text = '\n'.join(line.strip() for line in root.get_text('\n').splitlines() if line.strip())

@@ -13,14 +13,127 @@ from harness.web_fetch.report_explainer import (
     _digest, _headless_article_input, _article_speed_population,
     headless_evidence, render_explainer)
 from scripts.certify_headless_cases import certify_case
-from scripts.assemble_headless import (assemble, copy_bound_review, read_verified_batches,
+from scripts.assemble_headless import (assemble, copy_bound_review, copy_projected_review,
+                                       copy_scoring_revision_history,
+                                       read_verified_batches,
                                        bind_assembled_scoring_revision,
                                        _copy_speed_bundle,
-                                       _prune_shadowed_batch_attempts)
+                                       _prune_shadowed_batch_attempts,
+                                       _project_provider_subset)
+from scripts.package_headless_speed import build_summary as build_speed_summary
 from unittest.mock import patch
 
 
 class HeadlessReportTests(unittest.TestCase):
+    def test_two_provider_projection_keeps_complete_matrix_and_prunes_metadata(self):
+        providers=['keep','lexmount-global','lexmount-cn']
+        dataset={'comparison':{},'cases':[{'id':'a','track':'web'},{'id':'b','track':'web'}],
+                 'coverage_plan':{'web':providers}}
+        records=[{'attempt_id':f'{provider}__{case}__r001','provider':provider,
+                  'case_id':case,'started_at':'2026-09-01T00:00:01+00:00',
+                  'completed_at':'2026-09-01T00:00:02+00:00','elapsed_ms':1000}
+                 for provider in providers for case in ('a','b')]
+        batches=[{'started_at':'2026-09-01T00:00:00+00:00',
+                  'completed_at':'2026-09-01T00:00:03+00:00',
+                  'attempt_ids':[row['attempt_id'] for row in records],
+                  'attempt_count':len(records),'providers':[{'name':name} for name in providers]}]
+        audit=[{'provider':'lexmount-cn','excluded_attempts':[]},
+               {'case_id':'a','excluded_attempts':[{'attempt_id':'lexmount-global__a__r001'},
+                                                    {'attempt_id':'keep__a__r001'}]}]
+        projected,rows,execution,selection=_project_provider_subset(
+            dataset,records,batches,audit,['lexmount-global','lexmount-cn'])
+        self.assertEqual(projected['coverage_plan'],{'web':['keep']})
+        self.assertEqual({(row['case_id'],row['provider']) for row in rows},
+                         {('a','keep'),('b','keep')})
+        self.assertEqual(execution[0]['providers'],[{'name':'keep'}])
+        self.assertEqual(execution[0]['attempt_count'],2)
+        self.assertEqual(selection,[{'case_id':'a','excluded_attempts':[
+            {'attempt_id':'keep__a__r001'}]}])
+
+    def test_provider_projection_fails_closed_for_unknown_or_incomplete_scope(self):
+        dataset={'comparison':{},'cases':[{'id':'a','track':'web'},{'id':'b','track':'web'}],
+                 'coverage_plan':{'web':['keep','lexmount-global','lexmount-cn']}}
+        records=[{'attempt_id':f'{provider}__{case}__r001','provider':provider,'case_id':case}
+                 for provider in dataset['coverage_plan']['web'] for case in ('a','b')]
+        with self.assertRaisesRegex(ValueError,'absent from the declared matrix'):
+            _project_provider_subset(dataset,records,[],[],['missing'])
+        with self.assertRaisesRegex(ValueError,'complete case/provider matrix'):
+            _project_provider_subset(dataset,[row for row in records
+                if not (row['provider']=='keep' and row['case_id']=='b')],[],[],
+                                     ['lexmount-global','lexmount-cn'])
+
+    def test_two_provider_projection_filters_and_rebinds_full_review(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';output=root/'output';source.mkdir();output.mkdir()
+            providers=['keep','lexmount-global','lexmount-cn']
+            dataset={'comparison':{'require_independent_result_review':True},
+                     'cases':[{'id':'a','track':'web','task_kind':'body'}],
+                     'coverage_plan':{'web':providers}}
+            records=[{'attempt_id':f'{provider}__a__r001','provider':provider,
+                      'case_id':'a','ok':True,'metrics':{'content_pass':True}}
+                     for provider in providers]
+            (source/'dataset.json').write_text(json.dumps(dataset))
+            (source/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records))
+            review={'schema_version':1,'bindings':{
+                'dataset_sha256':hashlib.sha256((source/'dataset.json').read_bytes()).hexdigest(),
+                'results_sha256':hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()},
+                'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
+                'attempts':[{'attempt_id':row['attempt_id'],'machine_verdict':'pass',
+                             'agent_verdict':'pass','final_verdict':'pass'} for row in records]}
+            (source/'result-review.json').write_text(json.dumps(review))
+            projected=deepcopy(dataset);projected['coverage_plan']['web']=['keep']
+            projected['comparison']['excluded_providers']=['lexmount-cn','lexmount-global']
+            (output/'dataset.json').write_text(json.dumps(projected))
+            (output/'results.jsonl').write_text(json.dumps(records[0])+'\n')
+            self.assertTrue(copy_projected_review(
+                source,output,['lexmount-global','lexmount-cn']))
+            rebound=json.loads((output/'result-review.json').read_text())
+            self.assertEqual([row['attempt_id'] for row in rebound['attempts']],['keep__a__r001'])
+            self.assertEqual(rebound['reviewed_attempts'],1)
+            self.assertEqual(rebound['total_attempts'],1)
+
+    def test_speed_projection_recomputes_provider_statistics_and_bindings(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';target=root/'target';source.mkdir()
+            providers=['keep','lexmount-global','lexmount-cn']
+            dataset={'comparison':{},'cases':[{'id':'a','track':'web'},{'id':'b','track':'web'}],
+                     'coverage_plan':{'web':providers}}
+            records=[];batches=[]
+            for index,provider in enumerate(providers):
+                attempts=[]
+                for case in ('a','b'):
+                    payload=f'{provider}-{case}'.encode();relative=f'artifacts/{provider}/{case}.txt'
+                    path=source/relative;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(payload)
+                    attempt=f'{provider}__{case}__r001';attempts.append(attempt)
+                    records.append({'attempt_id':attempt,'provider':provider,'case_id':case,'run':1,
+                        'artifact_path':relative,'ok':True,'elapsed_ms':10+index,
+                        'started_at':'2026-09-01T00:00:01+00:00',
+                        'completed_at':'2026-09-01T00:00:02+00:00',
+                        'metrics':{'content_pass':True,'content_sha256':hashlib.sha256(payload).hexdigest()}})
+                batches.append({'started_at':'2026-09-01T00:00:00+00:00',
+                    'completed_at':'2026-09-01T00:00:10+00:00','attempt_ids':attempts,
+                    'attempt_count':2,'providers':[{'name':provider}]})
+            aggregate={'started_at':'2026-09-01T00:00:00+00:00',
+                'completed_at':'2026-09-01T00:00:10+00:00','providers':providers,
+                'case_ids':['a','b'],'batch_count':3}
+            (source/'dataset.json').write_text(json.dumps(dataset))
+            (source/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records))
+            (source/'execution.json').write_text(json.dumps({'schema_version':1,
+                                                              'aggregate':aggregate,'batches':batches}))
+            summary=build_speed_summary(dataset,records,batches,aggregate)
+            summary['bindings']={'dataset_sha256':hashlib.sha256((source/'dataset.json').read_bytes()).hexdigest(),
+                                 'results_sha256':hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()}
+            (source/'speed-comparison.json').write_text(json.dumps(summary))
+            with patch('scripts.assemble_headless.require_verified_reference_checks'):
+                _copy_speed_bundle(source,target,dataset,records,batches,
+                                   excluded_providers=['lexmount-global','lexmount-cn'])
+            projected=json.loads((target/'speed-comparison.json').read_text())
+            self.assertEqual(projected['providers'],['keep'])
+            self.assertEqual([row['provider'] for row in projected['rows']],['keep'])
+            self.assertEqual(json.loads((target/'dataset.json').read_text())['coverage_plan'],
+                             {'web':['keep']})
+            self.assertEqual(len((target/'results.jsonl').read_text().splitlines()),2)
+
     def test_article_speed_uses_all_common_tasks_of_displayed_providers(self):
         cases = {cid: {'id': cid, 'track': 'web'} for cid in ('a', 'b', 'c')}
         rows = []
@@ -119,6 +232,23 @@ class HeadlessReportTests(unittest.TestCase):
             (output/'dataset.json').write_text('{"cases": [1]}\n')
             self.assertFalse(copy_bound_review(source,output))
             self.assertFalse((output/'result-review.json').exists())
+
+    def test_scoring_revision_copy_includes_hash_bound_review_archive(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';output=root/'output'
+            source.mkdir();output.mkdir()
+            payload=b'{"review":"prior"}\n'
+            relative='review-history/result-review-old.json'
+            archive=source/relative;archive.parent.mkdir();archive.write_bytes(payload)
+            receipts=[{'kind':'audited_body_scoring_revision',
+                       'prior_result_review_path':relative,
+                       'prior_result_review_sha256':hashlib.sha256(payload).hexdigest()}]
+            (source/'scoring-revisions.json').write_text(json.dumps(receipts))
+            self.assertTrue(copy_scoring_revision_history(source,output))
+            self.assertEqual((output/relative).read_bytes(),payload)
+            archive.write_bytes(b'tampered')
+            with self.assertRaisesRegex(ValueError,'hash does not match'):
+                copy_scoring_revision_history(source,root/'second')
 
     def test_shadowed_attempt_pruning_removes_stale_case_binding(self):
         batches=[{'started_at':'2026-09-01T00:00:00+00:00','completed_at':'2026-09-01T00:00:10+00:00',

@@ -16,6 +16,30 @@ class StableTaskTests(unittest.TestCase):
     def check(self, text, schema="product", count=2, **extra):
         return evaluate_stable_task(text, contract(schema, count, **extra), "https://example.test/catalog")
 
+    def test_body_text_contract_uses_only_stable_anchors_without_fake_records(self):
+        rules={"version":1,"schema":"body_text","minimum_records":0,
+               "stable_text_anchors":[
+                   {"id":"identity","alternatives":["NASA Science seeks to discover"]},
+                   {"id":"strategy","alternatives":["long-term roadmap"]},
+               ]}
+        changed_news=("NASA Science seeks to discover the universe\n"
+                      "Entirely new rotating news cards\nlong-term roadmap")
+        result=evaluate_stable_task(changed_news,rules)
+        self.assertTrue(result["stable_task_pass"],result)
+        self.assertEqual(result["stable_record_count"],0)
+        missing=evaluate_stable_task("Entirely new rotating news cards",rules)
+        self.assertFalse(missing["stable_task_pass"])
+        self.assertIn("missing_stable_anchor:identity",missing["stable_task_errors"])
+
+    def test_body_text_contract_rejects_record_rules_or_no_stable_identity(self):
+        with self.assertRaisesRegex(ValueError,"do not declare records"):
+            validate_acceptance_contract({"version":1,"schema":"body_text",
+                                          "minimum_records":1,
+                                          "stable_text_anchors":[{"id":"x","alternatives":["stable"]}]})
+        with self.assertRaisesRegex(ValueError,"require text anchors"):
+            validate_acceptance_contract({"version":1,"schema":"body_text",
+                                          "minimum_records":0})
+
     def test_product_titles_prices_order_and_markdown_are_not_ground_truth(self):
         for text in ("Alpha shirt\n$12.50\n\nBeta shirt\n$8",
                      "## New coat\n\nPrice: €99.25\n\n## 最新名称\nPrice: USD 300",
