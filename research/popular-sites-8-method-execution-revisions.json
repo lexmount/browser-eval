@@ -15,6 +15,21 @@
       "replacement_scope": "All 100 Moli cases; do not append only the missing cases and do not select between old and new outputs.",
       "provider_charge_usd": 0,
       "other_providers_affected": false
+    },
+    {
+      "revision_id": "lexmount-cn-timeout-cleanup-001",
+      "status": "authorized_for_complete_scope_replacement",
+      "observed_at": "2026-09-14T17:52:01+08:00",
+      "provider": "lexmount-cn",
+      "superseded_incomplete_evidence": "~/.browser-eval/evidence/formal/popular-sites-8-method-2026-09-14/lexmount-200/workers/lexmount-cn/resources",
+      "physical_calls_retained": 45,
+      "unexecuted_cases": 55,
+      "cause": "The 45-second HTTP timeout completed just after the harness answer deadline, so the runner observed the cleanup thread as alive and quarantined the remaining provider cases.",
+      "correction": "Allow Lexmount adapters up to five seconds of bounded post-deadline cleanup; the returned answer is still rejected at 45 seconds and no subsequent paid call overlaps it.",
+      "replacement_scope": "All 100 Lexmount CN cases; the 45 retained calls remain historical and are not selected or merged into the replacement.",
+      "additional_provider_calls_authorized": 100,
+      "authorization_received_at": "2026-09-14",
+      "other_completed_provider_results_affected": false
     }
   ]
 }

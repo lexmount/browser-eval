@@ -6,6 +6,13 @@ from .http_client import request
 
 
 class LexmountProvider(Provider):
+    @property
+    def cancellation_grace_seconds(self) -> float:
+        # The synchronous HTTP client applies the same socket timeout as the
+        # harness answer deadline. Give a just-expired request a bounded window
+        # to close its response/thread before another paid call can start.
+        return 5.0
+
     def validate(self) -> list[str]:
         missing = []
         if not self.config.get("api_key"):
