@@ -35,11 +35,11 @@
     "body_metrics": "unavailable",
     "conversion": "Each method's native known-URL fetch output is normalized once into text plus explicit structured links when available.",
     "source_rule_registry": "research/popular-sites-rules.json",
-    "source_rule_registry_sha256": "1386b46fa954efe31ff2b352c824cce7fac557506f2e7a083ada9188590566a5",
+    "source_rule_registry_sha256": "aea68bfe740f1b50a23572d687cc4c43cbde107eed19782da1818dd67ce5c139",
     "approval_record": "research/china-homepage-rules-approval.json",
     "approval_record_sha256": "8bf2cda6f77089680ee537f5405bf9169a35dd6432e2276b5770aa5c4043b160",
     "execution_contract": "research/popular-sites-12-method-contract.json",
-    "execution_contract_sha256": "630ac4e0375de62d276c180eb5a5046687bcb5bddeb8c98277d8d790f6878152"
+    "execution_contract_sha256": "7baf7fb3a7c25721ab38cfd09260f714da615833db137fbdc0c82da7d3d3903b"
   },
   "cases": [
     {

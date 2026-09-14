@@ -136,5 +136,5 @@ def test_formal_batches_are_frozen_before_preflight():
     assert set(flattened) == set(contract["providers"])
     assert contract["execution"]["diagnostic_preflight"]["case_ids"] == [
         "global-homepage-038-samsung-com",
-        "global-homepage-005-reddit-com",
+        "global-homepage-006-reddit-com",
     ]

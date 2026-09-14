@@ -10,7 +10,7 @@
   },
   "execution_contract": {
     "path": "research/popular-sites-12-method-contract.json",
-    "sha256": "630ac4e0375de62d276c180eb5a5046687bcb5bddeb8c98277d8d790f6878152"
+    "sha256": "7baf7fb3a7c25721ab38cfd09260f714da615833db137fbdc0c82da7d3d3903b"
   },
   "components": [
     {
@@ -45,7 +45,7 @@
       "kind": "china_ranked_reserve_replacements",
       "count": 2,
       "path": "research/popular-sites-12-method-contract.json",
-      "sha256": "630ac4e0375de62d276c180eb5a5046687bcb5bddeb8c98277d8d790f6878152",
+      "sha256": "7baf7fb3a7c25721ab38cfd09260f714da615833db137fbdc0c82da7d3d3903b",
       "case_ids": [
         "china-homepage-083-grok-com",
         "china-homepage-085-shopify-com"

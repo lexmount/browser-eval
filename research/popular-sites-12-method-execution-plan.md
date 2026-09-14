@@ -12,7 +12,7 @@
 - 先完成全部 12 种方法的导入、worker 启动、版本固定和本地固定页检查。环境不完整不计为产品失败。
 - 预检固定案例：
   - `global-homepage-038-samsung-com`：`page_identity`。
-  - `global-homepage-005-reddit-com`：`named_link`。
+  - `global-homepage-006-reddit-com`：`named_link`。
 - 每种方法各运行上述 2 个案例，共 24 次诊断执行。预检仅判断方法能否形成可评分输出、记录实际用量、费用和异常，不进入正式排行。
 - 用户已于 2026-09-14 授权这 24 次预检；授权不包含 1,200 次正式测试。
 

@@ -4,7 +4,7 @@
   "checked_at": "2026-09-14",
   "source": "Two fresh anonymous Chromium initial-load observations",
   "contract_record": "research/popular-sites-12-method-contract.json",
-  "contract_record_sha256": "630ac4e0375de62d276c180eb5a5046687bcb5bddeb8c98277d8d790f6878152",
+  "contract_record_sha256": "7baf7fb3a7c25721ab38cfd09260f714da615833db137fbdc0c82da7d3d3903b",
   "stable_page_sha256": "2ff2892862d8b480cef83af10611b4016972d6c4092b626fd099dae0a48dd7d1",
   "provider_output_used": false,
   "clicks_or_recursive_navigation": false
