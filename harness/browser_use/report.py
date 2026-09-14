@@ -581,6 +581,24 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         )
     )
     failure_rows, _ = _failure_review(summary)
+    final_failure_count = sum(int(row[1]) for row in failure_rows)
+    failure_breakdown = "，".join(f"{row[1]} 条{row[0]}" for row in failure_rows)
+    failure_summary = (
+        f"最终 {final_failure_count} 条失败包括{failure_breakdown}。"
+        if failure_rows
+        else "本轮没有最终失败。"
+    )
+    stage_labels = {
+        "页面交互中断": "页面交互",
+        "环境准备失败": "环境准备",
+        "最终验收不匹配": "最终验收",
+    }
+    failure_stages = "、".join(stage_labels.get(row[0], row[0]) for row in failure_rows)
+    failure_boundary = (
+        f"现有证据足以把最终失败定位到{failure_stages}阶段；"
+        if failure_rows
+        else "本轮没有最终失败需要归因；"
+    )
     failure_cards = "".join(
         f'<article><strong>{_e(row[1])}</strong><span>{_e(row[0])}</span><p>{_e(row[2])}</p></article>'
         for row in failure_rows
@@ -612,9 +630,9 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         else ""
     )
     return f"""<section class="card hero"><div class="eyebrow">报告解读</div><h2>固定同一批操作后，{compatibility_lead}；{resource_lead}。速度和网络仍需逐项看，不能用一个总分概括。</h2><p>Chromium 最终通过 <strong>{c_passes}/{task_count}</strong>，Moli 通过 <strong>{m_passes}/{task_count}</strong>。这是 WebArena 公开人工轨迹的确定性重放，不是 LLM Agent 排名：没有 Agent 规划、模型调用或 LLM judge。结论只适用于这 {task_count} 条冻结轨迹和本轮环境，不足以推出浏览器总体优劣。</p>{audit_strip}</section>
-<section class="card"><div class="section-heading"><div><h2>先看能不能完成</h2><p class="muted">主指标是首次成功率；失败后的唯一一次重试只反映恢复能力。</p></div><a href="{REPORT_STEM}-results.html#task-comparison">下钻到任务</a></div><div class="score-grid">{score_cards}</div>{_correctness_table(summary)}<p>最终 18 条失败中，13 条停在页面交互，2 条停在环境准备，3 条完成了工具调用但没有通过程序验收。后者并不矛盾：调用返回只说明路径走完，最终答案、服务状态或 HAR 仍可能不满足 evaluator。</p></section>
+<section class="card"><div class="section-heading"><div><h2>先看能不能完成</h2><p class="muted">主指标是首次成功率；失败后的唯一一次重试只反映恢复能力。</p></div><a href="{REPORT_STEM}-results.html#task-comparison">下钻到任务</a></div><div class="score-grid">{score_cards}</div>{_correctness_table(summary)}<p>{failure_summary}工具调用链走完仍可能没有通过程序验收：调用返回只说明路径走完，最终答案、服务状态或 HAR 仍可能不满足 evaluator。</p></section>
 <section class="card"><div class="section-heading"><div><h2>再看成功任务的资源代价</h2><p class="muted">只比较双方首次都通过的 {paired} 个同任务，避免把失败等待和重试混进性能结论。</p></div><a href="{REPORT_STEM}-results.html#performance">查看全部指标与计算审计</a></div>{_grouped_resource_table(summary, home_metrics, "双方首次均成功任务的跨任务统计（均为越低越好）")}<div class="reading-grid"><article><h3>内存</h3><p>Moli 的时间加权平均内存 P50 是 Chromium 的 <strong>{_show(memory_ratio, suffix='×')}</strong>，结束保留增量 P50 为 <strong>{_show(retained_ratio, suffix='×')}</strong>。</p></article><article><h3>速度</h3><p>逐任务耗时比 P50 为 <strong>{_show(duration_ratio, suffix='×')}</strong>，P95 为 <strong>{_show(duration_p95_ratio, suffix='×')}</strong>。中位接近，长尾不占优。</p></article><article><h3>网络</h3><p>Moli 的发送流量逐任务比 P50 为 <strong>{_show(tx_ratio, suffix='×')}</strong>。这项开销不能用较低内存抵消。</p></article></div></section>
-<section class="card"><div class="section-heading"><div><h2>失败发生在哪里</h2><p class="muted">18 条最终失败按最接近证据的直接机制归类，不把现象冒充浏览器内部根因。</p></div><a href="{REPORT_STEM}-results.html#failure-review">查看日志与证据摘要</a></div><div class="failure-story">{failure_cards}</div><p>现有证据足以定位到环境准备、页面交互或最终验收三个阶段；尚不足以断定 Moli 内部是渲染、布局还是适配层导致。</p></section>
+<section class="card"><div class="section-heading"><div><h2>失败发生在哪里</h2><p class="muted">{final_failure_count} 条最终失败按最接近证据的直接机制归类，不把现象冒充浏览器内部根因。</p></div><a href="{REPORT_STEM}-results.html#failure-review">查看日志与证据摘要</a></div><div class="failure-story">{failure_cards}</div><p>{failure_boundary}页面交互证据仍不足以断定 Moli 内部是渲染、布局还是适配层导致。</p></section>
 <section class="card"><h2>怎么使用这份结果</h2><div class="reading-grid"><article><h3>默认路线</h3><p>若目标是覆盖这批固定业务路径，通过数较高的浏览器当前更稳妥。</p></article><article><h3>资源取舍</h3><p>对已验证兼容的任务，内存优势有工程价值；上线前仍需看该任务的耗时与网络开销。</p></article><article><h3>不要外推</h3><p>{task_count} 条轨迹不能代表浏览器总体能力，也不能解释 Agent 成功率。数据集来源、选型依据和执行方法分别在后续页面给出。</p></article></div></section>"""
 
 

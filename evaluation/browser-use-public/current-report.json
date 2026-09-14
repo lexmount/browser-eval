@@ -5,12 +5,12 @@
   "agentic_browser_use": false,
   "benchmark": "WebArena",
   "task_count_per_engine": 30,
-  "run_id": "342ae6e73a88",
+  "run_id": "342ae6e73a88-c10851daf",
   "suite_sha256": "ed2832f9c061726cd856d2949313f6a543c770277122eb42dd38cd0a8d27fe0c",
   "evidence": {
     "location": "outside_git",
-    "manifest_sha256": "4fbb8404a102b4367e0b73c47fc3647c3b8facdb387fe795a4fdce3212bf87be",
-    "summary_sha256": "352cb3d6605262c11db6721ea942f4e1d24b8b1b7b4fc31f956768f05c373818"
+    "manifest_sha256": "bd56f4240404a8ee2443079042ee170d9f34f0ad5d7cbca9944a7e0d7ee57730",
+    "summary_sha256": "60371fb3470a4f54ef0ac4629cc8fed2c7c7c201d3f23b06b69a0d330cc2360b"
   },
   "results": {
     "chromium": {
@@ -19,9 +19,9 @@
       "final_passes": 29
     },
     "moli": {
-      "first_passes": 11,
+      "first_passes": 13,
       "recovered": 2,
-      "final_passes": 13
+      "final_passes": 15
     }
   },
   "publication": {
