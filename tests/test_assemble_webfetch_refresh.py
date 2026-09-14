@@ -305,6 +305,23 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
             {
                 "batches": [
                     {
+                        "runtime_source_sha256": sha(b"fixture-runtime"),
+                        "provider_config_sha256": sha(b"fixture-provider-config"),
+                        "providers": [
+                            {
+                                "name": provider,
+                                "implementation_identity": {
+                                    "fixture_sha256": sha(provider.encode())
+                                },
+                            }
+                            for provider in sorted({row["provider"] for row in rows})
+                        ],
+                        "parameters": {
+                            "runs": 1,
+                            "timeout": 45,
+                            "delay": 0.5,
+                            "provider_concurrency": 1,
+                        },
                         "started_at": "2026-09-10T00:00:00+00:00",
                         "completed_at": "2026-09-10T00:00:03+00:00",
                         "attempt_count": len(rows),
@@ -320,6 +337,37 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
         self.assertTrue({("crawl4ai", case["id"]) for case in self.canonical_cases} <= pairs)
         self.assertIn(("tavily", "document-03"), pairs)
         self.assertIn(("cowagent-built-in", "document-05"), pairs)
+
+    def test_pair_only_refresh_scope_allows_empty_matched_case_lists(self) -> None:
+        matrix = self.plan["main_matrix"]
+        matrix["full_rerun_providers"] = []
+        matrix["full_rerun_reason_by_provider"] = {}
+        matrix["matched_case_ids"] = []
+        matrix["matched_case_reason_groups"] = []
+        matrix["planned_new_calls"] = len(matrix["pair_replacements"])
+        self.plan["total_planned_new_calls"] = len(matrix["pair_replacements"])
+
+        self.assertEqual(
+            expected_refresh_pairs(self.plan, self.canonical),
+            {
+                (replacement["provider"], replacement["case_id"])
+                for replacement in matrix["pair_replacements"]
+            },
+        )
+
+    def test_matched_case_ids_and_reason_groups_must_be_empty_together(self) -> None:
+        self.plan["main_matrix"]["matched_case_reason_groups"] = []
+        with self.assertRaisesRegex(ValueError, "must both be empty or nonempty"):
+            expected_refresh_pairs(self.plan, self.canonical)
+
+        self.plan["main_matrix"]["matched_case_ids"] = []
+        self.plan["main_matrix"]["matched_case_reason_groups"] = [{
+            "case_ids": [RERUN_CASES[0]],
+            "category": "input_contract",
+            "reason": "changed shared input",
+        }]
+        with self.assertRaisesRegex(ValueError, "must both be empty or nonempty"):
+            expected_refresh_pairs(self.plan, self.canonical)
 
     def test_refresh_scope_rejects_missing_reasons_and_bad_counts(self) -> None:
         self.plan["main_matrix"]["matched_case_reason_groups"][0]["reason"] = ""
@@ -506,6 +554,103 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
             assemble(
                 self.baseline,
                 [self.main],
+                self.speed,
+                output,
+                canonical_dataset=self.canonical_path,
+                plan=self.plan_path,
+            )
+        self.assertFalse(output.exists())
+
+    def test_missing_rerun_pair_fails_without_creating_output(self) -> None:
+        rows = [json.loads(line) for line in (self.main / "results.jsonl").read_text().splitlines()]
+        missing = rows.pop()
+        (self.main / "results.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+        )
+        execution = json.loads((self.main / "execution.json").read_text())
+        execution["batches"][0]["attempt_ids"].remove(missing["attempt_id"])
+        execution["batches"][0]["attempt_count"] -= 1
+        self.write_json(self.main / "execution.json", execution)
+
+        output = self.root / "missing-output"
+        with self.assertRaisesRegex(ValueError, "missing=1, extra=0"):
+            assemble(
+                self.baseline,
+                [self.main],
+                self.speed,
+                output,
+                canonical_dataset=self.canonical_path,
+                plan=self.plan_path,
+            )
+        self.assertFalse(output.exists())
+
+    def test_extra_rerun_pair_fails_without_creating_output(self) -> None:
+        rows = [json.loads(line) for line in (self.main / "results.jsonl").read_text().splitlines()]
+        expected = expected_refresh_pairs(self.plan, self.canonical)
+        extra_pair = next(
+            (provider, case["id"])
+            for provider in PROVIDERS
+            for case in self.canonical_cases
+            if (provider, case["id"]) not in expected
+        )
+        extra = self.rows_for_pairs({extra_pair})[0]
+        rows.append(extra)
+        (self.main / "results.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+        )
+        execution = json.loads((self.main / "execution.json").read_text())
+        execution["batches"][0]["attempt_ids"].append(extra["attempt_id"])
+        execution["batches"][0]["attempt_count"] += 1
+        self.write_json(self.main / "execution.json", execution)
+
+        output = self.root / "extra-output"
+        with self.assertRaisesRegex(ValueError, "missing=0, extra=1"):
+            assemble(
+                self.baseline,
+                [self.main],
+                self.speed,
+                output,
+                canonical_dataset=self.canonical_path,
+                plan=self.plan_path,
+            )
+        self.assertFalse(output.exists())
+
+    def test_provider_shards_must_have_the_same_run_identity(self) -> None:
+        rows = [json.loads(line) for line in (self.main / "results.jsonl").read_text().splitlines()]
+        moved = next(row for row in rows if row["provider"] == "crawl4ai")
+        rows.remove(moved)
+        (self.main / "results.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+        )
+        execution = json.loads((self.main / "execution.json").read_text())
+        execution["batches"][0]["attempt_ids"].remove(moved["attempt_id"])
+        execution["batches"][0]["attempt_count"] -= 1
+        self.write_json(self.main / "execution.json", execution)
+
+        shard = self.root / "second-main-rerun"
+        self.write_bundle(shard, self.canonical, [moved])
+        matching_output = self.root / "matching-provider-identity-output"
+        assemble(
+            self.baseline,
+            [self.main, shard],
+            self.speed,
+            matching_output,
+            canonical_dataset=self.canonical_path,
+            plan=self.plan_path,
+        )
+        self.assertTrue((matching_output / "results.jsonl").is_file())
+
+        shard_execution = json.loads((shard / "execution.json").read_text())
+        shard_execution["batches"][0]["provider_config_sha256"] = sha(b"different-config")
+        self.write_json(shard / "execution.json", shard_execution)
+
+        output = self.root / "mixed-provider-identity-output"
+        with self.assertRaisesRegex(
+            ValueError, "inconsistent run identity.*provider_config_sha256"
+        ):
+            assemble(
+                self.baseline,
+                [self.main, shard],
                 self.speed,
                 output,
                 canonical_dataset=self.canonical_path,

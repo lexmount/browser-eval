@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shutil
 import sys
@@ -28,6 +29,38 @@ def _attempt_key(batch: dict) -> tuple[str, ...]:
     return tuple(sorted(attempts))
 
 
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _verify_existing_postcheck(worker: Path, manifest: dict,
+                               observations: Path) -> bool:
+    """Accept only the exact verified postcheck left by an interrupted finalize.
+
+    ``finalize_reference_checks`` intentionally refuses to rewrite an existing
+    certificate.  The aggregate step must therefore be resumable after the
+    worker manifest was committed but before the top-level execution file was
+    rebuilt.  Reuse is safe only when the retained receipt still binds the
+    supplied observations and this worker's immutable dataset/results bytes.
+    """
+    checks = manifest.get("reference_checks")
+    postcheck = checks.get("postcheck") if isinstance(checks, dict) else None
+    if not isinstance(postcheck, dict):
+        return False
+    if checks.get("status") != "verified" or postcheck.get("status") != "verified":
+        raise ValueError(f"Retained reference postcheck is not verified: {worker}")
+    expected = {
+        "evidence_sha256": _sha256(observations),
+        "results_sha256": _sha256(worker / "results.jsonl"),
+        "dataset_sha256": _sha256(worker / "dataset.json"),
+    }
+    for field, value in expected.items():
+        if postcheck.get(field) != value:
+            raise ValueError(
+                f"Retained reference postcheck has stale {field}: {worker}")
+    return True
+
+
 def finalize_aggregate(run_dir: Path, observations: Path) -> None:
     """Finalize workers, merge certificates, and atomically replace execution.json."""
     run_dir = run_dir.resolve()
@@ -49,6 +82,8 @@ def finalize_aggregate(run_dir: Path, observations: Path) -> None:
 
     for path, manifest in zip(manifests, before, strict=True):
         if "reference_checks" in manifest:
+            if _verify_existing_postcheck(path.parent, manifest, observations):
+                continue
             result = finalize_reference_checks(path.parent, observations)
             if result.get("status") != "verified":
                 raise ValueError(f"Reference postcheck failed: {path.parent}")

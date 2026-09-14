@@ -9,7 +9,7 @@ from harness.web_fetch.body_coverage import body_requirements
 from harness.web_fetch.reference_lifecycle import scope_identity
 from harness.web_fetch.scoring_regressions import build_correction_provenance
 from scripts.freeze_headless_references import (
-    _digest_json, _require_promotion, main,
+    _digest_json, _require_promotion, compute_reference_update, main,
 )
 from scripts.prepare_reference_promotion import prepare
 from scripts.promote_reference_candidate import promote
@@ -116,6 +116,50 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
                     capture_audit_sha256='e'*64,
                     candidate_dataset_sha256='f'*64,changes=[self.change])
 
+    def test_unavailable_body_reference_recovers_from_complete_clean_capture(self):
+        with tempfile.TemporaryDirectory() as directory:
+            captures=Path(directory)
+            text='Breadcrumb documentation body with the required recovery fact.'
+            case={'id':'recoverable-reference','name':'Recoverable reference',
+                  'url':'https://example.com/docs','track':'web','task_kind':'body',
+                  'ground_truth_main_content':'','body_requirements':{},
+                  'required_facts':[{'id':'fact','alternatives':['recovery fact']}],
+                  'source_verification':{'state':'unavailable','checked_at':'2026-09-01T00:00:00Z',
+                                         'method':'Independent HTTP response'}}
+            audit={'case_id':case['id'],'status':200,'state':'captured',
+                   'checked_at':'2026-09-14T00:00:00Z','selector':'main',
+                   'sha256':'a'*64,
+                   'extracted_sha256':hashlib.sha256(text.encode()).hexdigest(),
+                   'quality_issues':[]}
+            (captures/'audit.json').write_text(json.dumps([audit]))
+            target=captures/case['id'];target.mkdir()
+            (target/'reference.txt').write_text(text)
+
+            frozen,changes,_=compute_reference_update({'cases':[case]},captures)
+
+            self.assertEqual(frozen['cases'][0]['ground_truth_main_content'],text)
+            self.assertEqual(frozen['cases'][0]['source_verification']['state'],'valid')
+            self.assertEqual(changes[0]['case_id'],case['id'])
+
+    def test_unavailable_body_reference_stays_unavailable_when_capture_is_blocked(self):
+        with tempfile.TemporaryDirectory() as directory:
+            captures=Path(directory)
+            case={'id':'blocked-reference','name':'Blocked reference',
+                  'url':'https://example.com/blocked','track':'web','task_kind':'body',
+                  'ground_truth_main_content':'','body_requirements':{},
+                  'required_facts':[],
+                  'source_verification':{'state':'unavailable','checked_at':'2026-09-01T00:00:00Z',
+                                         'method':'Independent HTTP response'}}
+            audit={'case_id':case['id'],'status':403,'state':'unavailable',
+                   'checked_at':'2026-09-14T00:00:00Z','selector':'main',
+                   'sha256':'b'*64,'quality_issues':['http_status_403']}
+            (captures/'audit.json').write_text(json.dumps([audit]))
+
+            frozen,changes,_=compute_reference_update({'cases':[case]},captures)
+
+            self.assertEqual(frozen['cases'][0],case)
+            self.assertEqual(changes,[])
+
     def test_freeze_writes_nothing_until_changed_scope_is_promoted(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);captures=root/'captures';captures.mkdir()
@@ -218,6 +262,9 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
             (canonical,captures,observations,receipt,candidate,
              observation,new)=self._browser_promotion_fixture(root)
             research=root/'research';sources=root/'sources'
+            stale=sources/'javascript-spa'/'unavailable-reference.json'
+            stale.parent.mkdir(parents=True)
+            stale.write_text('{"state":"unavailable"}')
             target=research/'promotion.json'
             result=promote(canonical_path=canonical,candidate_path=candidate,
                 captures=captures,receipt_path=receipt,receipt_target=target,
@@ -230,6 +277,7 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
             self.assertEqual((source/'reference.txt').read_text(),new)
             self.assertFalse((source/'current-source.html.txt').exists())
             self.assertFalse((source/'current-capture.json').exists())
+            self.assertFalse((source/'unavailable-reference.json').exists())
             verification=json.loads(canonical.read_text())['cases'][0]['source_verification']
             self.assertIn('browser_observation_sha256',verification)
             self.assertIn('rendered_content_sha256',verification)

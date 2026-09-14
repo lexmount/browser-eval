@@ -10,7 +10,7 @@ import re
 import shutil
 import sys
 import tempfile
-from collections import Counter
+from collections import Counter, defaultdict
 from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
@@ -150,8 +150,12 @@ def expected_refresh_pairs(plan: dict, canonical: dict) -> set[tuple[str, str]]:
     for provider, reason in reasons.items():
         _require_reason(reason, label=f"full provider reason for {provider}")
     matched_reason_groups = matrix.get("matched_case_reason_groups")
-    if not isinstance(matched_reason_groups, list) or not matched_reason_groups:
+    if not isinstance(matched_reason_groups, list):
         raise ValueError("Refresh plan has invalid matched case reason groups")
+    if bool(matched_reason_groups) != bool(matched_cases):
+        raise ValueError(
+            "Refresh plan matched case IDs and reason groups must both be empty or nonempty"
+        )
     explained_cases = []
     for index, group in enumerate(matched_reason_groups):
         if not isinstance(group, dict) or set(group) != {"case_ids", "category", "reason"}:
@@ -339,6 +343,58 @@ def _validate_source_batches(
             == "equivalent_reference_bytes_with_independent_batch_captures",
         )
     return batches, source_path
+
+
+def _validate_consistent_provider_run_identities(
+    rerun_batches: list[tuple[list[dict], list[dict], Path, Path]],
+) -> None:
+    """Reject provider shards produced with different code, config, or parameters."""
+    identities: dict[str, list[tuple[dict, Path]]] = defaultdict(list)
+    for batches, rows, root, _source_path in rerun_batches:
+        rows_by_attempt = {row["attempt_id"]: row for row in rows}
+        for batch in batches:
+            providers = batch.get("providers")
+            if not isinstance(providers, list):
+                raise ValueError(f"Main rerun batch has invalid providers: {root}")
+            parameters = batch.get("parameters")
+            if not isinstance(parameters, dict):
+                raise ValueError(f"Main rerun batch has invalid parameters: {root}")
+            if not all(
+                isinstance(provider, dict) and isinstance(provider.get("name"), str)
+                for provider in providers
+            ):
+                raise ValueError(f"Main rerun batch has invalid provider identity: {root}")
+            provider_names = [provider["name"] for provider in providers]
+            if len(provider_names) != len(set(provider_names)):
+                raise ValueError(f"Main rerun batch has duplicate provider identities: {root}")
+            attempt_providers = {
+                rows_by_attempt[attempt_id]["provider"]
+                for attempt_id in batch.get("attempt_ids", [])
+            }
+            if set(provider_names) != attempt_providers:
+                raise ValueError(
+                    f"Main rerun batch provider identities do not match its attempts: {root}"
+                )
+            for provider in providers:
+                identities[provider["name"]].append(({
+                    "runtime_source_sha256": batch.get("runtime_source_sha256"),
+                    "provider_config_sha256": batch.get("provider_config_sha256"),
+                    "implementation_identity": provider.get("implementation_identity"),
+                    "parameters": parameters,
+                }, root))
+    for provider, entries in identities.items():
+        if len(entries) < 2:
+            continue
+        expected, expected_root = entries[0]
+        for actual, actual_root in entries[1:]:
+            if actual != expected:
+                changed = ", ".join(
+                    field for field in expected if expected[field] != actual[field]
+                )
+                raise ValueError(
+                    f"Main rerun provider {provider} has inconsistent run identity across "
+                    f"{expected_root} and {actual_root}: {changed}"
+                )
 
 
 def _require_canonical_cases(
@@ -698,6 +754,7 @@ def _assemble(
                 raise ValueError(f"Main reruns contain duplicate provider/case results: {pair}")
             rerun_by_pair[pair] = (row, root)
     rerun_rows = [row for row, _ in rerun_by_pair.values()]
+    _validate_consistent_provider_run_identities(rerun_batches)
     _validate_record_identity(rerun_rows, allowed_pairs=expected_main, label="main reruns")
 
     baseline_by_pair = {(row["provider"], row["case_id"]): row for row in baseline_rows}

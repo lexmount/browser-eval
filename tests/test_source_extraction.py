@@ -28,6 +28,24 @@ class SourceExtractionTests(unittest.TestCase):
         self.assertNotIn('navigation',original)
         self.assertNotIn('Generic',original)
 
+    def test_wikipedia_oldid_excludes_live_excerpt_transclusion_only(self):
+        from scripts.collect_source_evidence import extract_html
+        def extract(url):
+            raw = b'''<html><body><div id="mw-content-text">
+            <div class="mw-parser-output"><p>Stable revision prose</p>
+            <div class="excerpt-block" typeof="mw:Transclusion">
+            <div class="excerpt"><p>Mutable external excerpt</p></div></div>
+            <div typeof="mw:Transclusion"><p>Fixed in-page template</p></div>
+            </div></div></body></html>'''
+            return extract_html(raw, url)[1]
+        fixed = extract(
+            'https://en.wikipedia.org/w/index.php?title=Article&oldid=123')
+        live = extract('https://en.wikipedia.org/wiki/Article')
+        self.assertIn('Stable revision prose', fixed)
+        self.assertIn('Fixed in-page template', fixed)
+        self.assertNotIn('Mutable external excerpt', fixed)
+        self.assertIn('Mutable external excerpt', live)
+
     def test_excludes_w3schools_share_controls_from_article_reference(self):
         from scripts.collect_source_evidence import extract_html
         raw = b'''<html><body><main id="main"><h1>HTML Tables</h1>

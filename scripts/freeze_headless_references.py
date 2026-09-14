@@ -151,8 +151,36 @@ def compute_reference_update(dataset, captures, observations=None):
     audit={row['case_id']:row for row in audit_rows}
     changes=[];contexts={}
     for case in frozen['cases']:
-        if not requires_fresh_reference(case):continue
         cid=case['id']
+        refresh=requires_fresh_reference(case)
+        if not refresh:
+            # A previously unavailable body reference must be allowed to
+            # recover when a later independent HTTP capture is complete.  Do
+            # not turn every still-blocked source into a publication blocker:
+            # recovery is considered only after a successful, nonempty,
+            # quality-clean capture containing every declared fact.
+            row=audit.get(cid,{})
+            reference=captures/cid/'reference.txt'
+            recoverable=(
+                case.get('track','web') in {'web','dynamic','challenge'}
+                and case.get('task_kind','body')=='body'
+                and not case.get('acceptance_contract')
+                and bool(case.get('source_verification'))
+                and not (case.get('ground_truth_main_content') or '').strip()
+                and row.get('status')==200
+                and row.get('state')=='captured'
+                and not row.get('quality_issues')
+                and reference.is_file()
+                and bool(clean_reference_text(reference.read_text()).strip())
+            )
+            if recoverable:
+                candidate=clean_reference_text(reference.read_text())
+                recoverable=all(
+                    any(reference_anchor_in_text(candidate,alt)
+                        for alt in fact['alternatives'])
+                    for fact in case.get('required_facts',[]))
+            if not recoverable:
+                continue
         if cid in RENDERED_REFERENCE_CASES and cid not in observations:
             raise ValueError('Reference requires independent browser observation: '+cid)
         if cid in observations:

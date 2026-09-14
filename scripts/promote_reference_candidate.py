@@ -101,6 +101,9 @@ def promote(*,canonical_path,candidate_path,captures,receipt_path,receipt_target
     sources_root=(sources_root or ROOT/'evaluation'/'sources').resolve()
     for case_id,(raw,reference,capture_record,observation) in prepared.items():
         source=contained_path(sources_root,case_id);source.mkdir(parents=True,exist_ok=True)
+        # A promoted valid reference supersedes an earlier unavailable marker;
+        # retaining both would expose contradictory current lifecycle state.
+        (source/'unavailable-reference.json').unlink(missing_ok=True)
         if observation is not None:
             for stale in ('current-source.html.txt','current-capture.json'):
                 (source/stale).unlink(missing_ok=True)

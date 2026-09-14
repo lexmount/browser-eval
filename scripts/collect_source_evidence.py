@@ -69,6 +69,15 @@ def extract_html(raw: bytes, url: str):
     elif host.endswith('w3schools.com'):
         selectors = ['#main', 'body']
     selector, root = next(((s, soup.select_one(s)) for s in selectors if soup.select_one(s)), ('body', soup))
+    if (host.endswith('wikipedia.org')
+            and 'oldid=' in (urlsplit(url).query or '')):
+        # A permanent article revision can still render live ``Excerpt``
+        # transclusions from another page.  They are not part of the immutable
+        # article revision and have changed under an unchanged oldid in real
+        # captures, so exclude the declared transclusion container while
+        # retaining ordinary article prose and fixed templates.
+        for node in root.select('.excerpt-block[typeof~="mw:Transclusion"]'):
+            node.decompose()
     if host == 'browser.lexmount.com':
         # Fumadocs keeps the page breadcrumb and adjacent-page cards inside
         # ``article``. They are navigation, not the selected document body.
