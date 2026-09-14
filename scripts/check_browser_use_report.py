@@ -7,9 +7,35 @@ import argparse
 import hashlib
 import json
 import re
+from html.parser import HTMLParser
 from pathlib import Path
 
 from PIL import Image
+
+
+class _VisibleTextParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.hidden_depth = 0
+        self.parts: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.lower() in {"script", "style", "pre", "code"}:
+            self.hidden_depth += 1
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag.lower() in {"script", "style", "pre", "code"} and self.hidden_depth:
+            self.hidden_depth -= 1
+
+    def handle_data(self, data: str) -> None:
+        if not self.hidden_depth:
+            self.parts.append(data)
+
+
+def _visible_text(html: str) -> str:
+    parser = _VisibleTextParser()
+    parser.feed(html)
+    return " ".join(parser.parts)
 
 from harness.browser_use.failure_cause_review import (
     DEFAULT_REVIEW_PATH as FAILURE_CAUSE_REVIEW_PATH,
@@ -54,7 +80,7 @@ def _check_reader_facing_ux(
             raise ValueError(f"formal report contains unexplained internal term {term}: {page}")
     for homepage in (report_dir / "index.html", report_dir / "en/index.html"):
         text = rendered_pages[homepage]
-        if not re.search(r'<table\b[^>]*\bid=["\']core-metrics-table["\']', text, flags=re.I):
+        if not re.search(r'<table\b[^>]*\bid=["\']home-core-metrics["\']', text, flags=re.I):
             raise ValueError(f"report home page is missing the core metrics table: {homepage}")
 
 
@@ -304,8 +330,6 @@ def check(
         raise ValueError("current Browser Use profile must register unique browser engines")
     page_names = (
         "index.html",
-        "guide/index.html",
-        "guide/article.html",
         "changes/index.html",
         "datasets/index.html",
         "methodology/index.html",
@@ -441,6 +465,19 @@ def check(
         excluded_lists = re.findall(r"tasks excluded in this run: ([^<]+)", text)
         if any("、" in value for value in excluded_lists):
             raise ValueError(f"English excluded-task list uses Chinese punctuation: {page}")
+    for relative, allowed in {
+        "index.html": {"中文"},
+    }.items():
+        page = report_dir / "en" / relative
+        visible = re.sub(r"\s+", " ", _visible_text(rendered_pages[page]))
+        for token in allowed:
+            visible = visible.replace(token, "")
+        match = cjk.search(visible)
+        if match:
+            excerpt = visible[max(0, match.start() - 40) : match.start() + 80]
+            raise ValueError(
+                f"English reader-facing page contains Chinese prose: {page}: {excerpt}"
+            )
     for engine in engines:
         engine_page = rendered_pages[report_dir / "engines" / f"{engine}.html"]
         if "engine-result-table" in engine_page or f"f_engine={engine}" not in engine_page:
@@ -480,16 +517,31 @@ def check(
         'id="analysis-core-metrics"',
         "BrowserTool 动作延迟",
         "action-card-grid",
-        "四种配置 · 单次调用墙钟时间",
+        "按模型分层 · 单次调用墙钟时间",
         "同题全配置对比",
         'id="configuration-matrix"',
-        'id="clean-subset-table"',
         "查看诊断",
         'class="diagnosis-dialog"',
         "程序报错",
+        "四种完整配置统一比较",
+        "成功结果没有逐条语义盲审",
     ):
         if marker not in analysis_index:
             raise ValueError(f"analysis is missing timing or scalable comparison: {marker}")
+
+    guide_index = rendered_pages[report_dir / "index.html"]
+    for marker in (
+        "首次成功与重试恢复",
+        "程序判分落点与复核根因",
+        'class="verdict-strip"',
+        'class="cause-bars"',
+        'id="home-qualified-results"',
+        'class="audit-ladder"',
+        'id="home-resource-table"',
+        'results/gpt-6-astra-chromium-699.html#verification',
+    ):
+        if marker not in guide_index:
+            raise ValueError(f"interpretation is missing an evidence-backed reading aid: {marker}")
     for forbidden in (
         "中位数",
         "失败结果定位",
@@ -558,17 +610,9 @@ def check(
     ):
         raise ValueError("result pages must not duplicate answer and evaluator presentations")
     html = rendered_pages[index]
-    standalone = (report_dir / "guide/article.html").read_text(encoding="utf-8")
-    if "<script" in standalone or "assets/" in standalone:
-        raise ValueError("standalone article must be self-contained and JavaScript-free")
-    article_heading = "失败原因"
-    if (
-        article_heading not in standalone
-        or article_heading not in rendered_pages[report_dir / "guide/index.html"]
-    ):
-        raise ValueError(
-            "dashboard guide and standalone article must share the authored interpretation"
-        )
+    article_heading = "程序判分落点与复核根因"
+    if article_heading not in rendered_pages[report_dir / "index.html"]:
+        raise ValueError("homepage must contain the authored interpretation")
     public_results = [
         json.loads(line)
         for line in (report_dir / "data/results.jsonl").read_text(encoding="utf-8").splitlines()
@@ -770,6 +814,27 @@ def check(
         )
         if published_cause_review.get("results") != verified_causes:
             raise ValueError("published failure causes differ from verified reviews")
+        interpretation = json.loads(
+            (report_dir / "data/interpretation-evidence.json").read_text(encoding="utf-8")
+        )
+        scoring_claim = next(
+            (
+                item
+                for item in interpretation.get("claims") or []
+                if item.get("claim") == "官方 evaluator 的失败规则组合"
+            ),
+            None,
+        )
+        if not scoring_claim:
+            raise ValueError("interpretation evidence is missing programmatic failure locations")
+        scoring_basis = scoring_claim.get("basis") or {}
+        scoring_classes = scoring_basis.get("classes") or {}
+        failed_count = sum(1 for row in logical_rows if float(row.get("score") or 0) < 1)
+        if scoring_basis.get("denominator") != failed_count or sum(
+            int(scoring_classes.get(key) or 0)
+            for key in ("network_only", "response_only", "both")
+        ) != failed_count:
+            raise ValueError("programmatic failure locations do not cover every final failure")
         remediation = json.loads(
             (Path(__file__).parents[1] / "research/browser-use-remediation.json").read_text(
                 encoding="utf-8"

@@ -1,7 +1,7 @@
 {
   "schema": "lex_browser_use_remediation/1",
-  "updated_at": "2026-09-11",
-  "score_policy": "Official results remain unchanged. A task is excluded from the post-hoc diagnostic clean subset across every configuration when any verified result is affected by benchmark/evaluator, site, shared-environment, or mixed reference-state interference.",
+  "updated_at": "2026-09-14",
+  "score_policy": "Raw evaluator outputs remain unchanged. A task is excluded from the formal comparison across every configuration when any verified result is affected by benchmark/evaluator, site, shared-environment, or mixed reference-state interference. Readmission requires a corrected contract or runtime, independent preflight, and a complete four-configuration rerun.",
   "items": [
     {
       "category": "shared_environment",

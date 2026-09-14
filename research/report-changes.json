@@ -6,6 +6,24 @@
   },
   "browser_use_reviews": [
     {
+      "id": "review-2026-09-11-interpretation-reader-audit",
+      "date": "2026-09-11",
+      "title": "解读页、比较语义与双语版面复核",
+      "status": "已处理",
+      "scope": "报告首页、解读页、分析页、失败下钻、英文本地化和桌面/平板/手机断点。",
+      "findings": "原稿把不同模型配置放在一起标记优胜，混淆了程序判分位置与人工复核根因；重试累计也会扭曲性能对比。部分失败缺少直接下钻入口，英文页仍有中文残留，平板宽度过早堆成单列。",
+      "corrections": "优胜只在同一模型内比较浏览器；分别披露 43 个仅网络规则失败、20 个仅回答规则失败、12 个双规则失败，以及 29/24/10/8/2/2 的复核根因。性能资源改用四配置首次共同成功的 64 题且只取首次执行，并补齐逐结果链接、英文门禁和响应式布局。",
+      "remaining": "当前仍是每种配置一个正式样本。14 个已确认外部干扰任务需在修复后完整重跑；增加重复次数前不发布模型或浏览器总体排名。",
+      "i18n": {"en": {
+        "title": "Reader audit of interpretation, comparison semantics, and bilingual layout",
+        "status": "Resolved",
+        "scope": "The report home, guide, analysis, failure drill-down, English localization, and desktop, tablet, and phone breakpoints.",
+        "findings": "The draft marked winners across different model configurations, conflated programmatic failure location with human-reviewed root cause, and allowed retry accumulation to distort performance comparisons. Some failures lacked direct drill-down, English pages retained Chinese prose, and tablet layouts collapsed into one column too early.",
+        "corrections": "Winner marks now compare browsers only within one model. The report separately discloses 43 network-only, 20 response-only, and 12 dual-rule failures, plus the 29/24/10/8/2/2 reviewed root-cause split. Performance and resource statistics use the 64 tasks all four configurations passed on the first attempt and only the first execution; direct result links, English gates, and responsive layouts were added.",
+        "remaining": "Each configuration still has one formal sample. The 14 confirmed interference tasks require a complete rerun after fixes, and no overall model or browser ranking should be published before repetitions are added."
+      }}
+    },
+    {
       "id": "review-2026-09-11-astra-layer-and-environment-isolation",
       "date": "2026-09-11",
       "title": "Astra 模型层、逐执行证据与环境隔离核验",
@@ -147,6 +165,63 @@
     }
   ],
   "browser_use_releases": [
+    {
+      "id": "2026-09-14-qualified-comparison-home",
+      "date": "2026-09-14",
+      "title": "首页改用审查合格比较集并合并报告解读",
+      "summary": "首页不再把含已确认合同、站点、共享状态或参考状态干扰的 90 题原始结果当作正式比较。四种配置统一改用 76 题审查合格分母；90 题原始 evaluator 输出完整保留在结果与核验页。报告解读并入首页，删除重复入口和独立阅读副本。",
+      "attempts_sha256_by_model": {
+        "gpt-5.6-sol": "73146500152db62d79f84b63c85a14027c005a6320c19bce7426651f167466bd",
+        "gpt-6-astra": "0659d227cf6d29fbfaf64d39f8e77a56bec73c87f7f6e1f2ac23ea13fd9b667c"
+      },
+      "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+      "changes": [
+        [
+          "正式比较分母",
+          "90 题汇总混入 14 题已确认的非目标变量干扰，首页同时展示诊断子集，读者无法判断哪组才是结论依据。",
+          "按整题、四配置一致排除 14 题，76 题成为唯一正式比较集；原始 90 题只作审计记录，不人工改分。",
+          "Sol 为 Chromium 71/76、Moli 67/76；Astra 为 Chromium 69/76、Moli 68/76。"
+        ],
+        [
+          "Task 77",
+          "Astra 的两条 Task 77 证据在 reset 后被另一个进程改写共享 Shopping Admin 状态。",
+          "运行器已用跨进程锁覆盖 reset、Agent、证据收尾和 evaluator；旧污染结果退出分母，只有四配置新证据才能重新纳入。",
+          "Task 77 不再影响首页成绩；历史执行仍可下钻核对。"
+        ],
+        [
+          "信息结构",
+          "首页与报告解读重复，读者需要在两个入口之间往返。",
+          "把解读、成绩、失败位置、审查边界和资源结论合并为首页，删除 guide 路由与独立副本。",
+          "数据集、结果、核验和复现仍保留独立下钻页面。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Use a review-qualified comparison set on the unified homepage",
+          "summary": "The homepage no longer treats raw 90-task results containing confirmed contract, site, shared-state, or reference-state interference as the formal comparison. All four configurations now use one 76-task review-qualified denominator, while every raw evaluator output remains available in the result and review pages. The interpretation is merged into the homepage and duplicate routes are removed.",
+          "changes": [
+            [
+              "Formal denominator",
+              "The 90-task summary mixed 14 tasks with confirmed non-target interference and placed a diagnostic subset beside it, leaving the conclusion denominator ambiguous.",
+              "Exclude each affected task across all four configurations. The 76-task set becomes the sole formal comparison; raw 90-task results remain audit records and are not manually rescored.",
+              "Sol scores 71/76 on Chromium and 67/76 on Moli; Astra scores 69/76 on Chromium and 68/76 on Moli."
+            ],
+            [
+              "Task 77",
+              "Both Astra Task 77 executions had shared Shopping Admin state modified by another process after reset.",
+              "A cross-process lock now covers reset, agent execution, evidence finalization, and evaluation. The contaminated results leave the denominator and can return only through new four-configuration evidence.",
+              "Task 77 no longer affects the homepage scores; its historical executions remain available for inspection."
+            ],
+            [
+              "Information architecture",
+              "The homepage and interpretation duplicated content and forced readers to switch between two entry points.",
+              "Merge interpretation, scores, failure locations, review boundaries, and resource findings into the homepage; remove the guide route and standalone copy.",
+              "Dataset, results, review, and reproduction remain separate drill-down pages."
+            ]
+          ]
+        }
+      }
+    },
     {
       "id": "2026-09-11-browser-resource-comparison",
       "date": "2026-09-11",

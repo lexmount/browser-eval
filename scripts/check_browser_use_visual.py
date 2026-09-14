@@ -49,7 +49,6 @@ def _route_classes(report: Path) -> list[Path]:
         "methodology/index.html",
         "analysis/index.html",
         "review/index.html",
-        "guide/index.html",
         "changes/index.html",
         "adoption/index.html",
         "reproduce/index.html",
@@ -86,7 +85,7 @@ def check(report: Path, receipt: Path) -> None:
         browser = playwright.chromium.launch(executable_path=executable, headless=True)
         try:
             for route in routes:
-                for width, height in ((1440, 1000), (390, 844)):
+                for width, height in ((1440, 1000), (820, 1180), (390, 844)):
                     for theme in ("light", "dark"):
                         page = browser.new_page(viewport={"width": width, "height": height})
                         page.goto(route.resolve().as_uri(), wait_until="load")

@@ -8,12 +8,17 @@ import harness.browser_use.report as report_module
 from harness.browser_use.report import (
     _action_duration_cards,
     _attempt_table,
+    _automatic_failure_type,
     _best,
     _failure_diagnosis,
+    _failure_scope_counts,
+    _first_final_rows,
+    _common_success_resource_rows,
     _load_evidence_bundles,
     _logical_results,
     _paired_summary,
     _same_task_comparison,
+    _summary_comparison_rows,
     _verification_html,
     build_report,
 )
@@ -38,6 +43,52 @@ def test_best_marks_only_one_visibly_distinct_winner() -> None:
         )
         == set()
     )
+
+
+def test_interpretation_keeps_first_attempt_and_retry_recovery_separate(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(report_module, "MODEL_LABELS", {"model": "Model"})
+    monkeypatch.setattr(report_module, "ENGINE_LABELS", {"chromium": "Chromium"})
+    rows = [
+        {
+            "model": "model",
+            "engine": "chromium",
+            "task_id": 1,
+            "score": 1,
+            "_source_executions": [{"score": 1}],
+        },
+        {
+            "model": "model",
+            "engine": "chromium",
+            "task_id": 2,
+            "score": 1,
+            "_source_executions": [{"score": 0}, {"score": 1}],
+        },
+        {
+            "model": "model",
+            "engine": "chromium",
+            "task_id": 3,
+            "score": 0,
+            "_source_executions": [{"score": 0}, {"score": 0}],
+        },
+    ]
+
+    assert _first_final_rows(rows) == [["Model", "Chromium", "1/3", 2, "+1", "2/3"]]
+
+
+def test_failure_scope_summary_does_not_merge_browser_evidence_into_agent() -> None:
+    causes = {
+        "a": {"subcategory": {"code": "agent_retrieval"}},
+        "b": {"subcategory": {"code": "benchmark_evaluator"}},
+        "c": {"subcategory": {"code": "evidence_capture"}},
+    }
+
+    assert [(label, count) for label, count, _ in _failure_scope_counts(causes)] == [
+        ("Agent / 模型", 1),
+        ("任务 / evaluator", 1),
+        ("浏览器证据接口", 1),
+    ]
 
 
 def test_trace_screenshot_labels_count_only_publishable_frames(tmp_path: Path) -> None:
@@ -167,8 +218,8 @@ def test_reader_facing_ux_requires_home_core_tables_without_current_data(
     tmp_path: Path,
 ) -> None:
     pages = {
-        tmp_path / "index.html": '<table id="core-metrics-table"></table>',
-        tmp_path / "en/index.html": '<table id="core-metrics-table"></table>',
+        tmp_path / "index.html": '<table id="home-core-metrics"></table>',
+        tmp_path / "en/index.html": '<table id="home-core-metrics"></table>',
         tmp_path / "analysis/index.html": "普通读者可理解的说明",
     }
 
@@ -182,8 +233,8 @@ def test_reader_facing_ux_requires_home_core_tables_without_current_data(
 @pytest.mark.parametrize("term", FORBIDDEN_READER_TERMS)
 def test_reader_facing_ux_rejects_unexplained_internal_terms(tmp_path: Path, term: str) -> None:
     pages = {
-        tmp_path / "index.html": '<table id="core-metrics-table"></table>',
-        tmp_path / "en/index.html": '<table id="core-metrics-table"></table>',
+        tmp_path / "index.html": '<table id="home-core-metrics"></table>',
+        tmp_path / "en/index.html": '<table id="home-core-metrics"></table>',
         tmp_path / "analysis/index.html": f"<p>{term}</p>",
     }
 
@@ -493,11 +544,10 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
         "BrowserTool 动作延迟",
         "action-card-grid",
         "同题全配置对比",
-        "browser-comparison",
-        'id="configuration-matrix"',
-        'id="clean-subset-table"',
-        'id="analysis-core-metrics"',
-        "四种配置 · 单次调用墙钟时间",
+            "browser-comparison",
+            'id="configuration-matrix"',
+            'id="analysis-core-metrics"',
+            "按模型分层 · 单次调用墙钟时间",
     ):
         assert expected in analysis
     assert analysis.index("同题全配置对比") < analysis.index("BrowserTool 动作延迟")
@@ -590,6 +640,113 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
     assert not list(output.rglob("*.svg"))
 
 
+def test_common_success_resources_use_only_shared_first_attempts(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setattr(report_module, "MODEL_LABELS", {"a": "A", "b": "B"})
+    monkeypatch.setattr(
+        report_module, "ENGINE_LABELS", {"chromium": "Chromium", "moli": "Moli"}
+    )
+
+    def execution(task_id: int, model: str, engine: str, attempt: int, score: int) -> dict:
+        events = tmp_path / f"{task_id}-{model}-{engine}-{attempt}.json"
+        events.write_text("[]", encoding="utf-8")
+        return {
+            "task_id": task_id,
+            "model": model,
+            "engine": engine,
+            "attempt": attempt,
+            "score": score,
+            "duration_ms": 1000 * task_id + attempt,
+            "model_usage": {"total_tokens": 100 * task_id + attempt},
+            "resource": {"memory_peak_bytes": 1048576 * task_id, "cpu_ms": 10 * task_id},
+            "paths": {"events": str(events)},
+        }
+
+    logical = []
+    for task_id in (1, 2, 3):
+        for model in ("a", "b"):
+            for engine in ("chromium", "moli"):
+                first_score = 1
+                if task_id == 2 and model == "a" and engine == "moli":
+                    first_score = 0
+                if task_id == 3 and model == "b" and engine == "chromium":
+                    first_score = 0
+                sources = [execution(task_id, model, engine, 1, first_score)]
+                final_score = first_score
+                if task_id == 2 and first_score == 0:
+                    sources.append(execution(task_id, model, engine, 2, 1))
+                    final_score = 1
+                logical.append({**sources[-1], "score": final_score, "_source_executions": sources})
+
+    count, rows = _common_success_resource_rows(logical)
+
+    assert count == 1
+    assert {row[2] for row in rows} == {"1.0 秒"}
+    assert {row[5] for row in rows} == {"1.0 MiB"}
+
+
+def test_summary_winners_are_scoped_to_all_configurations(monkeypatch) -> None:
+    monkeypatch.setattr(report_module, "MODEL_LABELS", {"a": "A", "b": "B"})
+    monkeypatch.setattr(
+        report_module, "ENGINE_LABELS", {"chromium": "Chromium", "moli": "Moli"}
+    )
+
+    def metrics(passed: int) -> dict:
+        return {
+            "completed": 10,
+            "passed": passed,
+            "score": passed / 10,
+            **{
+                name: float(passed * 1000 if "duration_ms" in name else passed)
+                for name in (
+                    "mean_duration_ms",
+                    "p50_duration_ms",
+                    "p95_duration_ms",
+                    "mean_browser_tool_duration_ms",
+                    "p50_browser_tool_duration_ms",
+                    "p95_browser_tool_duration_ms",
+                    "mean_tokens",
+                    "p50_tokens",
+                    "p95_tokens",
+                )
+            },
+        }
+
+    rows = _summary_comparison_rows(
+        {
+            "a": {"chromium": metrics(8), "moli": metrics(7)},
+            "b": {"chromium": metrics(3), "moli": metrics(4)},
+        }
+    )
+
+    assert "comparison-winner" in str(rows[0][2])
+    assert "comparison-winner" not in str(rows[1][2])
+    assert "comparison-winner" not in str(rows[2][2])
+    assert "comparison-winner" not in str(rows[3][2])
+    for metric_column in (4, 5, 6):
+        assert "comparison-winner" in str(rows[2][metric_column])
+        assert "comparison-winner" not in str(rows[3][metric_column])
+
+
+def test_unknown_failure_scope_is_rejected() -> None:
+    with pytest.raises(ValueError, match="unknown failure-cause scope"):
+        _failure_scope_counts(
+            {"result": {"subcategory": {"code": "new_unregistered_scope"}}}
+        )
+
+
+def test_unknown_failed_evaluator_combination_is_rejected() -> None:
+    with pytest.raises(ValueError, match="unknown failed evaluator combination"):
+        _automatic_failure_type(
+            {
+                "evaluators_results": [
+                    {"evaluator_name": "NewEvaluator", "score": 0}
+                ]
+            }
+        )
+
+
 def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch) -> None:
     _use_single_model_profile(monkeypatch)
     evidence = tmp_path / "evidence"
@@ -655,15 +812,13 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch)
     assert report.is_file()
     assert (output / "assets/webarena-autonomous-evaluation-flow.png").is_file()
     home_text = report.read_text(encoding="utf-8")
-    assert "Chromium 与 Moli 的 Browser Use 能力对比" in home_text
+    assert "审查合格比较集" in home_text
     methodology_text = (output / "methodology/index.html").read_text(encoding="utf-8")
     assert "webarena-autonomous-evaluation-flow.png" in methodology_text
     assert "ContainerManager.start(reset=True)" in methodology_text
     assert "192.168.5.2" in methodology_text
     assert "不含点击序列" in methodology_text
     for name in (
-        "guide/index.html",
-        "guide/article.html",
         "changes/index.html",
         "datasets/index.html",
         "methodology/index.html",
@@ -678,11 +833,11 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch)
     ):
         page = output / name
         assert page.is_file()
-        if name not in {"guide/article.html", "en/index.html"}:
+        if name != "en/index.html":
             assert "切换主题" in page.read_text(encoding="utf-8")
     expected_tasks = len(load_pilot("evaluation/browser-use/webarena-verified-pilot.json").tasks)
     assert len(list((output / "datasets").glob("[0-9]*.html"))) == expected_tasks
-    assert (output / "guide/article.html").read_text(encoding="utf-8").find("<script") == -1
+    assert not (output / "guide").exists()
     report_data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
     assert "evidence" not in report_data
     evidence_index = json.loads((output / "data/evidence-index.json").read_text(encoding="utf-8"))
