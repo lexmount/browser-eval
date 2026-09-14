@@ -78,5 +78,29 @@ def test_audit_rejects_retry_after_passing_primary_result():
     summary["by_task"]["task-1"]["attempts"]["moli"].append(retry)
     summary["functional"]["moli"]["physical_attempts"] = 2
 
-    with pytest.raises(ResultAuditError, match="retried after a passing primary"):
+    with pytest.raises(ResultAuditError, match="retried after a passing result"):
         audit_result_set(manifest, summary)
+
+
+def test_audit_accepts_three_engines_and_multiple_declared_retries():
+    manifest, summary = _fixture()
+    manifest["protocol"] = {
+        "engines": ["chromium", "moli", "webkit"],
+        "max_failure_retries": 2,
+    }
+    failing = copy.deepcopy(summary["by_task"]["task-1"]["attempts"]["moli"][0])
+    failing.update({"status": "fail", "result_status": "fail", "combined_status": "fail"})
+    failing["validation"] = [{"status": "failure", "score": 0.0}]
+    failing["trace"][-1].update({"status": "fail", "checks": failing["validation"]})
+    final = copy.deepcopy(summary["by_task"]["task-1"]["attempts"]["moli"][0])
+    summary["by_task"]["task-1"]["attempts"]["webkit"] = [
+        {**copy.deepcopy(failing), "attempt": 1, "is_retry": False},
+        {**copy.deepcopy(failing), "attempt": 2, "is_retry": True},
+        {**final, "attempt": 3, "is_retry": True},
+    ]
+    summary["functional"]["webkit"] = {"physical_attempts": 3, "result_final_passes": 1}
+
+    audit = audit_result_set(manifest, summary)
+
+    assert audit["logical_results_reviewed"] == 3
+    assert audit["final_passes"]["webkit"] == 1

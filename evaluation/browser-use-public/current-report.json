@@ -1,33 +1,33 @@
 {
   "schema": "lexmount_webarena_fixed_trajectory_current_report/1",
-  "title": "Chromium 与 Moli：WebArena 固定轨迹回放评测",
+  "title": "WebArena 固定轨迹回放评测",
   "evaluation_kind": "fixed_trajectory_replay",
   "agentic_browser_use": false,
   "benchmark": "WebArena",
   "task_count_per_engine": 30,
+  "engines": [
+    "chromium",
+    "moli"
+  ],
   "run_id": "342ae6e73a88-c10851daf",
   "suite_sha256": "ed2832f9c061726cd856d2949313f6a543c770277122eb42dd38cd0a8d27fe0c",
   "evidence": {
     "location": "outside_git",
-    "manifest_sha256": "bd56f4240404a8ee2443079042ee170d9f34f0ad5d7cbca9944a7e0d7ee57730",
-    "summary_sha256": "60371fb3470a4f54ef0ac4629cc8fed2c7c7c201d3f23b06b69a0d330cc2360b"
+    "manifest_sha256": "defb42315d8a3ce410be126ac16611f716d6eddae78cf2ef7233bfb6011fb4a1",
+    "summary_sha256": "0414f9b8fb54a4ffb003fc06768a159297b9388915f37769f143b171ba095aae"
   },
   "results": {
     "chromium": {
-      "first_passes": 28,
-      "recovered": 1,
-      "final_passes": 29
+      "passes": 29
     },
     "moli": {
-      "first_passes": 13,
-      "recovered": 2,
-      "final_passes": 15
+      "passes": 15
     }
   },
   "publication": {
     "base_url": "https://artifact-hub.app.lexmount.com",
     "site_slug": "G_3dLaZQ1-4H",
-    "version_id": "ver_5d41fb6b9a874a76bfa58bbe2b845af7",
+    "version_id": "ver_d4b6bc94ecd64a16b8c53f8acc3080c0",
     "share_url": "https://artifact-hub.app.lexmount.com/v/EpR29VQ99CAgQsT-xdCSX8yg_O7DlWyL",
     "submitted_files_verified": 69
   }

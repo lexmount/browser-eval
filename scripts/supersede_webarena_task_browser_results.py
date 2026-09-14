@@ -32,22 +32,26 @@ def _key(row: dict[str, Any]) -> tuple[str, str]:
     return str(row.get("task_id") or ""), str(row.get("engine") or "")
 
 
-def _validate_attempt_scope(rows: list[dict[str, Any]], key: tuple[str, str]) -> None:
-    if not 1 <= len(rows) <= 2:
-        raise ValueError(f"{key}: correction must contain one primary and at most one retry")
+def _validate_attempt_scope(
+    rows: list[dict[str, Any]], key: tuple[str, str], *, max_retries: int
+) -> None:
+    if not 1 <= len(rows) <= max_retries + 1:
+        raise ValueError(f"{key}: correction exceeds the declared retry limit")
     for index, row in enumerate(rows, 1):
         if int(row.get("attempt") or 0) != index:
             raise ValueError(f"{key}: correction attempt numbering is invalid")
-        if bool(row.get("is_retry")) != (index == 2):
+        if bool(row.get("is_retry")) != (index > 1):
             raise ValueError(f"{key}: correction retry flag is invalid")
-    if len(rows) == 2 and str(rows[0].get("status")) == "pass":
-        raise ValueError(f"{key}: correction retried after a passing primary")
+        if index > 1 and str(rows[index - 2].get("status")) == "pass":
+            raise ValueError(f"{key}: correction retried after a passing result")
 
 
 def supersede_rows(
     base_rows: list[dict[str, Any]],
     correction_rows: list[dict[str, Any]],
     expected_keys: set[tuple[str, str]],
+    *,
+    max_retries: int = 1,
 ) -> list[dict[str, Any]]:
     correction_by_key: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for row in correction_rows:
@@ -62,7 +66,7 @@ def supersede_rows(
         raise ValueError(f"correction keys absent from base: {sorted(expected_keys - base_keys)}")
     for key, rows in correction_by_key.items():
         rows.sort(key=lambda row: int(row.get("attempt") or 0))
-        _validate_attempt_scope(rows, key)
+        _validate_attempt_scope(rows, key, max_retries=max_retries)
         base_contracts = {
             str(row.get("task_contract_sha256") or "")
             for row in base_rows
@@ -148,8 +152,16 @@ def build(
                 raise ValueError(f"correction evidence is missing: {evidence / name}")
         row["evidence_directory"] = str(evidence.resolve())
 
-    merged = supersede_rows(_read_rows(base_attempts_path), correction_rows, expected_keys)
-    summary = summarize_attempts(merged, engines=("chromium", "moli"))
+    base_protocol = base_manifest.get("protocol") or {}
+    max_retries = int(base_protocol.get("max_failure_retries", 0) or 0)
+    merged = supersede_rows(
+        _read_rows(base_attempts_path),
+        correction_rows,
+        expected_keys,
+        max_retries=max_retries,
+    )
+    declared_engines = tuple(str(value) for value in base_protocol.get("engines") or ())
+    summary = summarize_attempts(merged, engines=declared_engines)
     diagnose_summary(summary, use_llm=False)
     manifest = deepcopy(base_manifest)
     correction_hash = _sha256(correction_attempts_path)

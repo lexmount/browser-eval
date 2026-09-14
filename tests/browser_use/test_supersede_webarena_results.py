@@ -41,7 +41,7 @@ def test_rejects_partial_or_best_attempt_corrections():
     with pytest.raises(ValueError, match="attempt numbering"):
         supersede_rows(base, [_row("a", "moli", 2, "pass")], {("a", "moli")})
 
-    with pytest.raises(ValueError, match="retried after a passing primary"):
+    with pytest.raises(ValueError, match="retried after a passing result"):
         supersede_rows(
             base,
             [_row("a", "moli", 1, "pass"), _row("a", "moli", 2, "pass")],

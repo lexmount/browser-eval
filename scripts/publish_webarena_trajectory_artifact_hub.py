@@ -18,15 +18,24 @@ sys.path.insert(0, str(ROOT))
 from harness.web_fetch.artifact_auth import load_token  # noqa: E402
 
 DEFAULT_BASE = "https://artifact-hub.app.lexmount.com"
+SITE_TITLE = "WebArena 固定轨迹回放评测"
 
 
-def _request(base: str, token: str, path: str, data=None, content_type=None, auth=True):
+def _request(
+    base: str,
+    token: str,
+    path: str,
+    data=None,
+    content_type=None,
+    auth=True,
+    method: str | None = None,
+):
     headers = {"User-Agent": "WebArena-Fixed-Trajectory-Publisher/1.0"}
     if auth:
         headers["Authorization"] = "Bearer " + token
     if content_type:
         headers["Content-Type"] = content_type
-    request = urllib.request.Request(base + path, data=data, headers=headers)
+    request = urllib.request.Request(base + path, data=data, headers=headers, method=method)
     with urllib.request.urlopen(request, timeout=240) as response:
         return response.status, response.read()
 
@@ -74,7 +83,7 @@ def main() -> None:
     parts = []
     for key, value in (
         ("mode", "zip"),
-        ("title", "Chromium 与 Moli：WebArena 固定轨迹回放评测"),
+        ("title", SITE_TITLE),
     ):
         parts.append(
             (
@@ -112,6 +121,17 @@ def main() -> None:
     response = json.loads(raw)
     result = response if args.create else {**prior, **response}
     result["base_url"] = base
+    _title_status, title_raw = _request(
+        base,
+        token,
+        "/api/sites/" + quote(str(result["slug"]), safe=""),
+        json.dumps({"title": SITE_TITLE}).encode(),
+        "application/json",
+        method="PATCH",
+    )
+    if _title_status != 200:
+        raise RuntimeError(f"Artifact Hub title update returned {_title_status}")
+    result["title"] = json.loads(title_raw).get("title", SITE_TITLE)
     if not result.get("share_url"):
         _status, raw = _request(
             base,

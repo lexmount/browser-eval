@@ -35,7 +35,13 @@ def audit_result_set(manifest: dict[str, Any], summary: dict[str, Any]) -> dict[
         extra = sorted(set(by_task) - set(task_ids))
         raise ResultAuditError(f"summary task scope mismatch: missing={missing}, extra={extra}")
 
-    engines = ("chromium", "moli")
+    protocol = manifest.get("protocol") or {}
+    engines = tuple(str(engine) for engine in protocol.get("engines") or ())
+    if not engines:
+        engines = tuple(str(engine) for engine in (summary.get("functional") or {}))
+    if not engines or len(engines) != len(set(engines)):
+        raise ResultAuditError("manifest must declare a non-empty unique engine list")
+    max_retries = int(protocol.get("max_failure_retries", 0) or 0)
     final_counts: Counter[tuple[str, str]] = Counter()
     physical_attempts = 0
     reviewed: list[dict[str, Any]] = []
@@ -43,18 +49,21 @@ def audit_result_set(manifest: dict[str, Any], summary: dict[str, Any]) -> dict[
         attempts_by_engine = (by_task[task_id].get("attempts") or {})
         for engine in engines:
             attempts = attempts_by_engine.get(engine) or []
-            if not 1 <= len(attempts) <= 2:
+            if any(
+                index > 1 and str(attempts[index - 2].get("result_status")) == "pass"
+                for index in range(1, len(attempts) + 1)
+            ):
+                raise ResultAuditError(f"{task_id}/{engine} retried after a passing result")
+            if not 1 <= len(attempts) <= max_retries + 1:
                 raise ResultAuditError(
-                    f"{task_id}/{engine} must contain one primary and at most one retry"
+                    f"{task_id}/{engine} exceeds the declared retry limit"
                 )
             physical_attempts += len(attempts)
             for index, attempt in enumerate(attempts, 1):
                 if int(attempt.get("attempt") or 0) != index:
                     raise ResultAuditError(f"{task_id}/{engine} attempt numbering is invalid")
-                if bool(attempt.get("is_retry")) != (index == 2):
+                if bool(attempt.get("is_retry")) != (index > 1):
                     raise ResultAuditError(f"{task_id}/{engine} retry flag is invalid")
-            if len(attempts) == 2 and str(attempts[0].get("result_status")) == "pass":
-                raise ResultAuditError(f"{task_id}/{engine} retried after a passing primary result")
 
             for attempt in attempts:
                 number = int(attempt.get("attempt") or 0)
@@ -165,7 +174,7 @@ def audit_result_set(manifest: dict[str, Any], summary: dict[str, Any]) -> dict[
         },
         "checks": [
             "task scope and engine pairing",
-            "primary/retry policy",
+            "declared retry policy",
             "all-attempt process status and BrowserTool trace evidence",
             "official evaluator status and score",
             "HAR and final-page evidence completeness",

@@ -203,7 +203,8 @@ def test_summary_separates_first_pass_retry_recovery_and_final_outcome():
     assert summary["functional"]["moli"]["recovered"] == 1
     assert summary["functional"]["moli"]["final_passes"] == 1
     assert summary["functional"]["moli"]["physical_attempts"] == 2
-    assert summary["resource_comparison"]["intersection_attempts"] == 0
+    assert summary["resource_comparison"]["intersection_results"] == 1
+    assert summary["resource_comparison"]["by_engine"]["moli"]["duration_ms"]["p50"] == 11
 
 
 def test_summary_uses_last_attempt_not_best_attempt_for_final_result():

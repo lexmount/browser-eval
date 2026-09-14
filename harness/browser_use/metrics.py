@@ -336,19 +336,21 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
             "final_pass_rate": result_final_passes / len(task_ids) if task_ids else None,
             "pass_rate": result_final_passes / len(task_ids) if task_ids else None,
             "duration_ms": _metric(
-                _execution_duration(row) for row in first_rows if _passed(row, "result")
+                _execution_duration(attempts[-1])
+                for task_id in task_ids
+                if (attempts := [row for row in engine_rows if str(row["task_id"]) == task_id])
+                and _passed(attempts[-1], "result")
             ),
             "tool_output_tokens": _metric(
-                row["tool_output_tokens"]
-                for row in first_rows
-                if _passed(row, "result")
-                and isinstance(row.get("tool_output_tokens"), (int, float))
+                attempts[-1]["tool_output_tokens"]
+                for task_id in task_ids
+                if (attempts := [row for row in engine_rows if str(row["task_id"]) == task_id])
+                and _passed(attempts[-1], "result")
+                and isinstance(attempts[-1].get("tool_output_tokens"), (int, float))
             ),
         }
     grouped: dict[str, dict[str, dict[str, Any]]] = {}
     for row in rows:
-        if row.get("is_retry"):
-            continue
         grouped.setdefault(str(row["task_id"]), {})[str(row["engine"])] = row
     intersection_items = [
         (task_id, bucket)
@@ -446,6 +448,8 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
         "resource_comparison": {
             "scope": "warm browser container only",
             "functional_score_combined": False,
+            "intersection_results": len(intersection),
+            # Kept for older evidence readers. Each item is now the final declared result.
             "intersection_attempts": len(intersection),
             "by_engine": by_engine,
             "paired_ratios": {

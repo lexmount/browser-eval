@@ -124,9 +124,8 @@ def test_each_provider_links_to_its_failure_filter_including_zero_failures():
     assert "failure-shortcut" not in rendered
 
 
-def test_resource_tables_separate_absolute_values_from_paired_ratios():
-    by_engine = {"chromium": {}, "moli": {}}
-    paired = {}
+def test_resource_tables_compare_all_engines_in_one_table():
+    by_engine = {"chromium": {}, "moli": {}, "webkit": {}}
     for _, metrics in METRICS:
         for index, (key, _, divisor, _) in enumerate(metrics, 1):
             by_engine["chromium"][key] = {
@@ -139,18 +138,19 @@ def test_resource_tables_separate_absolute_values_from_paired_ratios():
                 "p95": divisor * (320 + index + 0.004),
                 "mean": divisor * (90 + index + 0.004),
             }
-            paired[key] = {"p50": 0.55, "p95": 1.32, "mean": 0.72}
+            by_engine["webkit"][key] = {
+                "p50": divisor * (75 + index + 0.004),
+                "p95": divisor * (250 + index + 0.004),
+                "mean": divisor * (70 + index + 0.004),
+            }
     rendered = _metric_tables(
-        {"resource_comparison": {"by_engine": by_engine, "paired_ratios": {"metrics": paired}}}
+        {"resource_comparison": {"by_engine": by_engine}}
     )
-    assert '<th colspan="2">P50</th>' in rendered
-    assert '<th colspan="2">P95</th>' in rendered
-    assert "Moli / Chromium</th>" not in rendered
-    assert "逐任务比值 P50" in rendered
-    assert "0.55×" in rendered
-    assert "1.32×" in rendered
-    assert 'class="better">0.55×' in rendered
-    assert 'class="worse">1.32×' in rendered
+    assert '<th colspan="3">P50</th>' in rendered
+    assert '<th colspan="3">P95</th>' in rendered
+    assert rendered.count("<th>Webkit</th>") == len(METRICS) * 3
+    assert "逐任务比值" not in rendered
+    assert 'class="better"' in rendered
 
 
 def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path):
@@ -249,7 +249,7 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert path.exists()
     assert not (reports / "browser-use-evaluation-20260101.md").exists()
     rendered = (reports / "webarena-trajectory-replay-latest.html").read_text(encoding="utf-8")
-    assert "Chromium 与 Moli：WebArena 固定轨迹回放评测" in rendered
+    assert "WebArena 固定轨迹回放评测" in rendered
     assert "公开人工轨迹的确定性重放" in rendered
     assert "Chromium 与 Moli 浏览器工具调用评测" not in rendered
     assert "报告解读" in rendered
@@ -264,14 +264,16 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert results.index('<th colspan="2">P95</th>') < results.index(
         '<th colspan="2">平均值</th>'
     )
-    assert '<td>100.00</td><td class="better">50.00</td>' in results
-    assert '<td class="better">200.00</td><td>300.00</td>' in results
-    assert "9.90×" in results
-    assert "边际分位数相除" in results
-    assert "先看能不能完成" in rendered
+    assert 'data-label="P50 · Chromium">100.00</td>' in results
+    assert 'data-label="P50 · Moli" class="better">50.00</td>' in results
+    assert 'data-label="P95 · Chromium" class="better">200.00</td>' in results
+    assert 'data-label="P95 · Moli">300.00</td>' in results
+    assert "9.90×" not in results
+    assert "边际分位数相除" not in results
+    assert "任务是否通过" in rendered
     assert "首页决策摘要" not in rendered
     assert "正确性与资源要分开决策" not in rendered
-    assert "再看成功任务的资源代价" in rendered
+    assert "通过任务的资源代价" in rendered
     assert 'role="progressbar"' in rendered
     assert "一眼看懂这轮评测" not in rendered
     assert "结果与参考过程均正确" not in rendered
@@ -286,7 +288,7 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert "候选集按端到端 browser-use" in research
     assert "原始 Mind2Web 是离线 HTML 和动作预测数据集" in research
     assert "这些用例不要求 AMD" in research
-    assert "1 条轨迹进入正式双浏览器分母" in research
+    assert "1 条轨迹进入正式任务分母" in research
     assert "19 条轨迹进入正式双浏览器分母" not in research
     assert (reports / "webarena-trajectory-replay-latest-method.html").exists()
     assert (reports / "webarena-trajectory-replay-latest-results.html").exists()
@@ -320,6 +322,8 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
         assert "人工复核" not in html_path.read_text(encoding="utf-8")
     audit = json.loads((reports / "webarena-trajectory-replay-latest-data.json").read_text())
     assert "human_review" not in audit["ground_truth_validation"]
+    assert "final_passes" not in audit["result_audit"]
+    assert "final_failures" not in audit["result_audit"]
     method = (reports / "webarena-trajectory-replay-latest-method.html").read_text(encoding="utf-8")
     assert "RX = Receive" in method
     assert "P50 与中位数是同一个统计量" in method
@@ -391,6 +395,45 @@ def test_grouped_correctness_marks_only_the_higher_rate_as_winner():
     assert "相同值保持中性" in rendered
 
 
+def test_results_page_builds_task_matrix_and_filters_for_three_engines():
+    engines = ("chromium", "moli", "webkit")
+    manifest = {
+        "suite": [
+            {
+                "task_id": "one",
+                "complexity": "simple",
+                "environment": {"sites": ["shopping"]},
+                "evaluator": {"kind": "webarena_verified"},
+            }
+        ]
+    }
+    summary = {
+        "functional": {
+            engine: {"tasks": 1, "result_final_passes": int(engine != "webkit")}
+            for engine in engines
+        },
+        "by_complexity": {},
+        "by_task": {
+            "one": {
+                "title": "One",
+                "attempts": {
+                    engine: [{"result_status": "fail" if engine == "webkit" else "pass"}]
+                    for engine in engines
+                },
+            }
+        },
+        "resource_comparison": {"intersection_results": 0, "by_engine": {}},
+    }
+
+    rendered = _results_page(manifest, summary)
+
+    assert 'style="--engine-count:3;--comparison-min-width:850px"' in rendered
+    assert "<span>Webkit</span>" in rendered
+    assert '<option value="webkit">Webkit</option>' in rendered
+    assert "结果有差异" in rendered
+    assert "同任务多浏览器结果" in rendered
+
+
 def test_summary_decisions_follow_reversed_results_and_resource_ratios():
     manifest = {
         "run_id": "reversed",
@@ -417,9 +460,8 @@ def test_summary_decisions_follow_reversed_results_and_resource_ratios():
         },
     }
     rendered = _summary_page(manifest, summary)
-    assert "Moli 的可用范围更广" in rendered
-    assert "Chromium 在已兼容任务上更省内存" in rendered
-    assert "速度和网络仍需逐项看" in rendered
+    assert "Moli 在这批轨迹中的通过数最高" in rendered
+    assert "速度、CPU、内存和网络分别列出" in rendered
     assert "Chromium 的可用范围更广" not in rendered
 
 
@@ -535,7 +577,7 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
     assert f'href="{detail_files[0].name}#case-steps"' in detail
     assert detail.count("<h1>") == 1
     assert 'class="pager"' not in detail
-    assert "FIRST FULL STACK TRACE" in detail
+    assert "FIRST FULL STACK TRACE" not in detail
     assert detail.count("SECOND FULL STACK TRACE") == 1
     assert "参考操作与执行对照" in detail
     assert 'class="record-grid-head"' in results
@@ -569,14 +611,15 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
     homepage = (reports / "webarena-trajectory-replay-latest.html").read_text(encoding="utf-8")
     assert 'class="failure-shortcut"' not in homepage
     assert f'href="{detail_files[0].name}"' not in homepage
-    assert "#provider=moli&amp;status=fail" in homepage
+    assert "#provider=moli&amp;status=fail" not in homepage
     assert 'id="execution-empty"' in results
     assert "new URLSearchParams(raw)" in results
     assert "document.querySelector(location.hash)" not in results
-    assert "速度和网络仍需逐项看" in homepage
+    assert "速度、CPU、内存和网络分别列出" in homepage
     assert results.count('class="execution-card"') == 1
-    assert "执行记录 1" in detail
-    assert "执行记录 2" in detail
+    assert "采用结果" in detail
+    assert "执行记录 1" not in detail
+    assert "执行记录 2" not in detail
     assert "错误类别" in results
     assert "重试结论" not in results
     assert 'id="execution-task-moli"' in results
@@ -768,7 +811,7 @@ def test_webarena_report_uses_self_hosted_trajectory_scope_language():
     suite = _suite_page(manifest)
     method = _method_page(manifest, summary)
 
-    assert "不足以推出浏览器总体优劣" in homepage
+    assert "不能代表浏览器总体能力" in homepage
     assert "不是 LLM Agent 排名" in homepage
     assert "公开轨迹任务" in suite
     assert "自托管站点" in suite

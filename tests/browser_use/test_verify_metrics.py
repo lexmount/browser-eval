@@ -9,7 +9,7 @@ import pytest
 from harness.browser_use.metrics import summarize_attempts
 
 
-def test_independent_audit_detects_tampered_aggregate_and_paired_operands(tmp_path):
+def test_independent_audit_detects_tampered_aggregate_and_intersection(tmp_path):
     script = Path(__file__).resolve().parents[2] / "examples/browser_use/verify_metrics.py"
     spec = importlib.util.spec_from_file_location("verify_metrics", script)
     module = importlib.util.module_from_spec(spec)
@@ -35,12 +35,11 @@ def test_independent_audit_detects_tampered_aggregate_and_paired_operands(tmp_pa
     with pytest.raises(ValueError, match="moli.duration_ms.p95"):
         module.verify(tmp_path)
     summary = summarize_attempts(rows, engines=("chromium", "moli"))
-    summary["resource_comparison"]["paired_ratios"]["metrics"]["duration_ms"]["values"][0][
-        "numerator"
-    ] = 49
+    summary["resource_comparison"]["intersection_results"] = 0
     path.write_text(json.dumps(summary))
-    with pytest.raises(ValueError, match="numerator"):
+    with pytest.raises(ValueError, match="successful task intersection mismatch"):
         module.verify(tmp_path)
+    summary["resource_comparison"]["intersection_results"] = 1
     summary["resource_comparison"]["by_engine"]["moli"].clear()
     path.write_text(json.dumps(summary))
     with pytest.raises(ValueError, match="required metric set"):

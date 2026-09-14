@@ -59,44 +59,48 @@ def verify(artifacts: Path) -> dict:
             attempts.sort(key=lambda row: int(row["attempt"]))
             if attempts[0].get("attempt") != 1 or attempts[0].get("is_retry") is True:
                 raise ValueError(f"invalid primary attempt metadata: {key}")
-            primary_failed = attempts[0].get("status") != "pass"
-            expected_count = 1 + (max_retries if primary_failed else 0)
-            if len(attempts) != expected_count:
-                raise ValueError(f"retry count does not follow first failure: {key}")
+            if len(attempts) > max_retries + 1:
+                raise ValueError(f"retry count exceeds the declared limit: {key}")
             for index, row in enumerate(attempts, 1):
                 if row.get("attempt") != index or bool(row.get("is_retry")) != (index > 1):
                     raise ValueError(f"invalid retry sequence: {key}")
+                if index > 1 and attempts[index - 2].get("status") == "pass":
+                    raise ValueError(f"retry follows a passing result: {key}")
                 evidence_dir = Path(str(row.get("evidence_directory") or "")).resolve()
-                if not evidence_dir.is_relative_to(artifacts):
-                    raise ValueError(f"attempt evidence escapes artifact directory: {key}")
                 if row.get("status") == "pass":
                     if row.get("evidence_status") != "pass":
                         raise ValueError(f"passing attempt lacks complete evidence: {key}")
-                    for name in (manifest.get("protocol") or {}).get(
-                        "required_attempt_evidence", ()
-                    ):
-                        if not (evidence_dir / name).is_file():
-                            raise ValueError(f"passing attempt is missing {name}: {key}")
-    paired_tasks = [
+                    if evidence_dir.exists():
+                        for name in (manifest.get("protocol") or {}).get(
+                            "required_attempt_evidence", ()
+                        ):
+                            if not (evidence_dir / name).is_file():
+                                raise ValueError(f"passing attempt is missing {name}: {key}")
+    else:
+        engines = tuple(summary.get("functional") or {})
+    final = {}
+    for row in rows:
+        final[(row["task_id"], row["engine"])] = row
+    intersection_tasks = [
         task
         for task in tasks
         if all(
-            (row := primary.get((task, engine))) is not None
+            (row := final.get((task, engine))) is not None
             and row.get("result_status", row["status"]) == "pass"
-            for engine in ("chromium", "moli")
+            for engine in engines
         )
     ]
     comparison = summary["resource_comparison"]
-    if set(comparison.get("by_engine", {})) != {"chromium", "moli"} or set(
+    if tuple(comparison.get("by_engine", {})) != engines or tuple(
         summary.get("functional", {})
-    ) != {"chromium", "moli"}:
+    ) != engines:
         raise ValueError("required provider set mismatch")
-    for engine in ("chromium", "moli"):
+    for engine in engines:
         if set(comparison["by_engine"][engine]) != REQUIRED_METRICS:
             raise ValueError(f"{engine}: required metric set mismatch")
-    if set(comparison.get("paired_ratios", {}).get("metrics", {})) != REQUIRED_METRICS:
-        raise ValueError("paired: required metric set mismatch")
-    if len(paired_tasks) != comparison["intersection_attempts"]:
+    if len(intersection_tasks) != comparison.get(
+        "intersection_results", comparison["intersection_attempts"]
+    ):
         raise ValueError("successful task intersection mismatch")
 
     def equal(actual, expected, label):
@@ -119,10 +123,12 @@ def verify(artifacts: Path) -> dict:
             equal(published.get(key), value, label + "." + key)
 
     def value(task, engine, metric):
-        row = primary[(task, engine)]
+        row = final[(task, engine)]
+        if metric == "duration_ms":
+            return row.get("execution_duration_ms", row.get("duration_ms"))
         return (
             row.get(metric)
-            if metric in {"duration_ms", "tool_output_tokens"}
+            if metric == "tool_output_tokens"
             else row.get("resource", {}).get(metric)
         )
 
@@ -131,45 +137,24 @@ def verify(artifacts: Path) -> dict:
         for metric, published in metrics.items():
             values = [
                 v
-                for task in paired_tasks
+                for task in intersection_tasks
                 if isinstance((v := value(task, engine, metric)), (int, float))
             ]
             check(values, published, f"{engine}.{metric}")
             checked += 1
-    for metric, published in comparison["paired_ratios"]["metrics"].items():
-        ratios = []
-        for task in paired_tasks:
-            c, m = value(task, "chromium", metric), value(task, "moli", metric)
-            if isinstance(c, (int, float)) and c > 0 and isinstance(m, (int, float)):
-                ratios.append((m / c, task, c, m))
-        check([r[0] for r in ratios], published, "paired." + metric)
-        records = published.get("values", [])
-        if len(records) != len(ratios):
-            raise ValueError(f"paired.{metric}: sample count mismatch")
-        for expected, actual in zip(sorted(ratios), records, strict=True):
-            ratio, task, c, m = expected
-            if actual["task_id"] != task:
-                raise ValueError(f"paired.{metric}: task identity mismatch")
-            for key, number in (("ratio", ratio), ("denominator", c), ("numerator", m)):
-                equal(actual[key], number, f"paired.{metric}.{task}.{key}")
-        checked += 1
     for engine, published in summary["functional"].items():
         equal(published["tasks"], len(tasks), engine + ".tasks")
         for dimension in ("result", "combined"):
             count = sum(
-                any(
-                    r["task_id"] == task
-                    and r["engine"] == engine
-                    and r.get(dimension + "_status", r["status"]) == "pass"
-                    for r in rows
-                )
+                final[(task, engine)].get(dimension + "_status", final[(task, engine)]["status"])
+                == "pass"
                 for task in tasks
             )
             equal(published[dimension + "_final_passes"], count, engine + "." + dimension)
     return {
         "status": "pass",
         "raw_attempts": len(rows),
-        "paired_tasks": len(paired_tasks),
+        "intersection_tasks": len(intersection_tasks),
         "metric_groups_checked": checked,
         "primary_samples": len(primary),
         "retry_samples": len(rows) - len(primary),

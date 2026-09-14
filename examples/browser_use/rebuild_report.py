@@ -75,7 +75,10 @@ def main() -> None:
         except ValueError as exc:
             raise SystemExit(str(exc)) from exc
 
-    summary = summarize_attempts(rows, engines=("chromium", "moli"))
+    engines = tuple(str(engine) for engine in (manifest.get("protocol") or {}).get("engines") or ())
+    if not engines:
+        engines = tuple(dict.fromkeys(str(row["engine"]) for row in rows))
+    summary = summarize_attempts(rows, engines=engines)
     diagnose_summary(summary, use_llm=False)
     if evidence is not None:
         manifest["ground_truth_validation"] = {

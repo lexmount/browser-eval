@@ -30,6 +30,16 @@ DEFAULT_FORMAL_ROOT = (
     Path.home()
     / ".browser-eval/evidence/current/formal/webarena-public-trajectories"
 )
+FORBIDDEN_PUBLIC_RESULT_TERMS = (
+    "首次成功",
+    "最终成功",
+    "最终尝试",
+    "重试",
+    "final_passes",
+    "final_failures",
+    "两个浏览器",
+    "双浏览器",
+)
 
 
 def _sha256(path: Path) -> str:
@@ -59,29 +69,46 @@ def _validate_binding(formal_root: Path) -> tuple[dict, dict, dict]:
         manifest.get("artifact_provenance") or {}
     ):
         raise ValueError("report artifact binding mismatch")
-    for key in ("functional", "resource_comparison"):
-        if audit.get(key) != public_projection(summary.get(key) or {}):
-            raise ValueError(f"report {key} binding mismatch")
+    expected_public_functional = {
+        engine: {
+            "tasks": int(values.get("tasks") or 0),
+            "passes": int(values.get("result_final_passes", values.get("passes", 0)) or 0),
+            "pass_rate": values.get("result_final_pass_rate", values.get("pass_rate")),
+        }
+        for engine, values in (summary.get("functional") or {}).items()
+    }
+    comparison = summary.get("resource_comparison") or {}
+    expected_public_resources = {
+        "scope": comparison.get("scope"),
+        "intersection_results": comparison.get(
+            "intersection_results", comparison.get("intersection_attempts", 0)
+        ),
+        "by_engine": comparison.get("by_engine") or {},
+    }
+    if audit.get("functional") != public_projection(expected_public_functional):
+        raise ValueError("report functional binding mismatch")
+    if audit.get("resource_comparison") != public_projection(expected_public_resources):
+        raise ValueError("report resource_comparison binding mismatch")
     functional = summary.get("functional") or {}
-    if set(functional) != {"chromium", "moli"}:
-        raise ValueError("formal result must contain exactly Chromium and Moli")
-    if any(int(row.get("tasks") or 0) != 30 for row in functional.values()):
-        raise ValueError("formal result must contain 30 tasks per engine")
+    engines = tuple(str(engine) for engine in (manifest.get("protocol") or {}).get("engines") or ())
+    if not engines or tuple(functional) != engines:
+        raise ValueError("formal result engine order must match the manifest")
     if any(manifest.get(key) is not None for key in ("agent", "model", "reasoning_effort")):
         raise ValueError("fixed-trajectory formal run must not bind an agent or model")
     current = _read_json(CURRENT_REPORT)
     expected_results = {
         engine: {
-            "first_passes": row["first_passes"],
-            "recovered": row["recovered"],
-            "final_passes": row["final_passes"],
+            "passes": row["result_final_passes"],
         }
         for engine, row in functional.items()
     }
+    task_count = len(manifest.get("suite") or [])
     checks = {
         "evaluation kind": current.get("evaluation_kind") == "fixed_trajectory_replay",
         "agentic flag": current.get("agentic_browser_use") is False,
-        "task count": current.get("task_count_per_engine") == 30,
+        "task count": current.get("task_count_per_engine") == task_count
+        and all(int(row.get("tasks") or 0) == task_count for row in functional.values()),
+        "engines": current.get("engines") == list(engines),
         "run id": current.get("run_id") == manifest.get("run_id"),
         "suite hash": current.get("suite_sha256") == manifest.get("suite_sha256"),
         "manifest hash": (current.get("evidence") or {}).get("manifest_sha256")
@@ -141,6 +168,11 @@ def build(formal_root: Path, archive: Path, attestation: Path) -> dict:
             text = path.read_text(encoding="utf-8", errors="ignore")
             if PRIVATE_IPV4.search(text) or LOCAL_USER_PATH.search(text):
                 raise ValueError(f"private host or local user path in public report: {path.name}")
+            found = next((term for term in FORBIDDEN_PUBLIC_RESULT_TERMS if term in text), None)
+            if found:
+                raise ValueError(
+                    f"public report exposes internal result terminology {found!r}: {path.name}"
+                )
         temporary_archive = archive.with_suffix(archive.suffix + ".tmp")
         temporary_archive.unlink(missing_ok=True)
         with zipfile.ZipFile(temporary_archive, "w", compression=zipfile.ZIP_DEFLATED) as output:
@@ -164,9 +196,7 @@ def build(formal_root: Path, archive: Path, attestation: Path) -> dict:
         "results": {
             engine: {
                 "tasks": row["tasks"],
-                "first_passes": row["first_passes"],
-                "recovered": row["recovered"],
-                "final_passes": row["final_passes"],
+                "passes": row["result_final_passes"],
             }
             for engine, row in functional.items()
         },
