@@ -88,6 +88,9 @@ class MoliTests(unittest.TestCase):
         result = self.provider("import time\ntime.sleep(10)").fetch(self.case, 0.05)
         self.assertEqual(result.error_type, "timeout")
 
+    def test_cancelled_process_has_bounded_cleanup_grace(self):
+        self.assertEqual(self.provider('print("ok")').cancellation_grace_seconds, 1.0)
+
     def test_url_and_config_validation_before_process(self):
         provider = self.provider('raise AssertionError("should not run")')
         with patch("harness.web_fetch.providers.moli.subprocess.Popen") as process:

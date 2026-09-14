@@ -30,6 +30,11 @@ class Provider(ABC):
     def begin_call(self) -> None:
         """Reset cancellation state before the timed worker can start."""
 
+    @property
+    def cancellation_grace_seconds(self) -> float:
+        """Cleanup wait after cancellation; zero keeps non-cancellable adapters quarantined."""
+        return 0.0
+
 
 def build_provider(name: str, config: dict[str, Any]) -> Provider:
     provider_type = config.get("type")

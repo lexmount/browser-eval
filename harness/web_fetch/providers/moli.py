@@ -30,6 +30,12 @@ class MoliWebFetchProvider(Provider):
             self._cancel_requested = False
             self._active_process = None
 
+    @property
+    def cancellation_grace_seconds(self) -> float:
+        # SIGKILL is synchronous for the child process, but the fetch thread
+        # still needs a short scheduling window to close its temporary files.
+        return 1.0
+
     def _resolve_binary(self) -> str | None:
         return shutil.which(os.path.expanduser(str(self.config.get("binary") or "moli")))
 

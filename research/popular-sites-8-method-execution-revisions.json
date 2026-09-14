@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "stage_contract": "research/popular-sites-8-method-stage-contract.json",
+  "revisions": [
+    {
+      "revision_id": "moli-timeout-cleanup-001",
+      "status": "approved_for_complete_scope_replacement",
+      "observed_at": "2026-09-14T17:16:02+08:00",
+      "provider": "moli-webfetch",
+      "superseded_incomplete_evidence": "~/.browser-eval/evidence/formal/popular-sites-8-method-2026-09-14/local-600/workers/moli-webfetch/resources",
+      "physical_calls_retained": 25,
+      "unexecuted_cases": 75,
+      "cause": "The harness checked thread liveness immediately after successfully killing the timed-out Moli process, falsely quarantining the adapter during cleanup.",
+      "correction": "Allow only Moli up to one second of post-cancellation cleanup outside the 45-second answer budget.",
+      "replacement_scope": "All 100 Moli cases; do not append only the missing cases and do not select between old and new outputs.",
+      "provider_charge_usd": 0,
+      "other_providers_affected": false
+    }
+  ]
+}

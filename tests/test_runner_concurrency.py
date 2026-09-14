@@ -2,6 +2,7 @@ import hashlib
 import json
 import tempfile
 import threading
+import time
 import unittest
 from pathlib import Path
 
@@ -182,6 +183,32 @@ class RunnerConcurrencyTest(unittest.TestCase):
         finally:
             release.set()
             finished.wait(2)
+
+    def test_provider_specific_cancel_grace_avoids_false_quarantine(self):
+        calls = []
+
+        class GracefulAfterCancel(Provider):
+            @property
+            def cancellation_grace_seconds(self):
+                return 0.2
+
+            def fetch(self, case, timeout):
+                calls.append(case.id)
+                time.sleep(0.04)
+                return ProviderResult(True, 'late answer')
+
+        cases = [EvalCase(f'case-{i}', 'Case', 'https://example.com', 'static', [])
+                 for i in range(2)]
+        with tempfile.TemporaryDirectory() as directory:
+            records, _ = run_evaluation(
+                output_dir=Path(directory), dataset_meta={'id': 'fixture', 'cases': []},
+                dataset_path=Path('dataset.json'), cases=cases,
+                providers=[GracefulAfterCancel('slow', {})],
+                provider_config_path=Path('providers.json'), runs=1,
+                timeout=.02, delay=0,
+            )
+        self.assertEqual(calls, ['case-0', 'case-1'])
+        self.assertEqual([row['error_type'] for row in records], ['timeout', 'timeout'])
 
     def test_unstoppable_timeout_on_final_case_is_complete(self):
         release = threading.Event()

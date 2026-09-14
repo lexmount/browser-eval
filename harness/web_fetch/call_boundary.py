@@ -59,6 +59,7 @@ def fetch_with_deadline(provider, case, timeout):
     if isinstance(value, TimeoutError):
         # Completion/cancellation cleanup is not additional answer budget.
         provider.cancel()
+        worker.join(timeout=provider.cancellation_grace_seconds)
         return ProviderResult(False, '', error_type='timeout', error_message=str(value)), worker
     if isinstance(value, Exception):
         raise value
