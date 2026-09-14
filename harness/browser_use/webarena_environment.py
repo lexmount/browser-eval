@@ -706,19 +706,12 @@ class WebArenaEnvironment:
         if email.count():
             email.fill(username)
             page.get_by_label("Password", exact=True).fill(password)
-            with page.expect_response(
-                lambda response: (
-                    "/customer/account/loginPost/" in response.url
-                    and response.request.method == "POST"
-                ),
-                timeout=60_000,
-            ):
+            with page.expect_navigation(wait_until="commit", timeout=120_000):
                 page.get_by_role("button", name="Sign In", exact=True).click(
                     no_wait_after=True, timeout=30_000
                 )
-            # Wait for the authentication POST, not the old form locator's
-            # scheduled navigation. The canonical page below remains the
-            # independent session-success gate.
+            # Do not race the submitted form's redirect with the canonical
+            # authenticated-route check below.
         page.goto(base_url + "/wishlist/", wait_until="domcontentloaded", timeout=60_000)
         if "/customer/account/login" in page.url:
             raise RuntimeError("WebArena Shopping login failed")

@@ -465,7 +465,9 @@ def _run_task(
         "status": status,
         "result_status": "pass" if result_passed else "fail",
         "process_status": "pass" if process_passed else "fail",
-        "combined_status": "pass" if result_passed and process_passed else "fail",
+        "combined_status": (
+            "pass" if result_passed and process_passed and evidence_passed else "fail"
+        ),
         "duration_ms": round(duration_ms, 3),
         "tool_output_tokens": sum(len(ENCODING.encode(value)) for value in outputs.values()),
         "output_chars": sum(len(value) for value in outputs.values()),

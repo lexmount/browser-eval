@@ -13,11 +13,49 @@ def test_stage_builds_report_without_mutating_source_evidence(tmp_path):
         "suite_sha256": "suite",
         "protocol": {},
         "environment": {},
-        "suite": [],
+        "suite": [{"task_id": "task"}],
     }
     summary = {
-        "functional": {"chromium": {}, "moli": {}},
-        "by_task": {},
+        "functional": {
+            "chromium": {"physical_attempts": 1, "result_final_passes": 1},
+            "moli": {"physical_attempts": 1, "result_final_passes": 1},
+        },
+        "by_task": {
+            "task": {
+                "attempts": {
+                    engine: [
+                        {
+                            "attempt": 1,
+                            "is_retry": False,
+                            "status": "pass",
+                            "result_status": "pass",
+                            "process_status": "pass",
+                            "combined_status": "pass",
+                            "evidence_status": "pass",
+                            "error": "",
+                            "process_validation": {
+                                "expected_actions": ["click"],
+                                "actual_actions": ["click"],
+                                "all_calls_passed": True,
+                                "passed": True,
+                            },
+                            "validation": [{"status": "success", "score": 1.0}],
+                            "trace": [
+                                {"action": "click", "status": "pass"},
+                                {
+                                    "action": "evaluate_result",
+                                    "status": "pass",
+                                    "checks": [{"status": "success", "score": 1.0}],
+                                },
+                            ],
+                            "network_har": {"status": "complete"},
+                            "final_page_evidence": {"status": "complete"},
+                        }
+                    ]
+                    for engine in ("chromium", "moli")
+                }
+            }
+        },
         "by_complexity": {},
         "resource_comparison": {},
     }
@@ -38,7 +76,9 @@ def test_stage_builds_report_without_mutating_source_evidence(tmp_path):
 
 def test_profile_is_updated_only_with_verified_publication_values(tmp_path, monkeypatch):
     profile = tmp_path / "current-report.json"
-    profile.write_text(json.dumps({"publication": {"version_id": "old", "submitted_files_verified": 1}}))
+    profile.write_text(
+        json.dumps({"publication": {"version_id": "old", "submitted_files_verified": 1}})
+    )
     monkeypatch.setattr(release, "CURRENT", profile)
 
     release._update_profile("ver_new", 71)

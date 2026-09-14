@@ -276,6 +276,14 @@ def _passed(row: dict[str, Any], dimension: str) -> bool:
     return row.get("status") == "pass"
 
 
+def _execution_duration(row: dict[str, Any]) -> float | int:
+    """Return only measured trajectory time, excluding reset, login, and page setup."""
+    value = row.get("execution_duration_ms", row.get("duration_ms"))
+    if not isinstance(value, (int, float)):
+        raise ValueError("attempt is missing execution duration")
+    return value
+
+
 def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> dict[str, Any]:
     functional: dict[str, Any] = {}
     for engine in engines:
@@ -290,8 +298,8 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
         combined_recovered = 0
         for task_id in task_ids:
             attempts = [row for row in engine_rows if str(row["task_id"]) == task_id]
-            result_passed = any(_passed(row, "result") for row in attempts)
-            combined_passed = any(_passed(row, "combined") for row in attempts)
+            result_passed = _passed(attempts[-1], "result")
+            combined_passed = _passed(attempts[-1], "combined")
             result_final_passes += int(result_passed)
             combined_final_passes += int(combined_passed)
             result_recovered += int(
@@ -328,7 +336,7 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
             "final_pass_rate": result_final_passes / len(task_ids) if task_ids else None,
             "pass_rate": result_final_passes / len(task_ids) if task_ids else None,
             "duration_ms": _metric(
-                row["duration_ms"] for row in first_rows if _passed(row, "result")
+                _execution_duration(row) for row in first_rows if _passed(row, "result")
             ),
             "tool_output_tokens": _metric(
                 row["tool_output_tokens"]
@@ -386,7 +394,7 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
             )
             for name in metric_names
         }
-        values["duration_ms"] = _metric(row["duration_ms"] for row in engine_rows)
+        values["duration_ms"] = _metric(_execution_duration(row) for row in engine_rows)
         values["tool_output_tokens"] = _metric(
             row["tool_output_tokens"]
             for row in engine_rows
@@ -403,7 +411,10 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
             for task_id, bucket in intersection_items:
                 denominator_row = bucket[denominator_engine]
                 numerator_row = bucket[numerator_engine]
-                if name in {"duration_ms", "tool_output_tokens"}:
+                if name == "duration_ms":
+                    denominator = _execution_duration(denominator_row)
+                    numerator = _execution_duration(numerator_row)
+                elif name == "tool_output_tokens":
                     denominator = denominator_row.get(name)
                     numerator = numerator_row.get(name)
                 else:
@@ -507,6 +518,9 @@ def summarize_attempts(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) 
                             "is_retry": row.get("is_retry", False),
                             "status": row.get("status"),
                             "duration_ms": row.get("duration_ms"),
+                            "execution_duration_ms": row.get(
+                                "execution_duration_ms", row.get("duration_ms")
+                            ),
                             "resource": row.get("resource") or {},
                             "tool_output_tokens": row.get("tool_output_tokens"),
                             "error": row.get("error", ""),
@@ -516,6 +530,10 @@ def summarize_attempts(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) 
                             "result_status": row.get("result_status", row.get("status")),
                             "process_status": row.get("process_status", row.get("status")),
                             "combined_status": row.get("combined_status", row.get("status")),
+                            "evidence_status": row.get("evidence_status", row.get("status")),
+                            "network_har": row.get("network_har") or {},
+                            "final_page_evidence": row.get("final_page_evidence") or {},
+                            "environment_reset": row.get("environment_reset"),
                         }
                         for row in task_rows
                         if row.get("engine") == engine

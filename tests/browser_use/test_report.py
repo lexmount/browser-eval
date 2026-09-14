@@ -252,11 +252,11 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert "Chromium 与 Moli：WebArena 固定轨迹回放评测" in rendered
     assert "公开人工轨迹的确定性重放" in rendered
     assert "Chromium 与 Moli 浏览器工具调用评测" not in rendered
-    assert "结论先行" in rendered
+    assert "报告解读" in rendered
     assert 'lang="zh-CN"' in rendered
     assert "报告分页" in rendered
     assert "结果正确率是默认 Provider 的第一决策指标" not in rendered
-    assert "评测集包含 1 个结果唯一的任务" in rendered
+    assert "结论只适用于这 1 条冻结轨迹" in rendered
     results = (reports / "webarena-trajectory-replay-latest-results.html").read_text(
         encoding="utf-8"
     )
@@ -268,10 +268,10 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert '<td class="better">200.00</td><td>300.00</td>' in results
     assert "9.90×" in results
     assert "边际分位数相除" in results
-    assert "首次成功与重试恢复" in rendered
-    assert "首页决策摘要" in rendered
-    assert "正确性与资源要分开决策" in rendered
-    assert "内存：配对数据不足" in rendered
+    assert "先看能不能完成" in rendered
+    assert "首页决策摘要" not in rendered
+    assert "正确性与资源要分开决策" not in rendered
+    assert "再看成功任务的资源代价" in rendered
     assert 'role="progressbar"' in rendered
     assert "一眼看懂这轮评测" not in rendered
     assert "结果与参考过程均正确" not in rendered
@@ -417,12 +417,10 @@ def test_summary_decisions_follow_reversed_results_and_resource_ratios():
         },
     }
     rendered = _summary_page(manifest, summary)
-    assert "兼容性：Moli 明显领先" in rendered
-    assert "Moli 最终通过，兼容性较高" in rendered
-    assert "内存：Chromium 的明确优势" in rendered
-    assert "速度：Moli 的配对耗时较低" in rendered
-    assert "网络：Moli 发送量更低" in rendered
-    assert "兼容性：Chromium 明显领先" not in rendered
+    assert "Moli 的可用范围更广" in rendered
+    assert "Chromium 在已兼容任务上更省内存" in rendered
+    assert "速度和网络仍需逐项看" in rendered
+    assert "Chromium 的可用范围更广" not in rendered
 
 
 def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
@@ -513,7 +511,9 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
             },
         },
     )
-    results = (reports / "webarena-trajectory-replay-latest-results.html").read_text(encoding="utf-8")
+    results = (reports / "webarena-trajectory-replay-latest-results.html").read_text(
+        encoding="utf-8"
+    )
     assert "任务对照" in results
     assert "执行证据" in results
     assert 'class="comparison-row"' in results
@@ -542,7 +542,7 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
     assert 'class="execution-summary"' in results
     assert 'data-label="程序验收"' in results
     assert 'data-label="工具调用"' in results
-    assert 'data-label="最终尝试耗时"' in results
+    assert 'data-label="轨迹执行耗时"' in results
     assert 'class="execution-body"' not in results
     assert 'class="failure-grid"' not in results
     assert 'class="failure-summary"' not in results
@@ -573,8 +573,7 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
     assert 'id="execution-empty"' in results
     assert "new URLSearchParams(raw)" in results
     assert "document.querySelector(location.hash)" not in results
-    assert "CDP screencast 下采样" in homepage
-    assert "rAF 目标间隔为 16 ms" in homepage
+    assert "速度和网络仍需逐项看" in homepage
     assert results.count('class="execution-card"') == 1
     assert "执行记录 1" in detail
     assert "执行记录 2" in detail
@@ -767,7 +766,7 @@ def test_webarena_report_uses_self_hosted_trajectory_scope_language():
 
     homepage = _summary_page(manifest, summary)
     suite = _suite_page(manifest)
-    method = _method_page(manifest)
+    method = _method_page(manifest, summary)
 
     assert "不足以推出浏览器总体优劣" in homepage
     assert "不是 LLM Agent 排名" in homepage
@@ -777,6 +776,53 @@ def test_webarena_report_uses_self_hosted_trajectory_scope_language():
     assert "官方轨迹来源" in suite
     assert "没有 agent 或模型在运行时选择下一步" in method
     assert "不使用 LLM judge" in method
+
+
+def test_method_page_derives_environment_and_prepare_counts_from_attempts():
+    manifest = {
+        "suite": [
+            {
+                "task_id": "webarena-1",
+                "environment": {"kind": "webarena_verified"},
+                "evaluator": {"kind": "webarena_verified"},
+            }
+        ],
+        "protocol": {},
+        "environment": {},
+    }
+    summary = {
+        "by_task": {
+            "webarena-1": {
+                "attempts": {
+                    "chromium": [
+                        {
+                            "environment_reset": {
+                                "sites": {
+                                    "shopping": {
+                                        "reset": "container_recreated_from_pinned_image"
+                                    }
+                                }
+                            },
+                            "trace": [],
+                        }
+                    ],
+                    "moli": [
+                        {
+                            "environment_reset": None,
+                            "trace": [
+                                {"action": "prepare_environment", "status": "fail"}
+                            ],
+                        }
+                    ],
+                }
+            }
+        }
+    }
+
+    method = _method_page(manifest, summary)
+
+    assert "1 次镜像重建、0 次温复用、0 次 Map 健康检查、1 次无重置收据" in method
+    assert "其中 1 次在轨迹开始前的环境准备阶段失败" in method
 
 
 def test_all_published_suite_tasks_link_to_public_web_targets(tmp_path):
@@ -796,7 +842,9 @@ def test_all_published_suite_tasks_link_to_public_web_targets(tmp_path):
         manifest={"run_id": "suite-links", "suite": suite},
         summary={"functional": {}, "resource_comparison": {"by_engine": {}}},
     )
-    rendered = (reports / "webarena-trajectory-replay-latest-suite.html").read_text(encoding="utf-8")
+    rendered = (reports / "webarena-trajectory-replay-latest-suite.html").read_text(
+        encoding="utf-8"
+    )
     links = re.findall(
         r'<strong>公网测试页面</strong><span><a[^>]+href="(https://[^\"]+)"',
         rendered,

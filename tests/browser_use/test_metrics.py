@@ -160,6 +160,8 @@ def test_summary_keeps_functional_scores_separate_and_uses_pass_intersection():
     assert summary["by_task"]["b"]["representative_errors"]["moli"] == ["timeout"]
 
 
+
+
 def test_summary_separates_first_pass_retry_recovery_and_final_outcome():
     rows = [
         {
@@ -202,6 +204,60 @@ def test_summary_separates_first_pass_retry_recovery_and_final_outcome():
     assert summary["functional"]["moli"]["final_passes"] == 1
     assert summary["functional"]["moli"]["physical_attempts"] == 2
     assert summary["resource_comparison"]["intersection_attempts"] == 0
+
+
+def test_summary_uses_last_attempt_not_best_attempt_for_final_result():
+    rows = [
+        {
+            "engine": engine,
+            "task_id": "task",
+            "attempt": attempt,
+            "is_retry": attempt == 2,
+            "status": status,
+            "result_status": status,
+            "combined_status": status,
+            "duration_ms": 100,
+            "execution_duration_ms": 10,
+            "resource": {},
+        }
+        for engine in ("chromium", "moli")
+        for attempt, status in ((1, "pass"), (2, "fail"))
+    ]
+
+    summary = summarize_attempts(rows, engines=("chromium", "moli"))
+
+    assert summary["functional"]["chromium"]["result_final_passes"] == 0
+    assert summary["functional"]["moli"]["result_final_passes"] == 0
+
+
+def test_resource_comparison_excludes_environment_preparation_time():
+    rows = [
+        {
+            "engine": engine,
+            "task_id": "task",
+            "attempt": 1,
+            "is_retry": False,
+            "status": "pass",
+            "result_status": "pass",
+            "combined_status": "pass",
+            "duration_ms": wall,
+            "execution_duration_ms": execution,
+            "resource": {},
+        }
+        for engine, wall, execution in (
+            ("chromium", 1000, 100),
+            ("moli", 9000, 50),
+        )
+    ]
+
+    summary = summarize_attempts(rows, engines=("chromium", "moli"))
+
+    by_engine = summary["resource_comparison"]["by_engine"]
+    assert by_engine["chromium"]["duration_ms"]["p50"] == 100
+    assert by_engine["moli"]["duration_ms"]["p50"] == 50
+    assert summary["resource_comparison"]["paired_ratios"]["metrics"]["duration_ms"][
+        "p50"
+    ] == 0.5
 
 
 def test_summary_reports_result_and_combined_correctness_independently():

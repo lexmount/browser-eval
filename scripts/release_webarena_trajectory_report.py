@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from harness.browser_use.report import write_latest_report  # noqa: E402
+from harness.browser_use.result_audit import audit_result_set  # noqa: E402
 from scripts.package_webarena_trajectory_report import build  # noqa: E402
 
 CURRENT = ROOT / "evaluation/browser-use-public/current-report.json"
@@ -59,6 +60,7 @@ def _stage(formal_root: Path, destination: Path) -> None:
     (destination / "reports").mkdir()
     manifest = json.loads((destination / "run/manifest.json").read_text(encoding="utf-8"))
     summary = json.loads((destination / "run/summary.json").read_text(encoding="utf-8"))
+    audit_result_set(manifest, summary)
     write_latest_report(destination / "reports", manifest=manifest, summary=summary)
 
 
