@@ -4,11 +4,16 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-SCHEMA = "lex_browser_use_replay_seeds/1"
+SCHEMA = "lex_browser_use_replay_seeds/2"
+
+_REF_ACTIONS = {"click", "fill", "select"}
+_NODE_RE = re.compile(r"^(?P<indent>\s*)\[(?P<ref>\d+)\]\s+(?P<tag>[a-zA-Z][\w-]*)(?P<body>.*)$")
+_ATTR_RE = re.compile(r'(?P<name>[A-Za-z][\w-]*)="(?P<value>(?:[^"\\]|\\.)*)"')
 
 
 def _sha256(path: Path) -> str:
@@ -17,6 +22,132 @@ def _sha256(path: Path) -> str:
 
 def _read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _contains_ref(value: Any) -> bool:
+    if isinstance(value, dict):
+        return "ref" in value or any(_contains_ref(item) for item in value.values())
+    if isinstance(value, list):
+        return any(_contains_ref(item) for item in value)
+    return False
+
+
+def _snapshot_nodes(result: str) -> list[dict[str, Any]]:
+    """Parse the stable, reader-visible element facts emitted by BrowserTool snapshots."""
+
+    nodes = []
+    for line in result.splitlines():
+        match = _NODE_RE.match(line)
+        if match is None:
+            continue
+        body = match.group("body")
+        attributes = {
+            item.group("name"): json.loads(f'"{item.group("value")}"')
+            for item in _ATTR_RE.finditer(body)
+        }
+        body_without_attributes = _ATTR_RE.sub("", body).strip()
+        text = body_without_attributes[1:].strip() if body_without_attributes.startswith(":") else ""
+        nodes.append(
+            {
+                "ref": int(match.group("ref")),
+                "tag": match.group("tag").lower(),
+                "attributes": attributes,
+                "text": text,
+            }
+        )
+    return nodes
+
+
+def _quoted(value: str) -> str:
+    return json.dumps(value, ensure_ascii=False)
+
+
+def _base_selector(node: dict[str, Any]) -> str:
+    tag = str(node["tag"])
+    attributes = node["attributes"]
+    for snapshot_name, dom_name in (
+        ("name", "name"),
+        ("href", "href"),
+        ("ariaLabel", "aria-label"),
+        ("placeholder", "placeholder"),
+        ("alt", "alt"),
+        ("role", "role"),
+    ):
+        value = attributes.get(snapshot_name)
+        if value and not str(value).endswith("..."):
+            return f"{tag}[{dom_name}={_quoted(str(value))}]:visible"
+    text = str(node.get("text") or "").strip()
+    if text and not text.endswith("..."):
+        return f"{tag}:visible:has-text({_quoted(text)})"
+    type_value = attributes.get("type")
+    if type_value:
+        return f"{tag}[type={_quoted(str(type_value))}]:visible"
+    return f"{tag}:visible"
+
+
+def _same_selector_population(target: dict[str, Any], other: dict[str, Any]) -> bool:
+    """Mirror the DOM population matched by the target's generated selector."""
+
+    if target["tag"] != other["tag"]:
+        return False
+    target_attributes = target["attributes"]
+    other_attributes = other["attributes"]
+    for name in ("name", "href", "ariaLabel", "placeholder", "alt", "role"):
+        value = target_attributes.get(name)
+        if value and not str(value).endswith("..."):
+            return other_attributes.get(name) == value
+    text = str(target.get("text") or "").strip()
+    if text and not text.endswith("..."):
+        return text in str(other.get("text") or "")
+    type_value = target_attributes.get("type")
+    if type_value:
+        return other_attributes.get("type") == type_value
+    return True
+
+
+def _selector_for_ref(nodes: list[dict[str, Any]], ref: int, *, context: str) -> str:
+    target = next((node for node in nodes if node["ref"] == ref), None)
+    if target is None:
+        raise ValueError(f"{context}: ref {ref} is absent from the preceding snapshot")
+    base = _base_selector(target)
+    matches = [node for node in nodes if _same_selector_population(target, node)]
+    if len(matches) == 1:
+        return base
+    occurrence = next(index for index, node in enumerate(matches, start=1) if node is target)
+    return f":nth-match({base}, {occurrence})"
+
+
+def compile_replay_calls(events_path: str | Path) -> list[dict[str, Any]]:
+    """Compile ephemeral snapshot refs into fixed Playwright selectors."""
+
+    calls = extract_browser_calls(events_path)
+    latest_nodes: list[dict[str, Any]] = []
+    compiled: list[dict[str, Any]] = []
+    for index, call in enumerate(calls, start=1):
+        arguments = dict(call.get("arguments") or {})
+        action = str(arguments.get("action") or "")
+        if action in _REF_ACTIONS and "ref" in arguments:
+            if arguments.get("selector"):
+                arguments.pop("ref", None)
+            else:
+                arguments["selector"] = _selector_for_ref(
+                    latest_nodes,
+                    int(arguments.pop("ref")),
+                    context=f"{events_path}: call {index}",
+                )
+        elif "ref" in arguments:
+            # BrowserTool ignores refs for actions such as ``press``. Keeping that
+            # inert model-supplied field would make the fixed trajectory appear to
+            # depend on an ephemeral snapshot identity when it does not.
+            arguments.pop("ref")
+        if _contains_ref(arguments):
+            raise ValueError(f"{events_path}: call {index} contains an unsupported ref")
+        compiled.append(arguments)
+        result = str(call.get("result") or "")
+        snapshot_nodes = _snapshot_nodes(result)
+        if snapshot_nodes:
+            latest_nodes = snapshot_nodes
+    return compiled
 
 
 def extract_browser_calls(events_path: str | Path) -> list[dict[str, Any]]:
@@ -46,6 +177,7 @@ def extract_browser_calls(events_path: str | Path) -> list[dict[str, Any]]:
                     "status": str(data.get("status") or ""),
                     "duration_seconds": data.get("execution_time"),
                     "error": data.get("error"),
+                    "result": data.get("result"),
                     "ended_at": event.get("timestamp"),
                 }
             )
@@ -131,7 +263,15 @@ def build_replay_seed_manifest(
         response_path = Path(str((row.get("paths") or {}).get("response") or ""))
         evaluation_path = Path(str((row.get("paths") or {}).get("evaluation") or ""))
         calls = extract_browser_calls(events_path)
-        clean = bool(calls) and all(call["status"] == "success" for call in calls)
+        try:
+            replay_calls = compile_replay_calls(events_path)
+        except (TypeError, ValueError):
+            replay_calls = []
+        clean = (
+            bool(calls)
+            and bool(replay_calls)
+            and all(call["status"] == "success" for call in calls)
+        )
         candidate = {
             "id": f"{method_id}__task-{task_id}",
             "method": {"model": model, "engine": engine},
@@ -141,7 +281,7 @@ def build_replay_seed_manifest(
             "clean": clean,
             "action_count": len(calls),
             "actions": [str((call.get("arguments") or {}).get("action") or "") for call in calls],
-            "tool_calls": [dict(call.get("arguments") or {}) for call in calls],
+            "tool_calls": replay_calls,
             "recorded_response": _read_json(response_path),
             "source": {
                 "events_path": str(events_path),
@@ -198,7 +338,10 @@ def build_replay_seed_manifest(
         },
         "selection_policy": {
             "authority": "final execution declared by each frozen Browser Use manifest",
-            "eligibility": "official score 1.0 and every BrowserTool call completed successfully",
+            "eligibility": (
+                "official score 1.0, every BrowserTool call completed successfully, and "
+                "every ephemeral snapshot ref compiled to a fixed selector"
+            ),
             "canonical_priority": [f"{model}__{engine}" for model, engine in method_priority],
             "performance_used_for_selection": False,
         },

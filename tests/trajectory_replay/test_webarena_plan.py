@@ -76,7 +76,7 @@ def _profile(tmp_path: Path) -> tuple[Path, Path]:
     seeds = _write(
         tmp_path / "seeds.json",
         {
-            "schema": "lex_browser_use_replay_seeds/1",
+            "schema": "lex_browser_use_replay_seeds/2",
             "source": {"selection_sha256": profile["task_selection"]["sha256"]},
             "expert_repairs": {
                 "repair_spec_sha256": profile["seed_inventory"][
@@ -195,6 +195,18 @@ def test_plan_rejects_expert_candidate_changed_after_review(tmp_path: Path) -> N
     seeds.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(ValueError, match="repair spec"):
+        load_replay_plan(profile, seeds)
+
+
+def test_plan_rejects_ephemeral_refs_in_any_canonical_trajectory(tmp_path: Path) -> None:
+    profile, seeds = _profile(tmp_path)
+    payload = json.loads(seeds.read_text(encoding="utf-8"))
+    payload["tasks"][0]["candidates"][0]["tool_calls"] = [
+        {"action": "snapshot", "metadata": {"ref": 3}}
+    ]
+    seeds.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="ephemeral ref"):
         load_replay_plan(profile, seeds)
 
 

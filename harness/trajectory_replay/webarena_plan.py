@@ -11,12 +11,14 @@ from urllib.parse import urlsplit, urlunsplit
 from harness.browser_use.runner import SITE_PORTS
 from harness.trajectory_replay.browser_use_seeds import (
     _authoritative_rows,
+    _contains_ref,
+    compile_replay_calls,
     extract_browser_calls,
 )
 from harness.trajectory_replay.runner import ENGINE_IMAGES
 
 PROFILE_SCHEMA = "lex_webarena_trajectory_replay_profile/1"
-SEED_SCHEMA = "lex_browser_use_replay_seeds/1"
+SEED_SCHEMA = "lex_browser_use_replay_seeds/2"
 
 
 def _read_json(path: Path) -> Any:
@@ -138,7 +140,7 @@ def _validate_canonical_candidate(
             )
     source_calls = extract_browser_calls(paths["events"])
     if (
-        [item["arguments"] for item in source_calls] != calls
+        compile_replay_calls(paths["events"]) != calls
         or any(item["status"] != "success" for item in source_calls)
         or _read_json(paths["response"]) != candidate["recorded_response"]
     ):
@@ -245,6 +247,10 @@ def load_replay_plan(
             for candidate in item.get("candidates") or []
             if candidate.get("id") == canonical_id
         )
+        if _contains_ref(canonical["tool_calls"]):
+            raise ValueError(
+                f"task {item['task_id']} canonical trajectory contains an ephemeral ref"
+            )
         _validate_canonical_candidate(
             item,
             canonical,

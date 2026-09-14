@@ -309,7 +309,7 @@ def test_promotion_requires_same_candidate_to_pass_every_browser(tmp_path: Path)
     seeds = _write(
         tmp_path / "seeds.json",
         {
-            "schema": "lex_browser_use_replay_seeds/1",
+            "schema": "lex_browser_use_replay_seeds/2",
             "source": {"selection_sha256": selection_sha256},
             "expert_repairs": {"repair_spec_sha256": repair_sha256},
             "tasks": [
@@ -376,7 +376,7 @@ def test_promotion_rejects_incomplete_method_task_matrix(tmp_path: Path) -> None
     seeds = _write(
         tmp_path / "seeds.json",
         {
-            "schema": "lex_browser_use_replay_seeds/1",
+            "schema": "lex_browser_use_replay_seeds/2",
             "source": {"selection_sha256": selection_sha256},
             "expert_repairs": {"repair_spec_sha256": repair_sha256},
             "tasks": [
@@ -435,7 +435,7 @@ def test_promotion_supports_hash_bound_expert_repair(tmp_path: Path) -> None:
     seeds = _write(
         tmp_path / "seeds.json",
         {
-            "schema": "lex_browser_use_replay_seeds/1",
+            "schema": "lex_browser_use_replay_seeds/2",
             "source": {"selection_sha256": selection_sha256},
             "expert_repairs": {"repair_spec_sha256": repair_sha256},
             "tasks": [
@@ -519,7 +519,7 @@ def test_promotion_rejects_diagnostic_or_nonisolated_receipts(tmp_path: Path) ->
     seeds = _write(
         tmp_path / "seeds.json",
         {
-            "schema": "lex_browser_use_replay_seeds/1",
+            "schema": "lex_browser_use_replay_seeds/2",
             "source": {"selection_sha256": selection_sha256},
             "expert_repairs": {"repair_spec_sha256": repair_sha256},
             "tasks": [
@@ -577,7 +577,7 @@ def test_promotion_rejects_receipt_claim_when_evaluation_evidence_failed(
     seeds = _write(
         tmp_path / "seeds.json",
         {
-            "schema": "lex_browser_use_replay_seeds/1",
+            "schema": "lex_browser_use_replay_seeds/2",
             "source": {"selection_sha256": selection_sha256},
             "expert_repairs": {"repair_spec_sha256": repair_sha256},
             "tasks": [
@@ -640,7 +640,7 @@ def test_promotion_rejects_trace_that_differs_from_canonical_actions(tmp_path: P
     seeds = _write(
         tmp_path / "seeds.json",
         {
-            "schema": "lex_browser_use_replay_seeds/1",
+            "schema": "lex_browser_use_replay_seeds/2",
             "source": {"selection_sha256": selection_sha256},
             "expert_repairs": {"repair_spec_sha256": repair_sha256},
             "tasks": [
@@ -708,7 +708,7 @@ def test_promotion_rejects_missing_official_evaluator(tmp_path: Path) -> None:
     seeds = _write(
         tmp_path / "seeds.json",
         {
-            "schema": "lex_browser_use_replay_seeds/1",
+            "schema": "lex_browser_use_replay_seeds/2",
             "source": {"selection_sha256": selection_sha256},
             "expert_repairs": {"repair_spec_sha256": repair_sha256},
             "tasks": [

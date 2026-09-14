@@ -296,7 +296,7 @@ def build_verified_trajectory_dataset(
     seed_path = Path(seed_manifest_path).expanduser().resolve()
     seed_sha256 = _sha256(seed_path)
     seeds = _read_json(seed_path)
-    if seeds.get("schema") != "lex_browser_use_replay_seeds/1":
+    if seeds.get("schema") != "lex_browser_use_replay_seeds/2":
         raise ValueError("unsupported replay seed manifest")
     seed_rows = seeds.get("tasks") or []
     seed_tasks = {int(item["task_id"]): item for item in seed_rows}

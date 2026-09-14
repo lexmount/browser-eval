@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-BASE_SCHEMA = "lex_browser_use_replay_seeds/1"
+BASE_SCHEMA = "lex_browser_use_replay_seeds/2"
 REPAIR_SCHEMA = "lex_webarena_expert_seed_repairs/1"
 
 

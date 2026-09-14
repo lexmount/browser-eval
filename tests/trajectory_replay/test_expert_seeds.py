@@ -15,7 +15,7 @@ from harness.trajectory_replay.expert_seeds import (
 
 def _base_manifest() -> dict:
     return {
-        "schema": "lex_browser_use_replay_seeds/1",
+        "schema": "lex_browser_use_replay_seeds/2",
         "counts": {
             "tasks": 3,
             "tasks_with_authoritative_success": 2,

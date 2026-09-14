@@ -3,7 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from harness.trajectory_replay.browser_use_seeds import build_replay_seed_manifest
+from harness.trajectory_replay.browser_use_seeds import (
+    build_replay_seed_manifest,
+    compile_replay_calls,
+)
 
 
 def _write_attempt(
@@ -177,3 +180,108 @@ def test_seed_manifest_does_not_promote_superseded_success(tmp_path: Path) -> No
 
     assert manifest["counts"]["tasks_with_authoritative_success"] == 0
     assert manifest["tasks"][0]["replay_status"] == "all_methods_failed"
+
+
+def test_compile_replay_calls_replaces_snapshot_refs_with_selectors(tmp_path: Path) -> None:
+    events = tmp_path / "events.json"
+    events.write_text(
+        json.dumps(
+            [
+                {
+                    "type": "tool_execution_start",
+                    "data": {
+                        "tool_call_id": "navigate",
+                        "tool_name": "browser",
+                        "arguments": {"action": "navigate", "url": "https://example.com"},
+                    },
+                },
+                {
+                    "type": "tool_execution_end",
+                    "data": {
+                        "tool_call_id": "navigate",
+                        "status": "success",
+                        "result": "Page: Example\nInteractive elements: 2\n---\n  [1] a href=\"/one\": One\n  [2] a href=\"/two\": Two",
+                    },
+                },
+                {
+                    "type": "tool_execution_start",
+                    "data": {
+                        "tool_call_id": "click",
+                        "tool_name": "browser",
+                        "arguments": {"action": "click", "ref": 2},
+                    },
+                },
+                {
+                    "type": "tool_execution_end",
+                    "data": {"tool_call_id": "click", "status": "success", "result": "ok"},
+                },
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    assert compile_replay_calls(events) == [
+        {"action": "navigate", "url": "https://example.com"},
+        {"action": "click", "selector": 'a[href="/two"]:visible'},
+    ]
+
+
+def test_compile_replay_calls_counts_the_full_dom_selector_population(tmp_path: Path) -> None:
+    events = tmp_path / "events.json"
+    events.write_text(
+        json.dumps(
+            [
+                {
+                    "type": "tool_execution_start",
+                    "data": {
+                        "tool_call_id": "snapshot",
+                        "tool_name": "browser",
+                        "arguments": {"action": "snapshot"},
+                    },
+                },
+                {
+                    "type": "tool_execution_end",
+                    "data": {
+                        "tool_call_id": "snapshot",
+                        "status": "success",
+                        "result": (
+                            "Page: Example\nInteractive elements: 3\n---\n"
+                            "  [1] button ariaLabel=\"Menu\": Menu\n"
+                            "  [2] button\n"
+                            "  [3] a href=\"/stable\" ariaLabel=\"Stable link\": Stable"
+                        ),
+                    },
+                },
+                {
+                    "type": "tool_execution_start",
+                    "data": {
+                        "tool_call_id": "button",
+                        "tool_name": "browser",
+                        "arguments": {"action": "click", "ref": 2},
+                    },
+                },
+                {
+                    "type": "tool_execution_end",
+                    "data": {"tool_call_id": "button", "status": "success"},
+                },
+                {
+                    "type": "tool_execution_start",
+                    "data": {
+                        "tool_call_id": "link",
+                        "tool_name": "browser",
+                        "arguments": {"action": "click", "ref": 3},
+                    },
+                },
+                {
+                    "type": "tool_execution_end",
+                    "data": {"tool_call_id": "link", "status": "success"},
+                },
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    assert compile_replay_calls(events)[1:] == [
+        {"action": "click", "selector": ":nth-match(button:visible, 2)"},
+        {"action": "click", "selector": 'a[href="/stable"]:visible'},
+    ]
