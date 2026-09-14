@@ -28,6 +28,10 @@ The review record should contain reviewer identity or class, protocol, exact att
 
 Formatting differences are not failures when the output contract treats them as equivalent. Missing boundaries, encoding corruption, challenge pages, wrong artifacts, stale content, and incomplete structures are substantive when they violate the contract. Do not create provider-specific scoring exceptions to repair a general normalization problem.
 
+Agreement between the reviewer and scorer proves only that the saved answer fits the current contract; it does not prove that the contract or evaluation path is sound. After recording the blind verdict, deterministically flag suspicious results and investigate the complete chain: task input, frozen reference, provider request contract and runtime, raw response, adapter transformation, scorer, and final verdict. At minimum flag successful requests with empty answers, nonempty raw responses that become empty or implausibly small, identical short answers across unrelated URLs, tool failures that occur before meaningful network work, results that satisfy the positive structure but fail only on excluded content, provider-by-family zeroes or sharp discontinuities, and anomalies raised by the reviewer. This second stage may inspect execution metadata, but must not rewrite the already-recorded blind verdict.
+
+Every triggered anomaly needs concrete evidence at each applicable layer, a root-cause classification, a deterministic equivalence scope expanded to the affected attempts, and one of: a justified no-change decision, a corrected reference/scorer with paired regressions, or a corrected request/adapter/runtime followed by the affected provider calls and renewed review. Missing raw/request evidence is `insufficient`, not proof that the provider failed. Do not publish with unresolved anomalies or a known evaluation defect. Report ordinary provider/origin limitations separately from evaluation defects, and do not retry a valid physical call merely because a later call might score better.
+
 ## Decide what to rerun
 
 Use dependency impact, not convenience:

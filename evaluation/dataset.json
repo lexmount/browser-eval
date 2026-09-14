@@ -1190,7 +1190,7 @@
       ],
       "ground_truth_evidence": [
         {
-          "source": "https://vite.dev/guide/",
+          "source": "https://www.rfc-editor.org/rfc/rfc8259.html",
           "supports": "本版独立获取的完整参考正文"
         }
       ],
@@ -1386,7 +1386,7 @@
       ],
       "ground_truth_evidence": [
         {
-          "source": "https://pnpm.io/installation",
+          "source": "https://www.rfc-editor.org/rfc/rfc6455.html",
           "supports": "本版独立获取的完整参考正文"
         }
       ],
@@ -3899,7 +3899,7 @@
       ],
       "ground_truth_evidence": [
         {
-          "source": "https://spring.io/guides",
+          "source": "https://www.w3.org/TR/2018/REC-WCAG21-20180605/",
           "supports": "本版独立获取的完整参考正文"
         }
       ],
@@ -4733,7 +4733,7 @@
       ],
       "ground_truth_evidence": [
         {
-          "source": "https://docs.exa.ai/reference/get-contents",
+          "source": "https://www.w3.org/TR/2008/REC-xml-20081126/",
           "supports": "本版独立获取的完整参考正文"
         }
       ],
@@ -5382,7 +5382,7 @@
         "method": "Independent HTTP response and reviewed article selector",
         "selector": "main",
         "reference_sha256": "ab62f0273ab9f9b792c99d2d021bb1fe7f6ff7fcf6af9935de7b65cc4443d2e8",
-        "note": "Current full-text reference unavailable. Stable task checks remain active; full-text precision, recall and F1 are unmeasured.",
+        "note": "Current full-text reference was independently captured from the main article region; stable task checks determine binary acceptance, while the full-text snapshot supplies diagnostic precision, recall and F1.",
         "source_snapshot_sha256": "58b4384ca1e53a66c69bc5a171bddad7e3b629c839b0b31757ae9361e3fc7683"
       },
       "acceptance_contract": {
@@ -14586,13 +14586,21 @@
     {
       "id": "dynamic-react-cart",
       "retrieval_hints": {
-        "version": 1,
+        "version": 2,
         "wait_until": "domcontentloaded",
         "completion": {
           "selector": "button",
           "minimum_count": 16,
           "timeout_ms": 45000,
           "delay_ms": 250
+        },
+        "extraction": {
+          "selector": "main main > div > div",
+          "maximum_count": 16,
+          "exclude_selectors": [
+            "button"
+          ],
+          "fallback": "body"
         }
       },
       "name": "React · 商品与分期信息",
@@ -16564,6 +16572,7 @@
     "unverified_reference_cases": [],
     "reference_binding_mode": "equivalent_reference_bytes_with_independent_batch_captures",
     "require_independent_result_review": true,
+    "require_anomaly_review": true,
     "case_replacements": {
       "english-encyclopedia": "stable-wikipedia-ai-revision",
       "lm-vite-guide": "stable-rfc-8259-json",

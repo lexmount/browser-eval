@@ -12,7 +12,9 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness.web_fetch.metrics import task_passed
-from harness.web_fetch.result_review import review_answer_metadata
+from harness.web_fetch.result_review import review_answer_metadata, review_raw_artifacts
+from harness.web_fetch.anomaly_review import (
+    TRIGGER_VERSION, detect_anomalies, require_anomaly_review)
 
 SCHEMA = {
     'type': 'object', 'additionalProperties': False,
@@ -22,7 +24,8 @@ SCHEMA = {
             'attempt_id': {'type': 'string'},
             'verdict': {'enum': ['pass', 'fail', 'uncertain']},
             'evidence': {'type': 'string'},
-        }, 'required': ['attempt_id', 'verdict', 'evidence']}}},
+            'anomalies': {'type': 'array', 'items': {'type': 'string'}},
+        }, 'required': ['attempt_id', 'verdict', 'evidence', 'anomalies']}}},
     'required': ['attempts'],
 }
 
@@ -36,7 +39,12 @@ Each position must quote meaningful readable words from the artifact; a timestam
 counter, score, or punctuation alone is not a passage;
 fail: either that same positional format, or "missing: <specific required passage or
 section>; observed: <what the artifact actually contains instead>". A percentage, score,
-threshold, or generic statement that criteria passed/failed is not evidence.'''
+threshold, or generic statement that criteria passed/failed is not evidence.
+Separately list any suspicious anomaly you observe even when it does not change the
+verdict. Anomalies are not verdict evidence: flag implausible emptiness, serialization,
+repeated boilerplate, reference mismatch, interface misuse, or scorer/process defects
+for the later unblinded seven-layer investigation. Return these as the row's anomalies
+array, or an empty array when none is observed.'''
 
 
 def _labeled_evidence(evidence, labels):
@@ -69,6 +77,10 @@ def validate_review_evidence(row, task_kind):
     evidence = row.get('evidence', '').strip()
     if not evidence:
         raise ValueError(f"{row.get('attempt_id', '<unknown>')} has empty review evidence")
+    anomalies = row.get('anomalies', [])
+    if (not isinstance(anomalies, list)
+            or any(not isinstance(value, str) or not value.strip() for value in anomalies)):
+        raise ValueError(f"{row.get('attempt_id', '<unknown>')} has invalid anomaly observations")
     if task_kind != 'body' or row.get('verdict') == 'uncertain':
         return
     positional = _labeled_evidence(evidence, ('beginning', 'middle', 'end'))
@@ -110,14 +122,78 @@ def independent_attempt(row):
     # Do not prime the independent reviewer with machine verdicts, scores or
     # large derived URL inventories. Those are joined only after review.
     result = {key: row[key] for key in
-              ('attempt_id', 'provider', 'artifact', 'request_ok', 'error_type')}
+              ('attempt_id', 'provider', 'artifact')}
     if row.get('file_artifacts'):
         result['file_artifacts'] = row['file_artifacts']
-    if row.get('raw_response_artifact'):
-        result['raw_response_artifact'] = row['raw_response_artifact']
     if row.get('answer_metadata_artifact'):
         result['answer_metadata_artifact'] = row['answer_metadata_artifact']
     return result
+
+
+def anomaly_investigation_packet(evidence, dataset, records, attempts, triggers):
+    """Build the unblinded process-audit packet only after verdicts exist."""
+    cases = {case['id']: case for case in dataset['cases']}
+    reviewed = {row['attempt_id']: row for row in attempts}
+    rows = {row['attempt_id']: row for row in records}
+    packet_attempts = []
+    for attempt_id in sorted(triggers):
+        record = rows[attempt_id]
+        packet_attempts.append({
+            'attempt_id': attempt_id,
+            'triggers': triggers[attempt_id],
+            'blind_review': {
+                key: reviewed[attempt_id].get(key) for key in
+                ('agent_verdict', 'agent_evidence', 'reviewer_anomalies', 'machine_verdict')},
+            'input_and_reference': {
+                'case': independent_case(cases[record['case_id']]),
+                'full_dataset': str(evidence/'dataset.json'),
+            },
+            'request': {key: record.get(key) for key in (
+                'provider', 'case_id', 'url', 'ok', 'status_code', 'error_type',
+                'error_message', 'elapsed_ms')},
+            'answer_artifact': str(evidence/record['artifact_path']),
+            'raw_artifacts': [
+                {**item, 'path': str(evidence/item['path'])}
+                for item in review_raw_artifacts(record)],
+            'adapter': record.get('provider_metadata', {}),
+            'scorer': record.get('metrics', {}),
+        })
+    return {
+        'phase': 'post-blind-verdict-anomaly-investigation',
+        'blind_verdicts_recorded': True,
+        'seven_layers': [
+            'input', 'reference', 'request', 'raw', 'adapter', 'scorer', 'final_verdict'],
+        'instructions': (
+            'Investigate every trigger across all seven layers. Do not alter the recorded '
+            'blind verdict. For each attempt declare same_class_scope, root_cause, '
+            'corrective_action, evaluation_defect/correction_applied, and exact rerun_scope. '
+            'A layer status must be verified, defect, not_applicable, or insufficient. '
+            'Use not_applicable, not insufficient, when the provider route has no separate '
+            'raw persistence stage and the saved answer is its first answer-bearing output. '
+            'Request success means the provider completed target retrieval under its declared '
+            'contract; it intentionally does not mean that the returned body is nonempty, relevant, '
+            'or task-passing. A provider/API success with target HTTP 2xx stays request-successful '
+            'when its result is empty. An explicit non-2xx target/origin status, provider-owned '
+            'success:false, or tool error stays a request failure; outer transport HTTP 2xx alone '
+            'does not override those outcomes. A nonempty HTTP 2xx block page may still be a '
+            'request success and task failure. '
+            'An empty or blocked successful response is a task/content failure, not an evaluation '
+            'defect, unless persisted evidence proves that the adapter lost answer-bearing data '
+            'or misrepresented the provider outcome. correction_applied may be true only when '
+            'the exact evidence packet being reviewed already contains the corrected persisted '
+            'record, artifact, metrics, and provenance required by the defect; a source-code fix '
+            'alone does not correct historical evidence.'),
+        'output_contract': {
+            'location': 'adjudications[attempt_id].anomaly_review',
+            'required_fields': [
+                'triggers', 'layers', 'same_class_scope', 'root_cause',
+                'corrective_action', 'status', 'evaluation_defect',
+                'correction_applied', 'rerun_scope'],
+            'layer_statuses': ['verified', 'defect', 'not_applicable', 'insufficient'],
+            'terminal_statuses': ['no-defect', 'corrected'],
+        },
+        'attempts': packet_attempts,
+    }
 
 
 def main():
@@ -153,6 +229,9 @@ def main():
     dataset = json.loads((evidence/'dataset.json').read_text())
     cases = {case['id']: case for case in dataset['cases']}
     records = [json.loads(line) for line in (evidence/'results.jsonl').read_text().splitlines()]
+    deterministic_anomalies = (detect_anomalies(evidence, records, dataset)
+                               if dataset.get('comparison', {}).get('require_anomaly_review', False)
+                               else {})
     answer_metadata_dir = work/'answer-metadata'
     answer_metadata_dir.mkdir(exist_ok=True)
     by_case = {case_id: [] for case_id in cases}
@@ -165,9 +244,11 @@ def main():
             continue
         machine = task_passed(record['ok'], record['metrics'], cases[record['case_id']].get('task_kind', 'body'))
         machine_verdict = 'pass' if machine else 'fail'
-        if args.scope == 'machine-failures' and machine_verdict != 'fail':
+        if (args.scope == 'machine-failures' and machine_verdict != 'fail'
+                and record['attempt_id'] not in deterministic_anomalies):
             continue
-        if args.scope == 'machine-passes' and machine_verdict != 'pass':
+        if (args.scope == 'machine-passes' and machine_verdict != 'pass'
+                and record['attempt_id'] not in deterministic_anomalies):
             continue
         case = cases[record['case_id']]
         include_resources = (case.get('task_kind') == 'resource'
@@ -186,8 +267,6 @@ def main():
             'file_artifacts': [str(evidence/file['artifact_path']) for file in
                                record.get('provider_metadata',{}).get('file_evaluation',{}).get('files',[])
                                if file.get('artifact_path')],
-            'raw_response_artifact': (str(evidence/record['provider_metadata']['raw_stdout_path'])
-                                      if record.get('provider_metadata',{}).get('raw_stdout_path') else None),
             'answer_metadata_artifact': str(answer_metadata_path),
         })
     ordered = [case['id'] for case in dataset['cases'] if by_case[case['id']]]
@@ -205,8 +284,7 @@ def main():
             if not packet.is_file():
                 raise ValueError(f'Batch {batch_index} has output without its blinded input packet')
             saved_packet = json.loads(packet.read_text())
-            if any(set(row) - {'attempt_id','provider','artifact','request_ok','error_type',
-                               'file_artifacts','raw_response_artifact',
+            if any(set(row) - {'attempt_id','provider','artifact','file_artifacts',
                                'answer_metadata_artifact'}
                    for row in saved_packet.get('attempts', [])):
                 raise ValueError(f'Batch {batch_index} exposes machine judgments; use a new review directory')
@@ -230,7 +308,7 @@ def main():
             if args.prepare_only:
                 return []
             prompt = f'''Independently audit every attempt in {packet}. This is a result-verification stage, not a code review.
-Inspect every artifact named for an attempt, including file_artifacts, raw_response_artifact and answer_metadata_artifact when present, and compare it with that case's task, exact body-region passages, required facts/resources/patterns, stable contract, and exclusions. The answer metadata file contains only the provider's source title and answer-bearing links/images/videos/media/extras; those fields are valid task output, while request/final URLs, logs, diagnostics and machine-derived candidate inventories are excluded. For direct-file tasks, the text artifact may intentionally be empty: verify the supplied file artifact's signature, size and reference hash instead of treating empty text as failure. Use Read, Grep and read-only hashing/file-identification commands as needed; the full frozen page is available at full_dataset when context beyond the declared acceptance evidence is necessary. The packet deliberately omits machine verdicts and scores. Decide whether the saved output satisfies the declared task. Review successes and failures equally. Return exactly one row per attempt ID ({len(expected)} rows), no omissions or extras. Use uncertain only when the frozen evidence is genuinely insufficient. Evidence must be a short, concrete observable reason; do not expose chain-of-thought.
+Inspect every answer artifact named for an attempt, including file_artifacts and answer_metadata_artifact when present, and compare it with that case's task, exact body-region passages, required facts/resources/patterns, stable contract, and exclusions. Do not inspect request, raw-response, adapter, scorer, or machine-verdict evidence in this phase; a distinct anomaly investigation runs only after your blind verdict is recorded. The answer metadata file contains only the provider's source title and answer-bearing links/images/videos/media/extras; those fields are valid task output, while request/final URLs, logs, diagnostics and machine-derived candidate inventories are excluded. For direct-file tasks, the text artifact may intentionally be empty: verify the supplied file artifact's signature, size and reference hash instead of treating empty text as failure. Use Read, Grep and read-only hashing/file-identification commands as needed; the full frozen page is available at full_dataset when context beyond the declared acceptance evidence is necessary. The packet deliberately omits machine verdicts and scores. Decide whether the saved output satisfies the declared task. Review successes and failures equally. Return exactly one row per attempt ID ({len(expected)} rows), no omissions or extras. Use uncertain only when the frozen evidence is genuinely insufficient. Evidence must be a short, concrete observable reason; do not expose chain-of-thought.
 Stable text anchors are literal requirements after ordinary Markdown/whitespace normalization: only a declared alternative can substitute for one. Semantically related text is not a hit. Before returning pass, locate every required fact group, stable anchor, resource and record constraint in the artifact; never claim a passage is present without finding it. Evidence for a pass must name the observed required anchors or fields, not merely say that all criteria are met.'''
             prompt += ''' Capitalization alone is an ordinary presentation difference and does not make an otherwise exact anchor absent. A provider-authored notice that explicitly says the returned body was truncated is direct evidence of an incomplete body; do not ignore it merely because sparse anchors or selected beginning/middle/end excerpts are present.'''
             prompt += '''\nFor resource tasks, read resource_output_contract before judging extras. When it declares candidate_scope=image_answer_fields and unexpected=reject, every image URL in answer-bearing image fields or image markup is part of the submitted answer: all expected resources must be present and every candidate must match a declared URL, alias or pattern. Unrelated images therefore fail. Without that target-only contract, expected_resources is recall-only and incidental additional URLs do not fail. A declared alias is an accepted equivalent of its target, not an unexpected resource.'''
@@ -305,8 +383,22 @@ Stable text anchors are literal requirements after ordinary Markdown/whitespace 
         final = agent if agent == automated else (adjudications.get(aid) or {}).get('final_verdict')
         attempts.append({'attempt_id': aid, 'machine_verdict': automated,
                          'agent_verdict': agent, 'agent_evidence': row['evidence'],
+                         'reviewer_anomalies': row.get('anomalies', []),
                          'final_verdict': final,
-                         'adjudication': (adjudications.get(aid) or {}).get('reason')})
+                         'adjudication': (adjudications.get(aid) or {}).get('reason'),
+                         'anomaly_review': (adjudications.get(aid) or {}).get('anomaly_review')})
+    detected_all = detect_anomalies(
+        evidence, records, dataset,
+        {row['attempt_id']: row.get('reviewer_anomalies', []) for row in attempts})
+    detected = {attempt_id: triggers for attempt_id, triggers in detected_all.items()
+                if attempt_id in reviewed_ids}
+    for row in attempts:
+        if row['attempt_id'] not in detected:
+            row.pop('anomaly_review', None)
+    anomaly_packet = anomaly_investigation_packet(
+        evidence, dataset, records, attempts, detected)
+    (work/'anomaly-investigation-input.json').write_text(
+        json.dumps(anomaly_packet, ensure_ascii=False, indent=2)+'\n')
     review = {'schema_version': 1,
               'bindings': {'dataset_sha256': sha(evidence/'dataset.json'),
                            'results_sha256': sha(evidence/'results.jsonl')},
@@ -326,7 +418,14 @@ Stable text anchors are literal requirements after ordinary Markdown/whitespace 
                                   'source_answer_metadata_supplied': True,
                                   'declared_acceptance_evidence_supplied': True,
                                   'provider_filter': sorted(selected_providers),
-                                  'scope': args.scope},
+                                  'scope': args.scope,
+                                  'anomaly_review': {
+                                      'trigger_version': TRIGGER_VERSION,
+                                      'performed_after_blind_verdict': True,
+                                      'seven_layers': [
+                                          'input', 'reference', 'request', 'raw', 'adapter',
+                                          'scorer', 'final_verdict'],
+                                      'triggered_attempts': len(detected)}},
               'total_attempts':len(records),
               'accepted_unreviewed_passes':len(records)-len(reviewed_ids),
               'expected_attempts': len(reviewed_ids), 'reviewed_attempts': len(attempts),
@@ -338,6 +437,10 @@ Stable text anchors are literal requirements after ordinary Markdown/whitespace 
     if args.install:
         if review['unresolved']:
             raise SystemExit('Cannot install a review with unresolved verdicts')
+        try:
+            require_anomaly_review(evidence, dataset, records, review)
+        except ValueError as error:
+            raise SystemExit(f'Cannot install incomplete anomaly review: {error}') from error
         shutil.copy2(target, evidence/'result-review.json')
     print(target)
     print(f"reviewed={len(attempts)} disagreements={review['disagreements']} unresolved={review['unresolved']}")

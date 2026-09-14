@@ -97,9 +97,34 @@ def test_all_current_dynamic_cases_have_bounded_generic_completion_signals():
     dynamic = [case for case in cases if case.track == "dynamic"]
     assert len(dynamic) == 10
     assert all(case.retrieval_hints for case in dynamic)
-    assert all(case.retrieval_hints["version"] == 1 for case in dynamic)
+    assert all(case.retrieval_hints["version"] in {1, 2} for case in dynamic)
     assert all(case.retrieval_hints["completion"]["selector"] for case in dynamic)
     assert not any("http" in json.dumps(case.retrieval_hints) for case in dynamic)
+    cart = next(case for case in dynamic if case.id == "dynamic-react-cart")
+    assert cart.retrieval_hints["version"] == 2
+    assert cart.retrieval_hints["extraction"] == {
+        "selector": "main main > div > div",
+        "maximum_count": 16,
+        "exclude_selectors": ["button"],
+        "fallback": "body",
+    }
+
+
+def test_v2_separates_completion_from_bounded_answer_free_extraction():
+    hints = _case()["retrieval_hints"]
+    hints["version"] = 2
+    hints["extraction"] = {
+        "selector": "main article",
+        "maximum_count": 10,
+        "exclude_selectors": ["button"],
+        "fallback": "body",
+    }
+    plan = parse_retrieval_hints("dynamic", hints, identifier="products")
+    assert plan.selector == "#results > article.card"
+    assert plan.extraction_selector == "main article"
+    assert plan.extraction_maximum_count == 10
+    assert plan.extraction_exclude_selectors == ("button",)
+    assert plan.worker_dict()["extraction"]["fallback"] == "body"
 
 
 def test_current_completion_signals_are_bound_to_independent_capture_shape():
@@ -179,9 +204,7 @@ def test_complete_text_wait_rejects_invalid_fragment_counts(value):
 
 def test_frame_complete_text_wait_checks_child_record_fields():
     hints = _case()["retrieval_hints"]
-    hints["completion"].update(
-        frame_selector="iframe#catalog", minimum_text_fragments=2
-    )
+    hints["completion"].update(frame_selector="iframe#catalog", minimum_text_fragments=2)
     plan = parse_retrieval_hints("dynamic", hints, identifier="frame-products")
     assert "frame.contentDocument.querySelectorAll" in plan.wait_value
     assert "nodes.slice(0, 10).every" in plan.wait_value

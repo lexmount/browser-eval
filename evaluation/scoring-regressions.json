@@ -71,6 +71,46 @@
       "expected_metrics": {"stable_structure_pass": true, "stable_content_pass": true}
     },
     {
+      "id": "prefix-field-belongs-to-following-product-card",
+      "category": "structured-extraction",
+      "root_cause": "record_ownership",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/products",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2,
+          "field_minimum_records": {"shipping": 2},
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Free shipping\nAlpha\n$10\n\nFree shipping\nBeta\n$20",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"stable_structure_pass": true, "stable_field_results": [{"field": "shipping", "count": 2, "minimum": 2, "pass": true}]}
+    },
+    {
+      "id": "prefix-field-cannot-repair-previous-product-card",
+      "category": "structured-extraction",
+      "root_cause": "record_ownership",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/products",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2,
+          "field_minimum_records": {"shipping": 2},
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Alpha\n$10\n\nFree shipping\nBeta\n$20",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"stable_structure_pass": false, "stable_field_results": [{"field": "shipping", "count": 1, "minimum": 2, "pass": false}]}
+    },
+    {
       "id": "separate-names-and-bare-urls-are-not-records",
       "category": "structured-extraction",
       "root_cause": "record_ownership",

@@ -67,6 +67,70 @@ def dynamic_completion_config(request):
     return config, metadata
 
 
+def dynamic_extraction_config(request):
+    """Translate the normalized v2 extraction scope into post-wait DOM capture."""
+    plan = require_normalized_retrieval_plan(request)
+    extraction = (plan or {}).get("extraction")
+    selector = extraction.get("selector") if isinstance(extraction, dict) else None
+    if request.get("track") != "dynamic" or not selector:
+        return {}, None
+    maximum_count = int(extraction["maximum_count"])
+    frame_selector = extraction.get("frame_selector")
+    exclusions = list(extraction.get("exclude_selectors", []))
+    fallback = extraction["fallback"]
+    marker = "[data-browser-eval-extraction-root]"
+    # Crawl4AI executes js_code after wait_for and before HTML capture. Clone a
+    # bounded, answer-free predeclared selection into a synthetic root so the
+    # crawler's own Markdown pipeline processes exactly that result surface.
+    script = f"""
+const selector = {json.dumps(selector)};
+const frameSelector = {json.dumps(frame_selector)};
+const maximumCount = {maximum_count};
+const exclusions = {json.dumps(exclusions)};
+const fallback = {json.dumps(fallback)};
+const sourceDocument = frameSelector
+  ? document.querySelector(frameSelector)?.contentDocument
+  : document;
+let selected = sourceDocument
+  ? Array.from(sourceDocument.querySelectorAll(selector)).slice(0, maximumCount)
+  : [];
+if (!selected.length && fallback === "body" && sourceDocument?.body) selected = [sourceDocument.body];
+const root = document.createElement("main");
+root.setAttribute("data-browser-eval-extraction-root", "");
+root.setAttribute("data-browser-eval-selected-count", String(selected.length));
+for (const [index, source] of selected.entries()) {{
+  if (index) {{
+    root.appendChild(document.createElement("br"));
+    root.appendChild(document.createElement("br"));
+  }}
+  const clone = source.cloneNode(true);
+  for (const excluded of exclusions) {{
+    for (const node of clone.querySelectorAll(excluded)) node.remove();
+    if (clone.matches && clone.matches(excluded)) clone.replaceChildren();
+  }}
+  if (source === document.body) {{
+    while (clone.firstChild) root.appendChild(clone.firstChild);
+  }} else {{
+    root.appendChild(clone);
+  }}
+}}
+document.body.replaceChildren(root);
+""".strip()
+    return {
+        "js_code": script,
+        "css_selector": marker,
+    }, {
+        "strategy": "post_wait_bounded_dom_clone",
+        "selector": selector,
+        "frame_selector": frame_selector,
+        "maximum_count": maximum_count,
+        "maximum_count_enforced": True,
+        "exclude_selectors": exclusions,
+        "fallback": fallback,
+        "scope_support": "exact",
+    }
+
+
 def is_direct_pdf_document(request):
     # Older subprocess requests do not carry ``track``. In that case the body
     # contract plus a direct-PDF URL is sufficient; when track is present, fail
@@ -280,6 +344,7 @@ async def main() -> None:
                 continue
             request = json.loads(line)
             completion_metadata = None
+            extraction_metadata = None
             try:
                 # Guard every worker route, including file/PDF branches that do
                 # not otherwise construct browser completion settings.
@@ -297,6 +362,7 @@ async def main() -> None:
                         AsyncWebCrawler(config=browser_config)
                     )
                 completion_config, completion_metadata = dynamic_completion_config(request)
+                extraction_config, extraction_metadata = dynamic_extraction_config(request)
                 route_timeout_ms = int(float(request["timeout_seconds"]) * 1000)
                 if "timeout_ms" in completion_metadata:
                     route_timeout_ms = min(route_timeout_ms, completion_metadata["timeout_ms"])
@@ -310,6 +376,7 @@ async def main() -> None:
                     "process_iframes": True,
                 }
                 run_config_values.update(completion_config)
+                run_config_values.update(extraction_config)
                 run_config = CrawlerRunConfig(**run_config_values)
                 result = await asyncio.wait_for(
                     crawler.arun(url=request["url"], config=run_config),
@@ -334,6 +401,7 @@ async def main() -> None:
                         "internal_links": result.links.get("internal", []),
                         "external_links": result.links.get("external", []),
                         "completion": completion_metadata,
+                        "extraction": extraction_metadata,
                     },
                 }
             except Exception as error:
@@ -348,6 +416,8 @@ async def main() -> None:
                 }
                 if completion_metadata is not None:
                     metadata["completion"] = completion_metadata
+                if extraction_metadata is not None:
+                    metadata["extraction"] = extraction_metadata
                 output = {
                     "ok": False,
                     "content": repr(error),

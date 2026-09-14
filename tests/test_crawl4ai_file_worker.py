@@ -453,6 +453,38 @@ class NativeFileWorkerTests(unittest.TestCase):
             {"strategy": "lifecycle", "wait_until": "domcontentloaded"},
         )
 
+    def test_dynamic_v2_extraction_becomes_bounded_post_wait_dom_scope(self):
+        worker = self.load_worker(object)
+        hints = {
+            "version": 2,
+            "wait_until": "domcontentloaded",
+            "completion": {
+                "selector": "button", "minimum_count": 16,
+                "timeout_ms": 30000, "delay_ms": 250,
+            },
+            "extraction": {
+                "selector": "main main > div > div", "maximum_count": 16,
+                "exclude_selectors": ["button"], "fallback": "body",
+            },
+        }
+        config, metadata = worker.dynamic_extraction_config({
+            "track": "dynamic", "retrieval_plan": normalized_plan(hints),
+        })
+        self.assertEqual(config["css_selector"], "[data-browser-eval-extraction-root]")
+        self.assertIn(".slice(0, maximumCount)", config["js_code"])
+        self.assertIn("clone.querySelectorAll(excluded)", config["js_code"])
+        self.assertEqual(config["js_code"].count('document.createElement("br")'), 2)
+        self.assertEqual(metadata, {
+            "strategy": "post_wait_bounded_dom_clone",
+            "selector": "main main > div > div",
+            "frame_selector": None,
+            "maximum_count": 16,
+            "maximum_count_enforced": True,
+            "exclude_selectors": ["button"],
+            "fallback": "body",
+            "scope_support": "exact",
+        })
+
     def test_main_applies_dynamic_completion_route_before_html_call(self):
         seen = []
 
@@ -527,6 +559,7 @@ class NativeFileWorkerTests(unittest.TestCase):
                 "effective_route_timeout_ms": 30000,
             },
         )
+        self.assertIsNone(payload["metadata"]["extraction"])
 
     def test_dynamic_completion_requires_runner_normalized_plan(self):
         worker = self.load_worker(object)

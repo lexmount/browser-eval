@@ -8,6 +8,10 @@
       "expected_binary_sha256": "dbce6cc79b97eeb558416707a642ca20b9b1b8d6731655a695059d334adb6d5b",
       "wait_until": "done",
       "block_private_networks": true,
+      "private_network_allowlist_hosts": [
+        "browser.lexmount.com",
+        "react-shopping-cart-67954.firebaseapp.com"
+      ],
       "max_bytes": 20000000
     },
     "fixture": {

@@ -10,6 +10,8 @@ from typing import Any
 
 _WAIT_UNTIL = {"domcontentloaded", "load", "networkidle"}
 _COMPLETION_KEYS = {"selector", "minimum_count", "timeout_ms", "delay_ms"}
+_EXTRACTION_KEYS = {"selector", "maximum_count", "exclude_selectors", "fallback"}
+_EXTRACTION_FALLBACKS = {"body", "empty"}
 _SAFE_SELECTOR = re.compile(
     r"^(?:[A-Za-z][A-Za-z0-9_-]*|[.#][A-Za-z_][A-Za-z0-9_-]*)"
     r"(?:(?:[.#][A-Za-z_][A-Za-z0-9_-]*)|"
@@ -19,6 +21,7 @@ _SAFE_SELECTOR = re.compile(
 
 @dataclass(frozen=True)
 class RetrievalPlan:
+    version: int
     wait_until: str
     selector: str
     minimum_count: int
@@ -26,6 +29,11 @@ class RetrievalPlan:
     delay_ms: int
     frame_selector: str | None = None
     minimum_text_fragments: int = 0
+    extraction_selector: str | None = None
+    extraction_maximum_count: int = 0
+    extraction_frame_selector: str | None = None
+    extraction_exclude_selectors: tuple[str, ...] = ()
+    extraction_fallback: str = "body"
 
     @property
     def wait_kind(self) -> str:
@@ -70,8 +78,8 @@ class RetrievalPlan:
 
     def worker_dict(self) -> dict[str, Any]:
         """Trusted normalized plan sent to repository-native subprocess workers."""
-        return {
-            "version": 1,
+        result = {
+            "version": self.version,
             "wait_until": self.wait_until,
             "selector": self.selector,
             "minimum_count": self.minimum_count,
@@ -82,6 +90,15 @@ class RetrievalPlan:
             "wait_kind": self.wait_kind,
             "wait_value": self.wait_value,
         }
+        if self.version == 2:
+            result["extraction"] = {
+                "selector": self.extraction_selector,
+                "maximum_count": self.extraction_maximum_count,
+                "frame_selector": self.extraction_frame_selector,
+                "exclude_selectors": list(self.extraction_exclude_selectors),
+                "fallback": self.extraction_fallback,
+            }
+        return result
 
 
 def complete_text_wait_value(plan: RetrievalPlan) -> str:
@@ -135,14 +152,25 @@ def parse_retrieval_hints(
         return None
     if track != "dynamic":
         raise ValueError(f"{identifier}: retrieval_hints are only valid for dynamic cases")
-    if not isinstance(hints, Mapping) or set(hints) != {
-        "version", "wait_until", "completion"
-    }:
+    if not isinstance(hints, Mapping):
+        raise ValueError(f"{identifier}: retrieval_hints must be an object")
+    version = hints.get("version")
+    expected_keys = (
+        {"version", "wait_until", "completion", "extraction"}
+        if version == 2 and not isinstance(version, bool)
+        else {"version", "wait_until", "completion"}
+    )
+    if set(hints) != expected_keys:
         raise ValueError(
-            f"{identifier}: retrieval_hints must contain only version, wait_until and completion"
+            f"{identifier}: retrieval_hints version {version!r} must contain only "
+            + (
+                "version, wait_until, completion and extraction"
+                if version == 2
+                else "version, wait_until and completion"
+            )
         )
-    if hints["version"] != 1 or isinstance(hints["version"], bool):
-        raise ValueError(f"{identifier}: retrieval_hints.version must be 1")
+    if isinstance(version, bool) or not isinstance(version, int) or version not in {1, 2}:
+        raise ValueError(f"{identifier}: retrieval_hints.version must be 1 or 2")
     wait_until = hints["wait_until"]
     if not isinstance(wait_until, str) or wait_until not in _WAIT_UNTIL:
         raise ValueError(f"{identifier}: retrieval_hints.wait_until is unsupported")
@@ -185,7 +213,63 @@ def parse_retrieval_hints(
         raise ValueError(
             f"{identifier}: retrieval_hints.completion.delay_ms must be below timeout_ms"
         )
+    extraction_selector = None
+    extraction_maximum_count = 0
+    extraction_frame_selector = None
+    extraction_exclude_selectors: tuple[str, ...] = ()
+    extraction_fallback = "body"
+    if version == 2:
+        extraction = hints["extraction"]
+        if (
+            not isinstance(extraction, Mapping)
+            or not {"selector", "maximum_count", "fallback"} <= set(extraction)
+            or set(extraction) - _EXTRACTION_KEYS - {"frame_selector"}
+        ):
+            raise ValueError(
+                f"{identifier}: retrieval_hints.extraction must contain selector, "
+                "maximum_count and fallback, with only optional frame_selector and "
+                "exclude_selectors"
+            )
+        extraction_selector = _selector(identifier, "extraction.selector", extraction["selector"])
+        extraction_maximum_count = _integer(
+            identifier,
+            "extraction.maximum_count",
+            extraction["maximum_count"],
+            minimum=1,
+            maximum=1000,
+        )
+        extraction_frame_selector = (
+            _selector(
+                identifier,
+                "extraction.frame_selector",
+                extraction["frame_selector"],
+            )
+            if "frame_selector" in extraction
+            else None
+        )
+        exclusions = extraction.get("exclude_selectors", [])
+        if not isinstance(exclusions, list) or len(exclusions) > 20:
+            raise ValueError(
+                f"{identifier}: retrieval_hints.extraction.exclude_selectors must be a "
+                "unique list of at most 20 selectors"
+            )
+        extraction_exclude_selectors = tuple(
+            _selector(identifier, "extraction.exclude_selectors", value) for value in exclusions
+        )
+        if len(set(extraction_exclude_selectors)) != len(extraction_exclude_selectors):
+            raise ValueError(
+                f"{identifier}: retrieval_hints.extraction.exclude_selectors must be unique"
+            )
+        extraction_fallback = extraction["fallback"]
+        if (
+            not isinstance(extraction_fallback, str)
+            or extraction_fallback not in _EXTRACTION_FALLBACKS
+        ):
+            raise ValueError(
+                f"{identifier}: retrieval_hints.extraction.fallback must be body or empty"
+            )
     return RetrievalPlan(
+        version=version,
         wait_until=wait_until,
         selector=selector,
         minimum_count=minimum_count,
@@ -193,6 +277,11 @@ def parse_retrieval_hints(
         delay_ms=delay_ms,
         frame_selector=frame_selector,
         minimum_text_fragments=minimum_text_fragments,
+        extraction_selector=extraction_selector,
+        extraction_maximum_count=extraction_maximum_count,
+        extraction_frame_selector=extraction_frame_selector,
+        extraction_exclude_selectors=extraction_exclude_selectors,
+        extraction_fallback=extraction_fallback,
     )
 
 

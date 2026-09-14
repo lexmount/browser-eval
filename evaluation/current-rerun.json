@@ -1,396 +1,59 @@
 {
   "schema_version": 2,
   "baseline": {
-    "dataset_sha256": "4c7e20ef1de1f82b78b898af8c2b3275fcae00e32305ccedb4c6035f1534858f",
-    "results_sha256": "30a2e4e6a755fafc99c28ca070b1ec0ea9083ad5995cd2e4d01285f4d25cba86",
-    "logical_attempts": 1800
+    "dataset_sha256": "69ea049aef52ddefc469a30c591a3ad2f0f9bec5147d1bd3647bc98b601b2065",
+    "results_sha256": "f1e259c881fbb427c4e9feea0bb0b347dabff028902c8d06a113e0d8fe1936f8",
+    "logical_attempts": 1500
   },
   "main_matrix": {
-    "full_rerun_providers": [
-      "cloudflare-markdown",
-      "exa",
-      "firecrawl",
-      "moli-webfetch",
-      "tavily"
-    ],
-    "full_rerun_reason_by_provider": {
-      "cloudflare-markdown": {
-        "category": "provider_route_and_deadline_contract",
-        "reason": "Cloudflare's navigation and action timers are now capped by the real inner HTTP cutoff, and dynamic selectors use the strongest supported completion action; the complete method cohort must use one route and deadline contract."
-      },
-      "exa": {
-        "category": "provider_route_and_deadline_contract",
-        "reason": "The Exa contents request changes text verbosity from compact to full and explicitly binds livecrawlTimeout within the client cutoff, changing the method output and deadline contract."
-      },
-      "firecrawl": {
-        "category": "provider_route_and_deadline_contract",
-        "reason": "Firecrawl direct-file tasks now use the official rawBase64-only route, dynamic tasks use the official waitFor delay route supported by the current account region, and the service timeout is capped by the real client cutoff."
-      },
-      "moli-webfetch": {
-        "category": "provider_version_and_route",
-        "reason": "Moli is the only method whose product version changes, from 1.1.1 to 1.1.4. Direct PDF, DOCX, and media tasks use its raw route; resource pages use bounded rendered-DOM URL discovery; dynamic tasks separate completion detection from bounded record extraction."
-      },
-      "tavily": {
-        "category": "provider_route_and_deadline_contract",
-        "reason": "The Tavily extraction request changes extract_depth from basic to advanced and derives the service timeout from the real inner client cutoff."
-      }
-    },
-    "matched_case_ids": [
-      "live-016-navigation-menu",
-      "live-043-syntax",
-      "live-063-navigation-menu",
-      "live-067-navigation-menu"
-    ],
-    "matched_case_reason_groups": [
-      {
-        "case_ids": [
-          "live-016-navigation-menu",
-          "live-043-syntax",
-          "live-063-navigation-menu",
-          "live-067-navigation-menu"
-        ],
-        "category": "source_input_refresh",
-        "reason": "The independently refreshed source bytes changed for these four live tasks; every method must receive the same changed task input."
-      }
-    ],
+    "full_rerun_providers": [],
+    "full_rerun_reason_by_provider": {},
+    "matched_case_ids": [],
+    "matched_case_reason_groups": [],
     "pair_replacements": [
-      {
-        "provider": "crawl4ai",
-        "case_id": "dynamic-quotes-api",
-        "category": "provider_case_route",
-        "reason": "Use Crawl4AI's corrected dynamic retrieval plan for this task."
-      },
-      {
-        "provider": "crawl4ai",
-        "case_id": "dynamic-products-api",
-        "category": "provider_case_route",
-        "reason": "Use Crawl4AI's corrected dynamic retrieval plan for this task."
-      },
-      {
-        "provider": "crawl4ai",
-        "case_id": "dynamic-catalog",
-        "category": "provider_case_route",
-        "reason": "Use Crawl4AI's corrected dynamic retrieval plan for this task."
-      },
-      {
-        "provider": "crawl4ai",
-        "case_id": "dynamic-delayed",
-        "category": "provider_case_route",
-        "reason": "Use Crawl4AI's corrected dynamic retrieval plan for this task."
-      },
-      {
-        "provider": "crawl4ai",
-        "case_id": "dynamic-reviews-graphql",
-        "category": "provider_case_route",
-        "reason": "Use Crawl4AI's corrected dynamic retrieval plan for this task."
-      },
-      {
-        "provider": "crawl4ai",
-        "case_id": "dynamic-react-cart",
-        "category": "provider_case_route",
-        "reason": "Use Crawl4AI's corrected dynamic retrieval plan for this task."
-      },
-      {
-        "provider": "crawl4ai",
-        "case_id": "dynamic-angular-phones",
-        "category": "provider_case_route",
-        "reason": "Use Crawl4AI's corrected dynamic retrieval plan for this task."
-      },
-      {
-        "provider": "crawl4ai",
-        "case_id": "dynamic-swagger",
-        "category": "provider_case_route",
-        "reason": "Use Crawl4AI's corrected dynamic retrieval plan for this task."
-      },
-      {
-        "provider": "crawl4ai",
-        "case_id": "dynamic-product-reviews",
-        "category": "provider_case_route",
-        "reason": "Use Crawl4AI's corrected dynamic retrieval plan for this task."
-      },
-      {
-        "provider": "crawl4ai",
-        "case_id": "dynamic-iframe",
-        "category": "provider_case_route",
-        "reason": "Use Crawl4AI's corrected dynamic retrieval plan for this task."
-      },
-      {
-        "provider": "crawl4ai",
-        "case_id": "document-01",
-        "category": "provider_case_route",
-        "reason": "Use Crawl4AI's documented PDF extraction strategy for this PDF task."
-      },
-      {
-        "provider": "crawl4ai",
-        "case_id": "document-02",
-        "category": "provider_case_route",
-        "reason": "Use Crawl4AI's documented PDF extraction strategy for this PDF task."
-      },
-      {
-        "provider": "crawl4ai",
-        "case_id": "document-03",
-        "category": "provider_case_route",
-        "reason": "Use Crawl4AI's documented PDF extraction strategy for this PDF task."
-      },
-      {
-        "provider": "crawl4ai",
-        "case_id": "document-04",
-        "category": "provider_case_route",
-        "reason": "Use Crawl4AI's documented PDF extraction strategy for this PDF task."
-      },
-      {
-        "provider": "crawl4ai",
-        "case_id": "document-06",
-        "category": "provider_case_route",
-        "reason": "Use Crawl4AI's documented PDF extraction strategy for this PDF task."
-      },
-      {
-        "provider": "crawl4ai",
-        "case_id": "document-10",
-        "category": "provider_case_route",
-        "reason": "Use Crawl4AI's documented PDF extraction strategy for this PDF task."
-      },
-      {
-        "provider": "deepseek-harness-built-in",
-        "case_id": "dynamic-quotes-api",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "deepseek-harness-built-in",
-        "case_id": "dynamic-products-api",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "deepseek-harness-built-in",
-        "case_id": "dynamic-catalog",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "deepseek-harness-built-in",
-        "case_id": "dynamic-delayed",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "deepseek-harness-built-in",
-        "case_id": "dynamic-reviews-graphql",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "deepseek-harness-built-in",
-        "case_id": "dynamic-react-cart",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "deepseek-harness-built-in",
-        "case_id": "dynamic-angular-phones",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "deepseek-harness-built-in",
-        "case_id": "dynamic-swagger",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "deepseek-harness-built-in",
-        "case_id": "dynamic-product-reviews",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "deepseek-harness-built-in",
-        "case_id": "dynamic-iframe",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "openclaw-built-in",
-        "case_id": "dynamic-quotes-api",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "openclaw-built-in",
-        "case_id": "dynamic-products-api",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "openclaw-built-in",
-        "case_id": "dynamic-catalog",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "openclaw-built-in",
-        "case_id": "dynamic-delayed",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "openclaw-built-in",
-        "case_id": "dynamic-reviews-graphql",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "openclaw-built-in",
-        "case_id": "dynamic-react-cart",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "openclaw-built-in",
-        "case_id": "dynamic-angular-phones",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "openclaw-built-in",
-        "case_id": "dynamic-swagger",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "openclaw-built-in",
-        "case_id": "dynamic-product-reviews",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "openclaw-built-in",
-        "case_id": "dynamic-iframe",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "langchain-webbase",
-        "case_id": "dynamic-quotes-api",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "langchain-webbase",
-        "case_id": "dynamic-products-api",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "langchain-webbase",
-        "case_id": "dynamic-catalog",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "langchain-webbase",
-        "case_id": "dynamic-delayed",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "langchain-webbase",
-        "case_id": "dynamic-reviews-graphql",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "langchain-webbase",
-        "case_id": "dynamic-react-cart",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "langchain-webbase",
-        "case_id": "dynamic-angular-phones",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "langchain-webbase",
-        "case_id": "dynamic-swagger",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "langchain-webbase",
-        "case_id": "dynamic-product-reviews",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      },
-      {
-        "provider": "langchain-webbase",
-        "case_id": "dynamic-iframe",
-        "category": "provider_case_request_contract",
-        "reason": "The subprocess request now carries the bounded shared dynamic completion plan; replace only this affected provider/case call."
-      }
+      {"provider":"openclaw-built-in","case_id":"challenge-01","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
+      {"provider":"openclaw-built-in","case_id":"challenge-04","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
+      {"provider":"openclaw-built-in","case_id":"challenge-09","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
+      {"provider":"openclaw-built-in","case_id":"document-03","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
+      {"provider":"openclaw-built-in","case_id":"image-pexels-detail","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
+      {"provider":"openclaw-built-in","case_id":"image-unsplash-detail","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
+      {"provider":"openclaw-built-in","case_id":"lexmount-doc","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
+      {"provider":"openclaw-built-in","case_id":"live-024-cascading-style-sheets-level-2-r","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
+      {"provider":"openclaw-built-in","case_id":"live-039-welcome-to-redis-docs","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
+      {"provider":"openclaw-built-in","case_id":"stable-browser-use-readme","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
+      {"provider":"openclaw-built-in","case_id":"stable-nodejs-readme","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
+      {"provider":"openclaw-built-in","case_id":"stable-openclaw-readme","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
+      {"provider":"openclaw-built-in","case_id":"stable-wcag21-recommendation","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
+      {"provider":"openclaw-built-in","case_id":"stable-xml10-recommendation","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
+      {"provider":"openclaw-built-in","case_id":"web-retail-returns","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
+      {"provider":"cowagent-built-in","case_id":"document-01","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
+      {"provider":"cowagent-built-in","case_id":"document-02","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
+      {"provider":"cowagent-built-in","case_id":"document-03","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
+      {"provider":"cowagent-built-in","case_id":"document-04","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
+      {"provider":"cowagent-built-in","case_id":"document-05","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
+      {"provider":"cowagent-built-in","case_id":"document-06","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
+      {"provider":"cowagent-built-in","case_id":"document-09","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
+      {"provider":"cowagent-built-in","case_id":"document-10","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
+      {"provider":"cowagent-built-in","case_id":"stable-browser-use-readme","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
+      {"provider":"cowagent-built-in","case_id":"stable-nodejs-readme","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
+      {"provider":"cowagent-built-in","case_id":"stable-openclaw-readme","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."}
     ],
-    "offline_rescore_cases": [
-      {
-        "case_id": "stable-wikipedia-ai-revision",
-        "category": "reference_only_correction",
-        "reason": "Correct the independent reference only; rescore all immutable method attempts without adding provider calls, then complete full result review.",
-        "attempts": 10,
-        "full_review": true
-      },
-      {
-        "case_id": "stable-wcag21-recommendation",
-        "category": "reference_only_correction",
-        "reason": "Remove a non-content back-to-top glyph from the immutable document reference; rescore all immutable method attempts without adding provider calls, then complete full result review.",
-        "attempts": 10,
-        "full_review": true
-      },
-      {
-        "case_id": "live-041-python-programming-language",
-        "category": "reference_only_correction",
-        "reason": "Replace citation and navigation-template anchors with independently observed article-body anchors; rescore immutable outputs without provider calls, then complete full result review.",
-        "attempts": 10,
-        "full_review": true
-      },
-      {
-        "case_id": "live-060-database",
-        "category": "reference_only_correction",
-        "reason": "Correct article-body reference scope and rescore immutable outputs without provider calls, then complete full result review.",
-        "attempts": 10,
-        "full_review": true
-      },
-      {
-        "case_id": "live-061-version-control",
-        "category": "reference_only_correction",
-        "reason": "Correct article-body reference scope and rescore immutable outputs without provider calls, then complete full result review.",
-        "attempts": 10,
-        "full_review": true
-      },
-      {
-        "case_id": "live-062-natural-language-processing",
-        "category": "reference_only_correction",
-        "reason": "Correct article-body reference scope and rescore immutable outputs without provider calls, then complete full result review.",
-        "attempts": 10,
-        "full_review": true
-      }
-    ],
-    "planned_new_calls": 816,
-    "final_logical_attempts": 1800
+    "offline_rescore_cases": [],
+    "planned_new_calls": 26,
+    "final_logical_attempts": 1500
   },
   "same_window_speed_cohort": {
     "required": false,
     "reuse_existing": true,
-    "reason": "This correction does not declare a new same-window latency cohort; retain the prior certified cohort as historical diagnostic evidence without making cross-window calls or treating it as timing for the refreshed routes.",
-    "dataset_sha256": "74a1627ef978e9dd8adae9ee524c858423b68ed5687894ec10cc068c698b4138",
-    "results_sha256": "1ebbf9659b259571f6b25314614a798754085e7bbe2801575f74dbadb4b087fd",
-    "execution_sha256": "aced122eeb6960d79240fa946b2d3f9204e85374110fc9ba8077f4dde6e86846",
-    "speed_comparison_sha256": "24449fecac11433547144dcfff4103be8110b7a391e48b0145c9f4ca8a2b3e04",
+    "reason": "No timing boundary or provider-version change is declared. The prior certified speed cohort remains historical diagnostic evidence and does not contain the corrected Crawl4AI dynamic-product case.",
+    "dataset_sha256": "20d6ab46caa60230cfb703b964ab1378f9071b47f249f61e094f4c7c84ea4aa9",
+    "results_sha256": "9d9d3eb57b3ff1cdd7187e4378d78f990447e3a54ca27d0bfdd8623e228112d3",
+    "execution_sha256": "e8b4f90d26cf53e63ef2b25f8f4d32a1ece9ec63bedad7e3f81e07d481cdd76e",
+    "speed_comparison_sha256": "2bb77a7c343ddbbd748657a3f5a4d3b49d46650053ffb7f6353ce80dfb09893c",
     "auxiliary_sha256": {
-      "scoring-revisions.json": "e9690acd373e1e1948111efa0e29cbf0e6cf34551628540426acf4764e3a57ca",
-      "reference-revisions.json": "8bca5ca02b69c1a630994a6550426b55343d2818beafd136c32689785931ab8d"
+      "reference-revisions.json": "361260b2ee805ba277967432e191322fca15aa545f4eaf9a3c3ae43275204857"
     },
     "planned_new_calls": 0
   },
-  "total_planned_new_calls": 816
+  "total_planned_new_calls": 26
 }

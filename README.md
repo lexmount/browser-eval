@@ -114,9 +114,9 @@ uv run --frozen python scripts/run_benchmark.py --track dynamic --providers lexm
 
 ### Moli WebFetch
 
-当前十方法矩阵按 [Moli 1.1.4 官方 skill](https://github.com/lexmount/moli/tree/v1.1.4/skills/moli-webfetch) 安装并固定 `MOLI_BINARY`（不需要账号/API Key）。普通正文使用 `moli fetch --dump markdown`；挑战题使用一次 `moli fetch --dump json --trace-network`，同时保留最终 DOM、HTTP 状态、最终 URL 和有界网络诊断，DOM 在同一截止预算内本地转为 Markdown；资源页通过一次 `--eval` 从渲染 DOM、已加载同源 iframe 与有界同源模块中返回结构化 URL；动态任务把数据集预先声明的通用 selector、最少数量和有界等待转换为 Moli 等价参数，并用一次 `--eval` 返回有界记录文本，不把标准答案写进命令。直接 PDF、DOCX、图片和视频地址在调用前选择裸 `moli fetch URL`，由 CLI 自动返回原始响应或序列化页面；嵌入式文档查看器用页面运行时读取文档。PDF 等取得原始字节后，文档正文在同一截止预算内解析。直接文件任务一直验收到格式、长度和 SHA-256，不做无关 Markdown 转换。适配器保留 stdout 原文、独立 stderr 和退出状态；JSON 路线对原包只公开安全摘要，不公开 cookie 或完整响应头；不发第二次请求拼接元数据。工具成功不等于任务通过，仍使用同一套机械评分规则。
+当前十方法矩阵按 [Moli 1.1.4 官方 skill](https://github.com/lexmount/moli/tree/v1.1.4/skills/moli-webfetch) 安装并固定 `MOLI_BINARY`（不需要账号/API Key）。普通正文使用 `moli fetch --dump markdown`；挑战题使用一次 `moli fetch --dump json --trace-network`，同时保留最终 DOM、HTTP 状态、最终 URL 和有界网络诊断，DOM 在同一截止预算内本地转为 Markdown；资源页通过一次 `--eval` 从渲染 DOM、已加载同源 iframe 与有界同源模块中返回结构化 URL。动态任务分别使用预声明的完成条件和正文提取范围，避免把等待按钮误当作答案。直接 PDF、图片和视频地址使用裸 `moli fetch URL`；当前 Moli CLI 会把 OOXML 响应误送入 HTML 序列化，因此 DOCX 正文任务在同一次 CLI 运行中预先选择页面运行时 `fetch(location.href)` 取得原始字节，并明确记录第二次 HTTP 请求。冻结的公开测试域名若因 split DNS 映射到私网地址，只对已经实测冲突的精确白名单省略 `--block-private-networks`，其余 URL 仍开启保护。文档正文解析计入同一截止预算；文件任务验收到格式、长度和 SHA-256。工具成功不等于任务通过，仍使用同一套机械评分规则。
 
-官方还提供 JSON/HTML/semantic tree、DOM eval、授权会话及需 layout 的截图/PDF 输出。这些能力与正文和原始响应路线分开说明；生成 PDF 不等于解析已有 PDF，媒体链接也不等于取得原文件。当前十方法矩阵对直接非 HTML 响应使用自动原始输出，不能强制 `--dump html/markdown`；本地文档解析属于正文任务的计时内后处理，不暗中借用其他 provider。上文的独立五浏览器报告仍保留 Moli 1.0.6、1.1.1、1.1.3 的历史实测身份和成绩，不用 1.1.4 倒改旧结果。
+官方还提供 JSON/HTML/semantic tree、DOM eval、授权会话及需 layout 的截图/PDF 输出。这些能力与正文和原始响应路线分开说明；生成 PDF 不等于解析已有 PDF，媒体链接也不等于取得原文件。当前十方法矩阵对直接非 HTML 响应优先使用自动原始输出；本地文档解析属于正文任务的计时内后处理，不暗中借用其他 provider。上文的独立五浏览器报告和已发布十方法旧版继续保留各自的历史实测身份和成绩，不用新版本倒改旧结果。
 
 独立源页检查：`uv run --frozen python scripts/audit_sources.py`，需要 requests、BeautifulSoup4 和文档解析依赖。HTTP 失败只触发进一步检查，不能据此自动删除任务。复杂热门网站的列表按字段结构评分，不耦合当前标题、排序或价格。动态正文参考采集须遵守 `harness/web_fetch/README.md` 的配对证据与有界完成条件；页面分类不是 JS 必要性的证据。
 

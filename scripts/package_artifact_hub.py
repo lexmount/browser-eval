@@ -262,7 +262,9 @@ def build():
  for name in sorted({v['pack'] for v in blocks.values()}):
   raw=gzip.decompress((DEST/name).read_bytes())
   for key,b in blocks.items():
-   if b['pack']==name:assert hashlib.sha256(raw[b['offset']:b['offset']+b['size']]).hexdigest()==key
+   if b['pack']==name:
+    observed=hashlib.sha256(raw[b['offset']:b['offset']+b['size']]).hexdigest()
+    assert observed==key,(name,key,observed,b['offset'],b['size'],len(raw))
  total=sum(p.stat().st_size for p in DEST.rglob('*') if p.is_file())
  print(json.dumps({'source_files':source_file_count,'logical_routes':logical_route_count,
                    'html_shells':1,'content_packs':index,

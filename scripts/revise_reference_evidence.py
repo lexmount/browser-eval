@@ -24,7 +24,7 @@ from scripts.revise_body_scoring import archive_superseded_result_review
 
 ALLOWED_FIELDS = {
     "ground_truth_main_content", "source_verification", "body_requirements",
-    "required_patterns", "reference_answer",
+    "required_patterns", "reference_answer", "ground_truth_evidence",
 }
 SEPARATE_SCORING_FIELDS = {
     "required_facts", "acceptance_contract", "forbidden_any",
@@ -36,6 +36,7 @@ CAPTURE_INSTANCE_FIELDS = {
     "checked_at", "http_status", "source_snapshot_sha256",
     "extracted_reference_sha256", "browser_observation_sha256",
 }
+NON_SCORING_REFERENCE_FIELDS = {"ground_truth_evidence", "source_verification"}
 
 
 def digest(raw: bytes) -> str:
@@ -53,18 +54,26 @@ def equivalent_source_verification(old: dict, new: dict) -> bool:
 
 def reference_fields_for_case(old: dict, new: dict) -> set[str]:
     """Keep scoring-only body changes out of a reference correction."""
-    reference_changed = (
+    answer_reference_changed = (
         old.get("ground_truth_main_content") != new.get("ground_truth_main_content")
         or not equivalent_source_verification(
             old.get("source_verification", {}), new.get("source_verification", {}))
     )
-    return ALLOWED_FIELDS if reference_changed else {
-        "ground_truth_main_content", "source_verification"
+    return ALLOWED_FIELDS if answer_reference_changed else {
+        "ground_truth_main_content", "source_verification", "ground_truth_evidence"
     }
 
 
+def scoring_relevant_reference_change(changed: list[dict]) -> bool:
+    """Provenance metadata changes do not justify rewriting measured rows."""
+    return any(set(change["fields"]) - NON_SCORING_REFERENCE_FIELDS
+               for change in changed)
+
+
 def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
-           root_cause: str, regression_ids: list[str]) -> dict:
+           root_cause: str, regression_ids: list[str],
+           case_ids: set[str] | None = None,
+           fields: set[str] | None = None) -> dict:
     provenance = build_correction_provenance(
         root_cause_category, root_cause, regression_ids
     )
@@ -86,6 +95,10 @@ def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
     new_cases = {case["id"]: case for case in canonical["cases"]}
     if not old_cases.keys() <= new_cases.keys():
         raise ValueError("Measured evidence contains cases absent from the canonical dataset")
+    if case_ids is not None and not case_ids <= old_cases.keys():
+        raise ValueError("Reference revision names a case absent from measured evidence")
+    if fields is not None and (not fields or not fields <= ALLOWED_FIELDS):
+        raise ValueError("Reference revision has an unsupported field scope")
     changed = []
     original_hashes = {}
     execution_path = source / "execution.json"
@@ -98,6 +111,10 @@ def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
     for case_id, old in old_cases.items():
         new = new_cases[case_id]
         reference_fields = reference_fields_for_case(old, new)
+        if case_ids is not None and case_id not in case_ids:
+            reference_fields = set()
+        if fields is not None:
+            reference_fields &= fields
         # A reference correction and an independently reviewed scoring-contract
         # correction may be pending at the same time. Preserve the old scoring
         # fields for the later scoring revision instead of either importing them
@@ -108,19 +125,19 @@ def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
         if forbidden:
             raise ValueError(f"{case_id}: reference revision changed task fields {forbidden}")
         row = deepcopy(old)
-        fields = []
+        changed_fields = []
         for key in reference_fields:
             if (key == "source_verification"
                     and equivalent_source_verification(old.get(key, {}), new.get(key, {}))):
                 continue
             if old.get(key) != new.get(key):
-                fields.append(key)
+                changed_fields.append(key)
                 if key in new:
                     row[key] = deepcopy(new[key])
                 else:
                     row.pop(key, None)
         updated.append(row)
-        if fields:
+        if changed_fields:
             new_reference = new.get("ground_truth_main_content", "")
             verification = new.get("source_verification", {})
             if requires_fresh_reference(new):
@@ -132,7 +149,7 @@ def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
             for old_hash in sorted(hashes):
                 changed.append({
                     "case_id": case_id,
-                    "fields": sorted(fields),
+                    "fields": sorted(changed_fields),
                     "old_reference_sha256": old_hash,
                     "new_reference_sha256": digest(new_reference.encode()),
                     "reason": "independent reference extraction/normalization correction",
@@ -148,9 +165,17 @@ def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
         incoming = canonical_root / folder
         if incoming.exists():
             shutil.copytree(incoming, source / folder, dirs_exist_ok=True)
+    scoring_relevant_change = scoring_relevant_reference_change(changed)
     try:
-        decisions = rescore(source, allow_rule_revision=True,
-                            reference_revision_hashes=original_hashes)
+        # Provenance labels are audit metadata, not scoring inputs. Rewriting all
+        # result rows for such a correction would manufacture a scoring revision
+        # and invalidate an otherwise unchanged result-review binding.
+        decisions = (
+            rescore(source, allow_rule_revision=True,
+                    reference_revision_hashes=original_hashes)
+            if scoring_relevant_change
+            else []
+        )
     except BaseException:
         dataset_path.write_bytes(before_dataset)
         results_path.write_bytes(before_results)
@@ -208,10 +233,16 @@ if __name__ == "__main__":
                         help="Concrete defect mechanism, not the observed score change")
     parser.add_argument("--regression-id", action="append", required=True,
                         help="Executable case id from evaluation/scoring-regressions.json; repeat as needed")
+    parser.add_argument("--case-id", action="append",
+                        help="Restrict the audited revision to these case IDs; repeat as needed")
+    parser.add_argument("--field", action="append", choices=sorted(ALLOWED_FIELDS),
+                        help="Restrict the audited revision to these reference fields; repeat as needed")
     args = parser.parse_args()
     print(json.dumps(revise(
         args.source, args.canonical,
         root_cause_category=args.root_cause_category,
         root_cause=args.root_cause,
         regression_ids=args.regression_id,
+        case_ids=set(args.case_id) if args.case_id else None,
+        fields=set(args.field) if args.field else None,
     ), ensure_ascii=False, indent=2))

@@ -14,7 +14,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from harness.web_fetch.result_review import require_result_review
+from harness.web_fetch.result_review import require_blind_result_review, require_result_review
 from harness.web_fetch.result_review import review_input_identity
 from harness.web_fetch.metrics import task_passed
 
@@ -59,7 +59,7 @@ def _revision_suffix(receipts, prior_bindings, current_bindings):
     raise ValueError(failures[0])
 
 
-def _validate_before_install(dataset_bytes, results_bytes, review):
+def _validate_before_install(dataset_bytes, results_bytes, review, *, anomaly_gate=True):
     """Run the publication validator before replacing the installed review."""
     with tempfile.TemporaryDirectory(prefix='result-review-merge-') as directory:
         root = Path(directory)
@@ -69,13 +69,15 @@ def _validate_before_install(dataset_bytes, results_bytes, review):
             json.dumps(review, ensure_ascii=False, indent=2)+'\n')
         dataset = json.loads(dataset_bytes)
         records = [json.loads(line) for line in results_bytes.splitlines()]
-        require_result_review(root, dataset, records)
+        validator = require_result_review if anomaly_gate else require_blind_result_review
+        validator(root, dataset, records)
 
 
-def _install_review(evidence, review):
+def _install_review(evidence, review, *, anomaly_gate=True):
     dataset_bytes = (evidence/'dataset.json').read_bytes()
     results_bytes = (evidence/'results.jsonl').read_bytes()
-    _validate_before_install(dataset_bytes, results_bytes, review)
+    _validate_before_install(
+        dataset_bytes, results_bytes, review, anomaly_gate=anomaly_gate)
     target = evidence/'result-review.json'
     payload = json.dumps(review, ensure_ascii=False, indent=2)+'\n'
     temporary = target.with_name('.result-review.json.merge-tmp')
@@ -86,7 +88,8 @@ def _install_review(evidence, review):
         temporary.unlink(missing_ok=True)
     dataset = json.loads(dataset_bytes)
     records = [json.loads(line) for line in results_bytes.splitlines()]
-    require_result_review(evidence, dataset, records)
+    validator = require_result_review if anomaly_gate else require_blind_result_review
+    validator(evidence, dataset, records)
     return target
 
 
@@ -107,7 +110,8 @@ def merge(evidence: Path, prior_path: Path, supplemental_evidence: Path):
         raise ValueError('Scoring revision changed cases are absent from current dataset')
     subset_dataset=json.loads((supplemental_evidence/'dataset.json').read_text())
     subset_records=[json.loads(line) for line in (supplemental_evidence/'results.jsonl').read_text().splitlines()]
-    supplemental=require_result_review(supplemental_evidence,subset_dataset,subset_records)
+    supplemental=require_blind_result_review(
+        supplemental_evidence,subset_dataset,subset_records)
     supplemental_protocol=supplemental.get('review_protocol',{})
     if supplemental_protocol.get('machine_judgments_withheld') is not True:
         raise ValueError('Supplemental review must be blinded to machine judgments')
@@ -156,7 +160,8 @@ def merge(evidence: Path, prior_path: Path, supplemental_evidence: Path):
     merged['accepted_unreviewed_passes']=0
     merged['disagreements']=sum(row['agent_verdict'] != row['machine_verdict'] for row in attempts)
     merged['unresolved']=sum(row['final_verdict'] not in {'pass','fail'} for row in attempts)
-    return _install_review(evidence,merged)
+    anomaly_gate = not dataset.get('comparison', {}).get('require_anomaly_review', False)
+    return _install_review(evidence,merged,anomaly_gate=anomaly_gate)
 
 
 def _unique_by(rows, key, label):
@@ -183,7 +188,11 @@ def merge_refresh(evidence: Path, prior_evidence: Path,
     prior_dataset=json.loads((prior_evidence/'dataset.json').read_text())
     prior_records=[json.loads(line) for line in (prior_evidence/'results.jsonl').read_text().splitlines()]
     if prior_review_path is None:
-        prior=require_result_review(prior_evidence,prior_dataset,prior_records)
+        # The current anomaly detector may intentionally be stricter than the
+        # one available when the prior blind review was recorded. Reuse only
+        # its attempt-complete blind verdicts here; the assembled current
+        # matrix must pass a fresh anomaly audit before publication.
+        prior=require_blind_result_review(prior_evidence,prior_dataset,prior_records)
     else:
         prior=json.loads(prior_review_path.read_text())
         if prior.get('bindings') != {
@@ -230,7 +239,8 @@ def merge_refresh(evidence: Path, prior_evidence: Path,
 
     subset_dataset=json.loads((supplemental_evidence/'dataset.json').read_text())
     subset_records=[json.loads(line) for line in (supplemental_evidence/'results.jsonl').read_text().splitlines()]
-    supplemental=require_result_review(supplemental_evidence,subset_dataset,subset_records)
+    supplemental=require_blind_result_review(
+        supplemental_evidence,subset_dataset,subset_records)
     if supplemental is None:
         raise ValueError('Supplemental independent result review is required')
     supplemental_protocol=supplemental.get('review_protocol', {})
@@ -305,7 +315,9 @@ def merge_refresh(evidence: Path, prior_evidence: Path,
     merged['unresolved']=sum(row['final_verdict'] not in {'pass','fail'} for row in attempts)
     merged['confirmed_scoring_errors']=sum(
         row['final_verdict']!=row['machine_verdict'] for row in attempts)
-    return _install_review(evidence,merged)
+    anomaly_gate = not current_dataset.get('comparison', {}).get(
+        'require_anomaly_review', False)
+    return _install_review(evidence,merged,anomaly_gate=anomaly_gate)
 
 
 def merge_replacement(evidence: Path, prior_evidence: Path,

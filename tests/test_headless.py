@@ -11,9 +11,9 @@ from harness.web_fetch.providers import build_provider
 from harness.web_fetch.providers.headless import _resolve_binary, cli_command, output_mode_for_case
 from harness.web_fetch.runner import run_evaluation
 from scripts.headless_worker import fetch
-from scripts.review_headless_results import independent_attempt
+from scripts.review_headless_results import anomaly_investigation_packet, independent_attempt
 from scripts.review_headless_results import main as review_main
-from scripts.review_headless_results import INDEPENDENCE_RULES, validate_review_evidence
+from scripts.review_headless_results import INDEPENDENCE_RULES, SCHEMA, validate_review_evidence
 
 
 class HeadlessTests(unittest.TestCase):
@@ -63,6 +63,12 @@ class HeadlessTests(unittest.TestCase):
         self.assertIn('Judge the saved artifact directly', INDEPENDENCE_RULES)
         self.assertIn('beginning:', INDEPENDENCE_RULES)
         self.assertIn('missing:', INDEPENDENCE_RULES)
+        self.assertIn('Separately list any suspicious anomaly', INDEPENDENCE_RULES)
+        self.assertIn('Anomalies are not verdict evidence', INDEPENDENCE_RULES)
+
+    def test_codex_review_schema_requires_every_declared_field(self):
+        item = SCHEMA['properties']['attempts']['items']
+        self.assertEqual(set(item['required']), set(item['properties']))
 
     def test_review_source_guards_case_only_and_declared_truncation_mistakes(self):
         source = Path(__file__).resolve().parents[1].joinpath(
@@ -135,17 +141,67 @@ class HeadlessTests(unittest.TestCase):
             pass_packet=json.loads(next(pass_work.glob('batch-*-input.json')).read_text())
             self.assertEqual([x['attempt_id'] for x in pass_packet['attempts']],['q__a__r001'])
 
+    def test_required_anomaly_pass_is_added_to_default_failure_review(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);evidence=root/'evidence';work=root/'work';evidence.mkdir()
+            dataset={'comparison':{'require_anomaly_review':True},
+                     'cases':[{'id':'a','task_kind':'body'}]}
+            row={'attempt_id':'p__a__r001','provider':'p','case_id':'a',
+                 'artifact_path':'empty.txt','ok':True,'error_type':None,
+                 'metrics':{'content_pass':True}}
+            (evidence/'empty.txt').write_text('')
+            (evidence/'dataset.json').write_text(json.dumps(dataset))
+            (evidence/'results.jsonl').write_text(json.dumps(row)+'\n')
+            argv=['review_headless_results.py','--evidence',str(evidence),
+                  '--work',str(work),'--model','inherited','--reviewer','internal',
+                  '--prepare-only']
+            with patch('sys.argv',argv): review_main()
+            packet=json.loads(next(work.glob('batch-*-input.json')).read_text())
+            self.assertEqual([x['attempt_id'] for x in packet['attempts']],['p__a__r001'])
+
     def test_independent_review_receives_real_file_evidence(self):
         row = {'attempt_id':'a','provider':'moli-1.1.3','artifact':'empty.txt',
                'request_ok':True,'error_type':None,'file_artifacts':['file.bin'],
                'raw_response_artifact':'raw.bin',
+               'raw_response_artifacts':[{'kind':'raw_response','path':'response.bin'}],
                'answer_metadata_artifact':'answer.json',
                'metrics':{'raw_file_pass':True}}
         packet = independent_attempt(row)
         self.assertEqual(packet['file_artifacts'], ['file.bin'])
-        self.assertEqual(packet['raw_response_artifact'], 'raw.bin')
+        self.assertNotIn('raw_response_artifact',packet)
+        self.assertNotIn('raw_response_artifacts',packet)
+        self.assertNotIn('request_ok',packet)
+        self.assertNotIn('error_type',packet)
         self.assertEqual(packet['answer_metadata_artifact'], 'answer.json')
         self.assertNotIn('metrics', packet)
+
+    def test_raw_and_scorer_evidence_only_enters_post_verdict_anomaly_packet(self):
+        evidence=Path('/evidence')
+        dataset={'cases':[{'id':'a','task_kind':'body'}]}
+        records=[{'attempt_id':'p__a','provider':'p','case_id':'a','url':'https://x',
+                  'artifact_path':'answer.txt','ok':True,'status_code':200,
+                  'metrics':{'content_pass':False},'provider_metadata':{
+                      'raw_response_path':'private_artifacts/p/a.response.bin',
+                      'raw_response_sha256':'a'*64,'raw_response_bytes':10}}]
+        attempts=[{'attempt_id':'p__a','agent_verdict':'fail','agent_evidence':'missing body',
+                   'reviewer_anomalies':[],'machine_verdict':'fail'}]
+        packet=anomaly_investigation_packet(
+            evidence,dataset,records,attempts,{'p__a':['request-ok-empty-answer']})
+        self.assertTrue(packet['blind_verdicts_recorded'])
+        item=packet['attempts'][0]
+        self.assertEqual(item['blind_review']['agent_verdict'],'fail')
+        self.assertEqual(item['raw_artifacts'][0]['bytes'],10)
+        self.assertEqual(item['scorer'],{'content_pass':False})
+        self.assertIn('Use not_applicable, not insufficient', packet['instructions'])
+        self.assertIn('Request success means the provider completed target retrieval',
+                      packet['instructions'])
+        self.assertIn('does not mean that the returned body is nonempty',
+                      packet['instructions'])
+        self.assertIn('success:false, or tool error stays a request failure',
+                      packet['instructions'])
+        self.assertIn('outer transport HTTP 2xx alone', packet['instructions'])
+        self.assertIn('a source-code fix alone does not correct historical evidence',
+                      packet['instructions'])
 
     def test_review_answer_metadata_whitelists_only_answer_fields(self):
         from harness.web_fetch.result_review import review_answer_metadata

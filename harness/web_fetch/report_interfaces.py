@@ -22,10 +22,10 @@ def spec(entry,auth,params,fields,request,source,notes):
  return dict(entry=entry,auth=auth,params=params,fields=fields,request=request,source=source,notes=notes)
 SPECS={
  'moli-webfetch':spec('CLI · 按任务预选 Markdown、JSON 诊断、DOM eval 或裸响应路线','本地二进制；无 API Key',
- [('URL','string · 必填','公开 HTTP(S) 页面或直接文件'),('--dump markdown','普通正文','直接取得 Markdown'),('--eval','动态 / 资源页 / 嵌入文档','一次返回有界记录文本、结构化 URL 或页面运行时文档'),('--wait-until / --wait-selector / --wait-script','string','使用预声明的生命周期或动态完成条件'),('--timeout / --http-timeout','number','毫秒；导航、HTTP、进程与本地文档解析共享同一端到端预算'),('--block-private-networks','flag','默认启用，阻止私网地址')],
- [('stdout','UTF-8 string / bytes','Markdown、eval 结果或直接文件原始字节'),('stderr','string','独立诊断；不混入正文'),('exit_code','integer','0 且交付非空表示工具执行成功，任务另按规则判定'),('status_code / final_url','可能未提供','CLI 未提供时保持未知，不伪造 HTTP 200 或最终 URL')],
- {'ordinary_body':'moli fetch --dump markdown … URL','challenge':'moli fetch --dump json --trace-network … URL → 最终 DOM 本地转 Markdown','dynamic_or_resource_page':'moli fetch --eval <answer-free expression> <bounded wait> … URL','direct_document_or_media':'moli fetch … URL'},
- 'harness/web_fetch/providers/moli.py','普通正文使用 Markdown；动态、资源页和嵌入文档使用一次有界 DOM eval；直接 PDF、DOCX 与媒体文件在调用前选择不带 --dump 和页面等待参数的原始响应路线。直接文档正文在同一截止预算内解析，文件任务按统一字节规则验收；不在失败后切换格式或借用其他 provider。'),
+ [('URL','string · 必填','公开 HTTP(S) 页面或直接文件'),('--dump markdown','普通正文','直接取得 Markdown'),('--eval','动态 / 资源页 / DOCX','一次返回有界记录文本、结构化 URL 或页面运行时文档字节'),('--wait-until / --wait-selector / --wait-script','string','使用预声明的生命周期或动态完成条件'),('--timeout / --http-timeout','number','毫秒；导航、HTTP、进程与本地文档解析共享同一端到端预算'),('--block-private-networks','flag','默认启用；仅对冻结公开测试域名的精确白名单省略')],
+ [('stdout','UTF-8 string / bytes','Markdown、eval 结果或直接文件原始字节'),('stderr','string','独立诊断；不混入正文'),('exit_code','integer','0 表示工具请求完成；正文或文件为空仍由任务规则单独判失败'),('status_code / final_url','可能未提供','CLI 未提供时保持未知，不伪造 HTTP 200 或最终 URL')],
+ {'ordinary_body':'moli fetch --dump markdown … URL','challenge':'moli fetch --dump json --trace-network … URL → 最终 DOM 本地转 Markdown','dynamic_or_resource_page':'moli fetch --eval <answer-free expression> <bounded wait> … URL','direct_pdf_or_media':'moli fetch … URL','direct_docx':'moli fetch --eval <runtime fetch bytes> … URL'},
+ 'harness/web_fetch/providers/moli.py','普通正文使用 Markdown；动态完成条件与正文提取范围分离。直接 PDF 与媒体使用不带 --dump 的原始响应路线；DOCX 因当前 Moli CLI 的 OOXML 误分类，在同一次 CLI 运行中由页面运行时二次 fetch 原始字节并明确披露。文档解析计入同一截止预算；私网保护默认开启，只对冻结公开测试域名使用精确白名单；不在失败后切换格式或借用其他 provider。'),
  'lexmount-global':spec('POST https://api.lexmount.com/v1/extract','X-API-Key: <API_KEY>；X-Project-Id: <PROJECT_ID>',
  [('extract.url','string · 必填','目标网页 URL'),('extract.engine','string · 可选','指定提取引擎；本轮不传，使用服务端选择')],
  [('result.main_text','string','正文 → content'),('result.title / final_url','string','页面标题 / 最终地址'),('result.links / images','array','页面链接和图片 → provider_metadata'),('result.status_code','number','源站状态；与 HTTP API 状态分开'),('metadata.server_elapsed_ms','number','服务端耗时')],

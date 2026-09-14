@@ -66,12 +66,12 @@ class ScoringTests(unittest.TestCase):
         self.assertIn('https://example.test/files/guide(v2).pdf?download=1',
                       measured['resource_candidate_urls'])
 
-    def test_current_cloudflare_adapter_already_distinguishes_empty_extraction(self):
+    def test_cloudflare_empty_success_is_request_success_but_not_task_success(self):
         with patch("harness.web_fetch.providers.cloudflare.request", return_value=HttpResponse(
                 200, "https://example.test/api", {}, b'{"success":true,"result":""}')):
             result = CloudflareMarkdownProvider("cloudflare-markdown", {}).fetch(case(), 1)
-        self.assertFalse(result.ok)
-        self.assertEqual(result.error_type, "empty_content")
+        self.assertTrue(result.ok)
+        self.assertIsNone(result.error_type)
         self.assertEqual(result.content, "")
         self.assertTrue(result.metadata["empty_content"])
         measured = score_attempt(case(required_facts=[{"alternatives": ["Alpha"]}]),

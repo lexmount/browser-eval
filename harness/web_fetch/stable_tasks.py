@@ -283,6 +283,34 @@ def _products(lines, schema):
     return records
 
 
+def _product_records(text, schema):
+    """Parse product cards without erasing explicit record ownership.
+
+    A blank-line block is a record boundary only when every nonempty block is
+    independently a single complete card.  This preserves extractors that put
+    an optional badge before the product name, while retaining the permissive
+    line-layout parser for prose/headings that use blank lines decoratively.
+    """
+    records = []
+    for marked_block in text.split(_CARD_BOUNDARY):
+        blocks = [block for block in re.split(r"\n\s*\n", marked_block)
+                  if block.strip()]
+        parsed = [
+            _products([_line(line) for line in block.splitlines() if line.strip()], schema)
+            for block in blocks
+        ]
+        if (len(parsed) > 1
+                and all(len(block_records) == 1 and block_records[0]["valid"]
+                        for block_records in parsed)):
+            for block_records in parsed:
+                records.extend(block_records)
+        else:
+            records.extend(_products(
+                [_line(line) for line in marked_block.splitlines() if line.strip()], schema
+            ))
+    return records
+
+
 def _quotes(lines):
     records, i = [], 0
     while i < len(lines):
@@ -409,8 +437,7 @@ def _parse_records(visible, schema):
     remainder = "\n".join(line if i not in occupied else "" for i, line in enumerate(raw_lines))
     lines = [_line(line) for line in remainder.splitlines() if line.strip()]
     if schema in {"product", "catalog_product"}:
-        for block in remainder.split(_CARD_BOUNDARY):
-            records.extend(_products([_line(line) for line in block.splitlines() if line.strip()], schema))
+        records.extend(_product_records(remainder, schema))
     elif schema == "quote":
         records.extend(_quotes(lines))
     elif schema == "review":

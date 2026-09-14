@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from harness.web_fetch.safety import contained_path
-from harness.web_fetch.result_review import require_result_review, review_input_identity
+from harness.web_fetch.result_review import require_blind_result_review, review_input_identity
 from scripts.run_benchmark import artifact_bindings
 
 
@@ -24,7 +24,10 @@ def refresh_review_attempt_ids(evidence: Path, prior_evidence: Path) -> set[str]
     current_records = _records(evidence / "results.jsonl")
     prior_dataset = json.loads((prior_evidence / "dataset.json").read_text())
     prior_records = _records(prior_evidence / "results.jsonl")
-    prior_review = require_result_review(prior_evidence, prior_dataset, prior_records)
+    # Selecting the supplemental blind-review scope precedes the post-blind
+    # anomaly gate. Requiring that later gate here creates a circular workflow.
+    prior_review = require_blind_result_review(
+        prior_evidence, prior_dataset, prior_records)
     current_cases = {row["id"]: row for row in current_dataset["cases"]}
     prior_cases = {row["id"]: row for row in prior_dataset["cases"]}
     previous = {row["attempt_id"]: row for row in prior_records}

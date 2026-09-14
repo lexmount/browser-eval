@@ -22,14 +22,10 @@ def _origin_status(value: object) -> int | None:
     return None
 
 
-def _error(
-    *,
-    response_status: int,
-    envelope_success: bool,
-    origin_status: int | None,
-    content: str,
-    output_name: str,
-) -> tuple[str | None, str | None]:
+def _interface_error(*, response_status: int,
+                     envelope_success: bool,
+                     origin_status: int | None) -> tuple[str | None, str | None]:
+    """Classify target retrieval without using answer presence as success."""
     if response_status in (401, 403):
         return "authentication", f"HTTP {response_status}"
     if response_status == 429:
@@ -38,10 +34,8 @@ def _error(
         return "api_error", f"HTTP {response_status}"
     if not envelope_success:
         return "api_error", "Cloudflare reported an unsuccessful response"
-    if origin_status is not None and origin_status >= 400:
-        return "api_error", f"Origin returned HTTP {origin_status}"
-    if not content:
-        return "empty_content", f"Cloudflare returned no extractable {output_name}"
+    if origin_status is not None and not 200 <= origin_status < 300:
+        return "http_status", f"Origin returned HTTP {origin_status}"
     return None, None
 
 
@@ -163,20 +157,18 @@ class CloudflareMarkdownProvider(Provider):
         origin_headers = origin_headers if isinstance(origin_headers, dict) else {}
         upstream_status = _origin_status(meta.get("status"))
         envelope_success = payload.get("success") is True
-        error_type, error_message = _error(
+        error_type, error_message = _interface_error(
             response_status=response.status,
             envelope_success=envelope_success,
             origin_status=upstream_status,
-            content=content,
-            output_name="markdown",
         )
         ok = error_type is None
         return ProviderResult(
             ok=ok,
-            # API envelopes are private call evidence, never answer evidence.
-            # In particular, persisting {success:true,result:""} here would let
-            # generic legacy-envelope handling turn this failed request into a FP.
-            content=content if ok else "",
+            # The API envelope remains private, but its declared result is answer
+            # evidence even when the origin is blocked or the result is empty.
+            # Task scoring, not request classification, decides its usefulness.
+            content=content if envelope_success else "",
             status_code=response.status,
             final_url=meta.get("finalUrl") or case.url,
             title=meta.get("title"),
@@ -242,17 +234,15 @@ class CloudflareContentProvider(Provider):
         meta = meta if isinstance(meta, dict) else {}
         upstream_status = _origin_status(meta.get("status"))
         envelope_success = payload.get("success") is True
-        error_type, error_message = _error(
+        error_type, error_message = _interface_error(
             response_status=response.status,
             envelope_success=envelope_success,
             origin_status=upstream_status,
-            content=content,
-            output_name="rendered HTML",
         )
         ok = error_type is None
         return ProviderResult(
             ok=ok,
-            content=content if ok else "",
+            content=content if envelope_success else "",
             status_code=response.status,
             final_url=case.url,
             error_type=error_type,

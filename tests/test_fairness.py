@@ -257,6 +257,30 @@ class FairnessTests(unittest.TestCase):
         self.assertFalse(m['stable_task_pass'])
         self.assertEqual(m['stable_field_results'][0]['count'], 1)
 
+    def test_product_prefix_fields_follow_explicit_card_boundaries(self):
+        contract = {'version': 1, 'schema': 'product', 'minimum_records': 2,
+                    'field_minimum_records': {'shipping': 2}}
+        prefixed = ('Free shipping\nAlpha\n$10\n\n'
+                    'Free shipping\nBeta\n$20')
+        scored = score_attempt(
+            {'url': 'https://example.test/products', 'acceptance_contract': contract},
+            prefixed.encode(), ok=True)
+        self.assertTrue(task_passed(True, scored))
+        self.assertEqual(scored['stable_field_results'][0]['count'], 2)
+        self.assertEqual(
+            [(record['fields']['name'], record['fields'].get('shipping'))
+             for record in scored['stable_records']],
+            [('Alpha', 'Free shipping'), ('Beta', 'Free shipping')],
+        )
+
+        missing = score_attempt(
+            {'url': 'https://example.test/products', 'acceptance_contract': contract},
+            b'Alpha\n$10\n\nFree shipping\nBeta\n$20', ok=True)
+        self.assertFalse(task_passed(True, missing))
+        self.assertEqual(missing['stable_field_results'][0]['count'], 1)
+        self.assertNotIn('shipping', missing['stable_records'][0]['fields'])
+        self.assertEqual(missing['stable_records'][1]['fields']['shipping'], 'Free shipping')
+
     def test_dynamic_declared_exclusions_are_executable_not_prose_only(self):
         cases = {case['id']: case for case in json.loads(
             (ROOT/'evaluation/dataset.json').read_text())['cases']}

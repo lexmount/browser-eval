@@ -64,11 +64,12 @@ for await (const line of rl) {
       metadata: { implementation: "DeepSeek Harness ctx.tools.execute(web_fetch)", presentation_meta: meta },
     }) + "\n");
   } catch (error: any) {
+    const message = String(error?.message ?? error);
     process.stdout.write(JSON.stringify({
       ok: false,
-      content: String(error?.stack ?? error),
+      content: message,
       error_type: error?.code ?? "tool_error",
-      error_message: String(error?.message ?? error),
+      error_message: message,
       metadata: { implementation: "DeepSeek Harness ctx.tools.execute(web_fetch)" },
     }) + "\n");
   }

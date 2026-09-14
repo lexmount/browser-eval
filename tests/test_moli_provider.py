@@ -23,6 +23,7 @@ class MoliTests(unittest.TestCase):
         self.assertIn("frame.contentDocument", _RESOURCE_PAGE_EXPRESSION)
         self.assertIn("roots.length < 16", _RESOURCE_PAGE_EXPRESSION)
         self.assertNotIn("pic_trulli", _RESOURCE_PAGE_EXPRESSION)
+
     def test_cancellation_between_popen_and_handle_registration_is_latched(self):
         import subprocess
 
@@ -55,8 +56,7 @@ class MoliTests(unittest.TestCase):
             "import sys\n"
             "if sys.argv[1:] == ['--version']:\n"
             "    print('moli 1.1.4')\n"
-            "    raise SystemExit(0)\n"
-            + script
+            "    raise SystemExit(0)\n" + script
         )
         self.binary.chmod(0o700)
         config.setdefault("expected_reported_version", "moli 1.1.4")
@@ -74,7 +74,13 @@ class MoliTests(unittest.TestCase):
 
     def test_cli_contract_and_diagnostics(self):
         provider = self.provider(
-            'import sys\nassert sys.argv[1:]==["fetch","--dump","markdown","--wait-until","done","--timeout","2000","--http-timeout","2000","--block-private-networks","https://example.com/?a=1&b=2"]\nprint("# Example Domain")\nprint("diagnostic only",file=sys.stderr)\n'
+            "import sys\n"
+            'expected=["fetch","--dump","markdown","--wait-until","done",'
+            '"--timeout","2000","--http-timeout","2000","--block-private-networks",'
+            '"https://example.com/?a=1&b=2"]\n'
+            "assert sys.argv[1:]==expected\n"
+            'print("# Example Domain")\n'
+            'print("diagnostic only",file=sys.stderr)\n'
         )
         self.assertEqual(provider.validate(), [])
         result = provider.fetch(self.case, 2)
@@ -87,6 +93,27 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.metadata["route"], "ordinary_markdown")
         self.assertEqual(result.metadata["output"], "markdown")
         self.assertEqual(result.metadata["wait"], {"wait_until": "done"})
+        self.assertTrue(result.metadata["block_private_networks"])
+
+    def test_private_network_guard_exception_is_scoped_to_allowlisted_host(self):
+        provider = self.provider(
+            'import sys\nassert "--block-private-networks" not in sys.argv\nprint("allowlisted")',
+            private_network_allowlist_hosts=["example.com"],
+        )
+        result = provider.fetch(self.case, 2)
+        self.assertTrue(result.ok, repr(result))
+        self.assertTrue(result.metadata["block_private_networks"])
+        self.assertTrue(result.metadata["private_network_guard_exception"])
+        self.assertEqual(result.metadata["private_network_guard_exception_host"], "example.com")
+
+    def test_private_network_guard_stays_on_for_unknown_host(self):
+        provider = self.provider(
+            'import sys\nassert "--block-private-networks" in sys.argv\nprint("guarded")',
+            private_network_allowlist_hosts=["allowed.example"],
+        )
+        result = provider.fetch(self.case, 2)
+        self.assertTrue(result.ok, repr(result))
+        self.assertFalse(result.metadata["private_network_guard_exception"])
 
     def test_video_body_uses_generic_answer_free_metadata_extraction(self):
         provider = self.provider(
@@ -94,7 +121,7 @@ class MoliTests(unittest.TestCase):
             'assert "--eval" in sys.argv and "--dump" not in sys.argv\n'
             'expression=sys.argv[sys.argv.index("--eval")+1]\n'
             'assert "document.title" in expression and "document.body?.innerText" in expression\n'
-            'assert "itemprop=\\\"author\\\"" in expression\n'
+            'assert "itemprop=\\"author\\"" in expression\n'
             'assert "application/ld+json" in expression\n'
             'assert "expected-video-title" not in expression\n'
             'assert "expected-publisher" not in expression\n'
@@ -112,9 +139,7 @@ class MoliTests(unittest.TestCase):
         self.assertTrue(result.ok, repr(result))
         self.assertEqual(result.content, "A video title\n\nA publisher\n")
         self.assertEqual(result.metadata["route"], "media_metadata_runtime")
-        self.assertEqual(
-            result.metadata["output"], "visible_text_and_standard_media_metadata"
-        )
+        self.assertEqual(result.metadata["output"], "visible_text_and_standard_media_metadata")
         self.assertEqual(
             result.metadata["wait"]["extraction"],
             "visible_text_and_standard_media_metadata",
@@ -137,11 +162,13 @@ class MoliTests(unittest.TestCase):
             "status": 200,
             "title": "Catalog",
             "headers": [{"name": "content-type", "value": "text/html"}],
-            "redirect_chain": [{
-                "from_url": "https://example.com/start",
-                "to_url": "https://example.com/final",
-                "status": 302,
-            }],
+            "redirect_chain": [
+                {
+                    "from_url": "https://example.com/start",
+                    "to_url": "https://example.com/final",
+                    "status": 302,
+                }
+            ],
             "html": '<main><a href="/item/1">Real product</a></main>',
             "network": {
                 "main_document": {"status": 200, "redirected": True, "redirect_count": 1},
@@ -162,8 +189,9 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.title, "Catalog")
         self.assertEqual(result.metadata["route"], "challenge_json_trace")
         self.assertEqual(result.metadata["network_trace"]["failed_subresource_count"], 1)
-        self.assertEqual(result.metadata["network_trace"]["response_header_names"],
-                         ["content-type"])
+        self.assertEqual(
+            result.metadata["network_trace"]["response_header_names"], ["content-type"]
+        )
         self.assertIn("_raw_stdout_b64", result.metadata)
 
     def test_challenge_http_error_keeps_body_but_request_fails(self):
@@ -195,11 +223,11 @@ class MoliTests(unittest.TestCase):
             'assert sys.argv[1]=="fetch" and "--eval" in sys.argv\n'
             'assert "--dump" not in sys.argv\n'
             'expression=sys.argv[sys.argv.index("--eval")+1]\n'
-            'assert "main article" in expression and "node.innerText.split" in expression\n'
+            'assert "main article" in expression and "const lines = node" in expression\n'
             'expected=["--wait-selector","main article","--wait-until","domcontentloaded",'
             '"--delay-ms","999","--timeout","10000","--http-timeout",'
-            '"--block-private-networks","https://example.com/?a=1&b=2"]\n'
-            'assert all(value in sys.argv for value in expected),sys.argv\n'
+            '"https://example.com/?a=1&b=2"]\n'
+            "assert all(value in sys.argv for value in expected),sys.argv\n"
             'assert "answer-must-not-become-a-wait" not in sys.argv\n'
             'print("ready")'
         )
@@ -264,7 +292,7 @@ class MoliTests(unittest.TestCase):
         provider = self.provider(
             "import sys\n"
             'assert sys.argv[4]=="--wait-script"\n'
-            'wait=sys.argv[5]\n'
+            "wait=sys.argv[5]\n"
             'assert "nodes.length >= 12" in wait\n'
             'assert "nodes.slice(0, 12).every" in wait\n'
             'assert "innerText.split" in wait\n'
@@ -297,7 +325,7 @@ class MoliTests(unittest.TestCase):
             'assert "--delay-ms" in sys.argv and "3000" in sys.argv\n'
             'assert "--dump" not in sys.argv and "--with-frames" not in sys.argv\n'
             'expression=sys.argv[sys.argv.index("--eval")+1]\n'
-            'assert "iframe#iframe" in expression and "node.innerText.split" in expression\n'
+            'assert "iframe#iframe" in expression and "const lines = node" in expression\n'
             'print("Carettochelyidae")'
         )
         case = self.case_with(
@@ -327,7 +355,7 @@ class MoliTests(unittest.TestCase):
             'expression=sys.argv[sys.argv.index("--eval")+1]\n'
             'assert expression.startswith("(() =>") and expression.endswith("})()")\n'
             'assert "iframe#results" in expression and "h3.family-name" in expression\n'
-            'assert "node.innerText.split" in expression and "root.body" in expression\n'
+            'assert "const lines = node" in expression and "root?.body" in expression\n'
             'assert "answer-must-not-leak" not in expression\n'
             'print("Family One\\n\\nFamily Two")'
         )
@@ -349,9 +377,7 @@ class MoliTests(unittest.TestCase):
         result = provider.fetch(case, 10)
         self.assertTrue(result.ok, repr(result))
         self.assertEqual(result.metadata["route"], "dynamic_selected_text")
-        self.assertEqual(
-            result.metadata["output"], "selected_records_or_rendered_body_fallback"
-        )
+        self.assertEqual(result.metadata["output"], "selected_records_or_rendered_body_fallback")
         self.assertEqual(
             result.metadata["wait"]["extraction"],
             "selected_records_or_rendered_body_fallback",
@@ -361,8 +387,8 @@ class MoliTests(unittest.TestCase):
         provider = self.provider(
             "import sys\n"
             'expression=sys.argv[sys.argv.index("--eval")+1]\n'
-            'assert "? records.join(\'\\\\n\\\\n\') : body" in expression\n'
-            'assert "records.join(\'\\\\n\\\\n\') +" not in expression\n'
+            "assert \"? records.join('\\\\n\\\\n') : fallback\" in expression\n"
+            "assert \"records.join('\\\\n\\\\n') +\" not in expression\n"
             'print("record one\\n\\nrecord two")'
         )
         case = self.case_with(
@@ -382,15 +408,14 @@ class MoliTests(unittest.TestCase):
         self.assertTrue(result.ok, repr(result))
         self.assertEqual(result.content, "record one\n\nrecord two\n")
 
-    def test_dynamic_extraction_promotes_button_to_nearest_multiline_card(self):
+    def test_dynamic_v1_does_not_guess_ancestors_from_completion_selector(self):
         provider = self.provider(
             "import sys\n"
             'expression=sys.argv[sys.argv.index("--eval")+1]\n'
-            'assert "level < 3" in expression and "lines(node).length < 2" in expression\n'
-            'assert "node.parentElement" in expression\n'
+            'assert "node.parentElement" not in expression\n'
             'assert ")].slice(0, 16)" in expression\n'
             'wait=sys.argv[sys.argv.index("--wait-script")+1]\n'
-            'assert "querySelectorAll(\\\"button\\\").length >= 16" in wait\n'
+            'assert "querySelectorAll(\\"button\\").length >= 16" in wait\n'
             'print("Free shipping\\nProduct\\n$10.00\\nor 2 x$5.00\\nAdd to cart")'
         )
         case = self.case_with(
@@ -410,6 +435,83 @@ class MoliTests(unittest.TestCase):
         self.assertTrue(result.ok, repr(result))
         self.assertNotIn("extraction_ancestor_levels", result.metadata["wait"])
 
+    def test_dynamic_v2_extracts_declared_cards_without_interactive_controls(self):
+        provider = self.provider(
+            "import sys\n"
+            'expression=sys.argv[sys.argv.index("--eval")+1]\n'
+            'assert "main main > div > div" in expression\n'
+            'assert ")].slice(0, 16)" in expression\n'
+            'assert "node.querySelectorAll(item)" in expression\n'
+            'assert "cloneNode" not in expression and "clone.textContent" not in expression\n'
+            'assert "values.filter(value => !omitted.has(value))" in expression\n'
+            'assert "node.parentElement" not in expression\n'
+            'assert "document.body" in expression\n'
+            'wait=sys.argv[sys.argv.index("--wait-script")+1]\n'
+            'assert "querySelectorAll(\\"button\\").length >= 16" in wait\n'
+            'print("Product\\n$10.00\\nor 2 x$5.00")'
+        )
+        case = self.case_with(
+            track="dynamic",
+            retrieval_hints={
+                "version": 2,
+                "wait_until": "domcontentloaded",
+                "completion": {
+                    "selector": "button",
+                    "minimum_count": 16,
+                    "timeout_ms": 10000,
+                    "delay_ms": 0,
+                },
+                "extraction": {
+                    "selector": "main main > div > div",
+                    "maximum_count": 16,
+                    "exclude_selectors": ["button"],
+                    "fallback": "body",
+                },
+            },
+        )
+        result = provider.fetch(case, 10)
+        self.assertTrue(result.ok, repr(result))
+        self.assertEqual(
+            result.metadata["wait"]["extraction_scope"],
+            {
+                "selector": "main main > div > div",
+                "maximum_count": 16,
+                "frame_selector": None,
+                "exclude_selectors": ["button"],
+                "fallback": "body",
+            },
+        )
+
+    def test_dynamic_v2_missing_iframe_falls_back_to_top_level_body(self):
+        provider = self.provider(
+            "import sys\n"
+            'expression=sys.argv[sys.argv.index("--eval")+1]\n'
+            'assert "iframe#results" in expression\n'
+            'assert "root?.body || root?.documentElement || document.body" in expression\n'
+            'print("top-level fallback")'
+        )
+        case = self.case_with(
+            track="dynamic",
+            retrieval_hints={
+                "version": 2,
+                "wait_until": "domcontentloaded",
+                "completion": {
+                    "selector": ".ready",
+                    "minimum_count": 1,
+                    "timeout_ms": 10000,
+                    "delay_ms": 0,
+                },
+                "extraction": {
+                    "frame_selector": "iframe#results",
+                    "selector": ".record",
+                    "maximum_count": 20,
+                    "fallback": "body",
+                },
+            },
+        )
+        result = provider.fetch(case, 10)
+        self.assertTrue(result.ok, repr(result))
+
     def test_resource_page_uses_bounded_runtime_url_discovery(self):
         provider = self.provider(
             "import sys\n"
@@ -419,7 +521,7 @@ class MoliTests(unittest.TestCase):
             'assert "[src],[href],[data],[poster],[srcset]" in expression\n'
             'assert "astro-island[component-url]" in expression\n'
             'assert not ({"--image","--video","--media","--resource"} & set(sys.argv))\n'
-            'print("{\\\"links\\\":[\\\"https://example.com/movie.mp4\\\"]}")'
+            'print("{\\"links\\":[\\"https://example.com/movie.mp4\\"]}")'
         )
         result = provider.fetch(self.case_with(track="image", task_kind="resource"), 10)
         self.assertTrue(result.ok, repr(result))
@@ -471,22 +573,52 @@ class MoliTests(unittest.TestCase):
             track="document",
         )
         result = provider.fetch(document, 2)
-        self.assertFalse(result.ok)  # A blank but valid PDF has no answer text.
-        self.assertEqual(result.error_type, "empty_output")
+        self.assertTrue(result.ok)  # The request completed; the blank PDF still fails task scoring.
+        self.assertIsNone(result.error_type)
         self.assertEqual(result.metadata["document_extractor"], "pypdf")
         self.assertEqual(result.metadata["dump"], None)
         self.assertEqual(result.metadata["route"], "raw_document")
         self.assertEqual(result.metadata["output"], "raw_document_bytes+local_text")
         self.assertIn("_raw_stdout_b64", result.metadata)
 
-    def test_serialized_direct_document_fails_and_preserves_raw_evidence(self):
+    def test_docx_runtime_fetch_extracts_valid_ooxml_and_discloses_second_request(self):
         from dataclasses import replace
 
-        raw = b"<html><body>PK&#3;not-raw-docx</body></html>"
+        document_bytes = b"PK\x03\x04fixture"
+        encoded = base64.b64encode(document_bytes).decode("ascii")
         provider = self.provider(
-            "import sys\n"
-            f"sys.stdout.buffer.write({raw!r})"
+            "import json,sys\n"
+            'assert "--eval" in sys.argv and "--dump" not in sys.argv\n'
+            'expression=sys.argv[sys.argv.index("--eval")+1]\n'
+            'assert "fetch(location.href" in expression and "arrayBuffer" in expression\n'
+            f'print(json.dumps({{"kind":"document_base64","source":'
+            f'"https://example.com/demo.docx","status":200,'
+            f'"content_type":"application/vnd.openxmlformats-officedocument.'
+            f'wordprocessingml.document","data":"{encoded}"}}))'
         )
+        document = replace(
+            self.case,
+            url="https://example.com/demo.docx",
+            track="document",
+        )
+        with patch(
+            "harness.web_fetch.providers.moli.extract_document_text",
+            return_value=("DOCX body", "python-docx"),
+        ):
+            result = provider.fetch(document, 2)
+        self.assertTrue(result.ok, repr(result))
+        self.assertEqual(result.content, "DOCX body")
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.metadata["route"], "document_runtime_fetch")
+        self.assertEqual(result.metadata["output"], "runtime_document_base64+local_text")
+        self.assertTrue(result.metadata["document_runtime_second_http_fetch"])
+        self.assertEqual(base64.b64decode(result.metadata["_raw_stdout_b64"]), document_bytes)
+
+    def test_docx_runtime_fetch_rejects_non_ooxml_envelope_and_preserves_evidence(self):
+        from dataclasses import replace
+
+        raw = b'{"kind":"document_base64","data":"bm90LW9veG1s"}'
+        provider = self.provider(f"import sys\nsys.stdout.buffer.write({raw!r})")
         document = replace(
             self.case,
             url="https://example.com/demo.docx",
@@ -496,13 +628,30 @@ class MoliTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertEqual(result.error_type, "invalid_output")
         self.assertEqual(result.content, "")
-        self.assertEqual(
-            result.metadata["raw_stdout_sha256"], hashlib.sha256(raw).hexdigest()
-        )
+        self.assertEqual(result.metadata["raw_stdout_sha256"], hashlib.sha256(raw).hexdigest())
         self.assertEqual(base64.b64decode(result.metadata["_raw_stdout_b64"]), raw)
-        self.assertEqual(
-            result.metadata["document_response"], "serialized_text_not_raw_document"
+
+    def test_docx_runtime_local_extraction_must_finish_inside_call_budget(self):
+        import time
+
+        encoded = base64.b64encode(b"PK\x03\x04fixture").decode("ascii")
+        provider = self.provider(
+            f'import json\nprint(json.dumps({{"kind":"document_base64","data":"{encoded}"}}))'
         )
+        document = self.case_with(url="https://example.com/demo.docx", track="document")
+
+        def slow_extract(_raw):
+            time.sleep(1.1)
+            return "late content", "fixture"
+
+        with patch(
+            "harness.web_fetch.providers.moli.extract_document_text",
+            side_effect=slow_extract,
+        ):
+            result = provider.fetch(document, 1)
+        self.assertFalse(result.ok)
+        self.assertEqual(result.error_type, "timeout")
+        self.assertIn("runtime extraction", result.error_message)
 
     def test_document_extraction_must_finish_inside_the_call_budget(self):
         import time
@@ -533,7 +682,9 @@ class MoliTests(unittest.TestCase):
             '"text":"TraceMonkey nested trace trees"}))'
         )
         result = provider.fetch(
-            self.case_with(url="https://mozilla.github.io/pdf.js/web/viewer.html", track="document"),
+            self.case_with(
+                url="https://mozilla.github.io/pdf.js/web/viewer.html", track="document"
+            ),
             2,
         )
         self.assertTrue(result.ok, repr(result))
@@ -594,10 +745,9 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.error_type, "configuration")
         process.assert_not_called()
 
-    def test_failure_empty_binary_and_oversized_output(self):
+    def test_failure_binary_and_oversized_output(self):
         for script, config, expected in [
             ('import sys\nprint("partial")\nsys.exit(7)', {}, "tool_error"),
-            ('print(" ")', {}, "empty_output"),
             ('import sys\nsys.stdout.buffer.write(b"\\xff")', {}, "invalid_output"),
             ('print("abcdef")', {"max_bytes": 3}, "output_too_large"),
             ('import sys\nprint("abcdef",file=sys.stderr)', {"max_bytes": 3}, "output_too_large"),
@@ -606,6 +756,28 @@ class MoliTests(unittest.TestCase):
                 result = self.provider(script, **config).fetch(self.case, 2)
                 self.assertFalse(result.ok)
                 self.assertEqual(result.error_type, expected)
+
+    def test_zero_exit_empty_markdown_is_request_success(self):
+        result = self.provider('print(" ")').fetch(self.case, 2)
+        self.assertTrue(result.ok)
+        self.assertEqual(result.content.strip(), "")
+        self.assertIsNone(result.error_type)
+
+    def test_zero_exit_whole_response_forbidden_page_is_request_failure(self):
+        result = self.provider(
+            'print("**Error:**Forbidden\\n\\n**403**: ForbiddenID:`edge::abc`")'
+        ).fetch(self.case, 2)
+        self.assertFalse(result.ok)
+        self.assertEqual(result.status_code, 403)
+        self.assertEqual(result.error_type, "api_error")
+
+    def test_documentation_that_mentions_forbidden_status_is_request_success(self):
+        result = self.provider(
+            'print("HTTP clients may receive 403: Forbidden. This section explains retries.")'
+        ).fetch(self.case, 2)
+        self.assertTrue(result.ok)
+        self.assertIsNone(result.status_code)
+        self.assertIsNone(result.error_type)
 
     def test_timeout_is_failure(self):
         result = self.provider("import time\ntime.sleep(10)").fetch(self.case, 0.05)
@@ -655,6 +827,10 @@ class MoliTests(unittest.TestCase):
                 provider.fetch(EvalCase("x", "x", "file:///etc/passwd", "x", []), 1)
             process.assert_not_called()
         self.assertIn("wait_until", self.provider("", wait_until="invalid").validate())
+        self.assertIn(
+            "private_network_allowlist_hosts",
+            self.provider("", private_network_allowlist_hosts=["https://example.com"]).validate(),
+        )
         self.assertTrue(
             build_provider(
                 "moli-webfetch", {"type": "moli_webfetch", "binary": "/nonexistent/moli"}
@@ -708,10 +884,13 @@ class MoliTests(unittest.TestCase):
     def test_runtime_identity_records_version_and_hash_without_local_path(self):
         provider = self.provider('print("ok")')
         self.assertEqual(provider.validate(), [])
-        self.assertEqual(provider._implementation_identity, {
-            "reported_version": "moli 1.1.4",
-            "binary_sha256": hashlib.sha256(self.binary.read_bytes()).hexdigest(),
-        })
+        self.assertEqual(
+            provider._implementation_identity,
+            {
+                "reported_version": "moli 1.1.4",
+                "binary_sha256": hashlib.sha256(self.binary.read_bytes()).hexdigest(),
+            },
+        )
         self.assertNotIn(str(self.binary), repr(provider._implementation_identity))
 
     def test_disappearance_and_permission_errors_become_records(self):

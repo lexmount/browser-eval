@@ -1,12 +1,22 @@
 from __future__ import annotations
 
 import importlib
+import re
 import sys
 from pathlib import Path
 
 from ..models import EvalCase, ProviderResult
 from .base import Provider
 from .runtime_identity import validate_runtime_identity
+
+
+def _sanitize_public_content(content: str) -> str:
+    """Remove CowAgent workspace destinations while retaining fetched text."""
+    return re.sub(
+        r"\s*\|\s*Saved to:\s*(?:/Users/|/home/|/private/|/tmp/)[^\]\r\n]+",
+        "",
+        content,
+    )
 
 
 class CowAgentBuiltinProvider(Provider):
@@ -46,7 +56,7 @@ class CowAgentBuiltinProvider(Provider):
         tool = module.WebFetch({"cwd": str(workspace)})
         result = tool.execute({"url": case.url})
         ok = result.status == "success"
-        content = str(result.result or "")
+        content = _sanitize_public_content(str(result.result or ""))
         return ProviderResult(
             ok=ok,
             content=content,

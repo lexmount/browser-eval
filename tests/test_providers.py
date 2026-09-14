@@ -12,7 +12,7 @@ from harness.web_fetch.providers.cloudflare import (
     CloudflareContentProvider,
     CloudflareMarkdownProvider,
 )
-from harness.web_fetch.providers.cowagent import CowAgentBuiltinProvider
+from harness.web_fetch.providers.cowagent import CowAgentBuiltinProvider, _sanitize_public_content
 from harness.web_fetch.providers.exa import ExaContentsProvider
 from harness.web_fetch.providers.firecrawl import FirecrawlProvider
 from harness.web_fetch.providers.http import HttpProvider
@@ -742,25 +742,25 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(result.metadata["client_http_timeout_ms"], 40_500)
 
     @patch("harness.web_fetch.providers.cloudflare.request")
-    def test_cloudflare_rejects_empty_result_and_origin_http_error(self, mock_request) -> None:
+    def test_cloudflare_empty_target_2xx_succeeds_but_origin_error_fails(self, mock_request) -> None:
         examples = (
             (
                 b'{"success":true,"result":"","meta":{"status":200}}',
-                "empty_content",
-                "Cloudflare returned no extractable markdown",
+                None,
+                None,
                 200,
                 True,
             ),
             (
                 b'{"success":true,"result":"# Not the target","meta":{"status":404}}',
-                "api_error",
+                "http_status",
                 "Origin returned HTTP 404",
                 404,
                 False,
             ),
             (
                 b'{"success":true,"result":"# Not the target","meta":{"status":"503"}}',
-                "api_error",
+                "http_status",
                 "Origin returned HTTP 503",
                 503,
                 False,
@@ -775,8 +775,9 @@ class ProviderTest(unittest.TestCase):
 
                 result = provider.fetch(self.case, 45)
 
-                self.assertFalse(result.ok)
-                self.assertEqual(result.content, "")
+                self.assertEqual(result.ok, upstream_status == 200)
+                expected = json.loads(body)["result"]
+                self.assertEqual(result.content, expected)
                 self.assertEqual(result.error_type, error_type)
                 self.assertEqual(result.error_message, message)
                 self.assertEqual(result.metadata["upstream_status"], upstream_status)
@@ -786,7 +787,7 @@ class ProviderTest(unittest.TestCase):
                 )
 
     @patch("harness.web_fetch.providers.cloudflare.request")
-    def test_cloudflare_failed_envelope_is_private_and_cannot_become_request_fp(
+    def test_cloudflare_successful_empty_envelope_is_request_success_but_private(
         self, mock_request
     ) -> None:
         secret = "private-cloudflare-diagnostic"
@@ -818,14 +819,14 @@ class ProviderTest(unittest.TestCase):
             private_response = root / record["provider_metadata"]["raw_response_path"]
             private_response_bytes = private_response.read_bytes()
 
-        self.assertFalse(record["ok"])
-        self.assertEqual(record["error_type"], "empty_content")
+        self.assertTrue(record["ok"])
+        self.assertIsNone(record["error_type"])
         self.assertEqual(artifact, b"")
         self.assertNotIn(secret.encode(), public_results)
         self.assertEqual(private_response_bytes, body)
 
     @patch("harness.web_fetch.providers.cloudflare.request")
-    def test_cloudflare_content_rejects_origin_http_error(self, mock_request) -> None:
+    def test_cloudflare_content_preserves_origin_error_page_for_scoring(self, mock_request) -> None:
         mock_request.return_value = HttpResponse(
             200,
             "u",
@@ -838,8 +839,8 @@ class ProviderTest(unittest.TestCase):
         ).fetch(self.case, 2)
 
         self.assertFalse(result.ok)
-        self.assertEqual(result.content, "")
-        self.assertEqual(result.error_type, "api_error")
+        self.assertEqual(result.content, "<html>Not found</html>")
+        self.assertEqual(result.error_type, "http_status")
         self.assertEqual(result.metadata["upstream_status"], 404)
 
     def test_provider_exposes_plan_rate_interval(self) -> None:
@@ -881,6 +882,16 @@ class ProviderTest(unittest.TestCase):
         errors = CowAgentBuiltinProvider("cowagent", {"repo_path": "."}).validate()
         self.assertIn("repo revision ed5bb344cfe42cee443c8266ba47ee666d8d7471", errors)
         self.assertIn("locked required paths", errors)
+
+    def test_cowagent_removes_workspace_path_but_keeps_document_text(self) -> None:
+        content = (
+            "[Document: guide.pdf | Size: 10KB | Saved to: "
+            "/Users/person/.browser-eval/runs/work/tmp/guide.pdf]\n\nBody"
+        )
+        self.assertEqual(
+            _sanitize_public_content(content),
+            "[Document: guide.pdf | Size: 10KB]\n\nBody",
+        )
 
     @patch("harness.web_fetch.providers.cowagent.validate_runtime_identity")
     def test_cowagent_retains_validated_runtime_identity(self, validate) -> None:

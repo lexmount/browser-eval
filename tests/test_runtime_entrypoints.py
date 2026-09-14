@@ -50,7 +50,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
             unfrozen = re.findall(r"(?m)^\s*uv run (?!--frozen\b)", text)
             self.assertEqual(unfrozen, [], relative)
 
-    def test_oss_provider_configs_pin_historical_runtime_identity(self) -> None:
+    def test_oss_provider_configs_pin_current_runtime_identity(self) -> None:
         expected = {
             'cowagent-built-in': 'ed5bb344cfe42cee443c8266ba47ee666d8d7471',
             'openclaw-built-in': '12c4bdf7482f24c85b011e9d858fdec3c245101c',
@@ -139,6 +139,12 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertIn('missingStatus ? "invalid_response"', worker)
         self.assertNotIn('meta.url ?? request.url', worker)
         self.assertNotIn('final_url: request.url', worker)
+        self.assertNotIn('error?.stack', worker)
+
+    def test_openclaw_worker_does_not_publish_exception_stacks(self) -> None:
+        worker = (ROOT / 'scripts/oss/openclaw_webfetch_worker.mts').read_text()
+        self.assertNotIn('error?.stack', worker)
+        self.assertIn('content: message', worker)
 
     def test_langchain_worker_does_not_claim_unobserved_final_url(self) -> None:
         worker = (ROOT / 'scripts/oss/langchain_webbase_worker.py').read_text()
@@ -176,7 +182,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertEqual(profile['artifact_hub_site'], 'RSdbALdbdNG6')
         self.assertEqual(
             profile['artifact_hub_expected_version'],
-            'ver_357337c8b6b6466e9b34bea358a4975e',
+            'ver_0e0ae13fb6854712bed7a2156aee0675',
         )
 
     def test_current_rerun_plan_is_exact_and_complete(self) -> None:
@@ -188,14 +194,8 @@ class RuntimeEntrypointTests(unittest.TestCase):
         main = plan['main_matrix']
         speed = plan['same_window_speed_cohort']
         self.assertEqual(plan['schema_version'], 2)
-        refreshed_live = {
-            'live-016-navigation-menu', 'live-043-syntax',
-            'live-063-navigation-menu', 'live-067-navigation-menu',
-        }
-        self.assertEqual(set(main['matched_case_ids']), refreshed_live)
-        self.assertEqual(set(main['full_rerun_providers']), {
-            'cloudflare-markdown', 'exa', 'firecrawl', 'moli-webfetch', 'tavily',
-        })
+        self.assertEqual(main['matched_case_ids'], [])
+        self.assertEqual(main['full_rerun_providers'], [])
         self.assertEqual(set(main['full_rerun_reason_by_provider']),
                          set(main['full_rerun_providers']))
         for entry in main['full_rerun_reason_by_provider'].values():
@@ -205,44 +205,35 @@ class RuntimeEntrypointTests(unittest.TestCase):
         explained = [case_id for group in reason_groups for case_id in group['case_ids']]
         self.assertEqual(len(explained), len(set(explained)))
         self.assertEqual(set(explained), set(main['matched_case_ids']))
-        self.assertEqual(
-            {group['category'] for group in reason_groups},
-            {'source_input_refresh'},
-        )
+        self.assertEqual(reason_groups, [])
         for group in reason_groups:
             self.assertTrue(group['reason'].strip())
         pair_keys = {
             (entry['provider'], entry['case_id']) for entry in main['pair_replacements']
         }
-        self.assertEqual(pair_keys, (
-            {('crawl4ai', f'document-{number:02d}')
-             for number in (1, 2, 3, 4, 6, 10)}
-            | {('crawl4ai', case['id']) for case in dataset['cases']
-               if case['track'] == 'dynamic'}
-            | {(provider, case['id'])
-               for provider in {
-                   'deepseek-harness-built-in', 'openclaw-built-in',
-                   'langchain-webbase',
-               }
-               for case in dataset['cases'] if case['track'] == 'dynamic'}
-        ))
+        self.assertEqual(len(pair_keys), 26)
+        self.assertEqual(
+            {case_id for provider, case_id in pair_keys if provider == 'openclaw-built-in'},
+            {'challenge-01', 'challenge-04', 'challenge-09', 'document-03',
+             'image-pexels-detail', 'image-unsplash-detail', 'lexmount-doc',
+             'live-024-cascading-style-sheets-level-2-r',
+             'live-039-welcome-to-redis-docs', 'stable-browser-use-readme',
+             'stable-nodejs-readme', 'stable-openclaw-readme',
+             'stable-wcag21-recommendation', 'stable-xml10-recommendation',
+             'web-retail-returns'},
+        )
+        self.assertEqual(
+            {case_id for provider, case_id in pair_keys if provider == 'cowagent-built-in'},
+            {'document-01', 'document-02', 'document-03', 'document-04',
+             'document-05', 'document-06', 'document-09', 'document-10',
+             'stable-browser-use-readme', 'stable-nodejs-readme',
+             'stable-openclaw-readme'},
+        )
         self.assertEqual(len(pair_keys), len(main['pair_replacements']))
         for entry in main['pair_replacements']:
             self.assertTrue(entry['category'].strip())
             self.assertTrue(entry['reason'].strip())
-        self.assertEqual(
-            {entry['case_id'] for entry in main['offline_rescore_cases']},
-            {
-                'stable-wikipedia-ai-revision', 'stable-wcag21-recommendation',
-                'live-041-python-programming-language', 'live-060-database',
-                'live-061-version-control', 'live-062-natural-language-processing',
-            },
-        )
-        for entry in main['offline_rescore_cases']:
-            self.assertEqual(entry['category'], 'reference_only_correction')
-            self.assertTrue(entry['reason'].strip())
-            self.assertEqual(entry['attempts'], 10)
-            self.assertTrue(entry['full_review'])
+        self.assertEqual(main['offline_rescore_cases'], [])
         expected_pairs = (
             {(provider, case_id) for provider in main['full_rerun_providers']
              for case_id in case_ids}
@@ -251,15 +242,14 @@ class RuntimeEntrypointTests(unittest.TestCase):
             | pair_keys
         )
         self.assertEqual(main['planned_new_calls'], len(expected_pairs))
-        self.assertEqual(main['planned_new_calls'], 816)
+        self.assertEqual(main['planned_new_calls'], 26)
         self.assertFalse(speed['required'])
         self.assertTrue(speed['reuse_existing'])
         self.assertEqual(speed['planned_new_calls'], 0)
         for key in ('dataset_sha256', 'results_sha256', 'execution_sha256',
                     'speed_comparison_sha256'):
             self.assertRegex(speed[key], r'^[0-9a-f]{64}$')
-        self.assertEqual(set(speed['auxiliary_sha256']), {
-            'scoring-revisions.json', 'reference-revisions.json'})
+        self.assertEqual(set(speed['auxiliary_sha256']), {'reference-revisions.json'})
         for digest in speed['auxiliary_sha256'].values():
             self.assertRegex(digest, r'^[0-9a-f]{64}$')
         self.assertEqual(

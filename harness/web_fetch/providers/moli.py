@@ -7,6 +7,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -29,6 +30,24 @@ _WAIT_UNTIL_VALUES = {
     "networkidle",
     "domstable",
 }
+_PUBLIC_HOSTNAME = re.compile(
+    r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$"
+)
+
+_MARKDOWN_HTTP_ERROR_PAGE = re.compile(
+    r"^\s*(?:\*\*)?error\s*:\s*(?:\*\*)?\s*forbidden\s*"
+    r"(?:\r?\n)+\s*(?:\*\*)?(?P<status>4\d\d|5\d\d)(?:\*\*)?\s*:\s*forbidden"
+    r"(?:\s*id\s*:.*)?\s*$",
+    re.IGNORECASE,
+)
+
+
+def _markdown_http_error_status(content: str) -> int | None:
+    """Recognize Moli's whole-response HTTP error page, not status prose."""
+    if len(content) > 1024:
+        return None
+    match = _MARKDOWN_HTTP_ERROR_PAGE.fullmatch(content)
+    return int(match.group("status")) if match else None
 
 _HTML_TO_MARKDOWN = Path(__file__).resolve().parents[3] / "scripts/html_to_markdown.mjs"
 _NODE_HTML_MARKDOWN_PACKAGE = (
@@ -143,6 +162,22 @@ _DOCUMENT_PAGE_READY = r"""
 }
 """
 
+_DOCUMENT_RUNTIME_FETCH_EXPRESSION = r"""
+(async () => {
+  const response = await fetch(location.href, {credentials: 'include'});
+  if (!response.ok) throw new Error(`document HTTP ${response.status}`);
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  let binary = '';
+  for (let offset = 0; offset < bytes.length; offset += 32768) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
+  }
+  return JSON.stringify({
+    kind: 'document_base64', source: response.url, status: response.status,
+    content_type: response.headers.get('content-type'), data: btoa(binary)
+  });
+})()
+"""
+
 
 _MEDIA_METADATA_EXPRESSION = r"""
 (() => {
@@ -193,26 +228,41 @@ _MEDIA_METADATA_EXPRESSION = r"""
 
 def _dynamic_text_expression(plan) -> str:
     """Build an answer-free rendered-text extraction for the declared scope."""
-    selector = json.dumps(plan.selector, ensure_ascii=False)
-    if plan.frame_selector:
-        frame = json.dumps(plan.frame_selector, ensure_ascii=False)
+    extraction_selector = plan.extraction_selector or plan.selector
+    selector = json.dumps(extraction_selector, ensure_ascii=False)
+    extraction_frame = plan.extraction_frame_selector if plan.version == 2 else plan.frame_selector
+    if extraction_frame:
+        frame = json.dumps(extraction_frame, ensure_ascii=False)
         root = f"document.querySelector({frame})?.contentDocument"
     else:
         root = "document"
+    maximum_count = plan.extraction_maximum_count if plan.version == 2 else plan.minimum_count
+    limit = ".slice(0, " + str(maximum_count) + ")"
+    exclusions = json.dumps(list(plan.extraction_exclude_selectors), ensure_ascii=False)
+    fallback = (
+        "((root?.body || root?.documentElement || document.body || "
+        "document.documentElement)?.innerText?.trim() || '')"
+        if plan.extraction_fallback == "body"
+        else "''"
+    )
     return (
         "(() => { const root = "
         + root
-        + "; if (!root) return ''; const selected = [...root.querySelectorAll("
+        + "; const selected = root ? [...root.querySelectorAll("
         + selector
-        + ")].slice(0, "
-        + str(plan.minimum_count)
-        + "); const lines = node => node.innerText.split(/\\n+/).map(value => "
-        + "value.trim()).filter(Boolean); const records = selected.map(node => { "
-        + "for (let level = 0; level < 3 && lines(node).length < 2 && node.parentElement; "
-        + "level++) node = node.parentElement; return lines(node).join('\\n'); "
-        + "}).filter(Boolean); const body = "
-        + "(root.body || root.documentElement)?.innerText?.trim() || ''; return records.length "
-        + "? records.join('\\n\\n') : body; })()"
+        + ")]"
+        + limit
+        + " : []; const exclusions = "
+        + exclusions
+        + "; const lines = node => (node.innerText || node.textContent || '').split(/\\n+/)"
+        + ".map(value => value.trim()).filter(Boolean); const text = node => { const values = "
+        + "lines(node); if (!exclusions.length) return values; const omitted = new Set("
+        + "exclusions.flatMap(item => [...node.querySelectorAll(item)].flatMap(lines))); return "
+        + "values.filter(value => !omitted.has(value)); }; const records = selected.map(node => "
+        + "text(node).join('\\n'))"
+        + ".filter(Boolean); const fallback = "
+        + fallback
+        + "; return records.length ? records.join('\\n\\n') : fallback; })()"
     )
 
 
@@ -249,6 +299,18 @@ class MoliWebFetchProvider(Provider):
             errors.append("wait_until")
         if int(self.config.get("max_bytes", 20_000_000)) <= 0:
             errors.append("max_bytes")
+        allowlist = self.config.get("private_network_allowlist_hosts", [])
+        if (
+            not isinstance(allowlist, list)
+            or any(
+                not isinstance(host, str)
+                or host != host.casefold()
+                or not _PUBLIC_HOSTNAME.fullmatch(host)
+                for host in allowlist
+            )
+            or len(set(allowlist)) != len(allowlist)
+        ):
+            errors.append("private_network_allowlist_hosts")
         return errors
 
     def validate(self) -> list[str]:
@@ -334,6 +396,7 @@ class MoliWebFetchProvider(Provider):
         document_task = case.track == "document" and (
             document_path.endswith((".pdf", ".docx")) or "/pdf/" in document_path
         )
+        document_runtime_fetch_task = case.track == "document" and document_path.endswith(".docx")
         document_page_task = case.track == "document" and (
             document_path.endswith(".html") or document_path.endswith("/")
         )
@@ -350,7 +413,7 @@ class MoliWebFetchProvider(Provider):
                 error_type="configuration",
                 error_message="Moli challenge route requires node-html-markdown 2.0.0",
             )
-        raw_task = file_task or document_task
+        raw_task = file_task or (document_task and not document_runtime_fetch_task)
         timeout_ms = str(max(1, int(timeout * 1000)))
         if raw_task:
             # Direct file delivery uses Moli's automatic response mode. Forcing
@@ -369,7 +432,20 @@ class MoliWebFetchProvider(Provider):
         else:
             dump = "html" if case.task_kind == "resource" else "markdown"
             try:
-                if document_page_task:
+                if document_runtime_fetch_task:
+                    wait_arguments = [
+                        "--eval",
+                        _DOCUMENT_RUNTIME_FETCH_EXPRESSION,
+                        "--wait-until",
+                        wait,
+                    ]
+                    wait_metadata = {
+                        "wait_until": wait,
+                        "document_delivery": "page_runtime_second_http_fetch",
+                        "completion_support": "exact",
+                    }
+                    dump = None
+                elif document_page_task:
                     wait_arguments = [
                         "--eval",
                         _DOCUMENT_PAGE_EXPRESSION,
@@ -404,12 +480,14 @@ class MoliWebFetchProvider(Provider):
                     assert plan is not None
                     wait_arguments = ["--eval", _dynamic_text_expression(plan)]
                     dump = None
-                    wait_arguments.extend([
-                        "--wait-selector" if plan.wait_kind == "selector" else "--wait-script",
-                        plan.wait_value,
-                        "--wait-until",
-                        plan.wait_until,
-                    ])
+                    wait_arguments.extend(
+                        [
+                            "--wait-selector" if plan.wait_kind == "selector" else "--wait-script",
+                            plan.wait_value,
+                            "--wait-until",
+                            plan.wait_until,
+                        ]
+                    )
                     if plan.delay_ms:
                         wait_arguments.extend(["--delay-ms", str(plan.delay_ms)])
                     wait_metadata = {
@@ -427,8 +505,20 @@ class MoliWebFetchProvider(Provider):
                         "timeout_ms": plan.timeout_ms,
                         "wait_until": plan.wait_until,
                         "completion_support": "exact",
-                        "extraction": "selected_records_or_rendered_body_fallback",
+                        "extraction": (
+                            "declared_scope_or_rendered_body_fallback"
+                            if plan.version == 2
+                            else "selected_records_or_rendered_body_fallback"
+                        ),
                     }
+                    if plan.version == 2:
+                        wait_metadata["extraction_scope"] = {
+                            "selector": plan.extraction_selector,
+                            "maximum_count": plan.extraction_maximum_count,
+                            "frame_selector": plan.extraction_frame_selector,
+                            "exclude_selectors": list(plan.extraction_exclude_selectors),
+                            "fallback": plan.extraction_fallback,
+                        }
                     if plan.minimum_text_fragments:
                         wait_metadata["minimum_text_fragments"] = plan.minimum_text_fragments
                     timeout_ms = str(min(int(timeout_ms), plan.timeout_ms))
@@ -457,14 +547,21 @@ class MoliWebFetchProvider(Provider):
             command = [binary, "fetch"]
             if dump is not None:
                 command.extend(["--dump", dump])
-            command.extend([
-                *wait_arguments,
-                "--timeout",
-                timeout_ms,
-                "--http-timeout",
-                timeout_ms,
-            ])
-        if self.config.get("block_private_networks", True):
+            command.extend(
+                [
+                    *wait_arguments,
+                    "--timeout",
+                    timeout_ms,
+                    "--http-timeout",
+                    timeout_ms,
+                ]
+            )
+        block_private_networks = bool(self.config.get("block_private_networks", True))
+        requested_host = (urlsplit(case.url).hostname or "").casefold()
+        private_network_guard_exception = block_private_networks and requested_host in set(
+            self.config.get("private_network_allowlist_hosts", [])
+        )
+        if block_private_networks and not private_network_guard_exception:
             command.append("--block-private-networks")
         command.append(case.url)
         limit = int(self.config.get("max_bytes", 20_000_000))
@@ -473,6 +570,8 @@ class MoliWebFetchProvider(Provider):
             "route": (
                 "raw_file"
                 if file_task
+                else "document_runtime_fetch"
+                if document_runtime_fetch_task
                 else "raw_document"
                 if document_task
                 else "document_page_runtime"
@@ -490,6 +589,8 @@ class MoliWebFetchProvider(Provider):
             "output": (
                 "raw_bytes"
                 if file_task
+                else "runtime_document_base64+local_text"
+                if document_runtime_fetch_task
                 else "raw_document_bytes+local_text"
                 if document_task
                 else "document_text_or_embedded_document"
@@ -507,7 +608,11 @@ class MoliWebFetchProvider(Provider):
             "wait": wait_metadata,
             "wait_until": None if raw_task else wait_metadata.get("wait_until"),
             "binary": Path(binary).name,
-            "block_private_networks": bool(self.config.get("block_private_networks", True)),
+            "block_private_networks": block_private_networks,
+            "private_network_guard_exception": private_network_guard_exception,
+            "private_network_guard_exception_host": (
+                requested_host if private_network_guard_exception else None
+            ),
         }
         try:
             if hasattr(self, "_binary_identity"):
@@ -522,8 +627,7 @@ class MoliWebFetchProvider(Provider):
             if (
                 getattr(self, "_reported_version", None)
                 != self.config["expected_reported_version"].strip()
-                or getattr(self, "_binary_sha256", None)
-                != self.config["expected_binary_sha256"]
+                or getattr(self, "_binary_sha256", None) != self.config["expected_binary_sha256"]
             ):
                 return ProviderResult(
                     False,
@@ -615,13 +719,85 @@ class MoliWebFetchProvider(Provider):
                 metadata=metadata,
             )
         if case.task_kind == "file":
-            ok = process.returncode == 0 and bool(raw)
+            ok = process.returncode == 0
             return ProviderResult(
                 ok,
                 "",
                 files=[{"data": raw}] if raw else [],
                 error_type=None if ok else "tool_error",
-                error_message=None if ok else stderr or "Moli returned no file bytes",
+                error_message=None if ok else stderr or "Moli file request failed",
+                metadata=metadata,
+            )
+        if document_runtime_fetch_task:
+            if process.returncode != 0:
+                return ProviderResult(
+                    False,
+                    "",
+                    error_type="tool_error",
+                    error_message=stderr or "Moli document runtime fetch failed",
+                    metadata=metadata,
+                )
+            try:
+                envelope = json.loads(raw.decode("utf-8"))
+                if not isinstance(envelope, dict) or envelope.get("kind") != "document_base64":
+                    raise ValueError("unknown document envelope kind")
+                document_bytes = base64.b64decode(envelope["data"], validate=True)
+                if not document_bytes.startswith(b"PK"):
+                    raise ValueError("runtime response is not an OOXML ZIP document")
+            except (
+                UnicodeDecodeError,
+                json.JSONDecodeError,
+                KeyError,
+                TypeError,
+                ValueError,
+            ) as error:
+                metadata.update(
+                    raw_stdout_sha256=hashlib.sha256(raw).hexdigest(),
+                    _raw_stdout_b64=base64.b64encode(raw).decode("ascii"),
+                )
+                return ProviderResult(
+                    False,
+                    "",
+                    error_type="invalid_output",
+                    error_message=f"Moli document runtime output is invalid: {error}",
+                    metadata=metadata,
+                )
+            metadata.update(
+                document_runtime_source=envelope.get("source"),
+                document_runtime_status=envelope.get("status"),
+                document_runtime_content_type=envelope.get("content_type"),
+                document_runtime_second_http_fetch=True,
+                raw_stdout_sha256=hashlib.sha256(document_bytes).hexdigest(),
+                _raw_stdout_b64=base64.b64encode(document_bytes).decode("ascii"),
+            )
+            try:
+                content, extractor = extract_document_text(document_bytes)
+            except Exception as error:
+                return ProviderResult(
+                    False,
+                    "",
+                    error_type="document_parse_error",
+                    error_message=str(error),
+                    metadata=metadata,
+                )
+            metadata["document_extractor"] = extractor
+            if time.monotonic() >= call_deadline:
+                return ProviderResult(
+                    False,
+                    "",
+                    error_type="timeout",
+                    error_message="Moli document runtime extraction exceeded time budget",
+                    metadata=metadata,
+                )
+            ok = True
+            status = envelope.get("status")
+            return ProviderResult(
+                ok,
+                content,
+                status_code=status if isinstance(status, int) else None,
+                final_url=envelope.get("source"),
+                error_type=None,
+                error_message=None,
                 metadata=metadata,
             )
         if document_task and raw.startswith((b"%PDF", b"PK")):
@@ -648,12 +824,12 @@ class MoliWebFetchProvider(Provider):
                     error_message="Moli document extraction exceeded time budget",
                     metadata=metadata,
                 )
-            ok = process.returncode == 0 and bool(content.strip())
+            ok = process.returncode == 0
             return ProviderResult(
                 ok,
                 content,
-                error_type=None if ok else "empty_output",
-                error_message=None if ok else stderr or "Moli returned no usable document text",
+                error_type=None if ok else "tool_error",
+                error_message=None if ok else stderr or "Moli document request failed",
                 metadata=metadata,
             )
         if document_task:
@@ -731,12 +907,12 @@ class MoliWebFetchProvider(Provider):
                     error_message="Moli document-page extraction exceeded time budget",
                     metadata=metadata,
                 )
-            ok = bool(content.strip())
+            ok = True
             return ProviderResult(
                 ok,
                 content,
-                error_type=None if ok else "empty_output",
-                error_message=None if ok else "Moli returned no usable document text",
+                error_type=None,
+                error_message=None,
                 metadata=metadata,
             )
         if challenge_task:
@@ -766,25 +942,36 @@ class MoliWebFetchProvider(Provider):
                     metadata=metadata,
                 )
             trace = envelope.get("network") if isinstance(envelope.get("network"), dict) else {}
-            main = trace.get("main_document") if isinstance(trace.get("main_document"), dict) else {}
-            subresources = trace.get("subresources") if isinstance(trace.get("subresources"), list) else []
+            main = (
+                trace.get("main_document") if isinstance(trace.get("main_document"), dict) else {}
+            )
+            subresources = (
+                trace.get("subresources") if isinstance(trace.get("subresources"), list) else []
+            )
             metadata["network_trace"] = {
                 "main_document": {
-                    key: main.get(key) for key in (
-                        "url", "requested_url", "status", "content_type",
-                        "redirected", "redirect_count",
-                    ) if key in main
+                    key: main.get(key)
+                    for key in (
+                        "url",
+                        "requested_url",
+                        "status",
+                        "content_type",
+                        "redirected",
+                        "redirect_count",
+                    )
+                    if key in main
                 },
                 "subresource_count": len(subresources),
                 "failed_subresource_count": sum(
-                    isinstance(item, dict) and item.get("ok") is False
-                    for item in subresources
+                    isinstance(item, dict) and item.get("ok") is False for item in subresources
                 ),
-                "response_header_names": sorted({
-                    str(item.get("name", "")).casefold()
-                    for item in envelope.get("headers", [])
-                    if isinstance(item, dict) and item.get("name")
-                }),
+                "response_header_names": sorted(
+                    {
+                        str(item.get("name", "")).casefold()
+                        for item in envelope.get("headers", [])
+                        if isinstance(item, dict) and item.get("name")
+                    }
+                ),
                 "redirect_chain": [
                     {key: item.get(key) for key in ("from_url", "to_url", "status")}
                     for item in envelope.get("redirect_chain", [])[:20]
@@ -794,8 +981,11 @@ class MoliWebFetchProvider(Provider):
             remaining = call_deadline - time.monotonic()
             if remaining <= 0:
                 return ProviderResult(
-                    False, "", status_code=envelope.get("status"),
-                    final_url=envelope.get("final_url"), title=envelope.get("title"),
+                    False,
+                    "",
+                    status_code=envelope.get("status"),
+                    final_url=envelope.get("final_url"),
+                    title=envelope.get("title"),
                     error_type="timeout",
                     error_message="Moli challenge conversion exceeded time budget",
                     metadata=metadata,
@@ -804,43 +994,60 @@ class MoliWebFetchProvider(Provider):
                 converted = subprocess.run(
                     [shutil.which("node") or "node", str(_HTML_TO_MARKDOWN)],
                     input=envelope["html"].encode("utf-8"),
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
+                    capture_output=True,
                     timeout=remaining,
                     check=False,
                 )
             except subprocess.TimeoutExpired:
                 return ProviderResult(
-                    False, "", status_code=envelope.get("status"),
-                    final_url=envelope.get("final_url"), title=envelope.get("title"),
+                    False,
+                    "",
+                    status_code=envelope.get("status"),
+                    final_url=envelope.get("final_url"),
+                    title=envelope.get("title"),
                     error_type="timeout",
                     error_message="Moli challenge conversion exceeded time budget",
                     metadata=metadata,
                 )
             if converted.returncode != 0 or len(converted.stdout) > limit:
                 return ProviderResult(
-                    False, "", status_code=envelope.get("status"),
-                    final_url=envelope.get("final_url"), title=envelope.get("title"),
+                    False,
+                    "",
+                    status_code=envelope.get("status"),
+                    final_url=envelope.get("final_url"),
+                    title=envelope.get("title"),
                     error_type="conversion_error" if converted.returncode else "output_too_large",
-                    error_message=(converted.stderr.decode("utf-8", "replace")[:2000]
-                                   if converted.returncode else "Converted challenge output exceeds max_bytes"),
+                    error_message=(
+                        converted.stderr.decode("utf-8", "replace")[:2000]
+                        if converted.returncode
+                        else "Converted challenge output exceeds max_bytes"
+                    ),
                     metadata=metadata,
                 )
             content = converted.stdout.decode("utf-8", "replace")
             status = envelope.get("status")
             http_ok = isinstance(status, int) and 200 <= status < 400
-            ok = process.returncode == 0 and http_ok and bool(content.strip())
+            ok = process.returncode == 0 and http_ok
             return ProviderResult(
                 ok,
                 content,
                 status_code=status if isinstance(status, int) else None,
                 final_url=envelope.get("final_url"),
                 title=envelope.get("title"),
-                error_type=(None if ok else "api_error" if isinstance(status, int) and status >= 400
-                            else "empty_output" if process.returncode == 0 else "tool_error"),
-                error_message=(None if ok else stderr or
-                               f"Moli returned HTTP {status}" if isinstance(status, int) and status >= 400
-                               else "Moli returned no usable challenge output"),
+                error_type=(
+                    None
+                    if ok
+                    else "api_error"
+                    if isinstance(status, int) and status >= 400
+                    else "tool_error"
+                ),
+                error_message=(
+                    None
+                    if ok
+                    else stderr or f"Moli returned HTTP {status}"
+                    if isinstance(status, int) and status >= 400
+                    else stderr or "Moli challenge request failed"
+                ),
                 metadata=metadata,
             )
         try:
@@ -853,14 +1060,26 @@ class MoliWebFetchProvider(Provider):
                 error_message="Moli markdown output is not UTF-8",
                 metadata=metadata,
             )
-        ok = process.returncode == 0 and bool(content.strip())
-        # Markdown mode does not expose HTTP status/final URL. Never invent them,
-        # or make a second request whose metadata might belong to different content.
+        parsed_error_status = _markdown_http_error_status(content)
+        ok = process.returncode == 0 and parsed_error_status is None
+        # Markdown mode normally exposes no HTTP status/final URL. Moli's compact
+        # whole-response error page is the exception: it explicitly carries the
+        # target status. Do not mistake ordinary documentation mentioning 403 for
+        # that envelope, and do not make a second request for metadata.
         return ProviderResult(
             ok,
             content,
-            error_type=None if ok else "empty_output" if process.returncode == 0 else "tool_error",
-            error_message=None if ok else stderr or "Moli returned no usable output",
+            status_code=parsed_error_status,
+            error_type=(
+                None if ok else "api_error" if parsed_error_status is not None else "tool_error"
+            ),
+            error_message=(
+                None
+                if ok
+                else f"Moli returned HTTP {parsed_error_status}"
+                if parsed_error_status is not None
+                else stderr or "Moli request failed"
+            ),
             metadata=metadata,
         )
 

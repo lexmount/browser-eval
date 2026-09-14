@@ -160,7 +160,7 @@ CAPABILITIES['moli-webfetch'] = {
  'structure':'JSON 返回最终 URL、状态、标题、响应头、重定向链和 HTML；--eval 可返回 DOM 字段。',
  'access':'支持授权 cookie-file / profile-dir 和请求头；仍可能被站点拒绝。默认适配器不加载登录状态。',
  'notes':'截图和 PDF 是启用 --layout 后生成的页面产物，不是读取已有文档或下载原媒体。官方未承诺文档 OCR、媒体理解或音频转写；直接非 HTML 输入不强制使用 Markdown。',
- 'tested':'Moli 1.1.4：普通正文使用 Markdown；挑战题一次请求返回 JSON 最终 DOM、HTTP 状态、最终 URL 和网络诊断，DOM 在同一截止内本地转 Markdown；动态任务用预声明 selector、数量和有界等待返回记录文本；资源页从渲染 DOM、同源 iframe 与有界同源模块返回 URL；嵌入文档使用页面运行时；直接 PDF、DOCX 与媒体不传 --dump。无 layout、失败后格式回退或跨 provider 补抓；只有实际执行记录参与榜单。',
+ 'tested':'Moli 1.1.4：普通正文使用 Markdown；挑战题一次请求返回 JSON 最终 DOM、HTTP 状态、最终 URL 和网络诊断，DOM 在同一截止内本地转 Markdown；动态任务分别使用预声明的完成 selector 与正文范围；资源页从渲染 DOM、同源 iframe 与有界同源模块返回 URL；直接 PDF 与媒体不传 --dump。DOCX 因当前 CLI 的 OOXML 误分类，在同一次 CLI 运行中由页面运行时二次 fetch 原始字节；冻结公开域名的 split-DNS 例外使用精确白名单。无 layout、失败后格式回退或跨 provider 补抓；只有实际执行记录参与榜单。',
 }
 CAPABILITIES['lexmount-cn'] = {**CAPABILITIES['lexmount-global'], 'scope': 'POST /v1/extract · 中国区'}
 for engine,url in {

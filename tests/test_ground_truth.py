@@ -3,12 +3,29 @@ import json
 import unittest
 from collections import Counter
 from pathlib import Path
+import tempfile
 from harness.web_fetch.config import load_dataset
 from harness.web_fetch.reference_quality import audit_reference
 from harness.web_fetch.metrics import normalize_for_match
 
 
 class GroundTruthTest(unittest.TestCase):
+    def test_full_reference_provenance_cannot_point_to_another_site(self):
+        case = {
+            'id':'copied-source', 'name':'copied-source', 'url':'https://example.com/page',
+            'category':'static', 'task_prompt':'read', 'tool':'web_fetch',
+            'ground_truth_evidence':[{
+                'source':'https://unrelated.test/page',
+                'supports':'本版独立获取的完整参考正文',
+            }],
+        }
+        payload = {'tool':'web_fetch', 'cases':[case]}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'dataset.json'
+            path.write_text(json.dumps(payload))
+            with self.assertRaisesRegex(ValueError, 'full-reference evidence'):
+                load_dataset(path)
+
     def test_current_task_set_and_reference_integrity(self):
         data,cases=load_dataset(Path('evaluation/dataset.json'))
         self.assertEqual(data['id'],'webfetch')
@@ -25,6 +42,8 @@ class GroundTruthTest(unittest.TestCase):
                     continue
                 self.assertTrue(c['ground_truth_main_content'],c['id'])
                 self.assertEqual(hashlib.sha256(c['ground_truth_main_content'].encode()).hexdigest(),c['source_verification']['reference_sha256'])
+                self.assertNotIn('full-text reference unavailable',
+                                 c['source_verification'].get('note','').casefold(),c['id'])
                 if c['track']=='dynamic':
                     from harness.web_fetch.render_evidence import validate_render_reference
                     folder=Path('evaluation/sources')/c['id']

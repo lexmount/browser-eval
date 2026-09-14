@@ -50,7 +50,7 @@ class RefreshReviewSubsetTests(unittest.TestCase):
             # A retained blind-review disagreement is not new review work when
             # its task and reviewer-visible evidence are unchanged.
             next(row for row in judgments if row["attempt_id"] == "q-b")["agent_verdict"] = "fail"
-            with patch("scripts.prepare_result_review_subset.require_result_review",
+            with patch("scripts.prepare_result_review_subset.require_blind_result_review",
                        return_value={"attempts": judgments}):
                 self.assertEqual(
                     refresh_review_attempt_ids(current, prior),

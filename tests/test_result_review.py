@@ -4,7 +4,8 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from harness.web_fetch.result_review import require_result_review
+from harness.web_fetch.result_review import (
+    require_blind_result_review, require_result_review, review_input_identity)
 from scripts.merge_result_review_revision import merge, merge_refresh, merge_replacement
 from scripts.rebase_blind_result_review import rebase
 from scripts.revise_body_scoring import (
@@ -14,6 +15,18 @@ from scripts.revise_body_scoring import (
 
 
 class ResultReviewTests(unittest.TestCase):
+    def test_review_identity_binds_raw_response_stdout_and_files(self):
+        record={'provider':'p','case_id':'a','provider_metadata':{
+            'raw_response_path':'private_artifacts/p/a.response.bin',
+            'raw_response_sha256':'a'*64,'raw_response_bytes':123,
+            'raw_stdout_path':'artifacts/p/a.bin','raw_stdout_sha256':'b'*64,
+            'file_evaluation':{'files':[{'artifact_path':'files/a.pdf','sha256':'c'*64,
+                                         'bytes':456,'mime':'application/pdf','pass':True}]}}}
+        identity=review_input_identity(record)
+        self.assertEqual([item['kind'] for item in identity['raw_artifacts']],
+                         ['raw_response','raw_stdout','file'])
+        self.assertEqual(identity['raw_artifacts'][0]['bytes'],123)
+
     def fixture(self, root):
         dataset={'comparison':{'require_independent_result_review':True},
                  'cases':[{'id':'a','task_kind':'body'}]}
@@ -87,6 +100,19 @@ class ResultReviewTests(unittest.TestCase):
             review['attempts']=[]
             (root/'result-review.json').write_text(json.dumps(review))
             with self.assertRaisesRegex(ValueError,'every attempt'):
+                require_result_review(root,dataset,records)
+
+    def test_anomaly_gate_is_only_mandatory_when_dataset_explicitly_requires_it(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);dataset,records,review=self.fixture(root)
+            (root/'result-review.json').write_text(json.dumps(review))
+            self.assertIsNotNone(require_result_review(root,dataset,records))
+            dataset['comparison']['require_anomaly_review']=True
+            (root/'dataset.json').write_text(json.dumps(dataset))
+            review['bindings']['dataset_sha256']=hashlib.sha256(
+                (root/'dataset.json').read_bytes()).hexdigest()
+            (root/'result-review.json').write_text(json.dumps(review))
+            with self.assertRaisesRegex(ValueError, 'cover every'):
                 require_result_review(root,dataset,records)
 
     def test_metadata_only_rescore_can_rebind_but_semantic_change_cannot(self):
@@ -524,6 +550,40 @@ class ResultReviewTests(unittest.TestCase):
             (current_root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in changed))
             with self.assertRaisesRegex(ValueError,'exactly every non-reusable current attempt'):
                 merge_replacement(current_root,prior_root,supplement)
+
+    def test_matrix_refresh_stages_blind_review_before_full_anomaly_investigation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);prior=root/'prior';current=root/'current';supplement=root/'supplement'
+            for path in (prior,current,supplement):
+                path.mkdir();(path/'a.txt').write_text('')
+            old_dataset={'comparison':{'require_independent_result_review':True},
+                         'cases':[{'id':'a','task_kind':'body','track':'web','url':'https://old.example'}]}
+            new_dataset=json.loads(json.dumps(old_dataset))
+            new_dataset['comparison']['require_anomaly_review']=True
+            new_dataset['cases'][0]['url']='https://new.example'
+            record={'attempt_id':'p__a__r001','provider':'p','case_id':'a','ok':True,
+                    'error_type':None,'artifact_path':'a.txt','metrics':{'content_pass':False}}
+            for path,dataset in ((prior,old_dataset),(current,new_dataset),(supplement,new_dataset)):
+                (path/'dataset.json').write_text(json.dumps(dataset))
+                (path/'results.jsonl').write_text(json.dumps(record)+'\n')
+                review={'schema_version':1,'bindings':{
+                    'dataset_sha256':hashlib.sha256((path/'dataset.json').read_bytes()).hexdigest(),
+                    'results_sha256':hashlib.sha256((path/'results.jsonl').read_bytes()).hexdigest()},
+                    'reviewer':{'agent':'Codex'},
+                    'review_protocol':{'scope':'all','machine_judgments_withheld':True,
+                                       'production_scorer_forbidden':True,
+                                       'direct_artifact_evidence_required':True},
+                    'accepted_unreviewed_passes':0,'unresolved':0,
+                    'attempts':[{'attempt_id':record['attempt_id'],'machine_verdict':'fail',
+                                 'agent_verdict':'fail','agent_evidence':'observed empty answer',
+                                 'final_verdict':'fail'}]}
+                if path != current:
+                    (path/'result-review.json').write_text(json.dumps(review))
+            merge_refresh(current,prior,supplement)
+            merged=json.loads((current/'result-review.json').read_text())
+            require_blind_result_review(current,new_dataset,[record],merged)
+            with self.assertRaisesRegex(ValueError,'cover every'):
+                require_result_review(current,new_dataset,[record],merged)
 
 
 if __name__=='__main__':unittest.main()

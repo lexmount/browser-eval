@@ -765,7 +765,9 @@ def valid_scoring_revision(source) -> bool:
                            for change in row['changed_cases'])):
             return False
         previous_output = output_binding
-    return previous_output == (current_dataset, current_results)
+    return previous_output is not None and bridged(
+        previous_output, (current_dataset, current_results)
+    )
 
 
 def latency_correction_original_elapsed(source) -> dict[tuple[str, str], float]:
@@ -929,6 +931,7 @@ def reference_revision_cases(source) -> dict[str, set[str]]:
                     or set(change.get("fields", ())) - {
                         "ground_truth_main_content", "source_verification",
                         "body_requirements", "required_patterns", "reference_answer",
+                        "ground_truth_evidence",
                     }):
                 return {}
             covered.setdefault(change["case_id"], set()).add(change["old_reference_sha256"])
