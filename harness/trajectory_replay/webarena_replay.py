@@ -764,22 +764,33 @@ def run_replay_suite(  # noqa: PLR0913
     diagnostic_engines: list[str] | None = None,
     qualification_engine: str | None = None,
     qualification_task_ids: list[int] | None = None,
+    correction_task_ids: list[int] | None = None,
     qualified_dataset_path: str | Path | None = None,
 ) -> dict[str, Any]:
     plan = load_replay_plan(profile_path, seed_manifest_path)
     seeds = plan["seed_manifest"]
-    if diagnostic_task_ids is not None and qualification_task_ids is not None:
-        raise ValueError("diagnostic and qualification-shard task scopes cannot be combined")
+    selected_scopes = sum(
+        scope is not None
+        for scope in (diagnostic_task_ids, qualification_task_ids, correction_task_ids)
+    )
+    if selected_scopes > 1:
+        raise ValueError("diagnostic, qualification and correction task scopes are exclusive")
     selected_task_ids = (
         qualification_task_ids
         if qualification_task_ids is not None
+        else correction_task_ids
+        if correction_task_ids is not None
         else diagnostic_task_ids
     )
     task_ids = list(plan["task_ids"] if selected_task_ids is None else selected_task_ids)
     tasks = select_tasks(seeds, task_ids)
     engines = list(plan["engines"])
     if qualification_engine is not None:
-        if diagnostic_task_ids is not None or diagnostic_engines is not None:
+        if (
+            diagnostic_task_ids is not None
+            or diagnostic_engines is not None
+            or correction_task_ids is not None
+        ):
             raise ValueError("qualification and diagnostic scopes cannot be combined")
         if qualification_engine != plan["qualification_engine"]:
             raise ValueError("qualification engine differs from the frozen reference engine")
@@ -787,6 +798,10 @@ def run_replay_suite(  # noqa: PLR0913
         scope = "qualification_shard" if qualification_task_ids is not None else "qualification"
     elif qualification_task_ids is not None:
         raise ValueError("qualification-task requires qualification-engine")
+    elif correction_task_ids is not None:
+        if diagnostic_engines is not None:
+            raise ValueError("formal correction shards must cover every registered browser")
+        scope = "formal_correction_shard"
     elif diagnostic_engines is not None:
         unknown_engines = sorted(set(diagnostic_engines) - set(engines))
         if unknown_engines:
@@ -798,7 +813,7 @@ def run_replay_suite(  # noqa: PLR0913
     else:
         scope = "formal" if diagnostic_task_ids is None else "diagnostic"
     qualification_dataset_sha256 = None
-    if scope == "formal":
+    if scope in {"formal", "formal_correction_shard"}:
         if qualified_dataset_path is None:
             raise ValueError("formal replay requires a complete qualified trajectory dataset")
         qualification_dataset_sha256 = validate_qualification_dataset(

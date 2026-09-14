@@ -52,6 +52,9 @@ def test_qualification_scope_is_separate_from_diagnostics() -> None:
     assert '"qualification_shard" if qualification_task_ids is not None' in source
     assert "qualification and diagnostic scopes cannot be combined" in source
     assert "qualification engine differs from the frozen reference engine" in source
+    assert 'scope = "formal_correction_shard"' in source
+    assert 'scope in {"formal", "formal_correction_shard"}' in source
+    assert "formal correction shards must cover every registered browser" in source
 
 
 def test_formal_dataset_binding_requires_all_canonical_trajectories(tmp_path: Path) -> None:

@@ -40,6 +40,15 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--correction-task",
+        action="append",
+        type=int,
+        help=(
+            "rerun a corrected formal task shard across every registered browser; "
+            "the receipt supersedes only these task rows"
+        ),
+    )
+    parser.add_argument(
         "--qualified-dataset",
         help="complete qualified trajectory dataset required by a formal comparison",
     )
@@ -57,6 +66,7 @@ def main() -> None:
         diagnostic_engines=args.diagnostic_engine,
         qualification_engine=args.qualification_engine,
         qualification_task_ids=args.qualification_task,
+        correction_task_ids=args.correction_task,
         qualified_dataset_path=args.qualified_dataset,
     )
 
