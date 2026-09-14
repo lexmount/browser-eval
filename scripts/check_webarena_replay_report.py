@@ -61,6 +61,19 @@ def check(report_dir: Path) -> dict[str, int]:
         if "<svg" in text.lower():
             raise ValueError(f"report source contains a hand-authored SVG: {page}")
 
+    untranslated_zh_markers = (
+        ">Action</th>",
+        ">Target</th>",
+        ">Time</th>",
+        ">Status</th>",
+        ">Result</th>",
+        " calls</small>",
+    )
+    for page in [*core[: len(core_names)], *(root / "result").glob("*.html")]:
+        text = page.read_text(encoding="utf-8")
+        if any(marker in text for marker in untranslated_zh_markers):
+            raise ValueError(f"Chinese report contains untranslated interface text: {page}")
+
     checked_links = 0
     for page in root.rglob("*.html"):
         text = page.read_text(encoding="utf-8")

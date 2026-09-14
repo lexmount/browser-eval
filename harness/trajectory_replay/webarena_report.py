@@ -289,7 +289,7 @@ def _detail_page(
       <article><span>{"复核根因" if zh else "Reviewed root cause"}</span><strong>{_e(label)}</strong><p>{_e(reason)}</p></article>
       <article><span>{"处理" if zh else "Remediation"}</span><strong>{_e(review.get("remediation_status") if review else "—")}</strong><p>{_e(review.get("remediation_owner") if review else "—")}</p></article>
     </div></section>
-    <section><h2>{"固定操作轨迹" if zh else "Fixed action trajectory"}</h2><div class="table-scroll"><table><thead><tr><th>#</th><th>Action</th><th>Target</th><th>Time</th><th>Status</th><th>Result</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div></section>
+    <section><h2>{"固定操作轨迹" if zh else "Fixed action trajectory"}</h2><div class="table-scroll"><table><thead><tr><th>#</th><th>{"动作" if zh else "Action"}</th><th>{"目标" if zh else "Target"}</th><th>{"耗时" if zh else "Time"}</th><th>{"状态" if zh else "Status"}</th><th>{"结果" if zh else "Result"}</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div></section>
     <section><h2>{"日志与证据" if zh else "Logs and evidence"}</h2><div class="evidence-actions"><a href="../evidence-viewer.html?file={"data/evidence/" if zh else "../data/evidence/"}{key}.json">{"在网页中查看完整证据" if zh else "Open evidence viewer"}</a><a href="{report_root}data/evidence/{key}.json">{"原始 JSON" if zh else "Raw JSON"}</a></div>{screenshot}</section>'''
     return _shell(lang, "results", f"{method['label']} Task {attempt['task_id']}", body, depth=1)
 
@@ -463,7 +463,8 @@ def build_webarena_replay_report(
                     action_winners,
                     lang=lang,
                 )
-                cells.append(f"<td>{text}<br><small>{metric['n']} calls</small></td>")
+                calls_label = "次调用" if zh else "calls"
+                cells.append(f"<td>{text}<br><small>{metric['n']} {calls_label}</small></td>")
             action_rows.append(f'<tr><td><code>{_e(action)}</code></td>{"".join(cells)}</tr>')
         action_table = f'<div class="table-scroll"><table><thead><tr>{"".join(f"<th>{_e(h)}</th>" for h in action_headers)}</tr></thead><tbody>{"".join(action_rows)}</tbody></table></div>'
         method_cards = []
