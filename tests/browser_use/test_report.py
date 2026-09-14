@@ -812,7 +812,9 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch)
     assert report.is_file()
     assert (output / "assets/webarena-autonomous-evaluation-flow.png").is_file()
     home_text = report.read_text(encoding="utf-8")
-    assert "审查合格比较集" in home_text
+    assert "90 题 Browser Use 完整结果" in home_text
+    assert "90 题核心指标" in home_text
+    assert "首次成功与重试恢复" not in home_text
     methodology_text = (output / "methodology/index.html").read_text(encoding="utf-8")
     assert "webarena-autonomous-evaluation-flow.png" in methodology_text
     assert "ContainerManager.start(reset=True)" in methodology_text

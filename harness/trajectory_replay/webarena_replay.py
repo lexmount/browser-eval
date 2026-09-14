@@ -157,6 +157,16 @@ def select_tasks(seed_manifest: dict[str, Any], task_ids: list[int]) -> list[dic
     return selected
 
 
+def select_methods(plan: dict[str, Any], engines: list[str]) -> list[dict[str, Any]]:
+    """Return only methods registered for this formal or diagnostic engine scope."""
+
+    selected = [method for method in plan["methods"] if str(method["engine"]) in engines]
+    selected_engines = [str(method["engine"]) for method in selected]
+    if selected_engines != engines:
+        raise ValueError("replay methods do not match the selected engine scope")
+    return selected
+
+
 def _rebind_url(
     value: str, site_access_host: str, trusted_source_site_hosts: set[str]
 ) -> str:
@@ -793,7 +803,7 @@ def run_replay_suite(  # noqa: PLR0913
         receipt["method_teardown"] = method_teardown
         receipt["isolation"]["lock_wait_ms"] = round(lock_wait_ms, 3)
         _write_receipt(receipt_path, receipt)
-        for method in plan["methods"]:
+        for method in select_methods(plan, engines):
             engine = str(method["engine"])
             pending = [task for task in tasks if (engine, int(task["task_id"])) not in completed]
             if not pending:

@@ -14,6 +14,7 @@ from harness.trajectory_replay.webarena_replay import (
     _rebind_url,
     _validated_resume,
     run_replay_suite,
+    select_methods,
     select_tasks,
 )
 
@@ -27,6 +28,20 @@ def test_select_tasks_requires_clean_canonical_candidates() -> None:
     }
 
     assert [task["task_id"] for task in select_tasks(manifest, [1])] == [1]
+
+
+def test_select_methods_limits_diagnostic_run_to_requested_engine() -> None:
+    plan = {"methods": [{"engine": "chromium"}, {"engine": "moli"}]}
+
+    assert select_methods(plan, ["chromium"]) == [{"engine": "chromium"}]
+    assert select_methods(plan, ["chromium", "moli"]) == plan["methods"]
+
+
+def test_select_methods_rejects_profile_order_mismatch() -> None:
+    plan = {"methods": [{"engine": "moli"}, {"engine": "chromium"}]}
+
+    with pytest.raises(ValueError, match="selected engine scope"):
+        select_methods(plan, ["chromium", "moli"])
 
 
 def test_rebind_url_changes_only_known_local_site_ports() -> None:

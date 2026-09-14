@@ -6,6 +6,24 @@
   },
   "browser_use_reviews": [
     {
+      "id": "review-2026-09-14-complete-90-task-primary-result",
+      "date": "2026-09-14",
+      "title": "恢复完整 90 题官方结果主口径",
+      "status": "已处理",
+      "scope": "Browser Use 首页、核心指标表、同题矩阵、性能统计和结果分析页。",
+      "findings": "上一版误把排除 14 个已知外部干扰任务后的 76 题事后诊断子集写成正式主结果，造成报告看起来只有 76 题；首页还重复突出首次执行与重试恢复，掩盖了每题一个最终逻辑结果的正式口径。",
+      "corrections": "首页和结果分析恢复完整 90 题官方 evaluator 结果；四种配置的核心指标、同题矩阵和性能统计均使用 90 题。76 题仅保留为明确标注的事后诊断子集，不改分、不替代官方结果。首页删除首次/重试拆分模块，物理执行记录只在单题证据页下钻。",
+      "remaining": "14 个外部干扰任务的历史分数保持不变；只有修复后按冻结协议产生新的完整 90 题证据批次，才能更新官方结果。",
+      "i18n": {"en": {
+        "title": "Restore the complete 90-task official result as the primary view",
+        "status": "Resolved",
+        "scope": "The Browser Use homepage, core metrics, same-task matrix, performance statistics, and result analysis.",
+        "findings": "The prior version incorrectly presented the 76-task post-hoc diagnostic subset, which excludes 14 known interference tasks, as the formal primary result. It therefore appeared to contain only 76 tasks. The homepage also overemphasized first attempts and retry recovery instead of one final logical result per task.",
+        "corrections": "Restored the complete official 90-task evaluator result on the homepage and analysis page. Core metrics, the same-task matrix, and performance statistics now use all 90 tasks across all four configurations. The 76-task view remains only as an explicitly labeled post-hoc diagnostic subset and does not rescore or replace the official result. Removed the first-attempt/retry split from the homepage; physical executions remain available on task evidence pages.",
+        "remaining": "Historical scores for the 14 interference tasks remain unchanged. Only a new complete 90-task evidence cohort produced after corrections under the frozen protocol can update the official result."
+      }}
+    },
+    {
       "id": "review-2026-09-11-interpretation-reader-audit",
       "date": "2026-09-11",
       "title": "解读页、比较语义与双语版面复核",

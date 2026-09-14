@@ -2158,9 +2158,10 @@ def _article_body(
     eligible_attempts = [
         row for row in attempts if int(row["task_id"]) not in excluded
     ]
-    task_count = total_task_count - len(excluded)
-    summary = _primary_summary(eligible_attempts)
-    paired = _paired_summary(eligible_attempts)
+    diagnostic_task_count = total_task_count - len(excluded)
+    task_count = total_task_count
+    summary = _primary_summary(attempts)
+    paired = _paired_summary(attempts)
     raw_failed_result_count = sum(float(row.get("score") or 0) < 1 for row in attempts)
     comparison_rows = [
         [
@@ -2200,9 +2201,8 @@ def _article_body(
         )
     else:
         cause_section = '<p class="callout success">本轮没有失败结果，无需生成失败根因记录。</p>'
-    first_final = _first_final_rows(eligible_attempts)
-    common_count, resource_rows = _common_success_resource_rows(eligible_attempts)
-    clean = summary
+    common_count, resource_rows = _common_success_resource_rows(attempts)
+    clean = _primary_summary(eligible_attempts)
     clean_rows = [
         [
             MODEL_LABELS[model],
@@ -2216,51 +2216,21 @@ def _article_body(
     coverage = review.get("coverage") or {}
     reviewed_attempts = int(coverage.get("reviewed_attempts") or 0)
     recorded_attempts = int(coverage.get("recorded_attempts") or 0)
-    commit_note = "、".join(
-        f"{MODEL_LABELS[model]} {str(commit)[:8]}" for model, commit in cohort_commits.items()
-    )
-    clean_task_count = task_count
-    first_by_model = {
-        model: [row for row in first_final if row[0] == label]
-        for model, label in MODEL_LABELS.items()
-    }
-    sol_rows = first_by_model.get("gpt-5.6-sol") or []
-    astra_rows = first_by_model.get("gpt-6-astra") or []
-    if sol_rows and astra_rows:
-        sol_chromium = next(row for row in sol_rows if row[1] == ENGINE_LABELS["chromium"])
-        astra_chromium = next(row for row in astra_rows if row[1] == ENGINE_LABELS["chromium"])
-        model_card_title = "首次结果与重试恢复分开统计"
-        model_card_body = (
-            f"Sol × Chromium 首次 {sol_chromium[2]}，有 {str(sol_chromium[4]).lstrip('+')} 个任务在重试中恢复，最终 {sol_chromium[5]}；"
-            f"Astra × Chromium 首次和最终均为 {astra_chromium[5]}。"
-        )
-        astra_explanation = (
-            f"只有在 Chromium 的最终分数上，Astra 的 {astra_chromium[5]} 低于 Sol 的 {sol_chromium[5]}。"
-            f"首次执行时，Sol 为 {sol_chromium[2]}，Astra 为 {astra_chromium[2]}；差值来自 Sol 恢复的 {str(sol_chromium[4]).lstrip('+')} 个任务。"
-            "两批模型运行使用了不同的 browser‑eval 提交，因此这里保留为观察，不作严格模型排名。"
-        )
-    else:
-        model_card_title = "首次成功与重试恢复需要分开"
-        model_card_body = "最终分数包含失败后的恢复结果；首次通过率单独列出。"
-        astra_explanation = "首次与最终分数使用不同口径，模型批次之间只作观察性比较。"
-    pair_details = "；".join(
-        f"{row[0]}：{row[4]} 题共同通过、{row[5]} 题仅 {row[1]} 通过、{row[6]} 题仅 {row[2]} 通过"
-        for row in comparison_rows
-    )
+    clean_task_count = diagnostic_task_count
     return (
         '<article class="publication-article interpretation-v2"><header class="essay-head"><div class="eyebrow">Browser Use 能力评测</div>'
-        f"<h1>{task_count} 题审查合格比较集：Chromium 与 Moli 的结果、代价与失败位置</h1>"
-        f'<p class="lead">预注册的 {total_task_count} 题中，{len(excluded)} 题确认受到验收合同、站点、共享状态或参考状态干扰。首页只用剩余 {task_count} 题比较四种配置；全部原始结果仍可下钻审计。</p>'
+        f"<h1>{task_count} 题 Browser Use 完整结果：Chromium 与 Moli 的成功率、代价与失败根因</h1>"
+        f'<p class="lead">首页按预注册的 {total_task_count} 题展示四种配置的官方 evaluator 结果。其中 {len(excluded)} 题经复核存在验收合同、站点、共享状态或参考状态干扰；这些题仍保留在 90 题官方结果中，另外提供 {diagnostic_task_count} 题事后诊断子集。</p>'
         '<p class="source-note">WebArena‑Verified 1.2.3 · CowAgent · reasoning=low · 官方程序化 evaluator</p>'
         '<p class="page-links"><a href="datasets/">查看评测集</a><a href="analysis/">下钻全部结果</a><a href="data/interpretation-evidence.json" download>下载论点与证据</a></p></header>'
-        f'<section class="answer-strip"><article><b>{_e(model_card_title)}</b><p>{_e(model_card_body)}</p></article><article><b>两层模型共有 {discordant} 个单边通过配对</b><p>{_e(pair_details)}。</p></article><article><b>{len(excluded)} 题退出正式比较</b><p>Task 77 的并发污染已经由串行锁修复，但旧结果不会人工改分；合同或站点尚不能可靠验收的题也不进入分母。</p></article></section>'
-        '<section><h2>首次成功与重试恢复</h2><p>报告的主成绩按预先固定的规则取最后一次执行，失败后最多重试一次。因此首次通过率回答“第一次能否完成”，最终通过率还包含“失败后能否恢复”。</p>'
-        + _score_flow_figure(eligible_attempts)
-        + _table(["模型", "浏览器", "首次通过", "重试任务", "重试恢复", "最终通过"], first_final, table_id="home-core-metrics", classes="core-comparison-table")
-        + f'<p class="callout"><strong>为什么看起来 Astra 更低？</strong> {_e(astra_explanation)}</p>'
-        + '<p class="source-note">两个模型层在不同日期、不同 browser‑eval 提交上运行（'
-        + _e(commit_note)
-        + '）。任务、CowAgent 提交、浏览器镜像与 evaluator 数据相同，但这仍不是严格的模型 A/B。</p></section>'
+        '<section><h2>90 题核心指标</h2>'
+        + _table(
+            ["模型", "浏览器", "通过任务", "通过率", "Agent 总耗时", "BrowserTool 耗时", "Tokens"],
+            _summary_comparison_rows(summary),
+            table_id="home-core-metrics",
+            classes="core-comparison-table",
+        )
+        + f'<p class="source-note">每个模型×浏览器配置都保留完整 {task_count} 题。以上是官方 evaluator 决定的最终逻辑结果；物理执行记录可在单题证据页下钻。</p></section>'
         '<section><h2>按同题比较浏览器</h2><p>浏览器对比必须留在同一模型层内。汇总数会隐藏互换的成败任务；下表给出同题对照。</p>'
         + _table(["模型", "浏览器 A", "浏览器 B", "同题数", "两边都通过", "A 通过、B 失败", "A 失败、B 通过", "两边都失败"], comparison_rows, caption=f"每行只比较同一模型下的 {task_count} 个配对任务。")
         + f'<p>两个模型层合计有 {discordant} 个单边通过，可用于定位兼容性问题；样本量和方向都不支持总体优劣判断。<a href="analysis/#same-task">查看 {task_count} 题的四配置矩阵 →</a></p></section>'
@@ -2270,13 +2240,13 @@ def _article_body(
         + _failure_scope_figure(verified_causes)
         + cause_section
         + '<div class="evidence-examples"><article><h3>Agent 行为</h3><p>例如漏掉商品、选错最优候选、写错字段，或在 40 步前提前结束。这些属于当前 Agent × 模型配置的真实失败。</p></article><article><h3>验收规则</h3><p><a href="results/gpt-6-astra-chromium-699.html#verification">Task 699</a> 的 evaluator 在比较实际提交前就因单元素 Alternatives 配置抛错；<a href="results/gpt-6-astra-chromium-528.html#verification">Task 528</a> 要求“不提交”，验收却要求 POST。这些 0 分不能归给模型或浏览器。</p></article><article><h3>站点与环境</h3><p>Magento 搜索或库存保存服务失效，以及 <a href="results/gpt-6-astra-chromium-77.html#verification">Task 77</a> 的并发状态污染，都会让正确操作无法通过。</p></article><article><h3>浏览器证据</h3><p>Moli 的部分 HAR 没有 Referer 或响应正文，例如 <a href="results/gpt-6-astra-moli-595.html#verification">Task 595</a> 和 <a href="results/gpt-6-astra-moli-676.html#verification">Task 676</a>。页面可能已经操作成功，但 evaluator 无法从网络记录确认；这是浏览器集成层的有效信号。</p></article></div>'
-        + f'<h3>正式比较与原始记录分开看</h3><p>对已证实受任务 / evaluator、站点、共享环境或参考状态干扰的 {len(excluded)} 题，按整题排除四种配置，剩余 {clean_task_count} 题。原始 evaluator 输出不改写，但不再用作首页比较分母。</p>'
+        + f'<h3>90 题官方结果与事后诊断分开看</h3><p>首页主结果始终使用完整 {total_task_count} 题官方 evaluator 分母。为了观察排除已知外部干扰后的差异，下表再按整题、四种配置一致排除 {len(excluded)} 题，得到 {clean_task_count} 题事后诊断子集。</p>'
         + _table(["模型", "浏览器", f"{clean_task_count} 题通过", "通过率"], clean_rows, table_id="home-qualified-results", classes="core-comparison-table")
-        + f'<p class="source-note">这是本报告的正式比较分母。被排除任务及其 {raw_failed_result_count} 个原始失败记录继续保存在结果页和核验记录中；修复并按同一协议补跑四种配置后，任务才可重新进入比较集。</p></section>'
+        + f'<p class="source-note">这是事后诊断子集，不是正式分数，也不替代 90 题官方结果。{raw_failed_result_count} 个原始失败记录继续保存在结果页和核验记录中。</p></section>'
         '<section><h2>审查覆盖与边界</h2><div class="audit-ladder"><article><span>1</span><b>证据完整性</b><p>'
         + f'{reviewed_attempts}/{recorded_attempts} 个证据包由程序核对文件存在性、哈希、JSON 可读性、回答 / 分数 / 状态一致性和运行身份。</p></article><article><span>2</span><b>官方程序验收</b><p>每题按最终回答和必要网络副作用判分；没有 LLM judge。</p></article><article><span>3</span><b>失败根因复核</b><p>{len(verified_causes)}/{raw_failed_result_count} 个原始最终失败结果逐条阅读错误、断言、最终回答、HAR 和 Agent 轨迹，归类并给出处理边界。</p></article></div>'
         + '<p class="callout"><strong>审查分为完整性检查和失败根因复核。</strong> 前者确认“证据包与 evaluator 记录一致”；后者检查 evaluator 语义，并识别出 Task 699 等问题。已通过结果没有再做独立语义盲审，其判定依据仍是官方 evaluator。<a href="review/">查看核验记录 →</a></p></section>'
-        f'<section><h2>全部 {clean_task_count} 题的速度与浏览器资源</h2><p>均值、P50、P95 都在四种完整配置中统一比较。CPU、内存和网络只计浏览器容器，不含 CowAgent 或模型服务；模型会改变动作数量和页面停留时间，因此这里比较整套配置，不能单独归因于浏览器内核。</p>'
+        f'<section><h2>完整 {task_count} 题的速度与浏览器资源</h2><p>均值、P50、P95 都在四种完整配置中统一比较。CPU、内存和网络只计浏览器容器，不含 CowAgent 或模型服务；模型会改变动作数量和页面停留时间，因此这里比较整套配置，不能单独归因于浏览器内核。</p>'
         + _resource_comparison_table(summary)
         + '<p class="source-note"><span class="winner-mark" aria-hidden="true">优</span> 每项只标记四种配置中数值唯一最低者。CPU 时间与网络总量累计逻辑结果使用的全部执行；内存来自 Browser Use 执行阶段的浏览器容器采样。</p></section>'
         '<section><h2>共同成功任务的性能与资源</h2><p>下表限定为首次执行共同成功的 '
@@ -2285,7 +2255,7 @@ def _article_body(
         + _table(["模型", "浏览器", "Agent 链路 P50", "BrowserTool P50", "Tokens P50", "峰值内存 P50", "CPU 时间 P50"], resource_rows, table_id="home-resource-table", classes="core-comparison-table")
         + _resource_summary_cards((common_count, resource_rows))
         + '<p class="source-note">Agent 链路还包含模型推理和页面等待，因此不能解读为纯内核性能。</p></section>'
-        f'<section><h2>工程结论</h2><p>{clean_task_count} 题审查合格比较集显示，四种端到端配置都完成了约九成任务，浏览器之间的单边差异集中在少数任务。有效失败主要来自 Agent 行为和浏览器证据接口，不再混入已确认的合同、站点或共享状态问题。</p><p>Moli 的内存占用明显更低，但 HAR 完整性、工具耗时和部分任务兼容性还需修复；Chromium 在两个模型层都多通过任务，但当前每种配置只有一个正式样本，不能外推成总体优势。</p><div class="essay-note"><h3>下一轮验证</h3><p>Task 77 与 771 可在串行锁下补跑；Task 339、475、600、625、676、699 的合同或 evaluator 修复已提交 <a href="https://github.com/ServiceNow/webarena-verified/pull/45">上游 PR #45</a>，合并后补跑；Task 528 在具备可移植的未提交表单验收前继续排除。站点题先通过读写预检。任何补跑都覆盖同题四种配置，并作为新的完整证据批次发布。</p></div></section></article>'
+        f'<section><h2>工程结论</h2><p>完整 {task_count} 题官方结果是本报告的主口径；{clean_task_count} 题事后诊断子集只用于分离已知外部干扰，不改写成绩。</p><p>Moli 的内存占用明显更低，但 HAR 完整性、工具耗时和部分任务兼容性还需修复；Chromium 在本轮 Sol 层多通过 3 题，Astra 层通过数相同，但当前每种配置只有一个正式样本，不能外推成总体优势。</p><div class="essay-note"><h3>下一轮验证</h3><p>先修复可控的合同、evaluator、站点和共享状态问题，再按同一协议完整重跑 90 题四种配置；历史官方分数在新证据批次出现前保持不变。</p></div></section></article>'
     )
 
 
@@ -2982,7 +2952,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             "四种配置先在同一张表和同一任务矩阵中比较；失败结果可直接打开诊断，查看发生位置、程序报错、复核根因、轨迹、画面和日志。",
         )
         analysis += _section(
-            f"四种配置总览：{len(qualified_tasks)} 题审查合格比较集",
+            f"四种配置总览：完整 {len(tasks)} 题官方结果",
             _table(
                 [
                     "模型",
@@ -2993,27 +2963,27 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     "BrowserTool 耗时",
                     "Tokens",
                 ],
-                _summary_comparison_rows(qualified_summary),
+                _summary_comparison_rows(summary_by_model),
                 table_id="analysis-core-metrics",
                 classes="core-comparison-table",
             )
-            + f'<p class="source-note"><span class="winner-mark" aria-hidden="true">优</span> 四种完整配置统一比较，每个统计项只标记唯一最优值；相同值不标。已确认受合同、站点、共享状态或参考状态干扰的 {len(excluded_task_ids)} 题不进入本表。这里比较模型 × 浏览器整套配置，不能把差值单独归因于浏览器。</p>'
+            + f'<p class="source-note"><span class="winner-mark" aria-hidden="true">优</span> 四种完整配置统一比较，每个统计项只标记唯一最优值；相同值不标。本表保留完整 90 题官方 evaluator 结果；其中 {len(excluded_task_ids)} 题已标记外部干扰，但不人工改分或缩减分母。这里比较模型 × 浏览器整套配置，不能把差值单独归因于浏览器。</p>'
             + '<p class="source-note"><strong>审查口径：</strong>438/438 次物理执行完成程序完整性核验，75/75 个最终失败完成逐条根因复核；成功结果没有逐条语义盲审，人工复核也没有改写官方 evaluator 分数。</p>'
             + '<details class="metric-note"><summary>耗时和 Tokens 如何统计</summary><p><strong>Agent 链路累计耗时</strong>把取得逻辑结果所发生的执行相加，包含登录、模型推理、调度、页面等待、BrowserTool 与收尾，不包含此前的 Docker 站点重置。<strong>BrowserTool 累计耗时</strong>是所有 browser 工具调用的墙钟时间之和，包含工具封装、CDP 往返和页面等待。Tokens 同样累计正式结果包含的物理执行。</p></details>',
         )
         analysis += _section(
-            f"同题全配置对比：{len(qualified_tasks)} 题",
-            "<p>每行是一道审查合格任务，四列分别对应模型×浏览器配置；可筛出结果有差异、全部通过或全部失败的任务。</p>"
-            + _same_task_comparison(qualified_tasks, qualified_attempts),
+            f"同题全配置对比：完整 {len(tasks)} 题",
+            "<p>每行是一道预注册任务，四列分别对应模型×浏览器配置；可筛出结果有差异、全部通过或全部失败的任务。</p>"
+            + _same_task_comparison(tasks, attempts),
         ).replace('<section class="section">', '<section class="section" id="same-task">', 1)
         analysis += _section(
             "BrowserTool 动作延迟",
             "<p>每个动作按模型分层比较两个浏览器的单次调用墙钟均值，只标记层内唯一最低值。总耗时和调用数受 Agent 行为量影响，仅用于解释工作量，不参与快慢判定。</p>"
-            + _action_duration_cards(qualified_attempts),
+            + _action_duration_cards(attempts),
         )
         analysis += _section(
             f"{result_count} 个结果与失败诊断",
-            f"<p>这里保留预注册 {task_count} 题的全部原始结果，包括退出正式比较的 {len(excluded_task_ids)} 题。默认显示失败；点击“查看诊断”可核对发生位置、程序报错、复核根因、轨迹、画面和日志。</p>"
+            f"<p>这里保留预注册 {task_count} 题的全部官方结果；其中 {len(excluded_task_ids)} 题已标记外部干扰。默认显示失败；点击“查看诊断”可核对发生位置、程序报错、复核根因、轨迹、画面和日志。</p>"
             + _attempt_table(attempts, tasks, verified_causes),
         )
         (stage / "analysis/index.html").write_text(

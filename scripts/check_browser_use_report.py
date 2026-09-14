@@ -531,7 +531,7 @@ def check(
 
     guide_index = rendered_pages[report_dir / "index.html"]
     for marker in (
-        "首次成功与重试恢复",
+        "90 题核心指标",
         "程序判分落点与复核根因",
         'class="verdict-strip"',
         'class="cause-bars"',
@@ -542,6 +542,8 @@ def check(
     ):
         if marker not in guide_index:
             raise ValueError(f"interpretation is missing an evidence-backed reading aid: {marker}")
+    if "首次成功与重试恢复" in guide_index:
+        raise ValueError("homepage must present one final logical result, not retry narration")
     for forbidden in (
         "中位数",
         "失败结果定位",

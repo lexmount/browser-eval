@@ -456,6 +456,23 @@ for _cause in _failure_cause_results.values():
 # blocks containing evaluator JSON and agent output.
 TEXT.update(
     {
+        "90 题 Browser Use 完整结果：Chromium 与 Moli 的成功率、代价与失败根因": "Complete 90-task Browser Use results: Chromium vs. Moli success, cost, and root causes",
+        "90 题核心指标": "Core metrics for all 90 tasks",
+        "每个模型×浏览器配置都保留完整 90 题。以上是官方 evaluator 决定的最终逻辑结果；物理执行记录可在单题证据页下钻。": "Every model-browser configuration retains all 90 tasks. These are the final logical outcomes from the official evaluator; physical execution records remain available on each task's evidence page.",
+        "首页按预注册的 90 题展示四种配置的官方 evaluator 结果。其中 14 题经复核存在验收合同、站点、共享状态或参考状态干扰；这些题仍保留在 90 题官方结果中，另外提供 76 题事后诊断子集。": "The homepage reports official evaluator outcomes for all 90 preregistered tasks across four configurations. Review found acceptance-contract, site, shared-state, or reference-state interference in 14 tasks. They remain in the official 90-task result, while a separate 76-task post-hoc diagnostic subset is also provided.",
+        "14 题存在外部干扰": "Fourteen tasks contain external interference",
+        "官方 90 题结果不改分、不缩减分母；另用 76 题事后诊断子集观察排除已知干扰后的差异。": "The official 90-task result is neither rescored nor given a smaller denominator. A separate 76-task post-hoc subset shows differences after removing known interference.",
+        "90 题官方结果与事后诊断分开看": "Separate the official 90-task result from post-hoc diagnosis",
+        "首页主结果始终使用完整 90 题官方 evaluator 分母。为了观察排除已知外部干扰后的差异，下表再按整题、四种配置一致排除 14 题，得到 76 题事后诊断子集。": "The homepage always uses all 90 tasks as the denominator for the official evaluator result. To inspect differences after known external interference, the table below removes the same 14 tasks across all four configurations and shows a 76-task post-hoc diagnostic subset.",
+        "这是事后诊断子集，不是正式分数，也不替代 90 题官方结果。75 个原始失败记录继续保存在结果页和核验记录中。": "This is a post-hoc diagnostic subset, not an official score and not a replacement for the official 90-task result. All 75 original failure records remain available in the result and review pages.",
+        "完整 90 题的速度与浏览器资源": "Latency and browser resources across all 90 tasks",
+        "完整 90 题官方结果是本报告的主口径；76 题事后诊断子集只用于分离已知外部干扰，不改写成绩。": "The complete official 90-task result is the report's primary view. The 76-task post-hoc diagnostic subset only separates known external interference and does not rewrite scores.",
+        "Moli 的内存占用明显更低，但 HAR 完整性、工具耗时和部分任务兼容性还需修复；Chromium 在本轮 Sol 层多通过 3 题，Astra 层通过数相同，但当前每种配置只有一个正式样本，不能外推成总体优势。": "Moli uses substantially less memory, while HAR completeness, tool latency, and some task compatibility still require fixes. Chromium passes three more tasks in the Sol cohort and ties Moli in the Astra cohort, but one formal sample per configuration cannot establish a general advantage.",
+        "先修复可控的合同、evaluator、站点和共享状态问题，再按同一协议完整重跑 90 题四种配置；历史官方分数在新证据批次出现前保持不变。": "Fix controllable contract, evaluator, site, and shared-state defects first, then rerun all four configurations across the same 90-task protocol. Historical official scores remain unchanged until a new evidence cohort exists.",
+        "四种配置总览：完整 90 题官方结果": "Four-configuration overview: complete official results for 90 tasks",
+        "同题全配置对比：完整 90 题": "Same-task comparison across all configurations: complete 90-task set",
+        "每行是一道预注册任务，四列分别对应模型×浏览器配置；可筛出结果有差异、全部通过或全部失败的任务。": "Each row is one preregistered task, with one column per model-browser configuration. Filters isolate divergent, all-pass, or all-fail outcomes.",
+        "这里保留预注册 90 题的全部官方结果；其中 14 题已标记外部干扰。默认显示失败；点击“查看诊断”可核对发生位置、程序报错、复核根因、轨迹、画面和日志。": "This inventory retains official results for all 90 preregistered tasks, with 14 tasks marked for external interference. Failures are shown by default; open a diagnosis to inspect the failure point, program error, reviewed cause, trajectory, frames, and logs.",
         # Current home page and dataset-only inventory.
         "Chromium 任务通过": "Chromium tasks passed",
         "Moli 任务通过": "Moli tasks passed",
