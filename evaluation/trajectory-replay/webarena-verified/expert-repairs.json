@@ -580,7 +580,7 @@
     },
     {
       "task_id": 198,
-      "candidate_id": "expert__task-198__latest-cancelled-order",
+      "candidate_id": "expert__task-198__order-136-v2",
       "replaces_canonical": true,
       "source": {
         "kind": "reviewed_task_contract_and_existing_browser_evidence",
