@@ -556,7 +556,7 @@
         },
         {
           "action": "evaluate",
-          "script": "const select=document.querySelector('select[name=\"status\"]'); if(!select) throw new Error('status filter not found'); select.value='fraud'; select.dispatchEvent(new Event('input',{bubbles:true})); select.dispatchEvent(new Event('change',{bubbles:true})); const button=document.querySelector('button[data-action=\"grid-filter-apply\"]'); if(!button) throw new Error('apply filters button not found'); button.click(); return true;"
+          "script": "for(const name of ['created_at[from]','created_at[to]']){const input=document.querySelector(`input[name=\"${name}\"]`); if(input){input.value=''; input.dispatchEvent(new Event('input',{bubbles:true})); input.dispatchEvent(new Event('change',{bubbles:true}));}} const select=document.querySelector('select[name=\"status\"]'); if(!select) throw new Error('status filter not found'); select.value='fraud'; select.dispatchEvent(new Event('input',{bubbles:true})); select.dispatchEvent(new Event('change',{bubbles:true})); const button=document.querySelector('button[data-action=\"grid-filter-apply\"]'); if(!button) throw new Error('apply filters button not found'); button.click(); return true;"
         },
         {
           "action": "wait",

@@ -137,3 +137,19 @@ def test_build_binds_exact_input_files(tmp_path: Path) -> None:
     assert len(manifest["expert_repairs"]["base_manifest_sha256"]) == 64
     assert len(manifest["expert_repairs"]["repair_spec_sha256"]) == 64
     assert manifest["expert_repairs"]["candidate_count"] == 1
+
+
+def test_task_676_repair_clears_unrelated_persisted_date_filters() -> None:
+    repairs = json.loads(
+        Path("evaluation/trajectory-replay/webarena-verified/expert-repairs.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    repair = next(item for item in repairs["repairs"] if item["task_id"] == 676)
+    scripts = "\n".join(
+        call.get("script", "") for call in repair["tool_calls"] if call["action"] == "evaluate"
+    )
+
+    assert "created_at[from]" in scripts
+    assert "created_at[to]" in scripts
+    assert "value=''" in scripts
