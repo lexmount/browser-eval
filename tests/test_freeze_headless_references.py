@@ -12,7 +12,7 @@ from scripts.freeze_headless_references import (
     _digest_json, _require_promotion, compute_reference_update, main,
 )
 from scripts.prepare_reference_promotion import prepare
-from scripts.promote_reference_candidate import promote
+from scripts.promote_reference_candidate import _change_for_case, promote
 
 
 ROOT_CAUSE=('The independent reference selector included mutable site chrome, so '
@@ -39,6 +39,10 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
                 'url':'https://en.wikipedia.org/w/index.php?title=AI&oldid=123',
                 'revision':'oldid:123','source_snapshot_sha256':'c'*64},
         }
+
+    def test_promotion_reports_missing_computed_change_as_validation_error(self):
+        with self.assertRaisesRegex(ValueError,'omit promoted case: missing'):
+            _change_for_case([{'case_id':'present'}],'missing')
 
     def test_changed_reference_fails_closed_without_explicit_promotion(self):
         with self.assertRaisesRegex(ValueError,'explicit --reference-promotion'):

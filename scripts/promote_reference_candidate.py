@@ -20,6 +20,13 @@ from scripts.freeze_headless_references import (  # noqa: E402
 )
 
 
+def _change_for_case(changes, case_id):
+    change = next((row for row in changes if row.get('case_id') == case_id), None)
+    if change is None:
+        raise ValueError('Computed reference changes omit promoted case: '+case_id)
+    return change
+
+
 def promote(*,canonical_path,candidate_path,captures,receipt_path,receipt_target,
             browser_observations=None,browser_observation_directory=None,
             research_root=None,sources_root=None):
@@ -64,11 +71,10 @@ def promote(*,canonical_path,candidate_path,captures,receipt_path,receipt_target
     audit={row['case_id']:row for row in json.loads(audit_bytes)}
     for case_id in case_ids:
         context=contexts[case_id];row=context['row']
+        change=_change_for_case(changes,case_id)
         if context['browser_observation']:
             observation=browser_observation_bytes(row)
-            source_revision=next(
-                change['source_revision'] for change in changes
-                if change['case_id']==case_id)
+            source_revision=change['source_revision']
             if (hashlib.sha256(observation).hexdigest()!=
                     source_revision.get('browser_observation_sha256')):
                 raise ValueError('Browser observation hash changed: '+case_id)
@@ -89,9 +95,7 @@ def promote(*,canonical_path,candidate_path,captures,receipt_path,receipt_target
             capture_record=(json.dumps(
                 capture_record,ensure_ascii=False,indent=2)+'\n').encode()
         reference=updates[case_id]['ground_truth_main_content'].encode()
-        if hashlib.sha256(reference).hexdigest()!=next(
-                change['new_reference_sha256'] for change in changes
-                if change['case_id']==case_id):
+        if hashlib.sha256(reference).hexdigest()!=change['new_reference_sha256']:
             raise ValueError('Candidate reference hash changed: '+case_id)
         prepared[case_id]=(raw,reference,capture_record,
                            observation if context['browser_observation'] else None)

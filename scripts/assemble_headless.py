@@ -35,6 +35,15 @@ ALLOWED_REVISION_FIELDS = {
 }
 
 
+def _selected_record(selected, key):
+    record = next((row for row, _ in selected
+                   if (row.get('case_id'), row.get('provider')) == key), None)
+    if record is None:
+        raise ValueError('Provider replacement has no prior selected record: '
+                         +key[0]+'/'+key[1])
+    return record
+
+
 def read_records(root):
     return [json.loads(line) for line in (root/'results.jsonl').read_text().splitlines()]
 
@@ -615,7 +624,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
                         comparison.get('source_verification',{}).get('reference_sha256')):
                     raise ValueError('Provider replacement reference hash differs: '+row['case_id'])
             pair_replacements[key]=(row,root)
-            old=next(r for r,_ in selected if (r['case_id'],r['provider'])==key)
+            old=_selected_record(selected,key)
             audit.append({'case_id':row['case_id'],'provider':row['provider'],
                 'selection_reason':'predeclared provider implementation replacement; complete scope selected without score-based retries',
                 'excluded_attempts':[{k:old[k] for k in ('attempt_id','run_id','started_at','elapsed_ms')}]})

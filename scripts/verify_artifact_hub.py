@@ -83,9 +83,9 @@ def verify_public_files(slug, expected_archive, base=DEFAULT_BASE):
         )
 
         def known_injection(injected):
-            base=base_pattern.match(injected)
-            if not base:return False
-            bootstrap=injected[base.end():]
+            base_match=base_pattern.match(injected)
+            if not base_match:return False
+            bootstrap=injected[base_match.end():]
             # The service may add one or more bootstrap scripts. Do not normalize
             # or ignore arbitrary HTML: every injected byte must be one such script.
             while bootstrap:
@@ -106,10 +106,10 @@ def verify_public_files(slug, expected_archive, base=DEFAULT_BASE):
         head_end=original.find(b'<head>')
         if head_end<0:return False
         head_end+=len(b'<head>')
-        before,after=original[:head_end],original[head_end:]
-        if not served.startswith(before):return False
-        if after and not served.endswith(after):return False
-        injected=served[len(before):len(served)-len(after) if after else None]
+        prefix,suffix=original[:head_end],original[head_end:]
+        if not served.startswith(prefix):return False
+        if suffix and not served.endswith(suffix):return False
+        injected=served[len(prefix):len(served)-len(suffix) if suffix else None]
         return known_injection(injected)
 
     def digest(name):

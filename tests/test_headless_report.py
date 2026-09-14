@@ -17,6 +17,7 @@ from scripts.assemble_headless import (assemble, copy_bound_review, copy_project
                                        copy_scoring_revision_history,
                                        read_verified_batches,
                                        bind_assembled_scoring_revision,
+                                       _selected_record,
                                        _copy_speed_bundle,
                                        _prune_shadowed_batch_attempts,
                                        _project_provider_subset)
@@ -25,6 +26,11 @@ from unittest.mock import patch
 
 
 class HeadlessReportTests(unittest.TestCase):
+    def test_provider_replacement_requires_prior_selected_record(self):
+        selected=[({'case_id':'a','provider':'keep'},Path('/evidence'))]
+        with self.assertRaisesRegex(ValueError,'no prior selected record: a/missing'):
+            _selected_record(selected,('a','missing'))
+
     def test_two_provider_projection_keeps_complete_matrix_and_prunes_metadata(self):
         providers=['keep','lexmount-global','lexmount-cn']
         dataset={'comparison':{},'cases':[{'id':'a','track':'web'},{'id':'b','track':'web'}],
