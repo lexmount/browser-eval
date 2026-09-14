@@ -94,6 +94,24 @@ def test_validate_package_requires_and_checks_every_evidence_root(
         raise AssertionError("changed secondary evidence must invalidate the package")
 
 
+def test_bind_published_version_advances_profile_and_attestation(
+    monkeypatch, tmp_path: Path
+) -> None:
+    profile = tmp_path / "profile.json"
+    profile.write_text(
+        json.dumps({"publication": {"expected_version": "ver_old"}}), encoding="utf-8"
+    )
+    attestation = tmp_path / "attestation.json"
+    attestation.write_text(json.dumps({"profile_sha256": "stale"}), encoding="utf-8")
+    monkeypatch.setattr(publisher, "PROFILE", profile)
+    monkeypatch.setattr(publisher, "ATTESTATION", attestation)
+
+    publisher.bind_published_version("ver_new")
+
+    assert json.loads(profile.read_text())["publication"]["expected_version"] == "ver_new"
+    assert json.loads(attestation.read_text())["profile_sha256"] == _sha256(profile)
+
+
 def test_packaging_reuses_visual_gate_bound_to_current_report(monkeypatch, tmp_path: Path) -> None:
     report = tmp_path / "report"
     report.mkdir()

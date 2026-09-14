@@ -166,6 +166,25 @@ def save_receipt(result: dict) -> None:
     os.chmod(RECEIPT, 0o600)
 
 
+def bind_published_version(version_id: str) -> None:
+    """Advance the publication authority and keep its package attestation current."""
+
+    if not version_id.startswith("ver_"):
+        raise ValueError("site update response omitted a valid version id")
+    profile = json.loads(PROFILE.read_text(encoding="utf-8"))
+    publication = profile.setdefault("publication", {})
+    publication["expected_version"] = version_id
+    PROFILE.write_text(
+        json.dumps(profile, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    attestation = json.loads(ATTESTATION.read_text(encoding="utf-8"))
+    attestation["profile_sha256"] = sha256(PROFILE)
+    ATTESTATION.write_text(
+        json.dumps(attestation, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
 def main(*, create: bool = False) -> None:
     validate_package()
     payload, content_type = multipart_archive()
@@ -220,6 +239,13 @@ def main(*, create: bool = False) -> None:
         )
         share = response_json(status, raw, operation="public share creation")
         result["share_url"] = share["url"]
+    version_id = str(
+        result.get("versionId")
+        or result.get("version_id")
+        or result.get("currentVersionId")
+        or ""
+    )
+    bind_published_version(version_id)
     save_receipt(result)
     public = urllib.request.Request(
         result["share_url"], headers={"User-Agent": "Browser-Use-Report-Publisher/1.0"}
@@ -239,9 +265,7 @@ def main(*, create: bool = False) -> None:
             {
                 "slug": result["slug"],
                 "url": result["share_url"],
-                "version": result.get("versionId")
-                or result.get("version_id")
-                or result.get("currentVersionId"),
+                "version": version_id,
             },
             ensure_ascii=False,
         )

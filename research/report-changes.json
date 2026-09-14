@@ -184,6 +184,63 @@
   ],
   "browser_use_releases": [
     {
+      "id": "2026-09-14-restore-complete-90-task-results",
+      "date": "2026-09-14",
+      "title": "恢复完整 90 题正式结果并修正报告下钻",
+      "summary": "正式成绩恢复为完整 90 题、四种配置共 360 个逻辑结果；76 题仅保留为事后诊断子集。结果分析改为直接进入四配置同题矩阵和失败诊断，动作耗时在全部配置中同台比较，执行证据改为站内查看或下载。",
+      "attempts_sha256_by_model": {
+        "gpt-5.6-sol": "73146500152db62d79f84b63c85a14027c005a6320c19bce7426651f167466bd",
+        "gpt-6-astra": "0659d227cf6d29fbfaf64d39f8e77a56bec73c87f7f6e1f2ac23ea13fd9b667c"
+      },
+      "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+      "changes": [
+        [
+          "正式分母",
+          "上一版把 76 题事后诊断子集写成正式比较口径，与完整官方结果冲突。",
+          "恢复 90 题官方 evaluator 结果为唯一正式成绩；76 题只用于观察排除已知外部干扰后的差异，不改分。",
+          "四种配置分别为 73/90、70/90、71/90、71/90。"
+        ],
+        [
+          "结果分析",
+          "首页与分析页重复核心总表，动作耗时只在同模型的两个浏览器之间标优。",
+          "首页保留核心总表；分析页直接展示四配置同题矩阵、全部配置动作耗时和逐结果诊断。",
+          "只调整信息结构和比较范围，不改变测量值。"
+        ],
+        [
+          "执行证据",
+          "新标签链接在嵌入式公开阅读器中不能可靠打开，详情页还暴露未解释的内部字段。",
+          "证据查看改为站内页面，原始 JSON 改为下载；资源、校验和公开策略使用读者可理解的中文标签。",
+          "证据文件及其 SHA-256 不变。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Restore the complete 90-task official results and repair drill-down",
+          "summary": "Official scores again use all 90 tasks and 360 logical results across four configurations; the 76-task set remains only a post-hoc diagnostic subset. Analysis now opens with the four-configuration same-task matrix and failure diagnosis, action latency compares every configuration together, and execution evidence opens in-site or downloads directly.",
+          "changes": [
+            [
+              "Official denominator",
+              "The previous release described the 76-task post-hoc subset as the formal comparison, conflicting with the complete official results.",
+              "Use the 90-task official evaluator results as the only formal scores; retain 76 tasks only for post-hoc diagnosis without rescoring.",
+              "The four configurations score 73/90, 70/90, 71/90, and 71/90."
+            ],
+            [
+              "Results analysis",
+              "Home and analysis duplicated the core table, while action-latency winners were selected only between two browsers inside each model.",
+              "Keep the core table on home; make analysis focus on the four-configuration same-task matrix, all-configuration action latency, and per-result diagnosis.",
+              "Information structure and comparison scope changed; measurements did not."
+            ],
+            [
+              "Execution evidence",
+              "New-tab links were unreliable in the embedded public reader and detail pages exposed unexplained internal fields.",
+              "Open the evidence viewer in-site, offer raw JSON as a download, and use reader-facing labels for resources, checks, and publication policy.",
+              "Evidence files and SHA-256 bindings are unchanged."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "2026-09-14-qualified-comparison-home",
       "date": "2026-09-14",
       "title": "首页改用审查合格比较集并合并报告解读",

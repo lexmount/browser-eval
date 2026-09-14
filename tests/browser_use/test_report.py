@@ -504,17 +504,17 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
     dataset = (output / "datasets/index.html").read_text(encoding="utf-8")
     assert "可完成性证据" not in dataset
     assert "data-result=" not in dataset
-    analysis = (output / "analysis/index.html").read_text(encoding="utf-8")
     for expected in ("均值", "P50", "P95", "comparison-winner"):
-        assert expected in analysis
+        assert expected in text
+    analysis = (output / "analysis/index.html").read_text(encoding="utf-8")
     for expected in (
         "BrowserTool 动作延迟",
         "action-card-grid",
         "同题全配置对比",
             "browser-comparison",
             'id="configuration-matrix"',
-            'id="analysis-core-metrics"',
-            "按模型分层 · 单次调用墙钟时间",
+            "完整 90 题结果入口",
+            "全部配置 · 单次调用墙钟时间",
     ):
         assert expected in analysis
     assert analysis.index("同题全配置对比") < analysis.index("BrowserTool 动作延迟")
@@ -535,7 +535,7 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
         "runtime-strip",
         "任务与验收",
         "在页面中查看完整执行证据",
-        "打开原始 JSON",
+        "下载原始 JSON",
     ):
         assert expected in attempt
     assert "没有 evaluator 明细" in attempt

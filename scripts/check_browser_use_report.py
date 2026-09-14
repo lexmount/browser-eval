@@ -508,23 +508,16 @@ def check(
             raise ValueError(f"methodology is missing deployment evidence boundary: {marker}")
     analysis_index = rendered_pages[report_dir / "analysis/index.html"]
     for marker in (
-        "Agent 链路累计耗时",
-        "BrowserTool 累计耗时",
-        "均值",
-        "P50",
-        "P95",
         "comparison-winner",
-        'id="analysis-core-metrics"',
+        "完整 90 题结果入口",
         "BrowserTool 动作延迟",
         "action-card-grid",
-        "按模型分层 · 单次调用墙钟时间",
+        "全部配置 · 单次调用墙钟时间",
         "同题全配置对比",
         'id="configuration-matrix"',
         "查看诊断",
         'class="diagnosis-dialog"',
         "程序报错",
-        "四种完整配置统一比较",
-        "成功结果没有逐条语义盲审",
     ):
         if marker not in analysis_index:
             raise ValueError(f"analysis is missing timing or scalable comparison: {marker}")
@@ -532,6 +525,14 @@ def check(
     guide_index = rendered_pages[report_dir / "index.html"]
     for marker in (
         "90 题核心指标",
+        "Agent 总耗时",
+        "BrowserTool 耗时",
+        "均值",
+        "P50",
+        "P95",
+        "comparison-winner",
+        "四种完整配置中统一比较",
+        "已通过结果没有再做独立语义盲审",
         "程序判分落点与复核根因",
         'class="verdict-strip"',
         'class="cause-bars"',
@@ -571,7 +572,7 @@ def check(
             "runtime-strip",
             "任务与验收",
             "在页面中查看完整执行证据",
-            "打开原始 JSON",
+            "下载原始 JSON",
         )
     ):
         raise ValueError("every result page must expose result, evaluator, trajectory and logs")

@@ -1056,17 +1056,11 @@ def _action_duration_cards(attempts: list[dict[str, Any]]) -> str:
                     if _row_model(row) == model and row["engine"] == engine
                 )
                 metrics[key] = (total, count, total / count if count else None)
-        average_winners = {
-            model: _best(
-                {
-                    engine: metrics[f"{model}|{engine}"][2]
-                    for engine in ENGINE_LABELS
-                },
-                higher=False,
-                display=lambda value: round(value / 1000, 3),
-            )
-            for model in MODEL_LABELS
-        }
+        average_winners = _best(
+            {key: values[2] for key, values in metrics.items()},
+            higher=False,
+            display=lambda value: round(value / 1000, 3),
+        )
         maximum = max((values[2] or 0 for values in metrics.values()), default=0)
         browser_rows = []
         for model in MODEL_LABELS:
@@ -1076,15 +1070,15 @@ def _action_duration_cards(attempts: list[dict[str, Any]]) -> str:
                 width = 0 if average is None or maximum <= 0 else max(2.0, average / maximum * 100)
                 average_text = "—" if average is None else f"{average / 1000:.3f} 秒"
                 browser_rows.append(
-                    f'<div class="action-browser-row{" action-winner" if engine in average_winners[model] else ""}"><div class="action-browser-head">'
-                    f"<b>{_e(MODEL_LABELS[model])} · {_e(ENGINE_LABELS[engine])}</b>{_winner(average_text, won=engine in average_winners[model], label='同模型浏览器中单次均值最低')}"
+                    f'<div class="action-browser-row{" action-winner" if key in average_winners else ""}"><div class="action-browser-head">'
+                    f"<b>{_e(MODEL_LABELS[model])} · {_e(ENGINE_LABELS[engine])}</b>{_winner(average_text, won=key in average_winners, label='全部配置中单次均值最低')}"
                     f'</div><div class="action-bar" aria-hidden="true"><i style="width:{width:.1f}%"></i></div>'
                     f'<div class="action-browser-meta">总耗时 {total / 1000:.1f} 秒 · {count} 次调用</div></div>'
                 )
         cards.append(
             '<article class="action-card"><header><code>'
             + _e(action)
-            + "</code><span>按模型分层 · 单次调用墙钟时间</span></header>"
+            + "</code><span>全部配置 · 单次调用墙钟时间</span></header>"
             + "".join(browser_rows)
             + "</article>"
         )
@@ -1217,6 +1211,55 @@ def _resource_value(value: float | None, unit: str) -> str:
     if unit == "mib_net":
         return f"{value / 1_048_576:,.2f} MiB"
     raise ValueError(f"unknown resource unit: {unit}")
+
+
+def _resource_detail_rows(resource: dict[str, Any]) -> list[list[str]]:
+    fields = (
+        ("cpu_ms", "浏览器 CPU 时间", "ms"),
+        ("cpu_average_utilization_pct", "平均单核 CPU 占用", "pct"),
+        ("memory_mean_bytes", "时间加权平均内存", "mib"),
+        ("memory_peak_bytes", "峰值内存", "mib"),
+        ("memory_retained_bytes", "结束时新增常驻内存", "mib"),
+        ("network_rx_bytes", "网络接收量", "mib_net"),
+        ("network_tx_bytes", "网络发送量", "mib_net"),
+    )
+    return [
+        [label, _resource_value(float(resource[key]), unit)]
+        for key, label, unit in fields
+        if resource.get(key) is not None
+    ]
+
+
+def _evidence_check_rows(checks: dict[str, Any]) -> list[list[str]]:
+    labels = {
+        "network_har_exists": "浏览器网络记录存在",
+        "agent_trace_exists": "浏览器执行轨迹存在",
+        "response_exists": "Agent 最终回答存在",
+        "evaluation_exists": "官方判分明细存在",
+        "events_exists": "Agent 事件流存在",
+        "environment_prepare_exists": "环境准备记录存在",
+        "evaluation_json": "判分明细可读取",
+        "response_json": "最终回答可读取",
+        "response_matches_record": "最终回答与运行记录一致",
+        "score_matches_evaluator": "报告分数与官方判分一致",
+        "status_matches_evaluator": "报告状态与官方判分一致",
+        "official_evaluator_version_present": "官方 evaluator 版本已记录",
+        "official_evaluator_checksum_matches": "官方 evaluator 文件校验一致",
+        "official_data_checksum_matches": "官方题集文件校验一致",
+        "model_request_attempts_accounted": "模型请求次数已完整计入",
+    }
+    return [
+        [labels.get(key, key.replace("_", " ")), "通过" if value else "未通过"]
+        for key, value in checks.items()
+    ]
+
+
+def _publication_label(value: Any) -> str:
+    return {
+        "private_only_session_sensitive": "仅保留哈希与字节数（含登录态）",
+        "sanitized_projection": "已脱敏公开副本",
+        "public": "公开原文件",
+    }.get(str(value), "按证据清单处理")
 
 
 def _resource_comparison_table(summary: dict[str, dict[str, dict[str, Any]]]) -> str:
@@ -1393,7 +1436,7 @@ def _evidence_viewer_page() -> str:
     body += (
         '<section class="section evidence-viewer-shell"><div class="wrap">'
         '<div class="evidence-viewer-head"><h2>执行证据 JSON</h2>'
-        '<a id="evidence-raw-link" class="button-link" hidden target="_blank" rel="noopener">打开原始 JSON</a></div>'
+        '<a id="evidence-raw-link" class="button-link" hidden download>下载原始 JSON</a></div>'
         '<p id="evidence-viewer-status" class="fine" role="status">正在读取证据…</p>'
         '<pre id="evidence-viewer-content" class="json-view" tabindex="0"></pre>'
         "</div></section><script>(()=>{"
@@ -1837,8 +1880,8 @@ def _artifact_links(result_id: str, execution: int) -> str:
     viewer = f"evidence-viewer.html?src={root}/execution-evidence.json"
     return (
         '<div class="page-links">'
-        f'<a href="{viewer}" target="_blank" rel="noopener">在页面中查看完整执行证据</a>'
-        f'<a href="{root}/execution-evidence.json" target="_blank" rel="noopener">打开原始 JSON</a>'
+        f'<a href="{viewer}">在页面中查看完整执行证据</a>'
+        f'<a href="{root}/execution-evidence.json" download>下载原始 JSON</a>'
         "</div>"
     )
 
@@ -2176,7 +2219,7 @@ def _article_body(
         '<article class="publication-article interpretation-v2"><header class="essay-head"><div class="eyebrow">Browser Use 能力评测</div>'
         f"<h1>{task_count} 题 Browser Use 完整结果：Chromium 与 Moli 的成功率、代价与失败根因</h1>"
         f'<p class="lead">首页按预注册的 {total_task_count} 题展示四种配置的官方 evaluator 结果。其中 {len(excluded)} 题经复核存在验收合同、站点、共享状态或参考状态干扰；这些题仍保留在 90 题官方结果中，另外提供 {diagnostic_task_count} 题事后诊断子集。</p>'
-        '<p class="source-note">WebArena‑Verified 1.2.3 · CowAgent · reasoning=low · 官方程序化 evaluator</p>'
+        '<p class="source-note">WebArena‑Verified 1.2.3 · CowAgent · 模型推理强度固定为低 · 官方程序化 evaluator</p>'
         '<p class="page-links"><a href="datasets/">查看评测集</a><a href="analysis/">下钻全部结果</a><a href="data/interpretation-evidence.json" download>下载论点与证据</a></p></header>'
         '<section><h2>90 题核心指标</h2>'
         + _table(
@@ -2858,7 +2901,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             _table(
                 ["项目", "规则"],
                 [
-                    ["Agent / 模型", f"CowAgent；{model}；reasoning=low"],
+                    ["Agent / 模型", f"CowAgent；{model}；模型推理强度为低"],
                     ["唯一变量", "同题、同数据、同模型、同提示和资源上限，只替换浏览器"],
                     ["结果口径", "每题×浏览器一个最终逻辑结果；二元通过率；逐题配对"],
                     [
@@ -2907,24 +2950,9 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             "四种配置先在同一张表和同一任务矩阵中比较；失败结果可直接打开诊断，查看发生位置、程序报错、复核根因、轨迹、画面和日志。",
         )
         analysis += _section(
-            f"四种配置总览：完整 {len(tasks)} 题官方结果",
-            _table(
-                [
-                    "模型",
-                    "浏览器",
-                    "任务通过",
-                    "通过率",
-                    "Agent 链路耗时",
-                    "BrowserTool 耗时",
-                    "Tokens",
-                ],
-                _summary_comparison_rows(summary_by_model),
-                table_id="analysis-core-metrics",
-                classes="core-comparison-table",
-            )
-            + f'<p class="source-note"><span class="winner-mark" aria-hidden="true">优</span> 四种完整配置统一比较，每个统计项只标记唯一最优值；相同值不标。本表保留完整 90 题官方 evaluator 结果；其中 {len(excluded_task_ids)} 题已标记外部干扰，但不人工改分或缩减分母。这里比较模型 × 浏览器整套配置，不能把差值单独归因于浏览器。</p>'
-            + '<p class="source-note"><strong>审查口径：</strong>438/438 次物理执行完成程序完整性核验，75/75 个最终失败完成逐条根因复核；成功结果没有逐条语义盲审，人工复核也没有改写官方 evaluator 分数。</p>'
-            + '<details class="metric-note"><summary>耗时和 Tokens 如何统计</summary><p><strong>Agent 链路累计耗时</strong>把取得逻辑结果所发生的执行相加，包含登录、模型推理、调度、页面等待、BrowserTool 与收尾，不包含此前的 Docker 站点重置。<strong>BrowserTool 累计耗时</strong>是所有 browser 工具调用的墙钟时间之和，包含工具封装、CDP 往返和页面等待。Tokens 同样累计正式结果包含的物理执行。</p></details>',
+            f"完整 {len(tasks)} 题结果入口",
+            '<p>四种配置的通过率、耗时、Tokens 与浏览器资源总表已放在首页，避免在分析页重复。这里直接进入同题矩阵和逐结果失败诊断。</p>'
+            '<p class="page-links"><a href="./#home-core-metrics">查看首页核心指标</a></p>',
         )
         analysis += _section(
             f"同题全配置对比：完整 {len(tasks)} 题",
@@ -2933,7 +2961,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         ).replace('<section class="section">', '<section class="section" id="same-task">', 1)
         analysis += _section(
             "BrowserTool 动作延迟",
-            "<p>每个动作按模型分层比较两个浏览器的单次调用墙钟均值，只标记层内唯一最低值。总耗时和调用数受 Agent 行为量影响，仅用于解释工作量，不参与快慢判定。</p>"
+            "<p>每个动作把全部模型×浏览器配置放在一起比较单次调用墙钟均值，只标记全局唯一最低值。总耗时和调用数受 Agent 行为量影响，仅用于解释工作量，不参与快慢判定。</p>"
             + _action_duration_cards(attempts),
         )
         analysis += _section(
@@ -3038,8 +3066,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 f'<div class="attempt-fact"><b>Agent 链路</b>{_seconds(public["duration_ms"])}</div>'
                 f'<div class="attempt-fact"><b>BrowserTool</b>{_seconds(public["browser_tool_duration_ms"])}</div>'
                 f'<div class="attempt-fact"><b>模型 tokens</b>{_number(usage["total_tokens"])}</div>'
-                f'<div class="attempt-fact"><b>模型请求</b>{usage["request_count"]} 次 / {usage["request_attempt_count"]} 次传输</div>'
-                f'<div class="attempt-fact"><b>Run ID</b>{_e(public["run_id"] or "未记录")}</div></div>'
+                f'<div class="attempt-fact"><b>模型请求</b>{usage["request_count"]} 次 / {usage["request_attempt_count"]} 次传输</div></div>'
             )
             if float(public["score"]) < 1:
                 step_href = (
@@ -3104,12 +3131,12 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 "运行、日志与证据",
                 _execution_evidence_html(public["id"], execution_records)
                 + '<p class="fine">公开包包含脱敏的回答、evaluator、事件流与轨迹。原始 HAR 和 Playwright trace 可能携带登录态、Cookie、页面快照或请求正文，因此不公开；其字节数和 SHA-256 保留用于证明证据绑定。</p>'
-                + _table(["指标", "值"], resource.items())
+                + _table(["浏览器资源指标", "值"], _resource_detail_rows(resource))
                 + '<p class="fine">整次 Agent 运行的容器计量只作诊断；不同进程模型下不直接比较内存或 PID。</p>'
                 + "<h3>证据完整性检查</h3>"
                 + _table(
                     ["检查", "结果"],
-                    [[key, "通过" if value else "未通过"] for key, value in checks.items()],
+                    _evidence_check_rows(checks),
                 )
                 + "<h3>判分权威执行的原始证据绑定</h3>"
                 + _table(
@@ -3120,7 +3147,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                             "是" if value.get("present") else "否",
                             value.get("bytes"),
                             value.get("sha256") or "—",
-                            value.get("publication"),
+                            _publication_label(value.get("publication")),
                         ]
                         for label, value in (metadata.get("files") or {}).items()
                     ],
