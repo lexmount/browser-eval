@@ -56,24 +56,21 @@ class MergeProviderRunsTests(unittest.TestCase):
             self.assertEqual(execution["batches"][0]["dataset"]["source"],
                              "evaluation/popular-sites-dataset.json")
 
-    def test_canonical_dataset_supplies_complete_reference_tree(self):
+    def test_provider_evidence_supplies_reference_tree_with_canonical_overlay(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             run = self.make_run(root, "one")
             canonical = root / "evaluation" / "popular-sites-dataset.json"
             canonical.parent.mkdir()
             canonical.write_bytes((run / "dataset.json").read_bytes())
-            source = canonical.parent / "sources" / "popular-sites" / "case" / "evidence.json"
-            source.parent.mkdir(parents=True)
-            source.write_text("{}")
             output = root / "merged"
             with patch.object(merge_runs, "summarize", return_value={"providers": {}}), \
                     patch("sys.argv", ["merge_runs.py", str(output), str(run),
                                        "--canonical-dataset", str(canonical)]):
                 merge_runs.main()
             self.assertEqual(
-                (output / "sources" / "popular-sites" / "case" / "evidence.json").read_text(),
-                "{}",
+                (output / "sources" / "case" / "stable-page.txt").read_text(),
+                "Stable\n",
             )
 
     def test_canonical_dataset_may_add_reference_binding_metadata(self):
@@ -84,6 +81,7 @@ class MergeProviderRunsTests(unittest.TestCase):
             payload = json.loads((run / "dataset.json").read_text())
             payload["comparison"]["reference_binding_mode"] = "hash_bound"
             payload["comparison"]["unverified_reference_cases"] = []
+            payload["comparison"]["publication_state"] = "measured_independently_reviewed"
             canonical.write_text(json.dumps(payload))
             output = root / "merged"
             with patch.object(merge_runs, "summarize", return_value={"providers": {}}), \
@@ -95,6 +93,12 @@ class MergeProviderRunsTests(unittest.TestCase):
                     "reference_binding_mode"
                 ],
                 "hash_bound",
+            )
+            self.assertEqual(
+                json.loads((output / "dataset.json").read_text())["comparison"][
+                    "publication_state"
+                ],
+                "measured_independently_reviewed",
             )
 
     def test_rejects_duplicate_provider_selection(self):

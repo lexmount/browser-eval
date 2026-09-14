@@ -67,6 +67,29 @@ def require_canonical_inputs(
     scoped_roots = {case["id"] for case in expected_dataset.get("cases", [])}
     if expected_dataset.get("id"):
         scoped_roots.add(expected_dataset["id"])
+    # Some frozen suites group newly captured sources beneath a contract-family
+    # directory rather than directly beneath each case ID. Include only roots
+    # that the canonical dataset explicitly names.
+    def declared_paths(value, prefix):
+        if isinstance(value, dict):
+            for item in value.values():
+                yield from declared_paths(item, prefix)
+        elif isinstance(value, list):
+            for item in value:
+                yield from declared_paths(item, prefix)
+        elif isinstance(value, str) and value.startswith(prefix + "/"):
+            parts = Path(value).parts
+            if len(parts) > 1:
+                yield Path(*parts[1:])
+    declared_sources = set(declared_paths(expected_dataset, "sources"))
+    declared_list_references = set(declared_paths(expected_dataset, "list-references"))
+    implicit_list_reference_cases = {
+        case["id"] for case in expected_dataset.get("cases", [])
+        if not case.get("acceptance_contract")
+        and case.get("source_benchmark", {}).get("mode") == "dynamic_list_structure"
+        and case.get("source_benchmark", {}).get("verification_scope")
+        == "first_three_name_detail_pairs"
+    }
     for relative in (Path("dataset.json"), Path("sources"), Path("list-references")):
         expected = (
             canonical_dataset
@@ -97,7 +120,16 @@ def require_canonical_inputs(
         def in_scope(path: Path) -> bool:
             if canonical_dataset is None:
                 return True
-            first = path.relative_to(expected).parts[0]
+            candidate = path.relative_to(expected)
+            first = candidate.parts[0]
+            if relative == Path("sources") and declared_sources:
+                return candidate in declared_sources or (
+                    candidate.name == "evidence.json"
+                    and any(item.parent == candidate.parent for item in declared_sources)
+                )
+            if relative == Path("list-references"):
+                return (candidate in declared_list_references
+                        or candidate.stem in implicit_list_reference_cases)
             return first in scoped_roots or (
                 relative == Path("list-references") and Path(first).stem in scoped_roots
             )

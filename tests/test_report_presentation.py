@@ -1,7 +1,7 @@
 import tempfile
 from pathlib import Path
 import unittest
-from harness.web_fetch.report import failure_category,filter_controls,case_attrs,failure_filters,review_cell,table,write,overview_matched_latency,track_label
+from harness.web_fetch.report import failure_category,filter_controls,case_attrs,failure_filters,review_cell,stage_notice,table,write,overview_matched_latency,track_label
 from harness.web_fetch.report_interfaces import SPECS,HEADLESS_ACCESS
 from harness.web_fetch.report_explainer import article_title,render_explainer
 
@@ -65,6 +65,12 @@ class ReportRevisionTests(unittest.TestCase):
   audit={'attempts':[{'attempt_id':'one','final_verdict':'pass'}]}
   row=review_cell(audit,[{'attempt_id':'one'}])
   self.assertIn('1/1 · Codex 已核验',row)
+ def test_stage_notice_localizes_internal_stage_label(self):
+  dataset={'comparison':{'stage_label':'8/12 methods interim','deferred_providers':['exa']},
+           'coverage_plan':{'challenge':['crawl4ai']}}
+  rendered=stage_notice(dataset)
+  self.assertIn('阶段性结果：8/12 种方法阶段报告',rendered)
+  self.assertNotIn('methods interim',rendered)
  def test_global_homepage_label_and_interpretation_are_run_specific(self):
   case={'id':'global-homepage-001-example','name':'example 首页','category':'global_homepage',
         'track':'challenge','task_kind':'structure','acceptance_contract':{'schema':'page_identity'},

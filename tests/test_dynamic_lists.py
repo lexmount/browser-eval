@@ -26,6 +26,20 @@ class DynamicListTests(unittest.TestCase):
  def test_prose_recommendations_are_not_list_cards(self):
   text='Watch '+', or '.join(f'[Title {i}](/item/{i})' for i in range(3))+'.'
   self.assertFalse(self.check(text)['structure_pass'])
+ def test_consecutive_links_on_one_list_line_remain_distinct_records(self):
+  text='- '+''.join(f'[Title {i}](/item/{i}) - ' for i in range(3))
+  self.assertTrue(self.check(text)['structure_pass'])
+ def test_link_dense_flattened_navigation_with_group_labels(self):
+  contract={'hosts':['www.espn.com'],'entry_path':r'/[a-z0-9-]+/story/_/id/[0-9]+/.+'}
+  text=('- NBA - [Buzz](https://www.espn.com/nba/story/_/id/1/buzz) - '
+        '[Grades](https://www.espn.com/nba/story/_/id/2/grades) - East - '
+        '[Trades](https://www.espn.com/nba/story/_/id/3/trades)')
+  entries=extract_named_entries(text,contract,'https://www.espn.com/')
+  self.assertEqual({entry['title'] for entry in entries},{'Buzz','Grades','Trades'})
+ def test_three_links_embedded_in_prose_remain_excluded(self):
+  text=('Read [Title 1](/item/1), compare it carefully with '
+        '[Title 2](/item/2), and finally see [Title 3](/item/3) for context.')
+  self.assertEqual(extract_named_entries(text,self.contract,'https://example.com'),[])
  def test_preserve_access_query_and_scheme(self):
   entries=extract_named_entries('[A title](/item/1?access_token=required&source=feed)',self.contract,'http://example.com')
   self.assertEqual(entries,[{'title':'A title','url':'http://example.com/item/1?access_token=required&source=feed'}])

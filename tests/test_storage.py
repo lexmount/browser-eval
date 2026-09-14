@@ -92,7 +92,8 @@ class StorageTests(unittest.TestCase):
                 "id": "popular",
                 "name": "Popular",
                 "coverage_plan": {},
-                "cases": [{"id": "case-b", "url": "https://example.test"}],
+                "cases": [{"id": "case-b", "url": "https://example.test",
+                           "ground_truth_evidence": [{"source": "sources/case-b/reference.txt"}]}],
             }
             selected = canonical / "popular-dataset.json"
             selected.write_text(json.dumps(dataset))
@@ -111,12 +112,42 @@ class StorageTests(unittest.TestCase):
             (canonical / "list-references").mkdir(parents=True)
             (evidence / "list-references").mkdir(parents=True)
             selected = canonical / "selected.json"
-            payload = {"schema_version": 1, "tool": "web_fetch", "cases": [{"id": "case-a"}]}
+            payload = {"schema_version": 1, "tool": "web_fetch", "cases": [{
+                "id": "case-a", "source_benchmark": {
+                    "mode": "dynamic_list_structure",
+                    "verification_scope": "first_three_name_detail_pairs",
+                },
+            }]}
             selected.write_text(json.dumps(payload))
             (evidence / "dataset.json").write_text(json.dumps(payload))
             for base in (canonical, evidence):
                 (base / "list-references" / "case-a.json").write_text("{}")
             (canonical / "list-references" / "case-b.json").write_text("{}")
+            require_canonical_inputs(evidence, canonical, canonical_dataset=selected)
+
+    def test_selected_dataset_includes_declared_grouped_source_root(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            canonical, evidence = root / "evaluation", root / "evidence"
+            relative = Path("sources/frozen-contract/case-a/stable-page.txt")
+            for base in (canonical, evidence):
+                (base / relative).parent.mkdir(parents=True)
+                (base / relative).write_text("Stable\n")
+            payload = {
+                "schema_version": 1,
+                "tool": "web_fetch",
+                "dynamic_scoring": {},
+                "id": "popular",
+                "cases": [{
+                    "id": "case-a",
+                    "source_benchmark": {
+                        "stable_annotation": {"anchor_evidence": relative.as_posix()}
+                    },
+                }],
+            }
+            selected = canonical / "popular-dataset.json"
+            selected.write_text(json.dumps(payload))
+            (evidence / "dataset.json").write_text(json.dumps(payload))
             require_canonical_inputs(evidence, canonical, canonical_dataset=selected)
 
     def test_rerun_selection_requires_complete_baseline(self):

@@ -6,14 +6,14 @@
   "dynamic_scoring": "按独立观察的稳定页面文字与页面实际结构验收；不冻结动态条目和值。",
   "coverage_plan": {
     "challenge": [
-      "crawl4ai",
-      "moli-webfetch",
-      "deepseek-harness-built-in",
       "cowagent-built-in",
+      "crawl4ai",
+      "deepseek-harness-built-in",
       "langchain-webbase",
-      "openclaw-built-in",
       "lexmount-cn",
-      "lexmount-global"
+      "lexmount-global",
+      "moli-webfetch",
+      "openclaw-built-in"
     ]
   },
   "comparison": {
@@ -22,7 +22,7 @@
     "concurrency": 1,
     "runs_per_case": 1,
     "reference_binding_mode": "hash_bound_stable_text_and_structure",
-    "publication_state": "frozen_ready_for_formal_execution",
+    "publication_state": "measured_independently_reviewed",
     "unverified_reference_cases": [],
     "require_independent_result_review": true,
     "fresh_formal_result_count": 800,

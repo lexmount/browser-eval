@@ -47,9 +47,13 @@ def independent_case(case):
 
 def independent_attempt(row):
     # Do not prime the independent reviewer with machine verdicts, scores or
-    # large derived URL inventories. Those are joined only after review.
+    # derived scores. Native structured links are part of the provider's saved
+    # response and must remain visible, otherwise named-link tasks cannot be
+    # audited from the complete output.
     result = {key: row[key] for key in
               ('attempt_id', 'provider', 'artifact', 'request_ok', 'error_type')}
+    if row.get('structured_links'):
+        result['structured_links'] = row['structured_links']
     if row.get('file_artifacts'):
         result['file_artifacts'] = row['file_artifacts']
     if row.get('raw_response_artifact'):
@@ -104,6 +108,7 @@ def main():
             'artifact': str(evidence/record['artifact_path']),
             'request_ok': record['ok'], 'error_type': record.get('error_type'),
             'metrics': record['metrics'],
+            'structured_links': record.get('provider_metadata', {}).get('links', []),
             'file_artifacts': [str(evidence/file['artifact_path']) for file in
                                record.get('provider_metadata',{}).get('file_evaluation',{}).get('files',[])
                                if file.get('artifact_path')],
@@ -123,7 +128,7 @@ def main():
                 raise ValueError(f'Batch {batch_index} has output without its blinded input packet')
             saved_packet = json.loads(packet.read_text())
             if any(set(row) - {'attempt_id','provider','artifact','request_ok','error_type',
-                               'file_artifacts','raw_response_artifact'}
+                               'structured_links','file_artifacts','raw_response_artifact'}
                    for row in saved_packet.get('attempts', [])):
                 raise ValueError(f'Batch {batch_index} exposes machine judgments; use a new review directory')
             result = json.loads(output.read_text())

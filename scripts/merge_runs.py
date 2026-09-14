@@ -65,7 +65,9 @@ def main() -> None:
                 raise SystemExit(f"canonical dataset mismatch: {key}")
         frozen_comparison = frozen.get("comparison", {})
         run_comparison = run_canonical.get("comparison", {})
-        binding_fields = {"reference_binding_mode", "unverified_reference_cases"}
+        binding_fields = {
+            "reference_binding_mode", "unverified_reference_cases", "publication_state",
+        }
         if {
             key: value for key, value in frozen_comparison.items() if key not in binding_fields
         } != {
@@ -115,28 +117,14 @@ def main() -> None:
         by_provider[provider] = (path, records, infos[0], manifest)
 
     args.output.mkdir(parents=True)
-    if args.canonical_dataset:
-        canonical_root = args.canonical_dataset.parent
-        scoped_roots = set(case_ids) | {canonical["id"]}
-        source_root = canonical_root / "sources"
-        for source in source_root.rglob("*"):
-            if not source.is_file() or source.relative_to(source_root).parts[0] not in scoped_roots:
-                continue
-            target = args.output / "sources" / source.relative_to(source_root)
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, target)
-        references = canonical_root / "list-references"
-        for source in references.glob("*.json") if references.is_dir() else []:
-            if source.stem not in case_ids:
-                continue
-            target = args.output / "list-references" / source.name
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, target)
-    else:
-        for folder in ("sources", "list-references"):
-            source = args.runs[0] / folder
-            if source.exists():
-                shutil.copytree(source, args.output / folder)
+    # Canonical dataset JSON is held in Git, while its independently captured
+    # source bytes remain in the complete provider evidence. The trees were
+    # compared byte-for-byte above, so copy one verified tree even when a
+    # canonical dataset overlay is supplied.
+    for folder in ("sources", "list-references"):
+        source = args.runs[0] / folder
+        if source.exists():
+            shutil.copytree(source, args.output / folder)
     (args.output / "artifacts").mkdir()
 
     merged: list[dict] = []

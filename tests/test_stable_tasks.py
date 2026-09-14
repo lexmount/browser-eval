@@ -12,6 +12,13 @@ def contract(schema, count=2, **extra):
 
 
 class StableTaskTests(unittest.TestCase):
+    def test_page_identity_decodes_visible_html_entities(self):
+        rules = contract("page_identity", count=0, stable_text_anchors=[
+            {"id": "phrase", "alternatives": ["Hop in when you're free"]},
+        ])
+        result = evaluate_stable_task("Hop in when you&#x27;re free", rules)
+        self.assertTrue(result["stable_task_pass"])
+
     def check(self, text, schema="product", count=2, **extra):
         return evaluate_stable_task(text, contract(schema, count, **extra), "https://example.test/catalog")
 

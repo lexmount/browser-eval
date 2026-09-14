@@ -18,7 +18,7 @@
   "runs_per_case": 1,
   "concurrency": 1,
   "reference_binding_mode": "hash_bound_stable_text_and_structure",
-  "publication_state": "frozen_ready_for_formal_execution",
+  "publication_state": "measured_independently_reviewed",
   "unverified_reference_cases": [],
   "require_independent_result_review": true,
   "formal_result_count": 800,

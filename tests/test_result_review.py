@@ -7,9 +7,21 @@ import unittest
 from harness.web_fetch.result_review import require_result_review
 from scripts.merge_result_review_revision import merge, merge_replacement
 from scripts.revise_body_scoring import rebind_unchanged_result_review
+from scripts.review_headless_results import independent_attempt
 
 
 class ResultReviewTests(unittest.TestCase):
+    def test_blind_packet_keeps_native_structured_links_without_scores(self):
+        packet = independent_attempt({
+            'attempt_id': 'p__a__r001', 'provider': 'p', 'artifact': '/tmp/a.txt',
+            'request_ok': True, 'error_type': None,
+            'structured_links': [{'text': 'Story', 'href': 'https://example.test/story'}],
+            'machine_verdict': 'pass', 'metrics': {'stable_task_pass': True},
+        })
+        self.assertEqual(packet['structured_links'][0]['text'], 'Story')
+        self.assertNotIn('machine_verdict', packet)
+        self.assertNotIn('metrics', packet)
+
     def fixture(self, root):
         dataset={'comparison':{'require_independent_result_review':True},
                  'cases':[{'id':'a','task_kind':'body'}]}

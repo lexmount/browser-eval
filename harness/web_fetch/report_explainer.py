@@ -19,6 +19,7 @@ from .safety import contained_path, safe_identifier
 TITLE = '网页抓取成功之后，内容离可用还有多远'
 HEADLESS_TITLE = 'Moli Web Fetch 实测：五款浏览器，150 道任务'
 GLOBAL_HOMEPAGE_TITLE = '全球热门网站首页：Lexmount 本轮取得了什么'
+POPULAR_SITES_TITLE = '100 个热门网站：八种 Web Fetch 方法的阶段结果'
 from .publication_target import HUB
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).parent / 'templates/interpretation.html'
@@ -410,12 +411,92 @@ def _is_global_homepage_run(records):
                 ('global-homepage-', 'china-homepage-', 'challenge-')) for r in records))
 
 
-def article_title(records):
+def _is_popular_sites_comparison(cases, records):
+    return (bool(records) and len({r.get('provider') for r in records}) > 1
+            and all(c.get('category') in {'global_homepage', 'popular_site'}
+                    for c in cases.values()))
+
+
+def article_title(records, cases=None):
     if _is_headless_comparison(records):
         return HEADLESS_TITLE
     if _is_global_homepage_run(records):
         return GLOBAL_HOMEPAGE_TITLE
+    if cases and _is_popular_sites_comparison(cases, records):
+        return POPULAR_SITES_TITLE
     return TITLE
+
+
+def _render_popular_sites_comparison(out, cases, records):
+    """Explain the interim matrix without importing claims from the mixed benchmark."""
+    def passed(row):
+        case = cases[row['case_id']]
+        return task_passed(row['ok'], row['metrics'], case.get('task_kind', 'body'))
+
+    providers = sorted({row['provider'] for row in records})
+    ranked = []
+    evidence = {'schema_version': 1, 'title': POPULAR_SITES_TITLE,
+                'cases': len(cases), 'attempts': len(records), 'providers': []}
+    for provider in providers:
+        rows = [row for row in records if row['provider'] == provider]
+        request_ok = sum(bool(row['ok']) for row in rows)
+        task_pass = sum(passed(row) for row in rows)
+        ranked.append((provider, request_ok, task_pass, len(rows)))
+        evidence['providers'].append({'provider': provider, 'attempts': len(rows),
+                                      'request_ok': request_ok, 'task_pass': task_pass})
+    ranked.sort(key=lambda row: (-row[2], -row[1], row[0]))
+    rows = [
+        (f'<a href="../providers/{escape(provider)}.html">{escape(PROVIDER_NAMES.get(provider, provider))}</a>',
+         f'{request_ok}/{total}（{request_ok/total:.1%}）',
+         f'{task_pass}/{total}（{task_pass/total:.1%}）')
+        for provider, request_ok, task_pass, total in ranked
+    ]
+    ranking = _table(['方法', '请求成功', '任务通过'], rows,
+                     '同一组 100 个热门网站案例；请求成功与任务通过分开统计')
+    schemas = Counter(case.get('acceptance_contract', {}).get('schema', 'undeclared')
+                      for case in cases.values())
+    review_path = contained_path(out, 'result-review.json')
+    review = json.loads(review_path.read_text()) if review_path.is_file() else {}
+    review_text = (f'{review.get("reviewed_attempts", 0)}/{review.get("expected_attempts", len(records))} 条结果完成盲审，'
+                   f'分歧 {review.get("disagreements", 0)}，未决 {review.get("unresolved", 0)}。')
+    body = (
+        '<article><header class="article-header"><p class="eyebrow">Web Fetch · 8/12 方法阶段报告</p>'
+        f'<h1>{POPULAR_SITES_TITLE}</h1><p class="article-lead">同一组 100 个热门网站案例分别交给八种方法。'
+        '这是一份阶段结果，不是十二种方法的最终排行；Cloudflare、Firecrawl、Tavily 和 Exa 尚未运行。</p>'
+        f'<p class="article-meta">{len(cases)} 个案例 · {len(providers)} 种已测方法 · {len(records)} 条权威逻辑结果 · 每题一次</p></header>'
+        '<section><h2>先分清两个成功率</h2><p>请求成功只表示调用正常返回；任务通过还要求返回内容命中预先冻结的稳定文字，'
+        '并在适用时形成至少三条名称和详情链接都合格的唯一记录。错误页、登录页和空壳输出不能因为“有文字”就算通过。</p>'
+        + ranking + '</section>'
+        '<section><h2>这一轮具体在检查什么</h2>'
+        f'<p>100 个案例中，{schemas.get("page_identity", 0)} 个使用页面身份规则，'
+        f'{schemas.get("named_link", 0)} 个还检查具名详情链接结构。稳定文字来自独立页面观察；'
+        '新闻标题、价格、排名、推荐条目和活动文案不冻结成长期答案。</p>'
+        '<p>本轮没有任何案例登记完整正文参考，因此全文 Precision、Recall 和 F1 显示为不可用。'
+        '这不表示正文质量满分或零分，也不表示这些网站都“没有正文”；它只表示本任务族选择了稳定页面身份与结构作为验收目标。</p></section>'
+        '<section><h2>怎样读排行</h2><p>每个方法都保留失败项在 100 题分母中，没有为提高分数而重试。'
+        '不同方法各自通过项的延迟分布不是同一批页面，不能直接当作严格的同题速度排行；需要速度结论时，应另取所有方法共同通过的预注册子集。</p>'
+        f'<p>{review_text}盲审时隐藏机器分数和判定，只提供任务契约与完整保存输出。</p></section>'
+        '<section><h2>阶段边界</h2><p>当前八种方法的结果不会用来调整尚未运行四种方法的名单、案例或评分规则。'
+        '等剩余 400 条结果完成并通过同样审查后，才能形成 12 方法、1,200 条结果的最终报告；本阶段只提供私有预览。</p></section></article>')
+    evidence['review'] = {'reviewed_attempts': review.get('reviewed_attempts', 0),
+                          'expected_attempts': review.get('expected_attempts', len(records)),
+                          'disagreements': review.get('disagreements', 0),
+                          'unresolved': review.get('unresolved', 0)}
+    contained_path(out, 'guide').mkdir(parents=True, exist_ok=True)
+    contained_path(out, 'guide/interpretation-evidence.json').write_text(
+        json.dumps(evidence, ensure_ascii=False, indent=2) + '\n')
+    standalone_body = body.replace('href="../providers/', f'href="{HUB}/providers/')
+    contained_path(out, 'guide/article.html').write_text(
+        '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        f'<title>{POPULAR_SITES_TITLE}</title><style>{STYLE}</style></head>'
+        f'<body class="standalone-article"><main class="wrap essay">{standalone_body}</main></body></html>')
+    downloads = ('<aside id="evidence" class="editorial-downloads" aria-label="文章与证据下载"><h2>文章与证据下载</h2><p>'
+                 '<a href="article.html" download>下载独立 HTML</a> · '
+                 '<a href="interpretation-evidence.json" download>下载本文计算明细</a> · '
+                 '<a href="../results.jsonl" download>下载规范化执行记录</a> · '
+                 '<a href="../result-review.json" download>下载逐项审计记录</a></p></aside>')
+    return f'<div class="wrap essay">{body}{downloads}</div>'
 
 
 def _render_global_homepages(out, cases, records):
@@ -761,6 +842,8 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
         return _render_headless(out,cases,records)
     if _is_global_homepage_run(records):
         return _render_global_homepages(out,cases,records)
+    if _is_popular_sites_comparison(cases, records):
+        return _render_popular_sites_comparison(out, cases, records)
     data = collect_evidence(cases, records)
     data['initial_reference_audit'] = _bound_initial_audit(cases)
     data['dynamic']['loading_attempts'] = []

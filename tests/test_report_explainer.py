@@ -10,13 +10,39 @@ import unittest
 
 from harness.web_fetch.scoring import score_attempt
 from harness.web_fetch.report import cell, link, table, succeeded, measured
-from harness.web_fetch.report_explainer import HUB, _bound_initial_audit, _dynamic_section, collect_evidence, render_explainer
+from harness.web_fetch.report_explainer import HUB, POPULAR_SITES_TITLE, _bound_initial_audit, _dynamic_section, article_title, collect_evidence, render_explainer
 from harness.web_fetch.report_style import STYLE
 from scripts.probe_cowagent_text import probe
 from harness.web_fetch.storage import current_evidence_dir
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = current_evidence_dir()
+
+
+class PopularSitesExplainerTests(unittest.TestCase):
+    def test_multi_method_popular_sites_uses_stage_specific_article(self):
+        cases = {
+            "case-a": {"id": "case-a", "name": "A", "category": "popular_site",
+                       "acceptance_contract": {"schema": "page_identity"}},
+            "case-b": {"id": "case-b", "name": "B", "category": "global_homepage",
+                       "acceptance_contract": {"schema": "named_link"}},
+        }
+        records = [
+            {"attempt_id": f"{provider}__{case_id}__r001", "provider": provider,
+             "case_id": case_id, "ok": True, "metrics": {"stable_task_pass": True}}
+            for provider in ("crawl4ai", "moli-webfetch") for case_id in cases
+        ]
+        with tempfile.TemporaryDirectory() as folder:
+            out = Path(folder)
+            page = render_explainer(out, cases, records, table=table, cell=cell, link=link)
+            evidence = json.loads((out / "guide/interpretation-evidence.json").read_text())
+            standalone = (out / "guide/article.html").read_text()
+        self.assertEqual(article_title(records, cases), POPULAR_SITES_TITLE)
+        self.assertIn("8/12 方法阶段报告", page)
+        self.assertEqual(evidence["attempts"], 4)
+        self.assertEqual(evidence["providers"][0]["attempts"], 2)
+        self.assertNotIn('href="../providers/', standalone)
+        self.assertIn(f'href="{HUB}/providers/', standalone)
 
 
 def _is_general_report_evidence():

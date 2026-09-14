@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from datetime import date
 import re
+from html import unescape
 import unicodedata
 from urllib.parse import urlsplit
 
@@ -125,7 +126,7 @@ def _unwrap_links(text, schema):
 
 
 def _visible(text, schema=None):
-    text = clean_reference_text(text)
+    text = unescape(clean_reference_text(text))
     # Extractors represent Markdown hard breaks using one or two backslashes.
     text = re.sub(r"\\{1,2}[ \t]*(?=\n)", "", text)
     text = _unwrap_links(text, schema)

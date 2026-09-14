@@ -28,7 +28,15 @@ def track_label(track, cases=None):
   if values and all(c.get('category') in {'global_homepage','popular_site'} for c in values):
    return '热门网站首页'
  return TRACKS[track]
-PROVIDER_LABELS={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.1','moli-1.1.3':'Moli 1.1.3'}
+PROVIDER_LABELS={
+ 'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.1','moli-1.1.3':'Moli 1.1.3',
+ 'crawl4ai':'Crawl4AI','moli-webfetch':'Moli WebFetch',
+ 'deepseek-harness-built-in':'DeepSeek Harness Built-in',
+ 'cowagent-built-in':'CowAgent Built-in','langchain-webbase':'LangChain WebBase',
+ 'openclaw-built-in':'OpenClaw Built-in','lexmount-cn':'Lexmount CN',
+ 'lexmount-global':'Lexmount Global','cloudflare-markdown':'Cloudflare Markdown',
+ 'firecrawl':'Firecrawl','tavily':'Tavily','exa':'Exa',
+}
 ROUTE_LABELS={
  'cloudflare_native_markdown':'Cloudflare Browser Run /markdown 直接返回 Markdown',
  'lightpanda_native_markdown':'Lightpanda CLI 直接返回 Markdown',
@@ -102,6 +110,17 @@ def cell(value,sort=None):return f'<td'+(f' data-sort="{sort}"' if sort is not N
 def rate(a,b):return pct(a/b) if b else '—'
 def section(title,body,id=''):return f'<section class="section"'+(f' id="{id}"' if id else '')+f'><div class="wrap"><h2>{title}</h2>{body}</div></section>'
 def hero(title,desc):return f'<section class="hero"><div class="wrap"><div class="eyebrow">Web Fetch · 实测报告</div><h1>{title}</h1><p class="lead">{desc}</p></div></section>'
+
+def stage_notice(dataset):
+ comparison=dataset.get('comparison',{})
+ deferred=comparison.get('deferred_providers') or []
+ if not deferred:return ''
+ labels='、'.join(provider_label(name) for name in deferred)
+ stage_raw=comparison.get('stage_label') or '阶段性结果'
+ stage=esc({'8/12 methods interim':'8/12 种方法阶段报告'}.get(stage_raw,stage_raw))
+ return (f'<div class="wrap"><p class="callout"><b>阶段性结果：{stage}</b>。'
+         f'本页只排名已经完整运行的 {len(dataset.get("coverage_plan",{}).get("challenge",[]))} 种方法；'
+         f'{esc(labels)} 尚未运行，不计为失败或 0 分。12 种方法全部完成并审查前，不发布最终排行。</p></div>')
 def table(headers,rows,id='',sortable=False,cls='',metrics=None,index_header='序号'):
  head=f'<th>{esc(index_header)}</th>'+''.join(f'<th><button class="sort-button" onclick="sortTable(\'{id}\',{i+1})">{h} ↕</button></th>' if sortable else f'<th>{h}</th>' for i,h in enumerate(headers))
  body=''.join(f'<tr{attrs}><td>{i+1}</td>{values}</tr>' for i,(attrs,values) in enumerate(rows))
@@ -663,9 +682,12 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  for track,label in TRACKS.items():
   cards+=overview_card(records,cases,track,label,names)
  active_tracks=[track for track in TRACKS if any(c.get('track','web')==track for c in cases.values())]
- home='<div class="home-page">'+hero('Web Fetch 评测报告',f'{len(cases)} 个案例 · {len(names)} 种方法 · {len(active_tracks)} 个实际分榜与一个综合通过率总榜。')
+ report_title=('热门网站 Web Fetch 阶段报告'
+               if dataset.get('comparison',{}).get('kind')=='popular_sites' and len(names)>1
+               else 'Web Fetch 评测报告')
+ home='<div class="home-page">'+hero(report_title,f'{len(cases)} 个案例 · {len(names)} 种方法 · {len(active_tracks)} 个实际分榜与一个综合通过率总榜。')+stage_notice(dataset)
  from .report_explainer import article_title,render_explainer
- TITLE=article_title(records)
+ TITLE=article_title(records,cases)
  home+='<aside class="wrap home-reading" aria-label="报告解读"><div><strong>报告解读</strong><p>'+link('guide/index.html',TITLE)+'</p></div><p>从分数差异、失败案例和实现机制，理解如何选择抓取方法。</p>'+link('guide/index.html','阅读全文 →')+'</aside>'
  write(out,'guide/index.html','报告解读',render_explainer(out,cases,records,table=table,cell=cell,link=link))
  panels=[]
@@ -1017,6 +1039,9 @@ def write_review_page(out,records):
 
 def write_support(out,records,manifests):
  headless=bool(records) and all(r.get('provider_type') in {'headless_html','headless_markdown'} for r in records)
+ popular_stage={r.get('provider') for r in records} == {
+  'crawl4ai','moli-webfetch','deepseek-harness-built-in','cowagent-built-in',
+  'langchain-webbase','openclaw-built-in','lexmount-cn','lexmount-global'} and len(records)==800
  from .report_components import task_contract_guide
  methodology=hero('评测方法','按任务定义验收规则。同组已测方法使用相同的冻结任务与参考，覆盖数量在各榜单列明。')
  if headless:
@@ -1053,6 +1078,10 @@ def write_support(out,records,manifests):
  methodology+=section('计算与边界','''<details><summary>全文评分公式</summary><p>完整度＝取回的参考词数 ÷ 参考词数；纯净度＝匹配的正文词数 ÷ 返回词数；F1＝2 × 完整度 × 纯净度 ÷ 两者之和。英文按词、中文按字，统一大小写与 Unicode 字符形式；Markdown 链接只计文字。对有完整参考的全部案例取平均；请求失败计 0，请求成功但任务未通过仍按实际正文评分，没有参考不计算。</p></details><details><summary>参考范围与公平性</summary><p>网页、文档使用独立保存的参考正文；仓库以 README 为准，列表只覆盖指定的已加载范围，不要求无限滚动或跨页翻页。登录页和验证码不能代替目标正文。参考正文自身包含的“404 Not Found”等术语不作为错误页判据。</p><p>不同方法并行，同一方法串行；正文结束后再测其他任务。Firecrawl 每次完成后冷却 6.1 秒。本报告不是 WCXB 官方榜单。</p><p>媒体网址只证明找到入口，不代表取得文件。文件任务没有另接下载器代替参评方法完成。</p></details>''')
  if headless:
   methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。','七种方法每次使用新进程或新上下文。静态网页正文：Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura 与 Moli 1.0.6、1.1.1、1.1.3 使用各自 CLI 正文能力，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。三个 Moli 版本遇到直接 PDF、DOCX、图片或视频 URL 时均使用不带 --dump 和页面等待参数的自动响应；正文任务在预算内解析可读文字，文件任务直接校验字节。原始主矩阵未启用失败重试，每次调用有 45 秒端到端预算。运行器可在测量前声明至多一次失败重试：保留全部物理证据和总耗时，并固定采用最后一次结果，不能择优。已确认的命令、版本、裁判、参考或测量错误可按完整声明范围重测并替换权威逻辑结果；旧证据不得删除。本报告另对四题、三个 Moli 版本做三轮配对时延纠正，统一采用最终轮的 12 个耗时，不挑最快；内容、评分和判定未改变。方法之间并行、同一方法串行。')
+ if popular_stage:
+  methodology=methodology.replace(
+   'Firecrawl 每次完成后冷却 6.1 秒。',
+   '本阶段八种方法之间并行、每种方法内部按 100 个案例串行；每题一次，外层端到端截止 45 秒。Crawl4AI 仅在自身路线内使用 40 秒页面上限、DOMContentLoaded 后 1 秒稳定等待和 5 秒清理余量，其他方法不受该内部策略影响。')
  write(out,'methodology/index.html','评测方法',methodology)
  downloads=' · '.join(link('../'+path,label) for path,label in [('dataset.json','评测集与参考'),('results.jsonl','全部调用记录'),('summary.json','分类汇总'),('execution.json','执行批次')]+([('implementation-provenance.json','版本回溯证据')] if (out/'implementation-provenance.json').is_file() else [])+([('reference-revisions.json','参考修订收据')] if (out/'reference-revisions.json').is_file() else [])+([('scoring-revisions.json','评分修订收据')] if (out/'scoring-revisions.json').is_file() else [])+([('latency-corrections.json','时延纠正收据')] if (out/'latency-corrections.json').is_file() else [])+([('task-rerun.json','定向重跑收据')] if (out/'task-rerun.json').is_file() else [])+([('verification-observations.json','重复观察记录')] if (out/'verification-observations.json').is_file() else []))
  reproduce='<p>在评测仓库中执行；读取 evaluation/ 的当前实测数据，不调用供应商接口。</p><pre>make setup\nmake report EVIDENCE=/absolute/path/to/evidence\nmake report-check</pre><p>输出目录：reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。凭据仅从本地环境加载，不包含在报告中。</p>'
@@ -1088,7 +1117,10 @@ def write_support(out,records,manifests):
  support+=section('代码与评测集',f'<p>{link(repo,"browser-eval 仓库")}保存当前评测代码、任务定义和独立参考；本报告另提供本轮冻结结果供复核。</p><p>{downloads}</p>')
  if (out/'speed-cohort/speed-comparison.json').is_file():
   support+=section('同窗速度证据','<p>'+link('../speed-cohort/speed-comparison.json','速度汇总与共同成功样本')+' · '+link('../speed-cohort/results.jsonl','速度子集逐次记录')+'</p>')
- support+=section('公共条件',f'<p>最终报告纳入 {len(records):,} 次调用。任务与参考冻结后执行；每个方法内部串行，不复用个人登录状态。</p>'+table(['参数','值'],common,metrics=[]))
+ report_scope='本阶段报告' if popular_stage else '最终报告'
+ support+=section('公共条件',f'<p>{report_scope}纳入 {len(records):,} 次调用。任务与参考冻结后执行；每个方法内部串行，不复用个人登录状态。</p>'+table(['参数','值'],common,metrics=[]))
+ if popular_stage:
+  support+=section('费用与物理调用','<p>主榜采用 800 条权威逻辑结果。执行期间另保留 Moli 25 条、Lexmount CN 45 条未完成批次作为被替代历史，因此实际发生 870 次物理调用；没有从新旧批次中择优。</p><div class="guide-grid"><article class="guide-card"><h3>六种本地方法</h3><p>625 次物理调用；供应商调用费为 0 美元。本机算力、网络、存储和维护成本没有计量，不能解释为总成本为零。</p></article><article class="guide-card"><h3>两个 Lexmount 方法</h3><p>245 次物理调用。结果接口与现有账单证据没有提供可核验的逐次或本轮金额，因此实际金额标为“无法从现有证据获得”，不使用公开价格或估算冒充实付费用。</p></article></div><p>'+link(repo+'/blob/main/research/popular-sites-8-method-execution-revisions.json','查看完整范围替换记录')+'</p>')
  support+=section('方法版本','<p>“事后核验”只说明留存二进制与官方归档完全一致，不改写成当时已经记录了版本。移动 nightly 无法追到不可得的源修订时，只用 SHA-256 标识精确可执行文件。</p>'+table(['方法','版本','身份依据','部署路径','二进制 SHA-256','调用数'],provider_rows,metrics=[]))
  if headless:
   support+=section('发布与加载','<p>本地构建为每个任务、方法和证据生成可独立检查的逻辑路由；这不等于线上部署同样数量的独立 HTML。发布器会把整份报告编译成一个通用 HTML 外壳、共享样式与脚本，以及按内容寻址的压缩数据块。页面切换由前端路由完成，证据只在打开对应页面时读取，超过 256 KiB 的完整文本还需用户主动加载。</p><p class="source-note">发布清单记录逻辑路由数、源文件数、压缩块数和逐文件 SHA-256；发布门禁会重建每个文件并验证内部链接与原始下载字节。这样保留逐项可审计性，同时避免重复页面骨架和一次性加载全部证据。</p>')
@@ -1109,6 +1141,8 @@ def write_support(out,records,manifests):
  else:
   accounts=ACCOUNT_REGISTRY
   accountrows=[('',cell(esc(a['provider']))+cell(link(a['registration_url'],'注册 / 登录')+'<br>'+link(a['key_url'],'获取凭据'))+cell('<br>'.join('<code>'+esc(x)+'</code>' for x in a['env_vars']))+cell(esc(a['steps']))+cell(esc(a['free_note']))) for a in accounts]
-  write(out,'accounts/index.html','账号',hero('账号与凭据','只列官方入口和环境变量名称，不保存实际凭据。')+section('注册清单',table(['提供方','官方入口','环境变量','取得方式','免费 / 准入说明'],accountrows,cls='accounts-table')))
+  account_note=('本阶段只有 Lexmount CN 与 Lexmount Global 使用托管凭据；Cloudflare、Firecrawl、Tavily 和 Exa 的入口为完成最终 12 方法矩阵预留，它们尚未运行。'
+                if popular_stage else '')
+  write(out,'accounts/index.html','账号',hero('账号与凭据','只列官方入口和环境变量名称，不保存实际凭据。')+section('注册清单',('<p class="callout">'+account_note+'</p>' if account_note else '')+table(['提供方','官方入口','环境变量','取得方式','免费 / 准入说明'],accountrows,cls='accounts-table')))
  from .report_methods import render_methods
  write(out,'adoption/index.html','方法介绍',render_methods(out,records,hero=hero,section=section,table=table,cell=cell,link=link,esc=esc))

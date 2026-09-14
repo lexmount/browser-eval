@@ -32,12 +32,26 @@ def extract_named_entries(content,contract,base_url,links=None):
     # remain block boundaries and must not join unrelated cards.
     markdown=re.sub(r'\[([^\[\]]*\n[^\[\]]*)\]\((https?://[^\s)]+|/[^\s)]+)\)',
         lambda m: m[0] if re.search(r'\n\s*\n', m[1]) else '['+re.sub(r'\s+', ' ', m[1])+']('+m[2]+')', markdown)
+    markdown_link = re.compile(r'\[([^\n]+?)\]\((https?://[^\s)]+|/[^\s)]+)\)')
     for line in markdown.splitlines():
-        for match in re.finditer(r'\[([^\n]+?)\]\((https?://[^\s)]+|/[^\s)]+)\)',line):
+        matches = list(markdown_link.finditer(line))
+        # Some native serializers flatten a list/grid into consecutive links
+        # on one physical line. If removing every explicit link leaves only
+        # separators, each link still owns its own visible title. Ordinary
+        # prose around links remains excluded.
+        link_only_line = not re.search(r'\w', markdown_link.sub('', line), re.UNICODE)
+        # Navigation/list serializers can flatten many links onto one physical
+        # line while leaving short unlinked group labels between them. High
+        # link density distinguishes that shape from prose with inline links.
+        linked_chars = sum(match.end() - match.start() for match in matches)
+        link_collection_line = (len(matches) >= 3 and linked_chars >= 0.8 * len(line))
+        for match in matches:
             # Prose recommendations are not list entries. Allow headings, bullets
             # and ranks before a card link, but not a preceding sentence.
             prefix=line[:match.start()].strip()
-            if prefix and not re.fullmatch(r'[\s#>*\-\d.)|]*',prefix):continue
+            if (prefix and not link_only_line and not link_collection_line
+                    and not re.fullmatch(r'[\s#>*\-\d.)|]*',prefix)):
+                continue
             items.append((match[2],match[1]))
     lines=content.splitlines()
     for i,line in enumerate(lines):
