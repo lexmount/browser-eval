@@ -176,7 +176,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertEqual(profile['artifact_hub_site'], 'RSdbALdbdNG6')
         self.assertEqual(
             profile['artifact_hub_expected_version'],
-            'ver_be0b5445f043498da0b43093b2d890e3',
+            'ver_357337c8b6b6466e9b34bea358a4975e',
         )
 
     def test_current_rerun_plan_is_exact_and_complete(self) -> None:
