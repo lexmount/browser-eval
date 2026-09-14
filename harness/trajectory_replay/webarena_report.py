@@ -428,6 +428,22 @@ def build_webarena_replay_report(
     _write_json(output / "data/results.json", public_rows)
     _write_json(output / "data/metrics.json", {"methods": method_rows, "passing_intersection": len(passing_tasks)})
 
+    source_counts: dict[str, int] = defaultdict(int)
+    for task in tasks.values():
+        source_counts[str((task.get("source") or {}).get("kind") or "unknown")] += 1
+    browser_use_source_count = source_counts["authoritative_successful_browser_use_execution"]
+    repaired_source_count = source_counts["expert_repair_spec"]
+    reference_engine = str((profile.get("qualification") or {}).get("reference_engine") or "")
+    reference_method = methods.get(reference_engine)
+    reference_row = next(
+        (item for item in method_rows if item["engine"] == reference_engine),
+        None,
+    )
+    if reference_method is None or reference_row is None:
+        raise ValueError("profile qualification reference engine must be a registered participant")
+    reference_label = _e(reference_method["label"])
+    reviewed_failure_count = len(reviews)
+
     for lang in ("zh", "en"):
         zh = lang == "zh"
         root = output if zh else output / "en"
@@ -501,7 +517,7 @@ def build_webarena_replay_report(
                 label = ("通过" if row["status"] == "pass" else "失败") if zh else row["status"].title()
                 values.append(f'<a class="status-{row["status"]}" href="result/{row["key"]}.html">{label}</a>')
             matrix_rows.append(f'<tr><td>{task_id}</td><td>{_e(", ".join(task["task"].get("sites") or []))}</td>{"".join(f"<td>{v}</td>" for v in values)}</tr>')
-        dataset_body = f'<section class="hero"><h1>{"90 条标准轨迹" if zh else "90 qualified trajectories"}</h1><p>{"每题一条固定操作轨迹。60 条来自干净的 Browser Use 成功执行，30 条经修复后重新在 Chromium 验证。" if zh else "One fixed trajectory per task: 60 clean Browser Use successes and 30 repaired trajectories re-qualified on Chromium."}</p></section><section><h2>{"逐题结果矩阵" if zh else "Per-task result matrix"}</h2><div class="table-scroll"><table><thead><tr>{"".join(f"<th>{_e(h)}</th>" for h in headers)}</tr></thead><tbody>{"".join(matrix_rows)}</tbody></table></div></section>'
+        dataset_body = f'<section class="hero"><h1>{f"{task_count} 条标准轨迹" if zh else f"{task_count} qualified trajectories"}</h1><p>{f"每题一条固定操作轨迹。{browser_use_source_count} 条来自干净的 Browser Use 成功执行，{repaired_source_count} 条经修复后重新在 {reference_label} 验证。" if zh else f"One fixed trajectory per task: {browser_use_source_count} clean Browser Use successes and {repaired_source_count} repaired trajectories re-qualified on {reference_label}."}</p></section><section><h2>{"逐题结果矩阵" if zh else "Per-task result matrix"}</h2><div class="table-scroll"><table><thead><tr>{"".join(f"<th>{_e(h)}</th>" for h in headers)}</tr></thead><tbody>{"".join(matrix_rows)}</tbody></table></div></section>'
         (root / "dataset.html").write_text(_shell(lang, "dataset", "Dataset", dataset_body), encoding="utf-8")
 
         result_rows = []
@@ -533,10 +549,10 @@ def build_webarena_replay_report(
   V --> X[Evidence-bound result]
   X --> T[Teardown browser and sites]
   T --> R</pre>'''
-        environment_body = f'''<section class="hero"><h1>{"环境与评测流程" if zh else "Environment and evaluation flow"}</h1><p>{"192.168.5.2 是 Colima 虚拟机中的宿主网关：浏览器容器通过它访问运行在同一台 Mac 虚拟化环境里的 WebArena 站点。它不是公网测试网站。" if zh else "192.168.5.2 is the host gateway inside the Colima VM. Browser containers use it to reach the WebArena sites running in the same Mac virtualization environment; it is not a public test website."}</p></section><section><h2>{"执行拓扑" if zh else "Execution topology"}</h2>{fallback}{topology}</section><section><h2>{"隔离规则" if zh else "Isolation rules"}</h2><div class="summary-grid"><article><strong>1</strong><p>{"一套固定端口站点环境，因此只允许一个方法运行。" if zh else "One fixed-port site stack permits only one running method."}</p></article><article><strong>90</strong><p>{"一个浏览器完整跑完全部任务，每题前恢复官方夹具。" if zh else "A browser completes all tasks; official fixtures reset before each task."}</p></article><article><strong>0</strong><p>{"没有 Agent 决策和模型请求；输入是冻结的 BrowserTool 动作。" if zh else "No Agent decisions or model calls; inputs are frozen BrowserTool actions."}</p></article></div></section><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';const node=document.querySelector('.mermaid');try{{mermaid.initialize({{startOnLoad:false,theme:document.documentElement.dataset.theme==='dark'?'dark':'neutral'}});const rendered=await mermaid.render('replay-topology',node.textContent);node.innerHTML=rendered.svg;node.hidden=false;document.querySelector('[data-topology-fallback]').hidden=true}}catch(error){{node.hidden=true}}</script>'''
+        environment_body = f'''<section class="hero"><h1>{"环境与评测流程" if zh else "Environment and evaluation flow"}</h1><p>{"192.168.5.2 是 Colima 虚拟机中的宿主网关：浏览器容器通过它访问运行在同一台 Mac 虚拟化环境里的 WebArena 站点。它不是公网测试网站。" if zh else "192.168.5.2 is the host gateway inside the Colima VM. Browser containers use it to reach the WebArena sites running in the same Mac virtualization environment; it is not a public test website."}</p></section><section><h2>{"执行拓扑" if zh else "Execution topology"}</h2>{fallback}{topology}</section><section><h2>{"隔离规则" if zh else "Isolation rules"}</h2><div class="summary-grid"><article><strong>1</strong><p>{"一套固定端口站点环境，因此只允许一个方法运行。" if zh else "One fixed-port site stack permits only one running method."}</p></article><article><strong>{task_count}</strong><p>{"一个浏览器完整跑完全部任务，每题前恢复官方夹具。" if zh else "A browser completes all tasks; official fixtures reset before each task."}</p></article><article><strong>0</strong><p>{"没有 Agent 决策和模型请求；输入是冻结的 BrowserTool 动作。" if zh else "No Agent decisions or model calls; inputs are frozen BrowserTool actions."}</p></article></div></section><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';const node=document.querySelector('.mermaid');try{{mermaid.initialize({{startOnLoad:false,theme:document.documentElement.dataset.theme==='dark'?'dark':'neutral'}});const rendered=await mermaid.render('replay-topology',node.textContent);node.innerHTML=rendered.svg;node.hidden=false;document.querySelector('[data-topology-fallback]').hidden=true}}catch(error){{node.hidden=true}}</script>'''
         (root / "environment.html").write_text(_shell(lang, "environment", "Environment", environment_body), encoding="utf-8")
 
-        review_body = f'''<section class="hero"><h1>{"核验记录" if zh else "Review history"}</h1><p>{"记录影响当前数据集与结论的核验轮次；逐题证据位于结果详情页。" if zh else "Review rounds that changed the current dataset or conclusions. Per-result evidence remains on result pages."}</p></section><section><div class="summary-grid"><article><span>2026-09-15</span><strong>{"90 条轨迹资格核验" if zh else "90-trajectory qualification"}</strong><p>{"修复已确认的非浏览器问题，重新验证后 Chromium 90/90。" if zh else "Confirmed non-browser defects were repaired; Chromium then qualified 90/90."}</p></article><article><span>2026-09-15</span><strong>{"36 条失败根因复核" if zh else "36-failure root-cause review"}</strong><p>{"自动失败位置与复核根因分离；36/36 结果绑定当前证据哈希，无未解决项。" if zh else "Programmatic locations remain separate from reviewed causes; 36/36 are bound to the current evidence hash with no unresolved items."}</p></article></div></section>'''
+        review_body = f'''<section class="hero"><h1>{"核验记录" if zh else "Review history"}</h1><p>{"记录影响当前数据集与结论的核验轮次；逐题证据位于结果详情页。" if zh else "Review rounds that changed the current dataset or conclusions. Per-result evidence remains on result pages."}</p></section><section><div class="summary-grid"><article><span>2026-09-15</span><strong>{f"{task_count} 条轨迹资格核验" if zh else f"{task_count}-trajectory qualification"}</strong><p>{f"修复已确认的非浏览器问题，重新验证后 {reference_label} {reference_row['passed']}/{reference_row['total']}。" if zh else f"Confirmed non-browser defects were repaired; {reference_label} then qualified {reference_row['passed']}/{reference_row['total']}."}</p></article><article><span>2026-09-15</span><strong>{f"{reviewed_failure_count} 条失败根因复核" if zh else f"{reviewed_failure_count}-failure root-cause review"}</strong><p>{f"自动失败位置与复核根因分离；{reviewed_failure_count}/{reviewed_failure_count} 结果绑定当前证据哈希，无未解决项。" if zh else f"Programmatic locations remain separate from reviewed causes; {reviewed_failure_count}/{reviewed_failure_count} are bound to the current evidence hash with no unresolved items."}</p></article></div></section>'''
         (root / "review.html").write_text(_shell(lang, "review", "Review history", review_body), encoding="utf-8")
 
         viewer_body = f'<section class="hero"><h1>{"证据查看器" if zh else "Evidence viewer"}</h1><p>{"网页直接加载选中的净化证据；也可下载原始 JSON。" if zh else "Loads the selected sanitized evidence directly in the page; raw JSON remains downloadable."}</p></section><section class="viewer"><pre data-evidence-viewer></pre></section>'
