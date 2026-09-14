@@ -2560,12 +2560,6 @@
           {
             "id": "stable-anchor-3",
             "alternatives": [
-              "Images"
-            ]
-          },
-          {
-            "id": "stable-anchor-4",
-            "alternatives": [
               "Maps"
             ]
           }

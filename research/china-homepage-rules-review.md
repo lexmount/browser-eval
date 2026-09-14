@@ -62,7 +62,7 @@
 | 73 | `so.com` | `landing_page` | `page_identity` | 360搜索；搜全网；问AI；AI写作 | 0 |
 | 75 | `volcengine.com` | `landing_page` | `page_identity` | 火山引擎；火山方舟；精选产品；控制台 | 0 |
 | 78 | `nga.cn` | `content_list` | `page_identity` | NGA玩家社区；论坛；评分；专题 | 0 |
-| 80 | `yandex.com` | `landing_page` | `page_identity` | Yandex；Search with Yandex AI；Images；Maps | 0 |
+| 80 | `yandex.com` | `landing_page` | `page_identity` | Yandex；Search with Yandex AI；Maps | 0 |
 | 81 | `elsevier.com` | `landing_page` | `page_identity` | Elsevier；Academic & Government；Health；Publish with us | 0 |
 | 82 | `huawei.com` | `landing_page` | `page_identity` | Huawei；Enterprise；Consumer；Huawei Cloud | 0 |
 
@@ -472,7 +472,7 @@
 - 首次加载最终 URL：https://yandex.com/
 - 标签 / 模型：`landing_page` / `page_identity`
 - 规则理由：按稳定页面身份与主要功能文字验收。
-- 稳定文字：Yandex；Search with Yandex AI；Images；Maps
+- 稳定文字：Yandex；Search with Yandex AI；Maps
 - [ ] 规则同意
 
 ### 81. `elsevier.com`

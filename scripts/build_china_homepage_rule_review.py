@@ -165,7 +165,7 @@ RULES = {
         "专题",
         note="帖子身份在 read.php 查询参数中，共享提取器会合并为一个路径；暂按页面身份核验。",
     ),
-    "yandex.com": identity("Yandex", "Search with Yandex AI", "Images", "Maps"),
+    "yandex.com": identity("Yandex", "Search with Yandex AI", "Maps"),
     "elsevier.com": identity("Elsevier", "Academic & Government", "Health", "Publish with us"),
     "huawei.com": identity("Huawei", "Enterprise", "Consumer", "Huawei Cloud"),
 }

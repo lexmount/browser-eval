@@ -478,7 +478,7 @@ def valid_scoring_revision(source) -> bool:
                 and set(change.get('fields', ())) <= {
                     'body_requirements', 'required_patterns', 'required_facts',
                     'acceptance_contract', 'task_prompt', 'reference_answer',
-                    'source_benchmark',
+                    'source_benchmark', 'forbidden_any',
                 }
                 for change in row['changed_cases'])
         for index, row in enumerate(rows) if isinstance(rows, list)

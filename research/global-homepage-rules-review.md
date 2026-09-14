@@ -27,7 +27,7 @@
 | `global-homepage-005-chatgpt-com` | https://chatgpt.com/ → https://chatgpt.com/ | `entry_page` | `page_identity` | ChatGPT；Where should we begin?；Chat with ChatGPT；New chat | 0 |
 | `global-homepage-006-reddit-com` | https://reddit.com/ → https://www.reddit.com/?solution=b29b419a63795e65b29b419a63795e65&js_challenge=1&jsc_token=7afd7253fec22262ff1c52b1703fe9ec353b328cf9977367be9d31a482035156&jsc_orig_r= | `content_list` | `named_link` | POPULAR COMMUNITIES；Best；Hot | 28 |
 | `global-homepage-008-whatsapp-com` | https://whatsapp.com/ → https://www.whatsapp.com/ | `landing_page` | `page_identity` | Message privately；Never miss a moment with voice and video calls；Keep in touch with your groups；Transform your business | 0 |
-| `global-homepage-010-bing-com` | https://bing.com/ → https://www.bing.com/?toWww=1&redig=664889C106914BE786F166BF5F44DAFE | `entry_page` | `page_identity` | Microsoft Bing；Images；Maps；Search using an image；Sign in | 0 |
+| `global-homepage-010-bing-com` | https://bing.com/ → https://www.bing.com/?toWww=1&redig=664889C106914BE786F166BF5F44DAFE | `entry_page` | `page_identity` | Microsoft Bing；Images；Maps；Sign in | 0 |
 | `global-homepage-011-wikipedia-org` | https://wikipedia.org/ → https://www.wikipedia.org/ | `entry_page` | `page_identity` | Wikipedia；The Free Encyclopedia；English；日本語 | 0 |
 | `global-homepage-012-gemini-google-com` | https://gemini.google.com/ → https://gemini.google.com/app | `entry_page` | `page_identity` | Gemini；Conversation with Gemini；Meet Gemini, your personal AI assistant | 0 |
 | `global-homepage-013-yahoo-co-jp` | https://yahoo.co.jp/ → https://www.yahoo.co.jp/ | `content_list` | `named_link` | Yahoo! JAPAN；主なサービス；お知らせ；ニュース | 8 |
@@ -65,7 +65,7 @@
 | `global-homepage-068-indeed-com` | https://indeed.com/ → https://www.indeed.com/ | `entry_page` | `page_identity` | Your next job starts here；Trending Searches；Trending Jobs；Search | 0 |
 | `global-homepage-072-rakuten-co-jp` | https://rakuten.co.jp/ → https://www.rakuten.co.jp/ | `product_catalog` | `named_link` | ようこそ楽天市場へ；楽天スーパーDEAL；人気商品ランキング；ジャンル | 9 |
 | `global-homepage-075-telegram-org` | https://telegram.org/ → https://telegram.org/ | `landing_page` | `page_identity` | Why Telegram?；Simple；Private；Secure；Powerful | 0 |
-| `global-homepage-080-cnn-com` | https://cnn.com/ → https://www.cnn.com/ | `content_list` | `named_link` | CNN；MORE TOP STORIES；CNN UNDERSCORED；Across our coverage | 96 |
+| `global-homepage-080-cnn-com` | https://cnn.com/ → https://www.cnn.com/ | `content_list` | `named_link` | CNN；MORE TOP STORIES | 96 |
 | `global-homepage-081-namu-wiki` | https://namu.wiki/ → https://namu.wiki/w/%EB%82%98%EB%AC%B4%EC%9C%84%ED%82%A4:%EB%8C%80%EB%AC%B8 | `landing_page` | `page_identity` | 나무위키에 오신 것을 환영합니다!；나무위키는 누구나 기여할 수 있는 위키입니다.；검증되지 않았거나 편향된 내용이 있을 수 있습니다.；나무위키의 도움말 | 0 |
 | `global-homepage-082-shein-com` | https://us.shein.com/ → https://us.shein.com/ | `landing_page` | `page_identity` | SHEIN；Women Clothing；Home & Living；Electronics | 0 |
 | `global-homepage-084-qq-com` | https://qq.com/ → https://www.qq.com/ | `content_list` | `named_link` | 产品推荐；热点精选；腾讯新闻出品；热门问答 | 30 |

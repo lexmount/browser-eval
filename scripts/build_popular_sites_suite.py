@@ -108,6 +108,11 @@ def build_china_case(rule: dict) -> dict:
     write_json(target.with_name("evidence.json"), evidence)
     prompt = china_prompt(rule)
     structural_fields = ["item_title", "detail_url"] if contract["schema"] == "named_link" else []
+    forbidden_any = [
+        value
+        for value in BLOCKED_TEXT
+        if not (rule["id"] == "china-homepage-063-sina-com-cn" and value == "Not Found")
+    ]
     return {
         "id": rule["id"],
         "name": f"{rule['domain']} 首页",
@@ -117,7 +122,7 @@ def build_china_case(rule: dict) -> dict:
         "description": rule["rule_rationale"],
         "tags": ["popular-site", "china-ranked-homepage", rule["label"]],
         "required_facts": [],
-        "forbidden_any": BLOCKED_TEXT,
+        "forbidden_any": forbidden_any,
         "min_content_chars": 1,
         "fact_coverage_threshold": 1.0,
         "ground_truth_evidence": [

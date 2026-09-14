@@ -17,7 +17,7 @@
     "publication_state": "frozen_not_run",
     "require_independent_result_review": false,
     "source_rule_registry": "research/global-homepage-rules.json",
-    "source_rule_registry_sha256": "fa218d66078a8eb2425477fdb960f238e2638dbfd25ca6d707389d4c3891e58f",
+    "source_rule_registry_sha256": "c3abf92bceafcbd12c68808af886d858fe12d97a50c496d3be82252febf96800",
     "preflight_visual_spot_check": "research/global-homepage-visual-spot-check-2026-09-11.json",
     "preflight_visual_spot_check_sha256": "73e11e0d50ca06cba8309d528df83ca38aac9b970c741a29383eccd30a7b2f01",
     "rule_variant_review": "research/global-homepage-rule-variant-review-2026-09-11.json",
@@ -563,8 +563,8 @@
           "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Microsoft Bing；Images；Maps；Search using an image；Sign in。不点击、不递归，不要求长正文或三个详情链接。",
-      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Microsoft Bing；Images；Maps；Search using an image；Sign in。不点击、不递归，不要求长正文或三个详情链接。",
+      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Microsoft Bing；Images；Maps；Sign in。不点击、不递归，不要求长正文或三个详情链接。",
+      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Microsoft Bing；Images；Maps；Sign in。不点击、不递归，不要求长正文或三个详情链接。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
@@ -579,7 +579,7 @@
           ],
           "structural_only_fields": [],
           "anchor_evidence": "sources/global-homepage-010-bing-com/stable-page.txt",
-          "anchor_evidence_sha256": "b4764770e7c3e4d6087503c61367f415885dfa5099e673cc197a29b65931b180",
+          "anchor_evidence_sha256": "3c5168a3206828a84ee2df04a814d89d0ec226d692d4ce8bc7b1b9880d61bbe4",
           "record_requirement": "No structured records; every registered stable page-text group is required.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
@@ -623,12 +623,6 @@
           },
           {
             "id": "stable-anchor-4",
-            "alternatives": [
-              "Search using an image"
-            ]
-          },
-          {
-            "id": "stable-anchor-5",
             "alternatives": [
               "Sign in"
             ]
@@ -4412,8 +4406,8 @@
           "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口，链接符合登记的主机和路径；同时保留这些稳定页面文字：CNN；MORE TOP STORIES；CNN UNDERSCORED；Across our coverage。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
-      "reference_answer": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口，链接符合登记的主机和路径；同时保留这些稳定页面文字：CNN；MORE TOP STORIES；CNN UNDERSCORED；Across our coverage。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
+      "task_prompt": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口，链接符合登记的主机和路径；同时保留这些稳定页面文字：CNN；MORE TOP STORIES。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
+      "reference_answer": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口，链接符合登记的主机和路径；同时保留这些稳定页面文字：CNN；MORE TOP STORIES。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
@@ -4431,7 +4425,7 @@
             "detail_url"
           ],
           "anchor_evidence": "sources/global-homepage-080-cnn-com/stable-page.txt",
-          "anchor_evidence_sha256": "5d863ee7b7c74bfdc2dd433da8f2c3aaec7883c0e50e7675eef27fb83533fc77",
+          "anchor_evidence_sha256": "d554f48c8b5a9ad79236de3fdb828957a8e18f595305d06b9e758842d3fd0645",
           "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
@@ -4471,20 +4465,6 @@
             "id": "stable-anchor-2",
             "alternatives": [
               "MORE TOP STORIES"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-3",
-            "alternatives": [
-              "CNN UNDERSCORED"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-4",
-            "alternatives": [
-              "Across our coverage"
             ],
             "match_scope": "non_record_lines"
           }

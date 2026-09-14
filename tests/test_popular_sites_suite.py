@@ -56,3 +56,26 @@ def test_new_named_link_stable_anchors_cannot_be_satisfied_by_record_titles():
                 anchor["match_scope"] == "non_record_lines"
                 for anchor in contract["stable_text_anchors"]
             )
+
+
+def test_accepted_stability_revisions_are_frozen_without_generic_not_found_block():
+    dataset = load("evaluation/popular-sites-dataset.json")
+    cases = {case["id"]: case for case in dataset["cases"]}
+
+    expected = {
+        "global-homepage-010-bing-com": ["Microsoft Bing", "Images", "Maps", "Sign in"],
+        "global-homepage-020-naver-com": ["NAVER", "공지사항", "Partners", "Developers"],
+        "global-homepage-080-cnn-com": ["CNN", "MORE TOP STORIES"],
+        "china-homepage-008-doubao-com": ["豆包", "有什么我能帮你的吗？", "对话", "图像生成"],
+        "china-homepage-080-yandex-com": ["Yandex", "Search with Yandex AI", "Maps"],
+    }
+    for case_id, anchors in expected.items():
+        case = cases[case_id]
+        assert [
+            item["alternatives"][0]
+            for item in case["acceptance_contract"]["stable_text_anchors"]
+        ] == anchors
+
+    assert "Not Found" not in cases["china-homepage-063-sina-com-cn"]["forbidden_any"]
+    assert "Not Found" in cases["global-homepage-001-google-com"]["forbidden_any"]
+    assert "Not Found" in cases["china-homepage-008-doubao-com"]["forbidden_any"]

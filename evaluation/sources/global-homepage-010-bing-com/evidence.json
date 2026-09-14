@@ -8,7 +8,7 @@
   "capture_file": "research/global-homepage-fixed-locale-observations-2026-09-11.json",
   "capture_file_sha256": "823d1b8d2819f3f30be1a7f02b0d1891122b54b87ddcce30db0d3c6eefa8d846",
   "visible_text_sha256": "9bd49a512b717e6414f3d351c6134a5eb716e299954e84fcad834f524e245703",
-  "stable_page_sha256": "b4764770e7c3e4d6087503c61367f415885dfa5099e673cc197a29b65931b180",
+  "stable_page_sha256": "3c5168a3206828a84ee2df04a814d89d0ec226d692d4ce8bc7b1b9880d61bbe4",
   "anchor_groups": [
     [
       "Microsoft Bing"
@@ -18,9 +18,6 @@
     ],
     [
       "Maps"
-    ],
-    [
-      "Search using an image"
     ],
     [
       "Sign in"

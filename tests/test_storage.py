@@ -73,6 +73,36 @@ class StorageTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "sources"):
                 require_canonical_inputs(evidence, canonical)
 
+    def test_explicit_current_dataset_scopes_canonical_source_tree(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            canonical = root / "canonical"
+            evidence = root / "evidence"
+            for base in (canonical, evidence):
+                (base / "sources/case-b").mkdir(parents=True)
+                (base / "list-references").mkdir()
+            (canonical / "sources/case-a").mkdir()
+            (canonical / "sources/case-a/reference.txt").write_text("unrelated")
+            (canonical / "sources/case-b/reference.txt").write_text("selected")
+            (evidence / "sources/case-b/reference.txt").write_text("selected")
+            dataset = {
+                "schema_version": 1,
+                "tool": "web_fetch",
+                "dynamic_scoring": {},
+                "id": "popular",
+                "name": "Popular",
+                "coverage_plan": {},
+                "cases": [{"id": "case-b", "url": "https://example.test"}],
+            }
+            selected = canonical / "popular-dataset.json"
+            selected.write_text(json.dumps(dataset))
+            (evidence / "dataset.json").write_text(json.dumps(dataset))
+            require_canonical_inputs(evidence, canonical, canonical_dataset=selected)
+            (evidence / "sources/case-a").mkdir()
+            (evidence / "sources/case-a/reference.txt").write_text("unrelated")
+            with self.assertRaisesRegex(ValueError, "sources"):
+                require_canonical_inputs(evidence, canonical, canonical_dataset=selected)
+
     def test_rerun_selection_requires_complete_baseline(self):
         with tempfile.TemporaryDirectory() as folder:
             evidence = Path(folder)

@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "status": "approved_for_execution",
-  "approved_at": "2026-09-11",
-  "approved_scope": "All 40 selected China-ranked homepage labels and per-site acceptance contracts",
+  "approved_at": "2026-09-14",
+  "approved_scope": "All 40 selected China-ranked homepage labels and per-site acceptance contracts, including removal of the twice-unobserved Yandex Images anchor",
   "source_rules": "research/china-homepage-rules.json",
-  "source_rules_sha256": "ec908ac9291b75ac70fdc1c3dcfcb8faed37b4faf42bb87a7de8d57b2b10cbdc",
+  "source_rules_sha256": "d2d0c87cd085428a0cb0bb452b094e4f776219c81b768b1c394b4be4a3b6c8ac",
   "source_review": "research/china-homepage-rules-review.md",
-  "source_review_sha256": "772a376d65f2a3d0458e07cd9d94d9da402fc3e3babc79b4ca01f0511b5b9134",
+  "source_review_sha256": "3a92c3913917ab4b3cbe7fdf5c9bdb31dc8f39d01be577905fc682c367eaed66",
   "clarifications": {
     "stable_text_scope": "Stable text is selected from the directly loaded target page; no links are clicked and no recursive navigation is used.",
     "named_link_records": "Each counted record independently requires a non-empty meaningful title and a valid URL matching the declared host and full path regular expression.",
@@ -15,5 +15,5 @@
     "minimum_unique_records": 3,
     "dynamic_members_frozen": false
   },
-  "execution_authority": "User confirmed continuation after reviewing and clarifying the scoring rules."
+  "execution_authority": "User accepted removal of independently confirmed volatile single-control or section text on 2026-09-14; Doubao was retained after a longer second observation contradicted the initial absence."
 }

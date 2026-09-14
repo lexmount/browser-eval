@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "status": "reviewed_and_published",
+  "decision_date": "2026-09-14",
+  "provider_calls": 0,
+  "source_run": "popular-sites-lexmount-2026-09-11-current-run-001",
+  "source_dataset_sha256": "c972623dc7609d7438a5b0cde093a18b77525ee92f705f0bcb4172064d55476e",
+  "source_results_sha256": "e870e3731c5a184a438415f8c7bec36ac55beb6c3716b1a852e1535c6e40c3fb",
+  "first_independent_observation_sha256": "97d3209a5d93b55553b428630a69d30c55cb4d22ef0c58586f5a7238ccd68bc0",
+  "second_independent_observation_sha256": "0598dcf4cca0be4e3c73f485ef6e7e0e236f5779cc1f829c78c197ecf179d5be",
+  "capture_contract": {
+    "browser": "Playwright Chromium",
+    "fresh_anonymous_context_per_case": true,
+    "selected_url_only": true,
+    "clicks_or_recursive_navigation": false,
+    "locale": "en-US",
+    "second_observation_settle_ms": 10000,
+    "provider_output_used_for_rule_evidence": false
+  },
+  "accepted_changes": [
+    {
+      "case_id": "global-homepage-010-bing-com",
+      "change": "remove_stable_anchor",
+      "removed": ["Search using an image"],
+      "reason": "Absent in both independent current observations; the four retained identity and navigation groups remain sufficient.",
+      "offline_verdict_change": "fail_to_pass"
+    },
+    {
+      "case_id": "global-homepage-080-cnn-com",
+      "change": "remove_stable_anchors",
+      "removed": ["CNN UNDERSCORED", "Across our coverage"],
+      "reason": "Both section labels were absent in both independent current observations; CNN, MORE TOP STORIES and the named-link structure still identify the task.",
+      "offline_verdict_change": "fail_to_pass"
+    },
+    {
+      "case_id": "china-homepage-080-yandex-com",
+      "change": "remove_stable_anchor",
+      "removed": ["Images"],
+      "reason": "Absent in both independent current observations; Yandex, Search with Yandex AI and Maps remain present.",
+      "offline_verdict_change": "fail_to_pass"
+    },
+    {
+      "case_id": "china-homepage-063-sina-com-cn",
+      "change": "remove_generic_not_found_forbidden_substring",
+      "removed": ["Not Found"],
+      "reason": "The complete homepage satisfies all four anchors and 27 named links; the phrase belongs to one embedded 404 module and is not an error-page identity.",
+      "offline_verdict_change": "fail_to_pass"
+    }
+  ],
+  "rejected_after_second_observation": [
+    {
+      "case_id": "china-homepage-008-doubao-com",
+      "proposed_change": "remove 图像生成",
+      "reason": "The anchor appeared after the longer 10-second wait, so the first absence was a delayed-load false alarm."
+    },
+    {
+      "case_id": "global-homepage-020-naver-com",
+      "proposed_change": "replace footer anchors or named-link contract",
+      "reason": "All four anchors and eight contract-compliant named links appeared after the longer 10-second wait."
+    }
+  ],
+  "offline_revision_view": "popular-sites-lexmount-2026-09-14-rule-revision-002",
+  "revised_dataset_sha256": "365d5fa16ef6c6b82fe4527e379255373315d49c45cfaebdf73e675f8ef47f72",
+  "revised_rule_registry_sha256": "2dc23e3495c26733313ef07e3e91dd783baa7cd6e94920ab42d08f8c7931da20",
+  "offline_rescored_results_sha256": "060a3a74cdba0f8c7d2f1b0f9d60fcef7703d846c5222265b8ea2af2a6c1a8a0",
+  "result_review_sha256": "880d1faeddcdb8bc14a2644a569c9c1013ce03e040721140a4ccc7370e92ec96",
+  "scoring_revision_history_sha256": "7417920079f14a6bcc1f1817ca82be8cc984e45e605508b048f3939942f3af36",
+  "result_review": {
+    "reviewed_attempts": 100,
+    "new_blind_reviews": 4,
+    "retained_byte_identical_reviews": 96,
+    "disagreements": 0,
+    "unresolved": 0
+  },
+  "offline_score_change": {
+    "before_passes": 42,
+    "after_passes": 46,
+    "changed_case_count": 4
+  },
+  "publication": {
+    "published": true,
+    "published_at": "2026-09-14T05:30:59Z",
+    "base_url": "https://artifact-hub.app.lexmount.com",
+    "site": "l9jZU6GPMLn6",
+    "version": "ver_41c9a21d57bb44e9b819bdd8c25d852a",
+    "share_url": "https://artifact-hub.app.lexmount.com/v/XfNnb9PsJw9Yp5c8TlgjSiU9HxmpiRx5",
+    "submitted_files": 9,
+    "submitted_bytes_verified": true,
+    "unauthenticated_status": 200
+  }
+}

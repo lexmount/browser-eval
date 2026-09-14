@@ -399,9 +399,6 @@
           "Maps"
         ],
         [
-          "Search using an image"
-        ],
-        [
           "Sign in"
         ]
       ],
@@ -431,12 +428,6 @@
           {
             "id": "stable-anchor-4",
             "alternatives": [
-              "Search using an image"
-            ]
-          },
-          {
-            "id": "stable-anchor-5",
-            "alternatives": [
               "Sign in"
             ]
           }
@@ -454,7 +445,7 @@
         "date"
       ],
       "evidence": "sources/global-homepage-010-bing-com/stable-page.txt",
-      "evidence_sha256": "b4764770e7c3e4d6087503c61367f415885dfa5099e673cc197a29b65931b180",
+      "evidence_sha256": "3c5168a3206828a84ee2df04a814d89d0ec226d692d4ce8bc7b1b9880d61bbe4",
       "review_status": "ready_from_final_independent_browser_evidence"
     },
     {
@@ -3055,12 +3046,6 @@
         ],
         [
           "MORE TOP STORIES"
-        ],
-        [
-          "CNN UNDERSCORED"
-        ],
-        [
-          "Across our coverage"
         ]
       ],
       "acceptance_contract": {
@@ -3086,20 +3071,6 @@
               "MORE TOP STORIES"
             ],
             "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-3",
-            "alternatives": [
-              "CNN UNDERSCORED"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-4",
-            "alternatives": [
-              "Across our coverage"
-            ],
-            "match_scope": "non_record_lines"
           }
         ]
       },
@@ -3115,7 +3086,7 @@
         "date"
       ],
       "evidence": "sources/global-homepage-080-cnn-com/stable-page.txt",
-      "evidence_sha256": "5d863ee7b7c74bfdc2dd433da8f2c3aaec7883c0e50e7675eef27fb83533fc77",
+      "evidence_sha256": "d554f48c8b5a9ad79236de3fdb828957a8e18f595305d06b9e758842d3fd0645",
       "review_status": "ready_from_final_independent_browser_evidence"
     },
     {

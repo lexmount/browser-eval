@@ -1,11 +1,11 @@
+# ruff: noqa: E501
 import hashlib
 import json
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 from harness.web_fetch.config import load_dataset
 from harness.web_fetch.stable_tasks import validate_acceptance_contract
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -74,6 +74,14 @@ class GlobalHomepageSuiteTests(unittest.TestCase):
         google = next(case for case in self.selection["cases"] if case["domain"] == "google.com")
         self.assertEqual(len(rules[google["id"]]["anchor_groups"]), 6)
         self.assertEqual(rules[google["id"]]["anchor_groups"][1], ["About"])
+
+        bing = rules["global-homepage-010-bing-com"]
+        self.assertEqual(
+            bing["anchor_groups"],
+            [["Microsoft Bing"], ["Images"], ["Maps"], ["Sign in"]],
+        )
+        cnn = rules["global-homepage-080-cnn-com"]
+        self.assertEqual(cnn["anchor_groups"], [["CNN"], ["MORE TOP STORIES"]])
 
         reviewed_domains = {
             "google.com", "youtube.com", "chatgpt.com", "bing.com",

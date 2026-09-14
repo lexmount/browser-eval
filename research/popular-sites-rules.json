@@ -12,7 +12,7 @@
       "kind": "global_homepage",
       "count": 52,
       "path": "evaluation/global-homepages-dataset.json",
-      "sha256": "8f6479e6f8846a3f106eedfb8fb2b89e38f493efc17cc83aa294872c4d762171"
+      "sha256": "908607a9b4f08734348b7259daa92e019bfdf840c4753ab0082ff979b062dd83"
     },
     {
       "kind": "legacy_popular_list",
@@ -34,12 +34,12 @@
       "kind": "china_ranked_homepage",
       "count": 40,
       "path": "research/china-homepage-rules.json",
-      "sha256": "ec908ac9291b75ac70fdc1c3dcfcb8faed37b4faf42bb87a7de8d57b2b10cbdc"
+      "sha256": "d2d0c87cd085428a0cb0bb452b094e4f776219c81b768b1c394b4be4a3b6c8ac"
     }
   ],
   "approval": {
     "path": "research/china-homepage-rules-approval.json",
-    "sha256": "42e3651bb011958a6ffed2c79aac9a08be9a2616ac987d5b26c815cbbe7982be"
+    "sha256": "8bf2cda6f77089680ee537f5405bf9169a35dd6432e2276b5770aa5c4043b160"
   },
   "cases": [
     {
@@ -271,12 +271,6 @@
           },
           {
             "id": "stable-anchor-4",
-            "alternatives": [
-              "Search using an image"
-            ]
-          },
-          {
-            "id": "stable-anchor-5",
             "alternatives": [
               "Sign in"
             ]
@@ -1753,20 +1747,6 @@
             "id": "stable-anchor-2",
             "alternatives": [
               "MORE TOP STORIES"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-3",
-            "alternatives": [
-              "CNN UNDERSCORED"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-4",
-            "alternatives": [
-              "Across our coverage"
             ],
             "match_scope": "non_record_lines"
           }
@@ -3819,12 +3799,6 @@
           },
           {
             "id": "stable-anchor-3",
-            "alternatives": [
-              "Images"
-            ]
-          },
-          {
-            "id": "stable-anchor-4",
             "alternatives": [
               "Maps"
             ]

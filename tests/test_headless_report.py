@@ -98,6 +98,28 @@ class HeadlessReportTests(unittest.TestCase):
             (root/'scoring-revisions.json').write_text(json.dumps(history))
             self.assertFalse(valid_scoring_revision(root))
 
+    def test_case_scoped_forbidden_text_correction_is_a_valid_scoring_revision(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'dataset.json').write_text('{"cases": []}\n')
+            (root / 'results.jsonl').write_text('')
+            receipt = {
+                'kind': 'audited_scoring_rule_revision',
+                'provider_calls': 0,
+                'output_dataset_sha256': hashlib.sha256(
+                    (root / 'dataset.json').read_bytes()
+                ).hexdigest(),
+                'output_results_sha256': hashlib.sha256(
+                    (root / 'results.jsonl').read_bytes()
+                ).hexdigest(),
+                'task_decision_changes': [],
+                'changed_cases': [
+                    {'case_id': 'example', 'fields': ['forbidden_any']}
+                ],
+            }
+            (root / 'scoring-revisions.json').write_text(json.dumps([receipt]))
+            self.assertTrue(valid_scoring_revision(root))
+
     def test_prior_review_is_copied_only_when_dataset_and_results_are_identical(self):
         import hashlib
         with tempfile.TemporaryDirectory() as temp:

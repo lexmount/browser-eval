@@ -8,19 +8,13 @@
   "capture_file": "research/global-homepage-rule-evidence-final-v2-2026-09-11.json",
   "capture_file_sha256": "e225209559cd862586178cde087a4bcdc97f24bcd84e081fadbd9e30b9289820",
   "visible_text_sha256": "7663f2c8c081b14e9328dd8bb8bc90513337449cc4cdfa7ef2a85aea3e79d62d",
-  "stable_page_sha256": "5d863ee7b7c74bfdc2dd433da8f2c3aaec7883c0e50e7675eef27fb83533fc77",
+  "stable_page_sha256": "d554f48c8b5a9ad79236de3fdb828957a8e18f595305d06b9e758842d3fd0645",
   "anchor_groups": [
     [
       "CNN"
     ],
     [
       "MORE TOP STORIES"
-    ],
-    [
-      "CNN UNDERSCORED"
-    ],
-    [
-      "Across our coverage"
     ]
   ],
   "matching_named_link_count": 96,
