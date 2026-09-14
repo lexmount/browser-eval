@@ -6,6 +6,7 @@ from pathlib import Path
 from webarena_verified.core.utils.checksum import compute_evaluator_checksum
 
 from harness.trajectory_replay.webarena_dataset import (
+    _effective_correction_bindings,
     _official_evaluator_names,
     build_verified_trajectory_dataset,
 )
@@ -360,8 +361,29 @@ def test_promotion_requires_candidate_to_pass_reference_qualification(tmp_path: 
             ],
         ),
     )
+    failed_receipt = _write(
+        tmp_path / "failed-receipt.json",
+        _receipt(
+            seeds,
+            profile,
+            task_ids=[44],
+            run_id="failed-run-44",
+            attempts=[
+                {
+                    "task_id": 44,
+                    "source_candidate_id": "candidate-44",
+                    "engine": "chromium",
+                    "process_status": "fail",
+                    "evaluator_status": "not_run",
+                    "completed_action_count": 0,
+                }
+            ],
+        ),
+    )
 
-    result = build_verified_trajectory_dataset(seeds, [receipt], profile_path=profile)
+    result = build_verified_trajectory_dataset(
+        seeds, [failed_receipt, receipt], profile_path=profile
+    )
 
     assert result["counts"] == {"verified_tasks": 1, "verified_trajectories": 1}
     assert result["trajectories"][0]["verification"]["model_calls"] == 0
@@ -433,6 +455,7 @@ def test_promotion_rejects_incomplete_method_task_matrix(tmp_path: Path) -> None
 
 
 def test_promotion_supports_hash_bound_expert_repair(tmp_path: Path) -> None:
+    correction = _effective_correction_bindings()[339]
     profile, selection_sha256, repair_sha256 = _profile(tmp_path, [339])
     seeds = _write(
         tmp_path / "seeds.json",
@@ -479,9 +502,9 @@ def test_promotion_supports_hash_bound_expert_repair(tmp_path: Path) -> None:
                     "process_status": "pass",
                     "evaluator_status": "pass",
                     "completed_action_count": 1,
-                    "contract_correction_id": "wv-339-correction",
-                    "contract_correction_source_sha256": "catalog-sha",
-                    "corrected_task_sha256": "task-sha",
+                    "contract_correction_id": correction[0],
+                    "contract_correction_source_sha256": correction[1],
+                    "corrected_task_sha256": correction[2],
                 }
                 for engine in ("chromium",)
             ],
@@ -495,9 +518,9 @@ def test_promotion_supports_hash_bound_expert_repair(tmp_path: Path) -> None:
     assert trajectory["source"]["repair_spec_sha256"] == repair_sha256
     assert trajectory["verification"]["contract"] == {
         "kind": "corrected_replay_contract",
-        "correction_id": "wv-339-correction",
-        "correction_source_sha256": "catalog-sha",
-        "corrected_task_sha256": "task-sha",
+        "correction_id": correction[0],
+        "correction_source_sha256": correction[1],
+        "corrected_task_sha256": correction[2],
     }
 
 def test_promotion_accepts_qualification_shard_but_rejects_nonisolated_receipt(

@@ -25,15 +25,48 @@ RECEIPT_SCHEMA = "lex_webarena_trajectory_replay_suite/1"
 
 @lru_cache(maxsize=1)
 def _official_evaluator_names() -> dict[int, tuple[str, ...]]:
+    """Return evaluator sequences after applying registered replay corrections."""
+
     dataset = json.loads(
         files("webarena_verified")
         .joinpath("assets/dataset/webarena-verified.json")
         .read_text(encoding="utf-8")
     )
-    return {
+    names = {
         int(task["task_id"]): tuple(str(item["evaluator"]) for item in task["eval"])
         for task in dataset
     }
+    for task_id, binding in _effective_correction_bindings().items():
+        names[task_id] = binding[3]
+    return names
+
+
+@lru_cache(maxsize=1)
+def _effective_correction_bindings() -> dict[
+    int, tuple[str, str, str, tuple[str, ...]]
+]:
+    from harness.browser_use.runner import _configure_benchmark  # noqa: PLC0415
+    from harness.trajectory_replay.webarena_corrections import (  # noqa: PLC0415
+        apply_correction,
+        load_corrections,
+    )
+
+    benchmark = _configure_benchmark()
+    catalog = load_corrections()
+    bindings = {}
+    for task_id in catalog.records:
+        contract = apply_correction(benchmark.get_task(task_id), catalog)
+        evaluators = tuple(
+            str(item["evaluator"])
+            for item in contract.task.model_dump(mode="json")["eval"]
+        )
+        bindings[task_id] = (
+            contract.correction_id,
+            contract.correction_source_sha256,
+            contract.corrected_task_sha256,
+            evaluators,
+        )
+    return bindings
 
 
 def _validate_qualification_receipt(
@@ -219,7 +252,19 @@ def _validate_passing_attempt_evidence(
         raise ValueError("passing replay attempt has an invalid network HAR")
 
     evaluation = _read_json(paths["evaluation"])
-    expected_evaluators = _official_evaluator_names().get(int(attempt["task_id"]))
+    task_id = int(attempt["task_id"])
+    expected_evaluators = _official_evaluator_names().get(task_id)
+    correction = _effective_correction_bindings().get(task_id)
+    actual_correction = (
+        str(attempt.get("contract_correction_id") or ""),
+        str(attempt.get("contract_correction_source_sha256") or ""),
+        str(attempt.get("corrected_task_sha256") or ""),
+    )
+    if correction is None:
+        if any(actual_correction):
+            raise ValueError(f"task {task_id} has an unexpected replay correction binding")
+    elif actual_correction != correction[:3]:
+        raise ValueError(f"task {task_id} replay correction binding is stale or incomplete")
     if (
         int(evaluation.get("task_id") or -1) != int(attempt["task_id"])
         or float(evaluation.get("score") or 0) != 1.0
@@ -242,7 +287,14 @@ def _validate_passing_attempt_evidence(
         for row in evaluator_rows
         )
     ):
-        raise ValueError("passing replay evaluator evidence does not match the canonical input")
+        actual_evaluators = tuple(
+            str(row.get("evaluator_name") or "") for row in evaluator_rows
+        )
+        raise ValueError(
+            "passing replay evaluator evidence does not match the canonical input: "
+            f"task {attempt['task_id']}, expected evaluators {expected_evaluators}, "
+            f"actual evaluators {actual_evaluators}"
+        )
     if any(item.get("status") != "pass" for item in evaluation.get("replay_assertions") or []):
         raise ValueError("passing replay evaluation contains a failed replay assertion")
 
@@ -360,6 +412,11 @@ def build_verified_trajectory_dataset(
                 str((seeds.get("source") or {}).get("official_data_checksum") or ""),
                 plan["trusted_source_site_hosts"],
             )
+            if (
+                attempt.get("process_status") != "pass"
+                or attempt.get("evaluator_status") != "pass"
+            ):
+                continue
             key = (task_id, candidate_id)
             attempts_by_key[key].append(attempt)
             receipt_runs_by_key[key].add(str(receipt.get("run_id") or ""))
