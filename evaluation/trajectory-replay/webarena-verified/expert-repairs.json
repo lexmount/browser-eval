@@ -2,6 +2,42 @@
   "schema": "lex_webarena_expert_seed_repairs/1",
   "repairs": [
     {
+      "task_id": 67,
+      "candidate_id": "expert__task-67__books-hot-v2",
+      "replaces_canonical": true,
+      "source": {
+        "kind": "reviewed_task_contract_and_existing_browser_evidence",
+        "task_revision": 2
+      },
+      "repair_basis": {
+        "root_cause": "The selected autonomous trajectory clicked into the Books forum and immediately issued a second navigation while the click navigation was still in flight. Both browsers therefore interrupted the explicit navigation.",
+        "strategy": "Open the Books hot-post listing directly, then read the first ten unique post documents from that stable listing without overlapping document navigations."
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:9999/f/Books"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "evaluate",
+          "script": "(async()=>{const links=[...new Set([...document.querySelectorAll('main article a[href*=\"/f/books/\"]')].map(a=>a.getAttribute('href')).filter(Boolean))].slice(0,10);if(links.length!==10)throw new Error('expected ten hot-post links, found '+links.length);return Promise.all(links.map(async href=>{const response=await fetch(href);if(!response.ok)throw new Error('post fetch failed '+response.status+' '+href);const page=new DOMParser().parseFromString(await response.text(),'text/html');return {href,text:page.querySelector('main article')?.textContent?.replace(/\\s+/g,' ').trim()||null};}));})()"
+        }
+      ],
+      "expected_response": {
+        "task_type": "RETRIEVE",
+        "status": "SUCCESS",
+        "retrieved_data": [
+          "The Hobbit",
+          "A Christmas Carol"
+        ],
+        "error_details": null
+      }
+    },
+    {
       "task_id": 124,
       "candidate_id": "expert-repair-a__task-124",
       "source": {

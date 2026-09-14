@@ -108,9 +108,10 @@ def _apply_operation(document: dict[str, Any], operation: Mapping[str, Any]) -> 
 
 @dataclass(frozen=True)
 class CorrectionCatalog:
-    """Validated correction records plus the identity of their source file."""
+    """Validated correction records and their independent identities."""
 
     records: Mapping[int, Mapping[str, Any]]
+    record_sha256s: Mapping[int, str]
     upstream: Mapping[str, Any]
     source_path: Path
     source_sha256: str
@@ -143,6 +144,7 @@ def load_corrections(path: str | Path = DEFAULT_CORRECTIONS_PATH) -> CorrectionC
     ):
         raise ValueError("correction catalog must identify its upstream benchmark and dataset")
     records: dict[int, Mapping[str, Any]] = {}
+    record_sha256s: dict[int, str] = {}
     for record in payload.get("corrections") or []:
         task_id = int(record["task_id"])
         if task_id in records:
@@ -154,8 +156,10 @@ def load_corrections(path: str | Path = DEFAULT_CORRECTIONS_PATH) -> CorrectionC
         if not record.get("preconditions") or not record.get("operations"):
             raise ValueError(f"task {task_id}: preconditions and operations are required")
         records[task_id] = MappingProxyType(copy.deepcopy(record))
+        record_sha256s[task_id] = _digest(record)
     return CorrectionCatalog(
         records=MappingProxyType(records),
+        record_sha256s=MappingProxyType(record_sha256s),
         upstream=MappingProxyType(copy.deepcopy(upstream)),
         source_path=source_path,
         source_sha256=hashlib.sha256(raw_bytes).hexdigest(),
@@ -197,7 +201,7 @@ def apply_correction(
     return CorrectedReplayContract(
         task=corrected_task,
         correction_id=str(record["correction_id"]),
-        correction_source_sha256=catalog.source_sha256,
+        correction_source_sha256=catalog.record_sha256s[task.task_id],
         original_task_sha256=_digest(original),
         corrected_task_sha256=_digest(corrected_task.model_dump(mode="json")),
         rationale=str(record["rationale"]),

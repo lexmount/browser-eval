@@ -76,6 +76,33 @@
       ]
     },
     {
+      "task_id": 448,
+      "official_revision": 2,
+      "correction_id": "wv-448-match-profile-save-before-recency-20260915",
+      "rationale": "GitLab emits a successful profile-save POST followed by another profile event. The acceptance contract must match the POST carrying user[website_url] before applying event recency.",
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "__GITLAB__/-/profile"
+        },
+        {
+          "path": "/eval/1/expected/post_data/user[website_url]",
+          "equals": "https://egg.tart.com"
+        },
+        {
+          "path": "/eval/1/last_event_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/last_event_only",
+          "value": false
+        }
+      ]
+    },
+    {
       "task_id": 475,
       "official_revision": 2,
       "correction_id": "wv-475-unchecked-checkbox-is-false-20260911",

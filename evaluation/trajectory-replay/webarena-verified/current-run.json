@@ -10,7 +10,7 @@
   "seed_inventory": {
     "base_kind": "successful Browser Use executions",
     "expert_repairs_path": "evaluation/trajectory-replay/webarena-verified/expert-repairs.json",
-    "expert_repairs_sha256": "9ce146dc8216a363879caab73c1d9f5ba08280083054a8f9a565ef438235729c",
+    "expert_repairs_sha256": "ea34996acd3f137da912dcc386858c2ab51b86514cacc23502d1448224bbb830",
     "required_ready_tasks": 90,
     "canonical_trajectories_per_task": 1
   },

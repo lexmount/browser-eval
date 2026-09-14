@@ -35,7 +35,9 @@ def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
     assert "Replay" in payload["scope"]
     assert catalog.upstream["package_version"] == "1.2.3"
     assert len(catalog.upstream["dataset_sha256"]) == 64
-    assert corrected_task_ids(catalog) == (279, 339, 475, 510, 528, 547, 676, 699)
+    assert set(catalog.record_sha256s) == set(catalog.records)
+    assert len(set(catalog.record_sha256s.values())) == len(catalog.records)
+    assert corrected_task_ids(catalog) == (279, 339, 448, 475, 510, 528, 547, 676, 699)
 
 
 def test_apply_is_pure_traceable_and_fails_closed(benchmark, catalog) -> None:
@@ -47,6 +49,8 @@ def test_apply_is_pure_traceable_and_fails_closed(benchmark, catalog) -> None:
     assert applied.task is not task
     assert applied.original_task_sha256 != applied.corrected_task_sha256
     assert len(applied.correction_source_sha256) == 64
+    assert applied.correction_source_sha256 == catalog.record_sha256s[279]
+    assert applied.correction_source_sha256 != catalog.source_sha256
     assert applied.correction_id.startswith("wv-279-")
 
     changed = copy.deepcopy(before)
@@ -100,6 +104,16 @@ def test_475_treats_omitted_checkbox_as_false_and_checks_empty_repo(benchmark, c
     post_data = _dump_eval(applied, 1)["expected"]["post_data"]
     assert "project[initialize_with_readme]" not in post_data
     assert applied.replay_assertions[0]["empty_repository"] is True
+
+
+def test_448_matches_the_profile_save_event_before_recency(benchmark, catalog) -> None:
+    applied = apply_correction(benchmark.get_task(448), catalog)
+    evaluator = _dump_eval(applied, 1)
+    assert evaluator["expected"]["url"] == "__GITLAB__/-/profile"
+    assert evaluator["expected"]["post_data"] == {
+        "user[website_url]": "https://egg.tart.com"
+    }
+    assert evaluator["last_event_only"] is False
 
 
 def test_510_freezes_selection_order_and_product(benchmark, catalog) -> None:

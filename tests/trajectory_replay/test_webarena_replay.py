@@ -9,6 +9,7 @@ from harness.trajectory_replay.webarena_replay import (
     RECEIPT_SCHEMA,
     _attempt_needs_retry,
     _click_was_dispatched_before_navigation_timeout,
+    _embedded_observation_error,
     _execute_replay_call,
     _origin,
     _rebind_url,
@@ -130,6 +131,20 @@ def test_every_failed_logical_replay_gets_one_clean_retry() -> None:
             "completed_action_count": 4,
         }
     )
+
+
+def test_snapshot_payload_error_is_exposed_as_observation_error() -> None:
+    assert _embedded_observation_error(
+        {"action": "snapshot"},
+        "success",
+        "[Snapshot error: Page.evaluate: Execution context was destroyed]",
+    ) == "Page.evaluate: Execution context was destroyed"
+    assert _embedded_observation_error(
+        {"action": "click"}, "success", "[Snapshot error: ignored]"
+    ) is None
+    assert _embedded_observation_error(
+        {"action": "snapshot"}, "success", "Page: stable"
+    ) is None
     assert _attempt_needs_retry(
         {
             "status": "fail",

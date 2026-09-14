@@ -358,6 +358,10 @@ def _run_one(  # noqa: PLR0913
                 "duration_ms": round((time.perf_counter() - call_started) * 1000, 3),
                 "result": result_text,
             }
+            observation_error = _embedded_observation_error(arguments, result_status, result_text)
+            if observation_error is not None:
+                record["observation_status"] = "error"
+                record["observation_error"] = observation_error
             if dispatched_before_timeout:
                 record["recovery"] = {
                     "classification": "click_dispatched_navigation_wait_timeout",
@@ -518,6 +522,25 @@ def _run_one(  # noqa: PLR0913
 def _attempt_needs_retry(attempt: dict[str, Any]) -> bool:
     """Give every failed logical replay exactly one clean physical retry."""
     return attempt.get("status") != "pass"
+
+
+def _embedded_observation_error(
+    arguments: dict[str, Any], result_status: str, result_text: str
+) -> str | None:
+    """Expose BrowserTool snapshot degradation without rewriting task outcome.
+
+    BrowserTool currently returns a successful tool status with a bracketed error
+    payload when the page execution context changes during a snapshot.  The action
+    remains completed, but the observation is unavailable and must be explicit in
+    evidence so diagnosis can identify the first degraded step.
+    """
+
+    if arguments.get("action") != "snapshot" or result_status != "success":
+        return None
+    prefix = "[Snapshot error:"
+    if not result_text.startswith(prefix):
+        return None
+    return result_text[len(prefix) :].removesuffix("]").strip()
 
 
 def _stop_all_sites() -> None:

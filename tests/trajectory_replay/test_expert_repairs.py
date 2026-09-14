@@ -13,6 +13,7 @@ REPAIRS = (
 TASK_IDS = {
     28,
     50,
+    67,
     124,
     183,
     184,
@@ -92,6 +93,9 @@ def test_mutation_repairs_preserve_task_specific_semantics() -> None:
     assert "location.origin" in calls[284]
     assert "sales/order/history/?limit=50" in calls[50]
     assert "incomplete order history" in calls[50]
+    assert "/f/Books" in calls[67]
+    assert "/forums" not in calls[67]
+    assert "slice(0,10)" in calls[67]
     assert "sales/order/view/order_id/136" in calls[198]
     assert "no visible canceled order row" not in calls[198]
     assert "order_id/156" in calls[320] and "order_id/158" in calls[320]
