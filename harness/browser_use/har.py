@@ -92,13 +92,18 @@ class CdpHarRecorder:
                 except Exception as exc:
                     self.errors.append(f"page listener detach failed: {exc}")
             entries: list[dict[str, Any]] = []
+            # CDP callbacks run on the browser thread and may append a final
+            # response while stop() is serializing.  Use one immutable view for
+            # both the redirect lookup and entry loop so a late event cannot
+            # create a response whose key is absent from last_response_by_key.
+            responses = list(self._responses)
             last_response_by_key = {
                 (id(session), request_id): index
                 for index, (session, request_id, _request, _response) in enumerate(
-                    self._responses
+                    responses
                 )
             }
-            for index, (session, request_id, request, response) in enumerate(self._responses):
+            for index, (session, request_id, request, response) in enumerate(responses):
                 key = (id(session), request_id)
                 body = self._response_bodies.get(key)
                 request = dict(request)

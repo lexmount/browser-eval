@@ -46,7 +46,9 @@ def _snapshot_nodes(result: str) -> list[dict[str, Any]]:
             for item in _ATTR_RE.finditer(body)
         }
         body_without_attributes = _ATTR_RE.sub("", body).strip()
-        text = body_without_attributes[1:].strip() if body_without_attributes.startswith(":") else ""
+        text = (
+            body_without_attributes[1:].strip() if body_without_attributes.startswith(":") else ""
+        )
         nodes.append(
             {
                 "ref": int(match.group("ref")),
@@ -118,7 +120,7 @@ def _selector_for_ref(nodes: list[dict[str, Any]], ref: int, *, context: str) ->
 
 
 def compile_replay_calls(events_path: str | Path) -> list[dict[str, Any]]:
-    """Compile ephemeral snapshot refs into fixed Playwright selectors."""
+    """Compile ephemeral refs into fixed selectors while preserving ref action semantics."""
 
     calls = extract_browser_calls(events_path)
     latest_nodes: list[dict[str, Any]] = []
@@ -135,6 +137,7 @@ def compile_replay_calls(events_path: str | Path) -> list[dict[str, Any]]:
                     int(arguments.pop("ref")),
                     context=f"{events_path}: call {index}",
                 )
+                arguments["replay_mode"] = "snapshot_ref_semantics"
         elif "ref" in arguments:
             # BrowserTool ignores refs for actions such as ``press``. Keeping that
             # inert model-supplied field would make the fixed trajectory appear to

@@ -52,6 +52,13 @@ from harness.trajectory_replay.webarena_plan import (
 
 RECEIPT_SCHEMA = "lex_webarena_trajectory_replay_suite/1"
 
+_CLICK_DISPATCHED_NAVIGATION_TIMEOUT_MARKERS = (
+    "Click failed: Page.click: Timeout",
+    "performing click action",
+    "click action done",
+    "waiting for scheduled navigations to finish",
+)
+
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -71,6 +78,63 @@ def _origin(url: str) -> str:
 
 def _evidence_file(path: Path) -> dict[str, str] | None:
     return {"path": str(path), "sha256": _sha256(path)} if path.is_file() else None
+
+
+def _click_was_dispatched_before_navigation_timeout(
+    arguments: dict[str, Any], result_status: str, result_text: str
+) -> bool:
+    """Separate a completed click from Playwright's later navigation wait timeout.
+
+    Replaying the click would risk applying a mutation twice.  The following
+    trajectory step and official evaluator remain responsible for proving that
+    the resulting page state is usable and correct.
+    """
+
+    return (
+        arguments.get("action") == "click"
+        and result_status != "success"
+        and all(marker in result_text for marker in _CLICK_DISPATCHED_NAVIGATION_TIMEOUT_MARKERS)
+    )
+
+
+def _execute_replay_call(tool: Any, arguments: dict[str, Any]) -> tuple[str, str]:
+    """Execute one call without changing the semantics of a compiled snapshot ref."""
+
+    replay_mode = arguments.get("replay_mode")
+    public_arguments = {key: value for key, value in arguments.items() if key != "replay_mode"}
+    if replay_mode != "snapshot_ref_semantics":
+        result = tool.execute(public_arguments)
+        return str(result.status), str(result.result)
+
+    action = str(public_arguments.get("action") or "")
+    selector = str(public_arguments.get("selector") or "")
+    if action not in {"click", "fill", "select"} or not selector:
+        return "error", "Invalid compiled snapshot-ref replay call"
+    service = tool._get_service()
+
+    try:
+        def execute() -> None:
+            page = service._page
+            locator = page.locator(selector).first
+            if action == "click":
+                locator.evaluate("element => element.click()")
+                page.wait_for_timeout(500)
+            elif action == "fill":
+                locator.evaluate("element => { element.focus(); element.value = ''; }")
+                page.keyboard.type(str(public_arguments.get("text", "")))
+            else:
+                value = str(public_arguments.get("value", ""))
+                locator.evaluate(
+                    "(element, value) => { if (element.tagName.toLowerCase() !== 'select') "
+                    "throw new Error('target is not a select element'); element.value = value; "
+                    "element.dispatchEvent(new Event('change', {bubbles: true})); }",
+                    value,
+                )
+
+        service._submit(execute)
+    except Exception as exc:
+        return "error", f"{action.capitalize()} failed: {exc}"
+    return "success", f"{action.capitalize()} completed with snapshot-ref semantics."
 
 
 def _candidate(task: dict[str, Any]) -> dict[str, Any]:
@@ -237,17 +301,26 @@ def _run_one(  # noqa: PLR0913
         replay_started = time.perf_counter()
         for index, arguments in enumerate(calls, start=1):
             call_started = time.perf_counter()
-            result = tool.execute(arguments)
+            result_status, result_text = _execute_replay_call(tool, arguments)
+            dispatched_before_timeout = _click_was_dispatched_before_navigation_timeout(
+                arguments, result_status, result_text
+            )
             record = {
                 "index": index,
                 "arguments": arguments,
-                "status": result.status,
+                "status": "success" if dispatched_before_timeout else result_status,
+                "tool_status": result_status,
                 "duration_ms": round((time.perf_counter() - call_started) * 1000, 3),
-                "result": result.result,
+                "result": result_text,
             }
+            if dispatched_before_timeout:
+                record["recovery"] = {
+                    "classification": "click_dispatched_navigation_wait_timeout",
+                    "action_retried": False,
+                }
             records.append(record)
-            if result.status != "success":
-                raise RuntimeError(f"step {index} failed: {result.result}")
+            if result_status != "success" and not dispatched_before_timeout:
+                raise RuntimeError(f"step {index} failed: {result_text}")
         timings["trajectory_replay_ms"] = (time.perf_counter() - replay_started) * 1000
         process_status = "pass"
 

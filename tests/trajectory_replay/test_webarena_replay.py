@@ -8,6 +8,8 @@ import pytest
 from harness.trajectory_replay.webarena_replay import (
     RECEIPT_SCHEMA,
     _browser_context_needs_restart,
+    _click_was_dispatched_before_navigation_timeout,
+    _execute_replay_call,
     _origin,
     _rebind_url,
     _validated_resume,
@@ -61,6 +63,129 @@ def test_browser_context_restart_is_limited_to_pre_action_context_failure() -> N
     assert not _browser_context_needs_restart({**failed_setup, "completed_action_count": 1})
     assert not _browser_context_needs_restart({**failed_setup, "error": "navigation failed"})
     assert not _browser_context_needs_restart({**failed_setup, "process_status": "pass"})
+
+
+def test_completed_click_is_not_replayed_when_only_navigation_wait_times_out() -> None:
+    error = """Click failed: Page.click: Timeout 5000ms exceeded.
+    - performing click action
+    - click action done
+    - waiting for scheduled navigations to finish"""
+
+    assert _click_was_dispatched_before_navigation_timeout(
+        {"action": "click", "selector": "a[href='/next']"}, "error", error
+    )
+    assert not _click_was_dispatched_before_navigation_timeout(
+        {"action": "click", "selector": "a[href='/next']"},
+        "error",
+        "Click failed: Page.click: Timeout 5000ms exceeded; waiting for locator",
+    )
+    assert not _click_was_dispatched_before_navigation_timeout(
+        {"action": "fill", "selector": "input"}, "error", error
+    )
+
+
+def test_compiled_snapshot_ref_click_preserves_dom_click_semantics() -> None:
+    events = []
+
+    class Locator:
+        first = None
+
+        def __init__(self) -> None:
+            self.first = self
+
+        def evaluate(self, script, *args):
+            events.append(("evaluate", script, args))
+
+    class Page:
+        def locator(self, selector):
+            events.append(("locator", selector))
+            return Locator()
+
+        def wait_for_timeout(self, timeout):
+            events.append(("wait", timeout))
+
+    class Service:
+        _page = Page()
+
+        def _submit(self, callback):
+            return callback()
+
+    class Tool:
+        def _get_service(self):
+            return Service()
+
+        def execute(self, _arguments):
+            raise AssertionError("compiled ref call must not use Playwright actionability click")
+
+    status, _result = _execute_replay_call(
+        Tool(),
+        {
+            "action": "click",
+            "selector": "a[href='/next']:visible",
+            "replay_mode": "snapshot_ref_semantics",
+        },
+    )
+
+    assert status == "success"
+    assert events[0] == ("locator", "a[href='/next']:visible")
+    assert events[-1] == ("wait", 500)
+
+
+def test_compiled_snapshot_ref_fill_and_select_preserve_dom_semantics() -> None:
+    events = []
+
+    class Locator:
+        first = None
+
+        def __init__(self) -> None:
+            self.first = self
+
+        def evaluate(self, script, *args):
+            events.append(("evaluate", script, args))
+
+    class Keyboard:
+        def type(self, text):
+            events.append(("type", text))
+
+    class Page:
+        keyboard = Keyboard()
+
+        def locator(self, selector):
+            events.append(("locator", selector))
+            return Locator()
+
+    class Service:
+        _page = Page()
+
+        def _submit(self, callback):
+            return callback()
+
+    class Tool:
+        def _get_service(self):
+            return Service()
+
+    fill_status, _ = _execute_replay_call(
+        Tool(),
+        {
+            "action": "fill",
+            "selector": "input[name='query']:visible",
+            "text": "needle",
+            "replay_mode": "snapshot_ref_semantics",
+        },
+    )
+    select_status, _ = _execute_replay_call(
+        Tool(),
+        {
+            "action": "select",
+            "selector": "select[name='status']:visible",
+            "value": "open",
+            "replay_mode": "snapshot_ref_semantics",
+        },
+    )
+
+    assert fill_status == select_status == "success"
+    assert ("type", "needle") in events
+    assert any(event[0] == "evaluate" and event[2] == ("open",) for event in events)
 
 
 def test_formal_orchestration_passes_trusted_hosts_only_to_replay_calls() -> None:

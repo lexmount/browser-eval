@@ -13,9 +13,11 @@ candidate evidence, not additional tasks.
 - Browser Trajectory Replay consumes `tool_calls` as fixed inputs and uses
   `evaluation_input` only when invoking the official evaluator.
 - Autonomous Browser Use snapshots assign run-local numeric element refs. Seed generation compiles
-  those refs from the bound snapshot text into fixed Playwright selectors; a canonical trajectory
-  containing a raw ref is invalid. This also restores Playwright's navigation waiting instead of
-  depending on the Agent's historical thinking delay between actions.
+  those refs from the bound snapshot text into fixed selectors; a canonical trajectory containing
+  a raw ref is invalid. The compiled call records that it came from a snapshot ref and preserves
+  BrowserTool's original DOM click, focused keyboard fill, or change-event select semantics. It
+  must not silently switch to Playwright's selector fallback, whose viewport, overlay and navigation
+  waiting rules would change the measured trajectory.
 - Browser Use may use the inventory as hidden solvability and diagnostic evidence. The Agent
   must not receive the trajectory or evaluator input, and its score remains determined by the
   official task outcome contract.

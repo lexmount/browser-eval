@@ -77,6 +77,41 @@ def test_stop_is_idempotent_and_does_not_overwrite_har(tmp_path) -> None:
     assert path.read_text() == "sentinel"
 
 
+def test_stop_serializes_one_response_snapshot_when_callbacks_append(tmp_path) -> None:
+    class AppendOnSecondIteration(list):
+        iterations = 0
+
+        def __iter__(self):
+            self.iterations += 1
+            yield from super().__iter__()
+            if self.iterations == 2:
+                yield (
+                    object(),
+                    "late",
+                    {"method": "GET", "url": "http://example.test/late", "headers": {}},
+                    {"status": 200, "mimeType": "text/html", "headers": {}},
+                )
+
+    session = object()
+    recorder = CdpHarRecorder()
+    recorder._responses = AppendOnSecondIteration(
+        [
+            (
+                session,
+                "1",
+                {"method": "GET", "url": "http://example.test/first", "headers": {}},
+                {"status": 200, "mimeType": "text/html", "headers": {}},
+            )
+        ]
+    )
+    path = tmp_path / "network.har"
+
+    recorder.stop(object(), path)
+
+    entries = json.loads(path.read_text())["log"]["entries"]
+    assert [entry["request"]["url"] for entry in entries] == ["http://example.test/first"]
+
+
 def test_stop_decodes_base64_json_for_official_har_parser(tmp_path) -> None:
     class Session:
         def send(self, _method, _params):

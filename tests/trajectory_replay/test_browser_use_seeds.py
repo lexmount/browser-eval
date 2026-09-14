@@ -200,7 +200,11 @@ def test_compile_replay_calls_replaces_snapshot_refs_with_selectors(tmp_path: Pa
                     "data": {
                         "tool_call_id": "navigate",
                         "status": "success",
-                        "result": "Page: Example\nInteractive elements: 2\n---\n  [1] a href=\"/one\": One\n  [2] a href=\"/two\": Two",
+                        "result": (
+                            'Page: Example\nInteractive elements: 2\n---\n'
+                            '  [1] a href="/one": One\n'
+                            '  [2] a href="/two": Two'
+                        ),
                     },
                 },
                 {
@@ -222,7 +226,11 @@ def test_compile_replay_calls_replaces_snapshot_refs_with_selectors(tmp_path: Pa
 
     assert compile_replay_calls(events) == [
         {"action": "navigate", "url": "https://example.com"},
-        {"action": "click", "selector": 'a[href="/two"]:visible'},
+        {
+            "action": "click",
+            "selector": 'a[href="/two"]:visible',
+            "replay_mode": "snapshot_ref_semantics",
+        },
     ]
 
 
@@ -246,9 +254,9 @@ def test_compile_replay_calls_counts_the_full_dom_selector_population(tmp_path: 
                         "status": "success",
                         "result": (
                             "Page: Example\nInteractive elements: 3\n---\n"
-                            "  [1] button ariaLabel=\"Menu\": Menu\n"
+                            '  [1] button ariaLabel="Menu": Menu\n'
                             "  [2] button\n"
-                            "  [3] a href=\"/stable\" ariaLabel=\"Stable link\": Stable"
+                            '  [3] a href="/stable" ariaLabel="Stable link": Stable'
                         ),
                     },
                 },
@@ -282,6 +290,14 @@ def test_compile_replay_calls_counts_the_full_dom_selector_population(tmp_path: 
     )
 
     assert compile_replay_calls(events)[1:] == [
-        {"action": "click", "selector": ":nth-match(button:visible, 2)"},
-        {"action": "click", "selector": 'a[href="/stable"]:visible'},
+        {
+            "action": "click",
+            "selector": ":nth-match(button:visible, 2)",
+            "replay_mode": "snapshot_ref_semantics",
+        },
+        {
+            "action": "click",
+            "selector": 'a[href="/stable"]:visible',
+            "replay_mode": "snapshot_ref_semantics",
+        },
     ]
