@@ -2290,7 +2290,7 @@ def _article_body(
         + _table(["模型", "浏览器", "Agent 链路 P50", "BrowserTool P50", "Tokens P50", "峰值内存 P50", "CPU 时间 P50"], resource_rows, table_id="home-resource-table", classes="core-comparison-table")
         + _resource_summary_cards((common_count, resource_rows))
         + '<p class="source-note">Agent 链路还包含模型推理和页面等待，因此不能解读为纯内核性能。</p></section>'
-        f'<section><h2>工程结论</h2><p>{clean_task_count} 题审查合格比较集显示，四种端到端配置都完成了约九成任务，浏览器之间的单边差异集中在少数任务。有效失败主要来自 Agent 行为和浏览器证据接口，不再混入已确认的合同、站点或共享状态问题。</p><p>Moli 的内存占用明显更低，但 HAR 完整性、工具耗时和部分任务兼容性还需修复；Chromium 在两个模型层都多通过任务，但当前每种配置只有一个正式样本，不能外推成总体优势。</p><div class="essay-note"><h3>下一轮验证</h3><p>Task 77 可在串行锁下补跑；站点题先通过读写预检，合同矛盾题由上游修正或退出样本。任何补跑都覆盖同题四种配置，并作为新的完整证据批次发布。</p></div></section></article>'
+        f'<section><h2>工程结论</h2><p>{clean_task_count} 题审查合格比较集显示，四种端到端配置都完成了约九成任务，浏览器之间的单边差异集中在少数任务。有效失败主要来自 Agent 行为和浏览器证据接口，不再混入已确认的合同、站点或共享状态问题。</p><p>Moli 的内存占用明显更低，但 HAR 完整性、工具耗时和部分任务兼容性还需修复；Chromium 在两个模型层都多通过任务，但当前每种配置只有一个正式样本，不能外推成总体优势。</p><div class="essay-note"><h3>下一轮验证</h3><p>Task 77 与 771 可在串行锁下补跑；Task 339、475、600、625、676、699 的合同或 evaluator 修复已提交 <a href="https://github.com/ServiceNow/webarena-verified/pull/45">上游 PR #45</a>，合并后补跑；Task 528 在具备可移植的未提交表单验收前继续排除。站点题先通过读写预检。任何补跑都覆盖同题四种配置，并作为新的完整证据批次发布。</p></div></section></article>'
     )
 
 
@@ -3424,6 +3424,31 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 if preparation_receipts_complete
                 else '<p class="fine">逐执行环境准备回执尚不完整；现有记录只能核对运行器配置与镜像身份。</p>'
             ),
+        )
+        reproduce += _section(
+            "环境隔离与并行边界",
+            "<p>修正后的运行器把一个 Docker daemon 及其固定站点端口视为一个环境 lane。同一 lane 内的任务和浏览器必须串行：每次尝试先重置站点，再完成 Agent、证据收尾和 evaluator，整个周期由跨进程锁保护。缺少 Docker daemon 身份时直接停止，不降级为无锁执行。</p>"
+            + _table(
+                ["运行方式", "是否允许", "隔离要求"],
+                [
+                    [
+                        "一套站点环境，Chromium 与 Moli 串行",
+                        "允许，默认方案",
+                        "同一 daemon 锁；每次尝试前重置并核对初态",
+                    ],
+                    [
+                        "一套站点环境，两个浏览器并行",
+                        "不允许",
+                        "账号不同仍会共享对象、索引、缓存和后台任务",
+                    ],
+                    [
+                        "多个任务并行",
+                        "允许",
+                        "每个 worker 使用独立 daemon、站点容器、网络、端口和可写卷；镜像只读层可复用",
+                    ],
+                ],
+            )
+            + '<p class="fine">账号隔离只用于避免用户级对象冲突，不能替代环境 lane。Task 77/771 的旧证据来自修正前的共享状态，正式比较已将整题四种配置一并排除；只有新的完整四配置证据批次才能重新纳入。</p>',
         )
         reproduce += _section(
             "公开复现入口",

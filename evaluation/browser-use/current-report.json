@@ -33,7 +33,7 @@
   "failure_cause_review": {
     "required_for_publication": true,
     "source_path": "research/browser-use-failure-cause-review.json",
-    "source_sha256": "08e555e6d991892780a8b967741f42921424299e53dac079a7901d47446106e9"
+    "source_sha256": "a11134919f5e7b9a65c601374211e20e7e940f82e6f363ed025c49b52336e721"
   },
   "publication": {
     "base_url": "https://artifact-hub.app.lexmount.com",

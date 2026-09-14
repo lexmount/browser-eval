@@ -857,6 +857,7 @@ def check(
             in {
                 "shared_environment",
                 "benchmark_or_evaluator",
+                "benchmark_instruction_contract",
                 "self_hosted_site",
                 "reference_state_mixed",
             }

@@ -5,15 +5,22 @@
   "items": [
     {
       "category": "shared_environment",
-      "task_ids": [77],
+      "task_ids": [77, 771],
       "status": "implementation_fixed_rerun_required",
       "action": "The full physical-attempt lifecycle is now protected by a cross-process lock. Rerun the affected task before admitting it to the clean comparison."
     },
     {
       "category": "benchmark_or_evaluator",
-      "task_ids": [339, 475, 528, 600, 625, 676, 699, 771],
-      "status": "quarantined_pending_contract_fix",
-      "action": "Correct and independently validate the task contract or evaluator, then preregister and rerun the complete four-configuration scope."
+      "task_ids": [339, 475, 600, 625, 676, 699],
+      "status": "correction_implemented_upstream_review_and_rerun_required",
+      "upstream_pr": "https://github.com/ServiceNow/webarena-verified/pull/45",
+      "action": "The corrected contracts and network-event selection logic pass regression tests and replay checks against saved HAR evidence. Merge the upstream correction, then rerun the complete four-configuration scope before readmission."
+    },
+    {
+      "category": "benchmark_instruction_contract",
+      "task_ids": [528],
+      "status": "quarantined_pending_portable_evaluator",
+      "action": "Replace the synthetic dummy_bin POST requirement with a portable observable-state evaluator for the filled-but-unsubmitted form, then validate and rerun all four configurations."
     },
     {
       "category": "self_hosted_site",

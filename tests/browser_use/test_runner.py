@@ -14,6 +14,7 @@ from harness.browser_use.runner import (
     _allow_official_container_hostname,
     _configure_benchmark,
     _container_host_gateway,
+    _docker_daemon_lock_namespace,
     _environment_prepare_receipt,
     _exhausted_agent_steps,
     _limit_cowagent_transport_retries,
@@ -314,6 +315,21 @@ def test_physical_execution_lock_path_is_user_global_not_evidence_scoped(
         / "locks"
         / f"{PHYSICAL_EXECUTION_LOCK_NAMESPACE}.lock"
     )
+
+
+def test_environment_lane_is_bound_to_the_docker_daemon() -> None:
+    first = _docker_daemon_lock_namespace({"ID": "daemon-a"})
+    second = _docker_daemon_lock_namespace({"ID": "daemon-b"})
+
+    assert first.startswith(f"{PHYSICAL_EXECUTION_LOCK_NAMESPACE}-")
+    assert first != second
+    assert _docker_daemon_lock_namespace({"ID": "daemon-a"}) == first
+    assert _physical_execution_lock_path(first).name == f"{first}.lock"
+
+
+def test_environment_lane_fails_closed_without_a_docker_daemon_id() -> None:
+    with pytest.raises(RuntimeError, match="Docker daemon ID"):
+        _docker_daemon_lock_namespace({})
 
 
 def test_prepare_receipt_records_lock_wait_and_namespace_without_path() -> None:

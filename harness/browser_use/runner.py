@@ -91,7 +91,18 @@ QEMU_X86_64_HOST_PATH = "/usr/bin/qemu-x86_64"
 QEMU_X86_64_CONTAINER_PATH = "/usr/local/bin/qemu-x86_64"
 
 
-def _physical_execution_lock_path() -> Path:
+def _docker_daemon_lock_namespace(docker_info: dict[str, Any]) -> str:
+    """Bind a serialization lane to one Docker daemon and its fixed site ports."""
+    daemon_id = str(docker_info.get("ID") or "").strip()
+    if not daemon_id:
+        raise RuntimeError("Docker daemon ID is required for environment-lane isolation")
+    suffix = hashlib.sha256(daemon_id.encode("utf-8")).hexdigest()[:16]
+    return f"{PHYSICAL_EXECUTION_LOCK_NAMESPACE}-{suffix}"
+
+
+def _physical_execution_lock_path(
+    lock_namespace: str = PHYSICAL_EXECUTION_LOCK_NAMESPACE,
+) -> Path:
     # The WebArena stack uses fixed host ports and is shared by every run owned
     # by this OS user.  The lock therefore must not follow BROWSER_EVAL_DATA_HOME:
     # two cohorts may intentionally write to different evidence directories
@@ -100,7 +111,7 @@ def _physical_execution_lock_path() -> Path:
         Path(tempfile.gettempdir())
         / f"browser-eval-{os.getuid()}"
         / "locks"
-        / f"{PHYSICAL_EXECUTION_LOCK_NAMESPACE}.lock"
+        / f"{lock_namespace}.lock"
     )
 
 
@@ -613,13 +624,14 @@ def _resource_summary(
 def _run_attempt(  # noqa: PLR0913
     *,
     lock_path: Path,
+    lock_namespace: str = PHYSICAL_EXECUTION_LOCK_NAMESPACE,
     **kwargs: Any,
 ) -> dict[str, Any]:
     with _physical_execution_lock(lock_path) as lock_wait_ms:
         return _run_attempt_locked(
             **kwargs,
             lock_wait_ms=lock_wait_ms,
-            lock_namespace=PHYSICAL_EXECUTION_LOCK_NAMESPACE,
+            lock_namespace=lock_namespace,
         )
 
 
@@ -915,7 +927,6 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
 
     output_dir = Path(args.output).expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    physical_execution_lock_path = _physical_execution_lock_path()
     selection = load_pilot(args.selection)
     benchmark = _configure_benchmark()
     resolved = validate_against_official(selection, benchmark)
@@ -928,6 +939,11 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     model.verify_access()
 
     client = docker.from_env()
+    docker_info = client.info()
+    physical_execution_lock_namespace = _docker_daemon_lock_namespace(docker_info)
+    physical_execution_lock_path = _physical_execution_lock_path(
+        physical_execution_lock_namespace
+    )
     run_id = uuid.uuid4().hex[:12]
     containers: dict[str, Any] = {}
     networks: dict[str, Any] = {}
@@ -951,8 +967,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     }
     browser_metadata: dict[str, dict[str, str]] = {}
     site_access_host = ""
-    docker_info: dict[str, Any] = {}
-    docker_architecture = str(client.info().get("Architecture") or "")
+    docker_architecture = str(docker_info.get("Architecture") or "")
     site_runtime_compatibility = _site_runtime_compatibility(docker_architecture)
     try:
         for engine in ENGINE_IMAGES:
@@ -1006,6 +1021,10 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                     capture_output=True,
                     text=True,
                 ).stdout.strip(),
+                "environment_lane": {
+                    "lock_namespace": physical_execution_lock_namespace,
+                    "isolation_unit": "docker-daemon-and-fixed-site-ports",
+                },
                 "site_runtime_compatibility": site_runtime_compatibility,
             },
         )
@@ -1040,6 +1059,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                             break
                         row = _run_attempt(
                             lock_path=physical_execution_lock_path,
+                            lock_namespace=physical_execution_lock_namespace,
                             benchmark=benchmark,
                             selected=selected,
                             engine=engine,
@@ -1063,7 +1083,6 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                         print(json.dumps(visible), flush=True)
                         if row["score"] == 1.0:
                             break
-        docker_info = client.info()
     finally:
         for container in containers.values():
             try:
@@ -1111,6 +1130,11 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             "evaluator": "official webarena-verified package, unmodified",
             "environment_reset": "official site container reset before every attempt",
             "environment_prepare_receipt": "required",
+            "environment_lane": {
+                "lock_namespace": physical_execution_lock_namespace,
+                "isolation_unit": "docker-daemon-and-fixed-site-ports",
+                "parallelism_rule": "one active attempt per Docker daemon",
+            },
             "engine_order": "alternating by task",
             "sites": [site.value for site in SITE_PORTS],
             "official_container_hostname_allowlist": ["host.docker.internal"],
