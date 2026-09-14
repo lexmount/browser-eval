@@ -622,13 +622,25 @@ def run_replay_suite(  # noqa: PLR0913
     output_dir: str | Path,
     cowagent_repo: str | Path,
     diagnostic_task_ids: list[int] | None = None,
+    diagnostic_engines: list[str] | None = None,
 ) -> dict[str, Any]:
     plan = load_replay_plan(profile_path, seed_manifest_path)
     seeds = plan["seed_manifest"]
     task_ids = list(plan["task_ids"] if diagnostic_task_ids is None else diagnostic_task_ids)
     tasks = select_tasks(seeds, task_ids)
     engines = list(plan["engines"])
-    scope = "formal" if diagnostic_task_ids is None else "diagnostic"
+    if diagnostic_engines is not None:
+        unknown_engines = sorted(set(diagnostic_engines) - set(engines))
+        if unknown_engines:
+            raise ValueError(f"diagnostic engines are not registered: {unknown_engines}")
+        engines = [engine for engine in engines if engine in set(diagnostic_engines)]
+        if not engines:
+            raise ValueError("diagnostic engine selection is empty")
+    scope = (
+        "formal"
+        if diagnostic_task_ids is None and diagnostic_engines is None
+        else "diagnostic"
+    )
     resources = plan["profile"].get("resources") or {}
     cpus = float(resources["cpus"])
     memory = str(resources["memory"])

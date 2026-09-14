@@ -21,6 +21,11 @@ def parse_args() -> argparse.Namespace:
         type=int,
         help="run an explicitly non-promotable subset instead of the frozen full suite",
     )
+    parser.add_argument(
+        "--diagnostic-engine",
+        action="append",
+        help="run only a registered browser as an explicitly non-promotable qualification scan",
+    )
     return parser.parse_args()
 
 
@@ -32,6 +37,7 @@ def main() -> None:
         output_dir=args.output,
         cowagent_repo=args.cowagent_repo,
         diagnostic_task_ids=args.diagnostic_task,
+        diagnostic_engines=args.diagnostic_engine,
     )
 
 

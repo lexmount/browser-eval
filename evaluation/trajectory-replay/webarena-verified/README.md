@@ -44,5 +44,7 @@ candidate evidence, not additional tasks.
   independently satisfy the same promotion gate.
 
 Run the frozen suite with `scripts/run_webarena_trajectory_replay.py`. Diagnostic subsets are
-explicitly non-promotable. Promote a completed formal receipt with
+explicitly non-promotable. `--diagnostic-engine chromium` runs the complete frozen task set only on
+the reference browser so trajectory defects can be corrected before the measured method matrix.
+Promote a completed formal receipt with
 `scripts/promote_webarena_trajectories.py`; never edit a verdict or verification claim by hand.
