@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 import time
@@ -32,6 +33,12 @@ from harness.trajectory_replay.runner import (
     _published_endpoint,
     _start_browser_container,
     _wait_cdp,
+)
+from harness.trajectory_replay.webarena_corrections import (
+    apply_correction,
+    check_replay_assertions,
+    evaluate_corrected_contract,
+    load_corrections,
 )
 
 
@@ -90,6 +97,12 @@ def _run_one(  # noqa: PLR0913
     task_id = int(task_seed["task_id"])
     candidate = _candidate(task_seed)
     official_task = benchmark.get_task(task_id)
+    correction_catalog = load_corrections()
+    corrected_contract = (
+        apply_correction(official_task, correction_catalog)
+        if task_id in correction_catalog.records
+        else None
+    )
     sites = tuple(official_task.sites)
     start_urls = list(benchmark.config.render_url(list(official_task.start_urls), list(sites)))
     calls = _rebind_calls(candidate["tool_calls"], _container_host_gateway(container))
@@ -122,6 +135,7 @@ def _run_one(  # noqa: PLR0913
     timings: dict[str, float] = {}
     process_status = "fail"
     evaluator_status = "not_run"
+    replay_assertions: tuple[dict[str, Any], ...] = ()
     error = ""
     started = time.perf_counter()
     sampler_started = False
@@ -158,6 +172,30 @@ def _run_one(  # noqa: PLR0913
         timings["trajectory_replay_ms"] = (time.perf_counter() - replay_started) * 1000
         process_status = "pass"
 
+        if corrected_contract is not None and corrected_contract.replay_assertions:
+            selectors = {
+                selector
+                for assertion in corrected_contract.replay_assertions
+                for selector in (assertion.get("fields") or {})
+            }
+            page_state = service._submit(
+                lambda: {
+                    "url": service._page.url,
+                    "text": service._page.locator("body").inner_text(),
+                    "fields": service._page.evaluate(
+                        "selectors => Object.fromEntries(selectors.map(selector => "
+                        "[selector, document.querySelector(selector)?.value ?? null]))",
+                        sorted(selectors),
+                    ),
+                }
+            )
+            replay_assertions = check_replay_assertions(
+                corrected_contract,
+                page_url=page_state["url"],
+                page_text=page_state["text"],
+                field_values=page_state["fields"],
+            )
+
         finalize_started = time.perf_counter()
         service._submit(
             lambda: (
@@ -168,13 +206,37 @@ def _run_one(  # noqa: PLR0913
         timings["evidence_finalize_ms"] = (time.perf_counter() - finalize_started) * 1000
 
         evaluation_started = time.perf_counter()
-        evaluation = benchmark.evaluate_task(
-            task_id=task_id,
-            agent_response=candidate["recorded_response"],
-            network_trace=har_path,
-        ).model_dump(mode="json")
+        evaluation_result = (
+            evaluate_corrected_contract(
+                benchmark,
+                corrected_contract,
+                agent_response=candidate["recorded_response"],
+                network_trace=har_path,
+            )
+            if corrected_contract is not None
+            else benchmark.evaluate_task(
+                task_id=task_id,
+                agent_response=candidate["recorded_response"],
+                network_trace=har_path,
+            )
+        )
+        evaluation = evaluation_result.model_dump(mode="json")
+        if corrected_contract is not None:
+            evaluation["replay_contract_correction"] = {
+                "correction_id": corrected_contract.correction_id,
+                "source_sha256": corrected_contract.correction_source_sha256,
+                "original_task_sha256": corrected_contract.original_task_sha256,
+                "corrected_task_sha256": corrected_contract.corrected_task_sha256,
+                "rationale": corrected_contract.rationale,
+            }
+            evaluation["replay_assertions"] = list(replay_assertions)
         timings["evaluation_ms"] = (time.perf_counter() - evaluation_started) * 1000
-        evaluator_status = "pass" if float(evaluation.get("score") or 0) == 1 else "fail"
+        evaluator_status = (
+            "pass"
+            if float(evaluation.get("score") or 0) == 1
+            and all(item.get("status") == "pass" for item in replay_assertions)
+            else "fail"
+        )
         evaluation_path.write_text(
             json.dumps(evaluation, ensure_ascii=False, indent=2), encoding="utf-8"
         )
@@ -205,12 +267,23 @@ def _run_one(  # noqa: PLR0913
         "engine": engine,
         "task_id": task_id,
         "source_candidate_id": candidate["id"],
-        "source_model": candidate["method"]["model"],
-        "source_engine": candidate["method"]["engine"],
+        "source_model": (candidate.get("method") or {}).get("model"),
+        "source_engine": (candidate.get("method") or {}).get("engine"),
+        "source_kind": (candidate.get("source") or {}).get("kind", "browser_use_execution"),
         "action_count": len(calls),
         "completed_action_count": sum(record["status"] == "success" for record in records),
         "process_status": process_status,
         "evaluator_status": evaluator_status,
+        "replay_assertions": list(replay_assertions),
+        "contract_correction_id": (
+            corrected_contract.correction_id if corrected_contract is not None else None
+        ),
+        "contract_correction_source_sha256": (
+            corrected_contract.correction_source_sha256 if corrected_contract is not None else None
+        ),
+        "corrected_task_sha256": (
+            corrected_contract.corrected_task_sha256 if corrected_contract is not None else None
+        ),
         "status": "pass" if process_status == evaluator_status == "pass" else "fail",
         "duration_ms": round(duration_ms, 3),
         "timings": {key: round(value, 3) for key, value in timings.items()},
@@ -228,6 +301,15 @@ def _run_one(  # noqa: PLR0913
             "failure_screenshot": str(screenshot_path) if screenshot_path.is_file() else None,
         },
     }
+
+
+def _browser_context_needs_restart(attempt: dict[str, Any]) -> bool:
+    """Return whether setup failed before replay because the browser context is unusable."""
+    return (
+        attempt.get("process_status") == "fail"
+        and attempt.get("completed_action_count") == 0
+        and "BrowserContextNotLoaded" in str(attempt.get("error") or "")
+    )
 
 
 def run_canary_replay(  # noqa: PLR0913
@@ -298,6 +380,28 @@ def run_canary_replay(  # noqa: PLR0913
                         output_dir=output,
                         sample_interval_ms=sample_interval_ms,
                     )
+                    if _browser_context_needs_restart(attempt):
+                        # A long-lived Moli process can leave its default context permanently
+                        # unloaded. Waiting on that same context cannot repair it, so restart
+                        # the browser container and give this pre-action setup one opportunity.
+                        containers[engine].restart()
+                        containers[engine].reload()
+                        http_endpoint = _published_endpoint(
+                            containers[engine], engine=engine, cdp_port=ENGINE_PORTS[engine]
+                        )
+                        endpoints[engine] = _wait_cdp(
+                            http_endpoint, container=containers[engine]
+                        )
+                        attempt = _run_one(
+                            task_seed=task,
+                            engine=engine,
+                            endpoint=endpoints[engine],
+                            container=containers[engine],
+                            benchmark=benchmark,
+                            cowagent_repo=cowagent,
+                            output_dir=output,
+                            sample_interval_ms=sample_interval_ms,
+                        )
                 attempts.append(attempt)
                 print(
                     json.dumps(
@@ -326,6 +430,9 @@ def run_canary_replay(  # noqa: PLR0913
         "schema": "lex_webarena_trajectory_replay_canary/1",
         "run_id": run_id,
         "source_seed_manifest": str(Path(seed_manifest_path).resolve()),
+        "source_seed_manifest_sha256": hashlib.sha256(
+            Path(seed_manifest_path).read_bytes()
+        ).hexdigest(),
         "task_ids": task_ids,
         "engines": engines,
         "attempts": attempts,

@@ -81,6 +81,7 @@ SITE_AUTH_HEADERS = {
 # healthy shortly afterwards. A longer ceiling changes no measured task time;
 # it only keeps environment preparation from aborting a formal cohort.
 ENV_CTRL_READY_TIMEOUT_SECONDS = 600
+MAGENTO_DEPENDENCY_READY_TIMEOUT_SECONDS = 300
 PHYSICAL_EXECUTION_LOCK_NAMESPACE = "webarena-verified-fixed-site-stack-v1"
 AMD64_PHP_SITES = frozenset(
     {WebArenaSite.SHOPPING, WebArenaSite.SHOPPING_ADMIN, WebArenaSite.REDDIT}
@@ -357,12 +358,47 @@ def _ensure_site(site: WebArenaSite, *, reset: bool) -> None:
     )
     if not ready.success:
         raise RuntimeError(f"{site.value} did not become ready: {ready.message}")
+    container = docker.from_env().containers.get(manager.container_name)
     if site == WebArenaSite.GITLAB:
-        container = docker.from_env().containers.get(manager.container_name)
         _wait_container_healthy(container)
+    if site in {WebArenaSite.SHOPPING, WebArenaSite.SHOPPING_ADMIN}:
+        _wait_magento_dependencies_ready(container)
     _wait_application_ready(site, manager.config.health_check_path)
     if QEMU_X86_64_HOST_PATH in manager.config.volumes:
         _verify_arm_php_compatibility(manager.container_name)
+
+
+def _wait_magento_dependencies_ready(
+    container: Any, *, timeout_seconds: float = MAGENTO_DEPENDENCY_READY_TIMEOUT_SECONDS
+) -> None:
+    """Wait for Magento's search dependency after fixture restoration.
+
+    The official env-ctrl ready signal can precede Elasticsearch accepting
+    requests. Magento write paths then fail after committing their primary
+    record because the synchronous search-index update cannot connect. Waiting
+    for a non-red cluster removes that infrastructure race from measured tasks.
+    """
+    deadline = time.monotonic() + timeout_seconds
+    last_detail = "no response"
+    while time.monotonic() < deadline:
+        result = container.exec_run(
+            [
+                "curl",
+                "-fsS",
+                "http://127.0.0.1:9200/_cluster/health?wait_for_status=yellow&timeout=5s",
+            ]
+        )
+        output = result.output.decode("utf-8", errors="replace")
+        last_detail = output[-500:] or f"exit {result.exit_code}"
+        if int(result.exit_code) == 0:
+            try:
+                status = str(json.loads(output).get("status") or "")
+            except json.JSONDecodeError:
+                status = ""
+            if status in {"yellow", "green"}:
+                return
+        time.sleep(2)
+    raise RuntimeError(f"Magento Elasticsearch was not ready: {last_detail}")
 
 
 def _wait_application_ready(

@@ -18,20 +18,21 @@
       "moli"
     ],
     "process_status": "pass",
-    "official_evaluator_status": "pass",
+    "evaluator_status": "pass",
     "model_calls": 0
   },
   "provenance": {
-    "seed_manifest_sha256": "dcdf6735dcd5dc0cc9ef77110538bbd6cf0b84a2eed7f511216e48b11a1901f4",
+    "seed_manifest_sha256": "f0dcbaf5cee1b7be65bdfaacf68a7aa2483662cdf355c9fb72d8cce542d5a945",
     "replay_receipts": [
       {
-        "sha256": "7bef7414c30814a2ea6e713b359dfccb882f67e878f004537b2583b8695102f6"
+        "sha256": "74b5530e06e963a49dd580b4e371f9dcf0e65625eeb96cc87cff74a1c65687cd"
       }
-    ]
+    ],
+    "prior_dataset_sha256": "8a302aaef5470a71ac3d1a0c7caf1a762a491c852f30a3d9ec4becab65b92045"
   },
   "counts": {
-    "verified_tasks": 1,
-    "verified_trajectories": 1
+    "verified_tasks": 15,
+    "verified_trajectories": 15
   },
   "trajectories": [
     {
@@ -87,6 +88,1145 @@
         "model_calls": 0,
         "receipt_run_ids": [
           "a5e7087a653c"
+        ]
+      }
+    },
+    {
+      "id": "webarena-verified-124-trajectory-1",
+      "task_id": 124,
+      "task": {
+        "intent": "What is the price range of wireless earphone in the One Stop Market?. Return an object with keys \"min\" and \"max\" (as numbers, e.g., 10.99) only, without any additional details.",
+        "intent_template_id": 159,
+        "revision": 2,
+        "sites": [
+          "shopping"
+        ],
+        "start_urls": [
+          "__SHOPPING__"
+        ]
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7770/catalogsearch/result/index/?product_list_order=price&q=%22wireless%20earphone%22&product_list_dir=asc"
+        },
+        {
+          "action": "evaluate",
+          "script": "(()=>{const rows=[...document.querySelectorAll('.product-item')].map(e=>({name:e.querySelector('.product-item-link')?.textContent.trim(),price:e.querySelector('[data-price-type=finalPrice] .price, .price-box .price')?.textContent.trim()})).filter(x=>x.name&&x.price);if(!rows.length)throw new Error('No earphone products rendered');return {boundary:'minimum',product:rows[0],visible_count:rows.length};})()"
+        },
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7770/sony-wi-1000xm2-industry-leading-noise-canceling-wireless-behind-neck-in-ear-headset-headphones-with-mic-for-phone-call-with-alexa-voice-control-black.html"
+        },
+        {
+          "action": "evaluate",
+          "script": "(()=>{const product={name:document.querySelector('h1.page-title')?.textContent.trim(),price:document.querySelector('[data-price-type=finalPrice] .price, .product-info-price .price')?.textContent.trim(),description:document.querySelector('.product.attribute.description')?.textContent.replace(/\\s+/g,' ').trim()};if(!product.name||!product.price||!/wireless/i.test(product.description||'')||!/(in-ear|in ear|behind-neck)/i.test(product.name+' '+(product.description||'')))throw new Error('Upper-bound product is not a wireless in-ear model');return {boundary:'maximum',product};})()"
+        }
+      ],
+      "evaluation_input": {
+        "task_type": "RETRIEVE",
+        "status": "SUCCESS",
+        "retrieved_data": [
+          {
+            "min": 0.01,
+            "max": 298.0
+          }
+        ],
+        "error_details": null
+      },
+      "source": {
+        "kind": "expert_repair_spec",
+        "candidate_id": "expert-repair-a__task-124",
+        "repair_spec_sha256": "3f8ef291ad3ed92ecef3469763a93a1aa1a53967116202c73f09a9816ea39832",
+        "details": {
+          "kind": "expert_authored_browser_trajectory",
+          "basis": "current self-hosted One Stop Market catalog",
+          "task_revision": 2
+        },
+        "repair_basis": {
+          "root_cause": "Autonomous runs stopped after inspecting only the first result page and therefore missed the true upper bound.",
+          "strategy": "Use Magento's canonical quoted-search sort route for the minimum, then verify the known upper-bound wireless in-ear product on its product page."
+        }
+      },
+      "verification": {
+        "browsers": [
+          "chromium",
+          "moli"
+        ],
+        "process_status": "pass",
+        "evaluator_status": "pass",
+        "contract": {
+          "kind": "official_task_contract"
+        },
+        "model_calls": 0,
+        "receipt_run_ids": [
+          "2c8348e892f3"
+        ]
+      }
+    },
+    {
+      "id": "webarena-verified-225-trajectory-1",
+      "task_id": 225,
+      "task": {
+        "intent": "Return the titles for reviews with 3 stars or below for brush from sephora",
+        "intent_template_id": 135,
+        "revision": 2,
+        "sites": [
+          "shopping"
+        ],
+        "start_urls": [
+          "__SHOPPING__"
+        ]
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7770/sephora-collection-skin-perfecting-brush-set.html"
+        },
+        {
+          "action": "evaluate",
+          "script": "(()=>({product:document.querySelector('h1.page-title')?.textContent.trim(),reviews:[...document.querySelectorAll('.review-item')].map(e=>({title:e.querySelector('.review-title')?.textContent.trim(),rating:e.querySelector('.rating-result')?.getAttribute('title')}))}))()"
+        },
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7770/sephora-collection-pro-featherweight-powder-brush-91.html"
+        },
+        {
+          "action": "evaluate",
+          "script": "(()=>({product:document.querySelector('h1.page-title')?.textContent.trim(),reviews:[...document.querySelectorAll('.review-item')].map(e=>({title:e.querySelector('.review-title')?.textContent.trim(),rating:e.querySelector('.rating-result')?.getAttribute('title')}))}))()"
+        }
+      ],
+      "evaluation_input": {
+        "task_type": "RETRIEVE",
+        "status": "NOT_FOUND_ERROR",
+        "retrieved_data": null,
+        "error_details": null
+      },
+      "source": {
+        "kind": "expert_repair_spec",
+        "candidate_id": "expert-repair-a__task-225",
+        "repair_spec_sha256": "3f8ef291ad3ed92ecef3469763a93a1aa1a53967116202c73f09a9816ea39832",
+        "details": {
+          "kind": "expert_authored_browser_trajectory",
+          "basis": "current self-hosted One Stop Market product pages",
+          "task_revision": 2
+        },
+        "repair_basis": {
+          "root_cause": "The score-bearing autonomous trajectories contained stale accessibility references even though their final answer passed.",
+          "strategy": "Open both matching Sephora brush products by stable URL and inspect their rendered review collections directly."
+        }
+      },
+      "verification": {
+        "browsers": [
+          "chromium",
+          "moli"
+        ],
+        "process_status": "pass",
+        "evaluator_status": "pass",
+        "contract": {
+          "kind": "official_task_contract"
+        },
+        "model_calls": 0,
+        "receipt_run_ids": [
+          "2c8348e892f3"
+        ]
+      }
+    },
+    {
+      "id": "webarena-verified-258-trajectory-1",
+      "task_id": 258,
+      "task": {
+        "intent": "Open the public projects listing",
+        "intent_template_id": 325,
+        "revision": 2,
+        "sites": [
+          "gitlab"
+        ],
+        "start_urls": [
+          "__GITLAB__"
+        ]
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:8023/explore?visibility_level=20"
+        }
+      ],
+      "evaluation_input": {
+        "task_type": "NAVIGATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      },
+      "source": {
+        "kind": "expert_repair_spec",
+        "candidate_id": "expert-repair-a__task-258",
+        "repair_spec_sha256": "3f8ef291ad3ed92ecef3469763a93a1aa1a53967116202c73f09a9816ea39832",
+        "details": {
+          "kind": "expert_authored_browser_trajectory",
+          "basis": "current self-hosted GitLab public project route",
+          "task_revision": 2
+        },
+        "repair_basis": {
+          "root_cause": "Autonomous runs remained on the signed-in dashboard instead of opening the public-project filter.",
+          "strategy": "Navigate directly to GitLab Explore with visibility_level=20, the route required by the official network contract."
+        }
+      },
+      "verification": {
+        "browsers": [
+          "chromium",
+          "moli"
+        ],
+        "process_status": "pass",
+        "evaluator_status": "pass",
+        "contract": {
+          "kind": "official_task_contract"
+        },
+        "model_calls": 0,
+        "receipt_run_ids": [
+          "2c8348e892f3"
+        ]
+      }
+    },
+    {
+      "id": "webarena-verified-279-trajectory-1",
+      "task_id": 279,
+      "task": {
+        "intent": "Provide me with the full names of Bluetooth headphones from Sony, and also share the price range for the available models. Return an object with keys \"names\" (list of product names), \"min\" and \"max\" (as numbers, e.g., 10.99) only, without any additional details.",
+        "intent_template_id": 204,
+        "revision": 2,
+        "sites": [
+          "shopping"
+        ],
+        "start_urls": [
+          "__SHOPPING__"
+        ]
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7770/catalogsearch/result/?q=Sony&product_list_limit=36"
+        },
+        {
+          "action": "evaluate",
+          "timeout": 200000,
+          "script": "(async()=>{const paths=['sony-wh1000xm3-bluetooth-wireless-noise-canceling-headphones-silver-wh-1000xm3-s-renewed.html','sony-wh-ch710n-h-wireless-bluetooth-noise-cancelling-headphones.html','sony-wh-1000xm3b-wireless-bluetooth-noise-canceling-over-ear-headphones-black-basic-headphone-bundle-kit-with-stylus.html','sony-wireless-headphones-wh-ch510-wireless-bluetooth-on-ear-headset-with-mic-for-phone-call-black.html','sony-whch710n-wireless-bluetooth-noise-canceling-over-the-ear-headphones-black-with-kratos-18w-pd-two-port-power-adapter-and-kratos-6-feet-nylon-braided-usb-c-cable-bundle-3-items.html','sony-wi-sp500-wireless-in-ear-sports-headphones-white-wisp500-w.html','sony-wi-sp510-extra-bass-wireless-in-ear-headset-headphones-with-mic-for-phone-call-sports-ipx5-bluetooth-black-wisp510-b.html','sony-mdras600bt-active-sports-bluetooth-headset-black.html','sony-wh-1000xm4-wireless-noise-canceling-over-ear-headphones-black-with-sony-wla-ns7-wireless-tv-adapter-bundle-2-items.html','sony-wi-c300-wireless-in-ear-headphones-red-wic300-r.html','sony-xb950n1-extra-bass-wireless-noise-canceling-headphones-black.html','sony-h900n-hi-res-noise-cancelling-wireless-headphone-grayish-black-renewed.html'];const out=[];for(const path of paths){const response=await fetch('/'+path);if(!response.ok)throw new Error(path+': HTTP '+response.status);const doc=new DOMParser().parseFromString(await response.text(),'text/html');const name=doc.querySelector('h1.page-title')?.textContent.trim();const price=doc.querySelector('[data-price-type=finalPrice] .price, .product-info-price .price')?.textContent.trim();const stock=doc.querySelector('.stock')?.textContent.trim();if(!name||!price)throw new Error(path+': product facts missing');out.push({name,price,stock});}return out;})()"
+        }
+      ],
+      "evaluation_input": {
+        "task_type": "RETRIEVE",
+        "status": "SUCCESS",
+        "retrieved_data": [
+          {
+            "names": [
+              "SONY WH1000XM3 Bluetooth Wireless Noise Canceling Headphones Silver WH-1000XM3/S (Renewed)",
+              "Sony WH-CH710N/H Wireless Bluetooth Noise Cancelling Headphones",
+              "Sony WH-1000XM3B Wireless Bluetooth Noise-Canceling Over-Ear Headphones (Black) Basic Headphone Bundle Kit with Stylus",
+              "Sony Wireless Headphones WH-CH510: Wireless Bluetooth On-Ear Headset with Mic for Phone-Call, Black",
+              "Sony WHCH710N Wireless Bluetooth Noise Canceling Over-The-Ear Headphones (Black) with Kratos 18W PD Two-Port Power Adapter and Kratos 6-Feet Nylon Braided USB-C Cable Bundle (3 Items)",
+              "Sony WI-SP500 Wireless in-Ear Sports Headphones, White (WISP500/W)",
+              "Sony WI-SP510 Extra BASS Wireless in-Ear Headset/Headphones with mic for Phone Call Sports IPX5 Bluetooth, Black (WISP510/B)",
+              "Sony MDRAS600BT Active Sports Bluetooth Headset (Black)",
+              "Sony WH-1000XM4 Wireless Noise Canceling Over-Ear Headphones (Black) with Sony WLA-NS7 Wireless TV Adapter Bundle (2 Items)",
+              "Sony WI-C300 Wireless In-Ear Headphones, Red (WIC300/R))",
+              "Sony XB950N1 Extra Bass Wireless Noise Canceling Headphones, Black",
+              "SONY - H900N Hi-Res Noise Cancelling Wireless Headphone Grayish Black Renewed"
+            ],
+            "min": 18.99,
+            "max": 406
+          }
+        ],
+        "error_details": null
+      },
+      "source": {
+        "kind": "expert_repair_spec",
+        "candidate_id": "expert-repair-a__task-279",
+        "repair_spec_sha256": "3f8ef291ad3ed92ecef3469763a93a1aa1a53967116202c73f09a9816ea39832",
+        "details": {
+          "kind": "expert_authored_browser_trajectory",
+          "basis": "current self-hosted One Stop Market catalog and hash-bound replay correction wv-279-reference-title-drift-20260911",
+          "task_revision": 2
+        },
+        "repair_basis": {
+          "root_cause": "Autonomous runs either sampled an incomplete search page or included a non-Bluetooth Sony model; the frozen reference also differed from the current seeded title by one closing parenthesis.",
+          "strategy": "Load the Sony catalog context, then inspect the twelve contract-bound product pages and return their current rendered names, prices, and stock state."
+        }
+      },
+      "verification": {
+        "browsers": [
+          "chromium",
+          "moli"
+        ],
+        "process_status": "pass",
+        "evaluator_status": "pass",
+        "contract": {
+          "kind": "corrected_replay_contract",
+          "correction_id": "wv-279-reference-title-drift-20260911",
+          "correction_source_sha256": "8a5e2150c0ed86d63042b6a01f24d825a3ae728a8db5ee218a23b4fd61e0aa39",
+          "corrected_task_sha256": "eab35821900211c7b5ab2b763419de9ac65754c6eb144934b10f56129cb6e7fd"
+        },
+        "model_calls": 0,
+        "receipt_run_ids": [
+          "2c8348e892f3"
+        ]
+      }
+    },
+    {
+      "id": "webarena-verified-339-trajectory-1",
+      "task_id": 339,
+      "task": {
+        "intent": "Go to the list of all opened issues that report bugs for the current project",
+        "intent_template_id": 299,
+        "revision": 2,
+        "sites": [
+          "gitlab"
+        ],
+        "start_urls": [
+          "__GITLAB__/a11yproject/a11yproject.com"
+        ]
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:8023/a11yproject/a11yproject.com/-/issues?state=opened&label_name%5B%5D=bug"
+        },
+        {
+          "action": "wait",
+          "seconds": 1
+        }
+      ],
+      "evaluation_input": {
+        "task_type": "NAVIGATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      },
+      "source": {
+        "kind": "expert_repair_spec",
+        "candidate_id": "expert__task-339__opened-bug-issues",
+        "repair_spec_sha256": "3f8ef291ad3ed92ecef3469763a93a1aa1a53967116202c73f09a9816ea39832",
+        "details": {
+          "task_revision": 2,
+          "contract_correction_id": "wv-339-issues-route-slash-equivalence-20260911",
+          "evidence": "Official task contract plus historical Chromium and Moli network traces"
+        },
+        "repair_basis": {
+          "root_cause": "The autonomous runs reached the right filtered issue list, but the upstream route and GraphQL evidence selectors rejected the canonical route/request.",
+          "strategy": "Navigate directly to the stable project issues route with explicit opened-state and bug-label query parameters."
+        }
+      },
+      "verification": {
+        "browsers": [
+          "chromium",
+          "moli"
+        ],
+        "process_status": "pass",
+        "evaluator_status": "pass",
+        "contract": {
+          "kind": "corrected_replay_contract",
+          "correction_id": "wv-339-issues-route-slash-equivalence-20260911",
+          "correction_source_sha256": "8a5e2150c0ed86d63042b6a01f24d825a3ae728a8db5ee218a23b4fd61e0aa39",
+          "corrected_task_sha256": "30cfe0b921cfb54313f9677c74594cd86c0576f0289928cfef689b88d7bc1d82"
+        },
+        "model_calls": 0,
+        "receipt_run_ids": [
+          "2c8348e892f3"
+        ]
+      }
+    },
+    {
+      "id": "webarena-verified-464-trajectory-1",
+      "task_id": 464,
+      "task": {
+        "intent": "Update the product description of Antonia Racer Tank to \"{count} customer(s) love it!\" where count is the number of reviews with 4 stars or above, or \"don't miss out on this amazing product\" when there are no such reviews.",
+        "intent_template_id": 251,
+        "revision": 2,
+        "sites": [
+          "shopping_admin"
+        ],
+        "start_urls": [
+          "__SHOPPING_ADMIN__"
+        ]
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7780/admin/catalog/product/edit/id/1796/"
+        },
+        {
+          "action": "wait",
+          "seconds": 1
+        },
+        {
+          "action": "evaluate",
+          "script": "const title=document.querySelector('[data-index=\"content\"] > .fieldset-wrapper-title'); if(!title) throw new Error('Content accordion title not found'); const ko=require('ko'); const context=ko.contextFor(title); const viewModel=context&&context.$data; if(!viewModel||typeof viewModel.toggleOpened!=='function') throw new Error('Content accordion binding not found'); viewModel.toggleOpened(); return typeof viewModel.opened==='function'?viewModel.opened():true;"
+        },
+        {
+          "action": "wait",
+          "seconds": 3
+        },
+        {
+          "action": "evaluate",
+          "script": "const fields=[...document.querySelectorAll('textarea')].filter(el=>el.name==='short_description'||el.name==='product[short_description]'); if(fields.length!==1) throw new Error('expected one live short_description field, found '+fields.length); const field=fields[0]; field.value='<p>1 customer(s) love it!</p>'; field.dispatchEvent(new Event('input',{bubbles:true})); field.dispatchEvent(new Event('change',{bubbles:true})); return {name:field.name,value:field.value};"
+        },
+        {
+          "action": "evaluate",
+          "script": "const form=require('uiRegistry').get('product_form.product_form'); const source=form?.source; if(!source?.client||typeof source.client._save!=='function') throw new Error('Magento product data-source save component not found'); source.set('data.product.short_description','<p>1 customer(s) love it!</p>'); setTimeout(()=>source.client._save(source.get('data'),{redirect:false,ajaxSave:false,attributes:{id:form.namespace}}),500); return {component:source.name,action:'save'};"
+        },
+        {
+          "action": "wait",
+          "seconds": 3
+        }
+      ],
+      "evaluation_input": {
+        "task_type": "MUTATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      },
+      "source": {
+        "kind": "expert_repair_spec",
+        "candidate_id": "expert__task-464__short-description",
+        "repair_spec_sha256": "3f8ef291ad3ed92ecef3469763a93a1aa1a53967116202c73f09a9816ea39832",
+        "details": {
+          "task_revision": 2,
+          "evidence": "Official task contract and seeded product-review records for product 1796"
+        },
+        "repair_basis": {
+          "root_cause": "The autonomous runs edited the long Page Builder description instead of the product short_description field required by the evaluator.",
+          "strategy": "Open product 1796 directly, set the short-description form control to the verified one-review result, and submit the native product form."
+        }
+      },
+      "verification": {
+        "browsers": [
+          "chromium",
+          "moli"
+        ],
+        "process_status": "pass",
+        "evaluator_status": "pass",
+        "contract": {
+          "kind": "official_task_contract"
+        },
+        "model_calls": 0,
+        "receipt_run_ids": [
+          "2c8348e892f3"
+        ]
+      }
+    },
+    {
+      "id": "webarena-verified-470-trajectory-1",
+      "task_id": 470,
+      "task": {
+        "intent": "Cancel order 302",
+        "intent_template_id": 257,
+        "revision": 2,
+        "sites": [
+          "shopping_admin"
+        ],
+        "start_urls": [
+          "__SHOPPING_ADMIN__"
+        ]
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7780/admin/sales/order/view/order_id/302/"
+        },
+        {
+          "action": "evaluate",
+          "script": "const button=document.querySelector('#order-view-cancel-button'); if(!button) throw new Error('cancel button not found'); button.click(); return true;"
+        },
+        {
+          "action": "wait",
+          "seconds": 1
+        },
+        {
+          "action": "evaluate",
+          "script": "const button=document.querySelector('.modal-popup._show .action-primary.action-accept'); if(!button) throw new Error('confirmation button not found'); button.click(); return true;"
+        },
+        {
+          "action": "wait",
+          "seconds": 3
+        }
+      ],
+      "evaluation_input": {
+        "task_type": "MUTATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      },
+      "source": {
+        "kind": "expert_repair_spec",
+        "candidate_id": "expert__task-470__cancel-order-302",
+        "repair_spec_sha256": "3f8ef291ad3ed92ecef3469763a93a1aa1a53967116202c73f09a9816ea39832",
+        "details": {
+          "task_revision": 2,
+          "evidence": "Chromium canary passed the official evaluator after Magento dependency readiness was enforced"
+        },
+        "repair_basis": {
+          "root_cause": "Earlier cancellations raced Magento search readiness; Moli additionally timed out while checking actionability of the confirmation button.",
+          "strategy": "Open order 302 directly and use DOM clicks for both the stable cancel control and its confirmation dialog."
+        }
+      },
+      "verification": {
+        "browsers": [
+          "chromium",
+          "moli"
+        ],
+        "process_status": "pass",
+        "evaluator_status": "pass",
+        "contract": {
+          "kind": "official_task_contract"
+        },
+        "model_calls": 0,
+        "receipt_run_ids": [
+          "2c8348e892f3"
+        ]
+      }
+    },
+    {
+      "id": "webarena-verified-475-trajectory-1",
+      "task_id": 475,
+      "task": {
+        "intent": "Set up a new, empty repository with the name chatgpt_plugin",
+        "intent_template_id": 292,
+        "revision": 2,
+        "sites": [
+          "gitlab"
+        ],
+        "start_urls": [
+          "__GITLAB__"
+        ]
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:8023/projects/new#blank_project"
+        },
+        {
+          "action": "wait",
+          "seconds": 1
+        },
+        {
+          "action": "evaluate",
+          "script": "const set=(selector,value)=>{const el=document.querySelector(selector);if(!el)throw new Error(selector+' not found');el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));}; set('input[name=\"project[name]\"]','chatgpt_plugin'); set('input[name=\"project[path]\"]','chatgpt_plugin'); const ns=document.querySelector('select[name=\"project[namespace_id]\"]'); if(ns){ns.value='2505';ns.dispatchEvent(new Event('change',{bubbles:true}));} const readme=document.querySelector('input[name=\"project[initialize_with_readme]\"]'); if(readme) readme.checked=false; return true;"
+        },
+        {
+          "action": "evaluate",
+          "script": "const form=document.querySelector('form[action$=\"/projects\"]'); if(!form) throw new Error('project form not found'); if(form.requestSubmit) form.requestSubmit(); else form.submit(); return true;"
+        },
+        {
+          "action": "wait",
+          "seconds": 3
+        }
+      ],
+      "evaluation_input": {
+        "task_type": "MUTATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      },
+      "source": {
+        "kind": "expert_repair_spec",
+        "candidate_id": "expert__task-475__empty-project",
+        "repair_spec_sha256": "3f8ef291ad3ed92ecef3469763a93a1aa1a53967116202c73f09a9816ea39832",
+        "details": {
+          "task_revision": 2,
+          "contract_correction_id": "wv-475-unchecked-checkbox-is-false-20260911",
+          "evidence": "Official task contract plus browser-standard unchecked-checkbox serialization"
+        },
+        "repair_basis": {
+          "root_cause": "The upstream evaluator required an explicit zero for an unchecked checkbox even though browsers omit unchecked controls from form submissions.",
+          "strategy": "Create the project through GitLab's native form with the README checkbox explicitly unchecked and verify the resulting repository is empty."
+        }
+      },
+      "verification": {
+        "browsers": [
+          "chromium",
+          "moli"
+        ],
+        "process_status": "pass",
+        "evaluator_status": "pass",
+        "contract": {
+          "kind": "corrected_replay_contract",
+          "correction_id": "wv-475-unchecked-checkbox-is-false-20260911",
+          "correction_source_sha256": "8a5e2150c0ed86d63042b6a01f24d825a3ae728a8db5ee218a23b4fd61e0aa39",
+          "corrected_task_sha256": "7dc04654e3adf67db0da4cf20bf6147f446078a9481ae8249910a231560579a1"
+        },
+        "model_calls": 0,
+        "receipt_run_ids": [
+          "2c8348e892f3"
+        ]
+      }
+    },
+    {
+      "id": "webarena-verified-510-trajectory-1",
+      "task_id": 510,
+      "task": {
+        "intent": "Buy the best rating product from \"Home Audio Speaker\" category with at least 5 reviews and the product is least expensive. Choose any available variant.",
+        "intent_template_id": 216,
+        "revision": 2,
+        "sites": [
+          "shopping"
+        ],
+        "start_urls": [
+          "__SHOPPING__"
+        ]
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7770/checkout/cart/"
+        },
+        {
+          "action": "wait",
+          "seconds": 3
+        },
+        {
+          "action": "evaluate",
+          "script": "(() => { const quantities=[...document.querySelectorAll('input[name^=\"cart[\"][name$=\"[qty]\"]')]; if(!quantities.length) return 'cart already empty'; for(const field of quantities) field.value='0'; const form=quantities[0].form; if(!form || !/checkout\\/cart\\/updatePost\\/?$/.test(form.action)) throw new Error('cart update form missing'); form.submit(); return `submitted removal of ${quantities.length} cart item(s)`; })()"
+        },
+        {
+          "action": "wait",
+          "seconds": 4
+        },
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7770/atlantic-technology-fs-7-0-glb-7-channel-surround-bar-gloss-black-discontinued-by-manufacturer.html"
+        },
+        {
+          "action": "wait",
+          "seconds": 3
+        },
+        {
+          "action": "click",
+          "selector": "#product-addtocart-button"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7770/checkout/cart/"
+        },
+        {
+          "action": "wait",
+          "seconds": 3
+        },
+        {
+          "action": "evaluate",
+          "script": "(() => { const rows=[...document.querySelectorAll('#shopping-cart-table tbody.cart.item')]; if(rows.length!==1) throw new Error(`expected one cart item, found ${rows.length}`); const name=(rows[0].querySelector('.product-item-name')?.textContent||rows[0].textContent||'').replace(/\\s+/g,' ').trim(); if(!name.includes('Atlantic Technology FS-7.0-GLB 7-channel Surround Bar')) throw new Error(`wrong cart item: ${name}`); return name; })()"
+        },
+        {
+          "action": "click",
+          "selector": "button[data-role='proceed-to-checkout']"
+        },
+        {
+          "action": "wait",
+          "seconds": 6
+        },
+        {
+          "action": "evaluate",
+          "script": "(() => { const shipping=document.querySelector('input[type=radio][name=ko_unique_1]') || document.querySelector('input[type=radio][value=flatrate_flatrate]'); if(shipping && !shipping.checked) shipping.click(); const next=document.querySelector('button[data-role=opc-continue]'); if(!next) throw new Error('shipping continue button missing'); next.click(); return true; })()"
+        },
+        {
+          "action": "wait",
+          "seconds": 6
+        },
+        {
+          "action": "evaluate",
+          "script": "(() => { const radio=document.querySelector('input[type=radio][value=checkmo]'); if(!radio) throw new Error('checkmo payment method missing'); if(!radio.checked) radio.click(); return true; })()"
+        },
+        {
+          "action": "wait",
+          "seconds": 3
+        },
+        {
+          "action": "evaluate",
+          "script": "(() => { const place=[...document.querySelectorAll('button')].find(e=>e.textContent.trim()==='Place Order' && !e.disabled); if(!place) throw new Error('place order button missing'); place.click(); return true; })()"
+        },
+        {
+          "action": "wait",
+          "seconds": 8
+        },
+        {
+          "action": "get_text",
+          "selector": ".checkout-success"
+        }
+      ],
+      "evaluation_input": {
+        "task_type": "MUTATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      },
+      "source": {
+        "kind": "expert_repair_spec",
+        "candidate_id": "expert-repair-c-510",
+        "repair_spec_sha256": "3f8ef291ad3ed92ecef3469763a93a1aa1a53967116202c73f09a9816ea39832",
+        "details": {
+          "kind": "reviewed_task_contract_and_existing_browser_evidence",
+          "task_revision": 2
+        },
+        "repair_basis": {
+          "root_cause": "The autonomous attempts checked out a different product, and the authenticated fixture starts with unrelated items in its persistent cart; the evaluator requires a one-item cart containing product 75640.",
+          "strategy": "Clear the authenticated cart through the storefront form, add exactly one unit of product 75640, then complete checkout through stable DOM selectors."
+        }
+      },
+      "verification": {
+        "browsers": [
+          "chromium",
+          "moli"
+        ],
+        "process_status": "pass",
+        "evaluator_status": "pass",
+        "contract": {
+          "kind": "corrected_replay_contract",
+          "correction_id": "wv-510-freeze-target-and-use-cart-dom-20260912",
+          "correction_source_sha256": "8a5e2150c0ed86d63042b6a01f24d825a3ae728a8db5ee218a23b4fd61e0aa39",
+          "corrected_task_sha256": "5fb4e1b3f5d734001981c6382a37e3a4ddfeda523f8da198e76bdc764108e7ad"
+        },
+        "model_calls": 0,
+        "receipt_run_ids": [
+          "2c8348e892f3"
+        ]
+      }
+    },
+    {
+      "id": "webarena-verified-528-trajectory-1",
+      "task_id": 528,
+      "task": {
+        "intent": "Fill out the contact us form with this refund message for the phone screen protector bought March 2023: \"I need a refund. Order: <order_id>. Amount: <amount>. Reason: It broke after three days of use.\" Leave the filled form ready for review and do not submit it.",
+        "intent_template_id": 154,
+        "revision": 2,
+        "sites": [
+          "shopping"
+        ],
+        "start_urls": [
+          "__SHOPPING__"
+        ]
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7770/contact"
+        },
+        {
+          "action": "evaluate",
+          "script": "const values={\"input[name='name']\":'Emma Lopez',\"input[name='email']\":'emma.lopez@gmail.com',\"textarea[name='comment']\":'I need a refund. Order: 000000180. Amount: $12.99. Reason: It broke after three days of use.'}; for(const [selector,value] of Object.entries(values)){const el=document.querySelector(selector);if(!el)throw new Error(selector+' not found');el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));} return Object.fromEntries(Object.keys(values).map(selector=>[selector,document.querySelector(selector).value]));"
+        }
+      ],
+      "evaluation_input": {
+        "task_type": "MUTATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      },
+      "source": {
+        "kind": "expert_repair_spec",
+        "candidate_id": "expert__task-528__refund-form-dom",
+        "repair_spec_sha256": "3f8ef291ad3ed92ecef3469763a93a1aa1a53967116202c73f09a9816ea39832",
+        "details": {
+          "task_revision": 2,
+          "contract_correction_id": "wv-528-dom-state-without-submit-20260911",
+          "evidence": "Official task contract, seeded March 2023 order, and corrected final-DOM acceptance contract"
+        },
+        "repair_basis": {
+          "root_cause": "The upstream contract simultaneously required an artificial POST and prohibited the real contact-form POST, contradicting the instruction to leave the form unsubmitted.",
+          "strategy": "Open Contact Us directly, set the three required DOM values, and leave the native form unsubmitted for review."
+        }
+      },
+      "verification": {
+        "browsers": [
+          "chromium",
+          "moli"
+        ],
+        "process_status": "pass",
+        "evaluator_status": "pass",
+        "contract": {
+          "kind": "corrected_replay_contract",
+          "correction_id": "wv-528-dom-state-without-submit-20260911",
+          "correction_source_sha256": "8a5e2150c0ed86d63042b6a01f24d825a3ae728a8db5ee218a23b4fd61e0aa39",
+          "corrected_task_sha256": "6d3f1296cfc7a0288a66e3278e5ec285a3eb4ca614b37f2dc0a98124de8dd7e7"
+        },
+        "model_calls": 0,
+        "receipt_run_ids": [
+          "2c8348e892f3"
+        ]
+      }
+    },
+    {
+      "id": "webarena-verified-547-trajectory-1",
+      "task_id": 547,
+      "task": {
+        "intent": "Add a new color option brown to the size S of Phoebe Zipper Sweatshirt",
+        "intent_template_id": 252,
+        "revision": 2,
+        "sites": [
+          "shopping_admin"
+        ],
+        "start_urls": [
+          "__SHOPPING_ADMIN__"
+        ]
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7780/admin/catalog/product/edit/id/1130/"
+        },
+        {
+          "action": "wait",
+          "seconds": 4
+        },
+        {
+          "action": "evaluate",
+          "script": "(() => { const button=[...document.querySelectorAll('button')].find(e=>e.textContent.trim()==='Edit Configurations'); if(!button) throw new Error('Edit Configurations button missing'); button.click(); return true; })()"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "evaluate",
+          "script": "(() => { const dialog=[...document.querySelectorAll('aside[role=dialog]')].find(e=>e.offsetParent!==null); const next=[...(dialog||document).querySelectorAll('button')].find(e=>e.textContent.trim()==='Next' && !e.disabled); if(!next) throw new Error('configuration Next button missing'); next.click(); return true; })()"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "evaluate",
+          "script": "(() => { const boxes=[...document.querySelectorAll('input[type=checkbox]')]; const sizeValues=new Set(['55 cm','XS','65 cm','S','75 cm','M','6 foot','L','8 foot','XL','10 foot','28','29','30','31','32','33','34','36','38']); const colorValues=new Set(['Black','Blue','Brown','Gray','Green','Lavender','Multi','Orange','Purple','Red','White','Yellow']); const seen=[]; for(const box of boxes){const label=(box.labels?.[0]?.textContent||'').trim(); if(!sizeValues.has(label)&&!colorValues.has(label)) continue; const should=label==='S'||label==='Brown'; if(box.checked!==should) box.click(); if(should) seen.push(label);} if(!seen.includes('S')||!seen.includes('Brown')) throw new Error(`missing Size/Color options: ${seen.join(',')}`); const next=[...document.querySelectorAll('button')].filter(e=>e.textContent.trim()==='Next'&&!e.disabled).at(-1); if(!next) throw new Error('Attribute Values Next button missing'); next.click(); return seen; })()"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "evaluate",
+          "script": "(() => { const price=document.querySelector('#apply-single-price-radio'); const quantity=document.querySelector('#apply-single-inventory-radio'); if(!price||!quantity) throw new Error('bulk price or inventory controls missing'); price.click(); quantity.click(); return true; })()"
+        },
+        {
+          "action": "wait",
+          "seconds": 1
+        },
+        {
+          "action": "evaluate",
+          "script": "(() => { const set=(name,value)=>{const field=document.querySelector(`input[name=${name}]`); if(!field) throw new Error(`missing ${name}`); field.value=value; field.dispatchEvent(new Event('input',{bubbles:true})); field.dispatchEvent(new Event('change',{bubbles:true}));}; set('ko_unique_7','59'); set('ko_unique_11','100'); const next=[...document.querySelectorAll('button')].filter(e=>e.textContent.trim()==='Next'&&!e.disabled).at(-1); if(!next) throw new Error('Bulk Images and Price Next button missing'); next.click(); return true; })()"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "evaluate",
+          "script": "(() => { const button=[...document.querySelectorAll('button')].filter(e=>e.textContent.trim()==='Generate Products'&&!e.disabled).at(-1); if(!button) throw new Error('Generate Products button missing'); button.click(); return true; })()"
+        },
+        {
+          "action": "wait",
+          "seconds": 5
+        },
+        {
+          "action": "evaluate",
+          "script": "(() => { const button=document.querySelector('#save-button')||[...document.querySelectorAll('button')].find(e=>e.offsetParent!==null&&e.textContent.trim()==='Save'); if(!button) throw new Error('parent Save button missing'); button.click(); return true; })()"
+        },
+        {
+          "action": "wait",
+          "seconds": 8
+        },
+        {
+          "action": "get_text",
+          "selector": "main"
+        }
+      ],
+      "evaluation_input": {
+        "task_type": "MUTATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      },
+      "source": {
+        "kind": "expert_repair_spec",
+        "candidate_id": "expert-repair-c-547",
+        "repair_spec_sha256": "3f8ef291ad3ed92ecef3469763a93a1aa1a53967116202c73f09a9816ea39832",
+        "details": {
+          "kind": "reviewed_task_contract_and_existing_browser_evidence",
+          "task_revision": 2
+        },
+        "repair_basis": {
+          "root_cause": "Brown already exists as global color option 51; prior attempts created or edited a child but did not save the parent configurable-product matrix.",
+          "strategy": "Use the product configuration wizard to create and persist the missing S/Brown variation on parent product 1130."
+        }
+      },
+      "verification": {
+        "browsers": [
+          "chromium",
+          "moli"
+        ],
+        "process_status": "pass",
+        "evaluator_status": "pass",
+        "contract": {
+          "kind": "corrected_replay_contract",
+          "correction_id": "wv-547-existing-brown-option-20260912",
+          "correction_source_sha256": "8a5e2150c0ed86d63042b6a01f24d825a3ae728a8db5ee218a23b4fd61e0aa39",
+          "corrected_task_sha256": "492d978fb60cce180734859e2547b79ad385300ec02bfd30be57c89274856fe0"
+        },
+        "model_calls": 0,
+        "receipt_run_ids": [
+          "2c8348e892f3"
+        ]
+      }
+    },
+    {
+      "id": "webarena-verified-676-trajectory-1",
+      "task_id": 676,
+      "task": {
+        "intent": "Go to the list of orders that are suspected of being fraudulent",
+        "intent_template_id": 253,
+        "revision": 2,
+        "sites": [
+          "shopping_admin"
+        ],
+        "start_urls": [
+          "__SHOPPING_ADMIN__"
+        ]
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7780/admin/sales/order/"
+        },
+        {
+          "action": "evaluate",
+          "script": "const button=document.querySelector('button[data-action=\"grid-filter-expand\"]'); if(!button) throw new Error('filters button not found'); button.click(); return true;"
+        },
+        {
+          "action": "wait",
+          "seconds": 1
+        },
+        {
+          "action": "evaluate",
+          "script": "const select=document.querySelector('select[name=\"status\"]'); if(!select) throw new Error('status filter not found'); select.value='fraud'; select.dispatchEvent(new Event('input',{bubbles:true})); select.dispatchEvent(new Event('change',{bubbles:true})); const button=document.querySelector('button[data-action=\"grid-filter-apply\"]'); if(!button) throw new Error('apply filters button not found'); button.click(); return true;"
+        },
+        {
+          "action": "wait",
+          "seconds": 1
+        }
+      ],
+      "evaluation_input": {
+        "task_type": "NAVIGATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      },
+      "source": {
+        "kind": "expert_repair_spec",
+        "candidate_id": "expert__task-676__fraud-orders",
+        "repair_spec_sha256": "3f8ef291ad3ed92ecef3469763a93a1aa1a53967116202c73f09a9816ea39832",
+        "details": {
+          "task_revision": 2,
+          "contract_correction_id": "wv-676-match-filter-xhr-20260911",
+          "evidence": "Historical successful Moli filter interaction and corrected XHR-selection contract"
+        },
+        "repair_basis": {
+          "root_cause": "The upstream evaluator selected the last document navigation instead of the matching Magento grid XHR and also required a browser-specific Referer.",
+          "strategy": "Open the orders grid directly and drive its stable filter controls to emit the fraud-status MUI request."
+        }
+      },
+      "verification": {
+        "browsers": [
+          "chromium",
+          "moli"
+        ],
+        "process_status": "pass",
+        "evaluator_status": "pass",
+        "contract": {
+          "kind": "corrected_replay_contract",
+          "correction_id": "wv-676-match-filter-xhr-20260911",
+          "correction_source_sha256": "8a5e2150c0ed86d63042b6a01f24d825a3ae728a8db5ee218a23b4fd61e0aa39",
+          "corrected_task_sha256": "45cc633ad4673ed043af49d4d27989e1cf70c7ab96b4080f26f6ffa9c6cf887e"
+        },
+        "model_calls": 0,
+        "receipt_run_ids": [
+          "2c8348e892f3"
+        ]
+      }
+    },
+    {
+      "id": "webarena-verified-694-trajectory-1",
+      "task_id": 694,
+      "task": {
+        "intent": "Add a simple product named \"Energy-Bulk Women Shirt\" with 50 in stock, available in size S and color blue, priced at $60 using the appropriate attribute set.",
+        "intent_template_id": 256,
+        "revision": 2,
+        "sites": [
+          "shopping_admin"
+        ],
+        "start_urls": [
+          "__SHOPPING_ADMIN__"
+        ]
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7780/admin/catalog/product/new/set/9/type/simple/"
+        },
+        {
+          "action": "wait",
+          "seconds": 4
+        },
+        {
+          "action": "evaluate",
+          "script": "(() => { const values={'product[name]':'Energy-Bulk Women Shirt','product[sku]':'energy-bulk-women-shirt','product[price]':'60','product[quantity_and_stock_status][qty]':'50','product[quantity_and_stock_status][is_in_stock]':'1','product[weight]':'1','product[size]':'167','product[color]':'50'}; for(const [name,value] of Object.entries(values)){const el=document.querySelector(`[name=\"${name}\"]`); if(!el) throw new Error(`missing field ${name}`); el.value=value; el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true}));} const status=document.querySelector('input[name=\"product[status]\"]'); if(status && !status.checked) status.click(); return Object.fromEntries(Object.keys(values).map(name=>[name,document.querySelector(`[name=\"${name}\"]`).value])); })()"
+        },
+        {
+          "action": "wait",
+          "seconds": 1
+        },
+        {
+          "action": "evaluate",
+          "script": "(() => { const button=document.querySelector('#save-button'); if(!button) throw new Error('save button missing'); button.click(); return true; })()"
+        },
+        {
+          "action": "wait",
+          "seconds": 8
+        },
+        {
+          "action": "get_text",
+          "selector": "main"
+        }
+      ],
+      "evaluation_input": {
+        "task_type": "MUTATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      },
+      "source": {
+        "kind": "expert_repair_spec",
+        "candidate_id": "expert-repair-c-694",
+        "repair_spec_sha256": "3f8ef291ad3ed92ecef3469763a93a1aa1a53967116202c73f09a9816ea39832",
+        "details": {
+          "kind": "reviewed_task_contract_and_existing_browser_evidence",
+          "task_revision": 2
+        },
+        "repair_basis": {
+          "root_cause": "Earlier saves raced Magento dependency readiness; Moli also timed out while waiting for actionability on fields that were already present.",
+          "strategy": "Open the Top attribute-set simple-product form directly, set every evaluator-bearing field through DOM events, and invoke the save button through evaluate."
+        }
+      },
+      "verification": {
+        "browsers": [
+          "chromium",
+          "moli"
+        ],
+        "process_status": "pass",
+        "evaluator_status": "pass",
+        "contract": {
+          "kind": "official_task_contract"
+        },
+        "model_calls": 0,
+        "receipt_run_ids": [
+          "2c8348e892f3"
+        ]
+      }
+    },
+    {
+      "id": "webarena-verified-699-trajectory-1",
+      "task_id": 699,
+      "task": {
+        "intent": "Create a new marketing price rule called \"spring sale\" for all registered customers that offers a 20 percent discount site-wide",
+        "intent_template_id": 258,
+        "revision": 2,
+        "sites": [
+          "shopping_admin"
+        ],
+        "start_urls": [
+          "__SHOPPING_ADMIN__"
+        ]
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:7780/admin/sales_rule/promo_quote/new/"
+        },
+        {
+          "action": "wait",
+          "seconds": 4
+        },
+        {
+          "action": "evaluate",
+          "script": "(() => { const setValue=(selector,value)=>{const el=document.querySelector(selector);if(!el)throw new Error(`missing ${selector}`);el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));return el;}; setValue('input[name=name]','spring sale'); const website=document.querySelector('select[name=\"website_ids\"]'); if(!website) throw new Error('missing website_ids'); [...website.options].forEach(o=>o.selected=o.value==='1'); website.dispatchEvent(new Event('change',{bubbles:true})); const groups=document.querySelector('select[name=\"customer_group_ids\"]'); if(!groups) throw new Error('missing customer_group_ids'); [...groups.options].forEach(o=>o.selected=['1','2','3'].includes(o.value)); groups.dispatchEvent(new Event('change',{bubbles:true})); const active=document.querySelector('input[name=is_active]'); if(active && !active.checked) active.click(); return {website:[...website.selectedOptions].map(o=>o.value),groups:[...groups.selectedOptions].map(o=>o.value)}; })()"
+        },
+        {
+          "action": "wait",
+          "seconds": 1
+        },
+        {
+          "action": "evaluate",
+          "script": "(() => { const panel=document.querySelector('[data-index=\"actions\"]'); const title=panel?.querySelector('.admin__collapsible-title') || [...document.querySelectorAll('strong')].find(e=>e.textContent.trim()==='Actions'); if(!title) throw new Error('Actions accordion missing'); title.click(); return true; })()"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "evaluate",
+          "script": "(() => { const action=document.querySelector('select[name=simple_action]'); const discount=document.querySelector('input[name=discount_amount]'); if(!action || !discount) throw new Error(`Actions fields missing: simple_action=${!!action}, discount_amount=${!!discount}`); action.value='by_percent'; action.dispatchEvent(new Event('change',{bubbles:true})); discount.value='20'; discount.dispatchEvent(new Event('input',{bubbles:true})); discount.dispatchEvent(new Event('change',{bubbles:true})); return {action:action.value,discount:discount.value}; })()"
+        },
+        {
+          "action": "wait",
+          "seconds": 1
+        },
+        {
+          "action": "evaluate",
+          "script": "(() => { const button=document.querySelector('#save_and_apply') || [...document.querySelectorAll('button')].find(e=>e.textContent.trim()==='Save'); if(!button) throw new Error('save button missing'); button.click(); return true; })()"
+        },
+        {
+          "action": "wait",
+          "seconds": 8
+        },
+        {
+          "action": "get_text",
+          "selector": "main"
+        }
+      ],
+      "evaluation_input": {
+        "task_type": "MUTATE",
+        "status": "SUCCESS",
+        "retrieved_data": null,
+        "error_details": null
+      },
+      "source": {
+        "kind": "expert_repair_spec",
+        "candidate_id": "expert-repair-c-699",
+        "repair_spec_sha256": "3f8ef291ad3ed92ecef3469763a93a1aa1a53967116202c73f09a9816ea39832",
+        "details": {
+          "kind": "reviewed_task_contract_and_existing_browser_evidence",
+          "task_revision": 2
+        },
+        "repair_basis": {
+          "root_cause": "Prior attempts created a Catalog Price Rule; the task and evaluator require a Cart Price Rule, and all registered groups are IDs 1, 2, and 3.",
+          "strategy": "Open the Cart Price Rule form directly, select website 1 and registered groups 1/2/3, choose percent discount, and save."
+        }
+      },
+      "verification": {
+        "browsers": [
+          "chromium",
+          "moli"
+        ],
+        "process_status": "pass",
+        "evaluator_status": "pass",
+        "contract": {
+          "kind": "corrected_replay_contract",
+          "correction_id": "wv-699-browser-form-array-fields-20260912",
+          "correction_source_sha256": "8a5e2150c0ed86d63042b6a01f24d825a3ae728a8db5ee218a23b4fd61e0aa39",
+          "corrected_task_sha256": "5f4c022c31dc69bcd038b3b38c6d4bcc92b1562049c5ef8a6ec22b4acac1894e"
+        },
+        "model_calls": 0,
+        "receipt_run_ids": [
+          "2c8348e892f3"
         ]
       }
     }

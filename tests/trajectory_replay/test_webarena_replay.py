@@ -1,4 +1,8 @@
-from harness.trajectory_replay.webarena_replay import _rebind_url, select_tasks
+from harness.trajectory_replay.webarena_replay import (
+    _browser_context_needs_restart,
+    _rebind_url,
+    select_tasks,
+)
 
 
 def test_select_tasks_requires_clean_canonical_candidates() -> None:
@@ -21,3 +25,15 @@ def test_rebind_url_changes_only_known_local_site_ports() -> None:
         "https://192.168.9.2:8023/path"
     )
     assert _rebind_url("https://example.com/path", "192.168.9.2") == ("https://example.com/path")
+
+
+def test_browser_context_restart_is_limited_to_pre_action_context_failure() -> None:
+    failed_setup = {
+        "process_status": "fail",
+        "completed_action_count": 0,
+        "error": "Protocol error: BrowserContextNotLoaded",
+    }
+    assert _browser_context_needs_restart(failed_setup)
+    assert not _browser_context_needs_restart({**failed_setup, "completed_action_count": 1})
+    assert not _browser_context_needs_restart({**failed_setup, "error": "navigation failed"})
+    assert not _browser_context_needs_restart({**failed_setup, "process_status": "pass"})

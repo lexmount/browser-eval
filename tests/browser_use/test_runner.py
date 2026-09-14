@@ -7,6 +7,7 @@ from webarena_verified.types.task import WebArenaSite
 
 from harness.browser_use.runner import (
     ENV_CTRL_READY_TIMEOUT_SECONDS,
+    MAGENTO_DEPENDENCY_READY_TIMEOUT_SECONDS,
     PHYSICAL_EXECUTION_LOCK_NAMESPACE,
     QEMU_X86_64_HOST_PATH,
     SITE_AUTH_HEADERS,
@@ -28,6 +29,7 @@ from harness.browser_use.runner import (
     _user_prompt,
     _wait_application_ready,
     _wait_container_healthy,
+    _wait_magento_dependencies_ready,
 )
 from harness.browser_use.selection import load_pilot
 
@@ -273,6 +275,30 @@ def test_application_readiness_does_not_follow_container_only_hostname(monkeypat
 
 def test_environment_control_wait_covers_slow_official_image_restore() -> None:
     assert ENV_CTRL_READY_TIMEOUT_SECONDS == 600
+    assert MAGENTO_DEPENDENCY_READY_TIMEOUT_SECONDS == 300
+
+
+def test_magento_readiness_requires_non_red_elasticsearch(monkeypatch) -> None:
+    class Result:
+        def __init__(self, exit_code: int, output: bytes) -> None:
+            self.exit_code = exit_code
+            self.output = output
+
+    class Container:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def exec_run(self, command):
+            self.calls += 1
+            assert command[-1].endswith("wait_for_status=yellow&timeout=5s")
+            if self.calls == 1:
+                return Result(7, b"connection refused")
+            return Result(0, b'{"status":"yellow"}')
+
+    monkeypatch.setattr("harness.browser_use.runner.time.sleep", lambda _: None)
+    container = Container()
+    _wait_magento_dependencies_ready(container, timeout_seconds=1)
+    assert container.calls == 2
 
 
 def test_physical_execution_lock_path_is_user_global_not_evidence_scoped(
