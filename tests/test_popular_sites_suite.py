@@ -17,21 +17,24 @@ def test_popular_sites_suite_has_exact_frozen_inventory():
     assert len(rules["cases"]) == 100
     assert rules["counts"] == {
         "cases": 100,
-        "methods": 12,
-        "fresh_formal_results": 1200,
+        "methods": 8,
+        "final_methods": 12,
+        "fresh_formal_results": 800,
+        "final_formal_results": 1200,
         "provider_results_reused": 0,
     }
     assert dataset["comparison"]["require_independent_result_review"] is True
-    assert len(dataset["coverage_plan"]["challenge"]) == 12
+    assert len(dataset["coverage_plan"]["challenge"]) == 8
     assert dataset["comparison"]["body_reference_case_count"] == 0
     assert dataset["comparison"]["body_metrics"] == "unavailable"
     assert [item["id"] for item in dataset["cases"]] == [item["id"] for item in rules["cases"]]
 
 
-def test_all_1200_results_are_fresh_and_cohorts_cover_100_cases():
+def test_all_800_stage_results_are_fresh_and_cohorts_cover_100_cases():
     rules = load("research/popular-sites-rules.json")
     assert rules["counts"]["provider_results_reused"] == 0
-    assert rules["counts"]["fresh_formal_results"] == 1200
+    assert rules["counts"]["fresh_formal_results"] == 800
+    assert rules["counts"]["final_formal_results"] == 1200
     assert {item["cohort"] for item in rules["cases"]} == {
         "global_homepage",
         "legacy_popular_list",
@@ -113,7 +116,7 @@ def test_locale_corrections_and_replacements_are_exact():
 def test_fresh_execution_contract_is_hash_bound():
     dataset = load("evaluation/popular-sites-dataset.json")
     rules = load("research/popular-sites-rules.json")
-    contract_path = ROOT / "research/popular-sites-12-method-contract.json"
+    contract_path = ROOT / "research/popular-sites-8-method-stage-contract.json"
     import hashlib
 
     digest = hashlib.sha256(contract_path.read_bytes()).hexdigest()
@@ -138,3 +141,17 @@ def test_formal_batches_are_frozen_before_preflight():
         "global-homepage-038-samsung-com",
         "global-homepage-006-reddit-com",
     ]
+
+
+def test_eight_method_stage_preserves_final_twelve_method_contract():
+    import hashlib
+
+    final_path = ROOT / "research/popular-sites-12-method-contract.json"
+    final_contract = load("research/popular-sites-12-method-contract.json")
+    stage = load("research/popular-sites-8-method-stage-contract.json")
+    assert stage["final_contract"]["sha256"] == hashlib.sha256(final_path.read_bytes()).hexdigest()
+    assert set(stage["providers"]).isdisjoint(stage["deferred_providers"])
+    assert set(stage["providers"] + stage["deferred_providers"]) == set(final_contract["providers"])
+    assert stage["execution"]["formal_result_count"] == 800
+    assert stage["execution"]["crawl4ai_runtime"]["harness_deadline_seconds"] == 45
+    assert stage["execution"]["crawl4ai_runtime"]["page_timeout_seconds"] == 40

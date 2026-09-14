@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "status": "authorized_for_formal_execution",
+  "purpose": "Private interim 100-site comparison for eight of the twelve frozen methods",
+  "final_contract": {
+    "path": "research/popular-sites-12-method-contract.json",
+    "sha256": "7baf7fb3a7c25721ab38cfd09260f714da615833db137fbdc0c82da7d3d3903b",
+    "final_methods": 12,
+    "final_results": 1200
+  },
+  "providers": [
+    "crawl4ai",
+    "moli-webfetch",
+    "deepseek-harness-built-in",
+    "cowagent-built-in",
+    "langchain-webbase",
+    "openclaw-built-in",
+    "lexmount-cn",
+    "lexmount-global"
+  ],
+  "deferred_providers": [
+    "cloudflare-markdown",
+    "firecrawl",
+    "tavily",
+    "exa"
+  ],
+  "execution": {
+    "cases": 100,
+    "methods": 8,
+    "runs_per_case": 1,
+    "timeout_seconds": 45,
+    "within_method_concurrency": 1,
+    "methods_run_in_parallel": true,
+    "formal_result_count": 800,
+    "stages": [
+      {
+        "stage": 1,
+        "kind": "local",
+        "results": 600,
+        "providers": [
+          "crawl4ai",
+          "moli-webfetch",
+          "deepseek-harness-built-in",
+          "cowagent-built-in",
+          "langchain-webbase",
+          "openclaw-built-in"
+        ]
+      },
+      {
+        "stage": 2,
+        "kind": "hosted_subset",
+        "results": 200,
+        "providers": [
+          "lexmount-cn",
+          "lexmount-global"
+        ]
+      }
+    ],
+    "retry_policy": "No retry to improve a score. A proven command, version, scorer, reference, or timing error requires an append-only formal correction that replaces the full affected scope.",
+    "crawl4ai_runtime": {
+      "harness_deadline_seconds": 45,
+      "page_timeout_seconds": 40,
+      "wait_until": "domcontentloaded",
+      "settle_seconds": 1,
+      "process_iframes": false,
+      "scope": "Crawl4AI execution route only; common scoring and other methods are unchanged"
+    }
+  },
+  "authorization": {
+    "authorized_at": "2026-09-14",
+    "lexmount_formal_calls": 200,
+    "additional_confirmation_required": false
+  },
+  "report": {
+    "visibility": "private",
+    "public_share_created": false,
+    "label": "Interim results for 8 of 12 methods",
+    "reference_report": "https://artifact-hub.dev.lexmount.net/v/3uaeQbs4kAJ9tyePrv-M0FswzhxBe-xU",
+    "alignment": "Match the reference information architecture, visual system, navigation, rankings, provider pages, and attempt pages while truthfully showing 100 cases, 8/12 methods, and one popular-site task family.",
+    "private_artifact_site": "HMHGx1jcMz-z"
+  },
+  "invariants": [
+    "The four deferred providers are unmeasured, not failed and not scored as zero.",
+    "Results from the eight-method stage cannot change the frozen membership, cases, references, scoring, or routes of the four deferred methods.",
+    "No final public twelve-method ranking may be released before all 1200 results are measured and independently reviewed.",
+    "The reviewed historical 46/100 Lexmount Global result remains separate and is not reused."
+  ]
+}

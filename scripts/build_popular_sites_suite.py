@@ -20,6 +20,7 @@ CHINA_RULES = ROOT / "research/china-homepage-rules.json"
 CHINA_SELECTION = ROOT / "research/china-homepage-selection.json"
 APPROVAL = ROOT / "research/china-homepage-rules-approval.json"
 TWELVE_METHOD_CONTRACT = ROOT / "research/popular-sites-12-method-contract.json"
+STAGE_CONTRACT = ROOT / "research/popular-sites-8-method-stage-contract.json"
 RULES_OUTPUT = ROOT / "research/popular-sites-rules.json"
 REVIEW_OUTPUT = ROOT / "research/popular-sites-rules-review.md"
 DATASET_OUTPUT = ROOT / "evaluation/popular-sites-dataset.json"
@@ -333,7 +334,9 @@ def main() -> None:
     china_selection = json.loads(CHINA_SELECTION.read_text())
     approval = json.loads(APPROVAL.read_text())
     twelve_method_contract = json.loads(TWELVE_METHOD_CONTRACT.read_text())
+    stage_contract = json.loads(STAGE_CONTRACT.read_text())
     contract_hash = sha256(TWELVE_METHOD_CONTRACT)
+    stage_contract_hash = sha256(STAGE_CONTRACT)
 
     if approval["status"] != "approved_for_execution":
         raise SystemExit("China rules are not approved for execution")
@@ -344,18 +347,24 @@ def main() -> None:
     if china_selection["selected_count"] != 40:
         raise SystemExit("Expected the approved 40-case China selection")
 
-    providers = twelve_method_contract["providers"]
-    execution = twelve_method_contract["execution"]
+    final_providers = twelve_method_contract["providers"]
+    providers = stage_contract["providers"]
+    execution = stage_contract["execution"]
     if (
-        len(providers) != 12
-        or len(set(providers)) != 12
-        or execution["formal_result_count"] != 1200
+        stage_contract["final_contract"]["sha256"] != contract_hash
+        or len(final_providers) != 12
+        or len(set(final_providers)) != 12
+        or len(providers) != 8
+        or len(set(providers)) != 8
+        or not set(providers) < set(final_providers)
+        or set(stage_contract["deferred_providers"]) != set(final_providers) - set(providers)
+        or execution["formal_result_count"] != 800
         or execution["runs_per_case"] != 1
         or execution["timeout_seconds"] != 45
         or execution["within_method_concurrency"] != 1
         or not execution["methods_run_in_parallel"]
     ):
-        raise SystemExit("The fresh 12-method execution contract is incomplete")
+        raise SystemExit("The authorized eight-method stage contract is incomplete")
 
     changes = twelve_method_contract["case_changes"]
     removed_ids = {item["case_id"] for item in changes["removed"]}
@@ -419,17 +428,19 @@ def main() -> None:
 
     rules_payload = {
         "schema_version": 1,
-        "status": "frozen_pending_environment_preflight",
-        "purpose": "One scoring registry for the fresh 100-site by 12-method report",
+        "status": "frozen_ready_for_formal_execution",
+        "purpose": "One scoring registry for the interim 100-site eight-of-twelve-method report",
         "counts": {
             "cases": 100,
-            "methods": 12,
-            "fresh_formal_results": 1200,
+            "methods": 8,
+            "final_methods": 12,
+            "fresh_formal_results": 800,
+            "final_formal_results": 1200,
             "provider_results_reused": 0,
         },
         "execution_contract": {
-            "path": str(TWELVE_METHOD_CONTRACT.relative_to(ROOT)),
-            "sha256": contract_hash,
+            "path": str(STAGE_CONTRACT.relative_to(ROOT)),
+            "sha256": stage_contract_hash,
         },
         "components": [
             {
@@ -492,7 +503,7 @@ def main() -> None:
             "timeout_seconds": 45,
             "concurrency": execution["within_method_concurrency"],
             "runs_per_case": 1,
-            "publication_state": "frozen_pending_environment_preflight",
+            "publication_state": "frozen_ready_for_formal_execution",
             "require_independent_result_review": True,
             "fresh_formal_result_count": execution["formal_result_count"],
             "provider_results_reused": 0,
@@ -505,8 +516,12 @@ def main() -> None:
             "source_rule_registry_sha256": sha256(RULES_OUTPUT),
             "approval_record": str(APPROVAL.relative_to(ROOT)),
             "approval_record_sha256": sha256(APPROVAL),
-            "execution_contract": str(TWELVE_METHOD_CONTRACT.relative_to(ROOT)),
-            "execution_contract_sha256": contract_hash,
+            "execution_contract": str(STAGE_CONTRACT.relative_to(ROOT)),
+            "execution_contract_sha256": stage_contract_hash,
+            "final_execution_contract": str(TWELVE_METHOD_CONTRACT.relative_to(ROOT)),
+            "final_execution_contract_sha256": contract_hash,
+            "stage_label": "8/12 methods interim",
+            "deferred_providers": stage_contract["deferred_providers"],
         },
         "cases": combined,
     }
@@ -518,10 +533,13 @@ def main() -> None:
     lines = [
         "# 全球热门网站 100 站规则冻结记录",
         "",
-        "- 总计 100 站 × 12 方法 = 1,200 条全新正式结果；旧 46/100 Lexmount Global 结果不复用、不覆盖。",
+        "- 本阶段为 100 站 × 8/12 方法 = 800 条全新正式结果；旧 46/100 Lexmount Global 结果不复用、不覆盖。",
+        "- Cloudflare、Firecrawl、Tavily、Exa 本阶段未运行，不计为失败或 0 分；最终目标仍为 12 方法 1,200 条结果。",
         "- Samsung 固定到美国站；Elsevier 允许独立观察到的同语义中英文页面文字。",
         "- Booking.com 与 Prime Video 因当前地区访问契约不可复现而移出新矩阵，由候补 Grok、Shopify 补足。",
-        "- 每案例每方法 1 次、45 秒截止；方法内串行、方法间并行，禁止为提高分数而重试。",
+        "- 每案例每方法 1 次、45 秒外层截止；方法内串行、方法间并行，禁止为提高分数而重试。",
+        "- Crawl4AI 内部页面上限为 40 秒，等待 domcontentloaded 后稳定 1 秒并预留 5 秒清理落盘；仍受统一 45 秒外层截止。",
+        "- 报告对齐参考报告的信息架构和设计系统，但如实展示 100 案例、8/12 方法和单一热门网站任务族。",
         "- 报告继续使用仓库唯一的 `harness/web_fetch/report.py` 和 `scripts/build_report.py`。",
         "- `named_link` 的稳定文字属于直接加载页面，不要求每条记录包含；每条计数记录必须独立具备有效标题和匹配主机、完整路径的 URL。",
         "",
@@ -535,7 +553,7 @@ def main() -> None:
             f"| {index} | `{item['id']}` | `{item['cohort']}` | {item['url']} | `{item['acceptance_contract']['schema']}` |"
         )
     REVIEW_OUTPUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print("Built fresh frozen 100-site x 12-method suite: 1,200 formal results")
+    print("Built frozen 100-site x 8-of-12-method stage: 800 formal results")
 
 
 if __name__ == "__main__":

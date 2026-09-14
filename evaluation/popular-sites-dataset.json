@@ -6,18 +6,14 @@
   "dynamic_scoring": "按独立观察的稳定页面文字与页面实际结构验收；不冻结动态条目和值。",
   "coverage_plan": {
     "challenge": [
-      "cloudflare-markdown",
-      "firecrawl",
       "crawl4ai",
       "moli-webfetch",
-      "tavily",
       "deepseek-harness-built-in",
-      "lexmount-cn",
-      "lexmount-global",
       "cowagent-built-in",
-      "exa",
       "langchain-webbase",
-      "openclaw-built-in"
+      "openclaw-built-in",
+      "lexmount-cn",
+      "lexmount-global"
     ]
   },
   "comparison": {
@@ -25,9 +21,9 @@
     "timeout_seconds": 45,
     "concurrency": 1,
     "runs_per_case": 1,
-    "publication_state": "frozen_pending_environment_preflight",
+    "publication_state": "frozen_ready_for_formal_execution",
     "require_independent_result_review": true,
-    "fresh_formal_result_count": 1200,
+    "fresh_formal_result_count": 800,
     "provider_results_reused": 0,
     "methods_run_in_parallel": true,
     "retry_policy": "No retry to improve a score. A proven command, version, scorer, reference, or timing error requires an append-only formal correction that replaces the full affected scope.",
@@ -35,11 +31,20 @@
     "body_metrics": "unavailable",
     "conversion": "Each method's native known-URL fetch output is normalized once into text plus explicit structured links when available.",
     "source_rule_registry": "research/popular-sites-rules.json",
-    "source_rule_registry_sha256": "aea68bfe740f1b50a23572d687cc4c43cbde107eed19782da1818dd67ce5c139",
+    "source_rule_registry_sha256": "5b28422dc53d61d7df23d11b2f3d310f500a3f0e836783f1abb0a46c42f2ba0d",
     "approval_record": "research/china-homepage-rules-approval.json",
     "approval_record_sha256": "8bf2cda6f77089680ee537f5405bf9169a35dd6432e2276b5770aa5c4043b160",
-    "execution_contract": "research/popular-sites-12-method-contract.json",
-    "execution_contract_sha256": "7baf7fb3a7c25721ab38cfd09260f714da615833db137fbdc0c82da7d3d3903b"
+    "execution_contract": "research/popular-sites-8-method-stage-contract.json",
+    "execution_contract_sha256": "cfaefd3334710cc1f4f18c6b5ffbed4670287e981608b10ce0743250ebe5d40c",
+    "final_execution_contract": "research/popular-sites-12-method-contract.json",
+    "final_execution_contract_sha256": "7baf7fb3a7c25721ab38cfd09260f714da615833db137fbdc0c82da7d3d3903b",
+    "stage_label": "8/12 methods interim",
+    "deferred_providers": [
+      "cloudflare-markdown",
+      "firecrawl",
+      "tavily",
+      "exa"
+    ]
   },
   "cases": [
     {

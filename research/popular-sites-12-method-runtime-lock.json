@@ -17,6 +17,20 @@
     "methods": 12,
     "formal_results_planned": 1200
   },
+  "authorized_interim_stage": {
+    "contract": "research/popular-sites-8-method-stage-contract.json",
+    "contract_sha256": "cfaefd3334710cc1f4f18c6b5ffbed4670287e981608b10ce0743250ebe5d40c",
+    "methods": 8,
+    "formal_results": 800,
+    "deferred_unmeasured_methods": [
+      "cloudflare-markdown",
+      "firecrawl",
+      "tavily",
+      "exa"
+    ],
+    "private_report_only": true,
+    "lexmount_formal_calls_authorized": 200
+  },
   "formal_batches": {
     "batch_1": [
       "crawl4ai",
