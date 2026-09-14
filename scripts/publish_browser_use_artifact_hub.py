@@ -19,6 +19,7 @@ ARCHIVE = Path("publish/browser-use-sites.zip")
 ATTESTATION = Path("publish/browser-use-sites.attestation.json")
 RECEIPT = Path("publish/browser-use-artifact-hub-receipt.json")
 PROFILE = Path("evaluation/browser-use/current-report.json")
+PUBLIC_REPORT_MARKER = "<title>首页 · Browser Use 评测</title>"
 
 
 def sha256(path: Path) -> str:
@@ -124,6 +125,13 @@ def response_json(status: int, raw: bytes, *, operation: str) -> dict:
     return value
 
 
+def validate_public_preview(status: int, body: str) -> None:
+    """Verify the stable report shell instead of a revision-specific headline."""
+
+    if status != 200 or PUBLIC_REPORT_MARKER not in body:
+        raise RuntimeError("public preview is unavailable or missing the report shell")
+
+
 def multipart_archive() -> tuple[bytes, str]:
     if not ARCHIVE.is_file():
         raise ValueError(f"missing validated package: {ARCHIVE}")
@@ -225,8 +233,7 @@ def main(*, create: bool = False) -> None:
     )
     with urllib.request.urlopen(preview, timeout=60) as response:
         body = response.read().decode("utf-8", errors="replace")
-        if response.status != 200 or "Chromium 与 Moli 的 Browser Use 能力对比" not in body:
-            raise RuntimeError("public preview is unavailable or missing the report heading")
+        validate_public_preview(response.status, body)
     print(
         json.dumps(
             {

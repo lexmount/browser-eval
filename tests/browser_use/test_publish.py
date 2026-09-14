@@ -27,6 +27,21 @@ def test_response_json_preserves_http_failure_context() -> None:
             raise AssertionError("invalid response must fail with diagnostic context")
 
 
+def test_public_preview_uses_stable_report_shell_not_editorial_headline() -> None:
+    publisher.validate_public_preview(
+        200,
+        "<title>首页 · Browser Use 评测</title><h1>76 题审查合格比较集</h1>",
+    )
+
+    for status, body in ((503, publisher.PUBLIC_REPORT_MARKER), (200, "old page")):
+        try:
+            publisher.validate_public_preview(status, body)
+        except RuntimeError as error:
+            assert "report shell" in str(error)
+        else:
+            raise AssertionError("invalid public preview must fail")
+
+
 def test_validate_package_requires_and_checks_every_evidence_root(
     monkeypatch, tmp_path: Path
 ) -> None:
