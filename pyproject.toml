@@ -57,6 +57,7 @@ select = ["B", "E", "F", "I", "UP"]
 
 [tool.ruff.lint.per-file-ignores]
 "harness/trajectory_replay/report.py" = ["E501"]
+"harness/trajectory_replay/webarena_report.py" = ["E501"]
 "harness/browser_use/report.py" = ["E501"]
 "harness/browser_use/report_i18n.py" = ["E501"]
 

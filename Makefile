@@ -1,7 +1,7 @@
 UV ?= uv
 PY := $(UV) run --frozen python
 
-.PHONY: setup runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check
+.PHONY: setup runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check trajectory-replay-report trajectory-replay-report-check trajectory-replay-visual-check trajectory-replay-release-check
 
 setup:
 	$(UV) sync --frozen --all-extras
@@ -58,3 +58,16 @@ browser-use-report-check: runtime-check
 
 browser-use-release-check: browser-use-report-check
 	$(MAKE) browser-use-visual-check
+
+trajectory-replay-report: runtime-check
+	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
+	$(PY) scripts/build_webarena_replay_report.py --results "$(EVIDENCE)"
+
+trajectory-replay-report-check: runtime-check
+	$(PY) scripts/check_webarena_replay_report.py reports/trajectory-replay
+
+trajectory-replay-visual-check: runtime-check
+	$(PY) scripts/check_webarena_replay_visual.py reports/trajectory-replay
+
+trajectory-replay-release-check: trajectory-replay-report-check
+	$(MAKE) trajectory-replay-visual-check
