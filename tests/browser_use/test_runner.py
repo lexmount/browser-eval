@@ -35,6 +35,7 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
     task = BrowserTask("task", "Task", (), (), (), "simple", {}, {})
     monkeypatch.setattr(runner, "load_suite", lambda _: TaskSuite("test", (task,)))
     client = MagicMock()
+    client.info.return_value = {"OSType": "linux", "CgroupVersion": "2"}
     playwright = MagicMock()
     monkeypatch.setattr(runner.docker, "from_env", lambda: client)
     monkeypatch.setattr(

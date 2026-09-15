@@ -49,13 +49,12 @@ class RuntimeEntrypointTests(unittest.TestCase):
             unfrozen = re.findall(r"(?m)^\s*uv run (?!--frozen\b)", text)
             self.assertEqual(unfrozen, [], relative)
 
-    def test_headless_coverage_declares_all_seven_methods(self) -> None:
+    def test_headless_coverage_declares_current_five_methods(self) -> None:
         dataset = json.loads((ROOT / "evaluation/dataset.json").read_text())
-        expected = {"kitesurf", "lightpanda", "obscura", "moli-1.0.6",
-                    "moli", "moli-1.1.3", "chromium"}
+        expected = {"kitesurf", "lightpanda", "obscura", "moli", "chromium"}
         for track, providers in dataset["coverage_plan"].items():
             self.assertEqual(set(providers), expected, track)
-            self.assertEqual(len(providers), 7, track)
+            self.assertEqual(len(providers), 5, track)
 
     def test_current_report_profile_matches_runner_and_canonical_dataset(self) -> None:
         profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
@@ -64,6 +63,11 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertEqual(dataset['comparison']['conversion'], HEADLESS_CONVERSION)
         self.assertEqual(profile['comparison_kind'], dataset['comparison']['kind'])
         self.assertEqual(set(profile['providers']), set(dataset['coverage_plan']['web']))
+        self.assertEqual(
+            set(profile['resource_profile']['providers']),
+            {'lightpanda', 'obscura', 'moli', 'chromium'},
+        )
+        self.assertNotIn('kitesurf', profile['resource_profile']['providers'])
         self.assertEqual(profile['artifact_hub_base_url'], 'https://artifact-hub.app.lexmount.com')
         self.assertEqual(profile['artifact_hub_site'], 'UUAhhQMnrGwm')
 

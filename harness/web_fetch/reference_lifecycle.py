@@ -510,7 +510,10 @@ def latency_correction_original_elapsed(source) -> dict[tuple[str, str], float]:
             or receipt.get("schema_version") != 1
             or receipt.get("output_results_sha256") != sha256(results_path.read_bytes())
             or receipt.get("task_decision_changes") != 0
-            or receipt.get("selection") != "same four cases for all three Moli versions; final round always selected, never best-of"
+            or receipt.get("selection") not in {
+                "same four cases for all three Moli versions; final round always selected, never best-of",
+                "same four cases for Moli 1.1.1; projected from reviewed three-version final-round correction",
+            }
             or not isinstance(receipt.get("changes"), list)
             or receipt.get("superseded_logical_results") != len(receipt["changes"])):
         raise ReferenceLifecycleError("Invalid latency correction receipt binding")

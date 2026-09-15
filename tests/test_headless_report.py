@@ -10,7 +10,8 @@ from harness.web_fetch.reference_lifecycle import (preflight_reference_checks, s
     require_verified_reference_checks, valid_scoring_revision)
 from harness.web_fetch.report_explainer import (
     _digest, _headless_article_input, _article_speed_population,
-    headless_evidence, render_explainer)
+    _render_article_resources, headless_evidence, render_explainer)
+from harness.web_fetch.report_resources import render_resource_comparison
 from scripts.certify_headless_cases import certify_case
 from scripts.assemble_headless import (assemble, copy_bound_review, read_verified_batches,
                                        bind_assembled_scoring_revision,
@@ -19,6 +20,58 @@ from unittest.mock import patch
 
 
 class HeadlessReportTests(unittest.TestCase):
+    def test_resource_cards_name_each_actual_metric_winner(self):
+        providers = ['moli', 'lightpanda', 'obscura', 'chromium']
+        keys = ('cpu_ms', 'cpu_average_utilization_pct', 'cpu_sampled_utilization_p95_pct',
+                'memory_mean_bytes', 'memory_p95_bytes', 'memory_peak_bytes',
+                'memory_mib_seconds', 'network_rx_bytes', 'network_tx_bytes',
+                'network_rx_bytes_per_second', 'network_tx_bytes_per_second')
+        rows = [{'provider': provider, 'metrics': {
+            key: {'mean': value, 'p50': value, 'p95': value} for key in keys}}
+            for provider, value in zip(providers, (1, 10, 10, 10))]
+        rows[1]['metrics']['cpu_ms']['mean'] = 0.5
+        rows[2]['metrics']['memory_peak_bytes']['mean'] = 0.5
+        rows[3]['metrics']['network_rx_bytes']['mean'] = 0.5
+        rows[1]['metrics']['network_tx_bytes']['mean'] = 0.5
+        summary = {'rows': rows, 'common_pass_cases': ['a'], 'planned_cases': ['a']}
+        page, result = render_resource_comparison(summary, providers)
+        self.assertEqual((result['winner'], result['winner_count']), ('moli', 8))
+        self.assertIn('<span>CPU 领先者</span><strong>Lightpanda</strong>', page)
+        self.assertIn('<span>内存领先者</span><strong>Obscura</strong>', page)
+        self.assertIn('<span>网络流量领先者</span><strong>接收 Chromium / 发送 Lightpanda</strong>', page)
+
+    def test_resource_table_excludes_unobservable_remote_provider(self):
+        selected = ['moli', 'chromium', 'lightpanda', 'obscura', 'kitesurf']
+        rows = []
+        for index, provider in enumerate(selected[:-1], 1):
+            metrics = {
+                'cpu_ms': {'mean': index * 10, 'p50': index * 9, 'p95': index * 12},
+                'cpu_average_utilization_pct': {'mean': index * 2},
+                'cpu_sampled_utilization_p95_pct': {'mean': index * 3},
+                'memory_mean_bytes': {'mean': index * 524288},
+                'memory_p95_bytes': {'mean': index * 786432},
+                'memory_peak_bytes': {'mean': index * 1048576, 'p95': index * 2097152},
+                'memory_mib_seconds': {'mean': index * 2},
+                'network_rx_bytes': {'mean': index * 1048576, 'p95': index * 2097152},
+                'network_tx_bytes': {'mean': index * 1024, 'p95': index * 2048},
+                'network_rx_bytes_per_second': {'mean': index * 4096},
+                'network_tx_bytes_per_second': {'mean': index * 2048},
+            }
+            rows.append({'provider': provider, 'metrics': metrics})
+        summary = {'rows': rows, 'common_pass_cases': ['a'] * 8,
+                   'planned_cases': ['a'] * 20}
+        page, interpretation = _render_article_resources(summary, selected)
+        self.assertNotIn('<th scope="col">Kitesurf</th>', page)
+        self.assertIn('<strong>8/20</strong> 个普通网页', page)
+        self.assertIn('本轮资源效率领先', page)
+        self.assertIn('data-resource-winner="moli"', page)
+        self.assertEqual(page.count('data-resource-metric-winner="moli"'), 12)
+        self.assertIn('CPU 与计算', page)
+        self.assertIn('内存', page)
+        self.assertIn('网络', page)
+        self.assertIn('资源效率领先者', interpretation)
+        self.assertIn('不等于综合任务通过率领先', interpretation)
+
     def test_article_speed_uses_all_common_tasks_of_displayed_providers(self):
         cases = {cid: {'id': cid, 'track': 'web'} for cid in ('a', 'b', 'c')}
         rows = []

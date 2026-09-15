@@ -95,6 +95,7 @@ def run_evaluation(
     delay: float,
     provider_concurrency: int = 1,
     max_failure_retries: int = 0,
+    resource_sample_interval_ms: int | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     output_dir = output_dir.resolve()
     if provider_concurrency < 1:
@@ -103,6 +104,8 @@ def run_evaluation(
         raise ValueError('timeout must be positive and finite')
     if max_failure_retries not in {0, 1}:
         raise ValueError('max_failure_retries must be 0 or 1')
+    if resource_sample_interval_ms is not None and resource_sample_interval_ms < 10:
+        raise ValueError('resource_sample_interval_ms must be at least 10')
     for provider in providers:
         safe_identifier(provider.name)
     for case in cases:
@@ -151,6 +154,12 @@ def run_evaluation(
             "concurrency_scope": "providers_parallel_cases_sequential_per_provider",
             "max_failure_retries": max_failure_retries,
             "retry_selection": "retry_only_after_failed_task; final_physical_attempt_is_authoritative",
+            "resource_sample_interval_ms": resource_sample_interval_ms,
+            "resource_scope": (
+                "disposable Linux client container cgroup and dedicated network namespace; "
+                "host controller and remote provider service excluded"
+                if resource_sample_interval_ms is not None else None
+            ),
         },
         "environment": {
             "python": sys.version.split()[0],

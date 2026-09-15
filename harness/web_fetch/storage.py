@@ -138,6 +138,65 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
     attempt_ids = [row.get("attempt_id") for row in records]
     if any(not identifier for identifier in attempt_ids) or len(attempt_ids) != len(set(attempt_ids)):
         failures.append("attempt_ids")
+    resource_profile = profile.get("resource_profile") or {}
+    if resource_profile.get("required"):
+        resource_root = evidence / "resource-cohort"
+        try:
+            resource_dataset = json.loads((resource_root / "dataset.json").read_text())
+            resource_records = [json.loads(line) for line in
+                                (resource_root / "results.jsonl").read_text().splitlines()]
+            resource_summary = json.loads((resource_root / "resource-comparison.json").read_text())
+        except (FileNotFoundError, json.JSONDecodeError):
+            failures.append("resource_profile_missing")
+        else:
+            resource_comparison = resource_dataset.get("comparison") or {}
+            resource_providers = set(resource_profile["providers"])
+            if resource_comparison.get("kind") != resource_profile["comparison_kind"]:
+                failures.append("resource_comparison_kind")
+            if len(resource_dataset.get("cases", [])) != resource_profile["case_count"]:
+                failures.append("resource_case_count")
+            if resource_comparison.get("concurrency") != resource_profile["concurrency"]:
+                failures.append("resource_concurrency")
+            if (resource_comparison.get("resource_sample_interval_ms") !=
+                    resource_profile["sample_interval_ms"]):
+                failures.append("resource_sample_interval_ms")
+            for key, expected in (
+                ("resource_backend", resource_profile["backend"]),
+                ("resource_cpus", resource_profile["cpus_per_call"]),
+                ("resource_memory", resource_profile["memory_per_call"]),
+            ):
+                if resource_comparison.get(key) != expected:
+                    failures.append(key)
+            if {row.get("provider") for row in resource_records} != resource_providers:
+                failures.append("resource_record_providers")
+            expected_resource_records = resource_profile["case_count"] * len(resource_providers)
+            if len(resource_records) != expected_resource_records:
+                failures.append("resource_record_count")
+            required_metrics = set(resource_profile["required_metrics"])
+            if any(not required_metrics <= set((row.get("provider_metadata") or {})
+                                                .get("client_resource", {}))
+                   for row in resource_records):
+                failures.append("resource_metrics")
+            expected_environment = {
+                "backend": resource_profile["backend"],
+                "cgroup_version": "2",
+                "cpus": resource_profile["cpus_per_call"],
+                "memory": resource_profile["memory_per_call"],
+                "network_isolation": resource_profile["network_isolation"],
+                "controller_excluded": resource_profile["controller_excluded"],
+            }
+            if any(any(((row.get("provider_metadata") or {})
+                        .get("resource_environment") or {}).get(key) != expected
+                       for key, expected in expected_environment.items())
+                   for row in resource_records):
+                failures.append("resource_environment")
+            if (set(resource_summary.get("providers", [])) != resource_providers
+                    or not resource_summary.get("common_pass_cases")):
+                failures.append("resource_summary")
+            summary_environment = resource_summary.get("environment") or {}
+            if any(summary_environment.get(key) != expected
+                   for key, expected in expected_environment.items()):
+                failures.append("resource_summary_environment")
     if failures:
         raise ValueError(
             "Evidence does not match evaluation/current-report.json: " + ", ".join(failures)

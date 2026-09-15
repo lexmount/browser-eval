@@ -1,7 +1,7 @@
 UV ?= uv
 PY := $(UV) run --frozen python
 
-.PHONY: setup runtime-check test test-python test-ui fixture-smoke ci report report-check
+.PHONY: setup runtime-check test test-python test-ui fixture-smoke ci report report-check resource-image
 
 setup:
 	$(UV) sync --frozen --all-extras
@@ -34,3 +34,6 @@ report-check: runtime-check
 	$(PY) scripts/check_report.py reports/webfetch
 	$(PY) scripts/check_report_links.py reports/webfetch
 	$(PY) scripts/check_report_revision.py reports/webfetch
+
+resource-image:
+	docker build -f examples/web_fetch/docker/resource.Dockerfile -t lex-web-fetch-resource:local .

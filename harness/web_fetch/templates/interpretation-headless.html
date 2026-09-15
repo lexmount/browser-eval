@@ -26,11 +26,11 @@
 <h1 id="article-title">Moli Web Fetch 实测：<br>五款浏览器，150 道任务</h1>
 <p class="m-deck">Moli 1.1.1 的任务通过率为 90.0%（135/150），比 Chromium 的 83.3% 高 6.7 个百分点。多完成的 10 道来自文档与媒体：取得 PDF 正文、图片和视频资源，也是 AI 读取网络内容的一部分。</p>
 ${overview_ranking}
-<p class="m-scope-note">每题等权，失败与超时计入总数；通过表示交付结果满足题目要求。完整报告包含三个 Moli 版本，本文统一采用总通过数最高的 1.1.1。</p>
+<p class="m-scope-note">每题等权，失败与超时计入总数；通过表示交付结果满足题目要求。当前报告固定使用 Moli 1.1.1，不在同一报告中混合不同版本。</p>
 <div class="m-ledger"><div><span>平均耗时减少 · 相对 Chromium</span><b>−${mean_reduction}%</b><p>Moli 3.01 秒 / Chromium 5.27 秒</p></div><div><span>P50 耗时减少 · 相对 Chromium</span><b>−${p50_reduction}%</b><p>Moli 2.44 秒 / Chromium 4.58 秒</p></div><div><span>P95 耗时减少 · 相对 Chromium</span><b>−${p95_reduction}%</b><p>Moli 6.03 秒 / Chromium 10.83 秒</p></div></div>
 <p class="m-scope-note">耗时比较取五款共同成功的全部 98 道任务，包含内容提取和后处理。主记录跨批次采集，网络与运行时间不同，不能当作受控条件下的内核速度差异。</p>
 <p class="m-report-link"><a href="${report_url}">阅读完整评测报告 →</a><span>查看全部任务、评分规则与浏览器原始返回</span></p>
-<nav class="m-toc" aria-label="文章目录"><a href="#background">01 这次测什么</a><a href="#results">02 通过率与耗时</a><a href="#method">03 测试方法与实例</a><a href="#browsers">04 浏览器与测试配置</a><a href="#limits">05 失败任务与正文缺失</a><a href="#outlook">06 结论与后续测试</a></nav>
+<nav class="m-toc" aria-label="文章目录"><a href="#background">01 这次测什么</a><a href="#results">02 通过率、耗时与资源</a><a href="#method">03 测试方法与实例</a><a href="#browsers">04 浏览器与测试配置</a><a href="#limits">05 失败任务与正文缺失</a><a href="#outlook">06 结论与后续测试</a></nav>
 </header>
 <div class="m-body">
 <section class="m-section" id="background"><h2>01 这次测什么</h2>
@@ -40,7 +40,7 @@ ${browser_modes_figure}
 <p>这次的 150 道任务评测 Web Fetch：同样的网址、同样的内容要求，每题给 45 秒，检查交回的结果并记录耗时。浏览器是否适合连续操作网页，需要用 Browser Use 任务另外评测。</p>
 
 </section>
-<section class="m-section" id="results"><h2>02 通过率与耗时</h2>
+<section class="m-section" id="results"><h2>02 通过率、耗时与资源</h2>
 <p>文档与媒体的通过率，Moli 为 80.0%（24/30），Chromium 为 46.7%（14/30）。网页类则同为 92.5%（111/120）。</p>
 <figure class="m-figure"><div class="m-split">${split}</div><figcaption>网页类：普通网页 100 道、动态网页 10 道、热门站点 10 道。文档、图片、视频各 10 道。</figcaption></figure>
 <p>其中六道 PDF 题只有 Moli 的本轮配置通过：先取得文件，再由本地 pypdf 提取正文，解析时间也计入耗时。其余四款的本轮 Markdown 输出路线未交回合格正文。</p>
@@ -51,6 +51,10 @@ ${browser_modes_figure}
 <figure class="m-figure"><h3>主评测：全部 98 道共同成功任务 · 秒</h3>${speed_main}<figcaption>同一任务集合，包含内容提取与后处理。主结果跨批次采集：Lightpanda 的这 98 道调用均在 9 月 8 日，其余四款多数在 9 月 4 日。以下统计反映实际保存的调用耗时，不是同一环境下的纯浏览器内核速度。</figcaption></figure>
 <p>相对 Chromium，Moli 的平均耗时减少 ${mean_reduction}%，P50 减少 ${p50_reduction}%，P95 减少 ${p95_reduction}%。这三项在五款中均最低；跨批次条件下，尚不能确定差距有多少来自浏览器实现。</p>
 <details class="m-details"><summary>耗时样本与计算方法</summary><p>取五款浏览器在 150 道主任务中共同通过的全部 98 道，不混用各自成功的不同任务。均值是全部耗时相加后除以 98；P50 是中间位置的耗时；P95 反映这组记录中较慢的一端。</p><p>显示值保留两位小数，差值与百分比使用未舍入值计算。调用跨批次采集，每个配置每题只有一次主结果，尚不能据此估计长期运行波动。</p></details>
+<h3>客户端 CPU、内存与网络</h3>
+${resources}
+<p>${resource_interpretation}</p>
+${resource_methodology}
 </section>
 <section class="m-section" id="method"><h2>03 测试方法与实例</h2>
 <p>输入都是网址，交付内容可以分为五种。浏览器可采用不同实现，最终按同样的任务要求验收。</p>
@@ -100,7 +104,7 @@ ${overview_figure}
 <p>仍需改进的任务包括三份 W3C 标准、延迟列表、iframe 子页面、DOCX 和嵌入式文档查看器。普通网页也有正文完整度差距：参考正文词语找回比例为 Moli 95.3%、Chromium 99.8%。</p>
 <h3>后续测试</h3>
 <ol class="m-next-list">
-<li>增加站点、文档类型和重复次数；在相同运行条件下扩大速度样本，观察热门站点的成功率波动。</li>
+<li>增加站点、文档类型和重复次数；在相同运行条件下扩大速度与资源样本，观察热门站点的成功率波动。</li>
 <li>跟进版本迭代，复测现有失败任务。Moli 1.1.2、1.1.3、1.1.4 分别于 9 月 4 日、5 日、8 日发布，1.1.4 包含重定向处理修复；能否改善本文中的缺口，仍以同题复测为准。<a href="https://github.com/lexmount/moli/releases">查看公开版本记录</a>。</li>
 <li>开展 Browser Use 评测，用搜索、点击、翻页和填写等连续操作，比较 Agent 完成整段网页任务的表现。</li>
 </ol>

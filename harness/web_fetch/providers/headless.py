@@ -18,11 +18,12 @@ import time
 from .base import Provider
 from ..models import EvalCase, ProviderResult
 from ..safety import validate_http_url
+from ..container_resources import ContainerResourceRunner
 
 ENGINES = ('kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium')
 HEADLESS_CONVERSION = (
-    'Native Markdown for Kitesurf, Lightpanda, Obscura and three measured Moli '
-    'versions; direct Moli documents/media use automatic raw output; Chromium '
+    'Native Markdown for Kitesurf, Lightpanda, Obscura and Moli 1.1.1; direct '
+    'Moli documents/media use automatic raw output; Chromium '
     'whole-DOM HTML via node-html-markdown 2.0.0'
 )
 
@@ -98,6 +99,22 @@ class HeadlessProvider(Provider):
         engine = self.config.get('engine')
         if engine not in ENGINES:
             errors.append('engine')
+        resource_interval = self.config.get('resource_sample_interval_ms')
+        if resource_interval is not None:
+            if engine == 'kitesurf' and self.type == 'headless_markdown':
+                errors.extend(name for name in ('api_token', 'account_id')
+                              if not self.config.get(name))
+            if not self.config.get('resource_container_image'):
+                errors.append('resource_container_image')
+            if engine != 'kitesurf' and not self.config.get('resource_binary'):
+                errors.append('resource_binary')
+            if not errors:
+                try:
+                    self._resource_runner().validate()
+                except Exception as exc:
+                    errors.append('docker_cgroup_v2:' + str(exc))
+            self._resolved_binary = self.config.get('resource_binary')
+            return errors
         binary = _resolve_binary(engine, self.config.get('binary'))
         if engine != 'kitesurf' and not binary:
             errors.append('binary')
@@ -116,11 +133,38 @@ class HeadlessProvider(Provider):
                 errors.append('node-html-markdown')
         return errors
 
+    def _resource_runner(self):
+        return ContainerResourceRunner(
+            self.config['resource_container_image'],
+            interval_ms=int(self.config['resource_sample_interval_ms']),
+            cpus=float(self.config.get('resource_cpus', 2.0)),
+            memory=self.config.get('resource_memory', '2g'),
+            pids_limit=int(self.config.get('resource_pids_limit', 512)),
+        )
+
     def implementation_identity(self, *, refresh=False):
         """Snapshot the implementation without exposing paths or credentials."""
         if not refresh and hasattr(self, '_implementation_identity'):
             return dict(self._implementation_identity)
         engine = self.config['engine']
+        if self.config.get('resource_sample_interval_ms') is not None:
+            resource = self._resource_runner().implementation_identity(
+                self.config.get('resource_binary'),
+                version_args=['version'] if engine == 'lightpanda' else None,
+            )
+            identity = {
+                'identity_source': (
+                    'immutable container image and executable bytes observed before calls'
+                ),
+                'engine': engine,
+                'deployment': (
+                    'Cloudflare Browser Run account API from isolated client container'
+                    if engine == 'kitesurf' else 'isolated Linux client container'
+                ),
+                **resource,
+            }
+            self._implementation_identity = identity
+            return dict(identity)
         if engine == 'kitesurf':
             identity = {
                 'identity_source': 'provider product and endpoint observed before calls; hosted backend version is not exposed',
@@ -166,9 +210,11 @@ class HeadlessProvider(Provider):
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError('timeout must be positive and finite')
         engine = self.config['engine']
+        resource_interval = self.config.get('resource_sample_interval_ms')
         output_mode = output_mode_for_case(engine, self.type, case)
-        binary = getattr(self, '_resolved_binary', None) or _resolve_binary(
-            engine, self.config.get('binary'))
+        binary = (self.config.get('resource_binary') if resource_interval is not None else
+                  getattr(self, '_resolved_binary', None) or _resolve_binary(
+                      engine, self.config.get('binary')))
         cli_wait = 'networkidle' if case.track == 'dynamic' else 'done'
         wait_until = ('automatic raw response' if output_mode == 'file'
                       else 'automatic raw response or serialized HTML' if output_mode == 'document'
@@ -187,8 +233,13 @@ class HeadlessProvider(Provider):
         metadata = {'engine': engine, 'wait_until': wait_until,
                     'extractor': extractor, 'output_contract': output_contract,
                     'session': 'fresh per call',
-                    'deployment': 'public cloud CDP' if engine == 'kitesurf' else 'local process'}
-        if engine == 'kitesurf' and output_mode == 'markdown':
+                    'deployment': ('Cloudflare Browser Run from isolated client container'
+                                   if resource_interval is not None and engine == 'kitesurf'
+                                   else 'isolated Linux client container'
+                                   if resource_interval is not None
+                                   else 'public cloud CDP' if engine == 'kitesurf'
+                                   else 'local process')}
+        if engine == 'kitesurf' and output_mode == 'markdown' and resource_interval is None:
             from .cloudflare import CloudflareMarkdownProvider
             cloudflare = CloudflareMarkdownProvider(self.name, {
                 'account_id': self.config['account_id'], 'api_token': self.config['api_token'],
@@ -208,14 +259,66 @@ class HeadlessProvider(Provider):
                 metadata['browser_version_probe_error'] = identity['version_probe_error']
         request = {'engine': engine, 'binary': binary, 'url': case.url,
                    'timeout': timeout, 'output_mode': output_mode,
+                   'task_kind': case.task_kind,
+                   'browser_args': ['--no-sandbox']
+                   if resource_interval is not None and engine == 'chromium' else [],
                    'wait_until': 'networkidle' if case.track == 'dynamic' else None,
                    'endpoint': self.config.get('endpoint',
                    'wss://kitesurf.cloudflare.app/devtools/browser')}
+        if engine == 'kitesurf':
+            request.update({
+                'remote_markdown_api': True,
+                'account_id': self.config['account_id'],
+                'api_token': self.config['api_token'],
+                'browser': 'kitesurf',
+                'wait_until': self.config.get('wait_until', 'networkidle2'),
+                'max_bytes': self.config.get('max_bytes', 20_000_000),
+            })
         worker = Path(__file__).resolve().parents[3] / 'scripts/headless_worker.py'
         metadata['worker_sha256'] = hashlib.sha256(worker.read_bytes()).hexdigest()
+        if request['browser_args']:
+            metadata['browser_launch_args'] = request['browser_args']
         limit = 40_000_000
+        if resource_interval is not None:
+            call = self._resource_runner().run(request, timeout=timeout)
+            raw = call.stdout
+            diagnostic = call.stderr.decode('utf-8', 'replace')[:4096]
+            metadata.update(
+                exit_code=call.exit_code,
+                stderr=diagnostic,
+                client_resource=call.resource,
+                resource_environment=call.environment,
+            )
+            stopped = 'timeout' if call.exit_code == 124 else None
+        else:
+            raw, diagnostic, stopped, process = self._run_local_worker(
+                worker, request, timeout, limit
+            )
+            metadata.update(exit_code=process.returncode, stderr=diagnostic)
+        if stopped or len(raw) > limit:
+            return ProviderResult(False, '', error_type=stopped or 'output_too_large',
+                                  error_message='Isolated fetch exceeded budget', metadata=metadata)
+        try:
+            result = json.loads(raw)
+        except (ValueError, UnicodeDecodeError):
+            return ProviderResult(False, '', error_type='worker_error',
+                                  error_message=diagnostic or 'Invalid worker response', metadata=metadata)
+        metadata.update(result.pop('metadata', {}))
+        files_b64 = result.pop('files_b64', [])
+        if files_b64:
+            result['files'] = [{'data': base64.b64decode(value, validate=True)}
+                               for value in files_b64]
+        html = result.pop('html', '')
+        if html:
+            metadata['_rendered_html'] = html
+            metadata['rendered_html_sha256'] = hashlib.sha256(html.encode()).hexdigest()
+        return ProviderResult(**result, metadata=metadata)
+
+    @staticmethod
+    def _run_local_worker(worker, request, timeout, limit):
         with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
-            process = subprocess.Popen([sys.executable, str(worker)], stdin=subprocess.PIPE,
+            command = [sys.executable, str(worker)]
+            process = subprocess.Popen(command, stdin=subprocess.PIPE,
                 stdout=stdout, stderr=stderr, start_new_session=True)
             process.stdin.write(json.dumps(request).encode())
             process.stdin.close()
@@ -244,22 +347,4 @@ class HeadlessProvider(Provider):
                 process.wait()
             stdout.seek(0); raw = stdout.read(limit+1)
             stderr.seek(0); diagnostic = stderr.read(4096).decode('utf-8', 'replace')
-        metadata.update(exit_code=process.returncode, stderr=diagnostic)
-        if stopped or len(raw) > limit:
-            return ProviderResult(False, '', error_type=stopped or 'output_too_large',
-                                  error_message='Isolated fetch exceeded budget', metadata=metadata)
-        try:
-            result = json.loads(raw)
-        except (ValueError, UnicodeDecodeError):
-            return ProviderResult(False, '', error_type='worker_error',
-                                  error_message=diagnostic or 'Invalid worker response', metadata=metadata)
-        metadata.update(result.pop('metadata', {}))
-        files_b64 = result.pop('files_b64', [])
-        if files_b64:
-            result['files'] = [{'data': base64.b64decode(value, validate=True)}
-                               for value in files_b64]
-        html = result.pop('html', '')
-        if html:
-            metadata['_rendered_html'] = html
-            metadata['rendered_html_sha256'] = hashlib.sha256(html.encode()).hexdigest()
-        return ProviderResult(**result, metadata=metadata)
+        return raw, diagnostic, stopped, process

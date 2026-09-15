@@ -20,14 +20,16 @@ import docker
 import tiktoken
 from playwright.sync_api import Browser, Page, sync_playwright
 
+from harness.container_isolation import ContainerLimits, require_linux_cgroup_v2
+
 from .diagnostics import diagnose_summary
 from .executor import execute_steps, judge_outputs, validate_outputs
-from .metrics import (
+from harness.resource_accounting import (
     DockerStatsResources,
     ResourceSampler,
     delta_counters,
-    summarize_attempts,
 )
+from .metrics import summarize_attempts
 from .report import write_latest_report
 from .suite import BrowserTask, load_suite, validate_ground_truth_evidence
 
@@ -279,11 +281,7 @@ def _start_browser_container(
         detach=True,
         ports={f"{cdp_port}/tcp": ("127.0.0.1", None)},
         labels={"lex.browser-use-eval.run": run_id, "lex.browser-use-eval.engine": engine},
-        nano_cpus=int(cpus * 1_000_000_000),
-        mem_limit=memory,
-        pids_limit=512,
-        shm_size="512m",
-        security_opt=["no-new-privileges"],
+        **ContainerLimits(cpus=cpus, memory=memory).docker_kwargs(),
         network=network,
         extra_hosts={"host.docker.internal": "host-gateway"},
     )
@@ -430,6 +428,7 @@ def run_evaluation(
     output.mkdir(parents=True, exist_ok=True)
     run_id = uuid.uuid4().hex[:12]
     client = docker.from_env()
+    require_linux_cgroup_v2(client)
     containers: dict[str, Any] = {}
     networks: dict[str, Any] = {}
     browsers: dict[str, Browser] = {}

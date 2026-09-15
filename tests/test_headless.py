@@ -9,6 +9,8 @@ from unittest.mock import patch
 from harness.web_fetch.models import EvalCase
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.providers.headless import cli_command, output_mode_for_case
+from harness.web_fetch.providers.headless import HeadlessProvider
+from harness.web_fetch.container_resources import ContainerCall
 from harness.web_fetch.providers.headless import _resolve_binary
 from harness.web_fetch.runner import run_evaluation
 from scripts.headless_worker import fetch
@@ -17,8 +19,60 @@ from scripts.review_headless_results import main as review_main
 
 
 class HeadlessTests(unittest.TestCase):
+    def test_resource_mode_routes_remote_client_through_isolated_container(self):
+        provider = HeadlessProvider('kitesurf', {
+            'type': 'headless_markdown', 'engine': 'kitesurf',
+            'account_id': 'account', 'api_token': 'token',
+            'resource_sample_interval_ms': 50,
+            'resource_container_image': 'fixture:local',
+        })
+        runner = unittest.mock.MagicMock()
+        runner.run.return_value = ContainerCall(
+            stdout=json.dumps({'ok': True, 'content': '# Example', 'html': '',
+                               'status_code': 200, 'final_url': 'https://example.com/',
+                               'metadata': {}}).encode(),
+            stderr=b'', exit_code=0, duration_ms=10,
+            resource={'cpu_ms': 1, 'memory_peak_bytes': 2, 'network_rx_bytes': 3},
+            environment={'backend': 'docker_cgroup_v2'},
+        )
+        case = EvalCase('case', 'Case', 'https://example.com/', 'web', [])
+        with patch.object(provider, '_resource_runner', return_value=runner):
+            result = provider.fetch(case, 1)
+        self.assertTrue(result.ok)
+        self.assertEqual(result.metadata['client_resource']['network_rx_bytes'], 3)
+        self.assertEqual(result.metadata['resource_environment']['backend'], 'docker_cgroup_v2')
+        request = runner.run.call_args.args[0]
+        self.assertTrue(request['remote_markdown_api'])
+        self.assertEqual(request['api_token'], 'token')
+
     def test_explicit_empty_chromium_binary_never_uses_playwright_fallback(self):
         self.assertIsNone(_resolve_binary('chromium', ''))
+
+    def test_resource_chromium_disables_inner_sandbox_inside_locked_container(self):
+        provider = HeadlessProvider('chromium', {
+            'type': 'headless_markdown', 'engine': 'chromium',
+            'resource_sample_interval_ms': 50,
+            'resource_container_image': 'fixture:local',
+            'resource_binary': '/usr/bin/chromium',
+        })
+        runner = unittest.mock.MagicMock()
+        runner.implementation_identity.return_value = {
+            'binary_sha256': 'a' * 64, 'reported_version': 'Chromium 152.0.7977.82',
+            'version_probe_error': None,
+        }
+        runner.run.return_value = ContainerCall(
+            stdout=json.dumps({'ok': True, 'content': 'Example', 'html': '',
+                               'metadata': {}}).encode(),
+            stderr=b'', exit_code=0, duration_ms=10,
+            resource={'cpu_ms': 1}, environment={'backend': 'docker_cgroup_v2'},
+        )
+        case = EvalCase('case', 'Case', 'https://example.com/', 'web', [])
+        with patch.object(provider, '_resource_runner', return_value=runner):
+            result = provider.fetch(case, 1)
+        self.assertTrue(result.ok)
+        request = runner.run.call_args.args[0]
+        self.assertEqual(request['browser_args'], ['--no-sandbox'])
+        self.assertEqual(result.metadata['browser_launch_args'], ['--no-sandbox'])
 
     def test_review_packets_can_be_prepared_for_one_provider_without_verdicts(self):
         with tempfile.TemporaryDirectory() as directory:

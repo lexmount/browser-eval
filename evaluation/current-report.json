@@ -7,9 +7,7 @@
     "kitesurf",
     "lightpanda",
     "obscura",
-    "moli-1.0.6",
     "moli",
-    "moli-1.1.3",
     "chromium"
   ],
   "timeout_seconds": 45,
@@ -19,7 +17,39 @@
   "publication_state": "verified",
   "unverified_reference_cases": [],
   "require_independent_result_review": true,
-  "conversion": "Native Markdown for Kitesurf, Lightpanda, Obscura and three measured Moli versions; direct Moli documents/media use automatic raw output; Chromium whole-DOM HTML via node-html-markdown 2.0.0",
+  "conversion": "Native Markdown for Kitesurf, Lightpanda, Obscura and Moli 1.1.1; direct Moli documents/media use automatic raw output; Chromium whole-DOM HTML via node-html-markdown 2.0.0",
+  "resource_profile": {
+    "required": true,
+    "comparison_kind": "headless_client_resource_profile",
+    "case_count": 20,
+    "providers": [
+      "lightpanda",
+      "obscura",
+      "moli",
+      "chromium"
+    ],
+    "concurrency": 1,
+    "sample_interval_ms": 50,
+    "backend": "docker_cgroup_v2",
+    "cpus_per_call": 2.0,
+    "memory_per_call": "2g",
+    "network_isolation": "one dedicated bridge with no peer containers per call",
+    "controller_excluded": true,
+    "required_metrics": [
+      "measurement_duration_ms",
+      "cpu_ms",
+      "cpu_average_utilization_pct",
+      "cpu_sampled_utilization_p95_pct",
+      "memory_mean_bytes",
+      "memory_p95_bytes",
+      "memory_peak_bytes",
+      "memory_mib_seconds",
+      "network_rx_bytes",
+      "network_tx_bytes",
+      "network_rx_bytes_per_second",
+      "network_tx_bytes_per_second"
+    ]
+  },
   "artifact_hub_base_url": "https://artifact-hub.app.lexmount.com",
   "artifact_hub_site": "UUAhhQMnrGwm"
 }

@@ -14787,55 +14787,43 @@
       "kitesurf",
       "lightpanda",
       "obscura",
-      "moli-1.0.6",
       "moli",
-      "chromium",
-      "moli-1.1.3"
+      "chromium"
     ],
     "document": [
       "kitesurf",
       "lightpanda",
       "obscura",
-      "moli-1.0.6",
       "moli",
-      "chromium",
-      "moli-1.1.3"
+      "chromium"
     ],
     "image": [
       "kitesurf",
       "lightpanda",
       "obscura",
-      "moli-1.0.6",
       "moli",
-      "chromium",
-      "moli-1.1.3"
+      "chromium"
     ],
     "video": [
       "kitesurf",
       "lightpanda",
       "obscura",
-      "moli-1.0.6",
       "moli",
-      "chromium",
-      "moli-1.1.3"
+      "chromium"
     ],
     "challenge": [
       "kitesurf",
       "lightpanda",
       "obscura",
-      "moli-1.0.6",
       "moli",
-      "chromium",
-      "moli-1.1.3"
+      "chromium"
     ],
     "dynamic": [
       "kitesurf",
       "lightpanda",
       "obscura",
-      "moli-1.0.6",
       "moli",
-      "chromium",
-      "moli-1.1.3"
+      "chromium"
     ]
   },
   "comparison": {
@@ -14843,7 +14831,7 @@
     "timeout_seconds": 45,
     "source_dataset_sha256": "54a89d4610d012ebb6168ee9976b12b441211937880e1176b5e406de84a7c000",
     "adapter_input_sha256": "8231f592d5d21e0566df41823887efc765e2bdf91de6edbb5ad6032afbdc74b3",
-    "conversion": "Native Markdown for Kitesurf, Lightpanda, Obscura and three measured Moli versions; direct Moli documents/media use automatic raw output; Chromium whole-DOM HTML via node-html-markdown 2.0.0",
+    "conversion": "Native Markdown for Kitesurf, Lightpanda, Obscura and Moli 1.1.1; direct Moli documents/media use automatic raw output; Chromium whole-DOM HTML via node-html-markdown 2.0.0",
     "concurrency": 5,
     "runs_per_case": 1,
     "publication_state": "verified",

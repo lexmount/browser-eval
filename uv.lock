@@ -27,6 +27,7 @@ browser-use-eval = [
     { name = "tiktoken" },
 ]
 headless-eval = [
+    { name = "docker" },
     { name = "playwright" },
     { name = "pypdf" },
 ]
@@ -44,6 +45,7 @@ test = [
 requires-dist = [
     { name = "beautifulsoup4", marker = "extra == 'reference-audit'", specifier = ">=4.12,<5" },
     { name = "docker", marker = "extra == 'browser-use-eval'", specifier = ">=7,<8" },
+    { name = "docker", marker = "extra == 'headless-eval'", specifier = ">=7,<8" },
     { name = "playwright", marker = "extra == 'browser-use-eval'", specifier = ">=1.52,<2" },
     { name = "playwright", marker = "extra == 'headless-eval'", specifier = "==1.58.0" },
     { name = "pypdf", marker = "extra == 'headless-eval'", specifier = ">=5,<7" },

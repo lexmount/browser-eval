@@ -144,6 +144,82 @@ class StorageTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'attempt_ids'):
                 require_current_report_profile(evidence,root/'profile.json')
 
+    def test_current_report_profile_requires_bound_isolated_resource_cohort(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            evidence = root / 'evidence'
+            evidence.mkdir()
+            resource_profile = {
+                'required': True, 'comparison_kind': 'headless_client_resource_profile',
+                'case_count': 1, 'providers': ['p'], 'concurrency': 1,
+                'sample_interval_ms': 50, 'backend': 'docker_cgroup_v2',
+                'cpus_per_call': 2.0, 'memory_per_call': '2g',
+                'network_isolation': 'dedicated bridge', 'controller_excluded': True,
+                'required_metrics': ['cpu_ms', 'memory_peak_bytes', 'network_rx_bytes'],
+            }
+            profile = {
+                'dataset_id': 'current', 'comparison_kind': 'headless_markdown',
+                'case_count': 1, 'providers': ['p'], 'timeout_seconds': 45,
+                'runs_per_case': 1, 'concurrency': 1, 'conversion': 'native',
+                'reference_binding_mode': 'strict', 'publication_state': 'verified',
+                'unverified_reference_cases': [],
+                'require_independent_result_review': True,
+                'resource_profile': resource_profile,
+            }
+            (root / 'profile.json').write_text(json.dumps(profile))
+            dataset = {
+                'id': 'current', 'cases': [{'id': 'a'}],
+                'coverage_plan': {'web': ['p']},
+                'comparison': {
+                    'kind': 'headless_markdown', 'timeout_seconds': 45,
+                    'runs_per_case': 1, 'concurrency': 1, 'conversion': 'native',
+                    'reference_binding_mode': 'strict', 'publication_state': 'verified',
+                    'unverified_reference_cases': [],
+                    'require_independent_result_review': True,
+                },
+            }
+            (evidence / 'dataset.json').write_text(json.dumps(dataset))
+            (evidence / 'results.jsonl').write_text(
+                json.dumps({'attempt_id': 'p__a__r001', 'provider': 'p', 'case_id': 'a'}) + '\n'
+            )
+            with self.assertRaisesRegex(ValueError, 'resource_profile_missing'):
+                require_current_report_profile(evidence, root / 'profile.json')
+
+            resource = evidence / 'resource-cohort'
+            resource.mkdir()
+            environment = {
+                'backend': 'docker_cgroup_v2', 'cgroup_version': '2',
+                'cpus': 2.0, 'memory': '2g',
+                'network_isolation': 'dedicated bridge', 'controller_excluded': True,
+            }
+            (resource / 'dataset.json').write_text(json.dumps({
+                'cases': [{'id': 'a'}],
+                'comparison': {
+                    'kind': 'headless_client_resource_profile', 'concurrency': 1,
+                    'resource_sample_interval_ms': 50,
+                    'resource_backend': 'docker_cgroup_v2',
+                    'resource_cpus': 2.0, 'resource_memory': '2g',
+                },
+            }))
+            resource_row = {
+                'attempt_id': 'resource__p__a', 'provider': 'p', 'case_id': 'a',
+                'provider_metadata': {
+                    'client_resource': {
+                        'cpu_ms': 1, 'memory_peak_bytes': 2, 'network_rx_bytes': 3,
+                    },
+                    'resource_environment': environment,
+                },
+            }
+            (resource / 'results.jsonl').write_text(json.dumps(resource_row) + '\n')
+            (resource / 'resource-comparison.json').write_text(json.dumps({
+                'providers': ['p'], 'common_pass_cases': ['a'], 'environment': environment,
+            }))
+            require_current_report_profile(evidence, root / 'profile.json')
+            resource_row['provider_metadata']['resource_environment']['backend'] = 'host_process'
+            (resource / 'results.jsonl').write_text(json.dumps(resource_row) + '\n')
+            with self.assertRaisesRegex(ValueError, 'resource_environment'):
+                require_current_report_profile(evidence, root / 'profile.json')
+
 
 if __name__ == "__main__":
     unittest.main()

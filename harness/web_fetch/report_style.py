@@ -17,6 +17,15 @@ STYLE += r"""
 """
 
 STYLE += r"""
+.resource-leader{display:grid;grid-template-columns:minmax(220px,.8fr) minmax(300px,1.5fr);gap:24px;align-items:center;margin:20px 0;padding:24px 26px;border:1px solid color-mix(in srgb,var(--good) 42%,var(--line));border-left:6px solid var(--good);border-radius:16px;background:linear-gradient(120deg,var(--success-bg),var(--panel))}
+.resource-leader div>*{display:block}.resource-leader .resource-kicker{font-size:12px;font-weight:800;color:var(--good);letter-spacing:.08em}.resource-leader strong{margin-top:3px;font-size:30px;line-height:1.2}.resource-leader p{margin:0;line-height:1.75}.resource-leader p b{font-size:22px;color:var(--good)}
+.resource-key-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:16px 0 22px}.resource-key-grid article{display:grid;gap:3px;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}.resource-key-grid span,.resource-key-grid small{font-size:12px;color:var(--muted)}.resource-key-grid strong{font-size:17px}.resource-key-grid b{font-size:20px;color:var(--good);font-variant-numeric:tabular-nums}
+.resource-sample{margin:18px 0;color:var(--muted)}.resource-groups{display:grid;gap:18px;margin:22px 0}.resource-group{padding:0!important;border:1px solid var(--line)!important;border-radius:15px;background:var(--panel);overflow:hidden}.resource-group h3{margin:0;padding:17px 19px 2px}.resource-group>p{margin:0;padding:0 19px 13px;color:var(--muted);font-size:12px}.resource-table{max-width:100%;overflow-x:auto}.resource-table table{min-width:720px;margin:0}.resource-table th{position:static}.resource-table td{font-variant-numeric:tabular-nums;white-space:nowrap}.resource-table .resource-metric{font-weight:700}.resource-best{display:inline-flex;align-items:center;gap:7px;color:var(--good)}.resource-best span{padding:2px 6px;border-radius:999px;background:var(--success-bg);font-size:10px;white-space:nowrap}
+@media(max-width:760px){.resource-leader{grid-template-columns:1fr;gap:10px;padding:19px}.resource-leader strong{font-size:25px}.resource-key-grid{grid-template-columns:1fr}.resource-key-grid article{grid-template-columns:1fr auto;align-items:baseline}.resource-key-grid article span,.resource-key-grid article small{grid-column:1/-1}.resource-group h3{font-size:19px}.resource-table:before{content:'左右滑动查看完整对比';display:block;padding:8px 14px;color:var(--muted);font-size:11px;background:var(--panel2)}}
+@media print{.resource-leader,.resource-key-grid article,.resource-group{break-inside:avoid}.resource-table{overflow:visible}.resource-table table{min-width:0;font-size:8pt}.resource-best span{display:none}}
+"""
+
+STYLE += r"""
 .track-flow li:before{white-space:nowrap;flex-shrink:0}
 .publication-article{max-width:800px;margin:0 auto;overflow-wrap:anywhere;font-size:17px;line-height:1.95}
 .publication-article .essay-head{padding:52px 0 32px;border-bottom:2px solid var(--ink)}
