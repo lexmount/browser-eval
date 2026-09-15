@@ -104,9 +104,7 @@ def _environment(tmp_path):
             {
                 "image_lock": "images.json",
                 "environments": {
-                    "__SHOPPING_ADMIN__": {
-                        "urls": ["http://host.docker.internal:17780/admin"]
-                    }
+                    "__SHOPPING_ADMIN__": {"urls": ["http://host.docker.internal:17780/admin"]}
                 },
                 "control_urls": {"shopping_admin": "http://127.0.0.1:17781"},
             }
@@ -171,14 +169,11 @@ def test_recorded_action_origins_are_materialized_from_runtime_config(tmp_path):
             {
                 "action": "fill",
                 "text": (
-                    "http://ec2-3-135-39-80.us-east-2.compute.amazonaws.com:8023/"
-                    "convexegg/chatgpt"
+                    "http://ec2-3-135-39-80.us-east-2.compute.amazonaws.com:8023/convexegg/chatgpt"
                 ),
                 "target": {
                     "by": "playwright",
-                    "value": (
-                        'internal:attr=[title="http://old.example:9999/f/technology"i]'
-                    ),
+                    "value": ('internal:attr=[title="http://old.example:9999/f/technology"i]'),
                 },
             },
         ),
@@ -194,9 +189,7 @@ def test_recorded_action_origins_are_materialized_from_runtime_config(tmp_path):
 
     materialized = environment.materialize_task_actions(task)
 
-    assert materialized.tool_calls[0]["text"] == (
-        "http://10.2.131.41:18023/convexegg/chatgpt"
-    )
+    assert materialized.tool_calls[0]["text"] == ("http://10.2.131.41:18023/convexegg/chatgpt")
     assert materialized.tool_calls[0]["target"]["value"] == (
         'internal:attr=[title="http://10.2.131.41:19999/f/technology"i]'
     )
@@ -215,8 +208,7 @@ def test_admin_origin_rewrite_does_not_duplicate_the_admin_base_path(tmp_path):
     environment, _ = _environment(tmp_path)
 
     rewritten = environment.rewrite_legacy_origins(
-        "http://ec2-3-135-39-80.us-east-2.compute.amazonaws.com:7780/"
-        "admin/review/product/index"
+        "http://ec2-3-135-39-80.us-east-2.compute.amazonaws.com:7780/admin/review/product/index"
     )
 
     assert rewritten == "http://host.docker.internal:17780/admin/review/product/index"
@@ -241,7 +233,9 @@ def test_stateful_reset_recreates_container_from_pinned_image(tmp_path, monkeypa
             )
 
     docker_client = _Docker([pinned])
-    monkeypatch.setattr("harness.trajectory_replay.public_webarena.webarena_environment.ContainerManager", Manager)
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.webarena_environment.ContainerManager", Manager
+    )
     monkeypatch.setattr(environment, "_wait_ready", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(environment, "_wait_site_ready", lambda *_args, **_kwargs: None)
 
@@ -281,9 +275,7 @@ def test_gitlab_reset_preserves_internal_port_and_sets_external_url(tmp_path, mo
             {
                 "image_lock": "images.json",
                 "docker_site_hostname": "10.2.131.41",
-                "environments": {
-                    "__GITLAB__": {"urls": ["http://10.2.131.41:18023"]}
-                },
+                "environments": {"__GITLAB__": {"urls": ["http://10.2.131.41:18023"]}},
                 "control_urls": {"gitlab": "http://127.0.0.1:18024"},
             }
         ),
@@ -318,7 +310,9 @@ def test_gitlab_reset_preserves_internal_port_and_sets_external_url(tmp_path, mo
             )
 
     docker_client = _Docker([pinned], "webarena_verified_gitlab")
-    monkeypatch.setattr("harness.trajectory_replay.public_webarena.webarena_environment.ContainerManager", Manager)
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.webarena_environment.ContainerManager", Manager
+    )
     monkeypatch.setattr(environment, "_wait_ready", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(environment, "_wait_site_ready", lambda *_args, **_kwargs: None)
 
@@ -349,9 +343,7 @@ def test_reddit_reset_supplies_required_base_url_explicitly(tmp_path, monkeypatc
     environment, _ = _environment(tmp_path)
     pinned = "am1n3e/webarena-verified-reddit@sha256:" + "c" * 64
     environment.image_lock["images"]["reddit"] = {"pinned": pinned}
-    environment.environments["__REDDIT__"] = {
-        "urls": ["http://10.2.131.41:19999"]
-    }
+    environment.environments["__REDDIT__"] = {"urls": ["http://10.2.131.41:19999"]}
     environment.control_urls["reddit"] = "http://127.0.0.1:19998"
     task = BrowserTask(
         task_id="webarena-641",
@@ -380,7 +372,9 @@ def test_reddit_reset_supplies_required_base_url_explicitly(tmp_path, monkeypatc
             )
 
     docker_client = _Docker([pinned], "webarena_verified_reddit")
-    monkeypatch.setattr("harness.trajectory_replay.public_webarena.webarena_environment.ContainerManager", Manager)
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.webarena_environment.ContainerManager", Manager
+    )
     monkeypatch.setattr(environment, "_wait_ready", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(environment, "_wait_site_ready", lambda *_args, **_kwargs: None)
 
@@ -426,9 +420,7 @@ def test_stateful_backend_lets_entrypoint_configure_external_origin_once(site):
     assert calls[0][1]["environment"] == {
         "WA_ENV_CTRL_EXTERNAL_SITE_URL": "http://10.2.131.41:18023",
         **(
-            {"WA_ENV_CTRL_CMD_TIMEOUT_SEC": "600"}
-            if site in {"shopping", "shopping_admin"}
-            else {}
+            {"WA_ENV_CTRL_CMD_TIMEOUT_SEC": "600"} if site in {"shopping", "shopping_admin"} else {}
         ),
     }
 
@@ -465,9 +457,7 @@ def test_stateful_backend_can_defer_large_container_removal():
     backend.container_remove(name="webarena_verified_shopping_admin")
 
     assert container.stop_timeout == 10
-    assert container.renamed_to == (
-        "webarena_verified_shopping_admin__retired__container-id"
-    )
+    assert container.renamed_to == ("webarena_verified_shopping_admin__retired__container-id")
     assert backend.retired_containers == [container.renamed_to]
 
 
@@ -521,9 +511,7 @@ def test_stateful_reset_requires_explicit_distinct_ports(tmp_path):
         environment.reset(_task(), _Docker([]))
 
 
-def test_read_only_reset_checks_public_site_without_requiring_control_plane(
-    tmp_path, monkeypatch
-):
+def test_read_only_reset_checks_public_site_without_requiring_control_plane(tmp_path, monkeypatch):
     pinned = "am1n3e/webarena-verified-map@sha256:" + "c" * 64
     lock = tmp_path / "images.json"
     lock.write_text(
@@ -672,7 +660,8 @@ def test_site_readiness_requires_two_successful_browser_facing_requests(monkeypa
         return Response()
 
     monkeypatch.setattr(
-        "harness.trajectory_replay.public_webarena.webarena_environment.urllib.request.urlopen", urlopen
+        "harness.trajectory_replay.public_webarena.webarena_environment.urllib.request.urlopen",
+        urlopen,
     )
     monkeypatch.setattr(
         "harness.trajectory_replay.public_webarena.webarena_environment.time.sleep", lambda *_: None
@@ -710,9 +699,7 @@ def test_site_readiness_rejects_redirect_to_baked_origin(monkeypatch):
     )
 
     with pytest.raises(RuntimeError, match="unexpected origin"):
-        WebArenaEnvironment._wait_site_ready(
-            "http://site.test:17780/admin", timeout_seconds=1
-        )
+        WebArenaEnvironment._wait_site_ready("http://site.test:17780/admin", timeout_seconds=1)
 
 
 def test_waits_for_entrypoint_initialization_to_finish(monkeypatch):
@@ -781,9 +768,7 @@ def test_environment_tokens_resolve_exact_urls_and_path_suffixes(tmp_path):
     assert environment.resolve_url("__SHOPPING_ADMIN__/catalog/product/edit/id/1481/") == (
         "http://host.docker.internal:17780/admin/catalog/product/edit/id/1481/"
     )
-    assert environment.resolve_url("https://public.example/path") == (
-        "https://public.example/path"
-    )
+    assert environment.resolve_url("https://public.example/path") == ("https://public.example/path")
 
 
 class _LoginLocator:
@@ -919,13 +904,15 @@ def test_official_form_login_paths_cover_all_stateful_sites(tmp_path, monkeypatc
         {"wait_until": "commit", "timeout": 120_000},
     ) in pages["shopping"].actions
     shopping_actions = pages["shopping"].actions
-    assert shopping_actions.index(
-        ("expect_navigation", {"wait_until": "commit", "timeout": 120_000})
-    ) < next(
-        index
-        for index, action in enumerate(shopping_actions)
-        if action[0] == "click" and action[1] == "role:button:Sign In"
-    ) < shopping_actions.index(("goto", "http://shopping.test/wishlist/"))
+    assert (
+        shopping_actions.index(("expect_navigation", {"wait_until": "commit", "timeout": 120_000}))
+        < next(
+            index
+            for index, action in enumerate(shopping_actions)
+            if action[0] == "click" and action[1] == "role:button:Sign In"
+        )
+        < shopping_actions.index(("goto", "http://shopping.test/wishlist/"))
+    )
     assert not any(action[0] == "wait_for" for action in pages["reddit"].actions)
     assert (
         "expect_navigation",
@@ -935,9 +922,7 @@ def test_official_form_login_paths_cover_all_stateful_sites(tmp_path, monkeypatc
         "expect_navigation",
         {"wait_until": "commit", "timeout": 120_000},
     ) in pages["shopping_admin"].actions
-    assert pages["shopping_admin"].actions.count(
-        ("goto", "http://shopping_admin.test")
-    ) == 2
+    assert pages["shopping_admin"].actions.count(("goto", "http://shopping_admin.test")) == 2
 
 
 def test_reset_wall_clock_timeout_interrupts_blocking_operation():

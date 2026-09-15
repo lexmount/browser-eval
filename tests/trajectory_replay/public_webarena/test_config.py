@@ -4,7 +4,10 @@ import os
 
 import pytest
 
-from harness.trajectory_replay.public_webarena.config import configure_browser_docker_host, load_runtime_env
+from harness.trajectory_replay.public_webarena.config import (
+    configure_browser_docker_host,
+    load_runtime_env,
+)
 
 
 def test_runtime_env_defaults_do_not_override_exported_values(tmp_path, monkeypatch):

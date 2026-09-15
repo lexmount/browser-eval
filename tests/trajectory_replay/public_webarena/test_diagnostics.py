@@ -6,7 +6,10 @@ from urllib.error import URLError
 import pytest
 
 from harness.trajectory_replay.public_webarena import diagnostics
-from harness.trajectory_replay.public_webarena.diagnostics import build_failure_groups, classify_failure
+from harness.trajectory_replay.public_webarena.diagnostics import (
+    build_failure_groups,
+    classify_failure,
+)
 
 
 @pytest.mark.parametrize(

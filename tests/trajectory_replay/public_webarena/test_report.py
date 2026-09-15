@@ -160,9 +160,7 @@ def test_resource_tables_compare_all_engines_in_one_table():
     assert "1.50×" in rendered
     assert 'class="better"' in rendered
     assert 'class="worse"' in rendered
-    assert rendered.count('class="metric-policy ') == sum(
-        len(metrics) for _, metrics in METRICS
-    )
+    assert rendered.count('class="metric-policy ') == sum(len(metrics) for _, metrics in METRICS)
     assert 'class="metric-policy lower"' in rendered
     assert 'class="metric-policy neutral"' in rendered
     assert "观察项不判胜负" in rendered
@@ -262,7 +260,7 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
                     "numerator_engine": "moli",
                     "metrics": {
                         "duration_ms": {"p50": 0.5, "p95": 9.9, "mean": 0.8},
-                    }
+                    },
                 },
             },
         },
@@ -334,9 +332,7 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert not (reports / "webarena-trajectory-replay-latest-review.html").exists()
     assert (reports / "webarena-trajectory-replay-latest-data.json").exists()
     assert 'class="card result-guide"' in results
-    assert (
-        'href="webarena-trajectory-replay-latest-results.html#task-comparison"' in results
-    )
+    assert 'href="webarena-trajectory-replay-latest-results.html#task-comparison"' in results
     assert 'href="#task-comparison"' not in results
     assert 'id="performance"' not in results
     assert "<h2>总体结果</h2>" not in results
@@ -660,9 +656,11 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
     assert "LLM 根因假设" not in results
     assert "未启用 LLM" not in results
     assert "根因边界" in results
-    assert results.index("<h2>浏览器组合对比</h2>") < results.index(
-        '<section class="card" id="failure-review">'
-    ) < results.index('<section class="card" id="execution-results">')
+    assert (
+        results.index("<h2>浏览器组合对比</h2>")
+        < results.index('<section class="card" id="failure-review">')
+        < results.index('<section class="card" id="execution-results">')
+    )
     homepage = (reports / "webarena-trajectory-replay-latest.html").read_text(encoding="utf-8")
     assert 'class="failure-shortcut"' not in homepage
     assert f'href="{detail_files[0].name}"' not in homepage
@@ -896,9 +894,7 @@ def test_method_page_derives_environment_and_prepare_counts_from_attempts():
                         {
                             "environment_reset": {
                                 "sites": {
-                                    "shopping": {
-                                        "reset": "container_recreated_from_pinned_image"
-                                    }
+                                    "shopping": {"reset": "container_recreated_from_pinned_image"}
                                 }
                             },
                             "trace": [],
@@ -907,9 +903,7 @@ def test_method_page_derives_environment_and_prepare_counts_from_attempts():
                     "moli": [
                         {
                             "environment_reset": None,
-                            "trace": [
-                                {"action": "prepare_environment", "status": "fail"}
-                            ],
+                            "trace": [{"action": "prepare_environment", "status": "fail"}],
                         }
                     ],
                 }
@@ -924,7 +918,10 @@ def test_method_page_derives_environment_and_prepare_counts_from_attempts():
 
 
 def test_all_published_suite_tasks_link_to_public_web_targets(tmp_path):
-    suite_file = Path(__file__).resolve().parents[3] / "examples/trajectory_replay/public_webarena/tasks.v4.json"
+    suite_file = (
+        Path(__file__).resolve().parents[3]
+        / "examples/trajectory_replay/public_webarena/tasks.v4.json"
+    )
     raw_tasks = json.loads(suite_file.read_text(encoding="utf-8"))["tasks"]
     suite = [
         {

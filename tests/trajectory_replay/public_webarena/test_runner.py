@@ -214,9 +214,7 @@ def test_trajectory_authoring_and_qualification_are_mutually_exclusive(tmp_path)
         )
 
 
-def test_trajectory_authoring_rejects_state_mutation_tasks_before_docker(
-    tmp_path, monkeypatch
-):
+def test_trajectory_authoring_rejects_state_mutation_tasks_before_docker(tmp_path, monkeypatch):
     task = BrowserTask(
         task_id="webarena-1",
         title="Mutation",
@@ -248,9 +246,7 @@ def test_trajectory_authoring_rejects_state_mutation_tasks_before_docker(
     client.networks.create.assert_not_called()
 
 
-def test_measured_run_rejects_missing_cgroup_controls_before_creating_output(
-    tmp_path, monkeypatch
-):
+def test_measured_run_rejects_missing_cgroup_controls_before_creating_output(tmp_path, monkeypatch):
     task = BrowserTask("task", "Task", (), (), (), "simple", {}, {})
     monkeypatch.setattr(runner, "load_suite", lambda _: TaskSuite("test", (task,)))
     client = MagicMock()
@@ -378,9 +374,9 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
 
 
 def test_moli_image_installs_its_verified_dynamic_font_dependency():
-    dockerfile = Path("examples/trajectory_replay/public_webarena/docker/moli.Dockerfile").read_text(
-        encoding="utf-8"
-    )
+    dockerfile = Path(
+        "examples/trajectory_replay/public_webarena/docker/moli.Dockerfile"
+    ).read_text(encoding="utf-8")
 
     assert "fontconfig" in dockerfile
     assert "--mount=type=bind,source=.,target=/mnt/build-context,ro" in dockerfile
@@ -389,7 +385,9 @@ def test_moli_image_installs_its_verified_dynamic_font_dependency():
 
 def test_browser_images_expose_auditable_debian_mirror_overrides():
     for name in ("chromium.Dockerfile", "moli.Dockerfile"):
-        dockerfile = Path("examples/trajectory_replay/public_webarena/docker", name).read_text(encoding="utf-8")
+        dockerfile = Path("examples/trajectory_replay/public_webarena/docker", name).read_text(
+            encoding="utf-8"
+        )
         assert "ARG DEBIAN_MIRROR=http://deb.debian.org/debian" in dockerfile
         assert "ARG DEBIAN_SECURITY_MIRROR=http://deb.debian.org/debian-security" in dockerfile
         assert "lex.browser-use-eval.debian-mirror" in dockerfile
@@ -411,9 +409,7 @@ def test_environment_records_browser_image_build_source_labels():
     )
     container = SimpleNamespace(
         image=image,
-        exec_run=lambda _command: SimpleNamespace(
-            output=b"Chromium 152.0.7977.82", exit_code=0
-        ),
+        exec_run=lambda _command: SimpleNamespace(output=b"Chromium 152.0.7977.82", exit_code=0),
     )
     client = SimpleNamespace(
         info=lambda: {
@@ -437,6 +433,7 @@ def test_environment_records_browser_image_build_source_labels():
 def test_final_page_evidence_binds_screenshot_and_visible_page_state(tmp_path):
     screenshot = b"png-bytes"
     page = MagicMock()
+
     def write_screenshot(*, path, full_page, timeout):
         assert full_page is False
         assert timeout == 5_000
@@ -550,9 +547,7 @@ def test_webarena_run_mode_fails_closed_on_qualification_state(
         "tags": ["webarena"],
         "trajectory": {
             "schema": "lex_browser_trajectory/1",
-            "actions": [
-                {"action": "navigate", "url": "https://example.com", "save_as": "page"}
-            ],
+            "actions": [{"action": "navigate", "url": "https://example.com", "save_as": "page"}],
         },
         "assertions": [],
         "evaluator": {"kind": "webarena_verified", "task_id": 1, "revision": 1},

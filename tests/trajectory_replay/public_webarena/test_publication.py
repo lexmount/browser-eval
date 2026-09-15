@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import json
 
-from harness.trajectory_replay.public_webarena.publication import export_public_report_bundle, public_projection
+from harness.trajectory_replay.public_webarena.publication import (
+    export_public_report_bundle,
+    public_projection,
+)
 
 
 def test_public_projection_scrubs_private_hosts_and_user_paths():

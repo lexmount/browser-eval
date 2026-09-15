@@ -7,7 +7,10 @@ import pytest
 
 
 def _module():
-    script = Path(__file__).resolve().parents[3] / "examples/trajectory_replay/public_webarena/rebuild_report.py"
+    script = (
+        Path(__file__).resolve().parents[3]
+        / "examples/trajectory_replay/public_webarena/rebuild_report.py"
+    )
     spec = importlib.util.spec_from_file_location("rebuild_browser_report", script)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

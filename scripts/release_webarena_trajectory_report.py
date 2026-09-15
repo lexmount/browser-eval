@@ -95,11 +95,11 @@ def main() -> None:
         print(
             "AUDIT MODE: presentation-only fast gates. If the dataset, runner, scorer, "
             "evidence, denominator, or claimed result changed, first run "
-            "`make trajectory-report-audit`."
+            "`make public-webarena-report-audit`."
         )
         if not args.publish:
             print(
-                "LOCAL ONLY: no network write. Run `make trajectory-report-release` to publish."
+                "LOCAL ONLY: no network write. Run `make public-webarena-report-release` to publish."
             )
             return
 

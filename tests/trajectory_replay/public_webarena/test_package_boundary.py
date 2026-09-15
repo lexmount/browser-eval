@@ -11,7 +11,9 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 def test_suites_have_separate_task_contracts() -> None:
-    curated = json.loads((ROOT / "examples/browser_use/tasks.v4.json").read_text(encoding="utf-8"))
+    curated = json.loads(
+        (ROOT / "examples/trajectory_replay/tasks.v4.json").read_text(encoding="utf-8")
+    )
     webarena = json.loads(
         (ROOT / "evaluation/browser-use-public/webarena-human-suite.json").read_text(
             encoding="utf-8"
@@ -24,7 +26,7 @@ def test_suites_have_separate_task_contracts() -> None:
     assert all("trajectory" in task for task in webarena["tasks"])
 
 
-def test_web_arena_options_exist_only_on_trajectory_entrypoint() -> None:
+def test_public_web_arena_options_exist_only_on_public_entrypoint() -> None:
     def help_text(module: str) -> str:
         result = subprocess.run(
             [sys.executable, "-m", module, "--help"],
@@ -35,7 +37,7 @@ def test_web_arena_options_exist_only_on_trajectory_entrypoint() -> None:
         )
         return result.stdout
 
-    curated_help = help_text("harness.browser_use.cli")
+    curated_help = help_text("harness.trajectory_replay.cli")
     trajectory_help = help_text("harness.trajectory_replay.public_webarena.cli")
     assert "--webarena-config" not in curated_help
     assert "--qualification-run" not in curated_help

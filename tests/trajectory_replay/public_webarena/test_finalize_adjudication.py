@@ -4,7 +4,10 @@ import hashlib
 import json
 
 from harness.trajectory_replay.public_webarena.har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
-from harness.trajectory_replay.public_webarena.qualification import QUALIFICATION_SCHEMA, task_contract_sha256
+from harness.trajectory_replay.public_webarena.qualification import (
+    QUALIFICATION_SCHEMA,
+    task_contract_sha256,
+)
 from scripts.finalize_webarena_adjudication import (
     finalize_adjudication,
     qualification_from_applied_suite,

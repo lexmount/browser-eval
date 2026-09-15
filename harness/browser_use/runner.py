@@ -1,633 +1,1205 @@
-"""Docker-isolated browser use evaluation runner."""
+"""Run CowAgent autonomously against official self-hosted WebArena-Verified sites."""
 
 from __future__ import annotations
 
+import argparse
+import fcntl
 import hashlib
+import importlib.metadata
+import ipaddress
 import json
+import os
 import platform
-import threading
+import subprocess
+import sys
+import tempfile
 import time
 import traceback
-import urllib.parse
-import urllib.request
 import uuid
-from functools import partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import docker
-import tiktoken
-from playwright.sync_api import Browser, Page, sync_playwright
+import requests
+from dotenv import dotenv_values
+from json_repair import repair_json
+from webarena_verified import WebArenaVerified
+from webarena_verified.environments.container.config import get_container_config
+from webarena_verified.environments.container.manager import ContainerManager
+from webarena_verified.environments.env_ctrl_client import EnvCtrlDockerClient
+from webarena_verified.types.config import (
+    ContainerConfig,
+    ContainerSetupConfig,
+    ContainerVolumeSpec,
+    EnvironmentConfig,
+    WebArenaVerifiedConfig,
+)
+from webarena_verified.types.task import WebArenaSite
 
-from harness.container_isolation import ContainerLimits, require_linux_cgroup_v2
-
-from .diagnostics import diagnose_summary
-from .executor import execute_steps, judge_outputs, validate_outputs
+from harness.container_isolation import require_linux_cgroup_v2
 from harness.resource_accounting import (
     DockerStatsResources,
     ResourceSampler,
     delta_counters,
 )
-from .metrics import summarize_attempts
-from .report import write_latest_report
-from .suite import BrowserTask, load_suite, validate_ground_truth_evidence
+from harness.trajectory_replay.runner import (
+    ENGINE_IMAGES,
+    ENGINE_PORTS,
+    _published_endpoint,
+    _start_browser_container,
+    _wait_cdp,
+)
 
-ENGINE_IMAGES = {
-    "chromium": "lex-browser-use-eval-chromium:local",
-    "moli": "lex-browser-use-eval-moli:local",
+from .har import CdpHarRecorder
+from .model import OpenAIResponsesModel
+from .selection import PilotTask, load_pilot, validate_against_official
+
+SCHEMA = "lex_browser_use_attempt/1"
+SITE_PORTS = {
+    WebArenaSite.SHOPPING: (7770, 7771),
+    WebArenaSite.SHOPPING_ADMIN: (7780, 7781),
+    WebArenaSite.REDDIT: (9999, 9998),
+    WebArenaSite.GITLAB: (8023, 8024),
 }
-ENGINE_PORTS = {"chromium": 9223, "moli": 9222}
-ENCODING = tiktoken.get_encoding("o200k_base")
+SITE_CREDENTIALS = {
+    WebArenaSite.SHOPPING: {"username": "emma.lopez@gmail.com", "password": "Password.123"},
+    WebArenaSite.SHOPPING_ADMIN: {"username": "admin", "password": "admin1234"},
+    WebArenaSite.REDDIT: {"username": "MarvelsGrantMan136", "password": "test1234"},
+    WebArenaSite.GITLAB: {"username": "byteblaze", "password": "hello1234"},
+}
+SITE_URL_SUFFIX = {WebArenaSite.SHOPPING_ADMIN: "/admin"}
+SITE_AUTH_HEADERS = {
+    WebArenaSite.SHOPPING: "X-M2-Customer-Auto-Login",
+    WebArenaSite.SHOPPING_ADMIN: "X-M2-Admin-Auto-Login",
+    WebArenaSite.REDDIT: "X-Postmill-Auto-Login",
+}
+# The official all-in-one shopping image restores Magento, MariaDB and
+# Elasticsearch before env-ctrl declares the fixture ready. On Colima/QEMU this
+# repeatedly exceeded the package example's 180-second default despite becoming
+# healthy shortly afterwards. A longer ceiling changes no measured task time;
+# it only keeps environment preparation from aborting a formal cohort.
+ENV_CTRL_READY_TIMEOUT_SECONDS = 600
+MAGENTO_DEPENDENCY_READY_TIMEOUT_SECONDS = 300
+PHYSICAL_EXECUTION_LOCK_NAMESPACE = "webarena-verified-fixed-site-stack-v1"
+AMD64_PHP_SITES = frozenset(
+    {WebArenaSite.SHOPPING, WebArenaSite.SHOPPING_ADMIN, WebArenaSite.REDDIT}
+)
+PHP_FPM_COMPAT_CONFIG = Path(__file__).with_name("runtime") / "php-fpm-qemu.ini"
+QEMU_X86_64_HOST_PATH = "/usr/bin/qemu-x86_64"
+QEMU_X86_64_CONTAINER_PATH = "/usr/local/bin/qemu-x86_64"
 
 
-def _external_websocket_url(endpoint: str, advertised: str) -> str:
-    endpoint_parts = urllib.parse.urlsplit(endpoint)
-    websocket_parts = urllib.parse.urlsplit(advertised)
-    scheme = "wss" if endpoint_parts.scheme == "https" else "ws"
-    return urllib.parse.urlunsplit(
-        (scheme, endpoint_parts.netloc, websocket_parts.path, websocket_parts.query, "")
+def _docker_daemon_lock_namespace(docker_info: dict[str, Any]) -> str:
+    """Bind a serialization lane to one Docker daemon and its fixed site ports."""
+    daemon_id = str(docker_info.get("ID") or "").strip()
+    if not daemon_id:
+        raise RuntimeError("Docker daemon ID is required for environment-lane isolation")
+    suffix = hashlib.sha256(daemon_id.encode("utf-8")).hexdigest()[:16]
+    return f"{PHYSICAL_EXECUTION_LOCK_NAMESPACE}-{suffix}"
+
+
+def _physical_execution_lock_path(
+    lock_namespace: str = PHYSICAL_EXECUTION_LOCK_NAMESPACE,
+) -> Path:
+    # The WebArena stack uses fixed host ports and is shared by every run owned
+    # by this OS user.  The lock therefore must not follow BROWSER_EVAL_DATA_HOME:
+    # two cohorts may intentionally write to different evidence directories
+    # while still mutating the same containers and databases.
+    return (
+        Path(tempfile.gettempdir())
+        / f"browser-eval-{os.getuid()}"
+        / "locks"
+        / f"{lock_namespace}.lock"
     )
 
 
-def _wait_cdp(url: str, timeout_seconds: float = 60, *, container: Any = None) -> str:
+@contextmanager
+def _physical_execution_lock(lock_path: Path) -> Iterator[float]:
+    """Serialize the full attempt lifecycle for the shared fixed-port site stack."""
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("a+b") as lock_file:
+        wait_started = time.perf_counter()
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        wait_ms = (time.perf_counter() - wait_started) * 1000
+        try:
+            yield wait_ms
+        finally:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+
+def _environment_prepare_receipt(
+    sites: tuple[WebArenaSite, ...], *, lock_wait_ms: float, lock_namespace: str
+) -> dict[str, Any]:
+    return {
+        "required_sites": [site.value for site in sites],
+        "reset_requested": True,
+        "physical_execution_lock": {
+            "namespace": lock_namespace,
+            "wait_ms": round(lock_wait_ms, 3),
+        },
+        "status": "running",
+    }
+
+
+def _load_repo_env(repo_root: Path) -> dict[str, str]:
+    """Load repository defaults, with explicit process overrides for automation."""
+    env_file = repo_root / ".env"
+    values = (
+        {str(key): str(value) for key, value in dotenv_values(env_file).items() if value}
+        if env_file.exists()
+        else {}
+    )
+    for key in ("OPENAI_API_KEY", "OPENAI_BASE_URL", "COWAGENT_REPO"):
+        if os.environ.get(key):
+            values[key] = os.environ[key]
+    return values
+
+
+def _git_head(path: Path) -> str:
+    return subprocess.run(
+        ["git", "-C", str(path), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def _require_clean_git_checkout(path: Path) -> str:
+    commit = _git_head(path)
+    status = subprocess.run(
+        ["git", "-C", str(path), "status", "--porcelain"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    if status.strip():
+        raise RuntimeError(
+            "CowAgent checkout must be clean so its recorded commit identifies the code"
+        )
+    return commit
+
+
+def _cdp_metadata(http_endpoint: str) -> dict[str, str]:
+    response = requests.get(http_endpoint.rstrip("/") + "/json/version", timeout=15)
+    response.raise_for_status()
+    payload = response.json()
+    return {
+        key: str(payload[key])
+        for key in ("Browser", "Protocol-Version", "User-Agent", "V8-Version")
+        if payload.get(key)
+    }
+
+
+def _docker_image_metadata(image: Any) -> dict[str, Any]:
+    attrs = image.attrs
+    return {
+        "id": image.id,
+        "tags": image.tags,
+        "repo_digests": attrs.get("RepoDigests") or [],
+        "architecture": attrs.get("Architecture"),
+        "os": attrs.get("Os"),
+        "size_bytes": attrs.get("Size"),
+    }
+
+
+def _container_host_gateway(container: Any) -> str:
+    """Return the literal host-gateway address visible to the browser process.
+
+    CowAgent validates URLs in the host process before forwarding them over CDP.
+    On Linux/Colima, ``host.docker.internal`` can exist only in the container's
+    /etc/hosts, so a literal RFC1918 address is required on both sides.
+    """
+    result = container.exec_run(["getent", "hosts", "host.docker.internal"])
+    if int(result.exit_code) != 0:
+        raise RuntimeError("browser container cannot resolve host.docker.internal")
+    line = result.output.decode("utf-8", errors="replace").splitlines()[0]
+    address = line.split()[0]
+    ipaddress.ip_address(address)
+    return address
+
+
+def _limit_cowagent_transport_retries(executor_class: Any) -> None:
+    """Limit CowAgent API errors to the initial request plus one retry."""
+    if getattr(executor_class, "_lex_browser_eval_retry_limit", False):
+        return
+    original = executor_class._call_llm_stream
+
+    def limited(
+        executor: Any,
+        retry_on_empty: bool = True,
+        retry_count: int = 0,
+        max_retries: int = 1,
+        _overflow_stage: int = 0,
+    ) -> Any:
+        return original(
+            executor,
+            retry_on_empty=retry_on_empty,
+            retry_count=retry_count,
+            max_retries=min(int(max_retries), 1),
+            _overflow_stage=_overflow_stage,
+        )
+
+    executor_class._call_llm_stream = limited
+    executor_class._lex_browser_eval_retry_limit = True
+
+
+def _allow_official_container_hostname(tool: Any) -> None:
+    """Allow only the hostname emitted by the official self-hosted images."""
+    original = tool._validate_url_safe
+
+    def validate(url: str) -> None:
+        if urlparse(url).hostname == "host.docker.internal":
+            return
+        original(url)
+
+    tool._validate_url_safe = validate
+
+
+def _configure_benchmark(hostname: str = "host.docker.internal") -> WebArenaVerified:
+    def site_url(site: WebArenaSite, host: str) -> str:
+        return f"http://{host}:{SITE_PORTS[site][0]}{SITE_URL_SUFFIX.get(site, '')}"
+
+    environments = {
+        site: EnvironmentConfig(
+            # The gateway IP is active. The official images may redirect to
+            # host.docker.internal, so retain that as an equivalent URL for the
+            # package's own derendering and NetworkEventEvaluator logic.
+            urls=list(
+                dict.fromkeys([site_url(site, hostname), site_url(site, "host.docker.internal")])
+            ),
+            credentials=SITE_CREDENTIALS[site],
+            use_header_login=site == WebArenaSite.SHOPPING_ADMIN,
+        )
+        for site in SITE_PORTS
+    }
+    return WebArenaVerified(config=WebArenaVerifiedConfig(environments=environments))
+
+
+def _wait_container_healthy(container: Any, *, timeout_seconds: float = 600) -> None:
+    """Wait past GitLab's delayed reconfigure/Puma restart before app probing."""
     deadline = time.monotonic() + timeout_seconds
-    last_error: Exception | None = None
+    last_status = "missing"
+    while time.monotonic() < deadline:
+        container.reload()
+        health = (container.attrs.get("State") or {}).get("Health") or {}
+        last_status = str(health.get("Status") or "missing")
+        if last_status == "healthy":
+            return
+        if last_status == "unhealthy":
+            logs = health.get("Log") or []
+            detail = str(logs[-1].get("Output") or "")[-500:] if logs else ""
+            raise RuntimeError(f"GitLab container became unhealthy: {detail}")
+        time.sleep(2)
+    raise RuntimeError(f"GitLab container health timed out in state {last_status!r}")
+
+
+def _site_container_manager(site: WebArenaSite) -> ContainerManager:
+    """Use QEMU only for PHP-FPM when amd64 site images run on an ARM host.
+
+    Rosetta starts the official images' Java services reliably, but PHP-FPM in
+    both Magento images segfaults under Rosetta. Mounting Colima's static QEMU
+    interpreter and a one-line supervisor override keeps every other process on
+    Rosetta while preserving the official image and site data.
+    """
+    config = get_container_config(site=site)
+    docker_arch = str(docker.from_env().info().get("Architecture") or "")
+    if site not in AMD64_PHP_SITES or docker_arch not in {"aarch64", "arm64"}:
+        return ContainerManager(site=site, hostname="host.docker.internal")
+    if not PHP_FPM_COMPAT_CONFIG.is_file():
+        raise RuntimeError(f"missing PHP-FPM compatibility config: {PHP_FPM_COMPAT_CONFIG}")
+    compat = ContainerConfig(
+        **config.model_dump(exclude={"setup"}),
+        setup=ContainerSetupConfig(
+            volumes=(
+                ContainerVolumeSpec(
+                    volume_name=QEMU_X86_64_HOST_PATH,
+                    mount_path=QEMU_X86_64_CONTAINER_PATH,
+                ),
+                ContainerVolumeSpec(
+                    volume_name=str(PHP_FPM_COMPAT_CONFIG.resolve()),
+                    mount_path="/etc/supervisor.d/php-fpm.ini:ro",
+                ),
+            )
+        ),
+    )
+    return ContainerManager(
+        site=site,
+        config=compat,
+        hostname="host.docker.internal",
+    )
+
+
+def _verify_arm_php_compatibility(container_name: str) -> None:
+    container = docker.from_env().containers.get(container_name)
+    processes = container.exec_run(["ps", "-o", "pid,args"])
+    process_table = processes.output.decode(errors="replace")
+    qemu = container.exec_run(["test", "-x", QEMU_X86_64_CONTAINER_PATH])
+    if processes.exit_code != 0 or "/mnt/lima-rosetta/rosetta" not in process_table:
+        raise RuntimeError("ARM Docker host must enable Rosetta for official amd64 site images")
+    if qemu.exit_code != 0:
+        raise RuntimeError("PHP-FPM QEMU compatibility interpreter was not mounted")
+    if f"{QEMU_X86_64_CONTAINER_PATH} /usr/local/sbin/php-fpm" not in process_table:
+        raise RuntimeError("PHP-FPM did not start through the mounted QEMU interpreter")
+
+
+def _site_runtime_compatibility(docker_arch: str) -> dict[str, Any]:
+    if docker_arch not in {"aarch64", "arm64"}:
+        return {"mode": "host-default"}
+    return {
+        "mode": "rosetta-with-qemu-php-fpm",
+        "sites": sorted(site.value for site in AMD64_PHP_SITES),
+        "qemu_host_path": QEMU_X86_64_HOST_PATH,
+        "supervisor_config_sha256": hashlib.sha256(PHP_FPM_COMPAT_CONFIG.read_bytes()).hexdigest(),
+    }
+
+
+def _ensure_site(site: WebArenaSite, *, reset: bool) -> None:
+    port, ctrl_port = SITE_PORTS[site]
+    manager = _site_container_manager(site)
+    if reset or not manager.is_running():
+        manager.start(port=port, env_ctrl_port=ctrl_port, wait=False)
+    ready = EnvCtrlDockerClient.create(
+        manager.container_name,
+        timeout=ENV_CTRL_READY_TIMEOUT_SECONDS,
+    ).wait_until_ready(
+        timeout=ENV_CTRL_READY_TIMEOUT_SECONDS,
+        interval=2,
+    )
+    if not ready.success:
+        raise RuntimeError(f"{site.value} did not become ready: {ready.message}")
+    container = docker.from_env().containers.get(manager.container_name)
+    if site == WebArenaSite.GITLAB:
+        _wait_container_healthy(container)
+    if site in {WebArenaSite.SHOPPING, WebArenaSite.SHOPPING_ADMIN}:
+        _wait_magento_dependencies_ready(container)
+    _wait_application_ready(site, manager.config.health_check_path)
+    if QEMU_X86_64_HOST_PATH in manager.config.volumes:
+        _verify_arm_php_compatibility(manager.container_name)
+
+
+def _wait_magento_dependencies_ready(
+    container: Any, *, timeout_seconds: float = MAGENTO_DEPENDENCY_READY_TIMEOUT_SECONDS
+) -> None:
+    """Wait for Magento's search dependency after fixture restoration.
+
+    The official env-ctrl ready signal can precede Elasticsearch accepting
+    requests. Magento write paths then fail after committing their primary
+    record because the synchronous search-index update cannot connect. Waiting
+    for a non-red cluster removes that infrastructure race from measured tasks.
+    """
+    deadline = time.monotonic() + timeout_seconds
+    last_detail = "no response"
+    while time.monotonic() < deadline:
+        result = container.exec_run(
+            [
+                "curl",
+                "-fsS",
+                "http://127.0.0.1:9200/_cluster/health?wait_for_status=yellow&timeout=5s",
+            ]
+        )
+        output = result.output.decode("utf-8", errors="replace")
+        last_detail = output[-500:] or f"exit {result.exit_code}"
+        if result.exit_code == 0:
+            try:
+                status = str(json.loads(output).get("status") or "")
+            except json.JSONDecodeError:
+                status = ""
+            if status in {"yellow", "green"}:
+                return
+        time.sleep(2)
+    raise RuntimeError(f"Magento Elasticsearch was not ready: {last_detail}")
+
+
+def _wait_application_ready(
+    site: WebArenaSite,
+    health_path: str,
+    *,
+    timeout_seconds: float = 300,
+    stable_responses: int = 3,
+) -> None:
+    """Require a stable app endpoint after env-ctrl reports ready.
+
+    GitLab's control process can report ready during the Puma handover performed
+    by container initialization. A single successful request can therefore be
+    followed by a run of 502 responses. Consecutive app-level responses prevent
+    that startup race from consuming an Agent attempt.
+    """
+    port = SITE_PORTS[site][0]
+    url = f"http://127.0.0.1:{port}{health_path}"
+    deadline = time.monotonic() + timeout_seconds
+    consecutive = 0
+    last_detail = "no response"
     while time.monotonic() < deadline:
         try:
-            with urllib.request.urlopen(f"{url}/json/version", timeout=2) as response:
-                if response.status == 200:
-                    payload = json.load(response)
-                    advertised = str(payload.get("webSocketDebuggerUrl") or "")
-                    if advertised:
-                        return _external_websocket_url(url, advertised)
-                    raise RuntimeError("CDP version response omitted webSocketDebuggerUrl")
-        except Exception as exc:
-            last_error = exc
-        time.sleep(0.25)
-    logs = ""
-    if container is not None:
-        try:
-            container.reload()
-            logs = container.logs(tail=30).decode("utf-8", errors="replace")
-        except Exception:
-            pass
-    detail = f"; container logs:\n{logs}" if logs else ""
-    raise RuntimeError(f"CDP endpoint did not become ready: {last_error}{detail}")
+            # The official shopping images redirect to their configured
+            # host.docker.internal origin. That name is intentionally scoped to
+            # browser containers and may not resolve on the macOS host. A stable
+            # pre-redirect response proves the app port is serving; _login_context
+            # then validates the rendered authenticated page from inside the
+            # actual browser before tracing or model calls begin.
+            response = requests.get(url, timeout=15, allow_redirects=False)
+            last_detail = f"HTTP {response.status_code}"
+            consecutive = consecutive + 1 if response.status_code < 500 else 0
+            if consecutive >= stable_responses:
+                return
+        except requests.RequestException as exc:
+            consecutive = 0
+            last_detail = str(exc)
+        time.sleep(2)
+    raise RuntimeError(f"{site.value} application was not stably ready: {last_detail}")
 
 
-def _http_origin(url: str) -> str | None:
-    parts = urllib.parse.urlsplit(url)
-    if parts.scheme not in {"http", "https"} or not parts.netloc:
-        return None
-    return f"{parts.scheme}://{parts.netloc}"
+def _prepare_sites(sites: tuple[WebArenaSite, ...]) -> None:
+    """Keep only task-required sites running, then reset those sites from official images."""
+    for site in SITE_PORTS:
+        manager = _site_container_manager(site)
+        if site not in sites and manager.is_running():
+            manager.stop()
+    for site in sites:
+        _ensure_site(site, reset=True)
 
 
-def _reset_state(page: Page, visited_origins: set[str]) -> None:
-    context = page.context
-    origins = set(visited_origins)
-    current_origin = _http_origin(page.url)
-    if current_origin:
-        origins.add(current_origin)
-    try:
-        page.evaluate(
-            """async () => {
-              try { localStorage.clear(); } catch (_) {}
-              try { sessionStorage.clear(); } catch (_) {}
-              try { for (const key of await caches.keys()) await caches.delete(key); } catch (_) {}
-              try {
-                for (const item of await navigator.serviceWorker.getRegistrations())
-                  await item.unregister();
-              } catch (_) {}
-              try {
-                for (const item of await indexedDB.databases())
-                  indexedDB.deleteDatabase(item.name);
-              } catch (_) {}
-            }"""
-        )
-    except Exception:
-        pass
-    context.clear_cookies()
-    context.clear_permissions()
-    try:
-        cdp = context.new_cdp_session(page)
-        cdp.send("Network.enable")
-        cdp.send("Network.clearBrowserCache")
-        cdp.send("Network.clearBrowserCookies")
-        for origin in sorted(origins):
-            try:
-                cdp.send(
-                    "Storage.clearDataForOrigin",
-                    {"origin": origin, "storageTypes": "all"},
+def _login_context(
+    service: Any,
+    sites: tuple[WebArenaSite, ...],
+    benchmark: WebArenaVerified,
+    start_urls: list[str],
+) -> int:
+    def login() -> None:
+        context = service._context
+        assert context is not None
+        primary_page = service._page
+        assert primary_page is not None
+        for existing_page in context.pages:
+            if existing_page != primary_page:
+                existing_page.close()
+        context.clear_cookies()
+        context.set_extra_http_headers(
+            {
+                SITE_AUTH_HEADERS[site]: (
+                    f"{SITE_CREDENTIALS[site]['username']}:{SITE_CREDENTIALS[site]['password']}"
                 )
-            except Exception:
-                pass
-        page.goto("about:blank", wait_until="load", timeout=10_000)
-        try:
-            cdp.send("Page.resetNavigationHistory")
+                for site in sites
+                if site in SITE_AUTH_HEADERS
+            }
+        )
+        for site in sites:
+            base = benchmark.config.get_environment(site).active_url
+            creds = SITE_CREDENTIALS[site]
+            page = context.new_page()
             try:
-                cdp.send("HeapProfiler.enable")
-                cdp.send("HeapProfiler.collectGarbage")
-                cdp.send("HeapProfiler.disable")
-            except Exception:
-                pass
-        finally:
-            cdp.detach()
+                page.set_default_timeout(60_000)
+                page.set_default_navigation_timeout(90_000)
+                if site == WebArenaSite.SHOPPING:
+                    page.goto(f"{base}/customer/account", wait_until="commit")
+                    page.evaluate("localStorage.clear(); sessionStorage.clear()")
+                    page.reload(wait_until="domcontentloaded")
+                    page.locator(".block-dashboard-info, .box-information").first.wait_for()
+                elif site == WebArenaSite.SHOPPING_ADMIN:
+                    page.goto(base, wait_until="commit")
+                    page.evaluate("localStorage.clear(); sessionStorage.clear()")
+                    page.reload(wait_until="domcontentloaded")
+                    page.locator(".page-title").wait_for()
+                elif site == WebArenaSite.REDDIT:
+                    page.goto(base, wait_until="commit")
+                    page.evaluate("localStorage.clear(); sessionStorage.clear()")
+                    page.reload(wait_until="domcontentloaded")
+                    page.get_by_role("button", name=creds["username"], exact=True).wait_for()
+                elif site == WebArenaSite.GITLAB:
+                    page.goto(f"{base}/users/sign_in", wait_until="commit")
+                    page.evaluate("localStorage.clear(); sessionStorage.clear()")
+                    page.reload(wait_until="domcontentloaded")
+                    page.get_by_test_id("username-field").fill(creds["username"])
+                    page.get_by_test_id("password-field").fill(creds["password"])
+                    page.get_by_test_id("sign-in-button").click()
+                    page.wait_for_url("**/", timeout=90_000)
+                page.wait_for_timeout(1_000)
+            finally:
+                page.close()
+        primary_page.set_default_timeout(60_000)
+        primary_page.set_default_navigation_timeout(90_000)
+        primary_page.goto(start_urls[0], wait_until="domcontentloaded")
+        primary_page.wait_for_timeout(500)
+
+    readiness_retries = 0
+    try:
+        service._submit(login)
+    except Exception as exc:
+        # Moli can expose its CDP endpoint just before the default browser
+        # context is ready. This is a session precondition failure: no Agent
+        # step has started and no score-bearing attempt exists yet. Recover it
+        # once, record the recovery on the eventual attempt, and keep every
+        # other setup failure fatal.
+        if "BrowserContextNotLoaded" not in str(exc):
+            raise
+        readiness_retries = 1
+        time.sleep(1)
+        service._submit(login)
+    return readiness_retries
+
+
+def _system_prompt() -> str:
+    return """You are the autonomous web agent under evaluation. Use only the browser tool.
+Complete the objective from the supplied start URLs. Do not ask for help, download files, or
+change state unless the objective requires it. When finished, return only one JSON object with
+task_type (RETRIEVE, MUTATE, or NAVIGATE), status (SUCCESS, NOT_FOUND_ERROR,
+ACTION_NOT_ALLOWED_ERROR, PERMISSION_DENIED_ERROR, DATA_VALIDATION_ERROR, or UNKNOWN_ERROR),
+retrieved_data, and error_details. Treat search and list pages as candidate sets, not proof that
+every result satisfies the objective: verify every included item against all stated constraints
+using its title, category, breadcrumb, detail page, or other visible site evidence before sorting,
+aggregating, or mutating. Before returning, check semantic eligibility, completeness, arithmetic,
+and any required saved or submitted state. A successful RETRIEVE returns a list. If an exhaustive
+RETRIEVE finds no matching item, return NOT_FOUND_ERROR with retrieved_data null. For MUTATE and
+NAVIGATE, retrieved_data is null."""
+
+
+def _exhausted_agent_steps(events: list[dict[str, Any]], max_steps: int) -> bool:
+    """Return whether CowAgent used its final decision turn for another tool call.
+
+    CowAgent's max-step fallback asks the model for a prose summary without tools. That
+    fallback is not a benchmark completion and may claim success even though the last
+    browser action has not been observed or verified.
+    """
+
+    turns = [event for event in events if event.get("type") == "turn_end"]
+    if not turns:
+        return False
+    data = turns[-1].get("data") or {}
+    return len(turns) >= max_steps and bool(data.get("has_tool_calls"))
+
+
+def _max_steps_response(task_type: str, max_steps: int) -> dict[str, Any]:
+    return {
+        "task_type": task_type.upper(),
+        "status": "UNKNOWN_ERROR",
+        "retrieved_data": None,
+        "error_details": (
+            f"Agent reached the {max_steps}-step decision limit before producing "
+            "a tool-free, post-action completion."
+        ),
+    }
+
+
+def _user_prompt(task: Any, start_urls: list[str]) -> str:
+    response_eval = next(item for item in task.eval if item.evaluator == "AgentResponseEvaluator")
+    return (
+        "Task objective:\n"
+        + task.intent
+        + "\n\nStart URLs:\n"
+        + "\n".join(f"- {url}" for url in start_urls)
+        + "\n\nOfficial response contract (schema only; this does not reveal the answer):\n"
+        + f"- task_type: {str(response_eval.expected.task_type).upper()}\n"
+        + "- retrieved_data JSON Schema: "
+        + json.dumps(
+            response_eval.model_dump(mode="json")["results_schema"],
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+    )
+
+
+def _parse_agent_response(text: str) -> dict[str, Any] | str:
+    try:
+        repaired = repair_json(text, return_objects=True)
     except Exception:
-        page.goto("about:blank", wait_until="load", timeout=10_000)
+        return text
+    return repaired if isinstance(repaired, dict) else text
 
 
-def _resource_result(
-    source: DockerStatsResources,
+def _resource_summary(
+    resources: DockerStatsResources,
     sampler: ResourceSampler,
     before: Any,
     after: Any,
     duration_ms: float,
-) -> dict[str, int | float]:
+) -> dict[str, Any]:
     result = {**delta_counters(before, after), **sampler.summary()}
     if duration_ms > 0:
         result["cpu_average_utilization_pct"] = result["cpu_ms"] / duration_ms * 100
-        result["network_rx_bytes_per_second"] = result["network_rx_bytes"] / duration_ms * 1000
-        result["network_tx_bytes_per_second"] = result["network_tx_bytes"] / duration_ms * 1000
     return result
 
 
-def _published_endpoint(container: Any, *, engine: str, cdp_port: int) -> str:
-    ports = (container.attrs.get("NetworkSettings") or {}).get("Ports") or {}
-    bindings = ports.get(f"{cdp_port}/tcp")
-    if not bindings or not bindings[0].get("HostPort"):
-        raise RuntimeError(f"{engine}: Docker did not publish CDP port")
-    return f"http://127.0.0.1:{bindings[0]['HostPort']}"
-
-
-def _prepare_page(page: Page, visited_origins: set[str], *, settle_ms: int) -> Page:
-    """Reset task state and replace only the renderer page, keeping the browser/context warm."""
-    context = page.context
-    _reset_state(page, visited_origins)
-    visited_origins.clear()
-    page.close(run_before_unload=False)
-    replacement = context.new_page()
-    replacement.set_viewport_size({"width": 1280, "height": 900})
-    viewport = replacement.evaluate("() => ({width: innerWidth, height: innerHeight})")
-    if viewport != {"width": 1280, "height": 900}:
-        raise RuntimeError(f"browser viewport mismatch: {viewport}")
-    replacement.wait_for_timeout(max(0, settle_ms))
-    return replacement
-
-
-def _run_task(
-    engine: str,
-    page: Page,
-    visited_origins: set[str],
-    resources: DockerStatsResources,
-    task: BrowserTask,
-    attempt: int,
-    sample_interval_ms: int,
+def _run_attempt(  # noqa: PLR0913
     *,
-    is_retry: bool = False,
+    lock_path: Path,
+    lock_namespace: str = PHYSICAL_EXECUTION_LOCK_NAMESPACE,
+    **kwargs: Any,
 ) -> dict[str, Any]:
-    def record_origin(frame: Any) -> None:
-        if frame != page.main_frame:
-            return
-        origin = _http_origin(str(frame.url))
-        if origin:
-            visited_origins.add(origin)
+    with _physical_execution_lock(lock_path) as lock_wait_ms:
+        return _run_attempt_locked(
+            **kwargs,
+            lock_wait_ms=lock_wait_ms,
+            lock_namespace=lock_namespace,
+        )
 
-    page.on("framenavigated", record_origin)
+
+def _run_attempt_locked(  # noqa: PLR0913
+    *,
+    benchmark: WebArenaVerified,
+    selected: PilotTask,
+    engine: str,
+    attempt: int,
+    endpoint: str,
+    container: Any,
+    cowagent_repo: Path,
+    output_dir: Path,
+    model: OpenAIResponsesModel,
+    sample_interval_ms: int,
+    max_agent_steps: int,
+    lock_wait_ms: float,
+    lock_namespace: str,
+) -> dict[str, Any]:
+    task = benchmark.get_task(selected.task_id)
+    sites = tuple(task.sites)
+    start_urls = list(benchmark.config.render_url(list(task.start_urls), list(task.sites)))
+
+    attempt_dir = output_dir / engine / str(selected.task_id) / f"attempt-{attempt}"
+    attempt_dir.mkdir(parents=True, exist_ok=True)
+    prepare_path = attempt_dir / "environment_prepare.json"
+    prepare_started = time.perf_counter()
+    prepare_receipt = _environment_prepare_receipt(
+        sites, lock_wait_ms=lock_wait_ms, lock_namespace=lock_namespace
+    )
+    try:
+        _prepare_sites(sites)
+        prepare_receipt["status"] = "ready"
+    except Exception as exc:
+        prepare_receipt["status"] = "failed"
+        prepare_receipt["error"] = str(exc)
+        raise
+    finally:
+        prepare_receipt["duration_ms"] = round((time.perf_counter() - prepare_started) * 1000, 3)
+        prepare_path.write_text(
+            json.dumps(prepare_receipt, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+
+    if str(cowagent_repo) not in sys.path:
+        sys.path.insert(0, str(cowagent_repo))
+    from agent.protocol.agent import Agent  # noqa: PLC0415
+    from agent.protocol.agent_stream import AgentStreamExecutor  # noqa: PLC0415
+    from agent.tools.browser.browser_tool import BrowserTool  # noqa: PLC0415
+
+    _limit_cowagent_transport_retries(AgentStreamExecutor)
+
+    trace_path = attempt_dir / "agent_trace.zip"
+    har_path = attempt_dir / "network.har"
+    response_path = attempt_dir / "agent_response.json"
+    eval_path = attempt_dir / "eval_result.json"
+    events_path = attempt_dir / "agent_events.json"
+    tool = BrowserTool(
+        config={
+            "cdp_endpoint": endpoint,
+            "headless": True,
+            "viewport": {"width": 1280, "height": 900},
+            "startup_timeout": 90,
+        }
+    )
+    _allow_official_container_hostname(tool)
+    events: list[dict[str, Any]] = []
+    resources = DockerStatsResources(container)
     before = resources.counters()
     sampler = ResourceSampler(resources, interval_ms=sample_interval_ms)
-    sampler.start()
-    started = time.perf_counter()
-    outputs: dict[str, str] = {}
-    trace: list[dict[str, Any]] = []
-    validation: list[dict[str, Any]] = []
+    raw_response = ""
     error = ""
+    prepared = False
+    recorder = CdpHarRecorder()
+    sampler_started = False
+    browser_session_setup_ms = 0.0
+    browser_session_readiness_retries = 0
+    agent_run_ms = 0.0
+    evidence_finalize_ms = 0.0
+    evaluation_ms = 0.0
+    started = time.perf_counter()
     try:
-        execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
-        validation = judge_outputs(outputs, task.assertions)
-        failures = validate_outputs(outputs, task.assertions)
-        status = "pass" if not failures else "fail"
-        error = "; ".join(failures)
-        trace.append(
-            {
-                "index": len(task.tool_calls) + 1,
-                "action": "validate_assertions",
-                "arguments": {"assertions": list(task.assertions)},
-                "status": status,
-                "duration_ms": 0.0,
-                "output": "all assertions passed" if not failures else error,
-                "checks": validation,
-            }
+        session_setup_started = time.perf_counter()
+        model.reset()
+        service = tool._get_service()
+        service._submit(lambda: None)
+        browser_session_readiness_retries = _login_context(service, sites, benchmark, start_urls)
+        service._submit(
+            lambda: (
+                recorder.start(service._context),
+                service._context.tracing.start(screenshots=True, snapshots=True),
+            )
         )
+        prepared = True
+        browser_session_setup_ms = (time.perf_counter() - session_setup_started) * 1000
+        sampler.start()
+        sampler_started = True
+        agent = Agent(
+            system_prompt="",
+            description="WebArena-Verified CowAgent",
+            model=model,
+            tools=[tool],
+            output_mode="logger",
+            max_steps=max_agent_steps,
+            enable_skills=False,
+            skip_context_files=True,
+        )
+        # CowAgent rebuilds its base prompt at run time; the suffix is the supported
+        # way to retain benchmark-specific completion and output constraints.
+        agent.extra_system_suffix = _system_prompt()
+        agent_started = time.perf_counter()
+        raw_response = agent.run_stream(
+            _user_prompt(task, start_urls), on_event=events.append, clear_history=True
+        )
+        if _exhausted_agent_steps(events, max_agent_steps):
+            response_eval = next(
+                item for item in task.eval if item.evaluator == "AgentResponseEvaluator"
+            )
+            raw_response = json.dumps(
+                _max_steps_response(str(response_eval.expected.task_type), max_agent_steps)
+            )
+        agent_run_ms = (time.perf_counter() - agent_started) * 1000
+        finalize_started = time.perf_counter()
+        service._submit(
+            lambda: (
+                service._page.wait_for_timeout(500),
+                recorder.stop(service._context, har_path),
+                service._context.tracing.stop(path=str(trace_path)),
+            )
+        )
+        evidence_finalize_ms = (time.perf_counter() - finalize_started) * 1000
     except Exception:
-        status = "fail"
         error = traceback.format_exc()
-        validation = judge_outputs(outputs, task.assertions)
+        try:
+            service = tool._get_service()
+            service._submit(
+                lambda: (
+                    recorder.stop(service._context, har_path),
+                    service._context.tracing.stop(path=str(trace_path)),
+                )
+            )
+        except Exception:
+            pass
     finally:
+        cleanup_errors: list[str] = []
+        if sampler_started:
+            try:
+                sampler.stop()
+            except Exception as exc:
+                cleanup_errors.append(f"resource sampler stop failed: {exc}")
         duration_ms = (time.perf_counter() - started) * 1000
-        sampler.stop()
-        page.remove_listener("framenavigated", record_origin)
-    after = resources.counters()
-    expected_actions = list(task.ground_truth.get("expected_actions") or [])
-    tool_trace = [item for item in trace if item.get("action") != "validate_assertions"]
-    actual_actions = [str(item.get("action") or "") for item in tool_trace]
-    process_passed = actual_actions == expected_actions and all(
-        item.get("status") == "pass" for item in tool_trace
-    )
-    result_passed = bool(validation) and all(item.get("passed") is True for item in validation)
-    return {
-        "engine": engine,
-        "task_id": task.task_id,
-        "title": task.title,
-        "complexity": task.complexity,
-        "tags": list(task.tags),
-        "step_count": task.step_count,
-        "attempt": attempt,
-        "is_retry": is_retry,
-        "status": status,
-        "result_status": "pass" if result_passed else "fail",
-        "process_status": "pass" if process_passed else "fail",
-        "combined_status": "pass" if result_passed and process_passed else "fail",
-        "duration_ms": round(duration_ms, 3),
-        "tool_output_tokens": sum(len(ENCODING.encode(value)) for value in outputs.values()),
-        "output_chars": sum(len(value) for value in outputs.values()),
-        "error": error,
-        "trace": trace,
-        "validation": validation,
-        "process_validation": {
-            "expected_actions": expected_actions,
-            "actual_actions": actual_actions,
-            "all_calls_passed": all(item.get("status") == "pass" for item in tool_trace),
-            "passed": process_passed,
-        },
-        "resource": _resource_result(resources, sampler, before, after, duration_ms),
-    }
-
-
-def _start_browser_container(
-    client: Any,
-    *,
-    engine: str,
-    run_id: str,
-    cpus: float,
-    memory: str,
-    network: str,
-) -> Any:
-    name = f"lex-browser-use-eval-{run_id}-{engine}"
-    cdp_port = ENGINE_PORTS[engine]
-    return client.containers.run(
-        ENGINE_IMAGES[engine],
-        name=name,
-        detach=True,
-        ports={f"{cdp_port}/tcp": ("127.0.0.1", None)},
-        labels={"lex.browser-use-eval.run": run_id, "lex.browser-use-eval.engine": engine},
-        **ContainerLimits(cpus=cpus, memory=memory).docker_kwargs(),
-        network=network,
-        extra_hosts={"host.docker.internal": "host-gateway"},
-    )
-
-
-class _QuietFixtureHandler(SimpleHTTPRequestHandler):
-    def log_message(self, format: str, *args: Any) -> None:
-        return
-
-
-def _start_fixture_server(root: Path) -> tuple[ThreadingHTTPServer, threading.Thread, str]:
-    handler = partial(_QuietFixtureHandler, directory=str(root))
-    server = ThreadingHTTPServer(("0.0.0.0", 0), handler)
-    thread = threading.Thread(
-        target=server.serve_forever,
-        name="browser-eval-fixtures",
-        daemon=True,
-    )
-    thread.start()
-    origin = f"http://host.docker.internal:{server.server_port}"
-    return server, thread, origin
-
-
-def _materialize_task(task: BrowserTask, fixture_origin: str) -> BrowserTask:
-    calls = []
-    for call in task.tool_calls:
-        item = dict(call)
-        for key, value in tuple(item.items()):
-            if isinstance(value, str):
-                item[key] = value.replace("{fixture_origin}", fixture_origin)
-        calls.append(item)
-    return BrowserTask(
-        task_id=task.task_id,
-        title=task.title,
-        tool_calls=tuple(calls),
-        assertions=task.assertions,
-        tags=task.tags,
-        difficulty=task.difficulty,
-        ground_truth=task.ground_truth,
-        source=task.source,
-    )
-
-
-def _environment(client: Any, containers: dict[str, Any]) -> dict[str, Any]:
-    info = client.info()
-    version_commands = {"chromium": ["chromium", "--version"], "moli": ["moli", "--version"]}
-    browser_versions: dict[str, str] = {}
-    for engine, container in containers.items():
         try:
-            result = container.exec_run(version_commands[engine])
-            output = result.output.decode("utf-8", errors="replace").strip()
-            browser_versions[engine] = output or f"exit {result.exit_code}, no output"
+            after = resources.counters()
         except Exception as exc:
-            browser_versions[engine] = f"unavailable: {type(exc).__name__}"
+            after = None
+            cleanup_errors.append(f"final resource counters failed: {exc}")
+        try:
+            tool.close()
+        except Exception as exc:
+            cleanup_errors.append(f"browser tool close failed: {exc}")
+
+    if not prepared:
+        raise RuntimeError(
+            f"{engine} task {selected.task_id}: environment precondition failed\n{error}"
+        )
+
+    parsed_response = _parse_agent_response(raw_response)
+    response_path.write_text(
+        json.dumps(parsed_response, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    events_path.write_text(json.dumps(events, ensure_ascii=False, indent=2), encoding="utf-8")
+    if har_path.exists():
+        evaluation_started = time.perf_counter()
+        evaluation = benchmark.evaluate_task(
+            task_id=selected.task_id,
+            agent_response=parsed_response,
+            network_trace=har_path,
+        )
+        eval_data = evaluation.model_dump(mode="json")
+        evaluation_ms = (time.perf_counter() - evaluation_started) * 1000
+    else:
+        eval_data = {"status": "error", "score": 0.0, "error_msg": error or "HAR missing"}
+    eval_path.write_text(json.dumps(eval_data, ensure_ascii=False, indent=2), encoding="utf-8")
+    resource = (
+        _resource_summary(resources, sampler, before, after, duration_ms)
+        if sampler.samples and after is not None
+        else {}
+    )
     return {
-        "runner_platform": platform.platform(),
-        "docker_server_version": client.version().get("Version"),
-        "docker_os": info.get("OperatingSystem"),
-        "docker_architecture": info.get("Architecture"),
-        "docker_cpus": info.get("NCPU"),
-        "docker_memory_bytes": info.get("MemTotal"),
-        "cgroup_version": info.get("CgroupVersion"),
-        "browser_versions": browser_versions,
-        "images": {
-            engine: {
-                "id": container.image.id,
-                "tags": container.image.tags,
-            }
-            for engine, container in containers.items()
+        "schema": SCHEMA,
+        "model": model.model,
+        "engine": engine,
+        "task_id": selected.task_id,
+        "tier": selected.tier,
+        "estimated_min_steps": selected.estimated_min_steps,
+        "attempt": attempt,
+        "is_retry": attempt > 1,
+        "status": eval_data.get("status", "error"),
+        "score": float(eval_data.get("score") or 0.0),
+        "duration_ms": round(duration_ms, 3),
+        "timings": {
+            "environment_prepare_ms": prepare_receipt["duration_ms"],
+            "browser_session_setup_ms": round(browser_session_setup_ms, 3),
+            "agent_run_ms": round(agent_run_ms, 3),
+            "evidence_finalize_ms": round(evidence_finalize_ms, 3),
+            "evaluation_ms": round(evaluation_ms, 3),
+            "measured_run_wall_ms": round(duration_ms, 3),
+        },
+        "browser_session_readiness_retries": browser_session_readiness_retries,
+        "agent_response": parsed_response,
+        "error": error,
+        "cleanup_errors": cleanup_errors,
+        "har_capture_errors": recorder.errors,
+        "resource": resource,
+        "model_usage": {
+            **model.usage,
+            "request_count": model.request_count,
+            "request_attempt_count": model.request_attempt_count,
+        },
+        "model_transport_errors": model.transport_errors,
+        "paths": {
+            "network_har": str(har_path),
+            "agent_trace": str(trace_path),
+            "response": str(response_path),
+            "evaluation": str(eval_path),
+            "events": str(events_path),
+            "environment_prepare": str(prepare_path),
         },
     }
 
 
-def _cleanup_runtime(
-    browsers: dict[str, Browser],
-    playwright: Any,
-    containers: dict[str, Any],
-    networks: dict[str, Any],
-) -> None:
-    for browser in browsers.values():
-        try:
-            browser.close()
-        except Exception:
-            pass
-    try:
-        playwright.stop()
-    except Exception:
-        pass
-    for container in containers.values():
-        try:
-            container.remove(force=True)
-        except Exception:
-            pass
-    for network in networks.values():
-        try:
-            network.remove()
-        except Exception:
-            pass
+def _load_completed_attempts(
+    path: Path, expected_model: str | None = None
+) -> dict[tuple[str, str, int, int], dict[str, Any]]:
+    """Load durable attempt rows so an interrupted multi-hour pilot can resume safely."""
+    if not path.exists():
+        return {}
+    completed: dict[tuple[str, str, int, int], dict[str, Any]] = {}
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        model = str(row.get("model") or expected_model or "")
+        if not model:
+            raise ValueError(f"attempt does not identify its model at {path}:{line_number}")
+        if expected_model and model != expected_model:
+            raise ValueError(
+                f"attempt model differs from the evidence cohort at {path}:{line_number}"
+            )
+        row["model"] = model
+        key = (model, str(row["engine"]), int(row["task_id"]), int(row["attempt"]))
+        if key in completed:
+            raise ValueError(f"duplicate attempt at {path}:{line_number}: {key}")
+        completed[key] = row
+    return completed
 
 
-def _write_run_artifacts(
-    output: Path, rows: list[dict[str, Any]], summary: dict[str, Any], manifest: dict[str, Any]
-) -> None:
-    attempts_bytes = "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows).encode(
-        "utf-8"
+def _write_or_validate_run_config(path: Path, planned: dict[str, Any]) -> None:
+    if path.exists():
+        existing = json.loads(path.read_text(encoding="utf-8"))
+        if existing != planned:
+            raise ValueError("resume configuration differs from the existing evidence cohort")
+        return
+    path.write_text(json.dumps(planned, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _scheduled_tasks(tasks: tuple[PilotTask, ...], max_tasks: int | None) -> tuple[PilotTask, ...]:
+    """Limit only this invocation; a later invocation resumes the same pre-registered cohort."""
+    if max_tasks is None:
+        return tasks
+    if max_tasks < 1 or max_tasks > len(tasks):
+        raise ValueError(f"--max-tasks must be between 1 and {len(tasks)}")
+    return tasks[:max_tasks]
+
+
+def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
+    repo_root = Path(args.repo_root).resolve()
+    repo_env = _load_repo_env(repo_root)
+    env_file = Path(args.env_file).expanduser().resolve() if args.env_file else None
+    env = (
+        {key: value for key, value in dotenv_values(env_file).items() if value is not None}
+        if env_file
+        else repo_env
     )
-    summary_bytes = (json.dumps(summary, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
-    (output / "attempts.jsonl").write_bytes(attempts_bytes)
-    (output / "summary.json").write_bytes(summary_bytes)
-    manifest["artifact_provenance"] = {
-        "artifact_directory": str(output),
-        "attempts_sha256": hashlib.sha256(attempts_bytes).hexdigest(),
-        "summary_sha256": hashlib.sha256(summary_bytes).hexdigest(),
-    }
-    (output / "manifest.json").write_text(
-        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
+    api_key = env.get("OPENAI_API_KEY")
+    if not api_key:
+        source = env_file or repo_root / ".env"
+        raise RuntimeError(f"OPENAI_API_KEY is required in {source}")
+    cowagent_repo = Path(args.cowagent_repo or repo_env.get("COWAGENT_REPO", "")).resolve()
+    if not (cowagent_repo / "agent/protocol/agent.py").exists():
+        raise RuntimeError("--cowagent-repo must point to a CowAgent checkout")
+    harness_commit = _require_clean_git_checkout(repo_root)
+    cowagent_commit = _require_clean_git_checkout(cowagent_repo)
 
-
-def run_evaluation(
-    *,
-    suite_path: str | Path,
-    output_dir: str | Path,
-    reports_dir: str | Path,
-    ground_truth_evidence_path: str | Path | None = None,
-    max_retries: int = 1,
-    sample_interval_ms: int = 50,
-    settle_ms: int = 1500,
-    cpus: float = 2.0,
-    memory: str = "2g",
-    llm_diagnostics: bool = False,
-    diagnosis_model: str = "gpt-5.6-sol",
-    diagnosis_reasoning_effort: str = "low",
-) -> dict[str, Any]:
-    if max_retries < 0:
-        raise ValueError("max_retries must be non-negative")
-    suite = load_suite(suite_path)
-    ground_truth_evidence = (
-        validate_ground_truth_evidence(suite_path, suite, ground_truth_evidence_path)
-        if ground_truth_evidence_path is not None
-        else None
+    output_dir = Path(args.output).expanduser().resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    selection = load_pilot(args.selection)
+    benchmark = _configure_benchmark()
+    resolved = validate_against_official(selection, benchmark)
+    model = OpenAIResponsesModel(
+        api_key=api_key,
+        base_url=env.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+        model=args.model,
+        reasoning_effort="low",
     )
-    output = Path(output_dir)
-    output.mkdir(parents=True, exist_ok=True)
-    run_id = uuid.uuid4().hex[:12]
+    model.verify_access()
+
     client = docker.from_env()
     require_linux_cgroup_v2(client)
+    docker_info = client.info()
+    physical_execution_lock_namespace = _docker_daemon_lock_namespace(docker_info)
+    physical_execution_lock_path = _physical_execution_lock_path(
+        physical_execution_lock_namespace
+    )
+    run_id = uuid.uuid4().hex[:12]
     containers: dict[str, Any] = {}
     networks: dict[str, Any] = {}
-    browsers: dict[str, Browser] = {}
-    pages: dict[str, Page] = {}
-    visited_origins: dict[str, set[str]] = {}
-    resources: dict[str, DockerStatsResources] = {}
-    rows: list[dict[str, Any]] = []
-    playwright = sync_playwright().start()
-    uses_local_fixtures = any(
-        "{fixture_origin}" in str(value)
-        for task in suite.tasks
-        for call in task.tool_calls
-        for value in call.values()
-    )
-    fixture_runtime: tuple[ThreadingHTTPServer, threading.Thread, str] | None = None
-    if uses_local_fixtures:
-        fixture_runtime = _start_fixture_server(Path(suite_path).resolve().parent / "fixtures")
-    fixture_origin = fixture_runtime[2] if fixture_runtime else ""
+    endpoints: dict[str, str] = {}
+    attempts_file = output_dir / "attempts.jsonl"
+    run_config_file = output_dir / "run-config.json"
+    completed = _load_completed_attempts(attempts_file, args.model)
+    image_metadata: dict[str, dict[str, Any]] = {}
+    site_image_metadata = {
+        site.value: {
+            "reference": ContainerManager(
+                site=site, hostname="host.docker.internal"
+            ).config.docker_img,
+            **_docker_image_metadata(
+                client.images.get(
+                    ContainerManager(site=site, hostname="host.docker.internal").config.docker_img
+                )
+            ),
+        }
+        for site in SITE_PORTS
+    }
+    browser_metadata: dict[str, dict[str, str]] = {}
+    site_access_host = ""
+    docker_architecture = str(docker_info.get("Architecture") or "")
+    site_runtime_compatibility = _site_runtime_compatibility(docker_architecture)
     try:
         for engine in ENGINE_IMAGES:
-            network = client.networks.create(
-                f"lex-browser-use-eval-{run_id}-{engine}",
-                driver="bridge",
-                labels={
-                    "lex.browser-use-eval.run": run_id,
-                    "lex.browser-use-eval.engine": engine,
-                },
-            )
+            network = client.networks.create(f"lex-browser-use-{run_id}-{engine}")
             networks[engine] = network
             container = _start_browser_container(
                 client,
                 engine=engine,
-                run_id=run_id,
-                cpus=cpus,
-                memory=memory,
+                run_id=f"agent-{run_id}",
+                cpus=args.cpus,
+                memory=args.memory,
                 network=network.name,
             )
             containers[engine] = container
             container.reload()
-            cdp_port = ENGINE_PORTS[engine]
-            endpoint = _published_endpoint(container, engine=engine, cdp_port=cdp_port)
-            websocket_url = _wait_cdp(endpoint, container=container)
-            browsers[engine] = playwright.chromium.connect_over_cdp(websocket_url)
-            resources[engine] = DockerStatsResources(container)
-            page = browsers[engine].contexts[0].pages[0]
-            page.goto("https://example.com/", wait_until="domcontentloaded", timeout=30_000)
-            _reset_state(page, {"https://example.com"})
-            pages[engine] = page
-            visited_origins[engine] = set()
+            image_metadata[engine] = _docker_image_metadata(container.image)
+            http_endpoint = _published_endpoint(
+                container, engine=engine, cdp_port=ENGINE_PORTS[engine]
+            )
+            endpoints[engine] = _wait_cdp(http_endpoint, container=container)
+            browser_metadata[engine] = _cdp_metadata(http_endpoint)
 
-        for task_index, declared_task in enumerate(suite.tasks):
-            task = _materialize_task(declared_task, fixture_origin)
-            engine_order = ("chromium", "moli") if task_index % 2 == 0 else ("moli", "chromium")
-            for engine in engine_order:
-                for attempt in range(1, max_retries + 2):
-                    pages[engine] = _prepare_page(
-                        pages[engine],
-                        visited_origins[engine],
-                        settle_ms=settle_ms,
-                    )
-                    row = _run_task(
-                        engine,
-                        pages[engine],
-                        visited_origins[engine],
-                        resources[engine],
-                        task,
-                        attempt,
-                        sample_interval_ms,
-                        is_retry=attempt > 1,
-                    )
-                    row["run_id"] = run_id
-                    rows.append(row)
-                    print(
-                        json.dumps(
-                            {
-                                "engine": row["engine"],
-                                "task_id": row["task_id"],
-                                "attempt": row["attempt"],
-                                "status": row["status"],
-                                "duration_ms": row["duration_ms"],
-                                "error": next(
-                                    (
-                                        line
-                                        for line in reversed(row["error"].splitlines())
-                                        if line.strip()
-                                    ),
-                                    "",
-                                ),
-                            },
-                            ensure_ascii=False,
-                        ),
-                        flush=True,
-                    )
-                    if row["status"] == "pass":
-                        break
-        summary = summarize_attempts(rows, engines=tuple(ENGINE_IMAGES))
-        manifest = {
-            "schema": "lex_browser_use_manifest/2",
-            "run_id": run_id,
-            "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "suite_sha256": hashlib.sha256(Path(suite_path).read_bytes()).hexdigest(),
-            "suite": [
-                {
-                    "task_id": task.task_id,
-                    "title": task.title,
-                    "step_count": task.step_count,
-                    "complexity": task.complexity,
-                    "tags": list(task.tags),
-                    "tool_calls": list(task.tool_calls),
-                    "assertions": list(task.assertions),
-                    "ground_truth": task.ground_truth,
-                    "source": task.source,
-                }
-                for task in suite.tasks
-            ],
-            "ground_truth_validation": (
-                {
-                    key: ground_truth_evidence.get(key)
-                    for key in (
-                        "schema",
-                        "dataset",
-                        "dataset_sha256",
-                        "source_commit",
-                        "validator",
-                        "method",
-                        "started_at",
-                        "finished_at",
-                        "automatic_browser_replay",
-                        "human_review",
-                    )
-                }
-                if ground_truth_evidence is not None
-                else None
-            ),
-            "protocol": {
-                "browser_reuse": True,
-                "viewport": {"width": 1280, "height": 900},
-                "viewport_verified_before_each_task": True,
-                "step_definition": (
-                    "one declared CowAgent BrowserTool-equivalent call; implicit waits excluded"
-                ),
-                "llm_scope": ("LLM never judges success; optional LLM only explains failed traces"),
-                "llm_failure_diagnostics": llm_diagnostics,
-                "diagnosis_model": diagnosis_model if llm_diagnostics else None,
-                "diagnosis_reasoning_effort": (
-                    diagnosis_reasoning_effort if llm_diagnostics else None
-                ),
-                "cold_start_excluded": True,
-                "state_reset_between_tasks": True,
-                "state_reset_method": (
-                    "warm browser/context; clear all top-level navigation origins, "
-                    "browser cache, cookies, permissions and history; replace renderer page"
-                ),
-                "sample_interval_ms": sample_interval_ms,
-                "post_reset_settle_ms": settle_ms,
-                "primary_attempts_per_task": 1,
-                "max_failure_retries": max_retries,
-                "engine_order": "balanced by task index",
-                "target_mode": "public_web" if not uses_local_fixtures else "mixed",
-                "fixture_origin": (
-                    "temporary self-hosted deterministic fixture server"
-                    if uses_local_fixtures
-                    else None
-                ),
-                "resource_scope": "browser container cgroup/network namespace",
-                "controller_excluded": True,
-                "cpus_per_browser": cpus,
-                "memory_per_browser": memory,
-                "network_isolation": "one dedicated bridge with no peer containers per engine",
-            },
-            "environment": _environment(client, containers),
+        gateway_addresses = {
+            _container_host_gateway(container) for container in containers.values()
         }
-        smoke_path = Path(suite_path).resolve().parent / "agent_smoke.json"
-        if smoke_path.exists():
-            smoke_bytes = smoke_path.read_bytes()
-            manifest["agent_smoke"] = {
-                **json.loads(smoke_bytes.decode("utf-8")),
-                "provenance": {
-                    "source_file": smoke_path.name,
-                    "source_sha256": hashlib.sha256(smoke_bytes).hexdigest(),
-                    "independent_of_browser_microbenchmark": True,
-                    "reused_not_rerun": True,
+        if len(gateway_addresses) != 1:
+            raise RuntimeError(f"browser containers disagree on host gateway: {gateway_addresses}")
+        site_access_host = gateway_addresses.pop()
+        benchmark = _configure_benchmark(hostname=site_access_host)
+        resolved = validate_against_official(selection, benchmark)
+
+        _write_or_validate_run_config(
+            run_config_file,
+            {
+                "schema": "lex_browser_use_run_config/1",
+                "selection_sha256": selection.sha256,
+                "browser_eval_commit": harness_commit,
+                "cowagent_commit": cowagent_commit,
+                "model": args.model,
+                "reasoning_effort": "low",
+                "model_transport_retries": 1,
+                "max_agent_steps": args.max_agent_steps,
+                "provider_base_url": env.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+                "browser_images": image_metadata,
+                "site_images": site_image_metadata,
+                "browser_versions": browser_metadata,
+                "site_access_host": site_access_host,
+                "docker_context": subprocess.run(
+                    ["docker", "context", "show"],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                ).stdout.strip(),
+                "environment_lane": {
+                    "lock_namespace": physical_execution_lock_namespace,
+                    "isolation_unit": "docker-daemon-and-fixed-site-ports",
                 },
-            }
-        # Persist core evidence before optional remote diagnostics can fail or stall.
-        _write_run_artifacts(output, rows, summary, manifest)
-        diagnose_summary(
-            summary,
-            use_llm=llm_diagnostics,
-            model=diagnosis_model,
-            reasoning_effort=diagnosis_reasoning_effort,
+                "site_runtime_compatibility": site_runtime_compatibility,
+            },
         )
-        _write_run_artifacts(output, rows, summary, manifest)
-        write_latest_report(reports_dir, manifest=manifest, summary=summary)
-        return summary
+
+        with attempts_file.open("a", encoding="utf-8") as stream:
+            for task_index, selected in enumerate(
+                _scheduled_tasks(selection.tasks, args.max_tasks)
+            ):
+                order = ("chromium", "moli") if task_index % 2 == 0 else ("moli", "chromium")
+                for engine in order:
+                    for attempt in (1, 2):
+                        key = (args.model, engine, selected.task_id, attempt)
+                        if key in completed:
+                            row = completed[key]
+                            print(
+                                json.dumps(
+                                    {
+                                        "engine": engine,
+                                        "task_id": selected.task_id,
+                                        "attempt": attempt,
+                                        "status": "resume-skip",
+                                        "score": row["score"],
+                                    }
+                                ),
+                                flush=True,
+                            )
+                            if float(row["score"]) == 1.0:
+                                break
+                            continue
+                        primary = completed.get((args.model, engine, selected.task_id, 1))
+                        if attempt == 2 and primary is not None and float(primary["score"]) == 1.0:
+                            break
+                        row = _run_attempt(
+                            lock_path=physical_execution_lock_path,
+                            lock_namespace=physical_execution_lock_namespace,
+                            benchmark=benchmark,
+                            selected=selected,
+                            engine=engine,
+                            attempt=attempt,
+                            endpoint=endpoints[engine],
+                            container=containers[engine],
+                            cowagent_repo=cowagent_repo,
+                            output_dir=output_dir,
+                            model=model,
+                            sample_interval_ms=args.sample_interval_ms,
+                            max_agent_steps=args.max_agent_steps,
+                        )
+                        row["run_id"] = run_id
+                        stream.write(json.dumps(row, ensure_ascii=False) + "\n")
+                        stream.flush()
+                        completed[key] = row
+                        visible = {
+                            key: row[key]
+                            for key in ("engine", "task_id", "attempt", "status", "score")
+                        }
+                        print(json.dumps(visible), flush=True)
+                        if row["score"] == 1.0:
+                            break
     finally:
-        if fixture_runtime:
-            fixture_server, fixture_thread, _ = fixture_runtime
-            fixture_server.shutdown()
-            fixture_server.server_close()
-            fixture_thread.join(timeout=2)
-        _cleanup_runtime(browsers, playwright, containers, networks)
+        for container in containers.values():
+            try:
+                container.remove(force=True)
+            except Exception:
+                pass
+        for network in networks.values():
+            try:
+                network.remove()
+            except Exception:
+                pass
+
+    evaluator_provenance: dict[str, Any] = {}
+    for row in completed.values():
+        eval_path = Path(str((row.get("paths") or {}).get("evaluation") or ""))
+        if eval_path.is_file():
+            eval_data = json.loads(eval_path.read_text(encoding="utf-8"))
+            evaluator_provenance = {
+                "version": eval_data.get("webarena_verified_version"),
+                "evaluator_checksum": eval_data.get("webarena_verified_evaluator_checksum"),
+                "data_checksum": eval_data.get("webarena_verified_data_checksum"),
+            }
+            break
+
+    manifest = {
+        "schema": "lex_browser_use_manifest/1",
+        "run_id": run_id,
+        "run_ids": sorted({str(row.get("run_id")) for row in completed.values()}),
+        "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "selection_sha256": selection.sha256,
+        "selection": resolved,
+        "protocol": {
+            "agent": "CowAgent",
+            "browser_eval_commit": harness_commit,
+            "cowagent_commit": cowagent_commit,
+            "model": args.model,
+            "reasoning_effort": "low",
+            "primary_attempts_per_engine_task": 1,
+            "failure_retries": 1,
+            "task_failure_retries": 1,
+            "model_transport_retries": 1,
+            "max_agent_steps": args.max_agent_steps,
+            "official_score_uses": "final execution for each browser and task",
+            "logical_result_cost": "sum of all executions used for each browser and task",
+            "evaluator": "official webarena-verified package, unmodified",
+            "environment_reset": "official site container reset before every attempt",
+            "environment_prepare_receipt": "required",
+            "environment_lane": {
+                "lock_namespace": physical_execution_lock_namespace,
+                "isolation_unit": "docker-daemon-and-fixed-site-ports",
+                "parallelism_rule": "one active attempt per Docker daemon",
+            },
+            "engine_order": "alternating by task",
+            "sites": [site.value for site in SITE_PORTS],
+            "official_container_hostname_allowlist": ["host.docker.internal"],
+        },
+        "environment": {
+            "platform": platform.platform(),
+            "docker_server_version": client.version().get("Version"),
+            "docker_architecture": docker_info.get("Architecture"),
+            "docker_name": docker_info.get("Name"),
+            "webarena_verified_version": importlib.metadata.version("webarena-verified"),
+            "browser_images": image_metadata,
+            "browser_versions": browser_metadata,
+            "site_images": site_image_metadata,
+            "site_access_host": site_access_host,
+            "official_evaluator": evaluator_provenance,
+            "site_runtime_compatibility": site_runtime_compatibility,
+        },
+    }
+    (output_dir / "manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return output_dir
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--repo-root", default=".")
+    parser.add_argument(
+        "--selection", default="evaluation/browser-use/webarena-verified-pilot.json"
+    )
+    parser.add_argument("--output", required=True)
+    parser.add_argument(
+        "--env-file",
+        help="explicit dotenv file for provider credentials; defaults to the repository .env",
+    )
+    parser.add_argument(
+        "--cowagent-repo",
+        help="trusted, clean CowAgent Git checkout; Python code is imported and executed from it",
+    )
+    parser.add_argument("--model", required=True)
+    parser.add_argument("--cpus", type=float, default=2.0)
+    parser.add_argument("--memory", default="2g")
+    parser.add_argument("--sample-interval-ms", type=int, default=100)
+    parser.add_argument(
+        "--max-agent-steps",
+        type=int,
+        default=40,
+        help="maximum CowAgent decision turns; exhaustion fails closed instead of summarizing",
+    )
+    parser.add_argument(
+        "--max-tasks",
+        type=int,
+        help=(
+            "run only the first N pre-registered tasks in this invocation; "
+            "resume later without this option to finish the unchanged cohort"
+        ),
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    run(parse_args())
+
+
+if __name__ == "__main__":
+    main()

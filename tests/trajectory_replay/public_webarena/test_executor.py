@@ -5,7 +5,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from harness.trajectory_replay.public_webarena.executor import execute_steps, judge_outputs, validate_outputs
+from harness.trajectory_replay.public_webarena.executor import (
+    execute_steps,
+    judge_outputs,
+    validate_outputs,
+)
 
 
 class FakePage:
@@ -278,9 +282,7 @@ def test_action_wait_deadline_does_not_replace_task_deadline(wait_call):
         ),
     ),
 )
-def test_navigation_triggering_actions_can_disable_playwright_auto_wait(
-    call, record_prefix
-):
+def test_navigation_triggering_actions_can_disable_playwright_auto_wait(call, record_prefix):
     page = FakePage()
     execute_steps(page, ({**call, "no_wait_after": True},))
 
@@ -361,8 +363,12 @@ def test_snapshot_can_wait_for_async_visible_text(monkeypatch):
 
     page.locator = lambda _selector: Locator()
     monotonic = MagicMock(side_effect=(0, 0, 0.1))
-    monkeypatch.setattr("harness.trajectory_replay.public_webarena.executor.time.monotonic", monotonic)
-    monkeypatch.setattr("harness.trajectory_replay.public_webarena.executor.time.sleep", lambda _: None)
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.executor.time.monotonic", monotonic
+    )
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.executor.time.sleep", lambda _: None
+    )
 
     outputs = execute_steps(
         page,
@@ -490,8 +496,12 @@ def test_table_column_can_wait_for_async_filtered_value(monkeypatch):
         "LegacyLocator", (), {"first": property(lambda self: Locator())}
     )()
     monotonic = MagicMock(side_effect=(0, 0, 0.1))
-    monkeypatch.setattr("harness.trajectory_replay.public_webarena.executor.time.monotonic", monotonic)
-    monkeypatch.setattr("harness.trajectory_replay.public_webarena.executor.time.sleep", lambda _: None)
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.executor.time.monotonic", monotonic
+    )
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.executor.time.sleep", lambda _: None
+    )
 
     outputs = execute_steps(
         page,

@@ -4,7 +4,10 @@ import copy
 
 import pytest
 
-from harness.trajectory_replay.public_webarena.result_audit import ResultAuditError, audit_result_set
+from harness.trajectory_replay.public_webarena.result_audit import (
+    ResultAuditError,
+    audit_result_set,
+)
 
 
 def _fixture():

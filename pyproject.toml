@@ -21,7 +21,13 @@ reference-audit = [
 ]
 browser-use-eval = [
   "docker>=7,<8",
+  "json-repair>=0.54,<1",
+  "pillow>=11,<13",
   "playwright>=1.52,<2",
+  "python-dotenv>=1,<2",
+  "pyyaml>=6,<7",
+  "regex>=2025.7,<2027",
+  "requests>=2.32,<3",
   "tiktoken>=0.7,<1",
   "webarena-verified==1.2.3",
 ]
@@ -58,11 +64,12 @@ target-version = "py311"
 select = ["B", "E", "F", "I", "UP"]
 
 [tool.ruff.lint.per-file-ignores]
-"harness/browser_use/report.py" = ["E501"]
-"harness/browser_use/metrics.py" = ["F401", "I001"]
-"harness/browser_use/runner.py" = ["I001"]
 "harness/trajectory_replay/report.py" = ["E501"]
-"harness/trajectory_replay/metrics.py" = ["F401", "I001"]
+"harness/trajectory_replay/webarena_report.py" = ["E501"]
+"harness/browser_use/report.py" = ["E501"]
+"harness/browser_use/report_i18n.py" = ["E501"]
+"harness/trajectory_replay/public_webarena/report.py" = ["E501"]
+"harness/trajectory_replay/public_webarena/metrics.py" = ["F401", "I001"]
 
 [build-system]
 requires = ["setuptools>=64"]

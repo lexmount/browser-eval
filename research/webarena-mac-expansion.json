@@ -1,0 +1,23 @@
+{
+  "schema": "lex_webarena_mac_expansion/1",
+  "verified_on": "2026-09-10",
+  "official_counts": {
+    "full": 812,
+    "hard": 258,
+    "current_four_sites_single_site": 655,
+    "current_four_sites_including_cross_site": 678,
+    "current_four_sites_hard_including_cross_site": 233
+  },
+  "environments": [
+    ["Shopping", "已在本机实跑", "187", "56", "amd64 镜像；已通过 Colima 转译运行"],
+    ["Shopping Admin", "已在本机实跑", "182", "55", "amd64 镜像；已通过 Colima 转译运行"],
+    ["Reddit", "已在本机实跑", "106", "42", "amd64 镜像；已通过 Colima 转译运行"],
+    ["GitLab", "已在本机实跑", "180", "57", "amd64 镜像；已通过 Colima 转译运行"],
+    ["Wikipedia", "可部署，尚未实跑", "0", "0", "arm64 镜像；需约 100 GB 数据；只出现在跨站任务"],
+    ["Map", "可尝试，尚未验证", "109", "0", "amd64 镜像；需约 60 GB 数据与 Apple Silicon 转译"]
+  ],
+  "sources": [
+    "https://github.com/ServiceNow/webarena-verified",
+    "https://servicenow.github.io/webarena-verified/dev/environments/"
+  ]
+}

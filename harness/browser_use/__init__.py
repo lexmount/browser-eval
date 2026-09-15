@@ -1,5 +1,5 @@
-"""Reproducible browser-engine evaluation with isolated resource accounting."""
+"""Autonomous browser-use evaluation built on WebArena-Verified."""
 
-from .suite import BrowserTask, TaskSuite, load_suite
+from .selection import PILOT_SCHEMA, PilotTask, load_pilot
 
-__all__ = ["BrowserTask", "TaskSuite", "load_suite"]
+__all__ = ["PILOT_SCHEMA", "PilotTask", "load_pilot"]

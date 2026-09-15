@@ -10,7 +10,10 @@ from harness.trajectory_replay.public_webarena.metrics import summarize_attempts
 
 
 def test_independent_audit_detects_tampered_aggregate_and_intersection(tmp_path):
-    script = Path(__file__).resolve().parents[3] / "examples/trajectory_replay/public_webarena/verify_metrics.py"
+    script = (
+        Path(__file__).resolve().parents[3]
+        / "examples/trajectory_replay/public_webarena/verify_metrics.py"
+    )
     spec = importlib.util.spec_from_file_location("verify_metrics", script)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -47,7 +50,10 @@ def test_independent_audit_detects_tampered_aggregate_and_intersection(tmp_path)
 
 
 def test_independent_audit_enforces_retry_matrix_and_success_evidence(tmp_path):
-    script = Path(__file__).resolve().parents[3] / "examples/trajectory_replay/public_webarena/verify_metrics.py"
+    script = (
+        Path(__file__).resolve().parents[3]
+        / "examples/trajectory_replay/public_webarena/verify_metrics.py"
+    )
     spec = importlib.util.spec_from_file_location("verify_metrics_contract", script)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
