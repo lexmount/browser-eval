@@ -104,7 +104,8 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / 'call-logs/browser/case').mkdir(parents=True)
             (source / 'assets/style.css').write_text('body {color:black}')
             (source / 'assets/report.js').write_text(
-                "window.addEventListener('DOMContentLoaded', initReport);\n"
+                "window.addEventListener('report-ready',initReport);\n"
+                "window.addEventListener('DOMContentLoaded',initReport);\n"
             )
             (source / '.generated-report').write_text('local marker')
             (source / 'reliability.json').write_text('{"complete":true}')
@@ -171,12 +172,13 @@ class PublicationPrivacyTests(unittest.TestCase):
                 self.assertEqual(manifest['architecture']['kind'],
                                  'single_html_shell_with_lazy_virtual_routes')
                 self.assertEqual(manifest['architecture']['logical_routes'], 6)
-                self.assertIn(
-                    "window.addEventListener('report-ready', initReport);",
-                    archive.read('report.js').decode(),
+                self.assertEqual(
+                    archive.read('report.js').decode().count(
+                        "window.addEventListener('report-ready',initReport);"
+                    ), 1,
                 )
                 self.assertNotIn(
-                    "window.addEventListener('DOMContentLoaded', initReport);",
+                    "window.addEventListener('DOMContentLoaded',initReport);",
                     archive.read('report.js').decode(),
                 )
                 self.assertGreaterEqual(manifest['architecture']['content_packs'], 1)

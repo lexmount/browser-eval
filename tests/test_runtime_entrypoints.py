@@ -6,7 +6,6 @@ import tempfile
 import unittest
 
 from scripts.run_headless_benchmark import require_expected_provider_versions
-from harness.web_fetch.providers.headless import HEADLESS_CONVERSION
 from harness.web_fetch.publication_target import current_publication_target, require_publication_site, require_publication_version
 
 

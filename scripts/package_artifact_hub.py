@@ -287,7 +287,12 @@ def build():
  (DEST/'style.css').write_bytes((SOURCE/'assets/style.css').read_bytes())
  js=(SOURCE/'assets/report.js').read_text()
  if not webmainbench:
-  js=js.replace("window.addEventListener('DOMContentLoaded',", "window.addEventListener('report-ready',")
+  ready_listener="window.addEventListener('report-ready',initReport);"
+  dom_listener="window.addEventListener('DOMContentLoaded',initReport);"
+  if ready_listener in js:
+   js=js.replace(dom_listener,'')
+  else:
+   js=js.replace("window.addEventListener('DOMContentLoaded',", "window.addEventListener('report-ready',")
  js=js.replace("localStorage.getItem('webfetch-theme')",'readTheme()').replace("localStorage.setItem('webfetch-theme',t)",'saveTheme(t)')
  js="function readTheme(){try{return localStorage.getItem('webfetch-theme')}catch{return 'light'}}\nfunction saveTheme(t){try{localStorage.setItem('webfetch-theme',t)}catch{}}\n"+js
  (DEST/'report.js').write_text(js)
