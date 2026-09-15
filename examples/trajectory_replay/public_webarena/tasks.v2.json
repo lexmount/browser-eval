@@ -1,0 +1,157 @@
+{
+  "schema": "lex_browser_use_tasks/2",
+  "tasks": [
+    {
+      "id": "example-heading",
+      "title": "Read the Example Domain heading",
+      "tags": ["public", "static", "baseline"],
+      "tool_calls": [
+        {"action": "navigate", "url": "https://example.com/", "save_as": "page"},
+        {"action": "get_text", "selector": "h1", "save_as": "heading"}
+      ],
+      "assertions": [{"output": "heading", "contains": "Example Domain"}]
+    },
+    {
+      "id": "hacker-news-top-story",
+      "title": "Read the current Hacker News top story",
+      "tags": ["public", "list", "dynamic-content"],
+      "tool_calls": [
+        {"action": "navigate", "url": "https://news.ycombinator.com/", "save_as": "page"},
+        {"action": "get_text", "selector": ".athing .titleline > a", "save_as": "top_story"}
+      ],
+      "assertions": [{"output": "top_story", "min_chars": 5}]
+    },
+    {
+      "id": "pypi-requests-version",
+      "title": "Read the current requests release from PyPI",
+      "tags": ["public", "package-index", "version"],
+      "tool_calls": [
+        {"action": "navigate", "url": "https://pypi.org/project/requests/", "save_as": "page"},
+        {"action": "get_text", "selector": "h1", "save_as": "package_version"}
+      ],
+      "assertions": [{"output": "package_version", "contains": "requests"}]
+    },
+    {
+      "id": "arxiv-transformer-abstract",
+      "title": "Read the Attention Is All You Need abstract",
+      "tags": ["public", "research-paper", "long-text"],
+      "tool_calls": [
+        {"action": "navigate", "url": "https://arxiv.org/abs/1706.03762", "save_as": "page"},
+        {"action": "get_text", "selector": "blockquote.abstract", "save_as": "abstract", "max_chars": 5000}
+      ],
+      "assertions": [
+        {"output": "abstract", "contains": "Transformer"},
+        {"output": "abstract", "min_chars": 300}
+      ]
+    },
+    {
+      "id": "github-moli-readme",
+      "title": "Inspect and scroll the Moli repository README",
+      "tags": ["public", "repository", "scroll"],
+      "tool_calls": [
+        {"action": "navigate", "url": "https://github.com/lexmount/moli", "save_as": "page", "timeout_ms": 30000},
+        {"action": "get_text", "selector": "article.markdown-body", "save_as": "readme", "max_chars": 20000, "timeout_ms": 20000},
+        {"action": "scroll", "direction": "down", "amount": 1200},
+        {"action": "snapshot", "selector": "article.markdown-body", "save_as": "scrolled_readme", "max_chars": 5000}
+      ],
+      "assertions": [
+        {"output": "readme", "contains": "Moli"},
+        {"output": "readme", "min_chars": 500}
+      ]
+    },
+    {
+      "id": "mdn-fetch-guide",
+      "title": "Follow MDN Fetch API documentation into Using Fetch",
+      "tags": ["public", "documentation", "click-navigation"],
+      "tool_calls": [
+        {"action": "navigate", "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API", "save_as": "api_page"},
+        {"action": "get_text", "selector": "h1", "save_as": "api_heading"},
+        {"action": "click", "selector": "main a[href*='/Using_Fetch']", "timeout_ms": 20000},
+        {"action": "get_text", "selector": "h1", "save_as": "guide_heading"},
+        {"action": "snapshot", "selector": "main", "save_as": "guide_body", "max_chars": 5000}
+      ],
+      "assertions": [
+        {"output": "api_heading", "contains": "Fetch API"},
+        {"output": "guide_heading", "contains": "Using"}
+      ]
+    },
+    {
+      "id": "python-tutorial-navigation",
+      "title": "Navigate from the Python tutorial index to a chapter and use history",
+      "tags": ["public", "documentation", "history"],
+      "tool_calls": [
+        {"action": "navigate", "url": "https://docs.python.org/3/tutorial/index.html", "save_as": "tutorial_page"},
+        {"action": "get_text", "selector": "h1", "save_as": "tutorial_heading"},
+        {"action": "click", "selector": "li.toctree-l1 a[href='appetite.html']", "timeout_ms": 10000},
+        {"action": "snapshot", "selector": "div.body[role='main']", "save_as": "chapter_body", "max_chars": 5000},
+        {"action": "back"},
+        {"action": "get_text", "selector": "h1", "save_as": "back_heading"},
+        {"action": "forward"},
+        {"action": "get_text", "selector": "h1", "save_as": "forward_heading"}
+      ],
+      "assertions": [
+        {"output": "tutorial_heading", "contains": "Python Tutorial"},
+        {"output": "chapter_body", "min_chars": 500},
+        {"output": "back_heading", "contains": "Python Tutorial"}
+      ]
+    },
+    {
+      "id": "rfc9110-section-navigation",
+      "title": "Navigate RFC 9110 to Introduction and restore history",
+      "tags": ["public", "standard", "anchor", "history"],
+      "tool_calls": [
+        {"action": "navigate", "url": "https://www.rfc-editor.org/rfc/rfc9110.html", "save_as": "rfc_page", "max_chars": 5000},
+        {"action": "get_text", "selector": "h1", "save_as": "rfc_title"},
+        {"action": "navigate", "url": "https://www.rfc-editor.org/rfc/rfc9110.html#name-introduction", "save_as": "introduction_page", "max_chars": 3000},
+        {"action": "get_text", "selector": "#section-1", "save_as": "introduction", "max_chars": 5000},
+        {"action": "scroll", "direction": "down", "amount": 1000},
+        {"action": "snapshot", "save_as": "scrolled", "max_chars": 3000},
+        {"action": "back"},
+        {"action": "forward"},
+        {"action": "get_text", "selector": "#section-1", "save_as": "restored", "max_chars": 2000}
+      ],
+      "assertions": [
+        {"output": "rfc_title", "contains": "RFC 9110"},
+        {"output": "introduction", "min_chars": 300},
+        {"output": "restored", "contains": "Introduction"}
+      ]
+    },
+    {
+      "id": "quotes-pagination-history",
+      "title": "Paginate a quotes catalogue and restore browser history",
+      "tags": ["public", "pagination", "history"],
+      "tool_calls": [
+        {"action": "navigate", "url": "https://quotes.toscrape.com/", "save_as": "first_page"},
+        {"action": "get_text", "selector": ".quote:first-of-type .text", "save_as": "first_quote"},
+        {"action": "click", "selector": ".next a"},
+        {"action": "snapshot", "selector": ".container", "save_as": "second_page", "max_chars": 5000},
+        {"action": "back"},
+        {"action": "get_text", "selector": ".quote:first-of-type .text", "save_as": "restored_quote"},
+        {"action": "forward"},
+        {"action": "snapshot", "selector": ".container", "save_as": "forward_page", "max_chars": 5000}
+      ],
+      "assertions": [
+        {"output": "first_quote", "min_chars": 10},
+        {"output": "second_page", "min_chars": 500},
+        {"output": "restored_quote", "min_chars": 10}
+      ]
+    },
+    {
+      "id": "httpbin-form-submit",
+      "title": "Fill and submit the public HTTPBin test form",
+      "tags": ["public", "form", "fill", "submit"],
+      "tool_calls": [
+        {"action": "navigate", "url": "https://httpbin.org/forms/post", "save_as": "form_page"},
+        {"action": "fill", "selector": "input[name='custname']", "text": "Lexmount Browser Eval"},
+        {"action": "fill", "selector": "textarea[name='comments']", "text": "Chromium and Moli browser provider evaluation"},
+        {"action": "fill", "selector": "input[name='delivery']", "text": "18:00"},
+        {"action": "click", "selector": "button"},
+        {"action": "snapshot", "save_as": "submission", "max_chars": 5000}
+      ],
+      "assertions": [
+        {"output": "submission", "contains": "Lexmount Browser Eval"},
+        {"output": "submission", "contains": "18:00"}
+      ]
+    }
+  ]
+}

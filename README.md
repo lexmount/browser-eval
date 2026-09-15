@@ -8,12 +8,15 @@ The first backend compares warm local Chromium and Moli in equal, isolated
 Docker cgroups. It does not require Codex, another coding agent, an LLM API key,
 website accounts, or login state.
 
-## Latest report
+## Published reports
 
-[Chromium 与 Moli 浏览器工具调用评测](https://artifact-hub.dev.lexmount.net/s/zzzUqvSKjTFB)
+- [浏览器工具调用轨迹重放微基准](https://artifact-hub.dev.lexmount.net/s/zzzUqvSKjTFB)
+- [公开 WebArena 人工轨迹固定回放](https://artifact-hub.app.lexmount.com/v/EpR29VQ99CAgQsT-xdCSX8yg_O7DlWyL)
 
-This stable Sites link opens the latest published version. Generated report
-files are local build outputs and are not committed to this repository.
+These are separate fixed-action datasets and report targets. The public WebArena
+runner and reproduction contract are in
+[examples/trajectory_replay/public_webarena/README.md](examples/trajectory_replay/public_webarena/README.md).
+Generated report files are local build outputs and are not committed to Git.
 
 ## Run the browser evaluation
 
@@ -44,6 +47,7 @@ measurement protocol, complexity tiers, overrides, and CubeSandbox decision.
 ## Harness layout
 
 - `harness/trajectory_replay`: fixed-action trajectory-replay execution, metrics, and reports
+- `harness/trajectory_replay/public_webarena`: public WebArena human-recording replay
 - `harness/browser_use`: autonomous CowAgent execution with official WebArena-Verified scoring
 - `harness/web_fetch`: Web Fetch providers, execution, scoring, and reports
 

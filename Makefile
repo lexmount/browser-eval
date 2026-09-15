@@ -2,7 +2,7 @@ UV ?= uv
 PY := $(UV) run --frozen python
 TEST_PY := $(UV) run --frozen --all-extras python
 
-.PHONY: setup import-env runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check resource-image browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check trajectory-replay-report trajectory-replay-report-check trajectory-replay-visual-check trajectory-replay-release-check trajectory-replay-package trajectory-replay-publish
+.PHONY: setup import-env runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check resource-image browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check trajectory-replay-report trajectory-replay-report-check trajectory-replay-visual-check trajectory-replay-release-check trajectory-replay-package trajectory-replay-publish public-webarena-report public-webarena-report-audit public-webarena-report-release
 
 setup:
 	$(UV) sync --frozen --all-extras
@@ -82,6 +82,16 @@ trajectory-replay-package: runtime-check
 
 trajectory-replay-publish: runtime-check
 	$(PY) scripts/publish_webarena_replay_artifact_site.py
+
+public-webarena-report: runtime-check
+	$(PY) scripts/release_webarena_trajectory_report.py $(if $(FORMAL_ROOT),--formal-root "$(FORMAL_ROOT)",)
+
+public-webarena-report-audit: runtime-check
+	$(TEST_PY) -m pytest tests/trajectory_replay/public_webarena -q
+	$(PY) scripts/release_webarena_trajectory_report.py $(if $(FORMAL_ROOT),--formal-root "$(FORMAL_ROOT)",)
+
+public-webarena-report-release: runtime-check
+	$(PY) scripts/release_webarena_trajectory_report.py --publish
 
 resource-image:
 	docker build -f examples/web_fetch/docker/resource.Dockerfile -t lex-web-fetch-resource:local .

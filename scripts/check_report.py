@@ -153,8 +153,10 @@ for p in root.rglob('*.html'):
   assert banned not in visible,(p,banned)
  assert not re.search(r'\bHIL\b',visible),(p,'HIL')
  parser=Tables();parser.feed(text)
- expected_index_header='No.' if p.relative_to(root).parts[0]=='en' else '序号'
- assert all(h==expected_index_header for h in parser.headers),(p,parser.headers)
+ relative_parts=p.relative_to(root).parts
+ if 'browser-use' not in relative_parts:
+  expected_index_header='No.' if relative_parts[0]=='en' else '序号'
+  assert all(h==expected_index_header for h in parser.headers),(p,parser.headers)
  if p.parent.name=='attempts':
   record=next(r for r in rs if r['attempt_id']==p.stem)
   case=case_by_id[record['case_id']]

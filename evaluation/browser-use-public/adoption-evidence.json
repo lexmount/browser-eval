@@ -1,0 +1,122 @@
+{
+  "schema": "lex_browser_benchmark_adoption/1",
+  "verified_on": "2026-09-11",
+  "scope": {
+    "organizations": [
+      "OpenAI",
+      "Anthropic",
+      "Google",
+      "DeepSeek",
+      "Zhipu/ChatGLM",
+      "Moonshot/Kimi"
+    ],
+    "accepted_sources": [
+      "first-party model or system card",
+      "first-party technical report",
+      "first-party official repository"
+    ],
+    "counting_rule": "Count one organization at most once per benchmark family; retain the concrete benchmark version in each evidence record.",
+    "ranking_rule": "For end-to-end browser-use, exclude original offline Mind2Web action-prediction adoption, then sort by organization count, latest official adoption, public availability, and reproducibility. The Mind2Web family total is retained separately but is not the online browser-use count.",
+    "interpretation": "Adoption measures public recognition, not trajectory reliability or fitness for browser-engine isolation."
+  },
+  "records": [
+    {
+      "organization": "OpenAI",
+      "system": "GPT-5.4; Computer-Using Agent",
+      "benchmark_family": "WebArena",
+      "benchmark_version": "WebArena-Verified; WebArena",
+      "source_type": "first-party technical page",
+      "url": "https://openai.com/index/introducing-gpt-5-4/",
+      "secondary_sources": [
+        "https://openai.com/index/computer-using-agent/"
+      ]
+    },
+    {
+      "organization": "OpenAI",
+      "system": "Computer-Using Agent",
+      "benchmark_family": "WebVoyager",
+      "benchmark_version": "WebVoyager",
+      "source_type": "first-party technical page",
+      "url": "https://openai.com/index/computer-using-agent/"
+    },
+    {
+      "organization": "Anthropic",
+      "system": "Claude Sonnet 4.6",
+      "benchmark_family": "WebArena",
+      "benchmark_version": "WebArena and WebArena-Verified",
+      "source_type": "first-party system card",
+      "url": "https://www-cdn.anthropic.com/bbd8ef16d70b7a1665f14f306ee88b53f686aa75/Claude%20Sonnet%204.6%20System%20Card.pdf"
+    },
+    {
+      "organization": "OpenAI",
+      "system": "GPT-5.4",
+      "benchmark_family": "Mind2Web",
+      "benchmark_version": "Online-Mind2Web",
+      "source_type": "first-party technical page",
+      "url": "https://openai.com/index/introducing-gpt-5-4/"
+    },
+    {
+      "organization": "Google",
+      "system": "Gemini 2.5 Computer Use",
+      "benchmark_family": "Mind2Web",
+      "benchmark_version": "Online-Mind2Web",
+      "source_type": "first-party technical page",
+      "url": "https://blog.google/innovation-and-ai/models-and-research/google-deepmind/gemini-computer-use-model/"
+    },
+    {
+      "organization": "Google",
+      "system": "Gemini 2.5 Computer Use",
+      "benchmark_family": "WebVoyager",
+      "benchmark_version": "WebVoyager",
+      "source_type": "first-party technical page",
+      "url": "https://blog.google/innovation-and-ai/models-and-research/google-deepmind/gemini-computer-use-model/"
+    },
+    {
+      "organization": "Zhipu/ChatGLM",
+      "system": "AutoWebGLM",
+      "benchmark_family": "WebArena",
+      "benchmark_version": "modified WebArena environment",
+      "source_type": "first-party official repository",
+      "url": "https://github.com/THUDM/AutoWebGLM"
+    },
+    {
+      "organization": "Zhipu/ChatGLM",
+      "system": "AutoWebGLM",
+      "benchmark_family": "Mind2Web",
+      "benchmark_version": "Mind2Web",
+      "source_type": "first-party official repository",
+      "url": "https://github.com/THUDM/AutoWebGLM"
+    },
+    {
+      "organization": "Zhipu/ChatGLM",
+      "system": "AutoWebGLM",
+      "benchmark_family": "MiniWoB++",
+      "benchmark_version": "modified MiniWoB++ environment",
+      "source_type": "first-party official repository",
+      "url": "https://github.com/THUDM/AutoWebGLM"
+    }
+  ],
+  "family_counts": [
+    {
+      "benchmark_family": "WebArena",
+      "organization_count": 3,
+      "organizations": ["OpenAI", "Anthropic", "Zhipu/ChatGLM"]
+    },
+    {
+      "benchmark_family": "Mind2Web",
+      "organization_count": 3,
+      "organizations": ["OpenAI", "Google", "Zhipu/ChatGLM"],
+      "versions": ["Online-Mind2Web", "Mind2Web"]
+    },
+    {
+      "benchmark_family": "WebVoyager",
+      "organization_count": 2,
+      "organizations": ["OpenAI", "Google"]
+    },
+    {
+      "benchmark_family": "MiniWoB++",
+      "organization_count": 1,
+      "organizations": ["Zhipu/ChatGLM"]
+    }
+  ]
+}

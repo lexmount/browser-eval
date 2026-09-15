@@ -46,16 +46,23 @@ Do not add a second static inventory when existing filters expose the same resul
 
 ## Release gates
 
-Before publication:
+Classify the change before running gates:
 
-1. run the repository's locked tests and evidence integrity checks;
-2. rebuild from the current profile and frozen evidence;
-3. verify every local link and packaged resource, including narrow-screen and representative detail pages;
-4. scan the distributable for secrets, local paths, internal notes, and excluded raw evidence;
-5. confirm the exact destination account, base URL, site ID, and expected current version;
-6. publish atomically or create a new site when explicitly requested;
-7. fetch the unauthenticated share URL and compare the deployed file tree or archive with the submitted package;
-8. record a concise release entry with score/denominator effects and remaining limits.
+- **Presentation-only:** prose, navigation, layout, style, or report assembly changed while the bound dataset, runner, scorer, evidence, scores, and denominator stayed fixed. Run targeted renderer tests, evidence/profile binding, local links/resources, privacy scan, destination/version checks, atomic publication, and exact deployed-package verification. Add responsive/visual checks only when layout or style changed.
+- **Measurement-affecting:** dataset, task contract, runner, provider route, scorer, evidence, result, denominator, or claim scope changed. Run the repository's full locked code and evidence audit before the common publication gates.
+- **Metadata-only:** release metadata or a verified remote version binding changed without changing distributable bytes. Validate the binding and target only; do not rebuild, republish, or rerun unrelated tests.
+
+Do not run a broad test suite merely because a report is being published. The release command must state which mode ran and name the manual full-audit command when it was skipped.
+
+Common publication gates:
+
+1. rebuild from the current profile and frozen evidence when distributable bytes changed;
+2. verify local links and packaged resources affected by the change;
+3. scan the distributable for secrets, local paths, internal notes, and excluded raw evidence;
+4. confirm the exact destination account, base URL, site ID, and expected current version;
+5. publish atomically or create a new site when explicitly requested;
+6. fetch the unauthenticated share URL and compare the deployed file tree or archive with the submitted package;
+7. record a concise release entry with score/denominator effects and remaining limits.
 
 The responsive/visual gate must cover every core route class, both languages, desktop and narrow widths, and light and dark themes. Check that short headers do not wrap one character per line, long cells receive deliberate width or scrolling, filters remain operable, code and evidence blocks have readable contrast, and text-heavy diagrams use scalable/vector rendering or retain a readable minimum width. A screenshot of only the home page is insufficient.
 
