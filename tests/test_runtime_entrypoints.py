@@ -164,7 +164,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertNotIn('"final_url"', worker)
         self.assertIn('"document_metadata": metadata', worker)
 
-    def test_current_coverage_declares_all_reported_methods(self) -> None:
+    def test_legacy_webfetch_dataset_coverage_matches_expected_methods(self) -> None:
         dataset = json.loads((ROOT / "evaluation/dataset.json").read_text())
         expected = {
             "cloudflare-markdown", "cowagent-built-in", "crawl4ai",
