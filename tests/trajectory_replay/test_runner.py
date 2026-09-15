@@ -25,6 +25,21 @@ def test_browser_engines_publish_their_external_cdp_ports():
     assert ENGINE_PORTS == {"chromium": 9223, "moli": 9222}
 
 
+def test_empty_tool_trace_cannot_pass_process_validation(monkeypatch):
+    task = BrowserTask("empty", "Empty", (), (), (), "simple", {}, {"expected_actions": []})
+    page = MagicMock()
+    resources = MagicMock()
+    sampler = MagicMock()
+    monkeypatch.setattr(runner, "ResourceSampler", lambda *args, **kwargs: sampler)
+    monkeypatch.setattr(runner, "execute_steps", lambda *args, **kwargs: None)
+    monkeypatch.setattr(runner, "_resource_result", lambda *args: {})
+
+    result = runner._run_task("chromium", page, set(), resources, task, 1, 100)
+
+    assert result["process_status"] == "fail"
+    assert result["process_validation"]["all_calls_passed"] is False
+
+
 @pytest.mark.parametrize("unexpected_diagnostic_error", [False, True])
 def test_run_saves_evidence_before_diagnostics_and_cleans_up(
     tmp_path, monkeypatch, unexpected_diagnostic_error

@@ -1,0 +1,2885 @@
+{
+  "schema": "lex_webarena_recorded_outcome_audit/1",
+  "scope": "official_recording_against_official_programmatic_evaluators",
+  "agent_response_policy": "inject_official_expected_response_to_isolate_network_trace",
+  "current_environment_replay": false,
+  "evaluator": {
+    "package": "webarena-verified",
+    "version": "1.2.3",
+    "dataset_sha256": "d65275660814663375028e9017e1f929e3c38321041b125795e2713b52243d30",
+    "network_evaluator_module_sha256": "74bc94874541192d18c6dd221f26599d5279606effc55cf5c059ddce2516c441"
+  },
+  "catalog_sha256": "dc8a3bc883f79f2ce399f79d22a69cb856f94a6112a7aa84583b36c2252e2f7d",
+  "suite_sha256": "170dbcbec33a7527e15cbd8d8d5ae7a80a41d27ccf360cd13f7e60fe16f182d7",
+  "audited_suite_git_commit": "9c8d6c7e54c3c257bde1ea59d5dfe78e2532a4be",
+  "current_suite_sha256": "ed2832f9c061726cd856d2949313f6a543c770277122eb42dd38cd0a8d27fe0c",
+  "current_suite_trace_sources_unchanged": true,
+  "suite_binding_note": "suite_sha256 identifies the suite used for this historical official-recording audit; the current suite adds qualification and bounded trajectory repairs but preserves the same 179 official source-trace hashes.",
+  "task_count": 179,
+  "status_counts": {
+    "error": 1,
+    "failure": 86,
+    "success": 92
+  },
+  "passing_task_ids": [
+    4,
+    7,
+    15,
+    20,
+    23,
+    27,
+    33,
+    37,
+    43,
+    46,
+    48,
+    56,
+    58,
+    65,
+    69,
+    71,
+    75,
+    77,
+    82,
+    88,
+    93,
+    95,
+    96,
+    98,
+    109,
+    115,
+    117,
+    123,
+    125,
+    127,
+    131,
+    135,
+    139,
+    144,
+    149,
+    155,
+    156,
+    167,
+    169,
+    173,
+    182,
+    184,
+    190,
+    196,
+    202,
+    205,
+    211,
+    215,
+    220,
+    221,
+    225,
+    227,
+    235,
+    236,
+    247,
+    250,
+    254,
+    259,
+    276,
+    279,
+    283,
+    285,
+    287,
+    288,
+    296,
+    305,
+    311,
+    313,
+    318,
+    321,
+    324,
+    333,
+    335,
+    348,
+    349,
+    354,
+    357,
+    361,
+    367,
+    368,
+    376,
+    382,
+    383,
+    384,
+    386,
+    387,
+    491,
+    534,
+    657,
+    787,
+    791,
+    798
+  ],
+  "failing_task_ids": [
+    44,
+    97,
+    103,
+    118,
+    157,
+    162,
+    240,
+    258,
+    268,
+    270,
+    300,
+    341,
+    369,
+    374,
+    381,
+    392,
+    401,
+    404,
+    415,
+    419,
+    423,
+    426,
+    431,
+    440,
+    443,
+    448,
+    454,
+    458,
+    464,
+    466,
+    471,
+    476,
+    485,
+    488,
+    497,
+    505,
+    506,
+    509,
+    514,
+    516,
+    521,
+    524,
+    528,
+    538,
+    548,
+    566,
+    567,
+    574,
+    577,
+    582,
+    593,
+    599,
+    601,
+    605,
+    612,
+    619,
+    626,
+    631,
+    641,
+    645,
+    652,
+    668,
+    669,
+    673,
+    678,
+    682,
+    686,
+    693,
+    695,
+    703,
+    704,
+    710,
+    714,
+    720,
+    729,
+    733,
+    741,
+    745,
+    748,
+    760,
+    762,
+    768,
+    771,
+    773,
+    782,
+    809,
+    811
+  ],
+  "tasks": [
+    {
+      "task_id": 4,
+      "source_trace_sha256": "e540d56e33e9514d16bab1d956eee56253b8ccf6f3b62c782216a01b98ea0e02",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 7,
+      "source_trace_sha256": "029f61968543cf1699a3799358e8d3bdf17ed7662f98620454a0911b2516b27f",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 15,
+      "source_trace_sha256": "72e420d3deb923adeeac9244631a0f917921ccb048d32d4db95be89a6a822cca",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 20,
+      "source_trace_sha256": "0aedeb27a64f87ba46b0cfd7c0040beb2b70824c3c8dcb250f643f125a0b88ab",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 23,
+      "source_trace_sha256": "c8b559a8e11bf8757060b103c44d54cc177d98134541d8173e0d6c5d406a56bf",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 27,
+      "source_trace_sha256": "bda8b6dfcb91cfc66e122518ad6a00b4749f54cdbcfd5620570d168185f1d087",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 33,
+      "source_trace_sha256": "b5578b784b26ed1e7fabeeb2c0fb2a0479fe4cfc38a29b229a2f5deeec549430",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 37,
+      "source_trace_sha256": "b4d9512c45b122c18f267cd22292b52f10fbf0397d7d287932141469b2ff0144",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 43,
+      "source_trace_sha256": "6f17ca05818ddb206cba3c220bd44a1d63c5de5b7e9fbfd5367e56662d6ba295",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 44,
+      "source_trace_sha256": "d539c9902c955a84e6afe3ba89a62fdaeb673e1a54b943c98db979dc5f70d3a7",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 46,
+      "source_trace_sha256": "86e391c4347a17eee886994e54ad1ef78cfb165ea1e89003806e42ada773b247",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 48,
+      "source_trace_sha256": "253738250edd783015201ceadb330e29152b37557a402b43600f298d83a8e99e",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 56,
+      "source_trace_sha256": "037f102d5a9e1fb91b2afe712b75fbee043ddc47aed4d5e16a9b40344d078310",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 58,
+      "source_trace_sha256": "531d80cead86d90c3bc7ddba6a5725fa456b1a68caea4aecf6275a5c1e7f12fc",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 65,
+      "source_trace_sha256": "d8679803ae41d5aecec7453737a5249bfdd672538d597248d0397e5670c9db59",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 69,
+      "source_trace_sha256": "00ebf48bde5f2848754e5521f990714a467a426b4b6eb0beaeebb8606b35dd61",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 71,
+      "source_trace_sha256": "a8b528bfab75e6c9c0822e24902ee9d76318f227248938f05ad81b87dddf8aa8",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 75,
+      "source_trace_sha256": "85032bd145931f7ea1139d50830291d6dbe5e06e26521d58111320a0c8a0c8a4",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 77,
+      "source_trace_sha256": "d9d1f2ca8f3f4e8e52e2c5c157b8ff8df800cfa58403aa940698559f2ef838e7",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 82,
+      "source_trace_sha256": "4f455c33669e2fd7786a2cbad9e459050cd2ff6afb15af1113d656d5690efd7e",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 88,
+      "source_trace_sha256": "42eb8488ac63d4a8e709e227793d2bda36a815573f07cbd7dc108e3d3a3f1e68",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 93,
+      "source_trace_sha256": "a15b16ade5006066de3b4e7084ec9fd6302e001399ab9409e1032c5c3032741e",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 95,
+      "source_trace_sha256": "1e84eaa65b15809555d88e0ec0f9700a20b0a9d8494b6d7fff762e90ef077b06",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 96,
+      "source_trace_sha256": "cbde91545ccace8e46cd3da5e268f6640bbbf1d97ad80cbceec89a0d850897b9",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 97,
+      "source_trace_sha256": "efef14de6f749d2211fc4d6d72c1e8ad97f05ab94ff6c5966e11ec90831ef7b3",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 98,
+      "source_trace_sha256": "28f4f0576b61db7b8cc808589177fe389fd409db2fc872ad1772ef1170ac336f",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 103,
+      "source_trace_sha256": "ce636c63dd0e36087813ee8b298c37c72d622dc5cad0b66e4c437995e292e836",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 109,
+      "source_trace_sha256": "93ca7d3a37259ec801922485a05920718c7f120cb2212f178aefc770d7cd2c3e",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 115,
+      "source_trace_sha256": "53f86e19a3ca257f64faad280a8fc058b4775af82bd74d23391d2b113930804d",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 117,
+      "source_trace_sha256": "110bad1dca60f7fefdbd8c8a14ac293f57f60510e793b6733e2111a8631baa61",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 118,
+      "source_trace_sha256": "5a80885ea91016c6fa83d69c989fcae9b338ce817df842b295ba3b21416212eb",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 123,
+      "source_trace_sha256": "9a7f8d84c0d508d3e0284644b1ba413c1a6af5286a41065fd0db079608e3a568",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 125,
+      "source_trace_sha256": "326a2fb99c4d7021f5fcee1cc4de9e2ff445598c388a108eca00d5398fd48a30",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 127,
+      "source_trace_sha256": "708547b6eb899d06b81117c76967b22ab2020e8161a8a38c1ad7bea7f38da326",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 131,
+      "source_trace_sha256": "a3746f910c3e8ac9270883e4139b3dda8002fdbe790486de9d3108bf75d7836e",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 135,
+      "source_trace_sha256": "b8a6ac416a2c1839dfb28986b5a87625589091244352f71eff755ea0806c12c9",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 139,
+      "source_trace_sha256": "1d1198daf2daa56ce8e9fa2f3e925eb73aa14206da010e0ef7a92b2040342d4b",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 144,
+      "source_trace_sha256": "40c9ece8b828ee6c035078b22fd3123a2107e12838ea57615576669908853d3c",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 149,
+      "source_trace_sha256": "0d9755519e2712747a1ddcb5464d6ac01109a41646535e9837ee8240623bebc6",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 155,
+      "source_trace_sha256": "18429a3ba14ba05152f9b96491715f71d97c5572935cd811210e0ff9469a4fd5",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 156,
+      "source_trace_sha256": "c81c48bb19be27bc986fb6525b2a837800422d7f70b12df3720862f193af7c2f",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 157,
+      "source_trace_sha256": "b6463b2df5d2b43d798a0670b5866c2ef721c73d98a22c38c70bba62967c73ba",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 162,
+      "source_trace_sha256": "a68b8b59453a7784f093519cc34f8535de26b70c17253142d9c1193e3933626d",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 167,
+      "source_trace_sha256": "12c8cbc89f3a0617ab17839c02d05bd97a08ef54a8923ab5d005d4b6e6833025",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 169,
+      "source_trace_sha256": "0052a3bd68bb28fb0eca4576b0b1d2ba79dc43e5efa1e8bbc464c9c2f0f6cbb0",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 173,
+      "source_trace_sha256": "75c2b832e247c7128cbfba1a9d3c8752058735382b8ff5fb01991229712625af",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 182,
+      "source_trace_sha256": "684fb826081106450ed373483a5337276e3ef067211d3e6d20ab84c20d7a13a5",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 184,
+      "source_trace_sha256": "36422605a512852b2798904c613866e43048fb4bae695445cf4b8c65b56b7ec0",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 190,
+      "source_trace_sha256": "fe6cc086863a6d6dca2bc3f9914d1e69e372684a05b349901a57ce364fa329f4",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 196,
+      "source_trace_sha256": "e1a8658f2c574a4265564a4d3e55ab83e08afb47f0df2573179d0eda369afd4a",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 202,
+      "source_trace_sha256": "ae13ab90e3ec0cabf98895e2407a27d0b1403b654b52bf98a3a3cac9a9944860",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 205,
+      "source_trace_sha256": "1bcbcd16f51aff3e42f44c420a757b045d28988209816782c3b34f6fdd4a21c9",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 211,
+      "source_trace_sha256": "94b8e2ac73eb0b54bcc6c370a245631155c886c6fa8b7c2575dcc7cd09df74b6",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 215,
+      "source_trace_sha256": "0d7fc681c071bb88c78e9d50cf29e46cade6ce8c1493db91fdd4433acaac319b",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 220,
+      "source_trace_sha256": "fef6d20d1aace999656441fa90ce5726f11fa08e2d62913cdfa51906adf0a1f9",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 221,
+      "source_trace_sha256": "18251c95fc1318f6aa34aabe97a0b2fe743343efce367ca297dca1dd05c2f66d",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 225,
+      "source_trace_sha256": "bc8ce36b9d5509065c0515cf4e9746d96fa67f4747d6497af9a0801907ae804a",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 227,
+      "source_trace_sha256": "2ab1318c3da71a0bbd5d2bdc0f39d7634e14ec042d2cd693912287f74abcad45",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 235,
+      "source_trace_sha256": "385d1cc506833303b4b76634ce3b0f94023dbbb176e94b9efd37f68e455d8e4e",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 236,
+      "source_trace_sha256": "d24b941251aaab5b39209d585f4b10fb70af6e436ff1821afc6f7c55ac786918",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 240,
+      "source_trace_sha256": "573ce22adcee46004133f2426c8f791554b26f9d8bb7b52052dc86ea3261d8fc",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 247,
+      "source_trace_sha256": "db0f1f2fa9234364adf19b2c1d701657952e37bd6b9d70f40799b8e6a04d67a5",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 250,
+      "source_trace_sha256": "6251a052752716d8ca15a0b257c6fa0f1bcf47d5accc49f495c8edb215a5fea1",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 254,
+      "source_trace_sha256": "40a775113a040f701c5fb31459979d8ea89db55c25c7751f901e6ac73676f095",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 258,
+      "source_trace_sha256": "5f11ad6dd4a57df55f1978dbb42d747c7a3a2f06a27d840802988873f1534508",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 259,
+      "source_trace_sha256": "b74218fca8d1e6e26dca3c8660266ddf60360b95c517c19209419f0414a23a09",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 268,
+      "source_trace_sha256": "04b1cccce4727364fb9596117c1dea080789d694754afd2eb27778245a910f03",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 270,
+      "source_trace_sha256": "e658d23b1c1ae1601a7c1b6efc0518e464d80b1d4c918abcc0962f66b2fc4d29",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 276,
+      "source_trace_sha256": "2c13d90646a338bec1267f1dbc18a8adfc550d1e7540f2757355d3a3cb4724d2",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 279,
+      "source_trace_sha256": "721d37e0fa0a6906fb017094481805839220d3255ed65ae9c452ac07cd69e89b",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 283,
+      "source_trace_sha256": "63aa7dd9f0543913ff16c6e02b093300f434c1300aa6f830362e72cf5275f027",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 285,
+      "source_trace_sha256": "fde86c491dff32573630e9ce3cb356d925ff79a09509659c7b8a2b5c67133cac",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 287,
+      "source_trace_sha256": "fd7f042e648be34e218a37e5826bb89bb03bfb8672c5483c02af715ef0255fda",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 288,
+      "source_trace_sha256": "a1dc3929a2f2d54447a295dc311d5db2cca1cd6cf8b55d3837116e5039dd2282",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 296,
+      "source_trace_sha256": "9b7ef57316e6083226dde6004ee39d5aa9ff83347d96371c930f879b3e26861e",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 300,
+      "source_trace_sha256": "b2c0af55a3cb70fb8a3ed6ef4d54407ae488b21f7ffd016855903e38a4d5ffb0",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 305,
+      "source_trace_sha256": "f938dfaae98b44b9f31b1cee07dc364ffbcac85967945cf62cfc0c81acd8f27c",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 311,
+      "source_trace_sha256": "1a82e9f1c9231df461e2c8ffdb426f0d81d149a0020300b03e2f0faa0398bb14",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 313,
+      "source_trace_sha256": "0cef9fb1a3345a3fcf4e7cfab19be51d2b80ce11cd4222d0bfa68aa9ff8d0dc1",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 318,
+      "source_trace_sha256": "e146711be7e9faf16e23d91c0039e61d45bee6c78b862f93c39c4f7de2d4fa26",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 321,
+      "source_trace_sha256": "617c300185d34f2f17ed6fe7d3e4b9a1536b396434f839f6355de24db2767621",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 324,
+      "source_trace_sha256": "ab905d209b8967f62843dedcb292b4864b794e297732a56df41e1f23c3649034",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 333,
+      "source_trace_sha256": "5d922dc6d5b322177785f7e25f8ca4c867f8a2eb5000af60581d134d9bca6ee3",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 335,
+      "source_trace_sha256": "782b2a2565c14d9ba73263e980d34b7f6dfa247a72846a820e617ad56bb1f20e",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 341,
+      "source_trace_sha256": "da5ae1789599cb921716057ecfbf4fd9ab00d97e0cca0eb4a7176e164d8c4753",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 348,
+      "source_trace_sha256": "39630db04501b5f81c80f4de3e3e64de3b16580a1a93f4ad4ff030d6f60c2d5f",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 349,
+      "source_trace_sha256": "95fdc0d1b3823699cf7c935fce86a6e174aecb37aff2773af1242d718b658981",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 354,
+      "source_trace_sha256": "6c1320faa68c934df8eee9817816877933784c09ad8801358c95f7e48aa8a985",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 357,
+      "source_trace_sha256": "1dcd53c59c82b0971fb64a29c3cfcf2ed000f68d0633d8e3284e7fc9be6db350",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 361,
+      "source_trace_sha256": "f86e081eff7da2a6175ed93c40fa9e8ec1db55609062fe67a6f9727c0302937f",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 367,
+      "source_trace_sha256": "681273e673b2ac0ea6b24e85ddea495b0b71a6e3f2fb00d8ba532b44932451bc",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 368,
+      "source_trace_sha256": "a14eb15797d8a219185f714e81d972e3bac8028abb4549d525fcb488eb00f25c",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 369,
+      "source_trace_sha256": "49938b98fa9d0ba23aa06b5c0e4be278802521b7dc73ae76a36d9d086ebed21a",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 374,
+      "source_trace_sha256": "8622acee6419d51753d2bda44798030333abc40103eed417ffa8955af96e86fd",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 376,
+      "source_trace_sha256": "a45717b85bed6b91e8b0a7af36b4ee2ed62c30d2f3f8d18e9c6c85be805ce50a",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 381,
+      "source_trace_sha256": "3116246dead853c88d13f24d6e12e7d986828a0e5379f35944b0cd39e6a389ff",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 382,
+      "source_trace_sha256": "a224ff889718b62f6a6f949b41cee5efcbc6c95ae1f95bb6f0f6c850a492b829",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 383,
+      "source_trace_sha256": "143635490c645045c81e19828cbc8bff24ede267af4353027262ac172e4e0f5a",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 384,
+      "source_trace_sha256": "622a798829b6234587d70eb6b681bc613869a638cc1e8fb1f9a3b61feb4c59ef",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 386,
+      "source_trace_sha256": "b53cd20dea4d79f35eeaeaf7a9b73e1c112deb35498d3bc8883969916cf44888",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 387,
+      "source_trace_sha256": "999a374e098acfd7fb54c84d7b3047cf053876d8ef031d5358ed02e5abe5016f",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 392,
+      "source_trace_sha256": "d488d68cb3fc6421f53d03e43821ae52e8baa8363e9f8fa5a1da06a0c6342100",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 401,
+      "source_trace_sha256": "992a5776de1b1f3f07f3d8b2eb74c11ef7b709fa88a96c7bb645560ae4d15d9d",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 404,
+      "source_trace_sha256": "4f62262a9e5f58e077b3fe2e2270f5b06551f10ceb0c64d7f64e88a5c1917a15",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 415,
+      "source_trace_sha256": "b6020b9e6b1d83600be945a8d39636bc964289fd14122b10391e4cd4ec9fc7c3",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 419,
+      "source_trace_sha256": "bb7327a647ef6ebe380dcb35129bc643ebde55a91065deac42f10c39c6aaabd9",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 423,
+      "source_trace_sha256": "494d308fa65719818caced32e0802ac2dccdb29d168d1ac9c55ee293e68bc7e0",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 426,
+      "source_trace_sha256": "31892c25383ac02d1b27393d2eb4db946222b4794f73ef914e8834ff20265327",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 431,
+      "source_trace_sha256": "acb09df863ce4c1e170912aea2a8cb12f861e1766626ec4b262510ad58a5478c",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 440,
+      "source_trace_sha256": "3af95e38cfdb8b905ee93de98794452e23c0936355a0d523c07408122cf12902",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 443,
+      "source_trace_sha256": "bb3290e5c6c7b5c2f0eb1bd6d9831da153499c996c5295c3c5de0ff112c5430c",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 448,
+      "source_trace_sha256": "e162239ffbabe4917c0b8263d4e588ac4c20ba7105667f5fb5aa102de00e9ab9",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 454,
+      "source_trace_sha256": "e2bb2979b896480d0d24006a512be49c57ea217c789c88b1f3d0fd4f22cfc8b2",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 458,
+      "source_trace_sha256": "263b6bc93f1ae542951e19a756a4e322f0db90830bff490d2af407978d08fae3",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 464,
+      "source_trace_sha256": "d54ed18e9bc5fce715a71e8492d6b9bac8a991bb601389730d27e6e4e823001a",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 466,
+      "source_trace_sha256": "844518eff7666642fa2491765ab01b597c77fba6cd8d2d60f14b5ea6c07cc335",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 471,
+      "source_trace_sha256": "0bb2e1e8a181c951a763c2b8cc926e9c34fdc9ec65d56cf6b0b35b4f86581b90",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 476,
+      "source_trace_sha256": "7294d91c1da58f395648e260adca8dbd0e63f0d17a076037d2f13cae702b9418",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 485,
+      "source_trace_sha256": "388fdb3d92929d4668c7ef37b338e7c939bff12591b60286fa394642fa57320a",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 488,
+      "source_trace_sha256": "1434e8f676583299686444e19297ab6a5565e25940c699b6652b286078878338",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 491,
+      "source_trace_sha256": "e1cd154bcdd9bc7a8dbc4ce16ef1f0357947707f40a7dfd4e7eb90625e5bcba6",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 497,
+      "source_trace_sha256": "4e770abd2881da9b84d3705b27772ef225be5c41b555afb256c9367493e3b278",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 505,
+      "source_trace_sha256": "9b2fe3b84e6e64a94e2372adbe0a8624e12947503c3b60cd422c772cbb797dbf",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 506,
+      "source_trace_sha256": "2d6a4fbd9107d57e450e35ddde2253ddebfd6c0544b4afccbdcd8f98c58e179b",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 509,
+      "source_trace_sha256": "2c9e6abc8ab5bc265099a18aa8859b1fb5e11ebec7ebb1e1d818bb7b25e60e78",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 514,
+      "source_trace_sha256": "91a7c197f6b14df8165f3ae084445beac972c3de7f2014bcef81ad4806b1a9aa",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 516,
+      "source_trace_sha256": "7ec54eba32a86824a6662e629ddf38654b8ccd64582e0cfc8790dd7d4cdc44f1",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 521,
+      "source_trace_sha256": "6b7e15e6adad1bb0a669129411673755c52968bad9c5d00e0d2c34d66c10f6d7",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 524,
+      "source_trace_sha256": "1c2075a139f4eb16719b438e6c5c948aa6e2ec2fcd2f24da8dee2ab061baa2c7",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 528,
+      "source_trace_sha256": "d16a4903d4efea5102e5f0fad0a60c2e9ce307576c420b222ea5a1faf471334d",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 534,
+      "source_trace_sha256": "51d1893d17688ad1574028001795be6b113b71c249bff01a88056f1409206362",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 538,
+      "source_trace_sha256": "ea6f6923a09812929f33fbd05bda1503f2fe737b78325c828734c61273b15b5a",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 548,
+      "source_trace_sha256": "daaebffe8c2e918c456826eb75a5664b6cdbc2d5cacd3941669bad5d885e6aaf",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 566,
+      "source_trace_sha256": "ba7e6a20b73f8536fe9c5a040cb8f710f61037e24c40b100d303198f28280754",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 567,
+      "source_trace_sha256": "7cd1931a84a29ca2ce5aed99da7f48bb346f2bfb1c865f9e9cefcf4f85856e84",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 574,
+      "source_trace_sha256": "fde132fd7757545128f50df7dc2e3e09e4613736c9a272aa4d5ca4f39dd849fc",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 577,
+      "source_trace_sha256": "7f2197e3d80776a2ba099f2631f9d27356852c119373183538fdbc2fe64334a8",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 582,
+      "source_trace_sha256": "61ffe2ebf7e8ef5807c125d5bbda6d3700488a982596514008089ed65ccb490d",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 593,
+      "source_trace_sha256": "ca601cdf65d369fccb56c5870c22d056fa055fd22d726bce2fa19fb42a9e8bae",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 599,
+      "source_trace_sha256": "4d7875bccb31c8d04b9cd514c73741ef015c74b40d51e662c966fc8016594381",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 601,
+      "source_trace_sha256": "aa4c525ced6498157ac50ce2553bc2eb1bf20dd2b4260c27d99e35673582969b",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 605,
+      "source_trace_sha256": "a7a2c554ec94aaf5ae788ae64e9338b59387febb2d81fa703e226f890e70ee7a",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 612,
+      "source_trace_sha256": "acd6319bd77011f5ca457dae2755657031b500a50f1098ddf534aad94f178525",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 619,
+      "source_trace_sha256": "5a03298fb0be993c33ffdc35d99397970cea0b8e0162a88efd2208cd4e6489d1",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 626,
+      "source_trace_sha256": "d5debe5f22eca2384cb078cba6b65d928a16b2caddd47a01bf187922172ce536",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 631,
+      "source_trace_sha256": "9065268b262f50f1e9ff6f2077fb5d0b4c307899589fae75b0e2936484741657",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 641,
+      "source_trace_sha256": "4bb24293295e90fd0012f8fd91b00f228db29c084f41e09506f6c740f85257a7",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 645,
+      "source_trace_sha256": "316cfa68c57331e5b5d772a7323bc8fd7275fe84b395f5a223aa20ae86f1a204",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 652,
+      "source_trace_sha256": "ee4b8e1c6b63f58cf025d02574e05068fe80a57324ded74ad7cfb31d2f3a09a8",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 657,
+      "source_trace_sha256": "a7c9a4167d557d656f7a80c0c1cbd658fd027adeb5562a126a6c2a07aa6bbe53",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 668,
+      "source_trace_sha256": "60203745cec066ef02a1781fbbd7d5211ce9b95ef918cabdaf4631b2ce65bb4e",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 669,
+      "source_trace_sha256": "c534d96d437efd0be438f53fb54c132dd9b4864b391a7e795ef7575be41e5ca1",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 673,
+      "source_trace_sha256": "9bd72df376135d68fdcf8a7e25ee9b0d8f9f4d130ce4e11c5da1d8f04498d16b",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 678,
+      "source_trace_sha256": "b5868b21a13f89cd512c1a92b12bdb04acca04b8cca0d6d1cfef125226795e7e",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 682,
+      "source_trace_sha256": "7251f7f5c7dde9ab9bef16c4b44db8fca7b3777e633d5fcdb279b725ae281450",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 686,
+      "source_trace_sha256": "69b1fb109e0ef883baa139513fa5b3fc488f5e0fc273315df5fd01fefa33d546",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 693,
+      "source_trace_sha256": "980d9e53e1899ea7fcef8df5b51f90b56ef84edef3a16b09c5b11f42f755ab3d",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 695,
+      "source_trace_sha256": "b2a813d3eee16397491af2e35c139a141190a7f6b00d829da3f5535a4eea53f6",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 703,
+      "source_trace_sha256": "c24e886d8d302abe64373919808001d838ab572c638e6bb63f32607b530cfa9d",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 704,
+      "source_trace_sha256": "dc0ad42e0829656a03bdd43de1290549520d54f984d4dbb9aab95f23dd8aaaa4",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 710,
+      "source_trace_sha256": "cdbce459fe01982b2d11644b4829782dd795eb19b1b6c2f24df89ca715f15c8b",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 714,
+      "source_trace_sha256": "fbaa83993678742a2736a0881e4fa94668c0643156777766e61efc6a2390604f",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 720,
+      "source_trace_sha256": "75adf743ac9e28690cf05488743957458a4ec4f7730ae89eb23b9a7332712897",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 729,
+      "source_trace_sha256": "3a8f91e2600c4f0e09b4594ff25dd8eff8d4458e62e0c9d16a59d1f67664a22a",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 733,
+      "source_trace_sha256": "86b80364fd9fde8bbf8ce1599b837feda7d9672e8734dc97fb6ece077a560036",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 741,
+      "source_trace_sha256": "faf22c85570f9a4f98f06c572f11590d33537a2965c3a521d5b3b91845d6dd52",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 745,
+      "source_trace_sha256": "915465859957b3f795c6108a1feab30a3cdc0d491f3c576ab35280d721fe7410",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 748,
+      "source_trace_sha256": "e10de51fdd99bd3cfa5608158243e313d4be690b4eaa2bb386addf0b17e694dd",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 760,
+      "source_trace_sha256": "6f2375f0eecc53780288beb67d1a691fdc89ab5b6502fba5898a34132eb98193",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 762,
+      "source_trace_sha256": "e68a48e0837e12bdd46172c5b973ca10b9530b9df76f6a96925e0de17c381fa0",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 768,
+      "source_trace_sha256": "4b5fb3af2bdf68fc0a49f4ce93be434978277f13556f4da1c23811fa76b7dd30",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 771,
+      "source_trace_sha256": "386e15eddf77053acfdb4c68e0a2c3b341b9a955b3450330e6ec4234c7dc48b4",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 773,
+      "source_trace_sha256": "39c73ae325bb128b8e53618eeaff64b75a49c6b319608fdb021aa07dd0ee7826",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 782,
+      "source_trace_sha256": "c1d3933d6ef2a53c8af94597d42a5b4c35a4cc38c54b1be3ad8f13a6bbed0df1",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 787,
+      "source_trace_sha256": "82ecf66dbf707a820c1be97f4b1631d68b323de29189f76aa04a86a5572c4556",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 791,
+      "source_trace_sha256": "9d991462d91f71324e7e970cef7f06b7e001c04f5bab00a392a06ec6d111ca1a",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 798,
+      "source_trace_sha256": "1b7888a072275c8b645b114eabc147c7bff64cd5fb8691ac8380ec457631288d",
+      "status": "success",
+      "score": 1.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "success"
+        }
+      ]
+    },
+    {
+      "task_id": 809,
+      "source_trace_sha256": "115b70a5c2d8cdb41c9a202478223fdd414d685e4874ad0ed51da621c5586715",
+      "status": "failure",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "failure"
+        }
+      ]
+    },
+    {
+      "task_id": 811,
+      "source_trace_sha256": "dd0dea5610fa4c8954a2957ad94e49a8cc49a04eed6e6a3e4401209e123ce9a0",
+      "status": "error",
+      "score": 0.0,
+      "evaluator_statuses": [
+        {
+          "evaluator": "AgentResponseEvaluator",
+          "status": "success"
+        },
+        {
+          "evaluator": "NetworkEventEvaluator",
+          "status": "error"
+        }
+      ]
+    }
+  ]
+}

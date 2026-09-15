@@ -1,0 +1,67 @@
+{
+  "schema": "lex_webarena_environment_images/1",
+  "source": "Docker Hub registry manifests",
+  "webarena_verified_version": "1.2.3",
+  "images": {
+    "shopping_admin": {
+      "tag": "am1n3e/webarena-verified-shopping_admin:latest",
+      "pinned": "am1n3e/webarena-verified-shopping_admin@sha256:d0531dd27ed98d0c459ff9e88118bf2ed8b660b0ed99c38837db46c065a5be13",
+      "manifest_digest": "sha256:d0531dd27ed98d0c459ff9e88118bf2ed8b660b0ed99c38837db46c065a5be13",
+      "media_type": "application/vnd.docker.distribution.manifest.v2+json",
+      "compressed_layer_bytes": 1245375030,
+      "platforms": [],
+      "architecture": "amd64",
+      "os": "linux"
+    },
+    "shopping": {
+      "tag": "am1n3e/webarena-verified-shopping:latest",
+      "pinned": "am1n3e/webarena-verified-shopping@sha256:3e8cb9b945ea9b1c94ab26dba53e8d12dd0406abbf4bf686fd3bb2b6a5908feb",
+      "manifest_digest": "sha256:3e8cb9b945ea9b1c94ab26dba53e8d12dd0406abbf4bf686fd3bb2b6a5908feb",
+      "media_type": "application/vnd.docker.distribution.manifest.v2+json",
+      "compressed_layer_bytes": 5421321813,
+      "platforms": [],
+      "architecture": "amd64",
+      "os": "linux"
+    },
+    "reddit": {
+      "tag": "am1n3e/webarena-verified-reddit:latest",
+      "pinned": "am1n3e/webarena-verified-reddit@sha256:0594908059a03e5f610005689440a95c05e776e734006197c7b1eba12734cb46",
+      "manifest_digest": "sha256:0594908059a03e5f610005689440a95c05e776e734006197c7b1eba12734cb46",
+      "media_type": "application/vnd.docker.distribution.manifest.v2+json",
+      "compressed_layer_bytes": 4572726113,
+      "platforms": [],
+      "architecture": "amd64",
+      "os": "linux"
+    },
+    "gitlab": {
+      "tag": "am1n3e/webarena-verified-gitlab:latest",
+      "pinned": "am1n3e/webarena-verified-gitlab@sha256:673ba94d757c5b3f4bb55751ad8b745a33bad2b987349322403cbc41035a92e0",
+      "manifest_digest": "sha256:673ba94d757c5b3f4bb55751ad8b745a33bad2b987349322403cbc41035a92e0",
+      "media_type": "application/vnd.docker.distribution.manifest.v2+json",
+      "compressed_layer_bytes": 22006162655,
+      "platforms": [],
+      "architecture": "amd64",
+      "os": "linux"
+    },
+    "wikipedia": {
+      "tag": "am1n3e/webarena-verified-wikipedia:latest",
+      "pinned": "am1n3e/webarena-verified-wikipedia@sha256:8c52e6cc8b7cc6f77daaf279929517399b1889bd02b09a257ebd465364ad387d",
+      "manifest_digest": "sha256:8c52e6cc8b7cc6f77daaf279929517399b1889bd02b09a257ebd465364ad387d",
+      "media_type": "application/vnd.docker.distribution.manifest.v2+json",
+      "compressed_layer_bytes": 46511948,
+      "platforms": [],
+      "architecture": "arm64",
+      "os": "linux"
+    },
+    "map": {
+      "tag": "am1n3e/webarena-verified-map:latest",
+      "pinned": "am1n3e/webarena-verified-map@sha256:c769aa312c979d68e696dace7049d58eeeb016ce608f0f8779a181bf3714206f",
+      "manifest_digest": "sha256:c769aa312c979d68e696dace7049d58eeeb016ce608f0f8779a181bf3714206f",
+      "media_type": "application/vnd.docker.distribution.manifest.v2+json",
+      "compressed_layer_bytes": 1187489929,
+      "platforms": [],
+      "architecture": "amd64",
+      "os": "linux"
+    }
+  }
+}

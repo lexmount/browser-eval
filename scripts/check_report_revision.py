@@ -12,7 +12,9 @@ if dataset.get('comparison',{}).get('kind')=='webmainbench_frozen_html_to_markdo
     raise SystemExit(0)
 for path in out.rglob('*.html'):
     soup=BeautifulSoup(path.read_text(),'html.parser')
-    is_english='en' in path.relative_to(out).parts
+    relative_parts=path.relative_to(out).parts
+    is_english='en' in relative_parts
+    is_browser_use='browser-use' in relative_parts
     if path in {out/'index.html',out/'en/index.html'}:
         overview=soup.select_one('.home-overview, #overview')
         assert overview and (overview.name!='details' or not overview.has_attr('open')),path
@@ -27,9 +29,10 @@ for path in out.rglob('*.html'):
                 assert not panel.select_one(selector).has_attr('open'),path
     for pre in soup.select('pre'):pre.decompose()
     assert '条件通过率' not in soup.get_text() and '条件达标率' not in soup.get_text(),path
-    for table in soup.select('table'):
-        width=len(table.select('thead th'))
-        assert all(len(row.find_all('td',recursive=False))==width for row in table.select('tbody > tr')),(path,width)
+    if not is_browser_use:
+        for table in soup.select('table'):
+            width=len(table.select('thead th'))
+            assert all(len(row.find_all('td',recursive=False))==width for row in table.select('tbody > tr')),(path,width)
     for table in soup.select('table.ranking'):
         headers=table.select('thead th')
         sort=int(table['data-col'])

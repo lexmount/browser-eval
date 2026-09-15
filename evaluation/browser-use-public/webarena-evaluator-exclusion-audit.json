@@ -1,0 +1,44 @@
+{
+  "schema": "lex_webarena_evaluator_exclusion_audit/1",
+  "suite_sha256": "ed2832f9c061726cd856d2949313f6a543c770277122eb42dd38cd0a8d27fe0c",
+  "audited_suite_sha256": "170dbcbec33a7527e15cbd8d8d5ae7a80a41d27ccf360cd13f7e60fe16f182d7",
+  "audited_suite_git_commit": "9c8d6c7e54c3c257bde1ea59d5dfe78e2532a4be",
+  "excluded_task_definitions_sha256": "259f832c3b22c5120c2a8e464f8a3c907f6b30a58f1275c4d58459c82e1fe00f",
+  "excluded_task_definitions_unchanged": true,
+  "exclusions_sha256": "121292eec04ea31e9e5c1f2f6bf525d3565543c914daa8cdec61716dcf3e5298",
+  "complete": true,
+  "checks": [
+    {
+      "task_id": "webarena-678",
+      "evidence_id": "wv-1.2.3-navigate-get-xhr-678",
+      "source_trace_sha256": "b5868b21a13f89cd512c1a92b12bdb04acca04b8cca0d6d1cfef125226795e7e",
+      "passed": true,
+      "sales_order_grid_event_count": 0
+    },
+    {
+      "task_id": "webarena-760",
+      "evidence_id": "wv-1.2.3-navigate-get-xhr-760",
+      "source_trace_sha256": "6f2375f0eecc53780288beb67d1a691fdc89ab5b6502fba5898a34132eb98193",
+      "passed": true,
+      "recorded_route_paths": [
+        "/route/v1/driving/-75.4712794,40.6022059;-74.4041622,40.0757384"
+      ],
+      "expected_origin": "-75.4716115,40.6022552",
+      "created_page_count": 3,
+      "declared_start_page_count": 2,
+      "max_action_tab_index": 2
+    },
+    {
+      "task_id": "webarena-811",
+      "evidence_id": "wv-1.2.3-invalid-array-schema-811",
+      "source_trace_sha256": "dd0dea5610fa4c8954a2957ad94e49a8cc49a04eed6e6a3e4401209e123ce9a0",
+      "passed": true,
+      "issue_path": "/a11yproject/a11yproject.com/-/issues/1478.json",
+      "recorded_methods": [
+        "GET"
+      ],
+      "expected_put_event_count": 0,
+      "recorded_get_event_count": 1
+    }
+  ]
+}

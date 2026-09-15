@@ -10,12 +10,16 @@ website accounts, or login state.
 
 ## Published reports
 
-[Public WebMainBench-545 Web Fetch report](https://artifact-hub.app.lexmount.com/v/vq5RkI1fAkFfx_v3cUEHUbxaRh2nxBJX) is the current report bound in
-`evaluation/current-report.json`.
+- [Public WebMainBench-545 Web Fetch report](https://artifact-hub.app.lexmount.com/v/vq5RkI1fAkFfx_v3cUEHUbxaRh2nxBJX)
+- [浏览器工具调用轨迹重放微基准](https://artifact-hub.dev.lexmount.net/s/zzzUqvSKjTFB)
+- [公开 WebArena 人工轨迹固定回放](https://artifact-hub.app.lexmount.com/v/EpR29VQ99CAgQsT-xdCSX8yg_O7DlWyL)
 
-[Five-browser live-URL reference report](https://artifact-hub.app.lexmount.com/api/preview/UUAhhQMnrGwm#page=guide%2Findex.html) is a separate evaluation, not the
-publication target for the public-benchmark report. Generated report files are
-local build outputs and are not committed to this repository.
+These are separate datasets and report targets. The Web Fetch report is bound in
+`evaluation/current-report.json`; the
+[five-browser live-URL reference report](https://artifact-hub.app.lexmount.com/api/preview/UUAhhQMnrGwm#page=guide%2Findex.html)
+is not its publication target. The public WebArena runner and reproduction contract are in
+[examples/trajectory_replay/public_webarena/README.md](examples/trajectory_replay/public_webarena/README.md).
+Generated report files are local build outputs and are not committed to Git.
 
 ## Run the browser evaluation
 
@@ -46,6 +50,7 @@ measurement protocol, complexity tiers, overrides, and CubeSandbox decision.
 ## Harness layout
 
 - `harness/trajectory_replay`: fixed-action trajectory-replay execution, metrics, and reports
+- `harness/trajectory_replay/public_webarena`: public WebArena human-recording replay
 - `harness/browser_use`: autonomous CowAgent execution with official WebArena-Verified scoring
 - `harness/web_fetch`: Web Fetch providers, execution, scoring, and reports
 
