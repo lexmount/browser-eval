@@ -122,6 +122,27 @@ def check(report_dir: Path) -> dict[str, int]:
     en_tasks = {path.name for path in (root / "en/task").glob("*.html")}
     if zh_tasks != en_tasks or zh_tasks != {f"{task_id}.html" for task_id in task_ids}:
         raise ValueError("every task needs matching Chinese and English contract routes")
+    for task_id in task_ids:
+        frozen_path = root / "data/trajectory" / f"{task_id}.json"
+        if not frozen_path.is_file():
+            raise ValueError(f"qualified trajectory is missing for task {task_id}")
+        frozen = json.loads(frozen_path.read_text(encoding="utf-8"))
+        action_count = len(frozen.get("tool_calls") or [])
+        if frozen.get("task_id") != task_id or action_count < 1:
+            raise ValueError(f"qualified trajectory is invalid for task {task_id}")
+        for participant in participants:
+            key = f"{participant}-{task_id}"
+            for language_root in (root, root / "en"):
+                page = language_root / "result" / f"{key}.html"
+                text = page.read_text(encoding="utf-8")
+                relative_root = "../" if language_root == root else "../../"
+                if (
+                    text.count('class="aligned-step ') != action_count
+                    or f'data-standard-url="{relative_root}data/trajectory/{task_id}.json"' not in text
+                    or f'data-evidence-url="{relative_root}data/evidence/{key}.json"' not in text
+                    or 'id="step-dialog"' not in text
+                ):
+                    raise ValueError(f"result detail lacks aligned step evidence: {page}")
     core_names = (
         "index.html",
         "dataset.html",
@@ -220,6 +241,8 @@ def check(report_dir: Path) -> dict[str, int]:
     js = (root / "assets/app.js").read_text(encoding="utf-8")
     if "const task=params.get('task');" not in js or "row.dataset.task===task" not in js:
         raise ValueError("dataset-to-results drilldown must select an exact task ID")
+    if "const stepDialog=document.querySelector('#step-dialog');" not in js or "Promise.all([standard(),evidence()])" not in js:
+        raise ValueError("step dialog must load qualified and actual evidence on demand")
     for page in (root / "results.html", root / "en/results.html"):
         rendered = page.read_text(encoding="utf-8")
         baseline = re.search(r'<select data-matrix-baseline>(.*?)</select>', rendered, re.S)

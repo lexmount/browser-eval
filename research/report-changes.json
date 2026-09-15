@@ -132,6 +132,38 @@
           }
         }
       }
+    },
+    {
+      "id": "2026-09-15-trajectory-replay-aligned-step-evidence",
+      "date": "2026-09-15",
+      "title": "逐步并排对照标准轨迹与浏览器执行",
+      "summary": "逐题结果页按动作序号并排展示已验证的固定轨迹与实际执行，保留未执行步骤；点击任一步可查看标准与实际参数、完整工具返回、日志及原始报错。最后页面截图明确不冒充该步即时截图。",
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "7dF7uNK5SKIx",
+        "share_url": "https://artifact-hub.app.lexmount.com/v/hkZt38QFBpNIKtThKnqjpnBQk8At19PM",
+        "version": "ver_fcd443ac19fe403f8baa3442262246e1"
+      },
+      "effects": {
+        "score": "Chromium 90/90、Moli 54/90；评分未变。",
+        "denominator": "每浏览器 90 题，共 180 个逻辑结果。",
+        "latency": "未修改计时或资源测量。",
+        "evidence": "标准轨迹和逐次执行证据按需读取；861 个公开文件、552 个 HTML 页面、10,872 条本地链接和 72 个视觉状态通过检查。",
+        "limitations": "轨迹是经验证的可行输入，不代表任务唯一正确操作路径；最后页面截图不等同于动作报错瞬间。"
+      },
+      "i18n": {
+        "en": {
+          "title": "Align qualified actions with each browser's execution",
+          "summary": "Task results align the qualified fixed trajectory with actual execution by action index and retain steps that were not executed. Opening a step shows qualified and actual arguments, the complete tool response, logs, and exact error. The last observed page is not mislabeled as a screenshot of that step.",
+          "effects": {
+            "score": "Scores remain Chromium 90/90 and Moli 54/90.",
+            "denominator": "90 tasks per browser and 180 logical outcomes in total.",
+            "latency": "No timing or resource measurements changed.",
+            "evidence": "Qualified trajectories and execution evidence load on demand. Checks passed for 861 public files, 552 HTML pages, 10,872 local links, and 72 visual states.",
+            "limitations": "The trajectory is one qualified feasible input, not the only correct route. The last observed page is not necessarily the moment of an action error."
+          }
+        }
+      }
     }
   ],
   "browser_use_reviews": [

@@ -352,24 +352,36 @@ def _detail_page(
             + (' aria-current="page"' if peer_key == key else '')
             + f'><span>{_e(peer["browser"])}</span><strong>{peer_status}</strong></a>'
         )
+    actual_by_index = {int(step["index"]): step for step in evidence["trajectory"]}
     steps = []
-    for step in evidence["trajectory"]:
-        arguments = step.get("arguments") or {}
-        action = arguments.get("action") or ""
-        target = arguments.get("selector") or arguments.get("url") or arguments.get("key") or ""
-        number = step.get("index")
+    for number, planned in enumerate(task.get("tool_calls") or [], 1):
+        actual = actual_by_index.get(number)
+        planned_target = planned.get("selector") or planned.get("url") or planned.get("key") or ""
+        actual_arguments = (actual or {}).get("arguments") or {}
+        actual_target = actual_arguments.get("selector") or actual_arguments.get("url") or actual_arguments.get("key") or ""
+        actual_result = str((actual or {}).get("result") or "")
+        preview = actual_result.splitlines()[0][:160] if actual_result else ""
         failed_step = failed_index == number
-        result = str(step.get("result") or "")
-        first_line = result.splitlines()[0] if result else ""
+        actual_status = str((actual or {}).get("status") or "")
+        status_text = (
+            ("未执行", "Not executed") if actual is None
+            else ("报错", "Error") if actual_status == "error"
+            else ("完成", "Completed")
+        )[0 if zh else 1]
+        status_class = "status-muted" if actual is None else "status-fail" if actual_status == "error" else "status-pass"
+        duration = f'{float(actual.get("duration_ms") or 0) / 1000:.2f} s' if actual else "—"
         steps.append(
-            f'<article id="step-{number}" class="trace-step {"failed-step" if failed_step else ""}">'
-            f'<div class="step-heading"><span class="step-number">{number}</span><strong>{_e(action)}</strong>'
-            f'<span class="step-status {"status-fail" if step.get("status") == "error" else "status-pass"}">{_e(step.get("status"))}</span>'
-            f'<span>{_e(round(float(step.get("duration_ms") or 0) / 1000, 2))} s</span></div>'
-            f'<p class="step-target">{_e(target)}</p><p class="step-preview">{_e(first_line[:240])}</p>'
-            f'<details {"open" if failed_step else ""}><summary>{"完整动作参数与返回" if zh else "Full action arguments and response"}</summary>'
-            f'<div class="step-data"><div><h4>{"动作参数" if zh else "Arguments"}</h4><pre>{_e(json.dumps(_clean(arguments), ensure_ascii=False, indent=2))}</pre></div>'
-            f'<div><h4>{"完整返回与报错" if zh else "Full response and error"}</h4><pre>{_e(_clean(result))}</pre></div></div></details></article>'
+            f'<article id="step-{number}" class="aligned-step {"failed-step" if failed_step else ""}">'
+            f'<div class="aligned-index"><span class="step-number">{number}</span></div>'
+            f'<div class="aligned-standard"><span class="mobile-step-label">{"标准轨迹" if zh else "Qualified input"}</span><strong>{_e(planned.get("action") or "")}</strong>'
+            f'<code>{_e(planned_target)}</code><button type="button" data-open-step="{number}">'
+            f'{"查看标准参数" if zh else "Qualified arguments"}</button></div>'
+            f'<div class="aligned-actual"><span class="mobile-step-label">{"实际执行" if zh else "Actual execution"}</span><div class="aligned-actual-head"><strong>{_e(actual_arguments.get("action") or "—")}</strong>'
+            f'<span class="{status_class}">{status_text}</span><span>{_e(duration)}</span></div>'
+            f'<code>{_e(actual_target) if actual else "—"}</code>'
+            f'<p>{_e(preview) if preview else ("没有工具返回" if zh else "No tool response")}</p>'
+            f'<button type="button" data-open-step="{number}">'
+            f'{"查看实际参数、日志与报错" if zh else "Actual arguments, logs and error"}</button></div></article>'
         )
     screenshot = (
         f'<figure><a href="{report_root}{evidence["screenshot"]}"><img src="{report_root}{evidence["screenshot"]}" alt="{"失败后的最后页面" if zh else "Last page after failure"}"></a><figcaption>{"失败后保存的最后页面；不等同于错误发生瞬间。点击查看原图。" if zh else "Last page saved after failure, not necessarily the error instant. Open the full image."}</figcaption></figure>'
@@ -395,7 +407,8 @@ def _detail_page(
     <section class="compact-section"><h2>{"同题浏览器结果" if zh else "All browser results for this task"}</h2><div class="peer-list">{''.join(peer_cells)}</div></section>
     <section class="compact-section"><div class="verdict-line {attempt["status"]}"><strong>{status}</strong><span>{_e(stage) if attempt["status"] != "pass" else ("固定轨迹及官方验收均通过" if zh else "Qualified trajectory and official evaluation passed")}</span></div><div class="fact-strip">{fact_html}</div></section>
     {failure_panel}
-    <section id="trajectory"><h2>{"本浏览器的动作执行记录" if zh else "Executed actions in this browser"}</h2><p>{"逐项展开可查看完整参数、页面快照、工具返回和原始报错；红色标注的是实际失败动作。" if zh else "Expand an action for its full arguments, page snapshot, tool response, and exact error. Red marks the failed action."}</p><div class="trace-list">{''.join(steps)}</div></section>
+    <section id="trajectory"><h2>{"标准轨迹与实际执行" if zh else "Qualified trajectory and actual execution"}</h2><p>{"左侧是所有浏览器共用的已验证固定输入，右侧是本浏览器的实际操作。未执行不等于动作报错；点击任一步读取完整参数、工具返回、日志和原始报错。" if zh else "The left column is the qualified fixed input shared by all browsers; the right column is this browser's execution. Not executed does not mean an action error. Open a step for exact arguments, tool response, logs and errors."}</p><div class="trajectory-columns"><span>#</span><strong>{"标准轨迹" if zh else "Qualified input"}</strong><strong>{"本浏览器实际执行" if zh else "Actual execution in this browser"}</strong></div><div class="trace-list">{''.join(steps)}</div></section>
+    <dialog id="step-dialog" data-evidence-url="{report_root}data/evidence/{key}.json" data-standard-url="{report_root}data/trajectory/{attempt['task_id']}.json"><div class="dialog-head"><strong data-step-title></strong><button type="button" data-close-step aria-label="{'关闭逐步证据' if zh else 'Close step evidence'}">×</button></div><div class="dialog-body"><p data-step-status></p><div class="step-dialog-grid"><div><h3>{"标准动作参数" if zh else "Qualified action arguments"}</h3><pre data-step-planned></pre></div><div><h3>{"实际动作参数" if zh else "Actual action arguments"}</h3><pre data-step-actual></pre></div></div><h3>{"工具返回、日志与报错" if zh else "Tool response, logs and error"}</h3><pre data-step-result></pre><div data-step-finding hidden><h3>{"程序原始失败判定" if zh else "Exact programmatic failure"}</h3><pre data-step-error></pre></div><p data-step-image-wrap hidden><a data-step-image target="_blank" rel="noopener">{"查看最后观测页面（并非该步截图）" if zh else "Open last observed page (not a screenshot of this step)"}</a></p><p><a href="../evidence-viewer.html?file={viewer_file}">{"查看完整执行证据" if zh else "Inspect complete execution evidence"}</a></p></div></dialog>
     <section id="evidence"><h2>{"验收、资源与页面证据" if zh else "Evaluation, resources, and page evidence"}</h2><div class="evidence-actions"><a href="../evidence-viewer.html?file={viewer_file}">{"网页查看完整证据" if zh else "Inspect complete evidence in the browser"}</a><a href="{report_root}data/evidence/{key}.json">{"下载净化 JSON" if zh else "Download sanitized JSON"}</a></div>{screenshot}</section>'''
     title = (
         f"{method['label']} · 任务 #{attempt['task_id']}"
@@ -480,8 +493,13 @@ body{background:linear-gradient(180deg,var(--wash) 0,transparent 240px),var(--bg
 .dataset-browser{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:var(--shadow)}.dataset-browser h2{margin-bottom:4px}.dataset-browser>p{margin:0;color:var(--muted)}.dataset-controls{display:grid;grid-template-columns:minmax(220px,2fr) repeat(3,minmax(145px,1fr));gap:12px;margin:22px 0 10px}.dataset-controls label{display:grid;gap:5px;color:var(--muted);font-size:13px;font-weight:700}.dataset-controls input,.dataset-controls select{width:100%;padding:10px 12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;font:inherit}.dataset-count{color:var(--accent);font-weight:700;margin:10px 0}.dataset-table{height:590px}.dataset-table table{min-width:950px}.dataset-table td,.dataset-table th{vertical-align:middle;white-space:normal;overflow-wrap:normal}.dataset-table td:nth-child(2){min-width:190px}.dataset-table td:nth-child(3){min-width:330px;max-width:460px}.intent-preview{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.45}.dataset-table td:last-child{white-space:nowrap}.dataset-table a{font-weight:700}.dataset-actions{display:flex;gap:10px;flex-wrap:wrap}.dataset-actions a{white-space:nowrap}.dataset-table tbody tr:hover{background:var(--wash)}.dataset-empty{color:var(--muted);padding:20px 0}
 .mermaid svg{min-width:850px;height:auto!important}.flow-fallback{font-size:14px}.flow-node{min-width:170px}
 .review-table table{min-width:1120px}.review-table td:first-child{min-width:145px;font-weight:700}.review-table td:nth-child(n+2){min-width:230px;max-width:320px}.review-table td{overflow-wrap:anywhere}
+.trajectory-columns,.aligned-step{display:grid;grid-template-columns:48px minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
+.trajectory-columns{padding:0 18px 10px;color:var(--muted);font-size:13px}.aligned-step{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px 18px}
+.aligned-step.failed-step{border:2px solid var(--bad);background:color-mix(in srgb,var(--bad) 5%,var(--panel))}.aligned-standard,.aligned-actual{min-width:0;display:grid;gap:7px}.aligned-standard{border-right:1px solid var(--line);padding-right:12px}.aligned-step code{color:var(--muted);font:13px/1.45 ui-monospace,SFMono-Regular,monospace;overflow-wrap:anywhere}.aligned-step button{justify-self:start;border:0;background:transparent;color:var(--accent);font:inherit;font-weight:700;padding:4px 0;text-align:left}.aligned-actual-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.aligned-actual-head span:last-child{margin-left:auto;color:var(--muted)}.aligned-actual p{margin:0;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.status-muted{color:var(--muted)}
+.mobile-step-label{display:none;color:var(--muted);font-size:12px}.step-dialog-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.step-dialog-grid>div{min-width:0}.step-dialog-grid pre{max-height:250px}.step-dialog-grid h3{margin-top:8px}.step-dialog-grid pre,[data-step-result],[data-step-error]{max-width:100%}
 @media(max-width:760px){.top{padding:0 14px}.comparison-heading{display:block}.comparison-count{display:inline-block;margin-top:10px}.comparison-controls{grid-template-columns:1fr}.method-comparison{padding:16px}main,footer{width:calc(100% - 28px)}}
 @media(max-width:760px){.dataset-browser{padding:16px}.dataset-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.dataset-controls label:first-child{grid-column:1/-1}.dataset-table{height:510px}}
+@media(max-width:760px){.trajectory-columns{display:none}.aligned-step{grid-template-columns:34px minmax(0,1fr);padding:12px}.aligned-index{grid-row:1/3}.aligned-standard{border-right:0;border-bottom:1px solid var(--line);padding:0 0 10px}.mobile-step-label{display:block}.step-dialog-grid{grid-template-columns:1fr}}
 '''
     js = r'''const lang=document.documentElement.lang;
 const zh=lang==='zh';
@@ -600,6 +618,55 @@ if(inventory){
   });
   dialog?.querySelector('.dialog-head button')?.addEventListener('click',()=>dialog.close());
 }
+const stepDialog=document.querySelector('#step-dialog');
+if(stepDialog){
+  let requestId=0;
+  let evidencePromise;
+  let standardPromise;
+  const evidence=()=>evidencePromise??=fetchJson(stepDialog.dataset.evidenceUrl);
+  const standard=()=>standardPromise??=fetchJson(stepDialog.dataset.standardUrl);
+  document.querySelector('#trajectory')?.addEventListener('click',async event=>{
+    const button=event.target.closest('button[data-open-step]');
+    if(!button)return;
+    const index=Number(button.dataset.openStep);
+    const current=++requestId;
+    stepDialog.querySelector('[data-step-title]').textContent=(zh?'第 ':'Step ')+index+(zh?' 步':'');
+    stepDialog.querySelector('[data-step-status]').textContent=zh?'正在读取逐步证据…':'Loading step evidence…';
+    for(const key of ['planned','actual','result','error'])stepDialog.querySelector('[data-step-'+key+']').textContent='';
+    stepDialog.querySelector('[data-step-finding]').hidden=true;
+    stepDialog.querySelector('[data-step-image-wrap]').hidden=true;
+    if(!stepDialog.open)stepDialog.showModal();
+    try{
+      const [frozen,measured]=await Promise.all([standard(),evidence()]);
+      if(current!==requestId||!stepDialog.open)return;
+      const planned=frozen.tool_calls[index-1];
+      const actual=(measured.trajectory||[]).find(item=>item.index===index);
+      if(!planned)throw Error(zh?'标准轨迹缺少该步':'Qualified trajectory is missing this step');
+      stepDialog.querySelector('[data-step-planned]').textContent=JSON.stringify(planned,null,2);
+      stepDialog.querySelector('[data-step-actual]').textContent=actual?JSON.stringify(actual.arguments||{},null,2):(zh?'未执行':'Not executed');
+      stepDialog.querySelector('[data-step-result]').textContent=actual?(actual.result||''):(zh?'该步没有工具调用或返回。':'No tool call or response for this step.');
+      stepDialog.querySelector('[data-step-status]').textContent=actual
+        ?(zh?'实际状态：':'Actual status: ')+(actual.status||'—')+' · '+((Number(actual.duration_ms)||0)/1000).toFixed(2)+' s'
+        :(zh?'实际状态：未执行':'Actual status: not executed');
+      const finding=measured.programmatic_failure;
+      if(finding&&(finding.step===index||finding.trigger_step===index)){
+        stepDialog.querySelector('[data-step-finding]').hidden=false;
+        stepDialog.querySelector('[data-step-error]').textContent=finding.message||'';
+        if(finding.expected_network)stepDialog.querySelector('[data-step-error]').textContent+='\n\n'+JSON.stringify(finding.expected_network,null,2);
+      }
+      if(measured.screenshot){
+        stepDialog.querySelector('[data-step-image-wrap]').hidden=false;
+        stepDialog.querySelector('[data-step-image]').href=(zh?'../':'../../')+measured.screenshot;
+      }
+    }catch(error){
+      if(current!==requestId||!stepDialog.open)return;
+      stepDialog.querySelector('[data-step-status]').textContent=(zh?'逐步证据读取失败：':'Could not load step evidence: ')+error.message;
+      evidencePromise=undefined;standardPromise=undefined;
+    }
+  });
+  stepDialog.querySelector('[data-close-step]')?.addEventListener('click',()=>stepDialog.close());
+  stepDialog.addEventListener('close',()=>{requestId++});
+}
 const viewer=document.querySelector('[data-evidence-viewer]');
 if(viewer){
   const selected=new URLSearchParams(location.search).get('file');
@@ -647,6 +714,11 @@ def build_webarena_replay_report(
     _assets(output)
 
     tasks = {int(item["task_id"]): item for item in dataset["trajectories"]}
+    for task_id, task in tasks.items():
+        _write_json(output / "data/trajectory" / f"{task_id}.json", {
+            "task_id": task_id,
+            "tool_calls": task.get("tool_calls") or [],
+        })
     methods = {item["engine"]: item for item in profile["methods"]}
     attempts = results["attempts"]
     if {(item["engine"], int(item["task_id"])) for item in attempts} != {

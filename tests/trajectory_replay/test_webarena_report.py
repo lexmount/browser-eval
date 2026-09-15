@@ -107,10 +107,40 @@ def test_replay_task_and_result_have_connected_drilldown() -> None:
     detail = _detail_page("zh", attempt, task, {"label": "Moli"}, evidence, peers)
     assert 'id="step-1"' in detail
     assert 'href="#step-1"' in detail
-    assert "Call log: #latest" in detail
+    assert 'data-open-step="1"' in detail
+    assert 'data-standard-url="../data/trajectory/29.json"' in detail
+    assert 'data-evidence-url="../data/evidence/moli-29.json"' in detail
+    assert "Call log: #latest" not in detail  # Full logs load only when a step is opened.
+    assert "标准轨迹与实际执行" in detail
     assert "目标没有出现" in detail
     assert 'href="../task/29.html"' in detail
     assert 'href="../evidence-viewer.html?file=data/evidence/moli-29.json"' in detail
+
+
+def test_unexecuted_qualified_step_stays_visible_and_is_not_called_an_action_error() -> None:
+    task = {
+        "task_id": 29,
+        "task": {"intent": "Find the latest post", "sites": ["reddit"]},
+        "tool_calls": [
+            {"action": "click", "selector": "#latest"},
+            {"action": "snapshot"},
+        ],
+    }
+    attempt = {
+        "engine": "moli", "task_id": 29, "status": "fail",
+        "completed_action_count": 0, "action_count": 2, "duration_ms": 1200,
+    }
+    evidence = {
+        "programmatic_failure": {"stage": "browser_tool_execution", "step": 1, "message": "Timed out"},
+        "review": None,
+        "trajectory": [{"index": 1, "arguments": {"action": "click"}, "status": "error", "result": "Timed out"}],
+        "screenshot": None,
+    }
+    detail = _detail_page("zh", attempt, task, {"label": "Moli"}, evidence, [])
+    assert 'id="step-2"' in detail
+    assert 'data-open-step="2"' in detail
+    assert "未执行" in detail
+    assert detail.count('class="aligned-step failed-step"') == 1
 
 
 def test_report_removes_macos_and_linux_local_paths() -> None:

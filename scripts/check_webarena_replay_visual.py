@@ -126,6 +126,8 @@ def check(report: Path, receipt: Path) -> None:
                 failed_key = _first_failed_key(report)
                 if failed_key is not None:
                     route_page = browser.new_page()
+                    page_errors: list[str] = []
+                    route_page.on("pageerror", lambda error: page_errors.append(str(error)))
                     route_page.goto(
                         f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/result/{failed_key}.html",
                         wait_until="domcontentloaded",
@@ -144,12 +146,65 @@ def check(report: Path, receipt: Path) -> None:
                     assert "/api/preview/replay/evidence-viewer.html" in route_page.locator(
                         "#evidence .evidence-actions a"
                     ).first.evaluate("element => element.href")
+                    step_button = route_page.locator(
+                        ".aligned-step.failed-step button[data-open-step]"
+                    ).first
+                    if step_button.count() == 0:
+                        step_button = route_page.locator(
+                            ".aligned-step button[data-open-step]"
+                        ).first
+                    step_button.click()
+                    try:
+                        route_page.locator('#step-dialog[open]').wait_for(timeout=5_000)
+                    except Exception as exc:
+                        state = route_page.evaluate(
+                            """() => ({dialog:document.querySelector('#step-dialog')?.open,
+                            button:document.querySelector('.aligned-step button[data-open-step]')?.outerHTML,
+                            fields:['title','status','planned','actual','result','error'].map(key=>[key,!!document.querySelector('#step-dialog [data-step-'+key+']')]),
+                            script:[...document.scripts].map(item=>item.src),
+                            theme:document.documentElement.dataset.theme})"""
+                        )
+                        raise ValueError(f"step dialog did not open: {state}; errors: {page_errors}") from exc
+                    route_page.wait_for_function(
+                        "() => document.querySelector('[data-step-planned]')?.textContent.includes('action')",
+                        timeout=5_000,
+                    )
+                    assert route_page.locator('[data-step-actual]').inner_text()
+                    assert route_page.locator('[data-step-result]').inner_text()
+                    route_page.locator('[data-close-step]').click()
                     route_page.locator('nav a[href="../index.html"]').first.click()
                     route_page.wait_for_url(
                         f"http://127.0.0.1:{server.server_port}/api/preview/replay/index.html"
                     )
                     route_page.locator("h1").wait_for()
                     route_page.close()
+                    for language in ("zh", "en"):
+                        modal_page = browser.new_page(viewport={"width": 390, "height": 844})
+                        prefix = "" if language == "zh" else "en/"
+                        modal_page.goto(
+                            f"http://127.0.0.1:{server.server_port}/{prefix}result/{failed_key}.html",
+                            wait_until="domcontentloaded",
+                        )
+                        modal_step = modal_page.locator(
+                            ".aligned-step.failed-step button[data-open-step]"
+                        ).first
+                        if modal_step.count() == 0:
+                            modal_step = modal_page.locator(
+                                ".aligned-step button[data-open-step]"
+                            ).first
+                        modal_step.click()
+                        modal_page.wait_for_function(
+                            "() => document.querySelector('[data-step-planned]')?.textContent.includes('action')",
+                            timeout=5_000,
+                        )
+                        dialog_box = modal_page.locator("#step-dialog").bounding_box()
+                        assert dialog_box and dialog_box["x"] >= 0
+                        assert dialog_box["x"] + dialog_box["width"] <= 390
+                        assert modal_page.locator("[data-step-result]").inner_text()
+                        modal_page.locator("#step-dialog").screenshot(
+                            path=str(screenshot_dir / f"step-dialog-{language}.png")
+                        )
+                        modal_page.close()
                 drill_page = browser.new_page()
                 drill_page.goto(
                     f"http://127.0.0.1:{server.server_port}/dataset.html",
