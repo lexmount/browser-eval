@@ -1,33 +1,79 @@
 """One disposable browser call. stdout is a single result, stderr diagnostics."""
-import json
 import base64
 import hashlib
-import subprocess
+import json
 import shutil
+import subprocess
 import sys
 import time
 from importlib.metadata import version
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from harness.web_fetch.providers.headless import cli_command
 from harness.web_fetch.document_text import extract_document_text
+from harness.web_fetch.providers.headless import cli_command, completion_metadata
 from harness.web_fetch.safety import validate_http_url
+
+
+def require_normalized_retrieval_plan(request):
+    """Enforce presence at this process boundary; the runner owns validation."""
+    plan = request.get('retrieval_plan')
+    if request.get('track') == 'dynamic' and not plan:
+        raise ValueError('dynamic tasks require a normalized retrieval_plan')
+    if request.get('track') not in {None, 'dynamic'} and plan:
+        raise ValueError('retrieval_plan is only valid for dynamic tasks')
+    return plan
 
 
 def fetch(request):
     # Match the provider boundary; this validates URL syntax, not network isolation.
     validate_http_url(request['url'])
+    plan = require_normalized_retrieval_plan(request)
     engine, timeout = request['engine'], request['timeout']
     output_mode = request.get('output_mode', 'html')
+    route_timeout = min(timeout, plan['timeout_ms'] / 1000) if plan else timeout
     start = time.monotonic()
-    meta = {}
+    meta = {'completion': completion_metadata(engine, plan, output_mode)}
+    if meta['completion'] is not None:
+        meta['completion']['effective_route_timeout_ms'] = round(route_timeout * 1000)
     html = ''
     try:
+        if engine == 'kitesurf' and request.get('remote_markdown_api'):
+            from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
+
+            provider = CloudflareMarkdownProvider('kitesurf', {
+                'account_id': request['account_id'],
+                'api_token': request['api_token'],
+                'browser': request.get('browser', 'kitesurf'),
+                'wait_until': request.get('wait_until', 'networkidle2'),
+                'max_bytes': request.get('max_bytes', 20_000_000),
+            })
+            result = provider.fetch(
+                type('Case', (), {'url': request['url'], 'task_kind': request.get('task_kind', 'body')})(),
+                timeout,
+            )
+            return {
+                'ok': result.ok,
+                'content': result.content,
+                'html': '',
+                'status_code': result.status_code,
+                'final_url': result.final_url,
+                'title': result.title,
+                'error_type': result.error_type,
+                'error_message': result.error_message,
+                'metadata': result.metadata,
+            }
         if engine in ('moli', 'obscura', 'lightpanda'):
-            command = cli_command(engine, request['binary'], request['url'], timeout, output_mode,
-                                  request.get('wait_until'))
-            result = subprocess.run(command, capture_output=True, timeout=timeout)
+            command = cli_command(
+                engine,
+                request['binary'],
+                request['url'],
+                route_timeout,
+                output_mode,
+                request.get('wait_until'),
+                plan,
+            )
+            result = subprocess.run(command, capture_output=True, timeout=route_timeout)
             meta.update(browser_exit_code=result.returncode,
                         browser_stderr=result.stderr.decode('utf-8', 'replace')[:4096])
             if result.returncode:
@@ -77,13 +123,27 @@ def fetch(request):
                     browser = p.chromium.connect_over_cdp(request['endpoint'], timeout=timeout*1000)
                 else:
                     browser = p.chromium.launch(executable_path=request['binary'], headless=True,
-                        timeout=timeout*1000)
+                        args=request.get('browser_args') or [], timeout=timeout*1000)
                 try:
                     meta['browser_version'] = browser.version
                     context = browser.new_context()
                     page = context.new_page()
-                    response = page.goto(request['url'], wait_until=request.get('wait_until') or 'domcontentloaded',
-                        timeout=max(1, (timeout-(time.monotonic()-start))*1000))
+                    response = page.goto(
+                        request['url'],
+                        wait_until=request.get('wait_until') or 'domcontentloaded',
+                        timeout=max(1, (route_timeout-(time.monotonic()-start))*1000),
+                    )
+                    if plan:
+                        remaining_ms = max(1, min(
+                            plan['timeout_ms'],
+                            (route_timeout-(time.monotonic()-start))*1000,
+                        ))
+                        if plan['wait_kind'] == 'selector':
+                            page.wait_for_selector(plan['wait_value'], timeout=remaining_ms)
+                        else:
+                            page.wait_for_function(plan['wait_value'], timeout=remaining_ms)
+                        if plan['delay_ms']:
+                            page.wait_for_timeout(plan['delay_ms'])
                     # Avoid Playwright's XMLSerializer helper, which is not
                     # implemented by every CDP engine. Same expression for both.
                     html = page.evaluate('document.documentElement.outerHTML')

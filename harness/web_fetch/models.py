@@ -30,13 +30,16 @@ class EvalCase:
     source_benchmark: dict[str, Any] = field(default_factory=dict)
     ground_truth_main_content: str = ""
     expected_resources: list[dict[str, Any]] = field(default_factory=list)
+    resource_output_contract: dict[str, Any] = field(default_factory=dict)
     content_score_applicable: bool = True
     track: str = "web"
     required_patterns: list[dict[str, Any]] = field(default_factory=list)
     source_verification: dict[str, Any] = field(default_factory=dict)
     task_kind: str = "body"
     acceptance_contract: dict[str, Any] = field(default_factory=dict)
+    mutable_body_policy: dict[str, Any] = field(default_factory=dict)
     body_requirements: dict[str, Any] = field(default_factory=dict)
+    retrieval_hints: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

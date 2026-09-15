@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from harness.web_fetch.config import expand_env, load_env_file, load_runtime_env
+from scripts.import_benchmark_env import HOSTED_KEYS, import_credentials
 
 
 class ConfigTest(unittest.TestCase):
@@ -75,6 +76,41 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(build_parser().parse_args(['validate']).dataset,root/'evaluation/dataset.json')
         provider=SubprocessJsonlProvider('test',{'command':['python3'],'repo_path':'.'})
         self.assertEqual(provider._resolve_token('{harness_root}/scripts/oss/langchain_webbase_worker.py'),str(root/'scripts/oss/langchain_webbase_worker.py'))
+
+    def test_hosted_credentials_are_explicitly_and_selectively_imported(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "home.env"
+            target = root / "repo.env"
+            source.write_text(
+                "\n".join(
+                    [f"export {key} = value-{index}" for index, key in enumerate(HOSTED_KEYS)]
+                    + ["UNRELATED_SECRET=do-not-copy"]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            imported, missing = import_credentials(source, target)
+            self.assertEqual(tuple(imported), HOSTED_KEYS)
+            self.assertEqual(missing, [])
+            payload = target.read_text(encoding="utf-8")
+            self.assertNotIn("UNRELATED_SECRET", payload)
+            self.assertEqual(target.stat().st_mode & 0o777, 0o600)
+            with patch.dict(os.environ, {}, clear=True):
+                load_env_file(target)
+                self.assertTrue(all(os.environ.get(key) for key in HOSTED_KEYS))
+
+    def test_import_preserves_existing_values_and_reports_missing_without_values(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "home.env"
+            target = root / "repo.env"
+            source.write_text(f"{HOSTED_KEYS[0]}=source\n", encoding="utf-8")
+            target.write_text(f"{HOSTED_KEYS[0]}=existing\n", encoding="utf-8")
+            imported, missing = import_credentials(source, target)
+            self.assertEqual(imported, [])
+            self.assertEqual(missing, list(HOSTED_KEYS[1:]))
+            self.assertEqual(target.read_text(encoding="utf-8"), f"{HOSTED_KEYS[0]}=existing\n")
 
 
 if __name__ == "__main__":

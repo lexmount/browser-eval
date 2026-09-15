@@ -12,7 +12,10 @@ def prepare_answer(result, case):
     # This required representation conversion is inside the measured call.
     result.prepared_answer = answer_input(result.content.encode('utf-8', errors='replace'), result.metadata,
                  ok=result.ok, status_code=result.status_code)
-    if case.task_kind == 'file':
+    # Persist and fingerprint every returned binary, including incidental
+    # downloads produced while a body task is being fetched.  Only ``file``
+    # tasks use this evidence for acceptance; body tasks still require text.
+    if case.task_kind == 'file' or result.files:
         files = []
         for item in result.files:
             raw = item.get('data')
@@ -58,8 +61,18 @@ def fetch_with_deadline(provider, case, timeout):
         value = TimeoutError('End-to-end answer deadline exceeded')
     if isinstance(value, TimeoutError):
         # Completion/cancellation cleanup is not additional answer budget.
+        answer_elapsed_ms = round((completed - begin) * 1000, 2)
         provider.cancel()
-        return ProviderResult(False, '', error_type='timeout', error_message=str(value)), worker
+        cleanup_seconds = max(0.0, float(provider.cancellation_cleanup_seconds))
+        if cleanup_seconds:
+            worker.join(cleanup_seconds)
+        return ProviderResult(
+            False,
+            '',
+            error_type='timeout',
+            error_message=str(value),
+            metadata={'_answer_elapsed_ms': answer_elapsed_ms},
+        ), worker
     if isinstance(value, Exception):
         raise value
     return value, worker

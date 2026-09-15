@@ -1,0 +1,105 @@
+{
+  "schema_version": 2,
+  "kind": "reference_freeze_promotion",
+  "input_dataset_sha256": "49ba793eefba5534d9c763392afa97a631cc92f3ef649894ec814b17ded6921c",
+  "capture_audit_sha256": "e716d2b60ae1533e40afad7231e007672f8e4b605c8062e8a6241a7ada9cc00e",
+  "candidate_dataset_sha256": "a6c498e2d3d636093d7d4708a881af6c3c5641db05a2e37e611be8db85f6ca9d",
+  "changes": [
+    {
+      "case_id": "stable-wikipedia-ai-revision",
+      "affected_scope": [
+        "ground_truth_main_content",
+        "body_requirements"
+      ],
+      "old_reference_sha256": "54bd50dcc208a7b8b0989419240deb5208df6d8f21907cb042855a69a9e7cb39",
+      "new_reference_sha256": "9b5ec27359f70aa996223f1ab40cb7f552c8ad209eb5fa5239a7e7e1c47d77e2",
+      "old_body_requirements_sha256": "e6f90a853f43999894e84575bfc895eaeffaceb0a8d8fe581aec194ea35912b0",
+      "new_body_requirements_sha256": "ad74dbe6ee435938d520a69481cd0c07c54fb2f9b85d355ad753aa1b72ca8b53",
+      "source_revision": {
+        "url": "https://en.wikipedia.org/w/index.php?title=Artificial_intelligence&oldid=1373671334",
+        "revision": "oldid:1373671334",
+        "source_snapshot_sha256": "cd6546c2cb63c83855a6bdb239938465ea17c1c7ef614a21adf0bcf716cfb4bf"
+      }
+    },
+    {
+      "case_id": "live-016-navigation-menu",
+      "affected_scope": [
+        "ground_truth_main_content",
+        "body_requirements"
+      ],
+      "old_reference_sha256": "600f73a188ed641c7b891dc7bf41f6483ea70982a18490e4c31af25e23646dde",
+      "new_reference_sha256": "f4c17022b6dc26eabfaff8495232c48e330d13fc08ab9a8753520223b3aee924",
+      "old_body_requirements_sha256": "0932d82f2093f47c3f8531d2535ee3103fa152db2f17aaa8dfa47c04b31145f0",
+      "new_body_requirements_sha256": "873095d3216a713b4c471a3223a26f404eac5b8b993083baa64966f1bb026923",
+      "source_revision": {
+        "url": "https://github.com/openai/openai-python",
+        "revision": "snapshot:995ce7a964b1f9e96a1ec254807603de00b7de206ccb6abca719a1517527b1e7",
+        "source_snapshot_sha256": "995ce7a964b1f9e96a1ec254807603de00b7de206ccb6abca719a1517527b1e7"
+      }
+    },
+    {
+      "case_id": "live-043-syntax",
+      "affected_scope": [
+        "ground_truth_main_content",
+        "body_requirements"
+      ],
+      "old_reference_sha256": "70dd5231669552b0543845c3049a63ef6114f327764df7ab2d1f358bc465ff66",
+      "new_reference_sha256": "e30091545652add8e4f437abbd84d224ee47a2ec735551ea84b65c55a181e37c",
+      "old_body_requirements_sha256": "2f76a466e78b4778b6ffce1363e628003834132eb1e34e314c30235b83234922",
+      "new_body_requirements_sha256": "01b247b05a152ee7bff06ea6f37d39c50aac2ffd394a5f81875b1012707bc237",
+      "source_revision": {
+        "url": "https://en.wikipedia.org/wiki/Cascading_Style_Sheets",
+        "revision": "snapshot:4d32db95cd09c6f01e759f9db8397185ff07676116d288d22afde4e11e78c914",
+        "source_snapshot_sha256": "4d32db95cd09c6f01e759f9db8397185ff07676116d288d22afde4e11e78c914"
+      }
+    },
+    {
+      "case_id": "live-063-navigation-menu",
+      "affected_scope": [
+        "ground_truth_main_content",
+        "body_requirements"
+      ],
+      "old_reference_sha256": "4091b673f5dbf7c52c940c7d029f1ea9f588c959bb7bc27f47b23d0783ce2769",
+      "new_reference_sha256": "f5587102b1cd98f674ea1a4eae17cb6154a4a4585b12595fa08bc978d5a1579e",
+      "old_body_requirements_sha256": "9e922a7c23b54a83048eac6e462d8795bf1cb15ee0d6614f4fa480d29f42f590",
+      "new_body_requirements_sha256": "a10b789d64d3a739cea4db8f393f2bf0b9b222c9923a35c1a9f0a2845067a8be",
+      "source_revision": {
+        "url": "https://github.com/astral-sh/ruff",
+        "revision": "snapshot:ed0cc41a8022d032cd76c7b0f8857967a7e45c35174afb413d377b17f28a5b5d",
+        "source_snapshot_sha256": "ed0cc41a8022d032cd76c7b0f8857967a7e45c35174afb413d377b17f28a5b5d"
+      }
+    },
+    {
+      "case_id": "live-067-navigation-menu",
+      "affected_scope": [
+        "ground_truth_main_content",
+        "body_requirements"
+      ],
+      "old_reference_sha256": "4540b07163c5265252e7fc6dff08f8c3504592c29da6806ad552298509218786",
+      "new_reference_sha256": "1a12ed21ede37a79e19fd152c353f1714958fe19eef55b260235be1a2fbc0ccb",
+      "old_body_requirements_sha256": "8742d49b7c48bbb262a5e8b0b75520cfd948e91188819a66c1216a7b3d1e9a8a",
+      "new_body_requirements_sha256": "8e6e5639e6625d27676377d61d5b181b7249721f51560e3e46c7d49fc75d177a",
+      "source_revision": {
+        "url": "https://github.com/infiniflow/ragflow",
+        "revision": "snapshot:261a18f0cc0f454593263f4fb60d61aeb6031df115dc505ddb9ddbbbb82dbefb",
+        "source_snapshot_sha256": "261a18f0cc0f454593263f4fb60d61aeb6031df115dc505ddb9ddbbbb82dbefb"
+      }
+    }
+  ],
+  "approved_by": "user",
+  "approved_at": "2026-09-11T08:30:05Z",
+  "task_decision_changes": [],
+  "correction_provenance": {
+    "category": "reference-evidence",
+    "root_cause": "Reference capture preserved page chrome and navigation outside the task-relevant main-content scope, while the acceptance contract was derived from that contaminated reference.",
+    "regression_ids": [
+      "reference-scope-retains-main-content",
+      "reference-scope-excludes-site-chrome"
+    ],
+    "verdict_corrections": {
+      "false_positives": 0,
+      "false_negatives": 1,
+      "total": 1
+    }
+  }
+}

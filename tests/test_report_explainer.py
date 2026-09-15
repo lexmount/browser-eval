@@ -10,13 +10,74 @@ import unittest
 
 from harness.web_fetch.scoring import score_attempt
 from harness.web_fetch.report import cell, link, table, succeeded, measured
-from harness.web_fetch.report_explainer import HUB, _bound_initial_audit, _dynamic_section, collect_evidence, render_explainer
+from harness.web_fetch.report_components import comparable_body_reference
+from harness.web_fetch.report_explainer import (HUB, _bound_initial_audit, _dynamic_section,
+    _speed_comparison, collect_evidence, render_explainer)
 from harness.web_fetch.report_style import STYLE
 from scripts.probe_cowagent_text import probe
 from harness.web_fetch.storage import current_evidence_dir
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = current_evidence_dir()
+
+
+class GenericSpeedExplainerTests(unittest.TestCase):
+    def test_twelve_method_article_renders_schema_two_speed_with_actual_denominators(self):
+        providers = [
+            'cloudflare-markdown', 'cowagent-built-in', 'crawl4ai',
+            'deepseek-harness-built-in', 'exa', 'firecrawl', 'langchain-webbase',
+            'lexmount-cn', 'lexmount-global', 'moli-webfetch',
+            'openclaw-built-in', 'tavily',
+        ]
+        case = {'id': 'ordinary', 'name': 'Ordinary', 'category': 'fixture',
+                'track': 'web', 'task_kind': 'body', 'url': 'https://example.com/',
+                'content_score_applicable': True, 'ground_truth_main_content': 'reference'}
+        records = [{
+            'provider': provider, 'provider_type': 'api', 'case_id': case['id'],
+            'attempt_id': f'{provider}__ordinary__r001', 'started_at': '2026-09-10T00:00:00Z',
+            'elapsed_ms': 100 + index, 'ok': True, 'artifact_path': f'artifacts/{provider}.txt',
+            'metrics': {'content_pass': True, 'word_f1': .8, 'word_recall': .8,
+                        'word_precision': .8},
+        } for index, provider in enumerate(providers)]
+        speed = {
+            'schema_version': 2, 'providers': providers,
+            'planned_cases': ['short', 'long', 'failure'], 'common_pass_cases': ['short'],
+            'rows': [{
+                'provider': provider, 'planned_attempts': 3, 'successful_attempts': 2,
+                'task_pass_rate': 2 / 3, 'all_calls_p50_ms': 200 + index,
+                'all_calls_p95_ms': 400 + index, 'successful_calls_p50_ms': 150 + index,
+                'successful_calls_p95_ms': 250 + index,
+            } for index, provider in enumerate(providers)],
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            out = Path(folder)
+            (out / 'speed-cohort').mkdir()
+            (out / 'speed-cohort/speed-comparison.json').write_text(json.dumps(speed))
+            page = render_explainer(out, {case['id']: case}, records)
+            evidence = json.loads((out / 'guide/interpretation-evidence.json').read_text())
+        self.assertIn('id="speed"', page)
+        self.assertIn('预先声明 3 题，12 种方法', page)
+        self.assertIn('每种方法最多 3 个单次观察', page)
+        self.assertIn('预声明的全部 36 次调用', page)
+        self.assertIn('全调用 P50 ms', page)
+        self.assertEqual(page.count('66.7%'), 12)
+        self.assertEqual(evidence['same_window_speed'], speed)
+        self.assertNotIn('100 个普通网页', page)
+
+    def test_schema_one_speed_keeps_common_success_interpretation(self):
+        speed = {'schema_version': 1, 'providers': ['a', 'b'],
+                 'planned_cases': ['one', 'two', 'three'], 'common_pass_cases': ['one', 'two'],
+                 'rows': [{'provider': name, 'attempts': 2, 'p50_ms': 10, 'p95_ms': 20}
+                          for name in ('a', 'b')]}
+        with tempfile.TemporaryDirectory() as folder:
+            out = Path(folder)
+            (out / 'speed-cohort').mkdir()
+            (out / 'speed-cohort/speed-comparison.json').write_text(json.dumps(speed))
+            table_html, note, loaded = _speed_comparison(out)
+        self.assertEqual(loaded, speed)
+        self.assertIn('共同成功样本', table_html)
+        self.assertIn('2/3', note)
+        self.assertNotIn('全调用 P50 ms', table_html)
 
 
 def _is_general_report_evidence():
@@ -180,6 +241,7 @@ class ExplainerTests(unittest.TestCase):
         for provider, summary in data['tracks']['web']['providers'].items():
             full = [r['metrics']['word_f1'] for r in self.records if r['provider']==provider
                     and self.cases[r['case_id']].get('track','web')=='web'
+                    and comparable_body_reference(self.cases[r['case_id']])
                     and r['metrics'].get('word_f1') is not None]
             self.assertEqual(summary['f1_records'],len(full))
             self.assertEqual(summary['mean_f1'],statistics.mean(full) if full else None)

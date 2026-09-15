@@ -20,6 +20,15 @@ from .stable_tasks import validate_acceptance_contract
 REGISTRY_VERSION = 2
 SNAPSHOT_METRIC_SCOPE = "captured_sample_diagnostic"
 
+# Explicit task-scope exclusions. These are reviewed observable tokens, not
+# inferred from localized task prose. ``annotate_case`` merges them into the
+# shared forbidden_any gate used by both live and offline scoring.
+DYNAMIC_FORBIDDEN_ANY = {
+    "dynamic-reviews-graphql": (
+        'data-testid="review-stars"',
+    ),
+}
+
 
 def _anchors(values, prefix):
     return [{"id": f"{prefix}-{i}", "alternatives": [value]} for i, value in enumerate(values, 1)]
@@ -275,7 +284,9 @@ def _live(url, hosts, path, anchors=(), evidence=None):
         "note": ("Only explicitly captured stable UI text is literal; item values and ranks are not fixed."
                  if anchors else "No stable non-item heading was retained in the declared source scope; no header is invented."),
         "contract": {"version": 1, "schema": "named_link", "minimum_records": 3,
-                     "hosts": hosts, "entry_path": path, "stable_text_anchors": list(anchors)}}
+                     "hosts": hosts, "entry_path": path,
+                     "entry_context": "list_or_card",
+                     "stable_text_anchors": list(anchors)}}
 
 
 # A closed, reviewed case registry, not inference from category/provider/fact IDs.
@@ -341,6 +352,15 @@ CASE_ANNOTATIONS['challenge-06']['note'] = ('Required restaurant-card field labe
 
 CASE_ANNOTATIONS['dynamic-react-cart']['contract']['field_minimum_records'] = {'financing': 15, 'shipping': 13}
 
+# The frozen task explicitly excludes controls and adjacent advertising from
+# the answer surface.  Keep those observable strings in the executable case
+# contract instead of relying on prose that the scorer cannot enforce.
+DYNAMIC_FORBIDDEN_ANY['dynamic-react-cart'] = (
+    'Add to cart',
+    'Work in the Netherlands',
+    'jeremy-akeze-doghouse-it-recruitment',
+)
+
 
 def annotate_case(case: dict) -> dict:
     """Return an annotated deep copy; unknown cases stay unchanged.
@@ -359,11 +379,18 @@ def annotate_case(case: dict) -> dict:
     contract = deepcopy(rule["contract"])
     validate_acceptance_contract(contract)
     result["acceptance_contract"] = contract
+    forbidden = result.setdefault("forbidden_any", [])
+    if (not isinstance(forbidden, list)
+            or any(not isinstance(value, str) or not value.strip() for value in forbidden)):
+        raise ValueError("Case forbidden_any must contain nonempty strings")
+    for value in DYNAMIC_FORBIDDEN_ANY.get(result["id"], ()):
+        if value not in forbidden:
+            forbidden.append(value)
     benchmark = result.setdefault("source_benchmark", {})
     if rule['track'] == 'challenge':
         benchmark.setdefault('captured_task_prompt', result.get('task_prompt', ''))
         labels = '；'.join(' / '.join(a['alternatives']) for a in contract['stable_text_anchors'])
-        answer = '返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。'
+        answer = '从目标列表或卡片返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则；正文推荐链接不算列表记录。'
         answer += ('同时保留这些任务相关文字：' + labels + '。') if labels else '本例没有独立的稳定文字核对依据，文字覆盖不计算。'
         answer += '不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。'
         result['reference_answer'] = answer

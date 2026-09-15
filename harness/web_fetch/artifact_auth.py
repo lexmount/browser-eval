@@ -1,4 +1,4 @@
-"""Artifact Hub's user-scoped publishing credential, separate from eval secrets."""
+"""Artifact Site's user-scoped publishing credential, separate from eval secrets."""
 import os
 from pathlib import Path
 import stat
@@ -8,29 +8,44 @@ from urllib.parse import urlsplit
 
 
 def token_path(base_url):
-    root = Path.home() / '.config/artifact-hub'
+    root = Path.home() / '.config/artifact-site'
     parsed = urlsplit(base_url)
     host = parsed.netloc.lower()
     if (parsed.scheme not in {'http', 'https'} or not parsed.hostname
             or parsed.username is not None or parsed.password is not None
             or host in {'.', '..'} or any(c.isspace() or c in '/\\' for c in host)):
-        raise ValueError('Artifact Hub base URL requires an HTTP(S) host without credentials')
+        raise ValueError('Artifact Site base URL requires an HTTP(S) host without credentials')
     # Include an explicit port, matching the server manual's host key.
     return root / 'tokens' / host
 
 
 def validate_token(token):
     if not token.startswith('ahp_') or any(c.isspace() for c in token):
-        raise ValueError('Invalid Artifact Hub token format')
+        raise ValueError('Invalid Artifact Site token format')
     return token
 
 
 def load_token(*, base_url):
-    # Explicit process environment, then the target host. Never .env.
-    path = token_path(base_url)
-    token = os.environ.get('ARTIFACT_HUB_TOKEN', '').strip()
+    # Explicit process environment, then the target host. Never .env. Previous
+    # product-name locations remain read-only migration fallbacks.
+    host = urlsplit(base_url).netloc.lower()
+    token = os.environ.get('ARTIFACT_SITE_TOKEN', '').strip()
     if not token:
-        token = path.read_text().strip()
+        token = os.environ.get('ARTIFACT_HUB_TOKEN', '').strip()
+    candidates = (
+        token_path(base_url),
+        Path.home() / '.config/artifact-hub' / 'tokens' / host,
+        Path.home() / '.config/artifact-site' / 'token',
+        Path.home() / '.config/artifact-hub' / 'token',
+    )
+    if not token:
+        for path in candidates:
+            try:
+                token = path.read_text().strip()
+            except FileNotFoundError:
+                continue
+            if token:
+                break
     return validate_token(token)
 
 

@@ -1,0 +1,19 @@
+{
+  "schema": "lexmount_webarena_cross_repo_contract/1",
+  "environment_repository": "https://github.com/lexmount/webarena-env",
+  "environment_pull_request": "https://github.com/lexmount/webarena-env/pull/2",
+  "webarena_verified_version": "1.2.3",
+  "environment_lock": "config/images.lock.json",
+  "environment_runtime_template": "config/runtime.example.json",
+  "environment_site_delivery_contract": "config/site-delivery-contract.json",
+  "evaluation_lock": "evaluation/browser-use-public/webarena-environment-images.json",
+  "evaluation_runtime_template": "examples/trajectory_replay/public_webarena/webarena.config.example.json",
+  "required_sites": [
+    "shopping_admin",
+    "shopping",
+    "reddit",
+    "gitlab",
+    "wikipedia",
+    "map"
+  ]
+}

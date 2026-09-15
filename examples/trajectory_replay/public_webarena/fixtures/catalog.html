@@ -1,0 +1,9 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Deterministic Catalog</title></head><body>
+<h1>Fixture Catalogue</h1><input id="filter" aria-label="filter"><button id="next">next page</button>
+<div id="page-label">catalogue:page:1</div><ul id="items"></ul><section id="detail">detail:none</section>
+<script>
+const filter=document.getElementById('filter'),items=document.getElementById('items'),detail=document.getElementById('detail'),pageLabel=document.getElementById('page-label');
+const pages=[[['amber','£11.00','A-101'],['birch','£17.00','B-202'],['cedar','£23.00','C-303']],[['delta','£29.00','D-404'],['elm','£31.00','E-505'],['fir','£37.00','F-606']],[['ginkgo','£41.00','G-707'],['hazel','£43.00','H-808']]];let current=0;
+function render(){let q=filter.value;items.innerHTML='';pages[current].filter(x=>!q||x[0].includes(q)).forEach(x=>{let li=document.createElement('li');li.textContent=`${x[0]}:${x[1]} `;let b=document.createElement('button');b.textContent='details';b.dataset.id=x[2];b.onclick=()=>detail.textContent=`detail:${x[0]}|${x[1]}|${x[2]}`;li.appendChild(b);items.appendChild(li)});pageLabel.textContent=`catalogue:page:${current+1}`}
+filter.oninput=render;next.onclick=()=>{current=Math.min(2,current+1);render()};render();
+</script></body></html>

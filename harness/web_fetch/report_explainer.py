@@ -8,16 +8,17 @@ from datetime import datetime, timezone
 from html import escape
 from pathlib import Path
 from string import Template
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 from .metrics import evaluate_content, task_passed, percentile
 from .scoring import score_attempt
 from .report_style import STYLE
 from .safety import contained_path, safe_identifier
+from .report_resources import render_resource_comparison
 
 
 TITLE = '网页抓取成功之后，内容离可用还有多远'
-HEADLESS_TITLE = 'Moli Web Fetch 实测：五款浏览器，150 道任务'
+HEADLESS_TITLE = '五类浏览器、七种方法取同一批网页：速度、正文与交付边界'
 from .publication_target import HUB
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).parent / 'templates/interpretation.html'
@@ -30,7 +31,9 @@ PROVIDER_NAMES = {'cowagent-built-in': 'CowAgent', 'moli-webfetch': 'Moli',
                   'deepseek-harness-built-in': 'DeepSeek Harness', 'tavily': 'Tavily',
                   'lexmount-global': 'Lexmount 国际', 'lexmount-cn': 'Lexmount 中国区',
                   'moli-1.0.6': 'Moli 1.0.6', 'moli': 'Moli 1.1.1',
-                  'moli-1.1.3': 'Moli 1.1.3'}
+                  'moli-1.1.3': 'Moli 1.1.3', 'chromium': 'Chromium',
+                  'kitesurf': 'Kitesurf', 'lightpanda': 'Lightpanda',
+                  'obscura': 'Obscura'}
 
 METHODOLOGY_FIGURES = (
     ('annotation', '混合标注：稳定文字、易变字段与全文参考',
@@ -124,16 +127,20 @@ def _bound_initial_audit(cases):
     raw = dataset_path.read_bytes()
     current = {c['id']: c for c in json.loads(raw)['cases']}
     # Other tracks' rules may change after this web-reference audit. Bind the
-    # published web claim to every current web reference and source below.
-    if current != cases:
+    # published claim to the complete web-case definitions, references and
+    # sources, without making unrelated dynamic retrieval metadata part of the
+    # web-reference claim.
+    current_web = {key: case for key, case in current.items()
+                   if case.get('track', 'web') == 'web'}
+    input_web = {key: case for key, case in cases.items()
+                 if case.get('track', 'web') == 'web'}
+    if current_web != input_web:
         return None
     indexed = {r['case_id']: r for r in audit['cases']}
-    if set(indexed) != set(cases):
+    if not set(input_web) <= set(indexed):
         return None
     rows = []
-    for key, case in cases.items():
-        if case.get('track', 'web') != 'web':
-            continue
+    for key, case in input_web.items():
         r = indexed[key]
         reference = case.get('ground_truth_main_content', '')
         expected_hash = hashlib.sha256(reference.encode()).hexdigest() if reference else None
@@ -148,8 +155,7 @@ def _bound_initial_audit(cases):
                      'reconstructed_sha256', 'exact_reconstruction', 'source_state')})
     return {'audited_dataset_sha256': audit['dataset_sha256'],
             'current_dataset_sha256': hashlib.sha256(raw).hexdigest(),
-            'current_web_cases_sha256': _digest({k: c for k, c in cases.items()
-                                                if c.get('track', 'web') == 'web'}), 'cases': rows,
+            'current_web_cases_sha256': _digest(input_web), 'cases': rows,
             'web_case_count': len(rows), 'exact_reconstructions':
             sum(r['exact_reconstruction'] is True for r in rows),
             'scope': 'frozen reference recoverability from saved initial HTML, not DOM visibility or JS necessity'}
@@ -273,6 +279,55 @@ def _table(headers, rows, caption):
             '<div class="editorial-table" role="region" tabindex="0" aria-label="' + escape(caption) + '">'
             '<table><caption>' + escape(caption) + '</caption><thead><tr>' + head + '</tr></thead>'
             '<tbody>' + body + '</tbody></table></div>')
+
+
+def _speed_comparison(out):
+    """Render the bound speed cohort without changing its declared denominator."""
+    path = contained_path(out, 'speed-cohort/speed-comparison.json')
+    if not path.is_file():
+        return '', '', None
+    speed = json.loads(path.read_text())
+    rows = speed.get('rows', [])
+    planned_cases = speed.get('planned_cases', [])
+    common_cases = speed.get('common_pass_cases', [])
+    provider_count = len(speed.get('providers') or rows)
+
+    def num(value):
+        return '—' if value is None else f'{value:,.0f}'
+
+    if speed.get('schema_version', 1) == 1:
+        table = _table(['方法', '共同成功样本', 'P50 ms', '样本 P95 ms'], [
+            (escape(PROVIDER_NAMES.get(row['provider'], row['provider'])),
+             str(row['attempts']), num(row['p50_ms']), num(row['p95_ms']))
+            for row in rows],
+            f'同窗速度子集：预先声明 {len(planned_cases)} 题，{provider_count} 种方法共同通过 '
+            f'{len(common_cases)} 题；所有方法使用完全相同的成功样本。P95 只作本次样本诊断。')
+        note = (f'<p class="callout">这份旧版测速汇总只使用 {len(common_cases)}/{len(planned_cases)} 个全部 '
+                f'{provider_count} 种方法共同通过的同窗任务；它保留原报告的共同成功样本口径，'
+                '不能补充解释失败等待，也不能与跨批次主结果直接排名。</p>')
+        return table, note, speed
+
+    if speed.get('schema_version') != 2:
+        raise ValueError(f'Unsupported speed-comparison schema: {speed.get("schema_version")}')
+    max_observations = max((row.get('planned_attempts', 0) for row in rows), default=0)
+    total_calls = sum(row.get('planned_attempts', 0) for row in rows)
+    table = _table(
+        ['方法', '计划调用', '任务通过', '通过率', '全调用 P50 ms', '全调用 P95 ms',
+         '通过调用 P50 ms', '通过调用 P95 ms'], [
+            (escape(PROVIDER_NAMES.get(row['provider'], row['provider'])),
+             str(row['planned_attempts']), str(row['successful_attempts']),
+             _percent(row['task_pass_rate']), num(row['all_calls_p50_ms']),
+             num(row['all_calls_p95_ms']), num(row['successful_calls_p50_ms']),
+             num(row['successful_calls_p95_ms']))
+            for row in rows],
+        f'同窗速度子集：预先声明 {len(planned_cases)} 题，{provider_count} 种方法使用同一完整任务样本。'
+        '全调用耗时包含成功、失败和截止超时；通过调用耗时按各方法自己的成功子集计算，分母必须同时阅读。'
+        f'每种方法最多 {max_observations} 个单次观察，P95 只作本次样本诊断。')
+    note = (f'<p class="callout">全部 {provider_count} 种方法共同通过 '
+            f'{len(common_cases)}/{len(planned_cases)} 题；共同通过数只作诊断，不用于筛选测速样本。'
+            f'报告保留预声明的全部 {total_calls} 次调用，不按结果重新选题；全调用耗时可在相同分母下阅读，'
+            '通过调用耗时只描述各方法的条件分布，不能解释为同题速度排名。</p>')
+    return table, note, speed
 
 
 def _price_experiment(out, cases, records):
@@ -463,12 +518,7 @@ def headless_evidence(cases, records):
 
 
 def _headless_article_input(cases, records, providers):
-    """Bind measured inputs while ignoring three report-only annotations.
-
-    report_build adds these fields after verifying persisted results. They do
-    not enter task acceptance, text metrics, timing, or this article's figures.
-    Keep every other record field and the complete case definition bound.
-    """
+    """Bind measured article inputs while ignoring report-only annotations."""
     derived_fields = {'diagnosis', 'failure_category', 'title_quality'}
     return {
         'cases': cases,
@@ -480,7 +530,7 @@ def _headless_article_input(cases, records, providers):
 
 
 def _article_speed_population(cases, records, providers, *, execution_scope):
-    """Same accepted tasks for the displayed providers, independent of ranking."""
+    """Describe one common-pass diagnostic over a complete declared matrix."""
     indexed = {}
     for record in records:
         if record['provider'] not in providers:
@@ -492,7 +542,8 @@ def _article_speed_population(cases, records, providers, *, execution_scope):
     if any((provider, cid) not in indexed for provider in providers for cid in cases):
         raise ValueError('Article latency requires the complete declared matrix')
     common = sorted(cid for cid, case in cases.items() if all(
-        task_passed(indexed[provider, cid]['ok'], indexed[provider, cid]['metrics'], case.get('task_kind', 'body'))
+        task_passed(indexed[provider, cid]['ok'], indexed[provider, cid]['metrics'],
+                    case.get('task_kind', 'body'))
         for provider in providers))
     if not common:
         raise ValueError('Article latency has no commonly accepted tasks')
@@ -501,16 +552,29 @@ def _article_speed_population(cases, records, providers, *, execution_scope):
         records_for_provider = [indexed[provider, cid] for cid in common]
         values = [record['elapsed_ms'] for record in records_for_provider]
         times = [record['started_at'] for record in records_for_provider if record.get('started_at')]
-        rows.append({'provider': provider, 'attempts': len(common), 'values_ms': values,
-                     'mean_ms': statistics.mean(values), 'p50_ms': percentile(values, .5),
-                     'p95_ms': percentile(values, .95),
-                     'recorded_start_dates': dict(sorted(Counter(time[:10] for time in times).items())),
-                     'latency_corrected_cases': [record['case_id'] for record in records_for_provider
-                                                if 'latency_correction' in record.get('provider_metadata', {})]})
-    return {'providers': providers, 'planned_case_count': len(cases),
-            'common_pass_count': len(common), 'common_pass_cases': common,
-            'track_counts': dict(sorted(Counter(cases[cid].get('track', 'web') for cid in common).items())),
-            'execution_scope': execution_scope, 'rows': rows}
+        rows.append({
+            'provider': provider,
+            'attempts': len(common),
+            'values_ms': values,
+            'mean_ms': statistics.mean(values),
+            'p50_ms': percentile(values, .5),
+            'p95_ms': percentile(values, .95),
+            'recorded_start_dates': dict(sorted(Counter(time[:10] for time in times).items())),
+            'latency_corrected_cases': [
+                record['case_id'] for record in records_for_provider
+                if 'latency_correction' in record.get('provider_metadata', {})
+            ],
+        })
+    return {
+        'providers': providers,
+        'planned_case_count': len(cases),
+        'common_pass_count': len(common),
+        'common_pass_cases': common,
+        'track_counts': dict(sorted(Counter(
+            cases[cid].get('track', 'web') for cid in common).items())),
+        'execution_scope': execution_scope,
+        'rows': rows,
+    }
 
 
 def _render_article_speed(population):
@@ -535,6 +599,19 @@ def _render_article_speed(population):
     return html + '</div>'
 
 
+def _render_article_resources(summary, selected):
+    if summary is None:
+        return ('<p>当前证据没有独立的客户端资源测量；本文不从耗时反推 CPU 或内存。</p>',
+                '资源指标待独立同题测量后补充。')
+    rendered, result = render_resource_comparison(summary, selected)
+    interpretation = (
+        f'{result["winner_label"]} 是本轮资源效率领先者，在 '
+        f'{result["ranked_metric_count"]} 个可按低消耗比较的指标中取得 '
+        f'{result["winner_count"]} 项最低。这里的资源领先不等于综合任务通过率领先。'
+    )
+    return rendered, interpretation
+
+
 def _render_headless(out, cases, records):
     """Five-browser editorial view, derived from the unchanged report evidence."""
     from .report_components import comparable_body_reference
@@ -547,7 +624,7 @@ def _render_headless(out, cases, records):
         raise ValueError('Five-browser article requires every reviewed provider; missing: ' + ', '.join(missing))
     speed_path = contained_path(out, 'speed-cohort/speed-comparison.json')
     if not speed_path.is_file():
-        raise ValueError('Five-browser article requires reviewed speed evidence; missing speed-comparison.json')
+        raise ValueError('Five-browser article requires speed evidence; missing speed-comparison.json')
     # The authored case explanations contain measured numbers as prose. Bind the
     # complete five-browser edition to its reviewed evidence so a later rebuild
     # cannot silently combine fresh charts with stale narrative measurements.
@@ -582,7 +659,7 @@ def _render_headless(out, cases, records):
         quality_data[n] = {'cases':len(eligible), **{k:_mean(r['metrics'].get(k) for r in eligible) for k in ('word_precision','word_recall','word_f1')}}
     quality = _table(['全文指标','Moli 1.1.1','Chromium'], [(name,*(_percent(quality_data[n][k]) for n in ('moli','chromium'))) for k,name in [('word_recall','参考正文找回比例 · Recall'),('word_precision','输出文字纯净度 · Precision'),('word_f1','综合文字重合 · F1')]], f'{quality_data["moli"]["cases"]} 个具有完整可比参考的普通网页，取逐题算术平均，包含已测失败项。文字重合不等于事实准确率。')
     speed = json.loads(speed_path.read_text())
-    if _digest(speed) != '5915ed32fcbfa27bd7fe2e4c9d4a32a5080936482fb6f2f51d09a2d9bff85dc3':
+    if _digest(speed) != '53ebd9a2ec147e397ab4def009262701883aa22bb7f4b4dfb2c56dad5c0538db':
         raise ValueError('Article speed evidence changed; review latency prose before rebuilding')
     speed_inputs = {}
     for name in ('dataset', 'results'):
@@ -599,6 +676,10 @@ def _render_headless(out, cases, records):
         execution_scope='Separate predeclared 20-page ordinary-web speed run; use all tasks accepted by the five displayed configurations. Small-sample P95 is the observed maximum.')
     paired_speed['bindings'] = speed['bindings']
     data['editorial_speed'] = {'main': main_speed, 'same_window': paired_speed}
+    resource_path = contained_path(out, 'resource-cohort/resource-comparison.json')
+    resource_summary = json.loads(resource_path.read_text()) if resource_path.is_file() else None
+    resource_table, resource_interpretation = _render_article_resources(resource_summary, selected)
+    data['editorial_resources'] = resource_summary
     pdf = rows.get('moli',{}).get('document-01')
     pdf_chars = pdf['metrics'].get('content_chars',0) if pdf else 0
     pdf_ms = pdf['elapsed_ms'] if pdf else 0
@@ -630,6 +711,12 @@ def _render_headless(out, cases, records):
         'split': split, 'four': four, 'matrix': matrix,
         'quality': quality, 'speed_main': _render_article_speed(main_speed),
         'speed': _render_article_speed(paired_speed),
+        'resources': resource_table,
+        'resource_interpretation': escape(resource_interpretation),
+        'resource_methodology': (
+            '<details class="m-details"><summary>资源指标怎样测</summary><p>资源数据来自四种本地方法的单独同题 cohort，不回填到历史正确率调用。每次调用启动一个受限的 Linux 客户端容器及独立网络；宿主控制器和容器启停不计入。CPU 与网络总量读取累计计数，内存与速率分位数按 50 ms 采样。</p><p>资源汇总只使用四种本地配置共同通过的任务，避免把快速失败或空输出当成节省资源。短于采样间隔的内存或速率峰值可能遗漏；Kitesurf 等远端服务的服务端 CPU、内存与上游流量不可观测，因而不进入资源表。</p></details>'
+            if resource_summary is not None else ''
+        ),
         'pdf_chars': f'{pdf_chars:,}',
         'pdf_seconds': f'{pdf_ms/1000:.2f}',
         'pdf_fetch': f'{pdf_meta.get("raw_fetch_ms", 0)/1000:.2f}',
@@ -719,6 +806,22 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
         (TRACK_NAMES[k], str(v['case_count']), str(len(v['providers'])), escape(_window_text(v['time_window'])))
         for k, v in tracks.items() if v['case_count']],
         '样本与时间范围：各类任务按各自契约验收，日期不构成同时间受控对照')
+    speed_table, speed_note, speed = _speed_comparison(out)
+    data['same_window_speed'] = speed
+    values['speed_section'] = (
+        '<section id="speed"><h2>同一时间窗的速度怎样读</h2>'
+        '<p>主结果来自不同批次，耗时只用于逐次诊断；下面单列预先声明的同窗子集。'
+        '全调用统计保留失败与截止超时，回答完整任务队列要等多久；通过调用统计只描述各方法已通过任务，'
+        '成功分母可能不同，不能单独拿来排同题速度。</p>' + speed_note + speed_table
+        + '<p>' + _link('speed-cohort/speed-comparison.json', '速度汇总与样本分母') + '与'
+        + _link('speed-cohort/results.jsonl', '测速逐次记录') + '保留可复核证据。</p></section>'
+        if speed else '')
+    focused_hosts = {'github.com', 'docs.python.org'}
+    focused_cases = sum(urlsplit(case.get('url', '')).hostname in focused_hosts
+                        for case in cases.values() if case.get('track', 'web') == 'web')
+    values['web_sample_scope'] = (
+        f'{web["case_count"]} 个普通网页中，GitHub 与 Python 官方文档占 {focused_cases} 个，'
+        '样本偏向技术文档')
     wm = web['providers'].get('moli-webfetch')
     dm = tracks['dynamic']['providers'].get('moli-webfetch')
     values['lead'] = (f'同一配置的 Moli，在静态网站正文任务中通过 {wm["task_pass"]}/{wm["records"]}，'

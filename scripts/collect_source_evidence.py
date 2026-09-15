@@ -69,7 +69,28 @@ def extract_html(raw: bytes, url: str):
     elif host.endswith('w3schools.com'):
         selectors = ['#main', 'body']
     selector, root = next(((s, soup.select_one(s)) for s in selectors if soup.select_one(s)), ('body', soup))
-    for node in root.select('script,style,noscript,nav,footer,[aria-hidden=true],.mw-editsection,.vector-toc,.sidebar,.sphinxsidebar'):
+    if (host.endswith('wikipedia.org')
+            and 'oldid=' in (urlsplit(url).query or '')):
+        # A permanent article revision can still render live ``Excerpt``
+        # transclusions from another page.  They are not part of the immutable
+        # article revision and have changed under an unchanged oldid in real
+        # captures, so exclude the declared transclusion container while
+        # retaining ordinary article prose and fixed templates.
+        for node in root.select('.excerpt-block[typeof~="mw:Transclusion"]'):
+            node.decompose()
+    if host == 'browser.lexmount.com':
+        # Fumadocs keeps the page breadcrumb and adjacent-page cards inside
+        # ``article``. They are navigation, not the selected document body.
+        for node in root.find_all('div', recursive=False):
+            classes = set(node.get('class', []))
+            if ({'text-sm', 'text-fd-muted-foreground'} <= classes
+                    or {'grid', 'grid-cols-2'} <= classes):
+                node.decompose()
+    for node in root.select(
+            'script,style,noscript,nav,footer,[aria-hidden=true],.mw-editsection,'
+            '.vector-toc,.sidebar,.sphinxsidebar,.ws-share,.navbox,.navbox-styles,'
+            '.article-footer__last-modified,'
+            '[role="navigation"]'):
         node.decompose()
     text = '\n'.join(line.strip() for line in root.get_text('\n').splitlines() if line.strip())
     return title, text, selector, resources

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+import math
 import urllib.error
 import urllib.request
-from email.message import Message
 from dataclasses import dataclass
+from email.message import Message
 from typing import Any
+
 from ..safety import validate_http_url
 
 
@@ -34,6 +36,16 @@ class HttpOnlyRedirectHandler(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         validate_http_url(newurl)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def inner_timeout_budget(outer_timeout: float) -> float:
+    """Leave the runner time to observe completion and persist a result."""
+    if not math.isfinite(outer_timeout) or outer_timeout <= 0:
+        raise ValueError("outer timeout must be positive and finite")
+    reserve = max(1.0, min(5.0, outer_timeout * 0.1))
+    if reserve >= outer_timeout:
+        return outer_timeout / 2
+    return outer_timeout - reserve
 
 
 def request(

@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "verified_at": "2026-09-08",
+  "scope": "Public first-party model, system-card, paper, and official benchmark evidence. Search/research benchmarks are separated from browser-interaction benchmarks.",
+  "organizations": [
+    {
+      "organization": "OpenAI",
+      "browser_interaction": ["WebArena", "WebVoyager", "Mind2Web"],
+      "computer_use": ["OSWorld 2.0", "ScreenSpot-Pro", "Agents' Last Exam"],
+      "agentic_search": ["BrowseComp"],
+      "notes": "GPT-6 Astra publishes computer-use scores and a Mind2Web latency comparison, but no WebArena-Verified score on its launch page.",
+      "sources": [
+        "https://openai.com/index/gpt-6-astra/",
+        "https://openai.com/index/computer-using-agent/"
+      ]
+    },
+    {
+      "organization": "Anthropic",
+      "browser_interaction": ["WebArena", "WebArena-Verified", "Online-Mind2Web"],
+      "computer_use": ["OSWorld 2.0"],
+      "agentic_search": [],
+      "notes": "The Claude Sonnet 4.6 system card documents official WebArena-Verified prompt/grader use and Average@5 reporting.",
+      "sources": [
+        "https://www-cdn.anthropic.com/bbd8ef16d70b7a1665f14f306ee88b53f686aa75/Claude%20Sonnet%204.6%20System%20Card.pdf"
+      ]
+    },
+    {
+      "organization": "Google DeepMind",
+      "browser_interaction": ["Online-Mind2Web", "WebVoyager"],
+      "computer_use": ["AndroidWorld"],
+      "agentic_search": [],
+      "notes": "Gemini 2.5 Computer Use reports both official-leaderboard and Browserbase-harness Online-Mind2Web results, illustrating harness sensitivity.",
+      "sources": [
+        "https://storage.googleapis.com/deepmind-media/Model-Cards/Gemini-2-5-Computer-Use-Model-Card.pdf"
+      ]
+    },
+    {
+      "organization": "THUDM / ChatGLM",
+      "browser_interaction": ["Mind2Web", "WebArena", "MiniWob++", "AutoWebBench"],
+      "computer_use": [],
+      "agentic_search": [],
+      "notes": "AutoWebGLM publishes adapters/evaluation assets, but modifies WebArena for its interaction system, so numbers are not automatically comparable with an unmodified harness.",
+      "sources": ["https://github.com/THUDM/AutoWebGLM"]
+    },
+    {
+      "organization": "Moonshot AI / Kimi",
+      "browser_interaction": [],
+      "computer_use": [],
+      "agentic_search": ["BrowseComp", "DeepSearchQA", "ResearchRubrics"],
+      "notes": "The inspected official Kimi releases emphasize search/research benchmarks; no first-party browser-interaction evaluation was found in this audit. Do not count BrowseComp as UI browser use.",
+      "sources": ["https://github.com/MoonshotAI/Kimi-K3"]
+    },
+    {
+      "organization": "DeepSeek",
+      "browser_interaction": [],
+      "computer_use": [],
+      "agentic_search": [],
+      "notes": "No first-party browser-interaction benchmark disclosure was found in the inspected official model materials. Absence of public evidence is not evidence of no internal evaluation.",
+      "sources": ["https://github.com/deepseek-ai"]
+    },
+    {
+      "organization": "Browser Use",
+      "browser_interaction": ["BU Bench V1", "Online-Mind2Web", "Odysseys"],
+      "browser_infrastructure": ["Stealth Bench V1"],
+      "computer_use": [],
+      "agentic_search": [],
+      "notes": "The main product README highlights the open 100-task BU Bench and an Odysseys leaderboard result. The benchmark repository currently puts Stealth Bench V1 first, but that measures anti-bot browser infrastructure rather than end-to-end agent task completion. BU Bench, Online-Mind2Web, and Odysseys all use model-based judging in their documented workflows.",
+      "sources": [
+        "https://github.com/browser-use/benchmark",
+        "https://github.com/browser-use/online-mind2web",
+        "https://github.com/browser-use/browser-use",
+        "https://github.com/ljang0/Odysseys"
+      ]
+    }
+  ],
+  "benchmark_families": [
+    {
+      "family": "WebArena",
+      "adopters": ["OpenAI", "Anthropic", "THUDM / ChatGLM"],
+      "interaction": true
+    },
+    {
+      "family": "Mind2Web",
+      "adopters": ["OpenAI", "Anthropic", "Google DeepMind", "THUDM / ChatGLM", "Browser Use"],
+      "interaction": true,
+      "warning": "Original Mind2Web, Online-Mind2Web, and Mind2Web 2 have different tasks and graders and must not share a score table."
+    },
+    {
+      "family": "WebVoyager",
+      "adopters": ["OpenAI", "Google DeepMind"],
+      "interaction": true
+    },
+    {
+      "family": "BU Bench V1",
+      "adopters": ["Browser Use"],
+      "interaction": true
+    },
+    {
+      "family": "Odysseys",
+      "adopters": ["Browser Use"],
+      "interaction": true
+    }
+  ]
+}

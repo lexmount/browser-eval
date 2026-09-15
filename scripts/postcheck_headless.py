@@ -24,11 +24,17 @@ def load_resumable_observations(checkpoint, cases):
             if row.get('case_id') in cases}
 
 
+def expected_providers(dataset, case):
+    """Return the declared provider cohort for this case's task group."""
+    return set(dataset['coverage_plan'][case.get('track','web')])
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--run-dir',type=Path,required=True)
     p.add_argument('--captures',type=Path,required=True)
-    p.add_argument('--browser-observations',type=Path,required=True)
+    p.add_argument('--browser-observations',type=Path,
+                   help='Post-call browser observations for browser-contract or HTTP-unavailable references')
     p.add_argument('--timeout',type=int,default=3600)
     p.add_argument('--resume',action='store_true')
     args=p.parse_args()
@@ -58,11 +64,11 @@ def main():
             records=read_completed_records(args.run_dir/'results.jsonl')
             for cid,case in cases.items():
                 relevant=[r for r in records if r['case_id']==cid]
-                expected=set(dataset['coverage_plan']['web'])
+                expected=expected_providers(dataset,case)
                 if {r['provider'] for r in relevant}!=expected or cid in done or cid in pending:
                     continue
                 rows=(json.loads(args.browser_observations.read_text())
-                      if args.browser_observations.exists() else {})
+                      if args.browser_observations and args.browser_observations.exists() else {})
                 if cid in special or cid in rows:
                     if cid not in rows:continue
                     row=rows.get(cid,{})

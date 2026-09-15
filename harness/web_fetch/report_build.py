@@ -10,6 +10,11 @@ from .safety import contained_path, validate_report_ids
 from .reference_lifecycle import require_verified_reference_checks
 from .reliability import assess_reliability
 from .storage import require_selection_history
+from .scoring import SCORING_SOURCE_SHA256
+from .artifacts import (
+    record_public_call_log_bindings, verify_record_private_artifacts,
+    verify_public_call_log, verify_record_public_call_logs,
+)
 
 
 def scoring_scope(records, cases):
@@ -51,11 +56,28 @@ def build_report(source: Path, output: Path) -> Path:
         if speed.get('bindings',{}).get('results_sha256') != hashlib.sha256((speed_root/'results.jsonl').read_bytes()).hexdigest():
             raise ValueError('Speed comparison result binding mismatch')
         speed_records=[json.loads(line) for line in (speed_root/'results.jsonl').read_text().splitlines()]
-        require_result_review(speed_root, json.loads((speed_root/'dataset.json').read_text()), speed_records)
         for row in speed_records:
+            verify_record_private_artifacts(speed_root, row)
+            verify_record_public_call_logs(speed_root, row)
             raw=contained_path(speed_root,row['artifact_path'])
             if hashlib.sha256(raw.read_bytes()).hexdigest()!=row['metrics']['content_sha256']:
                 raise ValueError('Speed cohort output integrity failure: '+row['attempt_id'])
+    resource_root=source/'resource-cohort'
+    if resource_root.exists():
+        resource=json.loads((resource_root/'resource-comparison.json').read_text())
+        for name in ('dataset','results'):
+            extension='json' if name == 'dataset' else 'jsonl'
+            raw=(resource_root/f'{name}.{extension}').read_bytes()
+            if resource.get('bindings',{}).get(name+'_sha256') != hashlib.sha256(raw).hexdigest():
+                raise ValueError('Resource comparison '+name+' binding mismatch')
+        resource_dataset=json.loads((resource_root/'dataset.json').read_text())
+        resource_records=[json.loads(line) for line in
+                          (resource_root/'results.jsonl').read_text().splitlines()]
+        require_result_review(resource_root,resource_dataset,resource_records)
+        for row in resource_records:
+            raw=contained_path(resource_root,row['artifact_path'])
+            if hashlib.sha256(raw.read_bytes()).hexdigest()!=row['metrics']['content_sha256']:
+                raise ValueError('Resource cohort output integrity failure: '+row['attempt_id'])
     for c in cases.values():
         annotation=c.get('source_benchmark',{}).get('stable_annotation',{})
         if annotation.get('anchor_evidence_sha256'):
@@ -66,6 +88,9 @@ def build_report(source: Path, output: Path) -> Path:
             if checked['source_benchmark']['stable_annotation']['anchor_evidence_sha256'] != annotation['anchor_evidence_sha256']:
                 raise ValueError('Stable text evidence changed: '+c['id'])
     for r in records:
+        if r.get('metrics', {}).get('scoring_source_sha256') != SCORING_SOURCE_SHA256:
+            raise ValueError(
+                f'Stale scoring implementation; rescore before reporting: {r["attempt_id"]}')
         contract = cases[r['case_id']].get('acceptance_contract')
         if contract:
             from .stable_tasks import validate_acceptance_contract
@@ -73,6 +98,16 @@ def build_report(source: Path, output: Path) -> Path:
             expected = hashlib.sha256(json.dumps(contract, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
             if r['metrics'].get('acceptance_contract_sha256') != expected:
                 raise ValueError(f'Acceptance contract hash missing or mismatched: {r["attempt_id"]}')
+        if cases[r['case_id']].get('expected_resources') or cases[r['case_id']].get('resource_output_contract'):
+            resource_contract = {
+                'expected_resources': cases[r['case_id']].get('expected_resources', []),
+                'resource_output_contract': cases[r['case_id']].get('resource_output_contract', {}),
+            }
+            expected = hashlib.sha256(json.dumps(
+                resource_contract, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
+            if r['metrics'].get('resource_acceptance_contract_sha256') != expected:
+                raise ValueError(
+                    f'Resource acceptance contract hash missing or mismatched: {r["attempt_id"]}')
     diagnostic_path=Path(__file__).resolve().parents[2]/'research/failure-sources.json'
     source_checks={x['case_id']:x for x in json.loads(diagnostic_path.read_text())} if diagnostic_path.exists() else {}
     if not cases or not records:
@@ -86,6 +121,9 @@ def build_report(source: Path, output: Path) -> Path:
     staging = Path(tempfile.mkdtemp(prefix='.report-build-', dir=output.parent))
     try:
         for r in records:
+            # Raw API envelopes remain private persistent evidence.  Verify the
+            # binding here, but deliberately do not copy them into staging.
+            verify_record_private_artifacts(source, r)
             path = Path(r['artifact_path'])
             raw = contained_path(source,path)
             if hashlib.sha256(raw.read_bytes()).hexdigest() != r['metrics']['content_sha256']:
@@ -114,6 +152,22 @@ def build_report(source: Path, output: Path) -> Path:
                 target_file = contained_path(staging, file['artifact_path'])
                 target_file.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(binary, target_file)
+            for binding in record_public_call_log_bindings(r):
+                log_source = verify_public_call_log(source, binding)
+                call_log = json.loads(log_source.read_text())
+                call_output = call_log['output']
+                call_output_source = contained_path(source, call_output['path'])
+                call_output_target = contained_path(staging, call_output['path'])
+                call_output_target.parent.mkdir(parents=True, exist_ok=True)
+                if call_output_target.exists():
+                    if hashlib.sha256(call_output_target.read_bytes()).hexdigest() != call_output['sha256']:
+                        raise ValueError('Public call-log output collision: ' + call_output['path'])
+                else:
+                    shutil.copy2(call_output_source, call_output_target)
+                log_target = contained_path(staging, binding['path'])
+                log_target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(log_source, log_target)
+                verify_public_call_log(staging, binding)
             text=raw.read_text(encoding='utf-8',errors='replace')
             from .title_quality import add_title_quality
             add_title_quality(r, cases[r['case_id']], source)
@@ -132,7 +186,11 @@ def build_report(source: Path, output: Path) -> Path:
         if (source/'reference-checks').exists():
             shutil.copytree(source/'reference-checks', staging/'reference-checks')
         if speed_root.exists():
-            shutil.copytree(speed_root,staging/'speed-cohort')
+            shutil.copytree(speed_root,staging/'speed-cohort',ignore=shutil.ignore_patterns(
+                'result-review.json','review-history','private_artifacts'))
+        if resource_root.exists():
+            shutil.copytree(resource_root,staging/'resource-cohort',ignore=shutil.ignore_patterns(
+                'result-review.json','review-history','private_artifacts'))
         summary = {t:{p:{'attempts':len(rs), 'task_pass':sum(succeeded(r,cases[r['case_id']]) for r in rs)}
                       for p in sorted({r['provider'] for r in records})
                       if (rs := [r for r in records if r['provider']==p and cases[r['case_id']].get('track','web')==t])}
@@ -167,11 +225,30 @@ def build_report(source: Path, output: Path) -> Path:
         if provenance.is_file():
             shutil.copy2(provenance,staging/'implementation-provenance.json')
         if (source/'scoring-revisions.json').is_file():
-            shutil.copy2(source/'scoring-revisions.json', staging/'scoring-revisions.json')
+            scoring_path = source/'scoring-revisions.json'
+            scoring_revisions = json.loads(scoring_path.read_text())
+            shutil.copy2(scoring_path, staging/'scoring-revisions.json')
+            for revision in scoring_revisions:
+                relative = revision.get('prior_result_review_path')
+                expected = revision.get('prior_result_review_sha256')
+                if not relative:
+                    continue
+                archived = contained_path(source, relative)
+                if not archived.is_file() or archived.is_symlink():
+                    raise ValueError('Archived result review is missing or unsafe')
+                actual = hashlib.sha256(archived.read_bytes()).hexdigest()
+                if not expected or actual != expected:
+                    raise ValueError('Archived result review hash does not match scoring receipt')
+                target = staging/relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(archived, target)
         if (source/'reference-revisions.json').is_file():
             shutil.copy2(source/'reference-revisions.json', staging/'reference-revisions.json')
         if (source/'latency-corrections.json').is_file():
             shutil.copy2(source/'latency-corrections.json', staging/'latency-corrections.json')
+        if (source/'request-status-corrections.json').is_file():
+            shutil.copy2(source/'request-status-corrections.json',
+                         staging/'request-status-corrections.json')
         if (source/'file-rerun-selection.json').is_file():
             shutil.copy2(source/'file-rerun-selection.json', staging/'file-rerun-selection.json')
             shutil.copytree(source/'history/file-baseline', staging/'history/file-baseline')

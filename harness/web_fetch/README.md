@@ -95,11 +95,24 @@ The three result filters remain pass/fail/all; unmeasured rows appear in all.
 `scripts/correct_evaluation_contracts.py` applies reviewed scope and contract
 changes without reading provider outputs. `scripts/rescore_content.py` rescales
 all applicable records through the shared scorer without supplier calls.
+Known scoring failure modes have compact synthetic positive and negative controls
+in `evaluation/scoring-regressions.json`; CI executes every control through the
+same `score_attempt` orchestration and task predicate used by live and offline
+scoring. A new decision-changing scoring correction, or a frozen-reference
+correction via `scripts/revise_reference_evidence.py`, must use its revision
+command with a concrete `--root-cause-category`,
+`--root-cause`, and one or more `--regression-id` values. The command validates
+those controls before touching evidence and writes their IDs plus FP/FN direction
+counts into the revision receipt. Directly editing stored verdicts is not a
+supported correction path.
 `scripts/revise_fairness.py --baseline-ref <original-commit>` also records original
 and revised scores in the persistent bundle's `scoring-revisions.json`, checking original
 output hashes, identities and timing. Historical hard deadlines and timing
-overhead cannot be retroactively certified. Conditional successful-task latency
-and same-task common-success latency are separate, explicitly scoped tables.
+overhead cannot be retroactively certified. For a heterogeneous same-window
+cohort, keep every predeclared call and report all-call latency (one shared task
+denominator) separately from successful-call latency (each method's conditional
+subset). The all-method common-pass intersection is diagnostic only: never
+reselect tasks after seeing outcomes.
 
 `content_check_coverage` measures matched required text groups, not body recall.
 All declared groups are required by stable contracts; record count/type/uniqueness
@@ -145,7 +158,9 @@ evaluation records, task decisions and `word_*` metrics are unchanged. Full-body
 metrics require a separately scoped, comparable complete reference.
 
 Web Fetch providers, execution, reference checks, scoring and report generation
-live in this package. Browser Use remains independent in `harness/browser_use`.
+live in this package. The fixed-action kernel benchmark remains independent in
+`harness/trajectory_replay`; autonomous browser-use evaluation lives in
+`harness/browser_use`.
 
 From the repository root:
 
@@ -162,11 +177,16 @@ Credentials and local executable/repository paths belong in the root `.env`
 variables take precedence; `--env-file` overrides which file is read.
 
 `moli-webfetch` invokes the official local Moli CLI; set `MOLI_BINARY` when it
-is not on PATH. Body tasks use `moli fetch --dump markdown`. Direct file tasks
-use bare `moli fetch URL`, without `--dump` or page-wait flags, so the evaluator
-can receive and verify original bytes. No alternate provider or output-format
-fallback is used after a failed call. The seven-method cohort's direct PDF and
-DOCX body route is defined separately in [HEADLESS.md](HEADLESS.md).
+is not on PATH. Ordinary body tasks use `moli fetch --dump markdown`; challenge
+tasks use one `--dump json --trace-network` call and convert its final DOM to
+Markdown within the same deadline while retaining only a public-safe trace
+summary. Dynamic,
+resource-page, and embedded-document tasks use one bounded `--eval` call for
+their declared rendered output. Direct file tasks use bare `moli fetch URL`,
+without `--dump` or page-wait flags, so the evaluator can receive and verify
+original bytes. No alternate provider or output-format fallback is used after
+a failed call. The seven-method cohort's direct PDF and DOCX body route is
+defined separately in [HEADLESS.md](HEADLESS.md).
 
 The installed console command is `browser-harness-eval`. There is no legacy
 Python package or compatibility entrypoint.

@@ -5,21 +5,25 @@ import sys
 import urllib.request
 import uuid
 from pathlib import Path
+from urllib.parse import urlsplit
 
 BASE=os.environ.get('ARTIFACT_HUB_BASE_URL','https://artifact-hub.app.lexmount.com').rstrip('/')
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.artifact_auth import load_token
-from harness.web_fetch.publication_target import require_publication_site
+from harness.web_fetch.publication_target import require_publication_site, require_publication_version
 token=load_token(base_url=BASE)
 receipt=(Path(sys.argv[sys.argv.index('--receipt')+1]) if '--receipt' in sys.argv
          else ROOT/'publish/artifact-hub-receipt.json')
 updating='--update' in sys.argv
 creating='--create' in sys.argv
-expected=sys.argv[sys.argv.index('--expected-version')+1] if '--expected-version' in sys.argv else None
+requested_expected=(sys.argv[sys.argv.index('--expected-version')+1]
+                    if '--expected-version' in sys.argv else None)
 if creating and updating:raise ValueError('Choose exactly one of --create or --update')
-if updating and (not receipt.exists() or not expected or not expected.startswith('ver_')):
- raise ValueError('--update requires an existing receipt and --expected-version ver_...')
+if updating and not receipt.exists():
+ raise ValueError('--update requires an existing receipt')
+expected=(require_publication_version(ROOT/'evaluation/current-report.json',requested_expected)
+          if updating else None)
 
 def request(path,data=None,content_type=None,auth=True,method=None):
  headers={'User-Agent':'WebFetch-Report-Publisher/1.0'}
@@ -66,6 +70,9 @@ if creating or updating:
  else:
   from harness.web_fetch.publication import updated_receipt
   result=updated_receipt(result,response)
+ # Defend against legacy or service-returned aliases after an update. A create
+ # response may still use ``version`` as its only initial-version field.
+ if updating:result.pop('version',None)
  result['base_url']=BASE
  # Retain manageability without putting edit/claim credentials in console output.
  receipt.write_text(json.dumps(result,ensure_ascii=False,indent=2));os.chmod(receipt,0o600)
@@ -74,6 +81,14 @@ if not result.get('share_url'):
  status,raw=request('/api/sites/'+result['slug']+'/shares',json.dumps({'policy':'public'}).encode(),'application/json')
  share=json.loads(raw);result['share_url']=share['url']
  receipt.write_text(json.dumps(result,ensure_ascii=False,indent=2));os.chmod(receipt,0o600)
-status,_=request(result['share_url'],auth=False)
-assert status==200,status
-print(json.dumps({'slug':result['slug'],'url':result['share_url'],'unauthenticated_status':status},ensure_ascii=False),flush=True)
+version=result.get('versionId',result.get('version'))
+if isinstance(version,dict):version=version.get('id')
+if not isinstance(version,str) or not version.startswith('ver_'):
+ raise ValueError('Publication receipt omitted an activated version')
+share_url=result['share_url'];parsed=urlsplit(share_url);base=urlsplit(BASE)
+if parsed.scheme not in ('http','https') or parsed.netloc != base.netloc or not parsed.path:
+ raise ValueError('Publication did not return a valid share URL for the target service')
+# A successful commit/share response is the script's terminal condition. Do not
+# read the public page or export back through HTTP; the caller opens share_url in
+# a browser for the user-visible smoke check.
+print(json.dumps({'slug':result['slug'],'versionId':version,'url':share_url},ensure_ascii=False),flush=True)
