@@ -120,8 +120,8 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
                 'method','axis','category','request','failure','metric','band','query'}):
         raise ValueError("WebMainBench full-matrix inspection table or filters are incomplete")
     request = analysis.select_one('[data-wmb-filter="request"]')
-    if request is None or request.get("data-wmb-default") != "" or request.select_one("option[selected]").get("value") != "":
-        raise ValueError("WebMainBench request filter must default to all records")
+    if request is None or request.get("data-wmb-default") != "failed" or request.select_one("option[selected]").get("value") != "failed":
+        raise ValueError("WebMainBench request filter must initially locate failed requests")
     if len(analysis.select("#wmb-compare-rows > tr")) != 200 or len(analysis.select("[data-wmb-compare-method]")) != 5:
         raise ValueError("WebMainBench same-page group comparison is incomplete")
     if {option.get("value") for option in analysis.select('[data-wmb-filter="failure"] option') if option.get("value")} != {
