@@ -154,9 +154,10 @@ return node && node.textContent.trim().startsWith('{');
                             if route.endswith("results.html"):
                                 page.wait_for_function("() => document.querySelector('[data-matrix-count]')?.textContent.includes('/')", timeout=5_000)
                                 page.locator('[data-matrix-relation]').select_option('all-pass')
-                                page.wait_for_function("() => [...document.querySelectorAll('[data-task-matrix] tbody tr:not([hidden])')].every(row => JSON.parse(row.dataset.outcomes).every(value => value === 'pass'))")
+                                page.wait_for_function("() => [...document.querySelectorAll('[data-task-matrix] tbody tr:not([hidden])')].every(row => !row.dataset.fail)")
                                 page.locator('[data-matrix-relation]').select_option('different')
-                                page.wait_for_function("() => [...document.querySelectorAll('[data-task-matrix] tbody tr:not([hidden])')].every(row => new Set(JSON.parse(row.dataset.outcomes)).size > 1)")
+                                page.wait_for_function("() => [...document.querySelectorAll('[data-task-matrix] tbody tr:not([hidden])')].every(row => !!row.dataset.pass && !!row.dataset.fail)")
+                                assert page.locator('[data-matrix-method]').count() >= 2
                                 page.locator('[data-results-ready="true"]').wait_for(timeout=5_000)
                                 page.locator('.inventory tbody tr:not([hidden]) [data-open-diagnosis]').first.click()
                                 page.locator('#diagnosis-dialog[data-loaded]').wait_for(timeout=5_000)

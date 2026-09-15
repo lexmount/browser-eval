@@ -251,6 +251,37 @@ def _public_evidence(
     trace = _load_artifact((attempt.get("evidence") or {}).get("trace")) or []
     evaluation = _load_artifact((attempt.get("evidence") or {}).get("evaluation"))
     failed = programmatic_failure(attempt)
+    if failed["stage"] == "official_evaluation" and evaluation:
+        missing_events = [
+            result for result in evaluation.get("evaluators_results") or []
+            if result.get("evaluator_name") == "NetworkEventEvaluator"
+            and any(
+                assertion.get("assertion_name") == "missing_navigation_event"
+                for assertion in result.get("assertions") or []
+            )
+        ]
+        if missing_events:
+            assertion_messages = [
+                str(message)
+                for result in missing_events
+                for assertion in result.get("assertions") or []
+                if assertion.get("assertion_name") == "missing_navigation_event"
+                for message in assertion.get("assertion_msgs") or []
+            ]
+            trigger = next(
+                (
+                    step for step in reversed(trace)
+                    if (step.get("arguments") or {}).get("action") in {"click", "press", "evaluate"}
+                ),
+                None,
+            )
+            failed = {
+                "stage": "side_effect_not_observed",
+                "step": None,
+                "trigger_step": trigger.get("index") if trigger else None,
+                "message": "NetworkEventEvaluator: missing_navigation_event" + (" — " + " | ".join(assertion_messages) if assertion_messages else ""),
+                "expected_network": [result.get("expected") for result in missing_events],
+            }
     screenshot = _copy_failure_screenshot(attempt, output, key)
     public = {
         "result": {
@@ -304,11 +335,13 @@ def _detail_page(
     report_root = "../" if zh else "../../"
     stage_labels = {
         "browser_tool_execution": ("浏览器动作执行", "Browser action execution"),
+        "side_effect_not_observed": ("提交请求未出现", "Submission request not observed"),
         "official_evaluation": ("官方验收", "Official evaluation"),
         "pass": ("无", "None"),
     }
     stage = stage_labels.get(failed["stage"], (failed["stage"], failed["stage"]))[0 if zh else 1]
     failed_index = failed.get("step")
+    trigger_index = failed.get("trigger_step")
     failed_action = next((str((step.get("arguments") or {}).get("action") or "") for step in evidence["trajectory"] if step.get("index") == failed_index), "")
     peer_cells = []
     for peer in peers:
@@ -345,9 +378,10 @@ def _detail_page(
     )
     failure_panel = ""
     if attempt["status"] != "pass":
-        step_link = f'<a href="#step-{failed_index}">{"跳到失败动作" if zh else "Go to failed action"} #{failed_index}</a>' if failed_index else f'<a href="#trajectory">{"查看已完成动作" if zh else "View completed actions"}</a>'
-        action_locator = f'{failed_action} #{failed_index}' if failed_index else ("所有动作执行后" if zh else "After all actions")
-        failure_panel = f'''<section id="diagnosis"><h2>{"失败定位与处理" if zh else "Failure diagnosis and treatment"}</h2><div class="diagnosis-panel"><div class="diagnosis-facts"><div><span>{"失败环节" if zh else "Failure stage"}</span><strong>{_e(stage)}</strong></div><div><span>{"失败位置" if zh else "Failure location"}</span><strong>{_e(action_locator)}</strong></div><div><span>{"复核分类" if zh else "Reviewed category"}</span><strong>{_e(label)}</strong></div></div><h3>{"原始报错" if zh else "Exact error"}</h3><pre>{_e(failed["message"])}</pre><h3>{"复核判断与依据" if zh else "Reviewed cause and basis"}</h3><p>{_e(reason)}</p><p>{"处理方" if zh else "Owner"}: {_e(review.get("remediation_owner") if review else "—")} · {"状态" if zh else "Status"}: {_e(review.get("remediation_status") if review else "—")}</p>{step_link}</div></section>'''
+        step_link = f'<a href="#step-{failed_index}">{"跳到失败动作" if zh else "Go to failed action"} #{failed_index}</a>' if failed_index else f'<a href="#step-{trigger_index}">{"查看触发动作" if zh else "Inspect trigger action"} #{trigger_index}</a>' if trigger_index else f'<a href="#trajectory">{"查看已完成动作" if zh else "View completed actions"}</a>'
+        action_locator = f'{failed_action} #{failed_index}' if failed_index else ((f'{("触发动作" if zh else "Trigger action")} #{trigger_index}; {("请求未出现" if zh else "request absent")}') if trigger_index else ("所有动作执行后" if zh else "After all actions"))
+        expected_network = f'<h3>{"未出现的请求" if zh else "Missing required request"}</h3><pre>{_e(json.dumps(failed["expected_network"], ensure_ascii=False, indent=2))}</pre>' if failed.get("expected_network") else ""
+        failure_panel = f'''<section id="diagnosis"><h2>{"失败定位与处理" if zh else "Failure diagnosis and treatment"}</h2><div class="diagnosis-panel"><div class="diagnosis-facts"><div><span>{"失败环节" if zh else "Failure stage"}</span><strong>{_e(stage)}</strong></div><div><span>{"失败位置" if zh else "Failure location"}</span><strong>{_e(action_locator)}</strong></div><div><span>{"复核分类" if zh else "Reviewed category"}</span><strong>{_e(label)}</strong></div></div><h3>{"程序原始判定" if zh else "Exact programmatic finding"}</h3><pre>{_e(failed["message"])}</pre>{expected_network}<h3>{"复核判断与依据" if zh else "Reviewed cause and basis"}</h3><p>{_e(reason)}</p><p>{"处理方" if zh else "Owner"}: {_e(review.get("remediation_owner") if review else "—")} · {"状态" if zh else "Status"}: {_e(review.get("remediation_status") if review else "—")}</p>{step_link}</div></section>'''
     facts = [
         (("完成动作", "Actions completed"), f'{attempt["completed_action_count"]}/{attempt["action_count"]}'),
         (("端到端耗时", "End-to-end time"), _format_ms(attempt.get("duration_ms")) if zh else f'{attempt.get("duration_ms", 0) / 1000:.1f} s'),
@@ -440,6 +474,10 @@ html{scroll-padding-top:88px}a{color:var(--accent)}button,summary{cursor:pointer
 dialog{max-height:90vh;overflow:auto}.dialog-head{position:sticky;top:0;background:var(--panel);z-index:1}.dialog-body{padding:20px 24px}.dialog-body h3{margin:18px 0 8px}.dialog-body .evidence-actions{margin-bottom:4px}
 .viewer-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.viewer-tabs button{padding:9px 13px;border:1px solid var(--line);background:var(--panel);color:var(--accent);border-radius:8px}.viewer-tabs button[aria-selected=true]{background:var(--accent);color:white}.viewer{height:auto;min-height:50vh}.viewer pre{min-height:45vh;max-height:65vh}
 @media(max-width:720px){.hero{padding:30px 0 24px}.top{height:60px}.top nav a{padding:15px 0}.detail-hero h1{font-size:34px}.step-data{grid-template-columns:minmax(0,1fr)}.step-heading>span:last-child{margin-left:0}.trace-step details,.step-target,.step-preview{margin-left:0}.filters label{flex:1 1 145px}.filters input,.filters select{min-width:0;width:100%}.diagnosis-panel{padding:16px}.fact-strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
+:root{--bg:#f6f8fb;--ink:#17212b;--muted:#5d6b78;--line:#d9e2ea;--accent:#1268d8;--good:#117a47;--bad:#c22e43;--wash:#e9f2ff;--panel2:#eef3f8;--shadow:0 8px 28px rgba(30,55,80,.08)}html[data-theme=dark]{--bg:#071015;--panel:#0d1a21;--ink:#edf6f7;--muted:#9aadb4;--line:#263c46;--accent:#49d6ed;--good:#67df9f;--bad:#ff6b7a;--wash:#10303a;--panel2:#122630;--shadow:none}
+body{background:linear-gradient(180deg,var(--wash) 0,transparent 240px),var(--bg);font-size:15px}.top{height:58px;gap:17px;padding:0 max(20px,calc((100% - 1180px)/2));background:color-mix(in srgb,var(--panel) 92%,transparent);backdrop-filter:blur(14px)}.top nav{gap:17px}.top nav a,.language{font-size:14px}.theme{border-radius:999px;width:auto;height:auto;padding:6px 12px}main,footer{width:min(1180px,calc(100% - 40px))}section{padding:38px 0;border-top:1px solid var(--line)}.hero{padding:38px 0 30px;border:0}.hero h1{font-size:clamp(34px,5vw,58px)}h2{font-size:clamp(25px,3vw,36px);line-height:1.16}.table-scroll{border-radius:13px;box-shadow:var(--shadow)}th{background:var(--panel2);font-size:12px;white-space:nowrap}tbody tr:hover{background:var(--wash)}
+.method-comparison{padding:24px;border:1px solid var(--line);border-radius:18px;background:var(--panel);box-shadow:var(--shadow)}.comparison-heading{display:flex;justify-content:space-between;align-items:start;gap:24px;margin-bottom:20px}.comparison-heading h2{margin-bottom:6px;font-size:25px}.comparison-heading p{margin:0;color:var(--muted)}.comparison-count{white-space:nowrap;padding:7px 11px;border-radius:999px;background:var(--wash);color:var(--accent);font-size:13px}.comparison-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.comparison-controls label{display:grid;gap:5px;font-size:13px;font-weight:700}.comparison-controls select{width:100%;padding:10px 12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;font:inherit}.comparison-methods{border:0;padding:0;margin:18px 0}.comparison-methods legend{font-weight:700}.method-checks,.outcome-list{display:flex;gap:7px;flex-wrap:wrap}.compare-chip{display:flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid var(--line);border-radius:999px;background:var(--bg);cursor:pointer}.compare-chip.disabled{opacity:.45;cursor:not-allowed}.compare-chip input{accent-color:var(--accent)}.outcome-pill{display:inline-block;padding:5px 9px;border-radius:8px;font-size:13px;white-space:nowrap;text-decoration:none}.outcome-pill.pass{background:color-mix(in srgb,var(--good) 12%,var(--panel));color:var(--good)}.outcome-pill.fail{background:color-mix(in srgb,var(--bad) 12%,var(--panel));color:var(--bad)}.matrix-table table{min-width:760px}.matrix-table th:nth-child(n+3),.matrix-table td:nth-child(n+3){min-width:270px}.matrix-table td{vertical-align:middle;overflow-wrap:normal}
+@media(max-width:760px){.top{padding:0 14px}.comparison-heading{display:block}.comparison-count{display:inline-block;margin-top:10px}.comparison-controls{grid-template-columns:1fr}.method-comparison{padding:16px}main,footer{width:calc(100% - 28px)}}
 '''
     js = r'''const lang=document.documentElement.lang;
 const zh=lang==='zh';
@@ -456,21 +494,27 @@ if(matrix){
   const matrixRows=[...matrix.querySelectorAll('tbody tr')];
   const relation=document.querySelector('[data-matrix-relation]');
   const site=document.querySelector('[data-matrix-site]');
+  const baseline=document.querySelector('[data-matrix-baseline]');
+  const boxes=[...document.querySelectorAll('[data-matrix-method]')];
   const count=document.querySelector('[data-matrix-count]');
   const applyMatrix=()=>{
+    boxes.forEach(box=>{box.disabled=box.value===baseline.value;box.closest('label')?.classList.toggle('disabled',box.disabled);if(box.disabled)box.checked=false});
+    const others=boxes.filter(box=>box.checked&&!box.disabled).map(box=>box.value);
+    const selected=[baseline.value,...others];
     let shown=0;
     matrixRows.forEach(row=>{
-      const outcomes=JSON.parse(row.dataset.outcomes);
-      const passes=outcomes.filter(value=>value==='pass').length;
-      const matchRelation=!relation.value||(relation.value==='different'&&passes>0&&passes<outcomes.length)||(relation.value==='all-pass'&&passes===outcomes.length)||(relation.value==='all-fail'&&passes===0);
+      const pass=new Set((row.dataset.pass||'').split(' ').filter(Boolean));
+      const fail=new Set((row.dataset.fail||'').split(' ').filter(Boolean));
+      row.querySelectorAll('a[data-engine]').forEach(link=>{link.hidden=!selected.includes(link.dataset.engine)});
+      const matchRelation=others.length>0&&(!relation.value||(relation.value==='different'&&selected.some(engine=>pass.has(engine))&&selected.some(engine=>fail.has(engine)))||(relation.value==='baseline-pass-others-fail'&&pass.has(baseline.value)&&others.every(engine=>fail.has(engine)))||(relation.value==='baseline-fail-others-pass'&&fail.has(baseline.value)&&others.every(engine=>pass.has(engine)))||(relation.value==='all-pass'&&selected.every(engine=>pass.has(engine)))||(relation.value==='all-fail'&&selected.every(engine=>fail.has(engine)))||(relation.value==='exact-pass'&&selected.every(engine=>pass.has(engine))&&pass.size===selected.length));
       const matchSite=!site.value||row.dataset.site===site.value;
       row.hidden=!(matchRelation&&matchSite);
       if(!row.hidden)shown++;
     });
-    count.textContent=zh?`找到 ${shown} / ${matrixRows.length} 个任务`:`Showing ${shown} / ${matrixRows.length} tasks`;
+    count.textContent=others.length?(zh?`找到 ${shown} / ${matrixRows.length} 个任务`:`Showing ${shown} / ${matrixRows.length} tasks`):(zh?'请至少选择一个对比浏览器':'Select at least one comparison browser');
   };
-  relation.addEventListener('change',applyMatrix);
-  site.addEventListener('change',applyMatrix);
+  baseline.addEventListener('change',()=>{boxes.forEach(box=>box.checked=box.value!==baseline.value);applyMatrix()});
+  [...boxes,relation,site].forEach(control=>control.addEventListener('change',applyMatrix));
   applyMatrix();
 }
 const inventory=document.querySelector('[data-results]');
@@ -507,7 +551,7 @@ if(inventory){
     if(!result)return;
     const detail='result/'+result.key+'.html';
     dialog.querySelector('[data-dialog-title]').textContent=result.browser+' · '+(zh?'任务':'Task')+' #'+result.task_id;
-    dialog.querySelector('[data-dialog-stage]').textContent=result.failure_stage==='browser_tool_execution'?(zh?'浏览器动作':'Browser action'):result.failure_stage==='official_evaluation'?(zh?'官方验收':'Official evaluation'):(zh?'无':'None');
+    dialog.querySelector('[data-dialog-stage]').textContent=result.failure_stage==='browser_tool_execution'?(zh?'浏览器动作':'Browser action'):result.failure_stage==='side_effect_not_observed'?(zh?'提交请求未出现':'Submission request absent'):result.failure_stage==='official_evaluation'?(zh?'官方验收':'Official evaluation'):(zh?'无':'None');
     dialog.querySelector('[data-dialog-error]').textContent=zh?'正在读取完整证据…':'Loading complete evidence…';
     delete dialog.dataset.loaded;
     dialog.querySelector('[data-dialog-link]').href=detail;
@@ -516,11 +560,12 @@ if(inventory){
     try{
       const evidence=await fetchJson(base+'data/evidence/'+result.key+'.json');
       const step=evidence.programmatic_failure?.step;
+      const trigger=evidence.programmatic_failure?.trigger_step;
       const failedAction=(evidence.trajectory||[]).find(action=>action.index===step);
-      dialog.querySelector('[data-dialog-step]').textContent=step?(failedAction?.arguments?.action||'')+' #'+step:(zh?'动作完成后':'After actions completed');
-      dialog.querySelector('[data-dialog-step-link]').href=detail+(step?'#step-'+step:'#trajectory');
+      dialog.querySelector('[data-dialog-step]').textContent=step?(failedAction?.arguments?.action||'')+' #'+step:trigger?(zh?'触发动作':'Trigger action')+' #'+trigger:(zh?'动作完成后':'After actions completed');
+      dialog.querySelector('[data-dialog-step-link]').href=detail+(step?'#step-'+step:trigger?'#step-'+trigger:'#trajectory');
       dialog.querySelector('[data-dialog-category]').textContent=(zh?evidence.review?.label_zh:evidence.review?.label_en)||(zh?'未复核':'Not reviewed');
-      const exact=step?(failedAction?.result||evidence.programmatic_failure?.message||''):evidence.official_evaluation?JSON.stringify(evidence.official_evaluation,null,2):(evidence.programmatic_failure?.message||'');
+      const exact=step?(failedAction?.result||evidence.programmatic_failure?.message||''):evidence.programmatic_failure?.stage==='side_effect_not_observed'?(evidence.programmatic_failure.message+'\n\nExpected network event:\n'+JSON.stringify(evidence.programmatic_failure.expected_network,null,2)):evidence.official_evaluation?JSON.stringify(evidence.official_evaluation,null,2):(evidence.programmatic_failure?.message||'');
       dialog.querySelector('[data-dialog-error]').textContent=exact;
       dialog.querySelector('[data-dialog-cause]').textContent=(zh?evidence.review?.reason_zh:evidence.review?.reason_en)||(zh?'尚无复核判断':'No reviewed cause');
       dialog.querySelector('[data-dialog-remediation]').textContent=(zh?'处理方：':'Owner: ')+(evidence.review?.remediation_owner||'—')+' · '+(zh?'状态：':'Status: ')+(evidence.review?.remediation_status||'—');
@@ -767,7 +812,7 @@ def build_webarena_replay_report(
         )
         stage_rows = []
         for engine, method in methods.items():
-            for code, label_pair in (("browser_tool_execution", ("浏览器动作", "Browser action")), ("official_evaluation", ("官方验收", "Official evaluation"))):
+            for code, label_pair in (("browser_tool_execution", ("浏览器动作", "Browser action")), ("side_effect_not_observed", ("提交请求未出现", "Submission request absent")), ("official_evaluation", ("官方验收", "Official evaluation"))):
                 count = sum(row["engine"] == engine and row["status"] != "pass" and row["failure_stage"] == code for row in public_rows)
                 if count:
                     stage_rows.append(f'<tr><td>{_e(method["label"])}</td><td>{label_pair[0 if zh else 1]}</td><td>{count}</td><td><a href="results.html?engine={_e(engine)}&status=fail&stage={code}">{"下钻到失败结果" if zh else "Inspect failures"} →</a></td></tr>')
@@ -775,7 +820,7 @@ def build_webarena_replay_report(
         summary_body = f'''<section class="hero"><p class="eyebrow">{eyebrow}</p><h1>{"浏览器轨迹重放评测" if zh else "Browser Trajectory Replay"}</h1><p>{"90 条经过资格验证的固定操作轨迹依次在全部注册浏览器上执行。Agent 与模型不参与；每题重置站点，浏览器方法之间完全销毁环境。" if zh else "The same 90 qualified fixed action trajectories ran serially on every registered browser. No Agent or model participated. Sites were reset per task and torn down between browser methods."}</p><div class="detail-links"><a href="results.html">{"逐题查看结果与报错" if zh else "Explore outcomes and exact errors"}</a><a href="dataset.html">{"查看任务与标准轨迹" if zh else "Task contracts and qualified trajectories"}</a></div></section>
         <section><h2>{"核心指标" if zh else "Core metrics"}</h2><p class="callout">{f"通过率覆盖全部 {task_count} 题；端到端耗时、CPU 和内存只比较所有浏览器共同通过的 {shared_count} 题，避免提前失败缩短工作量。单次动作耗时含实际工具调用，调用次数不判优。" if zh else f"Pass rate covers all {task_count} tasks. End-to-end time, CPU, and memory use the {shared_count} tasks passed by every browser so early failure cannot shorten workload. Per-action latency covers actual tool calls; call counts are not ranked."}</p>{_metrics_table(method_rows, lang)}</section>
         <section><h2>{"资源与网络" if zh else "Resources and network"}</h2><p>{f"下表也只统计共同通过的 {shared_count} 题；每个数值按单题采样。网络传输量和 CPU 使用率不直接判优，低数值可能来自缓存或等待，而非浏览器更快。" if zh else f"These per-task samples also cover the {shared_count} shared passes. Network bytes and CPU utilization are not ranked: lower values can reflect caching or waiting, not a faster browser."}</p><details class="matrix-disclosure"><summary>{"展开资源与网络统计" if zh else "Open resource and network statistics"}</summary>{_resource_table(method_rows, lang)}</details></section>
-        <section><h2>{"失败发生在哪个环节" if zh else "Where failures occurred"}</h2><p>{"浏览器动作失败是轨迹没有完整执行；官方验收失败是动作执行结束但任务合同未通过。点击行末入口可看到失败动作、原始报错和复核根因。" if zh else "Browser-action failures stop the trajectory before completion; official-evaluation failures complete actions but fail the task contract. Follow a row to the action, exact error, and reviewed cause."}</p>{stage_table}</section>
+        <section><h2>{"失败发生在哪个环节" if zh else "Where failures occurred"}</h2><p>{"动作报错与提交请求未出现分别统计。后者表示工具调用返回成功，但验收要求的网络请求没有发生；不能据此改判通过。逐题详情给出触发动作、验收规则和复核原因。" if zh else "Action errors and absent submission requests are counted separately. In the latter case the tool call returned success, but the required network request did not occur; this does not justify changing the verdict to pass. Task detail shows the trigger action, evaluator rule, and reviewed cause."}</p>{stage_table}</section>
         <section><h2>{"浏览器动作耗时" if zh else "Browser action latency"}</h2><p>{"均值、P50、P95 按单次调用统计；调用次数只说明工作量。下钻到结果详情可查看具体动作耗时和工具返回。" if zh else "Mean, P50, and P95 are per-call statistics; call counts only describe workload. Open a task result for the individual action timing and full tool response."}</p><details class="matrix-disclosure"><summary>{"展开各类动作耗时" if zh else "Open latency by action type"}</summary>{action_table}</details></section>'''
         (root / "index.html").write_text(_shell(lang, "index", "浏览器轨迹重放" if zh else "Browser Trajectory Replay", summary_body, current_route="index.html"), encoding="utf-8")
 
@@ -792,28 +837,38 @@ def build_webarena_replay_report(
         for row in public_rows:
             cause = row["cause_zh"] if zh else row["cause_en"]
             status = ("通过" if row["status"] == "pass" else "失败") if zh else row["status"].title()
-            stage_label = {"browser_tool_execution": "浏览器动作" if zh else "Browser action", "official_evaluation": "官方验收" if zh else "Official evaluation", "pass": "—"}.get(row["failure_stage"], row["failure_stage"])
+            stage_label = {"browser_tool_execution": "浏览器动作" if zh else "Browser action", "side_effect_not_observed": "提交请求未出现" if zh else "Submission request absent", "official_evaluation": "官方验收" if zh else "Official evaluation", "pass": "—"}.get(row["failure_stage"], row["failure_stage"])
             result_rows.append(f'<tr data-key="{row["key"]}" data-engine="{_e(row["engine"])}" data-status="{row["status"]}" data-site="{_e(row["sites"][0] if row["sites"] else "")}" data-stage="{_e(row["failure_stage"])}" data-cause="{_e((row["cause_zh"] or row["cause_en"]))}"><td><a href="task/{row["task_id"]}.html">#{row["task_id"]}</a><button type="button" data-open-diagnosis>{"诊断" if zh else "Diagnose"}</button></td><td><a href="result/{row["key"]}.html">{_e(row["browser"])}</a></td><td>{_e(row["sites"][0] if row["sites"] else "")}</td><td class="status-{row["status"]}">{status}</td><td>{row["completed_actions"]}/{row["action_count"]}</td><td>{_e(stage_label)}</td><td>{_e(cause) if cause else "—"}</td><td><a href="result/{row["key"]}.html">{"证据页" if zh else "Evidence page"}</a></td></tr>')
         browser_options = "".join(f'<option value="{_e(key)}">{_e(item["label"])}</option>' for key, item in methods.items())
         site_options = "".join(f'<option value="{_e(site)}">{_e(site)}</option>' for site in sorted({s for row in public_rows for s in row["sites"]}))
-        stage_options = '<option value="browser_tool_execution">' + ("浏览器动作" if zh else "Browser action") + '</option><option value="official_evaluation">' + ("官方验收" if zh else "Official evaluation") + '</option>'
+        stage_labels = {"browser_tool_execution": ("浏览器动作", "Browser action"), "side_effect_not_observed": ("提交请求未出现", "Submission request absent"), "official_evaluation": ("官方验收", "Official evaluation")}
+        present_stages = {row["failure_stage"] for row in public_rows if row["status"] == "fail"}
+        stage_options = "".join(f'<option value="{code}">{_e(stage_labels[code][0 if zh else 1])}</option>' for code in stage_labels if code in present_stages)
         causes = {row["cause_zh"]: row["cause_zh"] if zh else row["cause_en"] for row in public_rows if row["cause_zh"]}
         cause_options = "".join(f'<option value="{_e(code)}">{_e(label)}</option>' for code, label in sorted(causes.items()))
         result_matrix_rows = []
         for task_id, task in tasks.items():
-            values = []
-            outcomes = []
+            pass_links = []
+            fail_links = []
+            passed_engines = []
+            failed_engines = []
             for engine in methods:
                 row = next(item for item in rows_by_task[task_id] if item["engine"] == engine)
-                outcomes.append(row["status"])
                 label = ("通过" if row["status"] == "pass" else "失败") if zh else row["status"].title()
-                values.append(f'<a class="status-{row["status"]}" href="result/{row["key"]}.html">{label}</a>')
+                link = f'<a class="outcome-pill {row["status"]}" href="result/{row["key"]}.html" data-engine="{_e(engine)}">{_e(row["browser"])} · {label}</a>'
+                if row["status"] == "pass":
+                    pass_links.append(link)
+                    passed_engines.append(engine)
+                else:
+                    fail_links.append(link)
+                    failed_engines.append(engine)
             site = (task["task"].get("sites") or [""])[0]
-            result_matrix_rows.append(f'<tr data-site="{_e(site)}" data-outcomes="{_e(json.dumps(outcomes))}"><td><a href="task/{task_id}.html">#{task_id}</a></td><td>{_e(", ".join(task["task"].get("sites") or []))}</td>{"".join(f"<td>{v}</td>" for v in values)}</tr>')
-        matrix_headers = "".join(f'<th>{_e(item["label"])}</th>' for item in methods.values())
+            result_matrix_rows.append(f'<tr data-site="{_e(site)}" data-pass="{_e(" ".join(passed_engines))}" data-fail="{_e(" ".join(failed_engines))}"><td><a href="task/{task_id}.html">#{task_id}</a></td><td>{_e(", ".join(task["task"].get("sites") or []))}</td><td><div class="outcome-list">{"".join(pass_links) or "—"}</div></td><td><div class="outcome-list">{"".join(fail_links) or "—"}</div></td></tr>')
         matrix_sites = "".join(f'<option value="{_e(site)}">{_e(site)}</option>' for site in sorted({(task["task"].get("sites") or [""])[0] for task in tasks.values()}))
-        result_matrix = f'<details class="matrix-disclosure" open><summary>{"同题全部浏览器结果" if zh else "Same-task outcomes across all browsers"}</summary><div class="filters"><label>{"成败关系" if zh else "Outcome relation"}<select data-matrix-relation><option value="different">{"有分歧" if zh else "Disagreement"}</option><option value="all-pass">{"全部通过" if zh else "All pass"}</option><option value="all-fail">{"全部失败" if zh else "All fail"}</option><option value="">{"全部任务" if zh else "All tasks"}</option></select></label><label>{"站点" if zh else "Site"}<select data-matrix-site><option value="">{"全部" if zh else "All"}</option>{matrix_sites}</select></label><span class="result-count" data-matrix-count></span></div><div class="table-scroll matrix-table" data-task-matrix><table><thead><tr><th>{"任务" if zh else "Task"}</th><th>{"站点" if zh else "Site"}</th>{matrix_headers}</tr></thead><tbody>{"".join(result_matrix_rows)}</tbody></table></div></details>'
-        results_body = f'''<section class="hero"><p class="eyebrow">{len(public_rows)} {"条逻辑结果" if zh else "logical outcomes"}</p><h1>{"结果与失败诊断" if zh else "Results and failure diagnosis"}</h1><p>{"逐题矩阵比较全部浏览器；筛选表默认显示失败，点击“查看诊断”读取完整报错、复核判断和执行证据。" if zh else "The same-task matrix compares every browser. The inventory starts with failures; open a diagnosis for the full error, reviewed cause, and execution evidence."}</p></section><section class="compact-section">{result_matrix}</section><section><div class="filters"><label>{"搜索" if zh else "Search"}<input data-filter="q" placeholder="{"任务编号、站点或错误" if zh else "Task, site, or error"}"></label><label>{"浏览器" if zh else "Browser"}<select data-filter="engine"><option value="">{"全部" if zh else "All"}</option>{browser_options}</select></label><label>{"结果" if zh else "Verdict"}<select data-filter="status"><option value="fail">{"失败" if zh else "Fail"}</option><option value="pass">{"通过" if zh else "Pass"}</option><option value="">{"全部" if zh else "All"}</option></select></label><label>{"站点" if zh else "Site"}<select data-filter="site"><option value="">{"全部" if zh else "All"}</option>{site_options}</select></label><label>{"失败环节" if zh else "Failure stage"}<select data-filter="stage"><option value="">{"全部" if zh else "All"}</option>{stage_options}</select></label><label>{"复核分类" if zh else "Reviewed category"}<select data-filter="cause"><option value="">{"全部" if zh else "All"}</option>{cause_options}</select></label></div><p class="result-count" data-result-count></p><div class="table-scroll inventory" data-results><table><thead><tr><th>{"任务" if zh else "Task"}</th><th>{"浏览器" if zh else "Browser"}</th><th>{"站点" if zh else "Site"}</th><th>{"判定" if zh else "Verdict"}</th><th>{"动作" if zh else "Actions"}</th><th>{"失败环节" if zh else "Failure stage"}</th><th>{"复核分类" if zh else "Reviewed category"}</th><th>{"详情" if zh else "Detail"}</th></tr></thead><tbody>{''.join(result_rows)}</tbody></table></div></section><dialog id="diagnosis-dialog"><div class="dialog-head"><strong data-dialog-title></strong><button type="button" aria-label="{"关闭" if zh else "Close"}">×</button></div><div class="dialog-body"><div class="diagnosis-facts"><div><span>{"失败环节" if zh else "Failure stage"}</span><strong data-dialog-stage></strong></div><div><span>{"失败动作" if zh else "Failed action"}</span><strong data-dialog-step></strong></div><div><span>{"复核分类" if zh else "Reviewed category"}</span><strong data-dialog-category></strong></div></div><h3>{"原始报错与官方验收" if zh else "Exact error and official evaluation"}</h3><pre data-dialog-error></pre><h3>{"复核原因与处理" if zh else "Reviewed cause and treatment"}</h3><p data-dialog-cause></p><p data-dialog-remediation></p><div class="evidence-actions"><a data-dialog-step-link>{"打开对应动作" if zh else "Open the relevant action"}</a><a data-dialog-link>{"打开完整详情" if zh else "Open full detail"}</a></div></div></dialog>'''
+        matrix_baselines = "".join(f'<option value="{_e(engine)}">{_e(item["label"])}</option>' for engine, item in methods.items())
+        matrix_checks = "".join(f'<label class="compare-chip"><input type="checkbox" data-matrix-method value="{_e(engine)}" checked>{_e(item["label"])}</label>' for engine, item in methods.items())
+        result_matrix = f'<section class="method-comparison"><div class="comparison-heading"><div><h2>{"同题浏览器对比" if zh else "Same-task browser comparison"}</h2><p>{"按通过与失败分组展示所有参评浏览器；点击浏览器名称查看完整动作和验收证据。" if zh else "All registered browsers are grouped by pass and fail. Open a browser outcome for its actions and evaluator evidence."}</p></div><span class="comparison-count" data-matrix-count></span></div><div class="comparison-controls"><label>{"基准浏览器" if zh else "Baseline browser"}<select data-matrix-baseline>{matrix_baselines}</select></label><label>{"成败关系" if zh else "Outcome relation"}<select data-matrix-relation><option value="different">{"所选浏览器有分歧" if zh else "Selected browsers disagree"}</option><option value="baseline-pass-others-fail">{"基准通过，其余失败" if zh else "Baseline passes; others fail"}</option><option value="baseline-fail-others-pass">{"基准失败，其余通过" if zh else "Baseline fails; others pass"}</option><option value="all-pass">{"所选全部通过" if zh else "All selected pass"}</option><option value="all-fail">{"所选全部失败" if zh else "All selected fail"}</option><option value="exact-pass">{"仅所选浏览器通过" if zh else "Only selected browsers pass"}</option><option value="">{"全部任务" if zh else "All tasks"}</option></select></label><label>{"站点" if zh else "Site"}<select data-matrix-site><option value="">{"全部" if zh else "All"}</option>{matrix_sites}</select></label></div><fieldset class="comparison-methods"><legend>{"参与比较的浏览器（至少选一个）" if zh else "Comparison browsers (select at least one)"}</legend><div class="method-checks">{matrix_checks}</div></fieldset><div class="table-scroll matrix-table" data-task-matrix><table><thead><tr><th>{"任务" if zh else "Task"}</th><th>{"站点" if zh else "Site"}</th><th>{"通过的浏览器" if zh else "Passing browsers"}</th><th>{"失败的浏览器" if zh else "Failing browsers"}</th></tr></thead><tbody>{"".join(result_matrix_rows)}</tbody></table></div></section>'
+        results_body = f'''<section class="hero"><p class="eyebrow">{len(public_rows)} {"条逻辑结果" if zh else "logical outcomes"}</p><h1>{"结果与失败诊断" if zh else "Results and failure diagnosis"}</h1><p>{"同题对比支持选择基准和多个浏览器；下方筛选表默认只显示失败，点击“诊断”查看原始判定、复核原因与执行证据。" if zh else "Choose a baseline and multiple browsers for same-task comparison. The inventory starts with failures; open Diagnose for the exact finding, reviewed cause, and execution evidence."}</p></section><section class="compact-section">{result_matrix}</section><section><div class="filters"><label>{"搜索" if zh else "Search"}<input data-filter="q" placeholder="{"任务编号、站点或错误" if zh else "Task, site, or error"}"></label><label>{"浏览器" if zh else "Browser"}<select data-filter="engine"><option value="">{"全部" if zh else "All"}</option>{browser_options}</select></label><label>{"结果" if zh else "Verdict"}<select data-filter="status"><option value="fail">{"失败" if zh else "Fail"}</option><option value="pass">{"通过" if zh else "Pass"}</option><option value="">{"全部" if zh else "All"}</option></select></label><label>{"站点" if zh else "Site"}<select data-filter="site"><option value="">{"全部" if zh else "All"}</option>{site_options}</select></label><label>{"失败环节" if zh else "Failure stage"}<select data-filter="stage"><option value="">{"全部" if zh else "All"}</option>{stage_options}</select></label><label>{"复核分类" if zh else "Reviewed category"}<select data-filter="cause"><option value="">{"全部" if zh else "All"}</option>{cause_options}</select></label></div><p class="result-count" data-result-count></p><div class="table-scroll inventory" data-results><table><thead><tr><th>{"任务" if zh else "Task"}</th><th>{"浏览器" if zh else "Browser"}</th><th>{"站点" if zh else "Site"}</th><th>{"判定" if zh else "Verdict"}</th><th>{"动作" if zh else "Actions"}</th><th>{"失败环节" if zh else "Failure stage"}</th><th>{"复核分类" if zh else "Reviewed category"}</th><th>{"详情" if zh else "Detail"}</th></tr></thead><tbody>{''.join(result_rows)}</tbody></table></div></section><dialog id="diagnosis-dialog"><div class="dialog-head"><strong data-dialog-title></strong><button type="button" aria-label="{"关闭" if zh else "Close"}">×</button></div><div class="dialog-body"><div class="diagnosis-facts"><div><span>{"失败环节" if zh else "Failure stage"}</span><strong data-dialog-stage></strong></div><div><span>{"动作定位" if zh else "Action locator"}</span><strong data-dialog-step></strong></div><div><span>{"复核分类" if zh else "Reviewed category"}</span><strong data-dialog-category></strong></div></div><h3>{"程序判定与验收规则" if zh else "Programmatic finding and evaluator rule"}</h3><pre data-dialog-error></pre><h3>{"复核原因与处理" if zh else "Reviewed cause and treatment"}</h3><p data-dialog-cause></p><p data-dialog-remediation></p><div class="evidence-actions"><a data-dialog-step-link>{"打开对应动作" if zh else "Open the relevant action"}</a><a data-dialog-link>{"打开完整详情" if zh else "Open full detail"}</a></div></div></dialog>'''
         (root / "results.html").write_text(_shell(lang, "results", "结果与诊断" if zh else "Results", results_body, current_route="results.html"), encoding="utf-8")
 
         flow_labels = (

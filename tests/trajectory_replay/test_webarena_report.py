@@ -6,6 +6,7 @@ from harness.trajectory_replay.webarena_report import (
     _clean,
     _detail_page,
     _metrics_table,
+    _public_evidence,
     _shell,
     _task_page,
 )
@@ -121,3 +122,43 @@ def test_report_removes_macos_and_linux_local_paths() -> None:
         "/opt/hostedtoolcache/trace.json",
     ):
         assert _clean(f"failure at {path}") == "failure at [local path removed]"
+
+
+def test_missing_submission_is_located_at_trigger_without_calling_it_a_failed_action(
+    tmp_path: Path,
+) -> None:
+    import hashlib
+    import json
+
+    trace = [
+        {"index": 1, "arguments": {"action": "navigate"}, "status": "success", "result": "Opened"},
+        {"index": 2, "arguments": {"action": "evaluate"}, "status": "success", "result": "Save scheduled"},
+        {"index": 3, "arguments": {"action": "wait"}, "status": "success", "result": "Wait completed"},
+    ]
+    evaluation = {
+        "status": "failure",
+        "evaluators_results": [
+            {
+                "evaluator_name": "NetworkEventEvaluator",
+                "expected": {"http_method": "POST", "url": "/product/save"},
+                "assertions": [{"assertion_name": "missing_navigation_event", "assertion_msgs": ["Required POST was not observed"]}],
+            }
+        ],
+    }
+    refs = {}
+    for name, value in (("trace", trace), ("evaluation", evaluation)):
+        path = tmp_path / f"{name}.json"
+        path.write_text(json.dumps(value), encoding="utf-8")
+        refs[name] = {"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+    attempt = {
+        "engine": "moli", "task_id": 464, "status": "fail", "process_status": "pass",
+        "evaluator_status": "fail", "action_count": 3, "completed_action_count": 3,
+        "duration_ms": 1000, "evidence": refs,
+    }
+    public = _public_evidence(attempt, None, tmp_path / "report")
+    finding = public["programmatic_failure"]
+    assert finding["stage"] == "side_effect_not_observed"
+    assert finding["step"] is None
+    assert finding["trigger_step"] == 2
+    assert finding["message"].endswith("Required POST was not observed")
+    assert finding["expected_network"][0]["http_method"] == "POST"

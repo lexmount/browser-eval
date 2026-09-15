@@ -202,6 +202,17 @@ def check(report_dir: Path) -> dict[str, int]:
     results_html = (root / "results.html").read_text(encoding="utf-8")
     if '<option value="fail">' not in results_html or 'id="diagnosis-dialog"' not in results_html:
         raise ValueError("result inventory must default to failure and open a diagnosis dialog")
+    for page in (root / "results.html", root / "en/results.html"):
+        rendered = page.read_text(encoding="utf-8")
+        baseline = re.search(r'<select data-matrix-baseline>(.*?)</select>', rendered, re.S)
+        if baseline is None:
+            raise ValueError("same-task comparison needs a baseline browser selector")
+        baseline_ids = re.findall(r'<option value="([^"]+)">', baseline.group(1))
+        comparison_ids = re.findall(r'data-matrix-method value="([^"]+)"', rendered)
+        if baseline_ids != participants or comparison_ids != participants:
+            raise ValueError("same-task comparison controls must come from the complete participant registry")
+        if rendered.count('data-pass="') != task_count or rendered.count('data-fail="') != task_count:
+            raise ValueError("same-task comparison needs one grouped outcome row per task")
     return {"html_pages": len(list(root.rglob("*.html"))), "checked_links": checked_links}
 
 
