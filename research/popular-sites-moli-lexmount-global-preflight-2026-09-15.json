@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "status": "awaiting_user_confirmation_no_provider_calls_authorized",
+  "recorded_at": "2026-09-15T15:30:24+08:00",
+  "scope": "popular-sites rules v2 next-stage comparison of Moli WebFetch and Lexmount Global",
+  "frozen_inputs": {
+    "rules_freeze_commit": "255ed72db7a3f0c8595ea2663dcb31847516c662",
+    "dataset_sha256": "b8907677ef1850de1de22188f8923cfa97f9a7511e652b9d339c54eca9efd07b",
+    "rules_sha256": "88ccb4557c1f3c053f351fb4a292fc856a442d1128e874bc7f67658ea2b86f72"
+  },
+  "comparison_intent": {
+    "lexmount_global": "current hosted production stable deployment",
+    "moli_webfetch": "latest official tagged open-source release",
+    "same_cases_and_rules": true
+  },
+  "moli_webfetch": {
+    "latest_tag_verified_at": "2026-09-15T15:29:00+08:00",
+    "version": "1.1.5",
+    "tag": "v1.1.5",
+    "tag_commit": "3a9acf2e19988387ec118a3671d5d19fcdeb9e75",
+    "release_published_at": "2026-09-11T13:19:41Z",
+    "release_asset": "moli-aarch64-apple-darwin.tar.gz",
+    "release_asset_sha256": "8ce3bff3d003b4e04b366908ad14656456e1bf347b2be251b734cf1d60d654a6",
+    "installed_binary_reported_version": "moli 1.1.5",
+    "installed_binary_sha256": "4a947148f9af8726b619558fb72c05def75e1c347464c64af178e2f4ddfa71a5",
+    "binary_update_required": false,
+    "prior_runtime_lock_metadata_correction": {
+      "field": "source_commit",
+      "recorded_value": "a4b2ad7bc10b0f02386c08ebc353c75a3073f2d2",
+      "verified_value": "3a9acf2e19988387ec118a3671d5d19fcdeb9e75",
+      "effect": "provenance metadata only; the recorded release archive and installed binary are the official v1.1.5 artifacts",
+      "policy": "preserve the old runtime lock and record this correction append-only"
+    }
+  },
+  "lexmount_global": {
+    "endpoint": "https://api.lexmount.com",
+    "api_contract": "POST /v1/extract",
+    "release_channel": "hosted production stable deployment",
+    "semantic_or_deployment_version": null,
+    "version_availability": "not exposed by public documentation, prior result metadata, root response headers, /health, or /version",
+    "provenance_label": "Lexmount Global hosted stable deployment observed 2026-09-15",
+    "per_call_identity_to_retain": [
+      "request_id",
+      "result.engine",
+      "dom_id",
+      "server_elapsed_ms",
+      "endpoint",
+      "API contract",
+      "observation timestamp"
+    ],
+    "warning": "Kong 3.9.1 is the gateway version and must not be reported as the Lexmount Global product version."
+  },
+  "planned_calls": {
+    "moli_webfetch": {
+      "full_100_case_rerun": false,
+      "logical_calls": 3,
+      "case_ids": [
+        "challenge-02",
+        "challenge-04",
+        "challenge-06"
+      ],
+      "reason": "The installed binary is already the latest official v1.1.5 release; only these three task URLs changed."
+    },
+    "lexmount_global": {
+      "full_100_case_rerun": true,
+      "logical_calls": 100,
+      "reason": "The hosted production deployment changed, so all prior Lexmount Global calls belong to the old provider version."
+    },
+    "total_logical_calls": 103,
+    "planned_initial_physical_calls": 103,
+    "automatic_score_improvement_retries": 0
+  },
+  "old_800_result_disposition": {
+    "all_raw_results_and_evidence_preserved": true,
+    "eligible_for_future_inheritance": 679,
+    "historical_only_or_superseded": 121,
+    "breakdown": {
+      "moli_webfetch_inherited": 97,
+      "moli_webfetch_old_changed_url_historical": 3,
+      "lexmount_global_old_version_historical": 100,
+      "other_six_methods_inherited": 582,
+      "other_six_methods_old_changed_url_historical": 18
+    },
+    "best_result_selection": false
+  },
+  "publication_hold_remains_active": true,
+  "provider_calls_performed_while_preparing_this_record": 0,
+  "authorization_received": false
+}
