@@ -695,11 +695,26 @@ def _validated_resume(
         for task in plan["seed_manifest"].get("tasks") or []
     }
     allowed_keys = {(engine, task_id) for engine in engines for task_id in task_ids}
+
+    def required_receipt_int(item: object, field: str, record: str) -> int:
+        if not isinstance(item, dict) or field not in item:
+            raise ValueError(f"existing replay receipt {record} omitted {field}")
+        value = item[field]
+        if isinstance(value, bool):
+            raise ValueError(f"existing replay receipt {record} has invalid {field}")
+        try:
+            return int(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"existing replay receipt {record} has invalid {field}"
+            ) from exc
+
     keys = []
     for item in attempts:
+        task_id = required_receipt_int(item, "task_id", "attempt")
         if item.get("schema") != "lex_webarena_trajectory_replay_attempt/1":
             raise ValueError("existing replay receipt contains an invalid attempt schema")
-        key = (str(item.get("engine")), int(item.get("task_id")))
+        key = (str(item.get("engine")), task_id)
         if key not in allowed_keys:
             raise ValueError("existing replay receipt contains an attempt outside the frozen plan")
         if item.get("source_candidate_id") != canonical_ids[key[1]]:
@@ -719,14 +734,21 @@ def _validated_resume(
             "restart the complete formal scope in a new output directory"
         )
     physical_keys = [
-        (str(item.get("engine")), int(item.get("task_id")), int(item.get("physical_execution")))
+        (
+            str(item.get("engine")),
+            required_receipt_int(item, "task_id", "physical execution"),
+            required_receipt_int(item, "physical_execution", "physical execution"),
+        )
         for item in physical_executions
     ]
     if len(physical_keys) != len(set(physical_keys)):
         raise ValueError("existing replay receipt contains duplicate physical executions")
     physical_by_logical: dict[tuple[str, int], list[dict[str, Any]]] = {}
     for item in physical_executions:
-        key = (str(item.get("engine")), int(item.get("task_id")))
+        key = (
+            str(item.get("engine")),
+            required_receipt_int(item, "task_id", "physical execution"),
+        )
         if key not in allowed_keys:
             raise ValueError(
                 "existing replay receipt contains a physical execution outside the plan"

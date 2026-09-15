@@ -465,3 +465,59 @@ def test_resume_rejects_interrupted_physical_execution(tmp_path: Path) -> None:
             scope="formal",
             runtime=runtime,
         )
+
+
+@pytest.mark.parametrize("corrupt_section", ["attempts", "physical_executions"])
+def test_resume_reports_missing_task_id_as_invalid_receipt(
+    tmp_path: Path, corrupt_section: str
+) -> None:
+    runtime = {"resources": {"cpus": 2.0}}
+    plan = {
+        "profile_sha256": "profile",
+        "seed_manifest_sha256": "seeds",
+        "seed_manifest": {
+            "tasks": [{"task_id": 1, "canonical_candidate_id": "canonical-1"}]
+        },
+    }
+    receipt = {
+        "schema": RECEIPT_SCHEMA,
+        "execution_scope": "formal",
+        "profile_sha256": "profile",
+        "source_seed_manifest_sha256": "seeds",
+        "task_ids": [1],
+        "engines": ["chromium"],
+        "runtime": runtime,
+        "run_id": "run",
+        "attempts": [],
+        "method_teardown": {"chromium": True},
+        "sessions": [],
+        "physical_executions": [],
+    }
+    if corrupt_section == "attempts":
+        receipt["attempts"] = [
+            {
+                "schema": "lex_webarena_trajectory_replay_attempt/1",
+                "engine": "chromium",
+                "source_candidate_id": "canonical-1",
+            }
+        ]
+    else:
+        receipt["physical_executions"] = [
+            {
+                "engine": "chromium",
+                "physical_execution": 1,
+                "status": "complete",
+            }
+        ]
+    receipt_path = tmp_path / "receipt.json"
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="omitted task_id"):
+        _validated_resume(
+            receipt_path,
+            plan=plan,
+            task_ids=[1],
+            engines=["chromium"],
+            scope="formal",
+            runtime=runtime,
+        )
