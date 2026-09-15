@@ -290,6 +290,7 @@ browser-use-eval = [
     { name = "tiktoken" },
 ]
 headless-eval = [
+    { name = "docker" },
     { name = "playwright" },
     { name = "pypdf" },
 ]
@@ -315,6 +316,7 @@ requires-dist = [
     { name = "beautifulsoup4", marker = "extra == 'reference-audit'", specifier = ">=4.12,<5" },
     { name = "crawl4ai", marker = "extra == 'oss-eval'", specifier = "==0.9.3" },
     { name = "docker", marker = "extra == 'browser-use-eval'", specifier = ">=7,<8" },
+    { name = "docker", marker = "extra == 'headless-eval'", specifier = ">=7,<8" },
     { name = "langchain-community", marker = "extra == 'oss-eval'", specifier = "==0.3.30" },
     { name = "openpyxl", marker = "extra == 'oss-eval'", specifier = "==3.1.5" },
     { name = "playwright", marker = "extra == 'browser-use-eval'", specifier = ">=1.52,<2" },

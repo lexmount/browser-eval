@@ -565,8 +565,8 @@ def _copy_speed_bundle(source, target, dataset, rows, batches, excluded_provider
 
 
 def _assemble(run, certificates, replacements, output, additions=None, provider_replacements=None,
-              provider_additions=None, speed_cohort=None, canonical_dataset=None,
-              retain_unverified=False, exclude_providers=None):
+              provider_additions=None, speed_cohort=None, resource_cohort=None,
+              canonical_dataset=None, retain_unverified=False, exclude_providers=None):
     additions = additions or []
     provider_replacements = provider_replacements or []
     provider_additions = provider_additions or []
@@ -824,6 +824,8 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         (output/name).write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n')
     (output/'results.jsonl').write_text(''.join(json.dumps(r, ensure_ascii=True)+'\n' for r in records))
     copy_scoring_revision_history(run, output)
+    if (run/'latency-corrections.json').is_file():
+        shutil.copy2(run/'latency-corrections.json',output/'latency-corrections.json')
     # Consolidate independently validated source reference-correction receipts
     # and bind them to the exact assembled dataset/results pair.
     revision_rows=[]
@@ -908,6 +910,13 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             raise ValueError('Speed cohort execution has no batches')
         _copy_speed_bundle(speed_cohort,output/'speed-cohort',speed_dataset,
                            speed_rows,speed_batches,excluded_providers=exclude_providers)
+    if resource_cohort:
+        if not (resource_cohort/'resource-comparison.json').is_file():
+            raise ValueError('Resource cohort has not been packaged')
+        resource_rows=read_records(resource_cohort)
+        if {row['provider'] for row in resource_rows} & set(exclude_providers):
+            raise ValueError('Excluded providers remain in the resource cohort')
+        shutil.copytree(resource_cohort,output/'resource-cohort')
     if not failed:require_verified_reference_checks(batches,cases=dataset,records=records,source=output,
         equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
         'equivalent_reference_bytes_with_independent_batch_captures',
@@ -921,8 +930,8 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
 
 
 def assemble(run, certificates, replacements, output, additions=None, provider_replacements=None,
-             provider_additions=None, speed_cohort=None, canonical_dataset=None,
-             retain_unverified=False, exclude_providers=None):
+             provider_additions=None, speed_cohort=None, resource_cohort=None,
+             canonical_dataset=None, retain_unverified=False, exclude_providers=None):
     """Build and verify in a sibling staging directory, then publish atomically."""
     if output.exists():raise ValueError('Destination exists; evidence must not be overwritten')
     output.parent.mkdir(parents=True,exist_ok=True)
@@ -931,7 +940,8 @@ def assemble(run, certificates, replacements, output, additions=None, provider_r
     try:
         _assemble(run,certificates,replacements,staging,additions=additions,
             provider_replacements=provider_replacements,provider_additions=provider_additions,
-            speed_cohort=speed_cohort,canonical_dataset=canonical_dataset,
+            speed_cohort=speed_cohort,resource_cohort=resource_cohort,
+            canonical_dataset=canonical_dataset,
             retain_unverified=retain_unverified,exclude_providers=exclude_providers)
         staging.replace(output)
         work.rmdir()
@@ -949,6 +959,7 @@ if __name__=='__main__':
     parser.add_argument('--provider-replacements',type=Path,nargs='*',default=[])
     parser.add_argument('--provider-additions',type=Path,nargs='*',default=[])
     parser.add_argument('--speed-cohort',type=Path)
+    parser.add_argument('--resource-cohort',type=Path)
     parser.add_argument('--canonical-dataset',type=Path)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--retain-unverified',action='store_true',help='Retain a blocked diagnostic cohort; the report builder will still reject it')
@@ -957,5 +968,6 @@ if __name__=='__main__':
     assemble(args.run_dir,args.certificates,args.replacements,args.output,
         additions=args.additions,provider_replacements=args.provider_replacements,
         provider_additions=args.provider_additions,
-        speed_cohort=args.speed_cohort,canonical_dataset=args.canonical_dataset,
+        speed_cohort=args.speed_cohort,resource_cohort=args.resource_cohort,
+        canonical_dataset=args.canonical_dataset,
         retain_unverified=args.retain_unverified,exclude_providers=args.exclude_providers)
