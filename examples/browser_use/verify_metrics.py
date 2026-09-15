@@ -67,15 +67,25 @@ def verify(artifacts: Path) -> dict:
                 if index > 1 and attempts[index - 2].get("status") == "pass":
                     raise ValueError(f"retry follows a passing result: {key}")
                 evidence_dir = Path(str(row.get("evidence_directory") or "")).resolve()
+                expected_dir = (
+                    artifacts / "tasks" / key[0] / key[1] / f"attempt-{index}"
+                ).resolve()
+                if (
+                    not expected_dir.is_relative_to(artifacts / "tasks")
+                    or evidence_dir != expected_dir
+                ):
+                    raise ValueError(f"attempt evidence path differs from manifest scope: {key}")
                 if row.get("status") == "pass":
                     if row.get("evidence_status") != "pass":
                         raise ValueError(f"passing attempt lacks complete evidence: {key}")
-                    if evidence_dir.exists():
-                        for name in (manifest.get("protocol") or {}).get(
-                            "required_attempt_evidence", ()
-                        ):
-                            if not (evidence_dir / name).is_file():
-                                raise ValueError(f"passing attempt is missing {name}: {key}")
+                    if not evidence_dir.is_dir():
+                        raise ValueError(f"passing attempt evidence directory is missing: {key}")
+                    for name in (manifest.get("protocol") or {}).get(
+                        "required_attempt_evidence", ()
+                    ):
+                        evidence_file = (evidence_dir / name).resolve()
+                        if evidence_file.parent != evidence_dir or not evidence_file.is_file():
+                            raise ValueError(f"passing attempt is missing {name}: {key}")
     else:
         engines = tuple(summary.get("functional") or {})
     final = {}

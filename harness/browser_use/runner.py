@@ -386,7 +386,7 @@ def _run_task(
     expected_actions = list(task.ground_truth.get("expected_actions") or [])
     tool_trace = [item for item in trace if item.get("action") != "validate_assertions"]
     actual_actions = [str(item.get("action") or "") for item in tool_trace]
-    process_passed = actual_actions == expected_actions and all(
+    process_passed = bool(tool_trace) and actual_actions == expected_actions and all(
         item.get("status") == "pass" for item in tool_trace
     )
     artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -483,7 +483,8 @@ def _run_task(
         "process_validation": {
             "expected_actions": expected_actions,
             "actual_actions": actual_actions,
-            "all_calls_passed": all(item.get("status") == "pass" for item in tool_trace),
+            "all_calls_passed": bool(tool_trace)
+            and all(item.get("status") == "pass" for item in tool_trace),
             "passed": process_passed,
         },
         "resource": _resource_result(resources, sampler, before, after, duration_ms),

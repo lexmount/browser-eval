@@ -104,6 +104,13 @@ def test_independent_audit_enforces_retry_matrix_and_success_evidence(tmp_path):
     )
     assert module.verify(tmp_path)["retry_samples"] == 1
 
+    rows[0]["evidence_directory"] = str(retry_evidence)
+    (tmp_path / "attempts.jsonl").write_text("\n".join(map(json.dumps, rows)))
+    with pytest.raises(ValueError, match="evidence path differs"):
+        module.verify(tmp_path)
+    rows[0]["evidence_directory"] = str(tmp_path / "tasks" / "a" / "chromium" / "attempt-1")
+    (tmp_path / "attempts.jsonl").write_text("\n".join(map(json.dumps, rows)))
+
     rows[-1]["is_retry"] = False
     (tmp_path / "attempts.jsonl").write_text("\n".join(map(json.dumps, rows)))
     with pytest.raises(ValueError, match="duplicate primary sample"):
