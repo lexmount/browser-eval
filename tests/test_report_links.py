@@ -35,6 +35,19 @@ class ReportLinkCheckTest(unittest.TestCase):
             self.assertEqual(result.returncode, 1)
             self.assertIn("missing fragment", result.stdout)
 
+    def test_honors_document_base(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "assets").mkdir()
+            (root / "assets/style.css").write_text("", encoding="utf-8")
+            (root / "nested").mkdir()
+            (root / "nested/index.html").write_text(
+                '<html><head><base href="../"><link rel="stylesheet" '
+                'href="assets/style.css"></head></html>',
+                encoding="utf-8",
+            )
+            self.assertEqual(self.run_check(root).returncode, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

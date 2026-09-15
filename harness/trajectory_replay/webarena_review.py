@@ -1,0 +1,90 @@
+"""Validate evidence-bound root-cause review for trajectory replay results."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+from pathlib import Path
+from typing import Any
+
+REVIEW_SCHEMA = "lex_webarena_trajectory_replay_failure_review/1"
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def programmatic_failure(attempt: dict[str, Any]) -> dict[str, Any]:
+    """Return the automatic failure location without asserting a root cause."""
+
+    if attempt.get("process_status") != "pass":
+        message = str(attempt.get("error") or "BrowserTool execution failed")
+        match = re.search(r"RuntimeError: step (\d+) failed: ([^\n]+)", message)
+        return {
+            "stage": "browser_tool_execution",
+            "step": int(match.group(1)) if match else None,
+            "message": match.group(2) if match else message.strip(),
+        }
+    if attempt.get("evaluator_status") != "pass":
+        return {
+            "stage": "official_evaluation",
+            "step": None,
+            "message": "Official evaluator rejected the completed trajectory",
+        }
+    return {"stage": "pass", "step": None, "message": ""}
+
+
+def load_validated_failure_review(
+    results_path: str | Path, review_path: str | Path
+) -> dict[str, Any]:
+    """Load a review only when it exactly covers the bound final failures."""
+
+    results_file = Path(results_path).expanduser().resolve()
+    review_file = Path(review_path).expanduser().resolve()
+    results = json.loads(results_file.read_text(encoding="utf-8"))
+    review = json.loads(review_file.read_text(encoding="utf-8"))
+    if review.get("schema") != REVIEW_SCHEMA:
+        raise ValueError("unsupported trajectory replay failure review")
+    if (review.get("bindings") or {}).get("effective_results_sha256") != _sha256(
+        results_file
+    ):
+        raise ValueError("failure review is not bound to the effective result bytes")
+
+    attempts = results.get("attempts") or []
+    failed = {
+        (str(item.get("engine") or ""), int(item["task_id"]))
+        for item in attempts
+        if item.get("status") != "pass"
+    }
+    reviewed: dict[tuple[str, int], dict[str, Any]] = {}
+    for group in review.get("cause_groups") or []:
+        required_group_fields = {
+            "code",
+            "label_zh",
+            "label_en",
+            "responsibility",
+            "remediation_owner",
+            "remediation_status",
+            "results",
+        }
+        if required_group_fields - set(group):
+            raise ValueError("failure review cause group is incomplete")
+        for item in group["results"]:
+            key = (str(item.get("engine") or ""), int(item["task_id"]))
+            if key in reviewed:
+                raise ValueError(f"duplicate failure review result: {key}")
+            if not str(item.get("reason_zh") or "").strip() or not str(
+                item.get("reason_en") or ""
+            ).strip():
+                raise ValueError(f"failure review reason is incomplete: {key}")
+            reviewed[key] = {**item, "cause_group": group}
+
+    if set(reviewed) != failed:
+        missing = sorted(failed - set(reviewed))
+        extra = sorted(set(reviewed) - failed)
+        raise ValueError(f"failure review coverage mismatch: missing={missing}, extra={extra}")
+    coverage = review.get("coverage") or {}
+    if coverage != {"failed_results": len(failed), "verified_results": len(reviewed)}:
+        raise ValueError("failure review coverage summary is incorrect")
+    return {"review": review, "results": results, "by_result": reviewed}

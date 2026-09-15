@@ -29,6 +29,7 @@ run.log
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
-.browser-use-eval-venv/
+artifacts/trajectory_replay/
 artifacts/browser_use/
-/docs/reports/browser-use-evaluation-*
+/docs/reports/trajectory-replay-evaluation-*
+.ai/topics/

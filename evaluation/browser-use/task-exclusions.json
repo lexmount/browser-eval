@@ -1,0 +1,14 @@
+{
+  "schema": "lex_browser_use_task_exclusions/1",
+  "benchmark": "WebArena-Verified 1.2.3",
+  "tasks": {
+    "68": {
+      "reason": "official expected.retrieved_data violates the published results_schema",
+      "disposition": "exclude until the official schema is corrected or a benchmark patch is preregistered"
+    },
+    "142": {
+      "reason": "category membership for 'hair care and hair style' has no observable acceptance rule",
+      "disposition": "exclude until category membership is bound to site taxonomy or another observable predicate"
+    }
+  }
+}
