@@ -273,10 +273,15 @@ def evaluate_corrected_contract(
         evaluator_context = context
         if ordinary_network_filtering and config.evaluator == "NetworkEventEvaluator":
             task_data = task.model_dump(mode="json")
+            evaluations = task_data.get("eval") or []
+            if not evaluations or not isinstance(evaluations[0].get("expected"), dict):
+                raise ValueError(
+                    "ordinary network filtering requires eval[0].expected"
+                )
             # webarena-verified 1.2.3 reads the task type used by
             # NetworkEventEvaluator from eval[0].expected, regardless of the
             # network evaluator's own position in the task configuration.
-            task_data["eval"][0]["expected"]["task_type"] = "MUTATE"
+            evaluations[0]["expected"]["task_type"] = "MUTATE"
             filtering_task = type(task).model_validate(task_data)
             evaluator_context = context.model_copy(update={"task": filtering_task})
         evaluator_results.append(

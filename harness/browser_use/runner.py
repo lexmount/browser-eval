@@ -401,7 +401,7 @@ def _wait_magento_dependencies_ready(
         )
         output = result.output.decode("utf-8", errors="replace")
         last_detail = output[-500:] or f"exit {result.exit_code}"
-        if int(result.exit_code) == 0:
+        if result.exit_code == 0:
             try:
                 status = str(json.loads(output).get("status") or "")
             except json.JSONDecodeError:

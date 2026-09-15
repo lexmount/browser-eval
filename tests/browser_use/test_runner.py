@@ -281,7 +281,7 @@ def test_environment_control_wait_covers_slow_official_image_restore() -> None:
 
 def test_magento_readiness_requires_non_red_elasticsearch(monkeypatch) -> None:
     class Result:
-        def __init__(self, exit_code: int, output: bytes) -> None:
+        def __init__(self, exit_code: int | None, output: bytes) -> None:
             self.exit_code = exit_code
             self.output = output
 
@@ -293,13 +293,15 @@ def test_magento_readiness_requires_non_red_elasticsearch(monkeypatch) -> None:
             self.calls += 1
             assert command[-1].endswith("wait_for_status=yellow&timeout=5s")
             if self.calls == 1:
+                return Result(None, b"")
+            if self.calls == 2:
                 return Result(7, b"connection refused")
             return Result(0, b'{"status":"yellow"}')
 
     monkeypatch.setattr("harness.browser_use.runner.time.sleep", lambda _: None)
     container = Container()
     _wait_magento_dependencies_ready(container, timeout_seconds=1)
-    assert container.calls == 2
+    assert container.calls == 3
 
 
 def test_physical_execution_lock_path_is_user_global_not_evidence_scoped(

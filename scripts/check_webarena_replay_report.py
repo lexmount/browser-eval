@@ -6,8 +6,56 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
+
+
+class _VisibleTextParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.hidden_depth = 0
+        self.parts: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.lower() in {"script", "style", "pre", "code"}:
+            self.hidden_depth += 1
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag.lower() in {"script", "style", "pre", "code"} and self.hidden_depth:
+            self.hidden_depth -= 1
+
+    def handle_data(self, data: str) -> None:
+        if not self.hidden_depth:
+            self.parts.append(data)
+
+
+def _visible_text(html: str) -> str:
+    parser = _VisibleTextParser()
+    parser.feed(html)
+    return " ".join(parser.parts)
+
+
+def _check_english_localization(pages: list[Path]) -> None:
+    cjk = re.compile(r"[\u3400-\u9fff]")
+    localized_attribute = re.compile(
+        r'(?:aria-label|placeholder|title)=["\']([^"\']*)',
+        flags=re.I,
+    )
+    for page in pages:
+        text = page.read_text(encoding="utf-8")
+        title = re.search(r"<title>(.*?)</title>", text, flags=re.I | re.S)
+        if title and cjk.search(title.group(1)):
+            raise ValueError(f"English report title is not localized: {page}")
+        if any(cjk.search(value) for value in localized_attribute.findall(text)):
+            raise ValueError(f"English report accessibility text is not localized: {page}")
+        visible = _visible_text(text).replace("中文", "")
+        match = cjk.search(visible)
+        if match:
+            excerpt = visible[max(0, match.start() - 40) : match.start() + 80]
+            raise ValueError(
+                f"English reader-facing page contains Chinese prose: {page}: {excerpt}"
+            )
 
 
 def _local_target(page: Path, raw: str) -> Path | None:
@@ -108,6 +156,9 @@ def check(report_dir: Path) -> dict[str, int]:
         text = page.read_text(encoding="utf-8")
         if any(marker in text for marker in untranslated_zh_markers):
             raise ValueError(f"Chinese report contains untranslated interface text: {page}")
+    _check_english_localization(
+        [*core[len(core_names) :], *(root / "en/result").glob("*.html")]
+    )
 
     checked_links = 0
     for page in root.rglob("*.html"):
