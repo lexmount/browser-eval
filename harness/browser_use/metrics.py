@@ -403,15 +403,16 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
             if isinstance(row.get("tool_output_tokens"), (int, float))
         )
         by_engine[engine] = values
-    paired_ratios: dict[str, Any] = {}
-    if len(engines) == 2:
-        denominator_engine, numerator_engine = engines
+    baseline_engine = engines[0] if engines else None
+    relative_ratios_by_engine: dict[str, Any] = {}
+    for numerator_engine in engines[1:]:
+        engine_ratios: dict[str, Any] = {}
         ratio_metric_names = (*metric_names, "duration_ms", "tool_output_tokens")
         for name in ratio_metric_names:
             ratios: list[float] = []
             details: list[dict[str, float | str]] = []
             for task_id, bucket in intersection_items:
-                denominator_row = bucket[denominator_engine]
+                denominator_row = bucket[baseline_engine]
                 numerator_row = bucket[numerator_engine]
                 if name == "duration_ms":
                     denominator = _execution_duration(denominator_row)
@@ -437,12 +438,16 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
                             "ratio": ratio,
                         }
                     )
-            paired_ratios[name] = {
+            engine_ratios[name] = {
                 **_metric(ratios),
                 "values": sorted(
                     details, key=lambda item: (float(item["ratio"]), str(item["task_id"]))
                 ),
             }
+        relative_ratios_by_engine[numerator_engine] = engine_ratios
+    paired_ratios = (
+        relative_ratios_by_engine.get(engines[1], {}) if len(engines) == 2 else {}
+    )
     return {
         "functional": functional,
         "resource_comparison": {
@@ -452,6 +457,14 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
             # Kept for older evidence readers. Each item is now the final declared result.
             "intersection_attempts": len(intersection),
             "by_engine": by_engine,
+            "relative_ratios": {
+                "baseline_engine": baseline_engine,
+                "formula": "per_task_ratio = comparison_engine / baseline_engine",
+                "p50_method": "statistics.median",
+                "p95_method": "nearest-rank: sorted_values[ceil(0.95*n)-1]",
+                "mean_method": "statistics.fmean",
+                "by_engine": relative_ratios_by_engine,
+            },
             "paired_ratios": {
                 "numerator_engine": engines[1] if len(engines) == 2 else None,
                 "denominator_engine": engines[0] if len(engines) == 2 else None,

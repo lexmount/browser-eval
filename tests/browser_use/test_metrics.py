@@ -152,12 +152,43 @@ def test_summary_keeps_functional_scores_separate_and_uses_pass_intersection():
     assert summary["resource_comparison"]["paired_ratios"]["p95_method"] == (
         "nearest-rank: sorted_values[ceil(0.95*n)-1]"
     )
+    relative = summary["resource_comparison"]["relative_ratios"]
+    assert relative["baseline_engine"] == "chromium"
+    assert relative["by_engine"]["moli"]["duration_ms"]["p50"] == 0.8
     assert summary["by_complexity"]["step_01_05"]["functional"]["moli"]["passes"] == 1
     assert (
         summary["by_complexity"]["step_06_10"]["resource_comparison"]["intersection_attempts"] == 0
     )
     assert summary["by_task"]["a"]["functional"]["chromium"]["passes"] == 1
     assert summary["by_task"]["b"]["representative_errors"]["moli"] == ["timeout"]
+
+
+def test_summary_builds_per_task_ratios_against_one_baseline_for_multiple_engines():
+    rows = [
+        {
+            "engine": engine,
+            "task_id": "a",
+            "complexity": "simple",
+            "attempt": 1,
+            "status": "pass",
+            "result_status": "pass",
+            "duration_ms": duration,
+            "resource": {"cpu_ms": cpu},
+        }
+        for engine, duration, cpu in (
+            ("chromium", 10, 4),
+            ("moli", 5, 2),
+            ("webkit", 20, 8),
+        )
+    ]
+
+    summary = summarize_attempts(rows, engines=("chromium", "moli", "webkit"))
+
+    relative = summary["resource_comparison"]["relative_ratios"]
+    assert relative["baseline_engine"] == "chromium"
+    assert relative["by_engine"]["moli"]["duration_ms"]["p50"] == 0.5
+    assert relative["by_engine"]["webkit"]["duration_ms"]["p50"] == 2.0
+    assert summary["resource_comparison"]["paired_ratios"]["metrics"] == {}
 
 
 

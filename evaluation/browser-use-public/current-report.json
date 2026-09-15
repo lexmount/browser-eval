@@ -13,8 +13,8 @@
   "suite_sha256": "ed2832f9c061726cd856d2949313f6a543c770277122eb42dd38cd0a8d27fe0c",
   "evidence": {
     "location": "outside_git",
-    "manifest_sha256": "defb42315d8a3ce410be126ac16611f716d6eddae78cf2ef7233bfb6011fb4a1",
-    "summary_sha256": "0414f9b8fb54a4ffb003fc06768a159297b9388915f37769f143b171ba095aae"
+    "manifest_sha256": "76604ab681509c473aa6bf93ed97e847e1f292eb745168c302ce56c104d63a78",
+    "summary_sha256": "e148bcec6d6c523440d9d70a028b84f5835e8af4339612e64bfc94a0e43b0d80"
   },
   "results": {
     "chromium": {
@@ -27,7 +27,7 @@
   "publication": {
     "base_url": "https://artifact-hub.app.lexmount.com",
     "site_slug": "G_3dLaZQ1-4H",
-    "version_id": "ver_0a4f6c3c4719443ebe460307bce06c67",
+    "version_id": "ver_e8cd0d9bf6464484babc143dbb390d62",
     "share_url": "https://artifact-hub.app.lexmount.com/v/EpR29VQ99CAgQsT-xdCSX8yg_O7DlWyL",
     "submitted_files_verified": 69
   }

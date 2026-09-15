@@ -19,12 +19,12 @@ ROOT = Path(__file__).resolve().parents[2]
 PAGES = tuple(
     (slug, label, f"{REPORT_STEM}{suffix}.html")
     for slug, label, suffix in (
-        ("index", "结论", ""),
-        ("results", "任务与失败", "-results"),
-        ("suite", "数据集", "-suite"),
+        ("index", "结论摘要", ""),
+        ("results", "结果分析", "-results"),
+        ("suite", "评测集", "-suite"),
         ("research", "选型依据", "-research"),
-        ("method", "方法与核验", "-method"),
-        ("appendix", "复现与变更", "-appendix"),
+        ("method", "环境与方法", "-method"),
+        ("appendix", "复现与附录", "-appendix"),
     )
 )
 
@@ -188,23 +188,20 @@ def _grouped_resource_table(
                 for engine in engines
             }
             available = [value for value in displayed.values() if value is not None]
-            baseline = min(available) if available else None
-            unique_best = baseline is not None and available.count(baseline) == 1
+            best = min(available) if available else None
+            unique_best = best is not None and available.count(best) == 1
             for engine in engines:
                 value = _numeric_stat(((values_by_engine.get(engine) or {}).get(key) or {}), stat)
                 shown = displayed[engine]
                 css_class = (
                     "better"
-                    if key in LOWER_IS_BETTER and unique_best and shown == baseline
+                    if key in LOWER_IS_BETTER and unique_best and shown == best
                     else ""
                 )
                 class_attr = f' class="{css_class}"' if css_class else ""
-                ratio = shown / baseline if shown is not None and baseline not in {None, 0} else None
-                ratio_text = f"{ratio:.2f}×" if ratio is not None else "—"
                 cells.append(
                     f'<td data-label="{_e(stat.upper())} · {_e(_engine_label(engine))}"'
-                    f'{class_attr}><span class="metric-value">{_e(_show(value, divisor))}</span>'
-                    f'<small class="metric-ratio">{_e(ratio_text)}</small></td>'
+                    f'{class_attr}>{_e(_show(value, divisor))}</td>'
                 )
         body.append("<tr>" + "".join(cells) + "</tr>")
     group_headers = "".join(
@@ -222,6 +219,48 @@ def _grouped_resource_table(
         + "".join(body)
         + "</tbody></table></div>"
     )
+
+
+def _relative_ratio_tables(
+    summary: dict[str, Any],
+    metrics: tuple[tuple[str, str, float, str], ...],
+) -> str:
+    comparison = summary.get("resource_comparison") or {}
+    relative = comparison.get("relative_ratios") or {}
+    baseline = str(relative.get("baseline_engine") or "")
+    by_engine = relative.get("by_engine") or {}
+    if not baseline or not by_engine:
+        paired = comparison.get("paired_ratios") or {}
+        baseline = str(paired.get("denominator_engine") or "")
+        numerator = str(paired.get("numerator_engine") or "")
+        if baseline and numerator:
+            by_engine = {numerator: paired.get("metrics") or {}}
+    if not baseline or not by_engine:
+        return ""
+
+    modules = []
+    for engine, ratio_metrics in by_engine.items():
+        rows = []
+        for key, label, _, _ in metrics:
+            values = ratio_metrics.get(key) or {}
+            cells: list[Any] = [label]
+            for stat in ("p50", "p95", "mean"):
+                value = _numeric_stat(values, stat)
+                css = (
+                    "better"
+                    if key in LOWER_IS_BETTER and isinstance(value, (int, float)) and value < 1
+                    else ""
+                )
+                cells.append(ComparedValue(_show(value, suffix="×"), css))
+            rows.append(cells)
+        pair = f"{_engine_label(str(engine))} / {_engine_label(baseline)}"
+        modules.append(
+            f'<details class="ratio-module"><summary>逐任务比值 · {_e(pair)}</summary>'
+            '<p class="muted">每个共同通过任务先相除，再汇总。0.50× 表示前者为基准浏览器的一半，2.00× 表示两倍。</p>'
+            + _table(["指标", "P50", "P95", "平均值"], rows, f"{pair} 逐任务比值")
+            + "</details>"
+        )
+    return "".join(modules)
 
 
 def _nav(active: str) -> str:
@@ -274,7 +313,7 @@ def _shell(
 @media(min-width:481px) and (max-width:760px){{.stackable{{border:1px solid var(--line);overflow:auto}}.stackable table{{display:table;min-width:0}}.stackable thead{{display:table-header-group}}.stackable tbody{{display:table-row-group}}.stackable tr{{display:table-row;border:0}}.stackable td{{display:table-cell;width:auto;border-top:1px solid var(--line);padding:8px}}.stackable td::before{{display:none}}.stackable caption{{display:table-caption;margin:0;border:0;border-radius:0;background:#fff}}}}
 .rule-comparison table{{min-width:900px}}.rule-reason,.rule-actual{{display:block;margin-top:5px}}.rule-reason{{color:var(--bad)}}.rule-actual{{color:var(--muted)}}
 .benchmark-tabs,.comparison-controls{{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px}}.benchmark-tabs button,.comparison-controls button{{border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);padding:7px 12px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}}.benchmark-tabs button.active,.comparison-controls button.active{{color:#173fa8;background:#e8eeff;border-color:#c8d5fb}}.result-guide{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:16px}}.result-guide a{{display:block;text-decoration:none;border:1px solid var(--line);border-radius:9px;padding:11px 12px;color:var(--ink)}}.result-guide a:hover{{background:#edf3ff}}.result-guide strong,.result-guide span{{display:block}}.result-guide span{{color:var(--muted);font-size:12px;margin-top:2px}}.metric-module>summary{{display:flex;justify-content:space-between;align-items:center;font-size:16px}}.metric-module>summary small{{color:var(--muted);font-size:12px}}.rank-grid,.distribution-grid{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}}.rank-card,.distribution-item{{position:relative;min-width:0;border:1px solid var(--line);border-radius:11px;padding:15px;background:#fff}}.rank-card{{padding-left:48px}}.rank-card h3{{margin:0 0 3px}}.rank-card p{{font-size:13px;color:var(--muted)}}.rank-number{{position:absolute;left:14px;top:14px;width:24px;height:24px;border-radius:50%;background:#e8eeff;color:#173fa8;text-align:center;font-weight:800;line-height:24px}}.distribution-item strong,.distribution-item span{{display:block}}.distribution-item span{{font-size:12px;color:var(--muted);font-weight:750;margin-bottom:5px}}.distribution-item strong{{font-size:13px;line-height:1.5}}.benchmark-grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}}.benchmark-card{{min-width:0;border:1px solid var(--line);border-radius:13px;padding:18px;background:#fff}}.benchmark-title{{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}}.benchmark-title h3{{margin:0}}.benchmark-title p{{margin:2px 0;color:var(--muted);font-size:13px}}.category-chip{{flex:none;background:var(--panel);border-radius:999px;padding:3px 8px;font-size:11px;color:var(--muted)}}.benchmark-kpis{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:13px 0}}.benchmark-kpis span{{min-width:0;background:var(--panel);border-radius:8px;padding:9px;font-size:11px;color:var(--muted);overflow-wrap:anywhere}}.benchmark-kpis strong{{display:block;color:var(--ink);font-size:13px;line-height:1.35;margin-bottom:3px}}.benchmark-facts,.benchmark-more{{margin:0}}.benchmark-facts>div,.benchmark-more>div{{display:grid;grid-template-columns:92px minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid #e8edf5}}.benchmark-facts dt,.benchmark-more dt{{font-size:12px;font-weight:750;color:var(--muted)}}.benchmark-facts dd,.benchmark-more dd{{margin:0;font-size:13px}}.benchmark-sources{{font-size:12px;margin-bottom:0}}.comparison-toolbar{{display:flex;justify-content:space-between;gap:16px;align-items:end;flex-wrap:wrap}}.comparison-toolbar label{{font-size:12px;font-weight:700;color:var(--muted)}}.comparison-toolbar input{{display:block;min-width:260px;margin-top:4px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit}}.comparison-grid{{border:1px solid var(--line);border-radius:10px;overflow:hidden}}.comparison-head,.comparison-row{{display:grid;grid-template-columns:minmax(260px,2.1fr) minmax(125px,.75fr) minmax(125px,.75fr) minmax(150px,1fr);gap:12px;align-items:center;padding:10px 12px}}.comparison-head{{background:var(--panel);font-size:13px;font-weight:800}}.comparison-row{{border-top:1px solid var(--line)}}.comparison-row[hidden]{{display:none}}.comparison-row .task-name{{font-weight:700;overflow-wrap:anywhere}}.result-link{{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:750}}.comparison-note{{font-size:12px;color:var(--muted)}}@media(max-width:760px){{.result-guide{{grid-template-columns:repeat(2,minmax(0,1fr))}}.suite-stats,.rank-grid,.distribution-grid{{grid-template-columns:repeat(3,minmax(0,1fr))}}.benchmark-grid{{grid-template-columns:1fr}}.benchmark-kpis{{grid-template-columns:1fr 1fr}}.comparison-head{{display:none}}.comparison-grid{{border:0}}.comparison-row{{grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:9px;margin-bottom:9px}}.comparison-row .task-name,.comparison-row .comparison-note{{grid-column:1/-1}}.comparison-row>[data-label]::before{{content:attr(data-label);display:block;color:var(--muted);font-size:11px;font-weight:700}}.metric-module .stackable{{max-width:100%;overflow:auto;border:1px solid var(--line)}}.metric-module .stackable table{{display:table;width:100%;min-width:620px}}.metric-module .stackable thead{{display:table-header-group}}.metric-module .stackable tbody{{display:table-row-group}}.metric-module .stackable tr{{display:table-row;border:0}}.metric-module .stackable th,.metric-module .stackable td{{display:table-cell;width:auto}}.metric-module .stackable td::before{{content:none}}}}@media(max-width:560px){{.rank-grid,.distribution-grid{{grid-template-columns:1fr}}}}@media(max-width:480px){{.result-guide{{grid-template-columns:1fr}}.suite-stats{{grid-template-columns:1fr}}.benchmark-kpis{{grid-template-columns:1fr}}.benchmark-facts>div,.benchmark-more>div{{grid-template-columns:1fr;gap:2px}}.comparison-toolbar input{{min-width:0;width:100%}}}}
-.score-grid{{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}}.metric-value,.metric-ratio{{display:block}}.metric-ratio{{margin-top:2px;color:var(--muted);font-size:11px;font-weight:650}}.better .metric-ratio{{color:inherit;opacity:.8}}.comparison-panel{{background:var(--panel);border-radius:11px;padding:14px;margin:14px 0}}.matrix-controls{{display:grid;grid-template-columns:repeat(3,minmax(150px,1fr)) minmax(210px,1.5fr);gap:12px;align-items:end}}.matrix-controls label{{font-size:12px;font-weight:700;color:var(--muted)}}.matrix-controls select,.matrix-controls input{{display:block;width:100%;height:40px;margin-top:5px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font:inherit}}.comparison-methods{{margin:12px 0 0;padding:0;border:0}}.comparison-methods legend{{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px}}.engine-checks{{display:flex;flex-wrap:wrap;gap:8px}}.engine-checks label{{display:flex;gap:6px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 10px;font-size:13px;cursor:pointer}}.engine-checks label:has(input:disabled){{opacity:.48;cursor:not-allowed}}.comparison-table .comparison-row{{display:table-row;padding:0;border:0}}.comparison-table th:first-child,.comparison-table td:first-child{{width:64px;min-width:64px;text-align:center}}.comparison-table th:nth-child(2),.comparison-table td:nth-child(2){{min-width:300px}}.comparison-table small{{display:block;font-weight:500}}.outcome-list{{display:flex;flex-wrap:wrap;gap:7px;min-width:180px}}.outcome-pill{{display:inline-flex;gap:5px;align-items:center;border:1px solid currentColor;border-radius:999px;padding:3px 8px;text-decoration:none;font-size:12px;font-weight:750}}.outcome-pill.ok{{background:#f1fbf7}}.outcome-pill.bad{{background:#fff5f4}}@media(max-width:900px){{.matrix-controls{{grid-template-columns:1fr 1fr}}}}@media(max-width:760px){{.comparison-table .comparison-row{{display:table-row;margin:0;border:0}}}}@media(max-width:600px){{.matrix-controls{{grid-template-columns:1fr}}.comparison-table table{{min-width:760px}}}}
+.score-grid{{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}}.comparison-panel{{background:var(--panel);border-radius:11px;padding:14px;margin:14px 0}}.matrix-controls{{display:grid;grid-template-columns:repeat(3,minmax(150px,1fr)) minmax(210px,1.5fr);gap:12px;align-items:end}}.matrix-controls label{{font-size:12px;font-weight:700;color:var(--muted)}}.matrix-controls select,.matrix-controls input{{display:block;width:100%;height:40px;margin-top:5px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font:inherit}}.comparison-methods{{margin:12px 0 0;padding:0;border:0}}.comparison-methods legend{{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px}}.engine-checks{{display:flex;flex-wrap:wrap;gap:8px}}.engine-checks label{{display:flex;gap:6px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 10px;font-size:13px;cursor:pointer}}.engine-checks label:has(input:disabled){{opacity:.48;cursor:not-allowed}}.comparison-table .comparison-row{{display:table-row;padding:0;border:0}}.comparison-table th:first-child,.comparison-table td:first-child{{width:64px;min-width:64px;text-align:center}}.comparison-table th:nth-child(2),.comparison-table td:nth-child(2){{min-width:300px}}.comparison-table small{{display:block;font-weight:500}}.outcome-list{{display:flex;flex-wrap:wrap;gap:7px;min-width:180px}}.outcome-pill{{display:inline-flex;gap:5px;align-items:center;border:1px solid currentColor;border-radius:999px;padding:3px 8px;text-decoration:none;font-size:12px;font-weight:750}}.outcome-pill.ok{{background:#f1fbf7}}.outcome-pill.bad{{background:#fff5f4}}@media(max-width:900px){{.matrix-controls{{grid-template-columns:1fr 1fr}}}}@media(max-width:760px){{.comparison-table .comparison-row{{display:table-row;margin:0;border:0}}}}@media(max-width:600px){{.matrix-controls{{grid-template-columns:1fr}}.comparison-table table{{min-width:760px}}}}
 </style></head><body><header><div class="wrap">{header}</div></header><main>{body}{pager}</main><footer>Lexmount WebArena Fixed-Trajectory Replay</footer></body></html>"""
 
 
@@ -566,11 +605,11 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         else ""
     )
     score_sentence = "，".join(f"{_engine_label(engine)} 通过 {pass_counts[engine]}/{task_count}" for engine in engines)
-    return f"""<section class="card hero"><div class="eyebrow">报告解读</div><h2>固定同一批操作后，{compatibility_lead}；{resource_lead}。速度、CPU、内存和网络分别列出，不合成总分。</h2><p>{score_sentence}。这是 WebArena 公开人工轨迹的确定性重放，不是 LLM Agent 排名。运行时没有 Agent 规划、模型调用或 LLM judge。结论只适用于这 {task_count} 条冻结轨迹和本轮环境。</p>{audit_strip}</section>
-<section class="card"><div class="section-heading"><div><h2>任务是否通过</h2><p class="muted">每个任务和浏览器只公布一个结果。</p></div><a href="{REPORT_STEM}-results.html#task-comparison">下钻到任务</a></div><div class="score-grid">{score_cards}</div>{_correctness_table(summary)}<p>{failure_summary}工具调用链走完仍可能没有通过程序验收：调用返回只说明路径走完，最终答案、服务状态或 HAR 仍可能不满足 evaluator。</p></section>
-<section class="card" id="performance"><div class="section-heading"><div><h2>速度、CPU、内存与网络</h2><p class="muted">只统计 {engine_list} 都通过的 {paired} 个同任务，并取各自的唯一公开结果。</p></div></div><p>每个单元格先给绝对值，再给相对量级：同一指标、同一统计列的最小值记为 1.00×。比例只表示量级，不代表优劣；粗体绿色只用于耗时、CPU 时间、内存占用和网络总量等明确以低为优的指标，CPU 利用率与网络速率保持中性。</p>{_metric_tables(summary)}</section>
-<section class="card"><div class="section-heading"><div><h2>失败发生在哪里</h2><p class="muted">{final_failure_count} 个未通过结果按最接近证据的直接机制归类，不把现象冒充浏览器内部根因。</p></div><a href="{REPORT_STEM}-results.html#failure-review">查看日志与证据摘要</a></div><div class="failure-story">{failure_cards}</div><p>{failure_boundary}页面交互证据仍不足以断定差异来自浏览器的渲染、布局还是适配层。</p></section>
-<section class="card"><h2>怎么使用这份结果</h2><div class="reading-grid"><article><h3>默认路线</h3><p>若目标是覆盖这批固定业务路径，通过数较高的浏览器当前更稳妥。</p></article><article><h3>资源取舍</h3><p>对已验证兼容的任务，内存优势有工程价值；上线前仍需看该任务的耗时与网络开销。</p></article><article><h3>不要外推</h3><p>{task_count} 条轨迹不能代表浏览器总体能力，也不能解释 Agent 成功率。数据集来源、选型依据和执行方法分别在后续页面给出。</p></article></div></section>"""
+    return f"""<section class="card hero"><div class="eyebrow">结论摘要</div><h2>固定同一批操作后，{compatibility_lead}；{resource_lead}。速度、CPU、内存和网络分别列出，不合成总分。</h2><p>{score_sentence}。这是 WebArena 公开人工轨迹的确定性重放，不是 LLM Agent 排名。运行时没有 Agent 规划、模型调用或 LLM judge。结论只适用于这 {task_count} 条冻结轨迹和本轮环境。</p>{audit_strip}</section>
+<section class="card"><div class="section-heading"><div><h2>任务正确率</h2><p class="muted">每个任务和浏览器只公布一个结果。</p></div><a href="{REPORT_STEM}-results.html#task-comparison">查看逐任务结果</a></div><div class="score-grid">{score_cards}</div>{_correctness_table(summary)}<p>{failure_summary}工具调用链走完仍可能没有通过程序验收：调用返回只说明路径走完，最终答案、服务状态或 HAR 仍可能不满足 evaluator。</p></section>
+<section class="card" id="performance"><div class="section-heading"><div><h2>速度与资源</h2><p class="muted">只统计 {engine_list} 都通过的 {paired} 个同任务，并取各自的唯一公开结果。</p></div></div><p>绝对值表并列展示各浏览器的 P50、P95 和平均值；比值表按共同任务先计算“参评浏览器 / Chromium”，再汇总逐任务比值。粗体绿色只标记耗时、CPU 时间、内存占用和网络总量等明确以低为优的指标；CPU 利用率与网络速率不判优劣。</p>{_metric_tables(summary)}</section>
+<section class="card"><div class="section-heading"><div><h2>失败概览</h2><p class="muted">{final_failure_count} 个未通过结果按最接近证据的直接机制归类，不把现象冒充浏览器内部根因。</p></div><a href="{REPORT_STEM}-results.html#failure-review">查看失败分析</a></div><div class="failure-story">{failure_cards}</div><p>{failure_boundary}页面交互证据仍不足以断定差异来自浏览器的渲染、布局还是适配层。</p></section>
+<section class="card"><h2>结论边界</h2><div class="reading-grid"><article><h3>兼容性</h3><p>若目标是覆盖这批固定业务路径，通过数较高的浏览器当前更稳妥。</p></article><article><h3>资源</h3><p>对已验证兼容的任务，内存优势有工程价值；上线前仍需看该任务的耗时与网络开销。</p></article><article><h3>适用范围</h3><p>{task_count} 条轨迹不能代表浏览器总体能力，也不能解释 Agent 成功率。评测集、选型依据和执行方法分别在后续页面给出。</p></article></div></section>"""
 
 
 def _results_page(
@@ -647,13 +686,13 @@ def _results_page(
             ]
         )
     result_overview = (
-        '<section class="card note"><h2>从结果差异下钻到证据</h2><p>首页已经给出总体通过率和完整资源统计。本页只回答哪些任务出现差异、失败集中在哪里，以及每个结果有哪些可核对的执行与验收证据。</p></section>'
-        '<section class="card result-guide" aria-label="任务分析模块"><a href="#task-comparison"><strong>浏览器组合</strong><span>按结果关系筛选任务</span></a><a href="#task-slices"><strong>任务切片</strong><span>复杂度与站点分布</span></a><a href="#failure-review"><strong>失败复核</strong><span>分类与日志摘要</span></a><a href="#execution-results"><strong>执行证据</strong><span>逐任务查看原始记录</span></a></section>'
+        '<section class="card note"><h2>结果分析</h2><p>首页已经给出总体通过率和完整资源统计。本页按浏览器组合、任务分组和失败类型展开，并提供每个结果的执行与验收证据。</p></section>'
+        '<section class="card result-guide" aria-label="结果分析模块"><a href="#task-comparison"><strong>浏览器组合</strong><span>按结果关系筛选任务</span></a><a href="#task-slices"><strong>任务分组</strong><span>复杂度与站点分布</span></a><a href="#failure-review"><strong>失败分析</strong><span>分类与日志摘要</span></a><a href="#execution-results"><strong>执行记录</strong><span>逐任务查看原始证据</span></a></section>'
     )
     slices = (
-        '<div id="task-slices"><section class="card"><h2>按轨迹复杂度分组</h2><p class="muted">简单、中等、复杂是本项目基于参考轨迹操作数的公开分组，不是 WebArena 官方难度标签。同一分组的唯一较高通过率以粗体绿色标出，相同值保持中性。</p>'
+        '<div id="task-slices"><section class="card"><h2>轨迹复杂度</h2><p class="muted">简单、中等、复杂是本项目基于参考轨迹操作数的公开分组，不是 WebArena 官方难度标签。同一分组的唯一较高通过率以粗体绿色标出，相同值保持中性。</p>'
         + _table(["轨迹分组", *[_engine_label(engine) for engine in engines]], complexity_rows, "分组正确性") + '</section>'
-        '<section class="card"><h2>按自托管站点分组</h2>'
+        '<section class="card"><h2>站点分组</h2>'
         + _table(["站点", *[_engine_label(engine) for engine in engines]], site_rows, "站点兼容性切片") + '</section></div>'
     )
     details = detail_pages if detail_pages is not None else {}
@@ -662,7 +701,7 @@ def _results_page(
         + _task_comparison(summary)
         + slices
         + _execution_explorer(manifest, summary, details)
-        + '<section class="card"><h2>尚未确认的内部根因</h2><p>失败日志已经能区分环境准备、页面交互与程序验收，但还不能证明差异出现在浏览器内部的哪一层。后续对照实验应固定页面、选择器和调用，测量 DOM 更新、布局、可见性与 actionability 恢复时间；在证据出现前，不把 screencast、渲染器或适配层写成已确认根因。</p></section>'
+        + '<section class="card"><h2>根因边界</h2><p>失败日志已经能区分环境准备、页面交互与程序验收，但还不能证明差异出现在浏览器内部的哪一层。后续对照实验应固定页面、选择器和调用，测量 DOM 更新、布局、可见性与 actionability 恢复时间；在证据出现前，不把 screencast、渲染器或适配层写成已确认根因。</p></section>'
     )
 
 
@@ -971,8 +1010,8 @@ def _method_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         flow = f"""<ol><li>会修改服务状态的任务，每次从固定镜像重建所涉及站点；非变更任务按站点和浏览器连续复用已经初始化的环境，只读 Map 做健康检查。本轮执行记录为 {reset_summary}。</li><li>等待官方入口初始化退出并验证外部 origin，随后用测试凭据登录；这些准备步骤不计入轨迹执行耗时。</li><li>创建干净页面，固定 1280×720 视口，计时外静置 {p.get("post_reset_settle_ms", "?")} ms；任务顺序在参评浏览器之间交替平衡。</li><li>执行固定轨迹，同时保存回答、动作、最终页面、截图、HAR、资源和终止原因。</li><li>每个任务和浏览器公布一个结果；资源比较只使用所有浏览器都通过的同任务。</li></ol>"""
     else:
         scoring = """<ol><li><strong>结果正确（唯一任务分数）：</strong>每个标注输出与 <code>expected_outputs</code> 做严格字符串相等；不使用模糊匹配或模型评分；Codex 只参与评测前的标注核对。</li><li><strong>工具调用链（诊断项，不另计分）：</strong>记录动作类型是否符合预注册轨迹且 BrowserTool 调用是否全部成功，用于定位中断步骤。</li></ol><p><strong>边界：</strong><code>expected_actions</code> 是工具层微基准的固定输入路径，不代表任务只有一种解法。若评测自由规划 agent，应改用必要里程碑、禁止动作和步数预算，不能要求整条序列逐步相等。</p>"""
-        flow = f"""<ol><li>分别启动并预热两个浏览器，浏览器进程和上下文在整轮评测中保持运行。</li><li>任务前清 Cookie、权限、HTTP 缓存、Cache Storage、Service Worker、IndexedDB、来源存储和历史，并创建新页面。</li><li>计时外静置 {p.get("post_reset_settle_ms", "?")} ms，按任务交替两个 Provider 的执行顺序。</li><li>执行完整任务并采样；失败复核归入同一任务详情。</li><li>资源基线只比较双方都成功的同任务，失败与复核样本不混入正常路径。</li></ol>"""
-    return f"""<section class="card note"><h2>步骤的严格定义</h2><p><strong>一步 = 固定参考轨迹中的一次浏览器工具调用</strong>，例如 navigate、click、get_text、fill、select、scroll、back 或 forward。等待页面就绪和目标值出现属于该调用内部，不单列、不计步。没有 agent 或模型在运行时选择下一步。</p></section><section class="card" id="scoring"><h2>成功判定：两个独立程序指标</h2>{scoring}</section><section class="card"><h2>环境</h2>{_table(["项目", "记录值"], rows, "本轮环境")}</section><section class="card"><h2>执行流程</h2>{flow}</section><section class="card"><h2>统计口径</h2><ul><li>P50 与中位数是同一个统计量；总体跨任务报告 P50、平均值和 nearest-rank P95。</li><li>每个任务仅有一个公开结果，因此逐任务不计算分位数；当前跨任务点不足以证明普遍性能优势。</li><li>内存平均值是时间加权均值；任务内存 P95 来自单次任务时序采样。</li><li>RX = Receive（接收），TX = Transmit（发送）；总量含页面资源与 CDP，速率来自相邻采样点差分。</li></ul></section>"""
+        flow = f"""<ol><li>分别启动并预热所有参评浏览器，浏览器进程和上下文在整轮评测中保持运行。</li><li>任务前清 Cookie、权限、HTTP 缓存、Cache Storage、Service Worker、IndexedDB、来源存储和历史，并创建新页面。</li><li>计时外静置 {p.get("post_reset_settle_ms", "?")} ms，按任务轮换各浏览器的执行顺序。</li><li>执行完整任务并采样；失败分析归入同一任务详情。</li><li>资源基线只比较所有参评浏览器均成功的同任务，失败样本不混入正常路径。</li></ol>"""
+    return f"""<section class="card note"><h2>步骤定义</h2><p><strong>一步 = 固定参考轨迹中的一次浏览器工具调用</strong>，例如 navigate、click、get_text、fill、select、scroll、back 或 forward。等待页面就绪和目标值出现属于该调用内部，不单列、不计步。没有 agent 或模型在运行时选择下一步。</p></section><section class="card" id="scoring"><h2>判定规则</h2>{scoring}</section><section class="card"><h2>测试环境</h2>{_table(["项目", "记录值"], rows, "本轮环境")}</section><section class="card"><h2>执行流程</h2>{flow}</section><section class="card"><h2>统计口径</h2><ul><li>P50 与中位数是同一个统计量；总体跨任务报告 P50、平均值和 nearest-rank P95。</li><li>每个任务仅有一个公开结果，因此逐任务不计算分位数；当前跨任务点不足以证明普遍性能优势。</li><li>内存平均值是时间加权均值；任务内存 P95 来自单次任务时序采样。</li><li>RX = Receive（接收），TX = Transmit（发送）；总量含页面资源与 CDP，速率来自相邻采样点差分。</li></ul></section>"""
 
 
 METRICS = (
@@ -1013,7 +1052,8 @@ def _metric_tables(summary: dict[str, Any]) -> str:
     for index, (group, metrics) in enumerate(METRICS):
         modules.append(
             f'<details class="metric-module"{" open" if index == 0 else ""}><summary><span>{_e(group)}</span><small>{len(metrics)} 项指标</small></summary>'
-            + _grouped_resource_table(summary, metrics, f"{group}：绝对值与相对量级")
+            + _grouped_resource_table(summary, metrics, f"{group} · 同一批任务绝对值")
+            + _relative_ratio_tables(summary, metrics)
             + "</details>"
         )
     return "".join(modules)
@@ -1600,7 +1640,7 @@ function sync(){{for(const c of checks){{c.disabled=c.value===a.value;if(c.disab
 function apply(){{sync();const selected=[a.value,...checks.filter(c=>c.checked&&!c.disabled).map(c=>c.value)],q=query.value.trim().toLowerCase();let n=0;for(const row of rows){{const states=JSON.parse(row.dataset.statuses),vals=selected.map(e=>states[e]||'missing'),aPass=vals[0]==='pass',others=vals.slice(1),mode=relation.value;let match=mode==='mixed'?new Set(vals).size>1:mode==='a_pass_others_fail'?aPass&&others.every(v=>v!=='pass'):mode==='a_fail_others_pass'?!aPass&&others.every(v=>v==='pass'):mode==='all_pass'?vals.every(v=>v==='pass'):mode==='all_fail'?vals.every(v=>v!=='pass'):selected.every(e=>states[e]==='pass')&&engines.filter(e=>!selected.includes(e)).every(e=>states[e]!=='pass');match=match&&(!complexity.value||row.dataset.complexity===complexity.value)&&(!q||row.dataset.search.toLowerCase().includes(q));row.hidden=!match;if(match)n++;}}count.textContent=`显示 ${{n}} / ${{rows.length}} 个任务`;}}
 for(const control of [a,relation,complexity,...checks])control.addEventListener('change',apply);query.addEventListener('input',apply);apply();}})();</script>"""
     return (
-        '<section class="card" id="task-comparison"><div class="section-heading"><div><h2>浏览器组合对照</h2>'
+        '<section class="card" id="task-comparison"><div class="section-heading"><div><h2>浏览器组合对比</h2>'
         '<p class="muted">先选基准浏览器 A 和参与比较的浏览器，再按结果关系筛任务。表内始终保留所有浏览器的结果；点击状态可进入完整证据。</p></div>'
         '<span id="comparison-count" class="muted"></span></div><div class="comparison-panel"><div class="matrix-controls">'
         f'<label>浏览器 A<select id="compare-a">{engine_options}</select></label>'
@@ -1608,9 +1648,9 @@ for(const control of [a,relation,complexity,...checks])control.addEventListener(
         '<label>轨迹复杂度<select id="compare-complexity"><option value="">全部复杂度</option><option value="simple">简单</option><option value="medium">中等</option><option value="complex">复杂</option></select></label>'
         '<label>搜索任务<input id="comparison-query" type="search" placeholder="任务名称或编号"></label></div>'
         f'<fieldset class="comparison-methods" id="compare-engines"><legend>参与比较的其他浏览器</legend><div class="engine-checks">{engine_checks}</div></fieldset></div>'
-        '<div class="table-wrap comparison-table" role="region" aria-label="浏览器组合对照" tabindex="0"><table><thead><tr><th>序号</th><th>任务</th><th>通过浏览器</th><th>未通过浏览器</th></tr></thead><tbody>'
+        '<div class="table-wrap comparison-table" role="region" aria-label="浏览器组合对比" tabindex="0"><table><thead><tr><th>序号</th><th>任务</th><th>通过浏览器</th><th>未通过浏览器</th></tr></thead><tbody>'
         + "".join(rows)
-        + '</tbody></table></div><p class="muted">组合对照用于定位差异；失败复核解释直接机制，执行证据保留操作、日志与程序验收明细。</p></section>'
+        + '</tbody></table></div><p class="muted">组合对比用于定位差异；失败分析解释直接机制，执行记录保留操作、日志与程序验收明细。</p></section>'
         + script
     )
 
@@ -1720,7 +1760,7 @@ addEventListener('hashchange',reveal);apply();reveal();
         "失败日志审查结论",
     )
     grid_head = '<div class="record-grid-head" aria-hidden="true"><span>任务</span><span>浏览器</span><span>程序验收</span><span>工具调用</span><span>错误类别</span><span>轨迹执行耗时</span></div>'
-    return f"""{filter_anchors}<section class="card" id="failure-review"><div class="section-heading"><h2>失败复核</h2><a href="#execution-results">查看执行证据</a></div><p>下表逐条复核 <strong>{final_failures}</strong> 个未通过结果，读取错误日志、BrowserTool trace 和 evaluator 输出。</p>{review_table}<p class="muted">这不是第二套评分。分类只概括直接失败机制；“元素不可见”“HAR 未匹配”等不自动等于浏览器内部根因。</p></section><section class="card" id="execution-results"><h2>执行证据</h2><p>{logical_executions} 条任务 × 浏览器结果。默认显示未通过结果；点击任务可查看采用结果的操作、答案、判定、错误栈和 BrowserTool trace。</p>{filters}<div id="execution-list" class="record-grid" role="region" aria-label="逐任务执行记录" tabindex="0">{grid_head}{_execution_details(manifest, summary, detail_pages)}</div><p id="execution-empty" class="empty-state" role="status" hidden></p>{script}</section>"""
+    return f"""{filter_anchors}<section class="card" id="failure-review"><div class="section-heading"><h2>失败分析</h2><a href="#execution-results">查看执行记录</a></div><p>下表逐条复核 <strong>{final_failures}</strong> 个未通过结果，读取错误日志、BrowserTool trace 和 evaluator 输出。</p>{review_table}<p class="muted">这不是第二套评分。分类只概括直接失败机制；“元素不可见”“HAR 未匹配”等不自动等于浏览器内部根因。</p></section><section class="card" id="execution-results"><h2>执行记录</h2><p>{logical_executions} 条任务 × 浏览器结果。默认显示未通过结果；点击任务可查看采用结果的操作、答案、判定、错误栈和 BrowserTool trace。</p>{filters}<div id="execution-list" class="record-grid" role="region" aria-label="逐任务执行记录" tabindex="0">{grid_head}{_execution_details(manifest, summary, detail_pages)}</div><p id="execution-empty" class="empty-state" role="status" hidden></p>{script}</section>"""
 
 
 def _review_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:

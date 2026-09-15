@@ -119,6 +119,7 @@ def test_each_provider_links_to_its_failure_filter_including_zero_failures():
 
 def test_resource_tables_compare_all_engines_in_one_table():
     by_engine = {"chromium": {}, "moli": {}, "webkit": {}}
+    ratios = {"moli": {}, "webkit": {}}
     for _, metrics in METRICS:
         for index, (key, _, divisor, _) in enumerate(metrics, 1):
             by_engine["chromium"][key] = {
@@ -136,15 +137,27 @@ def test_resource_tables_compare_all_engines_in_one_table():
                 "p95": divisor * (250 + index + 0.004),
                 "mean": divisor * (70 + index + 0.004),
             }
+            ratios["moli"][key] = {"p50": 0.5, "p95": 1.5, "mean": 0.75}
+            ratios["webkit"][key] = {"p50": 0.8, "p95": 1.2, "mean": 0.6}
     rendered = _metric_tables(
-        {"resource_comparison": {"by_engine": by_engine}}
+        {
+            "resource_comparison": {
+                "by_engine": by_engine,
+                "relative_ratios": {
+                    "baseline_engine": "chromium",
+                    "by_engine": ratios,
+                },
+            }
+        }
     )
     assert '<th colspan="3">P50</th>' in rendered
     assert '<th colspan="3">P95</th>' in rendered
     assert rendered.count("<th>Webkit</th>") == len(METRICS) * 3
-    assert "逐任务比值" not in rendered
-    assert "1.00×" in rendered
-    assert "1.36×" in rendered
+    assert "逐任务比值 · Moli / Chromium" in rendered
+    assert "逐任务比值 · Webkit / Chromium" in rendered
+    assert "每个共同通过任务先相除，再汇总" in rendered
+    assert "0.50×" in rendered
+    assert "1.50×" in rendered
     assert 'class="better"' in rendered
     cpu_row = rendered.split("平均 CPU 占单核", 1)[1].split("</tr>", 1)[0]
     assert 'class="better"' not in cpu_row
@@ -234,6 +247,8 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
                     },
                 },
                 "paired_ratios": {
+                    "denominator_engine": "chromium",
+                    "numerator_engine": "moli",
                     "metrics": {
                         "duration_ms": {"p50": 0.5, "p95": 9.9, "mean": 0.8},
                     }
@@ -249,9 +264,18 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert "WebArena 固定轨迹回放评测" in rendered
     assert "公开人工轨迹的确定性重放" in rendered
     assert "Chromium 与 Moli 浏览器工具调用评测" not in rendered
-    assert "报告解读" in rendered
+    assert "结论摘要" in rendered
     assert 'lang="zh-CN"' in rendered
     assert "报告分页" in rendered
+    for label in (
+        "结论摘要",
+        "结果分析",
+        "评测集",
+        "选型依据",
+        "环境与方法",
+        "复现与附录",
+    ):
+        assert label in rendered
     assert "结果正确率是默认 Provider 的第一决策指标" not in rendered
     assert "结论只适用于这 1 条冻结轨迹" in rendered
     results = (reports / "webarena-trajectory-replay-latest-results.html").read_text(
@@ -261,28 +285,19 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert rendered.index('<th colspan="2">P95</th>') < rendered.index(
         '<th colspan="2">平均值</th>'
     )
-    assert (
-        'data-label="P50 · Chromium"><span class="metric-value">100.00</span>'
-        '<small class="metric-ratio">2.00×</small></td>' in rendered
-    )
-    assert (
-        'data-label="P50 · Moli" class="better"><span class="metric-value">50.00</span>'
-        '<small class="metric-ratio">1.00×</small></td>' in rendered
-    )
-    assert (
-        'data-label="P95 · Chromium" class="better"><span class="metric-value">200.00</span>'
-        '<small class="metric-ratio">1.00×</small></td>' in rendered
-    )
-    assert (
-        'data-label="P95 · Moli"><span class="metric-value">300.00</span>'
-        '<small class="metric-ratio">1.50×</small></td>' in rendered
-    )
-    assert "9.90×" not in rendered
+    assert 'data-label="P50 · Chromium">100.00</td>' in rendered
+    assert 'data-label="P50 · Moli" class="better">50.00</td>' in rendered
+    assert 'data-label="P95 · Chromium" class="better">200.00</td>' in rendered
+    assert 'data-label="P95 · Moli">300.00</td>' in rendered
+    assert "逐任务比值 · Moli / Chromium" in rendered
+    assert "0.50×" in rendered
+    assert "9.90×" in rendered
+    assert "0.80×" in rendered
     assert "边际分位数相除" not in rendered
-    assert "任务是否通过" in rendered
+    assert "任务正确率" in rendered
     assert "首页决策摘要" not in rendered
     assert "正确性与资源要分开决策" not in rendered
-    assert "速度、CPU、内存与网络" in rendered
+    assert "速度与资源" in rendered
     assert 'role="progressbar"' in rendered
     assert "一眼看懂这轮评测" not in rendered
     assert "结果与参考过程均正确" not in rendered
@@ -312,7 +327,7 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert 'href="#task-comparison"' not in results
     assert 'id="performance"' not in results
     assert "<h2>总体结果</h2>" not in results
-    assert "<h2>浏览器组合对照</h2>" in results
+    assert "<h2>浏览器组合对比</h2>" in results
     assert results.count('class="metric-module"') == 0
     assert rendered.count('class="metric-module"') == 3
     assert 'class="better">4/4' in rendered
@@ -575,13 +590,13 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
     results = (reports / "webarena-trajectory-replay-latest-results.html").read_text(
         encoding="utf-8"
     )
-    assert "浏览器组合对照" in results
-    assert "执行证据" in results
+    assert "浏览器组合对比" in results
+    assert "执行记录" in results
     assert 'class="comparison-row"' in results
     assert 'id="compare-relation"' in results
     assert 'value="a_pass_others_fail"' in results
     assert 'id="compare-engines"' in results
-    assert "失败复核" in results
+    assert "失败分析" in results
     assert "TRACE_ONLY_SEARCH_MARKER" in results
     assert "c.dataset.search" in results
     assert "逐任务对比" not in results
@@ -625,8 +640,8 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
     assert "未判定" in detail
     assert "LLM 根因假设" not in results
     assert "未启用 LLM" not in results
-    assert "尚未确认的内部根因" in results
-    assert results.index("<h2>浏览器组合对照</h2>") < results.index(
+    assert "根因边界" in results
+    assert results.index("<h2>浏览器组合对比</h2>") < results.index(
         '<section class="card" id="failure-review">'
     ) < results.index('<section class="card" id="execution-results">')
     homepage = (reports / "webarena-trajectory-replay-latest.html").read_text(encoding="utf-8")
