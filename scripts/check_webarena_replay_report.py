@@ -202,6 +202,24 @@ def check(report_dir: Path) -> dict[str, int]:
     results_html = (root / "results.html").read_text(encoding="utf-8")
     if '<option value="fail">' not in results_html or 'id="diagnosis-dialog"' not in results_html:
         raise ValueError("result inventory must default to failure and open a diagnosis dialog")
+    for language_root in (root, root / "en"):
+        dataset_html = (language_root / "dataset.html").read_text(encoding="utf-8")
+        filters = set(re.findall(r'data-dataset-filter="([^\"]+)"', dataset_html))
+        if filters != {"q", "site", "type", "source"}:
+            raise ValueError("dataset must support task, site, type and source filters")
+        if dataset_html.count('data-task="') != task_count:
+            raise ValueError("dataset must contain one filterable row per task")
+        for task_id in task_ids:
+            if f'href="task/{task_id}.html"' not in dataset_html or f'href="results.html?task={task_id}&status="' not in dataset_html:
+                raise ValueError("every dataset task must drill down to its contract and measured outcomes")
+        if 'data-dataset-count' not in dataset_html or 'data-dataset-empty' not in dataset_html:
+            raise ValueError("dataset filters must show result count and empty state")
+        review_html = (language_root / "review.html").read_text(encoding="utf-8")
+        if 'class="table-scroll review-table"' not in review_html or review_html.count('<tbody><tr>') != 1:
+            raise ValueError("review history must describe review rounds, not enumerate per-result audits")
+    js = (root / "assets/app.js").read_text(encoding="utf-8")
+    if "const task=params.get('task');" not in js or "row.dataset.task===task" not in js:
+        raise ValueError("dataset-to-results drilldown must select an exact task ID")
     for page in (root / "results.html", root / "en/results.html"):
         rendered = page.read_text(encoding="utf-8")
         baseline = re.search(r'<select data-matrix-baseline>(.*?)</select>', rendered, re.S)

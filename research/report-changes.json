@@ -100,6 +100,38 @@
           }
         }
       }
+    },
+    {
+      "id": "2026-09-15-trajectory-replay-dataset-filter-and-navigation",
+      "date": "2026-09-15",
+      "title": "补齐评测集筛选、逐题结果入口与核验轮次",
+      "summary": "评测集按任务目标、站点、类型和轨迹来源筛选；每题分别下钻到任务合同与全部浏览器实测结果。核验页按范围、发现、纠正和未完成记录两轮核验。结果页统一命名为“结果分析”，环境页统一命名为“环境与方法”；拓扑图中英文分别标注。长任务目标在列表中以两行预览，全文仍在详情页。",
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "7dF7uNK5SKIx",
+        "share_url": "https://artifact-hub.app.lexmount.com/v/hkZt38QFBpNIKtThKnqjpnBQk8At19PM",
+        "version": "ver_fe02b959308441a1b88e01d3fa198ba4"
+      },
+      "effects": {
+        "score": "Chromium 90/90、Moli 54/90；官方分数未变。",
+        "denominator": "每浏览器 90 题，共 180 个逻辑结果。",
+        "latency": "未修改计时或资源测量。",
+        "evidence": "771 个公开文件、552 个 HTML 页面、10,512 条站内链接和 72 个视觉状态通过检查；评测集到同题结果的点击路径已验证。",
+        "limitations": "列表预览不代替完整任务合同；每题的完整轨迹与验收输入须在任务详情查看。"
+      },
+      "i18n": {
+        "en": {
+          "title": "Add dataset filters, exact-task drilldown, and review rounds",
+          "summary": "The dataset now filters by goal, site, task type, and trajectory source. Each row links separately to the task contract and all measured browser outcomes. The review page records two rounds by scope, finding, correction, and open items. Results analysis and Environment and method use consistent navigation labels; the topology is localized. Long goals are previewed in two lines while the task page retains the full text.",
+          "effects": {
+            "score": "Official scores remain Chromium 90/90 and Moli 54/90.",
+            "denominator": "90 tasks per browser and 180 logical outcomes in total.",
+            "latency": "No timing or resource measurement changes.",
+            "evidence": "Checks passed for 771 public files, 552 HTML pages, 10,512 local links, and 72 visual states. The dataset-to-outcome click path was exercised.",
+            "limitations": "The list preview does not replace the full task contract. Open a task page for its complete trajectory and acceptance input."
+          }
+        }
+      }
     }
   ],
   "browser_use_reviews": [

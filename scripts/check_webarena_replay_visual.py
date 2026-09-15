@@ -135,6 +135,15 @@ def check(report: Path, receipt: Path) -> None:
                 route_page.wait_for_url(f"http://127.0.0.1:{server.server_port}/api/preview/replay/index.html")
                 route_page.locator('h1').wait_for()
                 route_page.close()
+                drill_page = browser.new_page()
+                drill_page.goto(f"http://127.0.0.1:{server.server_port}/dataset.html", wait_until="domcontentloaded")
+                drill_task = drill_page.locator('[data-dataset-table] tbody tr').first.get_attribute('data-task')
+                assert drill_task
+                drill_page.locator('[data-dataset-table] tbody tr .dataset-actions a').nth(1).click()
+                drill_page.wait_for_url(f"http://127.0.0.1:{server.server_port}/results.html?task={drill_task}&status=")
+                drill_page.locator('[data-results-ready="true"]').wait_for(timeout=5_000)
+                assert drill_page.locator('[data-results] tbody tr:not([hidden])').count() == len(json.loads((report / 'report-manifest.json').read_text(encoding='utf-8'))['participants'])
+                drill_page.close()
                 for index, route in enumerate(_routes(report)):
                     for width, height in ((1440, 1000), (390, 844)):
                         for theme in ("light", "dark"):
@@ -151,6 +160,19 @@ return node && node.textContent.trim().startsWith('{');
 }""",
                                     timeout=5_000,
                                 )
+                            if route.endswith("dataset.html"):
+                                page.wait_for_function("() => document.querySelector('[data-dataset-count]')?.textContent.includes('/')", timeout=5_000)
+                                page.locator('[data-dataset-filter="type"]').select_option("RETRIEVE")
+                                page.wait_for_function("() => [...document.querySelectorAll('[data-dataset-table] tbody tr:not([hidden])')].every(row => row.dataset.type === 'RETRIEVE')")
+                                visible_rows = page.locator('[data-dataset-table] tbody tr:not([hidden])')
+                                assert visible_rows.count() > 0
+                                task_id = visible_rows.first.get_attribute("data-task")
+                                assert task_id
+                                page.locator('[data-dataset-filter="q"]').fill(task_id)
+                                assert page.locator(f'[data-dataset-table] tbody tr:not([hidden])[data-task="{task_id}"]').count() == 1
+                                assert f"task={task_id}&status=" in page.locator(f'[data-dataset-table] tbody tr[data-task="{task_id}"] .dataset-actions a').last.get_attribute('href')
+                                page.locator('[data-dataset-filter="q"]').fill("")
+                                page.locator('[data-dataset-filter="type"]').select_option("")
                             if route.endswith("results.html"):
                                 page.wait_for_function("() => document.querySelector('[data-matrix-count]')?.textContent.includes('/')", timeout=5_000)
                                 page.locator('[data-matrix-relation]').select_option('all-pass')
