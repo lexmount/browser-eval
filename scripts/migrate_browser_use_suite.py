@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from harness.browser_use.suite import LEGACY_SCHEMA, SCHEMA, TRAJECTORY_SCHEMA, load_suite
+from harness.trajectory_replay.suite import LEGACY_SCHEMA, SCHEMA, TRAJECTORY_SCHEMA, load_suite
 
 
 def _sha256_bytes(value: bytes) -> str:

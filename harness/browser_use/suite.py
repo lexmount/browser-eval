@@ -8,30 +8,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .targets import validate_target
-
-SCHEMA = "lex_browser_use_tasks/4"
-LEGACY_SCHEMA = "lex_browser_use_tasks/3"
-SUPPORTED_SCHEMAS = frozenset({LEGACY_SCHEMA, SCHEMA})
-TRAJECTORY_SCHEMA = "lex_browser_trajectory/1"
+SCHEMA = "lex_browser_use_tasks/3"
 DIFFICULTIES = frozenset({"simple", "medium", "complex"})
-EVALUATOR_KINDS = frozenset({"exact_outputs", "webarena_verified"})
 SUPPORTED_ACTIONS = frozenset(
     {
         "navigate",
         "click",
-        "double_click",
         "fill",
         "select",
-        "check",
-        "uncheck",
-        "hover",
         "press",
         "get_text",
-        "get_all_text",
-        "get_table_column",
         "get_attribute",
-        "get_all_attribute",
         "get_property",
         "snapshot",
         "back",
@@ -58,9 +45,6 @@ class BrowserTask:
     difficulty: str
     ground_truth: dict[str, Any]
     source: dict[str, Any]
-    evaluator: dict[str, Any] | None = None
-    environment: dict[str, Any] | None = None
-    trajectory: dict[str, Any] | None = None
 
     @property
     def step_count(self) -> int:
@@ -103,37 +87,12 @@ def validate_ground_truth_evidence(
 
 
 def validate_selector(step: dict[str, Any]) -> None:
-    """Validate the legacy selector or the portable target used by a trajectory."""
+    """The deterministic runner uses explicit selectors, not snapshot references."""
     action = step.get("action")
-    targeted = {
-        "click",
-        "double_click",
-        "fill",
-        "select",
-        "check",
-        "uncheck",
-        "hover",
-        "get_text",
-        "get_all_text",
-        "get_table_column",
-        "get_attribute",
-        "get_all_attribute",
-        "get_property",
-    }
-    if action in targeted:
-        try:
-            validate_target(step)
-        except ValueError as exc:
-            selector = step.get("selector")
-            if (
-                step.get("ref") is not None
-                and step.get("target") is None
-                and (not isinstance(selector, str) or not selector.strip())
-            ):
-                raise ValueError(
-                    f"{action} requires a non-empty selector; ref is not supported"
-                ) from exc
-            raise ValueError(f"{action} {exc}") from exc
+    if action in {"click", "fill", "select", "get_text", "get_attribute", "get_property"}:
+        selector = step.get("selector")
+        if not isinstance(selector, str) or not selector.strip():
+            raise ValueError(f"{action} requires a non-empty selector; ref is not supported")
 
 
 def _validate_step(task_id: str, index: int, step: Any) -> dict[str, Any]:
@@ -150,26 +109,15 @@ def _validate_step(task_id: str, index: int, step: Any) -> dict[str, Any]:
         validate_selector(step)
     except ValueError as exc:
         raise ValueError(f"{task_id}: call {index}: {exc}") from exc
-    if action in {"get_attribute", "get_all_attribute", "get_property"} and not str(
-        step.get("name") or ""
+    if action in {"get_attribute", "get_property"} and not (
+        str(step.get("selector") or "") and str(step.get("name") or "")
     ):
-        raise ValueError(f"{task_id}: {action} call {index} requires name")
-    if action == "get_table_column" and not str(step.get("header") or "").strip():
-        raise ValueError(f"{task_id}: get_table_column call {index} requires header")
-    if action == "get_table_column" and step.get("wait_for_value_regex") is not None:
-        pattern = step["wait_for_value_regex"]
-        if not isinstance(pattern, str) or not pattern:
-            raise ValueError(
-                f"{task_id}: get_table_column call {index} requires a non-empty value regex"
-            )
+        raise ValueError(f"{task_id}: {action} call {index} requires selector and name")
     if action in {
         "navigate",
         "snapshot",
         "get_text",
-        "get_all_text",
-        "get_table_column",
         "get_attribute",
-        "get_all_attribute",
         "get_property",
     } and not str(step.get("save_as") or ""):
         raise ValueError(f"{task_id}: {action} call {index} requires save_as")
@@ -178,9 +126,8 @@ def _validate_step(task_id: str, index: int, step: Any) -> dict[str, Any]:
 
 def load_suite(path: str | Path) -> TaskSuite:
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
-    schema = payload.get("schema")
-    if schema not in SUPPORTED_SCHEMAS:
-        raise ValueError(f"task suite schema must be one of {sorted(SUPPORTED_SCHEMAS)!r}")
+    if payload.get("schema") != SCHEMA:
+        raise ValueError(f"task suite schema must be {SCHEMA!r}")
     raw_tasks = payload.get("tasks")
     if not isinstance(raw_tasks, list) or not raw_tasks:
         raise ValueError("task suite must contain a non-empty tasks list")
@@ -198,16 +145,8 @@ def load_suite(path: str | Path) -> TaskSuite:
         title = str(raw.get("title") or "").strip()
         if not title:
             raise ValueError(f"{task_id}: title is required")
-        trajectory = raw.get("trajectory")
-        if schema == SCHEMA:
-            if not isinstance(trajectory, dict) or trajectory.get("schema") != TRAJECTORY_SCHEMA:
-                raise ValueError(f"{task_id}: trajectory schema must be {TRAJECTORY_SCHEMA!r}")
-            raw_steps = trajectory.get("actions")
-        else:
-            raw_steps = raw.get("tool_calls")
-        if not isinstance(raw_steps, list):
-            raise ValueError(f"{task_id}: tool_calls must be a list")
-        if not raw_steps and schema == LEGACY_SCHEMA:
+        raw_steps = raw.get("tool_calls")
+        if not isinstance(raw_steps, list) or not raw_steps:
             raise ValueError(f"{task_id}: tool_calls must be a non-empty list")
         steps = tuple(
             _validate_step(task_id, index, step) for index, step in enumerate(raw_steps, start=1)
@@ -222,44 +161,19 @@ def load_suite(path: str | Path) -> TaskSuite:
         ground_truth = raw.get("ground_truth")
         if not isinstance(ground_truth, dict):
             raise ValueError(f"{task_id}: ground_truth must be an object")
-        evaluator = raw.get("evaluator")
-        if schema == LEGACY_SCHEMA:
-            evaluator = {"kind": "exact_outputs", "assertions": assertions}
-        if not isinstance(evaluator, dict) or evaluator.get("kind") not in EVALUATOR_KINDS:
-            raise ValueError(f"{task_id}: unsupported evaluator")
-        if evaluator["kind"] == "exact_outputs":
-            if ground_truth.get("oracle") != "deterministic_exact":
-                raise ValueError(f"{task_id}: ground_truth oracle must be deterministic_exact")
-            expected_outputs = ground_truth.get("expected_outputs")
-            if not isinstance(expected_outputs, dict) or not expected_outputs:
-                raise ValueError(f"{task_id}: ground_truth.expected_outputs is required")
-            evaluator_assertions = evaluator.get("assertions", assertions)
-            if not isinstance(evaluator_assertions, list):
-                raise ValueError(f"{task_id}: exact evaluator assertions must be a list")
-            assertions = evaluator_assertions
-            for assertion in assertions:
-                if not isinstance(assertion, dict) or not isinstance(assertion.get("equals"), str):
-                    raise ValueError(
-                        f"{task_id}: every assertion must use an exact string equals oracle"
-                    )
-                output = str(assertion.get("output") or "")
-                if expected_outputs.get(output) != assertion.get("equals"):
-                    raise ValueError(
-                        f"{task_id}: assertion and ground truth disagree for {output!r}"
-                    )
-        else:
-            if not isinstance(evaluator.get("task_id"), int):
-                raise ValueError(f"{task_id}: WebArena evaluator requires integer task_id")
-            if not isinstance(evaluator.get("revision"), int):
-                raise ValueError(f"{task_id}: WebArena evaluator requires integer revision")
-        if not steps:
-            qualification = ground_truth.get("qualification") or {}
-            if evaluator["kind"] != "webarena_verified" or qualification.get(
-                "status"
-            ) not in {"pending", "skipped"}:
+        if ground_truth.get("oracle") != "deterministic_exact":
+            raise ValueError(f"{task_id}: ground_truth oracle must be deterministic_exact")
+        expected_outputs = ground_truth.get("expected_outputs")
+        if not isinstance(expected_outputs, dict) or not expected_outputs:
+            raise ValueError(f"{task_id}: ground_truth.expected_outputs is required")
+        for assertion in assertions:
+            if not isinstance(assertion, dict) or not isinstance(assertion.get("equals"), str):
                 raise ValueError(
-                    f"{task_id}: only pending or skipped WebArena candidates may be empty"
+                    f"{task_id}: every assertion must use an exact string equals oracle"
                 )
+            output = str(assertion.get("output") or "")
+            if expected_outputs.get(output) != assertion.get("equals"):
+                raise ValueError(f"{task_id}: assertion and ground truth disagree for {output!r}")
         expected_actions = ground_truth.get("expected_actions")
         actual_actions = [step["action"] for step in steps]
         if expected_actions != actual_actions:
@@ -267,11 +181,6 @@ def load_suite(path: str | Path) -> TaskSuite:
         source = raw.get("source")
         if not isinstance(source, dict) or not source.get("url"):
             raise ValueError(f"{task_id}: source attribution is required")
-        environment = raw.get("environment")
-        if schema == LEGACY_SCHEMA:
-            environment = {"kind": "public_web"}
-        if not isinstance(environment, dict) or not environment.get("kind"):
-            raise ValueError(f"{task_id}: environment is required")
         tasks.append(
             BrowserTask(
                 task_id=task_id,
@@ -282,15 +191,6 @@ def load_suite(path: str | Path) -> TaskSuite:
                 difficulty=difficulty,
                 ground_truth=dict(ground_truth),
                 source=dict(source),
-                evaluator=dict(evaluator),
-                environment=dict(environment),
-                trajectory=dict(trajectory)
-                if isinstance(trajectory, dict)
-                else {
-                    "schema": TRAJECTORY_SCHEMA,
-                    "provenance": {"kind": "repository_curated"},
-                    "actions": list(steps),
-                },
             )
         )
-    return TaskSuite(schema=str(schema), tasks=tuple(tasks))
+    return TaskSuite(schema=SCHEMA, tasks=tuple(tasks))

@@ -1,5 +1,5 @@
 {
-  "schema": "lex_browser_use_tasks/4",
+  "schema": "lex_browser_use_tasks/3",
   "tasks": [
     {
       "id": "pypi-requests-pinned",
@@ -10,6 +10,19 @@
         "public-web",
         "package-index",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://pypi.org/project/requests/2.32.5/",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": ".project-header__name",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -34,38 +47,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://pypi.org/project/requests/2.32.5/",
-            "save_as": "page"
-          },
-          {
-            "action": "get_text",
-            "selector": ".project-header__name",
-            "save_as": "answer",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "answer",
-            "equals": "requests 2.32.5"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -77,6 +58,19 @@
         "public-web",
         "research",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://arxiv.org/abs/1706.03762",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1.title",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -101,38 +95,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://arxiv.org/abs/1706.03762",
-            "save_as": "page"
-          },
-          {
-            "action": "get_text",
-            "selector": "h1.title",
-            "save_as": "answer",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "answer",
-            "equals": "Title:Attention Is All You Need"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -144,6 +106,19 @@
         "public-web",
         "standard",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110.html",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "#rfcnum",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -168,38 +143,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://www.rfc-editor.org/rfc/rfc9110.html",
-            "save_as": "page"
-          },
-          {
-            "action": "get_text",
-            "selector": "#rfcnum",
-            "save_as": "answer",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "answer",
-            "equals": "RFC 9110"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -211,6 +154,19 @@
         "public-web",
         "repository",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://github.com/lexmount/moli",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "article.markdown-body h1",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -235,38 +191,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://github.com/lexmount/moli",
-            "save_as": "page"
-          },
-          {
-            "action": "get_text",
-            "selector": "article.markdown-body h1",
-            "save_as": "answer",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "answer",
-            "equals": "Moli"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -278,6 +202,19 @@
         "public-web",
         "repository",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://github.com/lexmount/Lexbench-Headless-Browser",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "article.markdown-body h1",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -302,38 +239,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://github.com/lexmount/Lexbench-Headless-Browser",
-            "save_as": "page"
-          },
-          {
-            "action": "get_text",
-            "selector": "article.markdown-body h1",
-            "save_as": "answer",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "answer",
-            "equals": "Lexbench-Headless-Browser"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -347,6 +252,28 @@
         "fill",
         "submit",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://www.selenium.dev/selenium/web/web-form.html",
+          "save_as": "page"
+        },
+        {
+          "action": "fill",
+          "selector": "input[name='my-text']",
+          "text": "Lexmount public eval"
+        },
+        {
+          "action": "click",
+          "selector": "button"
+        },
+        {
+          "action": "get_text",
+          "selector": "#message",
+          "save_as": "receipt",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -373,47 +300,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://www.selenium.dev/selenium/web/web-form.html",
-            "save_as": "page"
-          },
-          {
-            "action": "fill",
-            "selector": "input[name='my-text']",
-            "text": "Lexmount public eval"
-          },
-          {
-            "action": "click",
-            "selector": "button"
-          },
-          {
-            "action": "get_text",
-            "selector": "#message",
-            "save_as": "receipt",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "receipt",
-            "equals": "Received!"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -426,6 +312,24 @@
         "form",
         "select",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://www.selenium.dev/selenium/web/web-form.html",
+          "save_as": "page"
+        },
+        {
+          "action": "select",
+          "selector": "select[name='my-select']",
+          "value": "2"
+        },
+        {
+          "action": "get_text",
+          "selector": "select[name='my-select'] option:checked",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -451,43 +355,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://www.selenium.dev/selenium/web/web-form.html",
-            "save_as": "page"
-          },
-          {
-            "action": "select",
-            "selector": "select[name='my-select']",
-            "value": "2"
-          },
-          {
-            "action": "get_text",
-            "selector": "select[name='my-select'] option:checked",
-            "save_as": "answer",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "answer",
-            "equals": "Two"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -500,6 +367,23 @@
         "native-control",
         "checkbox",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://www.selenium.dev/selenium/web/web-form.html",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "#my-check-2"
+        },
+        {
+          "action": "get_property",
+          "selector": "#my-check-2",
+          "name": "checked",
+          "save_as": "checked"
+        }
       ],
       "assertions": [
         {
@@ -525,42 +409,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://www.selenium.dev/selenium/web/web-form.html",
-            "save_as": "page"
-          },
-          {
-            "action": "click",
-            "selector": "#my-check-2"
-          },
-          {
-            "action": "get_property",
-            "selector": "#my-check-2",
-            "name": "checked",
-            "save_as": "checked"
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "checked",
-            "equals": "true"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -573,6 +421,23 @@
         "native-control",
         "radio",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://www.selenium.dev/selenium/web/web-form.html",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "#my-radio-2"
+        },
+        {
+          "action": "get_property",
+          "selector": "#my-radio-2",
+          "name": "checked",
+          "save_as": "checked"
+        }
       ],
       "assertions": [
         {
@@ -598,42 +463,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://www.selenium.dev/selenium/web/web-form.html",
-            "save_as": "page"
-          },
-          {
-            "action": "click",
-            "selector": "#my-radio-2"
-          },
-          {
-            "action": "get_property",
-            "selector": "#my-radio-2",
-            "name": "checked",
-            "save_as": "checked"
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "checked",
-            "equals": "true"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -645,6 +474,19 @@
         "public-web",
         "pagination",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://quotes.toscrape.com/page/2/",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:first-of-type .author",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -669,38 +511,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://quotes.toscrape.com/page/2/",
-            "save_as": "page"
-          },
-          {
-            "action": "get_text",
-            "selector": ".quote:first-of-type .author",
-            "save_as": "answer",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "answer",
-            "equals": "Marilyn Monroe"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -713,6 +523,23 @@
         "detail",
         "navigation",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://quotes.toscrape.com/",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": ".quote:first-of-type a[href*='/author/']"
+        },
+        {
+          "action": "get_text",
+          "selector": ".author-born-date",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -738,42 +565,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://quotes.toscrape.com/",
-            "save_as": "page"
-          },
-          {
-            "action": "click",
-            "selector": ".quote:first-of-type a[href*='/author/']"
-          },
-          {
-            "action": "get_text",
-            "selector": ".author-born-date",
-            "save_as": "answer",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "answer",
-            "equals": "March 14, 1879"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -786,6 +577,29 @@
         "catalogue",
         "category",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://books.toscrape.com/",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "a[href='catalogue/category/books/mystery_3/index.html']"
+        },
+        {
+          "action": "get_text",
+          "selector": ".page-header h1",
+          "save_as": "category",
+          "strip": true
+        },
+        {
+          "action": "get_text",
+          "selector": "article.product_pod h3 a",
+          "save_as": "first_book",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -817,52 +631,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://books.toscrape.com/",
-            "save_as": "page"
-          },
-          {
-            "action": "click",
-            "selector": "a[href='catalogue/category/books/mystery_3/index.html']"
-          },
-          {
-            "action": "get_text",
-            "selector": ".page-header h1",
-            "save_as": "category",
-            "strip": true
-          },
-          {
-            "action": "get_text",
-            "selector": "article.product_pod h3 a",
-            "save_as": "first_book",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "category",
-            "equals": "Mystery"
-          },
-          {
-            "output": "first_book",
-            "equals": "Sharp Objects"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -875,6 +643,29 @@
         "catalogue",
         "detail",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://books.toscrape.com/",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "article.product_pod h3 a"
+        },
+        {
+          "action": "get_text",
+          "selector": ".product_main h1",
+          "save_as": "title",
+          "strip": true
+        },
+        {
+          "action": "get_text",
+          "selector": ".product_main .price_color",
+          "save_as": "price",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -906,52 +697,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://books.toscrape.com/",
-            "save_as": "page"
-          },
-          {
-            "action": "click",
-            "selector": "article.product_pod h3 a"
-          },
-          {
-            "action": "get_text",
-            "selector": ".product_main h1",
-            "save_as": "title",
-            "strip": true
-          },
-          {
-            "action": "get_text",
-            "selector": ".product_main .price_color",
-            "save_as": "price",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "title",
-            "equals": "A Light in the Attic"
-          },
-          {
-            "output": "price",
-            "equals": "£51.77"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -964,6 +709,23 @@
         "documentation",
         "navigation",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://docs.python.org/3/tutorial/index.html",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "li.toctree-l1 a[href='appetite.html']"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -989,42 +751,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://docs.python.org/3/tutorial/index.html",
-            "save_as": "page"
-          },
-          {
-            "action": "click",
-            "selector": "li.toctree-l1 a[href='appetite.html']"
-          },
-          {
-            "action": "get_text",
-            "selector": "h1",
-            "save_as": "answer",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "answer",
-            "equals": "1. Whetting Your Appetite¶"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -1037,6 +763,24 @@
         "documentation",
         "navigation",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "main a[href*='/Using_Fetch']",
+          "timeout_ms": 20000
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -1062,43 +806,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
-            "save_as": "page"
-          },
-          {
-            "action": "click",
-            "selector": "main a[href*='/Using_Fetch']",
-            "timeout_ms": 20000
-          },
-          {
-            "action": "get_text",
-            "selector": "h1",
-            "save_as": "answer",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "answer",
-            "equals": "Using the Fetch API"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -1113,6 +820,28 @@
         "actionability",
         "timing",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://www.selenium.dev/selenium/web/dynamic.html",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "#reveal"
+        },
+        {
+          "action": "fill",
+          "selector": "#revealed",
+          "text": "Lexmount public timing probe"
+        },
+        {
+          "action": "get_property",
+          "selector": "#revealed",
+          "name": "value",
+          "save_as": "answer"
+        }
       ],
       "assertions": [
         {
@@ -1140,47 +869,6 @@
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios",
           "https://github.com/lexmount/moli/blob/bb9ecdd24c5d861b383cb3529ff60a9ffe85ed42/moli-protocol-server/src/cdp_scheduler.rs"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://www.selenium.dev/selenium/web/dynamic.html",
-            "save_as": "page"
-          },
-          {
-            "action": "click",
-            "selector": "#reveal"
-          },
-          {
-            "action": "fill",
-            "selector": "#revealed",
-            "text": "Lexmount public timing probe"
-          },
-          {
-            "action": "get_property",
-            "selector": "#revealed",
-            "name": "value",
-            "save_as": "answer"
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "answer",
-            "equals": "Lexmount public timing probe"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -1194,6 +882,23 @@
         "dom-insertion",
         "timing",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://www.selenium.dev/selenium/web/dynamic.html",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "#adder"
+        },
+        {
+          "action": "get_attribute",
+          "selector": "#box0",
+          "name": "class",
+          "save_as": "answer"
+        }
       ],
       "assertions": [
         {
@@ -1220,42 +925,6 @@
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios",
           "https://github.com/lexmount/moli/blob/bb9ecdd24c5d861b383cb3529ff60a9ffe85ed42/moli-protocol-server/src/cdp_scheduler.rs"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://www.selenium.dev/selenium/web/dynamic.html",
-            "save_as": "page"
-          },
-          {
-            "action": "click",
-            "selector": "#adder"
-          },
-          {
-            "action": "get_attribute",
-            "selector": "#box0",
-            "name": "class",
-            "save_as": "answer"
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "answer",
-            "equals": "redbox"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -1271,6 +940,46 @@
         "native-control",
         "submit",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://www.selenium.dev/selenium/web/web-form.html",
+          "save_as": "page"
+        },
+        {
+          "action": "fill",
+          "selector": "input[name='my-text']",
+          "text": "Lexmount"
+        },
+        {
+          "action": "fill",
+          "selector": "textarea[name='my-textarea']",
+          "text": "Chromium and Moli"
+        },
+        {
+          "action": "select",
+          "selector": "select[name='my-select']",
+          "value": "3"
+        },
+        {
+          "action": "click",
+          "selector": "#my-check-2"
+        },
+        {
+          "action": "click",
+          "selector": "#my-radio-2"
+        },
+        {
+          "action": "click",
+          "selector": "button"
+        },
+        {
+          "action": "get_text",
+          "selector": "#message",
+          "save_as": "receipt",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -1301,65 +1010,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://www.selenium.dev/selenium/web/web-form.html",
-            "save_as": "page"
-          },
-          {
-            "action": "fill",
-            "selector": "input[name='my-text']",
-            "text": "Lexmount"
-          },
-          {
-            "action": "fill",
-            "selector": "textarea[name='my-textarea']",
-            "text": "Chromium and Moli"
-          },
-          {
-            "action": "select",
-            "selector": "select[name='my-select']",
-            "value": "3"
-          },
-          {
-            "action": "click",
-            "selector": "#my-check-2"
-          },
-          {
-            "action": "click",
-            "selector": "#my-radio-2"
-          },
-          {
-            "action": "click",
-            "selector": "button"
-          },
-          {
-            "action": "get_text",
-            "selector": "#message",
-            "save_as": "receipt",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "receipt",
-            "equals": "Received!"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -1373,6 +1023,68 @@
         "history",
         "multi-page",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://quotes.toscrape.com/",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:first-of-type .author",
+          "save_as": "one",
+          "strip": true
+        },
+        {
+          "action": "navigate",
+          "url": "https://quotes.toscrape.com/page/2/",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:first-of-type .author",
+          "save_as": "two",
+          "strip": true
+        },
+        {
+          "action": "navigate",
+          "url": "https://quotes.toscrape.com/page/3/",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:first-of-type .author",
+          "save_as": "three",
+          "strip": true
+        },
+        {
+          "action": "back"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:first-of-type .author",
+          "save_as": "back_two",
+          "strip": true
+        },
+        {
+          "action": "back"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:first-of-type .author",
+          "save_as": "back_one",
+          "strip": true
+        },
+        {
+          "action": "forward"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:first-of-type .author",
+          "save_as": "forward_two",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -1432,107 +1144,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://quotes.toscrape.com/",
-            "save_as": "page"
-          },
-          {
-            "action": "get_text",
-            "selector": ".quote:first-of-type .author",
-            "save_as": "one",
-            "strip": true
-          },
-          {
-            "action": "navigate",
-            "url": "https://quotes.toscrape.com/page/2/",
-            "save_as": "page"
-          },
-          {
-            "action": "get_text",
-            "selector": ".quote:first-of-type .author",
-            "save_as": "two",
-            "strip": true
-          },
-          {
-            "action": "navigate",
-            "url": "https://quotes.toscrape.com/page/3/",
-            "save_as": "page"
-          },
-          {
-            "action": "get_text",
-            "selector": ".quote:first-of-type .author",
-            "save_as": "three",
-            "strip": true
-          },
-          {
-            "action": "back"
-          },
-          {
-            "action": "get_text",
-            "selector": ".quote:first-of-type .author",
-            "save_as": "back_two",
-            "strip": true
-          },
-          {
-            "action": "back"
-          },
-          {
-            "action": "get_text",
-            "selector": ".quote:first-of-type .author",
-            "save_as": "back_one",
-            "strip": true
-          },
-          {
-            "action": "forward"
-          },
-          {
-            "action": "get_text",
-            "selector": ".quote:first-of-type .author",
-            "save_as": "forward_two",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "one",
-            "equals": "Albert Einstein"
-          },
-          {
-            "output": "two",
-            "equals": "Marilyn Monroe"
-          },
-          {
-            "output": "three",
-            "equals": "Pablo Neruda"
-          },
-          {
-            "output": "back_two",
-            "equals": "Marilyn Monroe"
-          },
-          {
-            "output": "back_one",
-            "equals": "Albert Einstein"
-          },
-          {
-            "output": "forward_two",
-            "equals": "Marilyn Monroe"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -1546,6 +1157,33 @@
         "login",
         "session",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://quotes.toscrape.com/login",
+          "save_as": "page"
+        },
+        {
+          "action": "fill",
+          "selector": "#username",
+          "text": "lexmount-eval"
+        },
+        {
+          "action": "fill",
+          "selector": "#password",
+          "text": "browser-eval"
+        },
+        {
+          "action": "click",
+          "selector": "input[type='submit']"
+        },
+        {
+          "action": "get_text",
+          "selector": "a[href='/logout']",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -1573,52 +1211,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://quotes.toscrape.com/login",
-            "save_as": "page"
-          },
-          {
-            "action": "fill",
-            "selector": "#username",
-            "text": "lexmount-eval"
-          },
-          {
-            "action": "fill",
-            "selector": "#password",
-            "text": "browser-eval"
-          },
-          {
-            "action": "click",
-            "selector": "input[type='submit']"
-          },
-          {
-            "action": "get_text",
-            "selector": "a[href='/logout']",
-            "save_as": "answer",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "answer",
-            "equals": "Logout"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -1633,6 +1225,46 @@
         "detail",
         "history",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://books.toscrape.com/",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "a[href='catalogue/category/books/mystery_3/index.html']"
+        },
+        {
+          "action": "click",
+          "selector": ".next a"
+        },
+        {
+          "action": "get_text",
+          "selector": "article.product_pod h3 a",
+          "save_as": "list_title",
+          "strip": true
+        },
+        {
+          "action": "click",
+          "selector": "article.product_pod h3 a"
+        },
+        {
+          "action": "get_text",
+          "selector": ".product_main h1",
+          "save_as": "detail_title",
+          "strip": true
+        },
+        {
+          "action": "get_text",
+          "selector": ".product_main .price_color",
+          "save_as": "price",
+          "strip": true
+        },
+        {
+          "action": "back"
+        }
       ],
       "assertions": [
         {
@@ -1673,73 +1305,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://books.toscrape.com/",
-            "save_as": "page"
-          },
-          {
-            "action": "click",
-            "selector": "a[href='catalogue/category/books/mystery_3/index.html']"
-          },
-          {
-            "action": "click",
-            "selector": ".next a"
-          },
-          {
-            "action": "get_text",
-            "selector": "article.product_pod h3 a",
-            "save_as": "list_title",
-            "strip": true
-          },
-          {
-            "action": "click",
-            "selector": "article.product_pod h3 a"
-          },
-          {
-            "action": "get_text",
-            "selector": ".product_main h1",
-            "save_as": "detail_title",
-            "strip": true
-          },
-          {
-            "action": "get_text",
-            "selector": ".product_main .price_color",
-            "save_as": "price",
-            "strip": true
-          },
-          {
-            "action": "back"
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "list_title",
-            "equals": "The Mysterious Affair at ..."
-          },
-          {
-            "output": "detail_title",
-            "equals": "The Mysterious Affair at Styles (Hercule Poirot #1)"
-          },
-          {
-            "output": "price",
-            "equals": "£24.80"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -1753,6 +1318,58 @@
         "multi-page",
         "history",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://docs.python.org/3/tutorial/index.html",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "index",
+          "strip": true
+        },
+        {
+          "action": "click",
+          "selector": "li.toctree-l1 a[href='appetite.html']"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "appetite",
+          "strip": true
+        },
+        {
+          "action": "navigate",
+          "url": "https://docs.python.org/3/tutorial/interpreter.html",
+          "save_as": "interpreter_page"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "interpreter",
+          "strip": true
+        },
+        {
+          "action": "back"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "back_appetite",
+          "strip": true
+        },
+        {
+          "action": "back"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "back_index",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -1805,93 +1422,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://docs.python.org/3/tutorial/index.html",
-            "save_as": "page"
-          },
-          {
-            "action": "get_text",
-            "selector": "h1",
-            "save_as": "index",
-            "strip": true
-          },
-          {
-            "action": "click",
-            "selector": "li.toctree-l1 a[href='appetite.html']"
-          },
-          {
-            "action": "get_text",
-            "selector": "h1",
-            "save_as": "appetite",
-            "strip": true
-          },
-          {
-            "action": "navigate",
-            "url": "https://docs.python.org/3/tutorial/interpreter.html",
-            "save_as": "interpreter_page"
-          },
-          {
-            "action": "get_text",
-            "selector": "h1",
-            "save_as": "interpreter",
-            "strip": true
-          },
-          {
-            "action": "back"
-          },
-          {
-            "action": "get_text",
-            "selector": "h1",
-            "save_as": "back_appetite",
-            "strip": true
-          },
-          {
-            "action": "back"
-          },
-          {
-            "action": "get_text",
-            "selector": "h1",
-            "save_as": "back_index",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "index",
-            "equals": "The Python Tutorial¶"
-          },
-          {
-            "output": "appetite",
-            "equals": "1. Whetting Your Appetite¶"
-          },
-          {
-            "output": "interpreter",
-            "equals": "2. Using the Python Interpreter¶"
-          },
-          {
-            "output": "back_appetite",
-            "equals": "1. Whetting Your Appetite¶"
-          },
-          {
-            "output": "back_index",
-            "equals": "The Python Tutorial¶"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -1906,6 +1436,59 @@
         "history",
         "long-document",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110.html",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "#rfcnum",
+          "save_as": "number",
+          "strip": true
+        },
+        {
+          "action": "navigate",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-1",
+          "save_as": "intro_page"
+        },
+        {
+          "action": "get_text",
+          "selector": "#section-1 h2",
+          "save_as": "intro",
+          "strip": true
+        },
+        {
+          "action": "navigate",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-3",
+          "save_as": "terms_page"
+        },
+        {
+          "action": "get_text",
+          "selector": "#section-3 h2",
+          "save_as": "terms",
+          "strip": true
+        },
+        {
+          "action": "back"
+        },
+        {
+          "action": "get_text",
+          "selector": "#section-1 h2",
+          "save_as": "back_intro",
+          "strip": true
+        },
+        {
+          "action": "forward"
+        },
+        {
+          "action": "get_text",
+          "selector": "#section-3 h2",
+          "save_as": "forward_terms",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -1958,94 +1541,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://www.rfc-editor.org/rfc/rfc9110.html",
-            "save_as": "page"
-          },
-          {
-            "action": "get_text",
-            "selector": "#rfcnum",
-            "save_as": "number",
-            "strip": true
-          },
-          {
-            "action": "navigate",
-            "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-1",
-            "save_as": "intro_page"
-          },
-          {
-            "action": "get_text",
-            "selector": "#section-1 h2",
-            "save_as": "intro",
-            "strip": true
-          },
-          {
-            "action": "navigate",
-            "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-3",
-            "save_as": "terms_page"
-          },
-          {
-            "action": "get_text",
-            "selector": "#section-3 h2",
-            "save_as": "terms",
-            "strip": true
-          },
-          {
-            "action": "back"
-          },
-          {
-            "action": "get_text",
-            "selector": "#section-1 h2",
-            "save_as": "back_intro",
-            "strip": true
-          },
-          {
-            "action": "forward"
-          },
-          {
-            "action": "get_text",
-            "selector": "#section-3 h2",
-            "save_as": "forward_terms",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "number",
-            "equals": "RFC 9110"
-          },
-          {
-            "output": "intro",
-            "equals": "1. Introduction"
-          },
-          {
-            "output": "terms",
-            "equals": "3. Terminology and Core Concepts"
-          },
-          {
-            "output": "back_intro",
-            "equals": "1. Introduction"
-          },
-          {
-            "output": "forward_terms",
-            "equals": "3. Terminology and Core Concepts"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -2059,6 +1554,48 @@
         "history",
         "navigation",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "api",
+          "strip": true
+        },
+        {
+          "action": "click",
+          "selector": "main a[href*='/Using_Fetch']",
+          "timeout_ms": 20000
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "guide",
+          "strip": true
+        },
+        {
+          "action": "back"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "back_api",
+          "strip": true
+        },
+        {
+          "action": "forward"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "forward_guide",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -2104,79 +1641,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
-            "save_as": "page"
-          },
-          {
-            "action": "get_text",
-            "selector": "h1",
-            "save_as": "api",
-            "strip": true
-          },
-          {
-            "action": "click",
-            "selector": "main a[href*='/Using_Fetch']",
-            "timeout_ms": 20000
-          },
-          {
-            "action": "get_text",
-            "selector": "h1",
-            "save_as": "guide",
-            "strip": true
-          },
-          {
-            "action": "back"
-          },
-          {
-            "action": "get_text",
-            "selector": "h1",
-            "save_as": "back_api",
-            "strip": true
-          },
-          {
-            "action": "forward"
-          },
-          {
-            "action": "get_text",
-            "selector": "h1",
-            "save_as": "forward_guide",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "api",
-            "equals": "Fetch API"
-          },
-          {
-            "output": "guide",
-            "equals": "Using the Fetch API"
-          },
-          {
-            "output": "back_api",
-            "equals": "Fetch API"
-          },
-          {
-            "output": "forward_guide",
-            "equals": "Using the Fetch API"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -2190,6 +1654,48 @@
         "history",
         "multi-page",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://github.com/lexmount/moli",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "article.markdown-body h1",
+          "save_as": "readme",
+          "strip": true
+        },
+        {
+          "action": "navigate",
+          "url": "https://github.com/lexmount/moli/issues",
+          "save_as": "issues_page"
+        },
+        {
+          "action": "get_text",
+          "selector": "main h1",
+          "save_as": "issues",
+          "strip": true
+        },
+        {
+          "action": "back"
+        },
+        {
+          "action": "get_text",
+          "selector": "article.markdown-body h1",
+          "save_as": "back_readme",
+          "strip": true
+        },
+        {
+          "action": "forward"
+        },
+        {
+          "action": "get_text",
+          "selector": "main h1",
+          "save_as": "forward_issues",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -2235,79 +1741,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://github.com/lexmount/moli",
-            "save_as": "page"
-          },
-          {
-            "action": "get_text",
-            "selector": "article.markdown-body h1",
-            "save_as": "readme",
-            "strip": true
-          },
-          {
-            "action": "navigate",
-            "url": "https://github.com/lexmount/moli/issues",
-            "save_as": "issues_page"
-          },
-          {
-            "action": "get_text",
-            "selector": "main h1",
-            "save_as": "issues",
-            "strip": true
-          },
-          {
-            "action": "back"
-          },
-          {
-            "action": "get_text",
-            "selector": "article.markdown-body h1",
-            "save_as": "back_readme",
-            "strip": true
-          },
-          {
-            "action": "forward"
-          },
-          {
-            "action": "get_text",
-            "selector": "main h1",
-            "save_as": "forward_issues",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "readme",
-            "equals": "Moli"
-          },
-          {
-            "output": "issues",
-            "equals": "All issues"
-          },
-          {
-            "output": "back_readme",
-            "equals": "Moli"
-          },
-          {
-            "output": "forward_issues",
-            "equals": "All issues"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -2321,6 +1754,87 @@
         "search",
         "dependent-state",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://quotes.toscrape.com/search.aspx",
+          "save_as": "page"
+        },
+        {
+          "action": "select",
+          "selector": "#author",
+          "value": "Albert Einstein",
+          "wait_for_navigation": true,
+          "wait_until": "domcontentloaded"
+        },
+        {
+          "action": "get_text",
+          "selector": "#tag option[value='simplicity']",
+          "save_as": "first_tag_ready",
+          "strip": true
+        },
+        {
+          "action": "select",
+          "selector": "#tag",
+          "value": "simplicity"
+        },
+        {
+          "action": "click",
+          "selector": "input[type='submit']",
+          "wait_for_navigation": true,
+          "wait_until": "domcontentloaded"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote .author",
+          "save_as": "first_author",
+          "strip": true,
+          "wait_for_text": "Albert Einstein"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote .content",
+          "save_as": "first_quote",
+          "strip": true
+        },
+        {
+          "action": "select",
+          "selector": "#author",
+          "value": "Jane Austen",
+          "wait_for_navigation": true,
+          "wait_until": "domcontentloaded"
+        },
+        {
+          "action": "get_text",
+          "selector": "#tag option[value='friendship']",
+          "save_as": "second_tag_ready",
+          "strip": true
+        },
+        {
+          "action": "select",
+          "selector": "#tag",
+          "value": "friendship"
+        },
+        {
+          "action": "click",
+          "selector": "input[type='submit']",
+          "wait_for_navigation": true,
+          "wait_until": "domcontentloaded"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote .author",
+          "save_as": "second_author",
+          "strip": true,
+          "wait_for_text": "Jane Austen"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote .content",
+          "save_as": "second_quote",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -2381,126 +1895,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios/form_select_option.scenario.json"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://quotes.toscrape.com/search.aspx",
-            "save_as": "page"
-          },
-          {
-            "action": "select",
-            "selector": "#author",
-            "value": "Albert Einstein",
-            "wait_for_navigation": true,
-            "wait_until": "domcontentloaded"
-          },
-          {
-            "action": "get_text",
-            "selector": "#tag option[value='simplicity']",
-            "save_as": "first_tag_ready",
-            "strip": true
-          },
-          {
-            "action": "select",
-            "selector": "#tag",
-            "value": "simplicity"
-          },
-          {
-            "action": "click",
-            "selector": "input[type='submit']",
-            "wait_for_navigation": true,
-            "wait_until": "domcontentloaded"
-          },
-          {
-            "action": "get_text",
-            "selector": ".quote .author",
-            "save_as": "first_author",
-            "strip": true,
-            "wait_for_text": "Albert Einstein"
-          },
-          {
-            "action": "get_text",
-            "selector": ".quote .content",
-            "save_as": "first_quote",
-            "strip": true
-          },
-          {
-            "action": "select",
-            "selector": "#author",
-            "value": "Jane Austen",
-            "wait_for_navigation": true,
-            "wait_until": "domcontentloaded"
-          },
-          {
-            "action": "get_text",
-            "selector": "#tag option[value='friendship']",
-            "save_as": "second_tag_ready",
-            "strip": true
-          },
-          {
-            "action": "select",
-            "selector": "#tag",
-            "value": "friendship"
-          },
-          {
-            "action": "click",
-            "selector": "input[type='submit']",
-            "wait_for_navigation": true,
-            "wait_until": "domcontentloaded"
-          },
-          {
-            "action": "get_text",
-            "selector": ".quote .author",
-            "save_as": "second_author",
-            "strip": true,
-            "wait_for_text": "Jane Austen"
-          },
-          {
-            "action": "get_text",
-            "selector": ".quote .content",
-            "save_as": "second_quote",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "first_tag_ready",
-            "equals": "simplicity"
-          },
-          {
-            "output": "second_tag_ready",
-            "equals": "friendship"
-          },
-          {
-            "output": "first_author",
-            "equals": "Albert Einstein"
-          },
-          {
-            "output": "first_quote",
-            "equals": "“If you can't explain it to a six year old, you don't understand it yourself.”"
-          },
-          {
-            "output": "second_author",
-            "equals": "Jane Austen"
-          },
-          {
-            "output": "second_quote",
-            "equals": "“There is nothing I would not do for those who are really my friends. I have no notion of loving people by halves, it is not my nature.”"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -2514,6 +1908,47 @@
         "progressive-list",
         "async-render",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://quotes.toscrape.com/scroll",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:nth-of-type(1) .author",
+          "save_as": "first",
+          "strip": true
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 2500
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:nth-of-type(11) .author",
+          "save_as": "second_batch",
+          "strip": true
+        },
+        {
+          "action": "scroll",
+          "direction": "down",
+          "amount": 5000
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:nth-of-type(21) .author",
+          "save_as": "third_batch",
+          "strip": true
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:nth-of-type(1) .author",
+          "save_as": "preserved",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -2560,78 +1995,6 @@
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios/dyn_paging_final.scenario.json",
           "https://github.com/lexmount/moli/blob/bb9ecdd24c5d861b383cb3529ff60a9ffe85ed42/moli-protocol-server/src/cdp_scheduler.rs"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://quotes.toscrape.com/scroll",
-            "save_as": "page"
-          },
-          {
-            "action": "get_text",
-            "selector": ".quote:nth-of-type(1) .author",
-            "save_as": "first",
-            "strip": true
-          },
-          {
-            "action": "scroll",
-            "direction": "down",
-            "amount": 2500
-          },
-          {
-            "action": "get_text",
-            "selector": ".quote:nth-of-type(11) .author",
-            "save_as": "second_batch",
-            "strip": true
-          },
-          {
-            "action": "scroll",
-            "direction": "down",
-            "amount": 5000
-          },
-          {
-            "action": "get_text",
-            "selector": ".quote:nth-of-type(21) .author",
-            "save_as": "third_batch",
-            "strip": true
-          },
-          {
-            "action": "get_text",
-            "selector": ".quote:nth-of-type(1) .author",
-            "save_as": "preserved",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "first",
-            "equals": "Albert Einstein"
-          },
-          {
-            "output": "second_batch",
-            "equals": "Marilyn Monroe"
-          },
-          {
-            "output": "third_batch",
-            "equals": "Pablo Neruda"
-          },
-          {
-            "output": "preserved",
-            "equals": "Albert Einstein"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -2646,6 +2009,54 @@
         "anchor",
         "history",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://docs.python.org/3/search.html",
+          "save_as": "page"
+        },
+        {
+          "action": "fill",
+          "selector": "input[name='q']",
+          "text": "enumerate"
+        },
+        {
+          "action": "click",
+          "selector": "input[type='submit']"
+        },
+        {
+          "action": "click",
+          "selector": "a[href='library/functions.html#enumerate']"
+        },
+        {
+          "action": "get_text",
+          "selector": "#enumerate .sig-name",
+          "save_as": "first_symbol",
+          "strip": true
+        },
+        {
+          "action": "back"
+        },
+        {
+          "action": "fill",
+          "selector": "input[name='q']",
+          "text": "zip"
+        },
+        {
+          "action": "click",
+          "selector": "input[type='submit']"
+        },
+        {
+          "action": "click",
+          "selector": "a[href='library/functions.html#zip']"
+        },
+        {
+          "action": "get_text",
+          "selector": "#zip .sig-name",
+          "save_as": "second_symbol",
+          "strip": true
+        }
       ],
       "assertions": [
         {
@@ -2683,77 +2094,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://docs.python.org/3/search.html",
-            "save_as": "page"
-          },
-          {
-            "action": "fill",
-            "selector": "input[name='q']",
-            "text": "enumerate"
-          },
-          {
-            "action": "click",
-            "selector": "input[type='submit']"
-          },
-          {
-            "action": "click",
-            "selector": "a[href='library/functions.html#enumerate']"
-          },
-          {
-            "action": "get_text",
-            "selector": "#enumerate .sig-name",
-            "save_as": "first_symbol",
-            "strip": true
-          },
-          {
-            "action": "back"
-          },
-          {
-            "action": "fill",
-            "selector": "input[name='q']",
-            "text": "zip"
-          },
-          {
-            "action": "click",
-            "selector": "input[type='submit']"
-          },
-          {
-            "action": "click",
-            "selector": "a[href='library/functions.html#zip']"
-          },
-          {
-            "action": "get_text",
-            "selector": "#zip .sig-name",
-            "save_as": "second_symbol",
-            "strip": true
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "first_symbol",
-            "equals": "enumerate"
-          },
-          {
-            "output": "second_symbol",
-            "equals": "zip"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -2767,6 +2107,67 @@
         "locale-switch",
         "dependent-navigation",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://docs.python.org/3/library/functions.html#enumerate",
+          "save_as": "page"
+        },
+        {
+          "action": "select",
+          "selector": ".switchers select.version-select",
+          "value": "3.13",
+          "wait_for_navigation": true,
+          "wait_until": "domcontentloaded"
+        },
+        {
+          "action": "get_text",
+          "selector": "a[href='../index.html']",
+          "save_as": "version",
+          "strip": true,
+          "wait_for_text": "3.13.15 Documentation"
+        },
+        {
+          "action": "select",
+          "selector": ".switchers select.language-select",
+          "value": "zh-cn",
+          "wait_for_navigation": true,
+          "wait_until": "domcontentloaded"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "chinese",
+          "strip": true,
+          "wait_for_text": "内置函数¶"
+        },
+        {
+          "action": "get_text",
+          "selector": "#enumerate .sig-name",
+          "save_as": "symbol",
+          "strip": true
+        },
+        {
+          "action": "select",
+          "selector": ".switchers select.language-select",
+          "value": "en",
+          "wait_for_navigation": true,
+          "wait_until": "domcontentloaded"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "english",
+          "strip": true,
+          "wait_for_text": "Built-in Functions¶"
+        },
+        {
+          "action": "get_property",
+          "selector": ".switchers select.version-select",
+          "name": "value",
+          "save_as": "retained_version"
+        }
       ],
       "assertions": [
         {
@@ -2818,102 +2219,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios/form_select_option.scenario.json"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://docs.python.org/3/library/functions.html#enumerate",
-            "save_as": "page"
-          },
-          {
-            "action": "select",
-            "selector": ".switchers select.version-select",
-            "value": "3.13",
-            "wait_for_navigation": true,
-            "wait_until": "domcontentloaded"
-          },
-          {
-            "action": "get_text",
-            "selector": "a[href='../index.html']",
-            "save_as": "version",
-            "strip": true,
-            "wait_for_text": "3.13.15 Documentation"
-          },
-          {
-            "action": "select",
-            "selector": ".switchers select.language-select",
-            "value": "zh-cn",
-            "wait_for_navigation": true,
-            "wait_until": "domcontentloaded"
-          },
-          {
-            "action": "get_text",
-            "selector": "h1",
-            "save_as": "chinese",
-            "strip": true,
-            "wait_for_text": "内置函数¶"
-          },
-          {
-            "action": "get_text",
-            "selector": "#enumerate .sig-name",
-            "save_as": "symbol",
-            "strip": true
-          },
-          {
-            "action": "select",
-            "selector": ".switchers select.language-select",
-            "value": "en",
-            "wait_for_navigation": true,
-            "wait_until": "domcontentloaded"
-          },
-          {
-            "action": "get_text",
-            "selector": "h1",
-            "save_as": "english",
-            "strip": true,
-            "wait_for_text": "Built-in Functions¶"
-          },
-          {
-            "action": "get_property",
-            "selector": ".switchers select.version-select",
-            "name": "value",
-            "save_as": "retained_version"
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "version",
-            "equals": "3.13.15 Documentation"
-          },
-          {
-            "output": "chinese",
-            "equals": "内置函数¶"
-          },
-          {
-            "output": "symbol",
-            "equals": "enumerate"
-          },
-          {
-            "output": "english",
-            "equals": "Built-in Functions¶"
-          },
-          {
-            "output": "retained_version",
-            "equals": "3.13"
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     },
     {
@@ -2928,6 +2233,56 @@
         "code-view",
         "history",
         "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://github.com/lexmount/moli",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "input[aria-label='Go to file']"
+        },
+        {
+          "action": "fill",
+          "selector": "input[aria-label='Go to file']",
+          "text": "moli-core/Cargo.toml"
+        },
+        {
+          "action": "click",
+          "selector": "[role='option']:has-text('moli-core/Cargo.toml')"
+        },
+        {
+          "action": "get_text",
+          "selector": "#LC3",
+          "save_as": "core_package",
+          "strip": true,
+          "wait_for_text": "name = \"moli-core\""
+        },
+        {
+          "action": "back"
+        },
+        {
+          "action": "click",
+          "selector": "input[aria-label='Go to file']"
+        },
+        {
+          "action": "fill",
+          "selector": "input[aria-label='Go to file']",
+          "text": "moli-protocol-server/Cargo.toml"
+        },
+        {
+          "action": "click",
+          "selector": "[role='option']:has-text('moli-protocol-server/Cargo.toml')"
+        },
+        {
+          "action": "get_text",
+          "selector": "#LC2",
+          "save_as": "server_package",
+          "strip": true,
+          "wait_for_text": "name = \"moli-protocol-server\""
+        }
       ],
       "assertions": [
         {
@@ -2965,79 +2320,6 @@
         "design_basis": [
           "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
         ]
-      },
-      "trajectory": {
-        "schema": "lex_browser_trajectory/1",
-        "provenance": {
-          "kind": "repository_curated",
-          "migrated_from_schema": "lex_browser_use_tasks/3"
-        },
-        "actions": [
-          {
-            "action": "navigate",
-            "url": "https://github.com/lexmount/moli",
-            "save_as": "page"
-          },
-          {
-            "action": "click",
-            "selector": "input[aria-label='Go to file']"
-          },
-          {
-            "action": "fill",
-            "selector": "input[aria-label='Go to file']",
-            "text": "moli-core/Cargo.toml"
-          },
-          {
-            "action": "click",
-            "selector": "[role='option']:has-text('moli-core/Cargo.toml')"
-          },
-          {
-            "action": "get_text",
-            "selector": "#LC3",
-            "save_as": "core_package",
-            "strip": true,
-            "wait_for_text": "name = \"moli-core\""
-          },
-          {
-            "action": "back"
-          },
-          {
-            "action": "click",
-            "selector": "input[aria-label='Go to file']"
-          },
-          {
-            "action": "fill",
-            "selector": "input[aria-label='Go to file']",
-            "text": "moli-protocol-server/Cargo.toml"
-          },
-          {
-            "action": "click",
-            "selector": "[role='option']:has-text('moli-protocol-server/Cargo.toml')"
-          },
-          {
-            "action": "get_text",
-            "selector": "#LC2",
-            "save_as": "server_package",
-            "strip": true,
-            "wait_for_text": "name = \"moli-protocol-server\""
-          }
-        ]
-      },
-      "evaluator": {
-        "kind": "exact_outputs",
-        "assertions": [
-          {
-            "output": "core_package",
-            "equals": "name = \"moli-core\""
-          },
-          {
-            "output": "server_package",
-            "equals": "name = \"moli-protocol-server\""
-          }
-        ]
-      },
-      "environment": {
-        "kind": "public_web"
       }
     }
   ]

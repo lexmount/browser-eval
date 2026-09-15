@@ -7,7 +7,7 @@ import json
 import re
 from pathlib import Path
 
-from harness.browser_use.report import METRICS, PAGES, REPORT_STEM
+from harness.trajectory_replay.report import METRICS, PAGES, REPORT_STEM
 
 
 def check_report_bundle(formal_root: Path) -> dict[str, int]:

@@ -8,7 +8,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from harness.browser_use.qualification import (
+from harness.trajectory_replay.qualification import (
     QUALIFICATION_SCHEMA,
     task_contract_sha256,
     validated_attempt_sha256s,

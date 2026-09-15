@@ -14,10 +14,10 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
-from harness.browser_use.cli import task_ids_from_scope
-from harness.browser_use.har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
-from harness.browser_use.qualification import build_repair_queue
-from harness.browser_use.suite import TaskSuite, load_suite
+from harness.trajectory_replay.cli import task_ids_from_scope
+from harness.trajectory_replay.har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
+from harness.trajectory_replay.qualification import build_repair_queue
+from harness.trajectory_replay.suite import TaskSuite, load_suite
 
 
 def _sha256(path: Path) -> str:
@@ -334,7 +334,7 @@ def main() -> None:
         command = [
             sys.executable,
             "-m",
-            "harness.browser_use.cli",
+            "harness.trajectory_replay.cli",
             "--suite",
             str(suite_path),
             "--native-scope",

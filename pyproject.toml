@@ -48,7 +48,9 @@ markers = [
 line-length = 100
 include = [
   "harness/browser_use/**/*.py",
+  "harness/trajectory_replay/**/*.py",
   "tests/browser_use/**/*.py",
+  "tests/trajectory_replay/**/*.py",
 ]
 target-version = "py311"
 
@@ -57,6 +59,10 @@ select = ["B", "E", "F", "I", "UP"]
 
 [tool.ruff.lint.per-file-ignores]
 "harness/browser_use/report.py" = ["E501"]
+"harness/browser_use/metrics.py" = ["F401", "I001"]
+"harness/browser_use/runner.py" = ["I001"]
+"harness/trajectory_replay/report.py" = ["E501"]
+"harness/trajectory_replay/metrics.py" = ["F401", "I001"]
 
 [build-system]
 requires = ["setuptools>=64"]

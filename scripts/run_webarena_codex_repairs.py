@@ -12,8 +12,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
-from harness.browser_use.qualification import task_contract_sha256
-from harness.browser_use.suite import load_suite
+from harness.trajectory_replay.qualification import task_contract_sha256
+from harness.trajectory_replay.suite import load_suite
 from scripts.build_webarena_repair_packet import (
     PACKET_SCHEMA,
     _redacted_evaluator_contract,

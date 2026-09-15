@@ -16,6 +16,7 @@ runtime-check:
 test-python: runtime-check
 	$(PY) -m unittest discover -s tests -v
 	$(PY) -m pytest tests/browser_use -q
+	$(PY) -m pytest tests/trajectory_replay -q
 
 test-ui:
 	node tests/test_report_ui.mjs
@@ -45,7 +46,7 @@ trajectory-report-release: runtime-check
 	$(PY) scripts/release_webarena_trajectory_report.py --publish
 
 trajectory-report-audit: runtime-check
-	$(PY) -m pytest tests/browser_use -q
+	$(PY) -m pytest tests/trajectory_replay -q
 	$(PY) scripts/release_webarena_trajectory_report.py $(if $(FORMAL_ROOT),--formal-root "$(FORMAL_ROOT)",)
 
 resource-image:

@@ -14,7 +14,7 @@ from webarena_verified.environments.container.manager import ContainerManager
 from webarena_verified.environments.setup import setup_init
 from webarena_verified.types.task import WebArenaSite
 
-from harness.browser_use.webarena_environment import (
+from harness.trajectory_replay.webarena_environment import (
     _DockerClientBackend,
 )
 

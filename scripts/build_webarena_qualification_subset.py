@@ -8,7 +8,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from harness.browser_use.suite import load_suite
+from harness.trajectory_replay.suite import load_suite
 
 ALLOWED_DISPOSITIONS = {
     "eligible",

@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from harness.browser_use.qualification import build_repair_validation_suite
+from harness.trajectory_replay.qualification import build_repair_validation_suite
 
 
 def main() -> None:

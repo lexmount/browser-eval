@@ -16,6 +16,9 @@ website accounts, or login state.
 The WebArena report is an RPA-style replay of qualified public human trajectories.
 It compares browser and adapter compatibility and does not measure agent planning.
 Generated report files are local build outputs and are not committed to this repository.
+Its runner and reproduction contract are in
+[examples/trajectory_replay/README.md](examples/trajectory_replay/README.md); the
+repository-curated browser-tool suite below is a different benchmark.
 
 ## Run the browser evaluation
 
@@ -45,10 +48,11 @@ measurement protocol, complexity tiers, overrides, and CubeSandbox decision.
 
 ## Harness layout
 
-- `harness/browser_use`: interactive browser-use execution, metrics, and reports
+- `harness/browser_use`: repository-curated 30-case browser-tool microbenchmark
+- `harness/trajectory_replay`: public WebArena fixed-trajectory replay and evaluator
 - `harness/web_fetch`: Web Fetch providers, execution, scoring, and reports
 
-Browser Use and Web Fetch intentionally keep separate suites and metrics.
+All three tracks keep separate suites, denominators, and reports.
 Web Fetch has no legacy top-level package or compatibility imports.
 
 ---

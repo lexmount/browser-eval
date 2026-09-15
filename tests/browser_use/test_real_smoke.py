@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import uuid
 
@@ -10,7 +9,6 @@ import docker
 import pytest
 from playwright.sync_api import sync_playwright
 
-from harness.browser_use.har import CdpHarRecorder
 from harness.browser_use.runner import (
     ENGINE_IMAGES,
     ENGINE_PORTS,
@@ -30,7 +28,7 @@ pytestmark = [
 
 
 @pytest.mark.parametrize("engine", ("chromium", "moli"))
-def test_real_browser_opens_public_page_and_extracts_heading(engine: str, tmp_path) -> None:
+def test_real_browser_opens_public_page_and_extracts_heading(engine: str) -> None:
     """Start the production evaluation image, connect over CDP, and use the live web."""
     client = docker.from_env()
     client.images.get(ENGINE_IMAGES[engine])
@@ -48,11 +46,7 @@ def test_real_browser_opens_public_page_and_extracts_heading(engine: str, tmp_pa
             client,
             engine=engine,
             run_id=run_id,
-            cpus=(
-                None
-                if os.environ.get("BROWSER_USE_SMOKE_WITHOUT_CPU_LIMIT") == "1"
-                else 1.0
-            ),
+            cpus=1.0,
             memory="1g",
             network=network.name,
         )
@@ -67,7 +61,6 @@ def test_real_browser_opens_public_page_and_extracts_heading(engine: str, tmp_pa
         browser = playwright.chromium.connect_over_cdp(websocket_url)
         browsers[engine] = browser
         page = browser.contexts[0].pages[0]
-        recorder = CdpHarRecorder(page)
 
         response = page.goto(
             "https://example.com/",
@@ -77,20 +70,5 @@ def test_real_browser_opens_public_page_and_extracts_heading(engine: str, tmp_pa
 
         assert response is not None and response.ok
         assert page.locator("h1").inner_text() == "Example Domain"
-        second = page.context.new_page()
-        recorder.ensure_pages()
-        second_response = second.goto(
-            "https://example.com/?tab=2",
-            wait_until="domcontentloaded",
-            timeout=30_000,
-        )
-        assert second_response is not None and second_response.ok
-        assert len(recorder._sessions) == 2
-        har_path = tmp_path / f"{engine}.har"
-        har_summary = recorder.stop(har_path)
-        entries = json.loads(har_path.read_text(encoding="utf-8"))["log"]["entries"]
-        assert har_summary["entry_count"] > 0
-        assert any(entry["request"]["url"] == "https://example.com/" for entry in entries)
-        assert any(entry["request"]["url"] == "https://example.com/?tab=2" for entry in entries)
     finally:
         _cleanup_runtime(browsers, playwright, containers, {engine: network})

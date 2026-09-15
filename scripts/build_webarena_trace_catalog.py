@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from harness.browser_use.webarena import build_trace_catalog, parse_drive_folder_html
+from harness.trajectory_replay.webarena import build_trace_catalog, parse_drive_folder_html
 
 
 def main() -> None:

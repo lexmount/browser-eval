@@ -24,15 +24,12 @@ pids_current_mean pids_current_p95 pids_current_peak
 
 
 def verify(artifacts: Path) -> dict:
-    artifacts = artifacts.resolve()
     rows = [
         json.loads(line)
         for line in (artifacts / "attempts.jsonl").read_text().splitlines()
         if line.strip()
     ]
     summary = json.loads((artifacts / "summary.json").read_text())
-    manifest_path = artifacts / "manifest.json"
-    manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else None
     primary = {}
     for row in rows:
         if not row.get("is_retry"):
@@ -41,76 +38,26 @@ def verify(artifacts: Path) -> dict:
                 raise ValueError(f"duplicate primary sample: {key}")
             primary[key] = row
     tasks = sorted({r["task_id"] for r in rows})
-    if manifest is not None:
-        engines = tuple((manifest.get("protocol") or {}).get("engines") or ())
-        declared_tasks = [str(row["task_id"]) for row in manifest.get("suite") or []]
-        if not declared_tasks or len(set(declared_tasks)) != len(declared_tasks):
-            raise ValueError("manifest suite is empty or contains duplicate tasks")
-        if set(declared_tasks) != set(tasks):
-            raise ValueError("manifest and attempt task sets differ")
-        expected_primary = {(task, engine) for task in declared_tasks for engine in engines}
-        if set(primary) != expected_primary:
-            raise ValueError("primary task/browser matrix is incomplete")
-        max_retries = int((manifest.get("protocol") or {}).get("max_failure_retries", 0))
-        grouped: dict[tuple[str, str], list[dict]] = {}
-        for row in rows:
-            grouped.setdefault((row["task_id"], row["engine"]), []).append(row)
-        for key, attempts in grouped.items():
-            attempts.sort(key=lambda row: int(row["attempt"]))
-            if attempts[0].get("attempt") != 1 or attempts[0].get("is_retry") is True:
-                raise ValueError(f"invalid primary attempt metadata: {key}")
-            if len(attempts) > max_retries + 1:
-                raise ValueError(f"retry count exceeds the declared limit: {key}")
-            for index, row in enumerate(attempts, 1):
-                if row.get("attempt") != index or bool(row.get("is_retry")) != (index > 1):
-                    raise ValueError(f"invalid retry sequence: {key}")
-                if index > 1 and attempts[index - 2].get("status") == "pass":
-                    raise ValueError(f"retry follows a passing result: {key}")
-                evidence_dir = Path(str(row.get("evidence_directory") or "")).resolve()
-                expected_dir = (
-                    artifacts / "tasks" / key[0] / key[1] / f"attempt-{index}"
-                ).resolve()
-                if (
-                    not expected_dir.is_relative_to(artifacts / "tasks")
-                    or evidence_dir != expected_dir
-                ):
-                    raise ValueError(f"attempt evidence path differs from manifest scope: {key}")
-                if row.get("status") == "pass":
-                    if row.get("evidence_status") != "pass":
-                        raise ValueError(f"passing attempt lacks complete evidence: {key}")
-                    if not evidence_dir.is_dir():
-                        raise ValueError(f"passing attempt evidence directory is missing: {key}")
-                    for name in (manifest.get("protocol") or {}).get(
-                        "required_attempt_evidence", ()
-                    ):
-                        evidence_file = (evidence_dir / name).resolve()
-                        if evidence_file.parent != evidence_dir or not evidence_file.is_file():
-                            raise ValueError(f"passing attempt is missing {name}: {key}")
-    else:
-        engines = tuple(summary.get("functional") or {})
-    final = {}
-    for row in rows:
-        final[(row["task_id"], row["engine"])] = row
-    intersection_tasks = [
+    paired_tasks = [
         task
         for task in tasks
         if all(
-            (row := final.get((task, engine))) is not None
+            (row := primary.get((task, engine))) is not None
             and row.get("result_status", row["status"]) == "pass"
-            for engine in engines
+            for engine in ("chromium", "moli")
         )
     ]
     comparison = summary["resource_comparison"]
-    if tuple(comparison.get("by_engine", {})) != engines or tuple(
+    if set(comparison.get("by_engine", {})) != {"chromium", "moli"} or set(
         summary.get("functional", {})
-    ) != engines:
+    ) != {"chromium", "moli"}:
         raise ValueError("required provider set mismatch")
-    for engine in engines:
+    for engine in ("chromium", "moli"):
         if set(comparison["by_engine"][engine]) != REQUIRED_METRICS:
             raise ValueError(f"{engine}: required metric set mismatch")
-    if len(intersection_tasks) != comparison.get(
-        "intersection_results", comparison["intersection_attempts"]
-    ):
+    if set(comparison.get("paired_ratios", {}).get("metrics", {})) != REQUIRED_METRICS:
+        raise ValueError("paired: required metric set mismatch")
+    if len(paired_tasks) != comparison["intersection_attempts"]:
         raise ValueError("successful task intersection mismatch")
 
     def equal(actual, expected, label):
@@ -133,12 +80,10 @@ def verify(artifacts: Path) -> dict:
             equal(published.get(key), value, label + "." + key)
 
     def value(task, engine, metric):
-        row = final[(task, engine)]
-        if metric == "duration_ms":
-            return row.get("execution_duration_ms", row.get("duration_ms"))
+        row = primary[(task, engine)]
         return (
             row.get(metric)
-            if metric == "tool_output_tokens"
+            if metric in {"duration_ms", "tool_output_tokens"}
             else row.get("resource", {}).get(metric)
         )
 
@@ -147,27 +92,46 @@ def verify(artifacts: Path) -> dict:
         for metric, published in metrics.items():
             values = [
                 v
-                for task in intersection_tasks
+                for task in paired_tasks
                 if isinstance((v := value(task, engine, metric)), (int, float))
             ]
             check(values, published, f"{engine}.{metric}")
             checked += 1
+    for metric, published in comparison["paired_ratios"]["metrics"].items():
+        ratios = []
+        for task in paired_tasks:
+            c, m = value(task, "chromium", metric), value(task, "moli", metric)
+            if isinstance(c, (int, float)) and c > 0 and isinstance(m, (int, float)):
+                ratios.append((m / c, task, c, m))
+        check([r[0] for r in ratios], published, "paired." + metric)
+        records = published.get("values", [])
+        if len(records) != len(ratios):
+            raise ValueError(f"paired.{metric}: sample count mismatch")
+        for expected, actual in zip(sorted(ratios), records, strict=True):
+            ratio, task, c, m = expected
+            if actual["task_id"] != task:
+                raise ValueError(f"paired.{metric}: task identity mismatch")
+            for key, number in (("ratio", ratio), ("denominator", c), ("numerator", m)):
+                equal(actual[key], number, f"paired.{metric}.{task}.{key}")
+        checked += 1
     for engine, published in summary["functional"].items():
         equal(published["tasks"], len(tasks), engine + ".tasks")
         for dimension in ("result", "combined"):
             count = sum(
-                final[(task, engine)].get(dimension + "_status", final[(task, engine)]["status"])
-                == "pass"
+                any(
+                    r["task_id"] == task
+                    and r["engine"] == engine
+                    and r.get(dimension + "_status", r["status"]) == "pass"
+                    for r in rows
+                )
                 for task in tasks
             )
             equal(published[dimension + "_final_passes"], count, engine + "." + dimension)
     return {
         "status": "pass",
         "raw_attempts": len(rows),
-        "intersection_tasks": len(intersection_tasks),
+        "paired_tasks": len(paired_tasks),
         "metric_groups_checked": checked,
-        "primary_samples": len(primary),
-        "retry_samples": len(rows) - len(primary),
     }
 
 

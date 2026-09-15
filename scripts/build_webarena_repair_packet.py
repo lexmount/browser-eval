@@ -16,7 +16,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from harness.browser_use.qualification import task_contract_sha256
+from harness.trajectory_replay.qualification import task_contract_sha256
 
 PACKET_SCHEMA = "lex_webarena_codex_repair_packet/1"
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")

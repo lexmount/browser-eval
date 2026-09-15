@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Deterministic Interaction Space</title>
+  <style>
+    body { font-family: sans-serif; }
+    section { border-bottom: 1px solid #ddd; padding: 16px 0; }
+    #hash-panel { display: none; }
+    #hash-panel:target { display: block; }
+    #raf-input, #raf-commit { display: none; }
+    #below-fold { margin-top: 1800px; }
+    #overlay-wrap { position: relative; width: 240px; height: 80px; }
+    #overlay { position: absolute; inset: 0; z-index: 2; background: rgba(0,0,0,.08); }
+    #moving.animating { animation: settle 300ms linear 1; }
+    @keyframes settle { from { transform: translateX(120px); } to { transform: translateX(0); } }
+    #io-sentinel { margin-top: 1500px; min-height: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Interaction Space Fixture</h1>
+
+  <section data-scenario="checked"><input id="check-toggle" type="checkbox"><label for="check-toggle">enable checked state</label><div id="check-out">checked:false</div></section>
+  <section data-scenario="details"><details id="details-box"><summary>open native details</summary><div>details body</div></details><div id="details-out">details:closed</div></section>
+  <section data-scenario="option"><select id="dynamic-choice"><option value="alpha">alpha</option></select><div id="dynamic-choice-out">choice:alpha</div></section>
+  <section data-scenario="autofocus"><input id="auto-input" autofocus><div id="auto-out">auto:pending</div></section>
+  <section data-scenario="hash"><a id="hash-link" href="#hash-panel">open target panel</a><div id="hash-panel">target panel</div><div id="hash-out">target:hidden</div></section>
+
+  <section data-scenario="raf"><input id="raf-input"><button id="raf-commit">commit frame value</button><div id="raf-out">raf:pending</div></section>
+  <section data-scenario="enabled"><input id="enabled-note"><button id="enabled-late" disabled>late enabled</button><div id="enabled-out">enabled:pending</div></section>
+  <section data-scenario="replacement" id="replacement"><button id="replace-action">old action</button><div id="replace-out">replace:pending</div></section>
+  <section data-scenario="offscreen"><input id="below-code"><button id="below-fold">below fold action</button><div id="below-out">below:pending</div></section>
+  <section data-scenario="shadow"><x-counter id="shadow-counter"></x-counter><div id="shadow-out">shadow:pending</div></section>
+
+  <section data-scenario="modal"><input id="dialog-name"><select id="dialog-mode"><option value="safe">safe</option><option value="fast">fast</option></select><button id="dialog-open">open dialog</button><dialog id="native-dialog"><button id="dialog-confirm">confirm dialog</button></dialog><div id="dialog-out">dialog:pending</div></section>
+  <section data-scenario="overlay"><input id="overlay-code"><button id="overlay-arm">arm overlay removal</button><div id="overlay-wrap"><div id="overlay"></div><button id="overlay-action">covered action</button></div><div id="overlay-out">overlay:pending</div></section>
+  <section data-scenario="animation"><input id="moving-seed"><button id="moving-start">start animation</button><button id="moving">moving action</button><div id="moving-out">animation:pending</div></section>
+  <section data-scenario="intersection"><input id="io-query"><select id="io-mode"><option value="compact">compact</option><option value="full">full</option></select><div id="io-sentinel">intersection sentinel</div><div id="io-mount"></div><div id="io-out">io:pending</div></section>
+  <section data-scenario="adopted"><styled-action id="styled-action"></styled-action><div id="styled-out">adopted:pending</div></section>
+
+  <script>
+    const scenario = new URLSearchParams(location.search).get('scenario');
+    document.querySelectorAll('section[data-scenario]').forEach(section => {
+      if (section.dataset.scenario !== scenario) section.remove();
+    });
+
+    const checkToggle = document.getElementById('check-toggle');
+    if (checkToggle) checkToggle.onchange = () => document.getElementById('check-out').textContent = `checked:${checkToggle.checked}`;
+
+    const detailsBox = document.getElementById('details-box');
+    if (detailsBox) detailsBox.ontoggle = () => document.getElementById('details-out').textContent = detailsBox.open ? 'details:open:73' : 'details:closed';
+
+    const dynamicChoice = document.getElementById('dynamic-choice');
+    if (dynamicChoice) {
+      dynamicChoice.onchange = () => document.getElementById('dynamic-choice-out').textContent = `choice:${dynamicChoice.value}`;
+      setTimeout(() => { const option = document.createElement('option'); option.value = 'gamma'; option.textContent = 'gamma'; dynamicChoice.appendChild(option); }, 120);
+    }
+
+    const autoInput = document.getElementById('auto-input');
+    if (autoInput) autoInput.onkeydown = event => {
+      if (event.key === 'Enter') document.getElementById('auto-out').textContent = `auto:${autoInput.value}:41`;
+    };
+
+    if (scenario === 'hash') addEventListener('hashchange', () => requestAnimationFrame(() => {
+      const panel = document.getElementById('hash-panel');
+      const visible = getComputedStyle(panel).display !== 'none' && panel.getClientRects().length > 0;
+      document.getElementById('hash-out').textContent = visible ? 'target:visible:29' : 'target:hidden';
+    }));
+
+    if (scenario === 'raf') requestAnimationFrame(() => requestAnimationFrame(() => {
+      const input = document.getElementById('raf-input'); const commit = document.getElementById('raf-commit');
+      input.style.display = 'block'; commit.style.display = 'inline-block';
+      commit.onclick = () => document.getElementById('raf-out').textContent = `raf:${input.value}:17`;
+    }));
+
+    if (scenario === 'enabled') setTimeout(() => {
+      const late = document.getElementById('enabled-late'); late.disabled = false;
+      late.onclick = () => document.getElementById('enabled-out').textContent = `enabled:${document.getElementById('enabled-note').value}:31`;
+    }, 180);
+
+    const replaceAction = document.getElementById('replace-action');
+    if (replaceAction) replaceAction.onclick = () => {
+      const fresh = document.createElement('button'); fresh.id = 'replace-action'; fresh.textContent = 'new action';
+      fresh.onclick = () => document.getElementById('replace-out').textContent = 'replace:new:47';
+      document.getElementById('replace-action').replaceWith(fresh);
+    };
+
+    const belowFold = document.getElementById('below-fold');
+    if (belowFold) belowFold.onclick = () => document.getElementById('below-out').textContent = `below:${document.getElementById('below-code').value}:59`;
+
+    customElements.define('x-counter', class extends HTMLElement {
+      constructor() {
+        super(); const root = this.attachShadow({mode: 'open'});
+        root.innerHTML = '<input id="shadow-input"><button id="shadow-button">shadow action</button>';
+        root.querySelector('button').onclick = () => document.getElementById('shadow-out').textContent = `shadow:${root.querySelector('input').value}:61`;
+      }
+    });
+
+    const dialogOpen = document.getElementById('dialog-open');
+    if (dialogOpen) {
+      dialogOpen.onclick = () => setTimeout(() => document.getElementById('native-dialog').showModal(), 140);
+      document.getElementById('dialog-confirm').onclick = () => {
+        document.getElementById('native-dialog').close();
+        document.getElementById('dialog-out').textContent = `dialog:${document.getElementById('dialog-name').value}:${document.getElementById('dialog-mode').value}:67`;
+      };
+    }
+
+    const overlayArm = document.getElementById('overlay-arm');
+    if (overlayArm) {
+      overlayArm.onclick = () => setTimeout(() => document.getElementById('overlay').remove(), 260);
+      document.getElementById('overlay-action').onclick = () => document.getElementById('overlay-out').textContent = `overlay:${document.getElementById('overlay-code').value}:71`;
+    }
+
+    const movingStart = document.getElementById('moving-start');
+    if (movingStart) {
+      movingStart.onclick = () => document.getElementById('moving').classList.add('animating');
+      document.getElementById('moving').onclick = () => document.getElementById('moving-out').textContent = `animation:${document.getElementById('moving-seed').value}:79`;
+    }
+
+    const ioSentinel = document.getElementById('io-sentinel');
+    if (ioSentinel) {
+      const io = new IntersectionObserver(entries => {
+        if (!entries.some(entry => entry.isIntersecting) || document.getElementById('io-action')) return;
+        const button = document.createElement('button'); button.id = 'io-action'; button.textContent = 'intersection action';
+        button.onclick = () => document.getElementById('io-out').textContent = `io:${document.getElementById('io-query').value}:${document.getElementById('io-mode').value}:83`;
+        document.getElementById('io-mount').appendChild(button);
+      });
+      io.observe(ioSentinel);
+    }
+
+    customElements.define('styled-action', class extends HTMLElement {
+      constructor() {
+        super(); const root = this.attachShadow({mode: 'open'});
+        root.innerHTML = '<input id="adopted-input"><button id="adopted-button">styled action</button>';
+        try { const sheet = new CSSStyleSheet(); sheet.replaceSync('button { display: inline-block; }'); root.adoptedStyleSheets = [sheet]; }
+        catch (error) { root.querySelector('button').style.display = 'none'; }
+        root.querySelector('button').onclick = () => document.getElementById('styled-out').textContent = `adopted:${root.querySelector('input').value}:89`;
+      }
+    });
+  </script>
+</body>
+</html>

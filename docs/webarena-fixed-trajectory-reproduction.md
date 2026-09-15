@@ -6,7 +6,7 @@ LLM judge；两个浏览器重放相同的 WebArena 公开人工轨迹，再由�
 
 ## 两个仓库各自负责什么
 
-- `lexmount/webarena-env#1`：固定 WebArena-Verified 1.2.3、站点镜像 digest、原生架构、
+- `lexmount/webarena-env#2`：固定 WebArena-Verified 1.2.3、站点镜像 digest、原生架构、
   端口、启动/重置和机器可读回执。
 - 本仓库 PR：固定公开轨迹清单、离线修复记录、资格门禁、Chromium/Moli 镜像、动作
   重放、HAR、evaluator、一次失败重试、首次/最终成功统计、证据审计和独立报告发布。
@@ -35,14 +35,14 @@ LLM judge；两个浏览器重放相同的 WebArena 公开人工轨迹，再由�
 2. 在 `webarena-env` 复制 `config/runtime.example.json`，填写浏览器容器可访问的主机名，
    运行 `webarena-env verify/start` 并保留回执。Map 还需要先按官方 setup 配好九个
    数据卷。账号只通过环境变量提供。
-3. 在本仓库复制 `examples/browser_use/webarena.config.example.json`，使用同一组端口、
+3. 在本仓库复制 `examples/trajectory_replay/webarena.config.example.json`，使用同一组端口、
    镜像 digest、网站地址与凭据变量名；运行环境 smoke，确认 CDP、登录、HAR 与站点 origin。
    示例默认共用本机 Docker daemon，不假定存在某个用户的 rootless socket。若使用两条
    daemon，须在本地配置中显式填写站点与浏览器 socket。
 4. 用冻结清单执行配对正式运行：
 
 ```text
-uv run --frozen python -m harness.browser_use.cli \
+uv run --frozen python -m harness.trajectory_replay.cli \
   --suite evaluation/browser-use-public/webarena-human-suite.json \
   --webarena-config <runtime-config> --env-file .env \
   --browser-docker-host unix:///var/run/docker.sock \
@@ -51,7 +51,7 @@ uv run --frozen python -m harness.browser_use.cli \
   --reports <evidence>/formal/webarena-public-trajectories/reports
 ```
 
-5. 运行 `examples/browser_use/verify_metrics.py` 和报告打包器。任何缺失回答、动作、终止
+5. 运行 `examples/trajectory_replay/verify_metrics.py` 和报告打包器。任何缺失回答、动作、终止
    原因、评分，或进入浏览器阶段后缺失截图、最终页面、HAR，都按失败处理。
 
 正式运行前必须核对两个仓库的 WebArena-Verified 版本和六个站点镜像 digest 完全一致。

@@ -45,14 +45,6 @@ def _passed(row: dict[str, Any], dimension: str) -> bool:
     return row.get("status") == "pass"
 
 
-def _execution_duration(row: dict[str, Any]) -> float | int:
-    """Return only measured trajectory time, excluding reset, login, and page setup."""
-    value = row.get("execution_duration_ms", row.get("duration_ms"))
-    if not isinstance(value, (int, float)):
-        raise ValueError("attempt is missing execution duration")
-    return value
-
-
 def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> dict[str, Any]:
     functional: dict[str, Any] = {}
     for engine in engines:
@@ -67,8 +59,8 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
         combined_recovered = 0
         for task_id in task_ids:
             attempts = [row for row in engine_rows if str(row["task_id"]) == task_id]
-            result_passed = _passed(attempts[-1], "result")
-            combined_passed = _passed(attempts[-1], "combined")
+            result_passed = any(_passed(row, "result") for row in attempts)
+            combined_passed = any(_passed(row, "combined") for row in attempts)
             result_final_passes += int(result_passed)
             combined_final_passes += int(combined_passed)
             result_recovered += int(
@@ -105,21 +97,19 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
             "final_pass_rate": result_final_passes / len(task_ids) if task_ids else None,
             "pass_rate": result_final_passes / len(task_ids) if task_ids else None,
             "duration_ms": _metric(
-                _execution_duration(attempts[-1])
-                for task_id in task_ids
-                if (attempts := [row for row in engine_rows if str(row["task_id"]) == task_id])
-                and _passed(attempts[-1], "result")
+                row["duration_ms"] for row in first_rows if _passed(row, "result")
             ),
             "tool_output_tokens": _metric(
-                attempts[-1]["tool_output_tokens"]
-                for task_id in task_ids
-                if (attempts := [row for row in engine_rows if str(row["task_id"]) == task_id])
-                and _passed(attempts[-1], "result")
-                and isinstance(attempts[-1].get("tool_output_tokens"), (int, float))
+                row["tool_output_tokens"]
+                for row in first_rows
+                if _passed(row, "result")
+                and isinstance(row.get("tool_output_tokens"), (int, float))
             ),
         }
     grouped: dict[str, dict[str, dict[str, Any]]] = {}
     for row in rows:
+        if row.get("is_retry"):
+            continue
         grouped.setdefault(str(row["task_id"]), {})[str(row["engine"])] = row
     intersection_items = [
         (task_id, bucket)
@@ -165,28 +155,24 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
             )
             for name in metric_names
         }
-        values["duration_ms"] = _metric(_execution_duration(row) for row in engine_rows)
+        values["duration_ms"] = _metric(row["duration_ms"] for row in engine_rows)
         values["tool_output_tokens"] = _metric(
             row["tool_output_tokens"]
             for row in engine_rows
             if isinstance(row.get("tool_output_tokens"), (int, float))
         )
         by_engine[engine] = values
-    baseline_engine = engines[0] if engines else None
-    relative_ratios_by_engine: dict[str, Any] = {}
-    for numerator_engine in engines[1:]:
-        engine_ratios: dict[str, Any] = {}
+    paired_ratios: dict[str, Any] = {}
+    if len(engines) == 2:
+        denominator_engine, numerator_engine = engines
         ratio_metric_names = (*metric_names, "duration_ms", "tool_output_tokens")
         for name in ratio_metric_names:
             ratios: list[float] = []
             details: list[dict[str, float | str]] = []
             for task_id, bucket in intersection_items:
-                denominator_row = bucket[baseline_engine]
+                denominator_row = bucket[denominator_engine]
                 numerator_row = bucket[numerator_engine]
-                if name == "duration_ms":
-                    denominator = _execution_duration(denominator_row)
-                    numerator = _execution_duration(numerator_row)
-                elif name == "tool_output_tokens":
+                if name in {"duration_ms", "tool_output_tokens"}:
                     denominator = denominator_row.get(name)
                     numerator = numerator_row.get(name)
                 else:
@@ -207,33 +193,19 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
                             "ratio": ratio,
                         }
                     )
-            engine_ratios[name] = {
+            paired_ratios[name] = {
                 **_metric(ratios),
                 "values": sorted(
                     details, key=lambda item: (float(item["ratio"]), str(item["task_id"]))
                 ),
             }
-        relative_ratios_by_engine[numerator_engine] = engine_ratios
-    paired_ratios = (
-        relative_ratios_by_engine.get(engines[1], {}) if len(engines) == 2 else {}
-    )
     return {
         "functional": functional,
         "resource_comparison": {
             "scope": "warm browser container only",
             "functional_score_combined": False,
-            "intersection_results": len(intersection),
-            # Kept for older evidence readers. Each item is now the final declared result.
             "intersection_attempts": len(intersection),
             "by_engine": by_engine,
-            "relative_ratios": {
-                "baseline_engine": baseline_engine,
-                "formula": "per_task_ratio = comparison_engine / baseline_engine",
-                "p50_method": "statistics.median",
-                "p95_method": "nearest-rank: sorted_values[ceil(0.95*n)-1]",
-                "mean_method": "statistics.fmean",
-                "by_engine": relative_ratios_by_engine,
-            },
             "paired_ratios": {
                 "numerator_engine": engines[1] if len(engines) == 2 else None,
                 "denominator_engine": engines[0] if len(engines) == 2 else None,
@@ -304,9 +276,6 @@ def summarize_attempts(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) 
                             "is_retry": row.get("is_retry", False),
                             "status": row.get("status"),
                             "duration_ms": row.get("duration_ms"),
-                            "execution_duration_ms": row.get(
-                                "execution_duration_ms", row.get("duration_ms")
-                            ),
                             "resource": row.get("resource") or {},
                             "tool_output_tokens": row.get("tool_output_tokens"),
                             "error": row.get("error", ""),
@@ -316,10 +285,6 @@ def summarize_attempts(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) 
                             "result_status": row.get("result_status", row.get("status")),
                             "process_status": row.get("process_status", row.get("status")),
                             "combined_status": row.get("combined_status", row.get("status")),
-                            "evidence_status": row.get("evidence_status", row.get("status")),
-                            "network_har": row.get("network_har") or {},
-                            "final_page_evidence": row.get("final_page_evidence") or {},
-                            "environment_reset": row.get("environment_reset"),
                         }
                         for row in task_rows
                         if row.get("engine") == engine

@@ -165,45 +165,12 @@ def test_summary_keeps_functional_scores_separate_and_uses_pass_intersection():
     assert summary["resource_comparison"]["paired_ratios"]["p95_method"] == (
         "nearest-rank: sorted_values[ceil(0.95*n)-1]"
     )
-    relative = summary["resource_comparison"]["relative_ratios"]
-    assert relative["baseline_engine"] == "chromium"
-    assert relative["by_engine"]["moli"]["duration_ms"]["p50"] == 0.8
     assert summary["by_complexity"]["step_01_05"]["functional"]["moli"]["passes"] == 1
     assert (
         summary["by_complexity"]["step_06_10"]["resource_comparison"]["intersection_attempts"] == 0
     )
     assert summary["by_task"]["a"]["functional"]["chromium"]["passes"] == 1
     assert summary["by_task"]["b"]["representative_errors"]["moli"] == ["timeout"]
-
-
-def test_summary_builds_per_task_ratios_against_one_baseline_for_multiple_engines():
-    rows = [
-        {
-            "engine": engine,
-            "task_id": "a",
-            "complexity": "simple",
-            "attempt": 1,
-            "status": "pass",
-            "result_status": "pass",
-            "duration_ms": duration,
-            "resource": {"cpu_ms": cpu},
-        }
-        for engine, duration, cpu in (
-            ("chromium", 10, 4),
-            ("moli", 5, 2),
-            ("webkit", 20, 8),
-        )
-    ]
-
-    summary = summarize_attempts(rows, engines=("chromium", "moli", "webkit"))
-
-    relative = summary["resource_comparison"]["relative_ratios"]
-    assert relative["baseline_engine"] == "chromium"
-    assert relative["by_engine"]["moli"]["duration_ms"]["p50"] == 0.5
-    assert relative["by_engine"]["webkit"]["duration_ms"]["p50"] == 2.0
-    assert summary["resource_comparison"]["paired_ratios"]["metrics"] == {}
-
-
 
 
 def test_summary_separates_first_pass_retry_recovery_and_final_outcome():
@@ -247,62 +214,7 @@ def test_summary_separates_first_pass_retry_recovery_and_final_outcome():
     assert summary["functional"]["moli"]["recovered"] == 1
     assert summary["functional"]["moli"]["final_passes"] == 1
     assert summary["functional"]["moli"]["physical_attempts"] == 2
-    assert summary["resource_comparison"]["intersection_results"] == 1
-    assert summary["resource_comparison"]["by_engine"]["moli"]["duration_ms"]["p50"] == 11
-
-
-def test_summary_uses_last_attempt_not_best_attempt_for_final_result():
-    rows = [
-        {
-            "engine": engine,
-            "task_id": "task",
-            "attempt": attempt,
-            "is_retry": attempt == 2,
-            "status": status,
-            "result_status": status,
-            "combined_status": status,
-            "duration_ms": 100,
-            "execution_duration_ms": 10,
-            "resource": {},
-        }
-        for engine in ("chromium", "moli")
-        for attempt, status in ((1, "pass"), (2, "fail"))
-    ]
-
-    summary = summarize_attempts(rows, engines=("chromium", "moli"))
-
-    assert summary["functional"]["chromium"]["result_final_passes"] == 0
-    assert summary["functional"]["moli"]["result_final_passes"] == 0
-
-
-def test_resource_comparison_excludes_environment_preparation_time():
-    rows = [
-        {
-            "engine": engine,
-            "task_id": "task",
-            "attempt": 1,
-            "is_retry": False,
-            "status": "pass",
-            "result_status": "pass",
-            "combined_status": "pass",
-            "duration_ms": wall,
-            "execution_duration_ms": execution,
-            "resource": {},
-        }
-        for engine, wall, execution in (
-            ("chromium", 1000, 100),
-            ("moli", 9000, 50),
-        )
-    ]
-
-    summary = summarize_attempts(rows, engines=("chromium", "moli"))
-
-    by_engine = summary["resource_comparison"]["by_engine"]
-    assert by_engine["chromium"]["duration_ms"]["p50"] == 100
-    assert by_engine["moli"]["duration_ms"]["p50"] == 50
-    assert summary["resource_comparison"]["paired_ratios"]["metrics"]["duration_ms"][
-        "p50"
-    ] == 0.5
+    assert summary["resource_comparison"]["intersection_attempts"] == 0
 
 
 def test_summary_reports_result_and_combined_correctness_independently():

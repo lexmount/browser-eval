@@ -68,33 +68,6 @@ def test_load_suite_rejects_unsupported_actions(tmp_path):
         load_suite(path)
 
 
-def test_load_suite_requires_visible_header_for_table_column(tmp_path):
-    path = tmp_path / "tasks.json"
-    path.write_text(
-        json.dumps(
-            {
-                "schema": "lex_browser_use_tasks/3",
-                "tasks": [
-                    _task(
-                        "bad",
-                        [
-                            {
-                                "action": "get_table_column",
-                                "selector": "table",
-                                "save_as": "values",
-                            }
-                        ],
-                    )
-                ],
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    with pytest.raises(ValueError, match="requires header"):
-        load_suite(path)
-
-
 @pytest.mark.parametrize("action", ["click", "fill", "select"])
 @pytest.mark.parametrize("selector", [None, "", "  ", 12])
 def test_load_suite_rejects_ref_only_and_invalid_selectors(tmp_path, action, selector):
@@ -125,37 +98,6 @@ def test_load_suite_rejects_duplicate_task_ids(tmp_path):
     )
 
     with pytest.raises(ValueError, match="duplicate task id"):
-        load_suite(path)
-
-
-def test_only_pending_or_skipped_webarena_candidate_may_have_empty_trajectory(tmp_path):
-    task = {
-        "id": "empty",
-        "title": "Empty upstream recording",
-        "difficulty": "simple",
-        "trajectory": {"schema": "lex_browser_trajectory/1", "actions": []},
-        "assertions": [],
-        "ground_truth": {
-            "expected_actions": [],
-            "qualification": {"status": "pending"},
-        },
-        "source": {"url": "https://example.com/source"},
-        "evaluator": {"kind": "webarena_verified", "task_id": 300, "revision": 1},
-        "environment": {"kind": "webarena_verified"},
-    }
-    path = tmp_path / "tasks.json"
-    path.write_text(json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}))
-
-    assert load_suite(path).tasks[0].tool_calls == ()
-    task["ground_truth"]["qualification"] = {
-        "status": "skipped",
-        "reason": "No mapped actions.",
-    }
-    path.write_text(json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}))
-    assert load_suite(path).tasks[0].tool_calls == ()
-    task["ground_truth"]["qualification"] = {"status": "eligible"}
-    path.write_text(json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}))
-    with pytest.raises(ValueError, match="only pending or skipped WebArena"):
         load_suite(path)
 
 
@@ -229,14 +171,8 @@ def test_codex_browser_ground_truth_evidence_matches_dataset_exactly():
         "status": "pass",
     }
     assert evidence["human_review"]["status"] == "pending"
-    assert evidence["schema_migration"]["to"] == "lex_browser_use_tasks/4"
-    assert evidence["schema_migration"]["executable_contract_changed"] is False
 
     suite = load_suite(dataset_path)
-    assert suite.schema == "lex_browser_use_tasks/4"
-    assert all(task.trajectory["schema"] == "lex_browser_trajectory/1" for task in suite.tasks)
-    assert all(task.evaluator["kind"] == "exact_outputs" for task in suite.tasks)
-    assert all(task.environment == {"kind": "public_web"} for task in suite.tasks)
     observed = {row["task_id"]: row for row in evidence["results"]}
     assert set(observed) == {task.task_id for task in suite.tasks}
     for task in suite.tasks:
@@ -257,110 +193,3 @@ def test_ground_truth_validation_rejects_evidence_for_another_suite(tmp_path):
 
     with pytest.raises(ValueError, match="suite sha256"):
         validate_ground_truth_evidence(dataset_path, suite, evidence_path)
-
-
-def test_v4_suite_normalizes_trajectory_environment_and_evaluator(tmp_path):
-    path = tmp_path / "tasks.json"
-    path.write_text(
-        json.dumps(
-            {
-                "schema": "lex_browser_use_tasks/4",
-                "tasks": [
-                    {
-                        "id": "webarena-4",
-                        "title": "Replay task 4",
-                        "difficulty": "medium",
-                        "tags": ["webarena"],
-                        "trajectory": {
-                            "schema": "lex_browser_trajectory/1",
-                            "provenance": {"kind": "official_human"},
-                            "actions": [
-                                {
-                                    "action": "click",
-                                    "target": {
-                                        "by": "role",
-                                        "role": "link",
-                                        "name": "Orders",
-                                        "exact": False,
-                                    },
-                                }
-                            ],
-                        },
-                        "assertions": [],
-                        "evaluator": {
-                            "kind": "webarena_verified",
-                            "task_id": 4,
-                            "revision": 2,
-                        },
-                        "environment": {
-                            "kind": "webarena_verified",
-                            "sites": ["shopping_admin"],
-                            "start_urls": ["__SHOPPING_ADMIN__"],
-                        },
-                        "ground_truth": {
-                            "oracle": "webarena_verified",
-                            "expected_actions": ["click"],
-                        },
-                        "source": {"url": "https://example.com/4.trace.zip"},
-                    }
-                ],
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    suite = load_suite(path)
-
-    assert suite.schema == "lex_browser_use_tasks/4"
-    assert suite.tasks[0].tool_calls[0]["target"]["by"] == "role"
-    assert suite.tasks[0].evaluator == {
-        "kind": "webarena_verified",
-        "task_id": 4,
-        "revision": 2,
-    }
-
-
-def test_v4_allows_empty_webarena_recording_for_qualification(tmp_path):
-    path = tmp_path / "tasks.json"
-    path.write_text(
-        json.dumps(
-            {
-                "schema": "lex_browser_use_tasks/4",
-                "tasks": [
-                    {
-                        "id": "webarena-300",
-                        "title": "Repair empty recording",
-                        "difficulty": "simple",
-                        "tags": ["webarena"],
-                        "trajectory": {
-                            "schema": "lex_browser_trajectory/1",
-                            "provenance": {"kind": "official_human"},
-                            "actions": [],
-                        },
-                        "assertions": [],
-                        "evaluator": {
-                            "kind": "webarena_verified",
-                            "task_id": 300,
-                            "revision": 2,
-                        },
-                        "environment": {
-                            "kind": "webarena_verified",
-                            "sites": ["shopping"],
-                            "start_urls": ["__SHOPPING__"],
-                        },
-                        "ground_truth": {
-                            "oracle": "webarena_verified",
-                            "expected_actions": [],
-                            "qualification": {"status": "pending"},
-                        },
-                        "source": {"url": "https://example.com/300.trace.zip"},
-                    }
-                ],
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    suite = load_suite(path)
-
-    assert suite.tasks[0].tool_calls == ()

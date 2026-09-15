@@ -10,10 +10,10 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from harness.browser_use.diagnostics import diagnose_summary
-from harness.browser_use.metrics import summarize_attempts
-from harness.browser_use.report import write_latest_report
-from harness.browser_use.result_audit import audit_result_set
+from harness.trajectory_replay.diagnostics import diagnose_summary
+from harness.trajectory_replay.metrics import summarize_attempts
+from harness.trajectory_replay.report import write_latest_report
+from harness.trajectory_replay.result_audit import audit_result_set
 
 
 def _read_rows(path: Path) -> list[dict[str, Any]]:

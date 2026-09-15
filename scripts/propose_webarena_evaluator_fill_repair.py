@@ -9,7 +9,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from harness.browser_use.qualification import trajectory_semantic_conflicts
+from harness.trajectory_replay.qualification import trajectory_semantic_conflicts
 
 FIELD_TOKENS = {
     "title": ("title",),

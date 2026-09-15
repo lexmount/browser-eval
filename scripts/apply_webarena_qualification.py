@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from harness.browser_use.qualification import apply_adjudication
+from harness.trajectory_replay.qualification import apply_adjudication
 
 
 def main() -> None:
