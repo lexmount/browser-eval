@@ -6,7 +6,7 @@
   "environment_lock": "config/images.lock.json",
   "environment_runtime_template": "config/runtime.example.json",
   "evaluation_lock": "evaluation/browser-use-public/webarena-environment-images.json",
-  "evaluation_runtime_template": "examples/trajectory_replay/webarena.config.example.json",
+  "evaluation_runtime_template": "examples/trajectory_replay/public_webarena/webarena.config.example.json",
   "required_sites": [
     "shopping_admin",
     "shopping",

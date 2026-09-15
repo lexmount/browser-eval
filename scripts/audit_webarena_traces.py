@@ -7,7 +7,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from harness.trajectory_replay.webarena import import_playwright_trace
+from harness.trajectory_replay.public_webarena.webarena import import_playwright_trace
 
 
 def main() -> None:

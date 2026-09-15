@@ -13,8 +13,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from harness.trajectory_replay.report import write_latest_report  # noqa: E402
-from harness.trajectory_replay.result_audit import audit_result_set  # noqa: E402
+from harness.trajectory_replay.public_webarena.report import write_latest_report  # noqa: E402
+from harness.trajectory_replay.public_webarena.result_audit import audit_result_set  # noqa: E402
 from scripts.check_webarena_trajectory_report import check_report_bundle  # noqa: E402
 from scripts.package_webarena_trajectory_report import build  # noqa: E402
 

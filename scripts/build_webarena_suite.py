@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from harness.trajectory_replay.webarena import import_playwright_trace
+from harness.trajectory_replay.public_webarena.webarena import import_playwright_trace
 
 _RECORDED_PORT_SITES = {
     3000: "map",

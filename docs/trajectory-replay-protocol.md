@@ -234,7 +234,7 @@ Run the frozen eligible subset against both engines. The loader admits only task
 denominator:
 
 ```text
-uv run --frozen python -m harness.trajectory_replay.cli --suite evaluation/browser-use-public/webarena-human-suite.json --webarena-config <runtime-config> --env-file .env --browser-docker-host unix:///var/run/docker.sock --engines chromium,moli --failure-retries 1 --output <evidence>/formal/webarena-public-trajectories/run --reports <evidence>/formal/webarena-public-trajectories/reports
+uv run --frozen python -m harness.trajectory_replay.public_webarena.cli --suite evaluation/browser-use-public/webarena-human-suite.json --webarena-config <runtime-config> --env-file .env --browser-docker-host unix:///var/run/docker.sock --engines chromium,moli --failure-retries 1 --output <evidence>/formal/webarena-public-trajectories/run --reports <evidence>/formal/webarena-public-trajectories/reports
 ```
 
 After the run, audit the physical-attempt matrix and rebuild the current HTML from the immutable raw
@@ -242,8 +242,8 @@ attempts. Rebuilding accepts the manifest-selected subset but fails if any attem
 the suite or differs from the manifest:
 
 ```text
-uv run --frozen python examples/trajectory_replay/verify_metrics.py --artifacts <evidence>/formal/webarena-public-trajectories/run
-uv run --frozen python examples/trajectory_replay/rebuild_report.py --suite evaluation/browser-use-public/webarena-human-suite.json --artifacts <evidence>/formal/webarena-public-trajectories/run --reports <evidence>/formal/webarena-public-trajectories/reports
+uv run --frozen python examples/trajectory_replay/public_webarena/verify_metrics.py --artifacts <evidence>/formal/webarena-public-trajectories/run
+uv run --frozen python examples/trajectory_replay/public_webarena/rebuild_report.py --suite evaluation/browser-use-public/webarena-human-suite.json --artifacts <evidence>/formal/webarena-public-trajectories/run --reports <evidence>/formal/webarena-public-trajectories/reports
 ```
 
 ## Operator sequence
@@ -260,7 +260,7 @@ Run qualification in site-compatible batches with Chromium only. `--task-ids` co
 pre-registered IDs for the active site group:
 
 ```text
-uv run --frozen python -m harness.trajectory_replay.cli --suite evaluation/browser-use-public/webarena-human-suite.json --webarena-config <runtime-config> --qualification-run --qualification-pass-index <1-or-2> --qualification-required-passes 2 --engines chromium --failure-retries 0 --task-ids <ids> --output <evidence>/qualification/pass-<1-or-2>/<batch>
+uv run --frozen python -m harness.trajectory_replay.public_webarena.cli --suite evaluation/browser-use-public/webarena-human-suite.json --webarena-config <runtime-config> --qualification-run --qualification-pass-index <1-or-2> --qualification-required-passes 2 --engines chromium --failure-retries 0 --task-ids <ids> --output <evidence>/qualification/pass-<1-or-2>/<batch>
 ```
 
 Codex may first use a warm-site authoring run to inspect and repair pending retrieve-only
@@ -272,14 +272,14 @@ clean Chromium qualification runs with the normal per-task reset and complete HA
 final-page, and evaluator evidence. A Codex proposal has no qualification effect by itself.
 
 ```text
-uv run --frozen python -m harness.trajectory_replay.cli --suite <evidence>/authoring/retrieve-suite.json --webarena-config <runtime-config> --trajectory-authoring-run --engines chromium --failure-retries 0 --output <evidence>/authoring/retrieve
+uv run --frozen python -m harness.trajectory_replay.public_webarena.cli --suite <evidence>/authoring/retrieve-suite.json --webarena-config <runtime-config> --trajectory-authoring-run --engines chromium --failure-retries 0 --output <evidence>/authoring/retrieve
 ```
 
 For the pre-registered single-host amd64 run, select an immutable batch directly. The CLI verifies
 that the scope is bound to the exact suite SHA before starting Docker:
 
 ```text
-uv run --frozen python -m harness.trajectory_replay.cli --suite evaluation/browser-use-public/webarena-human-suite.json --native-scope evaluation/browser-use-public/webarena-amd64-scope.json --batch-id shopping --webarena-config <runtime-config> --qualification-run --qualification-pass-index <1-or-2> --qualification-required-passes 2 --engines chromium --failure-retries 0 --output <evidence>/qualification/pass-<1-or-2>/shopping
+uv run --frozen python -m harness.trajectory_replay.public_webarena.cli --suite evaluation/browser-use-public/webarena-human-suite.json --native-scope evaluation/browser-use-public/webarena-amd64-scope.json --batch-id shopping --webarena-config <runtime-config> --qualification-run --qualification-pass-index <1-or-2> --qualification-required-passes 2 --engines chromium --failure-retries 0 --output <evidence>/qualification/pass-<1-or-2>/shopping
 ```
 
 The native scope pre-registers stable round-robin shards with at most 12 tasks each: 18 shards cover
@@ -288,7 +288,7 @@ rejects a different count, and each manifest records the scope hash, batch, shar
 index. Shards from one stateful site remain sequential because they share a resettable service state.
 
 ```text
-uv run --frozen python -m harness.trajectory_replay.cli --suite evaluation/browser-use-public/webarena-human-suite.json --native-scope evaluation/browser-use-public/webarena-amd64-scope.json --batch-id shopping --batch-shard-count 4 --batch-shard-index 0 --webarena-config <runtime-config> --qualification-run --qualification-pass-index <1-or-2> --qualification-required-passes 2 --engines chromium --failure-retries 0 --output <evidence>/qualification/pass-<1-or-2>/shopping-0-of-4
+uv run --frozen python -m harness.trajectory_replay.public_webarena.cli --suite evaluation/browser-use-public/webarena-human-suite.json --native-scope evaluation/browser-use-public/webarena-amd64-scope.json --batch-id shopping --batch-shard-count 4 --batch-shard-index 0 --webarena-config <runtime-config> --qualification-run --qualification-pass-index <1-or-2> --qualification-required-passes 2 --engines chromium --failure-retries 0 --output <evidence>/qualification/pass-<1-or-2>/shopping-0-of-4
 ```
 
 The scope orchestrator keeps shards from the same site sequential, but may run disjoint site batches
@@ -315,7 +315,7 @@ canonical result.
 ```text
 uv run --frozen python -m scripts.build_webarena_repair_queue --suite evaluation/browser-use-public/webarena-human-suite.json --attempts <batch-1>/attempts.jsonl <batch-2>/attempts.jsonl --output <evidence>/qualification/queue.json
 uv run --frozen python -m scripts.build_webarena_repair_validation_suite --suite evaluation/browser-use-public/webarena-human-suite.json --qualification <evidence>/qualification/proposed.json --output <evidence>/qualification/repair-suite.json
-uv run --frozen python -m harness.trajectory_replay.cli --suite <evidence>/qualification/repair-suite.json --webarena-config <runtime-config> --qualification-run --qualification-pass-index 1 --qualification-required-passes 2 --engines chromium --failure-retries 0 --output <evidence>/qualification/repairs/pass-1
-uv run --frozen python -m harness.trajectory_replay.cli --suite <evidence>/qualification/repair-suite.json --webarena-config <runtime-config> --qualification-run --qualification-pass-index 2 --qualification-required-passes 2 --engines chromium --failure-retries 0 --output <evidence>/qualification/repairs/pass-2
+uv run --frozen python -m harness.trajectory_replay.public_webarena.cli --suite <evidence>/qualification/repair-suite.json --webarena-config <runtime-config> --qualification-run --qualification-pass-index 1 --qualification-required-passes 2 --engines chromium --failure-retries 0 --output <evidence>/qualification/repairs/pass-1
+uv run --frozen python -m harness.trajectory_replay.public_webarena.cli --suite <evidence>/qualification/repair-suite.json --webarena-config <runtime-config> --qualification-run --qualification-pass-index 2 --qualification-required-passes 2 --engines chromium --failure-retries 0 --output <evidence>/qualification/repairs/pass-2
 uv run --frozen python -m scripts.apply_webarena_qualification --suite evaluation/browser-use-public/webarena-human-suite.json --qualification <evidence>/qualification/adjudicated.json --output evaluation/browser-use-public/webarena-human-suite.json
 ```

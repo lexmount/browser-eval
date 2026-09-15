@@ -15,15 +15,15 @@
       "kind": "navigate_get_discards_expected_xhr",
       "implementation_behavior": "For a navigate task whose expected HTTP method is GET, v1.2.3 returns only the last main-frame navigation event before matching the configured URL. Expected GET XHR events are therefore unreachable.",
       "verification_tests": [
-        "tests/trajectory_replay/test_webarena_evaluator.py::test_official_task_678_has_navigate_get_xhr_evaluator_defect",
-        "tests/trajectory_replay/test_webarena_evaluator.py::test_official_task_760_has_navigate_get_xhr_evaluator_defect"
+        "tests/trajectory_replay/public_webarena/test_webarena_evaluator.py::test_official_task_678_has_navigate_get_xhr_evaluator_defect",
+        "tests/trajectory_replay/public_webarena/test_webarena_evaluator.py::test_official_task_760_has_navigate_get_xhr_evaluator_defect"
       ]
     },
     {
       "kind": "single_item_list_rejected_as_alternatives",
       "implementation_behavior": "Task 811 expects the JSON array assignee_ids=[2330], but v1.2.3 sends that list through NormalizedString without an array schema and rejects every evaluation as an invalid one-item alternatives list.",
       "verification_tests": [
-        "tests/trajectory_replay/test_webarena_evaluator.py::test_official_task_811_has_invalid_single_item_alternatives_schema"
+        "tests/trajectory_replay/public_webarena/test_webarena_evaluator.py::test_official_task_811_has_invalid_single_item_alternatives_schema"
       ]
     }
   ],

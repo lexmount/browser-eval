@@ -8,7 +8,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from harness.trajectory_replay.suite import load_suite
+from harness.trajectory_replay.public_webarena.suite import load_suite
 from scripts.build_webarena_observation_suite import build_observation_suite
 
 

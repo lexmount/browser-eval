@@ -18,7 +18,7 @@ from urllib.parse import unquote, urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from harness.trajectory_replay.publication import (  # noqa: E402
+from harness.trajectory_replay.public_webarena.publication import (  # noqa: E402
     LOCAL_USER_PATH,
     PRIVATE_IPV4,
     public_projection,

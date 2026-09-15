@@ -8,7 +8,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from harness.trajectory_replay.targets import validate_target
+from harness.trajectory_replay.public_webarena.targets import validate_target
 
 
 def propose_replace_target(

@@ -14,8 +14,8 @@ from typing import Any
 import docker
 from playwright.sync_api import sync_playwright
 
-from harness.trajectory_replay.har import CdpHarRecorder
-from harness.trajectory_replay.runner import (
+from harness.trajectory_replay.public_webarena.har import CdpHarRecorder
+from harness.trajectory_replay.public_webarena.runner import (
     ENGINE_IMAGES,
     ENGINE_PORTS,
     _cleanup_runtime,
@@ -24,7 +24,7 @@ from harness.trajectory_replay.runner import (
     _validate_measured_resource_controls,
     _wait_cdp,
 )
-from harness.trajectory_replay.webarena_environment import WebArenaEnvironment
+from harness.trajectory_replay.public_webarena.webarena_environment import WebArenaEnvironment
 
 SITE_TOKENS = {
     "shopping_admin": "__SHOPPING_ADMIN__",

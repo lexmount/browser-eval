@@ -9,7 +9,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from harness.trajectory_replay.suite import validate_selector
+from harness.trajectory_replay.public_webarena.suite import validate_selector
 
 
 def _sha256(value: Any) -> str:

@@ -35,14 +35,14 @@ LLM judge；两个浏览器重放相同的 WebArena 公开人工轨迹，再由�
 2. 在 `webarena-env` 复制 `config/runtime.example.json`，填写浏览器容器可访问的主机名，
    运行 `webarena-env verify/start` 并保留回执。Map 还需要先按官方 setup 配好九个
    数据卷。账号只通过环境变量提供。
-3. 在本仓库复制 `examples/trajectory_replay/webarena.config.example.json`，使用同一组端口、
+3. 在本仓库复制 `examples/trajectory_replay/public_webarena/webarena.config.example.json`，使用同一组端口、
    镜像 digest、网站地址与凭据变量名；运行环境 smoke，确认 CDP、登录、HAR 与站点 origin。
    示例默认共用本机 Docker daemon，不假定存在某个用户的 rootless socket。若使用两条
    daemon，须在本地配置中显式填写站点与浏览器 socket。
 4. 用冻结清单执行配对正式运行：
 
 ```text
-uv run --frozen python -m harness.trajectory_replay.cli \
+uv run --frozen python -m harness.trajectory_replay.public_webarena.cli \
   --suite evaluation/browser-use-public/webarena-human-suite.json \
   --webarena-config <runtime-config> --env-file .env \
   --browser-docker-host unix:///var/run/docker.sock \
@@ -51,7 +51,7 @@ uv run --frozen python -m harness.trajectory_replay.cli \
   --reports <evidence>/formal/webarena-public-trajectories/reports
 ```
 
-5. 运行 `examples/trajectory_replay/verify_metrics.py` 和报告打包器。任何缺失回答、动作、终止
+5. 运行 `examples/trajectory_replay/public_webarena/verify_metrics.py` 和报告打包器。任何缺失回答、动作、终止
    原因、评分，或进入浏览器阶段后缺失截图、最终页面、HAR，都按失败处理。
 
 正式运行前必须核对两个仓库的 WebArena-Verified 版本和六个站点镜像 digest 完全一致。
