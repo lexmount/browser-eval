@@ -157,6 +157,18 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     home_page = BeautifulSoup((root / "index.html").read_text(encoding="utf-8"), "html.parser")
     if len(home_page.select("#wmb-home-components [role=tab]")) != 5:
         raise ValueError("WebMainBench five component rankings must be switchable")
+    impossible_teds = sum(
+        all(key in detail for key in ("predicted_nodes", "groundtruth_nodes", "edit_distance"))
+        and detail["edit_distance"] + 1e-9 < abs(detail["predicted_nodes"] - detail["groundtruth_nodes"])
+        for row in records
+        for detail in [row.get("metrics", {}).get("table_TEDS", {}).get("details", {})]
+    )
+    if impossible_teds:
+        review_page = BeautifulSoup((root / "review/index.html").read_text(encoding="utf-8"), "html.parser")
+        if ("官方 overall（待校验）" not in home_page.get_text(" ", strip=True)
+                or f"{impossible_teds} 条 TEDS 记录" not in review_page.get_text(" ", strip=True)
+                or "评分有效性尚未通过" not in review_page.get_text(" ", strip=True)):
+            raise ValueError("Known impossible TEDS distances require a visible validity warning")
     adoption_page = BeautifulSoup((root / "adoption/index.html").read_text(encoding="utf-8"), "html.parser")
     for page, required in ((dataset_page, 2), (adoption_page, 1), (guide, 1)):
         wide_tables = page.select(".table-wrap > table.wide-prose-table")
