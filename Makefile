@@ -1,11 +1,15 @@
 UV ?= uv
 PY := $(UV) run --frozen python
+TEST_PY := $(UV) run --frozen --all-extras python
 
-.PHONY: setup runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check trajectory-replay-report trajectory-replay-report-check trajectory-replay-visual-check trajectory-replay-release-check trajectory-replay-package trajectory-replay-publish
+.PHONY: setup import-env runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check trajectory-replay-report trajectory-replay-report-check trajectory-replay-visual-check trajectory-replay-release-check trajectory-replay-package trajectory-replay-publish
 
 setup:
 	$(UV) sync --frozen --all-extras
 	npm ci
+
+import-env:
+	$(PY) scripts/import_benchmark_env.py
 
 runtime-check:
 	@$(PY) -c 'import sys; assert sys.version_info[:2] == (3, 11), sys.version'
@@ -14,9 +18,9 @@ naming-check: runtime-check
 	$(PY) scripts/check_track_naming.py
 
 test-python: runtime-check
-	$(PY) -m unittest discover -s tests -v
-	$(PY) -m pytest tests/browser_use -q
-	$(PY) -m pytest tests/trajectory_replay -q
+	$(TEST_PY) -m unittest discover -s tests -v
+	$(TEST_PY) -m pytest tests/browser_use -q
+	$(TEST_PY) -m pytest tests/trajectory_replay -q
 
 test-ui:
 	node tests/test_report_ui.mjs

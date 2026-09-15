@@ -44,11 +44,34 @@ REFERENCE = {"case_id": "legacy", "items": [
 
 
 class ScoringTests(unittest.TestCase):
-    def test_current_cloudflare_adapter_already_distinguishes_empty_extraction(self):
+    def test_source_title_is_answer_evidence_without_inflating_body_length(self):
+        c=case(required_facts=[{'id':'title','alternatives':['Exact page title']},
+                              {'id':'body','alternatives':['Body fact']}],
+               min_content_chars=20)
+        measured=score_attempt(c,b'Body fact',ok=True,title='Exact page title')
+        self.assertEqual(measured['fact_coverage'],1)
+        self.assertEqual(measured['content_chars'],len('Body fact'))
+        self.assertEqual(measured['title_chars'],len('Exact page title'))
+        self.assertFalse(measured['length_pass'])
+        self.assertFalse(task_passed(True,measured))
+
+    def test_resource_markdown_parser_handles_balanced_multiline_links(self):
+        c = case(task_kind='resource', expected_resources=[{
+            'id': 'guide', 'urls': ['/files/guide(v2).pdf?download=1'],
+        }])
+        content = ('[Download **guide**\nnow]\n'
+                   '(/files/guide(v2).pdf?download=1 "PDF copy")')
+        measured = score_attempt(c, content.encode(), ok=True)
+        self.assertTrue(measured['resource_pass'])
+        self.assertIn('https://example.test/files/guide(v2).pdf?download=1',
+                      measured['resource_candidate_urls'])
+
+    def test_cloudflare_empty_success_is_request_success_but_not_task_success(self):
         with patch("harness.web_fetch.providers.cloudflare.request", return_value=HttpResponse(
                 200, "https://example.test/api", {}, b'{"success":true,"result":""}')):
             result = CloudflareMarkdownProvider("cloudflare-markdown", {}).fetch(case(), 1)
         self.assertTrue(result.ok)
+        self.assertIsNone(result.error_type)
         self.assertEqual(result.content, "")
         self.assertTrue(result.metadata["empty_content"])
         measured = score_attempt(case(required_facts=[{"alternatives": ["Alpha"]}]),
@@ -96,7 +119,129 @@ class ScoringTests(unittest.TestCase):
         self.assertTrue(partial["stable_structure_pass"])
         self.assertEqual(partial["content_check_coverage"], .5)
 
-    def test_quote_fields_survive_missing_inline_whitespace(self):
+    def test_second_declared_truncation_notice_overrides_stable_body_contract(self):
+        notice = "[Content truncated: showing 10 of 20 lines]"
+        measured = score_attempt(
+            case(acceptance_contract=stable_contract()),
+            ("Catalog\nCategory filter\n" + LINKS + "\n" + notice).encode(),
+            ok=True,
+        )
+        self.assertEqual(measured["declared_truncation_hits"], [notice])
+        self.assertFalse(measured["content_pass"])
+        self.assertFalse(measured["stable_content_pass"])
+        self.assertFalse(measured["stable_task_pass"])
+        self.assertIn("declared_truncation", measured["stable_task_errors"])
+        self.assertFalse(task_passed(True, measured))
+
+    def test_minimum_body_length_remains_a_gate_for_stable_contracts(self):
+        body_contract = {
+            "version": 1,
+            "schema": "body_text",
+            "minimum_records": 0,
+            "stable_text_anchors": [
+                {"id": "identity", "alternatives": ["Stable page identity"]},
+            ],
+        }
+        short = score_attempt(
+            case(acceptance_contract=body_contract, min_content_chars=80),
+            b"Stable page identity",
+            ok=True,
+        )
+        self.assertFalse(short["length_pass"])
+        self.assertFalse(short["stable_content_pass"])
+        self.assertFalse(short["stable_task_pass"])
+        self.assertIn("content_too_short", short["stable_task_errors"])
+        self.assertFalse(task_passed(True, short))
+
+        complete = score_attempt(
+            case(acceptance_contract=body_contract, min_content_chars=80),
+            ("Stable page identity\n" + "Useful independently captured body text. " * 2).encode(),
+            ok=True,
+        )
+        self.assertTrue(complete["length_pass"])
+        self.assertTrue(complete["stable_task_pass"])
+        self.assertTrue(task_passed(True, complete))
+
+    def test_declared_truncation_notice_does_not_override_non_body_contracts(self):
+        notice = "[Content truncated: showing 10 of 20 lines]"
+        structure = score_attempt(
+            case(task_kind="structure", acceptance_contract=stable_contract()),
+            ("Catalog\nCategory filter\n" + LINKS + "\n" + notice).encode(),
+            ok=True,
+        )
+        self.assertEqual(structure["declared_truncation_hits"], [notice])
+        self.assertTrue(structure["stable_task_pass"])
+        self.assertTrue(task_passed(True, structure, "structure"))
+
+        resource = score_attempt(
+            case(task_kind="resource", content_score_applicable=False,
+                 expected_resources=[{"id": "image", "urls": ["/image.png"]}]),
+            (notice + "\n![Image](/image.png)").encode(),
+            ok=True,
+        )
+        self.assertEqual(resource["declared_truncation_hits"], [notice])
+        self.assertTrue(resource["resource_pass"])
+        self.assertTrue(task_passed(True, resource, "resource"))
+
+    def test_exact_declared_body_regions_override_truncation_notice(self):
+        notice = "[Content truncated: showing 10 of 20 lines]"
+        requirements = {
+            "version": 1,
+            "unit": "region_token_recall",
+            "minimum_coverage": 0.5,
+            "regions": [{"id": "body", "text": "alpha bravo charlie delta"}],
+        }
+        complete = score_attempt(
+            case(body_requirements=requirements,
+                 ground_truth_main_content="alpha bravo charlie delta"),
+            ("alpha bravo charlie delta\n" + notice).encode(), ok=True,
+        )
+        self.assertEqual(complete["body_region_results"][0]["coverage"], 1.0)
+        self.assertTrue(complete["content_pass"])
+        self.assertTrue(task_passed(True, complete))
+
+        partial = score_attempt(
+            case(body_requirements=requirements,
+                 ground_truth_main_content="alpha bravo charlie delta"),
+            ("alpha bravo charlie\n" + notice).encode(), ok=True,
+        )
+        self.assertTrue(partial["body_coverage_pass"])
+        self.assertLess(partial["body_region_results"][0]["coverage"], 1.0)
+        self.assertFalse(partial["content_pass"])
+        self.assertFalse(task_passed(True, partial))
+
+    def test_body_reference_can_exempt_its_standalone_captcha_heading_only(self):
+        reference = "Accessibility guidance\nCAPTCHA\nProvide an equivalent text alternative."
+        legitimate = score_attempt(
+            case(ground_truth_main_content=reference,
+                 required_facts=[{"id": "guidance", "alternatives": [
+                     "Provide an equivalent text alternative"
+                 ]}]),
+            reference.encode(), ok=True,
+        )
+        self.assertEqual(legitimate["blocked_page_hits"], [])
+        self.assertEqual(legitimate["blocked_page_reference_exemptions"], ["CAPTCHA"])
+        self.assertTrue(task_passed(True, legitimate))
+
+        challenge = score_attempt(
+            case(ground_truth_main_content="Accessibility guidance",
+                 required_facts=[]),
+            b"CAPTCHA", ok=True,
+        )
+        self.assertEqual(challenge["blocked_page_hits"], ["CAPTCHA"])
+        self.assertEqual(challenge["blocked_page_reference_exemptions"], [])
+        self.assertFalse(task_passed(True, challenge))
+
+        stable = score_attempt(
+            case(ground_truth_main_content=reference,
+                 acceptance_contract=stable_contract()),
+            ("CAPTCHA\nCatalog\nCategory filter\n" + LINKS).encode(), ok=True,
+        )
+        self.assertEqual(stable["blocked_page_hits"], ["CAPTCHA"])
+        self.assertEqual(stable["blocked_page_reference_exemptions"], [])
+        self.assertFalse(task_passed(True, stable))
+
+    def test_quote_fields_reject_lost_tag_boundaries(self):
         quote = "“The world as we have created it is a process of our thinking.”"
         contract = {
             "version": 1, "schema": "quote", "minimum_records": 1,
@@ -111,9 +256,11 @@ class ScoringTests(unittest.TestCase):
         output = (quote + "byAlbert EinsteinTags:changedeep-thoughtsthinkingworld"
                   "\n\n##### Loading...\n\nQuotes by: GoodReads.com").encode()
         measured = score_attempt(case(acceptance_contract=contract, required_facts=facts), output, ok=True)
-        self.assertTrue(task_passed(True, measured))
-        self.assertEqual(measured["fact_coverage"], 1)
-        self.assertEqual(measured["stable_anchor_coverage"], 1)
+        self.assertFalse(task_passed(True, measured))
+        self.assertEqual(measured["fact_coverage"], 0)
+        self.assertEqual(measured["stable_anchor_coverage"], 0)
+        self.assertTrue(measured["stable_structure_pass"])
+        self.assertFalse(measured["stable_content_pass"])
 
     def test_no_declared_groups_is_unmeasured_even_with_markers_or_old_facts(self):
         rules = stable_contract()
@@ -150,9 +297,35 @@ class ScoringTests(unittest.TestCase):
             self.assertEqual(measured["resource_pass"], ok)
             self.assertFalse(measured["content_pass"])
 
+    def test_target_only_image_contract_is_part_of_shared_task_decision(self):
+        c = case(
+            task_kind="resource", content_score_applicable=False,
+            expected_resources=[{"id": "image", "urls": ["/image.png"]}],
+            resource_output_contract={
+                "candidate_scope": "image_answer_fields", "unexpected": "reject",
+            },
+        )
+        measured = score_attempt(
+            c, b"", ok=True,
+            metadata={"images": ["/image.png", "/recommended.png"],
+                      "links": ["/ordinary-page"]},
+        )
+        self.assertEqual(measured["resource_recall"], 1.0)
+        self.assertEqual(measured["resource_precision"], 0.5)
+        self.assertEqual(measured["unexpected_resource_urls"],
+                         ["https://example.test/recommended.png"])
+        self.assertFalse(measured["resource_pass"])
+        self.assertFalse(task_passed(True, measured))
+        expected_contract = hashlib.sha256(json.dumps({
+            "expected_resources": c.expected_resources,
+            "resource_output_contract": c.resource_output_contract,
+        }, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+        self.assertEqual(measured["resource_acceptance_contract_sha256"], expected_contract)
+
     def test_old_stable_and_list_decisions_cannot_survive_mode_change(self):
         old = {"stable_task_pass": True, "stable_anchor_results": [],
                "acceptance_contract_sha256": "old", "content_decision_basis": "old",
+               "resource_acceptance_contract_sha256": "old",
                "list_task_pass": True, "list_checks": [], "structure_pass": True,
                "confirmed_entries": 3, "verification_note": "old", "raw_file_pass": True}
         measured = score_attempt(case(expected_any=["Missing"]), b"Other", ok=True, previous_metrics=old)
@@ -436,7 +609,7 @@ class ScoringPipelineTests(unittest.TestCase):
                                               dataset_path=self.path, cases=self.cases),
             lambda: rescore_content.rescore(self.run, case_ids={"web"}),
         ):
-            with self.assertRaisesRegex(ValueError, "integrity"):
+            with self.assertRaisesRegex(ValueError, "integrity|Public call log output binding changed"):
                 rescore()
             self.assertEqual(path.read_bytes(), before)
 

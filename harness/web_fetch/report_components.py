@@ -264,6 +264,9 @@ def task_instruction(c):
 
 def stable_rule_description(c):
     contract = c['acceptance_contract']
+    if contract['schema'] == 'body_text':
+        return ('页面正文按登记的稳定文字锚点核验；新闻、日期、轮播卡片、仓库状态等'
+                '易变内容不固定为答案。历史完整快照只作诊断，不进入全文质量汇总。')
     maximum = contract.get('maximum_records')
     limit = f'至少 {contract["minimum_records"]} 条' + (f'，最多 {maximum} 条' if maximum is not None else '')
     return (f'{SCHEMA_LABELS.get(contract["schema"], contract["schema"])}：{limit}完整且唯一的记录。'
@@ -277,7 +280,8 @@ def stable_contract_details(c):
     schema = contract['schema']
     fields = ''.join('<li><strong>'+escape(FIELD_REQUIREMENTS[f][0])+'</strong>：'+escape(FIELD_REQUIREMENTS[f][1])+'</li>' for f in SCHEMA_FIELDS[schema])
     unique = '＋'.join(FIELD_REQUIREMENTS[f][0] for f in UNIQUE_FIELDS[schema])
-    requirements = '<h3>必需字段与要求</h3><ul>'+fields+'</ul><p>各字段须属于同一条记录，不得跨条目拼接。按'+escape(unique)+'核对唯一性。</p>'
+    requirements = ('' if schema == 'body_text' else
+        '<h3>必需字段与要求</h3><ul>'+fields+'</ul><p>各字段须属于同一条记录，不得跨条目拼接。按'+escape(unique)+'核对唯一性。</p>')
     if schema == 'name_description':
         requirements += '<p>说明不能仅重复名称。</p>'
     if schema in {'product','catalog_product'}:
@@ -287,7 +291,8 @@ def stable_contract_details(c):
     patterns = ''.join('<li><code>'+escape(p)+'</code></li>' for p in contract.get('page_patterns', []))
     anchors = ''.join('<li>'+escape(a['id'])+'：'+escape(' / '.join(a['alternatives']))+('（不能由包含商品条目标题的文字行代替）' if a.get('match_scope')=='non_record_lines' else '')+'</li>'
                       for a in contract.get('stable_text_anchors', []))
-    annotation = c.get('source_benchmark',{}).get('stable_annotation',{})
+    annotation = (c.get('mutable_body_policy',{}).get('stable_annotation',{})
+                  or c.get('source_benchmark',{}).get('stable_annotation',{}))
     evidence = annotation.get('anchor_evidence')
     provenance = ('<p>独立文字依据：<a href="../'+escape(evidence,quote=True)+'">查看限定范围原文</a>。'
         '这些核对项验证文字是否保留，不证明整页正文完整，也不以榜单当前成员为答案。</p>') if evidence else ('<p>本例未登记稳定文字依据；文字核对覆盖不计算，已执行的列表规则与结果仍保留。</p>' if annotation else '')
@@ -308,7 +313,9 @@ def basis_label(c):
 
 
 def reference_label(c):
-    if c.get('acceptance_contract') and c.get('source_benchmark',{}).get('stable_annotation',{}).get('structural_only_fields') and c.get('ground_truth_main_content'):return '快照文字诊断；含非固定字段'
+    annotation = (c.get('mutable_body_policy',{}).get('stable_annotation',{})
+                  or c.get('source_benchmark',{}).get('stable_annotation',{}))
+    if c.get('acceptance_contract') and annotation.get('structural_only_fields') and c.get('ground_truth_main_content'):return '快照文字诊断；含非固定字段'
     if c.get('ground_truth_main_content'):return '完整正文'
     if c.get('task_kind')=='structure':return '列表任务依据；无完整文本参考'
     if c.get('task_kind')=='file':return '原文件'
@@ -323,8 +330,10 @@ def comparable_body_reference(c):
     Keep the measured values in attempt details; do not silently use them as
     invariant text quality or replace them with partial-anchor precision.
     """
+    annotation = (c.get('mutable_body_policy',{}).get('stable_annotation',{})
+                  or c.get('source_benchmark',{}).get('stable_annotation',{}))
     return bool(c.get('ground_truth_main_content')) and not bool(
-        c.get('acceptance_contract') and c.get('source_benchmark',{}).get('stable_annotation',{}).get('structural_only_fields'))
+        c.get('acceptance_contract') and annotation.get('structural_only_fields'))
 
 
 def reference_status(cases):

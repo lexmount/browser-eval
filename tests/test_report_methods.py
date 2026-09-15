@@ -1,8 +1,23 @@
 import unittest
 from harness.web_fetch.report_methods import adoption_counts
 from harness.web_fetch.report_components import metric_legend,metric_guide
+from harness.web_fetch.methods import method_info
+from harness.web_fetch.report_i18n import translate_text
 
 class AdoptionTests(unittest.TestCase):
+ def test_tavily_method_reports_the_advanced_route_used_by_the_cohort(self):
+  output=method_info('tavily_extract')['output']
+  self.assertIn('advanced',output)
+  self.assertNotIn('basic',output)
+
+ def test_cloudflare_method_discloses_default_quick_actions_cache(self):
+  for provider_type in ('cloudflare_markdown', 'cloudflare_content'):
+   freshness=method_info(provider_type)['freshness']
+   self.assertIn('默认最多缓存 5 秒',freshness)
+   self.assertNotIn('实时',freshness)
+   translated=translate_text(freshness)
+   self.assertIn('up to 5 seconds',translated)
+   self.assertNotIn('Real-time',translated)
  def test_failed_candidate_verification_preserves_snapshot(self):
   import json,sys,tempfile
   from pathlib import Path

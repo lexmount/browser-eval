@@ -9,6 +9,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from harness.web_fetch.reliability import require_reliable
+from harness.web_fetch.reference_lifecycle import validate_resource_source_evidence
 from scripts.report_asset_parity import ArticleAssetParity
 
 class Tables(HTMLParser):
@@ -52,7 +53,11 @@ class PageShape(HTMLParser):
   if self.assets and self.figures:attrs=self.assets.rewrite(self.page,self.figures[-1],tag,attrs)
   values=dict(attrs);self.tags[tag]+=1
   if values.get('id'):self.ids.add(values['id'])
-  self.data.extend((key,value) for key,value in attrs if key.startswith('data-'))
+  # The localization renderer intentionally removes this authoring-only
+  # marker from English output. Compare runtime data attributes, not the
+  # translation instruction itself.
+  self.data.extend((key,value) for key,value in attrs
+                   if key.startswith('data-') and key!='data-i18n-attrs')
   if values.get('href') and not values.get('hreflang'):self.links.append(values['href'])
   if tag=='img' and values.get('src'):self.images.append(values['src'])
   if tag in {'pre','code','script','style'}:self.skip+=1
@@ -63,6 +68,7 @@ class PageShape(HTMLParser):
   if not self.skip:self.numbers.extend(re.findall(r'\d+(?:[.,]\d+)*(?:%|\b)',text))
 
 root=Path(sys.argv[1]).resolve();d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
+repository=Path(__file__).resolve().parents[1]
 names={r['provider'] for r in rs}
 inventory=json.loads((Path(__file__).resolve().parents[1]/'configs/evaluation-inventory.json').read_text())
 if d.get('comparison',{}).get('kind') in {'headless_html','headless_markdown'}:
@@ -81,6 +87,8 @@ assert {(r['provider'],r['case_id']) for r in rs}==expected_pairs
 assert len({r['attempt_id'] for r in rs})==expected
 assert len({(r['provider'],r['case_id']) for r in rs})==expected
 case_by_id={c['id']:c for c in d['cases']}
+for case in d['cases']:
+ validate_resource_source_evidence(case,repository/'evaluation/dataset.json')
 reliability=require_reliable(d,rs)
 saved_reliability=json.loads((root/'reliability.json').read_text())
 assert saved_reliability==reliability,'Saved reliability status differs from report evidence'
@@ -160,7 +168,8 @@ for p in root.rglob('*.html'):
 execution=json.loads((root/'execution.json').read_text())['batches']
 assert Counter(i for b in execution for i in b['attempt_ids'])==Counter(r['attempt_id'] for r in rs)
 home=(root/'index.html').read_text()
-assert home.index('<h2>六类任务概览</h2>') < home.index('<h2>综合通过率总榜</h2>') < home.index('<h2>六类分榜</h2>'),'Task overview and overall ranking must precede detailed rankings'
+track_count=len({case['track'] for case in d['cases']})
+assert home.index(f'<h2>{track_count} 类任务概览</h2>') < home.index('<h2>综合通过率总榜</h2>') < home.index(f'<h2>{track_count} 类分榜</h2>'),'Task overview and overall ranking must precede detailed rankings'
 assert '本类最高：' in home and '判分完整性' in home
 methodology=(root/'methodology/index.html').read_text()
 for phrase in ['计入耗时','不计入耗时','供应商上报的服务端耗时只作附加证据','形成可送入统一评分器的最终答案']:

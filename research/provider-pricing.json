@@ -5,19 +5,20 @@
   "providers": [
     {
       "id": "firecrawl", "label": "Firecrawl · Scrape",
+      "verified_at": "2026-09-11",
       "unit": "标准抓取 1 credit / 页",
       "comparison": "月付满额 $0.749–3.8；年付满额约 $0.599–3.167",
       "commitment": "Hobby $19/月；年付 $190 起",
       "discount": "套餐量越大单价越低；年付省 16.7%–20.0%；追加 $1–5/千积分",
       "headline": "月套餐 + 年付优惠 + $5 批次追加",
-      "scope": "本轮云端 Scrape 的正文配置返回 Markdown，资源配置额外请求链接与图片地址；下面基础单价按 1 credit/网页换算。当前增强代理不另加积分；模型抽取、PDF 页数、特殊域名及浏览器交互另有规则。",
+      "scope": "本轮正文与资源题使用 /v2/scrape 和 proxy=auto；原文件题只请求 rawBase64，并传入 parsers=[] 禁用 PDF 文字解析。官方现行规则下，基础 Scrape、auto 和 enhanced 代理均按 1 credit/页计费，自动升级重试不重复收费；禁用解析的 rawBase64 PDF 整份固定 1 credit。本表是官方报价边界，不是本轮实测账单；容量预检只校验账户能否覆盖声明调用数，不代表实际扣费。",
       "credits_per_page": 1,
       "sources": [
         {"label":"价格与账期明细", "url":"https://www.firecrawl.dev/pricing.md"},
         {"label":"定价页与扣费 FAQ", "url":"https://www.firecrawl.dev/pricing"},
         {"label":"详细扣费与结转", "url":"https://docs.firecrawl.dev/billing"},
         {"label":"增强代理", "url":"https://docs.firecrawl.dev/features/enhanced-mode"},
-        {"label":"PDF 解析", "url":"https://docs.firecrawl.dev/features/parse"}
+        {"label":"Scrape 参数与原文件", "url":"https://docs.firecrawl.dev/api-reference/endpoint/scrape"}
       ],
       "plans": [
         {"name":"Hobby", "credits_monthly":5000, "monthly_usd":19, "annual_usd":190, "overage":"$5 / 1,000 credits；即 $5/千标准页"},
@@ -27,10 +28,10 @@
       ],
       "rate_headers":["功能", "计费", "边界"],
       "rates":[
-        ["普通 Scrape / 增强代理", "1 credit/页", "增强代理不额外加价，包含自动增强重试"],
+        ["基础 Scrape / auto / enhanced", "1 credit/页", "auto 在特定源站状态下最多升级重试一次；当前 enhanced 与重试均不加收积分"],
         ["JSON 模型抽取", "+4 credits/页", "普通网页总计 5；不能按基础单价预算"],
         ["提示注入检查 / ZDR", "分别 +4 / +1 credits/页", "检查仅用于 JSON：成功共 9；检查执行后失败共 5（不含其他加价）；ZDR 可另叠加"],
-        ["PDF 文字解析", "解析文档标为 1 credit/PDF 页", "账单概览写 +1/页，是否另加基础费存在歧义；10 页不是 1 credit"],
+        ["PDF 文字解析", "基础价之上 +1 credit/PDF 页", "Billing 按附加费列示；本轮原文件题传 parsers=[]，不解析，rawBase64 整份 PDF 固定 1 credit"],
         ["Interact 浏览器交互", "2–7 credits/分钟，至少 1 分钟", "纯代码 2；使用 prompt 7；不属于本轮 Scrape"],
         ["X / Twitter", "30 credits/请求；JSON 为 34", "特殊域名走 Grok，非标准页价"]
       ],
@@ -54,8 +55,8 @@
       "commitment":"按量 $0.008/credit；月套餐 $30 起",
       "discount":"积分量大折扣；未找到公开年付优惠",
       "headline":"按成功 URL 累积扣积分",
-      "scope":"本轮使用 Basic Extract。套餐表按 Basic 满额换算；Advanced 用量相同则积分翻倍、每千页价格翻倍，不能把搜索的一次调用价格套给 Extract。",
-      "credits_per_page":0.2,
+      "scope":"本轮使用 Advanced Extract。套餐表按 Basic 满额换算；本轮 Advanced 用量相同则积分翻倍、每千页价格翻倍，不能把搜索的一次调用价格套给 Extract。",
+      "credits_per_page":0.4,
       "sources":[
         {"label":"积分单价与套餐", "url":"https://docs.tavily.com/documentation/api-credits"},
         {"label":"Extract 用量说明", "url":"https://docs.tavily.com/documentation/api-reference/endpoint/extract"}
@@ -67,7 +68,7 @@
         {"name":"Growth", "credits_monthly":100000, "monthly_usd":500, "overage":"按量 $0.008/credit"}
       ],
       "rate_headers":["模式", "每千成功页积分", "按量每千页", "月套餐满额每千页"],
-      "rates":[["Basic（本轮）", "200", "$1.6", "$1–1.5"],["Advanced", "400", "$3.2", "$2–3"]],
+      "rates":[["Basic", "200", "$1.6", "$1–1.5"],["Advanced（本轮）", "400", "$3.2", "$2–3"]],
       "terms":[
         ["免费额度", "每月 1,000 credits，无需绑卡。若全部用于 Extract，可换算为 5,000 个 Basic 或 2,500 个 Advanced 成功 URL；不是额外赠送的独立页额度。"],
         ["扣费与批量调用", "失败 URL 不扣费。接口说明尚未累计到 5 个成功 URL 时 usage.credits 可为 0；不能对每次单 URL 调用单独向上取整为 1 credit。未公开跨账期余数的完整结算规则。"],

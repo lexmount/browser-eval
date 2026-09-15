@@ -5,10 +5,33 @@ import os
 import re
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from .models import EvalCase
+from .retrieval_hints import parse_retrieval_hints
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def _validate_retrieval_hints(item: dict[str, Any]) -> None:
+    parse_retrieval_hints(
+        str(item.get("track", "web")),
+        item.get("retrieval_hints") if "retrieval_hints" in item else None,
+        identifier=str(item.get("id", "<unknown>")),
+    )
+
+
+def _validate_ground_truth_evidence(item: dict[str, Any]) -> None:
+    """Reject copied provenance links for references captured from the case URL."""
+    case_host = (urlsplit(str(item.get("url", ""))).hostname or "").removeprefix("www.")
+    for evidence in item.get("ground_truth_evidence", []):
+        if evidence.get("supports") != "本版独立获取的完整参考正文":
+            continue
+        source_host = (urlsplit(str(evidence.get("source", ""))).hostname or "").removeprefix("www.")
+        if not case_host or source_host != case_host:
+            raise ValueError(
+                f"{item.get('id', '<unknown>')} full-reference evidence must use the case URL host"
+            )
 
 
 def load_runtime_env(path: Path | None = None) -> None:
@@ -55,7 +78,11 @@ def load_dataset(path: Path) -> tuple[dict[str, Any], list[EvalCase]]:
     payload = load_json(path)
     if payload.get("tool") != "web_fetch":
         raise ValueError("dataset.tool must be 'web_fetch'")
-    cases = [EvalCase(**item) for item in payload.get("cases", [])]
+    raw_cases = payload.get("cases", [])
+    for item in raw_cases:
+        _validate_retrieval_hints(item)
+        _validate_ground_truth_evidence(item)
+    cases = [EvalCase(**item) for item in raw_cases]
     if not cases:
         raise ValueError("dataset must contain at least one case")
     ids = [case.id for case in cases]

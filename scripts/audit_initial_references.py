@@ -56,22 +56,33 @@ def reconstruct_quotes_json(raw: bytes, case: dict) -> dict:
 
 
 def audit_case(case: dict, evaluation: Path) -> dict:
+    # Normalize macOS' /var -> /private/var alias before containment and
+    # publication-path checks so temporary evaluation roots stay comparable.
+    evaluation = evaluation.resolve()
     identifier = safe_identifier(case["id"])
     folder = contained_path(evaluation, f"sources/{identifier}")
-    candidates = [contained_path(folder, name) for name in ("initial.html.txt", "source.html.txt")]
+    candidates = [contained_path(folder, name) for name in (
+        "current-source.html.txt", "initial.html.txt", "source.html.txt")]
     source = next((path for path in candidates if path.is_file()), None)
-    evidence_path = contained_path(folder, "evidence.json")
+    evidence_candidates=[contained_path(folder,name) for name in (
+        "current-capture.json","evidence.json")]
+    evidence_path=next((path for path in evidence_candidates if path.is_file()),
+                       evidence_candidates[-1])
     rendered_path = contained_path(folder, "rendered.txt")
+    def public_path(path):
+        if path is None:return None
+        try:return path.relative_to(ROOT).as_posix()
+        except ValueError:return path.relative_to(evaluation).as_posix()
     reference = case.get("ground_truth_main_content")
     has_reference = isinstance(reference, str) and bool(reference.strip())
     verification = case.get("source_verification") or {}
     row = {
         "case_id": identifier, "name": case.get("name"), "track": case.get("track", "web"),
         "source_state": "present" if source else "absent",
-        "source_path": str(source) if source else None,
-        "source_candidates": [str(path) for path in candidates],
+        "source_path": public_path(source),
+        "source_candidates": [public_path(path) for path in candidates],
         "source_sha256": None, "source_bytes": None,
-        "source_evidence_path": str(evidence_path) if evidence_path.is_file() else None,
+        "source_evidence_path": public_path(evidence_path) if evidence_path.is_file() else None,
         "source_evidence_state": "present" if evidence_path.is_file() else "absent",
         "source_evidence_sha256": None, "recorded_source_sha256": None,
         "source_hash_matches_metadata": None,
@@ -83,7 +94,7 @@ def audit_case(case: dict, evaluation: Path) -> dict:
         "recorded_reference_selector": verification.get("selector"),
         "recorded_reference_method": verification.get("method"),
         "rendered_snapshot_state": "present" if rendered_path.is_file() else "absent",
-        "rendered_snapshot_path": str(rendered_path) if rendered_path.is_file() else None,
+        "rendered_snapshot_path": public_path(rendered_path) if rendered_path.is_file() else None,
         "rendered_snapshot_sha256": None,
         "paired_capture_files_present": bool(source and rendered_path.is_file()),
         "extraction_state": "not_attempted", "extraction_error_type": None,
@@ -157,7 +168,10 @@ def audit_dataset(dataset: Path) -> dict:
     data = json.loads(raw)
     rows = [audit_case(case, dataset.parent) for case in data["cases"]]
     return {
-        "schema_version": 1, "dataset_path": str(dataset), "dataset_sha256": sha256(raw),
+        "schema_version": 1,
+        "dataset_path": (dataset.relative_to(ROOT).as_posix()
+                         if dataset.is_relative_to(ROOT) else dataset.name),
+        "dataset_sha256": sha256(raw),
         "method": "extract_html(saved initial bytes, case URL), then clean_reference_text; exact Unicode comparison to current dataset reference",
         "js_executed": False, "network_used": False, "provider_outputs_used": False,
         "implementation_sha256": {name: sha256((ROOT / name).read_bytes()) for name in (

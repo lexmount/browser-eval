@@ -23,10 +23,14 @@ METRIC_DEFINITIONS = {
     "html_tags": "输出中残留的类 HTML 标签数量。",
     "fact_coverage": "命中的预登记事实组除以全部必需事实组；同组可接受表达等价。",
     "forbidden_hits": "输出中出现的预登记错误页、挑战页或拒绝访问文本。",
+    "blocked_page": "输出整体是已知阻断或人机验证页；即使偶然含目标链接或资源也不通过。",
+    "blocked_page_hits": "对 blocked_page 判定起效的独立页标题或标记，用于证据展示和失败归类。",
+    "declared_truncation_hits": "供应商输出中精确命中的截断声明；正文仅在全部预登记区域均被完整覆盖时可通过，资源与结构任务仍按各自交付合同验收。",
     "content_sha256": "完整输出的 SHA-256，用于核验报告预览与原始结果一致。",
     "unique_line_ratio": "去重后的非空规范化行数除以全部非空行数，用于诊断重复模板。",
     "word_f1": "完整参考正文与输出的词语重合评分，同时衡量正文遗漏和额外噪声；无完整参考的案例不计算。",
     "resource_recall": "从网页输出或结构化元数据中发现的预登记资源数，除以该案例全部必需资源数；输入 URL 本身不计为发现。",
+    "resource_precision": "返回的任务范围内资源地址中，属于预登记目标或其允许变体的比例；显式 target-only 合同还会拒绝任何范围内的非目标资源。",
 }
 
 
@@ -35,6 +39,7 @@ RESOURCE_FILE_SUFFIXES = (
     'pdf','doc','docx','xls','xlsx','ppt','pptx','zip','tar','gz','bz2','7z',
     'png','jpg','jpeg','gif','webp','svg','avif','mp4','webm','mov','m4v','mp3','wav','ogg',
 )
+IMAGE_FILE_SUFFIXES = ('png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif')
 
 
 def normalize_resource_url(value: str, base_url: str) -> str | None:
@@ -59,22 +64,136 @@ def normalize_resource_url(value: str, base_url: str) -> str | None:
     # parameters on arbitrary hosts or collapse distinct resources globally.
     if parsed.hostname in {'images.unsplash.com','plus.unsplash.com','images.pexels.com','images-assets.nasa.gov','www.nasa.gov'}:
         query=''
-    if parsed.hostname and parsed.hostname.endswith('wikimedia.org') and '/thumb/' in path:
+    netloc = parsed.netloc.lower()
+    if parsed.hostname in {'upload.wikimedia.org', 'thumb.wikimedia.org'} and '/thumb/' in path:
         path=path.replace('/thumb/','/').rsplit('/',1)[0];query=''
-    return urlunsplit((parsed.scheme.lower(), parsed.netloc.lower().replace('thumb.wikimedia.org','upload.wikimedia.org'), unquote(path), query, ""))
+        # Wikimedia moved thumbnails, not original files or videos, to the
+        # thumb host. Only a thumbnail path identifies the same hosted asset.
+        if parsed.hostname == 'thumb.wikimedia.org':
+            netloc = netloc.replace('thumb.wikimedia.org', 'upload.wikimedia.org')
+    return urlunsplit((parsed.scheme.lower(), netloc, unquote(path), query, ""))
 
 
-def _metadata_resource_urls(value: Any, *, key: str = "") -> list[str]:
-    urls: list[str] = []
+def _metadata_resource_candidates(
+    value: Any, *, key: str = "", path: str = "metadata",
+) -> list[tuple[str, str]]:
+    candidates: list[tuple[str, str]] = []
     if isinstance(value, dict):
         for child_key, child in value.items():
-            urls.extend(_metadata_resource_urls(child, key=str(child_key).casefold()))
+            child_key = str(child_key)
+            candidates.extend(_metadata_resource_candidates(
+                child, key=child_key.casefold(), path=f"{path}.{child_key}",
+            ))
     elif isinstance(value, list):
         for child in value:
-            urls.extend(_metadata_resource_urls(child, key=key))
+            candidates.extend(_metadata_resource_candidates(child, key=key, path=path))
     elif isinstance(value, str) and (key in URL_KEYS or key.endswith(("links", "images", "videos", "media"))):
-        urls.append(value)
-    return urls
+        candidates.append((value, path))
+    return candidates
+
+
+def _metadata_image_candidates(
+    value: Any, *, path: str, image_branch: bool = False,
+    accept_string: bool = False,
+) -> list[tuple[str, str]]:
+    """Return only provider fields explicitly typed as image answers."""
+    candidates: list[tuple[str, str]] = []
+    if isinstance(value, dict):
+        for child_key, child in value.items():
+            child_key = str(child_key)
+            folded = re.sub(r"[^a-z]", "", child_key.casefold())
+            child_image_branch = image_branch or folded in {
+                "image", "images", "imagelink", "imagelinks",
+            }
+            candidates.extend(_metadata_image_candidates(
+                child, path=f"{path}.{child_key}",
+                image_branch=child_image_branch,
+                accept_string=child_image_branch and (
+                    folded in URL_KEYS
+                    or folded in {"image", "images", "imagelink", "imagelinks"}
+                ),
+            ))
+    elif isinstance(value, list):
+        for child in value:
+            candidates.extend(_metadata_image_candidates(
+                child, path=path, image_branch=image_branch,
+                accept_string=image_branch,
+            ))
+    elif isinstance(value, str) and image_branch and accept_string:
+        candidates.append((value, path))
+    return candidates
+
+
+def _markdown_image_destinations(content: str) -> list[str]:
+    from .reference_quality import markdown_links
+    destinations: list[str] = []
+    pending = [content]
+    while pending:
+        for link in markdown_links(pending.pop()):
+            if link.is_image:
+                destinations.append(link.destination)
+            if '[' in link.label:
+                pending.append(link.label)
+    return destinations
+
+
+def _looks_like_image_url(value: str) -> bool:
+    try:
+        path = urlsplit(value).path
+    except ValueError:
+        return False
+    return bool(re.search(rf"\.(?:{'|'.join(IMAGE_FILE_SUFFIXES)})$", path, re.I))
+
+
+def _matches_resource_definition(
+    value: str, expected_resources: list[dict[str, Any]], *, base_url: str,
+) -> bool:
+    url = normalize_resource_url(value, base_url)
+    if not url:
+        return False
+    for resource in expected_resources:
+        aliases = [*resource.get("urls", []), *resource.get("aliases", [])]
+        if url in {normalized for item in aliases
+                   if (normalized := normalize_resource_url(str(item), base_url))}:
+            return True
+        if any(re.search(pattern, url) for pattern in resource.get("url_patterns", [])):
+            return True
+    return False
+
+
+def _image_content_candidates(
+    content: str, expected_resources: list[dict[str, Any]], *, base_url: str,
+) -> list[tuple[str, str]]:
+    candidates = [(url, "content.markdown_image")
+                  for url in _markdown_image_destinations(content)]
+    candidates.extend((match[1], "content.html_img") for match in re.findall(
+        r"<img\b[^>]*?\bsrc\s*=\s*([\"'])(.*?)\1", content, re.I | re.S
+    ))
+    for match in re.findall(r"<img\b[^>]*?\bsrcset\s*=\s*([\"'])(.*?)\1", content, re.I | re.S):
+        candidates.extend((part.strip().split()[0], "content.html_img_srcset")
+                          for part in match[1].split(',') if part.strip())
+    # A provider may answer with a bare image address rather than Markdown.
+    # Restrict this fallback to image-like paths or declared target aliases;
+    # ordinary page links are not image answer candidates. The alias check is
+    # necessary for extensionless image CDNs such as Unsplash.
+    candidates.extend((url, "content.bare_image_url") for url in
+                      re.findall(r"https?://[^\s<>'\")\]]+", content)
+                      if (_looks_like_image_url(url) or _matches_resource_definition(
+                          url, expected_resources, base_url=base_url)))
+    return candidates
+
+
+def _normalized_candidates(
+    candidates: list[tuple[str, str]], *, base_url: str,
+) -> tuple[list[str], list[dict[str, Any]]]:
+    request_url = normalize_resource_url(base_url, base_url)
+    sources: dict[str, set[str]] = defaultdict(set)
+    for raw_url, source in candidates:
+        url = normalize_resource_url(raw_url, base_url)
+        if url and url != request_url:
+            sources[url].add(source)
+    urls = sorted(sources)
+    return urls, [{"url": url, "sources": sorted(sources[url])} for url in urls]
 
 
 def _visible_relative_resource_urls(content: str) -> list[str]:
@@ -97,29 +216,60 @@ def evaluate_resources(
     *,
     base_url: str,
     eligible: bool = True,
+    output_contract: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Score resource discovery separately from document text extraction.
 
     Only URLs explicitly returned in content or structured metadata are eligible.
     The request URL and provider final_url are deliberately excluded.
     """
-    answer_fields = {key: metadata[key] for key in ('links','images','videos','media','extras') if key in metadata}
-    candidates = _metadata_resource_urls(answer_fields) if eligible else []
-    if eligible:
-        candidates.extend(re.findall(r"https?://[^\s<>'\")\]]+", content))
-        candidates.extend(match[1] for match in re.findall(r"(?:src|href)\s*=\s*([\"'])(.*?)\1", content, re.I))
-        candidates.extend(re.findall(r"\[[^\]]*\]\(([^)]+)\)", content))
-        candidates.extend(_visible_relative_resource_urls(content))
-    normalized_candidates = sorted({url for item in candidates if (url := normalize_resource_url(item, base_url))})
-    normalized_candidates = [url for url in normalized_candidates if url != normalize_resource_url(base_url,base_url)]
+    contract = output_contract or {}
+    candidate_scope = contract.get("candidate_scope")
+    reject_unexpected = contract.get("unexpected") == "reject"
+    if contract and candidate_scope != "image_answer_fields":
+        raise ValueError(f"Unsupported resource candidate_scope: {candidate_scope!r}")
+    if contract and contract.get("unexpected") not in (None, "allow", "reject"):
+        raise ValueError(f"Unsupported resource unexpected policy: {contract.get('unexpected')!r}")
+
+    candidates: list[tuple[str, str]] = []
+    if eligible and candidate_scope == "image_answer_fields":
+        if "images" in metadata:
+            candidates.extend(_metadata_image_candidates(
+                metadata["images"], path="metadata.images", image_branch=True,
+                accept_string=True,
+            ))
+        for key in ("media", "extras"):
+            if key in metadata:
+                candidates.extend(_metadata_image_candidates(metadata[key], path=f"metadata.{key}"))
+        candidates.extend(_image_content_candidates(
+            content, expected_resources, base_url=base_url,
+        ))
+    elif eligible:
+        answer_fields = {key: metadata[key] for key in ('links','images','videos','media','extras') if key in metadata}
+        candidates.extend(_metadata_resource_candidates(answer_fields))
+        from .reference_quality import markdown_link_destinations
+        candidates.extend((url, "content.bare_url") for url in
+                          re.findall(r"https?://[^\s<>'\")\]]+", content))
+        candidates.extend((match[1], "content.html_url") for match in
+                          re.findall(r"(?:src|href)\s*=\s*([\"'])(.*?)\1", content, re.I))
+        candidates.extend((url, "content.markdown_link")
+                          for url in markdown_link_destinations(content))
+        candidates.extend((url, "content.visible_file")
+                          for url in _visible_relative_resource_urls(content))
+    normalized_candidates, candidate_evidence = _normalized_candidates(candidates, base_url=base_url)
     results = []
+    allowed_urls: set[str] = set()
     for index, resource in enumerate(expected_resources):
         alternatives = [
-            url for item in resource.get("urls", [])
+            url for item in [*resource.get("urls", []), *resource.get("aliases", [])]
             if (url := normalize_resource_url(str(item), base_url))
         ]
         matched = sorted(set(alternatives) & set(normalized_candidates))
-        matched += [u for u in normalized_candidates if any(re.search(p,u) for p in resource.get('url_patterns',[])) and u not in matched]
+        patterns = resource.get('url_patterns', [])
+        matched += [u for u in normalized_candidates
+                    if any(re.search(p, u) for p in patterns) and u not in matched]
+        allowed_urls.update(alternatives)
+        allowed_urls.update(u for u in normalized_candidates if any(re.search(p, u) for p in patterns))
         results.append({
             "id": str(resource.get("id") or f"resource-{index + 1}"),
             "kind": str(resource.get("kind") or "resource"),
@@ -130,13 +280,22 @@ def evaluate_resources(
         })
     hits = sum(item["pass"] for item in results)
     total = len(results)
+    allowed_candidates = set(normalized_candidates) & allowed_urls
+    unexpected_urls = sorted(set(normalized_candidates) - allowed_urls)
+    precision = (round(len(allowed_candidates) / len(normalized_candidates), 4)
+                 if normalized_candidates else None)
+    positive_pass = hits == total if total else None
     return {
         "resource_results": results,
         "resource_hits": hits,
         "resource_total": total,
         "resource_recall": round(hits / total, 4) if total else None,
-        "resource_pass": hits == total if total else None,
+        "resource_precision": precision,
+        "resource_pass": (bool(positive_pass and not unexpected_urls)
+                          if positive_pass is not None and reject_unexpected else positive_pass),
         "resource_candidate_urls": normalized_candidates,
+        "resource_candidates": candidate_evidence,
+        "unexpected_resource_urls": unexpected_urls,
     }
 
 
@@ -166,7 +325,8 @@ def task_passed(ok: bool, metrics: dict, task_kind: str | None = None) -> bool:
     # Scored records carry the case kind so dataset-free summaries use the same
     # predicate as the report. Explicit case context still takes precedence.
     task_kind = task_kind if task_kind is not None else metrics.get('task_kind', 'body')
-    if not task_measured(metrics, task_kind) or metrics.get('deadline_overrun'):
+    if (not task_measured(metrics, task_kind) or metrics.get('deadline_overrun')
+            or metrics.get('blocked_page')):
         return False
     if "stable_task_pass" in metrics:
         return bool(ok and metrics["stable_task_pass"] and not metrics.get("forbidden_hits")
@@ -193,6 +353,22 @@ def normalize_for_match(value: str) -> str:
     normalized = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\\\]^_`{|}~])', r'\1', normalized)
     normalized = re.sub(r'`([^`\n]+)`', r'\1', normalized)
     normalized = re.sub(r'\*\*(?=\S)([^*\n]*\S)\*\*', r'\1', normalized)
+    # Markdown table pipes are layout boundaries, not readable cell content.
+    # Restrict this to rows with at least two pipes so an ordinary prose/code
+    # expression containing a single literal ``|`` is not silently rewritten.
+    table_rule = re.compile(r':?-{3,}:?')
+    table_lines = []
+    for line in normalized.splitlines():
+        if line.count('|') >= 2:
+            cells = [cell.strip() for cell in line.split('|')]
+            visible_cells = [cell for cell in cells if cell]
+            # A Markdown divider has no answer-bearing text. Keeping it would
+            # interrupt a fact spanning the header and first data row.
+            if (visible_cells and all(table_rule.fullmatch(cell) for cell in visible_cells)):
+                continue
+            line = re.sub(r'\s*\|\s*', ' ', line)
+        table_lines.append(line)
+    normalized = '\n'.join(table_lines)
     normalized = normalized.translate(str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"', "–": "-", "—": "-", "−": "-"}))
     # CJK text can be split at inline DOM boundaries. English word boundaries,
     # signs, digits and punctuation are deliberately retained.
@@ -236,10 +412,29 @@ def text_corruption(value: str) -> tuple[int, float, bool]:
     return count, round(ratio, 4), count >= 20 and ratio >= 0.02
 
 
+# These are provider-authored delivery notices, not ordinary page prose. Keep
+# the patterns exact so a page discussing truncation is not rejected merely
+# for containing the same words.
+DECLARED_TRUNCATION_PATTERNS = (
+    re.compile(
+        r"(?im)^\s*\(Content truncated\. Fetch a more specific URL or section "
+        r"for the full text\.\)\s*$"
+    ),
+    re.compile(r"(?im)^\s*\[Content truncated: showing \d+ of \d+ lines\]\s*$"),
+)
+
+
+def declared_truncation_hits(value: str) -> list[str]:
+    """Return exact provider notices that explicitly declare incomplete text."""
+    return [match.group(0).strip() for pattern in DECLARED_TRUNCATION_PATTERNS
+            if (match := pattern.search(value))]
+
+
 def evaluate_content(
     content: str,
     expected: list[str],
     *,
+    title: str | None = None,
     required_facts: list[dict[str, Any]] | None = None,
     forbidden_any: list[str] | None = None,
     min_content_chars: int = 1,
@@ -250,9 +445,15 @@ def evaluate_content(
     base_url: str = "",
     named_links: list[dict] | None = None,
     body_requirements: dict | None = None,
+    allow_reference_block_exemptions: bool = False,
 ) -> dict[str, Any]:
-    replacement_count, replacement_ratio, encoding_corruption = text_corruption(content)
-    folded = normalize_for_match(content)
+    answer_text = ((title.strip() + '\n') if title and title.strip() else '') + content
+    from .reference_quality import blocked_page_hits, script_payload_shell
+    block_hits = blocked_page_hits(answer_text)
+    script_shell = script_payload_shell(answer_text)
+    replacement_count, replacement_ratio, encoding_corruption = text_corruption(answer_text)
+    truncation_hits = declared_truncation_hits(answer_text)
+    folded = normalize_for_match(answer_text)
     matched = [marker for marker in expected if (text := normalize_for_match(marker)) and text in folded]
     facts = required_facts or []
     from .dynamic_entry_matching import matching_entry_facts
@@ -276,6 +477,16 @@ def evaluate_content(
     # Such text is not evidence that the returned document is an error page.
     # Keep length, facts and structural gates active, including for short errors.
     reference_folded = normalize_for_match(ground_truth_main_content)
+    block_reference_exemptions = []
+    if allow_reference_block_exemptions and reference_folded:
+        reference_block_terms = {
+            normalize_for_match(hit) for hit in blocked_page_hits(ground_truth_main_content)
+        }
+        block_reference_exemptions = [
+            hit for hit in block_hits
+            if (term := normalize_for_match(hit)) and term in reference_block_terms
+        ]
+        block_hits = [hit for hit in block_hits if hit not in block_reference_exemptions]
     reference_exemptions = [item for item in (forbidden_any or [])
                             if reference_folded and (text := normalize_for_match(item)) and text in reference_folded]
     if acceptance_contract:
@@ -283,24 +494,25 @@ def evaluate_content(
         reference_exemptions = []
     forbidden = [item for item in (forbidden_any or [])
                  if item not in reference_exemptions and (text := normalize_for_match(item)) and text in folded]
-    lines = [re.sub(r"\s+", " ", line).strip().casefold() for line in content.splitlines()]
+    lines = [re.sub(r"\s+", " ", line).strip().casefold() for line in answer_text.splitlines()]
     lines = [line for line in lines if line]
     unique_line_ratio = round(len(set(lines)) / len(lines), 4) if lines else 1.0
     legacy_pass = bool(matched) if expected else True
     length_pass = len(content) >= min_content_chars
     content_pass = (legacy_pass and length_pass and fact_coverage >= fact_coverage_threshold
-                    and not forbidden and not encoding_corruption)
+                    and not forbidden and not block_hits and not encoding_corruption
+                    and not script_shell)
     pattern_results = []
     for rule in required_patterns or []:
-        count = len(set(re.findall(rule['pattern'], content, re.I)))
+        count = len(set(re.findall(rule['pattern'], answer_text, re.I)))
         pattern_results.append({'id':rule['id'],'count':count,'minimum':rule.get('minimum',1),'pass':count >= rule.get('minimum',1)})
     content_pass = content_pass and all(item['pass'] for item in pattern_results)
     from .body_coverage import evaluate_body_requirements
-    body_checks = evaluate_body_requirements(content, body_requirements or {})
+    body_checks = evaluate_body_requirements(answer_text, body_requirements or {})
     content_pass = content_pass and body_checks['body_coverage_pass']
     word_precision = word_recall = word_f1 = None
     if ground_truth_main_content:
-        word_precision, word_recall, word_f1 = word_overlap(content, ground_truth_main_content)
+        word_precision, word_recall, word_f1 = word_overlap(answer_text, ground_truth_main_content)
     result = {
         **body_checks,
         "content_pass": content_pass,
@@ -317,10 +529,15 @@ def evaluate_content(
         "fact_coverage": fact_coverage,
         "fact_coverage_threshold": fact_coverage_threshold,
         "forbidden_hits": forbidden,
+        "blocked_page": bool(block_hits),
+        "blocked_page_hits": block_hits,
+        "blocked_page_reference_exemptions": block_reference_exemptions,
+        "script_payload_shell": script_shell,
         "reference_term_exemptions": reference_exemptions,
         "minimum_content_chars": min_content_chars,
         "length_pass": length_pass,
         "content_chars": len(content),
+        "title_chars": len(title or ''),
         "content_sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
         "unique_line_ratio": unique_line_ratio,
         "markdown_headings": len(re.findall(r"(?m)^#{1,6}\s+", content)),
@@ -329,6 +546,7 @@ def evaluate_content(
         "replacement_character_count": replacement_count,
         "replacement_character_ratio": replacement_ratio,
         "text_encoding_corruption": encoding_corruption,
+        "declared_truncation_hits": truncation_hits,
         "word_precision": word_precision,
         "word_recall": word_recall,
         "word_f1": word_f1,
@@ -341,7 +559,7 @@ def evaluate_content(
     }
     if acceptance_contract:
         from .stable_tasks import evaluate_stable_task
-        result.update(evaluate_stable_task(content, acceptance_contract, base_url, links=named_links))
+        result.update(evaluate_stable_task(answer_text, acceptance_contract, base_url, links=named_links))
         if encoding_corruption:
             result["stable_task_pass"] = False
             result["stable_content_pass"] = False
@@ -351,6 +569,20 @@ def evaluate_content(
             result["stable_task_pass"] = False
             result["stable_content_pass"] = False
             result["stable_task_errors"].append("forbidden_content")
+        if script_shell and acceptance_contract.get("schema") == "body_text":
+            result["stable_task_pass"] = False
+            result["stable_content_pass"] = False
+            if "script_payload_shell" not in result["stable_task_errors"]:
+                result["stable_task_errors"].append("script_payload_shell")
+        # A ``body_text`` contract has no structural record-count floor, so
+        # stable anchors must not let a tiny title/snippet bypass the declared
+        # minimum amount of returned body text. Structured schemas retain their
+        # record-based sufficiency rule.
+        if acceptance_contract.get("schema") == "body_text" and not length_pass:
+            result["stable_task_pass"] = False
+            result["stable_content_pass"] = False
+            if "content_too_short" not in result["stable_task_errors"]:
+                result["stable_task_errors"].append("content_too_short")
         result["content_pass"] = result["stable_task_pass"]
         result["content_decision_basis"] = "stable_acceptance_contract"
     return result

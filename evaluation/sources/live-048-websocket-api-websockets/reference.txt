@@ -143,7 +143,7 @@ ssl://
 ,
 tcp://
 Django Channels
-: Django library that adds support for WebSockets (and other protocols that require long running asynchronous connections).
+: Django library that adds support for WebSockets (and other protocols that require long-running asynchronous connections).
 (Phoenix) Channels
 : Scalable real-time communication using WebSocket in Elixir Phoenix framework.
 Phoenix LiveView
@@ -167,11 +167,6 @@ WebSocket API Specification
 Server-Sent Events
 Help improve MDN
 Learn how to contribute
-This page was last modified on
-Jul 8, 2026
-by
-MDN contributors
-.
 View this page on GitHub
 •
 Report a problem with this content

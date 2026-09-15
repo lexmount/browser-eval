@@ -54,7 +54,10 @@ def render_pricing(out, names, *, table, cell, link, esc):
         if p['id'] not in names:
             continue
         body += '<details class="interface-panel" id="pricing-' + esc(p['id']) + '"><summary>' + esc(p['label']) + ' · ' + esc(p['headline']) + '</summary>'
-        body += '<p>' + esc(p['scope']) + '</p><p class="source-note">' + sources(p) + '</p>'
+        body += '<p>' + esc(p['scope']) + '</p>'
+        if p.get('verified_at'):
+            body += '<p class="source-note">本条官方资料核验：' + esc(p['verified_at']) + '。</p>'
+        body += '<p class="source-note">' + sources(p) + '</p>'
         if p.get('plans'):
             plans = []
             for plan in p['plans']:

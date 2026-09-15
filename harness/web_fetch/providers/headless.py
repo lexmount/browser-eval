@@ -7,17 +7,18 @@ import importlib.util
 import json
 import math
 import os
-from pathlib import Path
 import shutil
 import signal
 import subprocess
 import sys
 import tempfile
 import time
+from pathlib import Path
 
-from .base import Provider
 from ..models import EvalCase, ProviderResult
+from ..retrieval_hints import plan_for_case
 from ..safety import validate_http_url
+from .base import Provider
 
 ENGINES = ('kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium')
 HEADLESS_CONVERSION = (
@@ -44,7 +45,110 @@ def _resolve_binary(engine, configured):
     return bundled if Path(bundled).is_file() else None
 
 
-def cli_command(engine, binary, url, timeout, output_mode='html', wait_until=None):
+def _cli_completion_arguments(engine, plan):
+    if not plan:
+        return None
+    if engine in {'moli', 'lightpanda'}:
+        arguments = [
+            '--wait-selector' if plan['wait_kind'] == 'selector' else '--wait-script',
+            plan['wait_value'],
+            '--wait-until',
+            plan['wait_until'],
+        ]
+        if plan['delay_ms']:
+            arguments += [
+                '--delay-ms' if engine == 'moli' else '--wait-ms',
+                str(plan['delay_ms']),
+            ]
+        if engine == 'moli' and plan.get('frame_selector'):
+            arguments.append('--with-frames')
+        return arguments
+    if engine == 'obscura':
+        # Obscura can wait for one top-level selector but cannot express a
+        # selector count or enter a child frame from its one-shot fetch CLI.
+        wait_until = 'networkidle0' if plan['wait_until'] == 'networkidle' else plan['wait_until']
+        arguments = ['--wait-until', wait_until]
+        if not plan.get('frame_selector'):
+            arguments += ['--selector', plan['selector']]
+        if plan['delay_ms']:
+            # Its public CLI accepts whole seconds, and applies this fixed wait
+            # before its selector poll rather than after selector completion.
+            arguments += ['--wait', str(max(1, math.ceil(plan['delay_ms'] / 1000)))]
+        return arguments
+    return None
+
+
+def completion_metadata(engine, plan, output_mode):
+    """Describe the exact native semantics used for one normalized plan."""
+    if not plan:
+        return None
+    if output_mode in {'document', 'file'}:
+        metadata = {
+            'strategy': 'raw_response',
+            'completion_support': 'unsupported',
+            'minimum_count_enforced': False,
+            'unsupported': ['selector', 'minimum_count', 'post_completion_delay'],
+        }
+    elif engine in {'moli', 'lightpanda', 'chromium'}:
+        strategy = (
+            'frame_selector_count_script'
+            if plan.get('frame_selector')
+            else 'selector'
+            if plan['wait_kind'] == 'selector'
+            else 'selector_count_script'
+        )
+        metadata = {
+            'strategy': strategy,
+            'completion_support': 'exact',
+            'minimum_count_enforced': True,
+            'unsupported': [],
+        }
+        if engine in {'lightpanda', 'chromium'} and plan.get('frame_selector'):
+            # These paths can wait on same-origin child content, but their
+            # existing Markdown/outerHTML contract does not serialize it.
+            metadata['output_unsupported'] = ['child_frame_serialization']
+    elif engine == 'obscura':
+        frame = bool(plan.get('frame_selector'))
+        # The CLI only warns when its selector poll expires and still exits
+        # successfully, so even the one-element condition is observed but not
+        # enforced as a request boundary.
+        unsupported = [
+            'selector_enforcement',
+            'post_completion_delay',
+            'completion_timeout',
+        ]
+        if frame:
+            unsupported += ['child_frame_selector', 'selector']
+        if plan['minimum_count'] != 1:
+            unsupported.append('minimum_count')
+        metadata = {
+            'strategy': 'fixed_delay' if frame else 'fixed_delay_then_selector',
+            'completion_support': 'approximate',
+            'minimum_count_enforced': False,
+            'unsupported': unsupported,
+        }
+    else:
+        raise ValueError('unsupported dynamic engine: ' + engine)
+    return {
+        **metadata,
+        'wait_until': plan['wait_until'],
+        'selector': plan['selector'],
+        'frame_selector': plan.get('frame_selector'),
+        'minimum_count': plan['minimum_count'],
+        'timeout_ms': plan['timeout_ms'],
+        'delay_ms': plan['delay_ms'],
+    }
+
+
+def cli_command(
+    engine,
+    binary,
+    url,
+    timeout,
+    output_mode='html',
+    wait_until=None,
+    retrieval_plan=None,
+):
     ms = str(max(1, math.ceil(timeout * 1000)))
     if output_mode not in {'html', 'markdown', 'document', 'file'}:
         raise ValueError('Unsupported browser output mode: ' + output_mode)
@@ -58,18 +162,22 @@ def cli_command(engine, binary, url, timeout, output_mode='html', wait_until=Non
         # release binaries and covered by route probes and end-to-end tests.
         return [binary, 'fetch', '--timeout', ms, '--http-timeout', ms, url]
     if output_mode == 'markdown':
+        completion = _cli_completion_arguments(engine, retrieval_plan)
         if engine == 'obscura':
             # Obscura's documented default is load plus an adaptive, at-most
             # five-second quiescence wait. Do not replace it with a fixed delay.
-            return [binary, 'fetch', '--dump', 'markdown', '--timeout',
+            return [binary, 'fetch', '--dump', 'markdown', *(completion or []), '--timeout',
                     str(math.ceil(timeout)), '--quiet', url]
-        common = [binary, 'fetch', '--dump', 'markdown', '--wait-until', wait_until or 'done']
+        common = [binary, 'fetch', '--dump', 'markdown']
+        common += completion or ['--wait-until', wait_until or 'done']
         if engine == 'moli':
             return common + ['--timeout', ms, '--http-timeout', ms, url]
         if engine == 'lightpanda':
             return common + ['--terminate-ms', ms, '--http-timeout', ms, url]
         raise ValueError('Not a native Markdown CLI engine: ' + engine)
-    common = [binary, 'fetch', '--dump', 'html', '--wait-until', 'domcontentloaded']
+    completion = _cli_completion_arguments(engine, retrieval_plan)
+    common = [binary, 'fetch', '--dump', 'html']
+    common += completion or ['--wait-until', 'domcontentloaded']
     if engine == 'obscura':
         return common + ['--timeout', str(math.ceil(timeout)), '--quiet', url]
     if engine == 'moli':
@@ -165,11 +273,16 @@ class HeadlessProvider(Provider):
         validate_http_url(case.url)
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError('timeout must be positive and finite')
+        try:
+            retrieval_plan = plan_for_case(case)
+        except ValueError as error:
+            return ProviderResult(False, '', error_type='configuration',
+                                  error_message=str(error))
         engine = self.config['engine']
         output_mode = output_mode_for_case(engine, self.type, case)
         binary = getattr(self, '_resolved_binary', None) or _resolve_binary(
             engine, self.config.get('binary'))
-        cli_wait = 'networkidle' if case.track == 'dynamic' else 'done'
+        cli_wait = retrieval_plan.wait_until if retrieval_plan else 'done'
         wait_until = ('automatic raw response' if output_mode == 'file'
                       else 'automatic raw response or serialized HTML' if output_mode == 'document'
                       else 'networkidle2' if engine == 'kitesurf' and output_mode == 'markdown'
@@ -188,6 +301,12 @@ class HeadlessProvider(Provider):
                     'extractor': extractor, 'output_contract': output_contract,
                     'session': 'fresh per call',
                     'deployment': 'public cloud CDP' if engine == 'kitesurf' else 'local process'}
+        normalized_plan = retrieval_plan.worker_dict() if retrieval_plan else None
+        if normalized_plan and engine != 'kitesurf':
+            metadata['completion'] = completion_metadata(engine, normalized_plan, output_mode)
+            metadata['completion']['effective_route_timeout_ms'] = round(
+                min(timeout, retrieval_plan.timeout_ms / 1000) * 1000
+            )
         if engine == 'kitesurf' and output_mode == 'markdown':
             from .cloudflare import CloudflareMarkdownProvider
             cloudflare = CloudflareMarkdownProvider(self.name, {
@@ -208,7 +327,9 @@ class HeadlessProvider(Provider):
                 metadata['browser_version_probe_error'] = identity['version_probe_error']
         request = {'engine': engine, 'binary': binary, 'url': case.url,
                    'timeout': timeout, 'output_mode': output_mode,
-                   'wait_until': 'networkidle' if case.track == 'dynamic' else None,
+                   'wait_until': retrieval_plan.wait_until if retrieval_plan else None,
+                   'track': case.track,
+                   'retrieval_plan': normalized_plan,
                    'endpoint': self.config.get('endpoint',
                    'wss://kitesurf.cloudflare.app/devtools/browser')}
         worker = Path(__file__).resolve().parents[3] / 'scripts/headless_worker.py'
@@ -242,9 +363,19 @@ class HeadlessProvider(Provider):
                     # permitting signals to a child created by this process.
                     process.kill()
                 process.wait()
+            stdout_bytes = os.fstat(stdout.fileno()).st_size
+            stderr_bytes = os.fstat(stderr.fileno()).st_size
             stdout.seek(0); raw = stdout.read(limit+1)
-            stderr.seek(0); diagnostic = stderr.read(4096).decode('utf-8', 'replace')
-        metadata.update(exit_code=process.returncode, stderr=diagnostic)
+            stderr.seek(0); diagnostic_raw = stderr.read(limit+1)
+            diagnostic = diagnostic_raw[:limit].decode('utf-8', 'replace')
+        metadata.update(
+            exit_code=process.returncode,
+            stdout_bytes=stdout_bytes,
+            stdout_truncated=stdout_bytes > limit,
+            stderr=diagnostic,
+            stderr_bytes=stderr_bytes,
+            stderr_truncated=stderr_bytes > limit,
+        )
         if stopped or len(raw) > limit:
             return ProviderResult(False, '', error_type=stopped or 'output_too_large',
                                   error_message='Isolated fetch exceeded budget', metadata=metadata)

@@ -61,8 +61,12 @@ client latency comparison, not an engine-only CPU/RSS benchmark. The original
 matrix's single observation per method and URL does not establish variance,
 sustained throughput or SLA. Documented correction calls remain visible and do
 not turn that matrix into a repeated-measures performance study.
-Pairwise latency tables therefore use only URLs passed by both methods and keep
-each pair's denominator visible.
+Pairwise browser tables use only URLs passed by both methods and keep each
+pair's denominator visible. A wider heterogeneous-method same-window cohort
+must not be reselected after observing results merely to manufacture a common
+success intersection. It retains every predeclared call and reports the
+same-denominator all-call latency beside success counts and separately labeled
+per-method successful-call latency.
 
 Method-specific readiness behavior can change delivered content. Equal option
 names would still not prove equal implementation, so the report records the
@@ -111,7 +115,15 @@ uv run --frozen python scripts/freeze_headless_references.py --captures CAPTURES
 uv run --frozen python scripts/run_headless_benchmark.py --dataset FROZEN/dataset.json --output RUN --workers 5
 uv run --frozen python scripts/postcheck_headless.py --run-dir RUN --captures POST --browser-observations POST.json
 uv run --frozen python scripts/certify_headless_cases.py --run-dir RUN --observations POST/observations.json --output CERTIFICATES
-uv run --frozen python scripts/review_headless_results.py --evidence EVIDENCE --work REVIEW --batch-cases 1 --workers 4 --model EXACT_AVAILABLE_MODEL --install
+uv run --frozen python scripts/review_headless_results.py --evidence EVIDENCE --work REVIEW --batch-cases 5 --workers 4 --model EXACT_AVAILABLE_MODEL --install
+```
+
+For new `run_benchmark.py` cohorts, use the fail-closed wrapper so an aggregate
+run cannot be mistaken for publishable evidence before its worker manifests
+and top-level execution file carry verified postchecks:
+
+```sh
+uv run --frozen python scripts/run_certified_benchmark.py --dataset evaluation/dataset.json --output RUN --work-root WORK --providers METHOD --case-ids ID1,ID2 --browser-binary /absolute/path/to/chromium
 ```
 
 Failure retry is disabled by default. Add `--max-failure-retries 1` only when
@@ -139,10 +151,11 @@ A full matrix rerun is required only when a global task input, call boundary or
 shared implementation dependency changes. The assembly manifest must retain
 which physical calls were replaced and why.
 
-Result verification is a separate publication gate after assembly. A strong
-agent reads every saved output and compares it with the task, frozen standard
-answer or stable contract without trusting the machine verdict. Every selected
-attempt, including machine passes, must receive a verdict. Disagreements require
+Result verification is an opt-in stage after assembly: do not start it until the
+user explicitly requests review. The default scope is machine failures; use
+`--scope all --confirm-full-review` only after an explicit full-review request.
+A strong agent compares every selected output with the task, frozen standard
+answer or stable contract without trusting the machine verdict. Disagreements require
 an explicit adjudication; unresolved rows block report generation. The review
 file is cryptographically bound to the exact dataset and results files, so a
 new session cannot silently reuse an audit after outputs or rules change.
@@ -163,16 +176,21 @@ make report-check
 
 ## Cross-session release gates
 
-`evaluation/current-report.json` fixes the current report's dataset ID, task
-count, seven providers, timeout, route description and destination site. Both
-the evidence checker and report builder reject a different complete cohort.
-The report also requires an exact all-attempt review binding, zero unresolved
-judgments, valid reference/scoring receipts and a nonempty top-level review-round
-log. Assembly rebinds inherited scoring history to the final dataset/results
-bytes only after the complete blind review matches those bytes. These checks are
+The headless report remains a separately published reference cohort. Its
+evidence bundle fixes the dataset ID, task count, seven providers, timeout and
+route description; `scripts/check_headless_evidence.py` rejects a different
+cohort. The repository's current publication profile may point at another
+report and must not be inferred from this historical reference document.
+When the current publication profile requires review, the report requires an
+exact binding for the user-requested scope, zero unresolved judgments, valid
+reference/scoring receipts and a nonempty top-level review-round log. A
+failure-only review must disclose its reviewed count and accepted unreviewed
+machine passes. Assembly rebinds inherited review history only when its declared
+scope and judgments still match the final dataset/results bytes. These checks are
 covered by the repository test suite; a new session must repair the evidence or
 implementation instead of bypassing them.
 
-The public destination for this comparison is the separate Sites project
-`UUAhhQMnrGwm`. Do not update the older report sites `bWkRP157EtF6` or
-`UeZE1vfcEOrM`.
+The preserved public destination for this comparison is the separate app-domain
+Sites project `UUAhhQMnrGwm`. The current 12-method report is the dev-domain
+project declared by `evaluation/current-report.json`; never use a headless
+receipt or evidence bundle to update it.

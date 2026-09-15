@@ -19,6 +19,7 @@ const body={rows:tableRows,append(row){this.rows.splice(this.rows.indexOf(row),1
 const headCells=[0,1].map(()=>({classList:classes(),removeAttribute(name){delete this[name]},setAttribute(name,value){this[name]=value}}));
 const table={dataset:{},tBodies:[body],tHead:{rows:[{cells:headCells}]}};
 const context=vm.createContext({window:{addEventListener(){}},document:{
+  addEventListener(){},
   querySelectorAll(selector){return selector==='#rows tr'?rows:filters},
   querySelector(){return count},getElementById(){return table}
 }});
@@ -52,7 +53,7 @@ console.log('PASS: combined filters, search, counts, numeric sorting, missing va
 const choices=(key,values)=>({dataset:{filter:key},value:values[0],options:[...values,''].map(value=>({value,disabled:false}))});
 const dependent=[choices('track',['web','image']),choices('category',['article','photo']),choices('result',['pass','fail'])];
 const dependentRows=[{dataset:{track:'web',category:'article',result:'pass'},textContent:'article'}, {dataset:{track:'image',category:'photo',result:'fail'},textContent:'photo'}];
-const cascaded=vm.createContext({window:{addEventListener(){}},document:{querySelectorAll(s){return s==='#rows tr'?dependentRows:dependent},querySelector(){return count}}});
+const cascaded=vm.createContext({window:{addEventListener(){}},document:{addEventListener(){},querySelectorAll(s){return s==='#rows tr'?dependentRows:dependent},querySelector(){return count}}});
 vm.runInContext(js,cascaded);
 vm.runInContext('cascadeFilters()',cascaded);
 assert.deepEqual(dependentRows.map(r=>r.hidden),[false,true]);
@@ -78,7 +79,7 @@ const failureRows=[
  {dataset:{provider:'one',result:'pass',failureStage:'',failureCategory:''},textContent:'passed'},
  {dataset:{provider:'two',result:'fail',failureStage:'task',failureCategory:'缺少关键信息'},textContent:'another failure'}
 ];
-const failureContext=vm.createContext({window:{addEventListener(){}},document:{querySelectorAll(s){return s==='#rows tr'?failureRows:failureSelections},querySelector(){return count}}});
+const failureContext=vm.createContext({window:{addEventListener(){}},document:{addEventListener(){},querySelectorAll(s){return s==='#rows tr'?failureRows:failureSelections},querySelector(){return count}}});
 vm.runInContext(js,failureContext);
 vm.runInContext('cascadeFilters()',failureContext);
 assert.deepEqual(failureRows.map(r=>r.hidden),[false,false,true,true]);
@@ -104,7 +105,7 @@ const capabilityDetail={tagName:'DETAILS',dataset:{},open:false,parentElement:ca
 const adoptionPanel={dataset:{panel:'adoption'},parentElement:methodTabs};
 const adoptionDetail={tagName:'DETAILS',dataset:{},open:false,parentElement:adoptionPanel};
 const anchorSelections=[];
-const anchors=vm.createContext({window:{addEventListener(){}},document:{getElementById(id){return {'capability-firecrawl':capabilityDetail,'evidence-firecrawl':adoptionDetail}[id]}}});
+const anchors=vm.createContext({window:{addEventListener(){}},document:{addEventListener(){},getElementById(id){return {'capability-firecrawl':capabilityDetail,'evidence-firecrawl':adoptionDetail}[id]}}});
 vm.runInContext(js,anchors);
 anchors.chooseTab=(group,key)=>anchorSelections.push([group,key]);
 vm.runInContext("applyReportAnchor('capability-firecrawl')",anchors);
@@ -126,6 +127,7 @@ const comparisonControls={
 };
 const compareChecks=['a','b','c'].map(value=>({value,checked:value==='b',disabled:false,closest(){return {classList:{toggle(){}}}}}));
 const comparison=vm.createContext({window:{addEventListener(){}},document:{
+ addEventListener(){},
  getElementById(id){return comparisonControls[id]},
  querySelectorAll(selector){if(selector==='#compare-rows tr')return comparisonRows;if(selector==='[data-compare-method]')return compareChecks;return []}
 }});

@@ -1,0 +1,72 @@
+{
+  "schema_version": 2,
+  "kind": "reference_freeze_promotion",
+  "input_dataset_sha256": "38bccaea8397429f72dd3c57c9f30b99d6ae99119a22310e958e05040374add0",
+  "capture_audit_sha256": "57dfa6d74c5f92f05bb50a0994820ae85095026fe75ba6bc5e994f3d186c44f9",
+  "candidate_dataset_sha256": "6e227724324deb35d9fb338e17b9723cccab0497c8ba3e4cd61aa47a5b40d12d",
+  "changes": [
+    {
+      "case_id": "stable-wikipedia-ai-revision",
+      "affected_scope": [
+        "ground_truth_main_content",
+        "body_requirements"
+      ],
+      "old_reference_sha256": "33699739103f15ee6a9974fd277ece548590def11b2b8589544454b0ecb57176",
+      "new_reference_sha256": "92aeb97b02820f046043dc771243243260835ba3565bcb24c798346107c7d0ef",
+      "old_body_requirements_sha256": "071e9d84dd14a313ffdeba4f64db9df2f05bffeb81558a6503cb9acd1ce56fe9",
+      "new_body_requirements_sha256": "b96c78bd61cd8a580df6b37fb36c61dcfaea6b8f18aa30a3148bb0390b38bc6d",
+      "source_revision": {
+        "url": "https://en.wikipedia.org/w/index.php?title=Artificial_intelligence&oldid=1373671334",
+        "revision": "oldid:1373671334",
+        "source_snapshot_sha256": "6e8a90637feeccecfcc60178e75efc5a9aa67a2bd801083f073f61f829e554ed"
+      }
+    },
+    {
+      "case_id": "live-033-nasa-science",
+      "affected_scope": [
+        "ground_truth_main_content",
+        "body_requirements"
+      ],
+      "old_reference_sha256": "d8095c83f55cb6c890bc16b829ff85fba17ed48011c0f19b3da47cbfe70f8861",
+      "new_reference_sha256": "948f805b35895817b403a927a9d71a22c09823ac1770f7fd1994b650dd0cda46",
+      "old_body_requirements_sha256": "fdee3674676a42712cc19653fa25676261696f7c6c36513cf92627f0db3b6b6f",
+      "new_body_requirements_sha256": "be41503f4403979f01400db44ac49d7ed1c309e22a3d312e695a64f382c51f9f",
+      "source_revision": {
+        "url": "https://science.nasa.gov/",
+        "revision": "snapshot:9275e91ca5c3864983bc3af195c4b7469829f8e13b657e7beeed0b29167b0972",
+        "source_snapshot_sha256": "9275e91ca5c3864983bc3af195c4b7469829f8e13b657e7beeed0b29167b0972"
+      }
+    },
+    {
+      "case_id": "live-037-breadcrumb",
+      "affected_scope": [
+        "ground_truth_main_content"
+      ],
+      "old_reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "new_reference_sha256": "ab62f0273ab9f9b792c99d2d021bb1fe7f6ff7fcf6af9935de7b65cc4443d2e8",
+      "old_body_requirements_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "new_body_requirements_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "source_revision": {
+        "url": "https://www.noaa.gov/climate",
+        "revision": "snapshot:58b4384ca1e53a66c69bc5a171bddad7e3b629c839b0b31757ae9361e3fc7683",
+        "source_snapshot_sha256": "58b4384ca1e53a66c69bc5a171bddad7e3b629c839b0b31757ae9361e3fc7683"
+      }
+    }
+  ],
+  "approved_by": "user-directed-independent-reference-review",
+  "approved_at": "2026-09-14T02:06:07Z",
+  "task_decision_changes": [],
+  "correction_provenance": {
+    "category": "reference-evidence",
+    "root_cause": "Reference lifecycle admitted three mutable or missing evidence paths: fixed Wikipedia revisions retained live Excerpt transclusions, a live NASA homepage retained an obsolete rotation, and a previously unavailable NOAA body could never recover after a later complete capture.",
+    "regression_ids": [
+      "reference-scope-retains-main-content",
+      "reference-scope-excludes-site-chrome"
+    ],
+    "verdict_corrections": {
+      "false_positives": 0,
+      "false_negatives": 0,
+      "total": 0
+    }
+  }
+}

@@ -45,6 +45,7 @@ def load_list_reference(case: EvalCase | dict[str, Any], source: Path) -> dict |
 # re-certified by text scoring.
 _CONDITIONAL_FIELDS = {
     "acceptance_contract_sha256", "content_decision_basis", "factual_correctness",
+    "resource_acceptance_contract_sha256",
     "structure_pass", "named_entry_count", "minimum_entries", "snapshot_f1",
     "dynamic_titles", "verification_note", "confirmed_entries", "checked_entries",
 }
@@ -60,6 +61,7 @@ def score_attempt(
     list_reference: dict | None = None,
     status_code: int | None = None,
     prepared_answer: tuple | None = None,
+    title: str | None = None,
 ) -> dict[str, Any]:
     """Score the exact persisted bytes identically for live and offline callers.
 
@@ -81,11 +83,39 @@ def score_attempt(
     keys = ("required_facts", "forbidden_any", "min_content_chars",
             "fact_coverage_threshold", "ground_truth_main_content", "required_patterns",
             "acceptance_contract", "body_requirements")
-    result.update(evaluate_content(content, case.get("expected_any", []),
-        base_url=case["url"], named_links=links, **{key: case[key] for key in keys if key in case}))
+    task_kind = case.get("task_kind", "body")
+    result.update(evaluate_content(
+        content, case.get("expected_any", []), title=title,
+        base_url=case["url"], named_links=links,
+        allow_reference_block_exemptions=(
+            task_kind == "body" and not case.get("acceptance_contract")
+        ),
+        **{key: case[key] for key in keys if key in case},
+    ))
     result.update(request_ok=ok, request_status_basis=status_basis,
                   normalized_named_link_count=len(links))
-    result["task_kind"] = case.get("task_kind", "body")
+    result["task_kind"] = task_kind
+    # A truncation notice defeats sparse anchors, but it is not evidence that
+    # reference text is missing when every declared body region has exact
+    # recall. Extra provider prose does not reduce recall, so require 1.0 for
+    # every region rather than the ordinary threshold/floor contract.
+    declared_regions = (case.get("body_requirements") or {}).get("regions") or []
+    measured_regions = result.get("body_region_results") or []
+    exact_body_proven = bool(
+        declared_regions
+        and len(measured_regions) == len(declared_regions)
+        and all(region.get("coverage") == 1.0 for region in measured_regions)
+        and result.get("content_pass")
+        and (not case.get("acceptance_contract") or result.get("stable_task_pass"))
+    )
+    if (result["task_kind"] == "body" and result["declared_truncation_hits"]
+            and not exact_body_proven):
+        result["content_pass"] = False
+        if contract := case.get("acceptance_contract"):
+            result["stable_task_pass"] = False
+            result["stable_content_pass"] = False
+            if "declared_truncation" not in result["stable_task_errors"]:
+                result["stable_task_errors"].append("declared_truncation")
     file_evaluation = (metadata or {}).get('file_evaluation')
     if result['task_kind'] == 'file' and isinstance(file_evaluation, dict) and 'raw_file_pass' not in result:
         result['raw_file_pass'] = bool(file_evaluation.get('pass'))
@@ -108,8 +138,18 @@ def score_attempt(
     hits = sum(bool(check["pass"]) for check in checks) if ok else 0
     result.update(content_check_hits=hits, content_check_total=total,
                   content_check_coverage=round(hits / total, 4) if total else None)
-    result.update(evaluate_resources(content, metadata or {}, case.get("expected_resources", []),
-                                    base_url=case["url"], eligible=ok))
+    result.update(evaluate_resources(
+        content, metadata or {}, case.get("expected_resources", []),
+        base_url=case["url"], eligible=ok,
+        output_contract=case.get("resource_output_contract", {}),
+    ))
+    if case.get("expected_resources") or case.get("resource_output_contract"):
+        resource_contract = {
+            "expected_resources": case.get("expected_resources", []),
+            "resource_output_contract": case.get("resource_output_contract", {}),
+        }
+        result["resource_acceptance_contract_sha256"] = hashlib.sha256(json.dumps(
+            resource_contract, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     benchmark = case.get("source_benchmark", {})
     if not contract and benchmark.get("mode") == "dynamic_list_structure":
         result.update(evaluate_dynamic_list(content, benchmark, case["url"], ok, links))

@@ -1,8 +1,8 @@
 {
   "case_id": "image-unsplash-detail",
   "url": "https://unsplash.com/photos/green-leaf-plants-mSK5nNsAsLY",
-  "checked_at": "2026-09-02T08:02:52.685161+00:00",
-  "source": "independent HTTP GET (no provider output)",
+  "checked_at": "2026-09-11T13:00:23+00:00",
+  "source": "independent HTTP GET plus independent in-app Chromium accessibility-tree observation (no provider output)",
   "attempts": [
     {
       "status": 403,
@@ -21,7 +21,15 @@
   "text_chars": 0,
   "excerpt": "",
   "missing_facts": [],
-  "state": "needs_review",
-  "browser_review": "已核对实际目标内容；403 不等于站点失效",
+  "state": "browser_observed",
+  "browser_review": "独立浏览器打开真实 Unsplash 详情页，页面标题、主图说明和官方 Download free 链接均对应照片 mSK5nNsAsLY；将该官方链接登记为同一主图的有效别名，未下载图片资源。",
+  "independent_browser_observation": {
+    "path": "browser-observation.json",
+    "sha256": "1d4824d1f09b8deeef0f846b07d95fefa74ae15ed6a2d70e563d064ae531f84b",
+    "status": "success",
+    "completion_satisfied": true,
+    "target_count": 1,
+    "target_hits": 1
+  },
   "replacement_reason": "分类流会更新，旧规则绑定两张历史作品；改为单张作品详情。"
 }
