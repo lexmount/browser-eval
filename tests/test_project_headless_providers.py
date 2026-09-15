@@ -39,6 +39,13 @@ def test_projection_keeps_reviewed_attempts_and_rebinds_receipts(tmp_path: Path)
         ],
     }
     (source / "result-review.json").write_text(json.dumps(review))
+    (source / "latency-corrections.json").write_text(json.dumps({
+        "selection": "historical Moli three-version correction",
+        "changes": [{"provider": provider, "case_id": "a"}
+                    for provider in ("keep", "remove")],
+        "diagnostic_summary": {provider: {"calls": 3}
+                               for provider in ("keep", "remove")},
+    }))
 
     project_bundle(source, output, ["keep"], conversion="current")
 
@@ -51,3 +58,11 @@ def test_projection_keeps_reviewed_attempts_and_rebinds_receipts(tmp_path: Path)
     assert require_result_review(output, projected_dataset, projected_records)["reviewed_attempts"] == 1
     projected_review = json.loads((output / "result-review.json").read_text())
     assert projected_review["projection"]["removed_providers"] == ["remove"]
+    projected_latency = json.loads((output / "latency-corrections.json").read_text())
+    assert projected_latency["diagnostic_summary"] == {"keep": {"calls": 3}}
+    assert projected_latency["superseded_logical_results"] == 1
+    assert projected_latency["projection"]["removed_providers"] == ["remove"]
+    assert "Moli" not in projected_latency["selection"]
+    scoring = json.loads((output / "scoring-revisions.json").read_text())[-1]
+    assert "remove" in scoring["projection"]
+    assert "Moli" not in scoring["projection"]

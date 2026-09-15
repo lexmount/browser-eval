@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import subprocess
 import time
 import uuid
@@ -60,6 +61,8 @@ class ContainerResourceRunner:
     def validate(self) -> dict[str, Any]:
         client = docker.from_env()
         info = require_linux_cgroup_v2(client)
+        if shutil.which("docker") is None:
+            raise RuntimeError("Docker CLI is required to pass the worker request through stdin")
         image = client.images.get(self.image)
         attrs = image.attrs
         return {

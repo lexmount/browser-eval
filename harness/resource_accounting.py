@@ -64,7 +64,14 @@ class LinuxContainerResources:
             encoding="ascii"
         ).split()}
         counters = self.counters()
-        return ResourceSample(elapsed_ms, memory, len(pids), *counters.__dict__.values())
+        return ResourceSample(
+            elapsed_ms=elapsed_ms,
+            memory_current_bytes=memory,
+            pids_current=len(pids),
+            cpu_usage_usec=counters.cpu_usage_usec,
+            network_rx_bytes=counters.network_rx_bytes,
+            network_tx_bytes=counters.network_tx_bytes,
+        )
 
 
 class DockerStatsResources:

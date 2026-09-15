@@ -1700,6 +1700,7 @@ TEXT.update({
     "满足该例全部验收规则的次数 ÷ 已有验收证据的任务。段落、列表、字段都属于内容要求；": "Calls satisfying every acceptance rule divided by tasks with usable acceptance evidence. Paragraphs, lists, and fields all count as content requirements;",
     "。请求失败计入分母；任何计划调用缺失或无法判分时，整份报告标为不可靠并禁止发布。": ". Request failures remain in the denominator. If any planned call is missing or cannot be judged, the entire report is marked unreliable and cannot be published.",
     "当前成绩包含对保存输出的离线重算；文件任务另在 2026-09-04 真实补测，选取 36 次新调用替换原缺测项，详情见": "Current scores include offline rescoring of saved outputs. File tasks were also rerun on 2026-09-04, with 36 new calls replacing previously missing measurements; see",
+    "只列本报告方法的修订。其余历史调用的输出与计时保留，不能把跨批次视图当成同时重跑。": "lists only corrections for methods in this report. Outputs and timings for all other historical calls are retained; this cross-batch view must not be presented as a simultaneous rerun.",
     "。Moli 时延纠正只替换固定四题、三个版本的 12 个耗时值，并统一取三轮配对实验的最终轮；旧耗时和全部 36 次物理调用保留在": ". The Moli latency correction replaces only 12 latency values for the same four tasks across three versions, consistently using the final round of a three-round paired experiment. Previous timings and all 36 physical calls remain in",
     "中。其余历史调用的输出与计时保留，不能把跨批次视图当成同时重跑。": ". Outputs and timings for all other historical calls are retained; this cross-batch view must not be presented as a simultaneous rerun.",
     "记录输入、输出哈希、判定变化及供应商调用数，不把新规则伪装成原调用时的运行配置。": "record inputs, output hashes, verdict changes, and provider-call counts without presenting later rules as the original run configuration.",
@@ -2715,6 +2716,7 @@ TEXT.update({
     "仓库规则和报告检查同时要求首页、解读页及中英文版具备赢家摘要、三类分组和逐项赢家标记。": "Repository rules and report checks now require a winner summary, three grouped sections, and per-metric winner markers on the home and interpretation pages in both languages.",
     "以后新增或重建报告时缺失任一部分都会阻断发布。": "Future report creation or rebuilding is blocked if any of these elements is missing.",
     "本轮资源效率领先": "Resource-efficiency leader in this run",
+    "本轮资源效率并列领先": "Resource-efficiency co-leaders in this run",
     "个可按低消耗比较的指标最低。资源结果与任务通过率分别判断，不合成总分。": "lower-is-better resource metrics. Resource results and task pass rate are judged separately and are not combined into a composite score.",
     "CPU 领先者": "CPU leader",
     "内存领先者": "Memory leader",
@@ -2722,6 +2724,8 @@ TEXT.update({
     "平均 CPU 时间": "Mean CPU time",
     "平均峰值内存": "Mean peak memory",
     "平均接收 / 平均发送": "Mean received / mean sent",
+    "接收": "Received",
+    "发送": "Sent",
     "同题口径：四种本地配置共同通过": "Matched-task scope: general pages passed by all four local configurations:",
     "个普通网页；失败任务不进入资源排名。": "pages; failed tasks do not enter the resource ranking.",
     "CPU 与计算": "CPU and compute",
@@ -2752,6 +2756,19 @@ TEXT.update({
 REGEX.insert(0, (
     re.compile(r"^(\d+)/(\d+)$"),
     r"\1/\2",
+))
+REGEX.insert(0, (
+    re.compile(r"^。当前报告的 (.+) 时延纠正仅替换 (\d+) 个耗时值，统一取配对实验的第 (\d+) 轮；旧耗时和原始物理调用保留在离线证据，当前投影的$"),
+    r". In the current report, the latency correction for \1 replaces only \2 timings and consistently uses round \3 of the paired experiment. Previous timings and physical calls remain in the offline evidence; the projected",
+))
+REGEX.insert(0, (
+    re.compile(r"^接收 (.+) / 发送 (.+)$"),
+    lambda match: "Received " + match.group(1).replace("、", ", ")
+    + " / sent " + match.group(2).replace("、", ", "),
+))
+REGEX.insert(0, (
+    re.compile(r"^(?:Chromium|Lightpanda|Moli 1\.1\.1|Obscura)(?:、(?:Chromium|Lightpanda|Moli 1\.1\.1|Obscura))+$"),
+    lambda match: match.group(0).replace("、", ", "),
 ))
 REGEX.insert(0, (
     re.compile(r"^(.+) 是本轮资源效率领先者，在 (\d+) 个可按低消耗比较的指标中取得 (\d+) 项最低。这里的资源领先不等于综合任务通过率领先。$"),

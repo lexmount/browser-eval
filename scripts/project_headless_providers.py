@@ -48,6 +48,7 @@ def project_bundle(source: Path, output: Path, provider_order: list[str], *,
     require_result_review(source, dataset, records)
     available = {record["provider"] for record in records}
     providers = set(provider_order)
+    removed_providers = sorted(available - providers)
     if not providers or not providers <= available:
         raise ValueError("Requested provider projection is absent from the source matrix")
     projected = [record for record in records if record["provider"] in providers]
@@ -99,7 +100,7 @@ def project_bundle(source: Path, output: Path, provider_order: list[str], *,
     review["projection"] = {
         "kind": "reviewed_provider_subset",
         "source_review_sha256": digest(source_review_path),
-        "removed_providers": sorted(available - providers),
+        "removed_providers": removed_providers,
         "provider_calls": 0,
         "condition": "retained task definitions, attempt records and review-visible artifacts are byte-identical",
     }
@@ -132,12 +133,22 @@ def project_bundle(source: Path, output: Path, provider_order: list[str], *,
         receipt["changes"] = [
             change for change in receipt.get("changes", []) if change.get("provider") in providers
         ]
+        if isinstance(receipt.get("diagnostic_summary"), dict):
+            receipt["diagnostic_summary"] = {
+                name: value for name, value in receipt["diagnostic_summary"].items()
+                if name in providers
+            }
         receipt["superseded_logical_results"] = len(receipt["changes"])
         receipt["output_results_sha256"] = results_hash
         receipt["selection"] = (
-            "same four cases for Moli 1.1.1; projected from reviewed three-version "
-            "final-round correction"
+            "reviewed final-round latency correction projected to retained providers; "
+            f"{len(receipt['changes'])} logical results retained; no new provider calls"
         )
+        receipt["projection"] = {
+            "kind": "reviewed_provider_subset",
+            "removed_providers": removed_providers,
+            "provider_calls": 0,
+        }
         latency_path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n")
 
     scoring_path = output / "scoring-revisions.json"
@@ -155,7 +166,8 @@ def project_bundle(source: Path, output: Path, provider_order: list[str], *,
         "immutable_call_fields": "retained task inputs, attempt records, output bytes, scores and verdicts unchanged",
         "source_scoring_receipts_sha256": scoring_revision_history_sha256(history),
         "independent_result_review_sha256": digest(review_path),
-        "projection": "current report removes historical Moli 1.0.6 and 1.1.3 rows",
+        "projection": "reviewed current-report provider subset; removed providers: "
+        + (", ".join(removed_providers) or "none"),
     })
     scoring_path.write_text(json.dumps(history, ensure_ascii=False, indent=2) + "\n")
 

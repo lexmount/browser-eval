@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 from pathlib import Path
+from pathlib import PurePosixPath
 import tempfile
 import unittest
 
@@ -11,7 +12,8 @@ from harness.web_fetch.reference_lifecycle import (preflight_reference_checks, s
 from harness.web_fetch.report_explainer import (
     _digest, _headless_article_input, _article_speed_population,
     _render_article_resources, headless_evidence, render_explainer)
-from harness.web_fetch.report_resources import render_resource_comparison
+from harness.web_fetch.report_resources import GROUPS, render_resource_comparison
+from harness.web_fetch.report_i18n import localize_html
 from scripts.certify_headless_cases import certify_case
 from scripts.assemble_headless import (assemble, copy_bound_review, read_verified_batches,
                                        bind_assembled_scoring_revision,
@@ -39,6 +41,25 @@ class HeadlessReportTests(unittest.TestCase):
         self.assertIn('<span>CPU 领先者</span><strong>Lightpanda</strong>', page)
         self.assertIn('<span>内存领先者</span><strong>Obscura</strong>', page)
         self.assertIn('<span>网络流量领先者</span><strong>接收 Chromium / 发送 Lightpanda</strong>', page)
+        english = localize_html(page, PurePosixPath('guide/index.html'))
+        self.assertIn('Received Chromium / sent Lightpanda', english)
+        self.assertNotIn('接收 Chromium', english)
+
+    def test_resource_co_leaders_are_named_in_both_languages(self):
+        providers = ['moli', 'lightpanda', 'obscura', 'chromium']
+        keys = {key for _, metrics in GROUPS for _, key, _, _, _ in metrics}
+        summary = {'rows': [
+            {'provider': provider, 'metrics': {
+                key: {'mean': 1, 'p50': 1, 'p95': 1} for key in keys}}
+            for provider in providers],
+            'common_pass_cases': ['a'], 'planned_cases': ['a'],
+        }
+        page, result = render_resource_comparison(summary, providers)
+        self.assertTrue(result['winner_tied'])
+        english = localize_html(page, PurePosixPath('guide/index.html'))
+        self.assertIn('Resource-efficiency co-leaders in this run', english)
+        self.assertIn('Lightpanda, Moli 1.1.1, Obscura, Chromium', english)
+        self.assertNotIn('资源效率并列领先', english)
 
     def test_resource_table_excludes_unobservable_remote_provider(self):
         selected = ['moli', 'chromium', 'lightpanda', 'obscura', 'kitesurf']

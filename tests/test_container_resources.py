@@ -6,6 +6,13 @@ import pytest
 from harness.web_fetch.container_resources import ContainerResourceRunner
 
 
+@pytest.fixture(autouse=True)
+def _available_docker_cli():
+    with patch("harness.web_fetch.container_resources.shutil.which",
+               return_value="/usr/bin/docker"):
+        yield
+
+
 def _client(*, os_type="linux", cgroup="2"):
     client = MagicMock()
     client.info.return_value = {
@@ -50,6 +57,14 @@ def test_resource_environment_binds_image_limits_and_network_scope():
         "one dedicated bridge with no peer containers per call"
     )
     assert result["controller_excluded"] is True
+
+
+def test_resource_backend_rejects_missing_docker_cli():
+    runner = ContainerResourceRunner("fixture:local")
+    with patch("harness.web_fetch.container_resources.docker.from_env", return_value=_client()), \
+         patch("harness.web_fetch.container_resources.shutil.which", return_value=None):
+        with pytest.raises(RuntimeError, match="Docker CLI is required"):
+            runner.validate()
 
 
 def test_resource_identity_hashes_binary_inside_bound_image():
