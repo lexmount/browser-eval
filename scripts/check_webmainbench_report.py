@@ -123,7 +123,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     if request is None or request.get("data-wmb-default") != "failed" or request.select_one("option[selected]").get("value") != "failed":
         raise ValueError("WebMainBench request filter must initially locate failed requests")
     failed_count = sum(not row["ok"] for row in records)
-    if f"默认先看 {failed_count} 条请求失败" not in analysis.get_text(" ", strip=True):
+    if f"默认先看 {failed_count} 条未交付" not in analysis.get_text(" ", strip=True):
         raise ValueError("WebMainBench failure-first explanation does not match the measured matrix")
     if len(analysis.select("#wmb-compare-rows > tr")) != 200 or len(analysis.select("[data-wmb-compare-method]")) != 5:
         raise ValueError("WebMainBench same-page group comparison is incomplete")
@@ -147,6 +147,10 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     dataset_page = BeautifulSoup((root / "datasets/index.html").read_text(encoding="utf-8"),"html.parser")
     if len(dataset_page.select('table[data-wmb-table] tbody tr')) != 200:
         raise ValueError("WebMainBench 200-case filtered dataset inventory is incomplete")
+    if dataset_page.select('[data-wmb-filter="request"]') or '公式' not in dataset_page.select('#wmb-cases th')[-1].get_text(strip=True):
+        raise ValueError("Dataset inventory must describe the frozen pages, not method outcomes")
+    if len(analysis.select('#wmb-denominator-ledger tbody > tr')) != 25:
+        raise ValueError("Method-by-metric denominator ledger is incomplete")
     home_page = BeautifulSoup((root / "index.html").read_text(encoding="utf-8"), "html.parser")
     if len(home_page.select("#wmb-home-components [role=tab]")) != 5:
         raise ValueError("WebMainBench five component rankings must be switchable")
@@ -165,9 +169,9 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
             hrefs = {link.get("href", "") for link in case_page.select("a[href]")}
             if (not any(f"references/{case_id}.md" in href for href in hrefs)
                     or not any(f"sources/{case_id}.html.txt" in href for href in hrefs)
-                    or len(case_page.select("#case-results table tbody > tr")) != 5
-                    or not case_page.select_one("pre")):
-                raise ValueError("WebMainBench case detail lacks full reference, frozen input or five scores: " + case_id)
+                    or case_page.select("#case-results")
+                    or len(case_page.select("pre.wmb-source-pre")) != 2):
+                raise ValueError("WebMainBench case detail lacks independent reference or frozen input: " + case_id)
     for route in ("datasets/index.html", "analysis/index.html"):
         localized = [BeautifulSoup((root / prefix / route).read_text(encoding="utf-8"), "html.parser")
                      for prefix in ("", "en/")]

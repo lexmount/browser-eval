@@ -29,6 +29,8 @@ class WebMainBenchReportTests(unittest.TestCase):
             }
             (output / "references").mkdir()
             (output / "references" / f"{case_id}.md").write_text("# Reference", encoding="utf-8")
+            (output / "sources").mkdir()
+            (output / "sources" / f"{case_id}.html.txt").write_text("<h1>Frozen input</h1>", encoding="utf-8")
             records = []
             summaries = {}
             manifests = []

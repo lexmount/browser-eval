@@ -13,6 +13,7 @@ class Links(HTMLParser):
         self.values: list[str] = []
         self.ids: set[str] = set()
         self.filter_options: dict[str,set[str]] = {}
+        self.text_filters: set[str] = set()
         self.current_filter: str | None = None
         self.base_href: str | None = None
 
@@ -24,6 +25,8 @@ class Links(HTMLParser):
         if tag=='select':
             self.current_filter=attrs_by_name.get('data-wmb-filter')
             if self.current_filter:self.filter_options.setdefault(self.current_filter,set())
+        elif tag=='input' and attrs_by_name.get('data-wmb-filter'):
+            self.text_filters.add(attrs_by_name['data-wmb-filter'])
         elif tag=='option' and self.current_filter:
             self.filter_options[self.current_filter].add(attrs_by_name.get('value') or '')
         for key, value in attrs:
@@ -65,9 +68,10 @@ def check(root: Path) -> None:
                 continue
             if parsed.fragment and target.suffix.lower() in {".html", ".htm"}:
                 if parsed.fragment.startswith('inspect?'):
-                    controls=parse_page(target).filter_options
+                    target_page=parse_page(target)
+                    controls=target_page.filter_options
                     params=parse_qs(parsed.fragment[8:],keep_blank_values=True)
-                    if not controls or any(key not in controls or len(values)!=1 or values[0] not in controls[key]
+                    if not controls or any((key not in controls and key not in target_page.text_filters) or len(values)!=1 or (key in controls and values[0] not in controls[key])
                                            for key,values in params.items()):
                         missing.append(f"{page.relative_to(root)} -> {value} (invalid report filter)")
                     continue

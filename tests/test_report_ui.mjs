@@ -148,9 +148,9 @@ assert.doesNotThrow(()=>vm.runInContext('compareMethods()',comparison));
 console.log('PASS: one unified method-set comparison covers asymmetric, shared, mixed and empty selections');
 
 const wmbRows=[
- {dataset:{method:'moli',language:'en',level:'hard',request:'failed',failure:'timeout',text_edit:''},textContent:'case-a Moli timeout',cells:[{textContent:''}]},
- {dataset:{method:'moli',language:'en',level:'hard',request:'success',text_edit:'0.18'},textContent:'case-b Moli content',cells:[{textContent:''}]},
- {dataset:{method:'kitesurf',language:'zh',level:'mid',request:'success',text_edit:'0.82'},textContent:'case-c Kitesurf content',cells:[{textContent:''}]}
+ {dataset:{method:'moli',language:'en',level:'hard',request:'failed',failure:'timeout',text_edit:'',search:'case-a Moli timeout'},cells:[{textContent:''}]},
+ {dataset:{method:'moli',language:'en',level:'hard',request:'success',text_edit:'0.18',search:'case-b Moli content'},cells:[{textContent:''}]},
+ {dataset:{method:'kitesurf',language:'zh',level:'mid',request:'success',text_edit:'0.82',search:'case-c Kitesurf content'},cells:[{textContent:''}]}
 ];
 const wmbTable={tBodies:[{rows:wmbRows}],closest(){return {scrollIntoView(){wmbTable.scrolled=true}}}};
 const wmbCount={textContent:''};
@@ -179,6 +179,10 @@ vm.runInContext('wmbFilters()',wmbContext);
 assert.ok(wmbRows.every(r=>r.hidden));
 vm.runInContext('wmbReset()',wmbContext);
 assert.deepEqual(wmbRows.map(r=>r.hidden),[false,false,false]);
+wmbSelections.find(c=>c.dataset.wmbFilter==='query').value='case-c';
+vm.runInContext('wmbFilters()',wmbContext);
+assert.deepEqual(wmbRows.map(r=>r.hidden),[true,true,false]);
+vm.runInContext('wmbReset()',wmbContext);
 console.log('PASS: WebMainBench all-default, method, category, request, metric-band, unavailable and deep-link filters');
 
 const sliceRows=[
