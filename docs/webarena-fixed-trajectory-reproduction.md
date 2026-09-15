@@ -33,8 +33,9 @@ LLM judge；两个浏览器重放相同的 WebArena 公开人工轨迹，再由�
    `uv run --frozen python scripts/verify_webarena_env_contract.py --environment-repo <webarena-env>`，
    确认上游版本、六个站点、镜像 digest 和架构完全一致。
 2. 在 `webarena-env` 复制 `config/runtime.example.json`，填写浏览器容器可访问的主机名，
-   运行 `webarena-env verify/start` 并保留回执。Map 还需要先按官方 setup 配好九个
-   数据卷。账号只通过环境变量提供。
+   运行 `webarena-env verify/start` 并保留回执。Map 的三份 tar 须先用
+   `uv run --frozen python -m webarena_env.map_archives --data-dir <下载目录>` 核对 SHA-256，
+   再按官方 setup 初始化九个数据卷。账号只通过环境变量提供。
 3. 在本仓库复制 `examples/trajectory_replay/public_webarena/webarena.config.example.json`，使用同一组端口、
    镜像 digest、网站地址与凭据变量名；运行环境 smoke，确认 CDP、登录、HAR 与站点 origin。
    示例默认共用本机 Docker daemon，不假定存在某个用户的 rootless socket。若使用两条

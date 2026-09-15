@@ -40,6 +40,26 @@ def _write_environment_repo(root: Path, evaluation_lock: Path) -> Path:
         },
     }
     (root / "config/runtime.example.json").write_text(json.dumps(template), encoding="utf-8")
+    archive_names = ("osm_tile_server.tar", "nominatim_volumes.tar", "osrm_routing.tar")
+    delivery = {
+        "webarena_verified_version": compact["webarena_verified_version"],
+        "image_lock": "images.lock.json",
+        "components": {
+            site: {"image": row["pinned"]}
+            for site, row in compact["images"].items()
+            if site != "wikipedia"
+        }
+    }
+    delivery["components"]["map"].update(
+        {
+            "data_urls": [f"https://example.invalid/{name}" for name in archive_names],
+            "data_archive_sha256": {name: "0" * 64 for name in archive_names},
+            "data_archive_bytes": {name: 1 for name in archive_names},
+        }
+    )
+    (root / "config/site-delivery-contract.json").write_text(
+        json.dumps(delivery), encoding="utf-8"
+    )
     return path
 
 
@@ -72,4 +92,26 @@ def test_cross_repo_contract_rejects_port_and_credential_drift(tmp_path):
     payload["credentials_env"]["shopping_admin"]["username"] = "WRONG_USERNAME"
     path.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError, match="credential variable names differ: shopping_admin"):
+        verify(tmp_path)
+
+
+def test_cross_repo_contract_rejects_missing_map_digest(tmp_path):
+    evaluation_lock = Path("evaluation/browser-use-public/webarena-environment-images.json")
+    _write_environment_repo(tmp_path, evaluation_lock)
+    path = tmp_path / "config/site-delivery-contract.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    del payload["components"]["map"]["data_archive_sha256"]["osrm_routing.tar"]
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="Map archive checksum contract"):
+        verify(tmp_path)
+
+
+def test_cross_repo_contract_rejects_site_delivery_lock_path_drift(tmp_path):
+    evaluation_lock = Path("evaluation/browser-use-public/webarena-environment-images.json")
+    _write_environment_repo(tmp_path, evaluation_lock)
+    path = tmp_path / "config/site-delivery-contract.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["image_lock"] = "../images.lock.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="image lock path differs"):
         verify(tmp_path)

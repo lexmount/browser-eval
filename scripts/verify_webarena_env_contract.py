@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -63,11 +64,40 @@ def verify(environment_repo: Path, contract_path: Path = DEFAULT_CONTRACT) -> di
         env_credentials = (env_runtime.get("credentials_env") or {}).get(site)
         if env_credentials is not None and env_credentials != eval_row.get("credentials_env"):
             raise ValueError(f"cross-repository credential variable names differ: {site}")
+    delivery_path = environment_repo.resolve() / contract["environment_site_delivery_contract"]
+    delivery = json.loads(delivery_path.read_text(encoding="utf-8"))
+    if delivery.get("webarena_verified_version") != expected_version:
+        raise ValueError("cross-repository site delivery package version differs")
+    if (delivery_path.parent / str(delivery.get("image_lock"))).resolve() != (
+        environment_repo.resolve() / contract["environment_lock"]
+    ).resolve():
+        raise ValueError("cross-repository site delivery image lock path differs")
+    components = delivery.get("components") or {}
+    if set(components) != set(sites) - {"wikipedia"}:
+        raise ValueError("cross-repository site delivery inventory differs")
+    for site, component in components.items():
+        if component.get("image") != env_lock["images"][site]["pinned"]:
+            raise ValueError(f"cross-repository site delivery image differs: {site}")
+    map_site = components["map"]
+    archive_urls = map_site.get("data_urls") or []
+    archive_digests = map_site.get("data_archive_sha256") or {}
+    archive_bytes = map_site.get("data_archive_bytes") or {}
+    archive_names = [Path(urlparse(url).path).name for url in archive_urls]
+    if (
+        len(archive_names) != 3
+        or len(set(archive_names)) != 3
+        or set(archive_names) != set(archive_digests)
+        or set(archive_names) != set(archive_bytes)
+        or any(not re.fullmatch(r"[a-f0-9]{64}", str(value)) for value in archive_digests.values())
+        or any(not isinstance(value, int) or value <= 0 for value in archive_bytes.values())
+    ):
+        raise ValueError("cross-repository Map archive checksum contract is incomplete")
     return {
         "status": "pass",
         "webarena_verified_version": expected_version,
         "sites": len(sites),
         "runtime_templates": "matching",
+        "map_archive_checksums": "complete",
         "environment_pull_request": contract["environment_pull_request"],
     }
 
