@@ -125,6 +125,82 @@ def test_binding_journal_recovers_interrupted_two_file_update(
     assert json.loads(attestation.read_text())["profile_sha256"] == _sha256(profile)
 
 
+def test_pending_created_site_is_bound_to_release_package(monkeypatch, tmp_path: Path) -> None:
+    archive = tmp_path / "package.zip"
+    archive.write_bytes(b"package")
+    receipt = tmp_path / "receipt.json"
+    monkeypatch.setattr(publisher, "ARCHIVE", archive)
+    monkeypatch.setattr(publisher, "RECEIPT", receipt)
+    base = "https://app.example"
+    publisher.save_receipt(
+        {
+            "base_url": base,
+            "slug": "site-1",
+            "archive_sha256": publisher.sha256(archive),
+            "verified": False,
+        }
+    )
+
+    assert publisher.pending_created_site(base) == "site-1"
+    with pytest.raises(ValueError, match="differs"):
+        publisher.pending_created_site("https://other.example")
+    archive.write_bytes(b"different")
+    with pytest.raises(ValueError, match="differs"):
+        publisher.pending_created_site(base)
+
+
+@pytest.mark.parametrize("retry_create", [True, False])
+def test_share_failure_resumes_same_site_without_second_creation(
+    monkeypatch, tmp_path: Path, retry_create: bool
+) -> None:
+    archive = tmp_path / "package.zip"
+    archive.write_bytes(b"package")
+    receipt = tmp_path / "receipt.json"
+    monkeypatch.setattr(publisher, "ARCHIVE", archive)
+    monkeypatch.setattr(publisher, "RECEIPT", receipt)
+    monkeypatch.setattr(publisher, "validate_package", lambda: {})
+    monkeypatch.setattr(
+        publisher,
+        "publication_target",
+        lambda **_kwargs: (
+            {"publication": {"title": "Replay"}},
+            "https://app.example",
+            "",
+            "",
+        ),
+    )
+    monkeypatch.setattr(publisher, "multipart_archive", lambda _title: (b"zip", "zip"))
+    monkeypatch.setattr(publisher, "verify_export", lambda *_args: None)
+    calls = []
+    fail_share_once = True
+
+    def fake_request(_base, path, *_args, **_kwargs):
+        nonlocal fail_share_once
+        calls.append(path)
+        if path == "/api/sites":
+            return 200, b'{"slug":"site-1"}', {}
+        if path.endswith("/shares"):
+            if fail_share_once:
+                fail_share_once = False
+                return 503, b'{"error":"temporary"}', {}
+            return 200, b'{"url":"https://app.example/v/token"}', {}
+        if path == "/api/sites/site-1":
+            return 200, b'{"site":{"currentVersionId":"ver_1"}}', {}
+        if path == "/v/token" or path == "/api/preview/site-1":
+            return 200, "<title>浏览器轨迹重放</title>".encode(), {}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(publisher, "request", fake_request)
+    monkeypatch.setattr(publisher, "bind_publication", lambda *_args, **_kwargs: None)
+    with pytest.raises(RuntimeError, match="public share creation"):
+        publisher.main(create=True)
+
+    publisher.main(create=retry_create)
+
+    assert calls.count("/api/sites") == 1
+    assert calls.count("/api/sites/site-1/shares") == 2
+
+
 def test_package_binds_report_evidence_and_release_gate(monkeypatch, tmp_path: Path) -> None:
     report = tmp_path / "report"
     report.mkdir()

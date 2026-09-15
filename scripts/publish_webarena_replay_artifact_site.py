@@ -256,33 +256,33 @@ def save_receipt(value: dict) -> None:
     os.chmod(RECEIPT, 0o600)
 
 
+def pending_created_site(base: str) -> str:
+    if not RECEIPT.is_file():
+        return ""
+    receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
+    if receipt.get("verified"):
+        return ""
+    if (
+        receipt.get("base_url") != base
+        or receipt.get("archive_sha256") != sha256(ARCHIVE)
+        or not isinstance(receipt.get("slug"), str)
+        or not receipt["slug"]
+    ):
+        raise ValueError("pending site receipt differs from the current release package")
+    return receipt["slug"]
+
+
 def main(*, create: bool) -> None:
     validate_package()
-    profile, base, bound_slug, expected_version = publication_target(require_bound=not create)
+    profile, base, bound_slug, expected_version = publication_target(require_bound=False)
     publication = profile["publication"]
     title = str(publication.get("title") or "Browser Trajectory Replay")
     payload, content_type = multipart_archive(title)
-    if create:
-        if bound_slug or expected_version:
+    if bound_slug or expected_version:
+        if create:
             raise ValueError("replay report is already bound; update it without --create")
-        status, raw, _ = request(base, "/api/sites", payload, content_type)
-        created = response_json(status, raw, operation="site creation")
-        slug = str(created.get("slug") or "")
-        if not slug:
-            raise RuntimeError("site creation response omitted slug")
-        save_receipt(created)
-        share_status, share_raw, _ = request(
-            base,
-            f"/api/sites/{urllib.parse.quote(slug)}/shares",
-            json.dumps({"policy": "public"}).encode(),
-            "application/json",
-            method="POST",
-        )
-        share = response_json(share_status, share_raw, operation="public share creation")
-        share_url = str(share.get("url") or "")
-        if not share_url.startswith("https://"):
-            raise RuntimeError("share creation response omitted public URL")
-    else:
+        if not bound_slug or not expected_version.startswith("ver_"):
+            raise ValueError("current replay profile has no complete Artifact Site binding")
         slug = bound_slug
         share_url = str(publication.get("share_url") or "")
         status, raw, _ = request(base, f"/api/sites/{urllib.parse.quote(slug)}")
@@ -302,6 +302,37 @@ def main(*, create: bool) -> None:
                 content_type,
             )
             response_json(status, raw, operation="site version upload")
+    else:
+        slug = pending_created_site(base)
+        if slug:
+            verify_export(base, slug)
+        elif not create:
+            raise ValueError("no bound site or matching pending creation receipt")
+        else:
+            status, raw, _ = request(base, "/api/sites", payload, content_type)
+            created = response_json(status, raw, operation="site creation")
+            slug = str(created.get("slug") or "")
+            if not slug:
+                raise RuntimeError("site creation response omitted slug")
+            save_receipt(
+                {
+                    "base_url": base,
+                    "slug": slug,
+                    "archive_sha256": sha256(ARCHIVE),
+                    "verified": False,
+                }
+            )
+        share_status, share_raw, _ = request(
+            base,
+            f"/api/sites/{urllib.parse.quote(slug)}/shares",
+            json.dumps({"policy": "public"}).encode(),
+            "application/json",
+            method="POST",
+        )
+        share = response_json(share_status, share_raw, operation="public share creation")
+        share_url = str(share.get("url") or "")
+        if not share_url.startswith("https://"):
+            raise RuntimeError("share creation response omitted public URL")
     status, raw, _ = request(base, f"/api/sites/{urllib.parse.quote(slug)}")
     metadata = response_json(status, raw, operation="site lookup after upload")
     version = current_version(metadata)
