@@ -65,10 +65,15 @@ def verify(environment_repo: Path, contract_path: Path = DEFAULT_CONTRACT) -> di
         if env_credentials is not None and env_credentials != eval_row.get("credentials_env"):
             raise ValueError(f"cross-repository credential variable names differ: {site}")
     delivery_path = environment_repo.resolve() / contract["environment_site_delivery_contract"]
+    if not delivery_path.is_file():
+        raise ValueError(f"environment repo is missing site delivery contract: {delivery_path}")
     delivery = json.loads(delivery_path.read_text(encoding="utf-8"))
     if delivery.get("webarena_verified_version") != expected_version:
         raise ValueError("cross-repository site delivery package version differs")
-    if (delivery_path.parent / str(delivery.get("image_lock"))).resolve() != (
+    image_lock = delivery.get("image_lock")
+    if not isinstance(image_lock, str) or not image_lock:
+        raise ValueError("cross-repository site delivery image_lock is missing")
+    if (delivery_path.parent / image_lock).resolve() != (
         environment_repo.resolve() / contract["environment_lock"]
     ).resolve():
         raise ValueError("cross-repository site delivery image lock path differs")

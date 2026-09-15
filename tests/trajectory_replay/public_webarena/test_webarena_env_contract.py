@@ -115,3 +115,22 @@ def test_cross_repo_contract_rejects_site_delivery_lock_path_drift(tmp_path):
     path.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError, match="image lock path differs"):
         verify(tmp_path)
+
+
+def test_cross_repo_contract_reports_missing_site_delivery_contract(tmp_path):
+    evaluation_lock = Path("evaluation/browser-use-public/webarena-environment-images.json")
+    _write_environment_repo(tmp_path, evaluation_lock)
+    (tmp_path / "config/site-delivery-contract.json").unlink()
+    with pytest.raises(ValueError, match="missing site delivery contract"):
+        verify(tmp_path)
+
+
+def test_cross_repo_contract_reports_missing_image_lock_field(tmp_path):
+    evaluation_lock = Path("evaluation/browser-use-public/webarena-environment-images.json")
+    _write_environment_repo(tmp_path, evaluation_lock)
+    path = tmp_path / "config/site-delivery-contract.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    del payload["image_lock"]
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="image_lock is missing"):
+        verify(tmp_path)
