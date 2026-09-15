@@ -158,7 +158,9 @@ evaluation records, task decisions and `word_*` metrics are unchanged. Full-body
 metrics require a separately scoped, comparable complete reference.
 
 Web Fetch providers, execution, reference checks, scoring and report generation
-live in this package. Browser Use remains independent in `harness/browser_use`.
+live in this package. The fixed-action kernel benchmark remains independent in
+`harness/trajectory_replay`; autonomous browser-use evaluation lives in
+`harness/browser_use`.
 
 From the repository root:
 

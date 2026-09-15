@@ -1,6 +1,1158 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "history_scope": "本页从有完整审计依据的修订开始记录。更早的站点版本仍保留在 Artifact Hub，但没有逐项变更说明，故不补编历史。",
+  "history_scope_i18n": {
+    "en": "This history begins with revisions supported by a complete audit trail. Earlier Artifact Hub versions remain available, but no itemized history is reconstructed where the supporting record is incomplete."
+  },
+  "trajectory_replay_releases": [
+    {
+      "id": "2026-09-15-webarena-verified-90-artifact-site",
+      "date": "2026-09-15",
+      "title": "发布 90 题浏览器轨迹重放评测",
+      "summary": "发布 Chromium 与 Moli 1.1.3 的 90 题固定轨迹重放结果：Chromium 90/90，Moli 54/90；36 个最终失败全部完成证据绑定复核。Agent 与模型调用为零。",
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "7dF7uNK5SKIx",
+        "share_url": "https://artifact-hub.app.lexmount.com/v/hkZt38QFBpNIKtThKnqjpnBQk8At19PM",
+        "version": "ver_e92fe2d3c5a24001a36593fe6ca6fb4e"
+      },
+      "effects": {
+        "score": "首次发布；Chromium 90/90，Moli 54/90。",
+        "denominator": "每个浏览器 90 题，共 180 个逻辑结果。",
+        "latency": "发布均值、P50 与 P95；共同通过的 54 题用于端到端、CPU 与内存比较。",
+        "evidence": "591 个公开文件、372 个 HTML 页面和 4,856 条本地链接通过检查；36/36 个失败已复核。",
+        "limitations": "每个浏览器每题只有一个正式逻辑结果；结论限于冻结任务、版本和本地环境。"
+      },
+      "i18n": {
+        "en": {
+          "title": "Publish the 90-task browser trajectory-replay evaluation",
+          "summary": "Published fixed-trajectory replay results for Chromium and Moli 1.1.3 across 90 tasks: Chromium 90/90 and Moli 54/90. All 36 final failures have evidence-bound reviews. Agent and model calls are zero.",
+          "effects": {
+            "score": "Initial release: Chromium 90/90 and Moli 54/90.",
+            "denominator": "90 tasks per browser and 180 logical results in total.",
+            "latency": "Mean, P50, and P95 are reported; end-to-end, CPU, and memory comparisons use the 54 tasks both browsers passed.",
+            "evidence": "Checks passed for 591 public files, 372 HTML pages, and 4,856 local links; all 36 failures are reviewed.",
+            "limitations": "There is one formal logical result per browser and task. Conclusions are limited to the frozen tasks, versions, and local environment."
+          }
+        }
+      }
+    },
+    {
+      "id": "2026-09-15-trajectory-replay-drilldown",
+      "date": "2026-09-15",
+      "title": "补齐轨迹重放报告的逐题诊断与站点导航",
+      "summary": "新增每题的目标、验收输入和标准动作页；结果页可筛选同题浏览器成败关系，并从失败结果下钻到确切报错、失败动作、复核原因、完整工具返回、页面截图和公开证据。核心指标增加资源与网络统计。",
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "7dF7uNK5SKIx",
+        "share_url": "https://artifact-hub.app.lexmount.com/v/hkZt38QFBpNIKtThKnqjpnBQk8At19PM",
+        "version": "ver_0f4f162b973a4ba7afba2fb4e18d6173"
+      },
+      "effects": {
+        "score": "Chromium 90/90、Moli 54/90，分数未变。",
+        "denominator": "仍为每浏览器 90 题、共 180 个逻辑结果。",
+        "latency": "原有耗时未变；补充共同通过 54 题的资源与网络统计。",
+        "evidence": "771 个公开文件、552 个 HTML 页面、10,154 条本地链接和 72 个视觉状态通过检查；Sites 嵌套详情导航已实测恢复。",
+        "limitations": "逐题证据用于定位本轮失败，不能从单次结果外推总体稳定性。"
+      },
+      "i18n": {
+        "en": {
+          "title": "Add per-task replay diagnosis and repair hosted navigation",
+          "summary": "Added task pages for goals, evaluation input, and qualified actions. Results now filter same-task outcome relations and drill down to the exact error, failed action, reviewed cause, full tool response, last page, and public evidence. Core metrics add resource and network statistics.",
+          "effects": {
+            "score": "Scores remain Chromium 90/90 and Moli 54/90.",
+            "denominator": "Still 90 tasks per browser and 180 logical outcomes.",
+            "latency": "Measured timings are unchanged; resource and network statistics use the 54 shared passes.",
+            "evidence": "Checks covered 771 public files, 552 HTML pages, 10,154 local links, and 72 visual states. Hosted navigation from nested result pages was verified.",
+            "limitations": "Per-task evidence locates failures in this run; one outcome per task does not establish general reliability."
+          }
+        }
+      }
+    },
+    {
+      "id": "2026-09-15-trajectory-replay-browser-comparison-and-submission-diagnosis",
+      "date": "2026-09-15",
+      "title": "扩展多浏览器对比并定位缺失的提交请求",
+      "summary": "同题结果改为可选择基准与多个浏览器的成败分组；Moli 第 464、465 题由笼统的验收失败细化为验收请求未出现，并链接到可能触发提交的动作及原始判定。",
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "7dF7uNK5SKIx",
+        "share_url": "https://artifact-hub.app.lexmount.com/v/hkZt38QFBpNIKtThKnqjpnBQk8At19PM",
+        "version": "ver_ddc682f036c347a9a23c0831d611854c"
+      },
+      "effects": {
+        "score": "Chromium 90/90、Moli 54/90；原始评分未变。",
+        "denominator": "每浏览器 90 题、共 180 个逻辑结果。",
+        "latency": "无计时或测量修改。",
+        "evidence": "771 个公开文件、552 个 HTML 页面、10,154 条本地链接和 72 个视觉状态通过检查；178 份逐题证据文件与前版相同，2 份补充诊断字段。",
+        "limitations": "缺失请求不能改判为通过；第 464、465 题的轨迹或浏览器行为修复仍需重新资格验证和正式比较。"
+      },
+      "i18n": {
+        "en": {
+          "title": "Expand multi-browser comparison and locate absent submission requests",
+          "summary": "Same-task outcomes now group passes and failures with a selectable baseline and multiple comparison browsers. Moli tasks 464 and 465 identify an absent required request instead of a generic evaluator failure, with links to plausible trigger actions and the original finding.",
+          "effects": {
+            "score": "Scores remain Chromium 90/90 and Moli 54/90.",
+            "denominator": "90 tasks per browser and 180 logical outcomes.",
+            "latency": "No timing or measurement changes.",
+            "evidence": "Checks passed for 771 public files, 552 HTML pages, 10,154 local links, and 72 visual states. 178 result evidence files match the previous version; two add diagnosis fields.",
+            "limitations": "An absent required request cannot be rescored as a pass. Repairs to the trajectories or browser behavior for tasks 464 and 465 require renewed qualification and formal comparison."
+          }
+        }
+      }
+    },
+    {
+      "id": "2026-09-15-trajectory-replay-dataset-filter-and-navigation",
+      "date": "2026-09-15",
+      "title": "补齐评测集筛选、逐题结果入口与核验轮次",
+      "summary": "评测集按任务目标、站点、类型和轨迹来源筛选；每题分别下钻到任务合同与全部浏览器实测结果。核验页按范围、发现、纠正和未完成记录两轮核验。结果页统一命名为“结果分析”，环境页统一命名为“环境与方法”；拓扑图中英文分别标注。长任务目标在列表中以两行预览，全文仍在详情页。",
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "7dF7uNK5SKIx",
+        "share_url": "https://artifact-hub.app.lexmount.com/v/hkZt38QFBpNIKtThKnqjpnBQk8At19PM",
+        "version": "ver_fe02b959308441a1b88e01d3fa198ba4"
+      },
+      "effects": {
+        "score": "Chromium 90/90、Moli 54/90；官方分数未变。",
+        "denominator": "每浏览器 90 题，共 180 个逻辑结果。",
+        "latency": "未修改计时或资源测量。",
+        "evidence": "771 个公开文件、552 个 HTML 页面、10,512 条站内链接和 72 个视觉状态通过检查；评测集到同题结果的点击路径已验证。",
+        "limitations": "列表预览不代替完整任务合同；每题的完整轨迹与验收输入须在任务详情查看。"
+      },
+      "i18n": {
+        "en": {
+          "title": "Add dataset filters, exact-task drilldown, and review rounds",
+          "summary": "The dataset now filters by goal, site, task type, and trajectory source. Each row links separately to the task contract and all measured browser outcomes. The review page records two rounds by scope, finding, correction, and open items. Results analysis and Environment and method use consistent navigation labels; the topology is localized. Long goals are previewed in two lines while the task page retains the full text.",
+          "effects": {
+            "score": "Official scores remain Chromium 90/90 and Moli 54/90.",
+            "denominator": "90 tasks per browser and 180 logical outcomes in total.",
+            "latency": "No timing or resource measurement changes.",
+            "evidence": "Checks passed for 771 public files, 552 HTML pages, 10,512 local links, and 72 visual states. The dataset-to-outcome click path was exercised.",
+            "limitations": "The list preview does not replace the full task contract. Open a task page for its complete trajectory and acceptance input."
+          }
+        }
+      }
+    },
+    {
+      "id": "2026-09-15-trajectory-replay-aligned-step-evidence",
+      "date": "2026-09-15",
+      "title": "逐步并排对照标准轨迹与浏览器执行",
+      "summary": "逐题结果页按动作序号并排展示已验证的固定轨迹与实际执行，保留未执行步骤；点击任一步可查看标准与实际参数、完整工具返回、日志及原始报错。最后页面截图明确不冒充该步即时截图。",
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "7dF7uNK5SKIx",
+        "share_url": "https://artifact-hub.app.lexmount.com/v/hkZt38QFBpNIKtThKnqjpnBQk8At19PM",
+        "version": "ver_fcd443ac19fe403f8baa3442262246e1"
+      },
+      "effects": {
+        "score": "Chromium 90/90、Moli 54/90；评分未变。",
+        "denominator": "每浏览器 90 题，共 180 个逻辑结果。",
+        "latency": "未修改计时或资源测量。",
+        "evidence": "标准轨迹和逐次执行证据按需读取；861 个公开文件、552 个 HTML 页面、10,872 条本地链接和 72 个视觉状态通过检查。",
+        "limitations": "轨迹是经验证的可行输入，不代表任务唯一正确操作路径；最后页面截图不等同于动作报错瞬间。"
+      },
+      "i18n": {
+        "en": {
+          "title": "Align qualified actions with each browser's execution",
+          "summary": "Task results align the qualified fixed trajectory with actual execution by action index and retain steps that were not executed. Opening a step shows qualified and actual arguments, the complete tool response, logs, and exact error. The last observed page is not mislabeled as a screenshot of that step.",
+          "effects": {
+            "score": "Scores remain Chromium 90/90 and Moli 54/90.",
+            "denominator": "90 tasks per browser and 180 logical outcomes in total.",
+            "latency": "No timing or resource measurements changed.",
+            "evidence": "Qualified trajectories and execution evidence load on demand. Checks passed for 861 public files, 552 HTML pages, 10,872 local links, and 72 visual states.",
+            "limitations": "The trajectory is one qualified feasible input, not the only correct route. The last observed page is not necessarily the moment of an action error."
+          }
+        }
+      }
+    }
+  ],
+  "browser_use_reviews": [
+    {
+      "id": "review-2026-09-14-complete-90-task-primary-result",
+      "date": "2026-09-14",
+      "title": "恢复完整 90 题官方结果主口径",
+      "status": "已处理",
+      "scope": "Browser Use 首页、核心指标表、同题矩阵、性能统计和结果分析页。",
+      "findings": "上一版误把排除 14 个已知外部干扰任务后的 76 题事后诊断子集写成正式主结果，造成报告看起来只有 76 题；首页还重复突出首次执行与重试恢复，掩盖了每题一个最终逻辑结果的正式口径。",
+    "corrections": "首页和结果分析恢复完整 90 题官方 evaluator 结果；四种配置的核心指标、同题矩阵和性能统计均使用 90 题。76 题仅保留为明确标注的事后诊断子集，不改分、不替代官方结果。首页删除首次/重试拆分模块；共同成功性能统计按最终逻辑结果及其全部物理执行计算，物理执行明细只在单题证据页下钻。",
+      "remaining": "14 个外部干扰任务的历史分数保持不变；只有修复后按冻结协议产生新的完整 90 题证据批次，才能更新官方结果。",
+      "i18n": {"en": {
+        "title": "Restore the complete 90-task official result as the primary view",
+        "status": "Resolved",
+        "scope": "The Browser Use homepage, core metrics, same-task matrix, performance statistics, and result analysis.",
+        "findings": "The prior version incorrectly presented the 76-task post-hoc diagnostic subset, which excludes 14 known interference tasks, as the formal primary result. It therefore appeared to contain only 76 tasks. The homepage also overemphasized first attempts and retry recovery instead of one final logical result per task.",
+      "corrections": "Restored the complete official 90-task evaluator result on the homepage and analysis page. Core metrics, the same-task matrix, and performance statistics now use all 90 tasks across all four configurations. The 76-task view remains only as an explicitly labeled post-hoc diagnostic subset and does not rescore or replace the official result. Removed the first-attempt/retry split from the homepage; common-success performance now uses each final logical result and all of its physical executions, while physical-execution details remain on task evidence pages.",
+        "remaining": "Historical scores for the 14 interference tasks remain unchanged. Only a new complete 90-task evidence cohort produced after corrections under the frozen protocol can update the official result."
+      }}
+    },
+    {
+      "id": "review-2026-09-11-interpretation-reader-audit",
+      "date": "2026-09-11",
+      "title": "解读页、比较语义与双语版面复核",
+      "status": "已处理",
+      "scope": "报告首页、解读页、分析页、失败下钻、英文本地化和桌面/平板/手机断点。",
+      "findings": "原稿把不同模型配置放在一起标记优胜，混淆了程序判分位置与人工复核根因；重试累计也会扭曲性能对比。部分失败缺少直接下钻入口，英文页仍有中文残留，平板宽度过早堆成单列。",
+      "corrections": "优胜只在同一模型内比较浏览器；分别披露 43 个仅网络规则失败、20 个仅回答规则失败、12 个双规则失败，以及 29/24/10/8/2/2 的复核根因。性能资源改用四配置首次共同成功的 64 题且只取首次执行，并补齐逐结果链接、英文门禁和响应式布局。",
+      "remaining": "当前仍是每种配置一个正式样本。14 个已确认外部干扰任务需在修复后完整重跑；增加重复次数前不发布模型或浏览器总体排名。",
+      "i18n": {"en": {
+        "title": "Reader audit of interpretation, comparison semantics, and bilingual layout",
+        "status": "Resolved",
+        "scope": "The report home, guide, analysis, failure drill-down, English localization, and desktop, tablet, and phone breakpoints.",
+        "findings": "The draft marked winners across different model configurations, conflated programmatic failure location with human-reviewed root cause, and allowed retry accumulation to distort performance comparisons. Some failures lacked direct drill-down, English pages retained Chinese prose, and tablet layouts collapsed into one column too early.",
+        "corrections": "Winner marks now compare browsers only within one model. The report separately discloses 43 network-only, 20 response-only, and 12 dual-rule failures, plus the 29/24/10/8/2/2 reviewed root-cause split. Performance and resource statistics use the 64 tasks all four configurations passed on the first attempt and only the first execution; direct result links, English gates, and responsive layouts were added.",
+        "remaining": "Each configuration still has one formal sample. The 14 confirmed interference tasks require a complete rerun after fixes, and no overall model or browser ranking should be published before repetitions are added."
+      }}
+    },
+    {
+      "id": "review-2026-09-11-astra-layer-and-environment-isolation",
+      "date": "2026-09-11",
+      "title": "Astra 模型层、逐执行证据与环境隔离核验",
+      "status": "已处理",
+      "scope": "GPT-5.6 Sol 与 GPT-6 Astra 两个模型层、360 个逻辑结果、438 次物理执行、75 个最终失败，以及共享 WebArena 站点栈的执行边界。",
+      "findings": "Sol 层为 Chromium 73/90、Moli 70/90；Astra 层两者均为 71/90。Astra Task 77 的两个失败来自共享 Shopping Admin 状态在准备后被并发执行改写，不是 Agent 误读或镜像基线错误。两个模型层使用的 browser-eval 提交不同，因此跨模型变化只能作观察性比较。",
+      "corrections": "所有模型、浏览器和任务仍只保留一个逻辑结果；公开包补齐每次物理执行的脱敏证据与哈希；75/75 个失败均绑定当前证据并核验根因。运行器现在用按 Docker daemon 区分的跨进程文件锁覆盖 reset、Agent、证据收尾和 evaluator；同一环境 lane 串行。",
+      "remaining": "历史官方分数不以人工核验覆盖；Task 77 只有在修复后的隔离环境中形成新的完整证据批次后才能更新成绩。真正并行执行仍要求每个 worker 拥有独立的完整站点栈、端口和浏览器容器。",
+      "i18n": {"en": {
+        "title": "Astra model layer, per-execution evidence, and environment-isolation review",
+        "status": "Resolved",
+        "scope": "The GPT-5.6 Sol and GPT-6 Astra model layers, 360 logical results, 438 physical executions, 75 final failures, and the execution boundary of the shared WebArena site stack.",
+        "findings": "In the Sol layer Chromium scored 73/90 and Moli 70/90; in the Astra layer both scored 71/90. The two Astra Task 77 failures came from concurrent modification of shared Shopping Admin state after preparation, not an Agent reading error or a bad image baseline. The model layers used different browser-eval commits, so cross-model changes are observational only.",
+        "corrections": "Kept one logical result per model, browser, and task; published sanitized evidence and hashes for every physical execution; and bound all 75 failures to verified root causes. The runner now holds a Docker-daemon-scoped cross-process lock across reset, Agent execution, evidence finalization, and evaluation, serializing every run within one environment lane.",
+        "remaining": "Human review does not override historical official scores. Task 77 can change only after a new complete evidence cohort is produced under the corrected isolation protocol. Safe parallel execution still requires a separate full site stack, ports, and browser containers for every worker."
+      }}
+    },
+    {
+      "id": "review-2026-09-11-90-task-expansion",
+      "date": "2026-09-11",
+      "title": "90 题扩容与失败根因核验",
+      "status": "已处理",
+      "scope": "90 个预注册任务、180 个浏览器逻辑结果、220 次物理执行、环境准备回执、官方判分和全部最终失败结果。",
+      "findings": "Chromium 通过 73/90，Moli 通过 70/90；69 题共同通过、16 题共同失败、5 题结果不一致。37 个最终失败覆盖 Agent 检索与执行、站点依赖、官方验收合同及 Moli 网络证据采集四类责任层，不能用“模型能力不行”统一解释。",
+      "corrections": "逐结果绑定官方合同、最终回答、HAR 和 Agent 轨迹，完成 37/37 根因核验；报告改用 90 题动态口径并披露 220/220 环境准备回执。运行器对 Agent 启动前的瞬态 BrowserContextNotLoaded 增加一次仅限会话准备的恢复，不改变逻辑结果协议。",
+      "remaining": "Astra 未由当前 OpenAI 代理暴露，本轮保持 gpt-5.6-sol、reasoning=low。Wikipedia 与 Map 尚未进入实跑；官方 evaluator 的已核验缺陷需上游修复后以新证据复测。",
+      "i18n": {"en": {
+        "title": "90-task expansion and failure-cause review",
+        "status": "Resolved",
+        "scope": "The 90 preregistered tasks, 180 logical browser results, 220 physical executions, environment-preparation receipts, official scoring, and every final failure.",
+        "findings": "Chromium passed 73/90 and Moli passed 70/90. The paired results contain 69 joint passes, 16 joint failures, and five disagreements. The 37 final failures span agent retrieval or execution, site dependencies, official acceptance contracts, and Moli network-evidence collection; they do not support one blanket model-capability explanation.",
+        "corrections": "Bound each failed result to its official contract, final answer, HAR, and agent trajectory and completed 37/37 root-cause reviews. Updated the report to the 90-task cohort and disclosed 220/220 environment-preparation receipts. Session preparation now recovers once from a transient BrowserContextNotLoaded before the agent starts, without changing logical-result authority.",
+        "remaining": "This run remains on gpt-5.6-sol with reasoning=low because Astra was unavailable through the current model endpoint. Wikipedia and Map are not measured. Verified defects in the official evaluator require upstream correction and new execution evidence."
+      }}
+    },
+    {
+      "id": "review-2026-09-10-shared-failure-and-expansion",
+      "date": "2026-09-10",
+      "title": "失败根因、修复与本机扩展核验",
+      "status": "已处理",
+      "scope": "十个失败逻辑结果的自动定位、逐结果根因核验、修复代码、结果详情信息层级、Colima 网络身份和 Mac 环境扩展范围。",
+      "findings": "相同官方分数掩盖了不同根因：Task 68 的官方 expected 与 schema 冲突；124 缺少候选语义核验；142 的类别验收边界未定义；168 的本项目响应协议与官方 null 合同冲突；506 中 Chromium 为 HAR 采集误判，Moli 为步数耗尽且未确认完成。",
+      "corrections": "保留 evaluator 的程序自动定位；新增按浏览器与任务记录、绑定 attempts 哈希的根因子类和原因核验，未核验字段保持为空，正式发布要求全部失败结果完成核验。另新增运行前合同一致性校验、候选语义与提交前检查、空结果状态协议、JSON 响应体即时 HAR 采集、末步工具调用 fail-closed 和可配置步数上限。历史分数不改写。",
+      "remaining": "修复后的 #124、#168、#506 尚需形成新执行证据；#68 与 #142 退出下一轮干净 A/B，直至合同被修复或验收口径可观察。Wikipedia 与 Map 尚未在本机实跑。",
+      "i18n": {"en": {
+        "title": "Failure causes, corrections, and local-environment expansion",
+        "status": "Resolved",
+        "scope": "Automatic failure location, evidence-bound root-cause review, runtime corrections, result-page hierarchy, Colima network identity, and the locally runnable environment set.",
+        "findings": "The ten failed logical results span task-contract defects, agent protocol or policy defects, and evidence-collection defects. Equal official scores can therefore have different causes, including different causes for the two browsers on the same task.",
+        "corrections": "Kept automatic evaluator location separate from reviewed causes; added per-browser, per-task cause records bound to the attempts hash and required complete failure coverage for release. Added contract admission checks, candidate and pre-submit validation, an explicit empty-result protocol, immediate JSON HAR-body capture, fail-closed final-step handling, and a configurable step ceiling. Historical scores remain unchanged.",
+        "remaining": "Tasks affected by runtime corrections require new execution evidence. Tasks with defective or unobservable contracts remain outside the next clean A/B until those contracts are corrected. Wikipedia and Map remain unmeasured locally."
+      }}
+    },
+    {
+      "id": "review-2026-09-10-track-naming-and-release-gates",
+      "date": "2026-09-10",
+      "title": "轨道命名与发布门禁核验",
+      "status": "已处理",
+      "scope": "自主评测与固定轨迹评测的命名、优胜标记、英文界面属性、筛选状态和视觉发布门禁。",
+      "findings": "轨道名称按实现层命名，读者不易判断测量对象；并列最优和显示值相同的指标仍可能被标优；英文可访问属性与失效筛选链接缺少回归保护；SVG 和跨断点布局只受人工规范约束。",
+      "corrections": "统一命名为 Browser Use 与 Browser Trajectory Replay（轨迹重放），完成代码与命令迁移且不保留旧入口；优胜只允许显示值唯一领先；补充英文属性翻译、失效链接回退、SVG 拒绝和核心路由双语双主题宽窄屏渲染检查。",
+      "remaining": "视觉门禁验证结构性溢出、裁切和表头竖排，仍不能替代人工对信息层级与审美质量的判断。",
+      "i18n": {"en": {
+        "title": "Track naming and release-gate review",
+        "status": "Resolved",
+        "scope": "Names for autonomous and fixed-trajectory evaluation, winner marks, English accessibility text, filter state, and visual release gates.",
+        "findings": "Implementation-layer names obscured what each track measures; ties or display-equal metrics could be marked as winners; English accessibility attributes and invalid filter links lacked regression coverage; and responsive layout depended on manual checks.",
+        "corrections": "Standardized the names Browser Use and Browser Trajectory Replay, marked only a unique displayed winner, localized English accessibility attributes, restored invalid filters to valid defaults, rejected SVG assets, and added bilingual, two-theme desktop and narrow-screen checks for core routes.",
+        "remaining": "Automated visual gates detect structural overflow, clipping, and vertical headers, but do not replace human review of information hierarchy and visual quality."
+      }}
+    },
+    {
+      "id": "review-2026-09-10-scalable-comparison-ui",
+      "date": "2026-09-10",
+      "title": "多浏览器比较与结果详情核验",
+      "status": "已处理",
+      "scope": "同题比较交互、BrowserTool 动作延迟和单结果详情首屏。",
+      "findings": "同题视图虽动态生成列，但交互仍以两浏览器关系为中心；动作表层级拥挤且对不同调用量的总耗时判优；完整 evaluator 错误被放入窄指标卡。",
+      "corrections": "同题比较改为基准浏览器加多选对比浏览器和明确关系条件；动作延迟改为按 action 分卡并只比较单次均值；详情首屏只保留简明规则定位，完整 expected、actual 和错误进入规则证据区。",
+      "remaining": "当前仅有两个参评浏览器；扩展行为已由三浏览器测试模型覆盖，新增真实浏览器仍需形成完整同题结果。",
+      "i18n": {"en": {
+        "title": "Multi-browser comparison and result-detail review", "status": "Resolved",
+        "scope": "Same-task comparison controls, BrowserTool action latency, and the opening section of result-detail pages.",
+        "findings": "The same-task view remained centered on a two-browser relationship; action tables ranked totals across unequal call counts; and full evaluator errors occupied narrow KPI cards.",
+        "corrections": "Introduced one baseline with multi-select comparison browsers and explicit outcome relations, compared action latency only by mean per call, and moved complete expected, actual, and error evidence out of the result summary.",
+        "remaining": "Only two browsers are measured. Three-browser fixtures cover interface scaling, but every new real browser still requires a complete same-task result set."
+      }}
+    },
+    {
+      "id": "review-2026-09-10-report-model",
+      "date": "2026-09-10",
+      "title": "报告模型与比较口径核验",
+      "status": "已处理",
+      "scope": "统计摘要、优胜表达、结果下钻、核验记录和参评浏览器说明。",
+      "findings": "统计标签重复表达 P50；比较表缺少方向一致的优胜标记；结果页存在重复失败清单；核验页承担了逐结果清单职责。",
+      "corrections": "统一为均值、P50、P95；按指标方向突出唯一优胜者；删除重复失败清单；核验页改为按轮次记录范围、发现、处理和遗留事项。",
+      "remaining": "当前固定样本没有浏览器单边通过任务；优胜标记主要反映耗时与 Tokens，不改变官方任务成绩。",
+      "i18n": {"en": {
+        "title": "Report model and comparison review", "status": "Resolved",
+        "scope": "Summary statistics, winner presentation, result drill-down, review history, and browser-participant descriptions.",
+        "findings": "P50 was duplicated under another label, comparison tables lacked directionally consistent winner marks, the results page duplicated failure inventory, and the review page carried a per-result list.",
+        "corrections": "Standardized summaries on mean, P50, and P95; marked only unique directionally valid winners; removed the duplicate failure list; and made review history round-based.",
+        "remaining": "This fixed cohort has no one-browser-only pass. Winner marks mainly describe latency and token usage and do not alter official task scores."
+      }}
+    },
+    {
+      "id": "review-2026-09-10-evidence-boundaries",
+      "date": "2026-09-10",
+      "title": "部署证据与计时边界核验",
+      "status": "已处理",
+      "scope": "本地站点部署、Colima 网络路径、环境准备证据、Agent 与 BrowserTool 计时。",
+      "findings": "环境拓扑与网关含义缺少集中说明；历史总耗时边界描述不准确；逐执行环境准备没有独立回执。",
+      "corrections": "补充部署流程图、端口和镜像身份；区分 Agent 链路与 BrowserTool 墙钟时间；新版 runner 保存环境准备和分阶段计时。",
+      "remaining": "本批冻结结果不具备逐执行准备回执，报告仅按现有证据声明可复现边界。",
+      "i18n": {"en": {
+        "title": "Deployment evidence and timing-boundary review", "status": "Resolved",
+        "scope": "Local-site deployment, the Colima network path, environment-preparation evidence, and Agent and BrowserTool timing.",
+        "findings": "The topology and gateway lacked a consolidated explanation, historical total-latency wording overstated its boundary, and per-execution preparation lacked an independent receipt.",
+        "corrections": "Added the deployment flow, ports, and image identities; separated agent-stack and BrowserTool wall time; and made the current runner retain environment-preparation and phase timings.",
+        "remaining": "This frozen run lacks per-execution preparation receipts, so reproducibility claims remain limited to the evidence actually retained."
+      }}
+    },
+    {
+      "id": "review-2026-09-09-runner-integrity",
+      "date": "2026-09-09",
+      "title": "运行器与证据完整性核验",
+      "status": "已处理",
+      "scope": "模型响应校验、BrowserTool 清理、HAR 留存、证据目录和恢复执行。",
+      "findings": "异常清理可能遮蔽原始错误；HAR 停止操作缺少幂等保护；异常响应和原始证据目录需要更严格保护。",
+      "corrections": "隔离清理异常、使 HAR 停止幂等、加强模型响应结构校验，并阻止原始浏览器证据进入 Git。",
+      "remaining": "无阻塞项。",
+      "i18n": {"en": {
+        "title": "Runner and evidence-integrity review", "status": "Resolved",
+        "scope": "Model-response validation, BrowserTool cleanup, HAR retention, evidence directories, and resume behavior.",
+        "findings": "Cleanup exceptions could mask primary failures, HAR shutdown lacked idempotency, and malformed responses and raw-evidence directories required stronger protection.",
+        "corrections": "Isolated cleanup failures, made HAR shutdown idempotent, strengthened model-response validation, and prevented raw browser evidence from entering Git.",
+        "remaining": "No blocking items."
+      }}
+    }
+  ],
+  "browser_use_releases": [
+    {
+      "id": "2026-09-14-restore-complete-90-task-results",
+      "date": "2026-09-14",
+      "title": "恢复完整 90 题正式结果并修正报告下钻",
+      "summary": "正式成绩恢复为完整 90 题、四种配置共 360 个逻辑结果；76 题仅保留为事后诊断子集。结果分析改为直接进入四配置同题矩阵和失败诊断，动作耗时在全部配置中同台比较，执行证据改为站内查看或下载。",
+      "attempts_sha256_by_model": {
+        "gpt-5.6-sol": "73146500152db62d79f84b63c85a14027c005a6320c19bce7426651f167466bd",
+        "gpt-6-astra": "0659d227cf6d29fbfaf64d39f8e77a56bec73c87f7f6e1f2ac23ea13fd9b667c"
+      },
+      "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+      "changes": [
+        [
+          "正式分母",
+          "上一版把 76 题事后诊断子集写成正式比较口径，与完整官方结果冲突。",
+          "恢复 90 题官方 evaluator 结果为唯一正式成绩；76 题只用于观察排除已知外部干扰后的差异，不改分。",
+          "四种配置分别为 73/90、70/90、71/90、71/90。"
+        ],
+        [
+          "结果分析",
+          "首页与分析页重复核心总表，动作耗时只在同模型的两个浏览器之间标优。",
+          "首页保留核心总表；分析页直接展示四配置同题矩阵、全部配置动作耗时和逐结果诊断。",
+          "只调整信息结构和比较范围，不改变测量值。"
+        ],
+        [
+          "执行证据",
+          "新标签链接在嵌入式公开阅读器中不能可靠打开，详情页还暴露未解释的内部字段。",
+          "证据查看改为站内页面，原始 JSON 改为下载；资源、校验和公开策略使用读者可理解的中文标签。",
+          "证据文件及其 SHA-256 不变。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Restore the complete 90-task official results and repair drill-down",
+          "summary": "Official scores again use all 90 tasks and 360 logical results across four configurations; the 76-task set remains only a post-hoc diagnostic subset. Analysis now opens with the four-configuration same-task matrix and failure diagnosis, action latency compares every configuration together, and execution evidence opens in-site or downloads directly.",
+          "changes": [
+            [
+              "Official denominator",
+              "The previous release described the 76-task post-hoc subset as the formal comparison, conflicting with the complete official results.",
+              "Use the 90-task official evaluator results as the only formal scores; retain 76 tasks only for post-hoc diagnosis without rescoring.",
+              "The four configurations score 73/90, 70/90, 71/90, and 71/90."
+            ],
+            [
+              "Results analysis",
+              "Home and analysis duplicated the core table, while action-latency winners were selected only between two browsers inside each model.",
+              "Keep the core table on home; make analysis focus on the four-configuration same-task matrix, all-configuration action latency, and per-result diagnosis.",
+              "Information structure and comparison scope changed; measurements did not."
+            ],
+            [
+              "Execution evidence",
+              "New-tab links were unreliable in the embedded public reader and detail pages exposed unexplained internal fields.",
+              "Open the evidence viewer in-site, offer raw JSON as a download, and use reader-facing labels for resources, checks, and publication policy.",
+              "Evidence files and SHA-256 bindings are unchanged."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "2026-09-14-qualified-comparison-home",
+      "date": "2026-09-14",
+      "title": "首页改用审查合格比较集并合并报告解读",
+      "summary": "首页不再把含已确认合同、站点、共享状态或参考状态干扰的 90 题原始结果当作正式比较。四种配置统一改用 76 题审查合格分母；90 题原始 evaluator 输出完整保留在结果与核验页。报告解读并入首页，删除重复入口和独立阅读副本。",
+      "attempts_sha256_by_model": {
+        "gpt-5.6-sol": "73146500152db62d79f84b63c85a14027c005a6320c19bce7426651f167466bd",
+        "gpt-6-astra": "0659d227cf6d29fbfaf64d39f8e77a56bec73c87f7f6e1f2ac23ea13fd9b667c"
+      },
+      "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+      "changes": [
+        [
+          "正式比较分母",
+          "90 题汇总混入 14 题已确认的非目标变量干扰，首页同时展示诊断子集，读者无法判断哪组才是结论依据。",
+          "按整题、四配置一致排除 14 题，76 题成为唯一正式比较集；原始 90 题只作审计记录，不人工改分。",
+          "Sol 为 Chromium 71/76、Moli 67/76；Astra 为 Chromium 69/76、Moli 68/76。"
+        ],
+        [
+          "Task 77",
+          "Astra 的两条 Task 77 证据在 reset 后被另一个进程改写共享 Shopping Admin 状态。",
+          "运行器已用按 Docker daemon 区分的跨进程锁覆盖 reset、Agent、证据收尾和 evaluator；同一环境 lane 串行，不同 lane 才能并行。旧污染结果退出分母，只有四配置新证据才能重新纳入。",
+          "Task 77 不再影响首页成绩；历史执行仍可下钻核对。"
+        ],
+        [
+          "信息结构",
+          "首页与报告解读重复，读者需要在两个入口之间往返。",
+          "把解读、成绩、失败位置、审查边界和资源结论合并为首页，删除 guide 路由与独立副本。",
+          "数据集、结果、核验和复现仍保留独立下钻页面。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Use a review-qualified comparison set on the unified homepage",
+          "summary": "The homepage no longer treats raw 90-task results containing confirmed contract, site, shared-state, or reference-state interference as the formal comparison. All four configurations now use one 76-task review-qualified denominator, while every raw evaluator output remains available in the result and review pages. The interpretation is merged into the homepage and duplicate routes are removed.",
+          "changes": [
+            [
+              "Formal denominator",
+              "The 90-task summary mixed 14 tasks with confirmed non-target interference and placed a diagnostic subset beside it, leaving the conclusion denominator ambiguous.",
+              "Exclude each affected task across all four configurations. The 76-task set becomes the sole formal comparison; raw 90-task results remain audit records and are not manually rescored.",
+              "Sol scores 71/76 on Chromium and 67/76 on Moli; Astra scores 69/76 on Chromium and 68/76 on Moli."
+            ],
+            [
+              "Task 77",
+              "Both Astra Task 77 executions had shared Shopping Admin state modified by another process after reset.",
+              "A Docker-daemon-scoped cross-process lock now covers reset, agent execution, evidence finalization, and evaluation. Runs are serial within one environment lane and parallel only across independent lanes. The contaminated results leave the denominator and can return only through new four-configuration evidence.",
+              "Task 77 no longer affects the homepage scores; its historical executions remain available for inspection."
+            ],
+            [
+              "Information architecture",
+              "The homepage and interpretation duplicated content and forced readers to switch between two entry points.",
+              "Merge interpretation, scores, failure locations, review boundaries, and resource findings into the homepage; remove the guide route and standalone copy.",
+              "Dataset, results, review, and reproduction remain separate drill-down pages."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "2026-09-11-browser-resource-comparison",
+      "date": "2026-09-11",
+      "title": "补齐四种配置的浏览器资源比较",
+      "summary": "首页新增四种模型×浏览器配置的 CPU、内存与网络统计，统一报告均值、P50 和 P95。数据来自现有浏览器容器测量，不修改任务成绩。",
+      "attempts_sha256_by_model": {
+        "gpt-5.6-sol": "73146500152db62d79f84b63c85a14027c005a6320c19bce7426651f167466bd",
+        "gpt-6-astra": "0659d227cf6d29fbfaf64d39f8e77a56bec73c87f7f6e1f2ac23ea13fd9b667c"
+      },
+      "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+      "changes": [
+        [
+          "资源统计",
+          "报告已保留浏览器容器的 CPU、内存和网络测量，但首页没有汇总，读者无法比较资源开销。",
+          "增加四种配置同台的 CPU 时间、平均单核 CPU、时间加权平均内存、峰值内存及网络收发量，全部展示均值、P50、P95。",
+          "资源只覆盖浏览器容器，不包含 CowAgent 或模型服务；模型会改变动作量，因此结果描述完整配置而非纯内核差异。"
+        ],
+        [
+          "重试聚合",
+          "逻辑结果包含重试时，平均内存只取最后一次执行会丢失前次执行的资源贡献。",
+          "按每次执行的等间隔采样数加权合并平均内存；CPU 与网络继续累计全部物理执行。",
+          "只修正资源汇总口径；任务分数、分母和判分执行保持不变。"
+        ],
+        [
+          "英文首页",
+          "失败干扰表和核心指标说明残留部分中文界面文案。",
+          "补齐动态失败摘要、责任范围、处理标签和指标说明的英文映射。",
+          "中英文页面结构和数据保持一致。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Add browser-resource comparisons across all four configurations",
+          "summary": "The home page now compares CPU, memory, and network measurements across all four model-by-browser configurations using mean, P50, and P95. The values come from existing browser-container evidence and do not change task scores.",
+          "changes": [
+            [
+              "Resource statistics",
+              "Browser-container CPU, memory, and network measurements were retained but not summarized on the report home page.",
+              "Added CPU time, mean single-core CPU utilization, time-weighted mean memory, peak memory, and network receive/transmit totals for all four configurations, each with mean, P50, and P95.",
+              "Measurements cover only the browser container, excluding CowAgent and model services. Because models change workload, the table compares complete configurations rather than pure browser cores."
+            ],
+            [
+              "Retry aggregation",
+              "For logical results with a retry, using only the final execution's mean memory omitted the earlier execution's resource contribution.",
+              "Mean memory is now combined across executions using equal-interval sample counts as weights; CPU and network totals continue to accumulate every physical execution.",
+              "Only the resource aggregation changes. Task scores, denominators, and score-authoritative executions remain unchanged."
+            ],
+            [
+              "English home page",
+              "Some interface copy in the failure-interference table and core-metric notes remained in Chinese.",
+              "Completed the English mappings for the dynamic failure summary, owning scopes, treatment labels, and metric explanations.",
+              "The Chinese and English pages retain identical structure and data."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "2026-09-11-diagnostic-workbench-and-clean-subset",
+      "date": "2026-09-11",
+      "title": "将结果分析改为故障定位台",
+      "summary": "总体指标和动作延迟统一比较全部模型×浏览器配置；失败清单改为固定高度的横向诊断表并提供页内诊断弹窗；每个失败详情补齐失败位置、程序报错、复核根因、处理责任、轨迹、画面与可直接查看的执行证据。官方分数不变，另提供排除已证实外部干扰的诊断子集。",
+      "attempts_sha256_by_model": {
+        "gpt-5.6-sol": "73146500152db62d79f84b63c85a14027c005a6320c19bce7426651f167466bd",
+        "gpt-6-astra": "0659d227cf6d29fbfaf64d39f8e77a56bec73c87f7f6e1f2ac23ea13fd9b667c"
+      },
+      "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+      "changes": [
+        [
+          "总体与速度比较",
+          "旧版按模型分组标记浏览器优胜者，无法直接比较四种完整配置。",
+          "通过率、Agent 耗时、BrowserTool 耗时、Tokens 和逐动作单次延迟均改为四种配置同台比较，只标记唯一最优值。",
+          "总耗时与动作调用数仍只解释工作量，不参与浏览器快慢判定。"
+        ],
+        [
+          "同题比较",
+          "旧页面要求先选基准浏览器再做两两比较，无法同时观察全部配置。",
+          "改为每题一行、全部模型×浏览器配置为列的动态矩阵。",
+          "新增模型或浏览器只增加配置列，不再复制比较模块。"
+        ],
+        [
+          "失败定位",
+          "结果清单混入长原因和耗时字段，行高失控，且无法直接进入失败证据。",
+          "改为固定高度横向表；每行可打开页内诊断，直接查看失败位置、程序报错、复核根因、处理责任和证据入口。",
+          "完整 evaluator、轨迹、日志和原因留在结果详情；共享证据页按需读取 JSON，同时保留原始文件入口，避免在每个详情页重复完整载荷。"
+        ],
+        [
+          "证据页面",
+          "失败详情缺少从判定到具体轨迹、日志和可见页面状态的连续入口。",
+          "增加失败诊断区、轨迹步骤锚点，并按 Playwright screencast 事件顺序从私有 trace 提取最后三张完整页面画面；原始 trace 仍不公开。",
+          "读者可从失败阶段直达相关轨迹，并核对日志与最后可见状态。"
+        ],
+        [
+          "结果入口",
+          "浏览器详情页曾重复生成一套含长原因的结果表。",
+          "删除重复表，改为链接到预先筛选当前浏览器的唯一结果清单。",
+          "结果、筛选和诊断入口只有一套，新增浏览器不会复制页面结构。"
+        ],
+        [
+          "干扰项处理",
+          "官方分数混合了模型/浏览器信号与已确认的题目、站点、共享环境和参考状态问题。",
+          "保留官方 90 题分数，同时按任务统一剔除已确认外部干扰，发布非官方诊断子集和修复登记。",
+          "诊断子集的四个配置使用相同分母；修复项必须完整重跑后才能重新纳入。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Turn Results into a failure-diagnosis workbench",
+          "summary": "Overall metrics and action latency now compare every model-by-browser configuration together. The failure inventory is a fixed-height horizontal table with an in-page diagnosis dialog, and each failed result exposes its failure stage, exact program error, reviewed root cause, remediation owner, trajectory, screenshots, and directly readable execution evidence. Official scores are unchanged; a separate diagnostic subset removes confirmed external interference.",
+          "changes": [
+            [
+              "Overall and speed comparison",
+              "The previous version marked browser winners within each model, preventing direct comparison of all four complete configurations.",
+              "Pass rate, Agent latency, BrowserTool latency, tokens, and per-action per-call latency now compare all four configurations together and mark only a unique winner.",
+              "Total action latency and call counts remain workload context and are not used to rank browser speed."
+            ],
+            [
+              "Same-task comparison",
+              "The previous page required a baseline browser and pairwise comparisons, preventing a simultaneous view of every configuration.",
+              "Replaced it with a dynamic matrix with one task per row and every model-by-browser configuration as columns.",
+              "New models or browsers add configuration columns without duplicating comparison modules."
+            ],
+            [
+              "Failure location",
+              "The result inventory mixed long causes and latency fields, producing uncontrolled row heights and no direct route to failure evidence.",
+              "Replaced it with a fixed-height horizontal table whose rows open an in-page diagnosis with the failure stage, exact program error, reviewed cause, owner/treatment, and evidence links.",
+              "Complete evaluator output, trajectory, logs, and cause remain on the result detail page. A shared viewer loads JSON on demand while preserving a raw-file link, avoiding duplicate payloads in every detail page."
+            ],
+            [
+              "Evidence pages",
+              "Failed-result pages lacked a continuous route from the verdict to the relevant trajectory, logs, and visible page state.",
+              "Added a diagnosis section, trajectory-step anchors, and the last three full-page frames selected in Playwright screencast-event order from the private trace while keeping the trace itself private.",
+              "Readers can jump from the failure stage to nearby trajectory evidence and inspect logs and final visible state."
+            ],
+            [
+              "Result entry point",
+              "Browser detail pages duplicated a result table containing long cause text.",
+              "Removed the duplicate and linked to the single result inventory with the current browser preselected.",
+              "Results, filters, and diagnosis entry points now have one owner; adding a browser does not duplicate page structure."
+            ],
+            [
+              "Interference treatment",
+              "Official scores combined model/browser signal with confirmed task, site, shared-environment, and reference-state problems.",
+              "Kept the official 90-task scores and added a non-official diagnostic subset that removes confirmed external interference at task level, plus a remediation registry.",
+              "All four configurations use the same diagnostic denominator; remediated tasks require a complete rerun before readmission."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "2026-09-11-reader-first-report-and-sites-migration",
+      "date": "2026-09-11",
+      "title": "重排结果首页并迁移到正式 Sites",
+      "summary": "首页先展示四组核心成绩与耗时，再给出同题差异、75 个失败的核验原因和三类任务成绩。此次只调整报告表达、检查流程与发布地址，不修改任何评测分数。",
+      "attempts_sha256_by_model": {
+        "gpt-5.6-sol": "73146500152db62d79f84b63c85a14027c005a6320c19bce7426651f167466bd",
+        "gpt-6-astra": "0659d227cf6d29fbfaf64d39f8e77a56bec73c87f7f6e1f2ac23ea13fd9b667c"
+      },
+      "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+      "changes": [
+        [
+          "首页结构",
+          "核心成绩被拆成多张卡片，关键对比不易浏览。",
+          "改为一张按模型和浏览器展开的核心指标表，并把它放在首页第一节。",
+          "通过数、通过率、Agent 总耗时、BrowserTool 耗时和 Tokens 可直接横向比较。"
+        ],
+        [
+          "结果解释",
+          "部分短标签需要读者了解内部实现才能理解。",
+          "改用完整句子和明确列名说明同题关系、失败原因、统计范围与限制。",
+          "不改变计算口径；只降低理解成本。"
+        ],
+        [
+          "失败原因",
+          "75 个失败原因以大量卡片堆叠，难以判断责任分布。",
+          "按 Agent、任务或 evaluator、测试网站、浏览器证据、共享环境和混合原因汇总为表格，并保留逐结果核验入口。",
+          "所有失败仍各计一次，逐结果核验结论和原始证据保持不变。"
+        ],
+        [
+          "检查与发布",
+          "日常修改也会启动完整浏览器视觉检查，反馈较慢。",
+          "日常检查只验证数据、结构、链接和文案；正式打包发布时再执行全部语言、主题和屏幕宽度的视觉检查。",
+          "发布质量门槛不降低，常规迭代时间缩短。"
+        ]
+      ],
+      "i18n": {"en": {
+        "title": "Reorder the results report and migrate to production Sites",
+        "summary": "The home page now starts with the four core score and latency rows, followed by same-task differences, verified causes for 75 failures, and results for the three task types. This release changes presentation, checks, and the publication target only; no evaluation score changes.",
+        "changes": [
+          ["Home-page structure", "Core results were split across cards, making comparison difficult.", "Replaced them with one model-by-browser core-metrics table at the start of the home page.", "Pass count, pass rate, agent total time, BrowserTool time, and tokens can now be compared directly."],
+          ["Result interpretation", "Several short labels required implementation context.", "Replaced them with explicit sentences and column names for paired outcomes, failure causes, scope, and limitations.", "Calculation rules are unchanged; the report is easier to understand."],
+          ["Failure causes", "The 75 failure causes were spread across a large card grid.", "Grouped them into a table covering agent, task or evaluator, test site, browser evidence, shared environment, and mixed causes, while retaining links to every reviewed result.", "Each failure is still counted once, and its reviewed cause and evidence remain unchanged."],
+          ["Checks and publication", "Routine edits also launched the complete browser-based visual suite.", "Routine checks now cover data, structure, links, and copy; packaging still runs every language, theme, and viewport visual check.", "Release quality gates remain intact while ordinary iteration is faster."]
+        ]
+      }}
+    },
+    {
+      "id": "2026-09-11-astra-two-model-browser-comparison",
+      "date": "2026-09-11",
+      "title": "加入 GPT-6 Astra 模型层并完成双模型浏览器对照",
+      "summary": "同一 90 题样本按模型分层比较 Chromium 与 Moli：GPT-5.6 Sol 层为 73/90 对 70/90，GPT-6 Astra 层为 71/90 对 71/90。75 个最终失败全部完成证据绑定的根因核验；已确认的环境污染不人工改分。",
+      "attempts_sha256_by_model": {
+        "gpt-5.6-sol": "73146500152db62d79f84b63c85a14027c005a6320c19bce7426651f167466bd",
+        "gpt-6-astra": "0659d227cf6d29fbfaf64d39f8e77a56bec73c87f7f6e1f2ac23ea13fd9b667c"
+      },
+      "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+      "changes": [
+        [
+          "双模型分层",
+          "上一版只包含 GPT-5.6 Sol，无法观察更换模型后浏览器差异是否稳定。",
+          "加入 GPT-6 Astra low 的独立证据层；模型之间不混排，浏览器只在各自模型层内做同题配对。",
+          "Astra 层 Chromium 与 Moli 均为 71/90；两端各有 2 个单边通过，精确 McNemar p=1.0，未观察到显著通过率差异。"
+        ],
+        [
+          "跨模型解释边界",
+          "两个模型层并非同一次运行，且 browser-eval 提交不同。",
+          "报告保留各模型层的运行 ID、提交、manifest 与 attempts 哈希，并把跨模型差异标为观察性结果。",
+          "不能把 Sol 与 Astra 的分数或耗时差异单独归因于模型版本。"
+        ],
+        [
+          "失败根因",
+          "官方 evaluator 的失败信息只说明未满足哪条规则。",
+          "对 75 个最终失败逐项核对合同、最终回答、网络证据和自主轨迹；自动分类保留，核验前的详细根因为空。",
+          "75/75 已核验、0 项未决；发现 Agent、站点、环境隔离、evaluator 合同和浏览器证据采集等不同责任层。"
+        ],
+        [
+          "环境隔离与并行",
+          "固定端口的共享站点栈允许另一个进程在 reset 后、Agent 读取前改写状态。",
+          "增加跨进程锁，覆盖 reset、浏览器会话、CowAgent、证据收尾与 evaluator；只有独立完整站点栈才允许并行。",
+          "该修复保护后续运行；历史 Task 77 官方分数保持原样，必须由新证据批次才能更正。"
+        ],
+        [
+          "公开证据",
+          "逻辑结果累计了所有实际执行的耗时和成本，但旧页面只暴露判分执行的证据。",
+          "仍按模型×浏览器×任务展示一个逻辑结果，同时为 438 次物理执行分别发布脱敏回答、evaluator、事件、轨迹、指标与哈希。",
+          "读者可重算累计值；HAR、Playwright trace、Cookie 和凭据继续不公开。"
+        ]
+      ],
+      "i18n": {"en": {
+        "title": "Add GPT-6 Astra and complete a two-model browser comparison",
+        "summary": "Chromium and Moli are compared within two model layers on the same 90 tasks: 73/90 versus 70/90 with GPT-5.6 Sol, and 71/90 versus 71/90 with GPT-6 Astra. All 75 final failures have evidence-bound root-cause reviews; verified environment contamination does not manually change official scores.",
+        "changes": [
+          [
+            "Two model layers",
+            "The previous release contained only GPT-5.6 Sol, so it could not show whether browser differences persisted after changing the model.",
+            "Added an independent GPT-6 Astra low evidence layer. Models are not pooled; browsers are paired task by task only within each model layer.",
+            "In the Astra layer Chromium and Moli both scored 71/90, with two browser-only passes on each side and exact McNemar p=1.0; no significant pass-rate difference was observed."
+          ],
+          [
+            "Cross-model boundary",
+            "The model layers were separate runs and used different browser-eval commits.",
+            "The report retains each layer's run ID, commit, manifest, and attempts hashes and labels cross-model differences as observational.",
+            "Sol–Astra score or latency changes cannot be attributed to the model version alone."
+          ],
+          [
+            "Failure causes",
+            "Official evaluator messages identify unmet rules but not the responsible layer.",
+            "Reviewed the contract, final answer, network evidence, and autonomous trajectory for all 75 failed logical results. Automatic classification remains available, while detailed causes stay blank until verified.",
+            "All 75 failures are reviewed with none unresolved, spanning Agent, site, environment isolation, evaluator contracts, and browser evidence capture."
+          ],
+          [
+            "Environment isolation and parallelism",
+            "The shared fixed-port site stack allowed another process to mutate state after reset and before the Agent observed it.",
+            "Added a cross-process lock across reset, browser session, CowAgent, evidence finalization, and evaluation. Parallel execution is allowed only with separate full site stacks.",
+            "The fix protects future runs. Historical Task 77 scores remain unchanged until replaced by a new evidence cohort."
+          ],
+          [
+            "Public evidence",
+            "Logical results accumulated every execution's latency and cost, but the previous page exposed evidence only for the score-authoritative execution.",
+            "The report still shows one logical result per model, browser, and task, while publishing sanitized responses, evaluator output, events, trajectories, metrics, and hashes for all 438 physical executions.",
+            "Readers can recompute aggregates; HAR, Playwright trace, cookies, and credentials remain private."
+          ]
+        ]
+      }}
+    },
+    {
+      "id": "2026-09-11-90-task-browser-use-comparison",
+      "date": "2026-09-11",
+      "title": "扩展到 90 个 Browser Use 任务",
+      "summary": "预注册样本扩展为 90 题，覆盖 easy 15、medium 30、hard 45；Chromium 通过 73 题，Moli 通过 70 题。全部 37 个最终失败结果已追到可复核根因，官方分数保持原样，不以人工核验改分。",
+      "attempts_sha256": "73146500152db62d79f84b63c85a14027c005a6320c19bce7426651f167466bd",
+      "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+      "changes": [
+        [
+          "评测范围",
+          "上一批只覆盖 30 题，无法同时形成足够的简单、中等和长链任务观察。",
+          "扩展为 90 个结果盲选任务，按最少可见 UI 动作预注册为 easy 15、medium 30、hard 45，覆盖 Shopping、Shopping Admin、Reddit 和 GitLab。",
+          "分母由 30 增至 90；难度标签是本项目操作长度分层，不是官方难度。"
+        ],
+        [
+          "正式结果",
+          "上一批 Chromium 与 Moli 均为 25/30。",
+          "本批 Chromium 为 73/90，Moli 为 70/90；69 题共同通过、16 题共同失败、Chromium 单边通过 4 题、Moli 单边通过 1 题。",
+          "结果只适用于当前 CowAgent、gpt-5.6-sol low、四个本地站点与冻结运行协议，不外推完整 benchmark。"
+        ],
+        [
+          "失败根因",
+          "程序化 evaluator 只能先定位失败规则，不能单独解释错误由哪一层产生。",
+          "对 37 个最终失败逻辑结果逐项核对合同、回答、网络证据和自主轨迹，记录具体根因子类与原因。",
+          "37/37 已核验、0 项未决；人工核验不覆盖官方分数。"
+        ],
+        [
+          "环境证据",
+          "旧批次没有逐执行绑定的环境准备回执。",
+          "本批 220/220 次物理执行均保存 reset、ready、应用健康检查和登录准备状态，并继续披露 Colima 网关与本地镜像拓扑。",
+          "支持确认本批确在自托管站点执行；不代表 Wikipedia 与 Map 已部署。"
+        ]
+      ],
+      "i18n": {"en": {
+        "title": "Expand Browser Use to 90 tasks",
+        "summary": "The preregistered cohort now contains 90 tasks: 15 easy, 30 medium, and 45 hard. Chromium passed 73 and Moli passed 70. All 37 final failures have evidence-bound root-cause reviews; human review does not override official scores.",
+        "changes": [
+          ["Evaluation scope", "The previous 30-task cohort did not provide enough observations across short, medium, and long workflows.", "Expanded to 90 outcome-blind tasks, preregistered by minimum visible UI actions as 15 easy, 30 medium, and 45 hard across Shopping, Shopping Admin, Reddit, and GitLab.", "The denominator increased from 30 to 90. Tiers describe project-defined operation length, not official difficulty."],
+          ["Official results", "The previous cohort gave Chromium and Moli 25/30 each.", "This cohort gives Chromium 73/90 and Moli 70/90: 69 joint passes, 16 joint failures, four Chromium-only passes, and one Moli-only pass.", "Results apply only to the current CowAgent, gpt-5.6-sol low, four local sites, and frozen run protocol; they do not generalize to the full benchmark."],
+          ["Failure causes", "The programmatic evaluator locates failed rules but cannot by itself identify the responsible layer.", "Reviewed the contract, answer, network evidence, and autonomous trajectory for all 37 failed logical results and recorded a specific cause subtype and rationale.", "All 37 failures are reviewed with none unresolved; human review does not change official scores."],
+          ["Environment evidence", "The prior cohort lacked preparation receipts bound to each execution.", "All 220 physical executions retain reset, readiness, application-health, and sign-in preparation status, alongside the Colima gateway and local image topology.", "This establishes that the cohort ran against self-hosted sites; it does not claim that Wikipedia or Map was deployed."]
+        ]
+      }}
+    },
+    {
+      "id": "2026-09-10-shared-failure-diagnosis-and-mac-expansion",
+      "date": "2026-09-10",
+      "title": "追到失败根因并落实运行器修复",
+      "summary": "十个失败逻辑结果已完成逐项根因核验：两项任务合同问题、两项 Agent 协议或策略问题，以及 Task 506 中 Chromium 与 Moli 各不相同的采集和完成问题。自动 evaluator 定位与核验根因分层展示；核验记录绑定冻结证据哈希。运行器已修复合同准入、响应协议、候选核验、HAR 采集与超限处理；历史官方成绩仍为 Chromium 25/30、Moli 25/30，修复效果等待新执行验证。",
+      "attempts_sha256": "517b613adcc40fc0ebe41af2ab2115d76f49faaba5378b426cc196b5b633e9c7",
+      "selection_sha256": "ba3c344df003dd4eba3a5d1ef97162ee98df2ed728f7c29c4188bc4247982d38",
+      "changes": [
+        [
+          "报告解读",
+          "总分相同不足以解释结果，且相同零分不代表相同失败原因。",
+          "将根因、责任层、证据闭环、根治措施和复测门槛提升为首页与解读文章的核心结论。",
+          "改变结论层级，不改变官方分数、分母或冻结证据。"
+        ],
+        [
+          "共同失败",
+          "旧解读停留在错误现象，没有定位产生错误的合同、策略或采集实现。",
+          "结合官方 expected/schema、最终回答、evaluator、HAR 与逐步事件，定位四类根因；Task 506 分浏览器分别归因。",
+          "不推断模型隐藏思维；根因由可复核证据闭环支持，官方历史分数不变。"
+        ],
+        [
+          "失败原因核验",
+          "程序化 evaluator 能定位未通过的验收类型，但不能单独证明产生失败的根因。",
+          "按浏览器与任务保存根因子类和具体原因，并绑定当前 attempts 哈希；未核验时两个字段为空，完整发布要求覆盖全部失败逻辑结果。",
+          "本版 10/10 个失败逻辑结果已核验；Task 506 分浏览器记录不同根因，不改变官方分数。"
+        ],
+        [
+          "运行器根治",
+          "错误合同会消耗正式调用；空结果协议、搜索候选聚合、HAR 延迟取体和超限总结会制造可避免的失败或误判。",
+          "新运行先验证 expected 是否满足公开 schema；统一要求候选语义和提交前核验；JSON 响应体在 loadingFinished 即时保存；末步仍调用工具时强制 UNKNOWN_ERROR；步数上限写入运行配置。",
+          "代码门禁已通过 61 个 Browser Use 单测、206 条报告路由和 104 个视觉状态；任务成败改善仍必须由新执行证明。"
+        ],
+        [
+          "结果详情",
+          "合同、实际回答和规则结果在相邻区域重复，原始 JSON 抢占主要阅读层级。",
+          "合并为“任务要求与验收结果”，先展示可读规则结论，官方期望、本次观察和技术断言默认折叠。",
+          "原始公开证据和下载入口保持不变。"
+        ],
+        [
+          "本地环境与扩展",
+          "Colima 网关角色和可继续运行的官方环境范围不够明确。",
+          "区分 VM 地址与宿主网关，说明四站实跑证据；纠正官方不存在 179 题子集，并给出 678 个当前可预检候选和 233 个 hard 候选。",
+          "Wikipedia、Map 仍标为尚未实跑，不把理论可部署写成已验证。"
+        ]
+      ],
+      "i18n": {"en": {
+        "title": "Trace failures to causes and apply runtime corrections",
+        "summary": "Ten failed logical results were reviewed across task contracts, agent protocol or policy, and evidence collection. Automatic failure location and reviewed causes are presented separately and bound to frozen evidence. Runtime corrections await validation by new executions; historical official scores remain 25/30 for each browser.",
+        "changes": [
+          ["Report interpretation", "Equal totals did not explain outcomes, and equal zero scores did not imply equal causes.", "Made cause, owning layer, evidence chain, corrective action, and retest gate central to the report interpretation.", "The explanatory hierarchy changed; scores, denominators, and frozen evidence did not."],
+          ["Shared failures", "Earlier interpretation stopped at symptoms rather than locating the contract, policy, or collector responsible.", "Used official contracts, final answers, evaluator output, HAR, and events to identify four cause classes, including browser-specific causes on Task 506.", "No hidden model reasoning is inferred; historical official scores remain unchanged."],
+          ["Cause review", "Automatic evaluators locate an unmet acceptance type but do not prove its cause.", "Stored per-browser, per-task causes bound to the attempts hash; unreviewed fields remain blank and complete failure coverage is required for release.", "All ten failed logical results in this version are reviewed; this does not change official scores."],
+          ["Runtime corrections", "Invalid contracts and weaknesses in empty-result handling, candidate aggregation, HAR capture, and final-step handling could create avoidable failures or false negatives.", "Added contract admission, candidate and pre-submit checks, immediate JSON HAR capture, fail-closed final-step handling, and a recorded step ceiling.", "Code gates passed, but any task-outcome improvement still requires new execution evidence."],
+          ["Result details", "Contracts, answers, and rule results were duplicated while raw JSON dominated the reading order.", "Combined them into a task-and-acceptance section with readable conclusions first and technical values collapsed.", "Public evidence and download links remain unchanged."],
+          ["Local environment and expansion", "The Colima gateway and the scope of locally runnable official environments were unclear.", "Distinguished VM and host gateway roles, documented the four measured sites, and corrected the available candidate counts.", "Wikipedia and Map remain explicitly unmeasured; deployability is not presented as verification."]
+        ]
+      }}
+    },
+    {
+      "id": "2026-09-10-track-naming-and-release-hardening",
+      "date": "2026-09-10",
+      "title": "统一轨道名称并加固发布检查",
+      "summary": "自主轨道统一为 Browser Use，固定动作轨道统一为 Browser Trajectory Replay（轨迹重放）；旧代码路径和命令一次性迁移。优胜标记、英文可访问文本、筛选恢复、SVG 资产和跨断点布局新增自动门禁。官方成绩、分母和冻结证据不变。",
+      "attempts_sha256": "517b613adcc40fc0ebe41af2ab2115d76f49faaba5378b426cc196b5b633e9c7",
+      "selection_sha256": "ba3c344df003dd4eba3a5d1ef97162ee98df2ed728f7c29c4188bc4247982d38",
+      "changes": [
+        [
+          "轨道命名",
+          "旧名称混合了实现层与评测对象，难以直接区分自主任务与固定动作轨迹。",
+          "自主评测统一为 Browser Use；固定动作轨迹评测统一为 Browser Trajectory Replay（轨迹重放）；代码包、示例、测试、命令、配置和发布路径同步迁移，不保留兼容入口。",
+          "只改变命名和入口，不改变任务、运行或判分。"
+        ],
+        [
+          "比较与本地化",
+          "并列最优或舍入后显示相同的数值可能仍被标为优胜；英文页面部分可访问属性和动态标题保留中文。",
+          "只有按页面展示精度唯一领先的值才标优；英文标题、title、aria-label 和 placeholder 纳入本地化及完整性检查；失效的浏览器筛选链接回退到有效默认值。",
+          "修正读者界面，不改变测量值和官方分数。"
+        ],
+        [
+          "防复发门禁",
+          "命名、图形格式和跨宽度布局主要依赖人工记忆。",
+          "CI 增加旧命名扫描；发布检查拒绝 SVG 图；视觉检查渲染中英文核心路由的桌面与窄屏、明暗主题组合，阻止页面级溢出、核心卡片裁切和表头竖排。",
+          "新增 104 个渲染状态的结构性视觉门禁；不改变报告数据。"
+        ]
+      ],
+      "i18n": {"en": {
+        "title": "Standardize track names and strengthen release checks",
+        "summary": "The autonomous track is Browser Use and the fixed-action track is Browser Trajectory Replay. Winner marks, English accessibility text, filter recovery, asset format, and responsive layout now have automated gates. Scores, denominators, and evidence are unchanged.",
+        "changes": [
+          ["Track names", "Earlier names mixed implementation layers with evaluation subjects.", "Renamed the tracks Browser Use and Browser Trajectory Replay across code, commands, configuration, and publication paths without compatibility aliases.", "Only names and entry points changed; tasks, runs, and scoring did not."],
+          ["Comparison and localization", "Ties or display-equal values could be marked as winners, and some English attributes retained Chinese.", "Mark only uniquely better displayed values; localize titles and accessibility attributes; recover invalid browser filters to a valid default.", "Reader interface defects were corrected without changing measurements or scores."],
+          ["Regression gates", "Naming, graphics, and responsive layout relied mainly on manual memory.", "Added retired-name checks, SVG rejection, and bilingual light/dark desktop and narrow-screen rendering checks.", "The 104 structural render states do not change report data."]
+        ]
+      }}
+    },
+    {
+      "id": "2026-09-10-comparison-and-review-presentation",
+      "date": "2026-09-10",
+      "title": "统一比较统计与可扩展浏览器对比",
+      "summary": "比较摘要统一展示均值、P50、P95；同题比较采用基准浏览器与多选浏览器组合；动作延迟按 action 分卡并只对单次均值判优；结果详情将长 evaluator 证据移出指标卡。Chromium 与 Moli 的官方成绩仍均为 25/30。",
+      "attempts_sha256": "517b613adcc40fc0ebe41af2ab2115d76f49faaba5378b426cc196b5b633e9c7",
+      "selection_sha256": "ba3c344df003dd4eba3a5d1ef97162ee98df2ed728f7c29c4188bc4247982d38",
+      "changes": [
+        [
+          "统计摘要",
+          "耗时和 Tokens 的集中趋势与尾部表现未采用统一展示结构。",
+          "每个指标统一展示均值、P50、P95；P50 不再以另一个名称重复出现。",
+          "只改变统计展示，官方任务分数、分母和证据不变。"
+        ],
+        [
+          "比较表达",
+          "读者需要逐格判断数值方向。",
+          "通过数与通过率按更高值标优，耗时与 Tokens 按更低值标优；平局和调用次数保持中性。",
+          "优胜标记是描述性比较，不改变任务判定。"
+        ],
+        [
+          "页面职责",
+          "失败清单与结果筛选重复，核验页混入逐结果覆盖表。",
+          "结果库保留成功/失败筛选和任务详情；核验页只呈现核验轮次、处理和遗留事项。",
+          "减少重复内容，不删除结果证据。"
+        ],
+        [
+          "多浏览器对比",
+          "同题矩阵会随浏览器数量横向增宽，关系筛选也无法表达一个基准浏览器与多个对比浏览器的组合。",
+          "改为基准浏览器单选、对比浏览器多选和明确结果关系；任务行按通过与失败浏览器分组，浏览器标签链接完整结果。",
+          "页面结构可直接容纳新增浏览器；当前结果和分数不变。"
+        ],
+        [
+          "动作延迟与详情页",
+          "动作表把三项指标压入浏览器单元格，并对调用量不同的总耗时判优；详情首屏的长错误文本破坏阅读层级。",
+          "每个 action 使用独立比较卡，只以单次均值判优并将总耗时、调用数保持中性；详情首屏只显示简明失败规则，完整诊断保留在逐规则证据区。",
+          "修正比较解释与页面层级，不改变测量值、判分或证据。"
+        ]
+      ],
+      "i18n": {"en": {
+        "title": "Standardize comparison statistics and scalable browser comparison",
+        "summary": "Comparison summaries now use mean, P50, and P95. Same-task comparison uses a baseline plus multiple comparison browsers. Action latency ranks mean per call only, and detailed evaluator evidence no longer appears in KPI cards. Both official scores remain 25/30.",
+        "changes": [
+          ["Summary statistics", "Latency and token summaries lacked a consistent central and tail structure.", "Show mean, P50, and P95 for each metric without duplicating P50 under another name.", "Only presentation changed; scores, denominators, and evidence did not."],
+          ["Comparison presentation", "Readers had to infer metric direction cell by cell.", "Mark higher passes and pass rates and lower latency and token usage as better; keep ties and call counts neutral.", "Winner marks are descriptive and do not change task verdicts."],
+          ["Page responsibilities", "A failure list duplicated result filters, and review history contained a per-result inventory.", "Keep pass/fail filters and details in Results; keep only review rounds, corrections, and remaining items in Review.", "Duplicate presentation was removed without deleting evidence."],
+          ["Multi-browser comparison", "The matrix widened per browser and its filter could not compare one baseline with several browsers.", "Use one baseline, multi-select comparison browsers, explicit outcome relations, and linked pass/fail browser groups.", "The interface can add browsers without changing current results."],
+          ["Action latency and result details", "Action cells mixed three metrics and ranked totals despite unequal call counts; long errors disrupted result summaries.", "Use one card per action, rank only mean per call, keep totals and counts neutral, and retain full diagnostics in rule evidence.", "Interpretation and hierarchy changed; measurements, verdicts, and evidence did not."]
+        ]
+      }}
+    },
+    {
+      "id": "2026-09-10-environment-timing-and-report-model-correction",
+      "date": "2026-09-10",
+      "title": "校正部署证据、计时边界与报告职责",
+      "summary": "报告明确本轮在 Colima/Docker 中部署四个 WebArena-Verified 官方站点环境，并解释浏览器容器通过私有宿主网关访问站点的网络拓扑；评测集页面恢复为纯任务定义，结果页新增 Agent 端到端与 BrowserTool 调用耗时，多浏览器比较改为可扩展矩阵和两两比较。Chromium 与 Moli 成绩仍均为 25/30。",
+      "attempts_sha256": "517b613adcc40fc0ebe41af2ab2115d76f49faaba5378b426cc196b5b633e9c7",
+      "selection_sha256": "ba3c344df003dd4eba3a5d1ef97162ee98df2ed728f7c29c4188bc4247982d38",
+      "changes": [
+        [
+          "冻结协议",
+          "上一版报告生成器默认使用最后一次执行作为结果，但本批冻结 manifest 声明使用原始正式结果，报告层无权改写证据协议。",
+          "生成器改为读取冻结 manifest 决定结果身份；当前批次恢复与原始证据一致的结果、回答和轨迹。后续新运行仍可使用新版协议，但必须在运行前冻结。",
+          "本批后续执行均未恢复成功，因此 Chromium 与 Moli 仍均为 25/30；修复的是结果身份和证据合同，不改变分数与分母。"
+        ],
+        [
+          "部署环境",
+          "原图没有说明四个站点实际部署在哪里、私有网关是什么，也没有披露逐次环境准备缺少独立 receipt。",
+          "新增 macOS—Colima/Docker—站点容器—浏览器容器的拓扑说明、六类环境纳入状态、端口映射、镜像身份和证据边界；替换为精确标注的 ImageGen 图。",
+          "确认 30 题只覆盖 Shopping、Shopping Admin、Reddit、GitLab；Wikipedia 与 Map 未部署、未计分。现有结果不重跑。"
+        ],
+        [
+          "耗时口径",
+          "旧说明错误地称端到端耗时包含站点重置，也没有分离浏览器工具调用时间。",
+          "明确 Agent 端到端计时不含此前的站点重置；从事件流聚合 BrowserTool 调用墙钟时间，并按 action 拆分。runner 为后续运行新增环境准备、会话准备、Agent、证据收尾和 evaluator 分阶段计时。",
+          "只新增诊断指标并纠正解释，不改变官方任务分数；BrowserTool 墙钟仍不等同于纯内核 CPU 时间。"
+        ],
+        [
+          "报告模型",
+          "评测集页混入成功/失败，多浏览器结果结构写死为两列，方法介绍没有明确比较对象。",
+          "评测集页只保留任务与验收合同；结果页使用动态浏览器矩阵和自动两两比较；被测浏览器页列出 Chromium、Moli 及固定实验条件。",
+          "信息职责和未来扩展方式改变，当前两浏览器数据与成绩不变。"
+        ],
+        [
+          "复核边界",
+          "证据完整性检查容易被误读为独立结果复核。",
+          "分别显示证据完整性 60/60 与独立语义复核 0/60，并移除固定样本上的总体推断式置信区间。",
+          "降低结论强度；不改变 evaluator 分数。"
+        ]
+      ],
+      "i18n": {"en": {
+        "title": "Correct deployment evidence, timing boundaries, and report responsibilities",
+        "summary": "The report documents the four WebArena-Verified sites deployed in Colima/Docker and the private host gateway used by browser containers. Dataset pages contain definitions only; result pages add agent end-to-end and BrowserTool latency. Both scores remain 25/30.",
+        "changes": [
+          ["Frozen protocol", "The renderer chose the last execution even though the frozen manifest made the primary run authoritative.", "Read result authority from the frozen manifest and restore the matching result, answer, and trajectory.", "Neither browser recovered on later executions, so scores remain 25/30; only result identity and evidence semantics changed."],
+          ["Deployment environment", "The diagram did not locate the four sites, explain the private gateway, or disclose missing preparation receipts.", "Document the macOS, Colima/Docker, site-container, and browser-container topology, ports, image identities, and evidence boundary.", "The 30 tasks cover four sites only; Wikipedia and Map are neither deployed nor scored. No results were rerun."],
+          ["Timing boundary", "Earlier wording incorrectly included site reset in end-to-end latency and did not separate browser-tool time.", "Exclude the preceding site reset, aggregate BrowserTool wall time from events, and retain phase timings for future runs.", "Only diagnostics and wording changed; BrowserTool wall time still includes more than browser-core CPU time."],
+          ["Report model", "Dataset pages mixed outcomes with definitions, result tables assumed two browsers, and participants were unclear.", "Keep contracts in Dataset, render browsers dynamically in Results, and distinguish browser participants from shared controls.", "Information ownership and extensibility changed; current data and scores did not."],
+          ["Review boundary", "Evidence-integrity checks could be mistaken for independent semantic review.", "Show evidence integrity and semantic-review coverage separately and remove population-style confidence intervals from the fixed cohort.", "Claims were narrowed without changing evaluator scores."]
+        ]
+      }}
+    },
+    {
+      "id": "2026-09-10-logical-results-and-publication-qa",
+      "date": "2026-09-10",
+      "title": "统一逻辑结果口径并完成全站可读性整改",
+      "summary": "公开报告统一为每题×浏览器一个最终逻辑结果，共 60 个结果；允许任务失败后再执行一次，最终一次决定结果，耗时与模型用量累计。Chromium 与 Moli 仍均为 25/30，分母和结论不变；高密度表格、代码对比度、流程图、窄屏布局和版本说明已按同一发布质量门禁整改。",
+      "attempts_sha256": "517b613adcc40fc0ebe41af2ab2115d76f49faaba5378b426cc196b5b633e9c7",
+      "selection_sha256": "ba3c344df003dd4eba3a5d1ef97162ee98df2ed728f7c29c4188bc4247982d38",
+      "changes": [
+        [
+          "结果口径",
+          "旧报告把底层执行次数直接暴露成主结果，并用不同标签区分，增加理解成本且与仓库统一逻辑结果原则不一致。",
+          "每题×浏览器只发布一个最终逻辑结果；任务失败后最多再执行一次，最终一次决定结果，所有执行的耗时与模型用量累计。",
+          "通过率仍为 Chromium 25/30、Moli 25/30，共 60 个逻辑结果；底层证据不删除，公开分数和分母不变，耗时统计改为完整成本口径。"
+        ],
+        [
+          "全站视觉与信息密度",
+          "任务表和失败表的短标题被压成竖排，协议代码块对比度不足，文字型流程图在常规阅读尺寸下不清晰。",
+          "为核心表格设置语义化列宽和横向滚动；修复明暗主题代码色；用高清 ImageGen 信息图重绘部署—自主操作—双浏览器—验收流程；逐页检查桌面与窄屏。",
+          "只改变表达与可读性，不改变任务、合同、判定或原始证据。"
+        ],
+        [
+          "版本说明",
+          "旧页面只展示当前变更表，缺少当前版本摘要、历史版本折叠、影响边界和结构化下载。",
+          "对齐 Web Fetch 的当前版本、按需展开依据、历史版本和范围下载结构。",
+          "版本历史成为正式报告的一部分；本次不改变分数、分母或证据。"
+        ],
+        [
+          "可重复发布门禁",
+          "相同问题仅靠人工记忆修复，无法保证新环境生成报告时不复发。",
+          "把逻辑结果、禁用内部笔记、表格换行、代码对比度、跨断点视觉检查和变更记录要求写入生成器、自动检查、AGENTS.md 与仓库内 benchmark-report skill。",
+          "后续报告若重新出现这些已知问题，将在发布前检查中失败。"
+        ]
+      ],
+      "i18n": {"en": {
+        "title": "Unify logical-result semantics and complete report readability corrections",
+        "summary": "The public report now exposes one logical result per task and browser, with all physical-execution latency and model usage accumulated. Scores remain 25/30 for both browsers. Dense tables, code contrast, diagrams, narrow layouts, and release history now share one publication gate.",
+        "changes": [
+          ["Logical results", "Physical executions were presented as separate headline results.", "Publish one logical result per task and browser; let the final allowed execution decide the outcome while accumulating every execution's cost.", "Scores and denominators remain unchanged and physical evidence is retained."],
+          ["Readability", "Short table headers wrapped vertically, code contrast was weak, and the text-heavy diagram was unreadable at normal size.", "Add semantic column widths and scrolling, correct theme contrast, replace the diagram with a readable raster asset, and inspect desktop and narrow layouts.", "Only presentation changed."],
+          ["Release history", "The page lacked a current summary, compact archive, effect boundaries, and a structured download.", "Use a report-style current release, expandable details, compact history, and structured data.", "Release history became part of the report without changing evidence or results."],
+          ["Repeatable publication gate", "Manual memory could not reliably prevent known regressions.", "Encode logical-result, privacy, table, contrast, responsive, and changelog requirements in automated release checks.", "Known regressions now fail before publication."]
+        ]
+      }}
+    },
+    {
+      "id": "2026-09-10-deployment-and-autonomy-evidence",
+      "date": "2026-09-10",
+      "title": "补全本地部署与自主执行证据",
+      "summary": "首页标题改为 Chromium 与 Moli 的 Browser Use 能力实测；评测方法页新增 WebArena-Verified 本地站点、逐试次重置、CowAgent 闭环操作、官方验收和证据留存的完整流程图及实现证据。测量结果、分母和原始证据未改变。",
+      "attempts_sha256": "517b613adcc40fc0ebe41af2ab2115d76f49faaba5378b426cc196b5b633e9c7",
+      "selection_sha256": "ba3c344df003dd4eba3a5d1ef97162ee98df2ed728f7c29c4188bc4247982d38",
+      "changes": [
+        [
+          "报告标题",
+          "原标题把控制变量写成了评测对象，读者无法第一眼识别报告在比较哪两个浏览器。",
+          "主标题改为 Chromium 与 Moli 的 Browser Use 能力实测；CowAgent、模型、reasoning 和题集降为实验条件。",
+          "只修正叙事层级，不改变评测设计或结果。"
+        ],
+        [
+          "部署与自主性证据",
+          "原报告只写“逐题重置”和“自主规划”，没有解释站点由谁部署、Agent 如何进入闭环，也不足以排除固定动作回放的误读。",
+          "新增双语流程图和逐环节证据表，明确运行器按试次启动官方站点镜像、健康检查、登录，再由 CowAgent 动态产生 BrowserTool 调用。",
+          "既有测量不重跑；新增说明直接绑定现有 manifest、事件、HAR 与 trace 哈希。"
+        ]
+      ],
+      "i18n": {"en": {
+        "title": "Complete deployment and autonomous-execution evidence",
+        "summary": "The title now identifies Chromium and Moli as the Browser Use participants. Methodology adds the full path from local WebArena-Verified deployment and per-execution reset through the CowAgent loop, official acceptance, and retained evidence. Measurements are unchanged.",
+        "changes": [
+          ["Report title", "The earlier title foregrounded a control variable rather than the evaluated browsers.", "Make Chromium and Moli the title subjects and present CowAgent, model, reasoning, and tasks as conditions.", "Narrative hierarchy changed; design and results did not."],
+          ["Deployment and autonomy evidence", "Reset and autonomous planning were asserted without showing deployment ownership or the agent loop.", "Add a bilingual flow and evidence table linking site startup, health checks, sign-in, and dynamic BrowserTool calls.", "No measurements were rerun; the explanation binds to existing manifests, events, HAR, and trace hashes."]
+        ]
+      }}
+    },
+    {
+      "id": "2026-09-10-report-evidence-restructure",
+      "date": "2026-09-10",
+      "title": "按证据链重构 Browser Use 报告",
+      "summary": "报告新增任务族覆盖、95% Wilson 区间、30 题同题横向对照和全路由英文镜像；将原“独立复核”纠正为确定性证据完整性审计，并明确五个共同失败尚无本轮成功路径，不能直接归因 Agent 或浏览器。测量结果、分母和原始证据未改变。",
+      "attempts_sha256": "517b613adcc40fc0ebe41af2ab2115d76f49faaba5378b426cc196b5b633e9c7",
+      "selection_sha256": "ba3c344df003dd4eba3a5d1ef97162ee98df2ed728f7c29c4188bc4247982d38",
+      "changes": [
+        [
+          "首页与结果分析",
+          "原首页只有总分和入口，无法同时判断样本覆盖、统计不确定性、调用完整性和同题关系。",
+          "增加三类任务族、95% Wilson 区间、可完成性覆盖、证据审计状态，以及可筛选的 30 题 Chromium/Moli 横向对照。",
+          "只改变解释和下钻结构，不改变 25/30 或 30 个配对。"
+        ],
+        [
+          "核验命名与失败归因",
+          "原文把确定性记录一致性检查称为独立结果复核，并把共同失败过早归因给 Agent。",
+          "改名为证据完整性审计；五个没有成功轨迹的任务仅陈述官方期望与实际结果差异，要求另做非计分 oracle 或人工可完成性核验。",
+          "官方 evaluator 仍是唯一计分来源；共同失败不再被表述为已确认根因。"
+        ],
+        [
+          "双语与移动端",
+          "英文只有摘要页，窄屏入口卡片会被固定跨列布局裁切。",
+          "为中文页面生成逐路由英文对应页并校验链接；移动端强制卡片单列，移除用 overflow 隐藏问题的做法。",
+          "英文与中文共享同一测量数据；206 个逻辑页面当前为零断链。"
+        ],
+        [
+          "构建与发布门禁",
+          "正式报告可能在官方数据不可用时静默退化，日常检查也未默认要求完整证据。",
+          "正式构建绑定官方数据 checksum 并 fail closed；增加 current-report 发布 profile、完整证据默认检查和带 marker 的原子目录替换。",
+          "缺失或错配 selection、模型、reasoning、官方数据或证据审计时禁止发布。"
+        ]
+      ],
+      "i18n": {"en": {
+        "title": "Restructure the Browser Use report around the evidence chain",
+        "summary": "The report adds task-family coverage, Wilson intervals, 30 paired-task comparisons, and route-for-route English pages. It correctly labels deterministic evidence-integrity review and avoids attributing five shared failures without a successful path. Measurements are unchanged.",
+        "changes": [
+          ["Home and results", "The home page did not jointly expose cohort coverage, uncertainty, call completeness, and paired outcomes.", "Add task families, Wilson intervals, solvability coverage, evidence-audit status, and a filterable 30-task Chromium/Moli comparison.", "Only explanation and drill-down changed; 25/30 scores and 30 pairs did not."],
+          ["Review terminology and attribution", "Deterministic consistency checks were called independent result review, and shared failures were attributed too early.", "Call the process evidence-integrity review and require separate non-scoring solvability review for tasks without a successful trajectory.", "The official evaluator remains the sole scoring authority; shared failures are no longer presented as confirmed causes."],
+          ["Bilingual and mobile", "English was summary-only and fixed card spans clipped narrow layouts.", "Generate an English counterpart for every Chinese route, verify links, and force cards to one column on narrow screens.", "Both languages use the same measured data; all 206 logical pages had valid links."],
+          ["Build and publication gates", "A formal build could silently degrade without official data, while routine checks did not require complete evidence.", "Bind builds to the official checksum and current publication profile, require complete evidence, and replace output atomically with a marker.", "Publication fails on missing or mismatched selection, model, reasoning, official data, or evidence review."]
+        ]
+      }}
+    },
+    {
+      "id": "2026-09-09-webarena-verified-pilot",
+      "date": "2026-09-09",
+      "title": "完成 WebArena-Verified 自主 Agent 双浏览器对比",
+      "summary": "CowAgent 与 gpt-5.6-sol（reasoning=low）在预注册的 30 题上分别以 Chromium 和 Moli 形成 60 个逻辑结果；双方均通过 25 题，通过率 83.3%。全部结果证据通过确定性完整性审计，分歧与未决均为 0。",
+      "attempts_sha256": "517b613adcc40fc0ebe41af2ab2115d76f49faaba5378b426cc196b5b633e9c7",
+      "selection_sha256": "ba3c344df003dd4eba3a5d1ef97162ee98df2ed728f7c29c4188bc4247982d38",
+      "changes": [
+        [
+          "证据应用与独立解读",
+          "只有栏目分页仍不足以核对任务选择、逐次执行、复核覆盖、当前快照可完成性和结论依据。",
+          "首页作为决策入口；30 个任务页公开官方 ground truth、可完成性证据与两种浏览器结果对照；结果页公开实际回答、精确 assertion、规则级 expected/actual、CowAgent 自主轨迹、输出摘录和脱敏事件下载；增加英文摘要、证据索引和筛选状态保持。",
+          "出版结构与公开证据粒度改变；任务、分母、原始输出、分数与证据绑定均未修改。25 题有本轮成功轨迹，5 题只有官方合同；原始 HAR 与 Playwright trace 因含登录态只公开哈希和大小。"
+        ],
+        [
+          "明确自主 Agent 轨道",
+          "仓库同时存在执行层 trajectory_replay harness 和自主 browser_use harness，若统称为“原 30 题”会误读运行方式。",
+          "本报告的 30 个 WebArena-Verified 任务明确由 CowAgent 自主观察、规划和操作；trajectory_replay 作为另一条执行层微基准单独说明。",
+          "本轮成绩只来自自主 Agent 轨道；两类 harness 不合并计分。"
+        ],
+        [
+          "公开 benchmark 选型",
+          "模型厂商使用的 browser-use、computer-use、离线动作预测和 agentic search 口径混杂。",
+          "按一手机构采用情况梳理 Mind2Web、WebArena、WebVoyager，并比较 Online-Mind2Web、BU Bench、Odysseys 等评测对象和 judge。",
+          "第一阶段选择可自托管、确定性结果验收的 WebArena-Verified；实时网站和 LLM judge 留到后续泛化阶段。"
+        ],
+        [
+          "完整正式运行",
+          "需要同时覆盖短、中、长操作链，且避免运行后换题或挑结果。",
+          "预注册 5/10/15 题操作长度分层；每个题×浏览器形成一个最终逻辑结果，任务失败后最多再执行一次。",
+          "Chromium 与 Moli 均为 25/30；共同失败 5 题、单边胜出 0 题，30 题 pilot 未观察到成功率差异。"
+        ],
+        [
+          "证据与复核",
+          "最终分数必须能回到模型回答、网络副作用和官方 evaluator，不能人工修分。",
+          "保存回答、事件、HAR、Playwright trace 和 evaluator 明细；逐试次核对文件、哈希、分数、状态与模型请求尝试。",
+          "全部逻辑结果及其底层证据审计通过，记分分歧 0、未决 0；完整网络正文和登录凭据不公开。"
+        ],
+        [
+          "Astra 可用性边界",
+          "用户代理公开的模型列表不等于当前团队有调用权限。",
+          "直接调用代理验证 gpt-6-astra，服务返回 team_model_access_denied；随后只用可用的 gpt-5.6-sol 完成流程。",
+          "本轮是 GPT-5.6 条件下的正式对比，不能写成 Astra 成绩；Astra 获权后必须新建独立运行。"
+        ]
+      ],
+      "i18n": {"en": {
+        "title": "Complete the WebArena-Verified autonomous-agent browser comparison",
+        "summary": "CowAgent with gpt-5.6-sol at reasoning=low produced 60 logical results across 30 preregistered tasks in Chromium and Moli. Each browser passed 25 tasks. Deterministic evidence-integrity checks covered every result with no unresolved inconsistency.",
+        "changes": [
+          ["Evidence and interpretation", "Navigation alone did not make task selection, executions, review coverage, solvability, or conclusions auditable.", "Use the home page as a decision entry point and publish contracts, measured results, assertions, trajectories, sanitized events, an English edition, and an evidence index.", "Publication structure changed; tasks, denominator, outputs, scores, and evidence bindings did not."],
+          ["Autonomous-agent track", "The repository also contained a trajectory-replay harness, making the phrase 'the original 30 tasks' ambiguous.", "State that CowAgent autonomously observes, plans, and acts for this report, while trajectory replay is a separate microbenchmark.", "Only the autonomous-agent track contributes to these scores."],
+          ["Benchmark selection", "Browser-use, computer-use, offline action prediction, and agentic-search claims used incompatible evaluation units.", "Compare primary-source adoption and evaluation contracts across relevant benchmark families.", "Choose self-hosted WebArena-Verified for deterministic outcome evaluation; live-site and model-judge tracks remain future work."],
+          ["Complete formal run", "The cohort needed short, medium, and long workflows without post-run task selection.", "Preregister 5/10/15 operation-length tiers and one logical result per task-browser pair, with at most one declared execution after failure.", "Both browsers passed 25/30; five tasks failed jointly and none produced a one-browser-only pass."],
+          ["Evidence integrity", "Scores needed traceability to final answers, network side effects, and official evaluators without manual overrides.", "Retain responses, events, HAR, traces, and evaluator details and verify files, hashes, scores, statuses, and transport attempts.", "All logical results passed evidence-integrity checks with no scoring disagreement or unresolved item; sensitive network bodies remain private."],
+          ["Model-coverage boundary", "Availability in a model catalog did not establish access for this run.", "Record gpt-5.6-sol as the only measured model after Astra access was unavailable.", "This is a GPT-5.6 comparison, not an Astra result; Astra requires a separate run when available."]
+        ]
+      }}
+    }
+  ],
   "review_rounds": [
     {
       "date": "2026-09-14",
@@ -281,12 +1433,42 @@
       "title": "说明按需发布架构，补全安装清单与公开安全门禁",
       "summary": "报告明确区分逻辑路由与线上物理文件，补齐双语入口、七种方法的安装清单和公开安全门禁；同时按固定最终轮纠正四题、三个 Moli 版本的 12 个异常耗时。任务输出、判定和分数不变，延迟汇总已重算。",
       "changes": [
-        ["发布架构", "把 1,218 个可审计页面称为线上 HTML 文件，容易误解为重复部署并一次性加载。", "明确本地构建产出逻辑路由，Sites 包使用单个 HTML 外壳、共享运行时和内容寻址压缩块，页面与大证据按需加载。", "发布清单记录逻辑路由、源文件、压缩块和逐文件哈希；不减少证据，也不改变下载字节。"],
-        ["账号与安装", "旧页只显示唯一需要供应商账号的 Cloudflare，导致本地方法的取得方式和二进制配置看似消失。", "页面改为账号与安装清单：Cloudflare 列账号与凭据变量，其余六种本地方法列官方获取入口和二进制变量。", "只公开变量名称和官方入口，不保存值、本机路径、Cookie 或个人会话。"],
-        ["核验标识", "榜单只写已核验，读者无法直接看出核验主体。", "各方法审查列显示 100/100 · Codex 已核验，并继续链接到统一核验记录。", "只改展示文案；核验绑定、覆盖数和未决数不变。"],
-        ["中英版本", "原英文入口只是单页摘要，路由、章节和逐次证据解释均未与中文报告对齐。", "从同一报告模型生成逐页对应的中英文站点；导航按评测集、方法、分析、核验、解读、实现、复现、变更、安装排序，语言切换停留在当前路由。", "两种语言的路由、章节、表格、数值、筛选器和证据链接一一校验；界面与解释按英文语境改写，任务名、ID、URL、标准答案和原始输出保持原文且不重新评分。"],
-        ["公开安全门禁", "原发布扫描覆盖 Google、Artifact Hub、GitHub 与 OpenAI 等常见密钥形态，但未明确拦截 Authorization 值、本机用户目录、AWS 与 Slack 凭据。", "统一扫描每个重建后的公开文件，新增 Authorization、用户目录、AWS、Slack 和私钥形态检查；第三方 HTML 的既有 Google 形态脱敏仍保留双哈希。", "模式扫描不能证明不存在所有未知秘密；结构化凭据值仍禁止进入证据和报告，发布后还要逐文件字节复核。"],
-        ["Moli 时延纠正", "少量旧耗时异常会让 1.1.3 看起来存在未经证明的整体性能回退。", "对同一四题、三个版本做三轮轮换，统一采用第三轮的 12 个耗时并重算均值、P50、P95；不按结果择优。", "全部通过任务中，1.1.3 的均值由 4,000 降至 3,706 ms、P50 由 3,444 降至 3,340 ms、P95 由 9,833 降至 7,983 ms；1.0.6 与 1.1.1 也按同一规则更新。共保留 36 次物理调用；正文、评分和任务判定未改变。"]
+        [
+          "发布架构",
+          "把 1,218 个可审计页面称为线上 HTML 文件，容易误解为重复部署并一次性加载。",
+          "明确本地构建产出逻辑路由，Sites 包使用单个 HTML 外壳、共享运行时和内容寻址压缩块，页面与大证据按需加载。",
+          "发布清单记录逻辑路由、源文件、压缩块和逐文件哈希；不减少证据，也不改变下载字节。"
+        ],
+        [
+          "账号与安装",
+          "旧页只显示唯一需要供应商账号的 Cloudflare，导致本地方法的取得方式和二进制配置看似消失。",
+          "页面改为账号与安装清单：Cloudflare 列账号与凭据变量，其余六种本地方法列官方获取入口和二进制变量。",
+          "只公开变量名称和官方入口，不保存值、本机路径、Cookie 或个人会话。"
+        ],
+        [
+          "核验标识",
+          "榜单只写已核验，读者无法直接看出核验主体。",
+          "各方法审查列显示 100/100 · Codex 已核验，并继续链接到统一核验记录。",
+          "只改展示文案；核验绑定、覆盖数和未决数不变。"
+        ],
+        [
+          "中英版本",
+          "原英文入口只是单页摘要，路由、章节和逐次证据解释均未与中文报告对齐。",
+          "从同一报告模型生成逐页对应的中英文站点；导航按评测集、方法、分析、核验、解读、实现、复现、变更、安装排序，语言切换停留在当前路由。",
+          "两种语言的路由、章节、表格、数值、筛选器和证据链接一一校验；界面与解释按英文语境改写，任务名、ID、URL、标准答案和原始输出保持原文且不重新评分。"
+        ],
+        [
+          "公开安全门禁",
+          "原发布扫描覆盖 Google、Artifact Hub、GitHub 与 OpenAI 等常见密钥形态，但未明确拦截 Authorization 值、本机用户目录、AWS 与 Slack 凭据。",
+          "统一扫描每个重建后的公开文件，新增 Authorization、用户目录、AWS、Slack 和私钥形态检查；第三方 HTML 的既有 Google 形态脱敏仍保留双哈希。",
+          "模式扫描不能证明不存在所有未知秘密；结构化凭据值仍禁止进入证据和报告，发布后还要逐文件字节复核。"
+        ],
+        [
+          "Moli 时延纠正",
+          "少量旧耗时异常会让 1.1.3 看起来存在未经证明的整体性能回退。",
+          "对同一四题、三个版本做三轮轮换，统一采用第三轮的 12 个耗时并重算均值、P50、P95；不按结果择优。",
+          "全部通过任务中，1.1.3 的均值由 4,000 降至 3,706 ms、P50 由 3,444 降至 3,340 ms、P95 由 9,833 降至 7,983 ms；1.0.6 与 1.1.1 也按同一规则更新。共保留 36 次物理调用；正文、评分和任务判定未改变。"
+        ]
       ]
     },
     {
@@ -295,10 +1477,30 @@
       "title": "统一方法组合对比，补充 Moli 时延诊断",
       "summary": "结果分析页改为一个可同时处理双方法和多方法的对比器，并重新排版任务与结果；issue #66 的回退线索经公网顺序轮换与本地固定页对照后，保留为未能单因归因的长尾现象。正式任务、分数和耗时不变。",
       "changes": [
-        ["统一对比器", "双方法与多方法拆成两张大卡和两份结果表，控制项重复、页面拥挤。", "保留一个方法 A、可多选对比方法和一组统一关系条件；结果只渲染一张同题表。", "支持有分歧、A 成功或失败、全部成功或失败、仅所选方法成功；不生成新分数。"],
-        ["结果排版", "双栏压缩了任务类型和方法列，中文类型被逐字换行，横向阅读困难。", "组件改为全宽；任务类型并入任务单元格徽标，成功与失败方法用可换行状态标签展示。", "窄屏仍允许表格横向滚动，任务名称、ID 和证据链接完整保留。"],
-        ["Moli 时延线索", "正式单次结果显示 1.1.3 在少数任务上明显慢于旧版，但无法区分版本、网络和页面等待。", "选择四个差异大的不同路径任务做三轮轮换复测，再用本地固定页各五轮测固定开销。", "公网各题中位数有快有慢且波动区间重叠；本地固定开销未见 1.1.3 回退，因此不把 issue #66 升格为已确认回归。"],
-        ["纠正与失败重试", "把所有后续调用都禁止掉会让已证实的错误无法纠正；反过来，失败后挑选更好响应又会制造 best-of 偏差。", "区分两条路径：错误命令、版本、裁判或参考按明确范围 supersede 并重测；普通失败可在测量前声明最多重试一次，保留两次物理证据且最后一次无条件生效。", "当前 1,050 条结果没有启用重试，issue #66 的诊断复测也不替换正式结果；后续协议可按需启用。"]
+        [
+          "统一对比器",
+          "双方法与多方法拆成两张大卡和两份结果表，控制项重复、页面拥挤。",
+          "保留一个方法 A、可多选对比方法和一组统一关系条件；结果只渲染一张同题表。",
+          "支持有分歧、A 成功或失败、全部成功或失败、仅所选方法成功；不生成新分数。"
+        ],
+        [
+          "结果排版",
+          "双栏压缩了任务类型和方法列，中文类型被逐字换行，横向阅读困难。",
+          "组件改为全宽；任务类型并入任务单元格徽标，成功与失败方法用可换行状态标签展示。",
+          "窄屏仍允许表格横向滚动，任务名称、ID 和证据链接完整保留。"
+        ],
+        [
+          "Moli 时延线索",
+          "正式单次结果显示 1.1.3 在少数任务上明显慢于旧版，但无法区分版本、网络和页面等待。",
+          "选择四个差异大的不同路径任务做三轮轮换复测，再用本地固定页各五轮测固定开销。",
+          "公网各题中位数有快有慢且波动区间重叠；本地固定开销未见 1.1.3 回退，因此不把 issue #66 升格为已确认回归。"
+        ],
+        [
+          "纠正与失败重试",
+          "把所有后续调用都禁止掉会让已证实的错误无法纠正；反过来，失败后挑选更好响应又会制造 best-of 偏差。",
+          "区分两条路径：错误命令、版本、裁判或参考按明确范围 supersede 并重测；普通失败可在测量前声明最多重试一次，保留两次物理证据且最后一次无条件生效。",
+          "当前 1,050 条结果没有启用重试，issue #66 的诊断复测也不替换正式结果；后续协议可按需启用。"
+        ]
       ]
     },
     {
@@ -307,9 +1509,24 @@
       "title": "增加同题方法组合对比，修复大输出卡顿",
       "summary": "结果分析页新增两方法差异和多方法交集；超过 256 KiB 的完整证据不再自动插入页面，改为按需加载或直接下载。正式任务、调用、判定、分数和耗时均未改变。",
       "changes": [
-        ["同题方法对比", "旧页只能按方法或结果筛选 1,050 条调用，难以直接找到 A 成功而 B 失败、共同成功、共同失败或多方法分歧的任务。", "新增两方法差异与多方法交集；每行沿用同一任务的已核验主判定，并链接到各次标准答案、实际返回和失败原因。", "这是集合分析，不产生新分数，也不把不同成功样本的耗时混在一起比较。"],
-        ["大证据加载", "超过百万字符的输出自动下载并写入 pre 元素时，会长时间占用主线程，页面表现为卡死。", "超过 256 KiB 的文本先显示按需入口；用户点击后使用只读文本框承载完整内容，原始文件下载始终保留。", "只改变浏览器呈现时机和控件；发布包内证据字节及校验值不变。"],
-        ["版本与样本边界", "Moli 1.1.3 比 1.1.1 少两题可能被直接解读成版本能力回退；京东偶尔可打开也可能被用来否定正式失败。", "三轮配对诊断将瞬时请求、页面不稳定和当前主榜成绩分开；京东保留为网络与会话敏感的挑战样本。", "当前主榜未启用失败重试，也不用诊断调用挑选更好响应；后续可预先声明失败重试，已证实的错误可按完整范围纠正并替换权威逻辑结果。"]
+        [
+          "同题方法对比",
+          "旧页只能按方法或结果筛选 1,050 条调用，难以直接找到 A 成功而 B 失败、共同成功、共同失败或多方法分歧的任务。",
+          "新增两方法差异与多方法交集；每行沿用同一任务的已核验主判定，并链接到各次标准答案、实际返回和失败原因。",
+          "这是集合分析，不产生新分数，也不把不同成功样本的耗时混在一起比较。"
+        ],
+        [
+          "大证据加载",
+          "超过百万字符的输出自动下载并写入 pre 元素时，会长时间占用主线程，页面表现为卡死。",
+          "超过 256 KiB 的文本先显示按需入口；用户点击后使用只读文本框承载完整内容，原始文件下载始终保留。",
+          "只改变浏览器呈现时机和控件；发布包内证据字节及校验值不变。"
+        ],
+        [
+          "版本与样本边界",
+          "Moli 1.1.3 比 1.1.1 少两题可能被直接解读成版本能力回退；京东偶尔可打开也可能被用来否定正式失败。",
+          "三轮配对诊断将瞬时请求、页面不稳定和当前主榜成绩分开；京东保留为网络与会话敏感的挑战样本。",
+          "当前主榜未启用失败重试，也不用诊断调用挑选更好响应；后续可预先声明失败重试，已证实的错误可按完整范围纠正并替换权威逻辑结果。"
+        ]
       ]
     },
     {
@@ -318,9 +1535,24 @@
       "title": "迁移到 Sites，并固化评测报告工作流",
       "summary": "报告迁移到新的 Sites 域名并保留原站点；仓库新增跨评测类型的报告 Skill，覆盖评测设计、证据、独立核验、影响范围重跑和发布门禁。任务、输出、分数和耗时不变。",
       "changes": [
-        ["发布目标", "旧发布脚本固定使用 artifact-hub.dev 域名，换会话可能继续更新旧站点。", "当前报告配置同时绑定 Sites 服务地址和站点 ID；发布、验证和正文链接从同一配置读取，目标不一致时拒绝更新。", "新站点为 UUAhhQMnrGwm；旧站点 bWkRP157EtF6 和 UeZE1vfcEOrM 均未覆盖。"],
-        ["发布身份", "仓库 .env 中的旧发布令牌可能优先于用户目录的新 Sites 令牌，导致已授权后仍返回 401。", "发布与验证脚本不再加载评测 .env，只读取显式进程环境或用户级令牌；设备授权时会备份不同的旧令牌。", "只改变发布凭据来源，不改变任何 provider 调用或报告数据。"],
-        ["跨评测工作流", "既有 benchmark-editorial 只负责正式解读文章，无法约束评测设计、评分核验、选择性重跑和报告发布。", "新增 benchmark-report Skill，并由根 AGENTS.md 强制路由；规则适用于 Web Fetch、Browser Use 及其他系统对比，不绑定本报告页面结构。", "这是流程和维护门禁；本轮主结果仍为 1,050 条，同窗测速仍为 140 条，未重新调用 provider。"]
+        [
+          "发布目标",
+          "旧发布脚本固定使用 artifact-hub.dev 域名，换会话可能继续更新旧站点。",
+          "当前报告配置同时绑定 Sites 服务地址和站点 ID；发布、验证和正文链接从同一配置读取，目标不一致时拒绝更新。",
+          "新站点为 UUAhhQMnrGwm；旧站点 bWkRP157EtF6 和 UeZE1vfcEOrM 均未覆盖。"
+        ],
+        [
+          "发布身份",
+          "仓库 .env 中的旧发布令牌可能优先于用户目录的新 Sites 令牌，导致已授权后仍返回 401。",
+          "发布与验证脚本不再加载评测 .env，只读取显式进程环境或用户级令牌；设备授权时会备份不同的旧令牌。",
+          "只改变发布凭据来源，不改变任何 provider 调用或报告数据。"
+        ],
+        [
+          "跨评测工作流",
+          "既有 benchmark-editorial 只负责正式解读文章，无法约束评测设计、评分核验、选择性重跑和报告发布。",
+          "新增 benchmark-report Skill，并由根 AGENTS.md 强制路由；规则适用于 Web Fetch、Browser Use 及其他系统对比，不绑定本报告页面结构。",
+          "这是流程和维护门禁；本轮主结果仍为 1,050 条，同窗测速仍为 140 条，未重新调用 provider。"
+        ]
       ]
     },
     {
@@ -330,9 +1562,24 @@
       "scoring_revision_input_sha256": "ea7b9d530566874af1b8e6b13796a29975d752564d6b143a9e540902d4ef8406",
       "summary": "默认重建现在只接受七方法、150 题和 1,050 条主调用的当前证据。机器可读路线改为本轮实际使用的原生 Markdown、Moli 自动原始响应和 node-html-markdown 2.0.0；分数、调用输出和耗时不变。",
       "changes": [
-        ["默认重建", "默认证据目录仍是旧的十二方法评测，新会话可能在没有报错的情况下生成另一份报告。", "将已核验的七方法证据设为 current，并增加独立的当前报告配置文件；构建和证据检查会拒绝方法、数量、截止时间或路线不匹配的证据。", "主结果仍为 1,050/1,050 条核验，同窗测速仍为 140/140 条核验；旧证据移入 research 目录保留。"],
-        ["路线元数据", "下载数据仍把 Chromium 转换器写成已淘汰的 pyhtml2md 1.7.0，也没有写明三个 Moli 版本处理直接文档和媒体的路线。", "路线说明改为与运行器共用的当前定义：普通网页使用各自原生正文能力，Moli 直接文档和媒体使用自动原始响应，Chromium 使用 node-html-markdown 2.0.0。", "只更正非判定元数据；任务、参考、输出、分数和耗时均未变化。"],
-        ["复发门禁", "核验轮次依附在某一条版本记录中，新增版本时容易让核验页变空；通用 Moli 文件适配器仍可能给二进制响应附加 --dump html。", "核验轮次改为独立的结构化记录并在构建时校验；Moli 直接文件统一使用裸 fetch；文档命令统一使用锁定的 uv 运行入口。", "页面只展示每轮范围、发现、纠正和未完成项；不增加核验结果下载。"]
+        [
+          "默认重建",
+          "默认证据目录仍是旧的十二方法评测，新会话可能在没有报错的情况下生成另一份报告。",
+          "将已核验的七方法证据设为 current，并增加独立的当前报告配置文件；构建和证据检查会拒绝方法、数量、截止时间或路线不匹配的证据。",
+          "主结果仍为 1,050/1,050 条核验，同窗测速仍为 140/140 条核验；旧证据移入 research 目录保留。"
+        ],
+        [
+          "路线元数据",
+          "下载数据仍把 Chromium 转换器写成已淘汰的 pyhtml2md 1.7.0，也没有写明三个 Moli 版本处理直接文档和媒体的路线。",
+          "路线说明改为与运行器共用的当前定义：普通网页使用各自原生正文能力，Moli 直接文档和媒体使用自动原始响应，Chromium 使用 node-html-markdown 2.0.0。",
+          "只更正非判定元数据；任务、参考、输出、分数和耗时均未变化。"
+        ],
+        [
+          "复发门禁",
+          "核验轮次依附在某一条版本记录中，新增版本时容易让核验页变空；通用 Moli 文件适配器仍可能给二进制响应附加 --dump html。",
+          "核验轮次改为独立的结构化记录并在构建时校验；Moli 直接文件统一使用裸 fetch；文档命令统一使用锁定的 uv 运行入口。",
+          "页面只展示每轮范围、发现、纠正和未完成项；不增加核验结果下载。"
+        ]
       ]
     },
     {
@@ -348,13 +1595,48 @@
       "title": "完成七种方法实测、全量核验与同窗测速",
       "summary": "七种方法均完成同一组 150 个任务，共 1,050 次主调用；另有 20 题 × 7 种方法的 140 次同窗测速。Codex 任务代理在看不到机器结论和分数的条件下逐条核验 1,190/1,190 份输出，最终与当前评分一致，未决 0。",
       "changes": [
-        ["七方法完整矩阵", "新增 Moli 1.0.6 后，旧的六方法分母和版本对比已不完整。", "七种方法各执行 150 个相同任务，每个方法—任务组合保留一个权威逻辑结果；Moli 1.0.6、1.1.1、1.1.3 分列。", "通过数依次为 Moli 1.1.1 135、Moli 1.0.6 134、Moli 1.1.3 133、Chromium 125、Lightpanda 119、Obscura 117、Kitesurf 112；总数只表示本评测集覆盖，不替代六类分榜。"],
-        ["独立核验账", "只检查失败项会漏掉假阳性，旧详情也曾把排版差异误判成内容缺失。", "Codex 任务代理逐条读取任务契约、标准答案和完整实际输出，主结果核验 1,050/1,050，同窗测速核验 140/140；机器结论和分数在独立判定前隐藏。", "当前自动假阴性 0、自动假阳性 0、未决 0；challenge-08、动态引文字段边界、飞书表格及直接文档路线等历史问题均以当前统一规则重算或重测。"],
-        ["同窗测速", "主矩阵来自多个执行批次，远程网络、排队和本地资源竞争使跨批次耗时不能公平排名。", "另取 20 个预声明、域名互异的网页，同一窗口并行执行七种方法；延迟只比较全部方法共同通过的 8 个相同任务。", "Moli 1.0.6 的样本 P50 最低；8 题属于探索性小样本，P95 只作样本诊断，不外推为稳定尾延迟或 SLA。"],
-        ["参考与路线纠正", "live-025 曾误用初始 HTTP 字节作为动态页面标准；Moli 直接 PDF/媒体若强加 --dump 会在取回产物前失败。", "live-025 改用独立浏览器渲染后的可见正文并重测七种方法；三个 Moli 版本对直接 PDF、DOCX 和媒体 URL 使用裸 fetch，正文题计入本地解析，文件题直接验收字节。", "标准、输入输出目标与评分入口对所有方法一致；各方法仍可使用自己最快的正式原生产物路径。"],
-        ["document-03 参考替换", "旧 W3C PDF 地址在本轮变成 Cloudflare 验证页，继续使用会把站点拦截误当作 PDF 解析能力。", "改用 Mozilla PDF.js 固定 Git 提交中的三页 PDF，并重新调用七种方法；未变化的 1,043 条主结果及核验保持原样。", "Moli 1.0.6、1.1.1 取得全部三页文字并通过；Moli 1.1.3 单次请求失败，其他方法未取得可读正文。该单次结果不能单独证明版本回归。"],
-        ["标题诊断", "标题指标先展示定义和空表，读者看不到输入、对齐和汇总过程。", "按读取条目、详情链接对齐、逐标题比较、可比结果汇总四步展示；没有可对照标题时明确显示不适用，不生成空表。", "标题诊断仍不参与任务通过判定，也不代表榜单召回、实时性或整页正文质量。"],
-        ["环境与复现", "旧环境页复述每个批次，账号页又容易让人误以为报告应保存正式密钥。", "环境和复现合并，只保留版本、二进制哈希、部署边界、配置文件和锁定命令；账号页仅列所需账号、变量名和官方获取入口。", "正式密钥只从仓库本地 .env 读取，不进入 HTML、Git 或发布包；Kitesurf 的托管后端版本和本地部署不可复现边界单独披露。"]
+        [
+          "七方法完整矩阵",
+          "新增 Moli 1.0.6 后，旧的六方法分母和版本对比已不完整。",
+          "七种方法各执行 150 个相同任务，每个方法—任务组合保留一个权威逻辑结果；Moli 1.0.6、1.1.1、1.1.3 分列。",
+          "通过数依次为 Moli 1.1.1 135、Moli 1.0.6 134、Moli 1.1.3 133、Chromium 125、Lightpanda 119、Obscura 117、Kitesurf 112；总数只表示本评测集覆盖，不替代六类分榜。"
+        ],
+        [
+          "独立核验账",
+          "只检查失败项会漏掉假阳性，旧详情也曾把排版差异误判成内容缺失。",
+          "Codex 任务代理逐条读取任务契约、标准答案和完整实际输出，主结果核验 1,050/1,050，同窗测速核验 140/140；机器结论和分数在独立判定前隐藏。",
+          "当前自动假阴性 0、自动假阳性 0、未决 0；challenge-08、动态引文字段边界、飞书表格及直接文档路线等历史问题均以当前统一规则重算或重测。"
+        ],
+        [
+          "同窗测速",
+          "主矩阵来自多个执行批次，远程网络、排队和本地资源竞争使跨批次耗时不能公平排名。",
+          "另取 20 个预声明、域名互异的网页，同一窗口并行执行七种方法；延迟只比较全部方法共同通过的 8 个相同任务。",
+          "Moli 1.0.6 的样本 P50 最低；8 题属于探索性小样本，P95 只作样本诊断，不外推为稳定尾延迟或 SLA。"
+        ],
+        [
+          "参考与路线纠正",
+          "live-025 曾误用初始 HTTP 字节作为动态页面标准；Moli 直接 PDF/媒体若强加 --dump 会在取回产物前失败。",
+          "live-025 改用独立浏览器渲染后的可见正文并重测七种方法；三个 Moli 版本对直接 PDF、DOCX 和媒体 URL 使用裸 fetch，正文题计入本地解析，文件题直接验收字节。",
+          "标准、输入输出目标与评分入口对所有方法一致；各方法仍可使用自己最快的正式原生产物路径。"
+        ],
+        [
+          "document-03 参考替换",
+          "旧 W3C PDF 地址在本轮变成 Cloudflare 验证页，继续使用会把站点拦截误当作 PDF 解析能力。",
+          "改用 Mozilla PDF.js 固定 Git 提交中的三页 PDF，并重新调用七种方法；未变化的 1,043 条主结果及核验保持原样。",
+          "Moli 1.0.6、1.1.1 取得全部三页文字并通过；Moli 1.1.3 单次请求失败，其他方法未取得可读正文。该单次结果不能单独证明版本回归。"
+        ],
+        [
+          "标题诊断",
+          "标题指标先展示定义和空表，读者看不到输入、对齐和汇总过程。",
+          "按读取条目、详情链接对齐、逐标题比较、可比结果汇总四步展示；没有可对照标题时明确显示不适用，不生成空表。",
+          "标题诊断仍不参与任务通过判定，也不代表榜单召回、实时性或整页正文质量。"
+        ],
+        [
+          "环境与复现",
+          "旧环境页复述每个批次，账号页又容易让人误以为报告应保存正式密钥。",
+          "环境和复现合并，只保留版本、二进制哈希、部署边界、配置文件和锁定命令；账号页仅列所需账号、变量名和官方获取入口。",
+          "正式密钥只从仓库本地 .env 读取，不进入 HTML、Git 或发布包；Kitesurf 的托管后端版本和本地部署不可复现边界单独披露。"
+        ]
       ]
     },
     {
@@ -363,9 +1645,24 @@
       "title": "区分文字存在与字段边界完整",
       "summary": "复核 Quotes 异步列表的两版 Moli 输出：10 条引文和作者均已取得，但相邻字段及多标签之间没有可读分隔。任务结果保持未通过，详情页改为按引文、作者、标签逐字段呈现，避免把边界损失笼统写成文字缺失。",
       "changes": [
-        ["字段级证据", "旧详情把整条稳定记录标成未命中，即使其中引文和作者已经完整出现，读者无法知道真正失败的是标签列表边界。", "逐条展示引文、作者和标签的标准答案、实际解析值与判定；标签字符完整但分隔消失时明确标为字段边界不合格。", "只修正失败解释和分类，不改变任务契约、原始输出、耗时或分数。"],
-        ["两版 Moli 复核", "只看 Moli 1.1.3 会遗漏旧版是否存在同类问题。", "Moli 1.1.1 与 1.1.3 的该任务输出逐字节相同，均有 10 条完整且唯一记录；8 条多标签文字粘连，最后一条还混入 Loading 文本。", "两版均维持未通过；单标签的第 9 条正常命中，说明规则检查的是标签边界而非引文是否出现。"],
-        ["失败核验覆盖", "读者需要区分全量核验与只检查个别版本。", "主结果 900/900 全量盲审，包括 Moli 1.1.1 和 1.1.3 各 150 条；184 个机器失败项全部有非空独立审查证据。", "各方法失败核验覆盖均为 100%，无未裁定结果。"]
+        [
+          "字段级证据",
+          "旧详情把整条稳定记录标成未命中，即使其中引文和作者已经完整出现，读者无法知道真正失败的是标签列表边界。",
+          "逐条展示引文、作者和标签的标准答案、实际解析值与判定；标签字符完整但分隔消失时明确标为字段边界不合格。",
+          "只修正失败解释和分类，不改变任务契约、原始输出、耗时或分数。"
+        ],
+        [
+          "两版 Moli 复核",
+          "只看 Moli 1.1.3 会遗漏旧版是否存在同类问题。",
+          "Moli 1.1.1 与 1.1.3 的该任务输出逐字节相同，均有 10 条完整且唯一记录；8 条多标签文字粘连，最后一条还混入 Loading 文本。",
+          "两版均维持未通过；单标签的第 9 条正常命中，说明规则检查的是标签边界而非引文是否出现。"
+        ],
+        [
+          "失败核验覆盖",
+          "读者需要区分全量核验与只检查个别版本。",
+          "主结果 900/900 全量盲审，包括 Moli 1.1.1 和 1.1.3 各 150 条；184 个机器失败项全部有非空独立审查证据。",
+          "各方法失败核验覆盖均为 100%，无未裁定结果。"
+        ]
       ]
     },
     {
@@ -375,11 +1672,36 @@
       "title": "核对文档参考，纠正等价表格误判",
       "summary": "逐项核对 10 个文档任务的冻结源、完整正文参考、正文分段契约和 60 次实际输出；同时复查飞书帮助文档的表格判定。文档参考没有截断；飞书任务原先把 Markdown 表格语法当成内容要求，造成 3 次误判，现已按相同输入输出目标统一纠正。",
       "changes": [
-        ["覆盖率展示", "位置详情把一小段人工定位样例放在长标准正文旁边，容易被误认为机器只用这段短文本打分。", "结果页就地说明分母、分子和完整输入：覆盖率使用上方完整实际返回计算；定位样例只帮助读者人工确认一次命中。", "评分实现、保存输出、耗时和分数均未改变。"],
-        ["最小 PDF 范围", "document-03 的源文件正文只有 Dummy PDF file，若沿用长文档任务说明，会被误解为参考正文缺失。", "报告明确标为最小文档解析样本：冻结源文件全部可提取正文就是 14 个字符，只检查能否取得短 PDF 文字。", "该任务不能证明多页、表格或附录能力；六种方法本轮都未取得这 14 个字符，结果仍全部失败。"],
-        ["文档参考审计", "嵌入文档任务只保存外围 HTML 时，读者无法追踪完整正文来自哪个 PDF。", "document-07 记录查看器实际加载的 PDF、既有冻结文件路径及双重哈希；document-08 记录冻结 HTML 中的嵌入地址、独立下载哈希和提取正文哈希。", "10 个文档参考与正文分段契约均核对通过，没有参考截断导致的分数变化。"],
-        ["Moli DOCX 口径", "报告把直接 DOCX 写成已经取得原始响应，但本轮 Moli 1.1.3 实际把该 DOCX 序列化为含包字节的 HTML。", "方法页改为如实描述自动选择结果：PDF 进入原始响应并解析，DOCX 没有形成可解析原文件并失败。", "不增加 curl 等外部兜底，不把其他下载器的成功归给 Moli。"],
-        ["等价表格输出", "飞书帮助文档原规则只接受 Markdown 管道表或 HTML table。Obscura 和两版 Moli 已完整返回三列表头及全部表格内容，但按阅读顺序展开为普通文本，因此被误判失败。", "删除与目标无关的表格语法限制；继续用 3 个稳定事实、五段正文覆盖和完整文本质量验收，同一规则作用于全部方法。", "沿用原始输出和耗时离线重评分，不重跑 provider；3 次结果由失败改为通过。"]
+        [
+          "覆盖率展示",
+          "位置详情把一小段人工定位样例放在长标准正文旁边，容易被误认为机器只用这段短文本打分。",
+          "结果页就地说明分母、分子和完整输入：覆盖率使用上方完整实际返回计算；定位样例只帮助读者人工确认一次命中。",
+          "评分实现、保存输出、耗时和分数均未改变。"
+        ],
+        [
+          "最小 PDF 范围",
+          "document-03 的源文件正文只有 Dummy PDF file，若沿用长文档任务说明，会被误解为参考正文缺失。",
+          "报告明确标为最小文档解析样本：冻结源文件全部可提取正文就是 14 个字符，只检查能否取得短 PDF 文字。",
+          "该任务不能证明多页、表格或附录能力；六种方法本轮都未取得这 14 个字符，结果仍全部失败。"
+        ],
+        [
+          "文档参考审计",
+          "嵌入文档任务只保存外围 HTML 时，读者无法追踪完整正文来自哪个 PDF。",
+          "document-07 记录查看器实际加载的 PDF、既有冻结文件路径及双重哈希；document-08 记录冻结 HTML 中的嵌入地址、独立下载哈希和提取正文哈希。",
+          "10 个文档参考与正文分段契约均核对通过，没有参考截断导致的分数变化。"
+        ],
+        [
+          "Moli DOCX 口径",
+          "报告把直接 DOCX 写成已经取得原始响应，但本轮 Moli 1.1.3 实际把该 DOCX 序列化为含包字节的 HTML。",
+          "方法页改为如实描述自动选择结果：PDF 进入原始响应并解析，DOCX 没有形成可解析原文件并失败。",
+          "不增加 curl 等外部兜底，不把其他下载器的成功归给 Moli。"
+        ],
+        [
+          "等价表格输出",
+          "飞书帮助文档原规则只接受 Markdown 管道表或 HTML table。Obscura 和两版 Moli 已完整返回三列表头及全部表格内容，但按阅读顺序展开为普通文本，因此被误判失败。",
+          "删除与目标无关的表格语法限制；继续用 3 个稳定事实、五段正文覆盖和完整文本质量验收，同一规则作用于全部方法。",
+          "沿用原始输出和耗时离线重评分，不重跑 provider；3 次结果由失败改为通过。"
+        ]
       ]
     },
     {
@@ -394,14 +1716,54 @@
       "title": "纠正文档与资源路线，并完成 900 条结果独立核验",
       "summary": "150 个任务 × 6 种方法共 900 次调用均有明确结果。Moli 1.1.3 的直接文档和媒体改用自动原始响应；Codex gpt-5.6-sol 盲审全部 900 条保存输出，分歧逐条裁定且无未决项。任务详情页直接展示标准答案、实际返回和判定证据。",
       "changes": [
-        ["Moli 1.1.3 正确路线", "给直接 PDF 使用 --dump html/markdown 会在取得正文前报错，也无法真实衡量 1.1.3 的原始响应能力。", "普通网页仍使用原生 Markdown；直接文档与媒体使用裸 fetch，由 CLI 自动选择原始响应或序列化页面。PDF、PNG、WebM 和 MP4 在本轮取得原始字节，DOCX 被序列化为 HTML 并失败。", "只替换受实现影响的 7 个直接文档调用和 3 个直接文件调用；Moli 1.1.3 最终通过 133/150，旧版 Moli 1.1.1 为 123/150。"],
-        ["文档正文与文件分轨", "下载到 PDF 或 DOCX 不等于取得正文，反过来正文任务也不应强制所有方法先转成同一种中间格式。", "正文任务统一验收可读文字：方法直接给正文即可，只给原文件则把本地解析计入耗时；原始文件任务验收格式、长度和目标 SHA-256，不做无关 Markdown 转换。", "当前覆盖 PDF、DOCX、TXT 和嵌入文档；不声称支持旧 DOC、OCR、表格语义或任意办公格式。"],
-        ["全部结果独立核验", "只复核自动失败项会漏掉假阳性；文件任务若只交给代理空文本占位文件，也会制造假失败。", "Codex gpt-5.6-sol 在看不到机器判定和分数的条件下核对 900/900 条结果；文件任务同时提供真实二进制证据，协议缺陷影响的 3 个批次单独重审。", "所有分歧均有可观察证据和最终裁定，0 条未决；同窗测速 120/120 另行全量核验。"],
-        ["统一评分纠错", "Markdown 链接边界会让实际存在的 Reddit 社区说明被误判缺失；百分号编码的相对下载地址也会漏判。", "可见链接文字按排版边界还原；只把带文件后缀的尖括号相对目标按源页解析并 URL 解码，不把普通文件名 prose 当成地址。", "challenge-08 的两版 Moli 假阴性被纠正；Chromium 的 Blender 下载包地址改判通过。原输出、调用状态、耗时和内容哈希均不变。"],
-        ["乱码识别", "请求成功和较长输出不能证明文字可读；run-9b35581eb0fdbbdea4a6 含大量替换字符。", "统一检测 U+FFFD 的数量与占比，达到显著阈值时判正文解码损坏，并在详情页显示数量、比例和原始输出。", "该调用仍为失败，但失败原因由笼统内容缺失改为可核验的解码损坏，不把乱码当有效正文。"],
-        ["任务详情重做", "旧页把一份答案的五个位置写成 body-region，标准答案和实际输出又藏在大量表格与折叠项后。", "首屏显示任务 ID、方法、运行 ID 和结论；随后直接并排展示完整标准答案与实际返回。位置检查只保留汇总表，具体原文证据按需展开，运行字段统一折叠到页尾。", "只改变证据呈现，不修改任何任务、输出、分数或耗时。"],
-        ["版本追溯", "运行时版本字符串缺失时，仅写产品名无法证明测试的是哪个构建。", "本地实现按二进制 SHA-256 固定：Moli 1.1.1 与官方归档事后逐字节匹配，Moli 1.1.3 和 Chromium 保留运行时版本与哈希；Lightpanda 以精确 nightly 哈希标识。", "Kitesurf 是托管服务，服务端构建未公开，报告明确标为不可得，不伪造版本。"],
-        ["证据打包", "重新组装相同记录时改变 JSONL 行序会让独立核验哈希失效。", "组装器保留源证据顺序，并将参考修订、评分修订和结果核验记录随报告发布。", "900/900 指标可从保存输出复现；150 个任务和 6 种方法均无缺项。"]
+        [
+          "Moli 1.1.3 正确路线",
+          "给直接 PDF 使用 --dump html/markdown 会在取得正文前报错，也无法真实衡量 1.1.3 的原始响应能力。",
+          "普通网页仍使用原生 Markdown；直接文档与媒体使用裸 fetch，由 CLI 自动选择原始响应或序列化页面。PDF、PNG、WebM 和 MP4 在本轮取得原始字节，DOCX 被序列化为 HTML 并失败。",
+          "只替换受实现影响的 7 个直接文档调用和 3 个直接文件调用；Moli 1.1.3 最终通过 133/150，旧版 Moli 1.1.1 为 123/150。"
+        ],
+        [
+          "文档正文与文件分轨",
+          "下载到 PDF 或 DOCX 不等于取得正文，反过来正文任务也不应强制所有方法先转成同一种中间格式。",
+          "正文任务统一验收可读文字：方法直接给正文即可，只给原文件则把本地解析计入耗时；原始文件任务验收格式、长度和目标 SHA-256，不做无关 Markdown 转换。",
+          "当前覆盖 PDF、DOCX、TXT 和嵌入文档；不声称支持旧 DOC、OCR、表格语义或任意办公格式。"
+        ],
+        [
+          "全部结果独立核验",
+          "只复核自动失败项会漏掉假阳性；文件任务若只交给代理空文本占位文件，也会制造假失败。",
+          "Codex gpt-5.6-sol 在看不到机器判定和分数的条件下核对 900/900 条结果；文件任务同时提供真实二进制证据，协议缺陷影响的 3 个批次单独重审。",
+          "所有分歧均有可观察证据和最终裁定，0 条未决；同窗测速 120/120 另行全量核验。"
+        ],
+        [
+          "统一评分纠错",
+          "Markdown 链接边界会让实际存在的 Reddit 社区说明被误判缺失；百分号编码的相对下载地址也会漏判。",
+          "可见链接文字按排版边界还原；只把带文件后缀的尖括号相对目标按源页解析并 URL 解码，不把普通文件名 prose 当成地址。",
+          "challenge-08 的两版 Moli 假阴性被纠正；Chromium 的 Blender 下载包地址改判通过。原输出、调用状态、耗时和内容哈希均不变。"
+        ],
+        [
+          "乱码识别",
+          "请求成功和较长输出不能证明文字可读；run-9b35581eb0fdbbdea4a6 含大量替换字符。",
+          "统一检测 U+FFFD 的数量与占比，达到显著阈值时判正文解码损坏，并在详情页显示数量、比例和原始输出。",
+          "该调用仍为失败，但失败原因由笼统内容缺失改为可核验的解码损坏，不把乱码当有效正文。"
+        ],
+        [
+          "任务详情重做",
+          "旧页把一份答案的五个位置写成 body-region，标准答案和实际输出又藏在大量表格与折叠项后。",
+          "首屏显示任务 ID、方法、运行 ID 和结论；随后直接并排展示完整标准答案与实际返回。位置检查只保留汇总表，具体原文证据按需展开，运行字段统一折叠到页尾。",
+          "只改变证据呈现，不修改任何任务、输出、分数或耗时。"
+        ],
+        [
+          "版本追溯",
+          "运行时版本字符串缺失时，仅写产品名无法证明测试的是哪个构建。",
+          "本地实现按二进制 SHA-256 固定：Moli 1.1.1 与官方归档事后逐字节匹配，Moli 1.1.3 和 Chromium 保留运行时版本与哈希；Lightpanda 以精确 nightly 哈希标识。",
+          "Kitesurf 是托管服务，服务端构建未公开，报告明确标为不可得，不伪造版本。"
+        ],
+        [
+          "证据打包",
+          "重新组装相同记录时改变 JSONL 行序会让独立核验哈希失效。",
+          "组装器保留源证据顺序，并将参考修订、评分修订和结果核验记录随报告发布。",
+          "900/900 指标可从保存输出复现；150 个任务和 6 种方法均无缺项。"
+        ]
       ]
     },
     {
@@ -410,13 +1772,48 @@
       "title": "完成五种浏览器最快 Markdown 路线的 750 次实测",
       "summary": "Kitesurf、Lightpanda、Obscura、Moli 使用原生 Markdown，Chromium 使用渲染 DOM 加 node-html-markdown 2.0.0；150 题 × 5 种方法全部执行、独立参考生命周期与离线复评分全部通过。",
       "changes": [
-        ["方法口径", "旧草稿把五种方法强制写成相同 HTML 转换链路，掩盖了原生接口优势。", "对齐 URL、Markdown 输出、任务集、验收规则和 45 秒截止；每种方法使用最快的正式或自带 Markdown 路线。", "Kitesurf 走 Cloudflare 账号版 /markdown；三种本地 CLI 走原生 Markdown；只有无原生 Markdown 的 Chromium 做 DOM 转换。"],
-        ["Chromium 路线", "旧 pyhtml2md 路线在大页面上转换慢，且普通网页少通过一题。", "以同一批已保存 DOM 对候选转换器复评分，采用 node-html-markdown 2.0.0，并保留 HTML、版本、哈希和转换耗时。", "本轮 Chromium 普通网页 98/100；转换属于客户端端到端耗时，不冒充浏览器原生能力。"],
-        ["历史判定审查", "旧规则会漏判跨 Markdown 链接换行、原生接口链接排版、排版空白和部分动态表达，也曾放行过不完整正文。", "逐条对照 750 条保存输出、标准答案和任务契约，统一修正 43 个假阴性与 1 个假阳性；run-f4e6f2ee641e8baa9e3d 确认是误判。", "修正规则对所有方法生效，不增加 provider 特例；原输出、调用身份和耗时不改。"],
-        ["同步 main", "上游任务规则与报告缺陷修正会影响旧结论。", "合并最新 main 后复查影响范围；Django 教程参考变化，对五种方法全量同题重跑，其余仅在参考字节和评测契约等价时复用。", "Moli 该题新调用 browser exit，普通网页结果为 93/100；不沿用旧通过。"],
-        ["公平性", "远程 Kitesurf、本地进程、不同 readiness 条件和转换时间可能被误读为纯内核性能。", "速度只在双方共同通过的相同 URL 上配对，并明确客户端端到端边界。", "结果不能推出同机 CPU/RSS、网络剥离后的引擎速度、持续吞吐、成本或 SLA。"],
-        ["任务可识别性", "案例详情页只显示标题，读者无法从页面确认任务 ID。", "案例页首屏与逐次调用页均显示稳定任务 ID；运行 ID、规则、参考与输出继续可追溯。", "展示改动不改变任务、结果或分数。"],
-        ["发布隔离", "本报告与旧报告用途不同，覆盖旧站点会破坏历史链接。", "发布目标固定为独立站点 bWkRP157EtF6。", "旧站点 UeZE1vfcEOrM 保持不变。"]
+        [
+          "方法口径",
+          "旧草稿把五种方法强制写成相同 HTML 转换链路，掩盖了原生接口优势。",
+          "对齐 URL、Markdown 输出、任务集、验收规则和 45 秒截止；每种方法使用最快的正式或自带 Markdown 路线。",
+          "Kitesurf 走 Cloudflare 账号版 /markdown；三种本地 CLI 走原生 Markdown；只有无原生 Markdown 的 Chromium 做 DOM 转换。"
+        ],
+        [
+          "Chromium 路线",
+          "旧 pyhtml2md 路线在大页面上转换慢，且普通网页少通过一题。",
+          "以同一批已保存 DOM 对候选转换器复评分，采用 node-html-markdown 2.0.0，并保留 HTML、版本、哈希和转换耗时。",
+          "本轮 Chromium 普通网页 98/100；转换属于客户端端到端耗时，不冒充浏览器原生能力。"
+        ],
+        [
+          "历史判定审查",
+          "旧规则会漏判跨 Markdown 链接换行、原生接口链接排版、排版空白和部分动态表达，也曾放行过不完整正文。",
+          "逐条对照 750 条保存输出、标准答案和任务契约，统一修正 43 个假阴性与 1 个假阳性；run-f4e6f2ee641e8baa9e3d 确认是误判。",
+          "修正规则对所有方法生效，不增加 provider 特例；原输出、调用身份和耗时不改。"
+        ],
+        [
+          "同步 main",
+          "上游任务规则与报告缺陷修正会影响旧结论。",
+          "合并最新 main 后复查影响范围；Django 教程参考变化，对五种方法全量同题重跑，其余仅在参考字节和评测契约等价时复用。",
+          "Moli 该题新调用 browser exit，普通网页结果为 93/100；不沿用旧通过。"
+        ],
+        [
+          "公平性",
+          "远程 Kitesurf、本地进程、不同 readiness 条件和转换时间可能被误读为纯内核性能。",
+          "速度只在双方共同通过的相同 URL 上配对，并明确客户端端到端边界。",
+          "结果不能推出同机 CPU/RSS、网络剥离后的引擎速度、持续吞吐、成本或 SLA。"
+        ],
+        [
+          "任务可识别性",
+          "案例详情页只显示标题，读者无法从页面确认任务 ID。",
+          "案例页首屏与逐次调用页均显示稳定任务 ID；运行 ID、规则、参考与输出继续可追溯。",
+          "展示改动不改变任务、结果或分数。"
+        ],
+        [
+          "发布隔离",
+          "本报告与旧报告用途不同，覆盖旧站点会破坏历史链接。",
+          "发布目标固定为独立站点 bWkRP157EtF6。",
+          "旧站点 UeZE1vfcEOrM 保持不变。"
+        ]
       ]
     },
     {
@@ -425,12 +1822,42 @@
       "title": "完成文件任务评测，建立报告完整性发布门槛",
       "summary": "36 次文件任务全部实际调用并判定：Moli 与 Crawl4AI 各通过 3 次，共 6 次通过、30 次未通过、0 次未测。整份报告的 1,800 个计划调用均有唯一结果和明确判定。",
       "changes": [
-        ["文件任务", "旧记录没有保存原文件字节，不能判定直接 PNG、WebM 和 MP4 是否取得。", "十二种方法各执行 3 个文件案例；最终配置对应的 36 次调用全部进行格式、长度和目标 SHA-256 验收。", "Moli 与 Crawl4AI 各通过 3 次，其余 30 次未通过；未通过保留为真实结果，不删除有效困难案例。"],
-        ["原生接口范围", "只测正文路径会漏掉产品公开提供的原生文件能力，并把局部配置误当成产品能力。", "Moli 文件任务使用原文件字节输出；Crawl4AI 文件任务预先选择其原生 HTTP crawler，正文仍使用浏览器路径。", "按任务开始前固定的公开接口评测，不做失败后兜底，也不把普通 HTTP 下载冒充 provider 结果。"],
-        ["计时边界", "“耗时”没有清楚区分服务端时间、下载、渲染、本地加工和报告处理。", "统一以客户端端到端计时：从发起 provider 调用到形成可评分最终答案；下载、渲染、提取、输入转换及文件哈希均计入。", "评分、证据落盘、限速等待和报告生成不计入；供应商服务端耗时不参与排名。"],
-        ["完整性门槛", "以实际调用数作分母会让缺少计划调用的 8/8 看起来完整；两个覆盖列也重复。", "改为“判分完整性 = 已明确判定数 / 计划调用数”，并检查每个 provider × case 恰有一个当前结果。", "任一缺失、重复或无法判定都会在报告全局高亮为不可靠；完整性检查、报告校验与发布打包均阻止不完整结果发布。"],
-        ["证据呈现", "成功文件保存在包内但不易从调用页直接核验，变更页又堆叠多次同日修订。", "成功调用页提供文件下载、格式、字节数和 SHA-256；同日修订合并为一个正式版本，较早版本折叠。", "只改善审计入口与阅读结构，不修改原始文件、分数或耗时。"],
-        ["首页结构", "类别概览藏在详细榜单之后，读者需要先穿过大表格。", "六类任务概览前置，直接列出样本数、完整判分的方法数、最高任务通过率及对应方法；详细榜单留在后方。", "不同类别任务要求不同，最高分不能跨类别直接比较。"]
+        [
+          "文件任务",
+          "旧记录没有保存原文件字节，不能判定直接 PNG、WebM 和 MP4 是否取得。",
+          "十二种方法各执行 3 个文件案例；最终配置对应的 36 次调用全部进行格式、长度和目标 SHA-256 验收。",
+          "Moli 与 Crawl4AI 各通过 3 次，其余 30 次未通过；未通过保留为真实结果，不删除有效困难案例。"
+        ],
+        [
+          "原生接口范围",
+          "只测正文路径会漏掉产品公开提供的原生文件能力，并把局部配置误当成产品能力。",
+          "Moli 文件任务使用原文件字节输出；Crawl4AI 文件任务预先选择其原生 HTTP crawler，正文仍使用浏览器路径。",
+          "按任务开始前固定的公开接口评测，不做失败后兜底，也不把普通 HTTP 下载冒充 provider 结果。"
+        ],
+        [
+          "计时边界",
+          "“耗时”没有清楚区分服务端时间、下载、渲染、本地加工和报告处理。",
+          "统一以客户端端到端计时：从发起 provider 调用到形成可评分最终答案；下载、渲染、提取、输入转换及文件哈希均计入。",
+          "评分、证据落盘、限速等待和报告生成不计入；供应商服务端耗时不参与排名。"
+        ],
+        [
+          "完整性门槛",
+          "以实际调用数作分母会让缺少计划调用的 8/8 看起来完整；两个覆盖列也重复。",
+          "改为“判分完整性 = 已明确判定数 / 计划调用数”，并检查每个 provider × case 恰有一个当前结果。",
+          "任一缺失、重复或无法判定都会在报告全局高亮为不可靠；完整性检查、报告校验与发布打包均阻止不完整结果发布。"
+        ],
+        [
+          "证据呈现",
+          "成功文件保存在包内但不易从调用页直接核验，变更页又堆叠多次同日修订。",
+          "成功调用页提供文件下载、格式、字节数和 SHA-256；同日修订合并为一个正式版本，较早版本折叠。",
+          "只改善审计入口与阅读结构，不修改原始文件、分数或耗时。"
+        ],
+        [
+          "首页结构",
+          "类别概览藏在详细榜单之后，读者需要先穿过大表格。",
+          "六类任务概览前置，直接列出样本数、完整判分的方法数、最高任务通过率及对应方法；详细榜单留在后方。",
+          "不同类别任务要求不同，最高分不能跨类别直接比较。"
+        ]
       ]
     },
     {
@@ -440,13 +1867,48 @@
       "title": "统一验收口径，纠正参考、成绩与报告结论",
       "summary": "保留 150 个案例、1,800 条原始调用；92 条任务判定改变，36 条缺少文件字节证据的历史记录从误记失败改为未测。原始输出和耗时不变。",
       "changes": [
-        ["正文参考", "CSS 标准正文目录被误删，Django 文档混入站点外围内容。", "按独立保存的源页面重新确定正文边界，并记录来源与参考哈希。", "全文 F1 随参考修正；旧低分不能直接归因于供应商正文噪声。"],
-        ["统一评分", "明确的名称—链接字段和合法 Markdown 软换行没有统一进入验收。", "所有方法共用同一答案转换和评分入口，排除请求回显与诊断日志。", "修正格式导致的假失败，不按 provider 名称设置评分分支。"],
-        ["正文覆盖", "只检查开头关键词和最小长度可能让极短摘录通过长文任务。", "有完整独立参考的任务增加最多五个连续区域的词语覆盖检查。", "它是内容覆盖下限，不替代全文 F1，也不保证语义或事实正确。"],
-        ["动态字段", "商品任务要求的分期和配送字段没有被完整验收。", "按独立参考检查字段归属、数量、类型和唯一性；易变价格与排序不冻结为永久答案。", "字段齐全不等于变化值真实或最新。"],
-        ["截止时间", "超出登记预算的结果仍可能计为成功。", "新调用采用统一端到端截止；历史记录仅按已登记耗时和预算重判。", "不声称历史调用当时已经受新硬截止控制。"],
-        ["文件缺测", "36 条没有字节证据的文件记录被当成失败。", "先改为未测并退出通过率分母，随后在 2026-09-04 通过真实 provider 调用补齐。", "不以 URL、文本或其他方法的下载结果代替原方法文件证据。"],
-        ["结果解读", "不同成功子集的条件耗时被直接当成同题速度，部分文章结论超出证据。", "增加共同通过子集诊断，并明确单次、跨批次与参考范围限制。", "不能从本轮样本外推全网能力、稳定性或生产 SLA。"]
+        [
+          "正文参考",
+          "CSS 标准正文目录被误删，Django 文档混入站点外围内容。",
+          "按独立保存的源页面重新确定正文边界，并记录来源与参考哈希。",
+          "全文 F1 随参考修正；旧低分不能直接归因于供应商正文噪声。"
+        ],
+        [
+          "统一评分",
+          "明确的名称—链接字段和合法 Markdown 软换行没有统一进入验收。",
+          "所有方法共用同一答案转换和评分入口，排除请求回显与诊断日志。",
+          "修正格式导致的假失败，不按 provider 名称设置评分分支。"
+        ],
+        [
+          "正文覆盖",
+          "只检查开头关键词和最小长度可能让极短摘录通过长文任务。",
+          "有完整独立参考的任务增加最多五个连续区域的词语覆盖检查。",
+          "它是内容覆盖下限，不替代全文 F1，也不保证语义或事实正确。"
+        ],
+        [
+          "动态字段",
+          "商品任务要求的分期和配送字段没有被完整验收。",
+          "按独立参考检查字段归属、数量、类型和唯一性；易变价格与排序不冻结为永久答案。",
+          "字段齐全不等于变化值真实或最新。"
+        ],
+        [
+          "截止时间",
+          "超出登记预算的结果仍可能计为成功。",
+          "新调用采用统一端到端截止；历史记录仅按已登记耗时和预算重判。",
+          "不声称历史调用当时已经受新硬截止控制。"
+        ],
+        [
+          "文件缺测",
+          "36 条没有字节证据的文件记录被当成失败。",
+          "先改为未测并退出通过率分母，随后在 2026-09-04 通过真实 provider 调用补齐。",
+          "不以 URL、文本或其他方法的下载结果代替原方法文件证据。"
+        ],
+        [
+          "结果解读",
+          "不同成功子集的条件耗时被直接当成同题速度，部分文章结论超出证据。",
+          "增加共同通过子集诊断，并明确单次、跨批次与参考范围限制。",
+          "不能从本轮样本外推全网能力、稳定性或生产 SLA。"
+        ]
       ]
     }
   ]

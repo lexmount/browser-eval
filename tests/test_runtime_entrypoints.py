@@ -22,6 +22,19 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertIn("$(UV) sync --frozen --all-extras", makefile)
         self.assertIn("sys.version_info[:2] == (3, 11)", makefile)
 
+    def test_browser_use_routine_and_release_checks_are_separate(self) -> None:
+        makefile = (ROOT / "Makefile").read_text()
+        routine = makefile.split("browser-use-report-check:", 1)[1].split(
+            "browser-use-release-check:", 1
+        )[0]
+        release = makefile.split("browser-use-release-check:", 1)[1]
+
+        self.assertIn("check_browser_use_report.py", routine)
+        self.assertIn("check_report_links.py", routine)
+        self.assertNotIn("browser-use-visual-check", routine)
+        self.assertIn("browser-use-report-check", release.splitlines()[0])
+        self.assertIn("browser-use-visual-check", release)
+
     def test_versioned_moli_slots_reject_wrong_or_missing_binaries(self) -> None:
         valid = {
             "moli-1.0.6": {"reported_version": "moli 1.0.6"},

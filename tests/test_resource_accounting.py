@@ -1,5 +1,5 @@
 from harness import resource_accounting
-from harness.browser_use import metrics
+from harness.trajectory_replay import metrics
 
 
 def test_all_benchmarks_share_one_resource_accounting_contract():

@@ -13,7 +13,7 @@ from harness.web_fetch.artifact_auth import load_token, save_token, token_path
 class ArtifactAuthTests(unittest.TestCase):
     def test_authorization_persists_for_target_without_loading_repository_env(self):
         script = Path(__file__).resolve().parents[1] / 'scripts/authorize_artifact_hub.py'
-        with patch.dict(os.environ, {'ARTIFACT_HUB_TOKEN': 'ahp_process_fixture'}, clear=True), \
+        with patch.dict(os.environ, {'ARTIFACT_SITE_TOKEN': 'ahp_process_fixture'}, clear=True), \
                 patch('sys.argv', [str(script), '--persist-existing', '--base-url', 'https://app.example']), \
                 patch('harness.web_fetch.config.load_runtime_env', side_effect=AssertionError('must not read .env')), \
                 patch('harness.web_fetch.artifact_auth.save_token', return_value=None) as save, \
@@ -29,8 +29,7 @@ class ArtifactAuthTests(unittest.TestCase):
             legacy.write_text('ahp_legacy_fixture')
             app = 'https://artifact-hub.app.example'
             dev = 'https://artifact-hub.dev.example'
-            with self.assertRaises(FileNotFoundError):
-                load_token(base_url=app)
+            self.assertEqual(load_token(base_url=app), 'ahp_legacy_fixture')
             save_token('ahp_app_fixture', base_url=app)
             save_token('ahp_dev_fixture', base_url=dev)
             self.assertEqual(load_token(base_url=app), 'ahp_app_fixture')
@@ -40,15 +39,14 @@ class ArtifactAuthTests(unittest.TestCase):
             with patch.dict(os.environ, {'ARTIFACT_HUB_TOKEN': 'ahp_environment_fixture'}):
                 self.assertEqual(load_token(base_url=app), 'ahp_environment_fixture')
             token_path(app).write_text('')
-            with self.assertRaises(ValueError):
-                load_token(base_url=app)
+            self.assertEqual(load_token(base_url=app), 'ahp_legacy_fixture')
             token_path(app).write_text('not-a-valid-token')
             with self.assertRaises(ValueError):
                 load_token(base_url=app)
 
     def test_host_key_includes_port_and_cannot_escape_credential_directory(self):
         with tempfile.TemporaryDirectory() as directory, patch('pathlib.Path.home', return_value=Path(directory)):
-            root = Path(directory) / '.config/artifact-hub/tokens'
+            root = Path(directory) / '.config/artifact-site/tokens'
             self.assertEqual(token_path('https://EXAMPLE.com:8443/path'), root / 'example.com:8443')
             for invalid in ['file:///tmp/token', 'https://..', 'https://.',
                             'https://user:password@example.com', 'https://example.com\\evil']:
@@ -77,8 +75,17 @@ class ArtifactAuthTests(unittest.TestCase):
             self.assertEqual(load_token(base_url='https://app.example'), 'ahp_test_fixture')
 
     def test_explicit_override(self):
-        with patch.dict(os.environ, {'ARTIFACT_HUB_TOKEN': 'ahp_override_fixture'}):
+        with patch.dict(os.environ, {'ARTIFACT_SITE_TOKEN': 'ahp_override_fixture'}):
             self.assertEqual(load_token(base_url='https://missing.example'), 'ahp_override_fixture')
+
+    def test_previous_name_is_a_read_only_migration_fallback(self):
+        with tempfile.TemporaryDirectory() as directory, patch('pathlib.Path.home', return_value=Path(directory)), patch.dict(os.environ, {}, clear=True):
+            old = Path(directory) / '.config/artifact-hub/tokens/app.example'
+            old.parent.mkdir(parents=True)
+            old.write_text('ahp_old_name_fixture')
+            self.assertEqual(load_token(base_url='https://app.example'), 'ahp_old_name_fixture')
+            save_token('ahp_new_name_fixture', base_url='https://new.example')
+            self.assertIn('.config/artifact-site/', str(token_path('https://new.example')))
 
     def test_invalid_and_symlink(self):
         with tempfile.TemporaryDirectory() as directory, patch('pathlib.Path.home', return_value=Path(directory)):
