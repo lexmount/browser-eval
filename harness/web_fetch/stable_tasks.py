@@ -25,6 +25,8 @@ SCHEMA_FIELDS = {
     "api_operation": ("method", "path", "summary"),
     "taxonomy_family": ("family",),
     "named_link": ("title", "url"),
+    "linked_product": ("title", "url", "price"),
+    "page_identity": (),
 }
 UNIQUE_FIELDS = {
     "body_text": (),
@@ -32,6 +34,7 @@ UNIQUE_FIELDS = {
     "catalog_product": ("title", "description"), "review": ("date", "text"),
     "name_description": ("name",), "api_operation": ("method", "path"),
     "taxonomy_family": ("family",), "named_link": ("url",),
+    "linked_product": ("url",), "page_identity": (),
 }
 _AMOUNT = r"(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?"
 _MONEY = rf"(?:[$£€¥]\s*{_AMOUNT}|(?:USD|EUR|GBP|CNY)\s+{_AMOUNT}|{_AMOUNT}\s+(?:USD|EUR|GBP|CNY))"
@@ -462,10 +465,15 @@ def _anchor_matches(anchor, records, visible, schema):
     from .metrics import fact_in_text, normalize_for_match
     if anchor.get('match_scope') == 'non_record_lines':
         # A known record label cannot stand in for page context. This is a
-        # conservative text-layout rule, not a claim of recovered DOM ownership.
+        # conservative ownership rule, not a claim of recovered DOM ownership.
+        # Flattened page output can put headings and records on one physical
+        # line, so mask parsed record titles instead of discarding that line.
         titles = [normalize_for_match(r['fields']['title']) for r in records if r.get('valid') and r.get('fields',{}).get('title')]
-        visible = '\n'.join(line for line in visible.splitlines()
-            if not any(title in normalize_for_match(line) for title in titles))
+        folded = normalize_for_match(visible)
+        for title in sorted(set(titles), key=len, reverse=True):
+            folded = folded.replace(title, ' ')
+        return [value for value in anchor["alternatives"]
+                if fact_in_text(folded, normalize_for_match(_visible(value)))]
     owned = []
     if schema != "named_link":
         for value in anchor["alternatives"]:
@@ -497,7 +505,7 @@ def validate_acceptance_contract(contract: dict) -> None:
             or contract.get("version") != 1 or not isinstance(contract.get("schema"), str)
             or contract.get("schema") not in SCHEMA_FIELDS):
         raise ValueError("Unsupported stable acceptance contract")
-    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "hosts", "entry_path", "entry_identity_pattern", "entry_context", "field_minimum_records", "record_name_exclusions"}:
+    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "hosts", "entry_path", "entry_identity_pattern", "entry_context", "identity_query_keys", "field_minimum_records", "record_name_exclusions", "price_patterns", "price_exclusion_patterns"}:
         raise ValueError("Unknown stable acceptance contract fields")
     field_counts = contract.get('field_minimum_records', {})
     if not isinstance(field_counts, dict) or any(k not in _LABELS or type(v) is not int or v < 1 for k,v in field_counts.items()):
@@ -506,6 +514,9 @@ def validate_acceptance_contract(contract: dict) -> None:
     if contract["schema"] == "body_text":
         if minimum != 0 or maximum not in {None, 0} or field_counts:
             raise ValueError("Stable body-text contracts do not declare records")
+    elif contract["schema"] == "page_identity":
+        if minimum != 0 or maximum not in {None, 0} or field_counts:
+            raise ValueError("Page identity contracts do not declare records")
     elif type(minimum) is not int or minimum < 1 or maximum is not None and (type(maximum) is not int or maximum < minimum):
         raise ValueError("Stable contract requires positive bounded record counts")
     patterns = contract.get("page_patterns", [])
@@ -526,27 +537,49 @@ def validate_acceptance_contract(contract: dict) -> None:
         ids.add(anchor["id"])
     if contract["schema"] == "body_text" and not anchors and not patterns:
         raise ValueError("Stable body-text contracts require text anchors or page patterns")
-    if contract["schema"] == "named_link":
+    if contract["schema"] in {"named_link", "linked_product"}:
         hosts = contract.get("hosts")
         if (not isinstance(hosts, list) or not hosts
                 or any(not isinstance(host, str) or not re.fullmatch(r"[a-z0-9]+(?:[.-][a-z0-9]+)*", host) for host in hosts)
                 or not isinstance(contract.get("entry_path"), str) or not contract["entry_path"]):
-            raise ValueError("Named links require allowed hosts and detail path pattern")
+            raise ValueError("Linked records require allowed hosts and detail path pattern")
         if contract.get('entry_context', 'list_or_card') != 'list_or_card':
             raise ValueError('Named-link entry context must be list_or_card')
+        patterns = [*patterns, contract["entry_path"]]
+    if contract["schema"] == "named_link":
         exclusions = contract.get('record_name_exclusions', [])
         if (not isinstance(exclusions, list)
                 or any(not isinstance(value, str) or not _key(value) for value in exclusions)
                 or len({_key(value) for value in exclusions}) != len(exclusions)):
             raise ValueError('Invalid or duplicate record-name exclusions')
-        patterns = [*patterns, contract["entry_path"]]
         identity_pattern = contract.get('entry_identity_pattern')
         if identity_pattern is not None:
             if not isinstance(identity_pattern, str) or not identity_pattern:
                 raise ValueError('Invalid named-link identity pattern')
             patterns.append(identity_pattern)
-    elif "hosts" in contract or "entry_path" in contract or "record_name_exclusions" in contract:
-        raise ValueError("Host/path contracts apply only to named_link records")
+    elif contract["schema"] not in {"linked_product"} and (
+            "hosts" in contract or "entry_path" in contract or "record_name_exclusions" in contract):
+        raise ValueError("Host/path contracts apply only to linked records")
+    query_keys = contract.get("identity_query_keys", [])
+    if (not isinstance(query_keys, list)
+            or any(not isinstance(key, str) or not re.fullmatch(r"[A-Za-z0-9_.-]+", key)
+                   for key in query_keys)):
+        raise ValueError("Invalid linked-record identity query keys")
+    if query_keys and contract["schema"] not in {"named_link", "linked_product"}:
+        raise ValueError("Identity query keys apply only to linked records")
+    if contract["schema"] == "linked_product":
+        price_patterns = contract.get("price_patterns")
+        price_exclusions = contract.get("price_exclusion_patterns", [])
+        if (not isinstance(price_patterns, list) or not price_patterns
+                or any(not isinstance(pattern, str) or not pattern for pattern in price_patterns)
+                or not isinstance(price_exclusions, list)
+                or any(not isinstance(pattern, str) or not pattern for pattern in price_exclusions)):
+            raise ValueError("Linked products require explicit price and exclusion patterns")
+        patterns = [*patterns, *price_patterns, *price_exclusions]
+    elif "price_patterns" in contract or "price_exclusion_patterns" in contract:
+        raise ValueError("Price patterns apply only to linked products")
+    if contract["schema"] == "page_identity" and not anchors:
+        raise ValueError("Page identity contracts require stable text anchors")
     try:
         for pattern in patterns:
             compiled = re.compile(pattern)
@@ -579,15 +612,20 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     if blocked_page:
         content_errors.append("blocked_page")
     errors = []
-    if schema == "named_link":
+    if schema in {"named_link", "linked_product"}:
         try:
-            entries = extract_named_entries(content, contract, base_url, links)
+            if schema == "linked_product":
+                from .dynamic_lists import extract_linked_products
+                entries = extract_linked_products(content, contract, base_url)
+            else:
+                entries = extract_named_entries(content, contract, base_url, links)
         except ValueError:
             # Malformed returned URLs are output validation failures, not
             # malformed contracts and not exceptions that abort a whole run.
             entries = []
             errors.append("invalid_link_output")
-        excluded_names = {_key(value) for value in contract.get("record_name_exclusions", [])}
+        excluded_names = ({_key(value) for value in contract.get("record_name_exclusions", [])}
+                          if schema == "named_link" else set())
         excluded_entries = [entry for entry in entries if _key(entry["title"]) in excluded_names]
         entries = [entry for entry in entries if _key(entry["title"]) not in excluded_names]
         records = []
@@ -598,7 +636,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             records.append({"fields": entry, "valid": True, "errors": []})
     else:
         excluded_entries = []
-        records = [] if schema == "body_text" else _parse_records(visible, schema)
+        records = [] if schema in {"body_text", "page_identity"} else _parse_records(visible, schema)
     anchors = []
     for anchor in contract.get("stable_text_anchors", []):
         matched = _anchor_matches(anchor, records, visible, schema)

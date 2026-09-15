@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "kind": "dynamic_100_stage2_validation",
+  "status": "pending_three_user_decisions",
+  "provider_calls": 0,
+  "original": {
+    "dataset_sha256": "a7673451464e4e849833ac291a487493677060ee9f11bbbaf6b97b9c8f9596e6",
+    "results_sha256": "c392866435e8d667c32956f41a7b6a6a802f16c5e5dffab0f74162e9236eb650",
+    "preserved": true
+  },
+  "corrected": {
+    "dataset_sha256": "d8019897025bae95e9b6e5db9988d68f4052780d3b57fc933bcf9fb14c385cbc",
+    "results_sha256": "f513cdb2dcc15679af732569a0f5f517786f19dfb1f23be0f03ee9e9e16803e9",
+    "machine_pass": 52,
+    "machine_fail": 48,
+    "reference_correction_cases": 5,
+    "scoring_rule_correction_cases": 7,
+    "immutable_call_fields_verified": true,
+    "artifact_hashes_verified": 100
+  },
+  "independent_audit": {
+    "reviewed_cases": 100,
+    "reviewed_attempts": 100,
+    "correct_pass": 51,
+    "correct_fail": 46,
+    "not_comparable": 3,
+    "unresolved_case_ids": [
+      "dynamic-react-cart",
+      "dynamic-104-mui-data-grid",
+      "dynamic-105-steam-city-search"
+    ]
+  },
+  "validation": {
+    "python_unittest": {
+      "passed": 1012,
+      "skipped": 39,
+      "failed": 0
+    },
+    "browser_use_pytest": {
+      "passed": 116,
+      "failed": 0
+    },
+    "trajectory_replay_pytest": {
+      "passed": 509,
+      "skipped": 4,
+      "failed": 0
+    },
+    "report_ui_suites": {
+      "passed": true,
+      "failed": 0
+    },
+    "diff_check": "passed",
+    "audit_html_case_cards": {
+      "zh": 100,
+      "en": 100
+    }
+  },
+  "publication": {
+    "performed": false,
+    "formal_report_ready": false,
+    "reason": "Three policy or eligibility decisions remain unresolved; result-review.json is intentionally absent from the corrected evidence bundle."
+  }
+}

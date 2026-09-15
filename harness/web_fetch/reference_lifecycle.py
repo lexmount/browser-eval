@@ -273,8 +273,23 @@ def evaluation_scope_identity(case) -> dict[str, Any]:
     return identity
 
 
-def _binding_evaluation_scope_identity(binding: dict) -> dict[str, Any]:
+def _binding_scope_identity(binding: dict) -> dict[str, Any]:
+    """Canonicalize bindings written before the empty resource policy existed.
+
+    ``resource_output_contract`` has always defaulted to an empty mapping for
+    body tasks.  Older certificates omitted that default entirely.  Treat only
+    that absent/empty pair as equivalent; a non-empty policy remains a material
+    contract change and must still fail closed.
+    """
     identity = deepcopy(binding.get("scope_identity", {}))
+    contract = identity.get("evaluation_contract")
+    if isinstance(contract, dict):
+        contract.setdefault("resource_output_contract", {})
+    return identity
+
+
+def _binding_evaluation_scope_identity(binding: dict) -> dict[str, Any]:
+    identity = _binding_scope_identity(binding)
     identity.pop("selector", None)
     _normalize_draft_mutable_body_metadata(identity)
     return identity
@@ -399,7 +414,7 @@ def check_case_reference_binding(case, binding: dict) -> None:
     reference = _get(case, "ground_truth_main_content", "")
     if (sha256(reference) != binding.get("reference_sha256")
             or sha256(normalize_for_match(reference)) != binding.get("expected_normalized_sha256")
-            or scope_identity(case) != binding.get("scope_identity")
+            or scope_identity(case) != _binding_scope_identity(binding)
             or _get(case, "source_verification", {}) != binding.get("source_verification")
             or ("render_evidence" in binding and
                 (_get(case, "source_benchmark", {}) or {}).get("render_evidence") != binding["render_evidence"])):

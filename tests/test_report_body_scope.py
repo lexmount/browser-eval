@@ -556,7 +556,7 @@ class ReportBodyScopeTests(unittest.TestCase):
             if schema=='named_link':c['acceptance_contract'].update(hosts=['example.com'],entry_path='/items/.*')
             rendered=stable_contract_details(c)
             with self.subTest(schema=schema):
-                if schema == 'body_text':
+                if schema in {'body_text', 'page_identity'}:
                     self.assertNotIn('必需字段与要求',rendered)
                 else:
                     self.assertIn('必需字段与要求',rendered)

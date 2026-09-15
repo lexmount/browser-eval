@@ -1374,6 +1374,212 @@
       "ok": true,
       "expected_task_pass": true,
       "expected_metrics": {"script_payload_shell": false, "stable_task_pass": true}
+    },
+    {
+      "id": "amazon-tracking-suffix-remains-a-product-detail",
+      "category": "acceptance-contract",
+      "root_cause": "amazon_product_tracking_path_suffix",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://www.amazon.example/search",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "www.amazon.example"
+          ],
+          "entry_path": "/(?:[^/]+/)*(?:dp|gp/aw/d)/[A-Z0-9]{10}(?:/ref=[^/?#]+)?",
+          "entry_identity_pattern": "/(?:[^/]+/)*(?:dp|gp/aw/d)/([A-Z0-9]{10})(?:/|$)",
+          "stable_text_anchors": [
+            {
+              "id": "query",
+              "alternatives": [
+                "headphones"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "headphones\n- [Alpha headset](/alpha/dp/B012345678/ref=sr_1_1)\n- [Beta headset](/gp/aw/d/B087654321/ref=sr_1_2)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_structure_pass": true,
+        "stable_unique_record_count": 2
+      }
+    },
+    {
+      "id": "amazon-non-ref-suffix-is-not-a-product-detail",
+      "category": "acceptance-contract",
+      "root_cause": "amazon_product_tracking_path_suffix",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://www.amazon.example/search",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "www.amazon.example"
+          ],
+          "entry_path": "/(?:[^/]+/)*(?:dp|gp/aw/d)/[A-Z0-9]{10}(?:/ref=[^/?#]+)?",
+          "entry_identity_pattern": "/(?:[^/]+/)*(?:dp|gp/aw/d)/([A-Z0-9]{10})(?:/|$)",
+          "stable_text_anchors": [
+            {
+              "id": "query",
+              "alternatives": [
+                "headphones"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "headphones\n- [Alpha review](/alpha/dp/B012345678/reviews)\n- [Beta offers](/gp/aw/d/B087654321/offers)",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_structure_pass": false,
+        "stable_unique_record_count": 0
+      }
+    },
+    {
+      "id": "dynamic-target-placeholder-cannot-pass",
+      "category": "body-scope",
+      "root_cause": "unrendered_dynamic_target_placeholder",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.com/table",
+        "task_kind": "body",
+        "required_facts": [
+          {
+            "id": "title",
+            "alternatives": [
+              "Virtual DOM"
+            ]
+          }
+        ],
+        "forbidden_any": [
+          "Loading Example..."
+        ]
+      },
+      "artifact": "Virtual DOM\nLoading Example...\nView Source",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "forbidden_hits": [
+          "Loading Example..."
+        ]
+      }
+    },
+    {
+      "id": "completed-dynamic-target-can-pass",
+      "category": "body-scope",
+      "root_cause": "unrendered_dynamic_target_placeholder",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.com/table",
+        "task_kind": "body",
+        "required_facts": [
+          {
+            "id": "title",
+            "alternatives": [
+              "Virtual DOM"
+            ]
+          }
+        ],
+        "forbidden_any": [
+          "Loading Example..."
+        ]
+      },
+      "artifact": "Virtual DOM\nName Age\nAlice 31\nBob 42",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "forbidden_hits": []
+      }
+    },
+    {
+      "id": "github-route-links-are-not-repositories",
+      "category": "acceptance-contract",
+      "root_cause": "github_route_as_repository",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://github.com/trending",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "github.com"
+          ],
+          "entry_path": "/(?!trending(?:/|$)|sponsors(?:/|$))[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+",
+          "stable_text_anchors": [
+            {
+              "id": "title",
+              "alternatives": [
+                "Trending"
+              ]
+            },
+            {
+              "id": "authors",
+              "alternatives": [
+                "Built by"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Trending\nBuilt by\n- [Python](https://github.com/trending/python)\n- [Explore](https://github.com/sponsors/explore)",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_structure_pass": false,
+        "stable_unique_record_count": 0
+      }
+    },
+    {
+      "id": "github-owner-repository-links-are-records",
+      "category": "acceptance-contract",
+      "root_cause": "github_route_as_repository",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://github.com/trending",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "github.com"
+          ],
+          "entry_path": "/(?!trending(?:/|$)|sponsors(?:/|$))[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+",
+          "stable_text_anchors": [
+            {
+              "id": "title",
+              "alternatives": [
+                "Trending"
+              ]
+            },
+            {
+              "id": "authors",
+              "alternatives": [
+                "Built by"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Trending\nBuilt by\n- [alpha / project](https://github.com/alpha/project)\n- [beta / tool](https://github.com/beta/tool)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_structure_pass": true,
+        "stable_unique_record_count": 2
+      }
     }
   ]
 }

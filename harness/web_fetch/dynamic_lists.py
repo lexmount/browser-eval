@@ -7,7 +7,7 @@ import re
 import unicodedata
 from html import unescape
 from html.parser import HTMLParser
-from urllib.parse import unquote,urljoin,urlsplit,urlunsplit
+from urllib.parse import parse_qsl,unquote,urljoin,urlsplit,urlunsplit
 
 
 class Links(HTMLParser):
@@ -72,7 +72,7 @@ def extract_named_entries(content,contract,base_url,links=None):
         for previous in reversed(markdown_links(prefix)):
             prefix=prefix[:previous.start]+prefix[previous.end:]
         prefix=prefix.strip()
-        if prefix and not re.fullmatch(r'[\s#>*\-\d.)|]*',prefix):
+        if prefix and not re.fullmatch(r'[\s#>*\-\d.)|•·●▪◦]*',prefix):
             continue
         non_image_label=link.label
         for nested in reversed(markdown_links(link.label)):
@@ -82,6 +82,21 @@ def extract_named_entries(content,contract,base_url,links=None):
             continue
         title=re.sub(r'\s+',' ',visible_markdown_links(link.label)).strip()
         items.append((link.destination,title))
+    markdown_lines = content.splitlines()
+    for line_index, line in enumerate(markdown_lines):
+        image_only = re.fullmatch(
+            r'\s*\[!\[[^]]*\]\([^)]*\)\]\((https?://[^\s)]+|/[^\s)]+)\)\s*',
+            line,
+        )
+        if not image_only:
+            continue
+        for following in markdown_lines[line_index + 1:line_index + 4]:
+            if not following.strip():
+                continue
+            heading = re.fullmatch(r'\s*#{1,6}\s+(.+?)\s*', following)
+            if heading:
+                items.append((image_only[1], heading[1]))
+            break
     candidates={}
     for url,title in items:
         url=urljoin(base_url,unescape(url));parts=urlsplit(url)
@@ -97,7 +112,75 @@ def extract_named_entries(content,contract,base_url,links=None):
             if not match or not match.groups():
                 raise ValueError('entry_identity_pattern must match and capture an identity')
             identity = match[1]
+        elif query_keys := set(contract.get('identity_query_keys', [])):
+            identity += '?' + '&'.join(
+                f'{key}={value}' for key, value in parse_qsl(parts.query)
+                if key in query_keys
+            )
         candidates[parts.hostname+'::'+identity]={'url':url,'title':title}
+    return list(candidates.values())
+
+
+def extract_linked_products(content, contract, base_url):
+    """Extract title/link/price triples from one owned product segment."""
+    scannable = re.sub(r"!\[([^\]]*)\]\([^)]*\)", r"\1", content)
+    link_pattern = re.compile(
+        r"\[([^\]\n]+)\]\((https?://[^\s)]+|/[^\s)]+)\)"
+        r"|<a\b[^>]*\bhref=[\"']([^\"']+)[\"'][^>]*>(.*?)</a>",
+        re.I | re.S,
+    )
+    links = []
+    for match in link_pattern.finditer(scannable):
+        title = match.group(1) if match.group(1) is not None else match.group(4)
+        raw_url = match.group(2) if match.group(2) is not None else match.group(3)
+        url = urljoin(base_url, unescape(raw_url))
+        parts = urlsplit(url)
+        if (parts.hostname not in contract["hosts"]
+                or not re.fullmatch(contract["entry_path"], parts.path.rstrip("/"))):
+            continue
+        title = re.sub(r"<[^>]+>", " ", unescape(title))
+        title = re.sub(r"\s+", " ", title).strip(" *#>-")
+        if len(title) < 2 or not any(character.isalpha() for character in title):
+            continue
+        identity = parts.hostname + parts.path.rstrip("/")
+        query_keys = set(contract.get("identity_query_keys", []))
+        if query_keys:
+            identity += "?" + "&".join(
+                f"{key}={value}" for key, value in parse_qsl(parts.query)
+                if key in query_keys
+            )
+        links.append((match.start(), match.end(), identity, url, title))
+
+    allowed = [re.compile(pattern, re.I) for pattern in contract["price_patterns"]]
+    excluded = [
+        re.compile(pattern, re.I)
+        for pattern in contract.get("price_exclusion_patterns", [])
+    ]
+    candidates = {}
+    groups = []
+    for link in links:
+        if not groups or groups[-1][0][2] != link[2]:
+            groups.append([link])
+        else:
+            groups[-1].append(link)
+    for index, group in enumerate(groups):
+        _, first_end, identity, url, _ = group[0]
+        boundary = groups[index + 1][0][0] if index + 1 < len(groups) else len(scannable)
+        title = max((item[4] for item in group), key=lambda value: (len(value), value))
+        segment = "\n".join(item[4] for item in group) + "\n" + scannable[
+            first_end:min(boundary, first_end + 2400)
+        ]
+        prices = []
+        for pattern in allowed:
+            for price_match in pattern.finditer(segment):
+                value = re.sub(r"\s+", " ", price_match.group(0)).strip()
+                if any(rule.fullmatch(value) for rule in excluded):
+                    continue
+                prices.append((price_match.start(), value))
+        if prices:
+            candidates.setdefault(identity, {
+                "url": url, "title": title, "price": min(prices)[1],
+            })
     return list(candidates.values())
 
 

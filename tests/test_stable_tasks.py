@@ -508,6 +508,41 @@ class StableTaskTests(unittest.TestCase):
         self.assertTrue(result["stable_structure_pass"])
         self.assertFalse(result["stable_content_pass"])
 
+    def test_named_links_can_use_declared_query_identity(self):
+        rules = {
+            "hosts": ["charts.example"], "entry_path": r"/song/detail\.htm",
+            "identity_query_keys": ["songId"],
+        }
+        text = ("[First song](https://charts.example/song/detail.htm?songId=1)\n"
+                "[Second song](https://charts.example/song/detail.htm?songId=2)")
+        self.assertTrue(self.check(text, "named_link", **rules)["stable_task_pass"])
+        rules.pop("identity_query_keys")
+        self.assertFalse(self.check(text, "named_link", **rules)["stable_task_pass"])
+
+    def test_linked_products_require_owned_price_and_detail_path(self):
+        rules = {
+            "hosts": ["shop.example"], "entry_path": r"/products/[a-z]+",
+            "price_patterns": [r"\$\s*\d+(?:\.\d{2})?"],
+            "price_exclusion_patterns": [],
+        }
+        good = ("[Alpha](https://shop.example/products/alpha)\n$10.00\n\n"
+                "[Beta](https://shop.example/products/beta)\n$20.00")
+        self.assertTrue(self.check(good, "linked_product", 2, **rules)["stable_task_pass"])
+        self.assertFalse(self.check(good.replace("$20.00", "20 reviews"),
+                                    "linked_product", 2, **rules)["stable_task_pass"])
+
+    def test_page_identity_uses_anchors_without_fake_records(self):
+        rules = {
+            "version": 1, "schema": "page_identity", "minimum_records": 0,
+            "stable_text_anchors": [
+                {"id": "brand", "alternatives": ["Example Search"]},
+                {"id": "control", "alternatives": ["Search the web"]},
+            ],
+        }
+        result = evaluate_stable_task("Example Search\nSearch the web", rules)
+        self.assertTrue(result["stable_task_pass"], result)
+        self.assertEqual(result["stable_record_count"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

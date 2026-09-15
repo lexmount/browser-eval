@@ -450,6 +450,30 @@ class ReferenceLifecycleTests(unittest.TestCase):
         self.assertEqual(records[0]["metrics"]["reference_sha256"], sha256(self.case.ground_truth_main_content))
         self.assertEqual(json.loads((self.run / "manifest.json").read_text())["reference_checks"], original["reference_checks"])
 
+    def test_rescore_accepts_legacy_binding_missing_empty_resource_policy(self):
+        original = self.prepare_run()
+        binding = original["reference_checks"]["cases"]["body"]
+        binding["scope_identity"]["evaluation_contract"].pop("resource_output_contract")
+        self.write_json(self.run / "manifest.json", original)
+        with patch("harness.web_fetch.runner.summarize", return_value={}):
+            records, _ = rescore_evaluation(
+                run_dir=self.run, dataset_meta=self.dataset(),
+                dataset_path=self.dataset_path, cases=[self.case],
+            )
+        self.assertEqual(records[0]["case_id"], "body")
+
+    def test_rescore_rejects_legacy_binding_when_resource_policy_is_nonempty(self):
+        original = self.prepare_run()
+        binding = original["reference_checks"]["cases"]["body"]
+        binding["scope_identity"]["evaluation_contract"].pop("resource_output_contract")
+        self.write_json(self.run / "manifest.json", original)
+        changed = replace(self.case, resource_output_contract={"non_target_policy": "reject"})
+        with self.assertRaises(ReferenceLifecycleError):
+            rescore_evaluation(
+                run_dir=self.run, dataset_meta=self.dataset(changed),
+                dataset_path=self.dataset_path, cases=[changed],
+            )
+
     def verified_run(self):
         original = self.prepare_run()
         self.finalize([self.observation(original)])
