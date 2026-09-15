@@ -1,4 +1,4 @@
-"""Authorize Artifact Hub and save its token in the user-scoped credential file."""
+"""Authorize Artifact Site and save its token in the user-scoped credential file."""
 import argparse
 import json
 import os
@@ -18,10 +18,15 @@ def main():
     action.add_argument('--persist-existing', action='store_true')
     parser.add_argument('--timeout', type=int, default=540)
     parser.add_argument('--replace-existing', action='store_true', help='Explicitly back up and replace a different user token')
-    parser.add_argument('--base-url',default=os.environ.get('ARTIFACT_HUB_BASE_URL','https://artifact-hub.app.lexmount.com'))
+    parser.add_argument('--base-url', default=os.environ.get(
+        'ARTIFACT_SITE_BASE_URL',
+        os.environ.get('ARTIFACT_HUB_BASE_URL', 'https://artifact-hub.app.lexmount.com'),
+    ))
     args = parser.parse_args()
     if args.persist_existing:
-        backup=save_token(os.environ.get('ARTIFACT_HUB_TOKEN', '').strip(),base_url=args.base_url,replace_existing=args.replace_existing)
+        token = (os.environ.get('ARTIFACT_SITE_TOKEN', '').strip()
+                 or os.environ.get('ARTIFACT_HUB_TOKEN', '').strip())
+        backup=save_token(token,base_url=args.base_url,replace_existing=args.replace_existing)
         if backup:print('Previous credential backed up:',backup)
         print('Existing authorization saved to the user credential file; token not displayed.')
         return

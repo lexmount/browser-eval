@@ -1,0 +1,293 @@
+#!/usr/bin/env python3
+"""Create or atomically update the current replay report on Artifact Site."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import tempfile
+import urllib.parse
+import urllib.request
+import uuid
+import zipfile
+from pathlib import Path
+from urllib.error import HTTPError
+
+from harness.web_fetch.artifact_auth import load_token
+
+ARCHIVE = Path("publish/trajectory-replay-artifact-site.zip")
+ATTESTATION = Path("publish/trajectory-replay-artifact-site.attestation.json")
+RECEIPT = Path("publish/trajectory-replay-artifact-site-receipt.json")
+PROFILE = Path("evaluation/trajectory-replay/webarena-verified/current-run.json")
+DATASET = Path("evaluation/trajectory-replay/webarena-verified/trajectories.json")
+REVIEW = Path("research/trajectory-replay-failure-review.json")
+PUBLIC_REPORT_MARKER = "<title>Browser Trajectory Replay</title>"
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def tree_sha256(root: Path) -> str:
+    digest = hashlib.sha256()
+    for path in sorted(item for item in root.rglob("*") if item.is_file()):
+        relative = path.relative_to(root).as_posix().encode()
+        digest.update(relative)
+        digest.update(hashlib.sha256(path.read_bytes()).digest())
+    return digest.hexdigest()
+
+
+def response_json(status: int, raw: bytes, *, operation: str) -> dict:
+    if not 200 <= status < 300:
+        detail = raw.decode("utf-8", errors="replace").strip()[:500] or "empty response"
+        raise RuntimeError(f"{operation} failed with HTTP {status}: {detail}")
+    try:
+        value = json.loads(raw)
+    except (TypeError, ValueError) as error:
+        raise RuntimeError(f"{operation} returned HTTP {status} without valid JSON") from error
+    if not isinstance(value, dict):
+        raise RuntimeError(f"{operation} returned non-object JSON")
+    return value
+
+
+def publication_target(*, require_bound: bool) -> tuple[dict, str, str, str]:
+    profile = json.loads(PROFILE.read_text(encoding="utf-8"))
+    publication = profile.get("publication") or {}
+    base = str(publication.get("base_url") or "").rstrip("/")
+    slug = str(publication.get("site_slug") or "")
+    version = str(publication.get("expected_version") or "")
+    if not base.startswith("https://"):
+        raise ValueError("current replay profile has no valid Artifact Site base URL")
+    if require_bound and (not slug or not version.startswith("ver_")):
+        raise ValueError("current replay profile has no bound Artifact Site target")
+    return profile, base, slug, version
+
+
+def request(
+    base: str,
+    path: str,
+    data: bytes | None = None,
+    content_type: str | None = None,
+    *,
+    method: str | None = None,
+    authenticated: bool = True,
+) -> tuple[int, bytes, dict[str, str]]:
+    headers = {"User-Agent": "Trajectory-Replay-Artifact-Site-Publisher/1.0"}
+    if authenticated:
+        headers["Authorization"] = "Bearer " + load_token(base_url=base)
+    if content_type:
+        headers["Content-Type"] = content_type
+    req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=240) as response:
+            return response.status, response.read(), dict(response.headers.items())
+    except HTTPError as error:
+        try:
+            return error.code, error.read(), dict(error.headers.items())
+        finally:
+            error.close()
+
+
+def validate_package() -> dict:
+    if not ARCHIVE.is_file() or not ATTESTATION.is_file():
+        raise ValueError("missing validated replay package or attestation")
+    attestation = json.loads(ATTESTATION.read_text(encoding="utf-8"))
+    report = Path(str(attestation.get("report") or ""))
+    evidence = Path(str(attestation.get("evidence") or ""))
+    checks = {
+        "schema": attestation.get("schema") == "lex_webarena_replay_publication_attestation/1",
+        "archive": sha256(ARCHIVE) == attestation.get("archive_sha256"),
+        "report": report.is_dir() and tree_sha256(report) == attestation.get("report_tree_sha256"),
+        "profile": sha256(PROFILE) == attestation.get("profile_sha256"),
+        "dataset": sha256(DATASET) == attestation.get("dataset_sha256"),
+        "review": sha256(REVIEW) == attestation.get("review_sha256"),
+        "evidence": evidence.is_file() and sha256(evidence) == attestation.get("evidence_sha256"),
+    }
+    failed = [name for name, valid in checks.items() if not valid]
+    if failed:
+        raise ValueError("publication package is stale: " + ", ".join(failed))
+    return attestation
+
+
+def multipart_archive(title: str) -> tuple[bytes, str]:
+    boundary = "----trajectoryreplay" + uuid.uuid4().hex
+    parts = []
+    for key, value in (("mode", "zip"), ("title", title)):
+        parts.append(
+            (
+                f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'
+            ).encode()
+        )
+    parts.append(
+        (
+            f'--{boundary}\r\nContent-Disposition: form-data; name="file"; '
+            'filename="browser-trajectory-replay.zip"\r\n'
+            "Content-Type: application/zip\r\n\r\n"
+        ).encode()
+        + ARCHIVE.read_bytes()
+        + b"\r\n"
+    )
+    parts.append(f"--{boundary}--\r\n".encode())
+    return b"".join(parts), "multipart/form-data; boundary=" + boundary
+
+
+def current_version(site: dict) -> str:
+    nested = site.get("site") if isinstance(site.get("site"), dict) else site
+    version = str(nested.get("currentVersionId") or (nested.get("version") or {}).get("id") or "")
+    if not version.startswith("ver_"):
+        raise RuntimeError("Artifact Site metadata omitted current version")
+    return version
+
+
+def public_share_path(base: str, share_url: str) -> str:
+    target = urllib.parse.urlsplit(share_url)
+    authority = urllib.parse.urlsplit(base)
+    if (
+        target.scheme != authority.scheme
+        or target.netloc != authority.netloc
+        or not target.path.startswith("/v/")
+        or target.query
+        or target.fragment
+    ):
+        raise ValueError("current replay profile has no valid same-origin public share URL")
+    return target.path
+
+
+def archive_hashes(path: Path) -> dict[str, str]:
+    with zipfile.ZipFile(path) as archive:
+        return {
+            item.filename: hashlib.sha256(archive.read(item)).hexdigest()
+            for item in archive.infolist()
+            if not item.is_dir()
+        }
+
+
+def verify_export(base: str, slug: str) -> None:
+    status, raw, _ = request(base, f"/api/sites/{urllib.parse.quote(slug)}/export")
+    if status != 200:
+        response_json(status, raw, operation="site export")
+    with tempfile.NamedTemporaryFile(suffix=".zip") as stream:
+        stream.write(raw)
+        stream.flush()
+        if archive_hashes(Path(stream.name)) != archive_hashes(ARCHIVE):
+            raise RuntimeError("deployed Artifact Site file tree differs from package")
+
+
+def bind_publication(profile: dict, *, slug: str, share_url: str, version: str) -> None:
+    publication = profile.setdefault("publication", {})
+    publication.update(
+        {
+            "site_slug": slug,
+            "share_url": share_url,
+            "expected_version": version,
+            "state": "verified",
+        }
+    )
+    PROFILE.write_text(json.dumps(profile, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    attestation = json.loads(ATTESTATION.read_text(encoding="utf-8"))
+    attestation["profile_sha256"] = sha256(PROFILE)
+    ATTESTATION.write_text(
+        json.dumps(attestation, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def save_receipt(value: dict) -> None:
+    safe = {
+        key: item for key, item in value.items() if key not in {"editToken", "claimToken", "token"}
+    }
+    RECEIPT.parent.mkdir(parents=True, exist_ok=True)
+    RECEIPT.write_text(json.dumps(safe, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.chmod(RECEIPT, 0o600)
+
+
+def main(*, create: bool) -> None:
+    validate_package()
+    profile, base, bound_slug, expected_version = publication_target(require_bound=not create)
+    publication = profile["publication"]
+    title = str(publication.get("title") or "Browser Trajectory Replay")
+    payload, content_type = multipart_archive(title)
+    if create:
+        if bound_slug or expected_version:
+            raise ValueError("replay report is already bound; update it without --create")
+        status, raw, _ = request(base, "/api/sites", payload, content_type)
+        created = response_json(status, raw, operation="site creation")
+        slug = str(created.get("slug") or "")
+        if not slug:
+            raise RuntimeError("site creation response omitted slug")
+        save_receipt(created)
+        share_status, share_raw, _ = request(
+            base,
+            f"/api/sites/{urllib.parse.quote(slug)}/shares",
+            json.dumps({"policy": "public"}).encode(),
+            "application/json",
+            method="POST",
+        )
+        share = response_json(share_status, share_raw, operation="public share creation")
+        share_url = str(share.get("url") or "")
+        if not share_url.startswith("https://"):
+            raise RuntimeError("share creation response omitted public URL")
+    else:
+        slug = bound_slug
+        share_url = str(publication.get("share_url") or "")
+        status, raw, _ = request(base, f"/api/sites/{urllib.parse.quote(slug)}")
+        before = response_json(status, raw, operation="site lookup")
+        if current_version(before) != expected_version:
+            raise ValueError("Artifact Site version differs from current profile authority")
+        query = urllib.parse.urlencode({"expected_version": expected_version})
+        status, raw, _ = request(
+            base,
+            f"/api/sites/{urllib.parse.quote(slug)}/versions?{query}",
+            payload,
+            content_type,
+        )
+        response_json(status, raw, operation="site version upload")
+    status, raw, _ = request(base, f"/api/sites/{urllib.parse.quote(slug)}")
+    metadata = response_json(status, raw, operation="site lookup after upload")
+    version = current_version(metadata)
+    verify_export(base, slug)
+    public_status, public_body, _ = request(
+        base,
+        public_share_path(base, share_url),
+        authenticated=False,
+    )
+    if public_status != 200:
+        response_json(public_status, public_body, operation="public share verification")
+    preview_status, preview_body, _ = request(
+        base,
+        f"/api/preview/{urllib.parse.quote(slug)}",
+        authenticated=False,
+    )
+    if preview_status != 200 or PUBLIC_REPORT_MARKER not in preview_body.decode(
+        "utf-8", errors="replace"
+    ):
+        raise RuntimeError("deployed preview is unavailable or missing report marker")
+    bind_publication(profile, slug=slug, share_url=share_url, version=version)
+    save_receipt(
+        {
+            "base_url": base,
+            "slug": slug,
+            "share_url": share_url,
+            "version": version,
+            "archive_sha256": sha256(ARCHIVE),
+            "verified": True,
+        }
+    )
+    print(
+        json.dumps(
+            {"slug": slug, "url": share_url, "version": version},
+            ensure_ascii=False,
+        )
+    )
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--create", action="store_true")
+    main(create=parser.parse_args().create)

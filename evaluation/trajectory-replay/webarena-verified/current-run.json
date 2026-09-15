@@ -53,5 +53,13 @@
     "authority": "official programmatic evaluator or a hash-bound replay correction",
     "promotion_gate": "the canonical trajectory passes execution and official evaluation on the frozen reference browser before any measured browser comparison",
     "model_calls": 0
+  },
+  "publication": {
+    "base_url": "https://artifact-hub.app.lexmount.com",
+    "title": "WebArena-Verified 浏览器轨迹重放评测",
+    "state": "verified",
+    "site_slug": "7dF7uNK5SKIx",
+    "share_url": "https://artifact-hub.app.lexmount.com/v/hkZt38QFBpNIKtThKnqjpnBQk8At19PM",
+    "expected_version": "ver_f4cebfc3cc804813bf40cb1deeeb4498"
   }
 }

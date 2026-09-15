@@ -4,6 +4,40 @@
   "history_scope_i18n": {
     "en": "This history begins with revisions supported by a complete audit trail. Earlier Artifact Hub versions remain available, but no itemized history is reconstructed where the supporting record is incomplete."
   },
+  "trajectory_replay_releases": [
+    {
+      "id": "2026-09-15-webarena-verified-90-artifact-site",
+      "date": "2026-09-15",
+      "title": "发布 90 题浏览器轨迹重放评测",
+      "summary": "发布 Chromium 与 Moli 1.1.3 的 90 题固定轨迹重放结果：Chromium 90/90，Moli 54/90；36 个最终失败全部完成证据绑定复核。Agent 与模型调用为零。",
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "7dF7uNK5SKIx",
+        "share_url": "https://artifact-hub.app.lexmount.com/v/hkZt38QFBpNIKtThKnqjpnBQk8At19PM",
+        "version": "ver_f4cebfc3cc804813bf40cb1deeeb4498"
+      },
+      "effects": {
+        "score": "首次发布；Chromium 90/90，Moli 54/90。",
+        "denominator": "每个浏览器 90 题，共 180 个逻辑结果。",
+        "latency": "发布均值、P50 与 P95；共同通过的 54 题用于端到端、CPU 与内存比较。",
+        "evidence": "591 个公开文件、372 个 HTML 页面和 4,856 条本地链接通过检查；36/36 个失败已复核。",
+        "limitations": "每个浏览器每题只有一个正式逻辑结果；结论限于冻结任务、版本和本地环境。"
+      },
+      "i18n": {
+        "en": {
+          "title": "Publish the 90-task browser trajectory-replay evaluation",
+          "summary": "Published fixed-trajectory replay results for Chromium and Moli 1.1.3 across 90 tasks: Chromium 90/90 and Moli 54/90. All 36 final failures have evidence-bound reviews. Agent and model calls are zero.",
+          "effects": {
+            "score": "Initial release: Chromium 90/90 and Moli 54/90.",
+            "denominator": "90 tasks per browser and 180 logical results in total.",
+            "latency": "Mean, P50, and P95 are reported; end-to-end, CPU, and memory comparisons use the 54 tasks both browsers passed.",
+            "evidence": "Checks passed for 591 public files, 372 HTML pages, and 4,856 local links; all 36 failures are reviewed.",
+            "limitations": "There is one formal logical result per browser and task. Conclusions are limited to the frozen tasks, versions, and local environment."
+          }
+        }
+      }
+    }
+  ],
   "browser_use_reviews": [
     {
       "id": "review-2026-09-14-complete-90-task-primary-result",
