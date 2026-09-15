@@ -593,7 +593,21 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     functional = summary.get("functional") or {}
     engines = _engines(summary)
     engine_list = "、".join(_engine_label(engine) for engine in engines)
-    paired = int((summary.get("resource_comparison") or {}).get("intersection_results", (summary.get("resource_comparison") or {}).get("intersection_attempts", 0)) or 0)
+    comparison = summary.get("resource_comparison") or {}
+    paired = int(comparison.get("intersection_results", comparison.get("intersection_attempts", 0)) or 0)
+    relative = comparison.get("relative_ratios") or {}
+    legacy_ratios = comparison.get("paired_ratios") or {}
+    if relative.get("by_engine"):
+        ratio_baseline = str(relative.get("baseline_engine") or "")
+    elif legacy_ratios.get("numerator_engine") and legacy_ratios.get("denominator_engine"):
+        ratio_baseline = str(legacy_ratios["denominator_engine"])
+    else:
+        ratio_baseline = ""
+    ratio_intro = (
+        f'比值先按共同任务计算“参评浏览器 / {_engine_label(ratio_baseline)}”，再汇总。'
+        if ratio_baseline
+        else ""
+    )
     audit = _available_result_audit(manifest, summary)
     score_cards = "".join(
         f'<article class="score-card {engine}"><h3>{_e(_engine_label(engine))}</h3>'
@@ -652,7 +666,7 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     )
     return f"""<section class="card hero"><div class="eyebrow">结论摘要</div><h2>本轮，{compatibility_lead}；{resource_lead}。速度、CPU、内存和网络另列，不合成总分。</h2><p>这是 WebArena 公开人类轨迹的固定重放，运行时没有 Agent 规划、模型调用或 LLM judge。数字限于这 {task_count} 条冻结轨迹和本轮环境。</p>{audit_strip}</section>
 <section class="card"><div class="section-heading"><div><h2>任务正确率</h2><p class="muted">每个任务和浏览器只公布一个结果。</p></div><a href="{REPORT_STEM}-results.html#task-comparison">查看逐任务结果</a></div><div class="score-grid">{score_cards}</div>{_correctness_table(summary)}<p>{failure_summary}工具调用链走完仍可能没有通过程序验收：调用返回只说明路径走完，最终答案、服务状态或 HAR 仍可能不满足 evaluator。</p></section>
-<section class="card" id="performance"><div class="section-heading"><div><h2>速度与资源</h2><p class="muted">只统计 {engine_list} 都通过的 {paired} 个同任务，并取各自的唯一公开结果。</p></div></div><p>绝对值表并列展示各浏览器的 P50、P95 和平均值；比值表按共同任务先计算“参评浏览器 / Chromium”，再汇总逐任务比值。粗体绿色只标记耗时、CPU 时间、内存占用和网络总量等明确以低为优的指标；CPU 利用率与网络速率不判优劣。</p>{_metric_tables(summary)}</section>
+<section class="card" id="performance"><div class="section-heading"><div><h2>速度与资源</h2><p class="muted">只统计 {engine_list} 都通过的 {paired} 个同任务，并取各自的唯一公开结果。</p></div></div><p>绝对值表并列 P50、P95 和平均值。{ratio_intro}表内只将有明确方向且唯一较优的值标为绿色粗体；“观察项”不判胜负。</p>{_metric_tables(summary)}</section>
 <section class="card"><div class="section-heading"><div><h2>失败概览</h2><p class="muted">{final_failure_count} 个未通过结果按最接近证据的直接机制归类，不把现象冒充浏览器内部根因。</p></div><a href="{REPORT_STEM}-results.html#failure-review">查看失败分析</a></div><div class="failure-story">{failure_cards}</div><p>{failure_boundary}页面交互证据仍不足以断定差异来自浏览器的渲染、布局还是适配层。</p></section>
 <section class="card"><h2>结论边界</h2><div class="reading-grid"><article><h3>兼容性</h3><p>若目标是覆盖这批固定业务路径，通过数较高的浏览器当前更稳妥。</p></article><article><h3>资源</h3><p>对已验证兼容的任务，内存优势有工程价值；上线前仍需看该任务的耗时与网络开销。</p></article><article><h3>适用范围</h3><p>{task_count} 条轨迹不能代表浏览器总体能力，也不能解释 Agent 成功率。评测集、选型依据和执行方法分别在后续页面给出。</p></article></div></section>"""
 

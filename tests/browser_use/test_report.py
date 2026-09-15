@@ -496,6 +496,10 @@ def test_summary_decisions_follow_reversed_results_and_resource_ratios():
         },
         "resource_comparison": {
             "intersection_attempts": 1,
+            "relative_ratios": {
+                "baseline_engine": "moli",
+                "by_engine": {"chromium": {"duration_ms": {"p50": 1.25}}},
+            },
             "paired_ratios": {
                 "metrics": {
                     "memory_mean_bytes": {"p50": 1.5},
@@ -509,6 +513,8 @@ def test_summary_decisions_follow_reversed_results_and_resource_ratios():
     rendered = _summary_page(manifest, summary)
     assert "Moli 通过数最多" in rendered
     assert "速度、CPU、内存和网络另列，不合成总分" in rendered
+    assert "参评浏览器 / Moli" in rendered
+    assert "参评浏览器 / Chromium" not in rendered
     assert "Chromium 的可用范围更广" not in rendered
 
 
