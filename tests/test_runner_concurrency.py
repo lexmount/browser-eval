@@ -42,6 +42,43 @@ class RunnerConcurrencyTest(unittest.TestCase):
 
         self.assertEqual(calls, [('metered', 24, 7)])
 
+    def test_capacity_preflight_passes_exact_case_credit_estimate(self):
+        calls = []
+
+        class Capacity(Provider):
+            def capacity_credits_for_cases(
+                self, cases, *, runs, max_failure_retries
+            ):
+                calls.append(("estimate", [case.id for case in cases], runs,
+                              max_failure_retries))
+                return 19
+
+            def preflight_capacity(
+                self, declared_calls, timeout=10, *, required_credits=None
+            ):
+                calls.append(("preflight", declared_calls, timeout, required_credits))
+
+            def fetch(self, case, timeout):
+                raise AssertionError("capacity preflight must not fetch")
+
+        cases = [
+            EvalCase("one", "One", "https://example.com/1", "static", []),
+            EvalCase("two", "Two", "https://example.com/2", "static", []),
+        ]
+        preflight_declared_capacity(
+            [Capacity("metered", {})],
+            declared_calls=8,
+            timeout=7,
+            cases=cases,
+            runs=2,
+            max_failure_retries=1,
+        )
+
+        self.assertEqual(calls, [
+            ("estimate", ["one", "two"], 2, 1),
+            ("preflight", 8, 7, 19),
+        ])
+
     def test_failed_preflight_creates_no_evidence_or_calls(self):
         class Invalid(Provider):
             def validate(self):

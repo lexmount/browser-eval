@@ -4,7 +4,6 @@ import base64
 import json
 import os
 import queue
-import shlex
 import subprocess
 import threading
 import time
@@ -48,7 +47,11 @@ class SubprocessJsonlProvider(Provider):
         self.type = str(config.get("method_type") or self.type)
         self._process: subprocess.Popen[str] | None = None
         self._stdout_queue: queue.Queue[str | None] = queue.Queue()
-        self._stderr_lines: list[str] = []
+        self._stderr_lock = threading.Condition()
+        self._stderr_chunks: list[tuple[int, int, str]] = []
+        self._stderr_sequence = 0
+        self._stderr_total_bytes = 0
+        self._stderr_retained_bytes = 0
 
     def _resolve_token(self, value: Any) -> str:
         harness_root = Path(__file__).resolve().parents[3]
@@ -100,7 +103,11 @@ class SubprocessJsonlProvider(Provider):
             bufsize=1,
         )
         self._stdout_queue = queue.Queue()
-        self._stderr_lines = []
+        with self._stderr_lock:
+            self._stderr_chunks = []
+            self._stderr_sequence = 0
+            self._stderr_total_bytes = 0
+            self._stderr_retained_bytes = 0
         assert self._process.stdout is not None and self._process.stderr is not None
         threading.Thread(target=self._drain_stdout, args=(self._process,), daemon=True).start()
         threading.Thread(target=self._drain_stderr, args=(self._process,), daemon=True).start()
@@ -115,10 +122,50 @@ class SubprocessJsonlProvider(Provider):
     def _drain_stderr(self, process: subprocess.Popen[str]) -> None:
         assert process.stderr is not None
         for line in process.stderr:
-            self._stderr_lines.append(line.rstrip())
-            del self._stderr_lines[:-200]
+            size = len(line.encode("utf-8", "replace"))
+            limit = max(1, int(self.config.get("max_bytes", 20_000_000)))
+            with self._stderr_lock:
+                self._stderr_sequence += 1
+                self._stderr_total_bytes += size
+                self._stderr_chunks.append(
+                    (self._stderr_sequence, self._stderr_total_bytes, line)
+                )
+                self._stderr_retained_bytes += size
+                while self._stderr_chunks and self._stderr_retained_bytes > limit:
+                    removed = self._stderr_chunks.pop(0)
+                    self._stderr_retained_bytes -= len(removed[2].encode("utf-8", "replace"))
+                self._stderr_lock.notify_all()
+
+    def _stderr_cursor(self) -> tuple[int, int]:
+        with self._stderr_lock:
+            return self._stderr_sequence, self._stderr_total_bytes
+
+    def _request_stderr(self, cursor: tuple[int, int]) -> dict[str, Any]:
+        """Return only stderr observed after this request began, with honest bounds."""
+        start_sequence, start_bytes = cursor
+        # stdout and stderr are separate pipes. Once a response arrives, allow
+        # its stderr drainer a short quiet period before closing the slice.
+        quiet_deadline = time.monotonic() + 0.05
+        with self._stderr_lock:
+            previous = self._stderr_sequence
+            while time.monotonic() < quiet_deadline:
+                self._stderr_lock.wait(timeout=0.01)
+                if self._stderr_sequence == previous:
+                    break
+                previous = self._stderr_sequence
+            actual_bytes = self._stderr_total_bytes - start_bytes
+            chunks = [line for sequence, _, line in self._stderr_chunks
+                      if sequence > start_sequence]
+        text = "".join(chunks)
+        retained_bytes = len(text.encode("utf-8", "replace"))
+        return {
+            "stderr": text,
+            "stderr_bytes": actual_bytes,
+            "stderr_truncated": retained_bytes < actual_bytes,
+        }
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+        answer_begin = time.perf_counter()
         try:
             retrieval_plan = plan_for_case(case)
         except ValueError as error:
@@ -131,6 +178,7 @@ class SubprocessJsonlProvider(Provider):
         deadline = time.monotonic() + timeout
         process = self._start()
         assert process.stdin is not None and process.stdout is not None
+        stderr_cursor = self._stderr_cursor()
         request = {
             "url": case.url,
             "timeout_seconds": timeout,
@@ -142,13 +190,25 @@ class SubprocessJsonlProvider(Provider):
         process.stdin.flush()
 
         worker_logs: list[str] = []
+        worker_log_bytes = 0
+        worker_logs_truncated = False
+        log_limit = max(1, int(self.config.get("max_bytes", 20_000_000)))
         payload: dict[str, Any] | None = None
         while payload is None:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 process.kill()
                 self._process = None
-                raise TimeoutError(f"worker timed out after {timeout:.1f}s")
+                answer_elapsed_ms = round((time.perf_counter() - answer_begin) * 1000, 2)
+                error = TimeoutError(f"worker timed out after {timeout:.1f}s")
+                error.public_metadata = {
+                    "_answer_elapsed_ms": answer_elapsed_ms,
+                    **self._request_stderr(stderr_cursor),
+                    "stdout": "".join(worker_logs),
+                    "stdout_bytes": worker_log_bytes,
+                    "stdout_truncated": worker_logs_truncated,
+                }
+                raise error
             try:
                 line = self._stdout_queue.get(timeout=remaining)
             except queue.Empty:
@@ -156,17 +216,34 @@ class SubprocessJsonlProvider(Provider):
             if line is None:
                 code = process.poll()
                 self._process = None
-                raise RuntimeError(
-                    f"worker exited with {code}: {' | '.join(self._stderr_lines[-20:])[-2000:]}\n"
-                    f"command={shlex.join([self._resolve_token(part) for part in self.config['command']])}"
-                )
+                answer_elapsed_ms = round((time.perf_counter() - answer_begin) * 1000, 2)
+                error = RuntimeError(f"worker exited with {code}")
+                error.public_metadata = {
+                    "_answer_elapsed_ms": answer_elapsed_ms,
+                    **self._request_stderr(stderr_cursor),
+                    "exit_code": code,
+                    "stdout": "".join(worker_logs),
+                    "stdout_bytes": worker_log_bytes,
+                    "stdout_truncated": worker_logs_truncated,
+                }
+                raise error
             try:
                 candidate = json.loads(line)
             except json.JSONDecodeError:
-                worker_logs.append(line.rstrip())
+                encoded = len(line.encode("utf-8", "replace"))
+                worker_log_bytes += encoded
+                if sum(len(item.encode("utf-8", "replace")) for item in worker_logs) + encoded <= log_limit:
+                    worker_logs.append(line)
+                else:
+                    worker_logs_truncated = True
                 continue
             if not isinstance(candidate, dict) or "ok" not in candidate:
-                worker_logs.append(line.rstrip())
+                encoded = len(line.encode("utf-8", "replace"))
+                worker_log_bytes += encoded
+                if sum(len(item.encode("utf-8", "replace")) for item in worker_logs) + encoded <= log_limit:
+                    worker_logs.append(line)
+                else:
+                    worker_logs_truncated = True
                 continue
             payload = candidate
         ok = bool(payload.get("ok"))
@@ -185,7 +262,15 @@ class SubprocessJsonlProvider(Provider):
             title=payload.get("title"),
             error_type=None if ok else str(payload.get("error_type") or "tool_error"),
             error_message=None if ok else str(payload.get("error_message") or "worker failed"),
-            metadata={**dict(payload.get("metadata") or {}), "worker_logs": worker_logs[-20:]},
+            metadata={
+                **dict(payload.get("metadata") or {}),
+                "_answer_elapsed_ms": round((time.perf_counter() - answer_begin) * 1000, 2),
+                **self._request_stderr(stderr_cursor),
+                "stdout": "".join(worker_logs),
+                "stdout_bytes": worker_log_bytes,
+                "stdout_truncated": worker_logs_truncated,
+                "worker_logs": [line.rstrip() for line in worker_logs],
+            },
         )
 
     def cancel(self) -> None:

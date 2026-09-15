@@ -95,6 +95,17 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.metadata["wait"], {"wait_until": "done"})
         self.assertTrue(result.metadata["block_private_networks"])
 
+    def test_stderr_capture_exceeds_legacy_4096_without_silent_truncation(self):
+        provider = self.provider(
+            "import sys\nprint('x'*5000,file=sys.stderr)\nprint('answer')",
+            max_bytes=10_000,
+        )
+        result = provider.fetch(self.case, 2)
+        self.assertTrue(result.ok)
+        self.assertGreater(len(result.metadata["stderr"]), 4096)
+        self.assertGreater(result.metadata["stderr_bytes"], 4096)
+        self.assertFalse(result.metadata["stderr_truncated"])
+
     def test_private_network_guard_exception_is_scoped_to_allowlisted_host(self):
         provider = self.provider(
             'import sys\nassert "--block-private-networks" not in sys.argv\nprint("allowlisted")',

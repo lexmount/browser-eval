@@ -363,9 +363,19 @@ class HeadlessProvider(Provider):
                     # permitting signals to a child created by this process.
                     process.kill()
                 process.wait()
+            stdout_bytes = os.fstat(stdout.fileno()).st_size
+            stderr_bytes = os.fstat(stderr.fileno()).st_size
             stdout.seek(0); raw = stdout.read(limit+1)
-            stderr.seek(0); diagnostic = stderr.read(4096).decode('utf-8', 'replace')
-        metadata.update(exit_code=process.returncode, stderr=diagnostic)
+            stderr.seek(0); diagnostic_raw = stderr.read(limit+1)
+            diagnostic = diagnostic_raw[:limit].decode('utf-8', 'replace')
+        metadata.update(
+            exit_code=process.returncode,
+            stdout_bytes=stdout_bytes,
+            stdout_truncated=stdout_bytes > limit,
+            stderr=diagnostic,
+            stderr_bytes=stderr_bytes,
+            stderr_truncated=stderr_bytes > limit,
+        )
         if stopped or len(raw) > limit:
             return ProviderResult(False, '', error_type=stopped or 'output_too_large',
                                   error_message='Isolated fetch exceeded budget', metadata=metadata)

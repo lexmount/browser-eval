@@ -64,9 +64,14 @@ def normalize_resource_url(value: str, base_url: str) -> str | None:
     # parameters on arbitrary hosts or collapse distinct resources globally.
     if parsed.hostname in {'images.unsplash.com','plus.unsplash.com','images.pexels.com','images-assets.nasa.gov','www.nasa.gov'}:
         query=''
-    if parsed.hostname and parsed.hostname.endswith('wikimedia.org') and '/thumb/' in path:
+    netloc = parsed.netloc.lower()
+    if parsed.hostname in {'upload.wikimedia.org', 'thumb.wikimedia.org'} and '/thumb/' in path:
         path=path.replace('/thumb/','/').rsplit('/',1)[0];query=''
-    return urlunsplit((parsed.scheme.lower(), parsed.netloc.lower().replace('thumb.wikimedia.org','upload.wikimedia.org'), unquote(path), query, ""))
+        # Wikimedia moved thumbnails, not original files or videos, to the
+        # thumb host. Only a thumbnail path identifies the same hosted asset.
+        if parsed.hostname == 'thumb.wikimedia.org':
+            netloc = netloc.replace('thumb.wikimedia.org', 'upload.wikimedia.org')
+    return urlunsplit((parsed.scheme.lower(), netloc, unquote(path), query, ""))
 
 
 def _metadata_resource_candidates(
@@ -351,10 +356,19 @@ def normalize_for_match(value: str) -> str:
     # Markdown table pipes are layout boundaries, not readable cell content.
     # Restrict this to rows with at least two pipes so an ordinary prose/code
     # expression containing a single literal ``|`` is not silently rewritten.
-    normalized = '\n'.join(
-        re.sub(r'\s*\|\s*', ' ', line) if line.count('|') >= 2 else line
-        for line in normalized.splitlines()
-    )
+    table_rule = re.compile(r':?-{3,}:?')
+    table_lines = []
+    for line in normalized.splitlines():
+        if line.count('|') >= 2:
+            cells = [cell.strip() for cell in line.split('|')]
+            visible_cells = [cell for cell in cells if cell]
+            # A Markdown divider has no answer-bearing text. Keeping it would
+            # interrupt a fact spanning the header and first data row.
+            if (visible_cells and all(table_rule.fullmatch(cell) for cell in visible_cells)):
+                continue
+            line = re.sub(r'\s*\|\s*', ' ', line)
+        table_lines.append(line)
+    normalized = '\n'.join(table_lines)
     normalized = normalized.translate(str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"', "–": "-", "—": "-", "−": "-"}))
     # CJK text can be split at inline DOM boundaries. English word boundaries,
     # signs, digits and punctuation are deliberately retained.

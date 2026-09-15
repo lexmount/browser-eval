@@ -55,7 +55,7 @@
       "min_interval_seconds": 6.1,
       "proxy": "auto",
       "capacity_credits_per_call": 1,
-      "dynamic_wait_strategy": "wait_for"
+      "dynamic_wait_strategy": "actions"
     },
     "firecrawl-resources": {
       "type": "firecrawl",
@@ -67,7 +67,7 @@
       "min_interval_seconds": 6.1,
       "proxy": "auto",
       "capacity_credits_per_call": 1,
-      "dynamic_wait_strategy": "wait_for"
+      "dynamic_wait_strategy": "actions"
     },
     "tavily": {
       "type": "tavily_extract",
@@ -110,6 +110,7 @@
       "api_token": "${CLOUDFLARE_API_TOKEN}",
       "account_id": "${CLOUDFLARE_ACCOUNT_ID}",
       "max_bytes": 20000000,
+      "document_max_bytes": 20000000,
       "wait_until": "networkidle2"
     },
     "cloudflare-content": {

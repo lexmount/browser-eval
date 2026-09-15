@@ -689,11 +689,21 @@ class MoliWebFetchProvider(Provider):
                 if stopped:
                     self._kill(process)
                     process.wait()
+                stdout_bytes = os.fstat(output.fileno()).st_size
+                stderr_bytes = os.fstat(diagnostic.fileno()).st_size
                 output.seek(0)
                 raw = output.read(limit + 1)
                 diagnostic.seek(0)
-                stderr = diagnostic.read(4096).decode("utf-8", "replace")
-                metadata.update(exit_code=process.returncode, stderr=stderr)
+                diagnostic_raw = diagnostic.read(limit + 1)
+                stderr = diagnostic_raw[:limit].decode("utf-8", "replace")
+                metadata.update(
+                    exit_code=process.returncode,
+                    stdout_bytes=stdout_bytes,
+                    stdout_truncated=stdout_bytes > limit,
+                    stderr=stderr,
+                    stderr_bytes=stderr_bytes,
+                    stderr_truncated=stderr_bytes > limit,
+                )
         if stopped == "timeout":
             return ProviderResult(
                 False,

@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
   "baseline": {
-    "dataset_sha256": "69ea049aef52ddefc469a30c591a3ad2f0f9bec5147d1bd3647bc98b601b2065",
-    "results_sha256": "f1e259c881fbb427c4e9feea0bb0b347dabff028902c8d06a113e0d8fe1936f8",
+    "dataset_sha256": "9511b16bd27cfe6c2d7913917992cec574f73a8b5b642c19283ea542f90dab81",
+    "results_sha256": "443ece38adb97386a7625e08f2c79c38c3c43a1b5e8627c131757dc7ab8ae886",
     "logical_attempts": 1500
   },
   "main_matrix": {
@@ -11,41 +11,21 @@
     "matched_case_ids": [],
     "matched_case_reason_groups": [],
     "pair_replacements": [
-      {"provider":"openclaw-built-in","case_id":"challenge-01","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
-      {"provider":"openclaw-built-in","case_id":"challenge-04","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
-      {"provider":"openclaw-built-in","case_id":"challenge-09","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
-      {"provider":"openclaw-built-in","case_id":"document-03","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
-      {"provider":"openclaw-built-in","case_id":"image-pexels-detail","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
-      {"provider":"openclaw-built-in","case_id":"image-unsplash-detail","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
-      {"provider":"openclaw-built-in","case_id":"lexmount-doc","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
-      {"provider":"openclaw-built-in","case_id":"live-024-cascading-style-sheets-level-2-r","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
-      {"provider":"openclaw-built-in","case_id":"live-039-welcome-to-redis-docs","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
-      {"provider":"openclaw-built-in","case_id":"stable-browser-use-readme","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
-      {"provider":"openclaw-built-in","case_id":"stable-nodejs-readme","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
-      {"provider":"openclaw-built-in","case_id":"stable-openclaw-readme","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
-      {"provider":"openclaw-built-in","case_id":"stable-wcag21-recommendation","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
-      {"provider":"openclaw-built-in","case_id":"stable-xml10-recommendation","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
-      {"provider":"openclaw-built-in","case_id":"web-retail-returns","category":"public_artifact_boundary","reason":"The prior worker serialized exception stacks and host-local paths into the public answer artifact; retain only the stable provider error."},
-      {"provider":"cowagent-built-in","case_id":"document-01","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
-      {"provider":"cowagent-built-in","case_id":"document-02","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
-      {"provider":"cowagent-built-in","case_id":"document-03","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
-      {"provider":"cowagent-built-in","case_id":"document-04","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
-      {"provider":"cowagent-built-in","case_id":"document-05","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
-      {"provider":"cowagent-built-in","case_id":"document-06","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
-      {"provider":"cowagent-built-in","case_id":"document-09","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
-      {"provider":"cowagent-built-in","case_id":"document-10","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
-      {"provider":"cowagent-built-in","case_id":"stable-browser-use-readme","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
-      {"provider":"cowagent-built-in","case_id":"stable-nodejs-readme","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."},
-      {"provider":"cowagent-built-in","case_id":"stable-openclaw-readme","category":"public_artifact_boundary","reason":"The provider output embedded its host-local workspace destination; remove only that destination while retaining fetched document text."}
+      {
+        "provider": "cloudflare-markdown",
+        "case_id": "video-bilibili-current",
+        "category": "adapter_normalization",
+      "reason": "Independent review found ordinary navigation and utility iframes misclassified as video entries. The video-link task now requests only a[href] through Cloudflare /scrape and conservatively retains video-detail URL routes without reference matching; this exact pair requires a new certified call."
+      }
     ],
     "offline_rescore_cases": [],
-    "planned_new_calls": 26,
+    "planned_new_calls": 1,
     "final_logical_attempts": 1500
   },
   "same_window_speed_cohort": {
     "required": false,
     "reuse_existing": true,
-    "reason": "No timing boundary or provider-version change is declared. The prior certified speed cohort remains historical diagnostic evidence and does not contain the corrected Crawl4AI dynamic-product case.",
+    "reason": "This video-link candidate correction affects only the Bilibili resource task outside the historical 20-task speed cohort; provider version and timing boundary are unchanged.",
     "dataset_sha256": "20d6ab46caa60230cfb703b964ab1378f9071b47f249f61e094f4c7c84ea4aa9",
     "results_sha256": "9d9d3eb57b3ff1cdd7187e4378d78f990447e3a54ca27d0bfdd8623e228112d3",
     "execution_sha256": "e8b4f90d26cf53e63ef2b25f8f4d32a1ece9ec63bedad7e3f81e07d481cdd76e",
@@ -55,5 +35,5 @@
     },
     "planned_new_calls": 0
   },
-  "total_planned_new_calls": 26
+  "total_planned_new_calls": 1
 }

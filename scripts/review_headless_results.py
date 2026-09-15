@@ -46,6 +46,16 @@ repeated boilerplate, reference mismatch, interface misuse, or scorer/process de
 for the later unblinded seven-layer investigation. Return these as the row's anomalies
 array, or an empty array when none is observed.'''
 
+RESOURCE_EQUIVALENCE_RULES = '''For Wikimedia thumbnail resources, the official
+thumbnail host changed from upload.wikimedia.org to thumb.wikimedia.org. Treat those
+two hosts as equivalent only for the same Wikimedia /wikipedia/.../thumb/ asset:
+the project, repository, hash directories and original asset filename must match.
+Thumbnail presentation width and tracking query parameters may differ without
+changing that asset's identity. A different original asset path or filename, an
+unrelated host, or a non-thumbnail URL is not equivalent merely because its visible
+title, width or query parameters resemble the target. Cite the observed original
+asset path when judging such a match; do not infer a match from a filename alone.'''
+
 
 def _labeled_evidence(evidence, labels):
     pattern = re.compile(
@@ -202,7 +212,7 @@ def main():
     parser.add_argument('--work', type=Path, required=True)
     parser.add_argument('--batch-cases', type=int, default=5)
     parser.add_argument('--workers', type=int, default=1,
-                        help='Independent Claude Code batches to run concurrently')
+                        help='Independent reviewer batches to run concurrently')
     parser.add_argument('--timeout-seconds', type=int, default=900,
                         help='Hard deadline for each independent review batch')
     parser.add_argument('--protocol-retries', type=int, default=2,
@@ -312,6 +322,7 @@ Inspect every answer artifact named for an attempt, including file_artifacts and
 Stable text anchors are literal requirements after ordinary Markdown/whitespace normalization: only a declared alternative can substitute for one. Semantically related text is not a hit. Before returning pass, locate every required fact group, stable anchor, resource and record constraint in the artifact; never claim a passage is present without finding it. Evidence for a pass must name the observed required anchors or fields, not merely say that all criteria are met.'''
             prompt += ''' Capitalization alone is an ordinary presentation difference and does not make an otherwise exact anchor absent. A provider-authored notice that explicitly says the returned body was truncated is direct evidence of an incomplete body; do not ignore it merely because sparse anchors or selected beginning/middle/end excerpts are present.'''
             prompt += '''\nFor resource tasks, read resource_output_contract before judging extras. When it declares candidate_scope=image_answer_fields and unexpected=reject, every image URL in answer-bearing image fields or image markup is part of the submitted answer: all expected resources must be present and every candidate must match a declared URL, alias or pattern. Unrelated images therefore fail. Without that target-only contract, expected_resources is recall-only and incidental additional URLs do not fail. A declared alias is an accepted equivalent of its target, not an unexpected resource.'''
+            prompt += '\n' + RESOURCE_EQUIVALENCE_RULES
             prompt += '\n' + INDEPENDENCE_RULES
             system=('You are an independent benchmark evidence auditor. Follow the task exactly. '
                     'Use only read operations, report observable evidence, and never trust stored verdicts. ')

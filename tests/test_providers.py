@@ -8,9 +8,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 from harness.web_fetch.models import EvalCase
+from harness.web_fetch.metrics import evaluate_resources
 from harness.web_fetch.providers.cloudflare import (
     CloudflareContentProvider,
     CloudflareMarkdownProvider,
+    _post_multipart,
 )
 from harness.web_fetch.providers.cowagent import CowAgentBuiltinProvider, _sanitize_public_content
 from harness.web_fetch.providers.exa import ExaContentsProvider
@@ -205,6 +207,95 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(base64.b64decode(result.metadata["_raw_response_b64"]), body)
 
     @patch("harness.web_fetch.providers.firecrawl.request")
+    def test_firecrawl_video_track_requests_and_returns_native_videos(
+        self, mock_request
+    ) -> None:
+        videos = [{
+            "url": "https://cdn.example.com/movie.mp4",
+            "sourceURL": "https://example.com/watch",
+            "mimeType": "video/mp4",
+        }]
+        mock_request.return_value = HttpResponse(
+            200,
+            "u",
+            {},
+            json.dumps({"success": True, "data": {"markdown": "", "videos": videos}}).encode(),
+        )
+        case = EvalCase(
+            id="video",
+            name="Video",
+            url="https://example.com/watch",
+            category="video",
+            expected_any=[],
+            track="video",
+            task_kind="resource",
+            expected_resources=[{
+                "id": "video",
+                "kind": "video",
+                "urls": ["https://cdn.example.com/movie.mp4"],
+                "url_patterns": [],
+            }],
+        )
+
+        result = FirecrawlProvider(
+            "firecrawl", {"api_key": "x", "formats": ["markdown", "links", "images"]}
+        ).fetch(case, 45)
+
+        self.assertTrue(result.ok)
+        self.assertEqual(
+            mock_request.call_args.kwargs["json_body"]["formats"],
+            ["markdown", "links", "images", "video"],
+        )
+        self.assertEqual(result.metadata["requested_formats"][-1], "video")
+        self.assertEqual(result.metadata["videos"], videos)
+        metrics = evaluate_resources(
+            result.content,
+            result.metadata,
+            case.expected_resources,
+            base_url=case.url,
+            eligible=result.ok,
+        )
+        self.assertTrue(metrics["resource_pass"])
+        self.assertEqual(
+            metrics["resource_results"][0]["matched_urls"],
+            ["https://cdn.example.com/movie.mp4"],
+        )
+
+    @patch("harness.web_fetch.providers.firecrawl.request")
+    def test_firecrawl_does_not_request_video_format_for_other_tracks(
+        self, mock_request
+    ) -> None:
+        mock_request.return_value = HttpResponse(
+            200, "u", {}, b'{"success":true,"data":{"markdown":"Example"}}'
+        )
+
+        FirecrawlProvider(
+            "firecrawl", {"api_key": "x", "formats": ["markdown", "links", "images"]}
+        ).fetch(self.case, 45)
+
+        self.assertEqual(
+            mock_request.call_args.kwargs["json_body"]["formats"],
+            ["markdown", "links", "images"],
+        )
+
+        video_body_case = EvalCase(
+            id="video-body",
+            name="Video transcript",
+            url="https://example.com/watch",
+            category="video",
+            expected_any=["Example"],
+            track="video",
+            task_kind="body",
+        )
+        FirecrawlProvider(
+            "firecrawl", {"api_key": "x", "formats": ["markdown", "links", "images"]}
+        ).fetch(video_body_case, 45)
+        self.assertEqual(
+            mock_request.call_args.kwargs["json_body"]["formats"],
+            ["markdown", "links", "images"],
+        )
+
+    @patch("harness.web_fetch.providers.firecrawl.request")
     def test_firecrawl_capacity_preflight_uses_conservative_declared_bound(
         self, mock_request
     ) -> None:
@@ -232,6 +323,58 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(mock_request.call_args.kwargs["method"], "GET")
         self.assertEqual(mock_request.call_args.kwargs["timeout"], 9.0)
         self.assertNotIn("json_body", mock_request.call_args.kwargs)
+
+    @patch("harness.web_fetch.providers.firecrawl.request")
+    def test_firecrawl_capacity_preflight_uses_exact_mixed_case_credit_bound(
+        self, mock_request
+    ) -> None:
+        mock_request.return_value = HttpResponse(
+            200,
+            "https://api.firecrawl.dev/v2/team/credit-usage",
+            {},
+            b'{"success":true,"data":{"remainingCredits":27}}',
+        )
+        video_resource = EvalCase(
+            id="video-resource",
+            name="Video resource",
+            url="https://example.com/watch",
+            category="video",
+            expected_any=[],
+            track="video",
+            task_kind="resource",
+        )
+        video_body = EvalCase(
+            id="video-body",
+            name="Video body",
+            url="https://example.com/transcript",
+            category="video",
+            expected_any=[],
+            track="video",
+            task_kind="body",
+        )
+        provider = FirecrawlProvider(
+            "firecrawl", {"api_key": "x", "capacity_credits_per_call": 1}
+        )
+        self.assertEqual(
+            provider.capacity_credits_for_cases(
+                [video_resource, video_body, self.case],
+                runs=1,
+                max_failure_retries=0,
+            ),
+            7,
+        )
+        required = provider.capacity_credits_for_cases(
+            [video_resource, video_body, self.case],
+            runs=2,
+            max_failure_retries=1,
+        )
+
+        self.assertEqual(required, 28)
+        with self.assertRaisesRegex(ValueError, "requires at least 28 credits"):
+            provider.preflight_capacity(
+                declared_calls=12,
+                required_credits=required,
+            )
 
     @patch("harness.web_fetch.providers.firecrawl.request")
     def test_firecrawl_capacity_preflight_fails_before_calls_without_exposing_balance(
@@ -740,6 +883,326 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(request_body["actionTimeout"], 40_500)
         self.assertEqual(result.metadata["service_timeout_ms"], 40_500)
         self.assertEqual(result.metadata["client_http_timeout_ms"], 40_500)
+
+    @patch("harness.web_fetch.providers.cloudflare._post_multipart")
+    @patch("harness.web_fetch.providers.cloudflare._get_document")
+    def test_cloudflare_direct_pdf_uses_workers_ai_file_conversion(
+        self, mock_get_document, mock_post_multipart
+    ) -> None:
+        pdf = b"%PDF-1.7\nexample"
+        mock_get_document.return_value = HttpResponse(
+            200,
+            "https://arxiv.org/pdf/1706.03762",
+            {"content-type": "application/pdf"},
+            pdf,
+        )
+        api_body = json.dumps({
+            "success": True,
+            "result": [{
+                "name": "1706.03762.pdf",
+                "mimeType": "application/pdf",
+                "format": "markdown",
+                "data": "# Attention Is All You Need",
+            }],
+        }).encode()
+        mock_post_multipart.return_value = HttpResponse(200, "u", {}, api_body)
+        document = EvalCase(
+            id="document-01",
+            name="PDF",
+            url="https://arxiv.org/pdf/1706.03762",
+            category="document",
+            expected_any=[],
+            track="document",
+        )
+
+        result = CloudflareMarkdownProvider(
+            "cf", {"api_token": "x", "account_id": "a"}
+        ).fetch(document, 45)
+
+        self.assertTrue(result.ok)
+        self.assertEqual(result.content, "# Attention Is All You Need")
+        self.assertEqual(result.metadata["route"], "workers_ai_tomarkdown")
+        self.assertEqual(result.metadata["source_sha256"], hashlib.sha256(pdf).hexdigest())
+        self.assertEqual(result.metadata["source_bytes"], len(pdf))
+        self.assertEqual(result.metadata["source_content_type"], "application/pdf")
+        self.assertLessEqual(
+            mock_post_multipart.call_args.kwargs["timeout"], 40.5
+        )
+        self.assertEqual(mock_post_multipart.call_args.kwargs["data"], pdf)
+        self.assertEqual(
+            mock_post_multipart.call_args.args[0],
+            "https://api.cloudflare.com/client/v4/accounts/a/ai/tomarkdown",
+        )
+        self.assertEqual(mock_get_document.call_args.args[0], document.url)
+
+    @patch("harness.web_fetch.providers.cloudflare._post_multipart")
+    @patch("harness.web_fetch.providers.cloudflare.request")
+    def test_cloudflare_document_viewer_stays_on_browser_route(
+        self, mock_request, mock_post_multipart
+    ) -> None:
+        mock_request.return_value = HttpResponse(
+            200, "u", {}, b'{"success":true,"result":"Viewer text"}'
+        )
+        viewer = EvalCase(
+            id="document-07",
+            name="Viewer",
+            url="https://mozilla.github.io/pdf.js/web/viewer.html",
+            category="document",
+            expected_any=[],
+            track="document",
+        )
+
+        result = CloudflareMarkdownProvider(
+            "cf", {"api_token": "x", "account_id": "a"}
+        ).fetch(viewer, 45)
+
+        self.assertTrue(result.ok)
+        self.assertEqual(result.metadata["route"], "browser_rendering_markdown")
+        self.assertIn("/browser-rendering/markdown", mock_request.call_args.args[0])
+        mock_post_multipart.assert_not_called()
+
+    @patch("harness.web_fetch.providers.cloudflare.request")
+    def test_cloudflare_image_resource_uses_scrape_and_resolves_srcset(
+        self, mock_request
+    ) -> None:
+        mock_request.return_value = HttpResponse(
+            200,
+            "u",
+            {},
+            json.dumps({
+                "success": True,
+                "result": [{
+                    "selector": "picture source",
+                    "results": [{"attributes": [{
+                        "name": "srcset",
+                        "value": "small.jpg 480w, large.jpg 800w",
+                    }]}],
+                }],
+            }).encode(),
+        )
+        image = EvalCase(
+            id="image-x",
+            name="Image",
+            url="https://example.com/gallery/page.html",
+            category="image",
+            expected_any=[],
+            track="image",
+            task_kind="resource",
+        )
+
+        result = CloudflareMarkdownProvider(
+            "cf", {"api_token": "x", "account_id": "a"}
+        ).fetch(image, 45)
+
+        self.assertTrue(result.ok)
+        self.assertEqual(result.metadata["route"], "browser_rendering_scrape_resources")
+        self.assertEqual(result.metadata["images"], [
+            "https://example.com/gallery/large.jpg",
+            "https://example.com/gallery/small.jpg",
+        ])
+        self.assertIn("/browser-rendering/scrape", mock_request.call_args.args[0])
+        selectors = mock_request.call_args.kwargs["json_body"]["elements"]
+        self.assertEqual(selectors, [{"selector": "img"}, {"selector": "picture source"}])
+
+    @patch("harness.web_fetch.providers.cloudflare.request")
+    def test_cloudflare_video_resource_scrape_filters_ordinary_links(
+        self, mock_request
+    ) -> None:
+        mock_request.return_value = HttpResponse(
+            200,
+            "u",
+            {},
+            json.dumps({
+                "success": True,
+                "result": [{
+                    "selector": "a[href]",
+                    "results": [{"attributes": [
+                        {"name": "href", "value": "clip.webm"},
+                        {"name": "href", "value": "/about"},
+                    ]}],
+                }],
+            }).encode(),
+        )
+        video = EvalCase(
+            id="video-x",
+            name="Video",
+            url="https://example.com/watch/page.html",
+            category="video",
+            expected_any=[],
+            track="video",
+            task_kind="resource",
+        )
+
+        result = CloudflareMarkdownProvider(
+            "cf", {"api_token": "x", "account_id": "a"}
+        ).fetch(video, 45)
+
+        self.assertEqual(result.metadata["videos"], [
+            "https://example.com/watch/clip.webm"
+        ])
+        self.assertNotIn("/about", result.content)
+
+    @patch("harness.web_fetch.providers.cloudflare.request")
+    def test_cloudflare_video_resource_keeps_packaged_video_downloads(
+        self, mock_request
+    ) -> None:
+        mock_request.return_value = HttpResponse(
+            200,
+            "u",
+            {},
+            json.dumps({
+                "success": True,
+                "result": [{
+                    "selector": "a[href]",
+                    "results": [
+                        {"attributes": [{"name": "href", "value": "movie.mp4.zip"}]},
+                        {"attributes": [{"name": "href", "value": "movie.webm.zip?mirror=1"}]},
+                        {"attributes": [{"name": "href", "value": "notes.zip"}]},
+                        {"attributes": [{"name": "href", "value": "../"}]},
+                    ],
+                }],
+            }).encode(),
+        )
+        video = EvalCase(
+            id="video-archive-x",
+            name="Video download package",
+            url="https://example.com/movies/",
+            category="video",
+            expected_any=[],
+            track="video",
+            task_kind="resource",
+        )
+
+        result = CloudflareMarkdownProvider(
+            "cf", {"api_token": "x", "account_id": "a"}
+        ).fetch(video, 45)
+
+        self.assertTrue(result.ok)
+        self.assertEqual(result.metadata["videos"], [
+            "https://example.com/movies/movie.mp4.zip",
+            "https://example.com/movies/movie.webm.zip?mirror=1",
+        ])
+        self.assertNotIn("notes.zip", result.content)
+        self.assertNotIn("\nhttps://example.com/\n", "\n" + result.content + "\n")
+
+    @patch("harness.web_fetch.providers.cloudflare.request")
+    def test_cloudflare_video_link_task_keeps_page_href_without_media_suffix(
+        self, mock_request
+    ) -> None:
+        mock_request.return_value = HttpResponse(
+            200,
+            "u",
+            {},
+            json.dumps({
+                "success": True,
+                "result": [{
+                    "selector": "a[href]",
+                    "results": [
+                        {"attributes": [{
+                            "name": "href",
+                            "value": "//example.com/video/BV1234567890",
+                        }]},
+                        {"attributes": [{"name": "href", "value": "/about"}]},
+                    ],
+                }, {
+                    "selector": "iframe",
+                    "results": [{"attributes": [{
+                        "name": "src", "value": "/short/iframe.html",
+                    }]}],
+                }],
+            }).encode(),
+        )
+        video_link = EvalCase(
+            id="video-link-x",
+            name="Video detail entry",
+            url="https://example.com/",
+            category="video",
+            expected_any=[],
+            track="video",
+            task_kind="resource",
+            expected_resources=[{"id": "entry", "kind": "video-link"}],
+        )
+
+        result = CloudflareMarkdownProvider(
+            "cf", {"api_token": "x", "account_id": "a"}
+        ).fetch(video_link, 45)
+
+        self.assertTrue(result.ok)
+        self.assertEqual(result.metadata["videos"], [
+            "https://example.com/video/BV1234567890",
+        ])
+        self.assertIn("https://example.com/video/BV1234567890", result.content)
+        self.assertNotIn("https://example.com/about", result.content)
+        self.assertNotIn("https://example.com/short/iframe.html", result.content)
+        self.assertEqual(mock_request.call_args.kwargs["json_body"]["elements"],
+                         [{"selector": "a[href]"}])
+
+    @patch("harness.web_fetch.providers.cloudflare.time.monotonic")
+    @patch("harness.web_fetch.providers.cloudflare.urllib.request.build_opener")
+    def test_cloudflare_multipart_read_enforces_one_total_deadline(
+        self, mock_build_opener, mock_monotonic
+    ) -> None:
+        class Response:
+            status = 200
+            headers = {}
+            fp = None
+
+            def __init__(self) -> None:
+                self.closed = False
+
+            def read(self, _size: int) -> bytes:
+                return b"partial"
+
+            def geturl(self) -> str:
+                return "https://api.cloudflare.com/client/v4/test"
+
+            def close(self) -> None:
+                self.closed = True
+
+        response = Response()
+        mock_build_opener.return_value.open.return_value = response
+        mock_monotonic.side_effect = [100.0, 100.5, 101.1]
+
+        with self.assertRaisesRegex(TimeoutError, "inner deadline"):
+            _post_multipart(
+                "https://api.cloudflare.com/client/v4/test",
+                token="x",
+                filename="file.pdf",
+                content_type="application/pdf",
+                data=b"pdf",
+                timeout=1,
+                max_bytes=100,
+            )
+        self.assertTrue(response.closed)
+
+    @patch("harness.web_fetch.providers.cloudflare._post_multipart")
+    @patch("harness.web_fetch.providers.cloudflare._get_document")
+    def test_cloudflare_failed_document_download_does_not_fallback_or_convert(
+        self, mock_get_document, mock_post_multipart
+    ) -> None:
+        body = b"origin error"
+        mock_get_document.return_value = HttpResponse(
+            503, "https://example.com/file.pdf", {"content-type": "text/plain"}, body
+        )
+        document = EvalCase(
+            id="document-x",
+            name="PDF",
+            url="https://example.com/file.pdf",
+            category="document",
+            expected_any=[],
+            track="document",
+        )
+
+        result = CloudflareMarkdownProvider(
+            "cf", {"api_token": "x", "account_id": "a"}
+        ).fetch(document, 45)
+
+        self.assertFalse(result.ok)
+        self.assertEqual(result.error_type, "http_status")
+        self.assertEqual(result.metadata["route"], "workers_ai_tomarkdown")
+        self.assertFalse(result.metadata["conversion_attempted"])
+        self.assertEqual(base64.b64decode(result.metadata["_raw_response_b64"]), body)
+        mock_post_multipart.assert_not_called()
 
     @patch("harness.web_fetch.providers.cloudflare.request")
     def test_cloudflare_empty_target_2xx_succeeds_but_origin_error_fails(self, mock_request) -> None:

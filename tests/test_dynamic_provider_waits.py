@@ -32,11 +32,11 @@ def dynamic_case(**completion_overrides):
     )
 
 
-def test_release_configs_select_firecrawl_wait_for_route():
+def test_release_configs_select_firecrawl_actions_route():
     for filename in ("configs/providers.example.json", "configs/providers.resources.json"):
         providers = json.loads(Path(filename).read_text())["providers"]
-        assert providers["firecrawl"]["dynamic_wait_strategy"] == "wait_for"
-        assert providers["firecrawl-resources"]["dynamic_wait_strategy"] == "wait_for"
+        assert providers["firecrawl"]["dynamic_wait_strategy"] == "actions"
+        assert providers["firecrawl-resources"]["dynamic_wait_strategy"] == "actions"
         assert providers["firecrawl"]["proxy"] == "auto"
         assert providers["firecrawl-resources"]["proxy"] == "auto"
         assert providers["firecrawl"]["capacity_credits_per_call"] == 1
@@ -212,8 +212,10 @@ def test_firecrawl_uses_selector_action_then_declared_settle_delay(mock_request)
         "selector": ".row",
         "frame_selector": None,
         "minimum_count": 10,
+        "selector_requested": True,
         "selector_enforced": True,
         "minimum_count_enforced": False,
+        "actions_accepted": True,
         "completion_support": "approximate",
         "unsupported": ["wait_until", "minimum_count"],
         "delay_ms": 250,
@@ -251,6 +253,7 @@ def test_firecrawl_selector_wait_can_enforce_single_top_level_match(mock_request
     body = mock_request.call_args.kwargs["json_body"]
     assert body["actions"] == [{"type": "wait", "selector": ".row"}]
     assert result.metadata["wait"]["minimum_count_enforced"] is True
+    assert result.metadata["wait"]["actions_accepted"] is True
     assert result.metadata["wait"]["unsupported"] == ["wait_until"]
 
 
@@ -341,6 +344,7 @@ def test_firecrawl_iframe_condition_discloses_unenforced_selector_and_count(mock
     wait = result.metadata["wait"]
     assert wait["selector_enforced"] is False
     assert wait["minimum_count_enforced"] is False
+    assert wait["actions_accepted"] is True
     assert wait["completion_support"] == "approximate"
     assert wait["unsupported"] == [
         "wait_until",
@@ -348,6 +352,23 @@ def test_firecrawl_iframe_condition_discloses_unenforced_selector_and_count(mock
         "selector",
         "minimum_count",
     ]
+
+
+@patch("harness.web_fetch.providers.firecrawl.request")
+def test_firecrawl_does_not_claim_rejected_actions_were_enforced(mock_request):
+    mock_request.return_value = HttpResponse(
+        400, "u", {}, b'{"success":false,"error":"invalid action"}'
+    )
+
+    result = FirecrawlProvider("firecrawl", {"api_key": "x"}).fetch(
+        dynamic_case(minimum_count=1), 45
+    )
+
+    wait = result.metadata["wait"]
+    assert wait["selector_requested"] is True
+    assert wait["actions_accepted"] is False
+    assert wait["selector_enforced"] is False
+    assert wait["minimum_count_enforced"] is False
 
 
 @patch("harness.web_fetch.providers.firecrawl.request")

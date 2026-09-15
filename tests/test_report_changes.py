@@ -7,6 +7,29 @@ from harness.web_fetch.report_changes import render_changes
 from harness.web_fetch.report import overview_card, ranking
 
 class ReportChangesTests(unittest.TestCase):
+    def test_current_web_fetch_release_binds_score_revision_and_exact_rerun_scope(self):
+        from harness.web_fetch.report_changes import ROOT, select_cohort_history
+        from harness.web_fetch.report_i18n import translate_text
+        history = json.loads((ROOT/'research/report-changes.json').read_text())
+        selected = select_cohort_history(
+            history, {'comparison': {'kind': 'web_fetch_methods'}}, []
+        )
+        current = selected['releases'][0]
+        self.assertEqual(current['id'], '2026-09-15-official-route-and-call-drilldown')
+        self.assertEqual(set(current['scoring_revision_input_sha256']), {
+            '596f8005399be74d73dd14b8a77f5f775b3e2dd36f037643c421259bb5d8ff53',
+            'b8b7adec934761ed374191912c05ef2da449cb1a7cbda104f671db08d033a5ee',
+        })
+        self.assertIn('Cloudflare 23 条、Firecrawl 17 条，共 40 次调用', current['summary'])
+        self.assertIn('累计 44 次新物理调用', current['summary'])
+        self.assertIn('1,032/1,500', current['summary'])
+        self.assertIn('1,500/1,500 条权威结果有有效逐条判定核验',
+                      current['changes'][4][3])
+        self.assertNotIn('新增异常组', current['summary'])
+        for value in [current['title'], current['summary'],
+                      *(field for row in current['changes'] for field in row)]:
+            self.assertNotRegex(translate_text(value), r'[\u4e00-\u9fff]')
+
     def test_first_correction_is_identity_bound_not_latest(self):
         from harness.web_fetch.report_changes import first_correction
         releases=[{'id':'2026-09-03-fairness-correction','scoring_revision_input_sha256':'first'}]

@@ -63,9 +63,13 @@ function tabKeys(event,group){if(!['ArrowRight','ArrowLeft','Home','End'].includ
 function cascadeFilters(changed){let rows=[...document.querySelectorAll('#rows tr')],selects=[...document.querySelectorAll('select[data-filter]')],prior=[];selects.forEach(s=>{let available=new Set(rows.filter(r=>prior.every(p=>!p.value||r.dataset[p.dataset.filter]===p.value)).map(r=>r.dataset[s.dataset.filter]));if(s.dataset.filter!=='result'){let failureFilter=['failureStage','failureCategory'].includes(s.dataset.filter);[...s.options].forEach(o=>o.disabled=!!o.value&&!available.has(o.value));if(s.value&&!available.has(s.value))s.value=failureFilter?'':([...s.options].find(o=>o.value&&!o.disabled)?.value||'');if(failureFilter)s.disabled=![...s.options].some(o=>o.value&&!o.disabled);}prior.push(s)});filterRows()}
 function outcomes(row,key){return new Set((row.dataset[key]||'').split(' ').filter(Boolean))}
 function compareMethods(){let a=document.getElementById('compare-a'),relation=document.getElementById('compare-relation'),track=document.getElementById('compare-track'),count=document.getElementById('compare-count');if(!a||!relation||!track||!count)return;let boxes=[...document.querySelectorAll('[data-compare-method]')];boxes.forEach(box=>{box.disabled=box.value===a.value;box.closest('label')?.classList.toggle('disabled',box.disabled);if(box.disabled)box.checked=false});let others=boxes.filter(box=>box.checked&&!box.disabled).map(box=>box.value),selected=[a.value,...others],shown=0;document.querySelectorAll('#compare-rows tr').forEach(row=>{let pass=outcomes(row,'pass'),fail=outcomes(row,'fail'),match=others.length>0&&(!track.value||row.dataset.track===track.value);if(match)match={mixed:selected.some(x=>pass.has(x))&&selected.some(x=>fail.has(x)),a_pass_others_fail:pass.has(a.value)&&others.every(x=>fail.has(x)),a_fail_others_pass:fail.has(a.value)&&others.every(x=>pass.has(x)),all_pass:selected.every(x=>pass.has(x)),all_fail:selected.every(x=>fail.has(x)),exact_pass:selected.every(x=>pass.has(x))&&pass.size===selected.length}[relation.value];row.hidden=!match;if(match)shown++});count.textContent=others.length?tr(`找到 ${shown} 个任务`,`${shown} tasks found`):tr('请至少选择一个对比方法','Select at least one comparison method')}
+let callLogTrigger=null;
+function openCallLog(button){let dialog=document.getElementById(button.dataset.callLogOpen);if(!dialog)return;callLogTrigger=button;if(!dialog.dataset.bound){dialog.dataset.bound='1';dialog.addEventListener('close',()=>{let trigger=callLogTrigger;callLogTrigger=null;trigger?.focus()});dialog.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();if(typeof dialog.close==='function')dialog.close();else{dialog.removeAttribute('open');let trigger=callLogTrigger;callLogTrigger=null;trigger?.focus()}}});dialog.addEventListener('click',event=>{if(event.target===dialog){if(typeof dialog.close==='function')dialog.close();else closeCallLog({closest:()=>dialog})}})}if(typeof fill==='function')dialog.querySelectorAll('pre[data-file],pre[data-record]').forEach(pre=>fill(pre));if(typeof dialog.showModal==='function')dialog.showModal();else{dialog.setAttribute('open','');dialog.setAttribute('aria-modal','true')}dialog.querySelector('[data-call-log-close]')?.focus()}
+function closeCallLog(button){let dialog=button.closest('dialog');if(!dialog)return;if(typeof dialog.close==='function')dialog.close();else{dialog.removeAttribute('open');let trigger=callLogTrigger;callLogTrigger=null;trigger?.focus()}}
 function applyReportAnchor(anchor){if(!anchor)return;if(anchor.startsWith('track-')){chooseTab('dataset-hub','cases');let s=document.querySelector('select[data-filter="track"]');if(s){s.value=anchor.slice(6);document.querySelectorAll('select[data-filter]').forEach(x=>{if(x!==s)x.value=''});cascadeFilters(s)}}else if(['references','sources'].includes(anchor)){chooseTab('dataset-hub',anchor)}else{let target=document.getElementById(anchor);for(let p=target;p;p=p.parentElement){if(p.dataset?.panel)chooseTab(p.parentElement.id,p.dataset.panel);if(p.tagName==='DETAILS')p.open=true}}}
 window.addEventListener('DOMContentLoaded',()=>{document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light';document.querySelectorAll('[data-filter]').forEach(e=>e.addEventListener(e.tagName==='INPUT'?'input':'change',e.tagName==='INPUT'?filterRows:()=>cascadeFilters(e)));document.querySelectorAll('[data-compare-method],[data-compare-control]').forEach(e=>e.addEventListener('change',compareMethods));cascadeFilters();compareMethods();document.querySelectorAll('table[data-col]').forEach(paintSort);applyReportAnchor(location.hash.slice(1))});
 window.addEventListener('hashchange',()=>applyReportAnchor(location.hash.slice(1)));
+document.addEventListener('click',event=>{let open=event.target.closest('[data-call-log-open]');if(open){openCallLog(open);return}let close=event.target.closest('[data-call-log-close]');if(close)closeCallLog(close)});
 '''
 EXTRA='''
 .table-wrap{margin-top:16px}table{width:100%;border-collapse:collapse;min-width:760px}th,td{vertical-align:top;padding:12px 14px;border-bottom:1px solid var(--line);text-align:left}th{background:var(--panel2);font-size:12px}td:first-child,th:first-child{width:48px;white-space:nowrap}.ranking{min-width:1240px}.ranking td{white-space:nowrap}.ranking td:nth-child(2){white-space:nowrap;min-width:220px;max-width:none;overflow-wrap:normal;word-break:normal}.sort-button{border:0;background:none;color:inherit;font:inherit;font-weight:700;cursor:pointer;padding:0;text-align:left}.grid .card{grid-column:span 4}.card p{margin-bottom:0}.filters{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.filters select,.filters input{min-width:150px;padding:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px}.compare{display:grid;grid-template-columns:1fr 1fr;gap:20px}.compare>div{min-width:0}pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:620px;overflow:auto}.break{overflow-wrap:anywhere}.status{white-space:nowrap}.source-note{color:var(--muted);font-size:13px}details{padding:10px 0}.accounts-table{min-width:1300px}.accounts-table code{white-space:nowrap}.hero h1{font-size:clamp(30px,4vw,48px)}section[id]{scroll-margin-top:75px}.actions{display:flex;gap:16px;flex-wrap:wrap}nav{gap:16px}.tiny{font-size:12px} @media(max-width:700px){.grid .card{grid-column:span 12}.compare{grid-template-columns:1fr}.wrap{width:calc(100% - 28px)}.filters>*{width:100%}}
@@ -107,9 +111,122 @@ EXTRA+='''
 .method-comparison{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:24px;min-width:0;box-shadow:0 12px 32px rgba(25,45,70,.06)}.comparison-heading{display:flex;align-items:start;justify-content:space-between;gap:24px;margin-bottom:22px}.comparison-heading h3{margin:0 0 6px;font-size:22px}.comparison-heading p{color:var(--muted);margin:0;line-height:1.65}.comparison-count{white-space:nowrap;padding:8px 12px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}.comparison-controls{display:grid;grid-template-columns:minmax(170px,1fr) minmax(230px,1.4fr) minmax(170px,1fr);gap:14px}.comparison-controls label{display:grid;gap:6px;font-weight:700}.comparison-controls select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}.comparison-methods{border:0;padding:0;margin:20px 0 0}.comparison-methods legend{font-weight:750;margin-bottom:10px}.method-checks{display:flex;gap:8px;flex-wrap:wrap}.method-checks label{display:flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid var(--line);border-radius:999px;background:var(--bg);cursor:pointer}.method-checks label.disabled{opacity:.45;cursor:not-allowed}.method-checks input{accent-color:var(--accent)}.comparison-result{margin-top:20px}.comparison-table{min-width:720px;table-layout:fixed}.comparison-table th:nth-child(2),.comparison-table td:nth-child(2){width:34%}.comparison-table th:nth-child(3),.comparison-table td:nth-child(3),.comparison-table th:nth-child(4),.comparison-table td:nth-child(4){width:33%}.task-cell a{font-weight:750}.task-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:7px}.track-badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--panel2);color:var(--muted);font-size:12px;white-space:nowrap}.outcome-list{display:flex;gap:6px;flex-wrap:wrap}.outcome-pill{display:inline-block;padding:5px 8px;border-radius:8px;font-size:13px;text-decoration:none}.outcome-pill.pass{background:var(--success-bg);color:var(--good)}.outcome-pill.fail{background:var(--failure-bg);color:var(--bad)}.large-evidence-output{display:block;width:100%;min-height:520px;max-height:70vh;resize:vertical;padding:16px;border:0;border-radius:9px;background:#071722;color:#e6edf3;font:13px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre;overflow:auto}.deferred-evidence{cursor:pointer;min-height:110px;display:flex;align-items:center;color:#c9d7e3}.deferred-evidence:focus-visible{outline:3px solid #428bff;outline-offset:3px}@media(max-width:760px){.method-comparison{padding:18px}.comparison-heading{display:block}.comparison-count{display:inline-block;margin-top:12px}.comparison-controls{grid-template-columns:1fr}.large-evidence-output{min-height:360px}.comparison-table{min-width:660px}}
 '''
 
+EXTRA+='''
+.call-log-button,.call-log-close{border:0;border-radius:9px;background:var(--accent);color:#fff;font:inherit;font-weight:750;padding:10px 15px;cursor:pointer}.call-log-button:focus-visible,.call-log-close:focus-visible{outline:3px solid #428bff;outline-offset:3px}.call-log-dialog{width:min(1040px,calc(100vw - 32px));max-height:calc(100vh - 32px);padding:0;border:1px solid var(--line);border-radius:18px;background:var(--bg);color:var(--ink);box-shadow:0 24px 80px rgba(0,0,0,.32)}.call-log-dialog::backdrop{background:rgba(5,18,30,.68)}.call-log-shell{display:flex;flex-direction:column;max-height:calc(100vh - 34px)}.call-log-head{display:flex;justify-content:space-between;align-items:start;gap:20px;padding:20px 24px;border-bottom:1px solid var(--line);background:var(--panel)}.call-log-head h2{margin:0 0 4px;font-size:24px}.call-log-head p{margin:0;color:var(--muted)}.call-log-body{padding:22px 24px;overflow:auto}.call-log-priority{display:grid;grid-template-columns:1fr 1fr;gap:16px}.call-log-card{min-width:0;border:1px solid var(--line);border-radius:13px;background:var(--panel);padding:16px}.call-log-card h3{margin:0 0 10px;font-size:17px}.call-log-card pre{margin:0;max-height:340px}.call-log-error{border-left:4px solid var(--bad)}.call-log-empty{padding:14px;border-radius:9px;background:var(--panel2);line-height:1.65}.call-log-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0}.call-log-fact{padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}.call-log-fact b,.call-log-fact span{display:block}.call-log-fact b{font-size:12px;color:var(--muted);margin-bottom:4px}.call-log-section{margin-top:18px}.call-log-section h3{margin:0 0 9px}.call-log-section details{border-top:1px solid var(--line)}.call-log-section summary{cursor:pointer;color:var(--accent);font-weight:700}.call-log-availability{margin:0 0 18px}.call-log-private{color:var(--muted);font-size:13px}@media(max-width:700px){.call-log-priority,.call-log-facts{grid-template-columns:1fr}.call-log-head,.call-log-body{padding:16px}.call-log-close{white-space:nowrap}}
+'''
+
 def esc(s):return html.escape(str(s if s is not None else ''))
 def readable_output(s):
  return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]',lambda m:'\\x'+format(ord(m[0]),'02x'),s)
+
+_PRIVATE_LOG_KEYS={'raw_response_path','private_artifacts','private_artifact','private_path'}
+def public_provider_metadata(value):
+ """Remove pointers to private envelopes while keeping public adapter evidence."""
+ if isinstance(value,dict):
+  return {key:public_provider_metadata(item) for key,item in value.items()
+          if key not in _PRIVATE_LOG_KEYS and not key.startswith('private_')}
+ if isinstance(value,list):return [public_provider_metadata(item) for item in value]
+ return value
+
+def call_log_bindings(record):
+ metadata=record.get('provider_metadata') or {}
+ candidates=[]
+ retry=metadata.get('retry') or {}
+ if isinstance(retry,dict):
+  for index,attempt in enumerate(retry.get('attempts',[]),1):
+   if isinstance(attempt,dict):candidates.append((f'物理调用 {attempt.get("physical_attempt",index)}',attempt.get('call_log')))
+ candidates.extend([('最终物理调用',record.get('call_log')),('最终物理调用',metadata.get('call_log')),
+                    ('最终物理调用',{'path':record.get('call_log_path'),'sha256':record.get('call_log_sha256')}),
+                    ('最终物理调用',{'path':metadata.get('call_log_path'),'sha256':metadata.get('call_log_sha256')})])
+ result=[];seen=set()
+ for label,binding in candidates:
+  if not isinstance(binding,dict):continue
+  path=binding.get('path')
+  if not path or str(path).startswith('private_artifacts/') or str(path) in seen:continue
+  seen.add(str(path));result.append((label,dict(binding)))
+ return result
+
+def call_log_path(record):
+ bindings=call_log_bindings(record)
+ return bindings[-1][1]['path'] if bindings else None
+
+def empty_output_reason(record,case,output):
+ if output:return ''
+ metadata=record.get('provider_metadata') or {}
+ delivered=metadata.get('file_evaluation',{}).get('files',[])
+ if case.get('task_kind')=='file' and delivered:
+  return f'本题的最终交付物是 {len(delivered)} 个原始文件；文本输出为空不表示没有交付，文件字节在详情页下方单独列出。'
+ if record.get('error_message'):
+  return f'最终输出确实为空。适配器记录的原因：{record["error_message"]}'
+ if not record.get('ok'):
+  error_type=record.get('error_type') or '未记录错误类型'
+  return f'最终输出确实为空。请求未成功，错误类型为 {error_type}；历史记录没有保存更多错误文字。'
+ if metadata.get('empty_content'):
+  return '最终输出确实为空。上游请求有响应，但适配器没有得到可提取的正文。'
+ return '最终输出确实为空；本次历史记录没有保存更具体的原因，不能据此推断是服务端、网络还是适配器问题。'
+
+def call_log_dialog(out,record,case,output):
+ """Render one honest drill-down view from a native log or legacy result fields."""
+ metadata=record.get('provider_metadata') or {}
+ public_metadata=public_provider_metadata(metadata)
+ logs=[]
+ for label,binding in call_log_bindings(record):
+  path=contained_path(out,binding['path'])
+  if not path.is_file():continue
+  log_bytes=path.read_bytes();observed=hashlib.sha256(log_bytes).hexdigest()
+  if binding.get('sha256') and binding['sha256']!=observed:raise ValueError(f'Call log hash mismatch: {record["attempt_id"]}')
+  if binding.get('bytes') is not None and binding['bytes']!=len(log_bytes):raise ValueError(f'Call log size mismatch: {record["attempt_id"]}')
+  text=readable_output(log_bytes.decode('utf-8',errors='replace'))
+  try:payload=json.loads(log_bytes)
+  except (UnicodeDecodeError,json.JSONDecodeError):payload={}
+  logs.append({'label':label,'path':binding['path'],'text':text,'sha256':observed,
+               'bound':bool(binding.get('sha256')),'payload':payload})
+ if logs:
+  native=(f'{len(logs)} 个物理调用日志已保存并通过 SHA-256 校验。' if all(item['bound'] for item in logs) else
+          '事件日志文件可以读取，但至少一条记录未声明其 SHA-256；页面会展示内容，但不能证明全部日志均与运行记录绑定。')
+ elif call_log_bindings(record):
+  native='记录声明了事件日志，但公开证据中没有可读取文件；下面仅展示可核验的结果字段。'
+ else:
+  native='这次历史运行没有保存统一事件日志。下面由最终输出、结果字段和公开适配器元数据合成，不能还原未记录的逐行过程。'
+ final_log=logs[-1]['payload'] if logs else {}
+ log_error=final_log.get('error') if isinstance(final_log.get('error'),dict) else {}
+ log_process=final_log.get('process') if isinstance(final_log.get('process'),dict) else {}
+ error_type=record.get('error_type') or log_error.get('type') or '—（未记录）'
+ error_message=(record.get('error_message') or log_error.get('message') or log_process.get('stderr') or
+                ('无报错；请求记录为成功。' if record.get('ok') else '请求失败，但历史记录未保存错误文字。'))
+ error_class=' call-log-error' if record.get('error_type') or record.get('error_message') or not record.get('ok') else ''
+ if output:
+  output_html=f'<pre data-kind="call-output">{esc(readable_output(output))}</pre>'
+ else:
+  output_html=f'<div class="call-log-empty">{esc(empty_output_reason(record,case,output))}</div>'
+ log_request=final_log.get('request') if isinstance(final_log.get('request'),dict) else {}
+ route=(log_request.get('route') or metadata.get('route') or metadata.get('extractor') or
+        metadata.get('output_contract') or '—（未记录）')
+ status=('成功' if record.get('ok') else '失败')+' · HTTP '+(str(record.get('status_code')) if record.get('status_code') is not None else '未提供')
+ retry=metadata.get('retry')
+ retry_count=(len(retry.get('attempts',[])) if isinstance(retry,dict) else
+              record.get('physical_attempt_count') or 1)
+ log_section=('' if not logs else '<div class="call-log-section"><h3>原生事件日志</h3>'+''.join(
+              f'<details open><summary>{esc(item["label"])}</summary><p class="source-note">SHA-256：<code class="break">{esc(item["sha256"])}</code></p><pre data-kind="call-log">{esc(item["text"])}</pre></details>'
+              for item in logs)+'</div>')
+ retry_section=('<p>本次没有登记重试；只保留一个物理调用。</p>' if not retry else
+                f'<pre data-kind="call-retry">{esc(json.dumps(public_provider_metadata(retry),ensure_ascii=False,indent=2))}</pre>')
+ private_note=('原始供应商响应信封仅在内部证据中保留，不进入公开弹窗或发布包。'
+               if metadata.get('raw_response_path') or metadata.get('private_artifacts') else
+               '没有登记仅限内部保存的原始响应信封。')
+ facts=[('请求路线',route),('请求状态',status),('总耗时',ms(record.get('elapsed_ms'))),
+        ('开始时间',record.get('started_at') or '—（未记录）'),('完成时间',record.get('completed_at') or '—（未记录）'),
+        ('物理调用',str(retry_count))]
+ fact_html=''.join(f'<div class="call-log-fact"><b>{esc(label)}</b><span>{esc(value)}</span></div>' for label,value in facts)
+ return (f'<dialog class="call-log-dialog" id="call-log-dialog" aria-labelledby="call-log-title"><div class="call-log-shell">'
+         f'<header class="call-log-head"><div><h2 id="call-log-title">调用记录</h2><p><code>{esc(record.get("run_id") or execution_id(record))}</code></p></div><button type="button" class="call-log-close" data-call-log-close data-i18n-attrs aria-label="关闭调用记录">关闭</button></header>'
+         f'<div class="call-log-body"><p class="callout call-log-availability"><b>日志可用性：</b>{esc(native)}</p>'
+         f'<div class="call-log-priority"><article class="call-log-card"><h3>最后输出</h3>{output_html}</article>'
+         f'<article class="call-log-card{error_class}"><h3>最后报错</h3><p><b>{esc(error_type)}</b></p><p>{esc(error_message)}</p></article></div>'
+         f'<div class="call-log-facts">{fact_html}</div>{log_section}'
+         f'<div class="call-log-section"><h3>重试与物理调用</h3>{retry_section}</div>'
+         f'<div class="call-log-section"><details><summary>查看公开适配器字段</summary><pre data-kind="call-metadata">{esc(json.dumps(public_metadata,ensure_ascii=False,indent=2))}</pre></details><p class="call-log-private">{esc(private_note)}</p></div>'
+         '</div></div></dialog>')
 def pct(n):return '—' if n is None else f'{n*100:.1f}%'
 def ms(n):return '—' if n is None else f'{n:,.0f} ms'
 def link(url,label):return f'<a href="{esc(safe_href(url))}">{esc(label)}</a>'
@@ -847,7 +964,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   summary+=f'<p class="source-note">{esc(route_label)}</p>'
   summary+=('<p class="actions"><a href="#evidence-reference">查看判定使用的标准答案</a>'
             '<a href="#evidence-output">查看本次完整实际返回</a>'
-            '<a href="#decision">查看逐项判定</a></p>')
+            '<a href="#decision">查看逐项判定</a>'
+            '<button type="button" class="call-log-button" data-call-log-open="call-log-dialog" aria-haspopup="dialog">打开完整调用记录</button></p>')
   if r.get('diagnosis') and not passed:
    d=r['diagnosis'];s=d.get('independent_source_check') or {}
    quote_issue=_quote_field_issue(m)
@@ -891,7 +1009,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
                '这些字符在保存前已丢失，不能从当前 Markdown 还原。</p>')
   output_note=(f'{len(output):,} 字符 · '+link('../'+r['artifact_path'],'下载原始输出'))
   if readable_output(output)!=output:output_note+=' · 控制字节在页面中显示为 \\xNN'
-  actual_body=corruption+f'<pre data-kind="output">{esc(readable_output(output))}</pre>'
+  actual_body=(corruption+f'<pre data-kind="output">{esc(readable_output(output))}</pre>' if output else
+               f'<div class="call-log-empty">{esc(empty_output_reason(r,c,output))}</div>')
   if c.get('task_kind')=='file':
    reference_heading='目标文件'
    expected_hash=c.get('source_verification',{}).get('file_sha256') or '未登记'
@@ -946,9 +1065,10 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   if title_details:body+=section('标题文字质量',title_details)
   runtime=('<details class="technical-details"><summary>查看完整运行、哈希与评分字段</summary>'
            +metric_legend(detail_metrics)+table(['项目','值'],rows,metrics=[])+
-           f'<details><summary>接口返回的附加字段</summary><pre data-kind="metadata">{esc(json.dumps(r.get("provider_metadata",{}),ensure_ascii=False,indent=2))}</pre></details></details>'
+           f'<details><summary>接口返回的公开附加字段</summary><pre data-kind="metadata">{esc(json.dumps(public_provider_metadata(r.get("provider_metadata",{})),ensure_ascii=False,indent=2))}</pre></details></details>'
            f'<p class="actions">{link(c["url"],"打开源页 ↗")}{link("../datasets/"+c["id"]+".html","查看该任务的全部方法")}</p>')
   body+=section('运行与评分信息',runtime,'run-info')
+  body+=call_log_dialog(out,r,c,output)
   if r.get('provider_metadata',{}).get('rendered_html_path'):
    body+=section('浏览器 HTML 证据','<p>'+link('../'+r['provider_metadata']['rendered_html_path'],'下载转换前的完整 DOM HTML')+'</p>')
   if r.get('provider_metadata',{}).get('raw_stdout_path'):

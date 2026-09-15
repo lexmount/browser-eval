@@ -4,17 +4,22 @@ from html import escape
 from .report_components import tabs
 
 CHECKED_AT = '2026-09-11'
+ROUTE_CHECKED_AT = '2026-09-15'
 SOURCES = {
  'cow': ('CowAgent · WebFetch 源码', 'https://github.com/zhayujie/CowAgent/blob/ed5bb344cfe42cee443c8266ba47ee666d8d7471/agent/tools/web_fetch/web_fetch.py'),
  'lex': ('Lexmount · Extract 契约', 'https://browser.lexmount.com/docs/webfetch/reference/all-in-one-extract'),
  'lex-overview': ('Lexmount · WebFetch 概览', 'https://browser.lexmount.com/en/docs/webfetch'),
  'fire': ('Firecrawl · Scrape 格式', 'https://docs.firecrawl.dev/features/scrape'),
+ 'fire-api': ('Firecrawl · Scrape API 与 video 格式', 'https://docs.firecrawl.dev/api-reference/endpoint/scrape'),
  'fire-doc': ('Firecrawl · 文档解析', 'https://docs.firecrawl.dev/features/document-parsing'),
  'tav': ('Tavily · Extract 契约', 'https://docs.tavily.com/documentation/api-reference/endpoint/extract'),
  'tav-depth': ('Tavily · 提取深度', 'https://docs.tavily.com/documentation/best-practices/best-practices-extract'),
  'tav-research': ('Tavily · Research 文件上传', 'https://www.tavily.com/blog/what-tavily-shipped-in-may-26'),
  'exa': ('Exa · Contents 参数', 'https://exa.ai/docs/reference/contents-api-guide-for-coding-agents'),
  'cf': ('Cloudflare · Markdown 端点', 'https://developers.cloudflare.com/browser-run/quick-actions/markdown-endpoint/'),
+ 'cf-scrape': ('Cloudflare · Scrape 端点', 'https://developers.cloudflare.com/browser-run/quick-actions/scrape-endpoint/'),
+ 'cf-files': ('Cloudflare · 文档转 Markdown', 'https://developers.cloudflare.com/workers-ai/features/markdown-conversion/usage/rest-api/'),
+ 'cf-formats': ('Cloudflare · 支持的文档格式', 'https://developers.cloudflare.com/workers-ai/features/markdown-conversion/supported-formats/'),
  'claw': ('OpenClaw · Web Fetch 文档', 'https://github.com/openclaw/openclaw/blob/12c4bdf7482f24c85b011e9d858fdec3c245101c/docs/tools/web-fetch.md'),
  'claw-code': ('OpenClaw · 抽取实现', 'https://github.com/openclaw/openclaw/blob/12c4bdf7482f24c85b011e9d858fdec3c245101c/src/agents/tools/web-fetch.ts'),
  'claw-html': ('OpenClaw · HTML 转换器', 'https://github.com/openclaw/openclaw/blob/12c4bdf7482f24c85b011e9d858fdec3c245101c/src/agents/tools/web-fetch-utils.ts'),
@@ -57,7 +62,7 @@ CAPABILITIES = {
   'tested': '国际区与中国区共用公开契约，但部署与实测分开；这里不推断两区内部引擎完全相同。',
  },
  'firecrawl': {
-  'scope': 'POST /v2/scrape', 'sources': ['fire', 'fire-doc'],
+  'scope': 'POST /v2/scrape', 'sources': ['fire', 'fire-api', 'fire-doc'],
   'web': c('支持', 'Markdown / HTML'), 'document': c('支持', 'PDF（含 OCR）/ Office'),
   'image': c('仅链接', 'images 返回图片 URL'), 'av': c('需配置', 'audio / video 下载地址'),
   'file': c('需配置', 'rawBase64 原始响应'), 'js': c('支持', '渲染与 Actions'),
@@ -65,7 +70,7 @@ CAPABILITIES = {
   'structure': '可选 JSON schema、产品字段、截图等格式；不能都视为本轮已测。',
   'access': '可配置页面动作；站点授权、反爬与套餐限制仍会影响访问。',
   'notes': 'rawBase64 必须单独请求，解码后是目标 URL 的原始 HTTP 响应体，不包含页面引用的所有资源。audio/video 针对支持的视频站点，返回有时效的下载 URL，不保证任意站点或原编码字节，也不是字幕转写/画面理解。文档解析覆盖 PDF、Word、Excel、PowerPoint 等。',
-  'tested': '正文与资源题请求 markdown、links、images；原文件题只请求 rawBase64 并验收目标 URL 的解码字节。动态顶层选择器使用 Actions wait，随后执行预声明稳定延迟；选择器数量与 iframe 子文档条件仍标为未完整执行。未测试 audio、video、JSON、截图或 Parse。',
+  'tested': '正文与资源题请求 markdown、links、images；页面视频资源题另请求 video；原文件题只请求 rawBase64 并验收目标 URL 的解码字节。动态顶层选择器使用 Actions wait，随后执行预声明稳定延迟；选择器数量与 iframe 子文档条件仍标为未完整执行。未测试 audio、JSON、截图或 Parse。',
  },
  'tavily': {
   'scope': 'POST /extract', 'sources': ['tav', 'tav-depth', 'tav-research'],
@@ -90,15 +95,15 @@ CAPABILITIES = {
   'tested': 'text.verbosity=full、maxAgeHours=0；资源题取 links/imageLinks，具名列表题取 richLinks 并只接收非空 anchor—URL 对。本轮没有调用摘要或高亮生成。',
  },
  'cloudflare-markdown': {
-  'scope': 'Browser Run · /markdown', 'sources': ['cf'],
-  'web': c('支持', '网页 → Markdown'), 'document': c('未声明', '现有 PDF / Office 解析'),
-  'image': c('有限支持', 'Markdown 引用；无独立列表'), 'av': c('有限支持', '页面超链接；非媒体接口'),
-  'file': c('无此能力', '本端点只返回 Markdown'), 'js': c('支持', '浏览器 + 等待参数'),
-  'input': 'URL 或 HTML 字符串；/content、/links、/screenshot 为其他端点。',
-  'structure': '/markdown 返回字符串；AI /json 是独立端点。',
-  'access': '支持 cookies、HTTP authenticate 等参数；浏览器流量仍可能被识别和拦截。',
-  'notes': '页面中的链接可能被保留，不是媒体专用抽取保证。/pdf 是把网页打印成 PDF，不是读取已有 PDF；Workers AI 的 AI.toMarkdown 文档转换也不是本轮 /markdown。',
-  'tested': '只调用 /markdown；普通网页使用 networkidle2，动态任务使用预声明 selector 和有界稳定等待；未提供源站登录 Cookie，未调用其他端点。',
+  'scope': 'Browser Run /markdown、/scrape；直接文档 Workers AI /ai/tomarkdown', 'sources': ['cf', 'cf-scrape', 'cf-files', 'cf-formats'],
+  'web': c('支持', '网页 → Markdown'), 'document': c('需配置', '上传直接 PDF / DOCX 后转换为 Markdown'),
+  'image': c('仅链接', '/scrape 读取 DOM 图片属性'), 'av': c('仅链接', '/scrape 读取 DOM 媒体属性'),
+  'file': c('无此能力', '文档上传后返回文字，不交付原文件'), 'js': c('支持', 'Browser Run 浏览器 + 等待参数'),
+  'input': '网页输入为 URL；直接文档由客户端下载原始字节后上传 Workers AI。',
+  'structure': '/markdown 返回网页文本，/scrape 返回元素属性，/ai/tomarkdown 返回文档文字。',
+  'access': 'Browser Rendering Edit 与 Workers AI 权限分别控制两类端点；浏览器访问仍可能被识别和拦截。',
+  'notes': '/pdf 打印网页，不是读取已有 PDF；/links 只列页面链接，不能代替图片和媒体 DOM 属性。直接文档下载与转换共享同一次耗时；客户端下载不是 Cloudflare 独立成绩。/scrape 交付资源地址，不保证取得媒体字节或理解画面。',
+  'tested': '网页正文与动态页使用 /markdown；直接 PDF / DOCX 使用 /ai/tomarkdown；页面图片和视频资源使用 /scrape。未提供源站登录 Cookie，不用 Search/Crawl、截图、浏览器控制或失败后接口回退。',
  },
  'openclaw-built-in': {
   'scope': 'web_fetch · 内置 HTTP 路径', 'sources': ['claw', 'claw-code', 'claw-html', 'claw-reader'],
@@ -230,7 +235,7 @@ def render_capabilities(out, names, *, table, cell, link):
         details.append(f'<details class="interface-panel" id="capability-{escape(name)}"><summary>{escape(labels.get(name,name))} · 范围与官方依据</summary>'+
                        f'<p><strong>对应接口：</strong>{escape(row["scope"])}</p><p>{escape(row["notes"])}</p>'+
                        f'<p><strong>本轮配置：</strong>{escape(row["tested"])}</p><p class="source-note">{sources}</p></details>')
-    legend = ('<p>核对日期：'+CHECKED_AT+'。托管服务按官方文档；内置工具按固定源码。此处说明可选能力，<strong>不是实测成绩</strong>；没有启用的选项不补算进榜单。</p>'
+    legend = ('<p>原有资料核对日期：'+CHECKED_AT+'；本版新增 Cloudflare 与 Firecrawl 接口核对日期：'+ROUTE_CHECKED_AT+'。托管服务按官方文档；内置工具按固定源码。此处说明可选能力，<strong>不是实测成绩</strong>；没有启用的选项不补算进榜单。</p>'
               '<dl class="capability-legend"><div><dt>支持 / 需配置</dt><dd>有对应实现或契约；需配置表示要启用额外模式。</dd></div>'
               '<div><dt>仅链接 / 有限支持</dt><dd>仅返回地址，或只覆盖指定输入、正文区域。</dd></div>'
               '<div><dt>无此能力 / 未声明</dt><dd>前者有明确实现边界；后者是官方资料不足，不能当作不支持。</dd></div></dl>')

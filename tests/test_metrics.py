@@ -1,9 +1,20 @@
 import unittest
 
-from harness.web_fetch.metrics import evaluate_content, evaluate_resources, normalize_for_match, summarize, word_overlap
+from harness.web_fetch.metrics import (
+    evaluate_content, evaluate_resources, normalize_for_match,
+    normalize_resource_url, summarize, word_overlap,
+)
 
 
 class MetricsTest(unittest.TestCase):
+    def test_only_pure_markdown_table_rules_are_layout(self):
+        divider = 'December 2007\n| :---- | | ---: | | --- |\n| Sun | Mon | Tue |'
+        self.assertEqual(normalize_for_match(divider), 'december 2007 sun mon tue')
+        # A mixed row is data, and a non-table prose separator is retained.
+        self.assertEqual(normalize_for_match('Alpha\n| --- | BAD | --- |\nBeta'),
+                         'alpha --- bad --- beta')
+        self.assertEqual(normalize_for_match('Alpha\n---\nBeta'), 'alpha --- beta')
+
     def test_adjacent_markdown_links_keep_distinct_label_boundaries(self):
         text='[change](https://example.com/a(b))[deep-thoughts](https://example.com)[thinking](u)[world](v)'
         reference='change deep-thoughts thinking world'
@@ -302,6 +313,23 @@ class MetricsTest(unittest.TestCase):
             output_contract=contract,
         )
         self.assertTrue(thumb["resource_pass"])
+
+    def test_wikimedia_host_equivalence_is_only_for_the_same_thumbnail_asset(self) -> None:
+        base = 'https://en.wikipedia.org/wiki/Apollo_11'
+        upload_thumb = ('https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/'
+                        'Moon.jpg/330px-Moon.jpg?utm_source=en.wikipedia.org')
+        migrated_thumb = ('https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/'
+                          'Moon.jpg/960px-Moon.jpg?utm_campaign=parser')
+        wrong_asset = ('https://thumb.wikimedia.org/wikipedia/commons/thumb/4/42/'
+                       'Moon.jpg/960px-Moon.jpg?utm_campaign=parser')
+        invalid_original = 'https://thumb.wikimedia.org/wikipedia/commons/4/41/Moon.jpg'
+        upload_original = 'https://upload.wikimedia.org/wikipedia/commons/4/41/Moon.jpg'
+        self.assertEqual(normalize_resource_url(upload_thumb, base),
+                         normalize_resource_url(migrated_thumb, base))
+        self.assertNotEqual(normalize_resource_url(upload_thumb, base),
+                            normalize_resource_url(wrong_asset, base))
+        self.assertNotEqual(normalize_resource_url(invalid_original, base),
+                            normalize_resource_url(upload_original, base))
 
     def test_image_scope_accepts_bare_declared_extensionless_target(self) -> None:
         target = "https://images.unsplash.com/photo-1493673272479-a20888bcee10"

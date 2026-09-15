@@ -298,6 +298,48 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertIn('同一份标准答案',dataset)
             self.assertNotIn('字符六元组数',dataset)
 
+    def test_attempt_call_record_explains_empty_output_and_hides_private_envelope(self):
+        c=case('empty','body','document');r=record(c,passed=False,ok=False)
+        r.update(error_type='empty_content',error_message='Cloudflare returned no extractable markdown',
+                 completed_at='2026-09-03T00:00:01Z')
+        r['provider_metadata']={'route':'browser_rendering_markdown','upstream_status':200,
+                                'empty_content':True,'raw_response_path':'private_artifacts/secret.bin',
+                                'private_artifacts':[{'path':'private_artifacts/secret.bin'}]}
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True)
+            artifact.write_text('')
+            with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
+                generate(out,{'cases':[c]},[r],[])
+            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
+            english=(out/'en/attempts'/f"{r['attempt_id']}.html").read_text()
+            for phrase in ['data-call-log-open="call-log-dialog"','<dialog class="call-log-dialog"',
+                           '最后输出','最后报错','Cloudflare returned no extractable markdown',
+                           '这次历史运行没有保存统一事件日志','请求路线','browser_rendering_markdown',
+                           '原始供应商响应信封仅在内部证据中保留']:
+                self.assertIn(phrase,detail)
+            self.assertNotIn('private_artifacts/secret.bin',detail)
+            self.assertNotIn('<pre data-kind="output"></pre>',detail)
+            for phrase in ['Open complete call record','Final output','Final error',
+                           'This historical run did not retain a unified event log',
+                           'Close call record']:
+                self.assertIn(phrase,english)
+
+    def test_attempt_call_record_uses_hash_bound_native_log_when_available(self):
+        c=case('logged','body','web');r=record(c)
+        log=b'event=request.start\nevent=response.complete\n'
+        r['call_log_path']='artifacts/fixture/logged/run-001.call.log'
+        r['call_log_sha256']=hashlib.sha256(log).hexdigest()
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True)
+            artifact.write_text('output')
+            log_path=out/r['call_log_path'];log_path.write_bytes(log)
+            with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
+                generate(out,{'cases':[c]},[r],[])
+            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
+            self.assertIn('1 个物理调用日志已保存并通过 SHA-256 校验',detail)
+            self.assertIn('<pre data-kind="call-log">event=request.start',detail)
+            self.assertIn(r['call_log_sha256'],detail)
+
     def test_minimal_document_scope_is_explicit_and_does_not_claim_long_document_coverage(self):
         c=case('minimal','body','document')
         c['ground_truth_main_content']='Dummy PDF file'

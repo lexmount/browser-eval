@@ -11,7 +11,10 @@ from .reference_lifecycle import require_verified_reference_checks
 from .reliability import assess_reliability
 from .storage import require_selection_history
 from .scoring import SCORING_SOURCE_SHA256
-from .artifacts import verify_record_private_artifacts
+from .artifacts import (
+    record_public_call_log_bindings, verify_record_private_artifacts,
+    verify_public_call_log, verify_record_public_call_logs,
+)
 
 
 def scoring_scope(records, cases):
@@ -55,6 +58,7 @@ def build_report(source: Path, output: Path) -> Path:
         speed_records=[json.loads(line) for line in (speed_root/'results.jsonl').read_text().splitlines()]
         for row in speed_records:
             verify_record_private_artifacts(speed_root, row)
+            verify_record_public_call_logs(speed_root, row)
             raw=contained_path(speed_root,row['artifact_path'])
             if hashlib.sha256(raw.read_bytes()).hexdigest()!=row['metrics']['content_sha256']:
                 raise ValueError('Speed cohort output integrity failure: '+row['attempt_id'])
@@ -132,6 +136,22 @@ def build_report(source: Path, output: Path) -> Path:
                 target_file = contained_path(staging, file['artifact_path'])
                 target_file.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(binary, target_file)
+            for binding in record_public_call_log_bindings(r):
+                log_source = verify_public_call_log(source, binding)
+                call_log = json.loads(log_source.read_text())
+                call_output = call_log['output']
+                call_output_source = contained_path(source, call_output['path'])
+                call_output_target = contained_path(staging, call_output['path'])
+                call_output_target.parent.mkdir(parents=True, exist_ok=True)
+                if call_output_target.exists():
+                    if hashlib.sha256(call_output_target.read_bytes()).hexdigest() != call_output['sha256']:
+                        raise ValueError('Public call-log output collision: ' + call_output['path'])
+                else:
+                    shutil.copy2(call_output_source, call_output_target)
+                log_target = contained_path(staging, binding['path'])
+                log_target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(log_source, log_target)
+                verify_public_call_log(staging, binding)
             text=raw.read_text(encoding='utf-8',errors='replace')
             from .title_quality import add_title_quality
             add_title_quality(r, cases[r['case_id']], source)

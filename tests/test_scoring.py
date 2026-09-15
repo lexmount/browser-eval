@@ -609,7 +609,7 @@ class ScoringPipelineTests(unittest.TestCase):
                                               dataset_path=self.path, cases=self.cases),
             lambda: rescore_content.rescore(self.run, case_ids={"web"}),
         ):
-            with self.assertRaisesRegex(ValueError, "integrity"):
+            with self.assertRaisesRegex(ValueError, "integrity|Public call log output binding changed"):
                 rescore()
             self.assertEqual(path.read_bytes(), before)
 

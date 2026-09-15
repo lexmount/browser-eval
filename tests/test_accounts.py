@@ -54,6 +54,14 @@ class AccountRegistryTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "stale-method"):
                 report_access_registry({"stale-method"})
 
+    def test_cloudflare_account_exposes_both_official_product_permissions(self) -> None:
+        account = next(item for item in ACCOUNT_REGISTRY
+                       if item['id'] == 'cloudflare-browser-rendering')
+        self.assertEqual(account['env_vars'], ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID'])
+        self.assertIn('Browser Rendering → Edit', account['steps'])
+        self.assertIn('Workers AI → Read', account['steps'])
+        self.assertIn('Workers AI Read 或 Edit', account['free_note'])
+
 
 if __name__ == "__main__":
     unittest.main()

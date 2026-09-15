@@ -118,7 +118,7 @@ def cached_group_resolutions(work: Path, groups: list[dict]) -> tuple[list[dict]
     cached: dict[tuple[str, ...], dict] = {}
     for path in sorted(work.glob('anomaly-*.json')):
         if any(token in path.name for token in ('-input.json', '.raw.json',
-                                                '.superseded.json')):
+                                                '.superseded')):
             continue
         try:
             payload = json.loads(path.read_text())
@@ -138,6 +138,69 @@ def cached_group_resolutions(work: Path, groups: list[dict]) -> tuple[list[dict]
             cached[scope] = remapped
     pending = [group for group in groups if tuple(group['attempt_ids']) not in cached]
     return list(cached.values()), pending
+
+
+def prior_group_resolutions(prior: dict, groups: list[dict], triggers: dict) -> list[dict]:
+    """Reuse an installed investigation only when scope and triggers are unchanged."""
+    attempts = {row.get('attempt_id'): row for row in prior.get('attempts', [])}
+    reused = []
+    for group in groups:
+        audits = []
+        for attempt_id in group['attempt_ids']:
+            audit = attempts.get(attempt_id, {}).get('anomaly_review')
+            if not isinstance(audit, dict) or audit.get('triggers') != triggers[attempt_id]:
+                audits = []
+                break
+            audits.append(audit)
+        if not audits:
+            continue
+        first = audits[0]
+        scope = first.get('same_class_scope', {})
+        if scope.get('attempt_ids') != group['attempt_ids']:
+            continue
+        comparable = {key: first.get(key) for key in (
+            'layers', 'same_class_scope', 'root_cause', 'corrective_action', 'status',
+            'evaluation_defect', 'correction_applied', 'rerun_scope')}
+        if any({key: audit.get(key) for key in comparable} != comparable
+               for audit in audits[1:]):
+            continue
+        rerun = first.get('rerun_scope', {})
+        reused.append({
+            'group_id': group['group_id'], 'attempt_ids': group['attempt_ids'],
+            'layers': copy.deepcopy(first['layers']),
+            'same_class_rationale': scope['rationale'],
+            'root_cause': first['root_cause'],
+            'corrective_action': first['corrective_action'],
+            'status': first['status'],
+            'evaluation_defect': first['evaluation_defect'],
+            'correction_applied': first['correction_applied'],
+            'rerun_required': rerun['required'],
+            'rerun_attempt_ids': rerun['attempt_ids'],
+            'rerun_reason': rerun['reason'],
+        })
+    return reused
+
+
+def load_matching_positional_output(output_path: Path, batch: list[dict]):
+    """Reuse a positional worker output only when it still covers this exact batch.
+
+    Pending batch numbers are presentation details: they can shift after an earlier
+    group is reused by exact attempt scope.  Preserve a stale numbered output for
+    audit, but never let it block or satisfy a different batch.
+    """
+    if not output_path.is_file():
+        return None
+    try:
+        return validate_group_batch(batch, json.loads(output_path.read_text()))
+    except (json.JSONDecodeError, OSError, ValueError):
+        candidate = output_path.with_name(output_path.stem + '.superseded.json')
+        suffix = 1
+        while candidate.exists():
+            candidate = output_path.with_name(
+                output_path.stem + f'.superseded-{suffix:03d}.json')
+            suffix += 1
+        output_path.replace(candidate)
+        return None
 
 
 def main():
@@ -164,7 +227,12 @@ def main():
     packet=anomaly_investigation_packet(evidence,dataset,records,prior['attempts'],triggers)
     attempts={row['attempt_id']:row for row in packet['attempts']}
     schema_path=work/'anomaly-schema.json';schema_path.write_text(json.dumps(GROUP_SCHEMA,indent=2)+'\n')
-    reused,pending=cached_group_resolutions(work,groups)
+    prior_reused=prior_group_resolutions(prior,groups,triggers)
+    disk_reused,_=cached_group_resolutions(work,groups)
+    reused_by_scope={tuple(row['attempt_ids']):row for row in prior_reused}
+    reused_by_scope.update({tuple(row['attempt_ids']):row for row in disk_reused})
+    reused=list(reused_by_scope.values())
+    pending=[group for group in groups if tuple(group['attempt_ids']) not in reused_by_scope]
     jobs=[]
     for index,batch in enumerate(chunks(pending,args.groups_per_batch),1):
         input_path=work/f'anomaly-pending-{index:03d}-input.json'
@@ -179,8 +247,9 @@ def main():
         return
     def run(job):
         input_path,output_path,batch=job
-        if output_path.is_file():
-            return validate_group_batch(batch,json.loads(output_path.read_text()))
+        cached_output=load_matching_positional_output(output_path,batch)
+        if cached_output is not None:
+            return cached_output
         if args.reviewer=='internal':
             raise SystemExit(f'Write post-verdict anomaly investigation output: {output_path}')
         raw=output_path.with_suffix('.raw.json')

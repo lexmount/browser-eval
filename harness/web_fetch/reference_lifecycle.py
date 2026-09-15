@@ -658,11 +658,36 @@ def valid_scoring_revision(source) -> bool:
     review_path = root/'result-review.json'
     review_hash = sha256(review_path.read_bytes()) if review_path.is_file() else None
     assembled_review_valid = False
+    blind_review_hashes = set()
+    review_candidates = ([review_path] if review_path.is_file() else [])
+    review_history = root/'review-history'
+    if review_history.is_dir() and not review_history.is_symlink():
+        review_candidates.extend(path for path in review_history.glob('*.json')
+                                 if path.is_file() and not path.is_symlink())
+    dataset = None
+    records = None
+    try:
+        dataset = json.loads((root/'dataset.json').read_text())
+        records = [json.loads(line) for line in (root/'results.jsonl').read_text().splitlines()]
+    except (OSError, ValueError, TypeError):
+        dataset = None
+        records = None
+    if dataset is not None and records is not None:
+        from .result_review import require_blind_result_review
+        for candidate in review_candidates:
+            try:
+                raw = candidate.read_bytes()
+                review = json.loads(raw)
+                require_blind_result_review(root, dataset, records, review)
+                blind_review_hashes.add(sha256(raw))
+            except (OSError, ValueError, TypeError, KeyError, StopIteration):
+                continue
     if review_path.is_file():
         try:
             from .result_review import require_result_review
-            dataset = json.loads((root/'dataset.json').read_text())
-            records = [json.loads(line) for line in (root/'results.jsonl').read_text().splitlines()]
+            if dataset is None or records is None:
+                dataset = json.loads((root/'dataset.json').read_text())
+                records = [json.loads(line) for line in (root/'results.jsonl').read_text().splitlines()]
             assembled_review_valid = require_result_review(root, dataset, records) is not None
         except (OSError, ValueError, TypeError, KeyError, StopIteration):
             assembled_review_valid = False
@@ -728,7 +753,8 @@ def valid_scoring_revision(source) -> bool:
                 and isinstance(review_binding, str)
                 and re.fullmatch(r'[0-9a-f]{64}', review_binding) is not None
                 and (index != len(rows) - 1
-                     or (assembled_review_valid and review_binding == review_hash)))
+                     or ((assembled_review_valid and review_binding == review_hash)
+                         or review_binding in blind_review_hashes)))
 
     if not isinstance(rows, list) or not rows:
         return False

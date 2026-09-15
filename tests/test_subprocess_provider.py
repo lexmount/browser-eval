@@ -175,6 +175,43 @@ class SubprocessProviderTest(unittest.TestCase):
         self.assertEqual(result.metadata["worker_logs"], ["diagnostic"])
         provider.__del__()
 
+    def test_stderr_is_request_scoped_and_not_a_global_tail(self) -> None:
+        script = (
+            "import json,sys; "
+            "[(lambda r: (print('stderr-for-'+r['url'],file=sys.stderr,flush=True),"
+            "print(json.dumps({'ok':True,'content':'ok'}),flush=True)))(json.loads(line)) "
+            "for line in sys.stdin]"
+        )
+        provider = SubprocessJsonlProvider(
+            "worker", {"type": "subprocess_jsonl", "command": [sys.executable, "-u", "-c", script]}
+        )
+        self.addCleanup(provider.__del__)
+        first = provider.fetch(EvalCase("one", "one", "https://one.example", "static", []), 2)
+        second = provider.fetch(EvalCase("two", "two", "https://two.example", "static", []), 2)
+        self.assertIn("one.example", first.metadata["stderr"])
+        self.assertNotIn("two.example", first.metadata["stderr"])
+        self.assertIn("two.example", second.metadata["stderr"])
+        self.assertNotIn("one.example", second.metadata["stderr"])
+        self.assertFalse(first.metadata["stderr_truncated"])
+        self.assertGreater(first.metadata["stderr_bytes"], 0)
+
+    def test_stderr_keeps_more_than_legacy_two_hundred_lines(self) -> None:
+        script = (
+            "import json,sys; "
+            "[( [print('line-%03d'%i,file=sys.stderr) for i in range(250)],"
+            "print(json.dumps({'ok':True,'content':'ok'}),flush=True),sys.stderr.flush()) "
+            "for line in sys.stdin]"
+        )
+        provider = SubprocessJsonlProvider(
+            "worker", {"type": "subprocess_jsonl", "max_bytes": 100_000,
+                       "command": [sys.executable, "-u", "-c", script]}
+        )
+        self.addCleanup(provider.__del__)
+        result = provider.fetch(EvalCase("x", "x", "https://example.com", "static", []), 2)
+        self.assertIn("line-000", result.metadata["stderr"])
+        self.assertIn("line-249", result.metadata["stderr"])
+        self.assertFalse(result.metadata["stderr_truncated"])
+
 
 if __name__ == "__main__":
     unittest.main()

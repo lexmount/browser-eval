@@ -53,7 +53,11 @@ class PageShape(HTMLParser):
   if self.assets and self.figures:attrs=self.assets.rewrite(self.page,self.figures[-1],tag,attrs)
   values=dict(attrs);self.tags[tag]+=1
   if values.get('id'):self.ids.add(values['id'])
-  self.data.extend((key,value) for key,value in attrs if key.startswith('data-'))
+  # The localization renderer intentionally removes this authoring-only
+  # marker from English output. Compare runtime data attributes, not the
+  # translation instruction itself.
+  self.data.extend((key,value) for key,value in attrs
+                   if key.startswith('data-') and key!='data-i18n-attrs')
   if values.get('href') and not values.get('hreflang'):self.links.append(values['href'])
   if tag=='img' and values.get('src'):self.images.append(values['src'])
   if tag in {'pre','code','script','style'}:self.skip+=1

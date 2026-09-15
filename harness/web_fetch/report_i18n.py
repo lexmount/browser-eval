@@ -37,6 +37,7 @@ NAV = [
 # Exact editorial translations take priority.  Dynamic evidence (task names,
 # references and provider output) is deliberately absent from this catalog.
 TEXT = {
+    "Quick Actions 默认最多缓存 5 秒；waitUntil=networkidle2；文档下载与转换同一预算": "Quick Actions caches for up to 5 seconds by default; waitUntil=networkidle2; document download and conversion share one time budget",
     "十方法全矩阵复核与评分根因修订": "Full-matrix review and root-cause scoring revision for ten methods",
     "当前十种方法主矩阵的 1,500 条结果；本轮发布要求机器通过与失败均逐条独立核验，独立同窗测速不在结果审查范围。": "This release requires individual independent review of machine passes and failures across all 1,500 results in the ten-method primary matrix. The separate same-window latency cohort is outside result review.",
     "全量审查除既有问题外，又确认了四类共因：正文分段按顺序贪心分配会制造假阴性；Exa 裸链接缺少名称归属，而 richLinks 才提供明确配对；序列化脚本状态会被误当可读正文；DOCX 任务只登记章节标题，无法发现表格、日历和尾注缺失。审查在修正前提出 56 条分歧，其中 2 条直接确认了后两类评分错误。": "Beyond previously identified issues, the full review confirmed four shared causes: greedy region-by-region body matching created false negatives; Exa bare links lacked name ownership while richLinks provided explicit pairs; serialized script state could be mistaken for readable body text; and the DOCX task registered only section headings, so missing tables, calendar content, and endnotes went undetected. Before correction, the review raised 56 disagreements, 2 of which directly confirmed the latter scoring errors.",
@@ -2276,6 +2277,34 @@ TEXT.update({
 # Remaining release and interface copy is report prose rather than measured
 # provider output, so the English top-level pages localize it.
 TEXT.update({
+    "支持 · Browser Run 浏览器 + 等待参数": "Supported · Browser Run browser + wait parameters",
+    "Browser Run Markdown / DOM 资源地址；Workers AI 文档 Markdown": "Browser Run Markdown / DOM resource URLs; Workers AI document Markdown",
+    "Markdown/资源地址；视频资源题另请求 video；文件题为 rawBase64 解码字节": "Markdown/resource URLs; video-resource tasks also request video; file tasks decode rawBase64 bytes",
+    "array · 资源题": "array · resource tasks",
+    "multipart · 直接文档": "multipart · direct documents",
+    "string · 直接文档": "string · direct documents",
+    "按任务修正官方接口并补齐逐次调用下钻": "Correct task-specific official routes and add per-call drilldown",
+    "十种方法仍执行同一组 150 题，保留 1,500 条权威结果。官方接口修正认证重跑 Cloudflare 23 条、Firecrawl 17 条，共 40 次调用；通过数由 1,024 增至 1,029。document-05 的公共格式归一化零调用增加 1 条通过；Cloudflare 两条视频链接任务又因适配器纠错增加 4 次认证调用。累计 44 次新物理调用，当前通过数 1,032/1,500；Moli 仍为 1.1.4。": "The ten methods still run the same 150 tasks, with 1,500 authoritative results. Official-route corrections certified 23 Cloudflare and 17 Firecrawl calls, 40 in total, raising passes from 1,024 to 1,029. A shared format-normalization correction added 1 document-05 pass without a provider call. Two Cloudflare video-link tasks then required 4 additional certified adapter-correction calls. The release retains 44 new physical calls and now passes 1,032/1,500 tasks; Moli remains at 1.1.4.",
+    "Cloudflare 任务接口": "Cloudflare task routes",
+    "原 /markdown 适合网页正文；部分直接 PDF/DOCX 出现接口成功但正文为空，页面图片和视频属性也不能稳定从 Markdown 取得。": "The original /markdown route suits webpage text. Some direct PDF/DOCX requests returned success with no body, while page image and video attributes could not be reliably recovered from Markdown.",
+    "网页正文与动态题保留 Browser Run /markdown；直接 PDF/DOCX 上传原文件给 Workers AI /ai/tomarkdown；页面图片和视频地址使用 Browser Run /scrape 的 DOM 属性。下载原文件与转换共用一次端到端预算。": "Webpage text and dynamic tasks retain Browser Run /markdown; direct PDF/DOCX files are submitted to Workers AI /ai/tomarkdown; page image and video URLs use DOM attributes from Browser Run /scrape. Source download and conversion share one end-to-end budget.",
+    "仅替换 Cloudflare 的 7 条直接文档、9 条页面图片和 7 条页面视频结果；/pdf 生成网页 PDF，/links 只列普通链接，/crawl 扩展到其他页面，均不替代这些题的交付物。": "Only seven direct-document, nine page-image, and seven page-video Cloudflare results were replaced. /pdf renders a webpage as PDF, /links lists ordinary links, and /crawl expands to other pages; none substitutes for these tasks' requested deliverable.",
+    "Cloudflare 视频地址适配": "Cloudflare video-URL adaptation",
+    "/scrape 已返回 Blender 的 .mp4.zip 地址和 Bilibili 的 BV 页面入口，旧适配器只接纳常见裸媒体扩展名，因而把目标地址丢掉；放宽后又把普通导航和工具 iframe 误列为视频。": "/scrape had returned Blender's .mp4.zip download URL and Bilibili BV detail links, but the old adapter discarded them by requiring a bare media extension. A broad relaxation then mislabeled ordinary navigation and utility iframes as video entries.",
+    "下载包保留 .mp4.zip 形态；视频详情入口仅请求 a[href]，再按视频页面路由筛选，不用标准答案挑选输出。两条受影响任务均按纠正后的接口认证重跑。": "The archive route keeps .mp4.zip downloads. Video-detail tasks request only a[href] and filter by video-page URL route, without selecting output against the reference answer. Both affected tasks were certified again under the corrected interface.",
+    "video-blender-release 与 video-bilibili-current 最终均通过；Bilibili 输出只含站内 BV 详情地址。中间调用和旧物理证据保留，但不择优进入权威矩阵。": "video-blender-release and video-bilibili-current both pass in the final matrix; the Bilibili output contains only on-site BV detail URLs. Intermediate and earlier physical calls remain retained but are not selected by score.",
+    "Firecrawl 任务接口": "Firecrawl task routes",
+    "动态题的固定 waitFor 延迟不能执行已声明的顶层选择器条件；页面视频题漏取 Scrape 的 video 字段。": "A fixed waitFor delay cannot enforce the declared top-level selector condition in dynamic tasks, and page-video tasks had omitted Scrape's video field.",
+    "动态题预选 Scrape Actions 的 selector wait；视频资源题同时请求原生 video 格式，并保留正文和资源地址。匹配数量与 iframe 子文档完成条件仍按接口边界披露。": "Dynamic tasks preselect a selector wait through Scrape Actions. Video-resource tasks also request the native video format and retain both text and resource URLs. Match counts and iframe-subdocument completion remain disclosed as endpoint limits.",
+    "仅替换 10 条动态与 7 条页面视频结果。video 下载入口不等于媒体原字节或画面理解；Search、Crawl 与 Agent 不用于给定 URL 的单页任务。": "Only ten dynamic and seven page-video results were replaced. A video download entry is neither original media bytes nor visual understanding; Search, Crawl, and Agent are not used for a single given-URL task.",
+    "成绩与同口径分母": "Results and common denominator",
+    "只改结果表会掩盖接口和评分入口变化，也会让读者把重新调用与离线复算混为一谈。": "Changing only the result table would hide route and scoring changes and blur new provider calls with offline rescoring.",
+    "40 个方法—题目组合换用官方接口；两条视频链接组合又因适配错误增加 4 次物理调用。44 次新调用完整保留，最终权威矩阵仍只含 40 条新调用结果与 1,460 条原调用结果。document-05 的 Markdown 表格分隔行在公共格式归一化中按排版处理，保存输出离线复评分。": "40 method–task pairs use corrected official routes; two video-link pairs added 4 physical adapter-correction calls. All 44 new calls are retained, while the authoritative matrix contains 40 final replacement results and 1,460 inherited results. document-05's Markdown table-divider row is treated as layout by shared normalization and its saved output was rescored offline.",
+    "通过数依次为 1,024/1,500、接口纠正后 1,029/1,500、零调用归一化后 1,030/1,500、两条视频适配纠错后 1,032/1,500。分母、150 题、十方法和 Moli 1.1.4 均不变。": "Passes moved from 1,024/1,500 to 1,029/1,500 after route corrections, 1,030/1,500 after zero-call normalization, and 1,032/1,500 after video-adapter corrections. The denominator, 150 tasks, ten methods, and Moli 1.1.4 are unchanged.",
+    "核验与资源别名": "Review and resource aliases",
+    "缩略图可由同一资产的另一 Wikimedia 域名交付，单看主机名会错判 image-04；反过来，无缩略图标识的同名地址也不能任意放行。": "A thumbnail can be delivered from another Wikimedia host for the same asset, so host-only comparison can misjudge image-04. Conversely, a lookalike URL without a thumbnail path cannot be accepted indiscriminately.",
+    "40 条新结果和 1,460 条旧结果均有逐条独立核验；最后两条 Cloudflare 输出重新盲审，严格复用身份不变的 1,498 条核验。image-04 按同资产缩略图域名迁移裁决，公共资源规则同时拒绝缺少缩略图标识的近似地址。": "All 40 new and 1,460 inherited results have per-attempt independent review. The final two Cloudflare outputs were blindly reviewed again, strictly reusing 1,498 unchanged review identities. image-04 was adjudicated as a same-asset thumbnail-host migration, while the shared resource rule rejects a lookalike URL without the thumbnail path.",
+    "当前 1,500/1,500 条权威结果有有效逐条判定核验，未决判定 0。image-04 修正未改变成绩；异常根因调查另有独立门禁。": "All 1,500/1,500 authoritative results have valid per-attempt verdict review, with 0 unresolved verdicts. The image-04 correction did not change scores; root-cause anomaly investigation has a separate gate.",
     "原发布扫描覆盖 Google、Artifact Hub、GitHub 与 OpenAI 等常见密钥形态，但未明确拦截 Authorization 值、本机用户目录、AWS 与 Slack 凭据。": "The previous release scan covered common Google, Artifact Hub, GitHub, and OpenAI key patterns, but did not explicitly block Authorization values, local user-directory paths, or AWS and Slack credentials.",
     "统一扫描每个重建后的公开文件，新增 Authorization、用户目录、AWS、Slack 和私钥形态检查；第三方 HTML 的既有 Google 形态脱敏仍保留双哈希。": "Every rebuilt public file is now scanned uniformly, adding checks for Authorization values, user-directory paths, AWS and Slack credentials, and private-key patterns. Existing redaction of Google-shaped secrets in third-party HTML retains both hashes.",
     "模式扫描不能证明不存在所有未知秘密；结构化凭据值仍禁止进入证据和报告，发布后还要逐文件字节复核。": "Pattern scanning cannot prove that every unknown secret is absent. Structured credential values remain prohibited in evidence and reports, and published files still require byte-level verification.",
@@ -2968,6 +2997,73 @@ TEXT.update({
 })
 
 
+TEXT.update({
+    "已知单页使用 Scrape；Search、Crawl、Agent 会先找页面或跟随其他链接，不符合本轮给定 URL 的单次任务。动态题由 Actions 等待可表达的顶层选择器；匹配数量和 iframe 子文档条件仍可能不完整。video 返回的下载地址不等于原文件或画面理解。每次响应后冷却 6.1 秒，冷却不计入单次耗时；完整 API 响应只保存在私有哈希绑定证据。": "Known single URLs use Scrape. Search, Crawl, and Agent discover pages or follow additional links instead of fulfilling this one-call URL task. Actions wait for top-level selectors where expressible; match counts and child-frame conditions may remain unenforced. A video download URL is not the original file or visual understanding. The 6.1-second cooldown after a response is excluded from per-call latency; full API responses remain in private hash-bound evidence.",
+    "正文/资源为 markdown、links、images；视频资源题另请求 video；原文件只使用 rawBase64": "Body and resource tasks request markdown, links, and images; video-resource tasks also request video; original-file tasks use rawBase64 alone",
+    "资源地址；video 是有时效的视频下载入口": "Resource URLs; video provides a time-limited video download URL",
+    "已知 URL 使用 advanced Extract；Search 根据查询找页面，Crawl 扩展到链接页面，Research 生成答案，均不替代目标 URL 的正文。资源题开启 include_images；没有原文件或视频下载字段。45 秒外层预算预留持久化后，客户端与服务端提取截止均为 40.5 秒。HTTP 200 但没有 raw_content 仍按适配器请求失败；原始响应只保存在私有哈希绑定证据。": "Known URLs use advanced Extract. Search finds pages from a query, Crawl follows linked pages, and Research generates answers; none replaces text from the target URL. Resource tasks enable include_images, but the API has no original-file or video-download output. The 45-second outer limit reserves time for persistence, leaving 40.5 seconds for client and server extraction. HTTP 200 without raw_content remains an adapter-level request failure; raw responses remain private hash-bound evidence.",
+    "已知 URL 使用 Contents 的 full 正文与 maxAgeHours=0 实时抓取；Search 先检索，Agent 和 summary 生成回答，不能代替指定 URL 的原文。资源题请求 links/imageLinks，具名列表只接纳 richLinks 的明确 anchor—URL 配对，不把正文标题与裸地址按位置猜配。livecrawlTimeout 为 15 秒，低于 40.5 秒客户端截止。逐网址状态失败或没有正文时，不能仅凭 HTTP 200 判成功；原始响应只保存在私有证据。": "Known URLs use Contents with full text and maxAgeHours=0 for live crawling. Search discovers pages, while Agent and summary generate answers instead of source text from the specified URL. Resource tasks request links/imageLinks; named lists accept only explicit richLinks anchor–URL pairs, never positionally paired headings and bare URLs. livecrawlTimeout is 15 seconds within the 40.5-second client limit. Per-URL status failures or missing text are not successes merely because HTTP returned 200; raw responses remain private.",
+    "目标页面；直接文件先下载公开 URL 的原始字节再上传": "Target page; for a direct file, first download bytes from its public URL before uploading",
+    "网页和资源页使用 networkidle2；动态题使用预声明就绪信号": "Web and resource pages use networkidle2; dynamic tasks use their predeclared readiness signal",
+    "/scrape 按预声明 CSS 选择器取图片或媒体属性": "/scrape reads image or media attributes through predeclared CSS selectors",
+    "/ai/tomarkdown 接受 PDF / DOCX 等受支持文件；输入字节由客户端取得": "/ai/tomarkdown accepts supported files such as PDF and DOCX; the client obtains input bytes",
+    "网页和资源页绑定 40,500 毫秒客户端内层截止": "Web and resource pages share the 40,500-ms inner client deadline",
+    "/markdown 网页正文；/scrape 元素属性；/ai/tomarkdown 文档 Markdown": "/markdown page text; /scrape element attributes; /ai/tomarkdown document Markdown",
+    "Browser Run 最终 URL、标题、源站状态等": "Browser Run final URL, title, origin status, and related values",
+    "上传文件的输入字节摘要；下载与转换均计入同一次耗时": "Hash of uploaded input bytes; both download and conversion count toward the same call latency",
+    "按任务预选官方接口：网页正文用 Browser Run /markdown；页面图片与视频地址用 /scrape 的 DOM 属性；直接 PDF / DOCX 使用 Workers AI 文件转换。/pdf 是生成网页 PDF，/links 只列普通链接，/crawl 会跟随其他页面，均不满足这里的文档文字或目标资源合同。直接文档先在客户端下载，下载与转换共享预算；该下载不是 Cloudflare 的独立成绩。浏览器等待计时器彼此独立，账户配额或转换权限错误单列。": "The official route is chosen before each task: Browser Run /markdown for page text, /scrape DOM attributes for page image and video URLs, and Workers AI file conversion for direct PDF/DOCX text. /pdf prints a webpage, /links lists ordinary links, and /crawl follows other pages; none fulfills the document-text or target-resource contract here. A direct file is downloaded by the client, then converted within the same deadline; that download is not an independent Cloudflare score. Browser wait timers are independent; quota and conversion-permission errors are separate failure categories.",
+    "Firecrawl · Scrape API 与 video 格式 ↗": "Firecrawl · Scrape API and video format ↗",
+    "Cloudflare · Scrape 端点 ↗": "Cloudflare · Scrape endpoint ↗",
+    "Cloudflare · 文档转 Markdown ↗": "Cloudflare · Document-to-Markdown conversion ↗",
+    "Cloudflare · 支持的文档格式 ↗": "Cloudflare · Supported document formats ↗",
+    "正文与资源题请求 markdown、links、images；页面视频资源题另请求 video；原文件题只请求 rawBase64 并验收目标 URL 的解码字节。动态顶层选择器使用 Actions wait，随后执行预声明稳定延迟；选择器数量与 iframe 子文档条件仍标为未完整执行。未测试 audio、JSON、截图或 Parse。": "Body and resource tasks request markdown, links, and images; page-video resources additionally request video. Original-file tasks use rawBase64 alone and validate the target URL's decoded bytes. Top-level dynamic selectors use Actions wait followed by the declared settle delay; selector counts and child-frame conditions remain incompletely enforced. Audio, JSON, screenshots, and Parse were not tested.",
+    "Browser Run /markdown、/scrape；直接文档 Workers AI /ai/tomarkdown": "Browser Run /markdown and /scrape; Workers AI /ai/tomarkdown for direct documents",
+    "上传直接 PDF / DOCX 后转换为 Markdown": "Upload direct PDF/DOCX files and convert to Markdown",
+    "/scrape 读取 DOM 图片属性": "/scrape reads DOM image attributes",
+    "/scrape 读取 DOM 媒体属性": "/scrape reads DOM media attributes",
+    "文档上传后返回文字，不交付原文件": "Document upload returns text, not the original file",
+    "Browser Run 浏览器 + 等待参数": "Browser Run browser with wait settings",
+    "网页输入为 URL；直接文档由客户端下载原始字节后上传 Workers AI。": "Pages are submitted as URLs; the client downloads direct-document bytes before uploading them to Workers AI.",
+    "/markdown 返回网页文本，/scrape 返回元素属性，/ai/tomarkdown 返回文档文字。": "/markdown returns page text, /scrape element attributes, and /ai/tomarkdown document text.",
+    "Browser Rendering Edit 与 Workers AI 权限分别控制两类端点；浏览器访问仍可能被识别和拦截。": "Browser Rendering Edit and Workers AI permissions govern different endpoints; browser visits can still be identified and blocked.",
+    "/pdf 打印网页，不是读取已有 PDF；/links 只列页面链接，不能代替图片和媒体 DOM 属性。直接文档下载与转换共享同一次耗时；客户端下载不是 Cloudflare 独立成绩。/scrape 交付资源地址，不保证取得媒体字节或理解画面。": "/pdf prints a webpage rather than reading an existing PDF. /links lists page links but does not replace image and media DOM attributes. A direct-document download and its conversion share one measured call; the client download is not an independent Cloudflare score. /scrape provides URLs, not a guarantee of media bytes or visual understanding.",
+    "网页正文与动态页使用 /markdown；直接 PDF / DOCX 使用 /ai/tomarkdown；页面图片和视频资源使用 /scrape。未提供源站登录 Cookie，不用 Search/Crawl、截图、浏览器控制或失败后接口回退。": "Page text and dynamic tasks use /markdown; direct PDF/DOCX tasks use /ai/tomarkdown; page image and video resources use /scrape. No source-site login Cookie, Search/Crawl, screenshot, browser-control route, or post-failure interface fallback was used.",
+    "Cloudflare Browser Run /markdown、/scrape 与 Workers AI /ai/tomarkdown": "Cloudflare Browser Run /markdown and /scrape with Workers AI /ai/tomarkdown",
+    "Browser Run 可用 Workers Free 额度。Browser Run 需要 Browser Rendering Edit；文件转换 API 接受 Workers AI Read 或 Edit。两类产品的配额和计费分开。": "Browser Run has a Workers Free allowance. It requires Browser Rendering Edit; file conversion accepts Workers AI Read or Edit. The products have separate quotas and billing.",
+    "注册 Cloudflare，复制 Account ID；创建覆盖 Account → Browser Rendering → Edit 与 Account → Workers AI → Read 的自定义 token。官方 Workers AI REST 入门建议 Read 和 Edit 都授予；运行前用 GET /client/v4/user/tokens/verify 验证。": "Register with Cloudflare and copy the Account ID. Create a custom token covering Account → Browser Rendering → Edit and Account → Workers AI → Read. The Workers AI REST getting-started guide recommends both Read and Edit; verify the token at GET /client/v4/user/tokens/verify before running.",
+})
+
+TEXT.update({
+    "按任务修正官方接口并补齐逐次调用下钻": "Correct official routes by task and add per-call drilldown",
+    "十种方法仍执行同一组 150 题，保留 1,500 条权威结果。接口修正只认证重跑 Cloudflare 23 条和 Firecrawl 17 条，共 40 次新调用；任务通过数由 1,024 增至 1,029。document-05 的公共格式归一化不调用供应商，又增加 1 条通过，最终为 1,030/1,500。Moli 仍为 1.1.4。": "The same 150 tasks and ten methods retain 1,500 authoritative results. Certified interface reruns were limited to 23 Cloudflare and 17 Firecrawl results, for 40 new calls; task passes rose from 1,024 to 1,029. Shared formatting normalization for document-05 added one pass without another provider call, yielding 1,030/1,500. Moli remains at 1.1.4.",
+    "Cloudflare 任务接口": "Cloudflare routes by task",
+    "原 /markdown 适合网页正文；部分直接 PDF/DOCX 出现接口成功但正文为空，页面图片和视频属性也不能稳定从 Markdown 取得。": "The former /markdown route suits webpage text. Some direct PDF/DOCX requests returned a successful interface response with empty body text, and page image and video attributes could not be reliably recovered from Markdown.",
+    "网页正文与动态题保留 Browser Run /markdown；直接 PDF/DOCX 上传原文件给 Workers AI /ai/tomarkdown；页面图片和视频地址使用 Browser Run /scrape 的 DOM 属性。下载原文件与转换共用一次端到端预算。": "Web text and dynamic tasks retain Browser Run /markdown. Direct PDF/DOCX files are uploaded to Workers AI /ai/tomarkdown; page image and video URLs come from Browser Run /scrape DOM attributes. Original-file download and conversion share one end-to-end deadline.",
+    "仅替换 Cloudflare 的 7 条直接文档、9 条页面图片和 7 条页面视频结果；/pdf 生成网页 PDF，/links 只列普通链接，/crawl 扩展到其他页面，均不替代这些题的交付物。": "Only Cloudflare's 7 direct-document, 9 page-image, and 7 page-video results were replaced. /pdf generates a webpage PDF, /links lists ordinary links, and /crawl expands to other pages; none substitutes for the deliverables in these tasks.",
+    "Firecrawl 任务接口": "Firecrawl routes by task",
+    "动态题的固定 waitFor 延迟不能执行已声明的顶层选择器条件；页面视频题漏取 Scrape 的 video 字段。": "A fixed waitFor delay could not enforce the declared top-level selector for dynamic tasks; page-video tasks omitted Scrape's video field.",
+    "动态题预选 Scrape Actions 的 selector wait；视频资源题同时请求原生 video 格式，并保留正文和资源地址。匹配数量与 iframe 子文档完成条件仍按接口边界披露。": "Dynamic tasks preselect Scrape Actions selector waits. Video-resource tasks also request the native video format while retaining text and resource URLs. Match-count and iframe-child completion conditions remain disclosed as interface limits.",
+    "仅替换 10 条动态与 7 条页面视频结果。video 下载入口不等于媒体原字节或画面理解；Search、Crawl 与 Agent 不用于给定 URL 的单页任务。": "Only 10 dynamic and 7 page-video results were replaced. A video download URL is neither original media bytes nor visual understanding. Search, Crawl, and Agent were not used for single-page tasks with a given URL.",
+    "成绩与同口径分母": "Results on the same denominator",
+    "只改结果表会掩盖接口和评分入口变化，也会让读者把重新调用与离线复算混为一谈。": "Editing only a results table would conceal changes to provider routes and the shared scorer, and blur the distinction between new calls and offline rescoring.",
+    "40 条新物理调用取代同一方法—题目的旧权威结果；其余 1,460 条沿用旧调用。document-05 的 Markdown 表格分隔行在所有方法共用的格式归一化中按排版处理，保存输出离线复评分。": "Forty new physical calls supersede the old authoritative results for the same method–task pairs; the other 1,460 calls are inherited. The Markdown table divider in document-05 is treated as layout by shared normalization across all methods, with saved outputs rescored offline.",
+    "接口重跑使通过数从 1,024/1,500 到 1,029/1,500；公共归一化再到 1,030/1,500。分母、150 题、十方法和 Moli 1.1.4 均不变。": "Interface reruns raised passes from 1,024/1,500 to 1,029/1,500; shared normalization then raised them to 1,030/1,500. The denominator, 150 tasks, ten methods, and Moli 1.1.4 are unchanged.",
+    "核验与资源别名": "Review and resource aliases",
+    "缩略图可由同一资产的另一 Wikimedia 域名交付，单看主机名会错判 image-04；反过来，无缩略图标识的同名地址也不能任意放行。": "A thumbnail of the same asset may be served from another Wikimedia host; comparing hostnames alone would misjudge image-04. A similarly named URL without a thumbnail marker must not be accepted indiscriminately.",
+    "40 条新结果先隐藏机器判定逐条独立核验；未变化的 1,460 条沿用哈希绑定的旧逐条核验。image-04 按同资产缩略图域名迁移裁决，并在公共资源规则中同时拒绝缺少缩略图标识的近似地址。": "The 40 new results were independently checked one by one with machine judgments hidden; 1,460 unchanged results inherit hash-bound earlier individual reviews. image-04 was adjudicated as a thumbnail-host migration of the same asset, while shared resource rules also reject similar URLs lacking a thumbnail marker.",
+    "当前 1,500/1,500 条结果均有逐条判定核验，未决判定 0。image-04 修正未改变当前成绩；异常根因调查与逐条判定核验分别记录，不把后者冒充前者。": "All 1,500/1,500 results have individual verdict review, with zero unresolved verdicts. The image-04 correction did not affect the current score. Root-cause anomaly investigation and individual verdict review are recorded separately; the latter is not presented as the former.",
+    "逐次调用日志": "Per-call logs",
+    "旧详情能看到最终输出，但输出为空时，读者看不到接口状态、最后错误或每次重试的过程。": "Earlier detail pages showed final output, but an empty answer did not reveal interface status, the final error, or each retry.",
+    "新物理调用保存脱敏且哈希绑定的请求摘要、接口/进程状态、最后输出、错误与重试记录；详情页按需打开弹窗。完整原始供应商响应仍留在私有证据，不随公开包发布。": "New physical calls retain redacted, hash-bound request summaries, interface/process status, final output, errors, and retry records. The detail page opens this evidence on demand in a dialog. Full raw provider responses remain private and are not included in the public bundle.",
+    "本轮全部 40 次新调用有可下钻安全日志；历史调用只展示实际留存字段，并明确标示没有保存的日志，不补造历史 stdout、stderr 或原始信封。": "All 40 new calls in this release have safe drilldown logs. Older calls show only fields actually retained and explicitly identify unavailable logs; historical stdout, stderr, and raw envelopes are not fabricated.",
+})
+
+PHRASES.update({
+    "原有资料核对日期：": "Existing sources checked: ",
+    "；本版新增 Cloudflare 与 Firecrawl 接口核对日期：": "; newly used Cloudflare and Firecrawl routes checked: ",
+    "。托管服务按官方文档；内置工具按固定源码。此处说明可选能力，": ". Managed services follow official documentation, while built-in tools follow pinned source. These are available capabilities, ",
+})
+
 REGEX.insert(0, (
     re.compile(r"^(?:.+：)?\d{4}-\d{2}-\d{2}（\d+ 题）(?:、\d{4}-\d{2}-\d{2}（\d+ 题）)*$"),
     lambda m: m.group().replace("：", ": ").replace("（", " (").replace(" 题）", " tasks)").replace("、", "; "),
@@ -3113,6 +3209,67 @@ TEXT.update({
     "按最终交付物区分任务；图中页面为流程示意，下面的案例展示实测输出。": "Tasks are distinguished by their final outputs. Pages in the image illustrate workflows; the cases below show recorded outputs."
 })
 
+TEXT.update({
+    "打开完整调用记录": "Open complete call record",
+    "调用记录": "Call record",
+    "关闭调用记录": "Close call record",
+    "关闭": "Close",
+    "日志可用性：": "Log availability: ",
+    "完整事件日志已保存并通过 SHA-256 校验。": "A complete event log was retained and verified by SHA-256.",
+    "事件日志文件可以读取，但本条记录未声明其 SHA-256；页面会展示内容，但不能证明它与运行记录绑定。": "The event-log file is readable, but this record declares no SHA-256 for it. The page shows the content but cannot establish that it is bound to the run record.",
+    "事件日志文件可以读取，但至少一条记录未声明其 SHA-256；页面会展示内容，但不能证明全部日志均与运行记录绑定。": "Event-log files are readable, but at least one record declares no SHA-256. The page shows their content but cannot establish that every log is bound to the run record.",
+    "记录声明了事件日志，但公开证据中没有可读取文件；下面仅展示可核验的结果字段。": "The record declares an event log, but no readable file is present in the public evidence; only verifiable result fields are shown below.",
+    "这次历史运行没有保存统一事件日志。下面由最终输出、结果字段和公开适配器元数据合成，不能还原未记录的逐行过程。": "This historical run did not retain a unified event log. The view below is reconstructed from the final output, result fields, and public adapter metadata; it cannot recover unrecorded step-by-step events.",
+    "最后输出": "Final output",
+    "最后报错": "Final error",
+    "无报错；请求记录为成功。": "No error was recorded; the request is recorded as successful.",
+    "请求失败，但历史记录未保存错误文字。": "The request failed, but the historical record retained no error text.",
+    "请求路线": "Request route",
+    "请求状态": "Request status",
+    "总耗时": "Total elapsed time",
+    "开始时间": "Started at",
+    "完成时间": "Completed at",
+    "物理调用": "Physical calls",
+    "原生事件日志": "Native event log",
+    "最终物理调用": "Final physical call",
+    "重试与物理调用": "Retries and physical calls",
+    "本次没有登记重试；只保留一个物理调用。": "No retry was declared; one physical call was retained.",
+    "查看公开适配器字段": "View public adapter fields",
+    "接口返回的公开附加字段": "Public fields returned by the adapter",
+    "原始供应商响应信封仅在内部证据中保留，不进入公开弹窗或发布包。": "The original provider response envelope is retained only in internal evidence and is excluded from the public dialog and publication bundle.",
+    "没有登记仅限内部保存的原始响应信封。": "No internal-only raw response envelope was registered.",
+    "最终输出确实为空。上游请求有响应，但适配器没有得到可提取的正文。": "The final output is genuinely empty. The upstream request returned a response, but the adapter obtained no extractable body text.",
+    "最终输出确实为空；本次历史记录没有保存更具体的原因，不能据此推断是服务端、网络还是适配器问题。": "The final output is genuinely empty. This historical record retained no more specific reason, so it cannot establish whether the cause was the server, network, or adapter.",
+    "—（未记录）": "— (not recorded)",
+    "—（未记录错误类型）": "— (error type not recorded)",
+})
+
+REGEX.insert(0, (
+    re.compile(r"^(\d+) 个物理调用日志已保存并通过 SHA-256 校验。$"),
+    r"Logs for \1 physical calls were retained and verified by SHA-256.",
+))
+REGEX.insert(0, (
+    re.compile(r"^物理调用 (\d+)$"),
+    r"Physical call \1",
+))
+REGEX.insert(0, (
+    re.compile(r"^本题的最终交付物是 (\d+) 个原始文件；文本输出为空不表示没有交付，文件字节在详情页下方单独列出。$"),
+    r"This task delivered \1 original files. Empty text does not mean nothing was delivered; the file bytes are listed separately below.",
+))
+REGEX.insert(0, (
+    re.compile(r"^最终输出确实为空。适配器记录的原因：(.+)$"),
+    r"The final output is genuinely empty. The adapter recorded this reason: \1",
+))
+REGEX.insert(0, (
+    re.compile(r"^最终输出确实为空。请求未成功，错误类型为 (.+)；历史记录没有保存更多错误文字。$"),
+    r"The final output is genuinely empty. The request failed with error type \1; the historical record retained no further error text.",
+))
+REGEX.insert(0, (
+    re.compile(r"^(成功|失败) · HTTP (.+)$"),
+    lambda match: (("Success" if match.group(1) == "成功" else "Failure") + " · HTTP "
+                   + ("not provided" if match.group(2) == "未提供" else match.group(2))),
+))
+
 
 def translate_text(value: str) -> str:
     leading = value[:len(value) - len(value.lstrip())]
@@ -3153,11 +3310,12 @@ class Localizer(HTMLParser):
 
     def _start_tag(self, attrs) -> str:
         original = self.get_starttag_text()
-        if self.source not in {PurePosixPath("guide/index.html"), PurePosixPath("guide/article.html")}:
-            return original
         if any(tag in self.stack for tag in ("pre", "code", "script", "style")):
             return original
         values = dict(attrs)
+        article = self.source in {PurePosixPath("guide/index.html"), PurePosixPath("guide/article.html")}
+        if not article and "data-i18n-attrs" not in values:
+            return original
 
         def replace_attribute(markup, name, value):
             pattern = re.compile(r'''(?<![\w:-])(''' + re.escape(name)
@@ -3165,13 +3323,16 @@ class Localizer(HTMLParser):
             return pattern.sub(lambda match: match.group(1) + '"'
                                + html.escape(value, quote=True) + '"', markup)
 
-        # The renderer supplies both language assets. Localization only selects
-        # an existing URL; it never reads files or modifies measured evidence.
-        for name in ("src", "href"):
-            alternate = values.get("data-en-" + name)
-            if alternate is not None:
-                original = replace_attribute(original, name, alternate)
-        original = re.sub(r'''\s+data-en-[\w-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?''',
+        if article:
+            # The renderer supplies both language assets. Localization only selects
+            # an existing URL; it never reads files or modifies measured evidence.
+            for name in ("src", "href"):
+                alternate = values.get("data-en-" + name)
+                if alternate is not None:
+                    original = replace_attribute(original, name, alternate)
+            original = re.sub(r'''\s+data-en-[\w-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?''',
+                              "", original, flags=re.S)
+        original = re.sub(r'''\s+data-i18n-attrs(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?''',
                           "", original, flags=re.S)
         for name in ("aria-label", "alt", "placeholder", "title"):
             label = values.get(name)

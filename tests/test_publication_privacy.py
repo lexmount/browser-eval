@@ -100,13 +100,26 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / 'attempts').mkdir(parents=True)
             (source / 'references').mkdir(parents=True)
             (source / 'artifacts/browser/case').mkdir(parents=True)
+            (source / 'call-logs/browser/case').mkdir(parents=True)
             (source / 'assets/style.css').write_text('body {color:black}')
             (source / 'assets/report.js').write_text('')
             (source / '.generated-report').write_text('local marker')
             (source / 'reliability.json').write_text('{"complete":true}')
+            call_logs=[b'{"event":"failed"}\n',b'{"event":"complete"}\n']
+            call_log_paths=['call-logs/browser/case/run-001-physical-001.json',
+                            'call-logs/browser/case/run-001-physical-002.json']
+            call_log_bindings=[]
+            for log_path,call_log in zip(call_log_paths,call_logs):
+                (source/log_path).write_bytes(call_log)
+                call_log_bindings.append({'path':log_path,'sha256':hashlib.sha256(call_log).hexdigest(),
+                                          'bytes':len(call_log)})
             record = {'attempt_id': 'browser__case__r001', 'case_id': 'case',
                       'artifact_path': 'artifacts/browser/case/run-001.txt',
-                      'provider_metadata': {}}
+                      'provider_metadata': {'route':'markdown',
+                                            'raw_response_path':'private_artifacts/secret.bin',
+                                            'retry':{'attempts':[{'call_log':binding}
+                                                                 for binding in call_log_bindings]},
+                                            'call_log':call_log_bindings[-1]}}
             file_record = {'attempt_id': 'browser__file-case__r001', 'case_id': 'file-case',
                            'artifact_path': 'artifacts/browser/file-case/run-001.txt',
                            'provider_metadata': {}}
@@ -121,7 +134,11 @@ class PublicationPrivacyTests(unittest.TestCase):
                 '<html><body><pre data-kind="reference">complete reference</pre>'
                 '<pre data-kind="output">actual output</pre>'
                 '<pre data-kind="reference">derived body region</pre>'
-                '<pre data-kind="metadata">{}</pre></body></html>')
+                '<pre data-kind="metadata">{}</pre>'
+                '<dialog><pre data-kind="call-output">actual output</pre>'
+                '<pre data-kind="call-metadata">{}</pre>'
+                '<pre data-kind="call-log">{"event":"failed"}</pre>'
+                '<pre data-kind="call-log">{"event":"complete"}</pre></dialog></body></html>')
             (source / 'attempts/browser__file-case__r001.html').write_text(
                 '<html><body><h2>目标文件与实际返回</h2>'
                 '<pre data-kind="metadata">{}</pre></body></html>')
@@ -162,8 +179,13 @@ class PublicationPrivacyTests(unittest.TestCase):
                 self.assertEqual(unpack('results.jsonl'), results.encode())
                 attempt = unpack('attempts/browser__case__r001.html')
                 self.assertEqual(attempt.count(b'data-file="references/case.txt"'), 1)
+                self.assertEqual(attempt.count(b'data-file="artifacts/browser/case/run-001.txt"'), 2)
+                self.assertEqual(attempt.count(b'data-record="1"'), 2)
+                for call_log_path in call_log_paths:
+                    self.assertEqual(attempt.count(f'data-file="{call_log_path}"'.encode()), 1)
                 self.assertIn(b'derived body region', attempt)
                 self.assertNotIn(b'>actual output</pre>', attempt)
+                self.assertNotIn(b'private_artifacts/secret.bin', attempt)
                 self.assertNotIn('.generated-report', manifest['files'])
 
 

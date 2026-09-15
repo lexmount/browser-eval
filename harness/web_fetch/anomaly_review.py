@@ -4,16 +4,63 @@ This is deliberately separate from verdict review: triggers are computed only af
 the blind reviewer has judged the saved answer, so they cannot prime that verdict.
 """
 from collections import defaultdict
+import hashlib
+import json
 from pathlib import Path
 import re
 from statistics import median
 
+from .safety import contained_path
+
 
 LAYERS = ('input', 'reference', 'request', 'raw', 'adapter', 'scorer', 'final_verdict')
-TRIGGER_VERSION = 1
+TRIGGER_VERSION = 2
 _SHORT_OUTPUT = 512
 _TINY_OUTPUT = 64
 _SHORT_ERROR_MS = 1000
+
+
+def _bounded_transport_raw_absence(source, record, layers) -> bool:
+    """Allow an explicitly bounded missing raw layer, never a missing call.
+
+    A client read timeout can end before the provider adapter receives an
+    ``HttpResponse``. There are then no raw bytes to inspect, but the failure
+    decision is still auditable from the public physical-call log. This does
+    not apply to successful or status-bearing responses, missing request
+    evidence, or an unbound log.
+    """
+    if (layers['raw'].get('status') != 'insufficient'
+            or layers['request'].get('status') != 'verified'
+            or layers['scorer'].get('status') != 'verified'
+            or layers['final_verdict'].get('status') != 'verified'
+            or record.get('ok') is not False
+            or record.get('status_code') is not None
+            or record.get('error_type') != 'timeout'):
+        return False
+    metadata = record.get('provider_metadata', {})
+    if metadata.get('raw_response_path') or metadata.get('raw_stdout_path'):
+        return False
+    binding = metadata.get('call_log')
+    if not isinstance(binding, dict):
+        return False
+    try:
+        path = contained_path(Path(source), binding['path'])
+        data = path.read_bytes()
+        if hashlib.sha256(data).hexdigest() != binding['sha256']:
+            return False
+        log = json.loads(data)
+    except (KeyError, TypeError, ValueError, OSError, json.JSONDecodeError):
+        return False
+    if not isinstance(log, dict) or any(
+            not isinstance(log.get(key), dict)
+            for key in ('response', 'error', 'output')):
+        return False
+    return (log['response'].get('status_code') is None
+            and log['error'].get('type') == record['error_type']
+            and log['error'].get('message') == record.get('error_message')
+            and log['output'].get('sha256') ==
+            record.get('metrics', {}).get('content_sha256')
+            and log['output'].get('bytes') == 0)
 
 
 def _text(path):
@@ -195,6 +242,35 @@ def detect_anomalies(root, records, dataset=None, reviewer_anomalies=None):
         if trigger:
             for record, _ in rows:
                 found[record['attempt_id']].add(trigger)
+    # A provider-family result with a single success is intrinsically unusual
+    # even when every peer also performs poorly.  Only expand this trigger over
+    # a cohort that the dataset declared and that the evidence contains exactly
+    # once; a partial run must not turn missing attempts into an anomaly claim.
+    coverage = (dataset or {}).get('coverage_plan', {})
+    declared_cases = defaultdict(set)
+    for case in (dataset or {}).get('cases', []):
+        track = case.get('track', 'web')
+        for provider in coverage.get(track, []):
+            declared_cases[(provider, track)].add(case['id'])
+    records_by_cohort = defaultdict(list)
+    for record in records:
+        track = cases.get(record.get('case_id'), {}).get('track')
+        if track:
+            records_by_cohort[(record.get('provider'), track)].append(record)
+    for cohort, expected_case_ids in declared_cases.items():
+        rows = records_by_cohort.get(cohort, [])
+        observed_case_ids = [record.get('case_id') for record in rows]
+        outcomes = [_task_succeeded(record) for record in rows]
+        complete = (
+            len(expected_case_ids) >= 3
+            and len(rows) == len(expected_case_ids)
+            and set(observed_case_ids) == expected_case_ids
+            and len(observed_case_ids) == len(set(observed_case_ids))
+            and all(outcome is not None for outcome in outcomes)
+        )
+        if complete and sum(outcomes) == 1:
+            for record in rows:
+                found[record['attempt_id']].add('provider-track-at-most-one-pass')
     for attempt, anomalies in (reviewer_anomalies or {}).items():
         if anomalies:
             found[attempt].add('reviewer-active-anomaly')
@@ -208,6 +284,7 @@ def require_anomaly_review(source, dataset, records, review):
     reviewer = {row['attempt_id']: row.get('reviewer_anomalies', [])
                 for row in review.get('attempts', [])}
     expected = detect_anomalies(source, records, dataset, reviewer)
+    by_record = {row['attempt_id']: row for row in records}
     record_ids = {row['attempt_id'] for row in records}
     actual = {row['attempt_id']: row for row in review.get('attempts', [])
               if row.get('anomaly_review') is not None}
@@ -225,7 +302,11 @@ def require_anomaly_review(source, dataset, records, review):
                 or not str(layers[layer].get('evidence', '')).strip()
                 for layer in LAYERS):
             raise ValueError(f'{attempt} anomaly review must check all seven evidence layers')
-        if any(layers[layer].get('status') == 'insufficient' for layer in LAYERS):
+        insufficient = {layer for layer in LAYERS
+                        if layers[layer].get('status') == 'insufficient'}
+        if insufficient and not (insufficient == {'raw'}
+                                 and _bounded_transport_raw_absence(
+                                     source, by_record[attempt], layers)):
             raise ValueError(f'{attempt} anomaly review has insufficient layer evidence')
         scope = audit.get('same_class_scope', {})
         scoped_attempts = scope.get('attempt_ids', [])

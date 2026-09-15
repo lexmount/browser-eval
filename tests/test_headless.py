@@ -13,7 +13,10 @@ from harness.web_fetch.runner import run_evaluation
 from scripts.headless_worker import fetch
 from scripts.review_headless_results import anomaly_investigation_packet, independent_attempt
 from scripts.review_headless_results import main as review_main
-from scripts.review_headless_results import INDEPENDENCE_RULES, SCHEMA, validate_review_evidence
+from scripts.review_headless_results import (
+    INDEPENDENCE_RULES, RESOURCE_EQUIVALENCE_RULES, SCHEMA,
+    validate_review_evidence,
+)
 
 
 class HeadlessTests(unittest.TestCase):
@@ -65,6 +68,18 @@ class HeadlessTests(unittest.TestCase):
         self.assertIn('missing:', INDEPENDENCE_RULES)
         self.assertIn('Separately list any suspicious anomaly', INDEPENDENCE_RULES)
         self.assertIn('Anomalies are not verdict evidence', INDEPENDENCE_RULES)
+
+    def test_blind_resource_guidance_limits_wikimedia_host_equivalence_to_same_asset(self):
+        self.assertIn('upload.wikimedia.org', RESOURCE_EQUIVALENCE_RULES)
+        self.assertIn('thumb.wikimedia.org', RESOURCE_EQUIVALENCE_RULES)
+        self.assertIn('original asset filename must match', RESOURCE_EQUIVALENCE_RULES)
+        self.assertIn('A different original asset path or filename',
+                      RESOURCE_EQUIVALENCE_RULES)
+        self.assertNotIn('machine verdict', RESOURCE_EQUIVALENCE_RULES)
+        self.assertNotIn('metrics', RESOURCE_EQUIVALENCE_RULES)
+        source = Path(__file__).resolve().parents[1].joinpath(
+            'scripts/review_headless_results.py').read_text()
+        self.assertIn("prompt += '\\n' + RESOURCE_EQUIVALENCE_RULES", source)
 
     def test_codex_review_schema_requires_every_declared_field(self):
         item = SCHEMA['properties']['attempts']['items']

@@ -7,6 +7,7 @@ every aggregation/publication boundary; they are never projected into a report.
 from __future__ import annotations
 
 import hashlib
+import json
 import shutil
 from pathlib import Path
 from typing import Any, Iterable
@@ -15,6 +16,131 @@ from .safety import contained_path
 
 
 PRIVATE_ARTIFACT_ROOT = "private_artifacts"
+PUBLIC_CALL_LOG_ROOT = "call-logs"
+
+
+def public_call_log_binding(value: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Normalize a public call-log binding and reject partial/unsafe claims."""
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ValueError("Public call-log binding must be an object")
+    if set(value) != {"path", "sha256", "bytes"}:
+        raise ValueError("Public call-log binding must contain only path, sha256 and bytes")
+    path = Path(str(value.get("path", "")))
+    if not path.parts or path.parts[0] != PUBLIC_CALL_LOG_ROOT:
+        raise ValueError("Public call logs must stay under call-logs")
+    digest, size = value.get("sha256"), value.get("bytes")
+    if (not isinstance(digest, str) or len(digest) != 64
+            or any(char not in "0123456789abcdef" for char in digest)):
+        raise ValueError("Public call log has an invalid SHA-256 binding")
+    if not isinstance(size, int) or isinstance(size, bool) or size < 0:
+        raise ValueError("Public call log has an invalid byte-size binding")
+    return {"path": path.as_posix(), "sha256": digest, "bytes": size}
+
+
+def record_public_call_log_bindings(record: dict[str, Any]) -> list[dict[str, Any]]:
+    """Collect the final and every retained retry call log."""
+    values: list[dict[str, Any]] = []
+    metadata = record.get("provider_metadata", {})
+    for attempt in metadata.get("retry", {}).get("attempts", []):
+        binding = public_call_log_binding(attempt.get("call_log"))
+        if binding:
+            values.append(binding)
+    final = public_call_log_binding(metadata.get("call_log"))
+    if final:
+        values.append(final)
+    seen: dict[str, tuple[str, int]] = {}
+    for binding in values:
+        identity = binding["sha256"], binding["bytes"]
+        if binding["path"] in seen and seen[binding["path"]] != identity:
+            raise ValueError("Public call log has conflicting bindings: " + binding["path"])
+        seen[binding["path"]] = identity
+    return [dict(path=path, sha256=digest, bytes=size)
+            for path, (digest, size) in seen.items()]
+
+
+def verify_public_call_log(root: Path, binding: dict[str, Any]) -> Path:
+    """Verify one public call log's containment, bytes, digest and closed schema."""
+    normalized = public_call_log_binding(binding)
+    if normalized is None:  # pragma: no cover - caller supplied an object
+        raise ValueError("Public call-log binding is empty")
+    lexical = root.resolve()
+    for part in Path(normalized["path"]).parts:
+        lexical = lexical / part
+        if lexical.is_symlink():
+            raise ValueError("Public call log is missing or unsafe: " + normalized["path"])
+    path = contained_path(root, normalized["path"])
+    if not path.is_file() or path.stat().st_size != normalized["bytes"]:
+        raise ValueError("Public call log is missing or has changed: " + normalized["path"])
+    binary = path.read_bytes()
+    if hashlib.sha256(binary).hexdigest() != normalized["sha256"]:
+        raise ValueError("Public call log hash changed: " + normalized["path"])
+    try:
+        payload = json.loads(binary)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("Public call log is not valid JSON: " + normalized["path"]) from error
+    expected = {"schema_version", "identity", "timing", "request", "response",
+                "process", "output", "error", "events", "capture"}
+    if not isinstance(payload, dict) or set(payload) != expected:
+        raise ValueError("Public call log has an unexpected top-level schema")
+    schemas = {
+        "identity": {"call_id", "attempt_id", "provider", "provider_type", "case_id",
+                     "run", "physical_attempt"},
+        "timing": {"started_at", "completed_at", "elapsed_ms", "retry_throttle_wait_ms",
+                   "deadline_budget_ms", "deadline_overrun"},
+        "request": {"method", "route", "url", "summary"},
+        "response": {"status_code", "upstream_status_code", "final_url", "content_type",
+                     "request_id"},
+        "process": {"exit_code", "stdout", "stdout_bytes", "stdout_truncated",
+                    "stderr", "stderr_bytes", "stderr_truncated"},
+        "output": {"path", "bytes", "sha256", "empty"},
+        "error": {"type", "message", "exception_class", "stack"},
+        "capture": {"record", "response_metadata", "process_metadata", "process_stdout",
+                    "process_stderr", "request_summary", "events", "raw_response", "output"},
+    }
+    if payload.get("schema_version") != 1:
+        raise ValueError("Public call log has an unsupported schema version")
+    for key, fields in schemas.items():
+        if not isinstance(payload.get(key), dict) or set(payload[key]) != fields:
+            raise ValueError(f"Public call log has an unexpected {key} schema")
+    stack = payload["error"]["stack"]
+    if not isinstance(stack, list) or any(
+        not isinstance(frame, dict) or set(frame) != {"file", "line", "function"}
+        for frame in stack
+    ):
+        raise ValueError("Public call log has an unexpected error stack schema")
+    events = payload["events"]
+    if (not isinstance(events, list) or len(events) < 3
+            or any(not isinstance(event, dict)
+                   or set(event) != {"stage", "at", "status_code", "error_type"}
+                   for event in events)
+            or events[0]["stage"] != "call_started"
+            or events[-1]["stage"] != "call_completed"
+            or not any(event["stage"] in {"response_received", "exception_raised"}
+                       for event in events[1:-1])):
+        raise ValueError("Public call log has an unexpected event schema")
+    summary = payload["request"]["summary"]
+    if summary is not None and not isinstance(summary, dict):
+        raise ValueError("Public call log has an unexpected request summary")
+    output_path = Path(str(payload["output"]["path"]))
+    if not output_path.parts or output_path.parts[0] != "artifacts":
+        raise ValueError("Public call log output must stay under artifacts")
+    output = contained_path(root, output_path)
+    if not output.is_file() or output.is_symlink():
+        raise ValueError("Public call log output is missing or unsafe")
+    output_bytes = output.read_bytes()
+    claimed = payload["output"]
+    if (claimed["bytes"] != len(output_bytes)
+            or claimed["sha256"] != hashlib.sha256(output_bytes).hexdigest()
+            or claimed["empty"] is not (len(output_bytes) == 0)):
+        raise ValueError("Public call log output binding changed")
+    return path
+
+
+def verify_record_public_call_logs(root: Path, record: dict[str, Any]) -> None:
+    for binding in record_public_call_log_bindings(record):
+        verify_public_call_log(root, binding)
 
 
 def raw_response_binding(metadata: dict[str, Any]) -> dict[str, Any] | None:

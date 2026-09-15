@@ -7,6 +7,7 @@ from harness.web_fetch.anomaly_review import LAYERS, detect_anomalies
 from harness.web_fetch.result_review import require_blind_result_review, require_result_review
 from scripts.review_result_anomalies import (
     anomaly_groups, cached_group_resolutions, merge_group_resolutions,
+    load_matching_positional_output, prior_group_resolutions,
     validate_group_batch)
 
 
@@ -81,3 +82,34 @@ class ReviewResultAnomaliesTests(unittest.TestCase):
             self.assertEqual([(x['group_id'],x['attempt_ids']) for x in reused],
                              [('anomaly-group-009',['p__a'])])
             self.assertEqual(pending,[current[1]])
+
+    def test_stale_positional_output_is_preserved_and_not_reused(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            output=root/'anomaly-pending-001.json'
+            output.write_text(json.dumps({'groups':[{
+                'group_id':'anomaly-group-001','attempt_ids':['p__old']}]}))
+            batch=[{'group_id':'anomaly-group-002','attempt_ids':['p__new']}]
+            self.assertIsNone(load_matching_positional_output(output,batch))
+            self.assertFalse(output.exists())
+            preserved=root/'anomaly-pending-001.superseded.json'
+            self.assertTrue(preserved.is_file())
+            self.assertEqual(json.loads(preserved.read_text())['groups'][0]['attempt_ids'],
+                             ['p__old'])
+
+    def test_prior_resolution_reuse_requires_exact_scope_and_triggers(self):
+        group={'group_id':'anomaly-group-009','attempt_ids':['p__a','p__b']}
+        layer={name:{'status':'verified','evidence':'checked'} for name in LAYERS}
+        audit={'triggers':['empty-success-output'],'layers':layer,
+               'same_class_scope':{'attempt_ids':['p__a','p__b'],'rationale':'same route'},
+               'root_cause':'empty upstream body','corrective_action':'none',
+               'status':'no-defect','evaluation_defect':False,'correction_applied':False,
+               'rerun_scope':{'required':False,'attempt_ids':[],'reason':'authoritative'}}
+        prior={'attempts':[{'attempt_id':aid,'anomaly_review':audit}
+                           for aid in group['attempt_ids']]}
+        triggers={aid:['empty-success-output'] for aid in group['attempt_ids']}
+        reused=prior_group_resolutions(prior,[group],triggers)
+        self.assertEqual(reused[0]['group_id'],'anomaly-group-009')
+        self.assertEqual(reused[0]['rerun_reason'],'authoritative')
+        changed={**triggers,'p__b':['empty-success-output','provider-track-zero-pass']}
+        self.assertEqual(prior_group_resolutions(prior,[group],changed),[])

@@ -80,6 +80,7 @@ def rebase(current: Path, reviewed: Path, output: Path, adjudications: Path | No
             "machine_verdict": machine,
             "agent_verdict": agent,
             "agent_evidence": old["agent_evidence"],
+            "reviewer_anomalies": old.get("reviewer_anomalies", []),
             "final_verdict": machine,
             "adjudication": adjudication,
         })

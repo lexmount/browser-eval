@@ -182,7 +182,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertEqual(profile['artifact_hub_site'], 'RSdbALdbdNG6')
         self.assertEqual(
             profile['artifact_hub_expected_version'],
-            'ver_0e0ae13fb6854712bed7a2156aee0675',
+            'ver_4352ebce880149e1ada4a1b97680c364',
         )
 
     def test_current_rerun_plan_is_exact_and_complete(self) -> None:
@@ -211,23 +211,10 @@ class RuntimeEntrypointTests(unittest.TestCase):
         pair_keys = {
             (entry['provider'], entry['case_id']) for entry in main['pair_replacements']
         }
-        self.assertEqual(len(pair_keys), 26)
+        self.assertEqual(len(pair_keys), 1)
         self.assertEqual(
-            {case_id for provider, case_id in pair_keys if provider == 'openclaw-built-in'},
-            {'challenge-01', 'challenge-04', 'challenge-09', 'document-03',
-             'image-pexels-detail', 'image-unsplash-detail', 'lexmount-doc',
-             'live-024-cascading-style-sheets-level-2-r',
-             'live-039-welcome-to-redis-docs', 'stable-browser-use-readme',
-             'stable-nodejs-readme', 'stable-openclaw-readme',
-             'stable-wcag21-recommendation', 'stable-xml10-recommendation',
-             'web-retail-returns'},
-        )
-        self.assertEqual(
-            {case_id for provider, case_id in pair_keys if provider == 'cowagent-built-in'},
-            {'document-01', 'document-02', 'document-03', 'document-04',
-             'document-05', 'document-06', 'document-09', 'document-10',
-             'stable-browser-use-readme', 'stable-nodejs-readme',
-             'stable-openclaw-readme'},
+            pair_keys,
+            {('cloudflare-markdown', 'video-bilibili-current')},
         )
         self.assertEqual(len(pair_keys), len(main['pair_replacements']))
         for entry in main['pair_replacements']:
@@ -242,7 +229,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
             | pair_keys
         )
         self.assertEqual(main['planned_new_calls'], len(expected_pairs))
-        self.assertEqual(main['planned_new_calls'], 26)
+        self.assertEqual(main['planned_new_calls'], 1)
         self.assertFalse(speed['required'])
         self.assertTrue(speed['reuse_existing'])
         self.assertEqual(speed['planned_new_calls'], 0)

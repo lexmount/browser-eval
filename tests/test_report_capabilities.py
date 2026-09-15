@@ -63,6 +63,23 @@ class CapabilityTests(unittest.TestCase):
         self.assertIn('不传 --dump', CAPABILITIES['moli-webfetch']['tested'])
         self.assertIn('selector', CAPABILITIES['moli-webfetch']['tested'])
 
+    def test_official_task_routes_are_not_collapsed_into_webpage_markdown(self):
+        cloudflare = CAPABILITIES['cloudflare-markdown']
+        for route in ('/markdown', '/scrape', '/ai/tomarkdown'):
+            self.assertIn(route, cloudflare['scope'])
+            self.assertIn(route, cloudflare['tested'])
+        self.assertEqual(cloudflare['document']['status'], '需配置')
+        self.assertEqual(cloudflare['image']['status'], '仅链接')
+        self.assertEqual(cloudflare['av']['status'], '仅链接')
+        self.assertEqual(cloudflare['file']['status'], '无此能力')
+        self.assertIn('客户端下载不是 Cloudflare 独立成绩', cloudflare['notes'])
+        self.assertEqual(set(cloudflare['sources']),
+                         {'cf', 'cf-scrape', 'cf-files', 'cf-formats'})
+        self.assertIn('video', CAPABILITIES['firecrawl']['tested'])
+        self.assertIn('fire-api', CAPABILITIES['firecrawl']['sources'])
+        self.assertIn('video', SPECS['firecrawl']['request']['video_resource']['formats'])
+        self.assertIn('/ai/tomarkdown', SPECS['cloudflare-markdown']['request']['direct_pdf_or_docx']['endpoint'])
+
     def test_render_has_every_evidence_target_and_download(self):
         with tempfile.TemporaryDirectory() as directory:
             out = Path(directory)

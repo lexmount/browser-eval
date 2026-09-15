@@ -79,15 +79,15 @@ ACCOUNT_REGISTRY: list[dict[str, Any]] = [
     },
     {
         "id": "cloudflare-browser-rendering",
-        "provider": "Cloudflare Browser Rendering /markdown",
+        "provider": "Cloudflare Browser Run /markdown、/scrape 与 Workers AI /ai/tomarkdown",
         "priority": "B · 已知 URL 抽取",
         "registration_url": "https://dash.cloudflare.com/sign-up",
         "key_url": "https://dash.cloudflare.com/profile/api-tokens",
         "env_vars": ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"],
         "required": True,
         "implemented": True,
-        "free_note": "Workers Free 可用 Browser Rendering；token 需要 Browser Rendering Edit 权限，并受账户限额约束。",
-        "steps": "注册 Cloudflare，复制 32 位 Account ID，再创建自定义 API token：Account → Browser Rendering → Edit；运行前用 GET /client/v4/user/tokens/verify 验证。",
+        "free_note": "Browser Run 可用 Workers Free 额度。Browser Run 需要 Browser Rendering Edit；文件转换 API 接受 Workers AI Read 或 Edit。两类产品的配额和计费分开。",
+        "steps": "注册 Cloudflare，复制 Account ID；创建覆盖 Account → Browser Rendering → Edit 与 Account → Workers AI → Read 的自定义 token。官方 Workers AI REST 入门建议 Read 和 Edit 都授予；运行前用 GET /client/v4/user/tokens/verify 验证。",
     },
     {
         "id": "bocha-web-search",

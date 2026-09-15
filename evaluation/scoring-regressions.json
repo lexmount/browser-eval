@@ -3,6 +3,82 @@
   "purpose": "Paired synthetic controls for scoring defects that previously produced false-positive or false-negative task verdicts. These are contracts, not measured provider outputs.",
   "cases": [
     {
+      "id": "wikimedia-thumbnail-host-migration-keeps-same-asset",
+      "category": "format-normalization",
+      "root_cause": "wikimedia_thumbnail_host_equivalence",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://en.wikipedia.org/wiki/Apollo_11",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [{"id": "moon", "urls": ["https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon.jpg/330px-A_Man_on_the_Moon.jpg?utm_source=en.wikipedia.org"]}]
+      },
+      "artifact": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon.jpg/960px-A_Man_on_the_Moon.jpg?utm_campaign=parser",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"resource_pass": true, "resource_hits": 1}
+    },
+    {
+      "id": "wikimedia-thumbnail-host-migration-does-not-hide-wrong-asset",
+      "category": "format-normalization",
+      "root_cause": "wikimedia_thumbnail_host_equivalence",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://en.wikipedia.org/wiki/Apollo_11",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [{"id": "moon", "urls": ["https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/A_Man_on_the_Moon.jpg/330px-A_Man_on_the_Moon.jpg?utm_source=en.wikipedia.org"]}]
+      },
+      "artifact": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/42/A_Man_on_the_Moon.jpg/960px-A_Man_on_the_Moon.jpg?utm_campaign=parser",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"resource_pass": false, "resource_hits": 0}
+    },
+    {
+      "id": "wikimedia-thumb-host-cannot-claim-original-file",
+      "category": "format-normalization",
+      "root_cause": "wikimedia_thumbnail_host_equivalence",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://en.wikipedia.org/wiki/Apollo_11",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [{"id": "original", "urls": ["https://upload.wikimedia.org/wikipedia/commons/4/41/A_Man_on_the_Moon.jpg"]}]
+      },
+      "artifact": "https://thumb.wikimedia.org/wikipedia/commons/4/41/A_Man_on_the_Moon.jpg",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"resource_pass": false, "resource_hits": 0}
+    },
+    {
+      "id": "markdown-table-rule-does-not-break-visible-calendar-fact",
+      "category": "format-normalization",
+      "root_cause": "markdown_table_separator_layout",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/calendar",
+        "required_facts": [{"id": "calendar", "alternatives": ["December 2007 Sun Mon Tue Wed Thu Fri Sat"]}]
+      },
+      "artifact": "| December 2007 | | | | | | |\n| ------------- | | --- | | --- | | --- |\n| Sun | Mon | Tue | Wed | Thu | Fri | Sat |",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"fact_coverage": 1.0}
+    },
+    {
+      "id": "markdown-table-rule-cannot-hide-wrong-calendar-fact",
+      "category": "format-normalization",
+      "root_cause": "markdown_table_separator_layout",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/calendar",
+        "required_facts": [{"id": "calendar", "alternatives": ["December 2007 Sun Mon Tue Wed Thu Fri Sat"]}]
+      },
+      "artifact": "| December 2008 | | | | | | |\n| ------------- | | --- | | --- | | --- |\n| Sun | Mon | Tue | Wed | Thu | Fri | Sat |",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"fact_coverage": 0.0}
+    },
+    {
       "id": "answer-title-supplies-required-fact",
       "category": "answer-surface",
       "root_cause": "answer_surface_omission",

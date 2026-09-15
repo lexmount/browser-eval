@@ -14,6 +14,7 @@ from .http_client import inner_timeout_budget, request
 
 class FirecrawlProvider(Provider):
     _PROXY_MAX_CREDITS = {"basic": 1, "enhanced": 1, "auto": 1}
+    _VIDEO_FORMAT_CREDITS = 5
 
     def validate(self) -> list[str]:
         # Hosted Scrape requires Bearer auth. A separately configured local or
@@ -23,11 +24,43 @@ class FirecrawlProvider(Provider):
             return ["api_key"]
         return []
 
-    def preflight_capacity(self, declared_calls: int, timeout: float = 10) -> None:
+    def capacity_credits_for_cases(
+        self,
+        cases: list[EvalCase],
+        *,
+        runs: int,
+        max_failure_retries: int,
+    ) -> int:
+        """Return the declared Firecrawl credit bound for an exact case scope."""
+        if runs < 1 or max_failure_retries not in {0, 1}:
+            raise ValueError("invalid Firecrawl run or retry capacity bound")
+        base_credits = self.config.get("capacity_credits_per_call", 1)
+        if (
+            isinstance(base_credits, bool)
+            or not isinstance(base_credits, int)
+            or base_credits < 1
+        ):
+            raise ValueError("invalid Firecrawl capacity_credits_per_call")
+        per_run = sum(
+            self._VIDEO_FORMAT_CREDITS
+            if case.track == "video" and case.task_kind == "resource"
+            else base_credits
+            for case in cases
+        )
+        return per_run * runs * (max_failure_retries + 1)
+
+    def preflight_capacity(
+        self,
+        declared_calls: int,
+        timeout: float = 10,
+        *,
+        required_credits: int | None = None,
+    ) -> None:
         """Fail before a hosted cohort when its declared calls exceed capacity.
 
-        The public Scrape contract prices ``basic``, ``enhanced`` and ``auto``
-        at one credit per request, including an ``auto`` escalation retry.
+        The benchmark configuration declares the base Scrape credit bound.
+        When the caller supplies an exact case-derived bound, native video
+        resource calls include their documented five-credit total.
         File-delivery calls disable PDF parsing below, so they do not add an
         unknown page-count charge to this bound.
         No returned account values are persisted in benchmark evidence.
@@ -81,7 +114,13 @@ class FirecrawlProvider(Provider):
             )
         if isinstance(remaining, bool) or not isinstance(remaining, int) or remaining < 0:
             raise ValueError("Firecrawl capacity preflight returned invalid remainingCredits")
-        required = declared_calls * configured_per_call
+        required = (
+            declared_calls * configured_per_call
+            if required_credits is None
+            else required_credits
+        )
+        if isinstance(required, bool) or not isinstance(required, int) or required < 1:
+            raise ValueError("Firecrawl required credit bound must be a positive integer")
         if remaining < required:
             raise ValueError(
                 "Firecrawl account capacity is insufficient for the declared cohort; "
@@ -111,13 +150,22 @@ class FirecrawlProvider(Provider):
                 error_message="Firecrawl timeout budget is below the API minimum",
             )
         file_route = case.task_kind == "file"
+        requested_formats = (
+            ["rawBase64"]
+            if file_route
+            else list(self.config.get("formats", ["markdown"]))
+        )
+        # Firecrawl's native video format is a media-discovery output, not a
+        # replacement for page Markdown. Request it only for the declared
+        # video track so unrelated calls do not pay the extra media cost.
+        native_video_route = case.track == "video" and case.task_kind == "resource"
+        if native_video_route and "video" not in requested_formats:
+            requested_formats.append("video")
         request_body = {
             "url": case.url,
             # rawBase64 must be the sole format on file-delivery tasks.  It is
             # the target URL's response body, unlike markdown/images/links.
-            "formats": ["rawBase64"] if file_route else self.config.get(
-                "formats", ["markdown"]
-            ),
+            "formats": requested_formats,
             "maxAge": int(self.config.get("max_age", 0)),
             "proxy": str(self.config.get("proxy", "auto")),
             "timeout": service_timeout_ms,
@@ -209,6 +257,7 @@ class FirecrawlProvider(Provider):
                     "selector": plan.selector,
                     "frame_selector": plan.frame_selector,
                     "minimum_count": plan.minimum_count,
+                    "selector_requested": selector_enforced,
                     "selector_enforced": selector_enforced,
                     "minimum_count_enforced": count_enforced,
                     # The selector itself may be exact for a single top-level
@@ -245,6 +294,18 @@ class FirecrawlProvider(Provider):
         data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
         metadata = data.get("metadata") if isinstance(data.get("metadata"), dict) else {}
         api_ok = 200 <= response.status < 300 and payload.get("success") is True
+        if wait_metadata is not None and dynamic_wait_strategy == "actions":
+            # ``selector_enforced`` describes an action that the service
+            # accepted and completed, not merely a field placed in a rejected
+            # request. The separate requested bit keeps failed calls
+            # diagnosable without overstating their execution semantics.
+            wait_metadata["actions_accepted"] = api_ok
+            wait_metadata["selector_enforced"] = bool(
+                wait_metadata.get("selector_requested") and api_ok
+            )
+            wait_metadata["minimum_count_enforced"] = bool(
+                wait_metadata.get("minimum_count_enforced") and api_ok
+            )
         file_bytes = b""
         invalid_file_encoding = False
         if file_route and api_ok:
@@ -255,7 +316,22 @@ class FirecrawlProvider(Provider):
                 except (binascii.Error, ValueError):
                     invalid_file_encoding = True
         content = data.get("markdown") if isinstance(data.get("markdown"), str) else ""
-        ok = api_ok and (bool(file_bytes) if file_route else bool(content))
+        videos: list[object] = []
+        if api_ok and native_video_route:
+            current_videos = data.get("videos")
+            if isinstance(current_videos, list):
+                videos.extend(
+                    item for item in current_videos
+                    if isinstance(item, (str, dict))
+                )
+            legacy_video = data.get("video")
+            if isinstance(legacy_video, str) and legacy_video:
+                videos.append(legacy_video)
+        ok = api_ok and (
+            bool(file_bytes)
+            if file_route
+            else bool(content) or bool(videos)
+        )
         provider_error = (
             payload.get("error") if isinstance(payload.get("error"), str) else ""
         )
@@ -289,6 +365,9 @@ class FirecrawlProvider(Provider):
             error_message = "Firecrawl returned invalid rawBase64"
         elif file_route:
             error_type, error_message = "empty_file", "Firecrawl returned no raw file bytes"
+        elif native_video_route:
+            error_type = "empty_content"
+            error_message = "Firecrawl returned no extractable markdown or video resources"
         else:
             error_type = "empty_content"
             error_message = "Firecrawl returned no extractable markdown"
@@ -346,6 +425,7 @@ class FirecrawlProvider(Provider):
                 ),
                 "links": data.get("links") if ok and isinstance(data.get("links"), list) else [],
                 "images": data.get("images") if ok and isinstance(data.get("images"), list) else [],
+                "videos": videos if ok else [],
                 **(
                     {
                         "raw_file": {

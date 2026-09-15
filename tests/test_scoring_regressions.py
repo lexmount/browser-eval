@@ -6,7 +6,8 @@ import unittest
 
 from harness.web_fetch.metrics import task_passed
 from harness.web_fetch.reference_lifecycle import (
-    reference_revision_cases, valid_scoring_revision,
+    reference_revision_cases, scoring_revision_history_sha256,
+    valid_scoring_revision,
 )
 from harness.web_fetch.scoring import score_attempt
 from harness.web_fetch.scoring_regressions import (
@@ -17,6 +18,43 @@ from scripts.revise_body_scoring import correction_provenance
 
 
 class ScoringRegressionTests(unittest.TestCase):
+    def test_historical_blind_review_keeps_revision_chain_readable_after_new_anomaly_rule(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            artifact=b''
+            (root/'a.txt').write_bytes(artifact)
+            dataset={'comparison':{'require_independent_result_review':True,
+                                   'require_anomaly_review':True},
+                     'cases':[{'id':'a','track':'web','task_kind':'body'}]}
+            record={'attempt_id':'p__a','provider':'p','case_id':'a','ok':True,
+                    'artifact_path':'a.txt','metrics':{
+                        'content_sha256':hashlib.sha256(artifact).hexdigest(),
+                        'content_pass':False}}
+            dataset_raw=(json.dumps(dataset)+'\n').encode()
+            results_raw=(json.dumps(record)+'\n').encode()
+            (root/'dataset.json').write_bytes(dataset_raw)
+            (root/'results.jsonl').write_bytes(results_raw)
+            review={'schema_version':1,'bindings':{
+                        'dataset_sha256':hashlib.sha256(dataset_raw).hexdigest(),
+                        'results_sha256':hashlib.sha256(results_raw).hexdigest()},
+                    'review_protocol':{'scope':'all','machine_judgments_withheld':True},
+                    'attempts':[{'attempt_id':'p__a','machine_verdict':'fail',
+                                 'agent_verdict':'fail','agent_evidence':'saved output is empty',
+                                 'final_verdict':'fail'}]}
+            review_raw=(json.dumps(review)+'\n').encode()
+            history_dir=root/'review-history';history_dir.mkdir()
+            (history_dir/'result-review-old.json').write_bytes(review_raw)
+            identity=(hashlib.sha256(dataset_raw).hexdigest(),
+                      hashlib.sha256(results_raw).hexdigest())
+            receipt={'kind':'audited_assembled_scoring_revision','provider_calls':0,
+                     'input_dataset_sha256':identity[0],'input_results_sha256':identity[1],
+                     'output_dataset_sha256':identity[0],'output_results_sha256':identity[1],
+                     'changed_cases':[],'task_decision_changes':[],
+                     'source_scoring_receipts_sha256':scoring_revision_history_sha256([]),
+                     'independent_result_review_sha256':hashlib.sha256(review_raw).hexdigest()}
+            (root/'scoring-revisions.json').write_text(json.dumps([receipt]))
+            self.assertTrue(valid_scoring_revision(root))
+
     def test_every_registered_false_verdict_control_runs_through_shared_scorer(self):
         rows = load_scoring_regressions()
         root_modes = {}
@@ -41,6 +79,8 @@ class ScoringRegressionTests(unittest.TestCase):
                   "blocked_page_detection", "completion_contract",
                   "layout_sensitive_reference_fact", "named_link_label_validity",
                   "semantic_inline_boundaries", "markdown_relative_autolink_visibility"}
+        paired.add("markdown_table_separator_layout")
+        paired.add("wikimedia_thumbnail_host_equivalence")
         for root_cause in paired:
             self.assertEqual(root_modes.get(root_cause), {"false-positive", "false-negative"})
 

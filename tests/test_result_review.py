@@ -161,12 +161,15 @@ class ResultReviewTests(unittest.TestCase):
                 'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
                 'attempts':[{'attempt_id':old['attempt_id'],'machine_verdict':'pass',
                              'agent_verdict':'fail','agent_evidence':'Body is too short.',
+                             'reviewer_anomalies':['unexpectedly short output'],
                              'final_verdict':None,'adjudication':None}]}
             (reviewed/'result-review.json').write_text(json.dumps(review))
             output=root/'rebased.json'
             result=rebase(current,reviewed,output,None,install=True)
             self.assertEqual(result['attempts'][0]['machine_verdict'],'fail')
             self.assertEqual(result['attempts'][0]['agent_verdict'],'fail')
+            self.assertEqual(result['attempts'][0]['reviewer_anomalies'],
+                             ['unexpectedly short output'])
             self.assertEqual(result['unresolved'],0)
             self.assertIsNotNone(require_result_review(current,dataset,[new]))
 

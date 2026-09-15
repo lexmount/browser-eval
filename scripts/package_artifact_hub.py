@@ -63,9 +63,15 @@ async function fileBytes(path){
 }
 async function textFile(path){return decoder.decode(await fileBytes(path))}
 let recordsPromise;
+const PRIVATE_METADATA_KEYS=new Set(['raw_response_path','private_artifacts','private_artifact','private_path']);
+function publicMetadata(value){
+ if(Array.isArray(value))return value.map(publicMetadata);
+ if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).filter(([key])=>!PRIVATE_METADATA_KEYS.has(key)&&!key.startsWith('private_')).map(([key,item])=>[key,publicMetadata(item)]));
+ return value;
+}
 async function metadata(index){
  if(!recordsPromise)recordsPromise=textFile('results.jsonl').then(s=>s.trim().split('\n').map(JSON.parse)).catch(error=>{recordsPromise=undefined;throw error});
- return JSON.stringify((await recordsPromise)[index].provider_metadata||{},null,2);
+ return JSON.stringify(publicMetadata((await recordsPromise)[index].provider_metadata||{}),null,2);
 }
 function deferFill(pre,message=tr('完整内容较大，点击后在只读文本框中加载；也可直接下载原始输出。','The complete content is large. Click to load it in a read-only text box, or download the original output.')){
  if(pre.dataset.deferred)return;
@@ -129,6 +135,7 @@ async function render(){
   window.dispatchEvent(new Event('report-ready'));
   const saved=restorePageState(path);
   document.querySelectorAll('pre[data-file],pre[data-record]').forEach(pre=>{
+   if(pre.closest('dialog'))return;
    const detail=pre.closest('details');if(detail&&!detail.open)detail.addEventListener('toggle',()=>{if(detail.open)fill(pre)});else fill(pre);
   });
   const anchor=params.get('anchor');applyReportAnchor(anchor);if(anchor)document.getElementById(anchor)?.scrollIntoView();else window.scrollTo(saved?.x||0,saved?.y||0);
@@ -181,13 +188,14 @@ def build():
   if path.suffix=='.html':
    text=data.decode()
    if path.parent.name=='attempts':
-    idx,record=by_attempt[path.stem];matches=list(re.finditer(r'<pre data-kind="(reference|contract|output|metadata)">(.*?)</pre>',text,re.S))
-    by_kind={kind:[match for match in matches if match[1]==kind] for kind in ('reference','contract','output','metadata')}
+    idx,record=by_attempt[path.stem];kinds=('reference','contract','output','metadata','call-output','call-metadata','call-log')
+    matches=list(re.finditer(r'<pre data-kind="('+('|'.join(kinds))+r')">(.*?)</pre>',text,re.S))
+    by_kind={kind:[match for match in matches if match[1]==kind] for kind in kinds}
     source_kind='contract' if by_kind['contract'] else 'reference'
     # Text tasks show the complete source and output in <pre> blocks, which we
     # replace with lazy-loaded evidence. Direct-file tasks intentionally show a
     # structured byte/hash comparison instead, so they have neither block.
-    assert len(by_kind['output'])<=1 and len(by_kind['metadata'])==1,(name,{key:len(value) for key,value in by_kind.items()})
+    assert all(len(by_kind[kind])<=1 for kind in ('output','metadata','call-output','call-metadata')) and len(by_kind['metadata'])==1,(name,{key:len(value) for key,value in by_kind.items()})
     # The first source block is the complete reference/contract. Newer detail pages
     # can also show several derived body-region excerpts; keep those excerpts inline
     # instead of incorrectly replacing each one with the complete source file.
@@ -195,11 +203,30 @@ def build():
     if by_kind[source_kind]:selected.append(by_kind[source_kind][0])
     if by_kind['output']:selected.append(by_kind['output'][0])
     selected.append(by_kind['metadata'][0])
+    if by_kind['call-output']:selected.append(by_kind['call-output'][0])
+    if by_kind['call-metadata']:selected.append(by_kind['call-metadata'][0])
+    selected.extend(by_kind['call-log'])
+    metadata=record.get('provider_metadata') or {};log_paths=[]
+    retry=metadata.get('retry') or {}
+    if isinstance(retry,dict):
+     for attempt in retry.get('attempts',[]):
+      if isinstance(attempt,dict) and isinstance(attempt.get('call_log'),dict):log_paths.append(attempt['call_log'].get('path'))
+    for value in (record.get('call_log'),metadata.get('call_log')):
+     if isinstance(value,dict):log_paths.append(value.get('path'))
+    log_paths.extend([record.get('call_log_path'),metadata.get('call_log_path')])
+    log_paths=list(dict.fromkeys(str(value) for value in log_paths if value and not str(value).startswith('private_artifacts/')))
+    assert len(log_paths)==len(by_kind['call-log']),(name,len(log_paths),len(by_kind['call-log']))
+    log_replacements={match.start():f'<pre data-file="{path}" data-readable="1"></pre>'
+                      for match,path in zip(by_kind['call-log'],log_paths)}
     replacements={source_kind:(f'<pre data-file="contracts/{record["case_id"]}.json"></pre>' if source_kind=='contract'
                                 else f'<pre data-file="references/{record["case_id"]}.txt"></pre>'),
                   'output':f'<pre data-file="{record["artifact_path"]}" data-readable="1"></pre>',
-                  'metadata':f'<pre data-record="{idx+1}"></pre>'}
-    for match in reversed(selected):text=text[:match.start()]+replacements[match[1]]+text[match.end():]
+                  'call-output':f'<pre data-file="{record["artifact_path"]}" data-readable="1"></pre>',
+                  'metadata':f'<pre data-record="{idx+1}"></pre>',
+                  'call-metadata':f'<pre data-record="{idx+1}"></pre>'}
+    for match in reversed(selected):
+     replacement=log_replacements[match.start()] if match[1]=='call-log' else replacements[match[1]]
+     text=text[:match.start()]+replacement+text[match.end():]
    elif path.parent.name=='datasets' and path.name!='index.html':
     text=re.sub(r'<pre>.*?</pre>',f'<pre data-file="references/{path.stem}.txt"></pre>',text,count=1,flags=re.S)
    data=text.encode();pages[name]=text

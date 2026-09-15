@@ -1,9 +1,12 @@
 import json
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
 
-from harness.web_fetch.anomaly_review import LAYERS, detect_anomalies, require_anomaly_review
+from harness.web_fetch.anomaly_review import (
+    LAYERS, TRIGGER_VERSION, detect_anomalies, require_anomaly_review,
+)
 
 
 class AnomalyReviewTests(unittest.TestCase):
@@ -151,6 +154,62 @@ class AnomalyReviewTests(unittest.TestCase):
                               for case in ('static-simple','redirect')]}
             self.assertEqual(detect_anomalies(root,rows,dataset),{})
 
+    def test_complete_declared_cohort_with_one_pass_triggers_every_attempt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            rows = []
+            cases = []
+            for index in range(10):
+                case_id = f'document-{index:02d}'
+                artifact = f'{case_id}.txt'
+                (root / artifact).write_text(f'answer {index}')
+                cases.append({'id': case_id, 'track': 'document'})
+                rows.append({
+                    'attempt_id': f'provider__{case_id}__r001',
+                    'provider': 'provider',
+                    'case_id': case_id,
+                    'ok': index == 0,
+                    'artifact_path': artifact,
+                    'metrics': {'content_pass': index == 0},
+                })
+            dataset = {
+                'cases': cases,
+                'coverage_plan': {'document': ['provider']},
+            }
+            found = detect_anomalies(root, rows, dataset)
+            self.assertEqual(set(found), {row['attempt_id'] for row in rows})
+            self.assertTrue(all(
+                'provider-track-at-most-one-pass' in triggers
+                for triggers in found.values()
+            ))
+
+    def test_low_pass_cohort_trigger_rejects_partial_or_duplicate_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cases = [{'id': f'case-{index}', 'track': 'video'} for index in range(4)]
+            dataset = {'cases': cases, 'coverage_plan': {'video': ['provider']}}
+
+            def row(index, passed=False):
+                artifact = f'answer-{index}.txt'
+                (root / artifact).write_text(f'answer {index}')
+                return {
+                    'attempt_id': f'provider__case-{index}__r001',
+                    'provider': 'provider', 'case_id': f'case-{index}',
+                    'artifact_path': artifact,
+                    'metrics': {'content_pass': passed},
+                }
+
+            partial = [row(0, True), row(1), row(2)]
+            self.assertFalse(any(
+                'provider-track-at-most-one-pass' in triggers
+                for triggers in detect_anomalies(root, partial, dataset).values()
+            ))
+            duplicate = [row(0, True), row(1), row(2), row(2)]
+            self.assertFalse(any(
+                'provider-track-at-most-one-pass' in triggers
+                for triggers in detect_anomalies(root, duplicate, dataset).values()
+            ))
+
     def test_required_review_blocks_unresolved_and_uncorrected_defect(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory); (root/'empty.txt').write_text('')
@@ -158,7 +217,7 @@ class AnomalyReviewTests(unittest.TestCase):
             records=[{'attempt_id':'p__a','provider':'p','case_id':'a','ok':True,
                       'artifact_path':'empty.txt','metrics':{}}]
             review={'review_protocol':{'anomaly_review':{
-                        'trigger_version':1, 'performed_after_blind_verdict':True,
+                        'trigger_version':TRIGGER_VERSION, 'performed_after_blind_verdict':True,
                         'triggered_attempts':1, 'seven_layers':list(LAYERS)}},
                     'attempts':[{'attempt_id':'p__a','reviewer_anomalies':[],
                                  'anomaly_review':self.audit('unresolved')} ]}
@@ -177,6 +236,64 @@ class AnomalyReviewTests(unittest.TestCase):
             review['attempts'][0]['anomaly_review']['correction_applied']=False
             with self.assertRaisesRegex(ValueError, 'must be corrected'):
                 require_anomaly_review(root,dataset,records,review)
+
+    def test_transport_timeout_raw_gap_requires_bound_call_log(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'empty.txt').write_text('')
+            (root / 'call-logs').mkdir()
+            empty_sha = hashlib.sha256(b'').hexdigest()
+            log = {
+                'response': {'status_code': None},
+                'error': {'type': 'timeout', 'message': 'read timed out'},
+                'output': {'sha256': empty_sha, 'bytes': 0},
+            }
+            data = json.dumps(log).encode()
+            (root / 'call-logs/physical.json').write_bytes(data)
+            row = {
+                'attempt_id': 'p__a', 'provider': 'p', 'case_id': 'a',
+                'ok': False, 'status_code': None, 'error_type': 'timeout',
+                'error_message': 'read timed out', 'artifact_path': 'empty.txt',
+                'elapsed_ms': 40000, 'metrics': {'content_sha256': empty_sha},
+                'provider_metadata': {'call_log': {
+                    'path': 'call-logs/physical.json',
+                    'sha256': hashlib.sha256(data).hexdigest(),
+                }},
+            }
+            dataset = {'comparison': {'require_anomaly_review': True}}
+            reviewer_anomalies = {'p__a': ['transport raw gap']}
+            triggers = detect_anomalies(
+                root, [row], dataset, reviewer_anomalies)
+            self.assertIn('p__a', triggers)
+            audit = self.audit('no-defect')
+            audit['triggers'] = triggers['p__a']
+            audit['layers']['raw'] = {
+                'status': 'insufficient',
+                'evidence': 'Transport timed out before an adapter response was returned.',
+            }
+            review = {
+                'review_protocol': {'anomaly_review': {
+                    'trigger_version': TRIGGER_VERSION,
+                    'performed_after_blind_verdict': True,
+                    'triggered_attempts': 1,
+                    'seven_layers': list(LAYERS),
+                }},
+                'attempts': [{'attempt_id': 'p__a',
+                              'reviewer_anomalies': reviewer_anomalies['p__a'],
+                              'anomaly_review': audit}],
+            }
+            require_anomaly_review(root, dataset, [row], review)
+            row['status_code'] = 200
+            with self.assertRaisesRegex(ValueError, 'insufficient'):
+                require_anomaly_review(root, dataset, [row], review)
+            row['status_code'] = None
+            row['provider_metadata']['call_log']['sha256'] = '0' * 64
+            with self.assertRaisesRegex(ValueError, 'insufficient'):
+                require_anomaly_review(root, dataset, [row], review)
+            row['provider_metadata']['call_log']['sha256'] = hashlib.sha256(data).hexdigest()
+            audit['layers']['request']['status'] = 'insufficient'
+            with self.assertRaisesRegex(ValueError, 'insufficient'):
+                require_anomaly_review(root, dataset, [row], review)
 
     @staticmethod
     def audit(status, defect=False):

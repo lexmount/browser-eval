@@ -15,7 +15,10 @@ from harness.web_fetch.runner import preflight_declared_capacity, run_evaluation
 from harness.web_fetch.report_build import build_report
 from harness.web_fetch.safety import contained_path
 from harness.web_fetch.storage import data_home
-from harness.web_fetch.artifacts import materialize_private_artifacts
+from harness.web_fetch.artifacts import (
+    materialize_private_artifacts, record_public_call_log_bindings,
+    verify_public_call_log,
+)
 
 
 def artifact_bindings(record):
@@ -43,6 +46,8 @@ def artifact_bindings(record):
             if not digest:
                 raise ValueError('Retry artifact has no hash binding: ' + relative)
             add(relative, digest)
+    for binding in record_public_call_log_bindings(record):
+        add(binding['path'], binding['sha256'])
     return list(bindings.items())
 
 
@@ -64,7 +69,11 @@ def materialize_worker_artifacts(output, worker, records):
     bind_retry_artifacts(worker, records)
     materialize_private_artifacts(output, worker, records)
     for record in records:
+        call_logs = {binding['path']: binding
+                     for binding in record_public_call_log_bindings(record)}
         for relative, digest in artifact_bindings(record):
+            if relative in call_logs:
+                verify_public_call_log(worker, call_logs[relative])
             source = contained_path(worker, relative)
             if not source.is_file() or hashlib.sha256(source.read_bytes()).hexdigest() != digest:
                 raise ValueError('Worker artifact differs from its result binding: ' + relative)
@@ -75,6 +84,8 @@ def materialize_worker_artifacts(output, worker, records):
                     raise ValueError('Aggregate artifact collision: ' + relative)
             else:
                 shutil.copy2(source, target)
+            if relative in call_logs:
+                verify_public_call_log(output, call_logs[relative])
 
 
 def main(argv=None):
@@ -139,7 +150,9 @@ def main(argv=None):
         return
     declared_calls=len(cases)*args.runs*(args.max_failure_retries+1)
     preflight_declared_capacity(
-        selected_providers, declared_calls=declared_calls, timeout=10
+        selected_providers, declared_calls=declared_calls, timeout=10,
+        cases=cases, runs=args.runs,
+        max_failure_retries=args.max_failure_retries,
     )
     args.output.mkdir(parents=True)
     def work(name):
