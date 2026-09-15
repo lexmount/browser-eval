@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.trajectory_replay.webarena_report import _metrics_table, _shell
+from harness.trajectory_replay.webarena_report import _clean, _metrics_table, _shell
 from scripts.check_webarena_replay_report import _check_english_localization
 
 
@@ -65,3 +65,14 @@ def test_report_shell_localizes_chinese_title_and_footer() -> None:
     assert "<title>浏览器轨迹重放</title>" in rendered
     assert "WebArena-Verified 1.2.3 · 浏览器轨迹重放" in rendered
     assert "Browser Trajectory Replay</footer>" not in rendered
+
+
+def test_report_removes_macos_and_linux_local_paths() -> None:
+    for path in (
+        "/Users/example/run/trace.json",
+        "/home/runner/work/trace.json",
+        "/private/tmp/run/trace.json",
+        "/var/lib/docker/trace.json",
+        "/opt/hostedtoolcache/trace.json",
+    ):
+        assert _clean(f"failure at {path}") == "failure at [local path removed]"

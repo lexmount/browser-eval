@@ -592,6 +592,41 @@ def _teardown_method(client: Any, run_id: str, engine: str) -> None:
         raise RuntimeError("method teardown failed: " + "; ".join(errors))
 
 
+def _finalize_method_teardown(
+    client: Any,
+    run_id: str,
+    engine: str,
+    method_teardown: dict[str, bool],
+    receipt: dict[str, Any],
+    receipt_path: Path,
+    primary_error: BaseException | None,
+) -> None:
+    """Persist cleanup outcome without replacing an in-flight task failure."""
+
+    cleanup_errors = []
+    try:
+        _teardown_method(client, run_id, engine)
+    except Exception as exc:
+        cleanup_errors.append(str(exc))
+        method_teardown[engine] = False
+        receipt.setdefault("method_teardown_errors", {})[engine] = str(exc)
+    else:
+        method_teardown[engine] = True
+        (receipt.get("method_teardown_errors") or {}).pop(engine, None)
+    receipt["method_teardown"] = method_teardown
+    try:
+        _write_receipt(receipt_path, receipt)
+    except Exception as exc:
+        cleanup_errors.append(f"receipt update failed: {exc}")
+    if not cleanup_errors:
+        return
+    message = "method finalization failed: " + "; ".join(cleanup_errors)
+    if primary_error is not None:
+        primary_error.add_note(message)
+        return
+    raise RuntimeError(message)
+
+
 def _remove_orphan_replay_runtimes(client: Any, current_run_id: str) -> None:
     """Remove stale replay containers and networks while the global stack lock is held."""
 
@@ -947,6 +982,7 @@ def run_replay_suite(  # noqa: PLR0913
                 continue
             network = None
             container = None
+            primary_error: BaseException | None = None
             try:
                 _stop_all_sites()
                 method_teardown[engine] = False
@@ -1073,11 +1109,19 @@ def run_replay_suite(  # noqa: PLR0913
                         ),
                         flush=True,
                     )
+            except BaseException as exc:
+                primary_error = exc
+                raise
             finally:
-                _teardown_method(client, run_id, engine)
-                method_teardown[engine] = True
-                receipt["method_teardown"] = method_teardown
-                _write_receipt(receipt_path, receipt)
+                _finalize_method_teardown(
+                    client,
+                    run_id,
+                    engine,
+                    method_teardown,
+                    receipt,
+                    receipt_path,
+                    primary_error,
+                )
 
     expected = {(engine, task_id) for engine in engines for task_id in task_ids}
     actual = {(str(item["engine"]), int(item["task_id"])) for item in attempts}

@@ -10,6 +10,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
+from harness.trajectory_replay.webarena_report import LOCAL_PATH_RE
+
 
 class _VisibleTextParser(HTMLParser):
     def __init__(self) -> None:
@@ -186,7 +188,9 @@ def check(report_dir: Path) -> dict[str, int]:
         for path in root.rglob("*")
         if path.is_file() and path.suffix in {".html", ".json", ".js", ".css"}
     )
-    if "/Users/" in distributable or re.search(r"sk-[A-Za-z0-9_-]{12,}", distributable):
+    if LOCAL_PATH_RE.search(distributable) or re.search(
+        r"sk-[A-Za-z0-9_-]{12,}", distributable
+    ):
         raise ValueError("report contains a local path or credential-like token")
     css = (root / "assets/report.css").read_text(encoding="utf-8")
     if ".inventory{height:" not in css or "overflow:auto" not in css:

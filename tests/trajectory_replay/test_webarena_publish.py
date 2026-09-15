@@ -4,6 +4,8 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
 import scripts.package_webarena_replay_artifact_site as packager
 import scripts.publish_webarena_replay_artifact_site as publisher
 
@@ -61,6 +63,7 @@ def test_bind_publication_updates_profile_and_attestation(monkeypatch, tmp_path:
     attestation.write_text(json.dumps({"profile_sha256": "old"}), encoding="utf-8")
     monkeypatch.setattr(publisher, "PROFILE", profile)
     monkeypatch.setattr(publisher, "ATTESTATION", attestation)
+    monkeypatch.setattr(publisher, "BINDING_JOURNAL", tmp_path / "binding-pending.json")
 
     publisher.bind_publication(
         json.loads(profile.read_text()),
@@ -77,6 +80,48 @@ def test_bind_publication_updates_profile_and_attestation(monkeypatch, tmp_path:
         "expected_version": "ver_new",
         "state": "verified",
     }
+    assert json.loads(attestation.read_text())["profile_sha256"] == _sha256(profile)
+
+
+def test_binding_journal_recovers_interrupted_two_file_update(
+    monkeypatch, tmp_path: Path
+) -> None:
+    profile = tmp_path / "profile.json"
+    profile.write_text(
+        json.dumps({"publication": {"base_url": "https://app.example"}}),
+        encoding="utf-8",
+    )
+    attestation = tmp_path / "attestation.json"
+    attestation.write_text(json.dumps({"profile_sha256": "old"}), encoding="utf-8")
+    journal = tmp_path / "binding-pending.json"
+    monkeypatch.setattr(publisher, "PROFILE", profile)
+    monkeypatch.setattr(publisher, "ATTESTATION", attestation)
+    monkeypatch.setattr(publisher, "BINDING_JOURNAL", journal)
+    original_atomic_write = publisher.atomic_write
+    interrupted = False
+
+    def interrupt_attestation(path: Path, payload: bytes) -> None:
+        nonlocal interrupted
+        if path == attestation and not interrupted:
+            interrupted = True
+            raise OSError("simulated interruption")
+        original_atomic_write(path, payload)
+
+    monkeypatch.setattr(publisher, "atomic_write", interrupt_attestation)
+    with pytest.raises(OSError, match="simulated interruption"):
+        publisher.bind_publication(
+            json.loads(profile.read_text()),
+            slug="abc",
+            share_url="https://app.example/v/token",
+            version="ver_new",
+        )
+    assert journal.is_file()
+
+    monkeypatch.setattr(publisher, "atomic_write", original_atomic_write)
+    publisher.recover_publication_binding()
+
+    assert not journal.exists()
+    assert json.loads(profile.read_text())["publication"]["expected_version"] == "ver_new"
     assert json.loads(attestation.read_text())["profile_sha256"] == _sha256(profile)
 
 

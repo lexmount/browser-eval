@@ -11,6 +11,7 @@ from harness.trajectory_replay.webarena_replay import (
     _click_was_dispatched_before_navigation_timeout,
     _embedded_observation_error,
     _execute_replay_call,
+    _finalize_method_teardown,
     _origin,
     _rebind_url,
     _run_one,
@@ -66,6 +67,54 @@ def test_replay_cleanup_and_locking_preserve_run_isolation() -> None:
     assert 'cleanup_errors.append(f"resource sampler stop failed: {exc}")' in run_one_source
     assert 'cleanup_errors.append(f"browser tool close failed: {exc}")' in run_one_source
     assert '"cleanup_errors": cleanup_errors' in run_one_source
+
+
+def test_method_teardown_failure_does_not_mask_primary_error(
+    monkeypatch, tmp_path: Path
+) -> None:
+    primary = RuntimeError("task failed")
+    receipt = {}
+    state = {"chromium": False}
+    monkeypatch.setattr(
+        "harness.trajectory_replay.webarena_replay._teardown_method",
+        lambda *_args: (_ for _ in ()).throw(RuntimeError("cleanup failed")),
+    )
+    monkeypatch.setattr(
+        "harness.trajectory_replay.webarena_replay._write_receipt",
+        lambda *_args: None,
+    )
+
+    _finalize_method_teardown(
+        object(), "run", "chromium", state, receipt, tmp_path / "receipt.json", primary
+    )
+
+    assert state == {"chromium": False}
+    assert receipt["method_teardown_errors"]["chromium"] == "cleanup failed"
+    assert "cleanup failed" in " ".join(primary.__notes__)
+
+
+def test_method_teardown_failure_is_raised_without_primary_error(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(
+        "harness.trajectory_replay.webarena_replay._teardown_method",
+        lambda *_args: (_ for _ in ()).throw(RuntimeError("cleanup failed")),
+    )
+    monkeypatch.setattr(
+        "harness.trajectory_replay.webarena_replay._write_receipt",
+        lambda *_args: None,
+    )
+
+    with pytest.raises(RuntimeError, match="cleanup failed"):
+        _finalize_method_teardown(
+            object(),
+            "run",
+            "chromium",
+            {"chromium": False},
+            {},
+            tmp_path / "receipt.json",
+            None,
+        )
 
 
 def test_formal_dataset_binding_requires_all_canonical_trajectories(tmp_path: Path) -> None:

@@ -23,6 +23,7 @@ RECEIPT = Path("publish/trajectory-replay-artifact-site-receipt.json")
 PROFILE = Path("evaluation/trajectory-replay/webarena-verified/current-run.json")
 DATASET = Path("evaluation/trajectory-replay/webarena-verified/trajectories.json")
 REVIEW = Path("research/trajectory-replay-failure-review.json")
+BINDING_JOURNAL = Path("publish/trajectory-replay-artifact-site-binding-pending.json")
 PUBLIC_REPORT_MARKERS = (
     "<title>浏览器轨迹重放</title>",
     "<title>Browser Trajectory Replay</title>",
@@ -35,6 +36,42 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def json_bytes(value: dict) -> bytes:
+    return (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode()
+
+
+def atomic_write(path: Path, payload: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def recover_publication_binding() -> None:
+    if not BINDING_JOURNAL.is_file():
+        return
+    pending = json.loads(BINDING_JOURNAL.read_text(encoding="utf-8"))
+    if pending.get("schema") != "lex_webarena_replay_publication_binding/1":
+        raise ValueError("invalid pending publication binding")
+    profile = pending.get("profile")
+    attestation = pending.get("attestation")
+    if not isinstance(profile, dict) or not isinstance(attestation, dict):
+        raise ValueError("invalid pending publication binding payload")
+    profile_payload = json_bytes(profile)
+    if hashlib.sha256(profile_payload).hexdigest() != attestation.get("profile_sha256"):
+        raise ValueError("pending publication binding has an invalid profile hash")
+    atomic_write(PROFILE, profile_payload)
+    atomic_write(ATTESTATION, json_bytes(attestation))
+    BINDING_JOURNAL.unlink()
 
 
 def tree_sha256(root: Path) -> str:
@@ -98,6 +135,7 @@ def request(
 
 
 def validate_package() -> dict:
+    recover_publication_binding()
     if not ARCHIVE.is_file() or not ATTESTATION.is_file():
         raise ValueError("missing validated replay package or attestation")
     attestation = json.loads(ATTESTATION.read_text(encoding="utf-8"))
@@ -197,13 +235,16 @@ def bind_publication(profile: dict, *, slug: str, share_url: str, version: str) 
             "state": "verified",
         }
     )
-    PROFILE.write_text(json.dumps(profile, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     attestation = json.loads(ATTESTATION.read_text(encoding="utf-8"))
-    attestation["profile_sha256"] = sha256(PROFILE)
-    ATTESTATION.write_text(
-        json.dumps(attestation, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    profile_payload = json_bytes(profile)
+    attestation["profile_sha256"] = hashlib.sha256(profile_payload).hexdigest()
+    pending = {
+        "schema": "lex_webarena_replay_publication_binding/1",
+        "profile": profile,
+        "attestation": attestation,
+    }
+    atomic_write(BINDING_JOURNAL, json_bytes(pending))
+    recover_publication_binding()
 
 
 def save_receipt(value: dict) -> None:

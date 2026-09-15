@@ -18,6 +18,8 @@ from harness.trajectory_replay.webarena_review import (
     programmatic_failure,
 )
 
+LOCAL_PATH_RE = re.compile(r"/(?:Users|home|private|tmp|var|opt)/[^\s\"']+")
+
 
 def _e(value: Any) -> str:
     return html.escape(str(value if value is not None else ""))
@@ -52,7 +54,7 @@ def _clean(value: Any) -> Any:
     if isinstance(value, list):
         return [_clean(item) for item in value]
     if isinstance(value, str):
-        value = re.sub(r"/Users/[^\s\"']+", "[local path removed]", value)
+        value = LOCAL_PATH_RE.sub("[local path removed]", value)
         value = re.sub(r"sk-[A-Za-z0-9_-]{12,}", "[secret removed]", value)
     return value
 
