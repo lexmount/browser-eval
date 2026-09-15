@@ -5,7 +5,11 @@ import argparse
 import hashlib
 import json
 import shutil
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from harness.web_fetch.safety import contained_path
 
 
 PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "chromium")
@@ -18,6 +22,15 @@ def digest(path: Path) -> str:
 
 def read_jsonl(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def copy_scored_artifact(source_root: Path, output_root: Path, row: dict) -> None:
+    source = contained_path(source_root, row["artifact_path"])
+    target = contained_path(output_root, row["artifact_path"])
+    if digest(source) != row["output_sha256"]:
+        raise ValueError(f"Artifact hash mismatch for {row['track_id']}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, target)
 
 
 def main() -> None:
@@ -70,18 +83,13 @@ def main() -> None:
         if {row["track_id"] for row in rows} != {record["track_id"] for record in source_records}:
             raise ValueError(f"{provider}: case matrix mismatch")
         for row in rows:
-            artifact = shard / row["artifact_path"]
-            if digest(artifact) != row["output_sha256"]:
-                raise ValueError(f"{provider}: artifact hash mismatch for {row['track_id']}")
-            target = args.output / row["artifact_path"]
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(artifact, target)
+            copy_scored_artifact(shard, args.output, row)
             results.append({**row, "case_id": row["track_id"]})
         physical.extend(attempts)
         summaries[provider] = json.loads((shard / "score-summary.json").read_text(encoding="utf-8"))
         execution = json.loads((shard / "execution.json").read_text(encoding="utf-8"))
         if execution.get("fixture_ca_artifact"):
-            source_ca = shard / execution["fixture_ca_artifact"]
+            source_ca = contained_path(shard, execution["fixture_ca_artifact"])
             target_ca = args.output / "fixture-certificates" / f"{provider}-ca.pem"
             shutil.copy2(source_ca, target_ca)
             execution["assembled_fixture_ca_path"] = str(target_ca.relative_to(args.output))

@@ -5,7 +5,11 @@ import argparse
 import hashlib
 import json
 import shutil
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from harness.web_fetch.safety import contained_path
 
 
 DATASET_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
@@ -17,6 +21,15 @@ def digest(path: Path) -> str:
 
 def read_jsonl(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def copy_scored_artifact(source_root: Path, output_root: Path, row: dict) -> None:
+    source = contained_path(source_root, row["artifact_path"])
+    target = contained_path(output_root, row["artifact_path"])
+    if digest(source) != row["output_sha256"]:
+        raise ValueError("Source artifact hash mismatch: " + row["track_id"])
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, target)
 
 
 def write_json(path: Path, value: object) -> None:
@@ -53,14 +66,8 @@ def main() -> None:
         raise ValueError("Projected logical matrix is incomplete")
 
     args.output.mkdir(parents=True)
-    artifact_root = args.output / "artifacts"
     for row in results:
-        source_artifact = args.source / row["artifact_path"]
-        if digest(source_artifact) != row["output_sha256"]:
-            raise ValueError("Source artifact hash mismatch: " + row["track_id"])
-        target = args.output / row["artifact_path"]
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source_artifact, target)
+        copy_scored_artifact(args.source, args.output, row)
     if (args.source / "fixture-ca.pem").is_file():
         shutil.copy2(args.source / "fixture-ca.pem", args.output / "fixture-ca.pem")
 

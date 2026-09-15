@@ -11,9 +11,16 @@ import unittest
 import zipfile
 
 from harness.web_fetch.publication_privacy import project_file, publication_risk
+from scripts.check_publication_bundle import scored_output_hash
 
 
 class PublicationPrivacyTests(unittest.TestCase):
+    def test_scored_bundle_requires_an_output_hash(self):
+        self.assertEqual(scored_output_hash({'output_sha256': 'hash'}), 'hash')
+        self.assertEqual(scored_output_hash({'metrics': {'content_sha256': 'fallback'}}), 'fallback')
+        with self.assertRaisesRegex(ValueError, 'missing scored output hash'):
+            scored_output_hash({'artifact_path': 'artifacts/case.md'})
+
     def test_loader_localizes_async_status_and_accessibility_copy(self):
         source=(Path(__file__).resolve().parents[1]/'scripts/package_artifact_hub.py').read_text()
         self.assertIn("function tr(zh,en)",source)

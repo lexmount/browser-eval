@@ -13,6 +13,13 @@ from harness.web_fetch.publication_privacy import publication_risk
 from bs4 import BeautifulSoup
 
 
+def scored_output_hash(row: dict) -> str:
+    expected = row.get('output_sha256') or row.get('metrics', {}).get('content_sha256')
+    if not expected:
+        raise ValueError('Record missing scored output hash: ' + str(row.get('artifact_path')))
+    return expected
+
+
 def check(archive,source):
     with zipfile.ZipFile(archive) as bundle:
         manifest=json.loads(bundle.read('manifest.json'))
@@ -39,7 +46,7 @@ def check(archive,source):
         for row in rows:
             raw=data(row['artifact_path'])
             original=(source/row['artifact_path']).read_bytes()
-            expected_hash=row.get('output_sha256') or row.get('metrics',{}).get('content_sha256')
+            expected_hash=scored_output_hash(row)
             if hashlib.sha256(original).hexdigest()!=expected_hash:
                 raise ValueError('Original scored output hash differs')
             disclosure=privacy_by_path.get(row['artifact_path'])
