@@ -22,31 +22,91 @@
     "concurrency": 1,
     "runs_per_case": 1,
     "reference_binding_mode": "hash_bound_stable_text_and_structure",
-    "publication_state": "measured_independently_reviewed",
+    "publication_state": "frozen_pending_affected_reruns",
     "unverified_reference_cases": [],
     "require_independent_result_review": true,
-    "fresh_formal_result_count": 800,
-    "provider_results_reused": 0,
+    "fresh_formal_result_count": 24,
+    "provider_results_reused": 776,
     "methods_run_in_parallel": true,
     "retry_policy": "No retry to improve a score. A proven command, version, scorer, reference, or timing error requires an append-only formal correction that replaces the full affected scope.",
     "body_reference_case_count": 0,
     "body_metrics": "unavailable",
     "conversion": "Each method's native known-URL fetch output is normalized once into text plus explicit structured links when available.",
     "source_rule_registry": "research/popular-sites-rules.json",
-    "source_rule_registry_sha256": "5b28422dc53d61d7df23d11b2f3d310f500a3f0e836783f1abb0a46c42f2ba0d",
+    "source_rule_registry_sha256": "88ccb4557c1f3c053f351fb4a292fc856a442d1128e874bc7f67658ea2b86f72",
     "approval_record": "research/china-homepage-rules-approval.json",
     "approval_record_sha256": "8bf2cda6f77089680ee537f5405bf9169a35dd6432e2276b5770aa5c4043b160",
     "execution_contract": "research/popular-sites-8-method-stage-contract.json",
-    "execution_contract_sha256": "cfaefd3334710cc1f4f18c6b5ffbed4670287e981608b10ce0743250ebe5d40c",
+    "execution_contract_sha256": "d99add89858204e132084f59c9022c0b2f7b1be228beb358303a4f409693c9cf",
     "final_execution_contract": "research/popular-sites-12-method-contract.json",
-    "final_execution_contract_sha256": "7baf7fb3a7c25721ab38cfd09260f714da615833db137fbdc0c82da7d3d3903b",
+    "final_execution_contract_sha256": "17cf9a62de863af6c9cebe3c2d67326ed21d872bbc13b5dc771c9c1b8e961a9d",
     "stage_label": "8/12 methods interim",
     "deferred_providers": [
       "cloudflare-markdown",
       "firecrawl",
       "tavily",
       "exa"
-    ]
+    ],
+    "inherited_formal_result_count": 776,
+    "score_only_recompute_count": 168,
+    "required_new_provider_calls": 24,
+    "rule_revision": {
+      "id": "popular-sites-rules-v2-2026-09-15",
+      "approved_at": "2026-09-15",
+      "audit": "research/popular-sites-rules-audit-v2.json",
+      "audit_sha256": "f98ea6bcfaf754e7b9827ce93148f02a139da98e4afdcf088d8bb7de0b46bbfc",
+      "approval": "research/popular-sites-rules-v2-approval.json",
+      "approval_sha256": "1faa7f631a00f4575f94992a1ec6e369aba821910db22cd631b360014bfe52a5",
+      "approved_reference": "research/popular-sites-approved-contract-reference-2026-09-15.json",
+      "approved_reference_sha256": "b70350a8247bc1986110e7e8060298218a9353fe6b96417d95e33eac671dbad3",
+      "score_only_case_ids": [
+        "china-homepage-019-taobao-com",
+        "china-homepage-029-360-com",
+        "china-homepage-036-hao123-com",
+        "china-homepage-039-1688-com",
+        "china-homepage-045-tmall-com",
+        "china-homepage-058-huaban-com",
+        "china-homepage-064-gamer520-com",
+        "china-homepage-071-2345-com",
+        "china-homepage-078-nga-cn",
+        "china-homepage-085-shopify-com",
+        "global-homepage-005-chatgpt-com",
+        "global-homepage-010-bing-com",
+        "global-homepage-012-gemini-google-com",
+        "global-homepage-016-amazon-com",
+        "global-homepage-018-baidu-com",
+        "global-homepage-020-naver-com",
+        "global-homepage-037-mail-ru",
+        "global-homepage-044-spotify-com",
+        "global-homepage-045-nytimes-com",
+        "global-homepage-068-indeed-com",
+        "global-homepage-072-rakuten-co-jp"
+      ],
+      "provider_rerun_case_ids": [
+        "challenge-02",
+        "challenge-04",
+        "challenge-06"
+      ],
+      "provider_rerun_methods": [
+        "crawl4ai",
+        "moli-webfetch",
+        "deepseek-harness-built-in",
+        "cowagent-built-in",
+        "langchain-webbase",
+        "openclaw-built-in",
+        "lexmount-cn",
+        "lexmount-global"
+      ],
+      "provider_rerun_call_count": 24,
+      "deferred_methods_run": false,
+      "publication_hold_required": true,
+      "predecessor": {
+        "dataset_sha256": "808dcc081a6e72038d1f17f1141fd2cd3fa8db1eb1a5aa4560a824e685ffa39a",
+        "rules_sha256": "5b28422dc53d61d7df23d11b2f3d310f500a3f0e836783f1abb0a46c42f2ba0d",
+        "stage_contract_sha256": "cfaefd3334710cc1f4f18c6b5ffbed4670287e981608b10ce0743250ebe5d40c",
+        "final_contract_sha256": "7baf7fb3a7c25721ab38cfd09260f714da615833db137fbdc0c82da7d3d3903b"
+      }
+    }
   },
   "cases": [
     {
@@ -286,31 +346,35 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/global-homepage-005-chatgpt-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/global-homepage-005-chatgpt-com/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/global-homepage-005-chatgpt-com/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：ChatGPT；Where should we begin?；Chat with ChatGPT；New chat。不点击、不递归，不要求长正文或三个详情链接。",
-      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：ChatGPT；Where should we begin?；Chat with ChatGPT；New chat。不点击、不递归，不要求长正文或三个详情链接。",
+      "task_prompt": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：ChatGPT；New chat；Where should we begin? / Ready when you are.。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：ChatGPT；New chat；Where should we begin? / Ready when you are.。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
         "requested_ranked_domain": "chatgpt.com",
         "observed_final_url": "https://chatgpt.com/",
         "stable_annotation": {
-          "registry": "global-homepage-rules",
-          "version": 1,
+          "registry": "popular-sites-rules",
+          "version": 3,
           "content_kind": "entry_page",
           "stable_fields": [
             "task_related_page_text"
           ],
           "structural_only_fields": [],
-          "anchor_evidence": "sources/global-homepage-005-chatgpt-com/stable-page.txt",
-          "anchor_evidence_sha256": "78adf20a2decaecec19c1995d81a5bdde694cbd35d94e13e015d044734b1a6f2",
+          "anchor_evidence": "sources/popular-sites-rules-v2/global-homepage-005-chatgpt-com/stable-page.txt",
+          "anchor_evidence_sha256": "366adf13da1ee5bbbc1d369a02885ba59ece7ed62b8f1ed352731c7f59615695",
           "record_requirement": "No structured records; every registered stable page-text group is required.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Independent browser evidence came from the ranked-domain homepage; only a proven locale-variant homepage uses a fixed-language URL. No provider output or recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -319,10 +383,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent headless Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "c1d17ff52b1ad84a3a6d47462583651cb630000c0147fa419e533b9fff3086d8",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -339,19 +403,14 @@
           {
             "id": "stable-anchor-2",
             "alternatives": [
-              "Where should we begin?"
+              "New chat"
             ]
           },
           {
             "id": "stable-anchor-3",
             "alternatives": [
-              "Chat with ChatGPT"
-            ]
-          },
-          {
-            "id": "stable-anchor-4",
-            "alternatives": [
-              "New chat"
+              "Where should we begin?",
+              "Ready when you are."
             ]
           }
         ]
@@ -582,31 +641,35 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/global-homepage-010-bing-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/global-homepage-010-bing-com/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/global-homepage-010-bing-com/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Microsoft Bing；Images；Maps；Sign in。不点击、不递归，不要求长正文或三个详情链接。",
-      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Microsoft Bing；Images；Maps；Sign in。不点击、不递归，不要求长正文或三个详情链接。",
+      "task_prompt": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：Bing homepage quiz；Images；Maps；Sign in。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：Bing homepage quiz；Images；Maps；Sign in。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
         "requested_ranked_domain": "bing.com",
         "observed_final_url": "https://www.bing.com/?toWww=1&redig=664889C106914BE786F166BF5F44DAFE",
         "stable_annotation": {
-          "registry": "global-homepage-rules",
-          "version": 1,
+          "registry": "popular-sites-rules",
+          "version": 3,
           "content_kind": "entry_page",
           "stable_fields": [
             "task_related_page_text"
           ],
           "structural_only_fields": [],
-          "anchor_evidence": "sources/global-homepage-010-bing-com/stable-page.txt",
-          "anchor_evidence_sha256": "3c5168a3206828a84ee2df04a814d89d0ec226d692d4ce8bc7b1b9880d61bbe4",
+          "anchor_evidence": "sources/popular-sites-rules-v2/global-homepage-010-bing-com/stable-page.txt",
+          "anchor_evidence_sha256": "1e60897b706666cff562cc6968d7c0d9b4504304b18b22b8f2efcfb28db2cb48",
           "record_requirement": "No structured records; every registered stable page-text group is required.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Independent browser evidence came from the ranked-domain homepage; only a proven locale-variant homepage uses a fixed-language URL. No provider output or recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -615,10 +678,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent headless Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "965bdebd5a631ab4e160068ea60e3f2f7c29ecd9d5386b822d3f938d3aa93e04",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -629,7 +692,7 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "Microsoft Bing"
+              "Bing homepage quiz"
             ]
           },
           {
@@ -776,31 +839,35 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/global-homepage-012-gemini-google-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/global-homepage-012-gemini-google-com/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/global-homepage-012-gemini-google-com/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Gemini；Conversation with Gemini；Meet Gemini, your personal AI assistant。不点击、不递归，不要求长正文或三个详情链接。",
-      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Gemini；Conversation with Gemini；Meet Gemini, your personal AI assistant。不点击、不递归，不要求长正文或三个详情链接。",
+      "task_prompt": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：Gemini；Conversation with Gemini；Meet Gemini, your personal AI assistant / Where should we start?。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：Gemini；Conversation with Gemini；Meet Gemini, your personal AI assistant / Where should we start?。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
         "requested_ranked_domain": "gemini.google.com",
         "observed_final_url": "https://gemini.google.com/app",
         "stable_annotation": {
-          "registry": "global-homepage-rules",
-          "version": 1,
+          "registry": "popular-sites-rules",
+          "version": 3,
           "content_kind": "entry_page",
           "stable_fields": [
             "task_related_page_text"
           ],
           "structural_only_fields": [],
-          "anchor_evidence": "sources/global-homepage-012-gemini-google-com/stable-page.txt",
-          "anchor_evidence_sha256": "d3e1bf4c054ace6980eef81d3f3c1de7b5a7b07e34c6eebe1382494653b321be",
+          "anchor_evidence": "sources/popular-sites-rules-v2/global-homepage-012-gemini-google-com/stable-page.txt",
+          "anchor_evidence_sha256": "32671c353db7cf30c3b563a64a0d433fe89d58952c2ef557160f2fb1266190b8",
           "record_requirement": "No structured records; every registered stable page-text group is required.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Independent browser evidence came from the ranked-domain homepage; only a proven locale-variant homepage uses a fixed-language URL. No provider output or recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -809,10 +876,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent headless Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "ebb64d2ec1491fc861e87d9edece6c79706881f1be7e5dc08ae6a57c09d57d3e",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -835,7 +902,8 @@
           {
             "id": "stable-anchor-3",
             "alternatives": [
-              "Meet Gemini, your personal AI assistant"
+              "Meet Gemini, your personal AI assistant",
+              "Where should we start?"
             ]
           }
         ]
@@ -1092,20 +1160,24 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/global-homepage-016-amazon-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/global-homepage-016-amazon-com/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/global-homepage-016-amazon-com/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口，链接符合登记的主机和路径；同时保留这些稳定页面文字：Amazon；Today's Deals；Customer Service。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
-      "reference_answer": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口，链接符合登记的主机和路径；同时保留这些稳定页面文字：Amazon；Today's Deals；Customer Service。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：Amazon。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：Amazon。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
         "requested_ranked_domain": "amazon.com",
         "observed_final_url": "https://www.amazon.com/",
         "stable_annotation": {
-          "registry": "global-homepage-rules",
-          "version": 1,
+          "registry": "popular-sites-rules",
+          "version": 3,
           "content_kind": "product_catalog",
           "stable_fields": [
             "task_related_page_text"
@@ -1114,12 +1186,12 @@
             "item_title",
             "detail_url"
           ],
-          "anchor_evidence": "sources/global-homepage-016-amazon-com/stable-page.txt",
-          "anchor_evidence_sha256": "303160c654a03e8de58661ec73f875408fe494abe7933ac79b78246211554dcd",
-          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "anchor_evidence": "sources/popular-sites-rules-v2/global-homepage-016-amazon-com/stable-page.txt",
+          "anchor_evidence_sha256": "123e046b6df76f985f6cb8afafd1b6cfcf01b8bae0cedd7f4491d44c90cf4c00",
+          "record_requirement": "At least 3 complete unique named links; each has a meaningful title and a URL matching the declared host and full path.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Independent browser evidence came from the ranked-domain homepage; only a proven locale-variant homepage uses a fixed-language URL. No provider output or recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -1128,10 +1200,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent headless Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "90aab7b7a8297b4eca8529783b7b2d5f941decb440c63a77a33b652fbe5b5af5",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -1147,20 +1219,6 @@
             "id": "stable-anchor-1",
             "alternatives": [
               "Amazon"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-2",
-            "alternatives": [
-              "Today's Deals"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-3",
-            "alternatives": [
-              "Customer Service"
             ],
             "match_scope": "non_record_lines"
           }
@@ -1193,31 +1251,35 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/global-homepage-018-baidu-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/global-homepage-018-baidu-com/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/global-homepage-018-baidu-com/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：百度一下；新闻；地图；更多。不点击、不递归，不要求长正文或三个详情链接。",
-      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：百度一下；新闻；地图；更多。不点击、不递归，不要求长正文或三个详情链接。",
+      "task_prompt": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：关于百度 / About Baidu；新闻；地图；更多。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：关于百度 / About Baidu；新闻；地图；更多。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
         "requested_ranked_domain": "baidu.com",
         "observed_final_url": "https://www.baidu.com/",
         "stable_annotation": {
-          "registry": "global-homepage-rules",
-          "version": 1,
+          "registry": "popular-sites-rules",
+          "version": 3,
           "content_kind": "entry_page",
           "stable_fields": [
             "task_related_page_text"
           ],
           "structural_only_fields": [],
-          "anchor_evidence": "sources/global-homepage-018-baidu-com/stable-page.txt",
-          "anchor_evidence_sha256": "be11e9b55e34187f20dfbbe681616327dd8be8b8f17ea060996f10405e08b416",
+          "anchor_evidence": "sources/popular-sites-rules-v2/global-homepage-018-baidu-com/stable-page.txt",
+          "anchor_evidence_sha256": "1e43b0706ee3e7b3f2215b8043000821ada5c432ad07a187018d5b3bef6ee3e5",
           "record_requirement": "No structured records; every registered stable page-text group is required.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Independent browser evidence came from the ranked-domain homepage; only a proven locale-variant homepage uses a fixed-language URL. No provider output or recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -1226,10 +1288,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent headless Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "4979d11bb1c2fab69cbf4e70c1c5d5f0768838a7a634c730afdf9f967783ae4e",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -1240,7 +1302,8 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "百度一下"
+              "关于百度",
+              "About Baidu"
             ]
           },
           {
@@ -1290,20 +1353,24 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/global-homepage-020-naver-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/global-homepage-020-naver-com/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/global-homepage-020-naver-com/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口，链接符合登记的主机和路径；同时保留这些稳定页面文字：NAVER；공지사항；Partners；Developers。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
-      "reference_answer": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口，链接符合登记的主机和路径；同时保留这些稳定页面文字：NAVER；공지사항；Partners；Developers。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：NAVER；공지사항；Partners；Developers。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：NAVER；공지사항；Partners；Developers。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
         "requested_ranked_domain": "naver.com",
         "observed_final_url": "https://www.naver.com/",
         "stable_annotation": {
-          "registry": "global-homepage-rules",
-          "version": 1,
+          "registry": "popular-sites-rules",
+          "version": 3,
           "content_kind": "content_list",
           "stable_fields": [
             "task_related_page_text"
@@ -1312,12 +1379,12 @@
             "item_title",
             "detail_url"
           ],
-          "anchor_evidence": "sources/global-homepage-020-naver-com/stable-page.txt",
+          "anchor_evidence": "sources/popular-sites-rules-v2/global-homepage-020-naver-com/stable-page.txt",
           "anchor_evidence_sha256": "0effb7cc2c0504d4fe8552afaed6580189e4fef225869ef6f0c5b33759180294",
-          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "record_requirement": "At least 3 complete unique named links; each has a meaningful title and a URL matching the declared host and full path.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Independent browser evidence came from the ranked-domain homepage; only a proven locale-variant homepage uses a fixed-language URL. No provider output or recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -1326,10 +1393,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent headless Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "010c38e737a50b5497dee23ea811dda1b5c13f4fc185487c4a3dc9f116aeecc1",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -1343,7 +1410,7 @@
           "in.naver.com",
           "m.naver.com"
         ],
-        "entry_path": "/.+",
+        "entry_path": "/(?:[^/]+/contents/internal/[0-9]+|[^/]+/[0-9]+)",
         "stable_text_anchors": [
           {
             "id": "stable-anchor-1",
@@ -2509,34 +2576,31 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/global-homepage-037-mail-ru/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/global-homepage-037-mail-ru/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口，链接符合登记的主机和路径；同时保留这些稳定页面文字：Mail.ru；Почта；Облако；Календарь。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
-      "reference_answer": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口，链接符合登记的主机和路径；同时保留这些稳定页面文字：Mail.ru；Почта；Облако；Календарь。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。本例没有独立的稳定文字核对依据，文字覆盖不计算。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。本例没有独立的稳定文字核对依据，文字覆盖不计算。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
         "requested_ranked_domain": "mail.ru",
         "observed_final_url": "https://mail.ru/",
         "stable_annotation": {
-          "registry": "global-homepage-rules",
-          "version": 1,
+          "registry": "popular-sites-rules",
+          "version": 3,
           "content_kind": "content_list",
-          "stable_fields": [
-            "task_related_page_text"
-          ],
+          "stable_fields": [],
           "structural_only_fields": [
             "item_title",
             "detail_url"
           ],
-          "anchor_evidence": "sources/global-homepage-037-mail-ru/stable-page.txt",
-          "anchor_evidence_sha256": "a55c522b6d5cb2ab493f43f9d49c1ea4877b2714c33a9c1ec973b9e4a45db5ef",
-          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "anchor_evidence": null,
+          "record_requirement": "At least 3 complete unique named links; each has a meaningful title and a URL matching the declared host and full path.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Independent browser evidence came from the ranked-domain homepage; only a proven locale-variant homepage uses a fixed-language URL. No provider output or recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -2545,10 +2609,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent headless Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "cb2e70473a9c87c25088edeaf91afa829c25c51a56280db2fdc15ceaef325abb",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -2559,36 +2623,7 @@
           "news.mail.ru"
         ],
         "entry_path": "/[^/]+/[0-9]+",
-        "stable_text_anchors": [
-          {
-            "id": "stable-anchor-1",
-            "alternatives": [
-              "Mail.ru"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-2",
-            "alternatives": [
-              "Почта"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-3",
-            "alternatives": [
-              "Облако"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-4",
-            "alternatives": [
-              "Календарь"
-            ],
-            "match_scope": "non_record_lines"
-          }
-        ]
+        "stable_text_anchors": []
       },
       "body_requirements": {}
     },
@@ -3017,31 +3052,35 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/global-homepage-044-spotify-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/global-homepage-044-spotify-com/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/global-homepage-044-spotify-com/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Your Library；Trending songs；Popular artists；Popular albums and singles。不点击、不递归，不要求长正文或三个详情链接。",
-      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Your Library；Trending songs；Popular artists；Popular albums and singles。不点击、不递归，不要求长正文或三个详情链接。",
+      "task_prompt": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：Your Library；Create playlist；Browse podcasts。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：Your Library；Create playlist；Browse podcasts。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
         "requested_ranked_domain": "spotify.com",
         "observed_final_url": "https://open.spotify.com/?locale=en_US",
         "stable_annotation": {
-          "registry": "global-homepage-rules",
-          "version": 1,
+          "registry": "popular-sites-rules",
+          "version": 3,
           "content_kind": "entry_page",
           "stable_fields": [
             "task_related_page_text"
           ],
           "structural_only_fields": [],
-          "anchor_evidence": "sources/global-homepage-044-spotify-com/stable-page.txt",
-          "anchor_evidence_sha256": "eedbf95b23603cd653ca13da971fc5d1ece7604230738892e0d98d3aebe802d7",
+          "anchor_evidence": "sources/popular-sites-rules-v2/global-homepage-044-spotify-com/stable-page.txt",
+          "anchor_evidence_sha256": "a0e8e16c9533277342a828f31043dcd11c07f344a47a4186891af432080439a2",
           "record_requirement": "No structured records; every registered stable page-text group is required.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Independent browser evidence came from the ranked-domain homepage; only a proven locale-variant homepage uses a fixed-language URL. No provider output or recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -3050,10 +3089,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent headless Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "b45f7d3b6f5dd8ac75c94cda6eea6f1927c87168d0ee2902715e77d66c7deaff",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -3070,19 +3109,13 @@
           {
             "id": "stable-anchor-2",
             "alternatives": [
-              "Trending songs"
+              "Create playlist"
             ]
           },
           {
             "id": "stable-anchor-3",
             "alternatives": [
-              "Popular artists"
-            ]
-          },
-          {
-            "id": "stable-anchor-4",
-            "alternatives": [
-              "Popular albums and singles"
+              "Browse podcasts"
             ]
           }
         ]
@@ -3114,20 +3147,24 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/global-homepage-045-nytimes-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/global-homepage-045-nytimes-com/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/global-homepage-045-nytimes-com/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口，链接符合登记的主机和路径；同时保留这些稳定页面文字：The New York Times；TOP STORIES；NEWSLETTERS；PODCASTS。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
-      "reference_answer": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口，链接符合登记的主机和路径；同时保留这些稳定页面文字：The New York Times；TOP STORIES；NEWSLETTERS；PODCASTS。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：TOP STORIES。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：TOP STORIES。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
         "requested_ranked_domain": "nytimes.com",
         "observed_final_url": "https://www.nytimes.com/",
         "stable_annotation": {
-          "registry": "global-homepage-rules",
-          "version": 1,
+          "registry": "popular-sites-rules",
+          "version": 3,
           "content_kind": "content_list",
           "stable_fields": [
             "task_related_page_text"
@@ -3136,12 +3173,12 @@
             "item_title",
             "detail_url"
           ],
-          "anchor_evidence": "sources/global-homepage-045-nytimes-com/stable-page.txt",
-          "anchor_evidence_sha256": "32ec28043df1c5747fa6a7c0b4c359e7ec6f040d59ec4f830c8002144a4cb884",
-          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "anchor_evidence": "sources/popular-sites-rules-v2/global-homepage-045-nytimes-com/stable-page.txt",
+          "anchor_evidence_sha256": "e705068150b4c621569a9975ebc6fb8549c3b03491d4340e383657093e784f07",
+          "record_requirement": "At least 3 complete unique named links; each has a meaningful title and a URL matching the declared host and full path.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Independent browser evidence came from the ranked-domain homepage; only a proven locale-variant homepage uses a fixed-language URL. No provider output or recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -3150,10 +3187,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent headless Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "bc82feb673d9339d7c205c33537b5b0b4dfce9d7a362c29e340915bf78b91141",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -3168,28 +3205,7 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "The New York Times"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-2",
-            "alternatives": [
               "TOP STORIES"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-3",
-            "alternatives": [
-              "NEWSLETTERS"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-4",
-            "alternatives": [
-              "PODCASTS"
             ],
             "match_scope": "non_record_lines"
           }
@@ -4014,31 +4030,35 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/global-homepage-068-indeed-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/global-homepage-068-indeed-com/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/global-homepage-068-indeed-com/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Your next job starts here；Trending Searches；Trending Jobs；Search。不点击、不递归，不要求长正文或三个详情链接。",
-      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Your next job starts here；Trending Searches；Trending Jobs；Search。不点击、不递归，不要求长正文或三个详情链接。",
+      "task_prompt": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：What's trending on Indeed；Company reviews；Find salaries；Employers / Post Job。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：What's trending on Indeed；Company reviews；Find salaries；Employers / Post Job。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
         "requested_ranked_domain": "indeed.com",
         "observed_final_url": "https://www.indeed.com/",
         "stable_annotation": {
-          "registry": "global-homepage-rules",
-          "version": 1,
+          "registry": "popular-sites-rules",
+          "version": 3,
           "content_kind": "entry_page",
           "stable_fields": [
             "task_related_page_text"
           ],
           "structural_only_fields": [],
-          "anchor_evidence": "sources/global-homepage-068-indeed-com/stable-page.txt",
-          "anchor_evidence_sha256": "805312082247fdc8dfd120b2c9066c60129ed82b93c036bfad647f6afb0c1ebd",
+          "anchor_evidence": "sources/popular-sites-rules-v2/global-homepage-068-indeed-com/stable-page.txt",
+          "anchor_evidence_sha256": "2946fc7b6b460549ab6893614bb95137e568625fcca07ac5c4c6fde865be5e80",
           "record_requirement": "No structured records; every registered stable page-text group is required.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Independent browser evidence came from the ranked-domain homepage; only a proven locale-variant homepage uses a fixed-language URL. No provider output or recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -4047,10 +4067,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent headless Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "9c55bc22b5ef0444fd729ac2ded3f91720224e5281b6ac832d6cce483d92cc4d",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -4061,25 +4081,25 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "Your next job starts here"
+              "What's trending on Indeed"
             ]
           },
           {
             "id": "stable-anchor-2",
             "alternatives": [
-              "Trending Searches"
+              "Company reviews"
             ]
           },
           {
             "id": "stable-anchor-3",
             "alternatives": [
-              "Trending Jobs"
+              "Find salaries"
             ]
           },
           {
             "id": "stable-anchor-4",
             "alternatives": [
-              "Search"
+              "Employers / Post Job"
             ]
           }
         ]
@@ -4111,20 +4131,24 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/global-homepage-072-rakuten-co-jp/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/global-homepage-072-rakuten-co-jp/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/global-homepage-072-rakuten-co-jp/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口，链接符合登记的主机和路径；同时保留这些稳定页面文字：ようこそ楽天市場へ；楽天スーパーDEAL；人気商品ランキング；ジャンル。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
-      "reference_answer": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口，链接符合登记的主机和路径；同时保留这些稳定页面文字：ようこそ楽天市場へ；楽天スーパーDEAL；人気商品ランキング；ジャンル。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：ようこそ楽天市場へ；楽天スーパーDEAL；ジャンル。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：ようこそ楽天市場へ；楽天スーパーDEAL；ジャンル。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
         "requested_ranked_domain": "rakuten.co.jp",
         "observed_final_url": "https://www.rakuten.co.jp/",
         "stable_annotation": {
-          "registry": "global-homepage-rules",
-          "version": 1,
+          "registry": "popular-sites-rules",
+          "version": 3,
           "content_kind": "product_catalog",
           "stable_fields": [
             "task_related_page_text"
@@ -4133,12 +4157,12 @@
             "item_title",
             "detail_url"
           ],
-          "anchor_evidence": "sources/global-homepage-072-rakuten-co-jp/stable-page.txt",
-          "anchor_evidence_sha256": "a9f37780ae3478a1fae7f7c875a262e5881794a4fa108f4c0b630bafd842453b",
-          "record_requirement": "At least 3 complete unique named links; additional legitimate records are allowed.",
+          "anchor_evidence": "sources/popular-sites-rules-v2/global-homepage-072-rakuten-co-jp/stable-page.txt",
+          "anchor_evidence_sha256": "8bc943330d312d463de0504e7ce18a4a7cfc519d6dbf13a6d1e1003f2b1f0dfb",
+          "record_requirement": "At least 3 complete unique named links; each has a meaningful title and a URL matching the declared host and full path.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Independent browser evidence came from the ranked-domain homepage; only a proven locale-variant homepage uses a fixed-language URL. No provider output or recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -4147,10 +4171,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent headless Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "3eaad37106415c68327c7906238c36624334d393327104d674d930172b8a4db6",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -4178,13 +4202,6 @@
           },
           {
             "id": "stable-anchor-3",
-            "alternatives": [
-              "人気商品ランキング"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-4",
             "alternatives": [
               "ジャンル"
             ],
@@ -5209,7 +5226,7 @@
     {
       "id": "challenge-02",
       "name": "京东 · 商品搜索",
-      "url": "https://search.jd.com/Search?keyword=%E8%80%B3%E6%9C%BA&enc=utf-8",
+      "url": "https://www.jd.com/chanpin/109113.html",
       "category": "popular_site",
       "expected_any": [],
       "track": "challenge",
@@ -5221,15 +5238,15 @@
         "Prove your humanity",
         "Access Denied"
       ],
-      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：品牌；综合；销量。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：品牌；综合；销量。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-02T08:21:56.909688+00:00",
-        "method": "独立页面快照；仅保留公开列表字段",
-        "reference_sha256": "0a7ee47e96e325a1ade74381abf096fb00b11db7397ac37c36213587cf9967ab",
-        "note": "页面包含具名详情入口。参考快照只说明字段结构，不作为实时条目的固定答案。"
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "36fe9fd4ee3408462d65b5c5df474fcfe3f6a931e3599f767298ed86b4b7f672",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
-      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：品牌；综合；销量。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：品牌；综合；销量。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
       "required_patterns": [],
       "ground_truth_main_content": "",
       "content_score_applicable": false,
@@ -5243,8 +5260,8 @@
         "verification_scope": "first_three_name_detail_pairs",
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
-          "registry": "stable_annotations",
-          "version": 2,
+          "registry": "popular-sites-rules",
+          "version": 3,
           "content_kind": "changing_public_list",
           "stable_fields": [
             "task_related_page_text"
@@ -5257,14 +5274,14 @@
             "rating",
             "popularity"
           ],
-          "anchor_evidence": "sources/popular-sites/challenge-02/stable-page.txt",
-          "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
+          "anchor_evidence": "sources/popular-sites-rules-v2/challenge-02/stable-page.txt",
+          "record_requirement": "At least 3 complete unique named links; each has a meaningful title and a URL matching the declared host and full path.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "Only explicitly captured stable UI text is literal; item values and ranks are not fixed.",
-          "anchor_evidence_sha256": "5e21a4be497e42450e243ca66c77f27f62e5705d7c40b21b1ef051abf4eb7b33"
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text.",
+          "anchor_evidence_sha256": "fedb50c259d3f889c79509f841fb234fb94beba85d33f4d724e5832802caa5e1"
         },
         "captured_task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。"
       },
@@ -5302,7 +5319,17 @@
         "legacy-popular-list",
         "content_list"
       ],
-      "description": "旧热门网站结构案例；保留原冻结 URL 与验收契约。"
+      "description": "旧热门网站结构案例；保留原冻结 URL 与验收契约。",
+      "ground_truth_evidence": [
+        {
+          "source": "sources/popular-sites-rules-v2/challenge-02/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/challenge-02/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
+        }
+      ]
     },
     {
       "id": "challenge-03",
@@ -5411,7 +5438,7 @@
     {
       "id": "challenge-04",
       "name": "知乎 · 热榜",
-      "url": "https://www.zhihu.com/hot",
+      "url": "https://www.zhihu.com/knowledge-plan/hot-question/hot/1000001/week",
       "category": "popular_site",
       "expected_any": [],
       "track": "challenge",
@@ -5423,15 +5450,15 @@
         "Prove your humanity",
         "Access Denied"
       ],
-      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。本例没有独立的稳定文字核对依据，文字覆盖不计算。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。本例没有独立的稳定文字核对依据，文字覆盖不计算。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
       "source_verification": {
-        "state": "restricted",
-        "checked_at": "2026-09-02T08:21:56.909692+00:00",
-        "method": "独立页面快照；仅保留公开列表字段",
-        "reference_sha256": "0a08b0545f773897956a7ebc20f85ae1c0e8c1e4ba2d2db7e7cd6a48c178dd84",
-        "note": "页面快照包含 30 条热榜内容；独立浏览器复查停在登录页。参评方法均不提供站点登录凭据。"
+        "state": "valid",
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "01783191e55f9784e0631742b05875520a451ef1aa923f07492d0c079c578071",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
-      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。本例没有独立的稳定文字核对依据，文字覆盖不计算。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。本例没有独立的稳定文字核对依据，文字覆盖不计算。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
       "required_patterns": [],
       "ground_truth_main_content": "",
       "content_score_applicable": false,
@@ -5445,8 +5472,8 @@
         "verification_scope": "first_three_name_detail_pairs",
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
-          "registry": "stable_annotations",
-          "version": 2,
+          "registry": "popular-sites-rules",
+          "version": 3,
           "content_kind": "changing_public_list",
           "stable_fields": [],
           "structural_only_fields": [
@@ -5458,12 +5485,12 @@
             "popularity"
           ],
           "anchor_evidence": null,
-          "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
+          "record_requirement": "At least 3 complete unique named links; each has a meaningful title and a URL matching the declared host and full path.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         },
         "captured_task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。"
       },
@@ -5482,7 +5509,13 @@
         "legacy-popular-list",
         "content_list"
       ],
-      "description": "旧热门网站结构案例；保留原冻结 URL 与验收契约。"
+      "description": "旧热门网站结构案例；保留原冻结 URL 与验收契约。",
+      "ground_truth_evidence": [
+        {
+          "source": "sources/popular-sites-rules-v2/challenge-04/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        }
+      ]
     },
     {
       "id": "challenge-05",
@@ -5584,8 +5617,8 @@
     },
     {
       "id": "challenge-06",
-      "name": "大众点评 · 上海美食列表",
-      "url": "https://www.dianping.com/shanghai/ch10",
+      "name": "MICHELIN Guide · 上海星级餐厅列表",
+      "url": "https://guide.michelin.com/jp/en/shanghai-municipality/shanghai/restaurants/all-starred",
       "category": "popular_site",
       "expected_any": [],
       "track": "challenge",
@@ -5597,34 +5630,32 @@
         "Prove your humanity",
         "Access Denied"
       ],
-      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：人均；推荐菜；条评价。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。本例没有独立的稳定文字核对依据，文字覆盖不计算。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
       "source_verification": {
-        "state": "restricted",
-        "checked_at": "2026-09-02T08:21:56.909694+00:00",
-        "method": "独立页面快照；仅保留公开列表字段",
-        "reference_sha256": "793cd088544165d29ec87c5dfae60af3f07691cf65a85d7ecc2e2fd249312922",
-        "note": "页面快照包含 15 家商户；独立浏览器复查遇到验证码。参评方法均不提供站点登录凭据。"
+        "state": "valid",
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "e91155c0ab20ffb28856e9d1a8d63159c80406b4079f07b21409876b7cecfe5f",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
-      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：人均；推荐菜；条评价。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。本例没有独立的稳定文字核对依据，文字覆盖不计算。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
       "required_patterns": [],
       "ground_truth_main_content": "",
       "content_score_applicable": false,
       "source_benchmark": {
         "mode": "dynamic_list_structure",
         "hosts": [
-          "www.dianping.com"
+          "guide.michelin.com"
         ],
-        "entry_path": "/shop/[A-Za-z0-9]+",
+        "entry_path": "/jp/en/shanghai-municipality/shanghai/restaurant/[^/?#]+",
         "minimum_entries": 3,
         "verification_scope": "first_three_name_detail_pairs",
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
-          "registry": "stable_annotations",
-          "version": 2,
+          "registry": "popular-sites-rules",
+          "version": 3,
           "content_kind": "changing_public_list",
-          "stable_fields": [
-            "task_related_page_text"
-          ],
+          "stable_fields": [],
           "structural_only_fields": [
             "item_title",
             "detail_url",
@@ -5633,52 +5664,40 @@
             "rating",
             "popularity"
           ],
-          "anchor_evidence": "sources/popular-sites/challenge-06/stable-page.txt",
-          "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
+          "anchor_evidence": null,
+          "record_requirement": "At least 3 complete unique named links; each has a meaningful title and a URL matching the declared host and full path.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "Required restaurant-card field labels come from the previously saved independent public-list reference. The labels, not restaurant names, dishes, per-capita prices or review counts, are matched.",
-          "anchor_evidence_sha256": "793cd088544165d29ec87c5dfae60af3f07691cf65a85d7ecc2e2fd249312922"
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         },
-        "captured_task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。"
+        "captured_task_prompt": "取得至少三个不同餐厅的名称和本站详情链接；不固定当前餐厅、顺序、星级或价格。",
+        "replacement_for": "大众点评 · 上海美食列表",
+        "replacement_reason": "The original public list was not anonymously reproducible within the bounded independent search."
       },
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
         "minimum_records": 3,
         "hosts": [
-          "www.dianping.com"
+          "guide.michelin.com"
         ],
-        "entry_path": "/shop/[A-Za-z0-9]+",
-        "stable_text_anchors": [
-          {
-            "id": "record-label-1",
-            "alternatives": [
-              "人均"
-            ]
-          },
-          {
-            "id": "record-label-2",
-            "alternatives": [
-              "推荐菜"
-            ]
-          },
-          {
-            "id": "record-label-3",
-            "alternatives": [
-              "条评价"
-            ]
-          }
-        ]
+        "entry_path": "/jp/en/shanghai-municipality/shanghai/restaurant/[^/?#]+",
+        "stable_text_anchors": []
       },
       "tags": [
         "popular-site",
         "legacy-popular-list",
         "content_list"
       ],
-      "description": "旧热门网站结构案例；保留原冻结 URL 与验收契约。"
+      "description": "经用户批准替换原大众点评案例；保留餐厅名称与餐厅详情链接的 named_link 任务形式。",
+      "ground_truth_evidence": [
+        {
+          "source": "sources/popular-sites-rules-v2/challenge-06/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        }
+      ]
     },
     {
       "id": "challenge-09",
@@ -6213,12 +6232,16 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/china-homepage-019-taobao-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/china-homepage-019-taobao-com/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/china-homepage-019-taobao-com/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：淘宝；搜索；购物车；收藏夹。不点击、不递归，不要求长正文或三个详情链接。",
-      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：淘宝；搜索；购物车；收藏夹。不点击、不递归，不要求长正文或三个详情链接。",
+      "task_prompt": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：淘宝网；免费开店；淘宝直播；司法拍卖。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：淘宝网；免费开店；淘宝直播；司法拍卖。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
@@ -6228,18 +6251,18 @@
         "observed_final_url": "https://www.taobao.com/",
         "stable_annotation": {
           "registry": "popular-sites-rules",
-          "version": 1,
+          "version": 3,
           "content_kind": "product_catalog",
           "stable_fields": [
             "task_related_page_text"
           ],
           "structural_only_fields": [],
-          "anchor_evidence": "sources/china-homepage-019-taobao-com/stable-page.txt",
-          "anchor_evidence_sha256": "241a8c2c689011a79504377dc8dc7c9e7eddf8f0a64ca8003b375b646606e211",
+          "anchor_evidence": "sources/popular-sites-rules-v2/china-homepage-019-taobao-com/stable-page.txt",
+          "anchor_evidence_sha256": "d6948df934917974bea823bd8ef3c9368d3a4fba19c4f78a7dca71a005efc336",
           "record_requirement": "No structured records; every registered stable page-text group is required.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Stable anchors are page-level and cannot be supplied by counted record titles; no recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -6248,10 +6271,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "c92c33b3ab2ed71e30ebe37362450d62a4bff21de1b2ff97bebbd40089ebdb21",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -6262,25 +6285,25 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "淘宝"
+              "淘宝网"
             ]
           },
           {
             "id": "stable-anchor-2",
             "alternatives": [
-              "搜索"
+              "免费开店"
             ]
           },
           {
             "id": "stable-anchor-3",
             "alternatives": [
-              "购物车"
+              "淘宝直播"
             ]
           },
           {
             "id": "stable-anchor-4",
             "alternatives": [
-              "收藏夹"
+              "司法拍卖"
             ]
           }
         ]
@@ -6522,12 +6545,16 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/china-homepage-029-360-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/china-homepage-029-360-com/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/china-homepage-029-360-com/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：360安全卫士；软件下载中心；纳米AI；360安全浏览器。不点击、不递归，不要求长正文或三个详情链接。",
-      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：360安全卫士；软件下载中心；纳米AI；360安全浏览器。不点击、不递归，不要求长正文或三个详情链接。",
+      "task_prompt": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：360安全卫士；软件下载中心；纳米AI；360极速浏览器 / 安全浏览器。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：360安全卫士；软件下载中心；纳米AI；360极速浏览器 / 安全浏览器。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
@@ -6537,18 +6564,18 @@
         "observed_final_url": "https://360.com/",
         "stable_annotation": {
           "registry": "popular-sites-rules",
-          "version": 1,
+          "version": 3,
           "content_kind": "landing_page",
           "stable_fields": [
             "task_related_page_text"
           ],
           "structural_only_fields": [],
-          "anchor_evidence": "sources/china-homepage-029-360-com/stable-page.txt",
-          "anchor_evidence_sha256": "76aa0abbbfd784ca02e2ef81bf7922f342fc5d745411a82543e486736faf109b",
+          "anchor_evidence": "sources/popular-sites-rules-v2/china-homepage-029-360-com/stable-page.txt",
+          "anchor_evidence_sha256": "629fe0661bb119d338cb7e51f512f1fa358a8fd5e490b95119b7349e85d44ad1",
           "record_requirement": "No structured records; every registered stable page-text group is required.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Stable anchors are page-level and cannot be supplied by counted record titles; no recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -6557,10 +6584,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "1ea98f62fa63c7d5985a2ce80bb3891ad759cb922a5c7e1fd500d32210043724",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -6589,7 +6616,8 @@
           {
             "id": "stable-anchor-4",
             "alternatives": [
-              "360安全浏览器"
+              "360极速浏览器",
+              "安全浏览器"
             ]
           }
         ]
@@ -6730,12 +6758,16 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/china-homepage-036-hao123-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/china-homepage-036-hao123-com/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/china-homepage-036-hao123-com/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：hao123；上网从这里开始；搜索热点；热点。不点击、不递归，不要求长正文或三个详情链接。",
-      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：hao123；上网从这里开始；搜索热点；热点。不点击、不递归，不要求长正文或三个详情链接。",
+      "task_prompt": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：hao123；百度；搜索热点；热点。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：hao123；百度；搜索热点；热点。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
@@ -6745,18 +6777,18 @@
         "observed_final_url": "https://www.hao123.com/?from=offline_host",
         "stable_annotation": {
           "registry": "popular-sites-rules",
-          "version": 1,
+          "version": 3,
           "content_kind": "content_list",
           "stable_fields": [
             "task_related_page_text"
           ],
           "structural_only_fields": [],
-          "anchor_evidence": "sources/china-homepage-036-hao123-com/stable-page.txt",
-          "anchor_evidence_sha256": "d143ff1a5c3f9f8ed72a993c4b517815dc5abbb9eb6142cc390c900e58255b5d",
+          "anchor_evidence": "sources/popular-sites-rules-v2/china-homepage-036-hao123-com/stable-page.txt",
+          "anchor_evidence_sha256": "8b7a5027a6376d0af00526d89d0170329ae3ccf8735e8f7652bbcf7fba1394d0",
           "record_requirement": "No structured records; every registered stable page-text group is required.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Stable anchors are page-level and cannot be supplied by counted record titles; no recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -6765,10 +6797,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "b26c087a4cd066c3fc10df7a58c98c40087af2528548ab0210b77582bc9d4712",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -6785,7 +6817,7 @@
           {
             "id": "stable-anchor-2",
             "alternatives": [
-              "上网从这里开始"
+              "百度"
             ]
           },
           {
@@ -6831,12 +6863,16 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/china-homepage-039-1688-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/china-homepage-039-1688-com/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/china-homepage-039-1688-com/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：阿里1688首页；挑好货；找工厂；工业品。不点击、不递归，不要求长正文或三个详情链接。",
-      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：阿里1688首页；挑好货；找工厂；工业品。不点击、不递归，不要求长正文或三个详情链接。",
+      "task_prompt": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：挑好货；找工厂；工业品。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：挑好货；找工厂；工业品。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
@@ -6846,18 +6882,18 @@
         "observed_final_url": "https://www.1688.com/",
         "stable_annotation": {
           "registry": "popular-sites-rules",
-          "version": 1,
+          "version": 3,
           "content_kind": "product_catalog",
           "stable_fields": [
             "task_related_page_text"
           ],
           "structural_only_fields": [],
-          "anchor_evidence": "sources/china-homepage-039-1688-com/stable-page.txt",
-          "anchor_evidence_sha256": "649f5215b4ca807413a29eeebdccc27619ef0e05cf991240065e575ae8f29208",
+          "anchor_evidence": "sources/popular-sites-rules-v2/china-homepage-039-1688-com/stable-page.txt",
+          "anchor_evidence_sha256": "3925d242c364df952a85a2f8c2f41611774c1ab385f6eb6d48fc695a398862f4",
           "record_requirement": "No structured records; every registered stable page-text group is required.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Stable anchors are page-level and cannot be supplied by counted record titles; no recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -6866,10 +6902,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "9a97a7a3afb5afe442c546160041d9526b978bad1bfee97b871680cc9fc5ffa9",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -6880,23 +6916,17 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "阿里1688首页"
+              "挑好货"
             ]
           },
           {
             "id": "stable-anchor-2",
             "alternatives": [
-              "挑好货"
-            ]
-          },
-          {
-            "id": "stable-anchor-3",
-            "alternatives": [
               "找工厂"
             ]
           },
           {
-            "id": "stable-anchor-4",
+            "id": "stable-anchor-3",
             "alternatives": [
               "工业品"
             ]
@@ -7235,12 +7265,16 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/china-homepage-045-tmall-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/china-homepage-045-tmall-com/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/china-homepage-045-tmall-com/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：天猫Tmall.com；搜索；购物车；商家支持。不点击、不递归，不要求长正文或三个详情链接。",
-      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：天猫Tmall.com；搜索；购物车；商家支持。不点击、不递归，不要求长正文或三个详情链接。",
+      "task_prompt": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：天猫；搜索；购物车；商家支持。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：天猫；搜索；购物车；商家支持。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
@@ -7250,18 +7284,18 @@
         "observed_final_url": "https://www.tmall.com/",
         "stable_annotation": {
           "registry": "popular-sites-rules",
-          "version": 1,
+          "version": 3,
           "content_kind": "product_catalog",
           "stable_fields": [
             "task_related_page_text"
           ],
           "structural_only_fields": [],
-          "anchor_evidence": "sources/china-homepage-045-tmall-com/stable-page.txt",
-          "anchor_evidence_sha256": "101768404352f66b5ae36e297abd61f83b0f68fcb0e5c23525c4f2d1224925e8",
+          "anchor_evidence": "sources/popular-sites-rules-v2/china-homepage-045-tmall-com/stable-page.txt",
+          "anchor_evidence_sha256": "1dd61ed6ee6d9ce5561fb2cd774ed05eda6ee32357fa198be24059d129b0f054",
           "record_requirement": "No structured records; every registered stable page-text group is required.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Stable anchors are page-level and cannot be supplied by counted record titles; no recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -7270,10 +7304,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "ccef0fb85f211919ca81141eede1806026d2d86c44167f87e32a826ffe2de23d",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -7284,7 +7318,7 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "天猫Tmall.com"
+              "天猫"
             ]
           },
           {
@@ -8295,12 +8329,16 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/china-homepage-058-huaban-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/china-homepage-058-huaban-com/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/china-homepage-058-huaban-com/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口；每条必须有非空标题和有效 URL，URL 主机与完整路径符合登记规则。同时保留这些页面级稳定文字：花瓣网；探索；平面设计；UI/UX。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
-      "reference_answer": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口；每条必须有非空标题和有效 URL，URL 主机与完整路径符合登记规则。同时保留这些页面级稳定文字：花瓣网；探索；平面设计；UI/UX。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：探索；平面设计；UI/UX。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：探索；平面设计；UI/UX。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
@@ -8310,7 +8348,7 @@
         "observed_final_url": "https://huaban.com/",
         "stable_annotation": {
           "registry": "popular-sites-rules",
-          "version": 1,
+          "version": 3,
           "content_kind": "content_list",
           "stable_fields": [
             "task_related_page_text"
@@ -8319,12 +8357,12 @@
             "item_title",
             "detail_url"
           ],
-          "anchor_evidence": "sources/china-homepage-058-huaban-com/stable-page.txt",
-          "anchor_evidence_sha256": "3fb6b8029a31a6fd6c642f7aa9b83d185bd09d0b4e8b4e73141926936cf95815",
+          "anchor_evidence": "sources/popular-sites-rules-v2/china-homepage-058-huaban-com/stable-page.txt",
+          "anchor_evidence_sha256": "e3ff7468b13f63f3b120842a96ecfbbc6cd889a63b2fd017704fbef6d78c0c7e",
           "record_requirement": "At least 3 complete unique named links; each has a meaningful title and a URL matching the declared host and full path.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Stable anchors are page-level and cannot be supplied by counted record titles; no recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -8333,10 +8371,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "a49a876c13547786a940936de644fef2ea7f554c1add13acf1ce7b791fb88608",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -8346,31 +8384,24 @@
         "hosts": [
           "huaban.com"
         ],
-        "entry_path": "/pins/[0-9]+",
+        "entry_path": "/boards/[0-9]+",
         "stable_text_anchors": [
           {
             "id": "stable-anchor-1",
-            "alternatives": [
-              "花瓣网"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-2",
             "alternatives": [
               "探索"
             ],
             "match_scope": "non_record_lines"
           },
           {
-            "id": "stable-anchor-3",
+            "id": "stable-anchor-2",
             "alternatives": [
               "平面设计"
             ],
             "match_scope": "non_record_lines"
           },
           {
-            "id": "stable-anchor-4",
+            "id": "stable-anchor-3",
             "alternatives": [
               "UI/UX"
             ],
@@ -8733,12 +8764,16 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/china-homepage-064-gamer520-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/china-homepage-064-gamer520-com/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/china-homepage-064-gamer520-com/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口；每条必须有非空标题和有效 URL，URL 主机与完整路径符合登记规则。同时保留这些页面级稳定文字：Switch520；PC游戏；IGN必玩推荐榜。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
-      "reference_answer": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口；每条必须有非空标题和有效 URL，URL 主机与完整路径符合登记规则。同时保留这些页面级稳定文字：Switch520；PC游戏；IGN必玩推荐榜。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：PC游戏；IGN必玩推荐榜。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：PC游戏；IGN必玩推荐榜。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
@@ -8748,7 +8783,7 @@
         "observed_final_url": "https://www.gamer520.com/",
         "stable_annotation": {
           "registry": "popular-sites-rules",
-          "version": 1,
+          "version": 3,
           "content_kind": "content_list",
           "stable_fields": [
             "task_related_page_text"
@@ -8757,12 +8792,12 @@
             "item_title",
             "detail_url"
           ],
-          "anchor_evidence": "sources/china-homepage-064-gamer520-com/stable-page.txt",
-          "anchor_evidence_sha256": "41547246f8ee34aed46bd666059ca3c097428f1d4ea0a4d19201d44ff78e6c97",
+          "anchor_evidence": "sources/popular-sites-rules-v2/china-homepage-064-gamer520-com/stable-page.txt",
+          "anchor_evidence_sha256": "86f58053f5ae4020e846b3c109b1d9c66827c4c87d59f971ce5087d68a805607",
           "record_requirement": "At least 3 complete unique named links; each has a meaningful title and a URL matching the declared host and full path.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Stable anchors are page-level and cannot be supplied by counted record titles; no recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -8771,10 +8806,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "e3b7defe23340d4d558f30cfbfa526f737affee33a4d67582c65558ac1f60b5d",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -8789,19 +8824,12 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "Switch520"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-2",
-            "alternatives": [
               "PC游戏"
             ],
             "match_scope": "non_record_lines"
           },
           {
-            "id": "stable-anchor-3",
+            "id": "stable-anchor-2",
             "alternatives": [
               "IGN必玩推荐榜"
             ],
@@ -9264,12 +9292,16 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/china-homepage-071-2345-com/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/china-homepage-071-2345-com/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/china-homepage-071-2345-com/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口；每条必须有非空标题和有效 URL，URL 主机与完整路径符合登记规则。同时保留这些页面级稳定文字：2345网址导航；旗下产品；邮箱；天气。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
-      "reference_answer": "直接获取这个热门域名首页，返回至少 3 条不同的具名详情入口；每条必须有非空标题和有效 URL，URL 主机与完整路径符合登记规则。同时保留这些页面级稳定文字：2345网址导航；旗下产品；邮箱；天气。不点击、不递归，不固定当前条目、顺序、价格、排名或数量。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：旗下产品；邮箱；天气。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：旗下产品；邮箱；天气。不固定条目名称、名次、价格、评分或热度；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
@@ -9279,7 +9311,7 @@
         "observed_final_url": "https://www.2345.com/",
         "stable_annotation": {
           "registry": "popular-sites-rules",
-          "version": 1,
+          "version": 3,
           "content_kind": "content_list",
           "stable_fields": [
             "task_related_page_text"
@@ -9288,12 +9320,12 @@
             "item_title",
             "detail_url"
           ],
-          "anchor_evidence": "sources/china-homepage-071-2345-com/stable-page.txt",
-          "anchor_evidence_sha256": "e5ec27972814ec32bf582f1b1bd7f2d37d3f0564035dee522f1e7820cfbf3fa9",
+          "anchor_evidence": "sources/popular-sites-rules-v2/china-homepage-071-2345-com/stable-page.txt",
+          "anchor_evidence_sha256": "ab0b5539c1223bcd256ecdc09ea5b43e32dc93d1df980c3342dbf33f0c930d53",
           "record_requirement": "At least 3 complete unique named links; each has a meaningful title and a URL matching the declared host and full path.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Stable anchors are page-level and cannot be supplied by counted record titles; no recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -9302,10 +9334,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "c76389fdf8466e9d3d1cc1db1986bae04d1a1a3936cab43c02fe5959a1266ce6",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -9321,26 +9353,19 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "2345网址导航"
+              "旗下产品"
             ],
             "match_scope": "non_record_lines"
           },
           {
             "id": "stable-anchor-2",
             "alternatives": [
-              "旗下产品"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-3",
-            "alternatives": [
               "邮箱"
             ],
             "match_scope": "non_record_lines"
           },
           {
-            "id": "stable-anchor-4",
+            "id": "stable-anchor-3",
             "alternatives": [
               "天气"
             ],
@@ -9692,12 +9717,16 @@
       "fact_coverage_threshold": 1.0,
       "ground_truth_evidence": [
         {
-          "source": "sources/china-homepage-078-nga-cn/stable-page.txt",
-          "supports": "独立 Chromium 首次加载证据中的稳定页面文字和列表结构"
+          "source": "sources/popular-sites-rules-v2/china-homepage-078-nga-cn/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/china-homepage-078-nga-cn/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
-      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：NGA玩家社区；论坛；评分；专题。不点击、不递归，不要求长正文或三个详情链接。",
-      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：NGA玩家社区；论坛；评分；专题。不点击、不递归，不要求长正文或三个详情链接。",
+      "task_prompt": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：NGA社区；论坛；评分；专题。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：NGA社区；论坛；评分；专题。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
@@ -9707,18 +9736,18 @@
         "observed_final_url": "https://nga.cn/",
         "stable_annotation": {
           "registry": "popular-sites-rules",
-          "version": 1,
+          "version": 3,
           "content_kind": "content_list",
           "stable_fields": [
             "task_related_page_text"
           ],
           "structural_only_fields": [],
-          "anchor_evidence": "sources/china-homepage-078-nga-cn/stable-page.txt",
-          "anchor_evidence_sha256": "c88fc6d8e5fefa67b4537254629a058a2d7afa3773df5c6cd2c6379683213b38",
+          "anchor_evidence": "sources/popular-sites-rules-v2/china-homepage-078-nga-cn/stable-page.txt",
+          "anchor_evidence_sha256": "8ce185c24be28f83c8bb37edb8543a98ef3b7c94d751540d63a3cd400bfc1d23",
           "record_requirement": "No structured records; every registered stable page-text group is required.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Stable anchors are page-level and cannot be supplied by counted record titles; no recursive page was used."
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text."
         }
       },
       "ground_truth_main_content": "",
@@ -9727,10 +9756,10 @@
       "required_patterns": [],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-11",
-        "method": "Independent Chromium initial-page capture with hash-bound stable evidence",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "90b4d7f690457d2970e8b6db97f1b77b7f2a73f7357748be05276cba776655bb",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       },
       "task_kind": "structure",
       "acceptance_contract": {
@@ -9741,7 +9770,7 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "NGA玩家社区"
+              "NGA社区"
             ]
           },
           {
@@ -10202,8 +10231,8 @@
       ],
       "min_content_chars": 1,
       "fact_coverage_threshold": 1.0,
-      "task_prompt": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Shopify；Products / 产品；Pricing / 定价；Start free trial / 开始免费试用。不点击、不递归，不要求长正文或三个详情链接。",
-      "reference_answer": "直接获取这个热门域名首页，并保留这些稳定页面身份或主要功能文字：Shopify；Products / 产品；Pricing / 定价；Start free trial / 开始免费试用。不点击、不递归，不要求长正文或三个详情链接。",
+      "task_prompt": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：Shopify；Products / 产品；Pricing / 定价；Start for free。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
+      "reference_answer": "直接获取页面，并保留登记的稳定页面身份或主要功能文字。同时保留这些任务相关文字：Shopify；Products / 产品；Pricing / 定价；Start for free。不要求长正文或详情链接；登录、验证与错误页不能代替目标内容。",
       "source_benchmark": {
         "mode": "ranked_domain_homepage",
         "rank_metadata_used_for_scoring": false,
@@ -10213,7 +10242,7 @@
         "observed_final_url": "https://www.shopify.com/",
         "stable_annotation": {
           "registry": "popular-sites-rules",
-          "version": 2,
+          "version": 3,
           "content_kind": "landing_page",
           "stable_fields": [
             "task_related_page_text"
@@ -10222,9 +10251,9 @@
           "record_requirement": "No structured records; every registered stable page-text group is required.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "live_factual_correctness": null,
-          "note": "Two independent browser observations; no provider output or recursive navigation was used.",
-          "anchor_evidence": "sources/popular-sites-12-method/china-homepage-085-shopify-com/stable-page.txt",
-          "anchor_evidence_sha256": "2ff2892862d8b480cef83af10611b4016972d6c4092b626fd099dae0a48dd7d1"
+          "note": "Provider-blind v2 audit; image pixels, image metadata and document title are excluded from required body text.",
+          "anchor_evidence": "sources/popular-sites-rules-v2/china-homepage-085-shopify-com/stable-page.txt",
+          "anchor_evidence_sha256": "5b16933a21781f59c23a6772b0f5b252015170c32200d50563aed1530b164ba0"
         }
       },
       "ground_truth_main_content": "",
@@ -10260,8 +10289,7 @@
           {
             "id": "stable-anchor-4",
             "alternatives": [
-              "Start free trial",
-              "开始免费试用"
+              "Start for free"
             ]
           }
         ]
@@ -10269,16 +10297,20 @@
       "body_requirements": {},
       "ground_truth_evidence": [
         {
-          "source": "sources/popular-sites-12-method/china-homepage-085-shopify-com/stable-page.txt",
-          "supports": "两次独立 Chromium 首次加载观察中的稳定页面文字"
+          "source": "sources/popular-sites-rules-v2/china-homepage-085-shopify-com/evidence.json",
+          "supports": "规则二次审计的来源、授权和结构证据"
+        },
+        {
+          "source": "sources/popular-sites-rules-v2/china-homepage-085-shopify-com/stable-page.txt",
+          "supports": "独立观察到的稳定页面文字组"
         }
       ],
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-14",
-        "method": "Two independent anonymous Chromium initial-page observations",
-        "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "note": "Stable rule evidence only; current members and dynamic values are not frozen truth."
+        "checked_at": "2026-09-15",
+        "method": "Provider-blind independent browser audit; three completed observations for approved URL changes",
+        "reference_sha256": "5a1ed0007e142304283d45a5d68368236b74ce0b0dee31101d996e4300cc45ff",
+        "note": "Current members and dynamic values are diagnostic only and are not frozen truth."
       }
     }
   ]

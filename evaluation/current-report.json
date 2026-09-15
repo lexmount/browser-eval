@@ -18,15 +18,19 @@
   "runs_per_case": 1,
   "concurrency": 1,
   "reference_binding_mode": "hash_bound_stable_text_and_structure",
-  "publication_state": "measured_independently_reviewed",
+  "publication_state": "frozen_pending_affected_reruns",
   "unverified_reference_cases": [],
   "require_independent_result_review": true,
   "formal_result_count": 800,
-  "provider_results_reused": 0,
+  "provider_results_reused": 776,
   "body_reference_case_count": 0,
   "body_metrics": "unavailable",
   "execution_contract": "research/popular-sites-8-method-stage-contract.json",
   "conversion": "Each method's native known-URL fetch output is normalized once into text plus explicit structured links when available.",
   "artifact_hub_base_url": "https://artifact-hub.app.lexmount.com",
-  "artifact_hub_site": "HMHGx1jcMz-z"
+  "artifact_hub_site": "HMHGx1jcMz-z",
+  "fresh_formal_result_count": 24,
+  "inherited_formal_result_count": 776,
+  "score_only_recompute_count": 168,
+  "required_new_provider_calls": 24
 }

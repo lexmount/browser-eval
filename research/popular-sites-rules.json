@@ -1,18 +1,20 @@
 {
   "schema_version": 1,
-  "status": "frozen_ready_for_formal_execution",
+  "status": "frozen_pending_affected_reruns",
   "purpose": "One scoring registry for the interim 100-site eight-of-twelve-method report",
   "counts": {
     "cases": 100,
     "methods": 8,
     "final_methods": 12,
-    "fresh_formal_results": 800,
+    "fresh_formal_results": 24,
     "final_formal_results": 1200,
-    "provider_results_reused": 0
+    "provider_results_reused": 776,
+    "inherited_formal_results": 776,
+    "score_only_recomputed_results": 168
   },
   "execution_contract": {
     "path": "research/popular-sites-8-method-stage-contract.json",
-    "sha256": "cfaefd3334710cc1f4f18c6b5ffbed4670287e981608b10ce0743250ebe5d40c"
+    "sha256": "d99add89858204e132084f59c9022c0b2f7b1be228beb358303a4f409693c9cf"
   },
   "components": [
     {
@@ -167,19 +169,14 @@
           {
             "id": "stable-anchor-2",
             "alternatives": [
-              "Where should we begin?"
+              "New chat"
             ]
           },
           {
             "id": "stable-anchor-3",
             "alternatives": [
-              "Chat with ChatGPT"
-            ]
-          },
-          {
-            "id": "stable-anchor-4",
-            "alternatives": [
-              "New chat"
+              "Where should we begin?",
+              "Ready when you are."
             ]
           }
         ]
@@ -271,7 +268,7 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "Microsoft Bing"
+              "Bing homepage quiz"
             ]
           },
           {
@@ -355,7 +352,8 @@
           {
             "id": "stable-anchor-3",
             "alternatives": [
-              "Meet Gemini, your personal AI assistant"
+              "Meet Gemini, your personal AI assistant",
+              "Where should we start?"
             ]
           }
         ]
@@ -477,20 +475,6 @@
               "Amazon"
             ],
             "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-2",
-            "alternatives": [
-              "Today's Deals"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-3",
-            "alternatives": [
-              "Customer Service"
-            ],
-            "match_scope": "non_record_lines"
           }
         ]
       }
@@ -507,7 +491,8 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "百度一下"
+              "关于百度",
+              "About Baidu"
             ]
           },
           {
@@ -546,7 +531,7 @@
           "in.naver.com",
           "m.naver.com"
         ],
-        "entry_path": "/.+",
+        "entry_path": "/(?:[^/]+/contents/internal/[0-9]+|[^/]+/[0-9]+)",
         "stable_text_anchors": [
           {
             "id": "stable-anchor-1",
@@ -1009,36 +994,7 @@
           "news.mail.ru"
         ],
         "entry_path": "/[^/]+/[0-9]+",
-        "stable_text_anchors": [
-          {
-            "id": "stable-anchor-1",
-            "alternatives": [
-              "Mail.ru"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-2",
-            "alternatives": [
-              "Почта"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-3",
-            "alternatives": [
-              "Облако"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-4",
-            "alternatives": [
-              "Календарь"
-            ],
-            "match_scope": "non_record_lines"
-          }
-        ]
+        "stable_text_anchors": []
       }
     },
     {
@@ -1215,19 +1171,13 @@
           {
             "id": "stable-anchor-2",
             "alternatives": [
-              "Trending songs"
+              "Create playlist"
             ]
           },
           {
             "id": "stable-anchor-3",
             "alternatives": [
-              "Popular artists"
-            ]
-          },
-          {
-            "id": "stable-anchor-4",
-            "alternatives": [
-              "Popular albums and singles"
+              "Browse podcasts"
             ]
           }
         ]
@@ -1249,28 +1199,7 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "The New York Times"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-2",
-            "alternatives": [
               "TOP STORIES"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-3",
-            "alternatives": [
-              "NEWSLETTERS"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-4",
-            "alternatives": [
-              "PODCASTS"
             ],
             "match_scope": "non_record_lines"
           }
@@ -1587,25 +1516,25 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "Your next job starts here"
+              "What's trending on Indeed"
             ]
           },
           {
             "id": "stable-anchor-2",
             "alternatives": [
-              "Trending Searches"
+              "Company reviews"
             ]
           },
           {
             "id": "stable-anchor-3",
             "alternatives": [
-              "Trending Jobs"
+              "Find salaries"
             ]
           },
           {
             "id": "stable-anchor-4",
             "alternatives": [
-              "Search"
+              "Employers / Post Job"
             ]
           }
         ]
@@ -1640,13 +1569,6 @@
           },
           {
             "id": "stable-anchor-3",
-            "alternatives": [
-              "人気商品ランキング"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-4",
             "alternatives": [
               "ジャンル"
             ],
@@ -2046,7 +1968,7 @@
     },
     {
       "id": "challenge-02",
-      "url": "https://search.jd.com/Search?keyword=%E8%80%B3%E6%9C%BA&enc=utf-8",
+      "url": "https://www.jd.com/chanpin/109113.html",
       "cohort": "legacy_popular_list",
       "acceptance_contract": {
         "version": 1,
@@ -2120,7 +2042,7 @@
     },
     {
       "id": "challenge-04",
-      "url": "https://www.zhihu.com/hot",
+      "url": "https://www.zhihu.com/knowledge-plan/hot-question/hot/1000001/week",
       "cohort": "legacy_popular_list",
       "acceptance_contract": {
         "version": 1,
@@ -2169,36 +2091,17 @@
     },
     {
       "id": "challenge-06",
-      "url": "https://www.dianping.com/shanghai/ch10",
+      "url": "https://guide.michelin.com/jp/en/shanghai-municipality/shanghai/restaurants/all-starred",
       "cohort": "legacy_popular_list",
       "acceptance_contract": {
         "version": 1,
         "schema": "named_link",
         "minimum_records": 3,
         "hosts": [
-          "www.dianping.com"
+          "guide.michelin.com"
         ],
-        "entry_path": "/shop/[A-Za-z0-9]+",
-        "stable_text_anchors": [
-          {
-            "id": "record-label-1",
-            "alternatives": [
-              "人均"
-            ]
-          },
-          {
-            "id": "record-label-2",
-            "alternatives": [
-              "推荐菜"
-            ]
-          },
-          {
-            "id": "record-label-3",
-            "alternatives": [
-              "条评价"
-            ]
-          }
-        ]
+        "entry_path": "/jp/en/shanghai-municipality/shanghai/restaurant/[^/?#]+",
+        "stable_text_anchors": []
       }
     },
     {
@@ -2392,25 +2295,25 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "淘宝"
+              "淘宝网"
             ]
           },
           {
             "id": "stable-anchor-2",
             "alternatives": [
-              "搜索"
+              "免费开店"
             ]
           },
           {
             "id": "stable-anchor-3",
             "alternatives": [
-              "购物车"
+              "淘宝直播"
             ]
           },
           {
             "id": "stable-anchor-4",
             "alternatives": [
-              "收藏夹"
+              "司法拍卖"
             ]
           }
         ]
@@ -2524,7 +2427,8 @@
           {
             "id": "stable-anchor-4",
             "alternatives": [
-              "360安全浏览器"
+              "360极速浏览器",
+              "安全浏览器"
             ]
           }
         ]
@@ -2590,7 +2494,7 @@
           {
             "id": "stable-anchor-2",
             "alternatives": [
-              "上网从这里开始"
+              "百度"
             ]
           },
           {
@@ -2620,23 +2524,17 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "阿里1688首页"
+              "挑好货"
             ]
           },
           {
             "id": "stable-anchor-2",
             "alternatives": [
-              "挑好货"
-            ]
-          },
-          {
-            "id": "stable-anchor-3",
-            "alternatives": [
               "找工厂"
             ]
           },
           {
-            "id": "stable-anchor-4",
+            "id": "stable-anchor-3",
             "alternatives": [
               "工业品"
             ]
@@ -2764,7 +2662,7 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "天猫Tmall.com"
+              "天猫"
             ]
           },
           {
@@ -3161,31 +3059,24 @@
         "hosts": [
           "huaban.com"
         ],
-        "entry_path": "/pins/[0-9]+",
+        "entry_path": "/boards/[0-9]+",
         "stable_text_anchors": [
           {
             "id": "stable-anchor-1",
-            "alternatives": [
-              "花瓣网"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-2",
             "alternatives": [
               "探索"
             ],
             "match_scope": "non_record_lines"
           },
           {
-            "id": "stable-anchor-3",
+            "id": "stable-anchor-2",
             "alternatives": [
               "平面设计"
             ],
             "match_scope": "non_record_lines"
           },
           {
-            "id": "stable-anchor-4",
+            "id": "stable-anchor-3",
             "alternatives": [
               "UI/UX"
             ],
@@ -3336,19 +3227,12 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "Switch520"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-2",
-            "alternatives": [
               "PC游戏"
             ],
             "match_scope": "non_record_lines"
           },
           {
-            "id": "stable-anchor-3",
+            "id": "stable-anchor-2",
             "alternatives": [
               "IGN必玩推荐榜"
             ],
@@ -3534,26 +3418,19 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "2345网址导航"
+              "旗下产品"
             ],
             "match_scope": "non_record_lines"
           },
           {
             "id": "stable-anchor-2",
             "alternatives": [
-              "旗下产品"
-            ],
-            "match_scope": "non_record_lines"
-          },
-          {
-            "id": "stable-anchor-3",
-            "alternatives": [
               "邮箱"
             ],
             "match_scope": "non_record_lines"
           },
           {
-            "id": "stable-anchor-4",
+            "id": "stable-anchor-3",
             "alternatives": [
               "天气"
             ],
@@ -3691,7 +3568,7 @@
           {
             "id": "stable-anchor-1",
             "alternatives": [
-              "NGA玩家社区"
+              "NGA社区"
             ]
           },
           {
@@ -3898,12 +3775,68 @@
           {
             "id": "stable-anchor-4",
             "alternatives": [
-              "Start free trial",
-              "开始免费试用"
+              "Start for free"
             ]
           }
         ]
       }
     }
-  ]
+  ],
+  "revision": {
+    "id": "popular-sites-rules-v2-2026-09-15",
+    "approved_at": "2026-09-15",
+    "audit": "research/popular-sites-rules-audit-v2.json",
+    "audit_sha256": "f98ea6bcfaf754e7b9827ce93148f02a139da98e4afdcf088d8bb7de0b46bbfc",
+    "approval": "research/popular-sites-rules-v2-approval.json",
+    "approval_sha256": "1faa7f631a00f4575f94992a1ec6e369aba821910db22cd631b360014bfe52a5",
+    "approved_reference": "research/popular-sites-approved-contract-reference-2026-09-15.json",
+    "approved_reference_sha256": "b70350a8247bc1986110e7e8060298218a9353fe6b96417d95e33eac671dbad3",
+    "score_only_case_ids": [
+      "china-homepage-019-taobao-com",
+      "china-homepage-029-360-com",
+      "china-homepage-036-hao123-com",
+      "china-homepage-039-1688-com",
+      "china-homepage-045-tmall-com",
+      "china-homepage-058-huaban-com",
+      "china-homepage-064-gamer520-com",
+      "china-homepage-071-2345-com",
+      "china-homepage-078-nga-cn",
+      "china-homepage-085-shopify-com",
+      "global-homepage-005-chatgpt-com",
+      "global-homepage-010-bing-com",
+      "global-homepage-012-gemini-google-com",
+      "global-homepage-016-amazon-com",
+      "global-homepage-018-baidu-com",
+      "global-homepage-020-naver-com",
+      "global-homepage-037-mail-ru",
+      "global-homepage-044-spotify-com",
+      "global-homepage-045-nytimes-com",
+      "global-homepage-068-indeed-com",
+      "global-homepage-072-rakuten-co-jp"
+    ],
+    "provider_rerun_case_ids": [
+      "challenge-02",
+      "challenge-04",
+      "challenge-06"
+    ],
+    "provider_rerun_methods": [
+      "crawl4ai",
+      "moli-webfetch",
+      "deepseek-harness-built-in",
+      "cowagent-built-in",
+      "langchain-webbase",
+      "openclaw-built-in",
+      "lexmount-cn",
+      "lexmount-global"
+    ],
+    "provider_rerun_call_count": 24,
+    "deferred_methods_run": false,
+    "publication_hold_required": true,
+    "predecessor": {
+      "dataset_sha256": "808dcc081a6e72038d1f17f1141fd2cd3fa8db1eb1a5aa4560a824e685ffa39a",
+      "rules_sha256": "5b28422dc53d61d7df23d11b2f3d310f500a3f0e836783f1abb0a46c42f2ba0d",
+      "stage_contract_sha256": "cfaefd3334710cc1f4f18c6b5ffbed4670287e981608b10ce0743250ebe5d40c",
+      "final_contract_sha256": "7baf7fb3a7c25721ab38cfd09260f714da615833db137fbdc0c82da7d3d3903b"
+    }
+  }
 }

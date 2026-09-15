@@ -1,11 +1,12 @@
 from pathlib import Path
 import json
 import re
+import tempfile
 import unittest
 
 from scripts.run_headless_benchmark import require_expected_provider_versions
 from harness.web_fetch.providers.headless import HEADLESS_CONVERSION
-from harness.web_fetch.publication_target import require_publication_site
+from harness.web_fetch.publication_target import require_no_publication_hold, require_publication_site
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -84,6 +85,18 @@ class RuntimeEntrypointTests(unittest.TestCase):
             require_publication_site(
                 {'slug':'HMHGx1jcMz-z','base_url':'https://artifact-hub.dev.lexmount.net'},
                 profile,'https://artifact-hub.app.lexmount.com')
+
+    def test_active_hold_blocks_only_the_target_dataset(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile = root / "profile.json"
+            hold = root / "hold.json"
+            profile.write_text(json.dumps({"dataset_id": "popular-sites"}))
+            hold.write_text(json.dumps({"active": True, "dataset_id": "popular-sites"}))
+            with self.assertRaisesRegex(ValueError, "blocked"):
+                require_no_publication_hold(profile, hold)
+            hold.write_text(json.dumps({"active": True, "dataset_id": "another"}))
+            require_no_publication_hold(profile, hold)
 
     def test_publication_scripts_do_not_load_repository_eval_credentials(self) -> None:
         for relative in ('scripts/publish_artifact_hub.py',

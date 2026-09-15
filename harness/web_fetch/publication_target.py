@@ -21,6 +21,18 @@ HUB = (os.environ.get('WEBFETCH_REPORT_PUBLIC_URL') or
        f'{_BASE}/api/preview/{_SLUG}').rstrip('/')
 
 
+def require_no_publication_hold(profile_path=ROOT/'evaluation/current-report.json',
+                                hold_path=ROOT/'evaluation/publication-hold.json') -> None:
+    """Refuse publication when an explicit hold targets the current dataset."""
+    hold_path = Path(hold_path)
+    if not hold_path.exists():
+        return
+    hold = json.loads(hold_path.read_text())
+    profile = json.loads(Path(profile_path).read_text())
+    if hold.get('active') is True and hold.get('dataset_id') == profile.get('dataset_id'):
+        raise ValueError(f'Publication is blocked by {hold_path}')
+
+
 def require_publication_site(receipt: dict, profile_path: Path, base_url: str | None=None) -> str:
     """Refuse to publish the current report through another site's receipt."""
     profile = json.loads(profile_path.read_text())

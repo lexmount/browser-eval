@@ -19,9 +19,11 @@ def test_popular_sites_suite_has_exact_frozen_inventory():
         "cases": 100,
         "methods": 8,
         "final_methods": 12,
-        "fresh_formal_results": 800,
+        "fresh_formal_results": 24,
         "final_formal_results": 1200,
-        "provider_results_reused": 0,
+        "provider_results_reused": 776,
+        "inherited_formal_results": 776,
+        "score_only_recomputed_results": 168,
     }
     assert dataset["comparison"]["require_independent_result_review"] is True
     assert len(dataset["coverage_plan"]["challenge"]) == 8
@@ -30,10 +32,11 @@ def test_popular_sites_suite_has_exact_frozen_inventory():
     assert [item["id"] for item in dataset["cases"]] == [item["id"] for item in rules["cases"]]
 
 
-def test_all_800_stage_results_are_fresh_and_cohorts_cover_100_cases():
+def test_rule_revision_reuses_only_unchanged_inputs_and_cohorts_cover_100_cases():
     rules = load("research/popular-sites-rules.json")
-    assert rules["counts"]["provider_results_reused"] == 0
-    assert rules["counts"]["fresh_formal_results"] == 800
+    assert rules["counts"]["provider_results_reused"] == 776
+    assert rules["counts"]["fresh_formal_results"] == 24
+    assert rules["counts"]["score_only_recomputed_results"] == 168
     assert rules["counts"]["final_formal_results"] == 1200
     assert {item["cohort"] for item in rules["cases"]} == {
         "global_homepage",
@@ -74,7 +77,7 @@ def test_accepted_stability_revisions_are_frozen_without_generic_not_found_block
     cases = {case["id"]: case for case in dataset["cases"]}
 
     expected = {
-        "global-homepage-010-bing-com": ["Microsoft Bing", "Images", "Maps", "Sign in"],
+        "global-homepage-010-bing-com": ["Bing homepage quiz", "Images", "Maps", "Sign in"],
         "global-homepage-020-naver-com": ["NAVER", "공지사항", "Partners", "Developers"],
         "global-homepage-080-cnn-com": ["CNN", "MORE TOP STORIES"],
         "china-homepage-008-doubao-com": ["豆包", "有什么我能帮你的吗？", "对话", "图像生成"],
@@ -111,6 +114,18 @@ def test_locale_corrections_and_replacements_are_exact():
     assert "global-homepage-088-primevideo-com" not in cases
     assert "china-homepage-083-grok-com" in cases
     assert "china-homepage-085-shopify-com" in cases
+
+
+def test_v2_approved_url_and_named_link_changes_are_exact():
+    dataset = load("evaluation/popular-sites-dataset.json")
+    cases = {case["id"]: case for case in dataset["cases"]}
+    assert cases["challenge-02"]["url"] == "https://www.jd.com/chanpin/109113.html"
+    assert cases["challenge-02"]["acceptance_contract"]["hosts"] == ["item.jd.com"]
+    assert cases["challenge-04"]["url"] == "https://www.zhihu.com/knowledge-plan/hot-question/hot/1000001/week"
+    assert cases["challenge-04"]["acceptance_contract"]["entry_path"] == "/question/\\d+"
+    assert cases["challenge-06"]["name"] == "MICHELIN Guide · 上海星级餐厅列表"
+    assert cases["challenge-06"]["acceptance_contract"]["hosts"] == ["guide.michelin.com"]
+    assert cases["china-homepage-058-huaban-com"]["acceptance_contract"]["entry_path"] == "/boards/[0-9]+"
 
 
 def test_fresh_execution_contract_is_hash_bound():

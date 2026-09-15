@@ -1,0 +1,337 @@
+{
+  "schema_version": 1,
+  "status": "approved_for_formal_rule_freeze",
+  "purpose": "Provider-blind audit of all 100 popular-site acceptance contracts before any further method run or report publication",
+  "reviewed_case_count": 100,
+  "bindings": {
+    "baseline_commit": "a07dd421102e10fb743065d20485fc4b78913d0c",
+    "dataset_sha256": "808dcc081a6e72038d1f17f1141fd2cd3fa8db1eb1a5aa4560a824e685ffa39a",
+    "rules_sha256": "5b28422dc53d61d7df23d11b2f3d310f500a3f0e836783f1abb0a46c42f2ba0d",
+    "primary_capture_sha256": "f142687905fae2c8c2cd398e7a552e972cffc4f4b39a74598fa368486caa6f84",
+    "ten_second_supplement_sha256": "d2288b7ffabc3059a8da57a8693e0bfa0a65a6f4fd157111fb6fe1fc8c05b7cb",
+    "ocr_diagnostic_sha256": "8e0a4f8cbc4f81254965f2bc6a6f1f30c36138f3204ee703197e5f688563fdc2",
+    "mechanical_audit_sha256": "212906ca594807aa53a703da31c683bf43a8529571fefeedd661027db2f03581",
+    "blocker_followup_capture_sha256": "ef3a56431adb6717ee3b09d88e4743161311ad1ccf8b4d0d57d9dfcd94c2b6ec",
+    "blocker_followup_analysis_sha256": "7eff57668a49081b53bec96fad1c366217ac36871d58e61a8b393c13bef7f99a",
+    "ordinary_browser_recheck_sha256": "b2a2a62991afdac77b11a6f3545ca60c58a00ba909babf80b4d8b504a8b0260f",
+    "bounded_url_search_sha256": "b68698fa4f72dc3e8f272f47d589e40ee0f4f36a65b0c6884d18d9136c00df7f"
+  },
+  "policy": {
+    "provider_outputs_used": false,
+    "remaining_provider_methods_run": false,
+    "ocr_or_pixel_text_allowed_as_scoring_evidence": false,
+    "document_title_allowed_as_stable_body_text": false,
+    "image_alt_or_image_title_allowed_as_required_stable_text": false,
+    "machine_readable_visible_or_accessible_control_text_allowed": true,
+    "all_registered_stable_text_groups_required": true,
+    "page_identity_preferred_minimum_groups": 3,
+    "page_identity_under_three": "Allowed only as a documented exception when stronger repeatable task-relevant text does not exist; never pad with weak or volatile text.",
+    "named_link_minimum_groups": 0,
+    "named_link_reason": "Three complete, uniquely named, matching detail URLs are structural evidence, so weak page text must not be added merely to reach three groups.",
+    "stability_wording": "currently repeatable in three fresh anonymous observations; not proven long-term stable",
+    "rule_selection_must_ignore_measured_provider_outputs": true
+  },
+  "summary": {
+    "unchanged_after_review": 76,
+    "proposed_rule_corrections": 21,
+    "blocked_cases": 0,
+    "resolved_followup_cases": 11,
+    "approved_contract_changes": 3,
+    "page_identity_exceptions_under_three_after_proposed_corrections": 0,
+    "provider_calls": 0,
+    "offline_rescore_performed": false,
+    "publication_allowed": false
+  },
+  "provisional_validation": {
+    "scope": "All currently decidable candidate contracts; the three decision-required cases remain excluded from final freeze validation.",
+    "positive_control_failures": 0,
+    "false_negative_control_failures": 0,
+    "cross_case_false_positive_collisions": 0,
+    "false_positive_mutation_failures": 0,
+    "mutation_controls_checked": {
+      "required_anchor_removed": 236,
+      "named_records_reduced_below_minimum": 26,
+      "blocked_page_inserted": 75
+    },
+    "provider_outputs_read": false,
+    "provider_calls": 0
+  },
+  "case_disposition": {
+    "keep_current_rule": [
+      "global-homepage-001-google-com",
+      "global-homepage-002-youtube-com",
+      "global-homepage-006-reddit-com",
+      "global-homepage-008-whatsapp-com",
+      "global-homepage-011-wikipedia-org",
+      "global-homepage-013-yahoo-co-jp",
+      "global-homepage-015-yahoo-com",
+      "global-homepage-021-netflix-com",
+      "global-homepage-023-cloud-microsoft",
+      "global-homepage-025-bilibili-com",
+      "global-homepage-027-dzen-ru",
+      "global-homepage-028-microsoft-com",
+      "global-homepage-029-twitch-tv",
+      "global-homepage-030-weather-com",
+      "global-homepage-032-canva-com",
+      "global-homepage-034-news-yahoo-co-jp",
+      "global-homepage-035-fandom-com",
+      "global-homepage-036-globo-com",
+      "global-homepage-038-samsung-com",
+      "global-homepage-039-duckduckgo-com",
+      "global-homepage-041-discord-com",
+      "global-homepage-042-github-com",
+      "global-homepage-046-zoom-us",
+      "global-homepage-049-brave-com",
+      "global-homepage-056-apple-com",
+      "global-homepage-060-espn-com",
+      "global-homepage-062-bbc-com",
+      "global-homepage-063-paypal-com",
+      "global-homepage-065-ya-ru",
+      "global-homepage-067-deepseek-com",
+      "global-homepage-075-telegram-org",
+      "global-homepage-080-cnn-com",
+      "global-homepage-081-namu-wiki",
+      "global-homepage-082-shein-com",
+      "global-homepage-084-qq-com",
+      "global-homepage-085-douyin-com",
+      "global-homepage-086-usps-com",
+      "global-homepage-087-instructure-com",
+      "global-homepage-090-rutube-ru",
+      "challenge-01",
+      "challenge-03",
+      "challenge-05",
+      "challenge-09",
+      "challenge-10-justwatch",
+      "china-homepage-008-doubao-com",
+      "china-homepage-012-feishu-cn",
+      "china-homepage-018-163-com",
+      "china-homepage-026-aliyun-com",
+      "china-homepage-028-weibo-com",
+      "china-homepage-033-dingtalk-com",
+      "china-homepage-040-quark-cn",
+      "china-homepage-042-kdocs-cn",
+      "china-homepage-044-kimi-com",
+      "china-homepage-046-wedoany-com",
+      "china-homepage-047-qianwen-com",
+      "china-homepage-048-douyu-com",
+      "china-homepage-050-openai-com",
+      "china-homepage-052-alipay-com",
+      "china-homepage-053-sohu-com",
+      "china-homepage-055-huya-com",
+      "china-homepage-056-cnki-net",
+      "china-homepage-057-nih-gov",
+      "china-homepage-059-jianying-com",
+      "china-homepage-060-eastmoney-com",
+      "china-homepage-063-sina-com-cn",
+      "china-homepage-065-lingxing-com",
+      "china-homepage-067-alibaba-com",
+      "china-homepage-068-youdao-com",
+      "china-homepage-069-3dmgame-com",
+      "china-homepage-072-cctv-com",
+      "china-homepage-073-so-com",
+      "china-homepage-075-volcengine-com",
+      "china-homepage-080-yandex-com",
+      "china-homepage-081-elsevier-com",
+      "china-homepage-082-huawei-com",
+      "china-homepage-083-grok-com"
+    ],
+    "modify_rule": [
+      "global-homepage-005-chatgpt-com",
+      "global-homepage-010-bing-com",
+      "global-homepage-012-gemini-google-com",
+      "global-homepage-016-amazon-com",
+      "global-homepage-018-baidu-com",
+      "global-homepage-020-naver-com",
+      "global-homepage-037-mail-ru",
+      "global-homepage-068-indeed-com",
+      "global-homepage-044-spotify-com",
+      "global-homepage-045-nytimes-com",
+      "global-homepage-072-rakuten-co-jp",
+      "china-homepage-019-taobao-com",
+      "china-homepage-029-360-com",
+      "china-homepage-036-hao123-com",
+      "china-homepage-039-1688-com",
+      "china-homepage-045-tmall-com",
+      "china-homepage-058-huaban-com",
+      "china-homepage-064-gamer520-com",
+      "china-homepage-071-2345-com",
+      "china-homepage-078-nga-cn",
+      "china-homepage-085-shopify-com"
+    ],
+    "page_identity_exceptions": [],
+    "decision_required": [],
+    "approved_contract_change": [
+      "challenge-02",
+      "challenge-04",
+      "challenge-06"
+    ]
+  },
+  "blockers": [],
+  "approved_contract_changes": [
+    {
+      "case_id": "challenge-02",
+      "decision": "Use https://www.jd.com/chanpin/109113.html and preserve the product-name plus product-detail-link goal.",
+      "authorization": "Explicit user approval on 2026-09-15"
+    },
+    {
+      "case_id": "challenge-04",
+      "decision": "Use https://www.zhihu.com/knowledge-plan/hot-question/hot/1000001/week and preserve the question-name plus question-detail-link goal.",
+      "authorization": "Explicit user approval on 2026-09-15"
+    },
+    {
+      "case_id": "challenge-06",
+      "decision": "Replace Dianping with the MICHELIN Guide Shanghai starred-restaurant list and preserve the restaurant-name plus restaurant-detail-link task shape.",
+      "authorization": "Explicit user approval on 2026-09-15"
+    }
+  ],
+  "resolved_followup": [
+    {
+      "case_id": "global-homepage-016-amazon-com",
+      "resolution": "Three fresh 15-second observations returned 26–27 complete unique product links. Today's Deals disappeared, so the candidate keeps only Amazon as auxiliary page text and relies primarily on the named-link structure."
+    },
+    {
+      "case_id": "global-homepage-037-mail-ru",
+      "resolution": "Three fresh 15-second observations passed with 5, 6, and 10 complete unique news links after drifting page-text requirements were removed."
+    },
+    {
+      "case_id": "global-homepage-068-indeed-com",
+      "resolution": "Three fresh 15-second observations loaded normally and repeated four task-relevant visible groups used by the new candidate correction."
+    },
+    {
+      "case_id": "global-homepage-072-rakuten-co-jp",
+      "resolution": "Three fresh 15-second observations each passed with nine complete unique product links and all three candidate text groups."
+    },
+    {
+      "case_id": "global-homepage-081-namu-wiki",
+      "resolution": "Three fresh 15-second observations followed the root site's normal redirect to its official main page and passed all four existing groups."
+    },
+    {
+      "case_id": "challenge-01",
+      "resolution": "Three ordinary-browser observations at the unchanged URL repeated all four page labels and 64–72 named product links; the earlier failure was specific to headless access."
+    },
+    {
+      "case_id": "challenge-09",
+      "resolution": "Three ordinary-browser observations at the unchanged URL repeated the heading, subtitle, and 50 named title links; the earlier failure was specific to headless access."
+    },
+    {
+      "case_id": "china-homepage-058-huaban-com",
+      "resolution": "The user approved changing the named-link entity from pins to boards on the same Huaban homepage. Three fresh anonymous observations expose many visible board names joined to /boards/ detail URLs; image metadata remains excluded."
+    }
+  ],
+  "corrections": [
+    {
+      "case_id": "global-homepage-005-chatgpt-com",
+      "reason": "The welcome prompt rotates and one registered sentence disappeared on a normal load.",
+      "stable_text_groups": [["ChatGPT"], ["New chat"], ["Where should we begin?", "Ready when you are."]]
+    },
+    {
+      "case_id": "global-homepage-010-bing-com",
+      "reason": "Microsoft Bing was present only in the document title; Bing homepage quiz is visible and task-identifying.",
+      "stable_text_groups": [["Bing homepage quiz"], ["Images"], ["Maps"], ["Sign in"]]
+    },
+    {
+      "case_id": "global-homepage-012-gemini-google-com",
+      "reason": "The main prompt rotates between two independently observed phrasings.",
+      "stable_text_groups": [["Gemini"], ["Conversation with Gemini"], ["Meet Gemini, your personal AI assistant", "Where should we start?"]]
+    },
+    {
+      "case_id": "global-homepage-016-amazon-com",
+      "reason": "Customer Service was absent in the first audit and Today's Deals disappeared in all three longer follow-up observations; 26–27 complete unique product links supply the stronger acceptance evidence.",
+      "stable_text_groups": [["Amazon"]],
+      "validation_source": "blocker_followup_capture"
+    },
+    {
+      "case_id": "global-homepage-018-baidu-com",
+      "reason": "百度一下 appeared only in the document title; the replacement is visible, repeatable, and identifies Baidu.",
+      "stable_text_groups": [["关于百度", "About Baidu"], ["新闻"], ["地图"], ["更多"]]
+    },
+    {
+      "case_id": "global-homepage-020-naver-com",
+      "reason": "The old /.+ path could count Naver service home/navigation links as detail records.",
+      "entry_path": "/(?:[^/]+/contents/internal/[0-9]+|[^/]+/[0-9]+)"
+    },
+    {
+      "case_id": "global-homepage-037-mail-ru",
+      "reason": "The four page labels moved between visible content and title-only states; news.mail.ru article URLs and named titles are the stronger invariant.",
+      "stable_text_groups": [],
+      "validation_source": "blocker_followup_capture"
+    },
+    {
+      "case_id": "global-homepage-068-indeed-com",
+      "reason": "Trending Searches and Trending Jobs disappeared, while four task-relevant page labels repeated in all three longer follow-up observations.",
+      "stable_text_groups": [["What's trending on Indeed"], ["Company reviews"], ["Find salaries"], ["Employers / Post Job"]],
+      "validation_source": "blocker_followup_capture"
+    },
+    {
+      "case_id": "global-homepage-044-spotify-com",
+      "reason": "Trending and popular shelves loaded in only one primary observation; persistent library controls are currently repeatable.",
+      "stable_text_groups": [["Your Library"], ["Create playlist"], ["Browse podcasts"]]
+    },
+    {
+      "case_id": "global-homepage-045-nytimes-com",
+      "reason": "The New York Times was not a non-record page label, while NEWSLETTERS and PODCASTS were absent; the article-link structure remains the main evidence.",
+      "stable_text_groups": [["TOP STORIES"]]
+    },
+    {
+      "case_id": "global-homepage-072-rakuten-co-jp",
+      "reason": "人気商品ランキング missed one observation and is a dynamic shelf label; item.rakuten.co.jp links already prove product details.",
+      "stable_text_groups": [["ようこそ楽天市場へ"], ["楽天スーパーDEAL"], ["ジャンル"]],
+      "validation_source": "blocker_followup_capture"
+    },
+    {
+      "case_id": "china-homepage-019-taobao-com",
+      "reason": "The old generic set also passed the Tmall page, a demonstrated false positive.",
+      "stable_text_groups": [["淘宝网"], ["免费开店"], ["淘宝直播"], ["司法拍卖"]]
+    },
+    {
+      "case_id": "china-homepage-029-360-com",
+      "reason": "360安全浏览器 was absent while the current browser labels were repeatable.",
+      "stable_text_groups": [["360安全卫士"], ["软件下载中心"], ["纳米AI"], ["360极速浏览器", "安全浏览器"]]
+    },
+    {
+      "case_id": "china-homepage-036-hao123-com",
+      "reason": "上网从这里开始 appeared only in the document title.",
+      "stable_text_groups": [["hao123"], ["百度"], ["搜索热点"], ["热点"]]
+    },
+    {
+      "case_id": "china-homepage-039-1688-com",
+      "reason": "阿里1688首页 appeared only in the document title; three stronger visible groups remain.",
+      "stable_text_groups": [["挑好货"], ["找工厂"], ["工业品"]]
+    },
+    {
+      "case_id": "china-homepage-045-tmall-com",
+      "reason": "天猫Tmall.com appeared only in the document title; 天猫 was visible and repeatable.",
+      "stable_text_groups": [["天猫"], ["搜索"], ["购物车"], ["商家支持"]]
+    },
+    {
+      "case_id": "china-homepage-058-huaban-com",
+      "reason": "花瓣网 was available only through title/image metadata, which is excluded from required stable text. The user approved evaluating visible named boards instead of image-only pins.",
+      "stable_text_groups": [["探索"], ["平面设计"], ["UI/UX"]],
+      "entry_path": "/boards/[0-9]+",
+      "validation_source": "blocker_followup_capture"
+    },
+    {
+      "case_id": "china-homepage-064-gamer520-com",
+      "reason": "Switch520 was title/image-only; the named-link contract need not be padded to three text groups.",
+      "stable_text_groups": [["PC游戏"], ["IGN必玩推荐榜"]]
+    },
+    {
+      "case_id": "china-homepage-071-2345-com",
+      "reason": "2345网址导航 was title/image-only; three repeatable visible groups remain.",
+      "stable_text_groups": [["旗下产品"], ["邮箱"], ["天气"]]
+    },
+    {
+      "case_id": "china-homepage-078-nga-cn",
+      "reason": "NGA玩家社区 appeared only in the document title; NGA社区 is visible and repeatable.",
+      "stable_text_groups": [["NGA社区"], ["论坛"], ["评分"], ["专题"]]
+    },
+    {
+      "case_id": "china-homepage-085-shopify-com",
+      "reason": "The call-to-action changed from Start free trial to Start for free.",
+      "stable_text_groups": [["Shopify"], ["Products", "产品"], ["Pricing", "定价"], ["Start for free"]]
+    }
+  ],
+  "decision_required": [],
+  "unchanged_scope": "Every case not listed in corrections or approved contract changes was reviewed against three direct captures, task relevance, volatility risk, structure, title/image dependence, and cross-case collision diagnostics. All 11 follow-up cases now have an independently supported conclusion or an explicitly approved replacement.",
+  "next_gate": "Freeze the approved contracts and run the complete 100-case positive, false-positive, false-negative and 100×99 cross-case validation. Before any provider calls, publish the exact three-case by eight-method rerun scope. Do not run deferred methods or lift the publication hold."
+}

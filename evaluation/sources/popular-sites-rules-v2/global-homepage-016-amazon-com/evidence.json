@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "case_id": "global-homepage-016-amazon-com",
+  "url": "https://amazon.com/",
+  "checked_at": "2026-09-15",
+  "source": "Provider-blind rule audit with fresh anonymous browser observations",
+  "sources": [
+    {
+      "path": "research/popular-sites-rules-audit-v2.json",
+      "sha256": "f98ea6bcfaf754e7b9827ce93148f02a139da98e4afdcf088d8bb7de0b46bbfc"
+    },
+    {
+      "path": "research/popular-sites-rules-v2-approval.json",
+      "sha256": "1faa7f631a00f4575f94992a1ec6e369aba821910db22cd631b360014bfe52a5"
+    }
+  ],
+  "stable_page_sha256": "123e046b6df76f985f6cb8afafd1b6cfcf01b8bae0cedd7f4491d44c90cf4c00",
+  "provider_output_used": false,
+  "clicks_or_recursive_navigation": false,
+  "scope": "Stable page text and declared named-link structure only; dynamic members and values are not frozen."
+}

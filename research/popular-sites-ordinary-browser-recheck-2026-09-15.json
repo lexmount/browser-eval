@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "purpose": "Compact independent ordinary-browser recheck for rule-audit cases that headless Chromium could not reproduce",
+  "checked_at": "2026-09-15",
+  "method": "Codex in-app Chromium accessibility-tree observations in an anonymous ordinary browser session; no login, captcha solving, navigation clicks, or measured provider output",
+  "provider_outputs_read": false,
+  "provider_calls": 0,
+  "cases": [
+    {
+      "case_id": "challenge-01",
+      "requested_url": "https://www.anthropologie.com/collection-decorative-candles",
+      "final_url": "https://www.anthropologie.com/collection-decorative-candles",
+      "document_title": "Decorative Candles | Anthropologie",
+      "rounds": [
+        {"round": 1, "heading": true, "price": true, "color": true, "brand": true, "named_shop_links": 72},
+        {"round": 2, "heading": true, "price": true, "color": true, "brand": true, "named_shop_links": 64},
+        {"round": 3, "heading": true, "price": true, "color": true, "brand": true, "named_shop_links": 64}
+      ],
+      "conclusion": "The existing URL and acceptance contract were reproduced in three ordinary-browser observations. The headless-only 403 is not evidence that the rule itself is wrong."
+    },
+    {
+      "case_id": "challenge-09",
+      "requested_url": "https://www.imdb.com/chart/top/",
+      "final_url": "https://www.imdb.com/chart/top/",
+      "document_title": "IMDb Top 250 movies",
+      "rounds": [
+        {"round": 1, "heading": true, "subtitle": true, "named_title_links": 50},
+        {"round": 2, "heading": true, "subtitle": true, "named_title_links": 50},
+        {"round": 3, "heading": true, "subtitle": true, "named_title_links": 50}
+      ],
+      "conclusion": "The existing URL and acceptance contract were reproduced in three ordinary-browser observations. The headless-only human-confirmation page is not evidence that the rule itself is wrong."
+    },
+    {
+      "case_id": "challenge-02",
+      "requested_url": "https://search.jd.com/Search?keyword=%E8%80%B3%E6%9C%BA&enc=utf-8",
+      "observation": "Redirected to JD login. An independently discovered official category URL also redirected to login.",
+      "conclusion": "The current task could not be independently reproduced without changing its URL or goal."
+    },
+    {
+      "case_id": "challenge-04",
+      "requested_url": "https://www.zhihu.com/hot",
+      "observation": "Redirected to the Zhihu sign-in page.",
+      "conclusion": "The current task could not be independently reproduced without login or a contract change."
+    },
+    {
+      "case_id": "challenge-06",
+      "requested_url": "https://www.dianping.com/shanghai/ch10",
+      "observation": "Redirected to an anti-spider verification page.",
+      "conclusion": "The current task could not be independently reproduced without verification or a contract change."
+    }
+  ]
+}

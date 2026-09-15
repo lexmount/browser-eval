@@ -1,6 +1,6 @@
 # 全球热门网站 100 站规则冻结记录
 
-- 本阶段为 100 站 × 8/12 方法 = 800 条全新正式结果；旧 46/100 Lexmount Global 结果不复用、不覆盖。
+- v2 规则审计冻结后，21 个同 URL 案例只需离线重评分；京东、知乎和 MICHELIN Guide 三个变更 URL 案例需对已完成的 8 种方法各重跑一次，共 24 次新调用。
 - Cloudflare、Firecrawl、Tavily、Exa 本阶段未运行，不计为失败或 0 分；最终目标仍为 12 方法 1,200 条结果。
 - Samsung 固定到美国站；Elsevier 允许独立观察到的同语义中英文页面文字。
 - Booking.com 与 Prime Video 因当前地区访问契约不可复现而移出新矩阵，由候补 Grok、Shopify 补足。
@@ -65,11 +65,11 @@
 | 49 | `global-homepage-087-instructure-com` | `global_homepage` | https://instructure.com/ | `page_identity` |
 | 50 | `global-homepage-090-rutube-ru` | `global_homepage` | https://rutube.ru/ | `named_link` |
 | 51 | `challenge-01` | `legacy_popular_list` | https://www.anthropologie.com/collection-decorative-candles | `named_link` |
-| 52 | `challenge-02` | `legacy_popular_list` | https://search.jd.com/Search?keyword=%E8%80%B3%E6%9C%BA&enc=utf-8 | `named_link` |
+| 52 | `challenge-02` | `legacy_popular_list` | https://www.jd.com/chanpin/109113.html | `named_link` |
 | 53 | `challenge-03` | `legacy_popular_list` | https://www.xiaohongshu.com/explore | `named_link` |
-| 54 | `challenge-04` | `legacy_popular_list` | https://www.zhihu.com/hot | `named_link` |
+| 54 | `challenge-04` | `legacy_popular_list` | https://www.zhihu.com/knowledge-plan/hot-question/hot/1000001/week | `named_link` |
 | 55 | `challenge-05` | `legacy_popular_list` | https://movie.douban.com/top250 | `named_link` |
-| 56 | `challenge-06` | `legacy_popular_list` | https://www.dianping.com/shanghai/ch10 | `named_link` |
+| 56 | `challenge-06` | `legacy_popular_list` | https://guide.michelin.com/jp/en/shanghai-municipality/shanghai/restaurants/all-starred | `named_link` |
 | 57 | `challenge-09` | `legacy_popular_list` | https://www.imdb.com/chart/top/ | `named_link` |
 | 58 | `challenge-10-justwatch` | `legacy_popular_list` | https://www.justwatch.com/us/tv-shows | `named_link` |
 | 59 | `china-homepage-008-doubao-com` | `china_ranked_homepage` | https://doubao.com/ | `page_identity` |

@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "status": "approved_for_rule_freeze",
+  "approved_at": "2026-09-15",
+  "scope": "Final user decisions for the provider-blind 100-site rule audit v2",
+  "decisions": [
+    {
+      "case_id": "china-homepage-058-huaban-com",
+      "decision": "Keep https://huaban.com/ and change the named-link entity from pins to visible named boards."
+    },
+    {
+      "case_id": "challenge-02",
+      "decision": "Use https://www.jd.com/chanpin/109113.html and retain the product-name plus product-detail-link task."
+    },
+    {
+      "case_id": "challenge-04",
+      "decision": "Use https://www.zhihu.com/knowledge-plan/hot-question/hot/1000001/week and retain the question-name plus question-detail-link task."
+    },
+    {
+      "case_id": "challenge-06",
+      "decision": "Replace Dianping with the MICHELIN Guide Shanghai starred-restaurant list while retaining the restaurant-name plus restaurant-detail-link task shape."
+    }
+  ],
+  "guardrails": {
+    "provider_outputs_must_not_influence_rules": true,
+    "deferred_methods_must_not_run": [
+      "cloudflare-markdown",
+      "firecrawl",
+      "tavily",
+      "exa"
+    ],
+    "publication_hold_remains_active": true,
+    "list_rerun_scope_before_provider_calls": true
+  }
+}

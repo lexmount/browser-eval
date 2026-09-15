@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-09-15",
+  "purpose": "Provider-blind, one-round bounded search for the three inaccessible named-link cases and replacement candidates for Dianping",
+  "guardrails": {
+    "provider_outputs_read": false,
+    "provider_calls": 0,
+    "formal_rules_changed": false,
+    "rescore_performed": false,
+    "ordinary_browser": "anonymous Codex in-app browser; no login, captcha solving, or account state",
+    "search_bound": "one domain-specific search query per existing case; at most three official candidate URLs opened per case; stop after that round"
+  },
+  "existing_case_searches": [
+    {
+      "case_id": "challenge-02",
+      "site": "JD",
+      "goal_preserved": "product names joined to product-detail URLs",
+      "original_url_result": "login or frequent-access verification",
+      "candidates_opened": [
+        {
+          "url": "https://www.jd.com/chanpin/109113.html",
+          "result": "viable",
+          "completed_observations": [30, 30, 30],
+          "unit": "unique named product-detail records",
+          "repeatable_visible_text": ["品牌", "综合", "销量", "入耳耳机"],
+          "sample_records": [
+            ["PVF 入耳式有线耳机", "https://item.jd.com/100190574821.html"],
+            ["觅声天鹤座2 入耳式耳机", "https://item.jd.com/10105895164053.html"],
+            ["OPPO Enco Air5 Pro", "https://item.jd.com/100323358084.html"],
+            ["Apple AirPods Pro 3", "https://item.jd.com/100270865468.html"],
+            ["Huawei FreeBuds SE 4", "https://item.jd.com/100270624389.html"]
+          ],
+          "note": "The page is a narrower 入耳耳机 category rather than the original general 耳机 search, so adoption is a URL/scope change requiring user approval."
+        },
+        {
+          "url": "https://www.jd.com/hprm/652bb204d8f2737917b.html",
+          "result": "redirected_to_login"
+        },
+        {
+          "url": "https://www.jd.com/phb/key_6521f1f2a844ea6d2ee.html",
+          "result": "redirected_to_login_or_verification"
+        }
+      ]
+    },
+    {
+      "case_id": "challenge-04",
+      "site": "Zhihu",
+      "goal_preserved": "question names joined to question-detail URLs",
+      "original_url_result": "redirected to sign-in",
+      "candidates_opened": [
+        {
+          "url": "https://www.zhihu.com/hot",
+          "result": "redirected_to_sign_in"
+        },
+        {
+          "url": "https://www.zhihu.com/topsearch",
+          "result": "anonymous page but no question-detail records"
+        },
+        {
+          "url": "https://www.zhihu.com/knowledge-plan/hot-question/hot/1000001/week",
+          "result": "viable_after_bounded_settle",
+          "completed_observations": [17, 17, 17],
+          "unit": "unique named question-detail records",
+          "load_diagnostic": "Two immediate post-reload checks returned zero records; the same loads returned 17 after a five-second settle.",
+          "sample_records": [
+            ["吃播网红干饭莹莹去世年仅 24 岁……", "https://www.zhihu.com/question/2080369515049611651"],
+            ["张雪峰为什么英年早逝？", "https://www.zhihu.com/question/2019998586461505514"],
+            ["为什么‘吃碳水’如今充满贬义色彩？", "https://www.zhihu.com/question/2025675769846796561"]
+          ],
+          "note": "The page is the 健康医学周榜 rather than the general hot list, so adoption is a URL/scope change requiring user approval."
+        }
+      ]
+    },
+    {
+      "case_id": "challenge-06",
+      "site": "Dianping",
+      "goal_preserved": "shop names joined to shop-detail URLs",
+      "candidates_opened": [
+        ["https://www.dianping.com/shanghai/ch10", "Meituan verification center"],
+        ["https://m.dianping.com/shanghai/ch10", "Dianping account login"],
+        ["https://m.dianping.com/shanghai/ch10/g110", "Dianping account login"]
+      ],
+      "result": "no anonymously stable official list found within the declared round; search stopped"
+    }
+  ],
+  "dianping_replacement_candidates": [
+    {
+      "rank": 1,
+      "site": "MICHELIN Guide",
+      "url": "https://guide.michelin.com/jp/en/shanghai-municipality/shanghai/restaurants/all-starred",
+      "result": "viable",
+      "observed_structure": "anonymous list labelled 1-48 of 50 restaurants with many named restaurant-detail links",
+      "sample_names": ["T'ang Court", "Ji Pin Court", "Taian Table", "Fu He Hui", "Fu 1015"],
+      "difficulty_note": "Same named-restaurant-to-detail-link task, dynamic commercial page, pagination and consent UI; list is curated rather than broad local search."
+    },
+    {
+      "rank": 2,
+      "site": "OpenRice Travel",
+      "url": "https://travel.openrice.com/china/shanghai/restaurant/sr1.htm?district_id=6204",
+      "result": "viable_with_freshness_risk",
+      "observed_structure": "anonymous list reports 39 restaurants and shows 10 named restaurant-detail records on page 1",
+      "sample_names": ["上海老站", "El Willy", "蘇浙匯", "唐韻茶坊", "吉士酒家"],
+      "difficulty_note": "Same named-restaurant-to-detail-link task and pagination, but the page visibly contains old reviews and a 2020 copyright footer, so long-term maintenance/freshness risk is higher."
+    }
+  ],
+  "rejected_replacement": {
+    "site": "Tripadvisor",
+    "url": "https://www.tripadvisor.com/Restaurants-g308272-Shanghai.html",
+    "reason": "ordinary anonymous browser reached a DataDome device check/captcha, so it does not improve the access problem"
+  },
+  "approval_state": {
+    "huaban_boards": "approved by user",
+    "jd_candidate_url": "awaiting user approval",
+    "zhihu_candidate_url": "awaiting user approval",
+    "dianping_replacement": "awaiting user choice",
+    "publication_hold": "active"
+  }
+}

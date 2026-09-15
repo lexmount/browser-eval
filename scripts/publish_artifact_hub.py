@@ -10,7 +10,8 @@ BASE=os.environ.get('ARTIFACT_HUB_BASE_URL','https://artifact-hub.app.lexmount.c
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.artifact_auth import load_token
-from harness.web_fetch.publication_target import require_publication_site
+from harness.web_fetch.publication_target import require_no_publication_hold,require_publication_site
+require_no_publication_hold()
 token=load_token(base_url=BASE)
 receipt=(Path(sys.argv[sys.argv.index('--receipt')+1]) if '--receipt' in sys.argv
          else ROOT/'publish/artifact-hub-receipt.json')

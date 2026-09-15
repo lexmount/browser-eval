@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "revision_id": "popular-sites-rules-v2-2026-09-15",
+  "status": "rules_frozen_and_validated_pending_provider_rerun_authorization",
+  "frozen_at": "2026-09-15",
+  "predecessor": {
+    "baseline_commit": "a07dd421102e10fb743065d20485fc4b78913d0c",
+    "dataset_sha256": "808dcc081a6e72038d1f17f1141fd2cd3fa8db1eb1a5aa4560a824e685ffa39a",
+    "rules_sha256": "5b28422dc53d61d7df23d11b2f3d310f500a3f0e836783f1abb0a46c42f2ba0d",
+    "stage_contract_sha256": "cfaefd3334710cc1f4f18c6b5ffbed4670287e981608b10ce0743250ebe5d40c",
+    "final_contract_sha256": "7baf7fb3a7c25721ab38cfd09260f714da615833db137fbdc0c82da7d3d3903b"
+  },
+  "frozen": {
+    "dataset": "evaluation/popular-sites-dataset.json",
+    "dataset_sha256": "b8907677ef1850de1de22188f8923cfa97f9a7511e652b9d339c54eca9efd07b",
+    "rules": "research/popular-sites-rules.json",
+    "rules_sha256": "88ccb4557c1f3c053f351fb4a292fc856a442d1128e874bc7f67658ea2b86f72",
+    "stage_contract": "research/popular-sites-8-method-stage-contract.json",
+    "stage_contract_sha256": "d99add89858204e132084f59c9022c0b2f7b1be228beb358303a4f409693c9cf",
+    "final_contract": "research/popular-sites-12-method-contract.json",
+    "final_contract_sha256": "17cf9a62de863af6c9cebe3c2d67326ed21d872bbc13b5dc771c9c1b8e961a9d"
+  },
+  "review_bindings": {
+    "audit": "research/popular-sites-rules-audit-v2.json",
+    "audit_sha256": "f98ea6bcfaf754e7b9827ce93148f02a139da98e4afdcf088d8bb7de0b46bbfc",
+    "approval": "research/popular-sites-rules-v2-approval.json",
+    "approval_sha256": "1faa7f631a00f4575f94992a1ec6e369aba821910db22cd631b360014bfe52a5",
+    "approved_reference": "research/popular-sites-approved-contract-reference-2026-09-15.json",
+    "approved_reference_sha256": "b70350a8247bc1986110e7e8060298218a9353fe6b96417d95e33eac671dbad3",
+    "final_validation_external_path": "/Users/milky886/.browser-eval/evidence/reference-audits/popular-sites-rules-v2-2026-09-15/final-validation.json",
+    "final_validation_sha256": "1b46ec5d60e59243bef951a0955ab4a29c39372e641faad06bb5d10199398b27"
+  },
+  "change_scope": {
+    "changed_cases": 24,
+    "score_only_cases": [
+      "china-homepage-019-taobao-com",
+      "china-homepage-029-360-com",
+      "china-homepage-036-hao123-com",
+      "china-homepage-039-1688-com",
+      "china-homepage-045-tmall-com",
+      "china-homepage-058-huaban-com",
+      "china-homepage-064-gamer520-com",
+      "china-homepage-071-2345-com",
+      "china-homepage-078-nga-cn",
+      "china-homepage-085-shopify-com",
+      "global-homepage-005-chatgpt-com",
+      "global-homepage-010-bing-com",
+      "global-homepage-012-gemini-google-com",
+      "global-homepage-016-amazon-com",
+      "global-homepage-018-baidu-com",
+      "global-homepage-020-naver-com",
+      "global-homepage-037-mail-ru",
+      "global-homepage-044-spotify-com",
+      "global-homepage-045-nytimes-com",
+      "global-homepage-068-indeed-com",
+      "global-homepage-072-rakuten-co-jp"
+    ],
+    "provider_rerun_cases": [
+      "challenge-02",
+      "challenge-04",
+      "challenge-06"
+    ],
+    "provider_rerun_methods": [
+      "crawl4ai",
+      "moli-webfetch",
+      "deepseek-harness-built-in",
+      "cowagent-built-in",
+      "langchain-webbase",
+      "openclaw-built-in",
+      "lexmount-cn",
+      "lexmount-global"
+    ],
+    "provider_rerun_call_count": 24,
+    "existing_calls_eligible_for_inheritance": 776,
+    "score_only_results_to_recompute": 168,
+    "final_eight_method_result_count_after_assembly": 800
+  },
+  "validation": {
+    "status": "passed",
+    "cases": 100,
+    "positive_observations": 300,
+    "cross_case_checks": 9900,
+    "cross_case_false_positive_collisions": 0,
+    "required_anchor_removal_checks": 1098,
+    "named_records_below_minimum_checks": 120,
+    "wrong_host_named_record_checks": 120,
+    "blocked_page_insertion_checks": 300,
+    "mutation_failures": 0,
+    "page_identity_exceptions_under_three_groups": 0
+  },
+  "guardrails": {
+    "provider_outputs_read_during_rule_freeze": false,
+    "provider_calls_during_rule_freeze": 0,
+    "deferred_methods_run": false,
+    "publication_hold_active": true,
+    "provider_rerun_authorized": false
+  }
+}

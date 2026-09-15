@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-09-15",
+  "purpose": "Compact provider-free positive reference for the three approved URL or site changes",
+  "provider_outputs_read": false,
+  "provider_calls": 0,
+  "cases": [
+    {
+      "case_id": "challenge-02",
+      "url": "https://www.jd.com/chanpin/109113.html",
+      "completed_observation_record_counts": [30, 30, 30],
+      "stable_text_groups": [["品牌"], ["综合"], ["销量"]],
+      "records": [
+        ["PVF 入耳式有线耳机", "https://item.jd.com/100190574821.html"],
+        ["觅声天鹤座2 入耳式耳机", "https://item.jd.com/10105895164053.html"],
+        ["OPPO Enco Air5 Pro", "https://item.jd.com/100323358084.html"],
+        ["Apple AirPods Pro 3", "https://item.jd.com/100270865468.html"],
+        ["Huawei FreeBuds SE 4", "https://item.jd.com/100270624389.html"]
+      ],
+      "selection_scope": "Dynamic product membership is diagnostic only; the contract freezes record shape, host/path, minimum count and stable page labels."
+    },
+    {
+      "case_id": "challenge-04",
+      "url": "https://www.zhihu.com/knowledge-plan/hot-question/hot/1000001/week",
+      "completed_observation_record_counts": [17, 17, 17],
+      "settle_seconds": 5,
+      "stable_text_groups": [],
+      "records": [
+        ["吃播网红干饭莹莹去世年仅 24 岁……", "https://www.zhihu.com/question/2080369515049611651"],
+        ["张雪峰为什么英年早逝？", "https://www.zhihu.com/question/2019998586461505514"],
+        ["为什么‘吃碳水’如今充满贬义色彩？", "https://www.zhihu.com/question/2025675769846796561"]
+      ],
+      "selection_scope": "Dynamic question membership is diagnostic only; the contract freezes record shape, host/path and minimum count."
+    },
+    {
+      "case_id": "challenge-06",
+      "url": "https://guide.michelin.com/jp/en/shanghai-municipality/shanghai/restaurants/all-starred",
+      "completed_observation_record_counts": [48, 48, 48],
+      "stable_text_groups": [],
+      "records": [
+        ["T'ang Court", "https://guide.michelin.com/jp/en/shanghai-municipality/shanghai/restaurant/t-ang-court-506725"],
+        ["Ji Pin Court", "https://guide.michelin.com/jp/en/shanghai-municipality/shanghai/restaurant/ji-pin-court"],
+        ["Lu Style (Huangpu)", "https://guide.michelin.com/jp/en/shanghai-municipality/shanghai/restaurant/lu-style-1203592"],
+        ["Oriental Sense & Palate", "https://guide.michelin.com/jp/en/shanghai-municipality/shanghai/restaurant/oriental-sense-palate"],
+        ["Obscura", "https://guide.michelin.com/jp/en/shanghai-municipality/shanghai/restaurant/obscura"]
+      ],
+      "selection_scope": "Dynamic restaurant membership and displayed counts are diagnostic only; the contract freezes record shape, host/path and minimum count."
+    }
+  ]
+}

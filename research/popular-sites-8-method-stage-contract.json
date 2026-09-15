@@ -4,7 +4,7 @@
   "purpose": "Private interim 100-site comparison for eight of the twelve frozen methods",
   "final_contract": {
     "path": "research/popular-sites-12-method-contract.json",
-    "sha256": "7baf7fb3a7c25721ab38cfd09260f714da615833db137fbdc0c82da7d3d3903b",
+    "sha256": "17cf9a62de863af6c9cebe3c2d67326ed21d872bbc13b5dc771c9c1b8e961a9d",
     "final_methods": 12,
     "final_results": 1200
   },
@@ -64,6 +64,27 @@
       "settle_seconds": 1,
       "process_iframes": false,
       "scope": "Crawl4AI execution route only; common scoring and other methods are unchanged"
+    },
+    "revision_result_plan": {
+      "total_results": 800,
+      "unchanged_or_score_only_existing_calls": 776,
+      "score_only_recomputed_results": 168,
+      "new_provider_calls_required": 24,
+      "new_provider_call_cases": [
+        "challenge-02",
+        "challenge-04",
+        "challenge-06"
+      ],
+      "new_provider_call_methods": [
+        "crawl4ai",
+        "moli-webfetch",
+        "deepseek-harness-built-in",
+        "cowagent-built-in",
+        "langchain-webbase",
+        "openclaw-built-in",
+        "lexmount-cn",
+        "lexmount-global"
+      ]
     }
   },
   "authorization": {
@@ -84,5 +105,62 @@
     "Results from the eight-method stage cannot change the frozen membership, cases, references, scoring, or routes of the four deferred methods.",
     "No final public twelve-method ranking may be released before all 1200 results are measured and independently reviewed.",
     "The reviewed historical 46/100 Lexmount Global result remains separate and is not reused."
-  ]
+  ],
+  "rule_revision": {
+    "id": "popular-sites-rules-v2-2026-09-15",
+    "approved_at": "2026-09-15",
+    "audit": "research/popular-sites-rules-audit-v2.json",
+    "audit_sha256": "f98ea6bcfaf754e7b9827ce93148f02a139da98e4afdcf088d8bb7de0b46bbfc",
+    "approval": "research/popular-sites-rules-v2-approval.json",
+    "approval_sha256": "1faa7f631a00f4575f94992a1ec6e369aba821910db22cd631b360014bfe52a5",
+    "approved_reference": "research/popular-sites-approved-contract-reference-2026-09-15.json",
+    "approved_reference_sha256": "b70350a8247bc1986110e7e8060298218a9353fe6b96417d95e33eac671dbad3",
+    "score_only_case_ids": [
+      "china-homepage-019-taobao-com",
+      "china-homepage-029-360-com",
+      "china-homepage-036-hao123-com",
+      "china-homepage-039-1688-com",
+      "china-homepage-045-tmall-com",
+      "china-homepage-058-huaban-com",
+      "china-homepage-064-gamer520-com",
+      "china-homepage-071-2345-com",
+      "china-homepage-078-nga-cn",
+      "china-homepage-085-shopify-com",
+      "global-homepage-005-chatgpt-com",
+      "global-homepage-010-bing-com",
+      "global-homepage-012-gemini-google-com",
+      "global-homepage-016-amazon-com",
+      "global-homepage-018-baidu-com",
+      "global-homepage-020-naver-com",
+      "global-homepage-037-mail-ru",
+      "global-homepage-044-spotify-com",
+      "global-homepage-045-nytimes-com",
+      "global-homepage-068-indeed-com",
+      "global-homepage-072-rakuten-co-jp"
+    ],
+    "provider_rerun_case_ids": [
+      "challenge-02",
+      "challenge-04",
+      "challenge-06"
+    ],
+    "provider_rerun_methods": [
+      "crawl4ai",
+      "moli-webfetch",
+      "deepseek-harness-built-in",
+      "cowagent-built-in",
+      "langchain-webbase",
+      "openclaw-built-in",
+      "lexmount-cn",
+      "lexmount-global"
+    ],
+    "provider_rerun_call_count": 24,
+    "deferred_methods_run": false,
+    "publication_hold_required": true,
+    "predecessor": {
+      "dataset_sha256": "808dcc081a6e72038d1f17f1141fd2cd3fa8db1eb1a5aa4560a824e685ffa39a",
+      "rules_sha256": "5b28422dc53d61d7df23d11b2f3d310f500a3f0e836783f1abb0a46c42f2ba0d",
+      "stage_contract_sha256": "cfaefd3334710cc1f4f18c6b5ffbed4670287e981608b10ce0743250ebe5d40c",
+      "final_contract_sha256": "7baf7fb3a7c25721ab38cfd09260f714da615833db137fbdc0c82da7d3d3903b"
+    }
+  }
 }

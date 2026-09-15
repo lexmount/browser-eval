@@ -24,6 +24,7 @@ STAGE_CONTRACT = ROOT / "research/popular-sites-8-method-stage-contract.json"
 RULES_OUTPUT = ROOT / "research/popular-sites-rules.json"
 REVIEW_OUTPUT = ROOT / "research/popular-sites-rules-review.md"
 DATASET_OUTPUT = ROOT / "evaluation/popular-sites-dataset.json"
+V2_FREEZE_RECEIPT = ROOT / "research/popular-sites-rules-v2-freeze-receipt.json"
 
 LEGACY_IDS = (
     "challenge-01",
@@ -328,6 +329,12 @@ def bind_legacy_evidence(case: dict) -> dict:
 
 
 def main() -> None:
+    if V2_FREEZE_RECEIPT.is_file():
+        receipt = json.loads(V2_FREEZE_RECEIPT.read_text())
+        if receipt.get("status") == "rules_frozen_and_validated_pending_provider_rerun_authorization":
+            raise SystemExit(
+                "Popular-sites v2 is the current frozen contract; refusing to rebuild the superseded predecessor"
+            )
     homepage_data = json.loads(HOMEPAGES.read_text())
     legacy_data = json.loads(LEGACY.read_text())
     china_rules = json.loads(CHINA_RULES.read_text())
