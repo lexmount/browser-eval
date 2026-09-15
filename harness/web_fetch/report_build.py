@@ -328,6 +328,8 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
     adoption = json.loads(adoption_path.read_text(encoding='utf-8'))
     corrections_path = Path(__file__).resolve().parents[2] / 'research/webmainbench-corrections.json'
     corrections = json.loads(corrections_path.read_text(encoding='utf-8'))
+    fixture_correction_path = source / 'fixture-correction.json'
+    fixture_correction = json.loads(fixture_correction_path.read_text(encoding='utf-8')) if fixture_correction_path.is_file() else None
     providers = dataset['coverage_plan']['static_html']
     case_ids = {case['id'] for case in dataset['cases']}
     if len(case_ids) != 200 or len(records) != 200 * 5:
@@ -365,11 +367,16 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
         (staging / 'adoption').mkdir(exist_ok=True)
         shutil.copy2(adoption_path, staging / 'adoption' / 'evidence.json')
         shutil.copy2(corrections_path, staging / 'webmainbench-corrections.json')
+        if fixture_correction is not None:
+            if (fixture_correction.get('sample_manifest_sha256') != dataset['sample_manifest_sha256']
+                    or fixture_correction.get('source_dataset_sha256') != dataset['source_dataset_sha256']):
+                raise ValueError('Fixture correction is not bound to the current report dataset')
+            shutil.copy2(fixture_correction_path, staging / 'fixture-correction.json')
         for row in records:
             artifact = contained_path(staging, row['artifact_path'])
             if hashlib.sha256(artifact.read_bytes()).hexdigest() != row['output_sha256']:
                 raise ValueError('WebMainBench output integrity failure: ' + row['attempt_id'])
-        generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption)
+        generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption, fixture_correction)
         (staging / '.generated-report').write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         if output.exists():
             backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'

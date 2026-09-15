@@ -123,8 +123,11 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     if request is None or request.get("data-wmb-default") != "failed" or request.select_one("option[selected]").get("value") != "failed":
         raise ValueError("WebMainBench request filter must initially locate failed requests")
     failed_count = sum(not row["ok"] for row in records)
-    if f"默认先看 {failed_count} 条未交付" not in analysis.get_text(" ", strip=True):
+    if f"默认先看 {failed_count} 条没有交付非空内容" not in analysis.get_text(" ", strip=True):
         raise ValueError("WebMainBench failure-first explanation does not match the measured matrix")
+    if (not any("最终输出" in tag.get_text(strip=True) for tag in analysis.select("#wmb-attempt-matrix th"))
+            or "输出是错误页" not in analysis.get_text(" ", strip=True)):
+        raise ValueError("WebMainBench result rows must expose final-output condition")
     if len(analysis.select("#wmb-compare-rows > tr")) != 200 or len(analysis.select("[data-wmb-compare-method]")) != 5:
         raise ValueError("WebMainBench same-page group comparison is incomplete")
     if {option.get("value") for option in analysis.select('[data-wmb-filter="failure"] option') if option.get("value")} != {

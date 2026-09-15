@@ -93,6 +93,14 @@ def main() -> None:
             target_ca = args.output / "fixture-certificates" / f"{provider}-ca.pem"
             shutil.copy2(source_ca, target_ca)
             execution["assembled_fixture_ca_path"] = str(target_ca.relative_to(args.output))
+        for correction_run in execution.get("correction_runs", []):
+            if correction_run.get("fixture_ca_sha256"):
+                source_ca = shard / "correction-fixture-ca.pem"
+                if digest(source_ca) != correction_run["fixture_ca_sha256"]:
+                    raise ValueError(f"{provider}: correction fixture CA binding mismatch")
+                target_ca = args.output / "fixture-certificates" / f"{provider}-correction-ca.pem"
+                shutil.copy2(source_ca, target_ca)
+                correction_run["assembled_fixture_ca_path"] = str(target_ca.relative_to(args.output))
         executions.append(execution)
 
     if len(results) != sample_count * len(PROVIDERS):
@@ -159,6 +167,13 @@ def main() -> None:
     (args.output / "execution.json").write_text(json.dumps({"batches": executions}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     shutil.copy2(args.review, args.output / "result-review.json")
     shutil.copy2(args.sample_manifest, args.output / "sample-manifest.json")
+    correction_path = args.source_root / "fixture-correction.json"
+    if correction_path.is_file():
+        correction = json.loads(correction_path.read_text(encoding="utf-8"))
+        if (correction.get("sample_manifest_sha256") != sample_sha256
+                or correction.get("source_dataset_sha256") != DATASET_SHA256):
+            raise ValueError("Fixture correction binding mismatch")
+        shutil.copy2(correction_path, args.output / "fixture-correction.json")
     with (args.output / "results.jsonl").open("w", encoding="utf-8") as stream:
         for row in results:
             stream.write(json.dumps(row, ensure_ascii=False) + "\n")

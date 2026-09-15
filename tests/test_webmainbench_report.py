@@ -102,7 +102,9 @@ class WebMainBenchReportTests(unittest.TestCase):
                 self.assertIn(f'id="{anchor}"', guide_en)
             self.assertIn('data-kind="reference"', (output / "attempts/kitesurf__case-one__r001.html").read_text(encoding="utf-8"))
             self.assertIn("WebMainBench-545", (output / "index.html").read_text(encoding="utf-8"))
-            self.assertIn("independent review complete", (output / "en/index.html").read_text(encoding="utf-8"))
+            self.assertIn("table-structure score validity did not", (output / "en/index.html").read_text(encoding="utf-8"))
+            self.assertIn("Final output", analysis_en)
+            self.assertIn("API/worker response and final content", (output / "en/attempts/kitesurf__case-one__r001.html").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

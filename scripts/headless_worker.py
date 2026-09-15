@@ -133,7 +133,11 @@ def fetch(request):
                         args=request.get('browser_args') or [], timeout=timeout*1000)
                 try:
                     meta['browser_version'] = browser.version
-                    context = browser.new_context()
+                    # The benchmark fixture has a per-run CA, not a system-trusted
+                    # certificate. Only isolated loopback requests may bypass the
+                    # browser's public trust store.
+                    fixture_https = bool(request.get('ca_cert')) and request.get('network_policy') == 'loopback_only'
+                    context = browser.new_context(ignore_https_errors=fixture_https)
                     page = context.new_page()
                     response = page.goto(
                         request['url'],

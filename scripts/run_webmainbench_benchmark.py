@@ -127,7 +127,9 @@ def fixture_server(records: list[dict]):
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):  # noqa: N802 - BaseHTTPRequestHandler API
-            body = bodies.get(self.path)
+            # Frozen pages may add a query string during inline navigation.
+            # It does not change which frozen case supplies the response.
+            body = bodies.get(urlsplit(self.path).path)
             if body is None:
                 self.send_error(404)
                 return
