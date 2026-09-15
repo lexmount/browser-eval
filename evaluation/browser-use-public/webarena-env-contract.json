@@ -4,7 +4,9 @@
   "environment_pull_request": "https://github.com/lexmount/webarena-env/pull/1",
   "webarena_verified_version": "1.2.3",
   "environment_lock": "config/images.lock.json",
+  "environment_runtime_template": "config/runtime.example.json",
   "evaluation_lock": "evaluation/browser-use-public/webarena-environment-images.json",
+  "evaluation_runtime_template": "examples/browser_use/webarena.config.example.json",
   "required_sites": [
     "shopping_admin",
     "shopping",

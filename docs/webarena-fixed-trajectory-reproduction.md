@@ -16,6 +16,9 @@ LLM judge；两个浏览器重放相同的 WebArena 公开人工轨迹，再由�
 `evaluation/browser-use-public/current-report.json` 保存当前公开结果与外部证据哈希，
 用于证明报告绑定，而不是替代一次新运行。
 
+公开人工轨迹文件含 179 个候选任务；其中 30 个标为 `eligible`，其余 149 个为
+`skipped`。正式运行器只执行 `eligible` 任务。不要把候选文件的总数当成本轮分母。
+
 ## 主机和架构
 
 使用 Linux x86-64 Docker 主机即可，Intel 和 AMD 均可。当前正式 30 题只使用
@@ -30,9 +33,12 @@ LLM judge；两个浏览器重放相同的 WebArena 公开人工轨迹，再由�
    `uv run --frozen python scripts/verify_webarena_env_contract.py --environment-repo <webarena-env>`，
    确认上游版本、六个站点、镜像 digest 和架构完全一致。
 2. 在 `webarena-env` 复制 `config/runtime.example.json`，填写浏览器容器可访问的主机名，
-   运行 `webarena-env verify/start` 并保留回执。账号只通过环境变量提供。
+   运行 `webarena-env verify/start` 并保留回执。Map 还需要先按官方 setup 配好九个
+   数据卷。账号只通过环境变量提供。
 3. 在本仓库复制 `examples/browser_use/webarena.config.example.json`，使用同一组端口、
-   镜像 digest、主机名与凭据变量名；运行环境 smoke，确认 CDP、登录、HAR 与站点 origin。
+   镜像 digest、网站地址与凭据变量名；运行环境 smoke，确认 CDP、登录、HAR 与站点 origin。
+   示例默认共用本机 Docker daemon，不假定存在某个用户的 rootless socket。若使用两条
+   daemon，须在本地配置中显式填写站点与浏览器 socket。
 4. 用冻结清单执行配对正式运行：
 
 ```text
@@ -50,3 +56,7 @@ uv run --frozen python -m harness.browser_use.cli \
 
 正式运行前必须核对两个仓库的 WebArena-Verified 版本和六个站点镜像 digest 完全一致。
 这项检查不允许用 mutable tag、跨架构模拟或手工修改数据库替代。
+
+当前正式执行器按 Docker 容器身份验证并重建有状态站点，不能直接用 Rainbond 中的
+远程有状态组件替代。Rainbond 的镜像部署和站点连通性可以先单独验证；要发布与本协议
+等价的成绩，仍需受控重建与初态回执接入评测执行器。
