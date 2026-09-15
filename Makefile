@@ -46,7 +46,7 @@ trajectory-report-release: runtime-check
 
 trajectory-report-audit: runtime-check
 	$(PY) -m pytest tests/browser_use -q
-	$(PY) scripts/release_webarena_trajectory_report.py
+	$(PY) scripts/release_webarena_trajectory_report.py $(if $(FORMAL_ROOT),--formal-root "$(FORMAL_ROOT)",)
 
 resource-image:
 	docker build -f examples/web_fetch/docker/resource.Dockerfile -t lex-web-fetch-resource:local .
