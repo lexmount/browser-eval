@@ -2,7 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from harness.trajectory_replay.webarena_report import _clean, _metrics_table, _shell
+from harness.trajectory_replay.webarena_report import (
+    _clean,
+    _detail_page,
+    _metrics_table,
+    _shell,
+    _task_page,
+)
 from scripts.check_webarena_replay_report import _check_english_localization
 
 
@@ -65,6 +71,45 @@ def test_report_shell_localizes_chinese_title_and_footer() -> None:
     assert "<title>浏览器轨迹重放</title>" in rendered
     assert "WebArena-Verified 1.2.3 · 浏览器轨迹重放" in rendered
     assert "Browser Trajectory Replay</footer>" not in rendered
+    detail = _shell("zh", "results", "结果", "<p>内容</p>", depth=1, current_route="result/moli-29.html")
+    assert 'href="../en/result/moli-29.html"' in detail
+    english = _shell("en", "results", "Result", "<p>Content</p>", depth=1, current_route="result/moli-29.html")
+    assert 'href="../../result/moli-29.html"' in english
+
+
+def test_replay_task_and_result_have_connected_drilldown() -> None:
+    task = {
+        "task_id": 29,
+        "task": {"intent": "Find the latest post", "sites": ["reddit"]},
+        "source": {"kind": "expert_repair_spec"},
+        "tool_calls": [{"action": "click", "selector": "#latest"}],
+        "evaluation_input": {"task_type": "RETRIEVE", "status": "SUCCESS"},
+    }
+    peers = [
+        {"engine": "chromium", "browser": "Chromium", "task_id": 29, "status": "pass", "completed_actions": 1, "action_count": 1},
+        {"engine": "moli", "browser": "Moli", "task_id": 29, "status": "fail", "completed_actions": 0, "action_count": 1},
+    ]
+    task_html = _task_page("zh", task, peers)
+    assert 'href="../result/moli-29.html#diagnosis"' in task_html
+    assert 'href="../result/chromium-29.html#trajectory"' in task_html
+    assert 'href="../en/task/29.html"' in task_html
+    assert "冻结的操作轨迹" in task_html
+    assert "信息提取" in task_html
+
+    attempt = {"engine": "moli", "task_id": 29, "status": "fail", "completed_action_count": 0, "action_count": 1, "duration_ms": 1200, "resource": {"cpu_ms": 100, "memory_mean_bytes": 10_000_000}}
+    evidence = {
+        "programmatic_failure": {"stage": "browser_tool_execution", "step": 1, "message": "Click failed: timed out"},
+        "review": {"label_zh": "目标不可操作", "label_en": "Target not actionable", "reason_zh": "目标没有出现", "reason_en": "Target did not appear", "remediation_owner": "Browser", "remediation_status": "open"},
+        "trajectory": [{"index": 1, "arguments": {"action": "click", "selector": "#latest"}, "duration_ms": 1000, "status": "error", "result": "Click failed: timed out\nCall log: #latest"}],
+        "screenshot": None,
+    }
+    detail = _detail_page("zh", attempt, task, {"label": "Moli"}, evidence, peers)
+    assert 'id="step-1"' in detail
+    assert 'href="#step-1"' in detail
+    assert "Call log: #latest" in detail
+    assert "目标没有出现" in detail
+    assert 'href="../task/29.html"' in detail
+    assert 'href="../evidence-viewer.html?file=data/evidence/moli-29.json"' in detail
 
 
 def test_report_removes_macos_and_linux_local_paths() -> None:

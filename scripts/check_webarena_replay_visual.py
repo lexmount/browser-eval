@@ -43,6 +43,29 @@ class _QuietHandler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *_args: object) -> None:
         return
 
+    def do_GET(self) -> None:
+        for prefix in ("/api/preview/replay~fixture/", "/api/preview/replay/"):
+            if not self.path.startswith(prefix):
+                continue
+            route = self.path[len(prefix):].split("?", 1)[0]
+            target = (Path(self.directory) / route).resolve()
+            if not target.is_relative_to(Path(self.directory).resolve()) or not target.is_file():
+                self.send_error(404)
+                return
+            if prefix.endswith("~fixture/") and target.suffix == ".html":
+                content = target.read_text(encoding="utf-8")
+                content = content.replace("<head>", '<head><base href="/api/preview/">', 1)
+                encoded = content.encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(encoded)))
+                self.end_headers()
+                self.wfile.write(encoded)
+                return
+            self.path = "/" + route
+            return super().do_GET()
+        return super().do_GET()
+
 
 def _routes(report: Path) -> list[str]:
     results = json.loads((report / "data/results.json").read_text(encoding="utf-8"))
@@ -50,6 +73,11 @@ def _routes(report: Path) -> list[str]:
         (item["key"] for item in results if item["status"] == "fail"),
         None,
     )
+    passed_key = next(
+        (item["key"] for item in results if item["status"] == "pass"),
+        None,
+    )
+    task_id = next((item.get("task_id") for item in results if item["status"] == "fail"), None)
     fixed = [
         "index.html",
         "dataset.html",
@@ -58,6 +86,8 @@ def _routes(report: Path) -> list[str]:
         "review.html",
     ]
     routes = [*fixed, *(f"en/{item}" for item in fixed)]
+    if task_id is not None and (report / "task" / f"{task_id}.html").is_file():
+        routes.extend((f"task/{task_id}.html", f"en/task/{task_id}.html"))
     if failed_key is not None:
         routes.extend(
             (
@@ -67,6 +97,8 @@ def _routes(report: Path) -> list[str]:
                 f"en/evidence-viewer.html?file=../data/evidence/{failed_key}.json",
             )
         )
+    if passed_key is not None and (report / "result" / f"{passed_key}.html").is_file():
+        routes.extend((f"result/{passed_key}.html", f"en/result/{passed_key}.html"))
     return routes
 
 
@@ -91,12 +123,26 @@ def check(report: Path, receipt: Path) -> None:
                 headless=True,
             )
             try:
+                failed_key = next(item["key"] for item in json.loads((report / "data/results.json").read_text(encoding="utf-8")) if item["status"] == "fail")
+                route_page = browser.new_page()
+                route_page.goto(f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/result/{failed_key}.html", wait_until="domcontentloaded")
+                route_page.wait_for_function("() => document.baseURI.includes('/api/preview/replay/result/')")
+                route_page.wait_for_function("() => !!document.documentElement.dataset.theme")
+                route_page.wait_for_function("() => getComputedStyle(document.body).backgroundColor !== 'rgba(0, 0, 0, 0)'")
+                assert "/api/preview/replay/result/" in route_page.locator('.peer-list a').first.evaluate("element => element.href")
+                assert "/api/preview/replay/evidence-viewer.html" in route_page.locator('#evidence .evidence-actions a').first.evaluate("element => element.href")
+                route_page.locator('nav a[href="../index.html"]').first.click()
+                route_page.wait_for_url(f"http://127.0.0.1:{server.server_port}/api/preview/replay/index.html")
+                route_page.locator('h1').wait_for()
+                route_page.close()
                 for index, route in enumerate(_routes(report)):
                     for width, height in ((1440, 1000), (390, 844)):
                         for theme in ("light", "dark"):
                             page = browser.new_page(viewport={"width": width, "height": height})
                             url = f"http://127.0.0.1:{server.server_port}/{route}"
-                            page.goto(url, wait_until="load", timeout=10_000)
+                            # The optional Mermaid module is hosted remotely; core report
+                            # content and its local interactions are ready at DOMContentLoaded.
+                            page.goto(url, wait_until="domcontentloaded", timeout=10_000)
                             if "evidence-viewer" in route:
                                 page.wait_for_function(
                                     """() => {
@@ -105,6 +151,16 @@ return node && node.textContent.trim().startsWith('{');
 }""",
                                     timeout=5_000,
                                 )
+                            if route.endswith("results.html"):
+                                page.wait_for_function("() => document.querySelector('[data-matrix-count]')?.textContent.includes('/')", timeout=5_000)
+                                page.locator('[data-matrix-relation]').select_option('all-pass')
+                                page.wait_for_function("() => [...document.querySelectorAll('[data-task-matrix] tbody tr:not([hidden])')].every(row => JSON.parse(row.dataset.outcomes).every(value => value === 'pass'))")
+                                page.locator('[data-matrix-relation]').select_option('different')
+                                page.wait_for_function("() => [...document.querySelectorAll('[data-task-matrix] tbody tr:not([hidden])')].every(row => new Set(JSON.parse(row.dataset.outcomes)).size > 1)")
+                                page.locator('[data-results-ready="true"]').wait_for(timeout=5_000)
+                                page.locator('.inventory tbody tr:not([hidden]) [data-open-diagnosis]').first.click()
+                                page.locator('#diagnosis-dialog[data-loaded]').wait_for(timeout=5_000)
+                                page.locator('.dialog-head button').click()
                             page.evaluate(
                                 "value => document.documentElement.dataset.theme=value",
                                 theme,
@@ -114,7 +170,7 @@ return node && node.textContent.trim().startsWith('{');
 const root=document.documentElement;
 const clipped=[];
 const layoutSelector='h1,h2,.filters input,.filters select,'+
-  '.diagnosis-grid article,.summary-grid article';
+  '.diagnosis-grid article,.summary-grid article,.fact-strip>div';
 for(const element of document.querySelectorAll(layoutSelector)){
   if(!element.getClientRects().length)continue;
   const box=element.getBoundingClientRect();
@@ -171,7 +227,7 @@ return {
                                         "results.html",
                                         "environment.html",
                                     }
-                                    or route.startswith("result/")
+                                    or route.startswith(("result/", "task/"))
                                 )
                             ):
                                 shot = screenshot_dir / f"{index}-{width}.png"

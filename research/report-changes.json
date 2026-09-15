@@ -36,6 +36,38 @@
           }
         }
       }
+    },
+    {
+      "id": "2026-09-15-trajectory-replay-drilldown",
+      "date": "2026-09-15",
+      "title": "补齐轨迹重放报告的逐题诊断与站点导航",
+      "summary": "新增每题的目标、验收输入和标准动作页；结果页可筛选同题浏览器成败关系，并从失败结果下钻到确切报错、失败动作、复核原因、完整工具返回、页面截图和公开证据。核心指标增加资源与网络统计。",
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "7dF7uNK5SKIx",
+        "share_url": "https://artifact-hub.app.lexmount.com/v/hkZt38QFBpNIKtThKnqjpnBQk8At19PM",
+        "version": "ver_0f4f162b973a4ba7afba2fb4e18d6173"
+      },
+      "effects": {
+        "score": "Chromium 90/90、Moli 54/90，分数未变。",
+        "denominator": "仍为每浏览器 90 题、共 180 个逻辑结果。",
+        "latency": "原有耗时未变；补充共同通过 54 题的资源与网络统计。",
+        "evidence": "771 个公开文件、552 个 HTML 页面、10,154 条本地链接和 72 个视觉状态通过检查；Sites 嵌套详情导航已实测恢复。",
+        "limitations": "逐题证据用于定位本轮失败，不能从单次结果外推总体稳定性。"
+      },
+      "i18n": {
+        "en": {
+          "title": "Add per-task replay diagnosis and repair hosted navigation",
+          "summary": "Added task pages for goals, evaluation input, and qualified actions. Results now filter same-task outcome relations and drill down to the exact error, failed action, reviewed cause, full tool response, last page, and public evidence. Core metrics add resource and network statistics.",
+          "effects": {
+            "score": "Scores remain Chromium 90/90 and Moli 54/90.",
+            "denominator": "Still 90 tasks per browser and 180 logical outcomes.",
+            "latency": "Measured timings are unchanged; resource and network statistics use the 54 shared passes.",
+            "evidence": "Checks covered 771 public files, 552 HTML pages, 10,154 local links, and 72 visual states. Hosted navigation from nested result pages was verified.",
+            "limitations": "Per-task evidence locates failures in this run; one outcome per task does not establish general reliability."
+          }
+        }
+      }
     }
   ],
   "browser_use_reviews": [

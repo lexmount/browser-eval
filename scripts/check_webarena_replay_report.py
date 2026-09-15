@@ -118,6 +118,10 @@ def check(report_dir: Path) -> dict[str, int]:
     en_details = {path.name for path in (root / "en/result").glob("*.html")}
     if zh_details != en_details or len(zh_details) != expected_results:
         raise ValueError("Chinese and English result routes must match one-to-one")
+    zh_tasks = {path.name for path in (root / "task").glob("*.html")}
+    en_tasks = {path.name for path in (root / "en/task").glob("*.html")}
+    if zh_tasks != en_tasks or zh_tasks != {f"{task_id}.html" for task_id in task_ids}:
+        raise ValueError("every task needs matching Chinese and English contract routes")
     core_names = (
         "index.html",
         "dataset.html",
@@ -167,7 +171,7 @@ def check(report_dir: Path) -> dict[str, int]:
         if any(marker in text for marker in untranslated_zh_markers):
             raise ValueError(f"Chinese report contains untranslated interface text: {page}")
     _check_english_localization(
-        [*core[len(core_names) :], *(root / "en/result").glob("*.html")]
+        [*core[len(core_names) :], *(root / "en/result").glob("*.html"), *(root / "en/task").glob("*.html")]
     )
 
     checked_links = 0
