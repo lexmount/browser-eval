@@ -3,11 +3,14 @@ PY := $(UV) run --frozen python
 TEST_PY := $(UV) run --frozen --all-extras python
 WEBMAINBENCH_SAMPLE ?= evaluation/public-webmainbench-200.json
 
-.PHONY: setup runtime-check test test-python test-ui fixture-smoke ci report report-check public-benchmark-report public-benchmark-sample webmainbench-run webmainbench-score webmainbench-review webmainbench-assemble
+.PHONY: setup import-env runtime-check test test-python test-ui fixture-smoke ci report report-check resource-image public-benchmark-report public-benchmark-sample webmainbench-run webmainbench-score webmainbench-review webmainbench-assemble
 
 setup:
 	$(UV) sync --frozen --all-extras
 	npm ci
+
+import-env:
+	$(PY) scripts/import_benchmark_env.py
 
 runtime-check:
 	@$(PY) -c 'import sys; assert sys.version_info[:2] == (3, 11), sys.version'
@@ -36,6 +39,9 @@ report-check: runtime-check
 	$(PY) scripts/check_report.py reports/webfetch
 	$(PY) scripts/check_report_links.py reports/webfetch
 	$(PY) scripts/check_report_revision.py reports/webfetch
+
+resource-image:
+	docker build -f examples/web_fetch/docker/resource.Dockerfile -t lex-web-fetch-resource:local .
 
 public-benchmark-report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path/to/reviewed-public-benchmark-evidence is required' >&2; exit 2)

@@ -23,7 +23,11 @@ from harness.web_fetch.metrics import normalize_for_match
 from harness.web_fetch.render_evidence import validate_render_reference
 from harness.web_fetch.dynamic_reference import entry_facts
 from harness.web_fetch.reference_lifecycle import timestamp
-from harness.web_fetch.stable_annotations import annotate_case, SNAPSHOT_METRIC_SCOPE
+from harness.web_fetch.stable_annotations import (
+    DYNAMIC_FORBIDDEN_ANY,
+    SNAPSHOT_METRIC_SCOPE,
+    annotate_case,
+)
 from harness.web_fetch.stable_tasks import evaluate_stable_task
 
 SPECS = {
@@ -48,10 +52,21 @@ SCOPES = {
     'dynamic-iframe': '父页自动加载的 iframe 中全部 14 个龟类科名称；不进入详情，不要求图片或按钮文字',
 }
 
+# Reviewed cases whose prose declares a strict output exclusion. Keep this
+# explicit: localized wording is not parsed to manufacture scoring rules.
+STRICT_EXCLUSION_CASES = frozenset({
+    'dynamic-reviews-graphql',
+    'dynamic-react-cart',
+})
+
 
 def prepare(captures, output, completion_checks):
     # This path prepares stable contracts, not exact-snapshot run certificates.
     # Old timestamps remain old. Validate them, never rewrite them as fresh.
+    if (set(DYNAMIC_FORBIDDEN_ANY) != STRICT_EXCLUSION_CASES
+            or any(not values or any(not isinstance(value, str) or not value.strip() for value in values)
+                   for values in DYNAMIC_FORBIDDEN_ANY.values())):
+        raise ValueError('Strict dynamic exclusions require one explicit per-case declaration')
     now = datetime.now(timezone.utc)
     if (not isinstance(captures, list) or not captures
             or any(not isinstance(c, dict) or c.get('id') not in SPECS for c in captures)
@@ -107,6 +122,9 @@ def prepare(captures, output, completion_checks):
             'source_verification':{'state':'valid','checked_at':capture['checked_at'],'method':'独立 HTTP 与浏览器可见正文对照',
                                    'reference_sha256':hashlib.sha256(reference.encode()).hexdigest()},
             'ground_truth_evidence':[{'source':url,'supports':f'独立观察的全部 {count} 条记录及其文字字段'}]})
+        required_forbidden = DYNAMIC_FORBIDDEN_ANY.get(key, ())
+        if any(value not in case['forbidden_any'] for value in required_forbidden):
+            raise ValueError(f'Missing explicit strict exclusions: {key}')
         validation = evaluate_stable_task(reference, case['acceptance_contract'], url)
         if not validation['stable_task_pass']:
             raise ValueError(f'Independent sample violates reviewed acceptance contract: {key}: {validation["stable_task_errors"]}')

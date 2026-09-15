@@ -60,13 +60,12 @@ Moli 1.1.5 与 Chromium，并在公开 WebMainBench-545 母集中预先冻结的
 [运行协议](harness/web_fetch/HEADLESS.md)。实测输出保留在用户目录的持久化证据中，
 不提交到 Git；公开冻结 HTML 抽取结果不与历史真实 URL 套件混排。
 
-历史主测为 140 个任务 × 12 种方法：网页正文 100 个，文档、图片、视频、复杂热门网站各 10 个。动态内容另有 10 个任务、12 种方法的独立补测，覆盖异步接口、前端应用、内嵌数据、延迟呈现和 iframe 子文档；不与历史组混成总榜。`evaluation/dataset.json` 的 `coverage_plan` 显式规定每组参评范围，未运行不算失败。
-包含 Moli 1.1.1 的完整 140 条调用；保留原有 11 种方法的测量输出与成绩，各批次执行时间见报告环境页。
+当前十方法主矩阵为 150 个任务 × 10 种方法：网页正文 100 个，动态网页正文、文档、图片、视频、复杂热门网站各 10 个，共 1,500 条权威逻辑结果。六类任务进入同一个等权综合总榜，并保留各自分榜；动态组的异步接口、前端应用、内嵌数据、延迟呈现和 iframe 子文档仍按独立类别解释，不与静态网页质量混算。`evaluation/dataset.json` 的 `coverage_plan` 显式规定参评范围，未运行或缺少判分证据时禁止发布。
 
 ## 唯一当前入口
 
 ```text
-evaluation/                 # 当前任务、1680 条结果、原始输出和来源证据
+evaluation/                 # 当前任务、评分契约和发布 authority；不存放实测输出
 harness/web_fetch/          # 接口适配、评分、当前报告生成器
 scripts/build_report.py     # 唯一正式报告构建入口
 reports/webfetch/           # 唯一当前报告，可重复生成
@@ -94,9 +93,9 @@ make test
 
 ## 重新实测
 
-把根目录 `.env.example` 复制为 `.env`，只填写需要的方法。所有 Web Fetch 入口默认只读取仓库根目录 `.env`，不读取用户目录、不执行 shell 内容；已导出的环境变量优先。只有显式 `--env-file <路径>` 才改用其他文件，文件不存在时报错。`.env` 与本地变体已被 Git 忽略，示例不含凭据。
+把根目录 `.env.example` 复制为 `.env`，只填写需要的方法。若账号集中保存在用户目录 `~/.env`，执行 `make import-env`：它只把本评测声明的 9 个托管方法变量导入仓库 `.env`，保留已有非空值，不复制其他账号，不打印变量值，并把目标权限设为 `0600`；缺少任何目标变量会列出变量名并失败。所有 Web Fetch 入口仍默认只读取仓库根目录 `.env`，绝不隐式读取用户目录或执行 shell 内容；已导出的环境变量优先。只有显式 `--env-file <路径>` 才改用其他文件，文件不存在时报错。`.env` 与本地变体已被 Git 忽略，示例不含凭据。
 
-先执行 `make setup`，再用 `uv run --frozen python -m harness.web_fetch validate --providers <方法名>` 校验凭据。原生实现还需要对应仓库和 Python/Node 依赖；路径均在 `.env.example` 中列出，开源依赖可通过 `scripts/bootstrap_oss_baselines.sh` 准备。
+先执行 `make setup`，再用 `uv run --frozen python -m harness.web_fetch validate --providers <方法名>` 校验凭据。LangChain 与 Crawl4AI 已由 `uv.lock` 固定并随 `make setup` 安装，worker 默认使用项目 `.venv`；OpenClaw、DeepSeek Harness 和 CowAgent 还需要固定源码仓库，路径均在 `.env.example` 中列出，可通过 `scripts/bootstrap_oss_baselines.sh` 准备。空仓库路径会在任何调用前失败。
 
 ```bash
 uv run --frozen python scripts/run_benchmark.py
@@ -110,15 +109,15 @@ uv run --frozen python scripts/run_benchmark.py --dataset ~/.browser-eval/runs/n
 uv run --frozen python scripts/run_benchmark.py --track dynamic --providers lexmount-global,lexmount-cn,firecrawl,tavily,exa,cloudflare-markdown --output ~/.browser-eval/runs/dynamic-hosted
 ```
 
-使用具备当前全部解析依赖的 Python 环境执行。默认调用存档中的方法及新接入的 Moli（目前 12 种），可用 `--providers` 选择；云端方法可能消耗配额。所有选中方法先通过配置检查，再开始调用。不同方法并发，同一方法先完成网页组，再测其他组；正文与资源配置分开。已有输出目录会被拒绝覆盖。新结果核验后才能替换 `evaluation/`，不自动替换已发布成绩。
+使用具备当前全部解析依赖的 Python 环境执行。当前 profile 固定 10 种方法，可用 `--providers` 选择；云端方法可能消耗配额。所有选中方法先通过配置检查，再开始调用。不同方法并发，同一方法先完成网页组，再测其他组；正文与资源配置分开。已有输出目录会被拒绝覆盖。新结果核验后才能组装进 Git 外的当前证据，不能把测量输出写入 `evaluation/`，也不自动替换已发布成绩。本次从旧 12 方法证据升级的精确主矩阵与同窗测速范围见 `evaluation/current-rerun.json`；未列入其中的调用只离线重评分，不为改善分数而重跑。
 
 新增方法完成同一评测集后，可执行 `uv run --frozen python scripts/add_provider_results.py ~/.browser-eval/runs/<完整运行目录> --provider <新方法>`。已有方法补测尚未执行的组时，使用 `--provider <方法> --track dynamic`；输入必须完整覆盖该组，案例与参考须与当前评测集完全一致。此入口拒绝缺失/重复任务、参考变化、输出哈希不符或执行批次不完整；原有 JSONL 行和输出字节不变，禁止覆盖已测任务。补测后同步审查 `configs/evaluation-inventory.json` 的方法覆盖，再重建报告。原始执行组、运行 ID 与时间仍各自保留，不能把不同时间的调用描述成同时测量。
 
 ### Moli WebFetch
 
-按 [官方 skill](https://github.com/lexmount/moli/tree/main/skills/moli-webfetch) 安装本地 CLI，在 `.env` 分别设置三个版本的二进制路径（不需要账号/API Key）。三个实测版本的普通网页正文均使用 `moli fetch --dump markdown --wait-until done`；直接文档和媒体地址均预先选择裸 `moli fetch URL`，让 CLI 自动决定返回原始响应还是序列化页面。识别为原始 PDF 或媒体时直接取得字节，文档正文随后在同一截止预算内解析；本轮 DOCX 响应被 Moli 序列化为 HTML，没有形成可解析的原始文件，因此按保存结果失败。直接文件任务到格式、长度和 SHA-256 校验完成为止，不做无关的 Markdown 转换。适配器保留 stdout 原文、独立 stderr 和退出状态。Markdown 模式没有 HTTP 状态/最终 URL，因此这些字段留空，而不是发第二次请求拼接元数据。工具成功不等于任务通过，仍使用相同机械评分规则。
+当前十方法矩阵按 [Moli 1.1.4 官方 skill](https://github.com/lexmount/moli/tree/v1.1.4/skills/moli-webfetch) 安装并固定 `MOLI_BINARY`（不需要账号/API Key）。普通正文使用 `moli fetch --dump markdown`；挑战题使用一次 `moli fetch --dump json --trace-network`，同时保留最终 DOM、HTTP 状态、最终 URL 和有界网络诊断，DOM 在同一截止预算内本地转为 Markdown；资源页通过一次 `--eval` 从渲染 DOM、已加载同源 iframe 与有界同源模块中返回结构化 URL。动态任务分别使用预声明的完成条件和正文提取范围，避免把等待按钮误当作答案。直接 PDF、图片和视频地址使用裸 `moli fetch URL`；当前 Moli CLI 会把 OOXML 响应误送入 HTML 序列化，因此 DOCX 正文任务在同一次 CLI 运行中预先选择页面运行时 `fetch(location.href)` 取得原始字节，并明确记录第二次 HTTP 请求。冻结的公开测试域名若因 split DNS 映射到私网地址，只对已经实测冲突的精确白名单省略 `--block-private-networks`，其余 URL 仍开启保护。文档正文解析计入同一截止预算；文件任务验收到格式、长度和 SHA-256。工具成功不等于任务通过，仍使用同一套机械评分规则。
 
-官方还提供 JSON/HTML/semantic tree、DOM eval、授权会话及需 layout 的截图/PDF 输出。这些能力与正文和原始响应路线分开说明；生成 PDF 不等于解析已有 PDF，媒体链接也不等于取得原文件。三个实测版本对直接非 HTML 响应均使用自动原始输出，不能强制 `--dump html/markdown`；其中 1.1.3 还支持 JSON 的 `body_base64`。本地文档解析属于正文任务的计时内后处理，不暗中借用其他 provider。
+官方还提供 JSON/HTML/semantic tree、DOM eval、授权会话及需 layout 的截图/PDF 输出。这些能力与正文和原始响应路线分开说明；生成 PDF 不等于解析已有 PDF，媒体链接也不等于取得原文件。当前十方法矩阵对直接非 HTML 响应优先使用自动原始输出；本地文档解析属于正文任务的计时内后处理，不暗中借用其他 provider。上文的独立五浏览器报告和已发布十方法旧版继续保留各自的历史实测身份和成绩，不用新版本倒改旧结果。
 
 独立源页检查：`uv run --frozen python scripts/audit_sources.py`，需要 requests、BeautifulSoup4 和文档解析依赖。HTTP 失败只触发进一步检查，不能据此自动删除任务。复杂热门网站的列表按字段结构评分，不耦合当前标题、排序或价格。动态正文参考采集须遵守 `harness/web_fetch/README.md` 的配对证据与有界完成条件；页面分类不是 JS 必要性的证据。
 

@@ -8,6 +8,8 @@ import unittest
 from unittest.mock import patch
 
 from scripts import run_benchmark
+from harness.web_fetch.models import ProviderResult
+from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.providers.firecrawl import FirecrawlProvider
 
 
@@ -18,7 +20,13 @@ class BenchmarkSelectionTests(unittest.TestCase):
         self.root = Path(self.tmp.name)
         self.output = self.root/'run'
         cases = [{'id': name, 'name': name, 'url': 'https://example.com/'+name,
-                  'category': track, 'track': track, 'expected_any': ['content']}
+                  'category': track, 'track': track, 'expected_any': ['content'],
+                  **({'retrieval_hints': {
+                      'version': 1,
+                      'wait_until': 'domcontentloaded',
+                      'completion': {'selector': 'main', 'minimum_count': 1,
+                                     'timeout_ms': 1000, 'delay_ms': 0},
+                  }} if track == 'dynamic' else {})}
                  for name, track in [('web-a', 'web'), ('dynamic-a', 'dynamic'), ('dynamic-b', 'dynamic')]]
         self.dataset = {'id': 'test', 'tool': 'web_fetch', 'cases': cases}
         (self.root/'evaluation').mkdir()
@@ -63,6 +71,74 @@ class BenchmarkSelectionTests(unittest.TestCase):
         build.assert_not_called()
         self.assertFalse(self.output.exists())
 
+    def test_capacity_preflight_receives_whole_worst_case_before_output_or_fetch(self):
+        capacity_calls = []
+        fetch_calls = []
+
+        class CapacityProvider(Provider):
+            def preflight_capacity(self, declared_calls, timeout=10):
+                capacity_calls.append((self.name, declared_calls, timeout))
+                raise ValueError('insufficient declared capacity')
+
+            def fetch(self, case, timeout):
+                fetch_calls.append(case.id)
+                return ProviderResult(True, 'content')
+
+        for filename in ['providers.example.json', 'providers.resources.json']:
+            (self.root/'configs'/filename).write_text(json.dumps({'providers': {
+                'capacity': {'type': 'fixture'},
+            }}))
+        with patch.object(
+            run_benchmark, 'build_provider',
+            side_effect=lambda name, config: CapacityProvider(name, config),
+        ), self.assertRaisesRegex(ValueError, 'insufficient declared capacity'):
+            self.run_main([
+                '--providers', 'capacity', '--runs', '2',
+                '--max-failure-retries', '1', '--measure-only',
+            ])
+
+        self.assertEqual(capacity_calls, [('capacity', 12, 10)])
+        self.assertEqual(fetch_calls, [])
+        self.assertFalse(self.output.exists())
+
+    def test_validate_only_never_calls_capacity_hook(self):
+        capacity_calls = []
+
+        class CapacityProvider(Provider):
+            def preflight_capacity(self, declared_calls, timeout=10):
+                capacity_calls.append((declared_calls, timeout))
+
+            def fetch(self, case, timeout):
+                raise AssertionError('fetch must not be called')
+
+        (self.root/'configs/providers.resources.json').write_text(json.dumps({
+            'providers': {'capacity': {'type': 'fixture'}},
+        }))
+        with patch.object(
+            run_benchmark, 'build_provider',
+            side_effect=lambda name, config: CapacityProvider(name, config),
+        ):
+            self.run_main([
+                '--track', 'dynamic', '--providers', 'capacity', '--validate-only',
+            ])
+
+        self.assertEqual(capacity_calls, [])
+        self.assertFalse(self.output.exists())
+
+    def test_exact_case_subset_and_measure_only(self):
+        build = self.run_main(['--case-ids','dynamic-b,web-a',
+                               '--providers','fixture-one','--measure-only'])
+        build.assert_not_called()
+        data = json.loads((self.output/'dataset.json').read_text())
+        self.assertEqual([case['id'] for case in data['cases']], ['web-a','dynamic-b'])
+        records = [json.loads(line) for line in (self.output/'results.jsonl').read_text().splitlines()]
+        self.assertEqual({row['case_id'] for row in records}, {'web-a','dynamic-b'})
+        execution = json.loads((self.output/'execution.json').read_text())
+        self.assertEqual(execution['aggregate']['providers'], ['fixture-one'])
+        self.assertEqual(execution['aggregate']['case_ids'], ['web-a','dynamic-b'])
+        self.assertEqual(execution['aggregate']['batch_count'], 2)
+        self.assertFalse((self.output/'report').exists())
+
     def test_dynamic_subset_builds_a_real_report(self):
         with patch.object(run_benchmark, 'ROOT', self.root), \
                 patch.object(run_benchmark, 'load_runtime_env'), \
@@ -82,7 +158,10 @@ class BenchmarkSelectionTests(unittest.TestCase):
 
     def test_invalid_selection_rejected_before_output_creation(self):
         for args in [['--track','absent'], ['--providers','fixture-one,fixture-one'],
-                     ['--providers',','], ['--workers','0']]:
+                     ['--providers',','], ['--case-ids',','],
+                     ['--case-ids','dynamic-a,dynamic-a'], ['--case-ids','absent'],
+                     ['--track','dynamic','--case-ids','web-a,dynamic-b'],
+                     ['--workers','0'], ['--runs','0']]:
             with self.subTest(args=args), redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 self.run_main(args)
             self.assertFalse(self.output.exists())
@@ -100,6 +179,51 @@ class BenchmarkSelectionTests(unittest.TestCase):
         for provider in ['firecrawl','tavily','exa']:
             self.assertIn(f'resources/{provider}: missing api_key', stderr.getvalue())
         self.assertFalse(self.output.exists())
+
+    def test_materializes_all_hash_bound_worker_artifacts(self):
+        worker = self.root / 'worker'
+        output = self.root / 'aggregate'
+        files = {
+            'artifacts/p/c/run-001.txt': b'answer',
+            'artifacts/p/c/run-001.html.txt': b'<main>answer</main>',
+            'artifacts/p/c/run-001-file-000.bin': b'\x89PNG\r\n\x1a\nbytes',
+            'artifacts/p/c/run-000.txt': b'failed answer',
+            'artifacts/p/c/run-000.bin': b'failed raw bytes',
+        }
+        for relative, content in files.items():
+            path = worker / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content)
+        digest = lambda value: __import__('hashlib').sha256(value).hexdigest()
+        record = {
+            'artifact_path': 'artifacts/p/c/run-001.txt',
+            'metrics': {'content_sha256': digest(files['artifacts/p/c/run-001.txt'])},
+            'provider_metadata': {
+                'rendered_html_path': 'artifacts/p/c/run-001.html.txt',
+                'rendered_html_sha256': digest(files['artifacts/p/c/run-001.html.txt']),
+                'file_evaluation': {'files': [{
+                    'artifact_path': 'artifacts/p/c/run-001-file-000.bin',
+                    'sha256': digest(files['artifacts/p/c/run-001-file-000.bin']),
+                }]},
+                'retry': {'attempts': [{
+                    'artifact_path': 'artifacts/p/c/run-000.txt',
+                    'artifact_paths': [
+                        'artifacts/p/c/run-000.txt', 'artifacts/p/c/run-000.bin',
+                    ],
+                    'content_sha256': digest(files['artifacts/p/c/run-000.txt']),
+                }]},
+            },
+        }
+
+        run_benchmark.materialize_worker_artifacts(output, worker, [record])
+
+        for relative, content in files.items():
+            self.assertEqual((output / relative).read_bytes(), content)
+        retry = record['provider_metadata']['retry']['attempts'][0]
+        self.assertEqual(
+            retry['artifact_sha256']['artifacts/p/c/run-000.bin'],
+            digest(files['artifacts/p/c/run-000.bin']),
+        )
 
 
 class FirecrawlValidationTests(unittest.TestCase):

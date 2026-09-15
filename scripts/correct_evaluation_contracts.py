@@ -24,6 +24,10 @@ def correct(source, *, body_only=False):
         'live-022-until-september-10-get-pycharm-f': 'article#docs-content 内的文档正文；排除语言、版本切换器、站点导航与返回顶部控件。',
     }
     for case in data['cases']:
+        if case.get('acceptance_contract', {}).get('schema') == 'named_link':
+            # A named record must be an owned list/card entry. A prose
+            # recommendation link is related content, not a returned entity.
+            case['acceptance_contract']['entry_context'] = 'list_or_card'
         if not body_only and case['id'] in reviewed:
             relative = f"sources/{case['id']}/source.html.txt"
             raw = (source / relative).read_bytes()
@@ -45,6 +49,10 @@ def correct(source, *, body_only=False):
             case['source_benchmark']['stable_annotation']['note'] = (
                 '独立参考的 16 件商品范围内，至少 15 条分期、13 条配送字段须归属于完整且唯一的商品记录。'
                 '不固定商品名、价格和顺序，不要求每件商品均具备这两个字段。')
+            for value in ('Add to cart', 'Work in the Netherlands',
+                          'jeremy-akeze-doghouse-it-recruitment'):
+                if value not in case['forbidden_any']:
+                    case['forbidden_any'].append(value)
         if not body_only and case['id'] == 'html-table':
             headers = next(f for f in case['required_facts'] if f['id'] == 'headers')
             headers['alternatives'] = list(dict.fromkeys(
@@ -60,6 +68,10 @@ def correct(source, *, body_only=False):
             # It is still the same navigable product-detail entry.
             case['acceptance_contract']['entry_path'] = (
                 r'(?:/[^/]+)?/dp/[A-Z0-9]{10}(?:/ref=[^/?#]+)?')
+            # Tracking/action suffixes are routes to the same Amazon product;
+            # uniqueness is the captured ASIN, not the full navigable path.
+            case['acceptance_contract']['entry_identity_pattern'] = (
+                r'/dp/([A-Z0-9]{10})(?:/|$)')
         if case['id'] == 'live-023-guides':
             # The category/filter labels are complete but legitimately reorder
             # across renderers. Three prose regions plus the 60% floor on every

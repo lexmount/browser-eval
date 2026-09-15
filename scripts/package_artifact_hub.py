@@ -28,48 +28,56 @@ ARCHIVE=Path(sys.argv[2]).resolve() if len(sys.argv)>2 else ROOT/'publish/webfet
 DEST=Path(tempfile.mkdtemp(prefix='artifact-hub-',dir=ROOT/'publish'))
 
 LOADER=r'''
+const decoder=new TextDecoder();let currentPage='index.html',renderId=0;
+function englishRoute(){const hash=typeof location==='undefined'?'':location.hash||'',match=/(?:^#|&)page=([^&]+)/.exec(hash),path=match?decodeURIComponent(match[1]):currentPage;return path==='en/index.html'||path.startsWith('en/')||(typeof document!=='undefined'&&document.documentElement?.lang==='en')}
+function tr(zh,en){return englishRoute()?en:zh}
 let manifestPromise;
 function manifest(){
- if(!manifestPromise)manifestPromise=fetch('manifest.json').then(r=>{if(!r.ok)throw Error('数据目录加载失败');return r.json()}).catch(error=>{manifestPromise=undefined;throw error});
+ if(!manifestPromise)manifestPromise=fetch('manifest.json').then(r=>{if(!r.ok)throw Error(tr('数据目录加载失败','Failed to load the data catalog'));return r.json()}).catch(error=>{manifestPromise=undefined;throw error});
  return manifestPromise;
 }
-const decoder=new TextDecoder();let currentPage='index.html',renderId=0;
 function reportText(zh,en,path=currentPage){return path.startsWith('en/')?en:zh}
 const LARGE_TEXT_BYTES=256*1024;
 const pageStates=new Map();
 function savePageState(){
  if(!document.querySelector('main'))return;
- pageStates.set(currentPage,{filters:[...document.querySelectorAll('[data-filter],[data-wmb-filter]')].map(e=>[e.dataset.wmbFilter?'wmb:'+e.dataset.wmbFilter:'old:'+e.dataset.filter,e.value]),x:window.scrollX,y:window.scrollY});
+ pageStates.set(currentPage,{filters:[...document.querySelectorAll('[data-filter],[data-wmb-filter],[data-wmb-slice-filter]')].map(e=>[e.dataset.wmbSliceFilter!==undefined?'slice:'+e.id:e.dataset.wmbFilter?'wmb:'+e.dataset.wmbFilter:'old:'+e.dataset.filter,e.value]),x:window.scrollX,y:window.scrollY});
 }
 function restorePageState(path){
  const saved=pageStates.get(path);if(!saved)return null;
  const fields=new Map(saved.filters);
- document.querySelectorAll('[data-filter],[data-wmb-filter]').forEach(e=>{let key=e.dataset.wmbFilter?'wmb:'+e.dataset.wmbFilter:'old:'+e.dataset.filter;if(fields.has(key))e.value=fields.get(key)});
- cascadeFilters();wmbFilters();return saved;
+ document.querySelectorAll('[data-filter],[data-wmb-filter],[data-wmb-slice-filter]').forEach(e=>{let key=e.dataset.wmbSliceFilter!==undefined?'slice:'+e.id:e.dataset.wmbFilter?'wmb:'+e.dataset.wmbFilter:'old:'+e.dataset.filter;if(fields.has(key))e.value=fields.get(key)});
+ cascadeFilters();wmbFilters();wmbSliceFilters();return saved;
 }
 const packs=new Map();
 async function pack(name){
- if(!packs.has(name))packs.set(name,fetch(name).then(async r=>{if(!r.ok)throw Error('内容加载失败');return new Uint8Array(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer())}).catch(error=>{packs.delete(name);throw error}));
+ if(!packs.has(name))packs.set(name,fetch(name).then(async r=>{if(!r.ok)throw Error(tr('内容加载失败','Failed to load report content'));return new Uint8Array(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer())}).catch(error=>{packs.delete(name);throw error}));
  const result=await packs.get(name);
  if(packs.size>6){const first=packs.keys().next().value;if(first!==name)packs.delete(first)}
  return result;
 }
 async function fileBytes(path){
- const m=await manifest(),f=m.files[path];if(!f)throw Error('文件不存在：'+path);
+ const m=await manifest(),f=m.files[path];if(!f)throw Error(tr('文件不存在：','File not found: ')+path);
  const result=new Uint8Array(f.size);let offset=0;
  for(const hash of f.parts){const part=m.blocks[hash],bytes=await pack(part.pack);result.set(bytes.subarray(part.offset,part.offset+part.size),offset);offset+=part.size}
  return result;
 }
 async function textFile(path){return decoder.decode(await fileBytes(path))}
 let recordsPromise;
+const PRIVATE_METADATA_KEYS=new Set(['raw_response_path','private_artifacts','private_artifact','private_path']);
+function publicMetadata(value){
+ if(Array.isArray(value))return value.map(publicMetadata);
+ if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).filter(([key])=>!PRIVATE_METADATA_KEYS.has(key)&&!key.startsWith('private_')).map(([key,item])=>[key,publicMetadata(item)]));
+ return value;
+}
 async function metadata(index){
  if(!recordsPromise)recordsPromise=textFile('results.jsonl').then(s=>s.trim().split('\n').map(JSON.parse)).catch(error=>{recordsPromise=undefined;throw error});
- return JSON.stringify((await recordsPromise)[index].provider_metadata||{},null,2);
+ return JSON.stringify(publicMetadata((await recordsPromise)[index].provider_metadata||{}),null,2);
 }
-function deferFill(pre,message='完整内容较大，点击后在只读文本框中加载；也可直接下载原始输出。'){
+function deferFill(pre,message=tr('完整内容较大，点击后在只读文本框中加载；也可直接下载原始输出。','The complete content is large. Click to load it in a read-only text box, or download the original output.')){
  if(pre.dataset.deferred)return;
  pre.dataset.deferred='1';
- pre.classList.add('deferred-evidence');pre.tabIndex=0;pre.setAttribute('role','button');pre.setAttribute('aria-label',reportText('加载完整内容','Load complete content'));pre.textContent=message;
+ pre.classList.add('deferred-evidence');pre.tabIndex=0;pre.setAttribute('role','button');pre.setAttribute('aria-label',tr('加载完整内容','Load complete content'));pre.textContent=message;
  const activate=event=>{if(event.type==='keydown'&&!['Enter',' '].includes(event.key))return;event.preventDefault();pre.removeEventListener('click',activate);pre.removeEventListener('keydown',activate);pre.dataset.deferred='';fill(pre,true)};
  pre.addEventListener('click',activate);pre.addEventListener('keydown',activate);
 }
@@ -94,7 +102,7 @@ async function fillImages(root,page,m){
   for(const img of root.querySelectorAll('img[src]')){
    const src=img.getAttribute('src');if(/^(https?:|data:|blob:)/i.test(src))continue;
    const {path}=resolvePath(src,page),file=m.files[path];
-   if(!file||!file.mime.startsWith('image/'))throw Error('图片文件不存在：'+path);
+   if(!file||!file.mime.startsWith('image/'))throw Error(tr('图片文件不存在：','Image file not found: ')+path);
    const bytes=await fileBytes(path),url=URL.createObjectURL(new Blob([bytes],{type:file.mime}));
    urls.push(url);img.src=url;
   }
@@ -106,11 +114,11 @@ async function fill(pre,force=false){
  let large=false;
  if(pre.dataset.file){const m=await manifest();large=(m.files[pre.dataset.file]?.size||0)>LARGE_TEXT_BYTES}
  if(large&&!force){deferFill(pre);return}
- pre.dataset.loaded='1';pre.classList.remove('deferred-evidence');pre.removeAttribute('role');pre.textContent='正在加载完整内容…';
+ pre.dataset.loaded='1';pre.classList.remove('deferred-evidence');pre.removeAttribute('role');pre.textContent=tr('正在加载完整内容…','Loading complete content…');
  try{let text=pre.dataset.record?await metadata(Number(pre.dataset.record)-1):await textFile(pre.dataset.file);
   if(pre.dataset.readable)text=text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,c=>'\\x'+c.charCodeAt(0).toString(16).padStart(2,'0'));
-  if(large){const box=document.createElement('textarea');box.className='large-evidence-output';box.readOnly=true;box.value=text;box.setAttribute('aria-label','完整实际返回');pre.replaceWith(box)}else pre.textContent=text;
- }catch(error){pre.dataset.loaded='';pre.dataset.deferred='';deferFill(pre,reportText('加载失败：'+error.message+'。点击重试，或下载原始输出。','Loading failed: '+error.message+'. Click to retry, or download the original output.'))}
+  if(large){const box=document.createElement('textarea');box.className='large-evidence-output';box.readOnly=true;box.value=text;box.setAttribute('aria-label',tr('完整实际返回','Complete actual output'));pre.replaceWith(box)}else pre.textContent=text;
+ }catch(error){pre.dataset.loaded='';pre.dataset.deferred='';deferFill(pre,tr('加载失败：','Load failed: ')+error.message+tr('。点击重试，或下载原始输出。','. Click to retry, or download the original output.'))}
 }
 async function render(){
  savePageState();
@@ -118,8 +126,9 @@ async function render(){
  let imageUrls=[];
  try{
   const [m,text]=await Promise.all([manifest(),textFile(path)]);if(token!==renderId)return;
-  if(!path.endsWith('.html'))throw Error('不是报告页面');
+  if(!path.endsWith('.html'))throw Error(tr('不是报告页面','Not a report page'));
   const page=new DOMParser().parseFromString(text,'text/html');
+  if(page.documentElement?.lang&&document.documentElement)document.documentElement.lang=page.documentElement.lang;
   imageUrls=await fillImages(page.body,path,m);
   if(token!==renderId)return;
   document.title=page.title;currentPage=path;fixLinks(page.body,path,m);document.body.innerHTML=page.body.innerHTML;
@@ -127,6 +136,7 @@ async function render(){
   window.dispatchEvent(new Event('report-ready'));
   const saved=restorePageState(path);
   document.querySelectorAll('pre[data-file],pre[data-record]').forEach(pre=>{
+   if(pre.closest('dialog'))return;
    const detail=pre.closest('details');if(detail&&!detail.open)detail.addEventListener('toggle',()=>{if(detail.open)fill(pre)});else fill(pre);
   });
   const anchor=params.get('anchor');applyReportAnchor(anchor);if(anchor)document.getElementById(anchor)?.scrollIntoView();else window.scrollTo(saved?.x||0,saved?.y||0);
@@ -141,7 +151,7 @@ async function downloadClick(event){
  const routeLink=event.target.closest('a[href^="#page="]');
  if(routeLink){event.preventDefault();location.hash=routeLink.getAttribute('href');return}
  const a=event.target.closest('a[data-download]');if(!a)return;event.preventDefault();
- const path=a.dataset.download,old=a.textContent;a.textContent='正在准备完整文件…';
+ const path=a.dataset.download,old=a.textContent;a.textContent=tr('正在准备完整文件…','Preparing complete file…');
  try{const bytes=await fileBytes(path),m=await manifest(),url=URL.createObjectURL(new Blob([bytes],{type:m.files[path].mime}));
   const link=document.createElement('a');link.href=url;link.download=path.split('/').pop();link.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
  }catch(error){alert(error.message)}finally{a.textContent=old}
@@ -152,13 +162,13 @@ document.addEventListener('click',downloadClick);
 '''
 
 def build():
- review=json.loads((SOURCE/'result-review.json').read_text())
- assert review.get('status')=='passed' and not review.get('failures'), \
-        'Refusing to package an incomplete or unreviewed benchmark report'
  dataset_path=SOURCE/'dataset.json'
- if dataset_path.exists():
-  dataset=json.loads(dataset_path.read_text())
-  if dataset.get('id')=='webmainbench-545-preselected-200-five-browsers':
+ dataset=json.loads(dataset_path.read_text()) if dataset_path.exists() else {}
+ webmainbench=dataset.get('id')=='webmainbench-545-preselected-200-five-browsers'
+ if webmainbench:
+   review=json.loads((SOURCE/'result-review.json').read_text())
+   assert review.get('status')=='passed' and not review.get('failures'), \
+          'Refusing to package an incomplete or unreviewed benchmark report'
    records_for_release=[json.loads(x) for x in (SOURCE/'results.jsonl').read_text().splitlines()]
    case_ids={row['id'] for row in dataset.get('cases',[])}
    providers=set(review.get('providers',[]))
@@ -167,6 +177,9 @@ def build():
    assert {(row.get('provider'),row.get('case_id')) for row in records_for_release}=={
        (provider,case_id) for provider in providers for case_id in case_ids}, 'Current result matrix differs from the reviewed scope'
    assert dataset.get('sample_manifest_sha256')==review.get('sample_manifest_sha256'), 'Current sample/review binding mismatch'
+ else:
+  reliability=json.loads((SOURCE/'reliability.json').read_text())
+  assert reliability.get('complete') is True, 'Refusing to package an incomplete or unjudged benchmark report'
  DEST.mkdir(parents=True,exist_ok=True)
  (DEST/'data').mkdir(exist_ok=True)
  records=[json.loads(x) for x in (SOURCE/'results.jsonl').read_text().splitlines()]
@@ -192,13 +205,14 @@ def build():
   if path.suffix=='.html':
    text=data.decode()
    if path.parent.name=='attempts':
-    idx,record=by_attempt[path.stem];matches=list(re.finditer(r'<pre data-kind="(reference|contract|output|metadata)">(.*?)</pre>',text,re.S))
-    by_kind={kind:[match for match in matches if match[1]==kind] for kind in ('reference','contract','output','metadata')}
+    idx,record=by_attempt[path.stem];kinds=('reference','contract','output','metadata','call-output','call-metadata','call-log')
+    matches=list(re.finditer(r'<pre data-kind="('+('|'.join(kinds))+r')">(.*?)</pre>',text,re.S))
+    by_kind={kind:[match for match in matches if match[1]==kind] for kind in kinds}
     source_kind='contract' if by_kind['contract'] else 'reference'
     # Text tasks show the complete source and output in <pre> blocks, which we
     # replace with lazy-loaded evidence. Direct-file tasks intentionally show a
     # structured byte/hash comparison instead, so they have neither block.
-    assert len(by_kind['output'])<=1 and len(by_kind['metadata'])==1,(name,{key:len(value) for key,value in by_kind.items()})
+    assert all(len(by_kind[kind])<=1 for kind in ('output','metadata','call-output','call-metadata')) and len(by_kind['metadata'])==1,(name,{key:len(value) for key,value in by_kind.items()})
     # The first source block is the complete reference/contract. Newer detail pages
     # can also show several derived body-region excerpts; keep those excerpts inline
     # instead of incorrectly replacing each one with the complete source file.
@@ -206,12 +220,31 @@ def build():
     if by_kind[source_kind]:selected.append(by_kind[source_kind][0])
     if by_kind['output']:selected.append(by_kind['output'][0])
     selected.append(by_kind['metadata'][0])
+    if by_kind['call-output']:selected.append(by_kind['call-output'][0])
+    if by_kind['call-metadata']:selected.append(by_kind['call-metadata'][0])
+    selected.extend(by_kind['call-log'])
+    metadata=record.get('provider_metadata') or {};log_paths=[]
+    retry=metadata.get('retry') or {}
+    if isinstance(retry,dict):
+     for attempt in retry.get('attempts',[]):
+      if isinstance(attempt,dict) and isinstance(attempt.get('call_log'),dict):log_paths.append(attempt['call_log'].get('path'))
+    for value in (record.get('call_log'),metadata.get('call_log')):
+     if isinstance(value,dict):log_paths.append(value.get('path'))
+    log_paths.extend([record.get('call_log_path'),metadata.get('call_log_path')])
+    log_paths=list(dict.fromkeys(str(value) for value in log_paths if value and not str(value).startswith('private_artifacts/')))
+    assert len(log_paths)==len(by_kind['call-log']),(name,len(log_paths),len(by_kind['call-log']))
+    log_replacements={match.start():f'<pre data-file="{path}" data-readable="1"></pre>'
+                      for match,path in zip(by_kind['call-log'],log_paths)}
     reference_suffix='.md' if (SOURCE/'references'/f'{record["case_id"]}.md').exists() else '.txt'
     replacements={source_kind:(f'<pre data-file="contracts/{record["case_id"]}.json"></pre>' if source_kind=='contract'
                                 else f'<pre data-file="references/{record["case_id"]}{reference_suffix}"></pre>'),
                   'output':f'<pre data-file="{record["artifact_path"]}" data-readable="1"></pre>',
-                  'metadata':f'<pre data-record="{idx+1}"></pre>'}
-    for match in reversed(selected):text=text[:match.start()]+replacements[match[1]]+text[match.end():]
+                  'call-output':f'<pre data-file="{record["artifact_path"]}" data-readable="1"></pre>',
+                  'metadata':f'<pre data-record="{idx+1}"></pre>',
+                  'call-metadata':f'<pre data-record="{idx+1}"></pre>'}
+    for match in reversed(selected):
+     replacement=log_replacements[match.start()] if match[1]=='call-log' else replacements[match[1]]
+     text=text[:match.start()]+replacement+text[match.end():]
    elif path.parent.name=='datasets' and path.name!='index.html':
     suffix='.md' if (SOURCE/'references'/f'{path.stem}.md').exists() else '.txt'
     text=re.sub(r'(<h2>(?:官方人工真值|Official human ground truth)</h2>)<pre>.*?</pre>',
@@ -279,7 +312,9 @@ def build():
  for name in sorted({v['pack'] for v in blocks.values()}):
   raw=gzip.decompress((DEST/name).read_bytes())
   for key,b in blocks.items():
-   if b['pack']==name:assert hashlib.sha256(raw[b['offset']:b['offset']+b['size']]).hexdigest()==key
+   if b['pack']==name:
+    observed=hashlib.sha256(raw[b['offset']:b['offset']+b['size']]).hexdigest()
+    assert observed==key,(name,key,observed,b['offset'],b['size'],len(raw))
  total=sum(p.stat().st_size for p in DEST.rglob('*') if p.is_file())
  print(json.dumps({'source_files':source_file_count,'logical_routes':logical_route_count,
                    'html_shells':1,'content_packs':index,

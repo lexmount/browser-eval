@@ -127,13 +127,53 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     if {option.get("value") for option in analysis.select('[data-wmb-filter="failure"] option') if option.get("value")} != {
             row.get("error_type") for row in records if not row["ok"] and row.get("error_type")}:
         raise ValueError("WebMainBench request failure classes are incomplete")
+    expected_slices = sum(len(summaries[provider].get("dimensions", {}).get(axis, {}))
+                          for provider in PROVIDERS for axis in ("language", "level", "table", "code", "equation"))
+    if (len(analysis.select("#wmb-slices tbody > tr")) != expected_slices
+            or len(analysis.select("[data-wmb-slice-filter]")) != 3
+            or not analysis.select_one(".wmb-slice-table-wrap")):
+        raise ValueError("WebMainBench category slices must use one bounded, filterable table")
     guide = BeautifulSoup((root / "guide/index.html").read_text(encoding="utf-8"), "html.parser")
     if {section.get("id") for section in guide.select("section.section[id]")} != {
             "background", "results", "examples", "configuration", "limits", "outlook"}:
         raise ValueError("WebMainBench report interpretation is incomplete")
+    if (len(guide.select("#wmb-guide-examples [role=tab]")) < 4
+            or len(guide.select("#configuration table tbody > tr")) != 5
+            or len(guide.select("#limits table tbody > tr")) != 5):
+        raise ValueError("WebMainBench guide lacks same-page examples, routes or failure evidence")
     dataset_page = BeautifulSoup((root / "datasets/index.html").read_text(encoding="utf-8"),"html.parser")
     if len(dataset_page.select('table[data-wmb-table] tbody tr')) != 200:
         raise ValueError("WebMainBench 200-case filtered dataset inventory is incomplete")
+    home_page = BeautifulSoup((root / "index.html").read_text(encoding="utf-8"), "html.parser")
+    if len(home_page.select("#wmb-home-components [role=tab]")) != 5:
+        raise ValueError("WebMainBench five component rankings must be switchable")
+    adoption_page = BeautifulSoup((root / "adoption/index.html").read_text(encoding="utf-8"), "html.parser")
+    for page, required in ((dataset_page, 2), (adoption_page, 1), (guide, 1)):
+        wide_tables = page.select(".table-wrap > table.wide-prose-table")
+        if len(wide_tables) < required or any(len(table.select("thead th")) < 6 for table in wide_tables):
+            raise ValueError("Evidence-rich tables must expand horizontally inside their scroll container")
+    if (".wide-prose-table{min-width:1720px}" not in EXTRA
+            or ".wmb-slice-table-wrap{max-height:70vh;overflow:auto}" not in EXTRA
+            or "function wmbSliceFilters()" not in JS):
+        raise ValueError("WebMainBench table width, bounded slice layout or filter logic is missing")
+    for case_id in cases:
+        for prefix in ("", "en/"):
+            case_page = BeautifulSoup((root / prefix / "datasets" / f"{case_id}.html").read_text(encoding="utf-8"), "html.parser")
+            hrefs = {link.get("href", "") for link in case_page.select("a[href]")}
+            if (not any(f"references/{case_id}.md" in href for href in hrefs)
+                    or not any(f"sources/{case_id}.html.txt" in href for href in hrefs)
+                    or len(case_page.select("#case-results table tbody > tr")) != 5
+                    or not case_page.select_one("pre")):
+                raise ValueError("WebMainBench case detail lacks full reference, frozen input or five scores: " + case_id)
+    for route in ("datasets/index.html", "analysis/index.html"):
+        localized = [BeautifulSoup((root / prefix / route).read_text(encoding="utf-8"), "html.parser")
+                     for prefix in ("", "en/")]
+        for selector in ("[data-wmb-filter]", "[data-wmb-slice-filter]"):
+            inputs = [[(control.get("data-wmb-filter") or control.get("id"),
+                        tuple(option.get("value") for option in control.select("option")))
+                       for control in page.select(selector)] for page in localized]
+            if inputs[0] != inputs[1]:
+                raise ValueError("WebMainBench bilingual filter fields or values differ: " + route)
     for provider in PROVIDERS:
         method_page = BeautifulSoup((root / "providers" / f'{provider}.html').read_text(encoding="utf-8"),"html.parser")
         if len(method_page.select('table[data-wmb-table] tbody tr')) != 200:

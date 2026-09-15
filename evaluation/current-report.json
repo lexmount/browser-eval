@@ -3,6 +3,7 @@
   "dataset_id": "webmainbench-545-preselected-200-five-browsers",
   "comparison_kind": "webmainbench_frozen_html_to_markdown",
   "case_count": 200,
+  "case_ids_sha256": "2a2ad7b561a33cef1063f2c16d1ddbc6ff57061567c827e772453d8a6562dc8e",
   "providers": [
     "kitesurf",
     "lightpanda",
@@ -41,5 +42,6 @@
   "require_independent_result_review": true,
   "conversion": "Native Markdown for Kitesurf, Lightpanda, Obscura and Moli; Chromium whole-DOM HTML via node-html-markdown 2.0.0",
   "artifact_hub_base_url": "https://artifact-hub.app.lexmount.com",
-  "artifact_hub_site": "6jNzpGiPozLW"
+  "artifact_hub_site": "6jNzpGiPozLW",
+  "artifact_hub_expected_version": "ver_01c4bdf03fdc413d93e4659bf0303a92"
 }

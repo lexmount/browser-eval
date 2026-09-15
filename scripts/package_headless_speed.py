@@ -2,55 +2,167 @@
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 import statistics
 import sys
+from datetime import datetime
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.metrics import percentile, task_passed
 from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
-from harness.web_fetch.result_review import require_result_review
+
+
+def _timestamp(value):
+    if not isinstance(value,str):
+        raise ValueError('Speed batch timestamps must be ISO 8601 strings')
+    parsed=datetime.fromisoformat(value.replace('Z','+00:00'))
+    if parsed.utcoffset() is None:
+        raise ValueError('Speed batch timestamps require an explicit timezone')
+    return parsed
+
+
+def _provider_authority(dataset):
+    tracks={case.get('track','web') for case in dataset.get('cases',[])}
+    coverage=dataset.get('coverage_plan',{})
+    cohorts=[coverage.get(track) for track in tracks]
+    if (not tracks or any(not isinstance(names,list) or not names for names in cohorts)
+            or any(names != cohorts[0] for names in cohorts[1:])
+            or len(cohorts[0]) != len(set(cohorts[0]))):
+        raise ValueError('Speed dataset has no single authoritative provider cohort')
+    return cohorts[0]
+
+
+def derive_aggregate(dataset,batches):
+    """Derive only envelope metadata that is provable from existing batches."""
+    if not isinstance(batches,list) or not batches:
+        raise ValueError('Legacy speed execution has no batches to upgrade')
+    starts=[_timestamp(batch.get('started_at')) for batch in batches]
+    finishes=[_timestamp(batch.get('completed_at')) for batch in batches]
+    if any(end < start for start,end in zip(starts,finishes)):
+        raise ValueError('Legacy speed execution contains an invalid batch interval')
+    return {
+        'started_at':min(starts).isoformat(),
+        'completed_at':max(finishes).isoformat(),
+        'providers':_provider_authority(dataset),
+        'case_ids':[case['id'] for case in dataset.get('cases',[])],
+        'batch_count':len(batches),
+    }
+
+
+def build_summary(dataset, records, batches, aggregate):
+    cases={c['id']:c for c in dataset['cases']}
+    if len(cases)!=len(dataset['cases']):
+        raise ValueError('Speed dataset contains duplicate cases')
+    providers=_provider_authority(dataset)
+    expected={(provider,cid) for provider in providers for cid in cases}
+    if len(records)!=len(expected) or {(r['provider'],r['case_id']) for r in records}!=expected:
+        raise ValueError('Speed cohort must contain exactly one complete provider/case matrix')
+    expected_attempts={f'{provider}__{cid}__r001' for provider,cid in expected}
+    if ({r.get('attempt_id') for r in records} != expected_attempts
+            or any(r.get('run') != 1 for r in records)):
+        raise ValueError('Speed cohort must contain canonical single-run attempt identities')
+    if not isinstance(batches,list) or len(batches)!=len(providers):
+        raise ValueError('Speed cohort requires exactly one batch per provider')
+    batch_by_provider={}
+    for batch in batches:
+        names=[row.get('name') for row in batch.get('providers',[]) if isinstance(row,dict)]
+        if len(names)!=1 or names[0] not in providers or names[0] in batch_by_provider:
+            raise ValueError('Speed batch does not bind exactly one authoritative provider')
+        provider=names[0]
+        attempt_ids=batch.get('attempt_ids')
+        wanted={f'{provider}__{cid}__r001' for cid in cases}
+        if (not isinstance(attempt_ids,list) or len(attempt_ids)!=len(wanted)
+                or set(attempt_ids)!=wanted or batch.get('attempt_count')!=len(wanted)):
+            raise ValueError('Speed provider batch does not cover its exact case cohort')
+        batch_by_provider[provider]=batch
+    starts=[_timestamp(batch['started_at']) for batch in batches]
+    finishes=[_timestamp(batch['completed_at']) for batch in batches]
+    if any(end < start for start,end in zip(starts,finishes)) or max(starts)>min(finishes):
+        raise ValueError('Speed provider batches have no common execution window')
+    if (not isinstance(aggregate,dict) or aggregate.get('providers')!=providers
+            or aggregate.get('case_ids')!=list(cases)
+            or aggregate.get('batch_count')!=len(batches)):
+        raise ValueError('Speed aggregate execution identity differs from its dataset')
+    aggregate_start=_timestamp(aggregate.get('started_at'))
+    aggregate_end=_timestamp(aggregate.get('completed_at'))
+    if (aggregate_end < aggregate_start or min(starts)<aggregate_start
+            or max(finishes)>aggregate_end):
+        raise ValueError('Speed batches fall outside aggregate execution bounds')
+    for record in records:
+        elapsed=record.get('elapsed_ms')
+        if type(elapsed) not in (int,float) or not math.isfinite(elapsed) or elapsed<0:
+            raise ValueError('Speed cohort contains invalid elapsed time')
+    passed={(r['provider'],r['case_id']):task_passed(
+        r['ok'],r['metrics'],cases[r['case_id']].get('task_kind','body')) for r in records}
+    common=sorted(cid for cid in cases if all(passed[p,cid] for p in providers))
+    rows=[]
+    for provider in providers:
+        provider_rows=[r for r in records if r['provider']==provider]
+        successful=[r for r in provider_rows if passed[provider,r['case_id']]]
+        all_values=[r['elapsed_ms'] for r in provider_rows]
+        success_values=[r['elapsed_ms'] for r in successful]
+        rows.append({
+            'provider':provider,
+            'planned_attempts':len(provider_rows),
+            'successful_attempts':len(successful),
+            'task_pass_rate':len(successful)/len(provider_rows),
+            'all_calls_p50_ms':statistics.median(all_values),
+            'all_calls_p95_ms':percentile(all_values,.95),
+            'successful_calls_p50_ms':statistics.median(success_values) if success_values else None,
+            'successful_calls_p95_ms':percentile(success_values,.95) if success_values else None,
+        })
+    return {
+        'schema_version':2,
+        'selection':'Predeclared ordinary-web body cases stratified by reference length and unique hostname; every method uses the same full task sample.',
+        'interpretation':'descriptive_single_window_single_observation',
+        'latency_scopes':{
+            'all_calls':'Same task denominator for every method; includes successful delivery, failures, and deadline timeouts.',
+            'successful_calls':'Conditioned on each method task pass; denominators may differ and are not a matched-task ranking.',
+            'common_pass_cases':'Diagnostic only; never used to select or discard the predeclared cohort.',
+        },
+        'percentile_limit':f"Each method has {len(cases)} single observations. P95 is a sample diagnostic, not a stable tail-latency estimate or SLA.",
+        'providers':providers,'planned_cases':list(cases),'common_pass_cases':common,
+        'started_at':min(starts).isoformat(),
+        'completed_at':max(finishes).isoformat(),'rows':rows,
+    }
 
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run',type=Path,required=True)
+    parser.add_argument('--upgrade-execution-metadata',action='store_true',help='Upgrade a legacy batches-only execution.json after validating its existing evidence; never calls providers')
     args=parser.parse_args();root=args.run
     dataset=json.loads((root/'dataset.json').read_text())
     cases={c['id']:c for c in dataset['cases']}
     records=[json.loads(line) for line in (root/'results.jsonl').read_text().splitlines()]
-    if (root/'execution.json').is_file():
-        batches=json.loads((root/'execution.json').read_text())['batches']
+    execution_path=root/'execution.json'
+    if not execution_path.is_file():
+        raise ValueError('Speed cohort requires aggregate execution.json')
+    execution=json.loads(execution_path.read_text())
+    batches=execution.get('batches')
+    upgrade=False
+    if execution.get('schema_version') == 1 and isinstance(execution.get('aggregate'),dict):
+        aggregate=execution['aggregate']
+    elif (args.upgrade_execution_metadata and execution.get('schema_version') is None
+          and execution.get('aggregate') is None):
+        aggregate=derive_aggregate(dataset,batches)
+        upgrade=True
     else:
-        batches=[json.loads((root/'manifest.json').read_text())]
+        raise ValueError('Unsupported speed execution schema; use --upgrade-execution-metadata only for a legacy batches-only manifest')
     require_verified_reference_checks(batches,cases=dataset,records=records,source=root,
         allow_scoring_rule_revision=True)
-    require_result_review(root,dataset,records)
-    providers=sorted({r['provider'] for r in records})
-    expected={(provider,cid) for provider in providers for cid in cases}
-    if len(records)!=len(expected) or {(r['provider'],r['case_id']) for r in records}!=expected:
-        raise SystemExit('Speed cohort must contain exactly one complete provider/case matrix')
-    passed={(r['provider'],r['case_id']):task_passed(r['ok'],r['metrics'],cases[r['case_id']].get('task_kind','body')) for r in records}
-    common=sorted(cid for cid in cases if all(passed[p,cid] for p in providers))
-    if len(common) < 5:
-        raise SystemExit('Too few all-provider successful cases for even an exploratory latency comparison')
-    rows=[]
-    for provider in providers:
-        values=[r['elapsed_ms'] for r in records if r['provider']==provider and r['case_id'] in common]
-        rows.append({'provider':provider,'attempts':len(values),'p50_ms':statistics.median(values),
-                     'p95_ms':percentile(values,.95),'values_ms':values})
-    summary={'schema_version':1,'selection':'Predeclared ordinary-web body cases stratified by reference length and unique hostname; latency uses the single all-provider successful case intersection.',
-             'interpretation':('exploratory_small_sample' if len(common) < 20 else 'descriptive'),
-             'percentile_limit':('With fewer than 20 common samples, P95 is reported as a sample diagnostic, not a stable tail-latency estimate.'
-                                 if len(common) < 20 else None),
-             'bindings':{'dataset_sha256':hashlib.sha256((root/'dataset.json').read_bytes()).hexdigest(),
-                         'results_sha256':hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()},
-             'providers':providers,'planned_cases':sorted(cases),'common_pass_cases':common,
-             'started_at':min(batch['started_at'] for batch in batches),
-             'completed_at':max(batch['completed_at'] for batch in batches),'rows':rows}
+    summary=build_summary(dataset,records,batches,aggregate)
+    if upgrade:
+        upgraded={**execution,'schema_version':1,'aggregate':aggregate}
+        temporary=execution_path.with_suffix('.json.upgrading')
+        temporary.write_text(json.dumps(upgraded,ensure_ascii=False,indent=2)+'\n')
+        temporary.replace(execution_path)
+    summary['bindings']={'dataset_sha256':hashlib.sha256((root/'dataset.json').read_bytes()).hexdigest(),
+                         'results_sha256':hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()}
     (root/'speed-comparison.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n')
-    print(f"common-pass={len(common)}/{len(cases)} providers={len(providers)}")
+    print(f"common-pass={len(summary['common_pass_cases'])}/{len(cases)} providers={len(summary['providers'])}; full predeclared sample retained")
 
 
 if __name__=='__main__':main()

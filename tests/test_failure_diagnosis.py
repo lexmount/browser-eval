@@ -11,6 +11,17 @@ class FailureDiagnosisTests(unittest.TestCase):
  def test_nested_upstream_not_generic_502(self):
   r=self.record();d=diagnose(r,{},json.dumps({'error':{'upstream_status_code':403,'message':'unexpected status code: 403'}}))
   self.assertEqual(d['category'],'源站拒绝该次访问')
+ def test_platform_regional_capability_restriction_is_not_origin_rejection(self):
+  raw=json.dumps({'error':{'upstream_status_code':403,'message':
+   'Use of headers, actions, and the FIRE-1 agent is not allowed by default in your country'}})
+  d=diagnose(self.record(error_type='CRAWL_HTTP_403'),{},raw)
+  self.assertEqual(d['category'],'平台调用能力受限')
+  self.assertEqual(d['stage'],'服务接口')
+  self.assertIn('不据此归责源站',d['certainty'])
+ def test_platform_capability_rule_does_not_swallow_ordinary_upstream_403(self):
+  raw=json.dumps({'error':{'upstream_status_code':403,'message':'unexpected status code: 403'}})
+  d=diagnose(self.record(error_type='CRAWL_HTTP_403'),{},raw)
+  self.assertEqual(d['category'],'源站拒绝该次访问')
  def test_empty_api_success_is_extraction_failure(self):
   r=self.record(provider='cloudflare-markdown',status_code=200);raw='{"success":true,"result":""}'
   r['metrics']=score_attempt({'url':'https://example.com'},raw.encode(),ok=False,status_code=200)
@@ -32,6 +43,34 @@ class FailureDiagnosisTests(unittest.TestCase):
   d=diagnose(r,{'track':'dynamic','task_kind':'body'},'A product and some text')
   self.assertEqual(d['category'],'条目未完整匹配')
   self.assertIn('不表示每个字段都不存在',d['evidence'])
+ def test_declared_body_truncation_has_specific_failure(self):
+  r=self.record(ok=True,status_code=200,metrics={
+   'content_pass':False,
+   'declared_truncation_hits':['(Content truncated. Fetch a more specific URL or section for the full text.)'],
+  })
+  d=diagnose(r,{'task_kind':'body'},'')
+  self.assertEqual(d['category'],'正文范围不完整')
+  self.assertIn('明确声明',d['evidence'])
+ def test_target_only_resource_extras_have_specific_failure(self):
+  r=self.record(ok=True,status_code=200,metrics={
+   'resource_pass':False,
+   'resource_results':[{'id':'hero','pass':True}],
+   'unexpected_resource_urls':['https://example.test/logo.png'],
+  })
+  d=diagnose(r,{'task_kind':'resource'},'')
+  self.assertEqual(d['category'],'返回非目标资源')
+  self.assertIn('logo.png',d['evidence'])
+ def test_missing_target_with_extra_does_not_claim_target_hit(self):
+  r=self.record(ok=True,status_code=200,metrics={
+   'resource_pass':False,
+   'resource_results':[{'id':'hero','pass':False}],
+   'unexpected_resource_urls':['https://example.test/logo.png'],
+  })
+  d=diagnose(r,{'task_kind':'resource'},'')
+  self.assertEqual(d['category'],'缺少目标资源')
+  self.assertIn('hero',d['evidence'])
+  self.assertIn('logo.png',d['evidence'])
+  self.assertNotIn('目标资源已命中',d['evidence'])
 
 
 class UnifiedTextFailureTests(unittest.TestCase):
@@ -88,6 +127,28 @@ class UnifiedTextFailureTests(unittest.TestCase):
         self.assert_category(stable, '返回非目标内容')
         self.assert_category({'stable_task_pass': False, 'stable_task_errors': ['forbidden_content']},
                              '返回非目标内容')
+
+    def test_generic_blocked_page_precedes_resource_success(self):
+        blocked = evaluate_content('# Making sure you\'re not a bot!', [])
+        blocked.update(resource_pass=True, resource_results=[{'id': 'hero', 'pass': True}])
+        result = diagnose(self.record(blocked), {'task_kind': 'resource'}, '')
+        self.assertEqual(result['category'], '返回非目标内容')
+        self.assertIn("Making sure you're not a bot", result['evidence'])
+
+        prose = evaluate_content("The article explains why sites say you're not a bot.", [])
+        prose.update(resource_pass=True, resource_results=[{'id': 'hero', 'pass': True}])
+        self.assertIsNone(diagnose(self.record(prose), {'task_kind': 'resource'}, ''))
+
+    def test_chinese_gate_heading_precedes_resource_success_without_prose_fp(self):
+        blocked = evaluate_content('# 验证中心', [])
+        blocked.update(resource_pass=True, resource_results=[{'id': 'hero', 'pass': True}])
+        result = diagnose(self.record(blocked), {'task_kind': 'resource'}, '')
+        self.assertEqual(result['category'], '返回非目标内容')
+        self.assertIn('验证中心', result['evidence'])
+
+        prose = evaluate_content('本文介绍验证中心的设计与用户体验。', [])
+        prose.update(resource_pass=True, resource_results=[{'id': 'hero', 'pass': True}])
+        self.assertIsNone(diagnose(self.record(prose), {'task_kind': 'resource'}, ''))
 
     def test_too_many_records_reports_upper_bound_not_too_few(self):
         contract = self.contract(maximum_records=3)

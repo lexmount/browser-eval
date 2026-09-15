@@ -51,14 +51,16 @@ for await (const line of rl) {
       },
     }) + "\n");
   } catch (error: any) {
+    const message = String(error?.message ?? error);
     process.stdout.write(JSON.stringify({
       ok: false,
-      content: String(error?.stack ?? error),
+      // Stack traces contain host-local source paths and are diagnostics, not
+      // provider answer content. Keep the stable provider error only.
+      content: message,
       error_type: "tool_error",
-      error_message: String(error?.message ?? error),
+      error_message: message,
       final_url: request.url,
       metadata: { implementation: "OpenClaw createWebFetchTool", fallback_provider_disabled: true },
     }) + "\n");
   }
 }
-

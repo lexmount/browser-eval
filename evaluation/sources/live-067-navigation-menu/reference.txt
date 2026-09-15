@@ -128,9 +128,9 @@ If you are on an ARM64 platform, follow
 this guide
 to build a Docker image compatible with your system.
 The command below downloads the
-v0.27.1
+v0.27.2
 edition of the RAGFlow Docker image. See the following table for descriptions of different RAGFlow editions. To download a RAGFlow edition different from
-v0.27.1
+v0.27.2
 , update the
 RAGFLOW_IMAGE
 variable accordingly in
@@ -140,7 +140,7 @@ docker compose
 to start the server.
 cd
 ragflow/docker
-git checkout v0.27.1
+git checkout v0.27.2
 #
 Optional: use a stable tag (see releases: https://github.com/infiniflow/ragflow/releases)
 #

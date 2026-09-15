@@ -10,10 +10,10 @@
     "sample_id": "public-webmainbench-200-v1",
     "sample_size": 200,
     "separate_leaderboards": true,
-    "summary_zh": "选用 WebMainBench-545 母集里预先冻结的 200 页作为本轮公开基准。它的论文、维护和独立采用证据更完整，标准答案经过人工校准，并能分别评价文本、代码、公式、表格内容和表格结构。",
-    "summary_en": "Use a preselected, frozen 200-page sample from WebMainBench-545 for this public-benchmark run. The parent benchmark has the strongest combined publication, maintenance and independent-adoption evidence, manually calibrated answers, and separate text, code, formula, table-content and table-structure metrics.",
-    "qualification_zh": "200 页在看到任何方法结果前，按语言、难度、表格、代码和公式分类覆盖后再用固定 SHA-256 顺序补齐；这是派生子集，不冒充官方 545 例工具链总榜或 7,809 页论文主榜。",
-    "qualification_en": "The 200 pages were selected before any method result by covering observed language, difficulty, table, code and formula categories, then filling in a fixed SHA-256 order. This derived subset is neither the official 545-toolkit leaderboard nor the paper's 7,809-page leaderboard."
+    "summary_zh": "本轮采用 WebMainBench-545 中预先选定的 200 页。它公开了冻结 HTML、人工校准的 Markdown 答案和可运行的评分器；文本、代码、公式和表格可以分别计分。论文与其他开源项目的使用也有来源可核对。",
+    "summary_en": "This run uses 200 pages preselected from WebMainBench-545. It publishes frozen HTML, human-calibrated Markdown references and a runnable scorer, with separate scores for text, code, formulas and tables. The paper and use in other open-source projects have checkable sources.",
+    "qualification_zh": "这里只测预先选定的 200 页，不是官方 545 页工具链总榜，也不是论文的 7,809 页主榜。每页名单和选取方法见上方。",
+    "qualification_en": "This run measures only the preselected 200 pages, not the official 545-page toolkit leaderboard or the paper's 7,809-page main leaderboard. The page list and selection method are given above."
   },
   "selection_rules": [
     {"criterion": "Evidence of use", "criterion_zh": "采用证据", "rule": "Prefer reproducible runs and named integrations over mentions, stars or search counts.", "rule_zh": "真实运行和具名集成高于提及、Star 或搜索条数。"},
@@ -29,8 +29,8 @@
       "metric_zh": "文本、代码、公式、表格编辑相似度及表格 TEDS；overall 是五个分别聚合后的分项均值的算术平均",
       "aggregation": "official 545 toolkit over the complete declared subset; publish every component and valid denominator",
       "aggregation_zh": "官方 545 工具链评估完整声明子集；公布每个分项及有效分母",
-      "disposition": "SELECTED — strongest combined credibility, answer quality, category coverage and practical cost",
-      "disposition_zh": "已选定——可信度、答案质量、分类覆盖和成本的综合最优项",
+      "disposition": "Selected for this run: published human references and five reproducible component metrics",
+      "disposition_zh": "本轮采用；公开人工答案和五项可重算指标",
       "maturity": "KDD 2026 paper; repository updated 2026-06-13; v1.0.0 release; multiple independent integrations",
       "maturity_zh": "KDD 2026 论文；仓库更新于 2026-06-13；v1.0.0 发布；多个独立项目集成",
       "standard_answer": "manually calibrated groundtruth_content Markdown, plus full HTML, selected main HTML and canonical converted Markdown",

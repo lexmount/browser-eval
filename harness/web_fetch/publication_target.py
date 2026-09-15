@@ -20,6 +20,17 @@ def current_publication_target(profile_path=ROOT/'evaluation/current-report.json
     return base.rstrip('/'),slug
 
 
+def require_publication_version(profile_path: Path, requested_version: str | None = None) -> str:
+    """Require the profile-bound current site version for a compare-and-swap update."""
+    profile = json.loads(Path(profile_path).read_text())
+    expected = profile.get('artifact_hub_expected_version')
+    if not isinstance(expected, str) or not expected.startswith('ver_'):
+        raise ValueError('Current report profile is missing a valid artifact_hub_expected_version')
+    if requested_version is not None and requested_version != expected:
+        raise ValueError(f'Requested publication version {requested_version!r}; expected {expected!r}')
+    return expected
+
+
 _BASE,_SLUG=current_publication_target(require_bound=False)
 HUB = (os.environ.get('WEBFETCH_REPORT_PUBLIC_URL') or
        (f'{_BASE}/api/preview/{_SLUG}' if _SLUG else '')).rstrip('/')

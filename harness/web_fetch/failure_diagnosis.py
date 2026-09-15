@@ -2,6 +2,16 @@
 import json,re
 
 
+def _platform_capability_restricted(message):
+    """Match an explicit service-side regional capability restriction."""
+    return bool(re.search(
+        r'\buse of\b.{1,500}\bis not allowed(?: by default)? in '
+        r'(?:your|this) (?:country|region)\b',
+        message,
+        re.S,
+    ))
+
+
 def _stable_failure(metrics):
     """Describe measured contract errors; never infer a shortfall by default."""
     errors = metrics.get('stable_task_errors', [])
@@ -70,6 +80,9 @@ def diagnose(r,c,raw,source=None):
             category,stage,proof=set_result('限流 / 配额','服务接口',message[:650])
         elif nested.get('code')=='browser_fetch_failed' and 'deadline exceeded' in low:
             category,stage,proof=set_result('服务内浏览器超时','服务取页',str(nested.get('message')))
+        elif _platform_capability_restricted(low):
+            category,stage,proof=set_result('平台调用能力受限','服务接口',message[:650])
+            certainty='服务明确返回按调用地区限制请求能力；不据此归责源站'
         elif 'execution context was destroyed' in low:
             category,stage,proof=set_result('浏览器执行上下文中断','浏览器执行',message[:650])
         elif re.search(r'timed out|(?<![a-z])timeout(?![a-z])|deadline exceeded',low):
@@ -96,10 +109,17 @@ def diagnose(r,c,raw,source=None):
             '输出文本解码损坏','内容提取',
             f"保存输出含 {m.get('replacement_character_count',0)} 个 Unicode 替换字符 "
             f"（占 {m.get('replacement_character_ratio',0)*100:.1f}%）；原文字节已在方法输出前被替换，无法从该 Markdown 还原。")
+    elif c.get('task_kind', 'body') == 'body' and m.get('declared_truncation_hits'):
+        category,stage,proof=set_result(
+            '正文范围不完整','内容核验',
+            '供应商明确声明返回内容已截断：'+', '.join(m['declared_truncation_hits']))
     elif m.get('forbidden_hits'):
         category,stage,proof=set_result('返回非目标内容','内容核验','命中错误页 / 排除标记：'+', '.join(m['forbidden_hits']))
-    elif m.get('stable_blocked_page') or 'blocked_page' in m.get('stable_task_errors', []):
-        category,stage,proof=set_result('返回非目标内容','内容核验','稳定内容检查命中 blocked_page：返回正文含阻断页标记；记录或链接数量足够也不代表取得目标正文。')
+    elif (m.get('blocked_page') or m.get('stable_blocked_page')
+          or 'blocked_page' in m.get('stable_task_errors', [])):
+        hits = m.get('blocked_page_hits') or []
+        detail = ('：' + ', '.join(hits)) if hits else ''
+        category,stage,proof=set_result('返回非目标内容','内容核验','内容检查命中 blocked_page'+detail+'；记录、链接或资源数量足够也不代表取得目标内容。')
     elif 'forbidden_content' in m.get('stable_task_errors', []):
         category,stage,proof=set_result('返回非目标内容','内容核验','稳定内容检查命中 forbidden_content：返回正文含登记的排除标记。')
     elif 'stable_task_pass' in m:
@@ -122,7 +142,16 @@ def diagnose(r,c,raw,source=None):
         category,stage,proof=set_result('未取得原文件','交付核验','没有可验证的原文件字节；文字或链接不能替代文件')
     elif c.get('task_kind')=='resource' and not m.get('resource_pass'):
         missing=[x.get('id','') for x in m.get('resource_results',[]) if not x['pass']]
-        category,stage,proof=set_result('缺少目标资源','资源核验','未命中资源：'+', '.join(missing))
+        unexpected=m.get('unexpected_resource_urls',[])
+        if missing:
+            proof='未命中资源：'+', '.join(missing)
+            if unexpected:proof+='；同时返回非目标资源：'+', '.join(unexpected)
+            category,stage,proof=set_result('缺少目标资源','资源核验',proof)
+        elif unexpected:
+            category,stage,proof=set_result(
+                '返回非目标资源','资源核验',
+                '目标资源已命中，但答案字段还返回了非目标资源：'+', '.join(unexpected))
+        else:category,stage,proof=set_result('缺少目标资源','资源核验','未命中登记的目标资源。')
     elif c.get('task_kind','body')=='body' and not m.get('content_pass'):
         if m.get('body_coverage_pass') is False:
             category,stage,proof=set_result('正文范围不完整','内容核验','未满足分区正文覆盖要求：'+', '.join(x['id'] for x in m.get('body_region_results',[]) if not x['pass']))

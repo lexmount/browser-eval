@@ -1,0 +1,39 @@
+{
+  "schema_version": 2,
+  "baseline": {
+    "dataset_sha256": "9511b16bd27cfe6c2d7913917992cec574f73a8b5b642c19283ea542f90dab81",
+    "results_sha256": "443ece38adb97386a7625e08f2c79c38c3c43a1b5e8627c131757dc7ab8ae886",
+    "logical_attempts": 1500
+  },
+  "main_matrix": {
+    "full_rerun_providers": [],
+    "full_rerun_reason_by_provider": {},
+    "matched_case_ids": [],
+    "matched_case_reason_groups": [],
+    "pair_replacements": [
+      {
+        "provider": "cloudflare-markdown",
+        "case_id": "video-bilibili-current",
+        "category": "adapter_normalization",
+      "reason": "Independent review found ordinary navigation and utility iframes misclassified as video entries. The video-link task now requests only a[href] through Cloudflare /scrape and conservatively retains video-detail URL routes without reference matching; this exact pair requires a new certified call."
+      }
+    ],
+    "offline_rescore_cases": [],
+    "planned_new_calls": 1,
+    "final_logical_attempts": 1500
+  },
+  "same_window_speed_cohort": {
+    "required": false,
+    "reuse_existing": true,
+    "reason": "This video-link candidate correction affects only the Bilibili resource task outside the historical 20-task speed cohort; provider version and timing boundary are unchanged.",
+    "dataset_sha256": "20d6ab46caa60230cfb703b964ab1378f9071b47f249f61e094f4c7c84ea4aa9",
+    "results_sha256": "9d9d3eb57b3ff1cdd7187e4378d78f990447e3a54ca27d0bfdd8623e228112d3",
+    "execution_sha256": "e8b4f90d26cf53e63ef2b25f8f4d32a1ece9ec63bedad7e3f81e07d481cdd76e",
+    "speed_comparison_sha256": "2bb77a7c343ddbbd748657a3f5a4d3b49d46650053ffb7f6353ce80dfb09893c",
+    "auxiliary_sha256": {
+      "reference-revisions.json": "361260b2ee805ba277967432e191322fca15aa545f4eaf9a3c3ae43275204857"
+    },
+    "planned_new_calls": 0
+  },
+  "total_planned_new_calls": 1
+}

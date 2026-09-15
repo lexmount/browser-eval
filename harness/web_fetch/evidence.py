@@ -9,6 +9,7 @@ import shutil
 import tempfile
 
 from .safety import contained_path, safe_identifier, validate_report_ids
+from .artifacts import materialize_private_artifacts, verify_record_private_artifacts
 
 
 def parse_records(raw):
@@ -53,6 +54,7 @@ def add_provider_run(canonical: Path, incoming: Path, provider: str, implementat
         raise ValueError("Duplicate artifact paths")
     for root, group in [(canonical, existing), (incoming, records)]:
         for r in group:
+            verify_record_private_artifacts(root, r)
             if Path(r['artifact_path']).parts[0] != 'artifacts':
                 raise ValueError('Output paths must be inside artifacts/')
             artifact = contained_path(root, r["artifact_path"])
@@ -106,6 +108,7 @@ def add_provider_run(canonical: Path, incoming: Path, provider: str, implementat
             shutil.copy2(contained_path(incoming, r["artifact_path"]), target)
             if hashlib.sha256(target.read_bytes()).hexdigest() != r['metrics']['content_sha256']:
                 raise ValueError('Staged output hash mismatch')
+        materialize_private_artifacts(staging, incoming, records)
         # Existing lines are copied byte-for-byte, not reserialized or rescored.
         (staging / "results.jsonl").write_bytes(
             original + incoming_bytes

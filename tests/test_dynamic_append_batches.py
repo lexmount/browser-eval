@@ -69,11 +69,14 @@ class DynamicAppendBatchesTests(unittest.TestCase):
                 'timeout_ms': 1000, 'elapsed_ms': 10, 'checked_at': '2026-09-03T12:00:00+00:00'})
         for directory in (self.reference, self.measured):
             dump(directory / 'dataset.json', {'cases': self.cases})
-        # Real orchestration shape: nine single-provider batches plus one local-three batch.
+        # Historical pre-certification orchestration shape: nine single-provider
+        # batches plus one local-three batch.  Omitting schema_version is
+        # intentional: these fixtures exercise append transaction invariants,
+        # not the current certified-run reference protocol.
         groups = [[name] for name in self.names[:9]] + [self.names[9:]]
         for index, names in enumerate(groups):
             start = datetime(2026, 9, 3, tzinfo=timezone.utc) + timedelta(minutes=index)
-            batch = {'batch_id': f'measured-{index}', 'schema_version': 1, 'tool': 'web_fetch',
+            batch = {'batch_id': f'measured-{index}', 'tool': 'web_fetch',
                      'started_at': start.isoformat(),
                      'completed_at': (start + timedelta(seconds=30)).isoformat(),
                      'dataset': {'source': f'original-batch-{index}/frozen.json', 'case_count': 6},

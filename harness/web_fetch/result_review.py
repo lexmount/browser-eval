@@ -2,6 +2,46 @@
 import hashlib
 import json
 from .metrics import task_passed
+from .anomaly_review import require_anomaly_review
+
+
+ANSWER_METADATA_FIELDS = ('links', 'images', 'videos', 'media', 'extras')
+
+
+def review_answer_metadata(record, *, include_resources=True):
+    """Return source answer fields a blind reviewer may inspect, never scores."""
+    metadata = record.get('provider_metadata', {})
+    answer = ({key: metadata[key] for key in ANSWER_METADATA_FIELDS if key in metadata}
+              if include_resources else {})
+    if record.get('title') is not None:
+        answer['title'] = record['title']
+    return answer
+
+
+def review_raw_artifacts(record):
+    """Return every persisted raw/file artifact binding used during review."""
+    metadata = record.get('provider_metadata', {})
+    artifacts = []
+    if metadata.get('raw_response_path'):
+        artifacts.append({
+            'kind': 'raw_response', 'path': metadata.get('raw_response_path'),
+            'sha256': metadata.get('raw_response_sha256'),
+            'bytes': metadata.get('raw_response_bytes'),
+        })
+    if metadata.get('raw_stdout_path'):
+        artifacts.append({
+            'kind': 'raw_stdout', 'path': metadata.get('raw_stdout_path'),
+            'sha256': metadata.get('raw_stdout_sha256'),
+            'bytes': metadata.get('raw_stdout_bytes'),
+        })
+    for item in metadata.get('file_evaluation', {}).get('files', []):
+        if item.get('artifact_path'):
+            artifacts.append({
+                'kind': 'file', 'path': item.get('artifact_path'),
+                'sha256': item.get('sha256'), 'bytes': item.get('bytes'),
+                'mime': item.get('mime'), 'pass': item.get('pass'),
+            })
+    return artifacts
 
 
 def _sha256(path):
@@ -11,7 +51,7 @@ def _sha256(path):
 def review_input_identity(record):
     """Return every record field that can select evidence shown to a reviewer."""
     metadata = record.get('provider_metadata', {})
-    files = metadata.get('file_evaluation', {}).get('files', [])
+    raw_artifacts = review_raw_artifacts(record)
     return {
         'provider': record.get('provider'),
         'case_id': record.get('case_id'),
@@ -19,26 +59,31 @@ def review_input_identity(record):
         'request_ok': record.get('ok'),
         'error_type': record.get('error_type'),
         'content_sha256': record.get('metrics', {}).get('content_sha256'),
-        'file_artifacts': [
-            {key: item.get(key) for key in
-             ('artifact_path', 'sha256', 'bytes', 'mime', 'pass')}
-            for item in files if item.get('artifact_path')
-        ],
-        'raw_response_artifact': {
+        'file_artifacts': [item for item in raw_artifacts if item['kind'] == 'file'],
+        'raw_artifacts': raw_artifacts,
+        'raw_response_artifact': ({
+            'path': metadata.get('raw_response_path'),
+            'sha256': metadata.get('raw_response_sha256'),
+            'bytes': metadata.get('raw_response_bytes'),
+        } if metadata.get('raw_response_path') else ({
             'path': metadata.get('raw_stdout_path'),
             'sha256': metadata.get('raw_stdout_sha256'),
-        } if metadata.get('raw_stdout_path') else None,
+            'bytes': metadata.get('raw_stdout_bytes'),
+        } if metadata.get('raw_stdout_path') else None)),
+        'answer_metadata_sha256': hashlib.sha256(json.dumps(
+            review_answer_metadata(record), ensure_ascii=False, sort_keys=True,
+            separators=(',', ':')).encode()).hexdigest(),
     }
 
 
-def require_result_review(source, dataset, records):
+def _require_result_review(source, dataset, records, review_document=None, *, anomaly_gate):
     required = dataset.get('comparison', {}).get('require_independent_result_review', False)
     path = source / 'result-review.json'
-    if not path.is_file():
+    if review_document is None and not path.is_file():
         if required:
             raise ValueError('Independent result review is required but missing')
         return None
-    review = json.loads(path.read_text())
+    review = review_document if review_document is not None else json.loads(path.read_text())
     if review.get('schema_version') != 1:
         raise ValueError('Unsupported result review schema')
     protocol = review.get('review_protocol', {})
@@ -52,10 +97,17 @@ def require_result_review(source, dataset, records):
     scope = protocol.get('scope', 'all')
     if scope not in {'all','machine-failures'}:
         raise ValueError('Unsupported result review scope')
+    anomaly_attempts = set()
+    if anomaly_gate and dataset.get('comparison', {}).get('require_anomaly_review', False):
+        from .anomaly_review import detect_anomalies
+        reviewer = {row.get('attempt_id'): row.get('reviewer_anomalies', [])
+                    for row in review.get('attempts', [])}
+        anomaly_attempts = set(detect_anomalies(source, records, dataset, reviewer))
     expected = {r['attempt_id'] for r in records
                 if scope == 'all' or task_passed(
                     r['ok'], r['metrics'],
-                    next(c for c in dataset['cases'] if c['id']==r['case_id']).get('task_kind','body')) is False}
+                    next(c for c in dataset['cases'] if c['id']==r['case_id']).get('task_kind','body')) is False
+                or r['attempt_id'] in anomaly_attempts}
     attempts = review.get('attempts', [])
     ids = [row.get('attempt_id') for row in attempts]
     if len(ids) != len(set(ids)) or set(ids) != expected:
@@ -74,6 +126,8 @@ def require_result_review(source, dataset, records):
             raise ValueError('Result review machine verdict no longer matches persisted scoring')
         if row.get('final_verdict') != machine:
             raise ValueError('Independent review found a scoring error; correct and re-review the results before publication')
+    if anomaly_gate:
+        require_anomaly_review(source, dataset, records, review)
     review['expected_attempts'] = len(expected)
     review['reviewed_attempts'] = len(ids)
     review['total_attempts'] = len(records)
@@ -82,3 +136,14 @@ def require_result_review(source, dataset, records):
                                   for row in attempts)
     review['unresolved'] = 0
     return review
+
+
+def require_blind_result_review(source, dataset, records, review_document=None):
+    """Validate a recorded blind review without requiring the later anomaly phase."""
+    return _require_result_review(
+        source, dataset, records, review_document, anomaly_gate=False)
+
+
+def require_result_review(source, dataset, records, review_document=None):
+    return _require_result_review(
+        source, dataset, records, review_document, anomaly_gate=True)

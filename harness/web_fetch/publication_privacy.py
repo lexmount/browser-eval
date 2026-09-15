@@ -35,6 +35,8 @@ def publication_risk(data):
 def project_file(name, data):
     """Redact only auxiliary HTML. Any match elsewhere requires human review."""
     path = PurePosixPath(name)
+    if 'private_artifacts' in path.parts:
+        raise ValueError('Private evidence is not publishable: ' + name)
     if any(part.startswith('.') for part in path.parts):
         raise ValueError('Private/hidden file is not publishable: ' + name)
     if OTHER_SECRET.search(data):

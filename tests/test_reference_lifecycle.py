@@ -12,7 +12,8 @@ from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.reference_lifecycle import (
     ReferenceLifecycleError, check_case_equivalent_reference_binding,
     check_case_reference_binding, check_case_reference_fresh, finalize_reference_checks,
-    preflight_reference_checks, require_verified_reference_checks, sha256,
+    preflight_reference_checks, require_verified_reference_checks,
+    resource_source_scope_identity, sha256, validate_resource_source_evidence,
 )
 from harness.web_fetch.runner import rescore_evaluation, run_evaluation
 from scripts import run_local_dynamic_builtins as local
@@ -49,7 +50,8 @@ class ReferenceLifecycleTests(unittest.TestCase):
         dataset = self.dataset()
         self.run.mkdir()
         self.write_json(self.run / "dataset.json", dataset)
-        manifest = {"started_at": self.now.isoformat(),
+        manifest = {"schema_version": 1, "tool": "web_fetch",
+            "started_at": self.now.isoformat(),
             "completed_at": (self.now + timedelta(seconds=2)).isoformat(),
             "attempt_count": 1, "attempt_ids": ["p__body__r001"],
             "providers": [{"name": "p", "type": "synthetic"}],
@@ -111,10 +113,115 @@ class ReferenceLifecycleTests(unittest.TestCase):
             check_case_equivalent_reference_binding(replace(equivalent, task_prompt="Different task"), binding)
 
     def test_only_body_with_independent_metadata_is_required(self):
-        for case in (replace(self.case, source_verification={}), replace(self.case, track="image"),
+        for case in (replace(self.case, source_verification={}),
                      replace(self.case, task_kind="structure"), replace(self.case, ground_truth_main_content="")):
             self.assertIsNone(self.checks(case))
+        with self.assertRaisesRegex(ReferenceLifecycleError, "resource evidence binding"):
+            self.checks(replace(self.case, track="image", task_kind="resource",
+                                expected_resources=[{"id": "image", "urls": ["https://example.test/a.png"]}]))
         self.assertIsNotNone(self.checks(replace(self.case, track="challenge")))
+
+    def resource_case(self, *, evidence_updates=None, browser=None):
+        target = "https://cdn.example.test/a.png"
+        evidence = {
+            "case_id": "resource", "url": "https://example.test/page",
+            "checked_at": self.now.isoformat(),
+            "source": "independent HTTP GET (no provider output)",
+            "state": "captured", "status": 200,
+            "resources": [{"tag": "img", "url": target}],
+        }
+        evidence.update(evidence_updates or {})
+        folder = self.root / "sources/resource"
+        folder.mkdir(parents=True, exist_ok=True)
+        if browser is not None:
+            browser_raw = (json.dumps(browser, ensure_ascii=False, indent=2) + "\n").encode()
+            (folder / "browser-observation.json").write_bytes(browser_raw)
+            evidence["independent_browser_observation"] = {
+                "path": "browser-observation.json", "sha256": sha256(browser_raw),
+                "status": browser["status"],
+                "completion_satisfied": browser["completion"]["satisfied"],
+            }
+        raw = (json.dumps(evidence, ensure_ascii=False, indent=2) + "\n").encode()
+        (folder / "evidence.json").write_bytes(raw)
+        return EvalCase(
+            id="resource", name="Resource", url="https://example.test/page",
+            category="image", expected_any=[], track="image", task_kind="resource",
+            expected_resources=[{"id": "image", "urls": [target]}],
+            source_verification={
+                "state": "valid", "method": "independent source capture",
+                "checked_at": self.now.isoformat(),
+                "evidence_path": "sources/resource/evidence.json",
+                "evidence_sha256": sha256(raw),
+            },
+        )
+
+    def test_resource_source_requires_hash_bound_independent_full_target_coverage(self):
+        case = self.resource_case()
+        binding = validate_resource_source_evidence(case, self.dataset_path)
+        self.assertEqual(binding["scope_identity"], resource_source_scope_identity(case))
+        self.assertTrue(binding["target_matches"][0]["satisfied"])
+
+        evidence = self.root / "sources/resource/evidence.json"
+        evidence.write_text(evidence.read_text().replace("a.png", "other.png"))
+        with self.assertRaisesRegex(ReferenceLifecycleError, "SHA-256 mismatch"):
+            validate_resource_source_evidence(case, self.dataset_path)
+
+    def test_resource_source_rejects_missing_target_and_http_challenge(self):
+        missing = self.resource_case(evidence_updates={"resources": []})
+        with self.assertRaisesRegex(ReferenceLifecycleError, "does not cover every"):
+            validate_resource_source_evidence(missing, self.dataset_path)
+        challenged = self.resource_case(evidence_updates={
+            "state": "needs_review", "status": 403,
+            "resources": [{"tag": "img", "url": "https://cdn.example.test/a.png"}],
+        })
+        with self.assertRaisesRegex(ReferenceLifecycleError, "does not cover every"):
+            validate_resource_source_evidence(challenged, self.dataset_path)
+
+    def test_resource_source_browser_observation_must_satisfy_all_targets(self):
+        template = EvalCase(
+            id="resource", name="Resource", url="https://example.test/page",
+            category="image", expected_any=[], track="image", task_kind="resource",
+            expected_resources=[{"id": "image", "urls": ["https://cdn.example.test/a.png"]}],
+            resource_output_contract={"unexpected": "allow"},
+        )
+        browser = {
+            "schema_version": 1, "case_id": "resource",
+            "url": "https://example.test/page", "final_url": "https://example.test/page",
+            "status": "success", "independent": True,
+            "checked_at": self.now.isoformat(),
+            "resource_scope_identity": resource_source_scope_identity(template),
+            "resource_candidates": [{"tag": "img", "attribute": "src",
+                                     "url": "https://cdn.example.test/a.png"}],
+            "target_matches": [{"id": "image", "matched_urls": ["https://cdn.example.test/a.png"],
+                                "satisfied": True}],
+            "completion": {"satisfied": True, "elapsed_ms": 1, "timeout_ms": 1000},
+        }
+        canonical = json.dumps(browser["resource_candidates"], ensure_ascii=False,
+                               sort_keys=True, separators=(",", ":"))
+        browser["resource_candidates_sha256"] = sha256(canonical)
+        case = self.resource_case(
+            evidence_updates={"state": "needs_review", "status": 403, "resources": []},
+            browser=browser)
+        case = replace(case, resource_output_contract={"unexpected": "allow"})
+        # The helper created the evidence before the final case scope was known;
+        # rewrite it only to bind the exact updated verification hash.
+        evidence_path = self.root / "sources/resource/evidence.json"
+        raw = evidence_path.read_bytes()
+        case = replace(case, source_verification={**case.source_verification,
+                                                  "evidence_sha256": sha256(raw)})
+        self.assertIsNotNone(validate_resource_source_evidence(case, self.dataset_path))
+
+        browser["status"] = "failure"
+        browser["completion"]["satisfied"] = False
+        case = self.resource_case(
+            evidence_updates={"state": "needs_review", "status": 403, "resources": []},
+            browser=browser)
+        case = replace(case, resource_output_contract={"unexpected": "allow"})
+        raw = (self.root / "sources/resource/evidence.json").read_bytes()
+        case = replace(case, source_verification={**case.source_verification,
+                                                  "evidence_sha256": sha256(raw)})
+        with self.assertRaisesRegex(ReferenceLifecycleError, "does not cover every"):
+            validate_resource_source_evidence(case, self.dataset_path)
 
     def test_per_case_rechecks_clock_and_immutable_scope(self):
         binding = self.checks()["cases"]["body"]
@@ -261,14 +368,24 @@ class ReferenceLifecycleTests(unittest.TestCase):
                 self.write_json(self.run / "manifest.json", original)
                 self.assertEqual(self.finalize([self.observation(original, **updates)])["status"], "reference_unverified")
 
-    def test_postcheck_late_capture_and_stale_submission(self):
+    def test_postcheck_late_capture_rejected_but_delayed_finalization_allowed(self):
         original = self.prepare_run()
-        for observation_time, finalizer_time in ((timedelta(minutes=31), timedelta(minutes=32)),
-                                                 (timedelta(seconds=3), timedelta(minutes=31))):
-            self.write_json(self.run / "manifest.json", original)
-            result = self.finalize([self.observation(original, checked_at=(self.now + observation_time).isoformat())],
-                                   now=self.now + finalizer_time)
-            self.assertEqual(result["status"], "reference_unverified")
+        result = self.finalize([
+            self.observation(original, checked_at=(self.now + timedelta(minutes=31)).isoformat())
+        ], now=self.now + timedelta(minutes=32))
+        self.assertEqual(result["status"], "reference_unverified")
+
+        self.write_json(self.run / "manifest.json", original)
+        result = self.finalize([
+            self.observation(original, checked_at=(self.now + timedelta(seconds=3)).isoformat())
+        ], now=self.now + timedelta(hours=3))
+        self.assertEqual(result["status"], "verified")
+
+        self.write_json(self.run / "manifest.json", original)
+        result = self.finalize([
+            self.observation(original, checked_at=(self.now + timedelta(seconds=5)).isoformat())
+        ], now=self.now + timedelta(seconds=4))
+        self.assertEqual(result["status"], "reference_unverified")
 
     def test_latest_relevant_call_across_providers(self):
         original = self.prepare_run()
@@ -346,6 +463,71 @@ class ReferenceLifecycleTests(unittest.TestCase):
         require_verified_reference_checks([manifest, {"historical": True}],
             cases={"body": self.case}, records=records, source=self.run)
         require_verified_reference_checks(manifest, cases=self.dataset())
+
+    def test_reference_revision_preserves_physical_record_reference_hash(self):
+        manifest = self.verified_run()
+        record = json.loads((self.run / "results.jsonl").read_text())
+        revised = replace(
+            self.case,
+            ground_truth_main_content="Corrected independent reference bytes",
+            source_verification={
+                **self.case.source_verification,
+                "reference_sha256": sha256("Corrected independent reference bytes"),
+            },
+        )
+        with patch(
+            "harness.web_fetch.reference_lifecycle.reference_revision_cases",
+            return_value={"body": {sha256(self.case.ground_truth_main_content)}},
+        ), patch(
+            "harness.web_fetch.reference_lifecycle.check_case_reference_revision_binding"
+        ):
+            require_verified_reference_checks(
+                manifest, cases=[revised], records=[record], source=self.run
+            )
+        self.assertEqual(
+            record["metrics"]["reference_sha256"],
+            sha256(self.case.ground_truth_main_content),
+        )
+
+    def test_public_guard_requires_exactly_one_certificate_for_each_fresh_record(self):
+        manifest = self.verified_run()
+        record = json.loads((self.run / "results.jsonl").read_text())
+        without_certificate = deepcopy(manifest)
+        without_certificate.pop("reference_checks")
+        with self.assertRaisesRegex(ReferenceLifecycleError, "exactly one certificate.*missing="):
+            require_verified_reference_checks(
+                without_certificate, cases=self.dataset(), records=[record], source=self.run)
+        with self.assertRaisesRegex(ReferenceLifecycleError, "exactly one certificate.*duplicate="):
+            require_verified_reference_checks(
+                [manifest, deepcopy(manifest)], cases=self.dataset(), records=[record],
+                source=self.run)
+
+    def test_public_guard_does_not_upgrade_unversioned_historical_fresh_record(self):
+        record = {"attempt_id": "historical__body__r001", "case_id": "body", "provider": "historical"}
+        require_verified_reference_checks(
+            {"tool": "web_fetch", "attempt_ids": [record["attempt_id"]]},
+            cases=self.dataset(), records=[record])
+
+    def test_public_guard_allows_uncertified_stable_and_resource_records(self):
+        stable = replace(
+            self.case,
+            id="stable",
+            acceptance_contract={
+                "version": 1,
+                "schema": "product",
+                "minimum_records": 1,
+                "stable_text_anchors": [{"id": "section", "alternatives": ["Catalog"]}],
+            },
+        )
+        resource = replace(self.case, id="resource", track="image", task_kind="resource")
+        records = [
+            {"attempt_id": "p__stable__r001", "case_id": "stable", "provider": "p"},
+            {"attempt_id": "p__resource__r001", "case_id": "resource", "provider": "p"},
+        ]
+        require_verified_reference_checks(
+            [{"schema_version": 1, "tool": "web_fetch",
+              "attempt_ids": [record["attempt_id"] for record in records]}],
+            cases=[stable, resource], records=records)
 
     def test_latency_only_correction_preserves_original_certificate_timeline(self):
         manifest = self.verified_run()

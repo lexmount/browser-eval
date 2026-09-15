@@ -1,0 +1,41 @@
+{
+  "schema_version": 2,
+  "kind": "reference_freeze_promotion",
+  "input_dataset_sha256": "7ef77ddecc8a1ed5db47026f13b507625bf7f63cada027d32bb3ee9b8d2f6e39",
+  "capture_audit_sha256": "872f42583f3f7d0e0a27cb1d25a9cf71a02d70280d5db0a4643827c700f709f5",
+  "candidate_dataset_sha256": "9f7db52d53a4dda78cbdec4b36d92530f5f2aba9a367476d4baa90e2144de2bb",
+  "changes": [
+    {
+      "case_id": "live-048-websocket-api-websockets",
+      "affected_scope": [
+        "ground_truth_main_content",
+        "body_requirements"
+      ],
+      "old_reference_sha256": "cc6db1086ffaa6c7081777797ce24d25a143f8b596361b0d3bdda95535a78662",
+      "new_reference_sha256": "20872705cbad77ea0ec98bf12c0b612edf64ef5f30e5a03bd80c5d31e866c92c",
+      "old_body_requirements_sha256": "4f3d8e227c57a19d196d000b02f9aca3b1bd38a2e045be4ae49997538f2e7f69",
+      "new_body_requirements_sha256": "c3bcd47168788e3abebd470f6eef4ea110295130d1b8cdc343b66df2f0dd14c6",
+      "source_revision": {
+        "url": "https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API",
+        "revision": "snapshot:6cd26efd1cb4905df1d4947fe05b35100e577f86a0620be553cd49056fdfb976",
+        "source_snapshot_sha256": "6cd26efd1cb4905df1d4947fe05b35100e577f86a0620be553cd49056fdfb976"
+      }
+    }
+  ],
+  "approved_by": "user-directed-independent-reference-review",
+  "approved_at": "2026-09-14T02:17:30Z",
+  "task_decision_changes": [],
+  "correction_provenance": {
+    "category": "reference-evidence",
+    "root_cause": "The MDN article selector retained its volatile last-modified footer, so publication dates changed an otherwise stable full-text reference and cascaded through body-region hashes; the footer is now excluded while article prose remains.",
+    "regression_ids": [
+      "reference-scope-retains-main-content",
+      "reference-scope-excludes-site-chrome"
+    ],
+    "verdict_corrections": {
+      "false_positives": 0,
+      "false_negatives": 0,
+      "total": 0
+    }
+  }
+}

@@ -10,6 +10,7 @@ import sys
 import threading
 import time
 import traceback
+import re
 from concurrent.futures import ThreadPoolExecutor
 import urllib.error
 from datetime import datetime, timezone
@@ -27,10 +28,69 @@ from .reference_lifecycle import (
 from .safety import contained_path, safe_identifier
 from .call_boundary import fetch_with_deadline
 from .response_input import apply_request_status
+from .artifacts import (
+    PRIVATE_ARTIFACT_ROOT, PUBLIC_CALL_LOG_ROOT, raw_response_binding,
+    verify_record_private_artifacts, verify_record_public_call_logs,
+)
 
 
 class IncompleteEvaluationError(RuntimeError):
     """The saved run is inspectable, but it is not a complete benchmark."""
+
+
+def preflight_declared_capacity(
+    providers: list[Provider], *, declared_calls: int, timeout: float = 10,
+    cases: list[EvalCase] | None = None, runs: int = 1,
+    max_failure_retries: int = 0,
+) -> None:
+    """Check optional account capacity once per logical provider.
+
+    ``providers`` may contain separately configured instances for multiple task
+    scopes.  Capacity, however, is declared for the logical provider's entire
+    cohort, so only the first instance for each provider name receives the
+    complete worst-case physical-call bound.
+    """
+    if isinstance(declared_calls, bool) or not isinstance(declared_calls, int):
+        raise ValueError("declared call count must be a positive integer")
+    if declared_calls < 1:
+        raise ValueError("declared call count must be a positive integer")
+    if not math.isfinite(timeout) or timeout <= 0:
+        raise ValueError("capacity preflight timeout must be positive and finite")
+    if cases is not None:
+        expected_calls = len(cases) * runs * (max_failure_retries + 1)
+        if declared_calls != expected_calls:
+            raise ValueError(
+                "declared call count does not match cases, runs and retry bound"
+            )
+    checked: set[str] = set()
+    for provider in providers:
+        if provider.name in checked:
+            continue
+        checked.add(provider.name)
+        hook = getattr(provider, "preflight_capacity", None)
+        if hook is not None:
+            if not callable(hook):
+                raise ValueError(
+                    f"provider {provider.name!r} has an invalid capacity preflight hook"
+                )
+            estimator = getattr(provider, "capacity_credits_for_cases", None)
+            if cases is not None and estimator is not None:
+                if not callable(estimator):
+                    raise ValueError(
+                        f"provider {provider.name!r} has an invalid capacity estimator"
+                    )
+                required_credits = estimator(
+                    cases,
+                    runs=runs,
+                    max_failure_retries=max_failure_retries,
+                )
+                hook(
+                    declared_calls,
+                    timeout=timeout,
+                    required_credits=required_credits,
+                )
+            else:
+                hook(declared_calls, timeout=timeout)
 
 
 def utc_now() -> str:
@@ -50,6 +110,230 @@ def classify_exception(error: Exception) -> tuple[str, str]:
     if isinstance(error, ValueError):
         return "response_validation", str(error)
     return "provider_exception", f"{type(error).__name__}: {error}"
+
+
+_SECRET_VALUE = re.compile(
+    r"(?i)\b([A-Z0-9_-]*(?:authorization|cookie|api[_-]?key|access[_-]?token|token|secret|password))"
+    r"(\s*[:=]\s*)([^\s,;]+)"
+)
+_BEARER = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+")
+_POSIX_LOCAL_PATH = re.compile(
+    r"(?<![A-Za-z0-9])/(?:Users|home|private|tmp|var|opt|etc)/[^\s'\"<>]+"
+)
+_WINDOWS_LOCAL_PATH = re.compile(r"(?i)\b[A-Z]:\\[^\s'\"<>]+")
+
+
+def _public_text(value: Any, *, limit: int = 4096) -> str | None:
+    """Sanitize one allowlisted diagnostic scalar for public evidence."""
+    if value is None:
+        return None
+    text = str(value).replace("\x00", "")
+    text = _BEARER.sub("Bearer [REDACTED]", text)
+    text = _SECRET_VALUE.sub(lambda match: match.group(1) + match.group(2) + "[REDACTED]", text)
+    text = _POSIX_LOCAL_PATH.sub("[local-path]", text)
+    text = _WINDOWS_LOCAL_PATH.sub("[local-path]", text)
+    return text[:limit]
+
+
+def _public_url(value: Any) -> str | None:
+    """Keep public HTTP(S) targets while redacting credentials and secret query values."""
+    if value is None:
+        return None
+    from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+    try:
+        parsed = urlsplit(str(value))
+    except ValueError:
+        return "[invalid-url]"
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        return "[non-public-url]"
+    host = parsed.hostname
+    if parsed.port is not None:
+        host += f":{parsed.port}"
+    secret_markers = ("authorization", "cookie", "key", "token", "secret", "password",
+                      "signature", "sig")
+    query = urlencode([
+        (key, "[REDACTED]" if any(marker in key.casefold() for marker in secret_markers)
+         else value)
+        for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+    ])
+    return urlunsplit((parsed.scheme, host, parsed.path, query, ""))
+
+
+def _exception_stack(error: Exception | None) -> list[dict[str, Any]]:
+    if error is None:
+        return []
+    return [{"file": Path(frame.filename).name, "line": frame.lineno,
+             "function": frame.name}
+            for frame in traceback.extract_tb(error.__traceback__)]
+
+
+_REQUEST_SUMMARY_FORBIDDEN = (
+    "authorization", "header", "cookie", "token", "secret", "password", "credential",
+    "environment", "env", "raw", "body", "payload", "key", "signature",
+)
+
+
+def _public_request_summary(value: Any) -> dict[str, Any] | None:
+    """Project an adapter-declared summary; never infer it from request internals."""
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        return None
+    public: dict[str, Any] = {}
+    for raw_key in sorted(value, key=str)[:32]:
+        key = str(raw_key)
+        folded = key.casefold()
+        if (not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", key)
+                or any(marker in folded for marker in _REQUEST_SUMMARY_FORBIDDEN)):
+            continue
+        item = value[raw_key]
+        if item is None or isinstance(item, (bool, int, float)):
+            public[key] = item
+        elif isinstance(item, str):
+            public[key] = _public_url(item) if key.casefold().endswith("url") else _public_text(
+                item, limit=512
+            )
+        elif isinstance(item, list) and len(item) <= 32 and all(
+            element is None or isinstance(element, (bool, int, float, str)) for element in item
+        ):
+            public[key] = [
+                _public_text(element, limit=256) if isinstance(element, str) else element
+                for element in item
+            ]
+    return public
+
+
+def persist_public_call_log(
+    output_dir: Path, *, provider: Provider, case: EvalCase, attempt_id: str,
+    run_number: int, physical_attempt: int, started_at: str, completed_at: str,
+    elapsed_ms: float, retry_throttle_wait_ms: float, timeout: float,
+    artifact_rel: Path, content_sha256: str, result: ProviderResult,
+    exception: Exception | None,
+) -> dict[str, Any]:
+    """Persist a closed-schema public diagnostic record for one physical call."""
+    output_bytes = contained_path(output_dir, artifact_rel).stat().st_size
+    metadata = result.metadata
+    upstream = metadata.get("upstream_status")
+    if not isinstance(upstream, int) or isinstance(upstream, bool):
+        upstream = None
+    exit_code = metadata.get("exit_code")
+    if not isinstance(exit_code, int) or isinstance(exit_code, bool):
+        exit_code = None
+    content_type = metadata.get("content_type")
+    request_id = metadata.get("request_id")
+    request_method = metadata.get("request_method") or metadata.get("method")
+    request_method = _public_text(request_method, limit=32)
+    request_summary = _public_request_summary(metadata.get("request_summary"))
+    process_text_limit = 1_000_000
+    raw_process_stdout = metadata.get("stdout") if "stdout" in metadata else None
+    raw_process_stderr = metadata.get("stderr") if "stderr" in metadata else None
+    process_stdout = (_public_text(raw_process_stdout, limit=process_text_limit)
+                      if raw_process_stdout is not None else None)
+    process_stderr = (_public_text(raw_process_stderr, limit=process_text_limit)
+                      if raw_process_stderr is not None else None)
+    stdout_bytes = metadata.get("stdout_bytes")
+    if not isinstance(stdout_bytes, int) or isinstance(stdout_bytes, bool) or stdout_bytes < 0:
+        stdout_bytes = (len(str(raw_process_stdout).encode("utf-8", "replace"))
+                        if raw_process_stdout is not None else None)
+    stderr_bytes = metadata.get("stderr_bytes")
+    if not isinstance(stderr_bytes, int) or isinstance(stderr_bytes, bool) or stderr_bytes < 0:
+        stderr_bytes = (len(str(raw_process_stderr).encode("utf-8", "replace"))
+                        if raw_process_stderr is not None else None)
+    stdout_truncated = bool(metadata.get("stdout_truncated")) or (
+        raw_process_stdout is not None
+        and len(str(raw_process_stdout).encode("utf-8", "replace")) > process_text_limit
+    )
+    stderr_truncated = bool(metadata.get("stderr_truncated")) or (
+        raw_process_stderr is not None
+        and len(str(raw_process_stderr).encode("utf-8", "replace")) > process_text_limit
+    )
+    response_values = (result.status_code, upstream, result.final_url, content_type, request_id)
+    raw_retained = raw_response_binding(metadata) is not None
+    call_id = f"{attempt_id}__p{physical_attempt:03d}"
+    payload = {
+        "schema_version": 1,
+        "identity": {
+            "call_id": call_id, "attempt_id": attempt_id, "provider": provider.name,
+            "provider_type": provider.type, "case_id": case.id, "run": run_number,
+            "physical_attempt": physical_attempt,
+        },
+        "timing": {
+            "started_at": started_at, "completed_at": completed_at,
+            "elapsed_ms": elapsed_ms, "retry_throttle_wait_ms": retry_throttle_wait_ms,
+            "deadline_budget_ms": timeout * 1000,
+            "deadline_overrun": elapsed_ms > timeout * 1000,
+        },
+        "request": {
+            "method": request_method,
+            "route": _public_text(metadata.get("route") or provider.type, limit=256),
+            "url": _public_url(case.url),
+            "summary": request_summary,
+        },
+        "response": {
+            "status_code": result.status_code,
+            "upstream_status_code": upstream,
+            "final_url": _public_url(result.final_url),
+            "content_type": _public_text(content_type, limit=256),
+            "request_id": _public_text(request_id, limit=512),
+        },
+        "process": {
+            "exit_code": exit_code,
+            "stdout": process_stdout,
+            "stdout_bytes": stdout_bytes,
+            "stdout_truncated": stdout_truncated,
+            "stderr": process_stderr,
+            "stderr_bytes": stderr_bytes,
+            "stderr_truncated": stderr_truncated,
+        },
+        "output": {
+            "path": artifact_rel.as_posix(), "bytes": output_bytes,
+            "sha256": content_sha256, "empty": output_bytes == 0,
+        },
+        "error": {
+            "type": _public_text(result.error_type, limit=256),
+            "message": _public_text(result.error_message),
+            "exception_class": type(exception).__name__ if exception is not None else None,
+            "stack": _exception_stack(exception),
+        },
+        "events": [
+            {"stage": "call_started", "at": started_at, "status_code": None,
+             "error_type": None},
+            {"stage": "exception_raised" if exception is not None else "response_received",
+             "at": completed_at, "status_code": result.status_code,
+             "error_type": _public_text(result.error_type, limit=256)},
+            {"stage": "call_completed", "at": completed_at,
+             "status_code": result.status_code,
+             "error_type": _public_text(result.error_type, limit=256)},
+        ],
+        "capture": {
+            "record": "complete",
+            "response_metadata": "captured" if any(value is not None for value in response_values)
+            else "not_exposed",
+            "process_metadata": "captured" if exit_code is not None else "not_exposed",
+            "process_stdout": (
+                "captured_truncated" if stdout_truncated else
+                "captured_complete" if raw_process_stdout is not None else
+                "bound_as_output" if stdout_bytes is not None else "not_exposed"
+            ),
+            "process_stderr": (
+                "captured_truncated" if stderr_truncated else
+                "captured_complete" if raw_process_stderr is not None else "not_exposed"
+            ),
+            "request_summary": "captured" if "request_summary" in metadata else "not_exposed",
+            "events": "complete",
+            "raw_response": "retained_private_hash_bound" if raw_retained else "not_retained",
+            "output": "complete_hash_bound",
+        },
+    }
+    rel = Path(PUBLIC_CALL_LOG_ROOT) / provider.name / case.id / (
+        f"run-{run_number:03d}-physical-{physical_attempt:03d}.json"
+    )
+    path = contained_path(output_dir, rel)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    binary = (json.dumps(payload, ensure_ascii=True, sort_keys=True, indent=2) + "\n").encode()
+    path.write_bytes(binary)
+    return {"path": rel.as_posix(), "sha256": hashlib.sha256(binary).hexdigest(),
+            "bytes": len(binary)}
 
 
 def persist_result_artifacts(
@@ -72,9 +356,31 @@ def persist_result_artifacts(
             raise ValueError('Raw stdout hash mismatch')
         contained_path(output_dir, binary_rel).write_bytes(binary)
         result.metadata['raw_stdout_path'] = binary_rel.as_posix()
+    raw_response = result.metadata.pop('_raw_response_b64', None)
+    if raw_response is not None:
+        binary = base64.b64decode(raw_response, validate=True)
+        expected_hash = result.metadata.get('raw_response_sha256')
+        expected_bytes = result.metadata.get('raw_response_bytes')
+        if hashlib.sha256(binary).hexdigest() != expected_hash:
+            raise ValueError('Raw response hash mismatch')
+        if len(binary) != expected_bytes:
+            raise ValueError('Raw response byte size mismatch')
+        private_rel = (Path(PRIVATE_ARTIFACT_ROOT, *artifact_rel.parts[1:])
+                       .with_suffix('.response.bin'))
+        private_path = contained_path(output_dir, private_rel)
+        private_path.parent.mkdir(parents=True, exist_ok=True)
+        private_path.write_bytes(binary)
+        result.metadata['raw_response_path'] = private_rel.as_posix()
+        raw_response_binding(result.metadata)
+    elif any(result.metadata.get(key) is not None for key in
+             ('raw_response_path', 'raw_response_sha256', 'raw_response_bytes')):
+        raise ValueError('Raw response binding supplied without raw response bytes')
     delivered = result.metadata.get('file_evaluation', {}).get('files', [])
     if len(delivered) != len(result.files):
-        raise ValueError('File evaluation does not match returned files')
+        raise ValueError(
+            'File evaluation does not match returned files: '
+            f'evaluated={len(delivered)}, returned={len(result.files)}'
+        )
     for index, item in enumerate(result.files):
         binary = artifact.with_name(artifact.stem + f'-file-{index:03d}.bin')
         binary.write_bytes(item['data'])
@@ -95,6 +401,7 @@ def run_evaluation(
     delay: float,
     provider_concurrency: int = 1,
     max_failure_retries: int = 0,
+    resource_sample_interval_ms: int | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     output_dir = output_dir.resolve()
     if provider_concurrency < 1:
@@ -103,13 +410,22 @@ def run_evaluation(
         raise ValueError('timeout must be positive and finite')
     if max_failure_retries not in {0, 1}:
         raise ValueError('max_failure_retries must be 0 or 1')
+    if resource_sample_interval_ms is not None and resource_sample_interval_ms < 10:
+        raise ValueError('resource_sample_interval_ms must be at least 10')
     for provider in providers:
         safe_identifier(provider.name)
     for case in cases:
         safe_identifier(case.id)
-    for filename in ['artifacts', 'manifest.json', 'dataset.json', 'results.jsonl', 'summary.json']:
+    for filename in ['artifacts', PUBLIC_CALL_LOG_ROOT, 'manifest.json', 'dataset.json',
+                     'results.jsonl', 'summary.json']:
         contained_path(output_dir, filename)
     reference_checks = preflight_reference_checks(cases, dataset_path)
+    for provider in providers:
+        missing = provider.validate()
+        if missing:
+            raise ValueError(
+                f"provider {provider.name!r} missing configuration: {', '.join(missing)}"
+            )
     output_dir.mkdir(parents=True, exist_ok=True)
     artifacts_dir = output_dir / "artifacts"
     artifacts_dir.mkdir(exist_ok=True)
@@ -125,6 +441,7 @@ def run_evaluation(
         "dataset_sha256": hashlib.sha256(dataset_path.read_bytes()).hexdigest() if dataset_path.is_file() else None,
         "unexecuted": [],
         "deadline_policy": "end_to_end_answer; non_cancellable_adapter_quarantined",
+        "public_call_log_schema_version": 1,
         "tool": "web_fetch",
         "started_at": started_at,
         "dataset": {
@@ -151,6 +468,12 @@ def run_evaluation(
             "concurrency_scope": "providers_parallel_cases_sequential_per_provider",
             "max_failure_retries": max_failure_retries,
             "retry_selection": "retry_only_after_failed_task; final_physical_attempt_is_authoritative",
+            "resource_sample_interval_ms": resource_sample_interval_ms,
+            "resource_scope": (
+                "disposable Linux client container cgroup and dedicated network namespace; "
+                "host controller and remote provider service excluded"
+                if resource_sample_interval_ms is not None else None
+            ),
         },
         "environment": {
             "python": sys.version.split()[0],
@@ -167,13 +490,6 @@ def run_evaluation(
     (output_dir / "dataset.json").write_text(
         json.dumps(dataset_meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-
-    for provider in providers:
-        missing = provider.validate()
-        if missing:
-            raise ValueError(
-                f"provider {provider.name!r} missing configuration: {', '.join(missing)}"
-            )
 
     results_path = output_dir / "results.jsonl"
     result_lock = threading.Lock()
@@ -206,17 +522,37 @@ def run_evaluation(
                         physical_started = utc_now()
                         physical_begin = time.perf_counter()
                         pending = None
+                        caught_exception = None
                         try:
                             result, pending = fetch_with_deadline(provider, case, timeout)
                         except Exception as error:  # each physical failure remains inspectable
+                            caught_exception = error
                             error_type, error_message = classify_exception(error)
+                            public_metadata = getattr(error, "public_metadata", {})
+                            public_metadata = public_metadata if isinstance(public_metadata, dict) else {}
+                            allowed_diagnostic = {
+                                key: public_metadata[key]
+                                for key in ("_answer_elapsed_ms", "exit_code", "stdout",
+                                            "stdout_bytes", "stdout_truncated",
+                                            "stderr", "stderr_bytes", "stderr_truncated")
+                                if key in public_metadata
+                            }
                             result = ProviderResult(
                                 ok=False,
-                                content=traceback.format_exc(),
+                                # Adapter exceptions are diagnostics, never a
+                                # supplier answer for the public scorer.
+                                content="",
                                 error_type=error_type,
-                                error_message=error_message,
+                                error_message=_public_text(error_message),
+                                metadata=allowed_diagnostic,
                             )
-                        physical_elapsed_ms = round((time.perf_counter() - physical_begin) * 1000, 2)
+                        wall_elapsed_ms = round((time.perf_counter() - physical_begin) * 1000, 2)
+                        # Cancellable adapters may need a bounded post-deadline
+                        # unwind. That cleanup determines quarantine safety but
+                        # is not part of the answer latency.
+                        physical_elapsed_ms = result.metadata.pop(
+                            '_answer_elapsed_ms', wall_elapsed_ms
+                        )
                         previous_request_completed = time.monotonic()
                         if case.task_kind == 'file':
                             result.metadata.setdefault('file_evaluation', {'files': [], 'pass': False,
@@ -228,6 +564,7 @@ def run_evaluation(
                         artifact_bytes = result.content.encode('utf-8', errors='replace')
                         measured = score_attempt(
                             case, artifact_bytes, ok=result.ok, metadata=result.metadata,
+                            title=result.title,
                             list_reference=load_list_reference(case, dataset_path.parent),
                             status_code=result.status_code,
                             prepared_answer=result.prepared_answer,
@@ -237,6 +574,17 @@ def run_evaluation(
                         if binding is not None:
                             measured['reference_sha256'] = binding['reference_sha256']
                         physical_passed = task_passed(result.ok, measured, case.task_kind)
+                        physical_completed = utc_now()
+                        call_log = persist_public_call_log(
+                            output_dir, provider=provider, case=case, attempt_id=attempt_id,
+                            run_number=run_number, physical_attempt=physical_attempt,
+                            started_at=physical_started, completed_at=physical_completed,
+                            elapsed_ms=physical_elapsed_ms,
+                            retry_throttle_wait_ms=retry_throttle_wait_ms, timeout=timeout,
+                            artifact_rel=artifact_rel,
+                            content_sha256=measured['content_sha256'], result=result,
+                            exception=caught_exception,
+                        )
                         artifact_paths = [artifact_rel.as_posix()]
                         for key in ('rendered_html_path', 'raw_stdout_path'):
                             if result.metadata.get(key):
@@ -246,10 +594,14 @@ def run_evaluation(
                             for item in result.metadata.get('file_evaluation', {}).get('files', [])
                             if item.get('artifact_path')
                         )
+                        private_artifacts = []
+                        private_binding = raw_response_binding(result.metadata)
+                        if private_binding:
+                            private_artifacts.append(private_binding)
                         physical_attempts.append({
                             'physical_attempt': physical_attempt,
                             'started_at': physical_started,
-                            'completed_at': utc_now(),
+                            'completed_at': physical_completed,
                             'elapsed_ms': physical_elapsed_ms,
                             'retry_throttle_wait_ms': retry_throttle_wait_ms,
                             'ok': result.ok,
@@ -260,6 +612,8 @@ def run_evaluation(
                             'content_sha256': measured['content_sha256'],
                             'artifact_path': artifact_rel.as_posix(),
                             'artifact_paths': artifact_paths,
+                            'call_log': call_log,
+                            **({'private_artifacts': private_artifacts} if private_artifacts else {}),
                         })
                         stopped_provider = (result.error_type == 'timeout' and pending is not None
                                             and pending.is_alive())
@@ -267,6 +621,7 @@ def run_evaluation(
                             break
                     elapsed_ms = round(sum(item['elapsed_ms'] + item['retry_throttle_wait_ms']
                                            for item in physical_attempts), 2)
+                    result.metadata['call_log'] = physical_attempts[-1]['call_log']
                     if len(physical_attempts) > 1:
                         result.metadata['retry'] = {
                             'physical_attempts': len(physical_attempts),
@@ -389,6 +744,8 @@ def rescore_evaluation(
     case_by_id = {case.id: case for case in cases}
     records = load_records(run_dir)
     for record in records:
+        verify_record_private_artifacts(run_dir, record)
+        verify_record_public_call_logs(run_dir, record)
         contained_path(run_dir, record["artifact_path"])
         expected_hash = record.get("metrics", {}).get("content_sha256")
         if expected_hash and hashlib.sha256(contained_path(run_dir, record["artifact_path"]).read_bytes()).hexdigest() != expected_hash:
@@ -413,6 +770,7 @@ def rescore_evaluation(
         previous_deadline = bool(record.get("metrics", {}).get("deadline_overrun"))
         record["metrics"] = score_attempt(
             case, artifact.read_bytes(), ok=bool(record.get("ok")),
+            title=record.get('title'),
             metadata=record.get("provider_metadata", {}), previous_metrics=record["metrics"],
             list_reference=load_list_reference(case, dataset_path.parent),
             status_code=record.get('status_code'),

@@ -16,6 +16,7 @@ from .reference_quality import clean_reference_text
 
 
 SCHEMA_FIELDS = {
+    "body_text": (),
     "quote": ("quote", "author", "tags"),
     "product": ("name", "price"),
     "catalog_product": ("title", "price", "description", "reviews"),
@@ -26,6 +27,7 @@ SCHEMA_FIELDS = {
     "named_link": ("title", "url"),
 }
 UNIQUE_FIELDS = {
+    "body_text": (),
     "quote": ("quote",), "product": ("name",),
     "catalog_product": ("title", "description"), "review": ("date", "text"),
     "name_description": ("name",), "api_operation": ("method", "path"),
@@ -36,9 +38,6 @@ _MONEY = rf"(?:[$£€¥]\s*{_AMOUNT}|(?:USD|EUR|GBP|CNY)\s+{_AMOUNT}|{_AMOUNT}\
 _METHOD = r"(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE|CONNECT)"
 _REVIEW_COUNT = r"\d+\s+reviews?"
 _PLACEHOLDER = re.compile(r"(?:n/?a|none|null|undefined|unknown|tbd|loading[. …]*|[-—]+|add to cart|read more|view details|description|name|title)", re.I)
-_BLOCKED_PAGE = re.compile(
-    r"(?im)^\s*(?:#{1,6}\s*)?(?:access denied|403 forbidden|verify (?:that )?you are human|"
-    r"checking your browser|just a moment(?:\.{3}|…)?|attention required!?|captcha(?: challenge)?)[.!: \t]*$")
 _LABELS = {"quote": "quote", "author": "(?:author|by)", "tags": "tags",
     "name": "name", "title": "title", "price": "price", "description": "description",
     "reviews": "reviews", "date": "date", "text": "(?:text|review)", "method": "method",
@@ -284,6 +283,34 @@ def _products(lines, schema):
     return records
 
 
+def _product_records(text, schema):
+    """Parse product cards without erasing explicit record ownership.
+
+    A blank-line block is a record boundary only when every nonempty block is
+    independently a single complete card.  This preserves extractors that put
+    an optional badge before the product name, while retaining the permissive
+    line-layout parser for prose/headings that use blank lines decoratively.
+    """
+    records = []
+    for marked_block in text.split(_CARD_BOUNDARY):
+        blocks = [block for block in re.split(r"\n\s*\n", marked_block)
+                  if block.strip()]
+        parsed = [
+            _products([_line(line) for line in block.splitlines() if line.strip()], schema)
+            for block in blocks
+        ]
+        if (len(parsed) > 1
+                and all(len(block_records) == 1 and block_records[0]["valid"]
+                        for block_records in parsed)):
+            for block_records in parsed:
+                records.extend(block_records)
+        else:
+            records.extend(_products(
+                [_line(line) for line in marked_block.splitlines() if line.strip()], schema
+            ))
+    return records
+
+
 def _quotes(lines):
     records, i = [], 0
     while i < len(lines):
@@ -294,7 +321,9 @@ def _quotes(lines):
         parts = [line]
         j = i + 1
         while j < len(lines) and not re.match(r'[“"‘]|quote\s*:', lines[j], re.I):
-            if re.match(r'(?:#{1,6}\s*)?(?:loading[. …]*|quotes by\s*:|made with\b)',
+            if re.match(r'(?:#{1,6}\s*)?(?:loading[. …]*|quotes by\s*:|made with\b|'
+                        r'(?:next|previous)(?:\s+(?:page\s*)?\d+)?\s*[→←»«]?\s*$|'
+                        r'page\s+\d+(?:\s+of\s+\d+)?\s*$)',
                         lines[j], re.I):
                 break
             parts.append(lines[j])
@@ -408,8 +437,7 @@ def _parse_records(visible, schema):
     remainder = "\n".join(line if i not in occupied else "" for i, line in enumerate(raw_lines))
     lines = [_line(line) for line in remainder.splitlines() if line.strip()]
     if schema in {"product", "catalog_product"}:
-        for block in remainder.split(_CARD_BOUNDARY):
-            records.extend(_products([_line(line) for line in block.splitlines() if line.strip()], schema))
+        records.extend(_product_records(remainder, schema))
     elif schema == "quote":
         records.extend(_quotes(lines))
     elif schema == "review":
@@ -450,11 +478,10 @@ def _anchor_matches(anchor, records, visible, schema):
         def field_matches(record, fields, field):
             actual = normalize_for_match(record["fields"][field]).strip('“”"‘’ ')
             expected = normalize_for_match(fields[field]).strip('“”"‘’ ')
-            # Some native Markdown converters omit whitespace at inline DOM
-            # boundaries. In name/description cards the owned record still
-            # proves the boundary; quote tags are likewise a declared tag list,
-            # so compact-equivalent serialization retains the same values.
-            compact = schema == "name_description" or (schema == "quote" and field == "tags")
+            # Name/description card ownership provides a structural boundary
+            # even if an inline DOM separator is omitted. Quote tags are a
+            # set-like field, so their separators must remain observable.
+            compact = schema == "name_description"
             return (actual.replace(" ", "") == expected.replace(" ", "")
                     if compact else actual == expected)
         return [value for value, fields in owned if any(record["valid"] and all(
@@ -470,13 +497,16 @@ def validate_acceptance_contract(contract: dict) -> None:
             or contract.get("version") != 1 or not isinstance(contract.get("schema"), str)
             or contract.get("schema") not in SCHEMA_FIELDS):
         raise ValueError("Unsupported stable acceptance contract")
-    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "hosts", "entry_path", "field_minimum_records"}:
+    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "hosts", "entry_path", "entry_identity_pattern", "entry_context", "field_minimum_records", "record_name_exclusions"}:
         raise ValueError("Unknown stable acceptance contract fields")
     field_counts = contract.get('field_minimum_records', {})
     if not isinstance(field_counts, dict) or any(k not in _LABELS or type(v) is not int or v < 1 for k,v in field_counts.items()):
         raise ValueError('Invalid required field counts')
     minimum, maximum = contract.get("minimum_records"), contract.get("maximum_records")
-    if type(minimum) is not int or minimum < 1 or maximum is not None and (type(maximum) is not int or maximum < minimum):
+    if contract["schema"] == "body_text":
+        if minimum != 0 or maximum not in {None, 0} or field_counts:
+            raise ValueError("Stable body-text contracts do not declare records")
+    elif type(minimum) is not int or minimum < 1 or maximum is not None and (type(maximum) is not int or maximum < minimum):
         raise ValueError("Stable contract requires positive bounded record counts")
     patterns = contract.get("page_patterns", [])
     if not isinstance(patterns, list) or any(not isinstance(p, str) or not p for p in patterns):
@@ -494,18 +524,34 @@ def validate_acceptance_contract(contract: dict) -> None:
                 or any(not isinstance(value, str) or not _visible(value).strip() for value in anchor["alternatives"])):
             raise ValueError("Invalid or duplicate stable text anchor group")
         ids.add(anchor["id"])
+    if contract["schema"] == "body_text" and not anchors and not patterns:
+        raise ValueError("Stable body-text contracts require text anchors or page patterns")
     if contract["schema"] == "named_link":
         hosts = contract.get("hosts")
         if (not isinstance(hosts, list) or not hosts
                 or any(not isinstance(host, str) or not re.fullmatch(r"[a-z0-9]+(?:[.-][a-z0-9]+)*", host) for host in hosts)
                 or not isinstance(contract.get("entry_path"), str) or not contract["entry_path"]):
             raise ValueError("Named links require allowed hosts and detail path pattern")
+        if contract.get('entry_context', 'list_or_card') != 'list_or_card':
+            raise ValueError('Named-link entry context must be list_or_card')
+        exclusions = contract.get('record_name_exclusions', [])
+        if (not isinstance(exclusions, list)
+                or any(not isinstance(value, str) or not _key(value) for value in exclusions)
+                or len({_key(value) for value in exclusions}) != len(exclusions)):
+            raise ValueError('Invalid or duplicate record-name exclusions')
         patterns = [*patterns, contract["entry_path"]]
-    elif "hosts" in contract or "entry_path" in contract:
+        identity_pattern = contract.get('entry_identity_pattern')
+        if identity_pattern is not None:
+            if not isinstance(identity_pattern, str) or not identity_pattern:
+                raise ValueError('Invalid named-link identity pattern')
+            patterns.append(identity_pattern)
+    elif "hosts" in contract or "entry_path" in contract or "record_name_exclusions" in contract:
         raise ValueError("Host/path contracts apply only to named_link records")
     try:
         for pattern in patterns:
-            re.compile(pattern)
+            compiled = re.compile(pattern)
+            if pattern == contract.get('entry_identity_pattern') and compiled.groups != 1:
+                raise ValueError('Named-link identity pattern must have one capture group')
     except re.error as error:
         raise ValueError("Invalid stable acceptance regex") from error
 
@@ -528,7 +574,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     visible = _visible(content, schema)
     page_results = [{"pattern": p, "pass": bool(re.search(p, visible, re.I | re.M))} for p in patterns]
     content_errors = (["page_identity_mismatch"] if not all(r["pass"] for r in page_results) else [])
-    blocked_page = bool(_BLOCKED_PAGE.search(visible))
+    from .reference_quality import blocked_page_hits
+    blocked_page = bool(blocked_page_hits(visible))
     if blocked_page:
         content_errors.append("blocked_page")
     errors = []
@@ -540,6 +587,9 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             # malformed contracts and not exceptions that abort a whole run.
             entries = []
             errors.append("invalid_link_output")
+        excluded_names = {_key(value) for value in contract.get("record_name_exclusions", [])}
+        excluded_entries = [entry for entry in entries if _key(entry["title"]) in excluded_names]
+        entries = [entry for entry in entries if _key(entry["title"]) not in excluded_names]
         records = []
         for entry in entries:
             parts = urlsplit(entry["url"])
@@ -547,7 +597,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
                 continue
             records.append({"fields": entry, "valid": True, "errors": []})
     else:
-        records = _parse_records(visible, schema)
+        excluded_entries = []
+        records = [] if schema == "body_text" else _parse_records(visible, schema)
     anchors = []
     for anchor in contract.get("stable_text_anchors", []):
         matched = _anchor_matches(anchor, records, visible, schema)
@@ -592,6 +643,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             "stable_record_count": len(records), "stable_complete_record_count": len(complete),
             "stable_unique_record_count": len(unique), "stable_minimum_records": minimum,
             "stable_maximum_records": maximum, "stable_task_errors": errors, "stable_records": records,
+            "stable_excluded_record_names": [entry["title"] for entry in excluded_entries],
             "stable_record_warnings": record_warnings,
             "factual_correctness": None,
             "stable_verification_scope": "Mechanical field/group/count checks; source fidelity and factual values are not verified"}
