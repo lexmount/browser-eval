@@ -10552,8 +10552,7 @@
       "fact_coverage_threshold": 1.0,
       "forbidden_any": [
         "Access denied",
-        "CAPTCHA",
-        "Add to cart"
+        "CAPTCHA"
       ],
       "ground_truth_main_content": "Cropped Stay Groovy off white\n$10.90\nor 9 x$1.21\nFree shipping\n\nBasic Cactus White T-shirt\n$13.25\nor 3 x$4.42\nFree shipping\n\nSkater Black Sweatshirt\n$25.90\nor 12 x$2.16\n\nBlack Tule Oversized\n$29.45\nor 5 x$5.89\nFree shipping\n\nBlack Batman T-shirt\n$10.90\nor 9 x$1.21\nFree shipping\n\nBlue T-Shirt\n$9.00\nor 3 x$3.00\nFree shipping\n\nLoose Black T-shirt\n$14.00\nor 5 x$2.80\nFree shipping\n\nRinger Hall Pass\n$10.90\nor 9 x$1.21\nFree shipping\n\nGrey T-shirt\n$14.90\nor 7 x$2.13\nFree shipping\n\nBlack T-shirt with white stripes\n$14.90\nor 7 x$2.13\nFree shipping\n\nTurtles Ninja T-shirt\n$10.90\nor 9 x$1.21\n\nSlim black T-shirt\n$49.90\nFree shipping\n\nBlue Sweatshirt\n$22.50\nor 4 x$5.63\nFree shipping\n\nWhite T-shirt Gucci\n$18.70\nor 4 x$4.67\n\nTropical Wine T-shirt\n$134.90\nor 5 x$26.98\nFree shipping\n\nMarine Blue T-shirt\n$49.00\nor 9 x$5.44\nFree shipping",
       "task_prompt": "默认未筛选目录的全部 16 个商品：名称、售价、可见分期与免邮文字；不含按钮、图片及广告。允许渲染、解析内嵌数据、加载子文档或获取公开接口，不限制实现路径。",
@@ -12124,46 +12123,173 @@
       }
     },
     {
-      "id": "dynamic-105-steam-city-search",
-      "name": "Steam · city 搜索首批结果",
-      "url": "https://store.steampowered.com/search/?term=city",
+      "id": "dynamic-105-blueprint-docs",
+      "name": "Blueprint · 客户端渲染入门正文",
+      "url": "https://blueprintjs.com/docs/",
       "category": "dynamic_content",
       "track": "dynamic",
       "task_kind": "body",
       "expected_any": [],
-      "required_facts": [],
-      "min_content_chars": 500,
+      "description": "Blueprint documentation main content after initial automatic load",
+      "task_prompt": "提取 Blueprint 文档首页首次自动加载后 main 区域的完整正文；不得点击、输入、搜索、滚动或翻页。排除顶栏、侧栏、页脚、广告、Cookie 和登录提示。",
+      "retrieval_hints": {
+        "version": 2,
+        "wait_until": "domcontentloaded",
+        "completion": {
+          "selector": "main",
+          "minimum_count": 1,
+          "timeout_ms": 45000,
+          "delay_ms": 1000
+        },
+        "extraction": {
+          "selector": "main",
+          "maximum_count": 1,
+          "exclude_selectors": [
+            "nav",
+            "header",
+            "footer"
+          ],
+          "fallback": "body"
+        }
+      },
       "forbidden_any": [
         "Access denied",
+        "403 Forbidden",
+        "Verify you are human",
+        "Checking your browser",
         "CAPTCHA",
-        "Sign in to continue"
+        "Just a moment",
+        "Dark theme"
       ],
-      "ground_truth_main_content": "",
-      "body_requirements": {},
-      "acceptance_contract": {
-        "version": 1,
-        "schema": "linked_product",
-        "minimum_records": 30,
-        "hosts": [
-          "store.steampowered.com"
+      "min_content_chars": 959,
+      "ground_truth_main_content": "Edit this page\nBlueprint\nBlueprint is a React-based UI toolkit for the web.\nIt is optimized for building complex data-dense interfaces for desktop applications.\nGetting started\nGit repository\nCode Sandbox\nContributing\nBlueprint v6.x is now available\nCheck out the\nmigration guides to upgrade from v5.x →\nQuick start\nInstall\n@blueprintjs/core\nis the primary Blueprint library package,\nhome to over 40 UI components.\nInstall it with your Node.js package manager of choice:\npnpm add @blueprintjs/core react react-dom\nAdditional UI components and APIs are available in:\n@blueprintjs/icons\n@blueprintjs/datetime\n@blueprintjs/select\n@blueprintjs/table\nThe navigation sidebar lists all the available packages, separated by use case and significant dependencies.\nAll have peer dependencies on\nreact\nand\nreact-dom\n.\nImport\nImport React components from the appropriate package.\nimport { Button } from \"@blueprintjs/core\";\n<Button intent=\"success\" text=\"button content\" onClick={incrementCounter} />;\nFor this button to be styled correctly in the DOM, it needs its associated CSS to be loaded on the page.\nDon't forget to include the\nmain CSS file from each Blueprint package\nand their dependencies!\nThe following example shows an\nindex.html\nfile; the same stylesheets should be loaded if you use a bundler like Webpack.\n<link href=\"path/to/node_modules/normalize.css/normalize.css\" rel=\"stylesheet\" />\n<link href=\"path/to/node_modules/@blueprintjs/core/lib/css/blueprint.css\" rel=\"stylesheet\" />\n<!-- blueprint-icons.css file must be included alongside blueprint.css for icon font support -->\n<link href=\"path/to/node_modules/@blueprintjs/icons/lib/css/blueprint-icons.css\" rel=\"stylesheet\" />\n<!-- add other blueprint-*.css files here -->",
+      "source_verification": {
+        "rule_scope": "Blueprint documentation main content after initial automatic load",
+        "target_selectors": [
+          "main"
         ],
-        "entry_path": "/app/[0-9]+(?:/[^?#]*)?/?",
-        "stable_text_anchors": [],
-        "price_patterns": [
-          "\\$\\s*\\d+(?:\\.\\d{2})?",
-          "\\bFree\\b"
+        "exclude_selectors": [
+          "nav",
+          "header",
+          "footer",
+          "script",
+          "style"
         ],
-        "price_exclusion_patterns": [
-          "\\b[0-5](?:\\.\\d)?\\s*(?:stars?|/\\s*5)\\b",
-          "\\b\\d[\\d,]*\\s+reviews?\\b"
+        "record_selectors": [],
+        "interaction_boundary": "initial automatic load only; no login, click, input, scroll, search, pagination, or consent action",
+        "completion": {
+          "condition": "main visible, declared anchors present, and stable",
+          "timeout_ms": 45000,
+          "stable_samples": 4,
+          "minimum_chars": 1200,
+          "minimum_records": 0,
+          "loading_must_end": true
+        },
+        "initial_classification": [
+          "initial_missing",
+          "initial_missing"
+        ],
+        "capture_a": {
+          "status": 200,
+          "final_url": "https://blueprintjs.com/docs/",
+          "document_lang": "en",
+          "initial_sha256": "39b78bdb58c2e27a7e972e9f5feab8654e6c1cd00e6df168f150a7c903434fae",
+          "target_sha256": "0236fdc711f8081776960e5aa1b4af8ee35f8287ac496d85c38c7f2e896e10f1",
+          "target_chars": 1729,
+          "target_record_count": 0,
+          "browser_observation_sha256": "221db7e783f0c225737b71106740f3f64de7267010a816b3da3a30418548c520"
+        },
+        "capture_b": {
+          "status": 200,
+          "final_url": "https://blueprintjs.com/docs/",
+          "document_lang": "en",
+          "initial_sha256": "39b78bdb58c2e27a7e972e9f5feab8654e6c1cd00e6df168f150a7c903434fae",
+          "target_sha256": "0236fdc711f8081776960e5aa1b4af8ee35f8287ac496d85c38c7f2e896e10f1",
+          "target_chars": 1729,
+          "target_record_count": 0,
+          "browser_observation_sha256": "2f12de145c186b4564542717700a9c978454279bf3dcf478c5951ed414d967c5"
+        },
+        "provider_output_used_for_rule": false,
+        "rule_family": "body",
+        "rule_profile": "fixed_document_body",
+        "state": "valid",
+        "checked_at": "2026-09-15T15:42:15.561025+00:00",
+        "method": "Independent visible browser DOM; complete declared scope",
+        "reference_sha256": "0236fdc711f8081776960e5aa1b4af8ee35f8287ac496d85c38c7f2e896e10f1",
+        "selector": "main",
+        "reference_scope": "Blueprint documentation main content after initial automatic load",
+        "browser_observation_sha256": "221db7e783f0c225737b71106740f3f64de7267010a816b3da3a30418548c520",
+        "second_browser_observation_sha256": "2f12de145c186b4564542717700a9c978454279bf3dcf478c5951ed414d967c5"
+      },
+      "required_facts": [
+        {
+          "id": "identity",
+          "alternatives": [
+            "Blueprint is a React-based UI toolkit for the web."
+          ]
+        },
+        {
+          "id": "purpose",
+          "alternatives": [
+            "complex data-dense interfaces for desktop applications"
+          ]
+        },
+        {
+          "id": "install",
+          "alternatives": [
+            "pnpm add @blueprintjs/core react react-dom"
+          ]
+        },
+        {
+          "id": "import",
+          "alternatives": [
+            "Import React components from the appropriate package."
+          ]
+        }
+      ],
+      "fact_coverage_threshold": 1.0,
+      "body_requirements": {
+        "version": 3,
+        "unit": "region_compact_hexagram_recall",
+        "minimum_coverage": 0.8,
+        "minimum_floor": 0.6,
+        "minimum_region_passes": 4,
+        "regions": [
+          {
+            "id": "body-region-1",
+            "text": "edit this page blueprint blueprint is a react based ui toolkit for the web it is optimized for building complex data dense interfaces for desktop applications getting started git repository code sandbox contributing blueprint v6 x is now available check out the migration guides to upgrade from v5 x quick start install"
+          },
+          {
+            "id": "body-region-2",
+            "text": "blueprintjs core is the primary blueprint library package home to over 40 ui components install it with your node js package manager of choice pnpm add blueprintjs core react react dom additional ui components and apis are available in blueprintjs icons blueprintjs datetime blueprintjs select blueprintjs table the navigation sidebar lists all the"
+          },
+          {
+            "id": "body-region-3",
+            "text": "available packages separated by use case and significant dependencies all have peer dependencies on react and react dom import import react components from the appropriate package import button from blueprintjs core button intent success text button content onclick incrementcounter for this button to be styled correctly in the dom it needs its"
+          },
+          {
+            "id": "body-region-4",
+            "text": "associated css to be loaded on the page don t forget to include the main css file from each blueprint package and their dependencies the following example shows an index html file the same stylesheets should be loaded if you use a bundler like webpack link href path to node modules normalize css"
+          },
+          {
+            "id": "body-region-5",
+            "text": "normalize css rel stylesheet link href path to node modules blueprintjs core lib css blueprint css rel stylesheet blueprint icons css file must be included alongside blueprint css for icon font support link href path to node modules blueprintjs icons lib css blueprint icons css rel stylesheet add other blueprint css files here"
+          }
         ]
       },
-      "description": "city 查询首次自动加载的自然商品结果；标题、价格、排序和成员可变。",
-      "task_prompt": "提取 city 查询首次自动加载的自然商品结果。每条必须包含同一商品的名称、Steam 详情 URL 和数字价格或 Free；不得滚动、改筛选或翻页。",
-      "source_verification": {
-        "state": "structure_only",
-        "method": "paired independent current DOM; volatile values are not frozen",
-        "reference_sha256": null
+      "source_benchmark": {
+        "capture_scope": "Blueprint documentation main content after initial automatic load",
+        "render_evidence": {
+          "scope": "Blueprint documentation main content after initial automatic load",
+          "rendered_truncated": false,
+          "completion": {
+            "condition": "declared main content was visible and stable in independent captures",
+            "timeout_ms": 45000,
+            "elapsed_ms": 4230,
+            "satisfied": true,
+            "checked_at": "2026-09-15T15:42:15.561025+00:00"
+          }
+        }
       }
     },
     {

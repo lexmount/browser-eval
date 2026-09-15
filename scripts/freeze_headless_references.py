@@ -16,6 +16,7 @@ from harness.web_fetch.body_coverage import body_requirements
 from harness.web_fetch.reference_lifecycle import requires_fresh_reference
 from harness.web_fetch.reference_lifecycle import scope_identity
 from harness.web_fetch.reference_quality import clean_reference_text, reference_anchor_in_text
+from harness.web_fetch.render_evidence import validate_render_reference
 from harness.web_fetch.scoring_regressions import valid_correction_provenance
 
 RENDERED_REFERENCE_CASES = {'javascript-spa', 'live-025-api-reference'}
@@ -33,6 +34,53 @@ def _digest_json(value):
 def browser_observation_bytes(observation):
     """Return the exact portable bytes retained for one browser observation."""
     return (json.dumps(observation,ensure_ascii=False,indent=2)+'\n').encode()
+
+
+def materialize_browser_source_evidence(target, captures, case, observation, capture_audit):
+    """Write the complete paired source contract for a browser reference.
+
+    The browser observation supplies rendered text, while the independent HTTP
+    capture supplies the main-response bytes.  Keeping only the observation
+    JSON leaves reference_lifecycle unable to prove dynamic eligibility before
+    a provider call.
+    """
+    cid=case['id'];source=captures/cid/'source.html'
+    initial=source.read_bytes();rendered=observation['content_text']
+    reference=case['ground_truth_main_content']
+    if (capture_audit.get('case_id')!=cid or capture_audit.get('status')!=200
+            or capture_audit.get('url')!=case['url']
+            or capture_audit.get('sha256')!=hashlib.sha256(initial).hexdigest()):
+        raise ValueError('Browser reference HTTP capture is incomplete or mismatched: '+cid)
+    render_audit=validate_render_reference(case,initial,rendered)
+    if not render_audit['valid']:
+        raise ValueError('Browser reference failed paired render validation: '
+                         +cid+'/'+','.join(render_audit['errors']))
+    scope=(case.get('source_benchmark',{}).get('render_evidence',{}).get('scope'))
+    if not isinstance(scope,str) or not scope.strip():
+        raise ValueError('Browser reference has no declared render scope: '+cid)
+    initial_sha=hashlib.sha256(initial).hexdigest()
+    rendered_raw=rendered.encode();rendered_sha=hashlib.sha256(rendered_raw).hexdigest()
+    reference_raw=reference.encode();reference_sha=hashlib.sha256(reference_raw).hexdigest()
+    evidence={
+        'case_id':cid,'url':case['url'],'checked_at':observation['checked_at'],
+        'initial_checked_at':capture_audit['checked_at'],'completion':scope,
+        'initial_sha256':initial_sha,'rendered_sha256':rendered_sha,
+        'reference_sha256':reference_sha,
+        'browser_observation_sha256':hashlib.sha256(
+            browser_observation_bytes(observation)).hexdigest(),
+        'capture_status':capture_audit['status'],
+        'capture_final_url':capture_audit.get('final_url'),
+    }
+    expected=case.get('source_benchmark',{}).get('expected_entries')
+    if expected is not None:
+        evidence.update(expected_entries=expected,observed_entries=expected)
+    (target/'initial.html.txt').write_bytes(initial)
+    (target/'rendered.txt').write_bytes(rendered_raw)
+    (target/'reference.txt').write_bytes(reference_raw)
+    (target/'evidence.json').write_text(
+        json.dumps(evidence,ensure_ascii=False,indent=2)+'\n')
+    (target/'render-audit.json').write_text(
+        json.dumps(render_audit,ensure_ascii=False,indent=2)+'\n')
 
 
 def _source_revision(case, capture, *, browser_observation=False):
@@ -281,6 +329,7 @@ def main(argv=None):
         p.error(str(error))
     audit_path=args.captures/'audit.json'
     audit_bytes=audit_path.read_bytes()
+    capture_audit_by_id={row['case_id']:row for row in json.loads(audit_bytes)}
     try:
         promotion=_require_promotion(
             args.reference_promotion,
@@ -307,6 +356,8 @@ def main(argv=None):
         if cid in observations:
             (target/'current-browser-observation.json').write_bytes(
                 browser_observation_bytes(observations[cid]))
+            materialize_browser_source_evidence(
+                target,args.captures,case,observations[cid],capture_audit_by_id[cid])
         else:
             shutil.copy2(args.captures/cid/'source.html', target/'current-source.html.txt')
             context=contexts[cid];row=context['row']
@@ -320,7 +371,8 @@ def main(argv=None):
                                        and not capture_record['quality_issues'] else 'needs_review')
             (target/'current-capture.json').write_text(
                 json.dumps(capture_record,ensure_ascii=False,indent=2)+'\n')
-        (target/'reference.txt').write_text(case['ground_truth_main_content'])
+        if cid not in observations:
+            (target/'reference.txt').write_text(case['ground_truth_main_content'])
     (args.output/'dataset.json').write_text(json.dumps(dataset,ensure_ascii=False,indent=2)+'\n')
     refresh={'schema_version':1,'changed':changes,
         'reference_changed':bool(changes),'task_rules_changed':bool(changes),

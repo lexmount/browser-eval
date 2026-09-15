@@ -304,6 +304,77 @@ class ScoringRegressionTests(unittest.TestCase):
             path.write_text(json.dumps([receipt]))
             self.assertEqual(reference_revision_cases(root), {})
 
+    def test_reference_revision_chain_crosses_audited_one_for_one_case_replacement(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            cases=[{"id":f"retained-{index}"} for index in range(99)]+[{"id":"new"}]
+            records=[{"attempt_id":f"p__retained-{index}","case_id":f"retained-{index}",
+                      "metrics":{"content_sha256":f"{index:064x}"}}
+                     for index in range(99)]
+            records.append({"attempt_id":"p__new","case_id":"new",
+                            "metrics":{"content_sha256":"f"*64}})
+            dataset_raw=(json.dumps({"cases":cases})+'\n').encode()
+            results_raw=''.join(json.dumps(row)+'\n' for row in records).encode()
+            (root/'dataset.json').write_bytes(dataset_raw)
+            (root/'results.jsonl').write_bytes(results_raw)
+            current=(hashlib.sha256(dataset_raw).hexdigest(),
+                     hashlib.sha256(results_raw).hexdigest())
+            base=("a"*64,"b"*64);assembled=("c"*64,"d"*64)
+            provenance=correction_provenance(
+                "reference-evidence",
+                "Site navigation was included in the independently scoped reference.",
+                ["reference-scope-excludes-site-chrome"],
+            )
+            (root/'reference-revisions.json').write_text(json.dumps([{
+                "kind":"audited_reference_correction","provider_calls":0,
+                "input_dataset_sha256":"0"*64,"input_results_sha256":"1"*64,
+                "output_dataset_sha256":base[0],"output_results_sha256":base[1],
+                "changed_cases":[{"case_id":"retained-0",
+                    "fields":["ground_truth_main_content"],
+                    "old_reference_sha256":"2"*64,"new_reference_sha256":"3"*64}],
+                "task_decision_changes":[],"correction_provenance":provenance,
+            }]))
+            scoring_provenance=correction_provenance(
+                "acceptance-contract",
+                "A supplemental control was incorrectly treated as target contamination.",
+                ["complete-records-allow-supplemental-ui",
+                 "supplemental-ui-cannot-repair-incomplete-records"],
+            )
+            (root/'scoring-revisions.json').write_text(json.dumps([{
+                "kind":"audited_scoring_rule_revision","provider_calls":0,
+                "input_dataset_sha256":assembled[0],"input_results_sha256":assembled[1],
+                "output_dataset_sha256":current[0],"output_results_sha256":current[1],
+                "changed_cases":[],"task_decision_changes":[],
+                "correction_provenance":scoring_provenance,
+            }]))
+            retained=sorted((row['attempt_id'],row['case_id'],row['metrics']['content_sha256'])
+                            for row in records if row['case_id']!='new')
+            preserved=root/'superseded'/'old';preserved.mkdir(parents=True)
+            (preserved/'result.json').write_text('{}')
+            corrected=root/'superseded'/'wrong-interface';corrected.mkdir(parents=True)
+            (corrected/'results.jsonl').write_text(json.dumps({
+                'case_id':'new','metrics':{'content_sha256':'e'*64}})+'\n')
+            corrected_results_sha=hashlib.sha256(
+                (corrected/'results.jsonl').read_bytes()).hexdigest()
+            (root/'case-replacement.json').write_text(json.dumps({
+                "kind":"audited_case_replacement_assembly","provider_calls":2,
+                "input_dataset_sha256":base[0],"input_results_sha256":base[1],
+                "output_dataset_sha256":assembled[0],"output_results_sha256":assembled[1],
+                "retained_attempts":99,
+                "superseded_attempt":{"case_id":"old","preserved_under":"superseded/old"},
+                "replacement_attempt":{"case_id":"new","attempt_id":"p__new",
+                                       "artifact_sha256":"f"*64},
+                "superseded_replacement_attempts":[{
+                    "case_id":"new","artifact_sha256":"e"*64,
+                    "measurement_results_sha256":corrected_results_sha,
+                    "preserved_under":"superseded/wrong-interface"}],
+                "retained_artifact_bindings_sha256":hashlib.sha256(
+                    json.dumps(retained,separators=(',',':')).encode()).hexdigest(),
+                "selection_policy":"one-for-one eligibility correction; no score-based selection",
+            }))
+            self.assertEqual(reference_revision_cases(root),
+                             {"retained-0":{"2"*64}})
+
 
 if __name__ == "__main__":
     unittest.main()

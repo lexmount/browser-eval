@@ -10,6 +10,7 @@ from harness.web_fetch.reference_lifecycle import scope_identity
 from harness.web_fetch.scoring_regressions import build_correction_provenance
 from scripts.freeze_headless_references import (
     _digest_json, _require_promotion, compute_reference_update, main,
+    materialize_browser_source_evidence,
 )
 from scripts.prepare_reference_promotion import prepare
 from scripts.promote_reference_candidate import _change_for_case, promote
@@ -331,6 +332,46 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
                     receipt_target=root/'research'/'promotion.json',
                     browser_observations=observations,research_root=root/'research',
                     sources_root=root/'sources')
+
+    def test_browser_freeze_materializes_complete_paired_dynamic_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);captures=root/'captures';target=root/'target'
+            source=captures/'dynamic-browser-fixture';source.mkdir(parents=True)
+            target.mkdir()
+            initial=b'<!doctype html><div id="app"></div><script src="app.js"></script>'
+            (source/'source.html').write_bytes(initial)
+            checked=datetime.now(timezone.utc).isoformat()
+            rendered='Stable rendered identity and complete documentation body.'
+            scope='declared rendered main region'
+            case={'id':'dynamic-browser-fixture','url':'https://example.com/dynamic',
+                  'track':'dynamic','task_kind':'body','task_prompt':'Read main',
+                  'ground_truth_main_content':rendered,
+                  'required_facts':[{'id':'identity','alternatives':['rendered identity']}],
+                  'source_verification':{'selector':'main','reference_scope':scope},
+                  'source_benchmark':{'capture_scope':scope,'render_evidence':{
+                      'scope':scope,'rendered_truncated':False,
+                      'completion':{'condition':'stable','timeout_ms':1000,
+                                    'elapsed_ms':10,'satisfied':True,
+                                    'checked_at':checked}}}}
+            observation={'case_id':case['id'],'status':'success','independent':True,
+                         'checked_at':checked,'content_text':rendered,'selector':'main',
+                         'observation_method':'visible_inner_text',
+                         'scope_identity':scope_identity(case),
+                         'completion':{'satisfied':True,'elapsed_ms':10,'timeout_ms':1000}}
+            capture_audit={'case_id':case['id'],'url':case['url'],'status':200,
+                           'final_url':case['url'],'checked_at':checked,
+                           'sha256':hashlib.sha256(initial).hexdigest()}
+
+            materialize_browser_source_evidence(
+                target,captures,case,observation,capture_audit)
+
+            self.assertEqual((target/'initial.html.txt').read_bytes(),initial)
+            self.assertEqual((target/'rendered.txt').read_text(),rendered)
+            self.assertEqual((target/'reference.txt').read_text(),rendered)
+            evidence=json.loads((target/'evidence.json').read_text())
+            self.assertEqual(evidence['completion'],scope)
+            self.assertEqual(evidence['initial_sha256'],hashlib.sha256(initial).hexdigest())
+            self.assertTrue(json.loads((target/'render-audit.json').read_text())['valid'])
 
 
 if __name__=='__main__':

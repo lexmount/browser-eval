@@ -128,12 +128,16 @@ def qualification_summary(blind: dict[str, Any]) -> tuple[str, str]:
     return "pass", "; ".join(parts)
 
 
-def issue_rows(identifier: str, corrected: bool) -> list[dict[str, str]]:
+def issue_rows(identifier: str, corrected: bool, resolved: bool = False) -> list[dict[str, str]]:
     rows = []
     if identifier in SCOPE_FIXES:
         rows.append({"category": "范围/标准答案", "severity": "已修复" if corrected else "重要", "finding": SCOPE_FIXES[identifier][0]})
     if identifier in RULE_FIXES:
-        rows.append({"category": "规则/评分", "severity": ("已修复" if corrected and identifier not in USER_DECISIONS else "待决定" if identifier in USER_DECISIONS else "重要"), "finding": RULE_FIXES[identifier]})
+        rows.append({"category": "规则/评分", "severity": (
+            "已裁决" if resolved and identifier in USER_DECISIONS else
+            "已修复" if corrected and identifier not in USER_DECISIONS else
+            "待决定" if identifier in USER_DECISIONS else "重要"),
+            "finding": RULE_FIXES[identifier]})
     if identifier in EVIDENCE_PACKAGE_IDS:
         rows.append({
             "category": "来源证据展示", "severity": "展示改进",
@@ -145,11 +149,15 @@ def issue_rows(identifier: str, corrected: bool) -> list[dict[str, str]]:
 
 
 def build(args: argparse.Namespace) -> dict[str, Any]:
-    corrected = args.stage == "stage2"
+    corrected = args.stage in {"stage2", "resolved"}
+    resolved = args.stage == "resolved"
     facts = read_json(args.facts)
     dataset = read_json(args.dataset)
     old_review = read_json(args.prior_review or (args.evidence / "result-review.json"))
-    review_by_attempt = {row["attempt_id"]: row for row in old_review["attempts"]}
+    review_by_attempt = ({row["attempt_id"]: row for row in old_review["attempts"]}
+                         if not resolved else {})
+    review_by_case = ({row["case_id"]: row for row in old_review["cases"]}
+                      if resolved else {})
     dataset_by_id = {row["id"]: row for row in dataset["cases"]}
     cases = []
     for row in facts["cases"]:
@@ -158,23 +166,37 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         recorded = row["recorded_after_blind_review"]
         reported = recorded["verdict"]
         qualification, qualification_evidence = qualification_summary(blind)
-        prior = review_by_attempt[blind["call"]["attempt_id"]]
-        if identifier in USER_DECISIONS:
+        prior = review_by_attempt.get(blind["call"]["attempt_id"])
+        if resolved and identifier == "dynamic-react-cart":
+            independent = "pass"
+            independent_reason = "全部16条目标商品记录完整；与各记录绑定的 Add to cart 控件按已批准统一口径计为附属界面，不单独推翻正文通过。"
+        elif resolved and identifier == "dynamic-104-mui-data-grid":
+            independent = "fail"
+            independent_reason = "目标说明与首个网格虽完整，但输出越过声明区域进入独立 Pro 产品层级和 Cookie 区块，按已批准口径属于严重越界。"
+        elif resolved and identifier == "dynamic-105-blueprint-docs":
+            independent = "fail"
+            independent_reason = "Moli 输出覆盖了完整 main 正文，但同时带回约32 KB整站导航；其中独立确认的 Dark theme 工具栏位于 main 外，违反已声明的顶栏和侧栏排除范围。"
+        elif identifier in USER_DECISIONS:
             independent = "unable"
             independent_reason = USER_DECISIONS[identifier][0]
         elif identifier in CONFIRMED_FALSE_NEGATIVES:
             independent = "pass"
             independent_reason = CONFIRMED_FALSE_NEGATIVES[identifier]
+        elif resolved:
+            prior_case = review_by_case[identifier]
+            independent = prior_case["judgment"]["independent"]
+            independent_reason = prior_case["judgment"]["reason"]
         else:
             independent = prior["final_verdict"]
             independent_reason = prior.get("adjudication") or prior["agent_evidence"]
         scope = ("corrected" if corrected else "needs_correction") if identifier in SCOPE_FIXES else "reasonable"
         source = ("corrected" if corrected else "needs_correction") if identifier in SCOPE_FIXES else "credible"
-        rule = ("needs_decision" if identifier in USER_DECISIONS and identifier in RULE_FIXES else
+        rule = ("adjudicated" if resolved and identifier in USER_DECISIONS and identifier in RULE_FIXES else
+                "needs_decision" if identifier in USER_DECISIONS and identifier in RULE_FIXES else
                 "corrected" if corrected and identifier in RULE_FIXES else
                 "needs_correction" if identifier in RULE_FIXES else "pass")
-        issues = issue_rows(identifier, corrected)
-        decision = USER_DECISIONS.get(identifier)
+        issues = issue_rows(identifier, corrected, resolved)
+        decision = None if resolved else USER_DECISIONS.get(identifier)
         cases.append({
             "ordinal": blind["ordinal"], "case_id": identifier, "name": blind["name"], "url": blind["url"],
             "page_type": (dataset_by_id[identifier].get("acceptance_contract") or {}).get("schema") or "fixed_body",
@@ -215,13 +237,19 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "judgment": {
                 "independent": independent, "reported": reported,
                 "relation": relation(independent, reported), "reason": independent_reason,
-                "final_adjudication": "等待用户决定" if decision else (
+                "final_adjudication": ("已按用户批准口径裁决" if resolved and identifier in {
+                    "dynamic-react-cart", "dynamic-104-mui-data-grid"} else
+                    "替代案例已完成独立测量与复核" if resolved and identifier == "dynamic-105-blueprint-docs" else
+                    "等待用户决定" if decision else
                     "已离线纠正" if corrected and identifier in CONFIRMED_FALSE_NEGATIVES else
                     "改判" if independent != reported else "保持原判"),
             },
             "issues": issues,
             "verified_facts": [qualification_evidence, independent_reason],
-            "ai_recommendation": decision[1] if decision else (
+            "ai_recommendation": ("已执行用户批准的统一口径。" if resolved and identifier in {
+                "dynamic-react-cart", "dynamic-104-mui-data-grid"} else
+                "已用合格的 Blueprint 客户端正文案例替代 Steam。" if resolved and identifier == "dynamic-105-blueprint-docs" else
+                decision[1] if decision else
                 SCOPE_FIXES.get(identifier, (None, None))[1] or RULE_FIXES.get(identifier) or "保持当前定义和判定。"),
             "user_decision_required": decision[1] if decision else None,
             "reviewer": REVIEWER, "protocol": PROTOCOL,
@@ -243,6 +271,10 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                            if (args.evidence / "reference-revisions.json").is_file() else [])
     scoring_revisions = (read_json(args.evidence / "scoring-revisions.json")
                          if (args.evidence / "scoring-revisions.json").is_file() else [])
+    case_replacement = (read_json(args.evidence / "case-replacement.json")
+                        if (args.evidence / "case-replacement.json").is_file() else None)
+    measurement_lineage = (read_json(args.evidence / "measurement-lineage.json")
+                           if (args.evidence / "measurement-lineage.json").is_file() else {})
     revision_summary = None
     if corrected and reference_revisions and scoring_revisions:
         first = reference_revisions[0]
@@ -254,25 +286,32 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "output_results_sha256": last["output_results_sha256"],
             "reference_correction_cases": len(first["changed_cases"]),
             "scoring_rule_correction_cases": len(last["changed_cases"]),
+            "case_replacements": 1 if case_replacement else 0,
             "final_machine_verdicts": facts["recorded_verdicts"],
-            "provider_calls": sum(row.get("provider_calls", 0) for row in [*reference_revisions, *scoring_revisions]),
-            "independent_review_status": "pending_three_policy_or_eligibility_decisions",
+            "provider_calls": sum(row.get("provider_calls", 0) for row in [*reference_revisions, *scoring_revisions]) + (case_replacement or {}).get("provider_calls", 0),
+            "physical_calls_in_lineage": measurement_lineage.get(
+                "physical_calls_in_lineage", 100),
+            "independent_review_status": ("complete_100_of_100" if resolved else
+                                          "pending_three_policy_or_eligibility_decisions"),
         }
     return {
         "schema_version": 1,
-        "kind": ("dynamic_100_formal_independent_audit_stage2" if corrected else
+        "kind": ("dynamic_100_formal_independent_audit_resolved" if resolved else
+                 "dynamic_100_formal_independent_audit_stage2" if corrected else
                  "dynamic_100_formal_independent_audit_stage1"),
-        "status": ("stage2_complete_pending_user_decisions" if corrected else
+        "status": ("complete" if resolved else
+                   "stage2_complete_pending_user_decisions" if corrected else
                    "stage1_complete_stage2_pending"), "reviewed_cases": len(cases),
         "reviewed_attempts": len(cases), "reviewer": REVIEWER, "protocol": PROTOCOL,
         "bindings": facts["bindings"], "inventory": facts["inventory"],
         "revision_summary": revision_summary,
         "summary": {"relations": dict(counts), "statuses": status_counts,
-                    "issue_count": len(issues), "unresolved_cases": sorted(USER_DECISIONS)},
+                    "issue_count": len(issues),
+                    "unresolved_cases": [] if resolved else sorted(USER_DECISIONS)},
         "global_findings": [
             {"category": "证据汇总", "severity": "重要", "finding": "最终证据包只含83个来源目录；17例须回溯冻结选择材料。32个结构型案例仅汇总初始响应摘要，完整原始字节仍在历史证据目录。"},
             {"category": "规则生命周期", "severity": "已修复" if corrected else "重要", "finding": "旧绑定缺省的空 resource_output_contract 现按等价空策略兼容；非空策略仍严格拒绝。" if corrected else "最新主线把默认空 resource_output_contract 纳入 scope_identity，导致旧的合法执行绑定无法离线重评分。"},
-            {"category": "报告展示", "severity": "待决定" if corrected else "重要", "finding": "本地草稿显示修订后的52/48机器结果和3个未决案例；线上报告仍保留49/51且未解决0，本轮不发布。" if corrected else "线上报告仍显示49/51和未解决0，未体现本轮资格、范围、路径后缀和纯净度口径问题。"},
+            {"category": "报告展示", "severity": "已解决" if resolved else "待决定" if corrected else "重要", "finding": "本地正式审查报告显示52/48、100/100完成复核且未决0；线上报告仍保留旧49/51，本轮按约束不发布。" if resolved else "本地草稿显示修订后的52/48机器结果和3个未决案例；线上报告仍保留49/51且未解决0，本轮不发布。" if corrected else "线上报告仍显示49/51和未解决0，未体现本轮资格、范围、路径后缀和纯净度口径问题。"},
         ],
         "issues": issues, "cases": cases,
     }
@@ -280,21 +319,24 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
 
 def render(report: dict[str, Any], dataset: dict[str, Any], evidence: Path, language: str) -> str:
     zh = language == "zh"
+    resolved = report["status"] == "complete"
     labels = {
-        "title": ("动态100正式独立审查（阶段2待确认）" if report["status"].startswith("stage2") else "动态100正式独立审查（阶段1）") if zh else ("Dynamic 100 Formal Independent Audit (Stage 2, Pending Decisions)" if report["status"].startswith("stage2") else "Dynamic 100 Formal Independent Audit (Stage 1)"),
-        "draft": "本地审查草稿；未发布。" if zh else "Local review draft; not published.",
+        "title": ("动态100正式独立审查（已解决）" if resolved else "动态100正式独立审查（阶段2待确认）" if report["status"].startswith("stage2") else "动态100正式独立审查（阶段1）") if zh else ("Dynamic 100 Formal Independent Audit (Resolved)" if resolved else "Dynamic 100 Formal Independent Audit (Stage 2, Pending Decisions)" if report["status"].startswith("stage2") else "Dynamic 100 Formal Independent Audit (Stage 1)"),
+        "draft": ("本地正式审查报告；未发布。" if resolved else "本地审查草稿；未发布。") if zh else ("Formal local audit report; not published." if resolved else "Local review draft; not published."),
         "cases": "逐例审查" if zh else "Case reviews", "issues": "需处理事项" if zh else "Items requiring action",
     }
     status_en = {
         "pass": "pass", "fail": "fail", "reasonable": "reasonable",
         "credible": "credible", "corrected": "corrected",
         "needs_correction": "needs correction", "needs_decision": "needs decision",
+        "adjudicated": "adjudicated",
         "正确通过": "correct pass", "正确失败": "correct fail",
         "错误通过（假阳性）": "false positive", "错误失败（假阴性）": "false negative",
         "无法比较": "not comparable", "范围/标准答案": "Scope / reference",
         "规则/评分": "Rule / scoring", "来源证据展示": "Source-evidence packaging",
         "案例资格": "Case eligibility", "已修复": "fixed", "重要": "important",
         "待决定": "decision needed", "展示改进": "presentation improvement",
+        "已裁决": "adjudicated", "已解决": "resolved",
     }
     english_findings = {
         "最终100例证据包未汇总本例来源目录；两次资格采集及哈希仍由冻结选择材料绑定。": "The final 100-case package does not aggregate this source directory; the two qualification captures and hashes remain bound through frozen selection evidence.",
@@ -304,6 +346,8 @@ def render(report: dict[str, Any], dataset: dict[str, Any], evidence: Path, lang
         USER_DECISIONS["dynamic-104-mui-data-grid"][1]: "Choose how much out-of-scope material counts as severe noise; do not change the verdict until one uniform threshold is frozen.",
         USER_DECISIONS["dynamic-105-steam-city-search"][0]: "The initial HTTP file already contains 50 search_result_row elements and 50 /app/ detail URLs, contradicting the recorded initial_missing state.",
         USER_DECISIONS["dynamic-105-steam-city-search"][1]: "It can remain a volatile-list case, but should not count in the dynamic-content denominator unless replaced or reclassified.",
+        "已执行用户批准的统一口径。": "The approved benchmark-wide policy has been applied.",
+        "已用合格的 Blueprint 客户端正文案例替代 Steam。": "Steam was replaced with the qualified Blueprint client-rendered document case.",
     }
     finding_en_by_case = {
         "dynamic-020-webscraper-io-test": "The first automatic batch is six product records; pagination controls are outside the target.",
@@ -315,6 +359,9 @@ def render(report: dict[str, Any], dataset: dict[str, Any], evidence: Path, lang
         "dynamic-044-en-real-github-trending": "Trending and Sponsors routes no longer count as owner/repository records.",
         "dynamic-099-ar-real-amazon-ae-phone": "The product path now accepts the legitimate /ref= suffix and deduplicates by ASIN.",
         "dynamic-107-redoc-cafe-api": "Documentation controls are excluded and one promotional sentence no longer defeats complete semantic coverage.",
+        "dynamic-react-cart": "All 16 target product records are complete; their attached Add to cart controls are supplemental UI under the approved policy.",
+        "dynamic-104-mui-data-grid": "The answer crosses beyond the declared grid into a separate Pro tier and Cookie surface, so it remains a failure.",
+        "dynamic-105-blueprint-docs": "The output covers the complete independently captured main body but also includes about 32 KB of site navigation; the independently confirmed Dark theme toolbar is outside main and violates the declared exclusion.",
     }
     def tr(value: str, *, case_id: str | None = None) -> str:
         if zh:
@@ -322,12 +369,14 @@ def render(report: dict[str, Any], dataset: dict[str, Any], evidence: Path, lang
         return status_en.get(value) or english_findings.get(value) or (
             finding_en_by_case.get(case_id) if case_id else None) or value
     case_by_id = {row["id"]: row for row in dataset["cases"]}
+    def public_text(value: str) -> str:
+        return value.replace(str(Path.home()), "$HOME").replace("/private/tmp", "$TMPDIR")
     cards = []
     for case in report["cases"]:
         source = evidence / "sources" / case["case_id"] / "reference.txt"
         artifact = evidence / "artifacts/moli-webfetch" / case["case_id"] / "run-001.txt"
-        reference = source.read_text(errors="replace") if source.exists() else case_by_id[case["case_id"]].get("ground_truth_main_content", "")
-        actual = artifact.read_text(errors="replace") if artifact.exists() else ""
+        reference = public_text(source.read_text(errors="replace") if source.exists() else case_by_id[case["case_id"]].get("ground_truth_main_content", ""))
+        actual = public_text(artifact.read_text(errors="replace") if artifact.exists() else "")
         issue_html = "".join(f"<li><b>{html.escape(tr(i['category']))}</b> · {html.escape(tr(i['severity']))}: {html.escape(tr(i['finding'], case_id=case['case_id']))}</li>" for i in case["issues"]) or "<li>None</li>"
         section_labels = (["动态资格", "范围 / 参考 / 规则", "调用链", "判定"] if zh else
                           ["Dynamic qualification", "Scope / reference / rule", "Call chain", "Judgment"])
@@ -347,7 +396,7 @@ def render(report: dict[str, Any], dataset: dict[str, Any], evidence: Path, lang
 <style>:root{{color-scheme:light dark}}body{{font:15px/1.55 system-ui;max-width:1500px;margin:auto;padding:24px}}nav{{position:sticky;top:0;background:Canvas;padding:8px;border-bottom:1px solid GrayText}}article{{border:1px solid GrayText;border-radius:12px;padding:18px;margin:24px 0}}.grid,.compare{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}section,details{{border:1px solid color-mix(in srgb,GrayText 45%,transparent);padding:10px;border-radius:8px}}pre{{white-space:pre-wrap;overflow-wrap:anywhere;max-height:34rem;overflow:auto}}.pass,.reasonable,.credible{{color:#138a36}}.fail,.needs_correction{{color:#c0392b}}@media(max-width:760px){{.grid,.compare{{grid-template-columns:1fr}}}}</style>
 <body><nav><a href="{'../en/' if zh else '../zh/'}">{'English' if zh else '中文'}</a> · <a href="#issues">{labels['issues']}</a> · <a href="#cases">{labels['cases']}</a></nav>
 <h1>{labels['title']}</h1><p>{labels['draft']}</p><p>{'100/100 个案例' if zh else '100/100 cases'} · {'正确通过' if zh else 'correct pass'} {relations.get('正确通过',0)} · {'正确失败' if zh else 'correct fail'} {relations.get('正确失败',0)} · {'错误通过' if zh else 'false positive'} {relations.get('错误通过（假阳性）',0)} · {'错误失败' if zh else 'false negative'} {relations.get('错误失败（假阴性）',0)} · {'无法比较' if zh else 'not comparable'} {relations.get('无法比较',0)}</p>
-<section id="issues"><h2>{labels['issues']}</h2><ul>{''.join(f'<li><a href="#{html.escape(x)}">{html.escape(x)}</a>: {html.escape(tr(USER_DECISIONS[x][0]))}</li>' for x in report['summary']['unresolved_cases'])}</ul></section>
+<section id="issues"><h2>{labels['issues']}</h2><ul>{''.join(f'<li><a href="#{html.escape(x)}">{html.escape(x)}</a>: {html.escape(tr(USER_DECISIONS[x][0]))}</li>' for x in report['summary']['unresolved_cases']) or ('<li>无未决事项。</li>' if zh else '<li>No unresolved items.</li>')}</ul></section>
 <main id="cases">{''.join(cards)}</main></body></html>"""
 
 
@@ -357,7 +406,7 @@ def main() -> None:
     parser.add_argument("--dataset", type=Path, default=ROOT / "evaluation/dynamic-content-100-moli-webfetch/dataset.json")
     parser.add_argument("--evidence", type=Path, required=True)
     parser.add_argument("--prior-review", type=Path)
-    parser.add_argument("--stage", choices=("stage1", "stage2"), default="stage1")
+    parser.add_argument("--stage", choices=("stage1", "stage2", "resolved"), default="stage1")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--html-root", type=Path, required=True)
     args = parser.parse_args()

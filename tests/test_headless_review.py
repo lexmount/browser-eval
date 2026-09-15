@@ -9,6 +9,7 @@ from unittest.mock import patch
 from scripts.headless_worker import fetch
 from scripts.postcheck_headless import (
     expected_providers,
+    frozen_scope_identities,
     load_resumable_observations,
     read_completed_records,
 )
@@ -16,6 +17,15 @@ from scripts.certify_headless_cases import read_completed_records as read_certif
 
 
 class HeadlessReviewTests(unittest.TestCase):
+    def test_postcheck_reuses_exact_frozen_scope_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            frozen={'case_id':'exact','evaluation_contract':{'expected_resources':[]}}
+            (root/'execution.json').write_text(json.dumps({'batches':[{
+                'reference_checks':{'cases':{'exact':{'scope_identity':frozen}}}
+            }]}))
+            self.assertEqual(frozen_scope_identities(root,{'exact':{}}),{'exact':frozen})
+
     def test_postcheck_uses_case_track_coverage(self):
         dataset = {'coverage_plan': {'web': ['web-p'], 'resources': ['resource-p']}}
         self.assertEqual(expected_providers(dataset, {'track': 'resources'}), {'resource-p'})

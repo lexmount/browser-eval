@@ -944,6 +944,76 @@ def reference_revision_cases(source) -> dict[str, set[str]]:
                             for change in receipt["changed_cases"])):
                 edges.add((before, after))
 
+    # A one-for-one eligibility correction can retain valid reference-revision
+    # history for the 99 unchanged attempts while replacing one independently
+    # measured case.  This is a distinct lineage edge, not an offline scoring
+    # correction, and is accepted only when the current logical inventory and
+    # immutable artifact bindings prove the declared replacement.
+    replacement_path = root / "case-replacement.json"
+    if replacement_path.is_file():
+        try:
+            replacement = json.loads(replacement_path.read_text())
+            current_document = json.loads((root / "dataset.json").read_text())
+            current_records = [json.loads(line) for line in
+                               (root / "results.jsonl").read_text().splitlines()
+                               if line.strip()]
+        except (OSError, ValueError, TypeError):
+            return {}
+        before = hash_pair(replacement, "input")
+        after = hash_pair(replacement, "output")
+        old = replacement.get("superseded_attempt", {})
+        new = replacement.get("replacement_attempt", {})
+        new_rows = [row for row in current_records
+                    if row.get("case_id") == new.get("case_id")]
+        retained = sorted(
+            (row.get("attempt_id"), row.get("case_id"),
+             row.get("metrics", {}).get("content_sha256"))
+            for row in current_records if row.get("case_id") != new.get("case_id")
+        )
+        retained_sha = sha256(json.dumps(
+            retained, separators=(",", ":")).encode())
+        current_case_ids = {case.get("id") for case in current_document.get("cases", [])}
+        preserved = root / str(old.get("preserved_under", "")) / "result.json"
+        superseded_replacements = replacement.get("superseded_replacement_attempts", [])
+        superseded_replacements_valid = isinstance(superseded_replacements, list)
+        if superseded_replacements_valid:
+            for row in superseded_replacements:
+                try:
+                    preserved_results = root / str(row["preserved_under"]) / "results.jsonl"
+                    preserved_rows = [json.loads(line) for line in
+                                      preserved_results.read_text().splitlines()
+                                      if line.strip()]
+                except (OSError, KeyError, ValueError, TypeError):
+                    superseded_replacements_valid = False
+                    break
+                if (len(preserved_rows) != 1
+                        or preserved_rows[0].get("case_id") != new.get("case_id")
+                        or preserved_rows[0].get("metrics", {}).get("content_sha256") !=
+                            row.get("artifact_sha256")
+                        or sha256(preserved_results.read_bytes()) !=
+                            row.get("measurement_results_sha256")):
+                    superseded_replacements_valid = False
+                    break
+        if (not isinstance(replacement, dict) or before is None or after is None
+                or replacement.get("kind") != "audited_case_replacement_assembly"
+                or replacement.get("provider_calls") !=
+                    1 + len(superseded_replacements)
+                or not superseded_replacements_valid
+                or replacement.get("retained_attempts") != 99
+                or replacement.get("selection_policy") !=
+                    "one-for-one eligibility correction; no score-based selection"
+                or len(current_records) != 100 or len(current_case_ids) != 100
+                or old.get("case_id") in current_case_ids
+                or new.get("case_id") not in current_case_ids
+                or len(new_rows) != 1
+                or new_rows[0].get("attempt_id") != new.get("attempt_id")
+                or new_rows[0].get("metrics", {}).get("content_sha256") !=
+                    new.get("artifact_sha256")
+                or retained_sha != replacement.get("retained_artifact_bindings_sha256")
+                or not preserved.is_file()):
+            return {}
+        edges.add((before, after))
+
     current = (current_dataset, current_results)
 
     def reaches_current(start):

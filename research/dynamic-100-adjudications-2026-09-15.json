@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "kind": "approved_dynamic_100_policy_and_case_replacement",
+  "created_at": "2026-09-15T16:07:12.771937+00:00",
+  "input_dataset_sha256": "d8019897025bae95e9b6e5db9988d68f4052780d3b57fc933bcf9fb14c385cbc",
+  "output_dataset_sha256": "ce24ba9bc36b83868b65b0fde0d8282d51319989a47925241ae9cb1d6016f390",
+  "qualification_summary_sha256": "fd5612377f64889ffe049fc009fa4387a45efc29230a5d6cb1cce61ad568bf6d",
+  "qualification_rendered_body_sha256": "fc0c566c956d51f1d36fc3fe1dae07c436a45e716752c8e3b6c17b47053b24f7",
+  "browser_observation_sha256": [
+    "221db7e783f0c225737b71106740f3f64de7267010a816b3da3a30418548c520",
+    "2f12de145c186b4564542717700a9c978454279bf3dcf478c5951ed414d967c5"
+  ],
+  "provider_output_used_to_define_rules": false,
+  "provider_calls_made_by_this_transformation": 0,
+  "approved_adjudications": [
+    {
+      "case_id": "dynamic-react-cart",
+      "decision": "pass when all 16 target records are complete even if each retains its attached Add to cart control",
+      "change": "remove Add to cart from forbidden_any"
+    },
+    {
+      "case_id": "dynamic-104-mui-data-grid",
+      "decision": "remain fail because output crosses into a separately named Pro tier and Cookie surface",
+      "change": "none"
+    },
+    {
+      "old_case_id": "dynamic-105-steam-city-search",
+      "new_case_id": "dynamic-105-blueprint-docs",
+      "decision": "remove Steam because its complete target was already present in the initial HTTP response",
+      "old_url": "https://store.steampowered.com/search/?term=city",
+      "new_url": "https://blueprintjs.com/docs/",
+      "stratum_change": "real_public volatile linked-product list -> stable_demo client-rendered document"
+    },
+    {
+      "case_id": "dynamic-105-blueprint-docs",
+      "decision": "fail when the returned answer includes the independently observed Dark theme toolbar outside main",
+      "change": "add Dark theme to forbidden_any to enforce the predeclared top-bar/sidebar exclusion",
+      "rule_revision_timing": "after measurement, prompted by the independent audit",
+      "rule_evidence": "independent no-interaction browser accessibility observation"
+    }
+  ]
+}

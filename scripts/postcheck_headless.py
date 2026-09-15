@@ -14,8 +14,29 @@ import time
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from scripts.collect_source_evidence import capture
-from harness.web_fetch.reference_lifecycle import scope_identity, requires_fresh_reference
+from harness.web_fetch.reference_lifecycle import requires_fresh_reference
 from harness.web_fetch.record_io import read_completed_records
+
+
+def frozen_scope_identities(run_dir, cases):
+    """Return the exact scope identities frozen by the measured run."""
+    execution=json.loads((run_dir/'execution.json').read_text())
+    identities={}
+    for batch in execution.get('batches',[]):
+        checks=batch.get('reference_checks',{})
+        for case_id,binding in checks.get('cases',{}).items():
+            if case_id not in cases:
+                continue
+            identity=binding.get('scope_identity')
+            if not isinstance(identity,dict):
+                raise ValueError(f'Missing frozen scope identity: {case_id}')
+            previous=identities.setdefault(case_id,identity)
+            if previous!=identity:
+                raise ValueError(f'Conflicting frozen scope identities: {case_id}')
+    missing=set(cases)-set(identities)
+    if missing:
+        raise ValueError(f'Missing frozen reference bindings: {sorted(missing)}')
+    return identities
 
 def load_resumable_observations(checkpoint, cases):
     if not checkpoint.exists():
@@ -40,6 +61,7 @@ def main():
     args=p.parse_args()
     dataset=json.loads((args.run_dir/'dataset.json').read_text())
     cases={c['id']:c for c in dataset['cases'] if requires_fresh_reference(c)}
+    identities=frozen_scope_identities(args.run_dir,cases)
     if args.captures.exists() and not args.resume:p.error('Capture destination exists')
     args.captures.mkdir(parents=True,exist_ok=args.resume)
     pending={};done={};started=time.monotonic()
@@ -55,7 +77,7 @@ def main():
         return {'case_id':case['id'],'independent':True,
             'checked_at':row['checked_at'],
             'content_text':text_path.read_text() if text_path.exists() else '',
-            'scope_identity':scope_identity(case),
+            'scope_identity':identities[case['id']],
             'completion':{'satisfied':row.get('status')==200 and not row.get('missing_facts'),
                           'elapsed_ms':(time.monotonic()-begin)*1000,'timeout_ms':120000}}
     with ThreadPoolExecutor(max_workers=4) as pool:
@@ -74,7 +96,7 @@ def main():
                     row=rows.get(cid,{})
                     latest=max(r.get('completed_at',r['started_at']) for r in relevant)
                     if row.get('checked_at','')>latest:
-                        done[cid]={'case_id':cid,**row,'scope_identity':scope_identity(case)}
+                        done[cid]={'case_id':cid,**row,'scope_identity':identities[cid]}
                     continue
                 pending[cid]=pool.submit(observe,case)
             for cid,future in list(pending.items()):

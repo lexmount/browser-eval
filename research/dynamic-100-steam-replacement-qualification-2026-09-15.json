@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "purpose": "independent candidate eligibility survey; no provider output",
+  "checked_at": "2026-09-15T15:37:13.365687+00:00",
+  "candidate_registry_sha256": "7e6e05e801cbf3b5166eeecf9dd404a99f90ae759198fb5714a564ac8752439f",
+  "candidate_count": 1,
+  "eligible_count": 1,
+  "capture_root": "external evidence directory supplied with --output",
+  "observations": [
+    {
+      "id": "candidate-262-blueprintjs-com",
+      "candidate": {
+        "url": "https://blueprintjs.com/docs/",
+        "provenance": [
+          "gap_expansion_2026-09-11"
+        ],
+        "language_hint": "en",
+        "mechanism_hint": "client_table",
+        "site_type": "stable_demo",
+        "difficulty_hint": "hard"
+      },
+      "capture_a": {
+        "requested_url": "https://blueprintjs.com/docs/",
+        "final_url": "https://blueprintjs.com/docs/",
+        "status": 200,
+        "title": "Blueprint – Documentation",
+        "document_lang": "en",
+        "frame_urls": [
+          "https://blueprintjs.com/docs/"
+        ],
+        "elapsed_ms": 4032,
+        "completion": {
+          "condition": "main/child-frame visible text nonempty, observed for at least 4 seconds, and stable for four 250 ms samples",
+          "timeout_ms": 12000,
+          "satisfied": true
+        },
+        "navigation_error": null,
+        "blocked_marker": false,
+        "initial_sha256": "39b78bdb58c2e27a7e972e9f5feab8654e6c1cd00e6df168f150a7c903434fae",
+        "rendered_sha256": "fc0c566c956d51f1d36fc3fe1dae07c436a45e716752c8e3b6c17b47053b24f7",
+        "initial_bytes": 1381,
+        "rendered_chars": 2058
+      },
+      "capture_b": {
+        "requested_url": "https://blueprintjs.com/docs/",
+        "final_url": "https://blueprintjs.com/docs/",
+        "status": 200,
+        "title": "Blueprint – Documentation",
+        "document_lang": "en",
+        "frame_urls": [
+          "https://blueprintjs.com/docs/"
+        ],
+        "elapsed_ms": 4230,
+        "completion": {
+          "condition": "main/child-frame visible text nonempty, observed for at least 4 seconds, and stable for four 250 ms samples",
+          "timeout_ms": 12000,
+          "satisfied": true
+        },
+        "navigation_error": null,
+        "blocked_marker": false,
+        "initial_sha256": "39b78bdb58c2e27a7e972e9f5feab8654e6c1cd00e6df168f150a7c903434fae",
+        "rendered_sha256": "fc0c566c956d51f1d36fc3fe1dae07c436a45e716752c8e3b6c17b47053b24f7",
+        "initial_bytes": 1381,
+        "rendered_chars": 2058
+      },
+      "common_dynamic_anchor_count": 15,
+      "common_dynamic_anchors": [
+        "Blueprint v6.x is now in stable release. Still using v5.x? Click here to view the legacy docs →",
+        "Reading the documentation",
+        "Blueprint is a React-based UI toolkit for the web.",
+        "It is optimized for building complex data-dense interfaces for desktop applications.",
+        "Blueprint v6.x is now available",
+        "Check out the migration guides to upgrade from v5.x →",
+        "@blueprintjs/core is the primary Blueprint library package, home to over 40 UI components. Install it with your Node.js package manager of choice:",
+        "pnpm add @blueprintjs/core react react-dom",
+        "Additional UI components and APIs are available in:",
+        "@blueprintjs/icons",
+        "@blueprintjs/datetime",
+        "@blueprintjs/select"
+      ],
+      "common_dynamic_anchor_chars": 865,
+      "eligible": true
+    }
+  ]
+}
