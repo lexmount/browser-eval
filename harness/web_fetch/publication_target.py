@@ -16,9 +16,14 @@ def current_publication_target(profile_path=ROOT/'evaluation/current-report.json
     return base.rstrip('/'),slug
 
 
-_BASE,_SLUG=current_publication_target()
+try:
+    _BASE, _SLUG = current_publication_target()
+except ValueError:
+    # A new-site release intentionally has no slug until creation succeeds.
+    # Update flows still call require_publication_site and therefore fail closed.
+    _BASE, _SLUG = DEFAULT_BASE, None
 HUB = (os.environ.get('WEBFETCH_REPORT_PUBLIC_URL') or
-       f'{_BASE}/api/preview/{_SLUG}').rstrip('/')
+       (f'{_BASE}/api/preview/{_SLUG}' if _SLUG else _BASE)).rstrip('/')
 
 
 def require_no_publication_hold(profile_path=ROOT/'evaluation/current-report.json',

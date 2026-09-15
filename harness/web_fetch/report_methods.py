@@ -80,7 +80,9 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc):
         ('方法归属规则','逐一读取命中的 Git 文件并校验内容。通用 web_fetch 和同名函数不能证明归属；Exa 要求 Contents 端点或 SDK 导入及 get_contents。内置方法也包括源码复制与官方仓库，不能冒充第三方集成。'),
     ])+'<p>'+link('evidence.json','完整检索证据')+' · '+link('counts.json','逐方法统计数据')+'</p>'
     body=hero('方法介绍','参评方法的官方能力、价格、接口与开源采用；实测表现见各方法执行记录。')
-    if records and all(r.get('provider_type') in {'headless_html','headless_markdown'} for r in records):
+    if set(names)=={'moli-webfetch','lexmount-global'} and len(records)==200:
+        body+=section('参评方法',cards([('本地开发版对照','Moli WebFetch 是开发路线，本轮使用 Moli v1.1.5 官方标签对应的本地 CLI，一次性 fetch 并输出 Markdown。本阶段继承 97 条同 URL 结果，只对 3 个 URL 已变化案例重新调用。'),('托管稳定版','Lexmount Global 使用 2026-09-15 观察到的托管稳定部署，通过国际 API 返回正文与结构化链接；后端数字版本未公开。本阶段重新调用全部 100 个案例。'),('本阶段边界','本页只比较这两种方法在同一套 100 站冻结规则下的结果；其余十种方法尚未纳入，不计为失败或 0 分。')]))
+    elif records and all(r.get('provider_type') in {'headless_html','headless_markdown'} for r in records):
         body+=section('参评方法',cards([('远程正文接口','Kitesurf 使用 Cloudflare 账户级 Browser Run /markdown API；耗时包含公网往返、远端排队与执行。'),('本地原生产物','Lightpanda、Obscura 与三个 Moli 版本的普通网页使用 CLI 正文输出。三个 Moli 版本的直接文档和媒体 URL 均使用裸 fetch：正文任务在预算内解析，文件任务校验字节。'),('本地 DOM 转换','Chromium 152 由 Playwright 取完整渲染 DOM，再用 node-html-markdown 2.0.0 转换。七种方法都不调用模型。')]))
         body+=section('Kitesurf 能否本地部署',cards([('当前结论','截至 2026-09-07，Cloudflare 尚未发布 Kitesurf 源码或自行部署包；本轮只能通过 Cloudflare 账号版 Browser Run 远程测试，不能把它当作本地开源浏览器。'),('后续意向','Cloudflare 官方博客表示计划在准备好后开源，并希望允许客户部署到自己的账户。这是未来计划，不是当前已有能力。')])+f'<p class="source-note"><a href="https://developers.cloudflare.com/browser-run/kitesurf/">当前官方接入说明</a> · <a href="https://blog.cloudflare.com/kitesurf/">官方开源计划说明</a></p>')
     else:

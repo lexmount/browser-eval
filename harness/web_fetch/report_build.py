@@ -170,7 +170,10 @@ def build_report(source: Path, output: Path) -> Path:
                 raise ValueError('Source selection does not match the measured dataset')
             shutil.copy2(source/'source-selection.json', staging/'source-selection.json')
         copy_methodology_assets(staging)
-        provenance=Path(__file__).resolve().parents[2]/'research/headless-implementation-provenance.json'
+        provenance_name=('popular-sites-two-method-implementation-provenance.json'
+                         if dataset.get('comparison',{}).get('stage_label')=='2-method audited stage'
+                         else 'headless-implementation-provenance.json')
+        provenance=Path(__file__).resolve().parents[2]/'research'/provenance_name
         if provenance.is_file():
             shutil.copy2(provenance,staging/'implementation-provenance.json')
         if (source/'scoring-revisions.json').is_file():

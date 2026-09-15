@@ -64,26 +64,36 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertEqual(profile['conversion'], dataset['comparison']['conversion'])
         self.assertEqual(profile['comparison_kind'], dataset['comparison']['kind'])
         declared = {provider for providers in dataset['coverage_plan'].values() for provider in providers}
-        self.assertEqual(set(profile['providers']), declared)
+        self.assertTrue(set(profile['providers']) <= declared)
+        self.assertTrue(profile['providers'])
         self.assertEqual(profile['artifact_hub_base_url'], 'https://artifact-hub.app.lexmount.com')
-        self.assertEqual(profile['artifact_hub_site'], 'HMHGx1jcMz-z')
+        if profile['artifact_hub_site'] is None:
+            hold = json.loads((ROOT / 'evaluation/publication-hold.json').read_text())
+            self.assertTrue(hold['active'])
+            self.assertEqual(hold['dataset_id'], profile['dataset_id'])
 
     def test_publication_receipt_must_target_current_site(self) -> None:
         profile = ROOT / 'evaluation/current-report.json'
+        current = json.loads(profile.read_text())['artifact_hub_site']
+        if current is None:
+            with self.assertRaisesRegex(ValueError, 'missing artifact_hub_site'):
+                require_publication_site({'slug':'not-yet-created'}, profile,
+                                         'https://artifact-hub.app.lexmount.com')
+            return
         self.assertEqual(
-            require_publication_site({'slug':'HMHGx1jcMz-z'}, profile,
+            require_publication_site({'slug':current}, profile,
                                      'https://artifact-hub.app.lexmount.com'),
-            'HMHGx1jcMz-z',
+            current,
         )
         with self.assertRaisesRegex(ValueError, 'expected'):
-            require_publication_site({'slug':'UeZE1vfcEOrM'}, profile,
+            require_publication_site({'slug':'definitely-not-the-current-site'}, profile,
                                      'https://artifact-hub.app.lexmount.com')
         with self.assertRaisesRegex(ValueError, 'expected'):
-            require_publication_site({'slug':'UUAhhQMnrGwm'}, profile,
+            require_publication_site({'slug':'another-site'}, profile,
                                      'https://artifact-hub.dev.lexmount.net')
         with self.assertRaisesRegex(ValueError, 'requested'):
             require_publication_site(
-                {'slug':'HMHGx1jcMz-z','base_url':'https://artifact-hub.dev.lexmount.net'},
+                {'slug':current,'base_url':'https://artifact-hub.dev.lexmount.net'},
                 profile,'https://artifact-hub.app.lexmount.com')
 
     def test_active_hold_blocks_only_the_target_dataset(self) -> None:

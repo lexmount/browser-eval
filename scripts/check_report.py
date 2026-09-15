@@ -68,8 +68,9 @@ repo_root=Path(__file__).resolve().parents[1]
 profile=json.loads((repo_root/'evaluation/current-report.json').read_text())
 if profile.get('dataset_file') and d.get('id')==profile.get('dataset_id'):
  authoritative=json.loads((repo_root/profile['dataset_file']).read_text())
+ profile_providers=profile.get('providers') or []
  inventory={track:{'case_ids':[c['id'] for c in authoritative['cases'] if c.get('track','web')==track],
-                   'providers':providers}
+                   'providers':list(profile_providers) if profile_providers else providers}
             for track,providers in authoritative.get('coverage_plan',{}).items()}
 else:
  inventory=json.loads((repo_root/'configs/evaluation-inventory.json').read_text())

@@ -21,7 +21,6 @@ from urllib.parse import urlsplit, unquote
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.publication_privacy import project_file
-from harness.web_fetch.publication_target import HUB
 SOURCE=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/'reports/webfetch'
 (ROOT/'publish').mkdir(exist_ok=True)
 DEST=Path(tempfile.mkdtemp(prefix='artifact-hub-',dir=ROOT/'publish'))

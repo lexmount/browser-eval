@@ -38,6 +38,10 @@ def require_revision_release_bindings(history, releases):
     """
     for receipt in history:
         digest = receipt.get('input_results_sha256')
+        # Promotion/audit receipts bind an already rescored output and review,
+        # not a new scoring input. They do not need a second release binding.
+        if not digest:
+            continue
         matches = []
         for release in releases:
             declared = release.get('scoring_revision_input_sha256')

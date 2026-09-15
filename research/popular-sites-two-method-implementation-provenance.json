@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "scope": "popular-sites two-method audited stage",
+  "implementations": [
+    {
+      "provider": "moli-webfetch",
+      "product": "Moli WebFetch",
+      "version": "1.1.5",
+      "release_commit": "3a9acf2e19988387ec118a3671d5d19fcdeb9e75",
+      "binary_sha256": "4a947148f9af8726b619558fb72c05def75e1c347464c64af178e2f4ddfa71a5",
+      "archive_sha256": "8ce3bff3aa7c4d5d3d91866a663fb7bb8e5a0600dd2673061627649d4171ed7d",
+      "identity_timing": "verified_before_new_calls_and_retained_for_inherited_calls",
+      "verification": "The exact local executable was hashed and matched to the official v1.1.5 tagged release before the three new calls. The same retained implementation identity is bound to the 97 inherited calls.",
+      "source": "https://github.com/lexmount/moli/releases/tag/v1.1.5"
+    }
+  ],
+  "remote_implementations": [
+    {
+      "provider": "lexmount-global",
+      "product": "Lexmount Global WebFetch",
+      "identity": "Lexmount Global hosted stable deployment observed 2026-09-15",
+      "version": null,
+      "endpoint": "https://api.lexmount.com/v1/extract",
+      "identity_timing": "hosted_stable_deployment_confirmed_before_run_backend_build_unavailable",
+      "version_basis": "托管稳定部署观察记录；后端数字版本未公开",
+      "verification": "The repository and response metadata do not expose an immutable backend build or numeric product version. The maintainer identified the endpoint as the updated hosted stable deployment. Each measured call retains request_id, engine, dom_id, and server_elapsed_ms when returned. A Kong 3.9.1 gateway header is not treated as the Lexmount product version.",
+      "source": "https://browser.lexmount.com/en/docs/webfetch"
+    }
+  ]
+}

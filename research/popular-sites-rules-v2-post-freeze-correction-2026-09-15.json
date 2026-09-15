@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "revision_id": "popular-sites-rules-v2-post-freeze-correction-2026-09-15",
+  "status": "approved_scoring_correction_pending_offline_rescore_and_rereview",
+  "approved_at": "2026-09-15T16:24:46+08:00",
+  "approval": "User explicitly allowed the two independently proven corrections after the 200-attempt blind review paused publication.",
+  "predecessor": {
+    "rules_freeze_commit": "255ed72db7a3f0c8595ea2663dcb31847516c662",
+    "dataset_sha256": "b8907677ef1850de1de22188f8923cfa97f9a7511e652b9d339c54eca9efd07b",
+    "rules_sha256": "88ccb4557c1f3c053f351fb4a292fc856a442d1128e874bc7f67658ea2b86f72",
+    "stable_tasks_sha256": "b5401a28ef99089329c752bb875fc359a15b4afca535c6ce1da4ff6557add6ca"
+  },
+  "corrections": [
+    {
+      "kind": "provider_neutral_block_page_detection",
+      "affected_case_observed_in_review": "global-homepage-028-microsoft-com",
+      "change": "Treat an unambiguous 'Your request has been blocked' banner at the start of a flattened response as a blocked page.",
+      "independent_basis": "The phrase itself explicitly declares failure. A synthetic regression test proves the defect without using provider output as a fixture, while a prose-discussion counterexample remains accepted.",
+      "stable_text_changed": false,
+      "provider_specific_branch_added": false
+    },
+    {
+      "kind": "named_link_host_alias_correction",
+      "affected_case": "china-homepage-046-wedoany-com",
+      "change": "Allow both wedoany.com and www.wedoany.com for the existing /product/<id>.html detail-link contract.",
+      "independent_basis": {
+        "requested_url": "https://wedoany.com/",
+        "requested_url_source": "evaluation/popular-sites-dataset.json",
+        "observed_final_url": "https://www.wedoany.com/",
+        "observed_final_url_source": "evaluation/sources/china-homepage-046-wedoany-com/evidence.json"
+      },
+      "stable_text_changed": false,
+      "entry_path_changed": false
+    }
+  ],
+  "corrected": {
+    "dataset": "evaluation/popular-sites-dataset.json",
+    "dataset_sha256": "43932d1602cdc9b54598fe22149d5940e4371d2eb39501f5b65f5d05246e35fb",
+    "rules": "research/popular-sites-rules.json",
+    "rules_sha256": "3a564f6f019734a75607223b9ca3987e88bdc0ad0d8b6e530b6f0c2b1a03e26b",
+    "stable_tasks": "harness/web_fetch/stable_tasks.py",
+    "stable_tasks_sha256": "478b8ce3683fd73127476144e40b49c768fcc91c51ad1575bbdb6796125f5557"
+  },
+  "execution_effect": {
+    "provider_calls": 0,
+    "actual_new_provider_calls_remain": 103,
+    "offline_rescore_scope": 200,
+    "complete_blind_rereview_required": 200,
+    "publication_hold_active": true
+  },
+  "guardrails": {
+    "provider_output_used_to_select_stable_text": false,
+    "stable_text_modified": false,
+    "old_evidence_overwritten": false,
+    "best_result_selection": false
+  }
+}

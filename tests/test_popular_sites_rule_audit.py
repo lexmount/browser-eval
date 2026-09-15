@@ -4,6 +4,7 @@ import json
 import unittest
 
 from scripts.audit_popular_sites_rules_v2 import match_anchor, projected_answer
+from harness.web_fetch.stable_tasks import evaluate_stable_task
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -114,12 +115,45 @@ class PopularSitesRuleAuditTests(unittest.TestCase):
         self.assertEqual(scope["provider_rerun_call_count"], 24)
         self.assertFalse(receipt["guardrails"]["provider_rerun_authorized"])
         self.assertTrue(receipt["guardrails"]["publication_hold_active"])
-        for key in ("dataset", "rules", "stage_contract", "final_contract"):
+        correction = json.loads(
+            (ROOT / "research/popular-sites-rules-v2-post-freeze-correction-2026-09-15.json").read_text()
+        )
+        for key in ("dataset", "rules"):
+            self.assertEqual(
+                receipt["frozen"][f"{key}_sha256"],
+                correction["predecessor"][f"{key}_sha256"],
+            )
+            path = ROOT / correction["corrected"][key]
+            self.assertEqual(
+                hashlib.sha256(path.read_bytes()).hexdigest(),
+                correction["corrected"][f"{key}_sha256"],
+            )
+        for key in ("stage_contract", "final_contract"):
             path = ROOT / receipt["frozen"][key]
             self.assertEqual(
                 hashlib.sha256(path.read_bytes()).hexdigest(),
                 receipt["frozen"][f"{key}_sha256"],
             )
+
+    def test_wedoany_relative_detail_links_accept_both_observed_hosts(self) -> None:
+        dataset = json.loads((ROOT / "evaluation/popular-sites-dataset.json").read_text())
+        case = next(row for row in dataset["cases"] if row["id"] == "china-homepage-046-wedoany-com")
+        evidence = json.loads(
+            (ROOT / "evaluation/sources/china-homepage-046-wedoany-com/evidence.json").read_text()
+        )
+        self.assertEqual(case["url"], "https://wedoany.com/")
+        self.assertEqual(evidence["observed_final_url"], "https://www.wedoany.com/")
+        self.assertEqual(set(case["acceptance_contract"]["hosts"]), {"wedoany.com", "www.wedoany.com"})
+        synthetic = (
+            "维度网 工程分类 产品 选型总库\n"
+            "[Alpha](/product/1.html)\n"
+            "[Beta](/product/2.html)\n"
+            "[Gamma](/product/3.html)"
+        )
+        result = evaluate_stable_task(
+            synthetic, case["acceptance_contract"], case["url"]
+        )
+        self.assertTrue(result["stable_task_pass"], result)
 
     def test_superseded_builder_fails_closed_after_v2_freeze(self) -> None:
         source = (ROOT / "scripts/build_popular_sites_suite.py").read_text()

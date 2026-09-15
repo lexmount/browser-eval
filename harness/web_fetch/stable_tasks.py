@@ -42,6 +42,7 @@ _PLACEHOLDER = re.compile(r"(?:n/?a|none|null|undefined|unknown|tbd|loading[. â€
 _BLOCKED_PAGE = re.compile(
     r"(?im)^\s*(?:#{1,6}\s*)?(?:access denied|403 forbidden|verify (?:that )?you are human|"
     r"checking your browser|just a moment(?:\.{3}|â€¦)?|attention required!?|captcha(?: challenge)?)[.!: \t]*$")
+_STRONG_BLOCKED_PAGE_PREFIX = re.compile(r"(?i)^\s*your request has been blocked\b")
 _LABELS = {"quote": "quote", "author": "(?:author|by)", "tags": "tags",
     "name": "name", "title": "title", "price": "price", "description": "description",
     "reviews": "reviews", "date": "date", "text": "(?:text|review)", "method": "method",
@@ -545,7 +546,13 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     visible = _visible(content, schema)
     page_results = [{"pattern": p, "pass": bool(re.search(p, visible, re.I | re.M))} for p in patterns]
     content_errors = (["page_identity_mismatch"] if not all(r["pass"] for r in page_results) else [])
-    blocked_page = bool(_BLOCKED_PAGE.search(visible))
+    # Strong first-party block banners are often flattened onto the same line
+    # as cached navigation text. Keep the ordinary matcher line-scoped so an
+    # article discussing access errors is not rejected, but recognize this
+    # unambiguous banner when it starts the returned page.
+    blocked_page = bool(
+        _BLOCKED_PAGE.search(visible) or _STRONG_BLOCKED_PAGE_PREFIX.search(visible)
+    )
     if blocked_page:
         content_errors.append("blocked_page")
     errors = []

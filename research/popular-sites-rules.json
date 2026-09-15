@@ -2695,6 +2695,7 @@
         "schema": "named_link",
         "minimum_records": 3,
         "hosts": [
+          "wedoany.com",
           "www.wedoany.com"
         ],
         "entry_path": "/product/[0-9]+\\.html",

@@ -287,6 +287,26 @@ class StableTaskTests(unittest.TestCase):
             self.assertFalse(result["stable_task_pass"])
             self.assertTrue(result["stable_blocked_page"])
 
+    def test_flattened_strong_block_banner_with_valid_page_text_never_passes(self):
+        rules = contract(
+            "page_identity",
+            count=0,
+            stable_text_anchors=[
+                {"id": "brand", "alternatives": ["Microsoft"]},
+                {"id": "product", "alternatives": ["Windows"]},
+            ],
+        )
+        flattened = (
+            "Your request has been blocked. This could be due to several reasons. "
+            "Microsoft Windows Surface Xbox"
+        )
+        result = evaluate_stable_task(flattened, rules)
+        self.assertFalse(result["stable_task_pass"])
+        self.assertTrue(result["stable_blocked_page"])
+
+        explanatory = "This article quotes: your request has been blocked. Microsoft Windows"
+        self.assertTrue(evaluate_stable_task(explanatory, rules)["stable_task_pass"])
+
     def test_explicit_forbidden_rule_survives_stable_override_and_reference_exemptions(self):
         text = "Custom access failure\nAlpha\n$10\n\nBeta\n$20"
         result = evaluate_content(text, [], forbidden_any=["Custom access failure"],

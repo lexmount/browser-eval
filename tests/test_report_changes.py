@@ -24,6 +24,13 @@ class ReportChangesTests(unittest.TestCase):
             require_revision_release_bindings(history,releases[:1])
         with self.assertRaises(ValueError):
             require_revision_release_bindings(history,releases+[dict(releases[1],id='duplicate')])
+
+    def test_audit_only_revision_does_not_need_a_release_binding(self):
+        from harness.web_fetch.report_changes import require_revision_release_bindings
+        history=[{'kind':'audited_assembled_scoring_revision',
+                  'output_results_sha256':'reviewed'}]
+        releases=[{'id':'release-without-scoring-input'}]
+        require_revision_release_bindings(history,releases)
     def test_release_history_is_compact_and_reader_facing(self):
         with tempfile.TemporaryDirectory() as directory:
             out=Path(directory)
