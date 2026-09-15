@@ -121,24 +121,24 @@ def test_resource_tables_compare_all_engines_in_one_table():
     by_engine = {"chromium": {}, "moli": {}, "webkit": {}}
     ratios = {"moli": {}, "webkit": {}}
     for _, metrics in METRICS:
-        for index, (key, _, divisor, _) in enumerate(metrics, 1):
-            by_engine["chromium"][key] = {
-                "p50": divisor * (100 + index + 0.004),
-                "p95": divisor * (200 + index + 0.004),
-                "mean": divisor * (150 + index + 0.004),
+        for index, spec in enumerate(metrics, 1):
+            by_engine["chromium"][spec.key] = {
+                "p50": spec.divisor * (100 + index + 0.004),
+                "p95": spec.divisor * (200 + index + 0.004),
+                "mean": spec.divisor * (150 + index + 0.004),
             }
-            by_engine["moli"][key] = {
-                "p50": divisor * (55 + index + 0.004),
-                "p95": divisor * (320 + index + 0.004),
-                "mean": divisor * (90 + index + 0.004),
+            by_engine["moli"][spec.key] = {
+                "p50": spec.divisor * (55 + index + 0.004),
+                "p95": spec.divisor * (320 + index + 0.004),
+                "mean": spec.divisor * (90 + index + 0.004),
             }
-            by_engine["webkit"][key] = {
-                "p50": divisor * (75 + index + 0.004),
-                "p95": divisor * (250 + index + 0.004),
-                "mean": divisor * (70 + index + 0.004),
+            by_engine["webkit"][spec.key] = {
+                "p50": spec.divisor * (75 + index + 0.004),
+                "p95": spec.divisor * (250 + index + 0.004),
+                "mean": spec.divisor * (70 + index + 0.004),
             }
-            ratios["moli"][key] = {"p50": 0.5, "p95": 1.5, "mean": 0.75}
-            ratios["webkit"][key] = {"p50": 0.8, "p95": 1.2, "mean": 0.6}
+            ratios["moli"][spec.key] = {"p50": 0.5, "p95": 1.5, "mean": 0.75}
+            ratios["webkit"][spec.key] = {"p50": 0.8, "p95": 1.2, "mean": 0.6}
     rendered = _metric_tables(
         {
             "resource_comparison": {
@@ -159,8 +159,19 @@ def test_resource_tables_compare_all_engines_in_one_table():
     assert "0.50×" in rendered
     assert "1.50×" in rendered
     assert 'class="better"' in rendered
+    assert 'class="worse"' in rendered
+    assert rendered.count('class="metric-policy ') == sum(
+        len(metrics) for _, metrics in METRICS
+    )
+    assert 'class="metric-policy lower"' in rendered
+    assert 'class="metric-policy neutral"' in rendered
+    assert "“观察项”只展示测量结果，不判胜负" in rendered
     cpu_row = rendered.split("平均 CPU 占单核", 1)[1].split("</tr>", 1)[0]
     assert 'class="better"' not in cpu_row
+    assert 'class="worse"' not in cpu_row
+    ratio_cpu_row = rendered.split("平均 CPU 占单核 · 观察项", 1)[1].split("</tr>", 1)[0]
+    assert 'class="better"' not in ratio_cpu_row
+    assert 'class="worse"' not in ratio_cpu_row
 
 
 def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path):

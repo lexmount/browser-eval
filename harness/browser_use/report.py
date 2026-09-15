@@ -37,19 +37,6 @@ CATEGORY_LABELS = {
 
 ENGINE_LABELS = {"chromium": "Chromium", "moli": "Moli"}
 
-LOWER_IS_BETTER = {
-    "duration_ms",
-    "cpu_ms",
-    "memory_mean_bytes",
-    "memory_p95_bytes",
-    "memory_peak_bytes",
-    "memory_retained_bytes",
-    "memory_mib_seconds",
-    "network_rx_bytes",
-    "network_tx_bytes",
-}
-
-
 def _engines(summary: dict[str, Any]) -> tuple[str, ...]:
     functional = summary.get("functional") or {}
     if functional:
@@ -125,6 +112,36 @@ class ComparedValue:
     css_class: str
 
 
+@dataclass(frozen=True)
+class MetricSpec:
+    key: str
+    label: str
+    divisor: float
+    unit: str
+    preference: str
+    interpretation: str
+
+
+def _metric_policy(spec: MetricSpec) -> tuple[str, str]:
+    return {
+        "lower": ("低值优", "lower"),
+        "higher": ("高值优", "higher"),
+        "neutral": ("观察项", "neutral"),
+    }[spec.preference]
+
+
+def _validate_metric_contract() -> None:
+    specs = [spec for _, metrics in METRICS for spec in metrics]
+    keys = [spec.key for spec in specs]
+    if len(keys) != len(set(keys)):
+        raise ValueError("resource metric keys must be unique")
+    for spec in specs:
+        if spec.preference not in {"lower", "higher", "neutral"}:
+            raise ValueError(f"unknown preference for {spec.key}: {spec.preference}")
+        if not spec.interpretation.strip():
+            raise ValueError(f"resource metric interpretation is required: {spec.key}")
+
+
 def _comparison_class(value: Any, other: Any, *, higher: bool = False) -> str:
     if not isinstance(value, (int, float)) or not isinstance(other, (int, float)):
         return ""
@@ -171,39 +188,54 @@ def _display_number(value: float | int | None, divisor: float = 1.0) -> float | 
 
 def _grouped_resource_table(
     summary: dict[str, Any],
-    metrics: tuple[tuple[str, str, float, str], ...],
+    metrics: tuple[MetricSpec, ...],
     caption: str,
 ) -> str:
     values_by_engine = (summary.get("resource_comparison") or {}).get("by_engine") or {}
     engines = _engines(summary)
     body = []
-    for key, label, divisor, unit in metrics:
-        cells = [f'<td data-label="指标">{_e(f"{label} ({unit})")}</td>']
+    for spec in metrics:
+        policy_label, policy_class = _metric_policy(spec)
+        cells = [
+            f'<td data-label="指标"><span>{_e(f"{spec.label} ({spec.unit})")}</span>'
+            f'<small class="metric-policy {policy_class}" title="{_e(spec.interpretation)}">'
+            f'{_e(policy_label)}</small></td>'
+        ]
         for stat in ("p50", "p95", "mean"):
             displayed = {
                 engine: _display_number(
-                    _numeric_stat(((values_by_engine.get(engine) or {}).get(key) or {}), stat),
-                    divisor,
+                    _numeric_stat(
+                        ((values_by_engine.get(engine) or {}).get(spec.key) or {}), stat
+                    ),
+                    spec.divisor,
                 )
                 for engine in engines
             }
             available = [value for value in displayed.values() if value is not None]
-            best = min(available) if available else None
+            best = (
+                min(available)
+                if spec.preference == "lower" and available
+                else max(available)
+                if spec.preference == "higher" and available
+                else None
+            )
             unique_best = best is not None and available.count(best) == 1
             for engine in engines:
-                value = _numeric_stat(((values_by_engine.get(engine) or {}).get(key) or {}), stat)
-                shown = displayed[engine]
-                css_class = (
-                    "better"
-                    if key in LOWER_IS_BETTER and unique_best and shown == best
-                    else ""
+                value = _numeric_stat(
+                    ((values_by_engine.get(engine) or {}).get(spec.key) or {}), stat
                 )
+                shown = displayed[engine]
+                css_class = "better" if unique_best and shown == best else ""
                 class_attr = f' class="{css_class}"' if css_class else ""
                 cells.append(
                     f'<td data-label="{_e(stat.upper())} · {_e(_engine_label(engine))}"'
-                    f'{class_attr}>{_e(_show(value, divisor))}</td>'
+                    f'{class_attr}>{_e(_show(value, spec.divisor))}</td>'
                 )
-        body.append("<tr>" + "".join(cells) + "</tr>")
+        body.append(
+            f'<tr data-metric="{_e(spec.key)}" data-preference="{_e(spec.preference)}">'
+            + "".join(cells)
+            + "</tr>"
+        )
     group_headers = "".join(
         f'<th colspan="{len(engines)}">{label}</th>'
         for label in ("P50", "P95", "平均值")
@@ -214,6 +246,8 @@ def _grouped_resource_table(
         for engine in engines
     )
     return (
+        '<p class="metric-legend"><strong>判读：</strong>绿色粗体表示该统计列中有明确方向的唯一较优值；'
+        '“观察项”只展示测量结果，不判胜负。</p>'
         f'<div class="table-wrap resource-summary" role="region" aria-label="{_e(caption)}" tabindex="0"><table><caption>{_e(caption)}</caption>'
         f'<thead><tr><th rowspan="2">指标</th>{group_headers}</tr><tr>{engine_headers}</tr></thead><tbody>'
         + "".join(body)
@@ -223,7 +257,7 @@ def _grouped_resource_table(
 
 def _relative_ratio_tables(
     summary: dict[str, Any],
-    metrics: tuple[tuple[str, str, float, str], ...],
+    metrics: tuple[MetricSpec, ...],
 ) -> str:
     comparison = summary.get("resource_comparison") or {}
     relative = comparison.get("relative_ratios") or {}
@@ -241,22 +275,24 @@ def _relative_ratio_tables(
     modules = []
     for engine, ratio_metrics in by_engine.items():
         rows = []
-        for key, label, _, _ in metrics:
-            values = ratio_metrics.get(key) or {}
-            cells: list[Any] = [label]
+        for spec in metrics:
+            values = ratio_metrics.get(spec.key) or {}
+            policy_label, _ = _metric_policy(spec)
+            cells: list[Any] = [f"{spec.label} · {policy_label}"]
             for stat in ("p50", "p95", "mean"):
                 value = _numeric_stat(values, stat)
-                css = (
-                    "better"
-                    if key in LOWER_IS_BETTER and isinstance(value, (int, float)) and value < 1
-                    else ""
-                )
+                css = ""
+                if spec.preference != "neutral" and isinstance(value, (int, float)):
+                    css = _comparison_class(
+                        value, 1, higher=spec.preference == "higher"
+                    )
                 cells.append(ComparedValue(_show(value, suffix="×"), css))
             rows.append(cells)
         pair = f"{_engine_label(str(engine))} / {_engine_label(baseline)}"
         modules.append(
-            f'<details class="ratio-module"><summary>逐任务比值 · {_e(pair)}</summary>'
-            '<p class="muted">每个共同通过任务先相除，再汇总。0.50× 表示前者为基准浏览器的一半，2.00× 表示两倍。</p>'
+            f'<details class="ratio-module" data-formula="per-task-ratio"><summary>逐任务比值 · {_e(pair)}</summary>'
+            '<p class="muted">每个共同通过任务先相除，再汇总。0.50× 表示前者为基准浏览器的一半，2.00× 表示两倍。'
+            '有明确方向的指标以绿色表示前者更优、红色表示前者更差；观察项不判胜负。</p>'
             + _table(["指标", "P50", "P95", "平均值"], rows, f"{pair} 逐任务比值")
             + "</details>"
         )
@@ -303,7 +339,7 @@ def _shell(
     )
     pager = "" if detail_title else f'<div class="pager">{prev_link}{next_link}</div>'
     return f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(detail_title) or label}｜WebArena 固定轨迹回放评测</title><style>
-:root{{--ink:#172033;--muted:#5f6c81;--line:#d7deeb;--panel:#f4f7fb;--accent:#2552c7;--good:#117454;--bad:#b42318;--warn:#9a6700}}*{{box-sizing:border-box}}html{{scroll-behavior:smooth;max-width:100%;overflow-x:hidden}}body{{margin:0;max-width:100%;overflow-x:hidden;background:#f3f6fa;color:var(--ink);font:15px/1.68 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}}a{{color:var(--accent)}}header{{max-width:100%;overflow:hidden;background:#ffffffed;border-bottom:1px solid var(--line);backdrop-filter:blur(12px)}}.wrap,main,footer{{width:100%;min-width:0;max-width:1240px;margin:auto;padding-left:24px;padding-right:24px}}.brand{{min-width:0;padding:20px 0 8px}}.eyebrow{{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:800}}h1{{font-size:32px;line-height:1.2;margin:5px 0;overflow-wrap:anywhere}}h2{{font-size:22px;margin:0 0 12px}}h3{{font-size:17px;margin:18px 0 8px}}p,ul,ol{{margin:8px 0}}.muted{{color:var(--muted)}}nav{{width:100%;min-width:0;display:flex;gap:3px;overflow:auto;overscroll-behavior-inline:contain;padding-bottom:12px;scrollbar-width:thin}}nav a{{white-space:nowrap;text-decoration:none;color:var(--muted);padding:7px 9px;border-radius:8px;font-size:13px}}nav a:hover{{background:#f1f4f9;color:var(--ink)}}nav a.active{{background:#e8eeff;color:#173fa8;font-weight:750}}main{{overflow:hidden;padding-top:24px;padding-bottom:44px}}.card{{min-width:0;background:#fff;border:1px solid var(--line);border-radius:16px;padding:26px;margin-bottom:18px;box-shadow:0 5px 18px #2637560a}}.hero{{padding:30px 34px;background:#fff}}.hero h2{{font-size:28px;line-height:1.3;max-width:900px;overflow-wrap:anywhere}}.grid{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}}.metric{{min-width:0;background:var(--panel);border-radius:12px;padding:17px;border:1px solid #e7ecf4}}.metric strong{{display:block;font-size:26px;line-height:1.25}}.metric span{{color:var(--muted);font-size:13px}}.metric.good{{background:#f1fbf7;border-color:#b7e2d2}}.metric.good strong{{color:var(--good)}}.metric.warn{{background:#fff9e8;border-color:#ead9a2}}.metric.warn strong{{color:var(--warn)}}.insight-grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}.insight{{min-width:0;border:1px solid var(--line);border-radius:13px;padding:18px;background:#fff}}.insight.good{{border-left:5px solid var(--good);background:#f6fcf9}}.insight.warn{{border-left:5px solid var(--warn);background:#fffaf0}}.insight h3{{margin:0 0 6px}}.insight strong{{font-size:22px}}.score-grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}}.score-card{{min-width:0;border:1px solid var(--line);border-radius:13px;padding:18px}}.score-card h3{{margin:0 0 12px}}.score-line{{display:grid;grid-template-columns:92px 1fr 72px;gap:10px;align-items:center;margin:9px 0}}.bar{{height:10px;background:#e6ebf3;border-radius:99px;overflow:hidden}}.bar>i{{display:block;height:100%;background:var(--accent);border-radius:99px}}.score-card.moli .bar>i{{background:#7057d9}}.principles,.hypothesis-grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}}.principles>div,.hypothesis-grid>div{{background:var(--panel);border-radius:10px;padding:14px}}.principles strong,.principles span,.hypothesis-grid strong,.hypothesis-grid span{{display:block}}.principles span,.hypothesis-grid span{{margin-top:4px;color:var(--muted)}}.call{{border-left:3px solid #9eb2ef;background:var(--panel);padding:10px 12px;margin:8px 0;border-radius:0 8px 8px 0}}.chip{{display:inline-block;font-size:12px;background:#eaf0fb;border-radius:999px;padding:2px 8px;margin:2px}}.task-verification{{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}}.task-verification>div,.diagnosis-facts>div{{background:var(--panel);border-radius:9px;padding:11px 12px}}.task-verification>div:last-child{{grid-column:1/-1}}.task-verification strong,.task-verification span,.diagnosis-facts strong,.diagnosis-facts span{{display:block}}.task-verification span,.diagnosis-facts span{{margin-top:3px}}.table-wrap{{max-width:100%;overflow:auto;overscroll-behavior-inline:contain;border:1px solid var(--line);border-radius:10px;margin:12px 0;scrollbar-width:thin}}.table-wrap:focus-visible,.record-grid:focus-visible{{outline:3px solid var(--accent);outline-offset:2px}}table{{width:100%;border-collapse:collapse;min-width:760px}}caption{{text-align:left;padding:11px 12px;font-weight:750}}th,td{{border-top:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}}th{{background:var(--panel);font-size:13px}}.resource-summary table{{min-width:860px}}.resource-summary thead:first-of-type th{{text-align:center}}.resource-summary thead:first-of-type th:first-child{{text-align:left}}.better{{color:var(--good);font-weight:800}}.worse{{color:var(--bad);font-weight:800}}details{{border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin:9px 0}}summary{{cursor:pointer;font-weight:750}}pre{{white-space:pre-wrap;overflow-wrap:anywhere;background:#111827;color:#e5edf8;padding:13px;border-radius:8px;font:12px/1.55 ui-monospace,monospace}}code{{font-family:ui-monospace,monospace}}.trace{{border-left:3px solid #b9c5da;padding-left:12px;margin:10px 0}}.ok{{color:var(--good)}}.bad{{color:var(--bad)}}.note{{border-left:5px solid var(--accent)}}.note-inline{{background:#fff8e8;border-left:4px solid var(--warn);padding:11px 13px;border-radius:0 8px 8px 0}}.pager{{display:flex;justify-content:space-between;gap:18px;margin-top:22px}}.pager a:last-child{{text-align:right}}.filters{{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:10px;background:var(--panel);padding:14px;border-radius:10px;margin:14px 0}}.filters label{{font-size:12px;color:var(--muted);font-weight:700}}.filters select,.filters input{{display:block;width:100%;margin-top:4px;padding:8px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink)}}.filters button{{align-self:end;padding:8px 12px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--accent);font-weight:700;cursor:pointer}}.filters button:hover{{background:#e8eeff}}.filter-status{{align-self:end;color:var(--muted)}}.execution-card[hidden]{{display:none}}.record-grid{{max-width:100%;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff}}.record-grid-head,.execution-summary{{display:grid;grid-template-columns:minmax(260px,2.2fr) minmax(95px,.7fr) minmax(80px,.55fr) minmax(90px,.6fr) minmax(190px,1.25fr) minmax(110px,.75fr);gap:12px;align-items:center;min-width:970px;padding:10px 12px}}.record-grid-head{{background:var(--panel);font-size:13px;font-weight:800}}.execution-card{{border-top:1px solid var(--line)}}.execution-card:first-of-type{{border-top:0}}.execution-card>details{{border:0;border-radius:0;padding:0;margin:0}}.execution-card>details>summary{{list-style:none}}.execution-card>details>summary::-webkit-details-marker{{display:none}}.execution-summary>span:first-child::before{{content:"▸";color:var(--accent);display:inline-block;width:16px}}.execution-card>details[open] .execution-summary>span:first-child::before{{content:"▾"}}.execution-body{{border-top:1px solid var(--line);padding:18px 20px;background:#fbfcff;min-width:950px}}.diagnosis-panel{{border-left:4px solid var(--bad);background:#fff6f5;border-radius:0 10px 10px 0;padding:14px 16px;margin-bottom:16px}}.diagnosis-panel h3{{margin-top:0}}.diagnosis-facts{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}}.raw-evidence{{background:#fff}}footer{{padding-bottom:30px;color:var(--muted)}}@media(max-width:760px){{.wrap,main,footer{{padding-left:14px;padding-right:14px}}.brand{{padding-top:16px}}.score-grid,.insight-grid,.task-verification,.diagnosis-facts,.principles,.hypothesis-grid{{grid-template-columns:1fr}}.grid{{grid-template-columns:repeat(2,minmax(0,1fr))}}.task-verification>div:last-child{{grid-column:auto}}.filters{{grid-template-columns:1fr 1fr}}.card{{padding:18px;border-radius:12px}}.hero{{padding:22px 20px}}.hero h2{{font-size:22px}}h1{{font-size:25px}}nav{{margin-right:-14px}}}}@media(max-width:480px){{.metric{{padding:14px 12px}}.metric strong{{font-size:23px}}.filters{{grid-template-columns:1fr}}.score-line{{grid-template-columns:82px 1fr 58px;gap:7px}}}}
+:root{{--ink:#172033;--muted:#5f6c81;--line:#d7deeb;--panel:#f4f7fb;--accent:#2552c7;--good:#117454;--bad:#b42318;--warn:#9a6700}}*{{box-sizing:border-box}}html{{scroll-behavior:smooth;max-width:100%;overflow-x:hidden}}body{{margin:0;max-width:100%;overflow-x:hidden;background:#f3f6fa;color:var(--ink);font:15px/1.68 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}}a{{color:var(--accent)}}header{{max-width:100%;overflow:hidden;background:#ffffffed;border-bottom:1px solid var(--line);backdrop-filter:blur(12px)}}.wrap,main,footer{{width:100%;min-width:0;max-width:1240px;margin:auto;padding-left:24px;padding-right:24px}}.brand{{min-width:0;padding:20px 0 8px}}.eyebrow{{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:800}}h1{{font-size:32px;line-height:1.2;margin:5px 0;overflow-wrap:anywhere}}h2{{font-size:22px;margin:0 0 12px}}h3{{font-size:17px;margin:18px 0 8px}}p,ul,ol{{margin:8px 0}}.muted{{color:var(--muted)}}nav{{width:100%;min-width:0;display:flex;gap:3px;overflow:auto;overscroll-behavior-inline:contain;padding-bottom:12px;scrollbar-width:thin}}nav a{{white-space:nowrap;text-decoration:none;color:var(--muted);padding:7px 9px;border-radius:8px;font-size:13px}}nav a:hover{{background:#f1f4f9;color:var(--ink)}}nav a.active{{background:#e8eeff;color:#173fa8;font-weight:750}}main{{overflow:hidden;padding-top:24px;padding-bottom:44px}}.card{{min-width:0;background:#fff;border:1px solid var(--line);border-radius:16px;padding:26px;margin-bottom:18px;box-shadow:0 5px 18px #2637560a}}.hero{{padding:30px 34px;background:#fff}}.hero h2{{font-size:28px;line-height:1.3;max-width:900px;overflow-wrap:anywhere}}.grid{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}}.metric{{min-width:0;background:var(--panel);border-radius:12px;padding:17px;border:1px solid #e7ecf4}}.metric strong{{display:block;font-size:26px;line-height:1.25}}.metric span{{color:var(--muted);font-size:13px}}.metric.good{{background:#f1fbf7;border-color:#b7e2d2}}.metric.good strong{{color:var(--good)}}.metric.warn{{background:#fff9e8;border-color:#ead9a2}}.metric.warn strong{{color:var(--warn)}}.insight-grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}.insight{{min-width:0;border:1px solid var(--line);border-radius:13px;padding:18px;background:#fff}}.insight.good{{border-left:5px solid var(--good);background:#f6fcf9}}.insight.warn{{border-left:5px solid var(--warn);background:#fffaf0}}.insight h3{{margin:0 0 6px}}.insight strong{{font-size:22px}}.score-grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}}.score-card{{min-width:0;border:1px solid var(--line);border-radius:13px;padding:18px}}.score-card h3{{margin:0 0 12px}}.score-line{{display:grid;grid-template-columns:92px 1fr 72px;gap:10px;align-items:center;margin:9px 0}}.bar{{height:10px;background:#e6ebf3;border-radius:99px;overflow:hidden}}.bar>i{{display:block;height:100%;background:var(--accent);border-radius:99px}}.score-card.moli .bar>i{{background:#7057d9}}.principles,.hypothesis-grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}}.principles>div,.hypothesis-grid>div{{background:var(--panel);border-radius:10px;padding:14px}}.principles strong,.principles span,.hypothesis-grid strong,.hypothesis-grid span{{display:block}}.principles span,.hypothesis-grid span{{margin-top:4px;color:var(--muted)}}.call{{border-left:3px solid #9eb2ef;background:var(--panel);padding:10px 12px;margin:8px 0;border-radius:0 8px 8px 0}}.chip{{display:inline-block;font-size:12px;background:#eaf0fb;border-radius:999px;padding:2px 8px;margin:2px}}.task-verification{{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}}.task-verification>div,.diagnosis-facts>div{{background:var(--panel);border-radius:9px;padding:11px 12px}}.task-verification>div:last-child{{grid-column:1/-1}}.task-verification strong,.task-verification span,.diagnosis-facts strong,.diagnosis-facts span{{display:block}}.task-verification span,.diagnosis-facts span{{margin-top:3px}}.table-wrap{{max-width:100%;overflow:auto;overscroll-behavior-inline:contain;border:1px solid var(--line);border-radius:10px;margin:12px 0;scrollbar-width:thin}}.table-wrap:focus-visible,.record-grid:focus-visible{{outline:3px solid var(--accent);outline-offset:2px}}table{{width:100%;border-collapse:collapse;min-width:760px}}caption{{text-align:left;padding:11px 12px;font-weight:750}}th,td{{border-top:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}}th{{background:var(--panel);font-size:13px}}.resource-summary table{{min-width:860px}}.resource-summary thead:first-of-type th{{text-align:center}}.resource-summary thead:first-of-type th:first-child{{text-align:left}}.metric-legend{{margin:8px 0 4px;color:var(--muted);font-size:12px}}.metric-policy{{display:inline-block;margin-left:7px;padding:1px 6px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:10px;font-weight:750;white-space:nowrap}}.metric-policy.lower,.metric-policy.higher{{border-color:#b7e2d2;color:var(--good);background:#f1fbf7}}.better{{color:var(--good);font-weight:800}}.worse{{color:var(--bad);font-weight:800}}details{{border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin:9px 0}}summary{{cursor:pointer;font-weight:750}}pre{{white-space:pre-wrap;overflow-wrap:anywhere;background:#111827;color:#e5edf8;padding:13px;border-radius:8px;font:12px/1.55 ui-monospace,monospace}}code{{font-family:ui-monospace,monospace}}.trace{{border-left:3px solid #b9c5da;padding-left:12px;margin:10px 0}}.ok{{color:var(--good)}}.bad{{color:var(--bad)}}.note{{border-left:5px solid var(--accent)}}.note-inline{{background:#fff8e8;border-left:4px solid var(--warn);padding:11px 13px;border-radius:0 8px 8px 0}}.pager{{display:flex;justify-content:space-between;gap:18px;margin-top:22px}}.pager a:last-child{{text-align:right}}.filters{{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:10px;background:var(--panel);padding:14px;border-radius:10px;margin:14px 0}}.filters label{{font-size:12px;color:var(--muted);font-weight:700}}.filters select,.filters input{{display:block;width:100%;margin-top:4px;padding:8px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink)}}.filters button{{align-self:end;padding:8px 12px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--accent);font-weight:700;cursor:pointer}}.filters button:hover{{background:#e8eeff}}.filter-status{{align-self:end;color:var(--muted)}}.execution-card[hidden]{{display:none}}.record-grid{{max-width:100%;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff}}.record-grid-head,.execution-summary{{display:grid;grid-template-columns:minmax(260px,2.2fr) minmax(95px,.7fr) minmax(80px,.55fr) minmax(90px,.6fr) minmax(190px,1.25fr) minmax(110px,.75fr);gap:12px;align-items:center;min-width:970px;padding:10px 12px}}.record-grid-head{{background:var(--panel);font-size:13px;font-weight:800}}.execution-card{{border-top:1px solid var(--line)}}.execution-card:first-of-type{{border-top:0}}.execution-card>details{{border:0;border-radius:0;padding:0;margin:0}}.execution-card>details>summary{{list-style:none}}.execution-card>details>summary::-webkit-details-marker{{display:none}}.execution-summary>span:first-child::before{{content:"▸";color:var(--accent);display:inline-block;width:16px}}.execution-card>details[open] .execution-summary>span:first-child::before{{content:"▾"}}.execution-body{{border-top:1px solid var(--line);padding:18px 20px;background:#fbfcff;min-width:950px}}.diagnosis-panel{{border-left:4px solid var(--bad);background:#fff6f5;border-radius:0 10px 10px 0;padding:14px 16px;margin-bottom:16px}}.diagnosis-panel h3{{margin-top:0}}.diagnosis-facts{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}}.raw-evidence{{background:#fff}}footer{{padding-bottom:30px;color:var(--muted)}}@media(max-width:760px){{.wrap,main,footer{{padding-left:14px;padding-right:14px}}.brand{{padding-top:16px}}.score-grid,.insight-grid,.task-verification,.diagnosis-facts,.principles,.hypothesis-grid{{grid-template-columns:1fr}}.grid{{grid-template-columns:repeat(2,minmax(0,1fr))}}.task-verification>div:last-child{{grid-column:auto}}.filters{{grid-template-columns:1fr 1fr}}.card{{padding:18px;border-radius:12px}}.hero{{padding:22px 20px}}.hero h2{{font-size:22px}}h1{{font-size:25px}}nav{{margin-right:-14px}}}}@media(max-width:480px){{.metric{{padding:14px 12px}}.metric strong{{font-size:23px}}.filters{{grid-template-columns:1fr}}.score-line{{grid-template-columns:82px 1fr 58px;gap:7px}}}}
 @media(max-width:760px){{.stackable{{border:0;overflow:visible}}.stackable table,.stackable tbody,.stackable tr,.stackable td{{display:block;width:100%}}.stackable table{{min-width:0}}.stackable thead{{display:none}}.stackable caption{{display:block;margin-bottom:10px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}}.stackable tbody{{display:grid;gap:10px}}.stackable tr{{border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}}.stackable td{{display:grid;grid-template-columns:minmax(105px,.8fr) minmax(0,1.4fr);gap:12px;border-top:1px solid var(--line);overflow-wrap:anywhere}}.stackable td:first-child{{border-top:0}}.stackable td::before{{content:attr(data-label);color:var(--muted);font-size:12px;font-weight:750}}:is(.resource-summary,.rule-comparison,.step-comparison)::before{{content:"左右滑动查看完整表格 →";display:block;padding:8px 10px;color:var(--muted);font-size:12px;font-weight:700;background:#fff}}.record-grid{{overflow:visible;border:0}}.record-grid-head{{display:none}}.execution-card{{margin-bottom:10px;border:1px solid var(--line);border-radius:9px;overflow:hidden}}.execution-summary{{min-width:0;grid-template-columns:1fr 1fr;padding:13px}}.execution-summary>span{{display:grid;grid-template-columns:70px minmax(0,1fr);gap:8px;overflow-wrap:anywhere}}.execution-summary>span::before{{content:attr(data-label);color:var(--muted);font-size:12px;font-weight:700;width:auto}}.execution-summary>span:first-child{{grid-column:1/-1;font-weight:750}}.execution-summary>span:first-child::before{{content:attr(data-label);width:auto}}.execution-summary>span:nth-child(5){{grid-column:1/-1}}}}@media(max-width:480px){{.stackable td{{grid-template-columns:95px minmax(0,1fr)}}}}
 .execution-summary{{text-decoration:none;color:var(--ink);font-weight:600}}.execution-summary:hover{{background:#edf3ff}}.execution-summary:focus-visible{{outline:3px solid var(--accent);outline-offset:-3px}}.execution-summary>span:first-child::before{{content:"→"}}.attempt-block{{margin-top:24px}}.ok,.bad{{font-weight:750}}.hypothesis-grid{{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:760px){{.hypothesis-grid{{grid-template-columns:1fr}}}}
 [hidden]{{display:none!important}}.section-heading{{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}}.section-heading h2,.section-heading h3{{margin:0}}.section-heading>a{{font-size:13px;text-decoration:none}}.provider-failure-link{{display:inline-flex;gap:12px;align-items:center;white-space:nowrap;border:1px solid #d7e1fa;background:#f3f6ff;padding:5px 10px;border-radius:7px;text-decoration:none;font-size:13px;font-weight:650}}.provider-failure-link:hover{{background:#e5edff}}.provider-failure-link:focus-visible{{outline:2px solid var(--accent);outline-offset:2px}}.suite-filter-panel{{background:#f8faff}}.suite-filter-controls{{display:grid;grid-template-columns:minmax(200px,1.8fr) minmax(110px,1fr) minmax(160px,1.4fr) minmax(110px,1fr) auto;gap:12px;align-items:end}}.suite-filter-controls label{{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:650;color:var(--muted)}}.suite-filter-controls input,.suite-filter-controls select,.suite-filter-controls button{{width:100%;min-width:0;height:40px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:14px system-ui;background:white;color:var(--ink)}}.suite-filter-controls button{{color:var(--accent);cursor:pointer;font-weight:650}}.suite-filter-controls :is(input,select,button):focus-visible{{outline:2px solid var(--accent);outline-offset:2px}}.empty-state{{text-align:center;padding:44px;color:var(--muted)}}@media(max-width:900px){{.suite-filter-controls{{grid-template-columns:repeat(2,minmax(0,1fr))}}.suite-search{{grid-column:1/-1}}}}@media(max-width:600px){{.section-heading{{align-items:flex-start;flex-wrap:wrap}}}}
@@ -1018,36 +1054,37 @@ METRICS = (
     (
         "时间与计算",
         (
-            ("duration_ms", "轨迹执行耗时", 1, "ms"),
-            ("cpu_ms", "CPU 时间", 1, "ms"),
-            ("cpu_average_utilization_pct", "平均 CPU 占单核", 1, "%"),
-            ("cpu_sampled_utilization_p95_pct", "任务内 CPU P95", 1, "%"),
+            MetricSpec("duration_ms", "轨迹执行耗时", 1, "ms", "lower", "完成同一轨迹所需时间，低值表示更快"),
+            MetricSpec("cpu_ms", "CPU 时间", 1, "ms", "lower", "完成同一轨迹消耗的 CPU 时间，低值表示计算开销较小"),
+            MetricSpec("cpu_average_utilization_pct", "平均 CPU 占单核", 1, "%", "neutral", "利用率受并行度与任务完成速度共同影响，不能单独判定优劣"),
+            MetricSpec("cpu_sampled_utilization_p95_pct", "任务内 CPU P95", 1, "%", "neutral", "尾部利用率反映瞬时压力，不能脱离耗时与工作量判定优劣"),
         ),
     ),
     (
         "内存",
         (
-            ("memory_mean_bytes", "时间加权平均内存", 1048576, "MiB"),
-            ("memory_p95_bytes", "任务内存 P95", 1048576, "MiB"),
-            ("memory_peak_bytes", "峰值内存", 1048576, "MiB"),
-            ("memory_retained_bytes", "结束保留增量", 1048576, "MiB"),
-            ("memory_mib_seconds", "内存占用积分", 1, "MiB·s"),
+            MetricSpec("memory_mean_bytes", "时间加权平均内存", 1048576, "MiB", "lower", "完成同一轨迹时的平均常驻内存，低值表示占用较小"),
+            MetricSpec("memory_p95_bytes", "任务内存 P95", 1048576, "MiB", "lower", "完成同一轨迹时的尾部内存，低值表示尾部占用较小"),
+            MetricSpec("memory_peak_bytes", "峰值内存", 1048576, "MiB", "lower", "完成同一轨迹时的峰值内存，低值表示峰值占用较小"),
+            MetricSpec("memory_retained_bytes", "结束保留增量", 1048576, "MiB", "lower", "轨迹结束后相对基线的保留增量，低值表示残留较少"),
+            MetricSpec("memory_mib_seconds", "内存占用积分", 1, "MiB·s", "lower", "内存占用与持续时间的积分，低值表示综合资源代价较小"),
         ),
     ),
     (
         "网络",
         (
-            ("network_rx_bytes", "接收总量 RX", 1024, "KiB"),
-            ("network_tx_bytes", "发送总量 TX", 1024, "KiB"),
-            ("network_rx_bytes_per_second", "平均接收速率", 1024, "KiB/s"),
-            ("network_rx_rate_p95_bytes_per_second", "任务内接收速率 P95", 1024, "KiB/s"),
-            ("network_tx_rate_p95_bytes_per_second", "任务内发送速率 P95", 1024, "KiB/s"),
+            MetricSpec("network_rx_bytes", "接收总量 RX", 1024, "KiB", "lower", "完成同一轨迹接收的总字节数，低值表示网络总量较小"),
+            MetricSpec("network_tx_bytes", "发送总量 TX", 1024, "KiB", "lower", "完成同一轨迹发送的总字节数，低值表示网络总量较小"),
+            MetricSpec("network_rx_bytes_per_second", "平均接收速率", 1024, "KiB/s", "neutral", "速率受传输总量与持续时间共同影响，不能单独判定优劣"),
+            MetricSpec("network_rx_rate_p95_bytes_per_second", "任务内接收速率 P95", 1024, "KiB/s", "neutral", "接收速率尾部反映流量集中程度，不能单独判定优劣"),
+            MetricSpec("network_tx_rate_p95_bytes_per_second", "任务内发送速率 P95", 1024, "KiB/s", "neutral", "发送速率尾部反映流量集中程度，不能单独判定优劣"),
         ),
     ),
 )
 
 
 def _metric_tables(summary: dict[str, Any]) -> str:
+    _validate_metric_contract()
     modules = []
     for index, (group, metrics) in enumerate(METRICS):
         modules.append(
@@ -1327,13 +1364,18 @@ def _task_detail_body(
     )
     resource_rows = []
     for _, metrics in METRICS:
-        for key, label, divisor, unit in metrics:
-            if key == "duration_ms" or not any(key in (a.get("resource") or {}) for a in attempts):
+        for spec in metrics:
+            if spec.key == "duration_ms" or not any(
+                spec.key in (a.get("resource") or {}) for a in attempts
+            ):
                 continue
             resource_rows.append(
                 [
-                    f"{label} ({unit})",
-                    *[_show((a.get("resource") or {}).get(key), divisor) for a in attempts],
+                    f"{spec.label} ({spec.unit})",
+                    *[
+                        _show((a.get("resource") or {}).get(spec.key), spec.divisor)
+                        for a in attempts
+                    ],
                 ]
             )
     resources = (

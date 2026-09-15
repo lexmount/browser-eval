@@ -21,6 +21,8 @@ Read the repository's `AGENTS.md` first. Project rules override this general ski
 8. Build the public report from the frozen evidence. Every page should answer a reader question. Show task and run identifiers, the exact expected-versus-actual evidence behind a verdict, denominators and unavailable metrics, method differences, limits, concise reproduction instructions, and a compact review history.
 9. Choose release gates by what changed. Presentation-only updates reuse the frozen evidence and run targeted renderer tests, binding/link/privacy checks, plus deployed-output verification. Run the full code/evidence audit when the dataset, runner, scorer, measured evidence, or claimed result changes. Repeat visual checks when layout or style changes, not for text-only or release-metadata edits. Preserve earlier sites unless replacement was explicitly requested.
 
+When a report changes comparison tables, visual emphasis, navigation, responsive layout, or result drill-down, read [presentation quality](references/presentation-quality.md). Apply its checks only to the affected presentation surfaces; do not turn a local display change into an unrelated full benchmark rerun.
+
 ## Stop conditions
 
 Do not publish while the exact method matrix is incomplete, references required for the claimed metrics are unverified, review coverage is incomplete, unresolved adjudications remain, output identities cannot be reproduced, or the publication target is ambiguous. Report the narrow blocker; do not silently weaken the benchmark.

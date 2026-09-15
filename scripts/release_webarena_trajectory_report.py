@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT))
 
 from harness.browser_use.report import write_latest_report  # noqa: E402
 from harness.browser_use.result_audit import audit_result_set  # noqa: E402
+from scripts.check_webarena_trajectory_report import check_report_bundle  # noqa: E402
 from scripts.package_webarena_trajectory_report import build  # noqa: E402
 
 CURRENT = ROOT / "evaluation/browser-use-public/current-report.json"
@@ -84,9 +85,11 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="webarena-trajectory-release-") as temporary:
         staged = Path(temporary) / "formal"
         _stage(args.formal_root.resolve(), staged)
+        semantic_checks = check_report_bundle(staged)
         attestation = build(staged, ARCHIVE, ATTESTATION)
         print(
-            f"FAST GATES PASS: report binding, internal links, privacy scan, archive hash; "
+            "FAST GATES PASS: comparison semantics, report binding, internal links, "
+            f"privacy scan, archive hash; {semantic_checks['metrics']} metrics, "
             f"{attestation['files']} files"
         )
         print(

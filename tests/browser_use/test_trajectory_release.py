@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
+from harness.browser_use.report import METRICS
 from scripts import release_webarena_trajectory_report as release
+from scripts.check_webarena_trajectory_report import check_report_bundle
 
 
 def test_stage_builds_report_without_mutating_source_evidence(tmp_path):
@@ -71,7 +75,20 @@ def test_stage_builds_report_without_mutating_source_evidence(tmp_path):
     method = staged / "reports/webarena-trajectory-replay-latest-method.html"
     assert method.is_file()
     assert "核验结论" in method.read_text(encoding="utf-8")
+    assert check_report_bundle(staged) == {
+        "pages": 6,
+        "metrics": sum(len(metrics) for _, metrics in METRICS),
+        "ratio_modules": 0,
+    }
     assert (source / "run/summary.json").read_bytes() == before
+
+    homepage = staged / "reports/webarena-trajectory-replay-latest.html"
+    broken = homepage.read_text(encoding="utf-8").replace(
+        'data-preference="neutral">', 'data-preference="neutral"><b class="better">wrong</b>', 1
+    )
+    homepage.write_text(broken, encoding="utf-8")
+    with pytest.raises(ValueError, match="neutral metric must not declare a winner"):
+        check_report_bundle(staged)
 
 
 def test_profile_is_updated_only_with_verified_publication_values(tmp_path, monkeypatch):
