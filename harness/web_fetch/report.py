@@ -17,6 +17,7 @@ from .report_components import tabs, metric_guide, metric_legend, examples, refe
 from .failure_diagnosis import diagnose
 from .safety import contained_path, safe_href, validate_report_ids
 from .models import execution_id
+from .report_resources import render_resource_comparison
 
 TRACKS={'web':'静态网站正文','dynamic':'动态网站正文','challenge':'热门网站正文','document':'文档正文','image':'图片获取','video':'视频获取'}
 PROVIDER_LABELS={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.1','moli-1.1.3':'Moli 1.1.3'}
@@ -645,6 +646,14 @@ def overview_matched_latency(records,cases):
           +'<details><summary>共同任务与调用日期</summary><p>'+links+'</p><p>'+'<br>'.join(dates)+'</p></details>')
  return '<details class="ranking-metric-help"><summary>按需查看共同成功任务耗时</summary>'+content+'</details>'
 
+def overview_resources(out):
+ path=out/'resource-cohort/resource-comparison.json'
+ if not path.is_file():
+  return '<p>当前证据没有独立的客户端资源测量；不从耗时或进程体积推测 CPU 与内存。</p>'
+ summary=json.loads(path.read_text())
+ rendered,_=render_resource_comparison(summary,['lightpanda','moli','obscura','chromium','kitesurf'])
+ return rendered
+
 def title_diagnostics(groups,selected,base,identifier):
  rows=[]
  for name,rs in sorted(groups.items()):
@@ -805,6 +814,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  home+=section(f'{track_label} 类任务概览',review_summary(out)+'<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p><p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
  home+=section('综合通过率总榜',overall_ranking(records,cases,audit),'overall-ranking')
  home+=section('全部方法共同成功任务的耗时',overview_matched_latency(records,cases),'overall-matched-latency')
+ if (out/'resource-cohort/resource-comparison.json').is_file():
+  home+=section('CPU、内存与网络',overview_resources(out),'overall-resources')
  home+=section(f'{track_label} 类分榜','<p class="ranking-orientation">分榜用于判断具体能力。默认按任务通过率排序，点击列名可切换；质量分数与通过率分别计算。</p>'+tabs('home-rankings',panels),'results')
  write(out,'index.html','评测报告',home+'</div>')
  controls=filter_controls([('track','类型',tracks),('category','类别',[(x,x) for x in dict.fromkeys(c['category'] for c in cases.values())])])
@@ -1137,13 +1148,22 @@ def write_support(out,records,manifests):
  examples_html=re.sub(r'<a href="../datasets/([^"#]+).html">([^<]*)</a>',lambda m:m[0] if (out/'datasets'/(m[1]+'.html')).exists() else m[2],examples())
  methodology+=section('每类怎么测',examples_html)+section('指标说明',metric_guide())
  methodology+=section('共同输入、计时边界与调用预算','<p>所有方法进入同一个评分入口，但按任务交付物验收，而不是强制使用同一种中间格式。网页与文档正文最终验收可读文本；原始文件任务验收 PDF、DOCX、图片或视频字节；结构任务验收字段和稳定文字。HTML/Markdown 链接与明确配对的结构化名称—链接字段按同一规则核验；不把请求回显或诊断日志当成答案。原始输出与原始适配器状态保留，报告层不按方法名称改写任务结果。</p><div class="guide-grid"><article class="guide-card"><h3>计入耗时</h3><p>从准备发起该次 provider 调用开始，到形成可送入统一评分器的最终答案为止：线程调度、SDK/CLI/HTTP 调用、远端处理与网络下载、浏览器渲染与正文提取、本地解析、统一输入转换，以及文件字节读取、格式识别和 SHA-256 计算均在计时内。</p></article><article class="guide-card"><h3>不计入耗时</h3><p>数据集与参考加载、provider 配置校验、调用间限速等待、最终答案形成后的证据落盘、统一评分计算、报告汇总与页面生成不计入。供应商上报的服务端耗时只作附加证据，排名使用客户端观测的端到端耗时。</p></article></div><p>这个边界比较的是“拿到本任务最终交付物”所需时间：服务直接返回成品时计完整往返；本地方法若还需下载、渲染或解析，也必须完成后才停表。正文任务中，方法只返回原始 PDF 或 DOCX 时，本地正文解析也计时；原始文件任务则到字节校验完成即停止，不做无关的 Markdown 转换。所有方法使用同一外层计时器和截止预算。超时答案不接收；无法取消的调用会被隔离，整批结果因此不完整并触发不可靠状态，构建产物不得发布。</p><p>完整正文任务除原有核对点外，按参考正文最多五个连续位置检查字符六元组覆盖：每个位置至少达到 60%，通常要求至少四处达到 80%。所有位置一次性做全局容量分配；同一返回片段实例只能计入一个位置，位置排列顺序不影响结论。若页面存在经独立证据确认的合法重排，案例可显式登记不同位置门槛。比较忽略空白和排版符号但保留文字顺序；全文 F1 独立保留实际值。文件任务必须有字节验收，资源 URL 不等于文件。</p>')
+ if (out/'resource-cohort/resource-comparison.json').is_file():
+  methodology+=section('资源测量边界','<p>CPU、内存和网络使用独立的 20 题同窗队列，不回填历史正确率调用。每次调用在受限的 Linux 容器中运行，使用 cgroup v2 累计 CPU、独立网络命名空间累计收发字节，并以 50 ms 采样内存与瞬时速率。容器固定为 2 个逻辑 CPU、2 GiB 内存和 512 个 PID；宿主控制器与容器启停不计入。</p><p>资源汇总只纳入四种本地配置共同通过的任务，避免把快速失败当成节省资源，并覆盖容器内 worker、浏览器与转换过程。Kitesurf 的远端 CPU、内存和上游流量不可见，因此不进入资源表。缺少任一资源字段、非 Linux/cgroup v2、镜像或二进制身份变化、并发不为 1，都会阻断资源包构建。</p><p>CPU 与网络总量来自累计计数；内存峰值和速率分位数依赖 50 ms 采样，可能遗漏更短的尖峰。报告分别呈现 CPU、内存、网络和任务通过率，不合成总分。</p>')
  if (out/'scoring-revisions.json').exists():
   revision_links=[link('../scoring-revisions.json','评分规则修订收据')]
   if (out/'reference-revisions.json').exists():revision_links.append(link('../reference-revisions.json','参考答案修订收据'))
   if (out/'latency-corrections.json').exists():revision_links.append(link('../latency-corrections.json','时延纠正收据'))
   if (out/'request-status-corrections.json').exists():revision_links.append(link('../request-status-corrections.json','请求状态纠正收据'))
   detail='当前成绩包含对保存输出的离线重算；收据记录输入、输出哈希、判定变化及供应商调用数，不把新规则伪装成原调用时的运行配置。'
-  if headless and (out/'latency-corrections.json').exists():detail+=' 本轮时延纠正保留旧值与全部物理调用，并按预先固定的最终轮更新权威逻辑结果，不能把跨批次视图当成同时重跑。'
+  if headless and (out/'latency-corrections.json').exists():
+   latency_receipt=json.loads((out/'latency-corrections.json').read_text())
+   changes=latency_receipt.get('changes',[])
+   if changes:
+    affected='、'.join(provider_label(name) for name in sorted({change['provider'] for change in changes}))
+    detail+=(f' 当前报告的 {affected} 时延纠正仅替换 {len(changes)} 个耗时值，'
+             f'统一取配对实验的第 {latency_receipt.get("selected_round", "—")} 轮；'
+             '旧耗时和原始物理调用保留在离线证据，不能把跨批次视图当成同时重跑。')
   methodology+=section('评分来源与修订','<p>'+detail+' '+' · '.join(revision_links)+'</p>')
  methodology+=section('稳定任务契约与全文诊断',task_contract_guide(),'task-contracts')
  figures=''.join(f'<figure><img src="../assets/methodology/{name}.png" alt="{label}" style="max-width:100%;height:auto" loading="lazy"><figcaption>{label}</figcaption></figure>' for name,label in [('annotation','参考标注'),('validation','任务验收'),('scoring','评分口径')] if (out/'assets/methodology'/f'{name}.png').is_file())
@@ -1153,7 +1173,7 @@ def write_support(out,records,manifests):
  methodology+=section('变更后重跑范围','<p>不把“代码有更新”直接等同于全部重跑。只改展示时重建报告；只改裁判且原始输出足够时离线重算；某个参考变化时重跑该题的全部方法；新增或升级单个实现时重跑该方法的全部题；计时边界变化时废弃并重跑同窗测速。只有全局任务输入、调用边界或所有方法共同依赖发生变化，才需要全量重跑。</p>')
  methodology+=section('计算与边界','''<details><summary>全文评分公式</summary><p>完整度＝取回的参考词数 ÷ 参考词数；纯净度＝匹配的正文词数 ÷ 返回词数；F1＝2 × 完整度 × 纯净度 ÷ 两者之和。英文按词、中文按字，统一大小写与 Unicode 字符形式；Markdown 链接只计文字。对有完整参考的全部案例取平均；请求失败计 0，请求成功但任务未通过仍按实际正文评分，没有参考不计算。</p></details><details><summary>参考范围与公平性</summary><p>网页、文档使用独立保存的参考正文；仓库以 README 为准，列表只覆盖指定的已加载范围，不要求无限滚动或跨页翻页。登录页和验证码不能代替目标正文。参考正文自身包含的“404 Not Found”等术语不作为错误页判据。</p><p>不同方法并行，同一方法串行；正文结束后再测其他任务。Firecrawl 每次完成后冷却 6.1 秒。本报告不是 WCXB 官方榜单。</p><p>媒体网址只证明找到入口，不代表取得文件。文件任务没有另接下载器代替参评方法完成。</p></details>''')
  if headless:
-  methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。','七种方法每次使用新进程或新上下文。静态网页正文：Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura 与 Moli 1.0.6、1.1.1、1.1.3 使用各自 CLI 正文能力，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。三个 Moli 版本遇到直接 PDF、DOCX、图片或视频 URL 时均使用不带 --dump 和页面等待参数的自动响应；正文任务在预算内解析可读文字，文件任务直接校验字节。原始主矩阵未启用失败重试，每次调用有 45 秒端到端预算。运行器可在测量前声明至多一次失败重试：保留全部物理证据和总耗时，并固定采用最后一次结果，不能择优。已确认的命令、版本、裁判、参考或测量错误可按完整声明范围重测并替换权威逻辑结果；旧证据不得删除。本报告另对四题、三个 Moli 版本做三轮配对时延纠正，统一采用最终轮的 12 个耗时，不挑最快；内容、评分和判定未改变。方法之间并行、同一方法串行。')
+  methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。','五种方法每次使用新进程或新上下文。静态网页正文：Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura 与 Moli 1.1.1 使用各自 CLI 正文能力，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。Moli 遇到直接 PDF、DOCX、图片或视频 URL 时使用不带 --dump 和页面等待参数的自动响应；正文任务在预算内解析可读文字，文件任务直接校验字节。原始主矩阵未启用失败重试，每次调用有 45 秒端到端预算。运行器可在测量前声明至多一次失败重试：保留全部物理证据和总耗时，并固定采用最后一次结果，不能择优。已确认的命令、版本、裁判、参考或测量错误可按完整声明范围重测并替换权威逻辑结果；旧证据不得删除。历史报告中的 Moli 1.0.6 与 1.1.3 证据继续归档，但不进入当前报告矩阵。方法之间并行、同一方法串行。')
  write(out,'methodology/index.html','评测方法',methodology)
  downloads=' · '.join(link('../'+path,label) for path,label in [('dataset.json','评测集与参考'),('results.jsonl','全部调用记录'),('summary.json','分类汇总'),('execution.json','执行批次')]+([('implementation-provenance.json','版本回溯证据')] if (out/'implementation-provenance.json').is_file() else [])+([('reference-revisions.json','参考修订收据')] if (out/'reference-revisions.json').is_file() else [])+([('scoring-revisions.json','评分修订收据')] if (out/'scoring-revisions.json').is_file() else [])+([('latency-corrections.json','时延纠正收据')] if (out/'latency-corrections.json').is_file() else [])+([('request-status-corrections.json','请求状态纠正收据')] if (out/'request-status-corrections.json').is_file() else []))
  reproduce='<p>在评测仓库中执行；读取 evaluation/ 的当前实测数据，不调用供应商接口。</p><pre>make setup\nmake report EVIDENCE=/absolute/path/to/evidence\nmake report-check</pre><p>输出目录：reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。凭据仅从本地环境加载，不包含在报告中。</p>'
@@ -1192,6 +1212,8 @@ def write_support(out,records,manifests):
  support+=section('代码与评测集',f'<p>{link(repo,"browser-eval 仓库")}保存当前评测代码、任务定义和独立参考；本报告另提供本轮冻结结果供复核。</p><p>{downloads}</p>')
  if (out/'speed-cohort/speed-comparison.json').is_file():
   support+=section('同窗速度证据','<p>'+link('../speed-cohort/speed-comparison.json','速度汇总与样本分母')+' · '+link('../speed-cohort/results.jsonl','速度子集逐次记录')+'</p>')
+ if (out/'resource-cohort/resource-comparison.json').is_file():
+  support+=section('隔离资源证据','<p>'+link('../resource-cohort/resource-comparison.json','CPU、内存、网络汇总与共同成功样本')+' · '+link('../resource-cohort/results.jsonl','资源子集逐次记录')+' · '+link('../resource-cohort/execution.json','容器环境与镜像身份')+'</p>')
  support+=section('公共条件',f'<p>最终报告纳入 {len(records):,} 次调用。任务与参考冻结后执行；每个方法内部串行，不复用个人登录状态。</p>'+table(['参数','值'],common,metrics=[]))
  support+=section('方法版本','<p>“事后核验”只说明留存二进制与官方归档完全一致，不改写成当时已经记录了版本。移动 nightly 无法追到不可得的源修订时，只用 SHA-256 标识精确可执行文件。</p>'+table(['方法','版本','身份依据','部署路径','二进制 SHA-256','调用数'],provider_rows,metrics=[]))
  support+=section('发布与加载','<p>本地构建为每个任务、方法和证据生成可独立检查的逻辑路由；这不等于线上部署同样数量的独立 HTML。发布器会把整份报告编译成一个通用 HTML 外壳、共享样式与脚本，以及按内容寻址的压缩数据块。页面切换由前端路由完成，证据只在打开对应页面时读取，超过 256 KiB 的完整文本还需用户主动加载。</p><p class="source-note">发布清单记录逻辑路由数、源文件数、压缩块数和逐文件 SHA-256；发布门禁会重建每个文件并验证内部链接与原始下载字节。这样保留逐项可审计性，同时避免重复页面骨架和一次性加载全部证据。</p>')

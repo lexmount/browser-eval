@@ -69,6 +69,19 @@ def test_linux_container_resources_reads_target_cgroup_and_network_namespace(tmp
     sample = resources.sample(elapsed_ms=12.5)
     assert sample.memory_current_bytes == 4096
     assert sample.pids_current == 2
+    assert (sample.cpu_usage_usec, sample.network_rx_bytes, sample.network_tx_bytes) == (
+        1234, 100, 200
+    )
+
+
+def test_resource_summary_uses_elapsed_time_for_memory_mean():
+    sampler = ResourceSampler(object())
+    sampler.samples = [
+        ResourceSample(0, 0, 1, 0, 0, 0),
+        ResourceSample(100, 100, 1, 100_000, 0, 0),
+        ResourceSample(400, 100, 1, 400_000, 0, 0),
+    ]
+    assert sampler.summary()["memory_mean_bytes"] == 87.5
 
 
 def test_docker_stats_resources_uses_per_container_cumulative_counters():

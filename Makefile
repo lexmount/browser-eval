@@ -1,7 +1,7 @@
 UV ?= uv
 PY := $(UV) run --frozen python
 
-.PHONY: setup import-env runtime-check test test-python test-ui fixture-smoke ci report report-check trajectory-report trajectory-report-release trajectory-report-audit
+.PHONY: setup import-env runtime-check test test-python test-ui fixture-smoke ci report report-check resource-image trajectory-report trajectory-report-release trajectory-report-audit
 
 setup:
 	$(UV) sync --frozen --all-extras
@@ -47,3 +47,6 @@ trajectory-report-release: runtime-check
 trajectory-report-audit: runtime-check
 	$(PY) -m pytest tests/browser_use -q
 	$(PY) scripts/release_webarena_trajectory_report.py
+
+resource-image:
+	docker build -f examples/web_fetch/docker/resource.Dockerfile -t lex-web-fetch-resource:local .

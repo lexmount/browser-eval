@@ -20,16 +20,18 @@ import docker
 import tiktoken
 from playwright.sync_api import Browser, Page, sync_playwright
 
+from harness.container_isolation import require_linux_cgroup_v2
+from harness.resource_accounting import (
+    DockerStatsResources,
+    ResourceSampler,
+    delta_counters,
+)
+
 from .diagnostics import diagnose_summary
 from .evaluators import EvaluatorRegistry, TaskEvidence, write_agent_response
 from .executor import execute_steps
 from .har import CdpHarRecorder
-from .metrics import (
-    DockerStatsResources,
-    ResourceSampler,
-    delta_counters,
-    summarize_attempts,
-)
+from .metrics import summarize_attempts
 from .qualification import task_contract_sha256
 from .report import write_latest_report
 from .response_builder import build_agent_response
@@ -876,6 +878,7 @@ def run_evaluation(
     )
     client = docker.from_env()
     _validate_measured_resource_controls(client.info())
+    require_linux_cgroup_v2(client)
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
     run_id = uuid.uuid4().hex[:12]

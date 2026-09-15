@@ -62,6 +62,22 @@ def build_report(source: Path, output: Path) -> Path:
             raw=contained_path(speed_root,row['artifact_path'])
             if hashlib.sha256(raw.read_bytes()).hexdigest()!=row['metrics']['content_sha256']:
                 raise ValueError('Speed cohort output integrity failure: '+row['attempt_id'])
+    resource_root=source/'resource-cohort'
+    if resource_root.exists():
+        resource=json.loads((resource_root/'resource-comparison.json').read_text())
+        for name in ('dataset','results'):
+            extension='json' if name == 'dataset' else 'jsonl'
+            raw=(resource_root/f'{name}.{extension}').read_bytes()
+            if resource.get('bindings',{}).get(name+'_sha256') != hashlib.sha256(raw).hexdigest():
+                raise ValueError('Resource comparison '+name+' binding mismatch')
+        resource_dataset=json.loads((resource_root/'dataset.json').read_text())
+        resource_records=[json.loads(line) for line in
+                          (resource_root/'results.jsonl').read_text().splitlines()]
+        require_result_review(resource_root,resource_dataset,resource_records)
+        for row in resource_records:
+            raw=contained_path(resource_root,row['artifact_path'])
+            if hashlib.sha256(raw.read_bytes()).hexdigest()!=row['metrics']['content_sha256']:
+                raise ValueError('Resource cohort output integrity failure: '+row['attempt_id'])
     for c in cases.values():
         annotation=c.get('source_benchmark',{}).get('stable_annotation',{})
         if annotation.get('anchor_evidence_sha256'):
@@ -171,6 +187,9 @@ def build_report(source: Path, output: Path) -> Path:
             shutil.copytree(source/'reference-checks', staging/'reference-checks')
         if speed_root.exists():
             shutil.copytree(speed_root,staging/'speed-cohort',ignore=shutil.ignore_patterns(
+                'result-review.json','review-history','private_artifacts'))
+        if resource_root.exists():
+            shutil.copytree(resource_root,staging/'resource-cohort',ignore=shutil.ignore_patterns(
                 'result-review.json','review-history','private_artifacts'))
         summary = {t:{p:{'attempts':len(rs), 'task_pass':sum(succeeded(r,cases[r['case_id']]) for r in rs)}
                       for p in sorted({r['provider'] for r in records})
