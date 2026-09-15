@@ -35,6 +35,7 @@ def test_benchmark_catalog_has_complete_comparable_fields():
         "computer_use",
         "gui_grounding",
         "web_research",
+        "offline_action_prediction",
     }
     required = {
         "name",

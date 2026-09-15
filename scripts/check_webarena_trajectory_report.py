@@ -65,7 +65,7 @@ def check_report_bundle(formal_root: Path) -> dict[str, int]:
     expected_ratio_modules = len(METRICS) * len(comparison_engines)
     if ratio_modules != expected_ratio_modules:
         raise ValueError("ratio modules are incomplete across metric groups")
-    if expected_ratio_modules and "每个共同通过任务先相除，再汇总" not in homepage:
+    if expected_ratio_modules and "先逐任务相除再汇总" not in homepage:
         raise ValueError("per-task ratio aggregation is not explained")
 
     return {

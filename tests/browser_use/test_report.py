@@ -155,7 +155,7 @@ def test_resource_tables_compare_all_engines_in_one_table():
     assert rendered.count("<th>Webkit</th>") == len(METRICS) * 3
     assert "逐任务比值 · Moli / Chromium" in rendered
     assert "逐任务比值 · Webkit / Chromium" in rendered
-    assert "每个共同通过任务先相除，再汇总" in rendered
+    assert "先逐任务相除再汇总" in rendered
     assert "0.50×" in rendered
     assert "1.50×" in rendered
     assert 'class="better"' in rendered
@@ -165,7 +165,7 @@ def test_resource_tables_compare_all_engines_in_one_table():
     )
     assert 'class="metric-policy lower"' in rendered
     assert 'class="metric-policy neutral"' in rendered
-    assert "“观察项”只展示测量结果，不判胜负" in rendered
+    assert "观察项不判胜负" in rendered
     cpu_row = rendered.split("平均 CPU 占单核", 1)[1].split("</tr>", 1)[0]
     assert 'class="better"' not in cpu_row
     assert 'class="worse"' not in cpu_row
@@ -288,7 +288,7 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     ):
         assert label in rendered
     assert "结果正确率是默认 Provider 的第一决策指标" not in rendered
-    assert "结论只适用于这 1 条冻结轨迹" in rendered
+    assert "数字限于这 1 条冻结轨迹" in rendered
     results = (reports / "webarena-trajectory-replay-latest-results.html").read_text(
         encoding="utf-8"
     )
@@ -320,7 +320,9 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     )
     assert "端到端 browser-use 采用 Top 3" in research
     assert "工程适用性 Top 3" in research
-    assert "候选集按端到端 browser-use" in research
+    assert "不跨类排名" in research
+    assert "Online-Mind2Web</h3><strong>2 家机构采用" in research
+    assert "Mind2Web</h3><strong>3 家机构采用" not in research
     assert "原始 Mind2Web 是离线 HTML 和动作预测数据集" in research
     assert "这些用例不要求 AMD" in research
     assert "1 条轨迹进入正式任务分母" in research
@@ -348,7 +350,7 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert 'href="https://example.com"' in suite
     assert "navigate → get_text" in suite
     assert "heading = Example" in suite
-    assert 'class="distribution-grid"' in suite
+    assert 'class="distribution-grid compact-two"' in suite
     assert suite.count('href="https://example.com"') == 1
     assert suite.count("navigate → get_text") == 1
     assert "机器判定答案" not in suite
@@ -364,8 +366,8 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert "final_passes" not in audit["result_audit"]
     assert "final_failures" not in audit["result_audit"]
     method = (reports / "webarena-trajectory-replay-latest-method.html").read_text(encoding="utf-8")
-    assert "RX = Receive" in method
-    assert "P50 与中位数是同一个统计量" in method
+    assert "RX 是接收，TX 是发送" in method
+    assert "P50 即中位数" in method
     assert "核验结论" in method
     assert "选型依据" in research
     assert "数据集" in suite
@@ -431,7 +433,7 @@ def test_grouped_correctness_marks_only_the_higher_rate_as_winner():
     rendered = _results_page(manifest, summary)
     assert rendered.count('class="better">2/2') == 2
     assert 'class="better">1/2' not in rendered
-    assert "相同值保持中性" in rendered
+    assert "没有统一的操作数阈值" in rendered
 
 
 def test_results_page_builds_task_matrix_and_filters_for_three_engines():
@@ -505,8 +507,8 @@ def test_summary_decisions_follow_reversed_results_and_resource_ratios():
         },
     }
     rendered = _summary_page(manifest, summary)
-    assert "Moli 在这批轨迹中的通过数最高" in rendered
-    assert "速度、CPU、内存和网络分别列出" in rendered
+    assert "Moli 通过数最多" in rendered
+    assert "速度、CPU、内存和网络另列，不合成总分" in rendered
     assert "Chromium 的可用范围更广" not in rendered
 
 
@@ -662,7 +664,7 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
     assert 'id="execution-empty"' in results
     assert "new URLSearchParams(raw)" in results
     assert "document.querySelector(location.hash)" not in results
-    assert "速度、CPU、内存和网络分别列出" in homepage
+    assert "速度、CPU、内存和网络另列，不合成总分" in homepage
     assert results.count('class="execution-card"') == 1
     assert "采用结果" in detail
     assert "执行记录 1" not in detail
@@ -859,13 +861,13 @@ def test_webarena_report_uses_self_hosted_trajectory_scope_language():
     method = _method_page(manifest, summary)
 
     assert "不能代表浏览器总体能力" in homepage
-    assert "不是 LLM Agent 排名" in homepage
+    assert "运行时没有 Agent 规划、模型调用或 LLM judge" in homepage
     assert "公开轨迹任务" in suite
     assert "自托管站点" in suite
     assert "自托管测试环境" in suite
     assert "官方轨迹来源" in suite
-    assert "没有 agent 或模型在运行时选择下一步" in method
-    assert "不使用 LLM judge" in method
+    assert "运行时没有 Agent 或模型选择下一步" in method
+    assert "不用 LLM judge" in method
 
 
 def test_method_page_derives_environment_and_prepare_counts_from_attempts():

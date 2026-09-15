@@ -16,7 +16,7 @@
       "first-party official repository"
     ],
     "counting_rule": "Count one organization at most once per benchmark family; retain the concrete benchmark version in each evidence record.",
-    "ranking_rule": "Sort by organization count, then latest official adoption, public availability, and reproducibility. WebArena precedes Mind2Web on the final criterion because it has a self-hosted deterministic variant while Online-Mind2Web uses changing live sites.",
+    "ranking_rule": "For end-to-end browser-use, exclude original offline Mind2Web action-prediction adoption, then sort by organization count, latest official adoption, public availability, and reproducibility. The Mind2Web family total is retained separately but is not the online browser-use count.",
     "interpretation": "Adoption measures public recognition, not trajectory reliability or fitness for browser-engine isolation."
   },
   "records": [

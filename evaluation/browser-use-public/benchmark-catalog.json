@@ -95,7 +95,7 @@
     },
     {
       "name": "Mind2Web",
-      "category": "end_to_end_browser_use",
+      "category": "offline_action_prediction",
       "version": "原始 NeurIPS 2023 数据集",
       "task_count": "2,350 个任务，来自 137 个网站、31 个领域",
       "environment": "离线保存的 HTML 快照与动作标注",

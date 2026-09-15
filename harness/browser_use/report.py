@@ -33,6 +33,7 @@ CATEGORY_LABELS = {
     "computer_use": "综合 computer-use",
     "gui_grounding": "GUI grounding",
     "web_research": "网页搜索与研究",
+    "offline_action_prediction": "离线网页动作预测",
 }
 
 ENGINE_LABELS = {"chromium": "Chromium", "moli": "Moli"}
@@ -246,8 +247,6 @@ def _grouped_resource_table(
         for engine in engines
     )
     return (
-        '<p class="metric-legend"><strong>判读：</strong>绿色粗体表示该统计列中有明确方向的唯一较优值；'
-        '“观察项”只展示测量结果，不判胜负。</p>'
         f'<div class="table-wrap resource-summary" role="region" aria-label="{_e(caption)}" tabindex="0"><table><caption>{_e(caption)}</caption>'
         f'<thead><tr><th rowspan="2">指标</th>{group_headers}</tr><tr>{engine_headers}</tr></thead><tbody>'
         + "".join(body)
@@ -291,8 +290,7 @@ def _relative_ratio_tables(
         pair = f"{_engine_label(str(engine))} / {_engine_label(baseline)}"
         modules.append(
             f'<details class="ratio-module" data-formula="per-task-ratio"><summary>逐任务比值 · {_e(pair)}</summary>'
-            '<p class="muted">每个共同通过任务先相除，再汇总。0.50× 表示前者为基准浏览器的一半，2.00× 表示两倍。'
-            '有明确方向的指标以绿色表示前者更优、红色表示前者更差；观察项不判胜负。</p>'
+            '<p class="muted">先逐任务相除再汇总；0.50× 是基准的一半，2.00× 是两倍。观察项不判胜负。</p>'
             + _table(["指标", "P50", "P95", "平均值"], rows, f"{pair} 逐任务比值")
             + "</details>"
         )
@@ -350,6 +348,7 @@ def _shell(
 .rule-comparison table{{min-width:900px}}.rule-reason,.rule-actual{{display:block;margin-top:5px}}.rule-reason{{color:var(--bad)}}.rule-actual{{color:var(--muted)}}
 .benchmark-tabs,.comparison-controls{{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px}}.benchmark-tabs button,.comparison-controls button{{border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);padding:7px 12px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}}.benchmark-tabs button.active,.comparison-controls button.active{{color:#173fa8;background:#e8eeff;border-color:#c8d5fb}}.result-guide{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:16px}}.result-guide a{{display:block;text-decoration:none;border:1px solid var(--line);border-radius:9px;padding:11px 12px;color:var(--ink)}}.result-guide a:hover{{background:#edf3ff}}.result-guide strong,.result-guide span{{display:block}}.result-guide span{{color:var(--muted);font-size:12px;margin-top:2px}}.metric-module>summary{{display:flex;justify-content:space-between;align-items:center;font-size:16px}}.metric-module>summary small{{color:var(--muted);font-size:12px}}.rank-grid,.distribution-grid{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}}.rank-card,.distribution-item{{position:relative;min-width:0;border:1px solid var(--line);border-radius:11px;padding:15px;background:#fff}}.rank-card{{padding-left:48px}}.rank-card h3{{margin:0 0 3px}}.rank-card p{{font-size:13px;color:var(--muted)}}.rank-number{{position:absolute;left:14px;top:14px;width:24px;height:24px;border-radius:50%;background:#e8eeff;color:#173fa8;text-align:center;font-weight:800;line-height:24px}}.distribution-item strong,.distribution-item span{{display:block}}.distribution-item span{{font-size:12px;color:var(--muted);font-weight:750;margin-bottom:5px}}.distribution-item strong{{font-size:13px;line-height:1.5}}.benchmark-grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}}.benchmark-card{{min-width:0;border:1px solid var(--line);border-radius:13px;padding:18px;background:#fff}}.benchmark-title{{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}}.benchmark-title h3{{margin:0}}.benchmark-title p{{margin:2px 0;color:var(--muted);font-size:13px}}.category-chip{{flex:none;background:var(--panel);border-radius:999px;padding:3px 8px;font-size:11px;color:var(--muted)}}.benchmark-kpis{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:13px 0}}.benchmark-kpis span{{min-width:0;background:var(--panel);border-radius:8px;padding:9px;font-size:11px;color:var(--muted);overflow-wrap:anywhere}}.benchmark-kpis strong{{display:block;color:var(--ink);font-size:13px;line-height:1.35;margin-bottom:3px}}.benchmark-facts,.benchmark-more{{margin:0}}.benchmark-facts>div,.benchmark-more>div{{display:grid;grid-template-columns:92px minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid #e8edf5}}.benchmark-facts dt,.benchmark-more dt{{font-size:12px;font-weight:750;color:var(--muted)}}.benchmark-facts dd,.benchmark-more dd{{margin:0;font-size:13px}}.benchmark-sources{{font-size:12px;margin-bottom:0}}.comparison-toolbar{{display:flex;justify-content:space-between;gap:16px;align-items:end;flex-wrap:wrap}}.comparison-toolbar label{{font-size:12px;font-weight:700;color:var(--muted)}}.comparison-toolbar input{{display:block;min-width:260px;margin-top:4px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit}}.comparison-grid{{border:1px solid var(--line);border-radius:10px;overflow:hidden}}.comparison-head,.comparison-row{{display:grid;grid-template-columns:minmax(260px,2.1fr) minmax(125px,.75fr) minmax(125px,.75fr) minmax(150px,1fr);gap:12px;align-items:center;padding:10px 12px}}.comparison-head{{background:var(--panel);font-size:13px;font-weight:800}}.comparison-row{{border-top:1px solid var(--line)}}.comparison-row[hidden]{{display:none}}.comparison-row .task-name{{font-weight:700;overflow-wrap:anywhere}}.result-link{{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:750}}.comparison-note{{font-size:12px;color:var(--muted)}}@media(max-width:760px){{.result-guide{{grid-template-columns:repeat(2,minmax(0,1fr))}}.suite-stats,.rank-grid,.distribution-grid{{grid-template-columns:repeat(3,minmax(0,1fr))}}.benchmark-grid{{grid-template-columns:1fr}}.benchmark-kpis{{grid-template-columns:1fr 1fr}}.comparison-head{{display:none}}.comparison-grid{{border:0}}.comparison-row{{grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:9px;margin-bottom:9px}}.comparison-row .task-name,.comparison-row .comparison-note{{grid-column:1/-1}}.comparison-row>[data-label]::before{{content:attr(data-label);display:block;color:var(--muted);font-size:11px;font-weight:700}}.metric-module .stackable{{max-width:100%;overflow:auto;border:1px solid var(--line)}}.metric-module .stackable table{{display:table;width:100%;min-width:620px}}.metric-module .stackable thead{{display:table-header-group}}.metric-module .stackable tbody{{display:table-row-group}}.metric-module .stackable tr{{display:table-row;border:0}}.metric-module .stackable th,.metric-module .stackable td{{display:table-cell;width:auto}}.metric-module .stackable td::before{{content:none}}}}@media(max-width:560px){{.rank-grid,.distribution-grid{{grid-template-columns:1fr}}}}@media(max-width:480px){{.result-guide{{grid-template-columns:1fr}}.suite-stats{{grid-template-columns:1fr}}.benchmark-kpis{{grid-template-columns:1fr}}.benchmark-facts>div,.benchmark-more>div{{grid-template-columns:1fr;gap:2px}}.comparison-toolbar input{{min-width:0;width:100%}}}}
 .score-grid{{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}}.comparison-panel{{background:var(--panel);border-radius:11px;padding:14px;margin:14px 0}}.matrix-controls{{display:grid;grid-template-columns:repeat(3,minmax(150px,1fr)) minmax(210px,1.5fr);gap:12px;align-items:end}}.matrix-controls label{{font-size:12px;font-weight:700;color:var(--muted)}}.matrix-controls select,.matrix-controls input{{display:block;width:100%;height:40px;margin-top:5px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font:inherit}}.comparison-methods{{margin:12px 0 0;padding:0;border:0}}.comparison-methods legend{{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px}}.engine-checks{{display:flex;flex-wrap:wrap;gap:8px}}.engine-checks label{{display:flex;gap:6px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 10px;font-size:13px;cursor:pointer}}.engine-checks label:has(input:disabled){{opacity:.48;cursor:not-allowed}}.comparison-table .comparison-row{{display:table-row;padding:0;border:0}}.comparison-table th:first-child,.comparison-table td:first-child{{width:64px;min-width:64px;text-align:center}}.comparison-table th:nth-child(2),.comparison-table td:nth-child(2){{min-width:300px}}.comparison-table small{{display:block;font-weight:500}}.outcome-list{{display:flex;flex-wrap:wrap;gap:7px;min-width:180px}}.outcome-pill{{display:inline-flex;gap:5px;align-items:center;border:1px solid currentColor;border-radius:999px;padding:3px 8px;text-decoration:none;font-size:12px;font-weight:750}}.outcome-pill.ok{{background:#f1fbf7}}.outcome-pill.bad{{background:#fff5f4}}@media(max-width:900px){{.matrix-controls{{grid-template-columns:1fr 1fr}}}}@media(max-width:760px){{.comparison-table .comparison-row{{display:table-row;margin:0;border:0}}}}@media(max-width:600px){{.matrix-controls{{grid-template-columns:1fr}}.comparison-table table{{min-width:760px}}}}
+.compact-two{{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){{.compact-two{{grid-template-columns:1fr}}}}@media(max-width:480px){{.result-guide{{grid-template-columns:repeat(2,minmax(0,1fr))}}.result-guide a span{{display:none}}}}
 </style></head><body><header><div class="wrap">{header}</div></header><main>{body}{pager}</main><footer>Lexmount WebArena Fixed-Trajectory Replay</footer></body></html>"""
 
 
@@ -447,24 +446,32 @@ def _load_public_research() -> tuple[dict[str, Any], dict[str, Any]]:
 def _research_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     adoption, catalog = _load_public_research()
     records = adoption.get("records") or []
-    by_family: dict[str, list[dict[str, Any]]] = {}
-    for record in records:
-        by_family.setdefault(str(record.get("benchmark_family")), []).append(record)
+    browser_records = [
+        record for record in records
+        if str(record.get("benchmark_family")) != "Mind2Web"
+        or "Online-Mind2Web" in str(record.get("benchmark_version"))
+    ]
+    browser_families: dict[str, dict[str, list[dict[str, Any]]]] = {}
+    for record in browser_records:
+        family = str(record.get("benchmark_family"))
+        organization = str(record.get("organization"))
+        browser_families.setdefault(family, {}).setdefault(organization, []).append(record)
     tie_order = {"WebArena": 0, "Mind2Web": 1, "WebVoyager": 2, "MiniWoB++": 3}
     adoption_rows = []
     for rank, family in enumerate(
-        sorted(by_family, key=lambda name: (-len(by_family[name]), tie_order.get(name, 99))), 1
+        sorted(browser_families, key=lambda name: (-len(browser_families[name]), tie_order.get(name, 99))), 1
     ):
-        family_records = by_family[family]
+        family_organizations = browser_families[family]
         adoption_rows.append(
             [
                 str(rank),
-                family,
-                str(len(family_records)),
-                "、".join(str(row.get("organization")) for row in family_records),
+                "Online-Mind2Web" if family == "Mind2Web" else family,
+                str(len(family_organizations)),
+                "、".join(family_organizations),
                 "；".join(
                     f"{row.get('organization')}: {row.get('benchmark_version')}"
-                    for row in family_records
+                    for organization_records in family_organizations.values()
+                    for row in organization_records
                 ),
             ]
         )
@@ -528,7 +535,10 @@ def _research_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         for row in engineering_rows
     )
     source_links = []
-    for record in records:
+    top_families = {"WebArena", "Mind2Web", "WebVoyager"}
+    for record in browser_records:
+        if str(record.get("benchmark_family")) not in top_families:
+            continue
         source_links.append(
             f'<li>{_e(record.get("organization"))} / {_e(record.get("system"))}: '
             f'<a href="{_e(record.get("url"))}" target="_blank" rel="noopener">'
@@ -546,11 +556,11 @@ function show(category){for(const card of cards)card.hidden=card.dataset.categor
 for(const button of buttons)button.onclick=()=>show(button.dataset.category);show('end_to_end_browser_use');})();</script>"""
     return (
         '<section class="card note"><h2>为什么选择 WebArena-Verified</h2>'
-        '<p><strong>固定轨迹比较浏览器内核，首选 WebArena-Verified。</strong>'
-        '采用次数只能说明公开认可度，不能说明它最适合隔离浏览器变量。WebArena 与 Mind2Web 家族在限定的一方材料中各有 3 家机构采用；工程选择仍由自托管、可重放轨迹和程序化最终状态验收决定。</p>'
-        '<p>候选集按端到端 browser-use、综合 computer-use、GUI grounding、网页搜索与研究分开整理，不跨类排名。原始 Mind2Web、Online-Mind2Web 与 Mind2Web 2 测量对象不同，因此分别统计。</p></section>'
+        '<p>本轮要隔离浏览器变量：同一条公开轨迹、可重建网页、程序验收最终状态。'
+        'WebArena-Verified 能同时提供这三点。厂商采用数另列，不能代替工程适用性判断。</p>'
+        '<p>候选集按测量对象分类，不跨类排名；原始 Mind2Web 的离线动作预测不算端到端网页操作。</p></section>'
         '<section class="card"><h2>端到端 browser-use 采用 Top 3</h2>'
-        '<p>统计范围只含 OpenAI、Anthropic、Google、DeepSeek、智谱/ChatGLM、Moonshot/Kimi 的模型卡、技术报告和官方仓库。同一机构同一家族只计一次，保留具体版本。采用数相同后依次看最新官方采用、公开获取和可复现性。</p>'
+        '<p>只统计 OpenAI、Anthropic、Google、DeepSeek、智谱/ChatGLM、Moonshot/Kimi 的第一方材料；同一机构同一家族只计一次。此处 Mind2Web 只计在线版，不把离线动作预测算作端到端网页操作。平票再按最新官方采用、公开获取和可复现性排序。</p>'
         + f'<div class="rank-grid">{adoption_cards}</div>'
         + '<p class="muted">本次限定的一方材料中没有检出可计入 DeepSeek 或 Moonshot/Kimi 的端到端 browser-use benchmark 记录。这不等于这些机构从未做过内部评测。</p>'
         + '<details><summary>查看采用证据链接</summary><ul>'
@@ -618,9 +628,9 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     best_pass = max(pass_counts.values(), default=0)
     pass_leaders = [engine for engine, value in pass_counts.items() if value == best_pass]
     compatibility_lead = (
-        f"{_engine_label(pass_leaders[0])} 在这批轨迹中的通过数最高"
+        f"{_engine_label(pass_leaders[0])} 通过数最多"
         if len(pass_leaders) == 1
-        else "、".join(_engine_label(engine) for engine in pass_leaders) + " 的通过数并列最高"
+        else "、".join(_engine_label(engine) for engine in pass_leaders) + " 通过数并列最多"
     )
     resource_values = (summary.get("resource_comparison") or {}).get("by_engine") or {}
     memory_p50 = {
@@ -636,12 +646,11 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         else "内存 P50 没有唯一最低项"
     )
     audit_strip = (
-        f'<div class="audit-strip"><strong>{audit["logical_results_reviewed"]}/{task_count * len(engines)} 个结果通过一致性审计</strong><span>底层执行记录、程序验收和汇总相互一致；{sum(audit["final_failures"].values())} 个未通过结果另做日志归因。</span><a href="{REPORT_STEM}-method.html#verification">查看核验范围</a></div>'
+        f'<div class="audit-strip"><strong>{audit["logical_results_reviewed"]}/{task_count * len(engines)} 个结果通过一致性审计</strong><span>底层执行记录、程序验收和汇总相互一致；{sum(audit["final_failures"].values())} 个未通过结果按日志与调用字段分类。</span><a href="{REPORT_STEM}-method.html#verification">查看核验范围</a></div>'
         if audit.get("status") == "pass"
         else ""
     )
-    score_sentence = "，".join(f"{_engine_label(engine)} 通过 {pass_counts[engine]}/{task_count}" for engine in engines)
-    return f"""<section class="card hero"><div class="eyebrow">结论摘要</div><h2>固定同一批操作后，{compatibility_lead}；{resource_lead}。速度、CPU、内存和网络分别列出，不合成总分。</h2><p>{score_sentence}。这是 WebArena 公开人工轨迹的确定性重放，不是 LLM Agent 排名。运行时没有 Agent 规划、模型调用或 LLM judge。结论只适用于这 {task_count} 条冻结轨迹和本轮环境。</p>{audit_strip}</section>
+    return f"""<section class="card hero"><div class="eyebrow">结论摘要</div><h2>本轮，{compatibility_lead}；{resource_lead}。速度、CPU、内存和网络另列，不合成总分。</h2><p>这是 WebArena 公开人类轨迹的固定重放，运行时没有 Agent 规划、模型调用或 LLM judge。数字限于这 {task_count} 条冻结轨迹和本轮环境。</p>{audit_strip}</section>
 <section class="card"><div class="section-heading"><div><h2>任务正确率</h2><p class="muted">每个任务和浏览器只公布一个结果。</p></div><a href="{REPORT_STEM}-results.html#task-comparison">查看逐任务结果</a></div><div class="score-grid">{score_cards}</div>{_correctness_table(summary)}<p>{failure_summary}工具调用链走完仍可能没有通过程序验收：调用返回只说明路径走完，最终答案、服务状态或 HAR 仍可能不满足 evaluator。</p></section>
 <section class="card" id="performance"><div class="section-heading"><div><h2>速度与资源</h2><p class="muted">只统计 {engine_list} 都通过的 {paired} 个同任务，并取各自的唯一公开结果。</p></div></div><p>绝对值表并列展示各浏览器的 P50、P95 和平均值；比值表按共同任务先计算“参评浏览器 / Chromium”，再汇总逐任务比值。粗体绿色只标记耗时、CPU 时间、内存占用和网络总量等明确以低为优的指标；CPU 利用率与网络速率不判优劣。</p>{_metric_tables(summary)}</section>
 <section class="card"><div class="section-heading"><div><h2>失败概览</h2><p class="muted">{final_failure_count} 个未通过结果按最接近证据的直接机制归类，不把现象冒充浏览器内部根因。</p></div><a href="{REPORT_STEM}-results.html#failure-review">查看失败分析</a></div><div class="failure-story">{failure_cards}</div><p>{failure_boundary}页面交互证据仍不足以断定差异来自浏览器的渲染、布局还是适配层。</p></section>
@@ -722,11 +731,16 @@ def _results_page(
             ]
         )
     result_overview = (
-        '<section class="card note"><h2>结果分析</h2><p>首页已经给出总体通过率和完整资源统计。本页按浏览器组合、任务分组和失败类型展开，并提供每个结果的执行与验收证据。</p></section>'
-        '<section class="card result-guide" aria-label="结果分析模块"><a href="#task-comparison"><strong>浏览器组合</strong><span>按结果关系筛选任务</span></a><a href="#task-slices"><strong>任务分组</strong><span>复杂度与站点分布</span></a><a href="#failure-review"><strong>失败分析</strong><span>分类与日志摘要</span></a><a href="#execution-results"><strong>执行记录</strong><span>逐任务查看原始证据</span></a></section>'
+        '<section class="card result-guide" aria-label="结果分析模块">'
+        '<div style="grid-column:1/-1"><h2>结果分析</h2><p>先找同一任务的浏览器差异，'
+        '再看站点切片、失败机制和逐条验收证据。</p></div>'
+        '<a href="#task-comparison"><strong>浏览器组合</strong><span>按结果关系筛选</span></a>'
+        '<a href="#task-slices"><strong>任务分组</strong><span>站点与选样分组</span></a>'
+        '<a href="#failure-review"><strong>失败分析</strong><span>分类和日志</span></a>'
+        '<a href="#execution-results"><strong>执行记录</strong><span>逐任务证据</span></a></section>'
     )
     slices = (
-        '<div id="task-slices"><section class="card"><h2>轨迹复杂度</h2><p class="muted">简单、中等、复杂是本项目基于参考轨迹操作数的公开分组，不是 WebArena 官方难度标签。同一分组的唯一较高通过率以粗体绿色标出，相同值保持中性。</p>'
+        '<div id="task-slices"><section class="card"><h2>任务分组</h2><p class="muted">简单、中等、复杂是本轮清单的选样分组，不是 WebArena 官方难度标签，也没有统一的操作数阈值。它只用于观察样本构成，不用于跨组判断浏览器能力。</p>'
         + _table(["轨迹分组", *[_engine_label(engine) for engine in engines]], complexity_rows, "分组正确性") + '</section>'
         '<section class="card"><h2>站点分组</h2>'
         + _table(["站点", *[_engine_label(engine) for engine in engines]], site_rows, "站点兼容性切片") + '</section></div>'
@@ -843,13 +857,13 @@ def _suite_page(manifest: dict[str, Any]) -> str:
         f'<div class="metric"><strong>{len(site_counts)}</strong><span>{"自托管站点" if webarena else "独立网站/域名"}</span></div>'
         f'<div class="metric"><strong>{sum(action_counts.values())}</strong><span>参考 BrowserTool 调用</span></div>'
         "</div>"
-        + '<div class="distribution-grid">'
-        + f'<div class="distribution-item"><span>轨迹复杂度</span><strong>{_e(difficulty_summary)}</strong></div>'
+        + '<div class="distribution-grid compact-two">'
+        + f'<div class="distribution-item"><span>选样分组</span><strong>{_e(difficulty_summary)}</strong></div>'
         + '<div class="distribution-item"><span>网站分布</span><strong>'
         + _e("；".join(f"{host} {count}" for host, count in sorted(site_counts.items())))
-        + '</strong></div><div class="distribution-item"><span>操作分布</span><strong>'
+        + '</strong></div></div><details><summary>查看操作类型分布</summary><p>'
         + _e("；".join(f"{action} {count}" for action, count in sorted(action_counts.items())))
-        + '</strong></div></div>'
+        + '</p></details>'
     )
     cards = []
     for index, task in enumerate(suite, 1):
@@ -910,11 +924,14 @@ def _suite_page(manifest: dict[str, Any]) -> str:
             )
             environment_heading = "公网测试页面"
             oracle_heading = "唯一预期结果"
-        shared_tags = {"simple", "medium", "complex", "public-web", "exact-oracle"}
+        shared_tags = {
+            "simple", "medium", "complex", "public-web", "exact-oracle",
+            "public-benchmark", "webarena",
+        }
         chips = "".join(
-            f'<span class="chip">{_e(tag)}</span>'
+            f'<span class="chip">{_e({"retrieve": "查询", "navigate": "导航", "mutate": "状态修改"}.get(tag, tag))}</span>'
             for tag in task.get("tags") or []
-            if tag not in shared_tags
+            if tag not in shared_tags and not str(tag).startswith("site:")
         )
         search_text = (
             f"任务{index:02d} 任务 {index:02d} {task.get('task_id')} {title} {target_url} "
@@ -923,19 +940,20 @@ def _suite_page(manifest: dict[str, Any]) -> str:
             + expected_inline
         )
         cards.append(
-            f'<section class="card suite-task" data-difficulty="{_e(task.get("complexity"))}" data-site="{_e(urlparse(target_url).hostname or "未标注")}" data-actions="{_e(",".join(sorted({str(c.get("action")) for c in calls})))}" data-search="{_e(search_text)}"><div class="eyebrow">任务 {index:02d}</div><h2>{_e(title)}</h2><span class="chip">{_difficulty(str(task.get("complexity")))}</span><span class="chip">{len(calls)} 次工具调用</span>{chips}'
-            '<div class="task-verification">'
+            f'<section class="card suite-task" data-difficulty="{_e(task.get("complexity"))}" data-site="{_e(urlparse(target_url).hostname or "未标注")}" data-actions="{_e(",".join(sorted({str(c.get("action")) for c in calls})))}" data-search="{_e(search_text)}"><div class="eyebrow">任务 {index:02d} · {_e(task.get("task_id"))}</div><h2>{_e(title)}</h2><span class="chip">{_difficulty(str(task.get("complexity")))}</span><span class="chip">{len(calls)} 次工具调用</span>{chips}'
+            f'<p class="muted">站点：{_e("、".join(environment.get("sites") or []) or "未标注")} · 验收：{_e(" + ".join(str(item.get("evaluator") or "程序验收") for item in verified_evaluators) or "程序验收")}</p>'
+            '<details><summary>参考路径、验收与逐步操作</summary><div class="task-verification">'
             f"<div><strong>{environment_heading}</strong><span>{source_html}</span></div>"
             f"<div><strong>参考路径</strong><span><code>{_e(reference_path)}</code></span></div>"
             f"<div><strong>{oracle_heading}</strong>{expected_rows}</div>"
             "</div>"
-            f"<details><summary>逐步操作与答案依据</summary>{call_html}<p><strong>答案依据：</strong>{_e(truth.get('derivation'))}</p>{_source_references(source)}</details></section>"
+            f"{call_html}<p><strong>答案依据：</strong>{_e(truth.get('derivation'))}</p>{_source_references(source)}</details></section>"
         )
     filters = (
         '<section class="card suite-filter-panel" aria-label="任务筛选"><div class="section-heading"><h2>查找任务</h2>'
         f'<span id="suite-count" class="muted" aria-live="polite">显示 {len(suite)} / {len(suite)} 个任务</span></div>'
         '<div class="suite-filter-controls"><label class="suite-search">搜索任务<input id="suite-query" type="search" placeholder="任务名称、编号、网站或关键词"></label>'
-        '<label>难度<select id="suite-difficulty"><option value="">全部难度</option>'
+        '<label>选样分组<select id="suite-difficulty"><option value="">全部分组</option>'
         + "".join(
             f'<option value="{_e(d)}">{_difficulty(d)}（{difficulty_counts[d]}）</option>'
             for d in ordered_difficulties
@@ -1014,6 +1032,14 @@ def _method_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     env = manifest.get("environment") or {}
     versions = env.get("browser_versions") or {}
     engines = _engines(summary)
+    viewport = p.get("viewport") or {}
+    if isinstance(viewport, dict) and isinstance(viewport.get("webarena_verified"), dict):
+        viewport = viewport["webarena_verified"]
+    viewport_label = (
+        f'{viewport.get("width")} × {viewport.get("height")} CSS px'
+        if isinstance(viewport, dict) and viewport.get("width") and viewport.get("height")
+        else "未记录"
+    )
     rows = [
         ["运行平台", str(env.get("runner_platform", "未记录"))],
         [
@@ -1026,7 +1052,7 @@ def _method_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
             f"{p.get('cpus_per_browser', '?')} CPU / {p.get('memory_per_browser', '?')} / 独立网络",
         ],
         ["结果单位", "每个任务、每个浏览器形成 1 个公开结果"],
-        ["视口", json.dumps(p.get("viewport") or {}, ensure_ascii=False)],
+        ["视口", viewport_label],
         ["采样", f"每 {p.get('sample_interval_ms', '?')} ms 采样内存、PID、CPU、网络计数"],
         [
             "站点隔离",
@@ -1042,12 +1068,12 @@ def _method_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
             f'{environment_counts["missing"]} 次无重置收据；'
             f'其中 {environment_counts["prepare_fail"]} 次在轨迹开始前的环境准备阶段失败'
         )
-        scoring = """<ol><li><strong>程序验收（唯一任务分数）：</strong>固定的 WebArena-Verified evaluator 根据任务回答、最终服务状态和 HAR 网络事件判定；不使用 LLM judge，也不把参考动作当作答案。</li><li><strong>工具调用链（诊断项，不另计分）：</strong>“无中断”只表示预注册调用都返回；最终答案、服务状态或 HAR 仍可能不符合 evaluator，所以不能写成“任务完成”。</li></ol><p><strong>耗时口径：</strong>性能表使用固定轨迹开始到结束的 <code>execution_duration_ms</code>，不含站点重建、初始化、登录和页面准备。整次墙钟只用于预算和运维排查，不作为浏览器速度。</p><p><strong>边界：</strong>官方人类轨迹只用于固定输入路径。资格验证允许在不改变任务、环境和 evaluator 的前提下修正失效目标；每个修正都必须重新通过独立冷 Chromium 验证。</p>"""
+        scoring = """<p><strong>任务分数：</strong>WebArena-Verified evaluator 按回答、最终服务状态和 HAR 网络事件程序验收。不用 LLM judge，也不按参考动作逐步判分。</p><p><strong>调用链：</strong>“无中断”只表示工具调用全部返回；答案、状态或 HAR 仍可能未通过，因此不等于任务完成。</p><p><strong>耗时：</strong>只计固定轨迹开始到结束的 <code>execution_duration_ms</code>。站点重建、初始化、登录和页面准备不计入浏览器速度；整次墙钟仅供排查。</p><details><summary>查看轨迹修补边界</summary><p>官方人类轨迹是固定输入路径。资格验证仅允许在任务、环境和 evaluator 不变时修正失效目标；修正后须重新通过独立冷 Chromium 验证。</p></details>"""
         flow = f"""<ol><li>会修改服务状态的任务，每次从固定镜像重建所涉及站点；非变更任务按站点和浏览器连续复用已经初始化的环境，只读 Map 做健康检查。本轮执行记录为 {reset_summary}。</li><li>等待官方入口初始化退出并验证外部 origin，随后用测试凭据登录；这些准备步骤不计入轨迹执行耗时。</li><li>创建干净页面，固定 1280×720 视口，计时外静置 {p.get("post_reset_settle_ms", "?")} ms；任务顺序在参评浏览器之间交替平衡。</li><li>执行固定轨迹，同时保存回答、动作、最终页面、截图、HAR、资源和终止原因。</li><li>每个任务和浏览器公布一个结果；资源比较只使用所有浏览器都通过的同任务。</li></ol>"""
     else:
         scoring = """<ol><li><strong>结果正确（唯一任务分数）：</strong>每个标注输出与 <code>expected_outputs</code> 做严格字符串相等；不使用模糊匹配或模型评分；Codex 只参与评测前的标注核对。</li><li><strong>工具调用链（诊断项，不另计分）：</strong>记录动作类型是否符合预注册轨迹且 BrowserTool 调用是否全部成功，用于定位中断步骤。</li></ol><p><strong>边界：</strong><code>expected_actions</code> 是工具层微基准的固定输入路径，不代表任务只有一种解法。若评测自由规划 agent，应改用必要里程碑、禁止动作和步数预算，不能要求整条序列逐步相等。</p>"""
         flow = f"""<ol><li>分别启动并预热所有参评浏览器，浏览器进程和上下文在整轮评测中保持运行。</li><li>任务前清 Cookie、权限、HTTP 缓存、Cache Storage、Service Worker、IndexedDB、来源存储和历史，并创建新页面。</li><li>计时外静置 {p.get("post_reset_settle_ms", "?")} ms，按任务轮换各浏览器的执行顺序。</li><li>执行完整任务并采样；失败分析归入同一任务详情。</li><li>资源基线只比较所有参评浏览器均成功的同任务，失败样本不混入正常路径。</li></ol>"""
-    return f"""<section class="card note"><h2>步骤定义</h2><p><strong>一步 = 固定参考轨迹中的一次浏览器工具调用</strong>，例如 navigate、click、get_text、fill、select、scroll、back 或 forward。等待页面就绪和目标值出现属于该调用内部，不单列、不计步。没有 agent 或模型在运行时选择下一步。</p></section><section class="card" id="scoring"><h2>判定规则</h2>{scoring}</section><section class="card"><h2>测试环境</h2>{_table(["项目", "记录值"], rows, "本轮环境")}</section><section class="card"><h2>执行流程</h2>{flow}</section><section class="card"><h2>统计口径</h2><ul><li>P50 与中位数是同一个统计量；总体跨任务报告 P50、平均值和 nearest-rank P95。</li><li>每个任务仅有一个公开结果，因此逐任务不计算分位数；当前跨任务点不足以证明普遍性能优势。</li><li>内存平均值是时间加权均值；任务内存 P95 来自单次任务时序采样。</li><li>RX = Receive（接收），TX = Transmit（发送）；总量含页面资源与 CDP，速率来自相邻采样点差分。</li></ul></section>"""
+    return f"""<section class="card note"><h2>步骤定义</h2><p><strong>一步是一次固定的 BrowserTool 调用</strong>，如 click、fill 或 snapshot。等待页面和元素就绪在调用内，不额外计步；运行时没有 Agent 或模型选择下一步。</p></section><section class="card" id="scoring"><h2>判定规则</h2>{scoring}</section><section class="card"><h2>测试环境</h2>{_table(["项目", "记录值"], rows, "本轮环境")}</section><section class="card"><h2>执行流程</h2>{flow}</section><section class="card"><h2>统计口径</h2><ul><li>P50 即中位数；总体跨任务报告 P50、平均值和 nearest-rank P95。</li><li>每个任务只有一个公开结果，逐任务不计算分位数；本轮不能证明普遍性能优势。</li><li>内存平均值是时间加权均值；任务内存 P95 来自单次任务采样。</li><li>RX 是接收，TX 是发送；总量含页面资源与 CDP，速率由相邻采样点差分计算。</li></ul></section>"""
 
 
 METRICS = (
@@ -1162,7 +1188,16 @@ def _task_detail_body(
             + evidence_link(diagnostic.get("actionability_probe"), "Actionability probe")
             + "</div>"
         )
-    overview += f'<p class="case-start">起始页面 <a href="{_e(safe_url)}" target="_blank" rel="noopener">{_e(url)}</a></p></section>'
+    start_urls = list((spec.get("environment") or {}).get("start_urls") or [])
+    if start_urls:
+        overview += f'<p class="case-start">测试起点：{_e("、".join(str(value) for value in start_urls))}</p>'
+    if url:
+        source_label = (
+            "官方参考轨迹" if (spec.get("environment") or {}).get("kind") == "webarena_verified"
+            else "测试页面"
+        )
+        overview += f'<p class="case-start">{source_label}：<a href="{_e(safe_url)}" target="_blank" rel="noopener">查看来源</a></p>'
+    overview += '</section>'
 
     expected = (spec.get("ground_truth") or {}).get("expected_outputs") or {}
 
@@ -1274,7 +1309,11 @@ def _task_detail_body(
         + "".join(answer_rows)
         + "</tbody></table></div>"
         if rules
-        else '<p class="muted">本次执行未生成可展示的验收规则。</p>'
+        else (
+            '<p class="muted">轨迹中断，程序验收未执行；任务的规则仍已预先绑定。</p>'
+            if process != "pass"
+            else '<p class="muted">本次未记录可展示的逐条验收明细。</p>'
+        )
     )
     answers += _source_mark_note(expected)
     derivation = (spec.get("ground_truth") or {}).get("derivation")
@@ -1802,7 +1841,7 @@ addEventListener('hashchange',reveal);apply();reveal();
         "失败日志审查结论",
     )
     grid_head = '<div class="record-grid-head" aria-hidden="true"><span>任务</span><span>浏览器</span><span>程序验收</span><span>工具调用</span><span>错误类别</span><span>轨迹执行耗时</span></div>'
-    return f"""{filter_anchors}<section class="card" id="failure-review"><div class="section-heading"><h2>失败分析</h2><a href="#execution-results">查看执行记录</a></div><p>下表逐条复核 <strong>{final_failures}</strong> 个未通过结果，读取错误日志、BrowserTool trace 和 evaluator 输出。</p>{review_table}<p class="muted">这不是第二套评分。分类只概括直接失败机制；“元素不可见”“HAR 未匹配”等不自动等于浏览器内部根因。</p></section><section class="card" id="execution-results"><h2>执行记录</h2><p>{logical_executions} 条任务 × 浏览器结果。默认显示未通过结果；点击任务可查看采用结果的操作、答案、判定、错误栈和 BrowserTool trace。</p>{filters}<div id="execution-list" class="record-grid" role="region" aria-label="逐任务执行记录" tabindex="0">{grid_head}{_execution_details(manifest, summary, detail_pages)}</div><p id="execution-empty" class="empty-state" role="status" hidden></p>{script}</section>"""
+    return f"""{filter_anchors}<section class="card" id="failure-review"><div class="section-heading"><h2>失败分析</h2><a href="#execution-results">查看执行记录</a></div><p>按错误日志、BrowserTool trace 和 evaluator 输出中的直接证据，归类 <strong>{final_failures}</strong> 个未通过结果。</p>{review_table}<p class="muted">这不是第二套评分。分类只概括直接失败机制；“元素不可见”“HAR 未匹配”等不自动等于浏览器内部根因。</p></section><section class="card" id="execution-results"><h2>执行记录</h2><p>{logical_executions} 条任务 × 浏览器结果。默认显示未通过结果；点击任务可查看采用结果的操作、答案、判定、错误栈和 BrowserTool trace。</p>{filters}<div id="execution-list" class="record-grid" role="region" aria-label="逐任务执行记录" tabindex="0">{grid_head}{_execution_details(manifest, summary, detail_pages)}</div><p id="execution-empty" class="empty-state" role="status" hidden></p>{script}</section>"""
 
 
 def _review_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
@@ -1836,12 +1875,11 @@ def _review_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
             ],
         )
     return (
-        f'<section class="card note" id="verification"><h2>核验结论</h2><p><strong>{result_audit.get("logical_results_reviewed", 0)} 个公开结果通过自动一致性审计。</strong>检查覆盖任务矩阵、BrowserTool 动作序列、官方 evaluator 状态、HAR 与最终页面证据状态，以及汇总数字的一致性；未通过结果另逐条阅读错误栈并归因。它确认记录内部自洽，不等于重新人工标注全部任务答案。公开报告展示采用结果的 evaluator 摘要、trace 与错误栈；完整底层执行、HAR、截图和页面产物留在仓库外 evidence。</p></section>'
+        f'<section class="card note" id="verification"><h2>核验结论</h2><p><strong>{result_audit.get("logical_results_reviewed", 0)} 个公开结果通过自动一致性审计。</strong>检查覆盖任务矩阵、BrowserTool 动作序列、官方 evaluator 状态、HAR 与最终页面证据状态，以及汇总数字的一致性。未通过结果按错误栈和调用字段做程序化分类，并在任务详情保留原文。审计确认记录内部自洽，不等于人工重标全部答案，也不能由错误类别直接推定浏览器内部根因。完整 HAR、截图和页面产物保存在仓库外 evidence。</p></section>'
         '<section class="card"><h2>从公开录制到正式分母</h2>'
         + _table(["环节", "范围", "验收规则"], rows, "资格与正式运行审计") + '</section>'
         '<section class="card"><h2>数据完整性</h2>'
         + _table(["检查", "绑定值", "状态"], checks, "当前运行绑定") + '</section>'
-        '<section class="card"><h2>发布前固定门禁</h2><ol><li>重算报告并核对 current-report 与 manifest / summary 哈希。</li><li>检查站内链接、隐私信息和发布包哈希。</li><li>以 expected-version 原子更新固定站点，防止覆盖别人的新版本。</li><li>下载不可变版本导出，与本地提交包逐文件比较；只有一致才更新发布档案。</li></ol></section>'
         '<section class="card"><h2>仍然存在的边界</h2><ul><li>每个任务和浏览器只有一个公开结果，不构成置信区间。</li><li>任务来自一个冻结的 30 条子集；站点分组样本更少。</li><li>失败审查读取错误栈、BrowserTool trace 和 evaluator 输出，只能概括直接机制，不自动证明浏览器内部根因。</li></ul></section>'
     )
 
@@ -1879,7 +1917,47 @@ def _appendix_page(manifest: dict[str, Any]) -> str:
     if not isinstance(change_records, list) or not change_records:
         raise ValueError("trajectory report change log must contain at least one release")
     changes = [[row.get("date"), row.get("type"), row.get("effect")] for row in change_records]
-    return f"""<section class="card"><h2>复现步骤</h2><ol><li>准备 Docker Engine、Python 3.11+、至少 4 CPU/6 GiB 内存。</li><li>运行 <code>./examples/browser_use/run.sh</code>；脚本执行完整基准，并依次生成原始记录、汇总数据和分页 HTML。</li><li>如只需从已有 <code>attempts.jsonl</code> 重算全部指标和报告，运行 <code>uv run --frozen python examples/browser_use/rebuild_report.py</code>。</li><li>本地报告快路径使用 <code>make trajectory-report</code>；确认发布使用 <code>make trajectory-report-release</code>。数据集、runner 或 scorer 改动后，再人工触发 <code>make trajectory-report-audit</code>。</li></ol><p><a href="webarena-trajectory-replay-latest-data.json">下载本轮机器可读审计摘要</a></p></section><section class="card"><h2>运行与原始数据绑定</h2>{_table(["项目", "值"], provenance_rows, "可复核来源")}</section><section class="card"><h2>变更记录</h2>{_table(["日期", "类型", "读者可见影响"], changes, "同一 canonical 页面持续更新")}</section><section class="card"><h2>数据字段</h2>{_table(["对象", "关键字段", "用途"], fields, "数据结构")}</section><section class="card"><h2>复现限制</h2><ul><li>本轮是自托管环境，不受公网网页漂移影响；但镜像、源码和环境初态必须固定。</li><li>采样间隔 {p.get("sample_interval_ms", "?")} ms，持续时间短于采样间隔的尖峰可能遗漏。</li><li>浏览器进程保持运行且任务间清理状态；分配器保留内存不等于缓存污染。</li></ul></section><section class="card"><h2>原始环境 JSON</h2><details><summary>展开</summary><pre>{_e(json.dumps(manifest.get("environment") or {}, ensure_ascii=False, indent=2, sort_keys=True))}</pre></details></section>"""
+    run_command = (
+        "uv run --frozen python -m harness.browser_use.cli "
+        "--suite evaluation/browser-use-public/webarena-human-suite.json "
+        "--webarena-config &lt;runtime-config&gt; --env-file .env "
+        "--browser-docker-host unix:///var/run/docker.sock "
+        "--engines chromium,moli --failure-retries 1 "
+        "--output &lt;evidence&gt;/formal/webarena-public-trajectories/run "
+        "--reports &lt;evidence&gt;/formal/webarena-public-trajectories/reports"
+    )
+    audit_command = (
+        "uv run --frozen python examples/browser_use/verify_metrics.py "
+        "--artifacts &lt;evidence&gt;/formal/webarena-public-trajectories/run"
+    )
+    rebuild_command = (
+        "uv run --frozen python examples/browser_use/rebuild_report.py "
+        "--suite evaluation/browser-use-public/webarena-human-suite.json "
+        "--artifacts &lt;evidence&gt;/formal/webarena-public-trajectories/run "
+        "--reports &lt;evidence&gt;/formal/webarena-public-trajectories/reports"
+    )
+    return (
+        '<section class="card"><h2>复现这轮评测</h2>'
+        '<p>需要 Docker、固定的网站镜像和浏览器镜像、WebArena 测试凭据，以及仓库锁定的 Python 依赖。'
+        '公开清单含资格记录；运行器只执行预先标为 eligible 的 30 个任务。'
+        '这里的命令属于 WebArena 固定轨迹评测，不是仓库另一个 30 例工具用例。</p>'
+        f'<details><summary>展开运行与核验命令</summary><pre>{run_command}\n\n{audit_command}\n\n{rebuild_command}</pre></details>'
+        '<p><a href="webarena-trajectory-replay-latest-data.json">下载机器可读审计摘要</a></p></section>'
+        '<section class="card"><h2>运行与原始数据绑定</h2>'
+        + _table(["项目", "值"], provenance_rows, "可复核来源") + '</section>'
+        '<section class="card"><h2>数据字段</h2>'
+        + _table(["对象", "关键字段", "用途"], fields, "数据结构") + '</section>'
+        '<section class="card"><h2>复现限制</h2><ul>'
+        '<li>自托管站点降低网页漂移，但镜像、源码、凭据与初态仍须固定。</li>'
+        f'<li>资源采样间隔 {p.get("sample_interval_ms", "?")} ms；更短的尖峰可能遗漏。</li>'
+        '<li>进程保留内存不等于任务间状态污染。</li></ul></section>'
+        '<section class="card"><h2>变更记录</h2><details><summary>展开历次读者可见变更</summary>'
+        + _table(["日期", "类型", "读者可见影响"], changes, "报告变更")
+        + '</details></section>'
+        '<section class="card"><h2>原始环境 JSON</h2><details><summary>展开</summary><pre>'
+        + _e(json.dumps(manifest.get("environment") or {}, ensure_ascii=False, indent=2, sort_keys=True))
+        + '</pre></details></section>'
+    )
 
 
 def _markdown(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
