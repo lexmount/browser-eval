@@ -2,8 +2,8 @@
   "schema_version": 1,
   "active": true,
   "dataset_id": "popular-sites",
-  "reason": "The provider-blind v2 rules are frozen and validated, but three changed-URL cases still require 24 provider calls, 21 same-URL cases require offline rescoring, and the revised 800-result view requires independent review.",
+  "reason": "The independently reviewed two-method stage and publication package are ready, but external Artifact Hub publication awaits explicit user authorization.",
   "audit_record": "research/popular-sites-rules-audit-v2.json",
   "freeze_receipt": "research/popular-sites-rules-v2-freeze-receipt.json",
-  "release_condition": "All audit blockers are resolved, revised rules are frozen, any required reruns or offline rescoring are complete, and independent result review is current."
+  "release_condition": "Explicit authorization to upload this two-method stage to a new Artifact Hub site; this does not authorize a final 12-method ranking."
 }
