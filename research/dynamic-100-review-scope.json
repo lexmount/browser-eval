@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "review_scope": "all_100_cases",
+  "review_status": "pending",
+  "pull_request_base": "main",
+  "source_branch": "codex/dynamic-100-moli-webfetch",
+  "source_commit": "954a4f3689b83fa43e54937afced558c637c0d48",
+  "dataset_path": "evaluation/dynamic-content-100-moli-webfetch/dataset.json",
+  "dataset_sha256": "a7673451464e4e849833ac291a487493677060ee9f11bbbaf6b97b9c8f9596e6",
+  "case_count": 100,
+  "unique_task_ids": 100,
+  "unique_urls": 100,
+  "methods": [
+    "moli-webfetch"
+  ],
+  "attempt_count": 100,
+  "runs_per_case": 1,
+  "retry_policy": "none",
+  "reported_passes": 49,
+  "reported_failures": 51,
+  "existing_reviewed_attempts": 100,
+  "existing_unresolved_attempts": 0,
+  "new_review_required_attempts": 100,
+  "public_report_url": "https://artifact-hub.app.lexmount.com/v/22FeZubucNimAnB5vV_-1dFKcY3ZS3By",
+  "historical_report_urls": {
+    "48_cases": "https://artifact-hub.app.lexmount.com/v/iIfPYuhAVY9B1nRf7H1mEW6VQhoRCbIW",
+    "86_cases": "https://artifact-hub.app.lexmount.com/v/T-IbV9bs07Go2iSu9EoC1t8oAPpwFfbh"
+  },
+  "completion_gate": {
+    "reviewed_cases": 100,
+    "unresolved_cases": 0,
+    "required_checks": [
+      "dynamic_qualification",
+      "task_scope",
+      "rule_quality",
+      "independent_result_verdict",
+      "reported_verdict_agreement"
+    ]
+  }
+}

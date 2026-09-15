@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "status": "verified",
+  "published_at": "2026-09-15T06:19:31.583799+00:00",
+  "title": "动态网站正文试跑（100例 · Moli WebFetch）",
+  "site_slug": "6XqztXMw_n7C",
+  "version_id": "ver_2612c2fb5156430c9854e89d6585c2e0",
+  "share_url": "https://artifact-hub.app.lexmount.com/v/22FeZubucNimAnB5vV_-1dFKcY3ZS3By",
+  "deployed_file_count": 19,
+  "deployed_tree_sha256": "04161834f82097f411648dd5f74e5d9e5a4ca3d960610846bb218e35cb9ec7de",
+  "deployed_tree_matches_submitted_bundle": true,
+  "unauthenticated_ui_check": {
+    "status": "passed",
+    "task_pass": "49/100",
+    "reviewed": "100/100",
+    "unresolved": 0,
+    "narrow_screen_horizontal_overflow_px": 0
+  },
+  "historical_reports": {
+    "48_cases": "https://artifact-hub.app.lexmount.com/v/iIfPYuhAVY9B1nRf7H1mEW6VQhoRCbIW",
+    "86_cases": "https://artifact-hub.app.lexmount.com/v/T-IbV9bs07Go2iSu9EoC1t8oAPpwFfbh"
+  },
+  "publication_policy": "new independent site; no existing report site was updated",
+  "credential_material_included": false
+}
