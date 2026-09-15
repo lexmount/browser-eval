@@ -133,7 +133,12 @@ def _nav(lang: str, active: str, *, depth: int) -> str:
 def _shell(lang: str, active: str, title: str, body: str, *, depth: int = 0) -> str:
     prefix = "../" * depth
     asset_prefix = prefix if lang == "zh" else "../" + prefix
-    return f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)}</title><link rel="stylesheet" href="{asset_prefix}assets/report.css"></head><body>{_nav(lang, active, depth=depth)}<main>{body}</main><footer>WebArena-Verified 1.2.3 · Browser Trajectory Replay</footer><script src="{asset_prefix}assets/app.js"></script></body></html>'''
+    footer = (
+        "WebArena-Verified 1.2.3 · 浏览器轨迹重放"
+        if lang == "zh"
+        else "WebArena-Verified 1.2.3 · Browser Trajectory Replay"
+    )
+    return f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)}</title><link rel="stylesheet" href="{asset_prefix}assets/report.css"></head><body>{_nav(lang, active, depth=depth)}<main>{body}</main><footer>{footer}</footer><script src="{asset_prefix}assets/app.js"></script></body></html>'''
 
 
 def _winner(value: str, won: bool, *, lang: str) -> str:
@@ -291,7 +296,12 @@ def _detail_page(
     </div></section>
     <section><h2>{"固定操作轨迹" if zh else "Fixed action trajectory"}</h2><div class="table-scroll"><table><thead><tr><th>#</th><th>{"动作" if zh else "Action"}</th><th>{"目标" if zh else "Target"}</th><th>{"耗时" if zh else "Time"}</th><th>{"状态" if zh else "Status"}</th><th>{"结果" if zh else "Result"}</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div></section>
     <section><h2>{"日志与证据" if zh else "Logs and evidence"}</h2><div class="evidence-actions"><a href="../evidence-viewer.html?file={"data/evidence/" if zh else "../data/evidence/"}{key}.json">{"在网页中查看完整证据" if zh else "Open evidence viewer"}</a><a href="{report_root}data/evidence/{key}.json">{"原始 JSON" if zh else "Raw JSON"}</a></div>{screenshot}</section>'''
-    return _shell(lang, "results", f"{method['label']} Task {attempt['task_id']}", body, depth=1)
+    title = (
+        f"{method['label']} · 任务 #{attempt['task_id']}"
+        if zh
+        else f"{method['label']} · Task #{attempt['task_id']}"
+    )
+    return _shell(lang, "results", title, body, depth=1)
 
 
 def _assets(output: Path) -> None:
@@ -505,8 +515,13 @@ def build_webarena_replay_report(
             )
         task_count = len(tasks)
         shared_count = len(passing_tasks)
-        summary_body = f'''<section class="hero"><p class="eyebrow">WebArena-Verified · {task_count} tasks · model calls 0</p><h1>{"浏览器轨迹重放评测" if zh else "Browser Trajectory Replay"}</h1><p>{"同一组经 Chromium 资格验证的固定 BrowserTool 轨迹，依次在各注册浏览器中执行。Agent 与模型不参与测试。" if zh else "The same Chromium-qualified BrowserTool trajectories run on every registered browser. No Agent or model participates in the benchmark."}</p></section><section><h2>{"核心指标" if zh else "Core metrics"}</h2><p class="callout">{f"正确率覆盖全部 {task_count} 题；端到端耗时、CPU 和内存只比较所有浏览器共同通过的 {shared_count} 题，避免提前失败缩短工作量。单次动作统计包含重试中的实际调用；调用数不判优。" if zh else f"Correctness covers all {task_count} tasks. End-to-end time, CPU, and memory use the {shared_count} tasks passed by every browser so early failure cannot reduce workload. Per-action latency includes actual retry calls; call counts are not ranked."}</p>{_metrics_table(method_rows, lang)}</section><section><h2>{"结论" if zh else "Findings"}</h2><div class="summary-grid">{"".join(method_cards)}<article><span>{"执行隔离" if zh else "Execution isolation"}</span><strong>{"串行" if zh else "Serial"}</strong><p>{"每题重置；方法之间销毁浏览器和站点。" if zh else "Reset per task; browser and sites torn down between methods."}</p></article></div></section><section><h2>{"浏览器动作耗时" if zh else "Browser action latency"}</h2><p>{"每格给出均值、P50、P95 和调用次数；耗时在所有注册浏览器间判优，调用次数只反映工作量。" if zh else "Each cell shows mean, P50, P95, and call count. Latency is ranked across every registered browser; counts only describe workload."}</p>{action_table}</section>'''
-        (root / "index.html").write_text(_shell(lang, "index", "Browser Trajectory Replay", summary_body), encoding="utf-8")
+        eyebrow = (
+            f"WebArena-Verified · {task_count} 个任务 · 模型调用 0 次"
+            if zh
+            else f"WebArena-Verified · {task_count} tasks · model calls 0"
+        )
+        summary_body = f'''<section class="hero"><p class="eyebrow">{eyebrow}</p><h1>{"浏览器轨迹重放评测" if zh else "Browser Trajectory Replay"}</h1><p>{"同一组经 Chromium 资格验证的固定 BrowserTool 轨迹，依次在各注册浏览器中执行。Agent 与模型不参与测试。" if zh else "The same Chromium-qualified BrowserTool trajectories run on every registered browser. No Agent or model participates in the benchmark."}</p></section><section><h2>{"核心指标" if zh else "Core metrics"}</h2><p class="callout">{f"正确率覆盖全部 {task_count} 题；端到端耗时、CPU 和内存只比较所有浏览器共同通过的 {shared_count} 题，避免提前失败缩短工作量。单次动作统计包含重试中的实际调用；调用数不判优。" if zh else f"Correctness covers all {task_count} tasks. End-to-end time, CPU, and memory use the {shared_count} tasks passed by every browser so early failure cannot reduce workload. Per-action latency includes actual retry calls; call counts are not ranked."}</p>{_metrics_table(method_rows, lang)}</section><section><h2>{"结论" if zh else "Findings"}</h2><div class="summary-grid">{"".join(method_cards)}<article><span>{"执行隔离" if zh else "Execution isolation"}</span><strong>{"串行" if zh else "Serial"}</strong><p>{"每题重置；方法之间销毁浏览器和站点。" if zh else "Reset per task; browser and sites torn down between methods."}</p></article></div></section><section><h2>{"浏览器动作耗时" if zh else "Browser action latency"}</h2><p>{"每格给出均值、P50、P95 和调用次数；耗时在所有注册浏览器间判优，调用次数只反映工作量。" if zh else "Each cell shows mean, P50, P95, and call count. Latency is ranked across every registered browser; counts only describe workload."}</p>{action_table}</section>'''
+        (root / "index.html").write_text(_shell(lang, "index", "浏览器轨迹重放" if zh else "Browser Trajectory Replay", summary_body), encoding="utf-8")
 
         headers = ["Task", "Site", *[item["label"] for item in methods.values()]]
         matrix_rows = []
@@ -518,7 +533,7 @@ def build_webarena_replay_report(
                 values.append(f'<a class="status-{row["status"]}" href="result/{row["key"]}.html">{label}</a>')
             matrix_rows.append(f'<tr><td>{task_id}</td><td>{_e(", ".join(task["task"].get("sites") or []))}</td>{"".join(f"<td>{v}</td>" for v in values)}</tr>')
         dataset_body = f'<section class="hero"><h1>{f"{task_count} 条标准轨迹" if zh else f"{task_count} qualified trajectories"}</h1><p>{f"每题一条固定操作轨迹。{browser_use_source_count} 条来自干净的 Browser Use 成功执行，{repaired_source_count} 条经修复后重新在 {reference_label} 验证。" if zh else f"One fixed trajectory per task: {browser_use_source_count} clean Browser Use successes and {repaired_source_count} repaired trajectories re-qualified on {reference_label}."}</p></section><section><h2>{"逐题结果矩阵" if zh else "Per-task result matrix"}</h2><div class="table-scroll"><table><thead><tr>{"".join(f"<th>{_e(h)}</th>" for h in headers)}</tr></thead><tbody>{"".join(matrix_rows)}</tbody></table></div></section>'
-        (root / "dataset.html").write_text(_shell(lang, "dataset", "Dataset", dataset_body), encoding="utf-8")
+        (root / "dataset.html").write_text(_shell(lang, "dataset", "评测集" if zh else "Dataset", dataset_body), encoding="utf-8")
 
         result_rows = []
         for row in public_rows:
@@ -527,8 +542,8 @@ def build_webarena_replay_report(
             status = ("通过" if row["status"] == "pass" else "失败") if zh else row["status"].title()
             result_rows.append(f'<tr data-key="{row["key"]}" data-engine="{_e(row["engine"])}" data-status="{row["status"]}" data-site="{_e(row["sites"][0] if row["sites"] else "")}"><td><a href="result/{row["key"]}.html">{_e(row["browser"])} · {row["task_id"]}</a></td><td>{_e(row["sites"][0] if row["sites"] else "")}</td><td class="status-{row["status"]}">{status}</td><td>{row["completed_actions"]}/{row["action_count"]}</td><td>{_e(row["failure_stage"])}</td><td>{_e(row["program_error"])}</td><td><strong>{_e(cause)}</strong><br>{_e(reason)}</td></tr>')
         browser_options = "".join(f'<option value="{_e(key)}">{_e(item["label"])}</option>' for key, item in methods.items())
-        results_body = f'''<section class="hero"><h1>{"结果与失败诊断" if zh else "Results and failure diagnosis"}</h1><p>{"默认显示失败。点击任一行先看诊断弹窗，再进入详情页查看轨迹、日志和最后页面。" if zh else "Failures are shown by default. Open a row for the diagnosis dialog, then continue to the detail page for trajectory, logs, and last page."}</p></section><section><div class="filters"><input data-filter="q" placeholder="{"搜索任务或错误" if zh else "Search task or error"}"><select data-filter="engine"><option value="">{"全部浏览器" if zh else "All browsers"}</option>{browser_options}</select><select data-filter="status"><option value="fail">{"失败" if zh else "Fail"}</option><option value="pass">{"通过" if zh else "Pass"}</option><option value="">{"全部结果" if zh else "All results"}</option></select></div><div class="table-scroll inventory" data-results><table><thead><tr><th>{"结果" if zh else "Result"}</th><th>{"站点" if zh else "Site"}</th><th>{"判定" if zh else "Verdict"}</th><th>{"动作" if zh else "Actions"}</th><th>{"失败阶段" if zh else "Failure stage"}</th><th>{"程序报错" if zh else "Program error"}</th><th>{"复核根因" if zh else "Reviewed root cause"}</th></tr></thead><tbody>{''.join(result_rows)}</tbody></table></div></section><dialog id="diagnosis-dialog"><div class="dialog-head"><strong data-dialog-title></strong><button type="button" aria-label="Close">×</button></div><div class="dialog-body"><h3>{"失败阶段" if zh else "Failure stage"}</h3><p data-dialog-stage></p><h3>{"程序报错" if zh else "Program error"}</h3><pre data-dialog-error></pre><h3>{"复核根因" if zh else "Reviewed root cause"}</h3><p data-dialog-cause></p><a data-dialog-link>{"打开完整详情" if zh else "Open full detail"}</a></div></dialog>'''
-        (root / "results.html").write_text(_shell(lang, "results", "Results", results_body), encoding="utf-8")
+        results_body = f'''<section class="hero"><h1>{"结果与失败诊断" if zh else "Results and failure diagnosis"}</h1><p>{"默认显示失败。点击任一行先看诊断弹窗，再进入详情页查看轨迹、日志和最后页面。" if zh else "Failures are shown by default. Open a row for the diagnosis dialog, then continue to the detail page for trajectory, logs, and last page."}</p></section><section><div class="filters"><input data-filter="q" placeholder="{"搜索任务或错误" if zh else "Search task or error"}"><select data-filter="engine"><option value="">{"全部浏览器" if zh else "All browsers"}</option>{browser_options}</select><select data-filter="status"><option value="fail">{"失败" if zh else "Fail"}</option><option value="pass">{"通过" if zh else "Pass"}</option><option value="">{"全部结果" if zh else "All results"}</option></select></div><div class="table-scroll inventory" data-results><table><thead><tr><th>{"结果" if zh else "Result"}</th><th>{"站点" if zh else "Site"}</th><th>{"判定" if zh else "Verdict"}</th><th>{"动作" if zh else "Actions"}</th><th>{"失败阶段" if zh else "Failure stage"}</th><th>{"程序报错" if zh else "Program error"}</th><th>{"复核根因" if zh else "Reviewed root cause"}</th></tr></thead><tbody>{''.join(result_rows)}</tbody></table></div></section><dialog id="diagnosis-dialog"><div class="dialog-head"><strong data-dialog-title></strong><button type="button" aria-label="{"关闭" if zh else "Close"}">×</button></div><div class="dialog-body"><h3>{"失败阶段" if zh else "Failure stage"}</h3><p data-dialog-stage></p><h3>{"程序报错" if zh else "Program error"}</h3><pre data-dialog-error></pre><h3>{"复核根因" if zh else "Reviewed root cause"}</h3><p data-dialog-cause></p><a data-dialog-link>{"打开完整详情" if zh else "Open full detail"}</a></div></dialog>'''
+        (root / "results.html").write_text(_shell(lang, "results", "结果与诊断" if zh else "Results", results_body), encoding="utf-8")
 
         flow_labels = (
             ("重放器", "浏览器容器", "本地站点", "逐题重置", "证据采集", "官方验收", "完全销毁")
@@ -550,13 +565,13 @@ def build_webarena_replay_report(
   X --> T[Teardown browser and sites]
   T --> R</pre>'''
         environment_body = f'''<section class="hero"><h1>{"环境与评测流程" if zh else "Environment and evaluation flow"}</h1><p>{"192.168.5.2 是 Colima 虚拟机中的宿主网关：浏览器容器通过它访问运行在同一台 Mac 虚拟化环境里的 WebArena 站点。它不是公网测试网站。" if zh else "192.168.5.2 is the host gateway inside the Colima VM. Browser containers use it to reach the WebArena sites running in the same Mac virtualization environment; it is not a public test website."}</p></section><section><h2>{"执行拓扑" if zh else "Execution topology"}</h2>{fallback}{topology}</section><section><h2>{"隔离规则" if zh else "Isolation rules"}</h2><div class="summary-grid"><article><strong>1</strong><p>{"一套固定端口站点环境，因此只允许一个方法运行。" if zh else "One fixed-port site stack permits only one running method."}</p></article><article><strong>{task_count}</strong><p>{"一个浏览器完整跑完全部任务，每题前恢复官方夹具。" if zh else "A browser completes all tasks; official fixtures reset before each task."}</p></article><article><strong>0</strong><p>{"没有 Agent 决策和模型请求；输入是冻结的 BrowserTool 动作。" if zh else "No Agent decisions or model calls; inputs are frozen BrowserTool actions."}</p></article></div></section><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';const node=document.querySelector('.mermaid');try{{mermaid.initialize({{startOnLoad:false,theme:document.documentElement.dataset.theme==='dark'?'dark':'neutral'}});const rendered=await mermaid.render('replay-topology',node.textContent);node.innerHTML=rendered.svg;node.hidden=false;document.querySelector('[data-topology-fallback]').hidden=true}}catch(error){{node.hidden=true}}</script>'''
-        (root / "environment.html").write_text(_shell(lang, "environment", "Environment", environment_body), encoding="utf-8")
+        (root / "environment.html").write_text(_shell(lang, "environment", "环境与方法" if zh else "Environment", environment_body), encoding="utf-8")
 
         review_body = f'''<section class="hero"><h1>{"核验记录" if zh else "Review history"}</h1><p>{"记录影响当前数据集与结论的核验轮次；逐题证据位于结果详情页。" if zh else "Review rounds that changed the current dataset or conclusions. Per-result evidence remains on result pages."}</p></section><section><div class="summary-grid"><article><span>2026-09-15</span><strong>{f"{task_count} 条轨迹资格核验" if zh else f"{task_count}-trajectory qualification"}</strong><p>{f"修复已确认的非浏览器问题，重新验证后 {reference_label} {reference_row['passed']}/{reference_row['total']}。" if zh else f"Confirmed non-browser defects were repaired; {reference_label} then qualified {reference_row['passed']}/{reference_row['total']}."}</p></article><article><span>2026-09-15</span><strong>{f"{reviewed_failure_count} 条失败根因复核" if zh else f"{reviewed_failure_count}-failure root-cause review"}</strong><p>{f"自动失败位置与复核根因分离；{reviewed_failure_count}/{reviewed_failure_count} 结果绑定当前证据哈希，无未解决项。" if zh else f"Programmatic locations remain separate from reviewed causes; {reviewed_failure_count}/{reviewed_failure_count} are bound to the current evidence hash with no unresolved items."}</p></article></div></section>'''
-        (root / "review.html").write_text(_shell(lang, "review", "Review history", review_body), encoding="utf-8")
+        (root / "review.html").write_text(_shell(lang, "review", "核验记录" if zh else "Review history", review_body), encoding="utf-8")
 
         viewer_body = f'<section class="hero"><h1>{"证据查看器" if zh else "Evidence viewer"}</h1><p>{"网页直接加载选中的净化证据；也可下载原始 JSON。" if zh else "Loads the selected sanitized evidence directly in the page; raw JSON remains downloadable."}</p></section><section class="viewer"><pre data-evidence-viewer></pre></section>'
-        (root / "evidence-viewer.html").write_text(_shell(lang, "results", "Evidence viewer", viewer_body), encoding="utf-8")
+        (root / "evidence-viewer.html").write_text(_shell(lang, "results", "证据查看器" if zh else "Evidence viewer", viewer_body), encoding="utf-8")
 
     manifest = {
         "schema": "lex_webarena_trajectory_replay_report/1",

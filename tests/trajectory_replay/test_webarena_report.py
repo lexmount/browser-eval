@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.trajectory_replay.webarena_report import _metrics_table
+from harness.trajectory_replay.webarena_report import _metrics_table, _shell
 from scripts.check_webarena_replay_report import _check_english_localization
 
 
@@ -58,3 +58,10 @@ def test_english_release_gate_rejects_reader_facing_chinese(tmp_path: Path) -> N
     )
     with pytest.raises(ValueError, match="accessibility text"):
         _check_english_localization([page])
+
+
+def test_report_shell_localizes_chinese_title_and_footer() -> None:
+    rendered = _shell("zh", "index", "浏览器轨迹重放", "<p>正文</p>")
+    assert "<title>浏览器轨迹重放</title>" in rendered
+    assert "WebArena-Verified 1.2.3 · 浏览器轨迹重放" in rendered
+    assert "Browser Trajectory Replay</footer>" not in rendered

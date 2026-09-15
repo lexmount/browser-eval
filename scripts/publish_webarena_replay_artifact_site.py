@@ -23,7 +23,10 @@ RECEIPT = Path("publish/trajectory-replay-artifact-site-receipt.json")
 PROFILE = Path("evaluation/trajectory-replay/webarena-verified/current-run.json")
 DATASET = Path("evaluation/trajectory-replay/webarena-verified/trajectories.json")
 REVIEW = Path("research/trajectory-replay-failure-review.json")
-PUBLIC_REPORT_MARKER = "<title>Browser Trajectory Replay</title>"
+PUBLIC_REPORT_MARKERS = (
+    "<title>浏览器轨迹重放</title>",
+    "<title>Browser Trajectory Replay</title>",
+)
 
 
 def sha256(path: Path) -> str:
@@ -159,6 +162,11 @@ def public_share_path(base: str, share_url: str) -> str:
     return target.path
 
 
+def preview_has_report_marker(body: bytes) -> bool:
+    text = body.decode("utf-8", errors="replace")
+    return any(marker in text for marker in PUBLIC_REPORT_MARKERS)
+
+
 def archive_hashes(path: Path) -> dict[str, str]:
     with zipfile.ZipFile(path) as archive:
         return {
@@ -238,16 +246,21 @@ def main(*, create: bool) -> None:
         share_url = str(publication.get("share_url") or "")
         status, raw, _ = request(base, f"/api/sites/{urllib.parse.quote(slug)}")
         before = response_json(status, raw, operation="site lookup")
-        if current_version(before) != expected_version:
-            raise ValueError("Artifact Site version differs from current profile authority")
-        query = urllib.parse.urlencode({"expected_version": expected_version})
-        status, raw, _ = request(
-            base,
-            f"/api/sites/{urllib.parse.quote(slug)}/versions?{query}",
-            payload,
-            content_type,
-        )
-        response_json(status, raw, operation="site version upload")
+        remote_version = current_version(before)
+        if remote_version != expected_version:
+            # A previous upload may have committed before a post-upload check
+            # failed. Resume only when the exported tree proves that the
+            # remote version is byte-identical to the current package.
+            verify_export(base, slug)
+        else:
+            query = urllib.parse.urlencode({"expected_version": expected_version})
+            status, raw, _ = request(
+                base,
+                f"/api/sites/{urllib.parse.quote(slug)}/versions?{query}",
+                payload,
+                content_type,
+            )
+            response_json(status, raw, operation="site version upload")
     status, raw, _ = request(base, f"/api/sites/{urllib.parse.quote(slug)}")
     metadata = response_json(status, raw, operation="site lookup after upload")
     version = current_version(metadata)
@@ -264,9 +277,7 @@ def main(*, create: bool) -> None:
         f"/api/preview/{urllib.parse.quote(slug)}",
         authenticated=False,
     )
-    if preview_status != 200 or PUBLIC_REPORT_MARKER not in preview_body.decode(
-        "utf-8", errors="replace"
-    ):
+    if preview_status != 200 or not preview_has_report_marker(preview_body):
         raise RuntimeError("deployed preview is unavailable or missing report marker")
     bind_publication(profile, slug=slug, share_url=share_url, version=version)
     save_receipt(

@@ -145,6 +145,14 @@ def check(report_dir: Path) -> dict[str, int]:
             raise ValueError(f"report source contains a hand-authored SVG: {page}")
 
     untranslated_zh_markers = (
+        "tasks · model calls",
+        'aria-label="Close"',
+        ">Browser Trajectory Replay</title>",
+        ">Dataset</title>",
+        ">Results</title>",
+        ">Environment</title>",
+        ">Review history</title>",
+        ">Evidence viewer</title>",
         ">Action</th>",
         ">Target</th>",
         ">Time</th>",

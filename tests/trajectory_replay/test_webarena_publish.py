@@ -43,6 +43,14 @@ def test_public_share_must_be_same_origin_and_token_route() -> None:
             raise AssertionError("unsafe public share URL must be rejected")
 
 
+def test_preview_marker_accepts_each_localized_home_title() -> None:
+    assert publisher.preview_has_report_marker(b"<title>Browser Trajectory Replay</title>")
+    assert publisher.preview_has_report_marker(
+        "<title>浏览器轨迹重放</title>".encode()
+    )
+    assert not publisher.preview_has_report_marker(b"<title>Unrelated site</title>")
+
+
 def test_bind_publication_updates_profile_and_attestation(monkeypatch, tmp_path: Path) -> None:
     profile = tmp_path / "profile.json"
     profile.write_text(
