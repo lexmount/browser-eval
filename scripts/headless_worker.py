@@ -38,6 +38,31 @@ def fetch(request):
         meta['completion']['effective_route_timeout_ms'] = round(route_timeout * 1000)
     html = ''
     try:
+        if engine == 'kitesurf' and request.get('remote_markdown_api'):
+            from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
+
+            provider = CloudflareMarkdownProvider('kitesurf', {
+                'account_id': request['account_id'],
+                'api_token': request['api_token'],
+                'browser': request.get('browser', 'kitesurf'),
+                'wait_until': request.get('wait_until', 'networkidle2'),
+                'max_bytes': request.get('max_bytes', 20_000_000),
+            })
+            result = provider.fetch(
+                type('Case', (), {'url': request['url'], 'task_kind': request.get('task_kind', 'body')})(),
+                timeout,
+            )
+            return {
+                'ok': result.ok,
+                'content': result.content,
+                'html': '',
+                'status_code': result.status_code,
+                'final_url': result.final_url,
+                'title': result.title,
+                'error_type': result.error_type,
+                'error_message': result.error_message,
+                'metadata': result.metadata,
+            }
         if engine in ('moli', 'obscura', 'lightpanda'):
             command = cli_command(
                 engine,
@@ -98,7 +123,7 @@ def fetch(request):
                     browser = p.chromium.connect_over_cdp(request['endpoint'], timeout=timeout*1000)
                 else:
                     browser = p.chromium.launch(executable_path=request['binary'], headless=True,
-                        timeout=timeout*1000)
+                        args=request.get('browser_args') or [], timeout=timeout*1000)
                 try:
                     meta['browser_version'] = browser.version
                     context = browser.new_context()

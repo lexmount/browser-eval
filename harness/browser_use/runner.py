@@ -39,7 +39,8 @@ from webarena_verified.types.config import (
 )
 from webarena_verified.types.task import WebArenaSite
 
-from harness.trajectory_replay.metrics import (
+from harness.container_isolation import require_linux_cgroup_v2
+from harness.resource_accounting import (
     DockerStatsResources,
     ResourceSampler,
     delta_counters,
@@ -939,6 +940,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     model.verify_access()
 
     client = docker.from_env()
+    require_linux_cgroup_v2(client)
     docker_info = client.info()
     physical_execution_lock_namespace = _docker_daemon_lock_namespace(docker_info)
     physical_execution_lock_path = _physical_execution_lock_path(

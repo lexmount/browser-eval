@@ -297,6 +297,7 @@ browser-use-eval = [
     { name = "webarena-verified" },
 ]
 headless-eval = [
+    { name = "docker" },
     { name = "playwright" },
     { name = "pypdf" },
 ]
@@ -323,6 +324,7 @@ requires-dist = [
     { name = "crawl4ai", marker = "extra == 'oss-eval'", specifier = "==0.9.3" },
     { name = "docker", marker = "extra == 'browser-use-eval'", specifier = ">=7,<8" },
     { name = "json-repair", marker = "extra == 'browser-use-eval'", specifier = ">=0.54,<1" },
+    { name = "docker", marker = "extra == 'headless-eval'", specifier = ">=7,<8" },
     { name = "langchain-community", marker = "extra == 'oss-eval'", specifier = "==0.3.30" },
     { name = "openpyxl", marker = "extra == 'oss-eval'", specifier = "==3.1.5" },
     { name = "pillow", marker = "extra == 'browser-use-eval'", specifier = ">=11,<13" },

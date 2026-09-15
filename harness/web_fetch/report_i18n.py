@@ -1056,6 +1056,7 @@ TEXT = {
 # (rather than maintaining a second set of report builders) is intentional:
 # both languages still render the same measured rows and evidence objects.
 TEXT.update({
+    "Moli Web Fetch 实测：五款浏览器，150 道任务": "Moli Web Fetch benchmark: five browsers, 150 tasks",
     # Report chrome and common controls.
     "评测报告 · Web Fetch": "Benchmark report · Web Fetch",
     "报告解读 · Web Fetch": "Interpretation · Web Fetch",
@@ -1857,6 +1858,8 @@ TEXT.update({
     "Kitesurf 使用 Cloudflare 账户级 Browser Run /markdown API；耗时包含公网往返、远端排队与执行。": "Kitesurf uses Cloudflare's account-level Browser Run /markdown API. Latency includes public-network round trips, remote queueing, and execution.",
     "Lightpanda、Obscura 与三个 Moli 版本的普通网页使用 CLI 正文输出。三个 Moli 版本的直接文档和媒体 URL 均使用裸 fetch：正文任务在预算内解析，文件任务校验字节。": "Lightpanda, Obscura, and all three Moli versions use CLI body output for ordinary web pages. Direct document and media URLs use bare fetch for every Moli version: body tasks parse within the deadline, while file tasks validate bytes.",
     "Chromium 152 由 Playwright 取完整渲染 DOM，再用 node-html-markdown 2.0.0 转换。七种方法都不调用模型。": "Playwright retrieves the complete rendered DOM from Chromium 152, then node-html-markdown 2.0.0 converts it. None of the seven methods calls a model.",
+    "Lightpanda、Obscura 与 Moli 1.1.1 的普通网页使用 CLI 正文输出。Moli 的直接文档和媒体 URL 使用裸 fetch：正文任务在预算内解析，文件任务校验字节。": "Lightpanda, Obscura, and Moli 1.1.1 use CLI body output for general pages. Moli uses bare fetch for direct document and media URLs: body tasks parse within the budget, while file tasks validate bytes.",
+    "Chromium 152 由 Playwright 取完整渲染 DOM，再用 node-html-markdown 2.0.0 转换。五种方法都不调用模型。": "Playwright retrieves the complete rendered DOM from Chromium 152, then node-html-markdown 2.0.0 converts it. None of the five methods calls a model.",
     "截至 2026-09-07，Cloudflare 尚未发布 Kitesurf 源码或自行部署包；本轮只能通过 Cloudflare 账号版 Browser Run 远程测试，不能把它当作本地开源浏览器。": "As of 2026-09-07, Cloudflare has not released Kitesurf source code or a self-hosting package. This benchmark can test it only remotely through account-level Browser Run, so it is not treated as a local open-source browser.",
     "Cloudflare 官方博客表示计划在准备好后开源，并希望允许客户部署到自己的账户。这是未来计划，不是当前已有能力。": "Cloudflare's official blog states an intention to open-source Kitesurf when ready and to let customers deploy it in their own accounts. That is a future plan, not a current capability.",
     "Playwright 启动 Chromium，取完整渲染 DOM，再由 node-html-markdown 2.0.0 生成 Markdown。": "Playwright starts Chromium and captures the complete rendered DOM, which node-html-markdown 2.0.0 converts to Markdown.",
@@ -1944,12 +1947,14 @@ TEXT.update({
     "满足该例全部验收规则的次数 ÷ 已有验收证据的任务。段落、列表、字段都属于内容要求；": "Calls satisfying every acceptance rule divided by tasks with usable acceptance evidence. Paragraphs, lists, and fields all count as content requirements;",
     "。请求失败计入分母；任何计划调用缺失或无法判分时，整份报告标为不可靠并禁止发布。": ". Request failures remain in the denominator. If any planned call is missing or cannot be judged, the entire report is marked unreliable and cannot be published.",
     "当前成绩包含对保存输出的离线重算；文件任务另在 2026-09-04 真实补测，选取 36 次新调用替换原缺测项，详情见": "Current scores include offline rescoring of saved outputs. File tasks were also rerun on 2026-09-04, with 36 new calls replacing previously missing measurements; see",
+    "只列本报告方法的修订。其余历史调用的输出与计时保留，不能把跨批次视图当成同时重跑。": "lists only corrections for methods in this report. Outputs and timings for all other historical calls are retained; this cross-batch view must not be presented as a simultaneous rerun.",
     "。Moli 时延纠正只替换固定四题、三个版本的 12 个耗时值，并统一取三轮配对实验的最终轮；旧耗时和全部 36 次物理调用保留在": ". The Moli latency correction replaces only 12 latency values for the same four tasks across three versions, consistently using the final round of a three-round paired experiment. Previous timings and all 36 physical calls remain in",
     "中。其余历史调用的输出与计时保留，不能把跨批次视图当成同时重跑。": ". Outputs and timings for all other historical calls are retained; this cross-batch view must not be presented as a simultaneous rerun.",
     "记录输入、输出哈希、判定变化及供应商调用数，不把新规则伪装成原调用时的运行配置。": "record inputs, output hashes, verdict changes, and provider-call counts without presenting later rules as the original run configuration.",
     "关键事实按规范化后的可见文本机械匹配：统一 Unicode、大小写及排版空白，菜单路径如 Settings > AI 与 Settings>AI 等价；忽略 Markdown 链接地址、行内代码与加粗标记。一个已被完整记录边界约束的字段允许丢失内联元素间空白，例如标签列表": "Key facts are matched mechanically against normalized visible text: Unicode, letter case, and layout whitespace are normalized, so menu paths such as Settings > AI and Settings>AI are equivalent; Markdown link destinations, inline-code markers, and emphasis markers are ignored. A field whose complete record boundary is known may omit whitespace between inline elements, so the tag list",
     "内容等价；相邻独立链接仍按独立词段核对，不猜测跨记录的粘连分词。保留数字、正负号、否定词、标点和英文词边界。不使用大模型或模糊相似度判定通过。": "is content-equivalent. Adjacent independent links are still checked as separate token segments, with no guessed segmentation across records. Numbers, signs, negation, punctuation, and English word boundaries are preserved. Acceptance never relies on an LLM or fuzzy similarity.",
     "不同方法并行，同一方法串行；正文结束后再测其他任务。七种方法每次使用新进程或新上下文。静态网页正文：Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura 与 Moli 1.0.6、1.1.1、1.1.3 使用各自 CLI 正文能力，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。三个 Moli 版本遇到直接 PDF、DOCX、图片或视频 URL 时均使用不带 --dump 和页面等待参数的自动响应；正文任务在预算内解析可读文字，文件任务直接校验字节。原始主矩阵未启用失败重试，每次调用有 45 秒端到端预算。运行器可在测量前声明至多一次失败重试：保留全部物理证据和总耗时，并固定采用最后一次结果，不能择优。已确认的命令、版本、裁判、参考或测量错误可按完整声明范围重测并替换权威逻辑结果；旧证据不得删除。本报告另对四题、三个 Moli 版本做三轮配对时延纠正，统一采用最终轮的 12 个耗时，不挑最快；内容、评分和判定未改变。方法之间并行、同一方法串行。本报告不是 WCXB 官方榜单。": "Methods run in parallel, while tasks within each method run serially; non-body tasks start after body-text tasks finish. Each of the seven methods uses a fresh process or context for every call. For static web text, Kitesurf uses Cloudflare's account-level /markdown endpoint; Lightpanda, Obscura, and Moli 1.0.6, 1.1.1, and 1.1.3 use their own CLI body-text capabilities; Chromium converts the complete rendered DOM with node-html-markdown 2.0.0. For direct PDF, DOCX, image, or video URLs, all three Moli versions use automatic responses without --dump or page-wait flags; body tasks parse readable text within the budget, while file tasks validate bytes directly. Failure retries were disabled in the original primary matrix, and every call had a 45-second end-to-end budget. Before measurement, the runner may declare at most one retry after failure: every physical call and total latency are retained, and the final response is always used rather than the best response. A proven command, version, judge, reference, or measurement error may be rerun across its complete declared scope and supersede the authoritative logical result; old evidence must not be deleted. This report also applies a three-round paired latency correction to the same four tasks across three Moli versions, consistently using the final round's 12 timings rather than the fastest; content, scores, and verdicts are unchanged. Methods run in parallel and tasks within each method run serially. This is not an official WCXB ranking.",
+    "不同方法并行，同一方法串行；正文结束后再测其他任务。五种方法每次使用新进程或新上下文。静态网页正文：Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura 与 Moli 1.1.1 使用各自 CLI 正文能力，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。Moli 遇到直接 PDF、DOCX、图片或视频 URL 时使用不带 --dump 和页面等待参数的自动响应；正文任务在预算内解析可读文字，文件任务直接校验字节。原始主矩阵未启用失败重试，每次调用有 45 秒端到端预算。运行器可在测量前声明至多一次失败重试：保留全部物理证据和总耗时，并固定采用最后一次结果，不能择优。已确认的命令、版本、裁判、参考或测量错误可按完整声明范围重测并替换权威逻辑结果；旧证据不得删除。历史报告中的 Moli 1.0.6 与 1.1.3 证据继续归档，但不进入当前报告矩阵。方法之间并行、同一方法串行。本报告不是 WCXB 官方榜单。": "Methods run in parallel, while tasks within each method run serially; non-body tasks start after body-text tasks finish. Each of the five methods uses a fresh process or context for every call. For static web text, Kitesurf uses Cloudflare's account-level /markdown endpoint; Lightpanda, Obscura, and Moli 1.1.1 use their own CLI body-text capabilities; Chromium converts the complete rendered DOM with node-html-markdown 2.0.0. For direct PDF, DOCX, image, or video URLs, Moli uses automatic responses without --dump or page-wait flags; body tasks parse readable text within the budget, while file tasks validate bytes directly. Failure retries were disabled in the original primary matrix, and every call had a 45-second end-to-end budget. Before measurement, the runner may declare at most one retry after failure: every physical call and total latency are retained, and the final response is always used rather than the best response. A proven command, version, judge, reference, or measurement error may be rerun across its complete declared scope and supersede the authoritative logical result; old evidence must not be deleted. Evidence for Moli 1.0.6 and 1.1.3 remains archived in historical reports but is excluded from the current report matrix. Methods run in parallel and tasks within each method run serially. This is not an official WCXB ranking.",
 
     # Capability, pricing, and adoption copy.
     "核对日期：2026-09-11。托管服务按官方文档；内置工具按固定源码。此处说明可选能力，": "Checked 2026-09-11. Managed services are described from official documentation and built-in tools from pinned source. These are optional capability declarations,",
@@ -3268,6 +3273,197 @@ REGEX.insert(0, (
     re.compile(r"^(成功|失败) · HTTP (.+)$"),
     lambda match: (("Success" if match.group(1) == "成功" else "Failure") + " · HTTP "
                    + ("not provided" if match.group(2) == "未提供" else match.group(2))),
+))
+
+
+TEXT.update({
+    "CPU 与内存": "CPU and memory",
+    "CPU、内存与网络": "CPU, memory, and network",
+    "隔离资源证据": "Isolated resource evidence",
+    "CPU、内存、网络汇总与共同成功样本": "CPU, memory, and network summary with shared-success cases",
+    "资源子集逐次记录": "Per-call resource-cohort records",
+    "容器环境与镜像身份": "Container environment and image identity",
+    "资源测量边界": "Resource measurement boundary",
+    "四种本地方法资源消耗复核": "Resource-use review for four local methods",
+    "20 个预声明普通网页 × Lightpanda、Obscura、Moli 1.1.1、Chromium，共 80 条隔离容器结果。": "20 predeclared general pages × Lightpanda, Obscura, Moli 1.1.1, and Chromium: 80 isolated-container results.",
+    "远程 Kitesurf 无法观测服务端 CPU、内存和上游网络；把失败结果的低消耗或宿主机进程采样混入比较，也会产生误导。": "Remote Kitesurf does not expose server-side CPU, memory, or upstream network use. Mixing in the low cost of failed results or host-process samples would also be misleading.",
+    "每次调用使用独立 Docker 容器、cgroup v2 和专用网络命名空间；资源汇总只比较四种本地方法共同通过的 15 个页面。80/80 条结果在隐藏机器判定后逐条复核，分歧 0、未决 0。": "Every call uses a dedicated Docker container, cgroup v2, and a dedicated network namespace. Resource aggregates compare only the 15 pages passed by all four local methods. All 80/80 results were reviewed with machine verdicts hidden: 0 disagreements and 0 unresolved.",
+    "50 ms 采样可能遗漏更短的内存和瞬时速率峰值；结果表示本次 arm64 Linux 容器中的客户端成本，不代表远程服务端成本、生产吞吐或 SLA。": "Sampling every 50 ms may miss shorter memory or instantaneous-rate peaks. Results describe client cost in this arm64 Linux container run, not remote server cost, production throughput, or an SLA.",
+    "最终报告纳入 750 次调用。任务与参考冻结后执行；每个方法内部串行，不复用个人登录状态。": "The final report includes 750 calls. Tasks and references were frozen before execution; calls within each method ran serially without reusing personal login state.",
+    "增加 CPU、内存、网络实测并收敛 Moli 版本": "Add measured CPU, memory, and network use and narrow the Moli version",
+    "当前主报告只保留 Moli 1.1.1，并为四种可本地观测的方法增加统一隔离的 CPU、内存和网络比较。资源结果来自 20 题 × 4 方法的 80 次正式调用，汇总使用共同通过的 15 题。": "The current primary report retains only Moli 1.1.1 and adds a uniformly isolated CPU, memory, and network comparison for four locally observable methods. Resource results come from 80 formal calls across 20 tasks × 4 methods, aggregated over the 15 shared passes.",
+    "当前方法矩阵": "Current method matrix",
+    "三个 Moli 版本同时展示会扩大后续全量重跑和复核范围，也偏离当前产品比较目标。": "Showing three Moli versions would expand every future rerun and review and distract from the current product comparison.",
+    "主报告保留 Kitesurf、Lightpanda、Obscura、Moli 1.1.1、Chromium 五种方法；Moli 1.0.6 和 1.1.3 的历史证据继续保留，但不进入当前页面、分母和榜单。": "The primary report retains Kitesurf, Lightpanda, Obscura, Moli 1.1.1, and Chromium. Historical evidence for Moli 1.0.6 and 1.1.3 remains archived but is excluded from current pages, denominators, and rankings.",
+    "主矩阵复用已经完成并核验的 750 条五方法结果，没有重新调用供应商；同窗测速的共同成功分母由七配置的 8 题变为当前五配置的 9 题。": "The primary matrix reuses 750 completed and reviewed five-method results without new provider calls. Removing the two historical configurations changes the same-window shared-pass denominator from 8 tasks across seven configurations to 9 tasks across the current five.",
+    "资源比较": "Resource comparison",
+    "旧报告只有端到端耗时，无法区分浏览器客户端对 CPU、内存和网络的占用。": "The previous report had only end-to-end latency and could not distinguish browser-client CPU, memory, and network use.",
+    "预声明 20 个普通网页，单并发运行四种本地方法；每次调用限制为 2 CPU、2 GiB 内存和 512 PID，并保存累计 CPU、内存采样及网络收发计数。": "20 general pages were predeclared and run one at a time across four local methods. Each call was limited to 2 CPUs, 2 GiB of memory, and 512 PIDs, with cumulative CPU, sampled memory, and network byte counters retained.",
+    "只在四种方法共同通过的 15 题上汇总；失败结果仍保留在逐次证据中但不用于资源排名。": "Aggregates use only the 15 tasks passed by all four methods. Failed results remain in per-attempt evidence but do not enter the resource ranking.",
+    "隔离与复用": "Isolation and reuse",
+    "宿主机进程采样会混入其他任务，旧版成品镜像的 Moli 和 Chromium 版本又与当前口径不一致。": "Host-process sampling can include unrelated work, while the existing finished images use Moli and Chromium versions that do not match the current contract.",
+    "抽出共享的 Linux/cgroup 资源计量与容器限制组件，Web Fetch 每次使用一次性容器和专用网络；Browser Use 复用相同基础计量。固定资源镜像构建一次并按镜像 ID 复用。": "Shared Linux/cgroup accounting and container-limit components now serve both evaluations. Web Fetch uses a disposable container and dedicated network per call, while Browser Use reuses the same accounting foundation. The fixed resource image is built once and reused by image ID.",
+    "现有 Docker 下载层可复用；旧 Moli 1.1.3 和 Chromium 151 成品镜像不冒充当前 Moli 1.1.1 与 Chromium 152。": "Existing Docker download layers are reusable, but finished images containing Moli 1.1.3 and Chromium 151 are not presented as the current Moli 1.1.1 and Chromium 152 environment.",
+    "适用边界": "Scope limits",
+    "远程 Kitesurf 的客户端请求流量不能代表其浏览器服务端的 CPU、内存和上游网络。": "Kitesurf's local request traffic cannot represent CPU, memory, or upstream network use in its remote browser service.",
+    "Kitesurf 继续参加正确率和端到端耗时比较，但从资源消耗表中排除并说明原因。": "Kitesurf remains in correctness and end-to-end latency comparisons but is excluded from the resource-use table with the reason disclosed.",
+    "50 ms 采样可能遗漏更短峰值；本轮只能解释 arm64 Linux 隔离容器中的客户端成本。": "Sampling every 50 ms may miss shorter peaks. This run describes only client cost in isolated arm64 Linux containers.",
+    "解读突出耗时减少比例并增加三张信息图": "Emphasize latency reduction and add three explanatory figures",
+    "首屏以 Chromium 为基准展示均值、P50、P95 的耗时减少比例；以结果总览和两张流程图替代重复总结与部分流程文字，标题改为直接的内容名称。": "The opening compares mean, P50, and P95 latency reductions against Chromium. A result overview and two flow diagrams replace repeated summaries and some process prose, with direct descriptive titles.",
+    "耗时比较": "Latency comparison",
+    "首屏强调秒数，读者需要自行计算差距。": "The opening emphasized seconds and required readers to calculate the differences themselves.",
+    "用未舍入数据计算相对 Chromium 的耗时减少比例：均值 42.8%、P50 46.7%、P95 44.3%，秒数作为次要依据保留。": "Use unrounded values to calculate reductions relative to Chromium: 42.8% for mean latency, 46.7% for P50, and 44.3% for P95, while retaining seconds as secondary context.",
+    "仍为跨批次的 98 道共同成功任务；统计样本与测量边界不变。": "The population remains 98 shared successful tasks collected across batches; the sample and measurement boundary are unchanged.",
+    "信息图": "Explanatory figures",
+    "概念流程与总结主要依靠文字。": "Conceptual flows and summaries relied mostly on prose.",
+    "增加结果总览、Web Fetch 与 Browser Use 对照、五种交付物流程图；提供完整图片下载，英文版使用对应英文总览。": "Add a result overview, a Web Fetch versus Browser Use comparison, and a flow diagram for five deliverable types. Full-size images are downloadable, with a corresponding English overview.",
+    "流程图为说明性示意，六组案例仍展示原始证据。图片逐项核对并绑定哈希，不参与评分。": "The diagrams are explanatory. Six case groups still show original evidence; images are reviewed and hash-bound but do not affect scoring.",
+    "CPU、内存和网络使用独立的 20 题同窗队列，不回填历史正确率调用。每次调用在受限的 Linux 容器中运行，使用 cgroup v2 累计 CPU、独立网络命名空间累计收发字节，并以 50 ms 采样内存与瞬时速率。容器固定为 2 个逻辑 CPU、2 GiB 内存和 512 个 PID；宿主控制器与容器启停不计入。": "CPU, memory, and network use a separate 20-task same-window cohort and are not backfilled into historical correctness calls. Each call runs in a limited Linux container, using cgroup v2 cumulative CPU counters, a dedicated network namespace for received and sent bytes, and 50 ms samples for memory and instantaneous rates. Containers are fixed at 2 logical CPUs, 2 GiB memory, and 512 PIDs; the host controller and container lifecycle are excluded.",
+    "资源汇总只纳入当前五种配置共同通过的任务，避免把快速失败当成节省资源。四种本地配置覆盖容器内 worker、浏览器与转换过程；Kitesurf 只覆盖本地请求客户端，其远端 CPU、内存和上游流量不可见。缺少任一资源字段、非 Linux/cgroup v2、镜像或二进制身份变化、并发不为 1，都会阻断报告构建。": "Resource aggregates include only tasks passed by all five current configurations, avoiding credit for fast failures. The four local configurations cover the worker, browser, and conversion inside the container; Kitesurf covers only its local request client, while remote CPU, memory, and upstream traffic remain invisible. A missing resource field, a non-Linux/cgroup-v2 backend, an image or binary identity change, or concurrency other than 1 blocks the report build.",
+    "资源汇总只纳入四种本地配置共同通过的任务，避免把快速失败当成节省资源，并覆盖容器内 worker、浏览器与转换过程。Kitesurf 的远端 CPU、内存和上游流量不可见，因此不进入资源表。缺少任一资源字段、非 Linux/cgroup v2、镜像或二进制身份变化、并发不为 1，都会阻断报告构建。": "Resource aggregates include only tasks passed by all four local configurations, avoiding credit for fast failures, and cover the worker, browser, and conversion inside the container. Kitesurf's remote CPU, memory, and upstream traffic are invisible, so it is excluded from the resource table. A missing resource field, a non-Linux/cgroup-v2 backend, an image or binary identity change, or concurrency other than 1 blocks the report build.",
+    "CPU 与网络总量来自累计计数；内存峰值和速率分位数依赖 50 ms 采样，可能遗漏更短的尖峰。报告分别呈现 CPU、内存、网络和任务通过率，不合成总分。": "CPU and network totals use cumulative counters. Memory peaks and rate percentiles depend on 50 ms sampling and may miss shorter spikes. The report presents CPU, memory, network, and task pass rate separately rather than combining them into a composite score.",
+    "02 通过率、耗时与资源": "02 Pass rates, latency, and resources",
+    "客户端 CPU 与内存": "Client-side CPU and memory",
+    "客户端 CPU、内存与网络": "Client-side CPU, memory, and network",
+    "资源指标怎样测": "How resource metrics are measured",
+    "当前证据没有独立的客户端资源测量；不从耗时或进程体积推测 CPU 与内存。": "The current evidence has no independent client-side resource measurement; CPU and memory are not inferred from latency or process size.",
+    "当前证据没有独立的客户端资源测量；本文不从耗时反推 CPU 或内存。": "The current evidence has no independent client-side resource measurement; this article does not infer CPU or memory from latency.",
+    "资源指标待独立同题测量后补充。": "Resource metrics will be added only after an independent matched-task measurement.",
+    "每题等权，失败与超时计入总数；通过表示交付结果满足题目要求。当前报告固定使用 Moli 1.1.1，不在同一报告中混合不同版本。": "Tasks are equally weighted, with failures and timeouts included in the total. The current report fixes Moli at version 1.1.1 and does not mix versions within one report.",
+    "平均 CPU 时间": "Mean CPU time",
+    "平均 CPU 占单核": "Mean CPU as one-core utilization",
+    "平均峰值内存": "Mean peak memory",
+    "峰值内存 P95": "Peak-memory P95",
+    "平均接收": "Mean received",
+    "平均发送": "Mean sent",
+    "测量范围": "Measurement scope",
+    "本地进程树": "Local process tree",
+    "本地隔离容器": "Isolated local container",
+    "独立资源 cohort 在四种本地配置共同通过的": "The independent resource cohort compares the same tasks across",
+    "个普通网页上比较同一任务。四种本地配置中，平均 CPU 时间最低为": "general pages passed by all four local configurations. Among those configurations, the lowest mean CPU time is",
+    "，平均峰值内存最低为": ", and the lowest mean peak memory is",
+    "仅本机请求客户端": "Local request client only",
+    "可比边界：": "Comparison boundary:",
+    "这里统计一次性 Linux 客户端容器的 cgroup 与独立网络命名空间，宿主控制器和容器启停不计入。Kitesurf 的远端浏览器 CPU、内存和远端上游流量不可见，所以它只展示本机请求客户端开销，不能拿来证明远端引擎更省资源。": "This measures the cgroup and dedicated network namespace of a disposable Linux client container; the host controller and container lifecycle are excluded. Kitesurf's remote-browser CPU, memory, and upstream traffic are invisible, so its row shows only local request-client cost and cannot establish that the remote engine uses fewer resources.",
+    "这里统计四种本地方法的一次性 Linux 客户端容器 cgroup 与独立网络命名空间，宿主控制器和容器启停不计入。Kitesurf 的远端浏览器 CPU、内存和远端上游流量不可见，因此不进入资源表或本地引擎资源排名。": "This measures the disposable Linux client-container cgroup and dedicated network namespace for the four local methods; the host controller and container lifecycle are excluded. Kitesurf's remote-browser CPU, memory, and upstream traffic are invisible, so it is excluded from the resource table and local-engine resource ranking.",
+    "资源数据来自四种本地方法的单独同题 cohort，不回填到历史正确率调用。每次调用启动一个受限的 Linux 客户端容器及独立网络；宿主控制器和容器启停不计入。CPU 与网络总量读取累计计数，内存与速率分位数按 50 ms 采样。": "Resource data comes from a separate matched-task cohort for the four local methods and is not backfilled into historical correctness calls. Each call starts a limited Linux client container with a dedicated network; the host controller and container lifecycle are excluded. CPU and network totals use cumulative counters, while memory and rate percentiles are sampled every 50 ms.",
+    "资源汇总只使用四种本地配置共同通过的任务，避免把快速失败或空输出当成节省资源。短于采样间隔的内存或速率峰值可能遗漏；Kitesurf 等远端服务的服务端 CPU、内存与上游流量不可观测，因而不进入资源表。": "Resource aggregates use only tasks passed by all four local configurations, avoiding credit for fast failures or empty output. Memory or rate peaks shorter than the sample interval may be missed; server-side CPU, memory, and upstream traffic for remote services such as Kitesurf are not observable, so they are excluded from the resource table.",
+    "CPU 时间是所有已观测进程消耗之和；平均 CPU 占单核可超过 100%。内存为同一采样时刻的进程组 RSS 总和；网络是目标进程累计收发字节。50 ms 采样可能遗漏更短的内存/CPU 尖峰；失败任务不进入本表。": "CPU time sums all observed processes; mean one-core utilization may exceed 100%. Memory is the process group's summed RSS at each sample, while network is cumulative bytes received and sent by target processes. Sampling every 50 ms may miss shorter memory or CPU spikes, and failed tasks are excluded from this table.",
+    "CPU 时间和网络总量来自容器累计计数；平均 CPU 占单核可超过 100%。内存与速率分位数按 50 ms 采样。更短的内存或速率尖峰可能遗漏；失败任务不进入本表。": "CPU time and network totals come from cumulative container counters; mean one-core utilization may exceed 100%. Memory and rate percentiles are sampled every 50 ms. Shorter memory or rate spikes may be missed, and failed tasks are excluded from this table.",
+    "资源数据来自单独的同题 cohort，不回填到历史正确率调用。每次调用启动一个独立客户端进程组，以 50 ms 间隔观察该进程及所有子进程；CPU 时间累计所有已观测进程，RSS 内存按同一时刻求和，网络按目标进程累计收发字节。平均 CPU 占单核可以超过 100%，表示同时使用多个逻辑核。": "Resource data comes from a separate matched-task cohort and is not backfilled into historical correctness calls. Each call starts an isolated client process group sampled every 50 ms with all descendants; CPU time accumulates across observed processes, RSS is summed at each instant, and network uses cumulative bytes received and sent by target processes. Mean one-core CPU may exceed 100%, indicating concurrent use of multiple logical cores.",
+    "资源汇总只使用所有展示配置共同通过的任务，避免把快速失败或空输出当成节省资源。短于采样间隔的内存/CPU 峰值可能遗漏；远端服务的服务端 CPU、内存与上游流量不可观测。": "Resource aggregates use only tasks passed by every displayed configuration, avoiding credit for fast failures or empty output. Memory or CPU spikes shorter than the sample interval may be missed; server-side CPU, memory, and upstream traffic for remote services are not observable.",
+    "资源数据来自单独的同题 cohort，不回填到历史正确率调用。每次调用启动一个受限的 Linux 客户端容器及独立网络；宿主控制器和容器启停不计入。CPU 与网络总量读取累计计数，内存与速率分位数按 50 ms 采样。": "Resource data comes from a separate matched-task cohort and is not backfilled into historical correctness calls. Each call starts a limited Linux client container with a dedicated network; the host controller and container lifecycle are excluded. CPU and network totals use cumulative counters, while memory and rate percentiles are sampled every 50 ms.",
+    "资源汇总只使用所有展示配置共同通过的任务，避免把快速失败或空输出当成节省资源。短于采样间隔的内存或速率峰值可能遗漏；远端服务的服务端 CPU、内存与上游流量不可观测。": "Resource aggregates use only tasks passed by every displayed configuration, avoiding credit for fast failures or empty output. Memory or rate peaks shorter than the sample interval may be missed; server-side CPU, memory, and upstream traffic for remote services are not observable.",
+    "增加站点、文档类型和重复次数；在相同运行条件下扩大速度与资源样本，观察热门站点的成功率波动。": "Add sites, document types, and repeated runs; expand latency and resource samples under the same execution conditions, and observe pass-rate variation on popular sites.",
+    "资源对比按指标分组并明确领先者": "Group resource comparisons and name the leaders",
+    "首页与报告解读将 CPU、内存和网络拆为三个指标组，直接标出可按低消耗判断的逐项最低值，并在摘要中说明 Lightpanda 是本轮资源效率领先者。评测证据、任务判定和分母不变。": "The home page and interpretation split CPU, memory, and network into three metric groups, mark each lower-is-better minimum directly, and identify Lightpanda as the resource-efficiency leader in this run. Evaluation evidence, task verdicts, and denominators are unchanged.",
+    "资源结论": "Resource findings",
+    "资源数据平铺在一张宽表中，读者需要自行寻找最低值。": "Resource data was spread across one wide table, requiring readers to find minima themselves.",
+    "增加资源效率结论卡和 CPU、内存、网络三张关键结果卡，明确 Lightpanda 在本轮低消耗指标中的领先。": "Add a resource-efficiency finding card and three key-result cards for CPU, memory, and network, making Lightpanda's lower-use lead explicit.",
+    "资源领先与综合任务通过率分别判断，不合成总分。": "Resource leadership and overall task pass rate are judged separately and are not combined into a composite score.",
+    "逐项比较": "Per-metric comparison",
+    "表格只突出排序列，没有稳定标记每项最低值。": "The table highlighted only the sorted column and did not persistently mark each metric's minimum.",
+    "按计算、内存、网络分组，逐项标记最低消耗；CPU 利用率和传输速率只描述运行形态，不按低值评选。": "Group metrics into compute, memory, and network and mark the lowest use in each; CPU utilization and transfer rates describe runtime behavior and are not ranked by lower values.",
+    "沿用四种本地方法共同通过的 15/20 个普通网页，不产生新的供应商调用。": "Retain the 15/20 general pages passed by all four local methods, with no new provider calls.",
+    "发布门禁": "Release gate",
+    "资源展示要求依赖人工记忆。": "Resource-presentation requirements depended on manual memory.",
+    "仓库规则和报告检查同时要求首页、解读页及中英文版具备赢家摘要、三类分组和逐项赢家标记。": "Repository rules and report checks now require a winner summary, three grouped sections, and per-metric winner markers on the home and interpretation pages in both languages.",
+    "以后新增或重建报告时缺失任一部分都会阻断发布。": "Future report creation or rebuilding is blocked if any of these elements is missing.",
+    "本轮资源效率领先": "Resource-efficiency leader in this run",
+    "本轮资源效率并列领先": "Resource-efficiency co-leaders in this run",
+    "个可按低消耗比较的指标最低。资源结果与任务通过率分别判断，不合成总分。": "lower-is-better resource metrics. Resource results and task pass rate are judged separately and are not combined into a composite score.",
+    "CPU 领先者": "CPU leader",
+    "内存领先者": "Memory leader",
+    "网络流量领先者": "Network-traffic leader",
+    "平均 CPU 时间": "Mean CPU time",
+    "平均峰值内存": "Mean peak memory",
+    "平均接收 / 平均发送": "Mean received / mean sent",
+    "接收": "Received",
+    "发送": "Sent",
+    "同题口径：四种本地配置共同通过": "Matched-task scope: general pages passed by all four local configurations:",
+    "个普通网页；失败任务不进入资源排名。": "pages; failed tasks do not enter the resource ranking.",
+    "CPU 与计算": "CPU and compute",
+    "内存": "Memory",
+    "网络": "Network",
+    "绿色标记表示该项消耗最低。": "Green marks the lowest resource use for that metric.",
+    "流量总量按低值标记；速率仅描述传输形态，不判赢家。": "Traffic totals mark lower values; rates only describe transfer behavior and do not determine a winner.",
+    "指标": "Metric",
+    "本项最低": "Lowest",
+    "CPU 时间 P50": "CPU time P50",
+    "CPU 时间 P95": "CPU time P95",
+    "任务内 CPU P95": "Within-task CPU P95",
+    "平均内存": "Mean memory",
+    "任务内存 P95": "Within-task memory P95",
+    "平均内存占用量": "Mean memory integral",
+    "接收 P95": "Received P95",
+    "发送 P95": "Sent P95",
+    "平均接收速率": "Mean receive rate",
+    "平均发送速率": "Mean send rate",
+    "CPU 与计算资源对比": "CPU and compute resource comparison",
+    "内存资源对比": "Memory resource comparison",
+    "网络资源对比": "Network resource comparison",
+    "每次调用使用一次性 Linux 客户端容器、cgroup v2 与独立网络命名空间；宿主控制器和容器启停不计入。Kitesurf 的远端浏览器 CPU、内存和远端上游流量不可见，因此不进入资源表或本地引擎资源排名。": "Each call uses a disposable Linux client container, cgroup v2, and a dedicated network namespace; the host controller and container lifecycle are excluded. Kitesurf's remote-browser CPU, memory, and upstream traffic are invisible, so it is excluded from the resource table and local-engine resource ranking.",
+    "CPU 与网络总量来自累计计数；内存与瞬时速率按 50 ms 采样，可能遗漏更短尖峰。CPU 占用、传输速率不按“越低越好”评选。完整方法与逐次证据见环境与复现页。": "CPU and network totals come from cumulative counters. Memory and instantaneous rates are sampled every 50 ms and may miss shorter spikes. CPU utilization and transfer rates are not ranked as lower-is-better. See Methodology and Reproduction for full methods and per-call evidence.",
+    "左右滑动查看完整对比": "Scroll horizontally for the full comparison",
+})
+
+REGEX.insert(0, (
+    re.compile(r"^(\d+)/(\d+)$"),
+    r"\1/\2",
+))
+REGEX.insert(0, (
+    re.compile(r"^。当前报告的 (.+) 时延纠正仅替换 (\d+) 个耗时值，统一取配对实验的第 (\d+) 轮；旧耗时和原始物理调用保留在离线证据，当前投影的$"),
+    r". In the current report, the latency correction for \1 replaces only \2 timings and consistently uses round \3 of the paired experiment. Previous timings and physical calls remain in the offline evidence; the projected",
+))
+REGEX.insert(0, (
+    re.compile(r"^接收 (.+) / 发送 (.+)$"),
+    lambda match: "Received " + match.group(1).replace("、", ", ")
+    + " / sent " + match.group(2).replace("、", ", "),
+))
+REGEX.insert(0, (
+    re.compile(r"^(?:Chromium|Lightpanda|Moli 1\.1\.1|Obscura)(?:、(?:Chromium|Lightpanda|Moli 1\.1\.1|Obscura))+$"),
+    lambda match: match.group(0).replace("、", ", "),
+))
+REGEX.insert(0, (
+    re.compile(r"^(.+) 是本轮资源效率领先者，在 (\d+) 个可按低消耗比较的指标中取得 (\d+) 项最低。这里的资源领先不等于综合任务通过率领先。$"),
+    r"\1 is the resource-efficiency leader in this run, with the lowest use in \3 of \2 lower-is-better metrics. Resource leadership is not the same as leadership in overall task pass rate.",
+))
+
+REGEX.insert(0, (
+    re.compile(r"^主结果 ([\d,]+)/([\d,]+)；同窗测速 ([\d,]+)/([\d,]+)；代理分歧 (\d+)；已裁定 (\d+)；未决 (\d+)。$"),
+    r"Primary results \1/\2; same-window latency \3/\4; agent disagreements \5; adjudicated \6; unresolved \7.",
+))
+REGEX.insert(0, (
+    re.compile(r"^全部 (\d+) 种受测配置共同通过$"),
+    r"All \1 tested configurations pass",
+))
+REGEX.insert(0, (
+    re.compile(r"^从结构化结果中读取标题与详情链接，共 (\d+) 个标题。$"),
+    r"Read titles and detail URLs from structured results: \1 returned titles.",
+))
+REGEX.insert(0, (
+    re.compile(r"^(\d+)/(\d+) 个标题找到独立名称证据；没有对应证据的不评分。$"),
+    r"\1/\2 titles join to independent name evidence; titles without matching evidence are not scored.",
+))
+REGEX.insert(0, (
+    re.compile(r"^独立资源 cohort：四种本地配置共同成功的 (\d+)/(\d+) 个普通网页。失败任务不进入资源汇总。$"),
+    r"Independent resource cohort: \1/\2 general pages passed by all four local configurations. Failed tasks are excluded from resource aggregates.",
+))
+REGEX.insert(0, (
+    re.compile(r"^在四种可完整观测的本地浏览器中，(.+) 的平均 CPU 时间最低，(.+) 的平均峰值内存最低。这两个最低值可能属于不同浏览器；CPU、内存和任务通过率也不能合成一个总分。Kitesurf 在远端运行，其服务端 CPU、内存和上游流量不可见，因此不进入资源表，也不与本地浏览器容器作引擎资源排名。$"),
+    r"Among the four fully observable local browsers, \1 has the lowest mean CPU time and \2 the lowest mean peak memory. These minima may belong to different browsers; CPU, memory, and task pass rate must not be blended into a composite score. Kitesurf runs remotely; its server-side CPU, memory, and upstream traffic are invisible, so it is excluded from the resource table and local-browser resource ranking.",
+))
+REGEX.insert(0, (
+    re.compile(r"^独立资源 cohort：五款展示配置共同成功的 (\d+)/(\d+) 个普通网页。失败任务不进入资源汇总。$"),
+    r"Independent resource cohort: \1/\2 general pages passed by all five displayed configurations. Failed tasks are excluded from resource aggregates.",
+))
+REGEX.insert(0, (
+    re.compile(r"^在四种可完整观测的本地浏览器中，(.+) 的平均 CPU 时间最低，(.+) 的平均峰值内存最低。这两个最低值可能属于不同浏览器；CPU、内存和任务通过率也不能合成一个总分。Kitesurf 在远端运行，表中只包含本机请求客户端；其远端上游流量也不可见，不能与本地浏览器容器作引擎资源排名。$"),
+    r"Among the four fully observable local browsers, \1 has the lowest mean CPU time and \2 the lowest mean peak memory. These minima may belong to different browsers; CPU, memory, and task pass rate must not be blended into a composite score. Kitesurf runs remotely, so its row includes only the local request client; its remote upstream traffic is also unavailable, and it cannot enter an engine-resource ranking against local browser containers.",
+))
+REGEX.insert(0, (
+    re.compile(r"^在四种可完整观测的本地浏览器中，(.+) 的平均 CPU 时间最低，(.+) 的平均峰值内存最低。这两个最低值可能属于不同浏览器；CPU、内存和任务通过率也不能合成一个总分。Kitesurf 在远端运行，表中只包含本机请求客户端；其远端上游流量也不可见，不能与本地浏览器进程树作引擎资源排名。$"),
+    r"Among the four fully observable local browsers, \1 has the lowest mean CPU time and \2 the lowest mean peak memory. These minima may belong to different browsers; CPU, memory, and task pass rate must not be blended into a composite score. Kitesurf runs remotely, so its row includes only the local request client; its remote upstream traffic is also unavailable, and it cannot enter an engine-resource ranking against local browser process trees.",
 ))
 
 

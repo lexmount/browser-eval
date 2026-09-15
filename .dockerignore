@@ -3,5 +3,15 @@
 .browser-use-eval-venv
 artifacts
 docs/reports
+reports
+evaluation
+research
+report-assets
+tests
+configs
+.agents
+.github
+.pytest_cache
+browser_harness_eval.egg-info
 **/__pycache__
 **/*.pyc

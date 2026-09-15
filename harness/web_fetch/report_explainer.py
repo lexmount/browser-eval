@@ -14,6 +14,7 @@ from .metrics import evaluate_content, task_passed, percentile
 from .scoring import score_attempt
 from .report_style import STYLE
 from .safety import contained_path, safe_identifier
+from .report_resources import render_resource_comparison
 
 
 TITLE = '网页抓取成功之后，内容离可用还有多远'
@@ -30,7 +31,9 @@ PROVIDER_NAMES = {'cowagent-built-in': 'CowAgent', 'moli-webfetch': 'Moli',
                   'deepseek-harness-built-in': 'DeepSeek Harness', 'tavily': 'Tavily',
                   'lexmount-global': 'Lexmount 国际', 'lexmount-cn': 'Lexmount 中国区',
                   'moli-1.0.6': 'Moli 1.0.6', 'moli': 'Moli 1.1.1',
-                  'moli-1.1.3': 'Moli 1.1.3'}
+                  'moli-1.1.3': 'Moli 1.1.3', 'chromium': 'Chromium',
+                  'kitesurf': 'Kitesurf', 'lightpanda': 'Lightpanda',
+                  'obscura': 'Obscura'}
 
 METHODOLOGY_FIGURES = (
     ('annotation', '混合标注：稳定文字、易变字段与全文参考',
@@ -596,6 +599,19 @@ def _render_article_speed(population):
     return html + '</div>'
 
 
+def _render_article_resources(summary, selected):
+    if summary is None:
+        return ('<p>当前证据没有独立的客户端资源测量；本文不从耗时反推 CPU 或内存。</p>',
+                '资源指标待独立同题测量后补充。')
+    rendered, result = render_resource_comparison(summary, selected)
+    interpretation = (
+        f'{result["winner_label"]} 是本轮资源效率领先者，在 '
+        f'{result["ranked_metric_count"]} 个可按低消耗比较的指标中取得 '
+        f'{result["winner_count"]} 项最低。这里的资源领先不等于综合任务通过率领先。'
+    )
+    return rendered, interpretation
+
+
 def _render_headless(out, cases, records):
     """Five-browser editorial view, derived from the unchanged report evidence."""
     from .report_components import comparable_body_reference
@@ -643,7 +659,7 @@ def _render_headless(out, cases, records):
         quality_data[n] = {'cases':len(eligible), **{k:_mean(r['metrics'].get(k) for r in eligible) for k in ('word_precision','word_recall','word_f1')}}
     quality = _table(['全文指标','Moli 1.1.1','Chromium'], [(name,*(_percent(quality_data[n][k]) for n in ('moli','chromium'))) for k,name in [('word_recall','参考正文找回比例 · Recall'),('word_precision','输出文字纯净度 · Precision'),('word_f1','综合文字重合 · F1')]], f'{quality_data["moli"]["cases"]} 个具有完整可比参考的普通网页，取逐题算术平均，包含已测失败项。文字重合不等于事实准确率。')
     speed = json.loads(speed_path.read_text())
-    if _digest(speed) != '5915ed32fcbfa27bd7fe2e4c9d4a32a5080936482fb6f2f51d09a2d9bff85dc3':
+    if _digest(speed) != '53ebd9a2ec147e397ab4def009262701883aa22bb7f4b4dfb2c56dad5c0538db':
         raise ValueError('Article speed evidence changed; review latency prose before rebuilding')
     speed_inputs = {}
     for name in ('dataset', 'results'):
@@ -660,6 +676,10 @@ def _render_headless(out, cases, records):
         execution_scope='Separate predeclared 20-page ordinary-web speed run; use all tasks accepted by the five displayed configurations. Small-sample P95 is the observed maximum.')
     paired_speed['bindings'] = speed['bindings']
     data['editorial_speed'] = {'main': main_speed, 'same_window': paired_speed}
+    resource_path = contained_path(out, 'resource-cohort/resource-comparison.json')
+    resource_summary = json.loads(resource_path.read_text()) if resource_path.is_file() else None
+    resource_table, resource_interpretation = _render_article_resources(resource_summary, selected)
+    data['editorial_resources'] = resource_summary
     pdf = rows.get('moli',{}).get('document-01')
     pdf_chars = pdf['metrics'].get('content_chars',0) if pdf else 0
     pdf_ms = pdf['elapsed_ms'] if pdf else 0
@@ -691,6 +711,12 @@ def _render_headless(out, cases, records):
         'split': split, 'four': four, 'matrix': matrix,
         'quality': quality, 'speed_main': _render_article_speed(main_speed),
         'speed': _render_article_speed(paired_speed),
+        'resources': resource_table,
+        'resource_interpretation': escape(resource_interpretation),
+        'resource_methodology': (
+            '<details class="m-details"><summary>资源指标怎样测</summary><p>资源数据来自四种本地方法的单独同题 cohort，不回填到历史正确率调用。每次调用启动一个受限的 Linux 客户端容器及独立网络；宿主控制器和容器启停不计入。CPU 与网络总量读取累计计数，内存与速率分位数按 50 ms 采样。</p><p>资源汇总只使用四种本地配置共同通过的任务，避免把快速失败或空输出当成节省资源。短于采样间隔的内存或速率峰值可能遗漏；Kitesurf 等远端服务的服务端 CPU、内存与上游流量不可观测，因而不进入资源表。</p></details>'
+            if resource_summary is not None else ''
+        ),
         'pdf_chars': f'{pdf_chars:,}',
         'pdf_seconds': f'{pdf_ms/1000:.2f}',
         'pdf_fetch': f'{pdf_meta.get("raw_fetch_ms", 0)/1000:.2f}',

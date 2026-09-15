@@ -73,7 +73,10 @@ names={r['provider'] for r in rs}
 inventory=json.loads((Path(__file__).resolve().parents[1]/'configs/evaluation-inventory.json').read_text())
 if d.get('comparison',{}).get('kind') in {'headless_html','headless_markdown'}:
  headless=json.loads((Path(__file__).resolve().parents[1]/'configs/providers.headless.json').read_text())
- inventory={track:{**group,'providers':list(headless['providers'])} for track,group in inventory.items()}
+ profile=json.loads((Path(__file__).resolve().parents[1]/'evaluation/current-report.json').read_text())
+ current_providers=profile['providers']
+ assert set(current_providers)<=set(headless['providers']),'Current report references an unknown provider configuration'
+ inventory={track:{**group,'providers':current_providers} for track,group in inventory.items()}
 assert len({c['id'] for c in d['cases']})==len(d['cases']),'Duplicate dataset case IDs'
 inventory_ids=[cid for group in inventory.values() for cid in group['case_ids']]
 assert len(set(inventory_ids))==len(inventory_ids),'Duplicate inventory case IDs'
@@ -171,6 +174,17 @@ home=(root/'index.html').read_text()
 track_count=len({case['track'] for case in d['cases']})
 assert home.index(f'<h2>{track_count} 类任务概览</h2>') < home.index('<h2>综合通过率总榜</h2>') < home.index(f'<h2>{track_count} 类分榜</h2>'),'Task overview and overall ranking must precede detailed rankings'
 assert '本类最高：' in home and '判分完整性' in home
+if (root/'resource-cohort/resource-comparison.json').is_file():
+ guide=(root/'guide/index.html').read_text()
+ for page_name,text in [('home',home),('guide',guide)]:
+  assert 'data-resource-winner=' in text,(page_name,'missing resource winner summary')
+  assert all(label in text for label in ('CPU 与计算','内存','网络')),(page_name,'missing grouped resource tables')
+  assert text.count('data-resource-metric-winner=') >= 9,(page_name,'resource winners are not marked')
+ for page_name,text in [('English home',(root/'en/index.html').read_text()),
+                        ('English guide',(root/'en/guide/index.html').read_text())]:
+  assert 'data-resource-winner=' in text,(page_name,'missing resource winner summary')
+  assert all(label in text for label in ('CPU and compute','Memory','Network')),(page_name,'missing grouped resource tables')
+  assert text.count('data-resource-metric-winner=') >= 9,(page_name,'resource winners are not marked')
 methodology=(root/'methodology/index.html').read_text()
 for phrase in ['计入耗时','不计入耗时','供应商上报的服务端耗时只作附加证据','形成可送入统一评分器的最终答案']:
  assert phrase in methodology,phrase

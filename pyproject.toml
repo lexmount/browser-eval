@@ -10,6 +10,7 @@ browser-harness-eval = "harness.web_fetch.cli:main"
 
 [project.optional-dependencies]
 headless-eval = [
+  "docker>=7,<8",
   "playwright==1.58.0",
   "pypdf>=5,<7",
 ]

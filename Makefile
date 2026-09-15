@@ -2,7 +2,7 @@ UV ?= uv
 PY := $(UV) run --frozen python
 TEST_PY := $(UV) run --frozen --all-extras python
 
-.PHONY: setup import-env runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check trajectory-replay-report trajectory-replay-report-check trajectory-replay-visual-check trajectory-replay-release-check trajectory-replay-package trajectory-replay-publish
+.PHONY: setup import-env runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check resource-image browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check trajectory-replay-report trajectory-replay-report-check trajectory-replay-visual-check trajectory-replay-release-check trajectory-replay-package trajectory-replay-publish
 
 setup:
 	$(UV) sync --frozen --all-extras
@@ -82,3 +82,6 @@ trajectory-replay-package: runtime-check
 
 trajectory-replay-publish: runtime-check
 	$(PY) scripts/publish_webarena_replay_artifact_site.py
+
+resource-image:
+	docker build -f examples/web_fetch/docker/resource.Dockerfile -t lex-web-fetch-resource:local .
