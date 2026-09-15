@@ -1,8 +1,8 @@
 Quick Start
-Send your first WebFetch request and understand the default response behavior.
+Send your first Web Fetch request and understand the default response behavior.
 Copy Markdown
 Open
-Use Lexmount WebFetch when you want structured content from a public web page without building your own fetch, rendering, and extraction pipeline.
+Use Lexmount Web Fetch when you want structured content from a public web page without building your own fetch, rendering, and extraction pipeline.
 The most practical starting point is
 POST /v1/extract
 .

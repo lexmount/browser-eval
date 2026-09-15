@@ -1,28 +1,53 @@
 from __future__ import annotations
 
 import importlib
+import re
 import sys
 from pathlib import Path
 
 from ..models import EvalCase, ProviderResult
 from .base import Provider
+from .runtime_identity import validate_runtime_identity
+
+
+def _sanitize_public_content(content: str) -> str:
+    """Remove CowAgent workspace destinations while retaining fetched text."""
+    return re.sub(
+        r"\s*\|\s*Saved to:\s*(?:/Users/|/home/|/private/|/tmp/)[^\]\r\n]+",
+        "",
+        content,
+    )
 
 
 class CowAgentBuiltinProvider(Provider):
     """Invoke CowAgent's repository-local WebFetch implementation unchanged."""
 
+    _LOCKED_REVISION = "ed5bb344cfe42cee443c8266ba47ee666d8d7471"
+    _REQUIRED_PATHS = {
+        "{repo_path}/agent/tools/web_fetch/web_fetch.py",
+        "{repo_path}/agent/tools/utils/url_safety.py",
+    }
+
     def validate(self) -> list[str]:
-        root = Path(str(self.config.get("repo_path", ""))).expanduser()
-        if not str(self.config.get("repo_path", "")).strip():
-            return ["repo_path"]
-        if not (root / "agent/tools/web_fetch/web_fetch.py").is_file():
-            return ["repo_path (CowAgent checkout not found)"]
-        return []
+        root = Path(str(self.config.get("repo_path", "."))).expanduser().resolve()
+        def resolve(value):
+            return str(value).replace("{repo_path}", str(root))
+
+        missing, identity = validate_runtime_identity(self.config, resolve)
+        if self.config.get("expected_repo_revision") != self._LOCKED_REVISION:
+            missing.append(f"repo revision {self._LOCKED_REVISION}")
+        if not self._REQUIRED_PATHS.issubset(set(self.config.get("required_paths", []))):
+            missing.append("locked required paths")
+        if identity is not None:
+            self._implementation_identity = identity
+        return missing
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         root = Path(str(self.config["repo_path"])).expanduser().resolve()
         from ..storage import data_home
-        workspace = Path(str(self.config.get("workspace", data_home()/"runs/cowagent-workspace"))).expanduser().resolve()
+        workspace = Path(str(self.config.get(
+            "workspace", data_home() / "runs/cowagent-workspace"
+        ))).expanduser().resolve()
         workspace.mkdir(parents=True, exist_ok=True)
         root_text = str(root)
         if root_text not in sys.path:
@@ -31,7 +56,7 @@ class CowAgentBuiltinProvider(Provider):
         tool = module.WebFetch({"cwd": str(workspace)})
         result = tool.execute({"url": case.url})
         ok = result.status == "success"
-        content = str(result.result or "")
+        content = _sanitize_public_content(str(result.result or ""))
         return ProviderResult(
             ok=ok,
             content=content,

@@ -56,7 +56,7 @@ def check(archive,source):
         article=BeautifulSoup(data('guide/article.html'),'html.parser')
         if article.select('script,link[rel="stylesheet"]'):raise ValueError('Standalone article has runtime dependencies')
         for anchor in article.select('a[href]'):
-            figure = anchor.find_parent('figure', class_='m-illustration')
+            figure = anchor.find_parent('figure', class_=['m-illustration', 'editorial-figure'])
             image = figure.find('img') if figure else None
             if image and anchor['href'].startswith('data:image/png;base64,') and anchor['href'] == image.get('src'):
                 continue

@@ -10,7 +10,7 @@ from collections import Counter,defaultdict
 from pathlib import Path
 from .metrics import percentile, task_passed, task_measured
 from .methods import method_info
-from .accounts import ACCOUNT_REGISTRY
+from .accounts import report_access_registry
 from .report_interfaces import HEADLESS_ACCESS
 from .report_style import STYLE
 from .report_components import tabs, metric_guide, metric_legend, examples, reference_status, basis_label, reference_label, sources_panel, stable_contract_details, task_instruction
@@ -29,6 +29,30 @@ ROUTE_LABELS={
  'node-html-markdown':'Chromium 渲染 DOM → node-html-markdown 2.0.0',
 }
 def provider_label(name):return PROVIDER_LABELS.get(name,name)
+def active_tracks(cases):
+ return [(key,label) for key,label in TRACKS.items() if any(c.get('track','web')==key for c in cases.values())]
+
+def track_count_label(count):return str(count)
+
+def is_headless_cohort(records):
+ return bool(records) and all(r.get('provider_type') in {'headless_html','headless_markdown'} for r in records)
+
+def provider_configuration(name,records,info):
+ """Describe only the route evidenced for this provider, without cohort-wide boilerplate."""
+ provider_type=records[0].get('provider_type') if records else ''
+ if provider_type in {'headless_html','headless_markdown'}:
+  metadata=[r.get('provider_metadata',{}) for r in records]
+  extractors=sorted({ROUTE_LABELS.get(m.get('extractor'),m.get('extractor')) for m in metadata if m.get('extractor')})
+  contracts=sorted({str(m.get('output_contract')) for m in metadata if m.get('output_contract')})
+  route='；'.join(extractors) or info['endpoint']
+  output='、'.join(contracts) or info['output']
+  return f'本轮记录的交付路线：{route}；输出契约：{output}。未启用额外的理解模型或付费后备方法。'
+ resource_routes={
+  'firecrawl':'正文与资源题请求 Markdown、links、images；原文件题改用唯一 rawBase64 格式并验收解码字节。动态顶层选择器使用 wait action，数量与 iframe 条件明确标为未完整执行。',
+  'tavily_extract':'本轮请求 Markdown；图片资源仅来自同一 Extract 响应的 images 字段。',
+  'exa_contents':'本轮请求正文文本；资源链接仅来自同一 Contents 响应的 extras 字段。',
+ }
+ return resource_routes.get(provider_type,'本轮使用该方法的默认正文或文件交付路线。')+' 未启用额外的理解模型或付费后备方法。'
 JS=r'''
 function theme(){let t=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=t;localStorage.setItem('webfetch-theme',t)}
 function tr(zh,en){return document.documentElement?.lang==='en'?en:zh}
@@ -40,16 +64,20 @@ function tabKeys(event,group){if(!['ArrowRight','ArrowLeft','Home','End'].includ
 function cascadeFilters(changed){let rows=[...document.querySelectorAll('#rows tr')],selects=[...document.querySelectorAll('select[data-filter]')],prior=[];selects.forEach(s=>{let available=new Set(rows.filter(r=>prior.every(p=>!p.value||r.dataset[p.dataset.filter]===p.value)).map(r=>r.dataset[s.dataset.filter]));if(s.dataset.filter!=='result'){let failureFilter=['failureStage','failureCategory'].includes(s.dataset.filter);[...s.options].forEach(o=>o.disabled=!!o.value&&!available.has(o.value));if(s.value&&!available.has(s.value))s.value=failureFilter?'':([...s.options].find(o=>o.value&&!o.disabled)?.value||'');if(failureFilter)s.disabled=![...s.options].some(o=>o.value&&!o.disabled);}prior.push(s)});filterRows()}
 function outcomes(row,key){return new Set((row.dataset[key]||'').split(' ').filter(Boolean))}
 function compareMethods(){let a=document.getElementById('compare-a'),relation=document.getElementById('compare-relation'),track=document.getElementById('compare-track'),count=document.getElementById('compare-count');if(!a||!relation||!track||!count)return;let boxes=[...document.querySelectorAll('[data-compare-method]')];boxes.forEach(box=>{box.disabled=box.value===a.value;box.closest('label')?.classList.toggle('disabled',box.disabled);if(box.disabled)box.checked=false});let others=boxes.filter(box=>box.checked&&!box.disabled).map(box=>box.value),selected=[a.value,...others],shown=0;document.querySelectorAll('#compare-rows tr').forEach(row=>{let pass=outcomes(row,'pass'),fail=outcomes(row,'fail'),match=others.length>0&&(!track.value||row.dataset.track===track.value);if(match)match={mixed:selected.some(x=>pass.has(x))&&selected.some(x=>fail.has(x)),a_pass_others_fail:pass.has(a.value)&&others.every(x=>fail.has(x)),a_fail_others_pass:fail.has(a.value)&&others.every(x=>pass.has(x)),all_pass:selected.every(x=>pass.has(x)),all_fail:selected.every(x=>fail.has(x)),exact_pass:selected.every(x=>pass.has(x))&&pass.size===selected.length}[relation.value];row.hidden=!match;if(match)shown++});count.textContent=others.length?tr(`找到 ${shown} 个任务`,`${shown} tasks found`):tr('请至少选择一个对比方法','Select at least one comparison method')}
+let callLogTrigger=null;
+function openCallLog(button){let dialog=document.getElementById(button.dataset.callLogOpen);if(!dialog)return;callLogTrigger=button;if(!dialog.dataset.bound){dialog.dataset.bound='1';dialog.addEventListener('close',()=>{let trigger=callLogTrigger;callLogTrigger=null;trigger?.focus()});dialog.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();if(typeof dialog.close==='function')dialog.close();else{dialog.removeAttribute('open');let trigger=callLogTrigger;callLogTrigger=null;trigger?.focus()}}});dialog.addEventListener('click',event=>{if(event.target===dialog){if(typeof dialog.close==='function')dialog.close();else closeCallLog({closest:()=>dialog})}})}if(typeof fill==='function')dialog.querySelectorAll('pre[data-file],pre[data-record]').forEach(pre=>fill(pre));if(typeof dialog.showModal==='function')dialog.showModal();else{dialog.setAttribute('open','');dialog.setAttribute('aria-modal','true')}dialog.querySelector('[data-call-log-close]')?.focus()}
+function closeCallLog(button){let dialog=button.closest('dialog');if(!dialog)return;if(typeof dialog.close==='function')dialog.close();else{dialog.removeAttribute('open');let trigger=callLogTrigger;callLogTrigger=null;trigger?.focus()}}
 function applyReportAnchor(anchor){if(!anchor)return;if(anchor.startsWith('track-')){chooseTab('dataset-hub','cases');let s=document.querySelector('select[data-filter="track"]');if(s){s.value=anchor.slice(6);document.querySelectorAll('select[data-filter]').forEach(x=>{if(x!==s)x.value=''});cascadeFilters(s)}}else if(['references','sources'].includes(anchor)){chooseTab('dataset-hub',anchor)}else{let target=document.getElementById(anchor);for(let p=target;p;p=p.parentElement){if(p.dataset?.panel)chooseTab(p.parentElement.id,p.dataset.panel);if(p.tagName==='DETAILS')p.open=true}}}
 window.addEventListener('DOMContentLoaded',()=>{document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light';document.querySelectorAll('[data-filter]').forEach(e=>e.addEventListener(e.tagName==='INPUT'?'input':'change',e.tagName==='INPUT'?filterRows:()=>cascadeFilters(e)));document.querySelectorAll('[data-compare-method],[data-compare-control]').forEach(e=>e.addEventListener('change',compareMethods));cascadeFilters();compareMethods();document.querySelectorAll('table[data-col]').forEach(paintSort);applyReportAnchor(location.hash.slice(1))});
 window.addEventListener('hashchange',()=>applyReportAnchor(location.hash.slice(1)));
+document.addEventListener('click',event=>{let open=event.target.closest('[data-call-log-open]');if(open){openCallLog(open);return}let close=event.target.closest('[data-call-log-close]');if(close)closeCallLog(close)});
 '''
 EXTRA='''
-.table-wrap{margin-top:16px}table{width:100%;border-collapse:collapse;min-width:760px}th,td{vertical-align:top;padding:12px 14px;border-bottom:1px solid var(--line);text-align:left}th{background:var(--panel2);font-size:12px}td:first-child,th:first-child{width:48px;white-space:nowrap}.ranking{min-width:1240px}.ranking td{white-space:nowrap}.ranking td:nth-child(2){white-space:normal;min-width:165px}.sort-button{border:0;background:none;color:inherit;font:inherit;font-weight:700;cursor:pointer;padding:0;text-align:left}.grid .card{grid-column:span 4}.card p{margin-bottom:0}.filters{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.filters select,.filters input{min-width:150px;padding:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px}.compare{display:grid;grid-template-columns:1fr 1fr;gap:20px}.compare>div{min-width:0}pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:620px;overflow:auto}.break{overflow-wrap:anywhere}.status{white-space:nowrap}.source-note{color:var(--muted);font-size:13px}details{padding:10px 0}.accounts-table{min-width:1300px}.accounts-table code{white-space:nowrap}.hero h1{font-size:clamp(30px,4vw,48px)}section[id]{scroll-margin-top:75px}.actions{display:flex;gap:16px;flex-wrap:wrap}nav{gap:16px}.tiny{font-size:12px} @media(max-width:700px){.grid .card{grid-column:span 12}.compare{grid-template-columns:1fr}.wrap{width:calc(100% - 28px)}.filters>*{width:100%}}
+.table-wrap{margin-top:16px}table{width:100%;border-collapse:collapse;min-width:760px}th,td{vertical-align:top;padding:12px 14px;border-bottom:1px solid var(--line);text-align:left}th{background:var(--panel2);font-size:12px}td:first-child,th:first-child{width:48px;white-space:nowrap}.ranking{min-width:1240px}.ranking td{white-space:nowrap}.ranking td:nth-child(2){white-space:nowrap;min-width:220px;max-width:none;overflow-wrap:normal;word-break:normal}.sort-button{border:0;background:none;color:inherit;font:inherit;font-weight:700;cursor:pointer;padding:0;text-align:left}.grid .card{grid-column:span 4}.card p{margin-bottom:0}.filters{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.filters select,.filters input{min-width:150px;padding:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px}.compare{display:grid;grid-template-columns:1fr 1fr;gap:20px}.compare>div{min-width:0}pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:620px;overflow:auto}.break{overflow-wrap:anywhere}.status{white-space:nowrap}.source-note{color:var(--muted);font-size:13px}details{padding:10px 0}.accounts-table{min-width:1300px}.accounts-table code{white-space:nowrap}.hero h1{font-size:clamp(30px,4vw,48px)}section[id]{scroll-margin-top:75px}.actions{display:flex;gap:16px;flex-wrap:wrap}nav{gap:16px}.tiny{font-size:12px} @media(max-width:700px){.grid .card{grid-column:span 12}.compare{grid-template-columns:1fr}.wrap{width:calc(100% - 28px)}.filters>*{width:100%}}
 '''
 
 EXTRA+='''
-[hidden]{display:none!important}.ranking{min-width:980px}.ranking th,table th{white-space:nowrap}.ranking td:nth-child(2){min-width:130px;max-width:180px}.sorted,.sorted a{color:#117541!important;font-weight:750!important}[data-theme="dark"] .sorted,[data-theme="dark"] .sorted a{color:#74e1a8!important}.tab-bar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 22px}.tab-bar button{padding:10px 18px;border:1px solid var(--line);border-radius:999px;color:var(--ink);background:var(--panel);font:inherit;cursor:pointer}.tab-bar button[aria-selected="true"]{background:#075ccf;color:white;border-color:#075ccf}.tab-bar button:focus-visible,.sort-button:focus-visible{outline:3px solid #428bff;outline-offset:3px}.guide-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.guide-card{padding:22px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}.guide-card h3{margin:0 0 10px;font-size:19px}.guide-card p{margin:0;line-height:1.7}.worked-example{display:flex;gap:16px;flex-wrap:wrap;padding:20px;background:var(--panel2);border-radius:14px;margin-top:20px}.tabs [role="tabpanel"]{min-width:0}#filtered-table{min-width:1080px}#filtered-table td:last-child{min-width:170px;max-width:350px;overflow-wrap:anywhere}#filtered-table td:nth-child(2){min-width:155px}.section{padding:40px 0}.hero{padding:38px 0}.top nav{flex-wrap:wrap}.source-note{line-height:1.7}@media(max-width:700px){.guide-grid{grid-template-columns:1fr}.tab-bar button{padding:8px 12px}.section{padding:28px 0}}
+[hidden]{display:none!important}.ranking{min-width:980px}.ranking th,table th{white-space:nowrap}.ranking td:nth-child(2){min-width:220px;max-width:none;white-space:nowrap;overflow-wrap:normal;word-break:normal}.sorted,.sorted a{color:#117541!important;font-weight:750!important}[data-theme="dark"] .sorted,[data-theme="dark"] .sorted a{color:#74e1a8!important}.tab-bar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 22px}.tab-bar button{padding:10px 18px;border:1px solid var(--line);border-radius:999px;color:var(--ink);background:var(--panel);font:inherit;cursor:pointer}.tab-bar button[aria-selected="true"]{background:#075ccf;color:white;border-color:#075ccf}.tab-bar button:focus-visible,.sort-button:focus-visible{outline:3px solid #428bff;outline-offset:3px}.guide-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.guide-card{padding:22px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}.guide-card h3{margin:0 0 10px;font-size:19px}.guide-card p{margin:0;line-height:1.7}.worked-example{display:flex;gap:16px;flex-wrap:wrap;padding:20px;background:var(--panel2);border-radius:14px;margin-top:20px}.tabs [role="tabpanel"]{min-width:0}#filtered-table{min-width:1080px}#filtered-table td:last-child{min-width:170px;max-width:350px;overflow-wrap:anywhere}#filtered-table td:nth-child(2){min-width:155px}.section{padding:40px 0}.hero{padding:38px 0}.top nav{flex-wrap:wrap}.source-note{line-height:1.7}@media(max-width:700px){.guide-grid{grid-template-columns:1fr}.tab-bar button{padding:8px 12px}.section{padding:28px 0}}
 '''
 
 EXTRA+='''
@@ -84,9 +112,122 @@ EXTRA+='''
 .method-comparison{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:24px;min-width:0;box-shadow:0 12px 32px rgba(25,45,70,.06)}.comparison-heading{display:flex;align-items:start;justify-content:space-between;gap:24px;margin-bottom:22px}.comparison-heading h3{margin:0 0 6px;font-size:22px}.comparison-heading p{color:var(--muted);margin:0;line-height:1.65}.comparison-count{white-space:nowrap;padding:8px 12px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}.comparison-controls{display:grid;grid-template-columns:minmax(170px,1fr) minmax(230px,1.4fr) minmax(170px,1fr);gap:14px}.comparison-controls label{display:grid;gap:6px;font-weight:700}.comparison-controls select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}.comparison-methods{border:0;padding:0;margin:20px 0 0}.comparison-methods legend{font-weight:750;margin-bottom:10px}.method-checks{display:flex;gap:8px;flex-wrap:wrap}.method-checks label{display:flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid var(--line);border-radius:999px;background:var(--bg);cursor:pointer}.method-checks label.disabled{opacity:.45;cursor:not-allowed}.method-checks input{accent-color:var(--accent)}.comparison-result{margin-top:20px}.comparison-table{min-width:720px;table-layout:fixed}.comparison-table th:nth-child(2),.comparison-table td:nth-child(2){width:34%}.comparison-table th:nth-child(3),.comparison-table td:nth-child(3),.comparison-table th:nth-child(4),.comparison-table td:nth-child(4){width:33%}.task-cell a{font-weight:750}.task-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:7px}.track-badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--panel2);color:var(--muted);font-size:12px;white-space:nowrap}.outcome-list{display:flex;gap:6px;flex-wrap:wrap}.outcome-pill{display:inline-block;padding:5px 8px;border-radius:8px;font-size:13px;text-decoration:none}.outcome-pill.pass{background:var(--success-bg);color:var(--good)}.outcome-pill.fail{background:var(--failure-bg);color:var(--bad)}.large-evidence-output{display:block;width:100%;min-height:520px;max-height:70vh;resize:vertical;padding:16px;border:0;border-radius:9px;background:#071722;color:#e6edf3;font:13px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre;overflow:auto}.deferred-evidence{cursor:pointer;min-height:110px;display:flex;align-items:center;color:#c9d7e3}.deferred-evidence:focus-visible{outline:3px solid #428bff;outline-offset:3px}@media(max-width:760px){.method-comparison{padding:18px}.comparison-heading{display:block}.comparison-count{display:inline-block;margin-top:12px}.comparison-controls{grid-template-columns:1fr}.large-evidence-output{min-height:360px}.comparison-table{min-width:660px}}
 '''
 
+EXTRA+='''
+.call-log-button,.call-log-close{border:0;border-radius:9px;background:var(--accent);color:#fff;font:inherit;font-weight:750;padding:10px 15px;cursor:pointer}.call-log-button:focus-visible,.call-log-close:focus-visible{outline:3px solid #428bff;outline-offset:3px}.call-log-dialog{width:min(1040px,calc(100vw - 32px));max-height:calc(100vh - 32px);padding:0;border:1px solid var(--line);border-radius:18px;background:var(--bg);color:var(--ink);box-shadow:0 24px 80px rgba(0,0,0,.32)}.call-log-dialog::backdrop{background:rgba(5,18,30,.68)}.call-log-shell{display:flex;flex-direction:column;max-height:calc(100vh - 34px)}.call-log-head{display:flex;justify-content:space-between;align-items:start;gap:20px;padding:20px 24px;border-bottom:1px solid var(--line);background:var(--panel)}.call-log-head h2{margin:0 0 4px;font-size:24px}.call-log-head p{margin:0;color:var(--muted)}.call-log-body{padding:22px 24px;overflow:auto}.call-log-priority{display:grid;grid-template-columns:1fr 1fr;gap:16px}.call-log-card{min-width:0;border:1px solid var(--line);border-radius:13px;background:var(--panel);padding:16px}.call-log-card h3{margin:0 0 10px;font-size:17px}.call-log-card pre{margin:0;max-height:340px}.call-log-error{border-left:4px solid var(--bad)}.call-log-empty{padding:14px;border-radius:9px;background:var(--panel2);line-height:1.65}.call-log-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0}.call-log-fact{padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}.call-log-fact b,.call-log-fact span{display:block}.call-log-fact b{font-size:12px;color:var(--muted);margin-bottom:4px}.call-log-section{margin-top:18px}.call-log-section h3{margin:0 0 9px}.call-log-section details{border-top:1px solid var(--line)}.call-log-section summary{cursor:pointer;color:var(--accent);font-weight:700}.call-log-availability{margin:0 0 18px}.call-log-private{color:var(--muted);font-size:13px}@media(max-width:700px){.call-log-priority,.call-log-facts{grid-template-columns:1fr}.call-log-head,.call-log-body{padding:16px}.call-log-close{white-space:nowrap}}
+'''
+
 def esc(s):return html.escape(str(s if s is not None else ''))
 def readable_output(s):
  return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]',lambda m:'\\x'+format(ord(m[0]),'02x'),s)
+
+_PRIVATE_LOG_KEYS={'raw_response_path','private_artifacts','private_artifact','private_path'}
+def public_provider_metadata(value):
+ """Remove pointers to private envelopes while keeping public adapter evidence."""
+ if isinstance(value,dict):
+  return {key:public_provider_metadata(item) for key,item in value.items()
+          if key not in _PRIVATE_LOG_KEYS and not key.startswith('private_')}
+ if isinstance(value,list):return [public_provider_metadata(item) for item in value]
+ return value
+
+def call_log_bindings(record):
+ metadata=record.get('provider_metadata') or {}
+ candidates=[]
+ retry=metadata.get('retry') or {}
+ if isinstance(retry,dict):
+  for index,attempt in enumerate(retry.get('attempts',[]),1):
+   if isinstance(attempt,dict):candidates.append((f'物理调用 {attempt.get("physical_attempt",index)}',attempt.get('call_log')))
+ candidates.extend([('最终物理调用',record.get('call_log')),('最终物理调用',metadata.get('call_log')),
+                    ('最终物理调用',{'path':record.get('call_log_path'),'sha256':record.get('call_log_sha256')}),
+                    ('最终物理调用',{'path':metadata.get('call_log_path'),'sha256':metadata.get('call_log_sha256')})])
+ result=[];seen=set()
+ for label,binding in candidates:
+  if not isinstance(binding,dict):continue
+  path=binding.get('path')
+  if not path or str(path).startswith('private_artifacts/') or str(path) in seen:continue
+  seen.add(str(path));result.append((label,dict(binding)))
+ return result
+
+def call_log_path(record):
+ bindings=call_log_bindings(record)
+ return bindings[-1][1]['path'] if bindings else None
+
+def empty_output_reason(record,case,output):
+ if output:return ''
+ metadata=record.get('provider_metadata') or {}
+ delivered=metadata.get('file_evaluation',{}).get('files',[])
+ if case.get('task_kind')=='file' and delivered:
+  return f'本题的最终交付物是 {len(delivered)} 个原始文件；文本输出为空不表示没有交付，文件字节在详情页下方单独列出。'
+ if record.get('error_message'):
+  return f'最终输出确实为空。适配器记录的原因：{record["error_message"]}'
+ if not record.get('ok'):
+  error_type=record.get('error_type') or '未记录错误类型'
+  return f'最终输出确实为空。请求未成功，错误类型为 {error_type}；历史记录没有保存更多错误文字。'
+ if metadata.get('empty_content'):
+  return '最终输出确实为空。上游请求有响应，但适配器没有得到可提取的正文。'
+ return '最终输出确实为空；本次历史记录没有保存更具体的原因，不能据此推断是服务端、网络还是适配器问题。'
+
+def call_log_dialog(out,record,case,output):
+ """Render one honest drill-down view from a native log or legacy result fields."""
+ metadata=record.get('provider_metadata') or {}
+ public_metadata=public_provider_metadata(metadata)
+ logs=[]
+ for label,binding in call_log_bindings(record):
+  path=contained_path(out,binding['path'])
+  if not path.is_file():continue
+  log_bytes=path.read_bytes();observed=hashlib.sha256(log_bytes).hexdigest()
+  if binding.get('sha256') and binding['sha256']!=observed:raise ValueError(f'Call log hash mismatch: {record["attempt_id"]}')
+  if binding.get('bytes') is not None and binding['bytes']!=len(log_bytes):raise ValueError(f'Call log size mismatch: {record["attempt_id"]}')
+  text=readable_output(log_bytes.decode('utf-8',errors='replace'))
+  try:payload=json.loads(log_bytes)
+  except (UnicodeDecodeError,json.JSONDecodeError):payload={}
+  logs.append({'label':label,'path':binding['path'],'text':text,'sha256':observed,
+               'bound':bool(binding.get('sha256')),'payload':payload})
+ if logs:
+  native=(f'{len(logs)} 个物理调用日志已保存并通过 SHA-256 校验。' if all(item['bound'] for item in logs) else
+          '事件日志文件可以读取，但至少一条记录未声明其 SHA-256；页面会展示内容，但不能证明全部日志均与运行记录绑定。')
+ elif call_log_bindings(record):
+  native='记录声明了事件日志，但公开证据中没有可读取文件；下面仅展示可核验的结果字段。'
+ else:
+  native='这次历史运行没有保存统一事件日志。下面由最终输出、结果字段和公开适配器元数据合成，不能还原未记录的逐行过程。'
+ final_log=logs[-1]['payload'] if logs else {}
+ log_error=final_log.get('error') if isinstance(final_log.get('error'),dict) else {}
+ log_process=final_log.get('process') if isinstance(final_log.get('process'),dict) else {}
+ error_type=record.get('error_type') or log_error.get('type') or '—（未记录）'
+ error_message=(record.get('error_message') or log_error.get('message') or log_process.get('stderr') or
+                ('无报错；请求记录为成功。' if record.get('ok') else '请求失败，但历史记录未保存错误文字。'))
+ error_class=' call-log-error' if record.get('error_type') or record.get('error_message') or not record.get('ok') else ''
+ if output:
+  output_html=f'<pre data-kind="call-output">{esc(readable_output(output))}</pre>'
+ else:
+  output_html=f'<div class="call-log-empty">{esc(empty_output_reason(record,case,output))}</div>'
+ log_request=final_log.get('request') if isinstance(final_log.get('request'),dict) else {}
+ route=(log_request.get('route') or metadata.get('route') or metadata.get('extractor') or
+        metadata.get('output_contract') or '—（未记录）')
+ status=('成功' if record.get('ok') else '失败')+' · HTTP '+(str(record.get('status_code')) if record.get('status_code') is not None else '未提供')
+ retry=metadata.get('retry')
+ retry_count=(len(retry.get('attempts',[])) if isinstance(retry,dict) else
+              record.get('physical_attempt_count') or 1)
+ log_section=('' if not logs else '<div class="call-log-section"><h3>原生事件日志</h3>'+''.join(
+              f'<details open><summary>{esc(item["label"])}</summary><p class="source-note">SHA-256：<code class="break">{esc(item["sha256"])}</code></p><pre data-kind="call-log">{esc(item["text"])}</pre></details>'
+              for item in logs)+'</div>')
+ retry_section=('<p>本次没有登记重试；只保留一个物理调用。</p>' if not retry else
+                f'<pre data-kind="call-retry">{esc(json.dumps(public_provider_metadata(retry),ensure_ascii=False,indent=2))}</pre>')
+ private_note=('原始供应商响应信封仅在内部证据中保留，不进入公开弹窗或发布包。'
+               if metadata.get('raw_response_path') or metadata.get('private_artifacts') else
+               '没有登记仅限内部保存的原始响应信封。')
+ facts=[('请求路线',route),('请求状态',status),('总耗时',ms(record.get('elapsed_ms'))),
+        ('开始时间',record.get('started_at') or '—（未记录）'),('完成时间',record.get('completed_at') or '—（未记录）'),
+        ('物理调用',str(retry_count))]
+ fact_html=''.join(f'<div class="call-log-fact"><b>{esc(label)}</b><span>{esc(value)}</span></div>' for label,value in facts)
+ return (f'<dialog class="call-log-dialog" id="call-log-dialog" aria-labelledby="call-log-title"><div class="call-log-shell">'
+         f'<header class="call-log-head"><div><h2 id="call-log-title">调用记录</h2><p><code>{esc(record.get("run_id") or execution_id(record))}</code></p></div><button type="button" class="call-log-close" data-call-log-close data-i18n-attrs aria-label="关闭调用记录">关闭</button></header>'
+         f'<div class="call-log-body"><p class="callout call-log-availability"><b>日志可用性：</b>{esc(native)}</p>'
+         f'<div class="call-log-priority"><article class="call-log-card"><h3>最后输出</h3>{output_html}</article>'
+         f'<article class="call-log-card{error_class}"><h3>最后报错</h3><p><b>{esc(error_type)}</b></p><p>{esc(error_message)}</p></article></div>'
+         f'<div class="call-log-facts">{fact_html}</div>{log_section}'
+         f'<div class="call-log-section"><h3>重试与物理调用</h3>{retry_section}</div>'
+         f'<div class="call-log-section"><details><summary>查看公开适配器字段</summary><pre data-kind="call-metadata">{esc(json.dumps(public_metadata,ensure_ascii=False,indent=2))}</pre></details><p class="call-log-private">{esc(private_note)}</p></div>'
+         '</div></div></dialog>')
 def pct(n):return '—' if n is None else f'{n*100:.1f}%'
 def ms(n):return '—' if n is None else f'{n:,.0f} ms'
 def link(url,label):return f'<a href="{esc(safe_href(url))}">{esc(label)}</a>'
@@ -141,15 +282,12 @@ def overview_card(records,cases,track,label,names):
 def review_summary(out, prefix=''):
  path=out/'result-review.json'
  if not path.is_file():return ''
- reviews=[json.loads(path.read_text())]
- speed_review=out/'speed-cohort/result-review.json'
- if speed_review.is_file():reviews.append(json.loads(speed_review.read_text()))
- checked=[row.get('reviewed_attempts',0) for row in reviews]
- total=[row.get('expected_attempts',0) for row in reviews]
- unresolved=sum(row.get('unresolved',0) for row in reviews)
- scopes=f'主结果 {checked[0]:,}/{total[0]:,}'
- if len(reviews)>1:scopes+=f'；同窗测速 {checked[1]:,}/{total[1]:,}'
- return (f'<p class="callout success"><b>独立核验：{scopes}；未决 {unresolved}</b>。'
+ audit=json.loads(path.read_text())
+ scope=audit.get('review_protocol',{}).get('scope','all')
+ subject='机器失败' if scope=='machine-failures' else '全量'
+ return (f'<p class="callout success"><b>独立核验：{subject} '
+         f'{audit.get("reviewed_attempts",0):,}/{audit.get("expected_attempts",0):,}；'
+         f'未决 {audit.get("unresolved",0)}</b>。'
          f' {link(prefix+"review/index.html","查看核验轮次 →")}</p>')
 
 def review_index(audit):
@@ -316,6 +454,9 @@ def stable_failure_summary(metrics):
   parts.append(f'输出存在明显乱码：{metrics.get("replacement_character_count",0):,} 个替换字符，占 {pct(metrics.get("replacement_character_ratio"))}')
  errors=set(metrics.get('stable_task_errors') or [])
  labels=[
+  ('declared_truncation','方法明确声明正文已截断'),
+  ('script_payload_shell','返回的是脚本或序列化状态，不是可读正文'),
+  ('content_too_short','正文短于任务声明的最低长度'),
   ('duplicate_records','返回记录存在重复'),('incomplete_records','部分记录缺少必需字段'),
   ('too_many_complete_records','完整记录数超过任务声明范围'),
   ('blocked_page','实际返回是访问限制或验证页面'),
@@ -329,8 +470,10 @@ def reason(r,c):
  if r['metrics'].get('deadline_overrun'):return '超过该调用登记的端到端时间预算；保留实际耗时和返回内容，但不计为按时交付。'
  if r['ok'] and 'stable_task_pass' in r['metrics']:
   m=r['metrics']
-  counts=f"检出 {m.get('stable_record_count','—')} 条，字段完整 {m.get('stable_complete_record_count','—')} 条，完整且唯一 {m.get('stable_unique_record_count','—')} 条，要求至少 {m.get('stable_minimum_records','—')} 条。"
   success='稳定内容与结构检查通过。' if m.get('stable_anchor_results') or m.get('stable_page_pattern_results') else '条目结构检查通过；本例未设置稳定文字核对点。'
+  if m.get('stable_task_schema') == 'body_text':
+   return success if succeeded(r,c) else stable_failure_summary(m)+'。'
+  counts=f"检出 {m.get('stable_record_count','—')} 条，字段完整 {m.get('stable_complete_record_count','—')} 条，完整且唯一 {m.get('stable_unique_record_count','—')} 条，要求至少 {m.get('stable_minimum_records','—')} 条。"
   return counts+(success if succeeded(r,c) else stable_failure_summary(m)+'。')
  if not r['ok']:
   if r.get('diagnosis'):return r['diagnosis']['evidence']
@@ -352,8 +495,14 @@ def reason(r,c):
  if c.get('task_kind')=='file':return '已返回原始文件，格式特征、长度及目标 SHA-256 校验通过。' if succeeded(r,c) else '没有返回可核对的原始文件；文字或重复输入地址不算文件。'
  if c.get('task_kind')=='resource':
   missing=[x['id'] for x in r['metrics'].get('resource_results',[]) if not x['pass']]
+  unexpected=r['metrics'].get('unexpected_resource_urls',[])
+  if missing and unexpected:
+   return ('未找到目标资源：'+', '.join(missing)
+           +'；同时返回非目标资源：'+', '.join(unexpected))
+  if unexpected:return '已找到目标资源，但答案字段还返回了非目标资源：'+', '.join(unexpected)
   return '已找到目标资源。' if not missing else '未找到目标资源：'+', '.join(missing)
  m=r['metrics'];parts=[]
+ if m.get('declared_truncation_hits'):parts.append('供应商声明正文已截断')
  if not m.get('length_pass'):parts.append('正文过短')
  if m.get('forbidden_hits'):parts.append('命中排除文本：'+', '.join(m['forbidden_hits']))
  missing=[x['id'] for x in m.get('fact_results',[]) if not x['pass']]
@@ -493,8 +642,9 @@ def overview_matched_latency(records,cases):
   if observed:
    dates.append(esc(provider_label(row['provider']))+'：'+esc('、'.join(f'{date}（{number} 题）' for date,number in observed.items())))
  links='、'.join(link('datasets/'+cid+'.html',cases[cid].get('name',cid)) for cid in population['common_pass_cases'])
- return (note+table(['方法','同题均值','同题 P50','同题 P95'],rows,'overall-matched-latency-table',metrics=[])
-         +'<details><summary>共同任务与调用日期</summary><p>'+links+'</p><p>'+'<br>'.join(dates)+'</p></details>')
+ content=(note+table(['方法','同题均值','同题 P50','同题 P95'],rows,'overall-matched-latency-table',metrics=[])
+          +'<details><summary>共同任务与调用日期</summary><p>'+links+'</p><p>'+'<br>'.join(dates)+'</p></details>')
+ return '<details class="ranking-metric-help"><summary>按需查看共同成功任务耗时</summary>'+content+'</details>'
 
 def overview_resources(out):
  path=out/'resource-cohort/resource-comparison.json'
@@ -538,18 +688,28 @@ def overall_ranking(records,cases,audit=None):
   n=sum(measured(r,cases[r['case_id']]) for r in rs)
   passed=sum(succeeded(r,cases[r['case_id']]) for r in rs)
   values=cell(link(f'providers/{name}.html',provider_label(name)))+cell(rate(sum(bool(r['ok']) for r in rs),len(rs)))+cell(rate(passed,n),passed/n if n else -1)
-  for track in TRACKS:
+  for track,_ in active_tracks(cases):
    subset=[r for r in rs if cases[r['case_id']].get('track','web')==track and measured(r,cases[r['case_id']])]
    values+=cell(f'{sum(succeeded(r,cases[r["case_id"]]) for r in subset)}/{len(subset)}',sum(succeeded(r,cases[r['case_id']]) for r in subset)/len(subset) if subset else -1)
+  times=[r['elapsed_ms'] for r in rs]
+  values+=cell(ms(statistics.mean(times)),statistics.mean(times))
+  values+=cell(ms(percentile(times,.5)),percentile(times,.5))
+  values+=cell(ms(percentile(times,.95)),percentile(times,.95))
   if audit:values+=review_cell(audit,rs)
   rows.append((passed,name,('',values)))
  rows=[row for _,_,row in sorted(rows,key=lambda x:(-x[0],x[1]))]
- heads=['方法','请求成功率','综合任务通过率']+[TRACKS[t] for t in TRACKS]
+ tracks=active_tracks(cases)
+ heads=['方法','请求成功率','综合任务通过率']+[label for _,label in tracks]+['均值','P50','P95']
  if audit:heads+=['审查结果']
- intro=('<p class="decision-lead"><b>总榜口径：</b>每种方法都执行同一组 150 个任务，每题计一次通过或失败，直接相加；不把耗时、全文质量或任务类别难度混成加权分。总榜适合看整体交付覆盖，具体能力仍应回到六个分榜。</p>')
+ case_count=len(cases);track_count=len(tracks);track_label=track_count_label(track_count)
+ if case_count==150 and track_count==6:
+  intro='<p class="decision-lead"><b>总榜口径：</b>每种方法都执行同一组 150 个任务，每题计一次通过或失败，直接相加；耗时单列展示，不参与通过率排序。总榜适合看整体交付覆盖，具体能力仍应回到六个分榜。</p>'
+ else:
+  intro=(f'<p class="decision-lead"><b>总榜口径：</b>每种方法都执行当前评测集计划的 {case_count} 个任务，每题计一次通过或失败，直接相加；耗时单列展示，不参与通过率排序。总榜适合看整体交付覆盖，具体能力仍应回到 {track_label} 个分榜。</p>')
  help=('<details class="ranking-metric-help"><summary>总榜指标说明</summary><div class="metric-help"><dl>'
-       '<div><dt>综合任务通过率</dt><dd>150 个任务中满足各自验收规则的数量；每题等权。</dd></div>'
-       '<div><dt>六类通过数</dt><dd>各分榜通过数 / 本类任务数，用于定位总分来自哪些能力。</dd></div>'
+       f'<div><dt>综合任务通过率</dt><dd>{case_count} 个任务中满足各自验收规则的数量；每题等权。</dd></div>'
+       f'<div><dt>{track_label} 类通过数</dt><dd>各分榜通过数 / 本类任务数，用于定位总分来自哪些能力。</dd></div>'
+       f'<div><dt>全调用均值 / P50 / P95</dt><dd>每种方法在同一组 {case_count} 个计划任务上的端到端耗时，包含通过与失败；三项不参与通过率排名。主矩阵调用跨日期、跨批次，不等同于同窗受控速度比较。</dd></div>'
        '<div><dt>审查结果</dt><dd>独立盲审覆盖数、审查方法和未决数。</dd></div>'
        '</dl></div></details>')
  return intro+help+table(heads,rows,'ranking-overall',True,'ranking',metrics=[]).replace('<table class="ranking"','<table class="ranking" data-col="3" data-dir="desc"')
@@ -632,36 +792,38 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
  (out/'assets/style.css').write_text(STYLE+EXTRA);(out/'assets/report.js').write_text(JS)
  cases={c['id']:c for c in dataset['cases']};names=sorted(set(r['provider'] for r in records))
+ tracks=active_tracks(cases);track_count=len(tracks);track_label=track_count_label(track_count)
  audit=json.loads((out/'result-review.json').read_text()) if (out/'result-review.json').is_file() else None
+ audited_attempts=review_index(audit)
  dynamic=any(c.get('task_kind')=='structure' for c in cases.values())
  bycase=defaultdict(list);byprovider=defaultdict(list)
  for r in records:bycase[r['case_id']].append(r);byprovider[r['provider']].append(r)
  cards=''
- for track,label in TRACKS.items():
+ for track,label in tracks:
   cards+=overview_card(records,cases,track,label,names)
- home='<div class="home-page">'+hero('Web Fetch 评测报告',f'{len(cases)} 个案例 · {len(names)} 种方法 · 六类分榜与一个综合通过率总榜。')
+ home='<div class="home-page">'+hero('Web Fetch 评测报告',f'{len(cases)} 个案例 · {len(names)} 种方法 · {track_label} 类分榜与一个综合通过率总榜。')
  from .report_explainer import article_title,render_explainer
  TITLE=article_title(records)
  home+='<aside class="wrap home-reading" aria-label="报告解读"><div><strong>报告解读</strong><p>'+link('guide/index.html',TITLE)+'</p></div><p>从分数差异、失败案例和实现机制，理解如何选择抓取方法。</p>'+link('guide/index.html','阅读全文 →')+'</aside>'
  write(out,'guide/index.html','报告解读',render_explainer(out,cases,records,table=table,cell=cell,link=link))
  panels=[]
- for track,label in TRACKS.items():
-  if not any(c.get('track','web')==track for c in cases.values()):continue
+ for track,label in tracks:
   selected=[c for c in cases.values() if c.get('track','web')==track]
   coverage=f'{len(selected)} 个案例 · {len({r["provider"] for r in records if cases[r["case_id"]].get("track","web")==track})} 种已测方法'
   panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True,audit=audit)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
- home+=section('六类任务概览',review_summary(out)+'<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p><p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
+ home+=section(f'{track_label} 类任务概览',review_summary(out)+'<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p><p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
  home+=section('综合通过率总榜',overall_ranking(records,cases,audit),'overall-ranking')
  home+=section('全部方法共同成功任务的耗时',overview_matched_latency(records,cases),'overall-matched-latency')
- home+=section('CPU、内存与网络',overview_resources(out),'overall-resources')
- home+=section('六类分榜','<p class="ranking-orientation">分榜用于判断具体能力。默认按任务通过率排序，点击列名可切换；质量分数与通过率分别计算。</p>'+tabs('home-rankings',panels),'results')
+ if (out/'resource-cohort/resource-comparison.json').is_file():
+  home+=section('CPU、内存与网络',overview_resources(out),'overall-resources')
+ home+=section(f'{track_label} 类分榜','<p class="ranking-orientation">分榜用于判断具体能力。默认按任务通过率排序，点击列名可切换；质量分数与通过率分别计算。</p>'+tabs('home-rankings',panels),'results')
  write(out,'index.html','评测报告',home+'</div>')
- controls=filter_controls([('track','类型',list(TRACKS.items())),('category','类别',[(x,x) for x in dict.fromkeys(c['category'] for c in cases.values())])])
+ controls=filter_controls([('track','类型',tracks),('category','类别',[(x,x) for x in dict.fromkeys(c['category'] for c in cases.values())])])
  rows=[]
  for c in cases.values():
   verified=c.get('source_verification',{});state='受限' if verified.get('state')=='restricted' else '有效'
   rows.append((dataset_attrs(c),cell(link(c['id']+'.html',c['name']))+cell(esc(c['category']))+cell(link(c['url'],'源页 ↗'))+cell(link(c['id']+'.html#facts',basis_label(c)))+cell(reference_label(c))+cell(state)+cell(case_rate(bycase[c['id']],c))))
- anchors=''.join(f'<span id="track-{t}"></span>' for t in TRACKS)
+ anchors=''.join(f'<span id="track-{t}"></span>' for t,_ in tracks)
  dataset_panels=[('cases','案例',anchors+controls+'<p class="source-note">核对依据可点击展开。访问受限不等于网站失效；稳定内容与条目结构按登记契约核验，不固定频繁变化的榜单。动态网站正文按各案例声明的完整范围核验。</p>'+table(['案例','类别','URL','核对依据','参考状态','原访问','达标率'],rows,'filtered-table')),('references','参考状态','<span id="references"></span>'+reference_status(list(cases.values()))),('sources','来源','<span id="sources"></span>'+sources_panel())]
  write(out,'datasets/index.html','评测集',hero('评测集',f'{len(cases)} 个案例，按任务类型查看。')+section('案例与依据',tabs('dataset-hub',dataset_panels)))
  headers=['案例','类型','结果','失败分类','耗时','运行 ID']
@@ -675,6 +837,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   resources=[('',cell(esc(x['id']))+cell('<br>'.join(link(u,u) for u in x.get('urls',[]))+('<br>入口地址规则：<code>'+esc(' / '.join(x['url_patterns']))+'</code>' if x.get('url_patterns') else ''))) for x in c.get('expected_resources',[])]
   rules=''.join(f'<p>{esc(x["id"])}：至少 {x.get("minimum",1)} 项；<code>{esc(x["pattern"])}</code></p>' for x in c.get('required_patterns',[]))
   status_note=f'<p class="callout">参考状态：{reference_label(c)}。</p>'
+  if c.get('resource_output_contract',{}).get('unexpected')=='reject':
+   status_note+='<p class="callout">资源输出契约：只允许在答案图片字段中返回登记的目标、别名或匹配规则；额外图片会使任务未通过。</p>'
   if c.get('task_kind')=='structure':
    from .report_components import list_rule_description
    status_note='<p class="callout">'+esc(list_rule_description(c))+'</p><p>任务结果与耗时进入主榜；全文指标无完整参考时显示 —。</p>'
@@ -712,8 +876,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   write(out,'datasets/'+c['id']+'.html',c['name'],body)
  for name,rs in byprovider.items():
   info=method_info(rs[0]['provider_type'])
-  controls=filter_controls([('track','类型',list(TRACKS.items())),('result','结果',[('pass','任务通过'),('fail','任务失败')])]+failure_filters(rs,cases))
-  body=hero(esc(provider_label(name)),esc(info['contract']))+section('本轮配置',f'<p><code>{esc(info["endpoint"])}</code></p><p>{esc(info["freshness"])}</p><p>静态网站正文使用默认正文输出；资源任务为支持资源返回的 Exa、Tavily、Firecrawl 开启原生资源字段。未开启额外的理解模型或付费后备方法。</p>')
+  controls=filter_controls([('track','类型',tracks),('result','结果',[('pass','任务通过'),('fail','任务失败')])]+failure_filters(rs,cases))
+  body=hero(esc(provider_label(name)),esc(info['contract']))+section('本轮配置',f'<p><code>{esc(info["endpoint"])}</code></p><p>{esc(info["freshness"])}</p><p>{esc(provider_configuration(name,rs,info))}</p>')
   price_anchor='pricing-'+name if name in {'firecrawl','tavily','exa','cloudflare-markdown'} else 'method-guide-pricing'
   body+=section('方法资料','<p class="actions">'+link('../adoption/index.html#'+price_anchor,'价格与计费 →')+link('../adoption/index.html#interface-'+name,'接口与示例 →')+'</p>')
   body+=section(f'{len(rs)} 条执行记录',controls+table(headers,[attempt_row(r,cases[r['case_id']]) for r in rs],'filtered-table'))
@@ -735,6 +899,12 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
    rows[8]=('',cell('文本输出校验值')+cell(f'<code class="break">{esc(m.get("content_sha256"))}</code>'))
   if 'content_check_total' in m:
    rows.append(('',cell('文字核对覆盖')+cell(pct(m.get('content_check_coverage'))+f' · {m["content_check_hits"]}/{m["content_check_total"]} 组')))
+  if c.get('task_kind')=='resource':
+   rows.append(('',cell('资源召回率 / 纯净度')+cell(
+       f'{pct(m.get("resource_recall"))} / {pct(m.get("resource_precision"))}')))
+   if m.get('unexpected_resource_urls'):
+    rows.append(('',cell('非目标资源')+cell('<br>'.join(
+        f'<code class="break">{esc(url)}</code>' for url in m['unexpected_resource_urls']))))
   rows[3]=('',cell('任务结果')+cell(result_label(r,c)))
   if r.get('raw_request_status'):
    rows.append(('',cell('原始适配器状态')+cell(esc(json.dumps(r['raw_request_status'],ensure_ascii=False)))))
@@ -805,7 +975,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   summary+=f'<p class="source-note">{esc(route_label)}</p>'
   summary+=('<p class="actions"><a href="#evidence-reference">查看判定使用的标准答案</a>'
             '<a href="#evidence-output">查看本次完整实际返回</a>'
-            '<a href="#decision">查看逐项判定</a></p>')
+            '<a href="#decision">查看逐项判定</a>'
+            '<button type="button" class="call-log-button" data-call-log-open="call-log-dialog" aria-haspopup="dialog">打开完整调用记录</button></p>')
   if r.get('diagnosis') and not passed:
    d=r['diagnosis'];s=d.get('independent_source_check') or {}
    quote_issue=_quote_field_issue(m)
@@ -815,6 +986,21 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
    if s:facts.extend([('独立源页复查',f"{s.get('checked_at','')} · HTTP {s.get('status','未取得')} · {s.get('title') or s.get('error','')}"),('复查边界',d['source_check_boundary'])])
    summary+='<details class="technical-details"><summary>查看失败分类与归因边界</summary>'+table(['项目','依据'],[('',cell(esc(k))+cell(esc(v))) for k,v in facts],metrics=[])+"</details>"
   body=hero(esc(c['name']),hero_meta)+section('结论',summary,'overview')
+  reviewed=audited_attempts.get(r['attempt_id'])
+  if reviewed:
+   independent='通过' if reviewed.get('agent_verdict')=='pass' else '未通过'
+   final='通过' if reviewed.get('final_verdict')=='pass' else '未通过'
+   review_rows=[
+    ('独立核验结论',independent),
+    ('直接证据',reviewed.get('agent_evidence') or '—'),
+    ('最终结论',final),
+   ]
+   if reviewed.get('adjudication'):
+    review_rows.append(('分歧裁定',reviewed['adjudication']))
+   body+=section('独立结果核验',table(
+       ['项目','核验记录'],
+       [('',cell(esc(label))+cell(esc(value))) for label,value in review_rows],
+       metrics=[]),'independent-review')
   reference_heading='完整标准答案' if c.get('task_kind')!='structure' else '标准答案与验收规则'
   reference_kind='reference';reference_download='../references/'+c['id']+'.txt'
   source_body=f'<pre data-kind="reference">{esc(ref)}</pre>'
@@ -834,7 +1020,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
                '这些字符在保存前已丢失，不能从当前 Markdown 还原。</p>')
   output_note=(f'{len(output):,} 字符 · '+link('../'+r['artifact_path'],'下载原始输出'))
   if readable_output(output)!=output:output_note+=' · 控制字节在页面中显示为 \\xNN'
-  actual_body=corruption+f'<pre data-kind="output">{esc(readable_output(output))}</pre>'
+  actual_body=(corruption+f'<pre data-kind="output">{esc(readable_output(output))}</pre>' if output else
+               f'<div class="call-log-empty">{esc(empty_output_reason(r,c,output))}</div>')
   if c.get('task_kind')=='file':
    reference_heading='目标文件'
    expected_hash=c.get('source_verification',{}).get('file_sha256') or '未登记'
@@ -865,6 +1052,13 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   else:
    checks_html+=(table(['核对点','标准答案','判定','实际命中'],checks) if checks else '<p class="decision-lead">本例按任务结构或原文件输出判定。</p>')
    checks_html+=''.join(f'<p>{esc(x["id"])}：实际 {x["count"]}，要求至少 {x["minimum"]}。</p>' for x in m.get('pattern_results',[]))
+  if c.get('task_kind')=='resource' and m.get('resource_candidates'):
+   unexpected=set(m.get('unexpected_resource_urls',[]))
+   candidate_rows=[('',cell(f'<code class="break">{esc(item["url"])}</code>')
+                    +cell(esc('、'.join(item.get('sources',[]))))
+                    +cell('非目标资源' if item['url'] in unexpected else '目标或允许变体'))
+                   for item in m['resource_candidates']]
+   checks_html+=table(['候选资源地址','答案字段来源','范围判定'],candidate_rows,metrics=[])
   if m.get('stable_field_results'):
    checks_html+=table(['记录字段','有效记录数','至少要求','判定'],[('',cell(esc(x['field']))+cell(str(x['count']))+cell(str(x['minimum']))+cell('通过' if x['pass'] else '未通过')) for x in m['stable_field_results']],metrics=[])
   body+=section('为什么这样判',caveat+checks_html,'decision')
@@ -876,15 +1070,16 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
                  '两边先统一大小写和常见排版差异，去掉 Markdown 链接地址、空白及标点，再切成连续六字符片段。'
                  f'标准答案按前后位置分成 {region_count} 份；每份覆盖率 = 在完整实际返回中找到的片段数 ÷ 该份标准片段总数。'
                  f'本任务要求每个位置至少达到 {pct(rules.get("minimum_floor",rules.get("minimum_coverage")))}，且至少 {required}/{region_count} 个位置达到 {pct(rules.get("minimum_coverage"))}。'
-                 '同一个实际片段只能计入一个位置，避免重复文字被多次借用。全文完整度、纯净度和 F1 仍按完整文本另行计算。</div>')
+                 '所有位置同时做全局容量分配，且同一个实际片段实例只能计入一个位置；因此重复文字不会被多次借用，位置排列顺序也不会改变判定。全文完整度、纯净度和 F1 仍按完整文本另行计算。</div>')
    body+=section('正文是否抓全',region_intro+table(['标准答案位置','标准片段数','命中片段数','覆盖率','判定'],region_rows,metrics=[])+
                  '<details class="technical-details"><summary>查看各位置的完整标准正文和人工定位样例</summary>'+''.join(region_cards)+'</details>','body-coverage')
   if title_details:body+=section('标题文字质量',title_details)
   runtime=('<details class="technical-details"><summary>查看完整运行、哈希与评分字段</summary>'
            +metric_legend(detail_metrics)+table(['项目','值'],rows,metrics=[])+
-           f'<details><summary>接口返回的附加字段</summary><pre data-kind="metadata">{esc(json.dumps(r.get("provider_metadata",{}),ensure_ascii=False,indent=2))}</pre></details></details>'
+           f'<details><summary>接口返回的公开附加字段</summary><pre data-kind="metadata">{esc(json.dumps(public_provider_metadata(r.get("provider_metadata",{})),ensure_ascii=False,indent=2))}</pre></details></details>'
            f'<p class="actions">{link(c["url"],"打开源页 ↗")}{link("../datasets/"+c["id"]+".html","查看该任务的全部方法")}</p>')
   body+=section('运行与评分信息',runtime,'run-info')
+  body+=call_log_dialog(out,r,c,output)
   if r.get('provider_metadata',{}).get('rendered_html_path'):
    body+=section('浏览器 HTML 证据','<p>'+link('../'+r['provider_metadata']['rendered_html_path'],'下载转换前的完整 DOM HTML')+'</p>')
   if r.get('provider_metadata',{}).get('raw_stdout_path'):
@@ -897,12 +1092,12 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
    file_rows=[('',cell(link('../'+f['artifact_path'],'下载交付文件'))+cell(esc(f.get('mime')))+cell(str(f['bytes']))+cell('<code class="break">'+esc(f['sha256'])+'</code>')+cell('匹配' if f.get('pass') else '未匹配')) for f in delivered]
    body+=section('原始文件字节证据',table(['文件','格式特征','字节数','SHA-256','目标校验'],file_rows,metrics=[]))
   write(out,'attempts/'+r['attempt_id']+'.html',c['name']+' · '+r['provider'],body)
- controls=filter_controls([('provider','方法',[(n,provider_label(n)) for n in names]),('track','类型',list(TRACKS.items())),('result','结果',[('pass','任务通过'),('fail','任务失败')])]+failure_filters(records,cases))
+ controls=filter_controls([('provider','方法',[(n,provider_label(n)) for n in names]),('track','类型',tracks),('result','结果',[('pass','任务通过'),('fail','任务失败')])]+failure_filters(records,cases))
  comparison=section('方法组合对比','<p class="source-note">按同一任务逐项比较，不用各方法不同的成功样本拼接结论。成功与失败均沿用主榜已核验判定；点击方法可查看标准答案、实际返回和原因。</p>'+method_comparisons(cases,bycase,names),'method-comparison')
  write(out,'analysis/index.html','结果分析',hero('结果分析','先比较方法在同一任务上的成败组合，再筛选全部执行记录。')+comparison+section('全部执行记录',controls+table(['方法']+headers,[(case_attrs(r,cases[r['case_id']]),cell(link('../providers/'+r['provider']+'.html',provider_label(r['provider'])))+attempt_row(r,cases[r['case_id']])[1]) for r in records],'filtered-table')))
  write_support(out,records,manifests)
  from .report_changes import render_changes
- render_changes(out,cases,records)
+ render_changes(out,cases,records,dataset)
  from .report_i18n import write_english_report
  write_english_report(out)
  return out/'index.html'
@@ -914,9 +1109,6 @@ def write_review_page(out,records):
   write(out,'review/index.html','核验记录',hero('核验记录','本轮没有绑定独立核验记录。'))
   return
  audit=json.loads(path.read_text());reviewer=audit.get('reviewer',{})
- speed_audit={}
- speed_path=out/'speed-cohort/result-review.json'
- if speed_path.is_file():speed_audit=json.loads(speed_path.read_text())
  metadata_path=Path(__file__).resolve().parents[2]/'research/report-changes.json'
  if not metadata_path.is_file():
   raise ValueError('A reviewed report requires research/report-changes.json')
@@ -927,13 +1119,18 @@ def write_review_page(out,records):
   f'<article class="review-round"><div class="round-label">第 {i} 轮<br><small>{esc(row.get("date",""))}</small></div><div><h3>{esc(row.get("title",""))}</h3><p><b>范围：</b>{esc(row.get("scope",""))}</p><p><b>发现：</b>{esc(row.get("finding",""))}</p><p><b>纠正：</b>{esc(row.get("fix",""))}</p><p class="round-result"><b>未完成：</b>{esc(row.get("pending",""))}</p></div></article>'
   for i,row in enumerate(rounds,1))
  page=hero('核验记录','记录每轮核验的范围、发现、纠正和未决事项。')
- reviewed_attempts=audit.get('attempts',[])+speed_audit.get('attempts',[])
+ reviewed_attempts=audit.get('attempts',[])
  disagreements=[row for row in reviewed_attempts
                 if row.get('agent_verdict') != row.get('machine_verdict')]
  adjudicated=[row for row in disagreements if row.get('final_verdict') in {'pass','fail'}]
- unresolved=audit.get('unresolved',0)+speed_audit.get('unresolved',0)
- conclusion=(f'<p class="callout success">主结果 {audit.get("reviewed_attempts",0):,}/{audit.get("expected_attempts",0):,}；'
-             f'同窗测速 {speed_audit.get("reviewed_attempts",0):,}/{speed_audit.get("expected_attempts",0):,}；'
+ unresolved=audit.get('unresolved',0)
+ def coverage(label,item):
+  scope=item.get('review_protocol',{}).get('scope','all')
+  if scope=='machine-failures':
+   return (f'{label}机器失败 {item.get("reviewed_attempts",0):,}/{item.get("expected_attempts",0):,}；'
+           f'机器通过未逐条审查 {item.get("accepted_unreviewed_passes",0):,}')
+  return f'{label}全量 {item.get("reviewed_attempts",0):,}/{item.get("total_attempts",item.get("expected_attempts",0)):,}'
+ conclusion=(f'<p class="callout success">{coverage("主结果",audit)}；'
              f'代理分歧 {len(disagreements)}；已裁定 {len(adjudicated)}；未决 {unresolved}。</p>')
  page+=section('当前状态',conclusion)
  page+=section('核验轮次','<div class="review-rounds">'+rounds_html+'</div>')
@@ -943,39 +1140,42 @@ def write_review_page(out,records):
  write(out,'review/index.html','核验记录',page)
 
 def write_support(out,records,manifests):
- headless=bool(records) and all(r.get('provider_type') in {'headless_html','headless_markdown'} for r in records)
+ headless=is_headless_cohort(records)
  from .report_components import task_contract_guide
  methodology=hero('评测方法','按任务定义验收规则。同组已测方法使用相同的冻结任务与参考，覆盖数量在各榜单列明。')
  if headless:
   methodology+=section('从参考到发布','<div class="guide-grid"><article class="guide-card"><h3>1 · 冻结参考</h3><p>独立采集源页；需要渲染的页面另做浏览器观测，通过完整范围校验后才冻结。</p></article><article class="guide-card"><h3>2 · 执行调用</h3><p>同一 URL、任务和截止时间；各方法使用其最快的正式任务原生产物路线，保留版本、输出与哈希。</p></article><article class="guide-card"><h3>3 · 测后核验</h3><p>独立重取精确参考页，确认调用期间标准答案未改变；不把参考变化算成浏览器失败。</p></article><article class="guide-card"><h3>4 · 结果独立审查</h3><p>强代理逐次读取完整输出、标准答案与任务规则；分歧必须裁定，未裁定项会阻止构建。</p></article></div>'+review_summary(out,'../'),'评测流程')
  examples_html=re.sub(r'<a href="../datasets/([^"#]+).html">([^<]*)</a>',lambda m:m[0] if (out/'datasets'/(m[1]+'.html')).exists() else m[2],examples())
  methodology+=section('每类怎么测',examples_html)+section('指标说明',metric_guide())
- methodology+=section('共同输入、计时边界与调用预算','<p>所有方法进入同一个评分入口，但按任务交付物验收，而不是强制使用同一种中间格式。网页与文档正文最终验收可读文本；原始文件任务验收 PDF、DOCX、图片或视频字节；结构任务验收字段和稳定文字。HTML/Markdown 链接与明确配对的结构化名称—链接字段按同一规则核验；不把请求回显或诊断日志当成答案。原始输出与原始适配器状态保留，报告层不按方法名称改写任务结果。</p><div class="guide-grid"><article class="guide-card"><h3>计入耗时</h3><p>从准备发起该次 provider 调用开始，到形成可送入统一评分器的最终答案为止：线程调度、SDK/CLI/HTTP 调用、远端处理与网络下载、浏览器渲染与正文提取、本地解析、统一输入转换，以及文件字节读取、格式识别和 SHA-256 计算均在计时内。</p></article><article class="guide-card"><h3>不计入耗时</h3><p>数据集与参考加载、provider 配置校验、调用间限速等待、最终答案形成后的证据落盘、统一评分计算、报告汇总与页面生成不计入。供应商上报的服务端耗时只作附加证据，排名使用客户端观测的端到端耗时。</p></article></div><p>这个边界比较的是“拿到本任务最终交付物”所需时间：服务直接返回成品时计完整往返；本地方法若还需下载、渲染或解析，也必须完成后才停表。正文任务中，方法只返回原始 PDF 或 DOCX 时，本地正文解析也计时；原始文件任务则到字节校验完成即停止，不做无关的 Markdown 转换。所有方法使用同一外层计时器和截止预算。超时答案不接收；无法取消的调用会被隔离，整批结果因此不完整并触发不可靠状态，构建产物不得发布。</p><p>完整正文任务除原有核对点外，按参考正文最多五个连续位置检查字符六元组覆盖：每个位置至少达到 60%，通常要求至少四处达到 80%；若页面存在经独立证据确认的合法重排，案例可显式登记不同位置门槛。比较忽略空白和排版符号但保留文字顺序；全文 F1 独立保留实际值。文件任务必须有字节验收，资源 URL 不等于文件。</p>')
- methodology+=section('资源测量边界','<p>CPU、内存和网络使用独立的 20 题同窗队列，不回填历史正确率调用。每次调用在受限的 Linux 容器中运行，使用 cgroup v2 累计 CPU、独立网络命名空间累计收发字节，并以 50 ms 采样内存与瞬时速率。容器固定为 2 个逻辑 CPU、2 GiB 内存和 512 个 PID；宿主控制器与容器启停不计入。</p><p>资源汇总只纳入四种本地配置共同通过的任务，避免把快速失败当成节省资源，并覆盖容器内 worker、浏览器与转换过程。Kitesurf 的远端 CPU、内存和上游流量不可见，因此不进入资源表。缺少任一资源字段、非 Linux/cgroup v2、镜像或二进制身份变化、并发不为 1，都会阻断报告构建。</p><p>CPU 与网络总量来自累计计数；内存峰值和速率分位数依赖 50 ms 采样，可能遗漏更短的尖峰。报告分别呈现 CPU、内存、网络和任务通过率，不合成总分。</p>')
+ methodology+=section('共同输入、计时边界与调用预算','<p>所有方法进入同一个评分入口，但按任务交付物验收，而不是强制使用同一种中间格式。网页与文档正文最终验收可读文本；原始文件任务验收 PDF、DOCX、图片或视频字节；结构任务验收字段和稳定文字。HTML/Markdown 链接与明确配对的结构化名称—链接字段按同一规则核验；不把请求回显或诊断日志当成答案。原始输出与原始适配器状态保留，报告层不按方法名称改写任务结果。</p><div class="guide-grid"><article class="guide-card"><h3>计入耗时</h3><p>从准备发起该次 provider 调用开始，到形成可送入统一评分器的最终答案为止：线程调度、SDK/CLI/HTTP 调用、远端处理与网络下载、浏览器渲染与正文提取、本地解析、统一输入转换，以及文件字节读取、格式识别和 SHA-256 计算均在计时内。</p></article><article class="guide-card"><h3>不计入耗时</h3><p>数据集与参考加载、provider 配置校验、调用间限速等待、最终答案形成后的证据落盘、统一评分计算、报告汇总与页面生成不计入。供应商上报的服务端耗时只作附加证据，排名使用客户端观测的端到端耗时。</p></article></div><p>这个边界比较的是“拿到本任务最终交付物”所需时间：服务直接返回成品时计完整往返；本地方法若还需下载、渲染或解析，也必须完成后才停表。正文任务中，方法只返回原始 PDF 或 DOCX 时，本地正文解析也计时；原始文件任务则到字节校验完成即停止，不做无关的 Markdown 转换。所有方法使用同一外层计时器和截止预算。超时答案不接收；无法取消的调用会被隔离，整批结果因此不完整并触发不可靠状态，构建产物不得发布。</p><p>完整正文任务除原有核对点外，按参考正文最多五个连续位置检查字符六元组覆盖：每个位置至少达到 60%，通常要求至少四处达到 80%。所有位置一次性做全局容量分配；同一返回片段实例只能计入一个位置，位置排列顺序不影响结论。若页面存在经独立证据确认的合法重排，案例可显式登记不同位置门槛。比较忽略空白和排版符号但保留文字顺序；全文 F1 独立保留实际值。文件任务必须有字节验收，资源 URL 不等于文件。</p>')
+ if (out/'resource-cohort/resource-comparison.json').is_file():
+  methodology+=section('资源测量边界','<p>CPU、内存和网络使用独立的 20 题同窗队列，不回填历史正确率调用。每次调用在受限的 Linux 容器中运行，使用 cgroup v2 累计 CPU、独立网络命名空间累计收发字节，并以 50 ms 采样内存与瞬时速率。容器固定为 2 个逻辑 CPU、2 GiB 内存和 512 个 PID；宿主控制器与容器启停不计入。</p><p>资源汇总只纳入四种本地配置共同通过的任务，避免把快速失败当成节省资源，并覆盖容器内 worker、浏览器与转换过程。Kitesurf 的远端 CPU、内存和上游流量不可见，因此不进入资源表。缺少任一资源字段、非 Linux/cgroup v2、镜像或二进制身份变化、并发不为 1，都会阻断资源包构建。</p><p>CPU 与网络总量来自累计计数；内存峰值和速率分位数依赖 50 ms 采样，可能遗漏更短的尖峰。报告分别呈现 CPU、内存、网络和任务通过率，不合成总分。</p>')
  if (out/'scoring-revisions.json').exists():
-  latency_note=''
-  latency_path=out/'latency-corrections.json'
-  if latency_path.is_file():
-   latency_receipt=json.loads(latency_path.read_text())
+  revision_links=[link('../scoring-revisions.json','评分规则修订收据')]
+  if (out/'reference-revisions.json').exists():revision_links.append(link('../reference-revisions.json','参考答案修订收据'))
+  if (out/'latency-corrections.json').exists():revision_links.append(link('../latency-corrections.json','时延纠正收据'))
+  if (out/'request-status-corrections.json').exists():revision_links.append(link('../request-status-corrections.json','请求状态纠正收据'))
+  detail='当前成绩包含对保存输出的离线重算；收据记录输入、输出哈希、判定变化及供应商调用数，不把新规则伪装成原调用时的运行配置。'
+  if headless and (out/'latency-corrections.json').exists():
+   latency_receipt=json.loads((out/'latency-corrections.json').read_text())
    changes=latency_receipt.get('changes',[])
-   affected='、'.join(provider_label(name) for name in sorted({change['provider'] for change in changes}))
-   latency_note=(f'当前报告的 {affected} 时延纠正仅替换 {len(changes)} 个耗时值，'
-                 f'统一取配对实验的第 {latency_receipt.get("selected_round", "—")} 轮；'
-                 '旧耗时和原始物理调用保留在离线证据，当前投影的'
-                 +link('../latency-corrections.json','时延纠正收据')+'只列本报告方法的修订。') if changes else ''
-  methodology+=section('评分来源与修订','<p>当前成绩包含对保存输出的离线重算；文件任务另在 2026-09-04 真实补测，选取 36 次新调用替换原缺测项，详情见'+link('../changes/index.html','变更记录')+'。'+latency_note+'其余历史调用的输出与计时保留，不能把跨批次视图当成同时重跑。'+link('../scoring-revisions.json','评分规则修订收据')+'和'+link('../reference-revisions.json','参考答案修订收据')+'记录输入、输出哈希、判定变化及供应商调用数，不把新规则伪装成原调用时的运行配置。</p>')
+   if changes:
+    affected='、'.join(provider_label(name) for name in sorted({change['provider'] for change in changes}))
+    detail+=(f' 当前报告的 {affected} 时延纠正仅替换 {len(changes)} 个耗时值，'
+             f'统一取配对实验的第 {latency_receipt.get("selected_round", "—")} 轮；'
+             '旧耗时和原始物理调用保留在离线证据，不能把跨批次视图当成同时重跑。')
+  methodology+=section('评分来源与修订','<p>'+detail+' '+' · '.join(revision_links)+'</p>')
  methodology+=section('稳定任务契约与全文诊断',task_contract_guide(),'task-contracts')
  figures=''.join(f'<figure><img src="../assets/methodology/{name}.png" alt="{label}" style="max-width:100%;height:auto" loading="lazy"><figcaption>{label}</figcaption></figure>' for name,label in [('annotation','参考标注'),('validation','任务验收'),('scoring','评分口径')] if (out/'assets/methodology'/f'{name}.png').is_file())
  if figures:methodology+=section('方法图解',figures)
  methodology+=section('参考与匹配','<p>原始快照保留不变；评分参考清除零宽空格、BOM 和软连字符，并检查空正文、乱码、重复核对点及核对点是否存在于参考中。通过检查不等于语义完整性已获证明，正文范围仍以来源记录为准。</p><p>关键事实按规范化后的可见文本机械匹配：统一 Unicode、大小写及排版空白，菜单路径如 Settings &gt; AI 与 Settings&gt;AI 等价；忽略 Markdown 链接地址、行内代码与加粗标记。一个已被完整记录边界约束的字段允许丢失内联元素间空白，例如标签列表 <code>change deep-thoughts</code> 与 <code>changedeep-thoughts</code> 内容等价；相邻独立链接仍按独立词段核对，不猜测跨记录的粘连分词。保留数字、正负号、否定词、标点和英文词边界。不使用大模型或模糊相似度判定通过。</p>')
  methodology+=section('调用时间','<p>各方法使用同一套冻结任务与参考。不同批次的耗时不直接排名；同窗速度子集单独标识。实时网页内容、登录状态和站点策略可能变化，成绩只代表所记录的调用。环境、版本与命令见“环境与复现”。</p>')
- if headless:
-  methodology+=section('变更后重跑范围','<p>不把“代码有更新”直接等同于全部重跑。只改展示时重建报告；只改裁判且原始输出足够时离线重算；某个参考变化时重跑该题的全部方法；新增或升级单个实现时重跑该方法的全部题；计时边界变化时废弃并重跑同窗测速。只有全局任务输入、调用边界或所有方法共同依赖发生变化，才需要全量重跑。</p>')
+ methodology+=section('变更后重跑范围','<p>不把“代码有更新”直接等同于全部重跑。只改展示时重建报告；只改裁判且原始输出足够时离线重算；某个参考变化时重跑该题的全部方法；新增或升级单个实现时重跑该方法的全部题；计时边界变化时废弃并重跑同窗测速。只有全局任务输入、调用边界或所有方法共同依赖发生变化，才需要全量重跑。</p>')
  methodology+=section('计算与边界','''<details><summary>全文评分公式</summary><p>完整度＝取回的参考词数 ÷ 参考词数；纯净度＝匹配的正文词数 ÷ 返回词数；F1＝2 × 完整度 × 纯净度 ÷ 两者之和。英文按词、中文按字，统一大小写与 Unicode 字符形式；Markdown 链接只计文字。对有完整参考的全部案例取平均；请求失败计 0，请求成功但任务未通过仍按实际正文评分，没有参考不计算。</p></details><details><summary>参考范围与公平性</summary><p>网页、文档使用独立保存的参考正文；仓库以 README 为准，列表只覆盖指定的已加载范围，不要求无限滚动或跨页翻页。登录页和验证码不能代替目标正文。参考正文自身包含的“404 Not Found”等术语不作为错误页判据。</p><p>不同方法并行，同一方法串行；正文结束后再测其他任务。Firecrawl 每次完成后冷却 6.1 秒。本报告不是 WCXB 官方榜单。</p><p>媒体网址只证明找到入口，不代表取得文件。文件任务没有另接下载器代替参评方法完成。</p></details>''')
  if headless:
   methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。','五种方法每次使用新进程或新上下文。静态网页正文：Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura 与 Moli 1.1.1 使用各自 CLI 正文能力，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。Moli 遇到直接 PDF、DOCX、图片或视频 URL 时使用不带 --dump 和页面等待参数的自动响应；正文任务在预算内解析可读文字，文件任务直接校验字节。原始主矩阵未启用失败重试，每次调用有 45 秒端到端预算。运行器可在测量前声明至多一次失败重试：保留全部物理证据和总耗时，并固定采用最后一次结果，不能择优。已确认的命令、版本、裁判、参考或测量错误可按完整声明范围重测并替换权威逻辑结果；旧证据不得删除。历史报告中的 Moli 1.0.6 与 1.1.3 证据继续归档，但不进入当前报告矩阵。方法之间并行、同一方法串行。')
  write(out,'methodology/index.html','评测方法',methodology)
- downloads=' · '.join(link('../'+path,label) for path,label in [('dataset.json','评测集与参考'),('results.jsonl','全部调用记录'),('summary.json','分类汇总'),('execution.json','执行批次')]+([('implementation-provenance.json','版本回溯证据')] if (out/'implementation-provenance.json').is_file() else [])+([('reference-revisions.json','参考修订收据')] if (out/'reference-revisions.json').is_file() else [])+([('scoring-revisions.json','评分修订收据')] if (out/'scoring-revisions.json').is_file() else [])+([('latency-corrections.json','时延纠正收据')] if (out/'latency-corrections.json').is_file() else []))
+ downloads=' · '.join(link('../'+path,label) for path,label in [('dataset.json','评测集与参考'),('results.jsonl','全部调用记录'),('summary.json','分类汇总'),('execution.json','执行批次')]+([('implementation-provenance.json','版本回溯证据')] if (out/'implementation-provenance.json').is_file() else [])+([('reference-revisions.json','参考修订收据')] if (out/'reference-revisions.json').is_file() else [])+([('scoring-revisions.json','评分修订收据')] if (out/'scoring-revisions.json').is_file() else [])+([('latency-corrections.json','时延纠正收据')] if (out/'latency-corrections.json').is_file() else [])+([('request-status-corrections.json','请求状态纠正收据')] if (out/'request-status-corrections.json').is_file() else []))
  reproduce='<p>在评测仓库中执行；读取 evaluation/ 的当前实测数据，不调用供应商接口。</p><pre>make setup\nmake report EVIDENCE=/absolute/path/to/evidence\nmake report-check</pre><p>输出目录：reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。凭据仅从本地环境加载，不包含在报告中。</p>'
  if headless:
   reproduce='<p>在评测仓库中执行；从明确指定的持久化冻结证据构建，不重新调用浏览器。</p><pre>make setup\nmake report EVIDENCE=/absolute/path/to/evidence\nmake report-check</pre><p>唯一输出目录为 reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。重新测量使用 uv run --frozen python scripts/run_headless_benchmark.py 和 configs/providers.headless.json；先独立采集并冻结参考，再调用，最后做测后核验。完整命令与版本见仓库 harness/web_fetch/HEADLESS.md。</p>'
@@ -989,7 +1189,10 @@ def write_support(out,records,manifests):
  provider_rows=[]
  for name in sorted({r['provider'] for r in records}):
   subset=[r for r in records if r['provider']==name]
-  versions=sorted({str(r.get('provider_metadata',{}).get('browser_version')) for r in subset if r.get('provider_metadata',{}).get('browser_version')})
+  versions=sorted({str(value) for r in subset for value in
+                   [r.get('provider_metadata',{}).get('browser_version') or
+                    r.get('provider_metadata',{}).get('library_version')]
+                   if value})
   hashes=sorted({str(r.get('provider_metadata',{}).get('binary_sha256')) for r in subset if r.get('provider_metadata',{}).get('binary_sha256')})
   versions=versions or sorted({provenance[h].get('version') or provenance[h].get('identity') for h in hashes if h in provenance})
   deployments=sorted({str(r.get('provider_metadata',{}).get('deployment','—')) for r in subset})
@@ -1008,14 +1211,17 @@ def write_support(out,records,manifests):
  support=hero('环境与复现','代码、评测集和复现说明以 browser-eval 仓库为准；本页只列本轮必要配置。')
  support+=section('代码与评测集',f'<p>{link(repo,"browser-eval 仓库")}保存当前评测代码、任务定义和独立参考；本报告另提供本轮冻结结果供复核。</p><p>{downloads}</p>')
  if (out/'speed-cohort/speed-comparison.json').is_file():
-  support+=section('同窗速度证据','<p>'+link('../speed-cohort/speed-comparison.json','速度汇总与共同成功样本')+' · '+link('../speed-cohort/results.jsonl','速度子集逐次记录')+'</p>')
+  support+=section('同窗速度证据','<p>'+link('../speed-cohort/speed-comparison.json','速度汇总与样本分母')+' · '+link('../speed-cohort/results.jsonl','速度子集逐次记录')+'</p>')
  if (out/'resource-cohort/resource-comparison.json').is_file():
   support+=section('隔离资源证据','<p>'+link('../resource-cohort/resource-comparison.json','CPU、内存、网络汇总与共同成功样本')+' · '+link('../resource-cohort/results.jsonl','资源子集逐次记录')+' · '+link('../resource-cohort/execution.json','容器环境与镜像身份')+'</p>')
  support+=section('公共条件',f'<p>最终报告纳入 {len(records):,} 次调用。任务与参考冻结后执行；每个方法内部串行，不复用个人登录状态。</p>'+table(['参数','值'],common,metrics=[]))
  support+=section('方法版本','<p>“事后核验”只说明留存二进制与官方归档完全一致，不改写成当时已经记录了版本。移动 nightly 无法追到不可得的源修订时，只用 SHA-256 标识精确可执行文件。</p>'+table(['方法','版本','身份依据','部署路径','二进制 SHA-256','调用数'],provider_rows,metrics=[]))
+ support+=section('发布与加载','<p>本地构建为每个任务、方法和证据生成可独立检查的逻辑路由；这不等于线上部署同样数量的独立 HTML。发布器会把整份报告编译成一个通用 HTML 外壳、共享样式与脚本，以及按内容寻址的压缩数据块。页面切换由前端路由完成，证据只在打开对应页面时读取，超过 256 KiB 的完整文本还需用户主动加载。</p><p class="source-note">发布清单记录逻辑路由数、源文件数、压缩块数和逐文件 SHA-256；发布门禁会重建每个文件并验证内部链接与原始下载字节。这样保留逐项可审计性，同时避免重复页面骨架和一次性加载全部证据。</p>')
  if headless:
-  support+=section('发布与加载','<p>本地构建为每个任务、方法和证据生成可独立检查的逻辑路由；这不等于线上部署同样数量的独立 HTML。发布器会把整份报告编译成一个通用 HTML 外壳、共享样式与脚本，以及按内容寻址的压缩数据块。页面切换由前端路由完成，证据只在打开对应页面时读取，超过 256 KiB 的完整文本还需用户主动加载。</p><p class="source-note">发布清单记录逻辑路由数、源文件数、压缩块数和逐文件 SHA-256；发布门禁会重建每个文件并验证内部链接与原始下载字节。这样保留逐项可审计性，同时避免重复页面骨架和一次性加载全部证据。</p>')
- support+=section('核心复现指令',reproduce+f'<p>运行配置：<code>configs/providers.headless.json</code>；账号变量名称见本报告“账号”页，实际密钥只放仓库根目录忽略提交的 <code>.env</code>。冻结参考、完整重测与核验门禁见 {link(repo+"/blob/main/harness/web_fetch/HEADLESS.md","仓库复现说明")}。</p>')
+  reproduce+=f'<p>运行配置：<code>configs/providers.headless.json</code>；账号变量名称见本报告“账号”页，实际密钥只放仓库根目录忽略提交的 <code>.env</code>。冻结参考、完整重测与核验门禁见 {link(repo+"/blob/main/harness/web_fetch/HEADLESS.md","仓库复现说明")}。</p>'
+ else:
+  reproduce+='<p>方法配置、凭据变量和本轮实际版本分别见“方法介绍”“账号”和上方方法版本表；不存在的 headless 专用配置不属于本 cohort。</p>'
+ support+=section('核心复现指令',reproduce)
  write(out,'reproduce/index.html','环境与复现',support)
  if headless:
   access_rows=[]
@@ -1030,7 +1236,10 @@ def write_support(out,records,manifests):
   account_body+=section('公开内容边界','<p class="callout success"><b>报告只公开复现所需的名称和入口，不公开凭据值。</b> 发布门禁会扫描 HTML、JSON、下载文件和逐次输出中的常见 Token、私钥、Authorization 值与用户目录路径；第三方原始 HTML 中命中密钥形态的片段单独脱敏，计分输出保持逐字节不变。扫描结果和脱敏文件哈希随发布包保存。</p>')
   write(out,'accounts/index.html','账号与安装',account_body)
  else:
-  accounts=ACCOUNT_REGISTRY
+  accounts=report_access_registry(
+   {r['provider'] for r in records},
+   fixture_providers={r['provider'] for r in records if r.get('provider_type')=='fixture'},
+  )
   accountrows=[('',cell(esc(a['provider']))+cell(link(a['registration_url'],'注册 / 登录')+'<br>'+link(a['key_url'],'获取凭据'))+cell('<br>'.join('<code>'+esc(x)+'</code>' for x in a['env_vars']))+cell(esc(a['steps']))+cell(esc(a['free_note']))) for a in accounts]
   write(out,'accounts/index.html','账号',hero('账号与凭据','只列官方入口和环境变量名称，不保存实际凭据。')+section('注册清单',table(['提供方','官方入口','环境变量','取得方式','免费 / 准入说明'],accountrows,cls='accounts-table')))
  from .report_methods import render_methods

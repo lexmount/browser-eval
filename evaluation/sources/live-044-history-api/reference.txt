@@ -111,11 +111,6 @@ popstate
 event
 Help improve MDN
 Learn how to contribute
-This page was last modified on
-Jul 26, 2024
-by
-MDN contributors
-.
 View this page on GitHub
 •
 Report a problem with this content

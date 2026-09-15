@@ -1,11 +1,35 @@
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 from harness.web_fetch.report_changes import render_changes
 from harness.web_fetch.report import overview_card, ranking
 
 class ReportChangesTests(unittest.TestCase):
+    def test_current_web_fetch_release_binds_score_revision_and_exact_rerun_scope(self):
+        from harness.web_fetch.report_changes import ROOT, select_cohort_history
+        from harness.web_fetch.report_i18n import translate_text
+        history = json.loads((ROOT/'research/report-changes.json').read_text())
+        selected = select_cohort_history(
+            history, {'comparison': {'kind': 'web_fetch_methods'}}, []
+        )
+        current = selected['releases'][0]
+        self.assertEqual(current['id'], '2026-09-15-official-route-and-call-drilldown')
+        self.assertEqual(set(current['scoring_revision_input_sha256']), {
+            '596f8005399be74d73dd14b8a77f5f775b3e2dd36f037643c421259bb5d8ff53',
+            'b8b7adec934761ed374191912c05ef2da449cb1a7cbda104f671db08d033a5ee',
+        })
+        self.assertIn('Cloudflare 23 条、Firecrawl 17 条，共 40 次调用', current['summary'])
+        self.assertIn('累计 44 次新物理调用', current['summary'])
+        self.assertIn('1,032/1,500', current['summary'])
+        self.assertIn('1,500/1,500 条权威结果有有效逐条判定核验',
+                      current['changes'][4][3])
+        self.assertNotIn('新增异常组', current['summary'])
+        for value in [current['title'], current['summary'],
+                      *(field for row in current['changes'] for field in row)]:
+            self.assertNotRegex(translate_text(value), r'[\u4e00-\u9fff]')
+
     def test_first_correction_is_identity_bound_not_latest(self):
         from harness.web_fetch.report_changes import first_correction
         releases=[{'id':'2026-09-03-fairness-correction','scoring_revision_input_sha256':'first'}]
@@ -14,6 +38,22 @@ class ReportChangesTests(unittest.TestCase):
         self.assertEqual(first_correction([later,original],releases),original)
         self.assertEqual(first_correction([original,later],releases),original)
         with self.assertRaises(ValueError):first_correction([later],releases)
+        with self.assertRaisesRegex(ValueError, 'fairness-correction'):
+            first_correction([original],[])
+
+    def test_file_rerun_sources_are_all_preflighted_before_report_writes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            out=root/'out';out.mkdir()
+            evidence=root/'evidence';evidence.mkdir()
+            (out/'file-rerun-selection.json').write_text('{"records": []}')
+            (evidence/'file-provider-rerun').mkdir()
+            with patch('harness.web_fetch.storage.research_evidence_dir',
+                       return_value=evidence):
+                with self.assertRaisesRegex(FileNotFoundError, 'file-provider-rerun-native'):
+                    render_changes(out,{},[])
+            self.assertFalse((out/'report-changes.json').exists())
+            self.assertFalse((out/'file-provider-rerun').exists())
     def test_every_bundled_revision_binds_one_release(self):
         from harness.web_fetch.report_changes import require_revision_release_bindings
         history=[{'input_results_sha256':'new'}]
@@ -38,7 +78,10 @@ class ReportChangesTests(unittest.TestCase):
             self.assertNotIn('这两列怎么读',page)
             data=json.loads((out/'report-changes.json').read_text())
             self.assertEqual(len(data['releases']),len({r['id'] for r in data['releases']}))
-            self.assertGreaterEqual(len(data['review_rounds']), 5)
+            self.assertEqual(data['review_rounds'],[])
+            release_ids={row['id'] for row in data['releases']}
+            self.assertIn('2026-09-04-complete-file-evaluation',release_ids)
+            self.assertNotIn('2026-09-04-five-browser-fastest-markdown',release_ids)
             self.assertNotIn('github.com/lexmount/browser-eval/pull/6', page)
 
     def test_review_round_log_is_required_and_structured(self):
@@ -50,6 +93,38 @@ class ReportChangesTests(unittest.TestCase):
                         {'review_rounds':[{'date':'2026-09-08','title':'复核'}]}):
             with self.subTest(invalid=invalid), self.assertRaises(ValueError):
                 require_review_rounds(invalid)
+
+    def test_release_history_is_scoped_to_the_current_cohort(self):
+        from harness.web_fetch.report_changes import select_cohort_history
+        data={
+            'review_rounds':[{'date':'d','title':'t','scope':'s','finding':'f','fix':'x','pending':'p'}],
+            'releases':[
+                {'id':'new-headless'},
+                {'id':'2026-09-04-five-browser-fastest-markdown'},
+                {'id':'generic-file'},
+                {'id':'generic-score'},
+            ],
+        }
+        headless=select_cohort_history(data,{'comparison':{'kind':'headless_markdown'}},[])
+        generic=select_cohort_history(data,{'comparison':None},[{'provider_type':'firecrawl'}])
+        self.assertEqual([r['id'] for r in headless['releases']],
+                         ['new-headless','2026-09-04-five-browser-fastest-markdown'])
+        self.assertEqual([r['id'] for r in generic['releases']],
+                         ['generic-file','generic-score'])
+        self.assertTrue(headless['review_rounds'])
+        self.assertEqual(generic['review_rounds'],[])
+
+    def test_explicit_comparison_kind_overrides_legacy_partition(self):
+        from harness.web_fetch.report_changes import select_cohort_history
+        data={
+            'review_rounds':[{'date':'d','title':'t','scope':'s','finding':'f','fix':'x','pending':'p'}],
+            'releases':[
+                {'id':'tagged-generic','comparison_kinds':['generic']},
+                {'id':'2026-09-04-five-browser-fastest-markdown'},
+            ],
+        }
+        selected=select_cohort_history(data,{'comparison':{'kind':'generic'}},[])
+        self.assertEqual([r['id'] for r in selected['releases']],['tagged-generic'])
 
     def test_ranking_uses_planned_judgment_denominator(self):
         c={'id':'file','name':'File','track':'video','task_kind':'file'}

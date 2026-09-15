@@ -4,6 +4,8 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 const source=fs.readFileSync(new URL('../scripts/package_artifact_hub.py',import.meta.url),'utf8');
 const js=source.match(/LOADER=r'''([\s\S]*?)'''/)[1];
+const reportSource=fs.readFileSync(new URL('../harness/web_fetch/report.py',import.meta.url),'utf8');
+const callDialogJs=reportSource.match(/let callLogTrigger=null;[\s\S]*?(?=function applyReportAnchor)/)[0];
 let fields=[{dataset:{filter:'provider'},value:'lexmount-global'},{dataset:{filter:'query'},value:'正文核对点-1'}],calls=0;
 const context=vm.createContext({TextDecoder,URL,fetch:async()=>({ok:true,json:async()=>({})}),
  window:{scrollX:0,scrollY:650,addEventListener(){}},
@@ -198,3 +200,27 @@ await vm.runInContext('fill(smallPre)',retryContext);
 assert.match(smallPre.textContent,/Click to retry/);
 assert.equal(smallPre['aria-label'],'Load complete content');
 console.log('PASS: route and evidence retry controls use the active report language');
+
+const projected=vm.runInContext("publicMetadata({route:'markdown',raw_response_path:'private_artifacts/x',nested:{private_artifacts:[1],status:200}})",retryContext);
+assert.deepEqual(JSON.parse(JSON.stringify(projected)),{route:'markdown',nested:{status:200}});
+console.log('PASS: lazy adapter metadata excludes private response pointers recursively');
+
+const dialogListeners=new Map();let closeFocused=false,triggerFocused=false,opened=false,dialogFills=0;
+const closeControl={focus(){closeFocused=true},closest:()=>dialog};
+const deferredDialogPre={};
+const dialog={dataset:{},setAttribute(){},removeAttribute(){},
+ addEventListener(name,handler){dialogListeners.set(name,handler)},
+ querySelector:()=>closeControl,querySelectorAll:()=>[deferredDialogPre],showModal(){opened=true},
+ close(){opened=false;dialogListeners.get('close')?.()}};
+const trigger={dataset:{callLogOpen:'call-log-dialog'},focus(){triggerFocused=true}};
+const dialogContext=vm.createContext({TextDecoder,URL,
+ window:{addEventListener(){}},document:{addEventListener(){},getElementById:()=>dialog},fill(){dialogFills++}});
+vm.runInContext(callDialogJs,dialogContext);dialogContext.trigger=trigger;dialogContext.closeControl=closeControl;
+vm.runInContext('openCallLog(trigger)',dialogContext);
+assert.equal(opened,true);assert.equal(closeFocused,true);assert.equal(dialog.dataset.bound,'1');assert.equal(dialogFills,1);
+vm.runInContext('closeCallLog(closeControl)',dialogContext);
+assert.equal(opened,false);assert.equal(triggerFocused,true);
+triggerFocused=false;vm.runInContext('openCallLog(trigger)',dialogContext);
+dialogListeners.get('keydown')({key:'Escape',preventDefault(){}});
+assert.equal(opened,false);assert.equal(triggerFocused,true);
+console.log('PASS: call-record dialog opens accessibly and restores focus when closed');

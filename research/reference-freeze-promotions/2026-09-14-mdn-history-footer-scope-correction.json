@@ -1,0 +1,41 @@
+{
+  "schema_version": 2,
+  "kind": "reference_freeze_promotion",
+  "input_dataset_sha256": "481caa7583277d785540bd36fd4deaf379564163d9a33c2eb1bed34d8aca2800",
+  "capture_audit_sha256": "2f02a406f394332688ca8ba27eb60fa86156288785dc5dab8e155c96c15d2035",
+  "candidate_dataset_sha256": "b09893b062b80838533605b0731c6d18006f71509c9388d65845c69e95edd666",
+  "changes": [
+    {
+      "case_id": "live-044-history-api",
+      "affected_scope": [
+        "ground_truth_main_content",
+        "body_requirements"
+      ],
+      "old_reference_sha256": "d0c8791e3fe2fb047202ea30adb6c73afaa5239ed434a051d829e1cf7a89dda4",
+      "new_reference_sha256": "dbef78f9faeb47246efb250e3bdf0d9cc4c112267ccfa14cb5d88aa7ced4990a",
+      "old_body_requirements_sha256": "0dd27835cef6cde7bb67580faa51b8da07a30a6c39c13c7516544f74ff9335e1",
+      "new_body_requirements_sha256": "00c810adfed35774510d50a6ee225c079fbf22ada16c29821d71ac655285cf35",
+      "source_revision": {
+        "url": "https://developer.mozilla.org/en-US/docs/Web/API/History_API",
+        "revision": "snapshot:27389296bd67b52694781962b50c852645f3e8aa23d94bb067738a83ce9d946e",
+        "source_snapshot_sha256": "27389296bd67b52694781962b50c852645f3e8aa23d94bb067738a83ce9d946e"
+      }
+    }
+  ],
+  "approved_by": "user-directed-independent-reference-review",
+  "approved_at": "2026-09-14T02:31:44Z",
+  "task_decision_changes": [],
+  "correction_provenance": {
+    "category": "reference-evidence",
+    "root_cause": "The MDN History API reference included its last-modified footer, allowing a non-article timestamp and contributor line to contaminate full-text coverage; the shared extractor now excludes that footer and retains the complete article body.",
+    "regression_ids": [
+      "reference-scope-retains-main-content",
+      "reference-scope-excludes-site-chrome"
+    ],
+    "verdict_corrections": {
+      "false_positives": 0,
+      "false_negatives": 0,
+      "total": 0
+    }
+  }
+}

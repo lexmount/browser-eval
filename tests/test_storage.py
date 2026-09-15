@@ -1,5 +1,6 @@
 import os
 import json
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -92,7 +93,8 @@ class StorageTests(unittest.TestCase):
             evidence.mkdir()
             profile = {
                 'dataset_id':'current', 'comparison_kind':'headless_markdown',
-                'case_count':1, 'providers':['p'], 'timeout_seconds':45,
+                'case_count':1, 'case_ids_sha256': hashlib.sha256(b'["a"]').hexdigest(),
+                'providers':['p'], 'timeout_seconds':45,
                 'runs_per_case':1, 'concurrency':1,
                 'reference_binding_mode':'equivalent_reference_bytes_with_independent_batch_captures',
                 'publication_state':'verified', 'unverified_reference_cases':[],
@@ -120,7 +122,9 @@ class StorageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);evidence=root/'evidence';evidence.mkdir()
             profile={'dataset_id':'current','comparison_kind':'headless_markdown',
-                     'case_count':2,'providers':['p','q'],'timeout_seconds':45,
+                     'case_count':2,
+                     'case_ids_sha256': hashlib.sha256(b'["a","b"]').hexdigest(),
+                     'providers':['p','q'],'timeout_seconds':45,
                      'runs_per_case':1,'concurrency':2,'conversion':'native',
                      'reference_binding_mode':'strict','publication_state':'verified',
                      'unverified_reference_cases':[],
@@ -161,6 +165,7 @@ class StorageTests(unittest.TestCase):
                 'dataset_id': 'current', 'comparison_kind': 'headless_markdown',
                 'case_count': 1, 'providers': ['p'], 'timeout_seconds': 45,
                 'runs_per_case': 1, 'concurrency': 1, 'conversion': 'native',
+                'case_ids_sha256': hashlib.sha256(b'["a"]').hexdigest(),
                 'reference_binding_mode': 'strict', 'publication_state': 'verified',
                 'unverified_reference_cases': [],
                 'require_independent_result_review': True,

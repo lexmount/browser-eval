@@ -1,6 +1,10 @@
 import unittest
+from unittest.mock import patch
 
-from harness.web_fetch.accounts import ACCOUNT_REGISTRY, env_template
+from harness.web_fetch.accounts import (
+    ACCOUNT_REGISTRY, REPORT_LOCAL_ACCESS, REPORT_PROVIDER_ACCOUNT_IDS, env_template,
+    report_access_registry,
+)
 
 
 class AccountRegistryTest(unittest.TestCase):
@@ -17,6 +21,46 @@ class AccountRegistryTest(unittest.TestCase):
         self.assertIn("LEXMOUNT_API_KEY=\n", template)
         self.assertIn("FIRECRAWL_API_KEY=\n", template)
         self.assertNotIn("secret", template.casefold())
+
+    def test_report_registry_is_exactly_the_measured_methods(self) -> None:
+        providers = {
+            "cloudflare-markdown", "cowagent-built-in", "crawl4ai",
+            "deepseek-harness-built-in", "exa", "firecrawl",
+            "langchain-webbase", "lexmount-cn", "lexmount-global",
+            "moli-webfetch", "openclaw-built-in", "tavily",
+        }
+        rows = report_access_registry(providers)
+        self.assertEqual(len(rows), len(providers))
+        names = {row["provider"] for row in rows}
+        self.assertNotIn("Browserbase Fetch", names)
+        self.assertIn("Moli WebFetch", names)
+
+    def test_report_registry_fails_closed_for_unknown_method(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unknown-method"):
+            report_access_registry({"unknown-method"})
+
+    def test_local_source_methods_document_their_runtime_commands(self) -> None:
+        self.assertEqual(
+            REPORT_LOCAL_ACCESS["openclaw-built-in"]["env_vars"],
+            ["OPENCLAW_REPO", "OPENCLAW_NODE", "OPENCLAW_PNPM"],
+        )
+        self.assertEqual(
+            REPORT_LOCAL_ACCESS["deepseek-harness-built-in"]["env_vars"],
+            ["DEEPSEEK_HARNESS_REPO", "OPENCLAW_NODE", "DEEPSEEK_PNPM"],
+        )
+
+    def test_report_registry_names_stale_account_mapping(self) -> None:
+        with patch.dict(REPORT_PROVIDER_ACCOUNT_IDS, {"stale-method": "missing-account"}):
+            with self.assertRaisesRegex(ValueError, "stale-method"):
+                report_access_registry({"stale-method"})
+
+    def test_cloudflare_account_exposes_both_official_product_permissions(self) -> None:
+        account = next(item for item in ACCOUNT_REGISTRY
+                       if item['id'] == 'cloudflare-browser-rendering')
+        self.assertEqual(account['env_vars'], ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID'])
+        self.assertIn('Browser Rendering → Edit', account['steps'])
+        self.assertIn('Workers AI → Read', account['steps'])
+        self.assertIn('Workers AI Read 或 Edit', account['free_note'])
 
 
 if __name__ == "__main__":
