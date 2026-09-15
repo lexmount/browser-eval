@@ -1,11 +1,14 @@
 UV ?= uv
 PY := $(UV) run --frozen python
 
-.PHONY: setup runtime-check test test-python test-ui fixture-smoke ci report report-check trajectory-report trajectory-report-release trajectory-report-audit
+.PHONY: setup import-env runtime-check test test-python test-ui fixture-smoke ci report report-check trajectory-report trajectory-report-release trajectory-report-audit
 
 setup:
 	$(UV) sync --frozen --all-extras
 	npm ci
+
+import-env:
+	$(PY) scripts/import_benchmark_env.py
 
 runtime-check:
 	@$(PY) -c 'import sys; assert sys.version_info[:2] == (3, 11), sys.version'

@@ -1,0 +1,105 @@
+{
+  "schema_version": 2,
+  "kind": "reference_freeze_promotion",
+  "input_dataset_sha256": "0a0e6347d9ac6ab80b85e97bbbb7ea4bc9b04b37e48845309942be7085074578",
+  "capture_audit_sha256": "ec4a6d530fa642bb806ed9cebebdb277c6edca5d2710a8f5be21c642397cdcad",
+  "candidate_dataset_sha256": "4977de748a73a7f82d8aa7ebc6de87ab0f837fe5b0a4601bf70353dd6f674cdc",
+  "changes": [
+    {
+      "case_id": "stable-wcag21-recommendation",
+      "affected_scope": [
+        "ground_truth_main_content"
+      ],
+      "old_reference_sha256": "485108d7e7528f5bed7ccbe123ba0ee9745998277fc3e1af75f0805517a7bff4",
+      "new_reference_sha256": "4e427c638b8372ae21dec876596004451c1bfe43a23ac4331fc3ce8e6f1a1a5c",
+      "old_body_requirements_sha256": "2af6afcc7b84c13dc8a4d4367a029edc53275807398f30d90258a2dbd8d8bc3c",
+      "new_body_requirements_sha256": "2af6afcc7b84c13dc8a4d4367a029edc53275807398f30d90258a2dbd8d8bc3c",
+      "source_revision": {
+        "url": "https://www.w3.org/TR/2018/REC-WCAG21-20180605/",
+        "revision": "snapshot:a8793e95937866bacd03d9b421e4e889bc7811b84d0ddec6ed8c790f8e7f67dd",
+        "source_snapshot_sha256": "a8793e95937866bacd03d9b421e4e889bc7811b84d0ddec6ed8c790f8e7f67dd"
+      }
+    },
+    {
+      "case_id": "live-041-python-programming-language",
+      "affected_scope": [
+        "ground_truth_main_content",
+        "body_requirements"
+      ],
+      "old_reference_sha256": "8a9e922e86710b19f74926cd4327575f1ad8b1ca36d39bc3b61127aa937a594b",
+      "new_reference_sha256": "fb74a848af4ac2b1b42295c16c139913f56a40cc027aa59ac354fd6d349c8e35",
+      "old_body_requirements_sha256": "7e49a80b4441eb2bb1830d78ada6bcd2b723807f05235d8763da62937e238079",
+      "new_body_requirements_sha256": "c95572aff9f229b8e7214e34738f279f790122904ca13fe5d3a1ba37c7008d3a",
+      "source_revision": {
+        "url": "https://en.wikipedia.org/wiki/Python_(programming_language)",
+        "revision": "browser-observation:fb74a848af4ac2b1b42295c16c139913f56a40cc027aa59ac354fd6d349c8e35",
+        "rendered_content_sha256": "fb74a848af4ac2b1b42295c16c139913f56a40cc027aa59ac354fd6d349c8e35",
+        "browser_observation_sha256": "f855b2088fe2b33878f399acf962b4b38be39f0170e137080fb097acd91bf5af"
+      }
+    },
+    {
+      "case_id": "live-060-database",
+      "affected_scope": [
+        "ground_truth_main_content",
+        "body_requirements"
+      ],
+      "old_reference_sha256": "d1b6d2ab1f7beadb8da703b1d02b85bcb80a5e1bbbae844f440e5c79c981d5f2",
+      "new_reference_sha256": "e1f308fc3ea556c06333b3e8bfbca0f6e273977379010284c3a6dff3ae739025",
+      "old_body_requirements_sha256": "cedda4188ec440ae83b31b8987acc8e48530ffb6bebda27c7c196d151b611c64",
+      "new_body_requirements_sha256": "ecfaa12d40b18201835e18384750ca78e62d872682b6a851c2793d1f24940b0e",
+      "source_revision": {
+        "url": "https://en.wikipedia.org/wiki/Database",
+        "revision": "snapshot:32538b1796374fe0a077ee876bf9928c5850f2b813af48138f4d9a3dc41fe976",
+        "source_snapshot_sha256": "32538b1796374fe0a077ee876bf9928c5850f2b813af48138f4d9a3dc41fe976"
+      }
+    },
+    {
+      "case_id": "live-061-version-control",
+      "affected_scope": [
+        "ground_truth_main_content",
+        "body_requirements"
+      ],
+      "old_reference_sha256": "3fae122844944d55e97637ce698a1c31618eaf49afc631030e88214168ea8912",
+      "new_reference_sha256": "160de8855f46ee74ca06194c5c1c8428601796a7bc82b8bb833ec6f9481ec040",
+      "old_body_requirements_sha256": "8d80d4b2e71b2942aea95ce0cb494ca654746b1313011382311ead4966aff491",
+      "new_body_requirements_sha256": "03805fe6a59a407f5776baab169cc72a73f771e1063d8f4004726873aef84a39",
+      "source_revision": {
+        "url": "https://en.wikipedia.org/wiki/Version_control",
+        "revision": "snapshot:34b19708aff1d6a1d8314c8ede5c8d3fc5d18cb4f0af9b39558d105c39b3bed8",
+        "source_snapshot_sha256": "34b19708aff1d6a1d8314c8ede5c8d3fc5d18cb4f0af9b39558d105c39b3bed8"
+      }
+    },
+    {
+      "case_id": "live-062-natural-language-processing",
+      "affected_scope": [
+        "ground_truth_main_content",
+        "body_requirements"
+      ],
+      "old_reference_sha256": "5003b67f51d745d5ff1906cef01db9a22a1f0da8fa36692bfb45beb4d8f83bb1",
+      "new_reference_sha256": "91d697638c621d4ef93863a51b97ff788646abbb6a1c803e748d5e3666f50027",
+      "old_body_requirements_sha256": "45a4cd085c7e18c5f572f59290c234a7daef8118885c987a89dd351032f27a2c",
+      "new_body_requirements_sha256": "f534e6d77af6d70c1da8cd5eab2915866b13f72563fb43222ce3c23a60628a43",
+      "source_revision": {
+        "url": "https://en.wikipedia.org/wiki/Natural_language_processing",
+        "revision": "snapshot:0b895ac9d324787fca446ca0d52f1b7c807a86e5b44aa5e4b7055af24a1a64b2",
+        "source_snapshot_sha256": "0b895ac9d324787fca446ca0d52f1b7c807a86e5b44aa5e4b7055af24a1a64b2"
+      }
+    }
+  ],
+  "approved_by": "user",
+  "approved_at": "2026-09-11T17:15:00+08:00",
+  "task_decision_changes": [],
+  "correction_provenance": {
+    "category": "reference-evidence",
+    "root_cause": "HTTP and browser reference capture used divergent DOM pruning, allowing Wikipedia navigation/citation chrome and a non-content back-to-top glyph into reference evidence and one task acceptance contract.",
+    "regression_ids": [
+      "reference-scope-retains-main-content",
+      "reference-scope-excludes-site-chrome"
+    ],
+    "verdict_corrections": {
+      "false_positives": 0,
+      "false_negatives": 0,
+      "total": 0
+    }
+  }
+}

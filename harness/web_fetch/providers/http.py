@@ -6,7 +6,7 @@ from html.parser import HTMLParser
 
 from ..models import EvalCase, ProviderResult
 from .base import Provider
-from .http_client import request
+from .http_client import inner_timeout_budget, request
 
 
 class TextExtractor(HTMLParser):
@@ -53,7 +53,7 @@ class HttpProvider(Provider):
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         response = request(
             case.url,
-            timeout=timeout,
+            timeout=inner_timeout_budget(timeout),
             max_bytes=int(self.config.get("max_bytes", 10_000_000)),
             headers={"Accept": "*/*" if case.task_kind == 'file' else "text/html,text/plain,application/xhtml+xml"},
         )

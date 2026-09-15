@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import hashlib
 from collections import Counter
 from pathlib import Path
 
@@ -103,6 +104,11 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
         failures.append("dataset_id")
     if len(dataset.get("cases", [])) != profile["case_count"]:
         failures.append("case_count")
+    case_ids_sha256 = hashlib.sha256(json.dumps(
+        case_ids, separators=(",", ":"), ensure_ascii=True
+    ).encode()).hexdigest()
+    if profile.get("case_ids_sha256") != case_ids_sha256:
+        failures.append("case_ids_sha256")
     if comparison.get("kind") != profile["comparison_kind"]:
         failures.append("comparison_kind")
     if comparison.get("timeout_seconds") != profile["timeout_seconds"]:

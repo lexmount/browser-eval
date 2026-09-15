@@ -22,6 +22,7 @@ def frozen_case(case):
         'expected_any', 'required_facts', 'forbidden_any', 'min_content_chars',
         'fact_coverage_threshold', 'ground_truth_main_content', 'reference_answer',
         'expected_resources', 'content_score_applicable', 'required_patterns',
+        'resource_output_contract',
     )
     frozen = {key: case.get(key) for key in fields}
     frozen['source_benchmark'] = {

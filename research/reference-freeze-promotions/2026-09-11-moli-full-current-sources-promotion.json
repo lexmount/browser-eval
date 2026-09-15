@@ -1,0 +1,57 @@
+{
+  "schema_version": 2,
+  "kind": "reference_freeze_promotion",
+  "input_dataset_sha256": "a22f964e35af9a456bfceb1dda02a41031f817f386c3a4d0bd8e9a5d346f4499",
+  "capture_audit_sha256": "c9b7d283da4baf3e5e0719cf5ca1f4cc88b0e39cd04b6efa4338aeccb9ab8a69",
+  "candidate_dataset_sha256": "9de38bde82960c7c0082312cbdd56c71721236eb66e0118b64d378683d06d430",
+  "changes": [
+    {
+      "case_id": "stable-wikipedia-ai-revision",
+      "affected_scope": [
+        "ground_truth_main_content",
+        "body_requirements"
+      ],
+      "old_reference_sha256": "9b5ec27359f70aa996223f1ab40cb7f552c8ad209eb5fa5239a7e7e1c47d77e2",
+      "new_reference_sha256": "33699739103f15ee6a9974fd277ece548590def11b2b8589544454b0ecb57176",
+      "old_body_requirements_sha256": "ad74dbe6ee435938d520a69481cd0c07c54fb2f9b85d355ad753aa1b72ca8b53",
+      "new_body_requirements_sha256": "071e9d84dd14a313ffdeba4f64db9df2f05bffeb81558a6503cb9acd1ce56fe9",
+      "source_revision": {
+        "url": "https://en.wikipedia.org/w/index.php?title=Artificial_intelligence&oldid=1373671334",
+        "revision": "oldid:1373671334",
+        "source_snapshot_sha256": "4f656e4bf05ce836e2d2f539347d70a59b2a24355cee780c73af6f456e4bf0d1"
+      }
+    },
+    {
+      "case_id": "lexmount-doc",
+      "affected_scope": [
+        "ground_truth_main_content",
+        "body_requirements"
+      ],
+      "old_reference_sha256": "708f83dbd8652cbde2bf484dea1df701b02abffc0fe31a4add3085334ee4a9b9",
+      "new_reference_sha256": "3b86a49de945d27dd623dce61f6559c5e4bfe55de8d4b1347a7d5d13f611cb9d",
+      "old_body_requirements_sha256": "8c6ccbc907b0f0bc60af1eaa84e3a18f54df634bfd421d5d9cf869394518d568",
+      "new_body_requirements_sha256": "cf78dcef6b3442e931e9f898c05a62bb900e0cb02e13ba56eb740a411b02b7df",
+      "source_revision": {
+        "url": "https://browser.lexmount.com/docs/webfetch/quickstart",
+        "revision": "snapshot:91253561cb19135e75be9714f87b5c7f8da1b2d42efcc09bf68b1dde2e00ac96",
+        "source_snapshot_sha256": "91253561cb19135e75be9714f87b5c7f8da1b2d42efcc09bf68b1dde2e00ac96"
+      }
+    }
+  ],
+  "approved_by": "user",
+  "approved_at": "2026-09-11T11:40:00Z",
+  "task_decision_changes": [],
+  "correction_provenance": {
+    "category": "reference-evidence",
+    "root_cause": "Independent live sources changed after the previously recorded capture, so publishable scoring must bind the newly observed task-relevant main-content scope instead of silently mixing stale references with current calls.",
+    "regression_ids": [
+      "reference-scope-retains-main-content",
+      "reference-scope-excludes-site-chrome"
+    ],
+    "verdict_corrections": {
+      "false_positives": 0,
+      "false_negatives": 0,
+      "total": 0
+    }
+  }
+}

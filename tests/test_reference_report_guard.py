@@ -6,6 +6,7 @@ from pathlib import Path
 from harness.web_fetch.report_build import build_report
 from harness.web_fetch.reference_lifecycle import ReferenceLifecycleError
 from scripts.rescore_content import rescore
+from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
 
 
 class ReferenceReportGuardTests(unittest.TestCase):
@@ -13,7 +14,8 @@ class ReferenceReportGuardTests(unittest.TestCase):
         case = {'id': 'c', 'name': 'c', 'url': 'https://example.com', 'category': 'test',
                 'track': 'web', 'ground_truth_main_content': 'new answer'}
         record = {'attempt_id': 'p__c__r001', 'provider': 'p', 'case_id': 'c',
-                  'artifact_path': 'artifacts/p/c/run.txt', 'metrics': {}, 'ok': True}
+                  'artifact_path': 'artifacts/p/c/run.txt',
+                  'metrics': {'scoring_source_sha256': SCORING_SOURCE_SHA256}, 'ok': True}
         (root/'dataset.json').write_text(json.dumps({'cases': [case]}))
         (root/'results.jsonl').write_text(json.dumps(record)+'\n')
         (root/'manifest.json').write_text(json.dumps({'attempt_ids': [record['attempt_id']],

@@ -7,11 +7,20 @@ import unittest
 from unittest.mock import patch
 
 from scripts.headless_worker import fetch
-from scripts.postcheck_headless import read_completed_records, load_resumable_observations
+from scripts.postcheck_headless import (
+    expected_providers,
+    load_resumable_observations,
+    read_completed_records,
+)
 from scripts.certify_headless_cases import read_completed_records as read_certification_records
 
 
 class HeadlessReviewTests(unittest.TestCase):
+    def test_postcheck_uses_case_track_coverage(self):
+        dataset = {'coverage_plan': {'web': ['web-p'], 'resources': ['resource-p']}}
+        self.assertEqual(expected_providers(dataset, {'track': 'resources'}), {'resource-p'})
+        self.assertEqual(expected_providers(dataset, {}), {'web-p'})
+
     def test_resume_discards_observations_outside_exact_reference_scope(self):
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'observations.json'

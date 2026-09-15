@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import json
 import base64
+import json
 import os
 import queue
-import shlex
 import subprocess
 import threading
 import time
@@ -12,32 +11,78 @@ from pathlib import Path
 from typing import Any
 
 from ..models import EvalCase, ProviderResult
+from ..retrieval_hints import plan_for_case
 from .base import Provider
+from .runtime_identity import validate_runtime_identity
 
 
 class SubprocessJsonlProvider(Provider):
     """Invoke a persistent repository-native worker over line-delimited JSON."""
+
+    _LOCKED_RUNTIMES = {
+        "openclaw_builtin": {
+            "revision": "12c4bdf7482f24c85b011e9d858fdec3c245101c",
+            "node_version": "v24.15.0",
+            "package_manager_version": "12.1.0",
+            "paths": {
+                "{repo_path}/src/agents/tools/web-fetch.ts",
+                "{repo_path}/pnpm-lock.yaml",
+                "{harness_root}/scripts/oss/openclaw_webfetch_worker.mts",
+            },
+        },
+        "deepseek_harness_builtin": {
+            "revision": "dd6322d604e00eec1ba5e0c8541159906a21094a",
+            "node_version": "v24.15.0",
+            "paths": {
+                "{repo_path}/packages/web/web-fetch-http/src/provider.ts",
+                "{repo_path}/pnpm-lock.yaml",
+                "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts",
+                "{harness_root}/scripts/oss/dsh_webfetch_worker.mts",
+            },
+        },
+    }
 
     def __init__(self, name: str, config: dict[str, Any]):
         super().__init__(name, config)
         self.type = str(config.get("method_type") or self.type)
         self._process: subprocess.Popen[str] | None = None
         self._stdout_queue: queue.Queue[str | None] = queue.Queue()
-        self._stderr_lines: list[str] = []
+        self._stderr_lock = threading.Condition()
+        self._stderr_chunks: list[tuple[int, int, str]] = []
+        self._stderr_sequence = 0
+        self._stderr_total_bytes = 0
+        self._stderr_retained_bytes = 0
 
     def _resolve_token(self, value: Any) -> str:
         harness_root = Path(__file__).resolve().parents[3]
         repo_path = Path(str(self.config.get("repo_path", "."))).expanduser().resolve()
-        return str(value).replace("{harness_root}", str(harness_root)).replace("{repo_path}", str(repo_path))
+        return (
+            str(value)
+            .replace("{harness_root}", str(harness_root))
+            .replace("{repo_path}", str(repo_path))
+        )
 
     def validate(self) -> list[str]:
-        missing: list[str] = []
-        command = self.config.get("command")
-        if not isinstance(command, list) or not command:
-            missing.append("command")
-        repo_path = str(self.config.get("repo_path", "")).strip()
-        if repo_path and not Path(repo_path).expanduser().is_dir():
-            missing.append("repo_path")
+        if hasattr(self, "_implementation_identity"):
+            del self._implementation_identity
+        missing, identity = validate_runtime_identity(self.config, self._resolve_token)
+        locked = self._LOCKED_RUNTIMES.get(self.type)
+        if locked:
+            if self.config.get("expected_repo_revision") != locked["revision"]:
+                missing.append(f"repo revision {locked['revision']}")
+            if self.config.get("expected_node_version") != locked["node_version"]:
+                missing.append(f"Node {locked['node_version']}")
+            package_manager_version = locked.get("package_manager_version")
+            if (
+                package_manager_version is not None
+                and self.config.get("expected_package_manager_version")
+                != package_manager_version
+            ):
+                missing.append(f"package manager {package_manager_version}")
+            if not locked["paths"].issubset(set(self.config.get("required_paths", []))):
+                missing.append("locked required paths")
+        if identity is not None:
+            self._implementation_identity = identity
         return missing
 
     def _start(self) -> subprocess.Popen[str]:
@@ -58,7 +103,11 @@ class SubprocessJsonlProvider(Provider):
             bufsize=1,
         )
         self._stdout_queue = queue.Queue()
-        self._stderr_lines = []
+        with self._stderr_lock:
+            self._stderr_chunks = []
+            self._stderr_sequence = 0
+            self._stderr_total_bytes = 0
+            self._stderr_retained_bytes = 0
         assert self._process.stdout is not None and self._process.stderr is not None
         threading.Thread(target=self._drain_stdout, args=(self._process,), daemon=True).start()
         threading.Thread(target=self._drain_stderr, args=(self._process,), daemon=True).start()
@@ -73,25 +122,93 @@ class SubprocessJsonlProvider(Provider):
     def _drain_stderr(self, process: subprocess.Popen[str]) -> None:
         assert process.stderr is not None
         for line in process.stderr:
-            self._stderr_lines.append(line.rstrip())
-            del self._stderr_lines[:-200]
+            size = len(line.encode("utf-8", "replace"))
+            limit = max(1, int(self.config.get("max_bytes", 20_000_000)))
+            with self._stderr_lock:
+                self._stderr_sequence += 1
+                self._stderr_total_bytes += size
+                self._stderr_chunks.append(
+                    (self._stderr_sequence, self._stderr_total_bytes, line)
+                )
+                self._stderr_retained_bytes += size
+                while self._stderr_chunks and self._stderr_retained_bytes > limit:
+                    removed = self._stderr_chunks.pop(0)
+                    self._stderr_retained_bytes -= len(removed[2].encode("utf-8", "replace"))
+                self._stderr_lock.notify_all()
+
+    def _stderr_cursor(self) -> tuple[int, int]:
+        with self._stderr_lock:
+            return self._stderr_sequence, self._stderr_total_bytes
+
+    def _request_stderr(self, cursor: tuple[int, int]) -> dict[str, Any]:
+        """Return only stderr observed after this request began, with honest bounds."""
+        start_sequence, start_bytes = cursor
+        # stdout and stderr are separate pipes. Once a response arrives, allow
+        # its stderr drainer a short quiet period before closing the slice.
+        quiet_deadline = time.monotonic() + 0.05
+        with self._stderr_lock:
+            previous = self._stderr_sequence
+            while time.monotonic() < quiet_deadline:
+                self._stderr_lock.wait(timeout=0.01)
+                if self._stderr_sequence == previous:
+                    break
+                previous = self._stderr_sequence
+            actual_bytes = self._stderr_total_bytes - start_bytes
+            chunks = [line for sequence, _, line in self._stderr_chunks
+                      if sequence > start_sequence]
+        text = "".join(chunks)
+        retained_bytes = len(text.encode("utf-8", "replace"))
+        return {
+            "stderr": text,
+            "stderr_bytes": actual_bytes,
+            "stderr_truncated": retained_bytes < actual_bytes,
+        }
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+        answer_begin = time.perf_counter()
+        try:
+            retrieval_plan = plan_for_case(case)
+        except ValueError as error:
+            return ProviderResult(
+                False,
+                "",
+                error_type="configuration",
+                error_message=str(error),
+            )
         deadline = time.monotonic() + timeout
         process = self._start()
         assert process.stdin is not None and process.stdout is not None
-        request = {"url": case.url, "timeout_seconds": timeout, "task_kind": case.task_kind}
+        stderr_cursor = self._stderr_cursor()
+        request = {
+            "url": case.url,
+            "timeout_seconds": timeout,
+            "task_kind": case.task_kind,
+            "track": case.track,
+            "retrieval_plan": retrieval_plan.worker_dict() if retrieval_plan else None,
+        }
         process.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")
         process.stdin.flush()
 
         worker_logs: list[str] = []
+        worker_log_bytes = 0
+        worker_logs_truncated = False
+        log_limit = max(1, int(self.config.get("max_bytes", 20_000_000)))
         payload: dict[str, Any] | None = None
         while payload is None:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 process.kill()
                 self._process = None
-                raise TimeoutError(f"worker timed out after {timeout:.1f}s")
+                answer_elapsed_ms = round((time.perf_counter() - answer_begin) * 1000, 2)
+                error = TimeoutError(f"worker timed out after {timeout:.1f}s")
+                error.public_metadata = {
+                    "_answer_elapsed_ms": answer_elapsed_ms,
+                    **self._request_stderr(stderr_cursor),
+                    "stdout": "".join(worker_logs),
+                    "stdout_bytes": worker_log_bytes,
+                    "stdout_truncated": worker_logs_truncated,
+                }
+                raise error
             try:
                 line = self._stdout_queue.get(timeout=remaining)
             except queue.Empty:
@@ -99,17 +216,34 @@ class SubprocessJsonlProvider(Provider):
             if line is None:
                 code = process.poll()
                 self._process = None
-                raise RuntimeError(
-                    f"worker exited with {code}: {' | '.join(self._stderr_lines[-20:])[-2000:]}\n"
-                    f"command={shlex.join([self._resolve_token(part) for part in self.config['command']])}"
-                )
+                answer_elapsed_ms = round((time.perf_counter() - answer_begin) * 1000, 2)
+                error = RuntimeError(f"worker exited with {code}")
+                error.public_metadata = {
+                    "_answer_elapsed_ms": answer_elapsed_ms,
+                    **self._request_stderr(stderr_cursor),
+                    "exit_code": code,
+                    "stdout": "".join(worker_logs),
+                    "stdout_bytes": worker_log_bytes,
+                    "stdout_truncated": worker_logs_truncated,
+                }
+                raise error
             try:
                 candidate = json.loads(line)
             except json.JSONDecodeError:
-                worker_logs.append(line.rstrip())
+                encoded = len(line.encode("utf-8", "replace"))
+                worker_log_bytes += encoded
+                if sum(len(item.encode("utf-8", "replace")) for item in worker_logs) + encoded <= log_limit:
+                    worker_logs.append(line)
+                else:
+                    worker_logs_truncated = True
                 continue
             if not isinstance(candidate, dict) or "ok" not in candidate:
-                worker_logs.append(line.rstrip())
+                encoded = len(line.encode("utf-8", "replace"))
+                worker_log_bytes += encoded
+                if sum(len(item.encode("utf-8", "replace")) for item in worker_logs) + encoded <= log_limit:
+                    worker_logs.append(line)
+                else:
+                    worker_logs_truncated = True
                 continue
             payload = candidate
         ok = bool(payload.get("ok"))
@@ -128,13 +262,27 @@ class SubprocessJsonlProvider(Provider):
             title=payload.get("title"),
             error_type=None if ok else str(payload.get("error_type") or "tool_error"),
             error_message=None if ok else str(payload.get("error_message") or "worker failed"),
-            metadata={**dict(payload.get("metadata") or {}), "worker_logs": worker_logs[-20:]},
+            metadata={
+                **dict(payload.get("metadata") or {}),
+                "_answer_elapsed_ms": round((time.perf_counter() - answer_begin) * 1000, 2),
+                **self._request_stderr(stderr_cursor),
+                "stdout": "".join(worker_logs),
+                "stdout_bytes": worker_log_bytes,
+                "stdout_truncated": worker_logs_truncated,
+                "worker_logs": [line.rstrip() for line in worker_logs],
+            },
         )
 
     def cancel(self) -> None:
         process = self._process
         if process is not None and process.poll() is None:
             process.kill()
+
+    @property
+    def cancellation_cleanup_seconds(self) -> float:
+        # SIGKILL is synchronous to send, but the fetch and pipe-drain threads
+        # need a bounded moment to observe process exit and unwind.
+        return 1.0
 
     def __del__(self) -> None:
         process = self._process

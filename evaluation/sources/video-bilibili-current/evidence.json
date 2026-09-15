@@ -175,6 +175,14 @@
   "task_kind": "resource",
   "track": "video",
   "requires_browser": false,
+  "independent_browser_observation": {
+    "path": "browser-observation.json",
+    "sha256": "5a7769e763ba6f8a61f0d9e8f4270b62d706efebfd895ae2b4e29392b564f19e",
+    "status": "success",
+    "completion_satisfied": true,
+    "target_count": 1,
+    "target_hits": 1
+  },
   "browser_review": "已核对实际目标内容；403 不等于站点失效",
   "replacement_reason": "原任务要求当前推荐，规则却绑定 10 个历史 BV 号；改为本站视频详情地址规则。"
 }

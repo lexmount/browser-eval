@@ -4,10 +4,13 @@ from __future__ import annotations
 import json
 import os
 import sys
+from importlib.metadata import version
 
 os.environ.setdefault("USER_AGENT", "browser-harness-eval/1.0")
 
 from langchain_community.document_loaders import WebBaseLoader
+
+LIBRARY_VERSION = version("langchain-community")
 
 
 for line in sys.stdin:
@@ -27,10 +30,10 @@ for line in sys.stdin:
         output = {
             "ok": True,
             "content": content,
-            "final_url": metadata.get("source", request["url"]),
             "title": metadata.get("title"),
             "metadata": {
                 "implementation": "langchain_community.WebBaseLoader",
+                "library_version": LIBRARY_VERSION,
                 "document_count": len(docs),
                 "document_metadata": metadata,
             },
@@ -39,10 +42,9 @@ for line in sys.stdin:
         output = {
             "ok": False,
             "content": repr(error),
-            "final_url": request["url"],
             "error_type": type(error).__name__,
             "error_message": str(error),
-            "metadata": {"implementation": "langchain_community.WebBaseLoader"},
+            "metadata": {"implementation": "langchain_community.WebBaseLoader",
+                         "library_version": LIBRARY_VERSION},
         }
     print(json.dumps(output, ensure_ascii=False), flush=True)
-
