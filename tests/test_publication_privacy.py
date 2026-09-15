@@ -103,7 +103,9 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / 'artifacts/browser/case').mkdir(parents=True)
             (source / 'call-logs/browser/case').mkdir(parents=True)
             (source / 'assets/style.css').write_text('body {color:black}')
-            (source / 'assets/report.js').write_text('')
+            (source / 'assets/report.js').write_text(
+                "window.addEventListener('DOMContentLoaded', initReport);\n"
+            )
             (source / '.generated-report').write_text('local marker')
             (source / 'reliability.json').write_text('{"complete":true}')
             (source / 'result-review.json').write_text('{"status":"passed","failures":[]}')
@@ -130,6 +132,8 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / 'references/case.txt').write_text('complete reference')
             (source / 'references/file-case.txt').write_text('file acceptance rule')
             (source / 'references/md-case.md').write_text('markdown ground truth')
+            unusual_case = r'backslash\1'
+            (source / 'references' / f'{unusual_case}.txt').write_text('literal backslash reference')
             (source / 'artifacts/browser/case/run-001.txt').write_text('actual output')
             (source / 'artifacts/browser/file-case').mkdir(parents=True)
             (source / 'artifacts/browser/file-case/run-001.txt').write_text('')
@@ -148,6 +152,9 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / 'datasets/md-case.html').write_text(
                 '<html><body><h2>Source metadata</h2><pre>{"level":"hard"}</pre>'
                 '<h2>Official human ground truth</h2><pre>markdown ground truth</pre></body></html>')
+            (source / 'datasets' / f'{unusual_case}.html').write_text(
+                '<html><body><h2>Official human ground truth</h2>'
+                '<pre>literal backslash reference</pre></body></html>')
             (source / 'index.html').write_text('<!doctype html><html><head><title>Test</title></head><body><a href="sources/case/source.html.txt">HTML</a></body></html>')
             (source / 'guide/article.html').write_text('<!doctype html><html><body>Article</body></html>')
             key = b'AIzaSy' + b'x' * 33
@@ -163,7 +170,15 @@ class PublicationPrivacyTests(unittest.TestCase):
                 manifest = json.loads(archive.read('manifest.json'))
                 self.assertEqual(manifest['architecture']['kind'],
                                  'single_html_shell_with_lazy_virtual_routes')
-                self.assertEqual(manifest['architecture']['logical_routes'], 5)
+                self.assertEqual(manifest['architecture']['logical_routes'], 6)
+                self.assertIn(
+                    "window.addEventListener('report-ready', initReport);",
+                    archive.read('report.js').decode(),
+                )
+                self.assertNotIn(
+                    "window.addEventListener('DOMContentLoaded', initReport);",
+                    archive.read('report.js').decode(),
+                )
                 self.assertGreaterEqual(manifest['architecture']['content_packs'], 1)
                 def unpack(name):
                     output = bytearray()
@@ -195,6 +210,9 @@ class PublicationPrivacyTests(unittest.TestCase):
                 self.assertIn(b'<pre>{"level":"hard"}</pre>', dataset_page)
                 self.assertIn(b'data-file="references/md-case.md"', dataset_page)
                 self.assertNotIn(b'>markdown ground truth</pre>', dataset_page)
+                unusual_page = unpack(f'datasets/{unusual_case}.html')
+                self.assertIn(f'data-file="references/{unusual_case}.txt"'.encode(), unusual_page)
+                self.assertNotIn(b'>literal backslash reference</pre>', unusual_page)
                 self.assertNotIn('.generated-report', manifest['files'])
 
 

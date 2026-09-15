@@ -8,12 +8,14 @@ The first backend compares warm local Chromium and Moli in equal, isolated
 Docker cgroups. It does not require Codex, another coding agent, an LLM API key,
 website accounts, or login state.
 
-## Latest report
+## Published reports
 
-[Web Fetch 五浏览器评测](https://artifact-hub.app.lexmount.com/api/preview/UUAhhQMnrGwm#page=guide%2Findex.html)
+[Public WebMainBench-545 Web Fetch report](https://artifact-hub.app.lexmount.com/v/vq5RkI1fAkFfx_v3cUEHUbxaRh2nxBJX) is the current report bound in
+`evaluation/current-report.json`.
 
-This stable Sites link opens the latest published version. Generated report
-files are local build outputs and are not committed to this repository.
+[Five-browser live-URL reference report](https://artifact-hub.app.lexmount.com/api/preview/UUAhhQMnrGwm#page=guide%2Findex.html) is a separate evaluation, not the
+publication target for the public-benchmark report. Generated report files are
+local build outputs and are not committed to this repository.
 
 ## Run the browser evaluation
 

@@ -7,7 +7,7 @@ import unittest
 
 from scripts.run_headless_benchmark import require_expected_provider_versions
 from harness.web_fetch.providers.headless import HEADLESS_CONVERSION
-from harness.web_fetch.publication_target import current_publication_target, require_publication_site
+from harness.web_fetch.publication_target import current_publication_target, require_publication_site, require_publication_version
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -211,6 +211,25 @@ class RuntimeEntrypointTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'expected'):
                 require_publication_site({'slug':slug}, profile,
                                          'https://artifact-hub.app.lexmount.com')
+
+    def test_publication_version_defaults_to_profile_and_rejects_override(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            profile = Path(directory) / 'profile.json'
+            profile.write_text(json.dumps({'artifact_hub_expected_version': 'ver_profile'}))
+            self.assertEqual(require_publication_version(profile), 'ver_profile')
+            self.assertEqual(require_publication_version(profile, 'ver_profile'), 'ver_profile')
+            with self.assertRaisesRegex(ValueError, 'expected'):
+                require_publication_version(profile, 'ver_cli')
+
+    def test_publication_version_fails_closed_when_profile_binding_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            profile = Path(directory) / 'profile.json'
+            for value in (None, '', 'version-without-prefix', 7):
+                profile.write_text(json.dumps({'artifact_hub_expected_version': value}))
+                with self.subTest(value=value), self.assertRaisesRegex(
+                    ValueError, 'artifact_hub_expected_version'
+                ):
+                    require_publication_version(profile)
 
     def test_publication_scripts_do_not_load_repository_eval_credentials(self) -> None:
         for relative in ('scripts/publish_artifact_hub.py',

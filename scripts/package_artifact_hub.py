@@ -247,8 +247,9 @@ def build():
      text=text[:match.start()]+replacement+text[match.end():]
    elif path.parent.name=='datasets' and path.name!='index.html':
     suffix='.md' if (SOURCE/'references'/f'{path.stem}.md').exists() else '.txt'
+    reference_file=html.escape(f'references/{path.stem}{suffix}',quote=True)
     text=re.sub(r'(<h2>(?:官方人工真值|Official human ground truth)</h2>)<pre>.*?</pre>',
-                rf'\1<pre data-file="references/{path.stem}{suffix}"></pre>',text,count=1,flags=re.S)
+                lambda match:match.group(1)+f'<pre data-file="{reference_file}"></pre>',text,count=1,flags=re.S)
    data=text.encode();pages[name]=text
   else:original[name]=hashlib.sha256(data).hexdigest()
   if redaction:
@@ -285,6 +286,8 @@ def build():
  (DEST/'manifest.json').write_text(json.dumps(manifest,separators=(',',':')))
  (DEST/'style.css').write_bytes((SOURCE/'assets/style.css').read_bytes())
  js=(SOURCE/'assets/report.js').read_text()
+ if not webmainbench:
+  js=js.replace("window.addEventListener('DOMContentLoaded',", "window.addEventListener('report-ready',")
  js=js.replace("localStorage.getItem('webfetch-theme')",'readTheme()').replace("localStorage.setItem('webfetch-theme',t)",'saveTheme(t)')
  js="function readTheme(){try{return localStorage.getItem('webfetch-theme')}catch{return 'light'}}\nfunction saveTheme(t){try{localStorage.setItem('webfetch-theme',t)}catch{}}\n"+js
  (DEST/'report.js').write_text(js)
