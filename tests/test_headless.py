@@ -101,6 +101,34 @@ class HeadlessTests(unittest.TestCase):
         self.assertIn('--terminate-ms', lightpanda)
         self.assertNotIn('--wait-until', obscura)
 
+    def test_obscura_loopback_fixture_requires_explicit_private_network_flag(self):
+        command = cli_command(
+            'obscura', '/obscura', 'http://127.0.0.1:8123/case/x', 1.5,
+            'markdown', allow_private_network=True,
+        )
+        self.assertEqual(command[:3], ['/obscura', '--allow-private-network', 'fetch'])
+
+    def test_https_fixture_ca_is_passed_to_native_clients(self):
+        for engine in ('moli', 'lightpanda'):
+            command = cli_command(
+                engine, '/' + engine, 'https://localhost:8123/case/x', 1.5,
+                'markdown', ca_cert='/tmp/fixture-ca.pem',
+            )
+            self.assertEqual(command[command.index('--ca-cert') + 1], '/tmp/fixture-ca.pem')
+
+    def test_obscura_https_fixture_uses_dedicated_ca_environment(self):
+        from types import SimpleNamespace
+        request = dict(
+            engine='obscura', binary='/obscura', url='https://localhost:8123/case/x',
+            timeout=1, output_mode='markdown', allow_private_network=True,
+            ca_cert='/tmp/fixture-ca.pem',
+        )
+        completed = SimpleNamespace(returncode=0, stdout=b'# output', stderr=b'')
+        with patch('scripts.headless_worker.subprocess.run', return_value=completed) as run:
+            result = fetch(request)
+        self.assertTrue(result['ok'])
+        self.assertEqual(run.call_args.kwargs['env']['SSL_CERT_FILE'], '/tmp/fixture-ca.pem')
+
     def test_moli_raw_document_command_omits_dump(self):
         command = cli_command('moli', '/moli', 'https://example.com/paper.pdf', 1.5,
                               'document')

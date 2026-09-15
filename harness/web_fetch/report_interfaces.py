@@ -14,7 +14,7 @@ HEADLESS_ACCESS={
  'lightpanda':{'account':'不需要供应商账号或 API Key。','configuration':'从官方项目获取二进制，配置 LIGHTPANDA_BINARY；不使用托管服务凭据。','env_vars':['LIGHTPANDA_BINARY'],'links':[('官方项目与安装说明','https://github.com/lightpanda-io/browser')]},
  'obscura':{'account':'不需要供应商账号或 API Key。','configuration':'从官方项目获取程序及配套 worker，配置 OBSCURA_BINARY。','env_vars':['OBSCURA_BINARY'],'links':[('官方项目与安装说明','https://github.com/h4ckf0r0day/obscura')]},
  'moli-1.0.6':{'account':'不需要供应商账号或 API Key。','configuration':'从官方 v1.0.6 release 获取二进制，配置 MOLI_1_0_6_BINARY；发布归档与可执行文件均校验 SHA-256。','env_vars':['MOLI_1_0_6_BINARY'],'links':[('Moli 1.0.6 正式发布','https://github.com/lexmount/moli/releases/tag/v1.0.6')]},
- 'moli':{'account':'不需要供应商账号或 API Key。','configuration':'从官方 v1.1.1 release 获取二进制，配置 MOLI_BINARY；不是 Lexmount 云服务接口。','env_vars':['MOLI_BINARY'],'links':[('Moli 1.1.1 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.1')]},
+ 'moli':{'account':'不需要供应商账号或 API Key。','configuration':'从官方 v1.1.5 release 获取二进制，配置 MOLI_BINARY；不是 Lexmount 云服务接口。','env_vars':['MOLI_BINARY'],'links':[('Moli 1.1.5 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.5')]},
  'moli-1.1.3':{'account':'不需要供应商账号或 API Key。','configuration':'从官方 v1.1.3 release 获取二进制，配置 MOLI_1_1_3_BINARY；发布包与可执行文件均校验 SHA-256。','env_vars':['MOLI_1_1_3_BINARY'],'links':[('Moli 1.1.3 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.3')]},
  'chromium':{'account':'不需要 Google 账号或 API Key；不加载个人登录会话。','configuration':'通过 Playwright 安装匹配的 Chromium，配置 CHROMIUM_BINARY。','env_vars':['CHROMIUM_BINARY'],'links':[('官方浏览器安装说明','https://playwright.dev/python/docs/browsers')]},
 }
@@ -92,8 +92,7 @@ def moli_release_spec(version):
  'request':{'ordinary_web':'moli fetch --dump markdown --wait-until done --timeout 45000 URL','direct_document_or_media':'moli fetch --timeout 45000 --http-timeout 45000 URL','version':version},
  'notes':f'本方法只使用官方 {version} 发行二进制，与其他 Moli 版本分开计分。普通网页使用原生 Markdown；直接文档与媒体的裸 fetch 路线在正式二进制上实测确认。正文任务若取得受支持的原始文档，会在同一计时预算内解析文字；文件任务直接验收字节。不在失败后切换引擎或输出模式。'}
 SPECS['moli-1.0.6']=moli_release_spec('1.0.6')
-SPECS['moli']=moli_release_spec('1.1.1')
-SPECS['moli']['notes']+=' 旧批次只保存了二进制 SHA-256，随后与官方 v1.1.1 归档逐字节匹配；受错误输出模式影响的直接文档与媒体已用正确路线重测。'
+SPECS['moli']=moli_release_spec('1.1.5')
 SPECS['moli-1.1.3']=moli_release_spec('1.1.3')
 SPECS['chromium']=spec(
  'Playwright · Chromium → DOM HTML → node-html-markdown','本地独立浏览器；不需要 Google 账号，不加载个人会话',

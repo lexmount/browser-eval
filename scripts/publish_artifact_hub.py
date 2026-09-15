@@ -17,6 +17,11 @@ receipt=(Path(sys.argv[sys.argv.index('--receipt')+1]) if '--receipt' in sys.arg
 updating='--update' in sys.argv
 creating='--create' in sys.argv
 expected=sys.argv[sys.argv.index('--expected-version')+1] if '--expected-version' in sys.argv else None
+archive=(Path(sys.argv[sys.argv.index('--archive')+1]) if '--archive' in sys.argv
+         else ROOT/'publish/webfetch-sites.zip')
+source=(Path(sys.argv[sys.argv.index('--source')+1]) if '--source' in sys.argv
+        else ROOT/'reports/webfetch')
+title=(sys.argv[sys.argv.index('--title')+1] if '--title' in sys.argv else 'Web Fetch 评测')
 if creating and updating:raise ValueError('Choose exactly one of --create or --update')
 if updating and (not receipt.exists() or not expected or not expected.startswith('ver_')):
  raise ValueError('--update requires an existing receipt and --expected-version ver_...')
@@ -37,12 +42,12 @@ if not creating:
  require_publication_site(result,ROOT/'evaluation/current-report.json',BASE)
  print('Using saved publication receipt; not creating a duplicate site.',flush=True)
 if creating or updating:
- archive=ROOT/'publish/webfetch-sites.zip';boundary='----webfetch'+uuid.uuid4().hex
+ boundary='----webfetch'+uuid.uuid4().hex
  from scripts.check_publication_bundle import check
- check(archive,ROOT/'reports/webfetch')
+ check(archive,source)
  large_archive=archive.stat().st_size > 23*1024*1024
  parts=[]
- for key,value in [('mode','zip'),('title','Web Fetch 评测')]:
+ for key,value in [('mode','zip'),('title',title)]:
   parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'.encode())
  if not large_archive:
   parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="webfetch.zip"\r\nContent-Type: application/zip\r\n\r\n'.encode()+archive.read_bytes()+b'\r\n')

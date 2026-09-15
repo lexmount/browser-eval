@@ -88,12 +88,13 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / 'sources/case').mkdir(parents=True)
             (source / 'guide').mkdir(parents=True)
             (source / 'attempts').mkdir(parents=True)
+            (source / 'datasets').mkdir(parents=True)
             (source / 'references').mkdir(parents=True)
             (source / 'artifacts/browser/case').mkdir(parents=True)
             (source / 'assets/style.css').write_text('body {color:black}')
             (source / 'assets/report.js').write_text('')
             (source / '.generated-report').write_text('local marker')
-            (source / 'reliability.json').write_text('{"complete":true}')
+            (source / 'result-review.json').write_text('{"status":"passed","failures":[]}')
             record = {'attempt_id': 'browser__case__r001', 'case_id': 'case',
                       'artifact_path': 'artifacts/browser/case/run-001.txt',
                       'provider_metadata': {}}
@@ -104,6 +105,7 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / 'results.jsonl').write_text(results)
             (source / 'references/case.txt').write_text('complete reference')
             (source / 'references/file-case.txt').write_text('file acceptance rule')
+            (source / 'references/md-case.md').write_text('markdown ground truth')
             (source / 'artifacts/browser/case/run-001.txt').write_text('actual output')
             (source / 'artifacts/browser/file-case').mkdir(parents=True)
             (source / 'artifacts/browser/file-case/run-001.txt').write_text('')
@@ -115,6 +117,9 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / 'attempts/browser__file-case__r001.html').write_text(
                 '<html><body><h2>目标文件与实际返回</h2>'
                 '<pre data-kind="metadata">{}</pre></body></html>')
+            (source / 'datasets/md-case.html').write_text(
+                '<html><body><h2>Source metadata</h2><pre>{"level":"hard"}</pre>'
+                '<h2>Official human ground truth</h2><pre>markdown ground truth</pre></body></html>')
             (source / 'index.html').write_text('<!doctype html><html><head><title>Test</title></head><body><a href="sources/case/source.html.txt">HTML</a></body></html>')
             (source / 'guide/article.html').write_text('<!doctype html><html><body>Article</body></html>')
             key = b'AIzaSy' + b'x' * 33
@@ -130,7 +135,7 @@ class PublicationPrivacyTests(unittest.TestCase):
                 manifest = json.loads(archive.read('manifest.json'))
                 self.assertEqual(manifest['architecture']['kind'],
                                  'single_html_shell_with_lazy_virtual_routes')
-                self.assertEqual(manifest['architecture']['logical_routes'], 4)
+                self.assertEqual(manifest['architecture']['logical_routes'], 5)
                 self.assertGreaterEqual(manifest['architecture']['content_packs'], 1)
                 def unpack(name):
                     output = bytearray()
@@ -154,6 +159,10 @@ class PublicationPrivacyTests(unittest.TestCase):
                 self.assertEqual(attempt.count(b'data-file="references/case.txt"'), 1)
                 self.assertIn(b'derived body region', attempt)
                 self.assertNotIn(b'>actual output</pre>', attempt)
+                dataset_page = unpack('datasets/md-case.html')
+                self.assertIn(b'<pre>{"level":"hard"}</pre>', dataset_page)
+                self.assertIn(b'data-file="references/md-case.md"', dataset_page)
+                self.assertNotIn(b'>markdown ground truth</pre>', dataset_page)
                 self.assertNotIn('.generated-report', manifest['files'])
 
 

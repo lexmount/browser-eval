@@ -4,7 +4,7 @@ from __future__ import annotations
 import sys
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import parse_qs,unquote, urlsplit
 
 
 class Links(HTMLParser):
@@ -12,13 +12,24 @@ class Links(HTMLParser):
         super().__init__()
         self.values: list[str] = []
         self.ids: set[str] = set()
+        self.filter_options: dict[str,set[str]] = {}
+        self.current_filter: str | None = None
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attrs_by_name=dict(attrs)
+        if tag=='select':
+            self.current_filter=attrs_by_name.get('data-wmb-filter')
+            if self.current_filter:self.filter_options.setdefault(self.current_filter,set())
+        elif tag=='option' and self.current_filter:
+            self.filter_options[self.current_filter].add(attrs_by_name.get('value') or '')
         for key, value in attrs:
             if key in {"href", "src"} and value:
                 self.values.append(value)
             if key == "id" and value:
                 self.ids.add(value)
+
+    def handle_endtag(self,tag:str)->None:
+        if tag=='select':self.current_filter=None
 
 
 def main() -> int:
@@ -44,6 +55,13 @@ def main() -> int:
                 missing.append(f"{page.relative_to(root)} -> {value}")
                 continue
             if parsed.fragment and target.suffix.lower() in {".html", ".htm"}:
+                if parsed.fragment.startswith('inspect?'):
+                    controls=parse_page(target).filter_options
+                    params=parse_qs(parsed.fragment[8:],keep_blank_values=True)
+                    if not controls or any(key not in controls or len(values)!=1 or values[0] not in controls[key]
+                                           for key,values in params.items()):
+                        missing.append(f"{page.relative_to(root)} -> {value} (invalid report filter)")
+                    continue
                 fragment = unquote(parsed.fragment)
                 if fragment not in parse_page(target).ids:
                     missing.append(f"{page.relative_to(root)} -> {value} (missing fragment)")

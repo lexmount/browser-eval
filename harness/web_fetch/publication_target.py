@@ -7,18 +7,22 @@ ROOT=Path(__file__).resolve().parents[2]
 DEFAULT_BASE='https://artifact-hub.app.lexmount.com'
 
 
-def current_publication_target(profile_path=ROOT/'evaluation/current-report.json'):
+def current_publication_target(profile_path=ROOT/'evaluation/current-report.json', *, require_bound=True):
     profile=json.loads(Path(profile_path).read_text())
     base=profile.get('artifact_hub_base_url',DEFAULT_BASE)
     slug=profile.get('artifact_hub_site')
-    if not isinstance(base,str) or not base.startswith('https://') or not isinstance(slug,str) or not slug:
+    if not isinstance(base,str) or not base.startswith('https://'):
         raise ValueError('Current report profile has an invalid Artifact Hub target')
+    if not isinstance(slug,str) or not slug:
+        if require_bound:
+            raise ValueError('Current report profile has no bound Artifact Hub site')
+        return base.rstrip('/'),None
     return base.rstrip('/'),slug
 
 
-_BASE,_SLUG=current_publication_target()
+_BASE,_SLUG=current_publication_target(require_bound=False)
 HUB = (os.environ.get('WEBFETCH_REPORT_PUBLIC_URL') or
-       f'{_BASE}/api/preview/{_SLUG}').rstrip('/')
+       (f'{_BASE}/api/preview/{_SLUG}' if _SLUG else '')).rstrip('/')
 
 
 def require_publication_site(receipt: dict, profile_path: Path, base_url: str | None=None) -> str:

@@ -17,7 +17,7 @@ from harness.web_fetch.runner import run_evaluation
 
 EXPECTED_PROVIDER_VERSIONS = {
     'moli-1.0.6': '1.0.6',
-    'moli': '1.1.1',
+    'moli': '1.1.5',
     'moli-1.1.3': '1.1.3',
 }
 

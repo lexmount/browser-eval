@@ -1,178 +1,148 @@
-# Browser task-native Web Fetch comparison
+# WebMainBench-545 preselected-200 five-browser comparison
 
-The cohort reuses all 150 registered Web Fetch task IDs: 100 web cases and 10
-each for document, image, video, challenge and dynamic delivery. Every method
-receives the same URL, task rule and end-to-end deadline and is judged by the
-shared `score_attempt` path. Implementations are deliberately not forced through
-one extractor: the benchmark asks each method to use its fastest documented or
-built-in route to the task's final deliverable. Web and document-body tasks end
-in readable text; direct-file tasks end in verified original bytes.
+The current browser-native Web Fetch report evaluates Kitesurf, Lightpanda,
+Obscura, Moli 1.1.5 and Chromium on a 200-page sample selected and frozen from
+the public WebMainBench-545 release before provider results existed. It is a
+frozen-HTML-to-Markdown fidelity benchmark,
+not a live-URL access benchmark and not the paper's separate 7,809-page
+ROUGE-5 leaderboard.
 
-## Runtime and route
+## Frozen input and reference
 
-| Method | Deployment | Measured route |
+The source JSONL must have SHA-256
+`0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e`
+and exactly 545 unique `track_id` values. Every record's `html` and
+`groundtruth_content` fields must be non-empty.
+
+Each method receives the exact UTF-8 bytes of the official `html` field.
+Lightpanda, Obscura, Moli and Chromium read those bytes from a loopback HTTPS
+server under a macOS sandbox that permits only loopback networking. Each
+batch uses a dedicated ephemeral CA; the HTTPS scheme prevents page code from
+redirecting merely because the fixture protocol differs from the source URL. The response
+CSP permits inline scripts from the frozen bytes but blocks external resources.
+Kitesurf receives the same bytes through Cloudflare Browser Run's documented
+inline `html` input with external subresource types rejected.
+The original URL is retained only as provenance metadata.
+
+WebMainBench HTML contains public `cc-select` annotation attributes. None of
+the five generic converters is customized to read those attributes, but the
+cue is inherent in the released dataset and must be disclosed.
+
+## Measured routes
+
+| Method | Deployment | Route |
 |---|---|---|
-| Kitesurf | Cloudflare account Browser Run | `POST /browser-rendering/markdown?browser=kitesurf` |
+| Kitesurf | Cloudflare Browser Run | `POST /browser-rendering/markdown?browser=kitesurf` with inline HTML |
 | Lightpanda | local CLI | `fetch --dump markdown` |
-| Obscura | local CLI, standard mode | `fetch --dump markdown` |
-| Moli 1.0.6 | local CLI | ordinary pages: `fetch --dump markdown`; direct documents/media: bare `fetch URL`, then timed text extraction only for document-body tasks |
-| Moli 1.1.1 | local CLI | ordinary pages: `fetch --dump markdown`; direct documents/media: bare `fetch URL`, then timed text extraction only for document-body tasks |
-| Moli 1.1.3 | local CLI | ordinary pages: `fetch --dump markdown`; direct documents/media: bare `fetch URL`, then timed text extraction only for document-body tasks |
-| Chromium | local Playwright/CDP | rendered DOM HTML → `node-html-markdown` 2.0.0 |
+| Obscura | local CLI | `fetch --dump markdown --allow-private-network` for the loopback fixture |
+| Moli 1.1.5 | local CLI | `fetch --dump markdown --wait-until done` |
+| Chromium 152 | local browser | complete DOM HTML converted by `node-html-markdown` 2.0.0 |
 
-Chromium and CDP do not expose a native Markdown result. Chromium Reader Mode
-produces simplified HTML and does not cover this benchmark's full output
-contract. The selected fallback therefore captures the complete rendered DOM
-and converts it with the maintained MIT-licensed `node-html-markdown` package.
-The converter version, file hash, Node version, source HTML hash and conversion
-time are retained per call. Conversion is inside the 45-second deadline.
+The comparison aligns input bytes, output contract, case set and the 45-second
+physical-call deadline. It does not claim identical implementations or
+deployment paths. Remote Kitesurf latency includes the service and network;
+local latency includes process/browser startup and conversion. Therefore the
+latency columns are observed client wall time, not an engine-only CPU result.
 
-Kitesurf is not treated as a local open-source engine. As tested, it is a
-Cloudflare-hosted preview selected by `browser=kitesurf`; Cloudflare has stated
-an intention to open source it, which is not the same as released source code.
-The public report must describe the currently available account API, not a
-hypothetical local deployment.
+## Official scoring
 
-The routes have different completion controls because those controls belong to
-the tested interfaces: Kitesurf uses `networkidle2`, Chromium uses Playwright
-`domcontentloaded`, and each CLI uses its own documented completion behavior.
-No method receives task answers, task-specific selectors, clicks, scrolling,
-personal sessions, stealth fallback or model post-processing. The original
-published matrix used one provider call per task and did not retry; later
-documented corrections may supersede affected logical results while preserving
-the earlier physical evidence.
-Future runs may predeclare `--max-failure-retries 1`: only a failed task may
-receive one additional physical call, both artifacts are retained, total
-logical latency includes the retry path, and the final physical call is always
-authoritative. Choosing the better response after seeing outcomes is forbidden.
+Scoring is pinned to WebMainBench commit
+`9d991bdc00c57b57521499494d96be85c31317ba` and uses the official deterministic
+`use_llm=false` configuration. The report publishes `text_edit`, `code_edit`,
+`formula_edit`, `table_edit`, `table_TEDS` and `overall`, the arithmetic mean
+of the five independently aggregated component metrics.
 
-## What is and is not fair
+The official implementation aggregates only successful calculations for each
+component. Thus component denominators differ and are part of the result.
+Extraction failures do not produce component metrics in the official evaluator;
+request success and failure classes are reported separately.
 
-The comparison aligns inputs, outputs, task set, acceptance rules and the
-client-observed end-to-end deadline. It does not claim identical internals.
-Forcing native Markdown methods through HTML conversion would replace their
-product advantage with benchmark code and answer a less useful question.
+The scorer's documented labels are not always a complete behavioral
+description. In this pinned revision, `text_edit` compares the complete
+Markdown strings. Table labels in the released truth may wrap long prose in an
+HTML `<table>`; a converter that emits that prose without table syntax can score
+zero on the table metrics. These are properties of the official data and code,
+not locally corrected rules.
 
-Kitesurf is remote while the other six methods are local (covering four local
-implementation families). Its latency includes network
-round trips, Cloudflare queueing and remote execution; local measurements
-include local process startup and machine contention. This is a cold-call
-client latency comparison, not an engine-only CPU/RSS benchmark. The original
-matrix's single observation per method and URL does not establish variance,
-sustained throughput or SLA. Documented correction calls remain visible and do
-not turn that matrix into a repeated-measures performance study.
-Pairwise latency tables therefore use only URLs passed by both methods and keep
-each pair's denominator visible.
+## Retry and evidence rules
 
-Method-specific readiness behavior can change delivered content. Equal option
-names would still not prove equal implementation, so the report records the
-actual condition instead of calling it normalized. Documents and media also
-have different delivery contracts. A document-body case measures URL to readable
-text: a provider's direct text is accepted, while a provider that returns raw
-PDF/DOCX bytes must parse them inside the same end-to-end deadline. A direct-file
-case stops at verified bytes and never performs an irrelevant Markdown conversion.
-The run does not add OCR, media understanding or a generic downloader that bypasses
-the selected method.
+The run predeclares at most one retry after a failed physical call. Every
+physical response is retained. The final physical call is authoritative even
+when an earlier one was better, and `total_elapsed_ms` includes both calls and
+any provider-required retry wait. A correction for a wrong binary, command,
+input, scorer or timing implementation is not a retry: preserve the old evidence
+and supersede the complete affected scope.
 
-## Credentials and binaries
+Provider outputs live outside Git under `~/.browser-eval/`. Every result binds
+the input, reference and output bytes by SHA-256. Runtime manifests bind local
+binaries and the runner; Moli must report 1.1.5 and Obscura 0.2.2. A moving
+Lightpanda nightly is identified by its retained binary hash when no immutable
+version string is available.
 
-Evaluation credentials load only from this repository's ignored `.env`.
-Kitesurf needs a Cloudflare account ID and API token with Browser Rendering /
-Browser Run access (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`). The report
-lists official registration and token pages and variable names only. It never
-copies a real key into HTML, source control or examples.
+## Credentials
 
-Local binary paths use `MOLI_1_0_6_BINARY`, `MOLI_BINARY`, `MOLI_1_1_3_BINARY`, `LIGHTPANDA_BINARY`,
-`OBSCURA_BINARY` and `CHROMIUM_BINARY`. Set `CHROMIUM_BINARY` explicitly: an
-empty value is rejected so a later partial rerun cannot silently switch from
-the report's browser to Playwright's bundled Chromium. Binaries are not committed; measured binary hashes and
-versions are retained in call evidence. Install JavaScript dependencies with
-`npm install` and the Python benchmark dependencies in a repository-local
-environment.
+Only Kitesurf requires account credentials in the ignored repository-root
+`.env`:
 
-Every local call is bound to the batch executable SHA-256. The runner captures
-that identity before and after the timed calls, writes it into the execution
-manifest and rejects any binary or reported-version change. Identity probing
-is outside the latency boundary. A mutable release label or
-configured path is never treated as an identity. If a CLI exposes no version
-or immutable commit (for example a moving nightly asset), the SHA-256 remains
-the exact executable identity and the missing source revision stays explicit.
-A version recovered later by matching a retained executable to an official
-archive is labelled post-hoc; it is not rewritten as run-time provenance.
-
-## Run and preserve evidence
-
-The reference lifecycle in [README.md](README.md) is mandatory. Independently
-capture ordinary pages, separately observe browser-dependent complete scopes,
-freeze the references, execute, then postcheck:
-
-```sh
-uv run --frozen python scripts/freeze_headless_references.py --captures CAPTURES --output FROZEN --browser-observations PRE.json
-uv run --frozen python scripts/run_headless_benchmark.py --dataset FROZEN/dataset.json --output RUN --workers 5
-uv run --frozen python scripts/postcheck_headless.py --run-dir RUN --captures POST --browser-observations POST.json
-uv run --frozen python scripts/certify_headless_cases.py --run-dir RUN --observations POST/observations.json --output CERTIFICATES
-uv run --frozen python scripts/review_headless_results.py --evidence EVIDENCE --work REVIEW --batch-cases 1 --workers 4 --model EXACT_AVAILABLE_MODEL --install
+```dotenv
+CLOUDFLARE_ACCOUNT_ID=
+CLOUDFLARE_API_TOKEN=
 ```
 
-Failure retry is disabled by default. Add `--max-failure-retries 1` only when
-the protocol calls for one retry before measurement begins. This is distinct
-from correcting a proven wrong command, implementation version, scorer or
-reference: a correction explicitly supersedes the affected logical results,
-reruns the complete declared comparison scope and records its score impact.
+The token needs Browser Rendering / Browser Run edit access. Values,
+authorization headers, cookies and user paths must never enter Git or the
+public report. Artifact Hub publishing uses its separate host-scoped token
+lookup and does not read `.env`.
 
-A failed or incomplete evidence directory is immutable. A reference failure
-suspends that case's new body measurement; it is not a provider failure. A
-replacement cohort must be independently prefrozen and must cover every method
-in the affected comparison unless a method-specific implementation change is
-the declared replacement reason. Historical calls are never retroactively
-certified. Equivalent independent captures may be assembled only when reference
-bytes, normalized hash, URL, task contract, reference scope and rendered scope
-are identical; each physical batch retains its exact capture selector and
-postcheck.
+## Reproduce
 
-Do not rerun the whole matrix merely because code changed. Use the smallest
-scope that preserves a valid comparison: presentation-only changes rebuild the
-report; scoring-only changes rescore immutable outputs; one changed reference
-reruns that case for every method; one implementation change reruns all cases
-for that method; a timing-boundary change reruns the all-method speed cohort.
-A full matrix rerun is required only when a global task input, call boundary or
-shared implementation dependency changes. The assembly manifest must retain
-which physical calls were replaced and why.
-
-Result verification is a separate publication gate after assembly. A strong
-agent reads every saved output and compares it with the task, frozen standard
-answer or stable contract without trusting the machine verdict. Every selected
-attempt, including machine passes, must receive a verdict. Disagreements require
-an explicit adjudication; unresolved rows block report generation. The review
-file is cryptographically bound to the exact dataset and results files, so a
-new session cannot silently reuse an audit after outputs or rules change.
-
-Measured outputs live outside Git under `~/.browser-eval/evidence/`. Git retains
-the canonical dataset, source annotations, adapters and report implementation.
-Build from an explicit immutable evidence directory:
+Prepare the locked environment and run one immutable shard per method:
 
 ```sh
 make setup
-uv run --frozen python scripts/check_headless_evidence.py EVIDENCE --rescore
-make report EVIDENCE=/absolute/path/to/evidence
+uv run --frozen python scripts/run_webmainbench_benchmark.py \
+  --provider moli \
+  --case-ids-file evaluation/public-webmainbench-200.json \
+  --output ~/.browser-eval/evidence/webmainbench-545-five-browser-YYYYMMDD/moli
+```
+
+Repeat with `kitesurf`, `lightpanda`, `obscura` and `chromium`. Existing output
+directories are rejected rather than overwritten. Score each completed shard:
+
+```sh
+uv run --frozen --extra webmainbench-eval python scripts/score_webmainbench_results.py \
+  --evidence ~/.browser-eval/evidence/webmainbench-545-five-browser-YYYYMMDD/moli \
+  --dataset ~/.browser-eval/public-benchmarks/webmainbench-545/WebMainBench_545.jsonl \
+  --scorer-repo ~/.browser-eval/public-benchmarks/webmainbench-545/webmainbench-code
+```
+
+Run the independent audit across all five shards, then assemble only a passed
+matrix:
+
+```sh
+uv run --frozen --extra webmainbench-eval python scripts/review_webmainbench_results.py \
+  --source-root ~/.browser-eval/evidence/webmainbench-545-five-browser-YYYYMMDD \
+  --dataset ~/.browser-eval/public-benchmarks/webmainbench-545/WebMainBench_545.jsonl \
+  --sample-manifest evaluation/public-webmainbench-200.json \
+  --output ~/.browser-eval/evidence/webmainbench-545-five-browser-YYYYMMDD/result-review.json
+
+uv run --frozen python scripts/assemble_webmainbench_evidence.py \
+  --source-root ~/.browser-eval/evidence/webmainbench-545-five-browser-YYYYMMDD \
+  --dataset ~/.browser-eval/public-benchmarks/webmainbench-545/WebMainBench_545.jsonl \
+  --sample-manifest evaluation/public-webmainbench-200.json \
+  --review ~/.browser-eval/evidence/webmainbench-545-five-browser-YYYYMMDD/result-review.json \
+  --output ~/.browser-eval/evidence/current
+
+make report EVIDENCE=~/.browser-eval/evidence/current
 make report-check
 ```
 
-`.python-version`、`uv.lock`、Makefile 与 CI 共同固定 Python 3.11 和依赖版本。
-正式命令不得改用系统 `python` / `python3`；环境不满足时应立即失败，不能降级执行。
+The final audit independently checks the complete 1,000-result matrix, every
+artifact/input hash, physical retry ordering and elapsed-time sum, component
+denominators and provider aggregates. It also recomputes text, code and formula
+edit scores without importing the official scorer. Any disagreement blocks the
+build and publication.
 
-## Cross-session release gates
-
-`evaluation/current-report.json` fixes the current report's dataset ID, task
-count, seven providers, timeout, route description and destination site. Both
-the evidence checker and report builder reject a different complete cohort.
-The report also requires an exact all-attempt review binding, zero unresolved
-judgments, valid reference/scoring receipts and a nonempty top-level review-round
-log. Assembly rebinds inherited scoring history to the final dataset/results
-bytes only after the complete blind review matches those bytes. These checks are
-covered by the repository test suite; a new session must repair the evidence or
-implementation instead of bypassing them.
-
-The public destination for this comparison is the separate Sites project
-`UUAhhQMnrGwm`. Do not update the older report sites `bWkRP157EtF6` or
-`UeZE1vfcEOrM`.
+`evaluation/current-report.json` is the only current matrix and publication
+authority. The destination site is `UUAhhQMnrGwm` on
+`https://artifact-hub.app.lexmount.com`; older report sites must not be updated.

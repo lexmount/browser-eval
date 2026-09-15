@@ -10,7 +10,7 @@ website accounts, or login state.
 
 ## Latest report
 
-[Chromium 与 Moli 浏览器工具调用评测](https://artifact-hub.dev.lexmount.net/s/zzzUqvSKjTFB)
+[Web Fetch 五浏览器评测](https://artifact-hub.app.lexmount.com/api/preview/UUAhhQMnrGwm#page=guide%2Findex.html)
 
 This stable Sites link opens the latest published version. Generated report
 files are local build outputs and are not committed to this repository.
@@ -53,11 +53,12 @@ Web Fetch has no legacy top-level package or compatibility imports.
 
 ## Web Fetch 评测
 
-独立的浏览器 Markdown 对比覆盖 Kitesurf、Lightpanda、Obscura、
-Moli 1.0.6、Moli 1.1.1、Moli 1.1.3 与 Chromium。完整的参考冻结、调用、
-测后核验、结果独立审查和发布协议见
+当前独立浏览器 Markdown 对比覆盖 Kitesurf、Lightpanda、Obscura、
+Moli 1.1.5 与 Chromium，并在公开 WebMainBench-545 母集中预先冻结的 200 份 HTML
+上使用官方指标。200 页在任何方法结果产生前选定；这是派生子集，不冒充官方
+545 例榜单。完整的输入冻结、调用、评分、结果独立审查和发布协议见
 [运行协议](harness/web_fetch/HEADLESS.md)。实测输出保留在用户目录的持久化证据中，
-不提交到 Git；这组数据不与下面的历史 12 方法混排。
+不提交到 Git；公开冻结 HTML 抽取结果不与历史真实 URL 套件混排。
 
 历史主测为 140 个任务 × 12 种方法：网页正文 100 个，文档、图片、视频、复杂热门网站各 10 个。动态内容另有 10 个任务、12 种方法的独立补测，覆盖异步接口、前端应用、内嵌数据、延迟呈现和 iframe 子文档；不与历史组混成总榜。`evaluation/dataset.json` 的 `coverage_plan` 显式规定每组参评范围，未运行不算失败。
 包含 Moli 1.1.1 的完整 140 条调用；保留原有 11 种方法的测量输出与成绩，各批次执行时间见报告环境页。
@@ -124,15 +125,14 @@ uv run --frozen python scripts/run_benchmark.py --track dynamic --providers lexm
 ## 发布
 
 ```bash
-export WEBFETCH_REPORT_PUBLIC_URL=https://artifact-hub.app.lexmount.com/api/preview/UUAhhQMnrGwm
-make report EVIDENCE=/absolute/path/to/evidence
-make report-check
-uv run --frozen python scripts/package_artifact_hub.py
-uv run --frozen python scripts/verify_artifact_hub.py --slug UUAhhQMnrGwm --expected-archive publish/webfetch-sites.zip
-uv run --frozen python scripts/publish_artifact_hub.py --receipt publish/headless-site-receipt.json --update --expected-version <新站点当前服务端版本标识>
+make public-benchmark-report EVIDENCE=/absolute/path/to/reviewed-public-benchmark-evidence
+uv run --frozen python scripts/package_artifact_hub.py reports/webfetch-public-benchmarks publish/webfetch-public-benchmarks.zip
+uv run --frozen python scripts/check_publication_bundle.py publish/webfetch-public-benchmarks.zip reports/webfetch-public-benchmarks
+uv run --frozen python scripts/publish_artifact_hub.py --receipt publish/webmainbench-site-receipt.json --archive publish/webfetch-public-benchmarks.zip --source reports/webfetch-public-benchmarks --update --expected-version <站点当前服务端版本标识>
+uv run --frozen python scripts/verify_artifact_hub.py --slug 6jNzpGiPozLW --expected-archive publish/webfetch-public-benchmarks.zip
 ```
 
-打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。Sites 发布令牌依次从显式进程环境 `ARTIFACT_HUB_TOKEN`、目标服务的 `~/.config/artifact-hub/tokens/<host>` 读取，不加载仓库 `.env`。新授权按目标 host 保存，文件权限为 0600；不同部署的令牌不通用，也不互相覆盖。host 包含显式端口（如有）。其他评测密钥仍只读取仓库配置。当前五浏览器报告使用 `https://artifact-hub.app.lexmount.com` 的独立站点 `UUAhhQMnrGwm`；旧 `.dev` 站点 `bWkRP157EtF6` 和原报告 `UeZE1vfcEOrM` 均保留。构建和打包须使用当前报告配置中的公开地址；回执的服务地址与 slug 共同决定更新目标。服务端版本标识仅用于并发保护。发布令牌和管理回执不得提交或放入站点。
+当前配置的公开集报告使用 `https://artifact-hub.app.lexmount.com` 的独立站点 `6jNzpGiPozLW`；五浏览器参考报告 `UUAhhQMnrGwm` 保留且不作为此报告的发布目标。打包将完整证据去重压缩并按需加载。发布令牌依次从显式进程环境 `ARTIFACT_HUB_TOKEN`、目标服务的 `~/.config/artifact-hub/tokens/<host>` 读取，不加载仓库 `.env`。新授权按目标 host 保存，文件权限为 0600；不同部署的令牌不通用，也不互相覆盖。host 包含显式端口（如有）。其他评测密钥仍只读取仓库配置。回执的服务地址与 slug 共同决定更新目标；服务端版本标识仅用于并发保护。发布令牌和管理回执不得提交或放入站点。
 
 ## 内容规范
 

@@ -39,7 +39,8 @@ def check(archive,source):
         for row in rows:
             raw=data(row['artifact_path'])
             original=(source/row['artifact_path']).read_bytes()
-            if hashlib.sha256(original).hexdigest()!=row['metrics']['content_sha256']:
+            expected_hash=row.get('output_sha256') or row.get('metrics',{}).get('content_sha256')
+            if hashlib.sha256(original).hexdigest()!=expected_hash:
                 raise ValueError('Original scored output hash differs')
             disclosure=privacy_by_path.get(row['artifact_path'])
             if disclosure:
@@ -53,21 +54,25 @@ def check(archive,source):
                 raise ValueError('Original privacy hash differs')
             if hashlib.sha256(data(row['path'])).hexdigest()!=row['published_sha256']:
                 raise ValueError('Projected privacy hash differs')
-        article=BeautifulSoup(data('guide/article.html'),'html.parser')
-        if article.select('script,link[rel="stylesheet"]'):raise ValueError('Standalone article has runtime dependencies')
-        for anchor in article.select('a[href]'):
-            figure = anchor.find_parent('figure', class_='m-illustration')
-            image = figure.find('img') if figure else None
-            if image and anchor['href'].startswith('data:image/png;base64,') and anchor['href'] == image.get('src'):
-                continue
-            if not anchor['href'].startswith(('https://','http://','#')):
-                raise ValueError('Standalone article has a local evidence link')
+        standalone='not-present'
+        if 'guide/article.html' in manifest['files']:
+            article=BeautifulSoup(data('guide/article.html'),'html.parser')
+            if article.select('script,link[rel="stylesheet"]'):raise ValueError('Standalone article has runtime dependencies')
+            for anchor in article.select('a[href]'):
+                figure = anchor.find_parent('figure', class_='m-illustration')
+                image = figure.find('img') if figure else None
+                if image and anchor['href'].startswith('data:image/png;base64,') and anchor['href'] == image.get('src'):
+                    continue
+                if not anchor['href'].startswith(('https://','http://','#')):
+                    raise ValueError('Standalone article has a local evidence link')
+            standalone='pass'
         print(json.dumps({'files':len(manifest['files']),
             'scored_outputs_byte_identical':len(rows)-projected_scored,
             'scored_outputs_privacy_projected':projected_scored,
             'redacted_public_files':len(privacy['files']),'replacements':sum(r['replacements'] for r in privacy['files']),
-            'public_sensitive_data_scan':'pass','standalone_article':'pass'},ensure_ascii=False))
+            'public_sensitive_data_scan':'pass','standalone_article':standalone},ensure_ascii=False))
 
 
 if __name__=='__main__':
-    check(Path(sys.argv[1]) if len(sys.argv)>1 else ROOT/'publish/webfetch-sites.zip',ROOT/'reports/webfetch')
+    check(Path(sys.argv[1]) if len(sys.argv)>1 else ROOT/'publish/webfetch-sites.zip',
+          Path(sys.argv[2]) if len(sys.argv)>2 else ROOT/'reports/webfetch')

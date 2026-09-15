@@ -2,6 +2,7 @@
 import json
 import base64
 import hashlib
+import os
 import subprocess
 import shutil
 import sys
@@ -26,8 +27,13 @@ def fetch(request):
     try:
         if engine in ('moli', 'obscura', 'lightpanda'):
             command = cli_command(engine, request['binary'], request['url'], timeout, output_mode,
-                                  request.get('wait_until'))
-            result = subprocess.run(command, capture_output=True, timeout=timeout)
+                                  request.get('wait_until'), request.get('allow_private_network', False),
+                                  request.get('ca_cert'))
+            child_env = None
+            if engine == 'obscura' and request.get('ca_cert'):
+                child_env = os.environ.copy()
+                child_env['SSL_CERT_FILE'] = request['ca_cert']
+            result = subprocess.run(command, capture_output=True, timeout=timeout, env=child_env)
             meta.update(browser_exit_code=result.returncode,
                         browser_stderr=result.stderr.decode('utf-8', 'replace')[:4096])
             if result.returncode:
@@ -80,7 +86,7 @@ def fetch(request):
                         timeout=timeout*1000)
                 try:
                     meta['browser_version'] = browser.version
-                    context = browser.new_context()
+                    context = browser.new_context(ignore_https_errors=bool(request.get('ca_cert')))
                     page = context.new_page()
                     response = page.goto(request['url'], wait_until=request.get('wait_until') or 'domcontentloaded',
                         timeout=max(1, (timeout-(time.monotonic()-start))*1000))

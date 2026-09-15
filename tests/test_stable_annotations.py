@@ -14,6 +14,16 @@ ROOT = Path(__file__).resolve().parents[1]
 from harness.web_fetch.storage import current_evidence_dir
 
 
+def current_general_evidence():
+    evidence = current_evidence_dir()
+    dataset_path = evidence / 'dataset.json'
+    if not dataset_path.is_file():
+        return None
+    profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
+    dataset = json.loads(dataset_path.read_text())
+    return evidence if profile.get('dataset_id') == dataset.get('id') else None
+
+
 class StableAnnotationTests(unittest.TestCase):
     def case(self, identifier):
         rule = CASE_ANNOTATIONS[identifier]
@@ -102,7 +112,8 @@ class StableAnnotationTests(unittest.TestCase):
     def test_saved_markdown_layout_regressions_against_independent_contracts(self):
         # Outputs supply layout examples only; every fixed value still comes
         # from the independently reviewed registry, not from these artifacts.
-        evidence=current_evidence_dir()
+        evidence=current_general_evidence()
+        if evidence is None:self.skipTest('current report is not the general benchmark')
         if not (evidence/'artifacts').is_dir():self.skipTest('requires persisted benchmark evidence')
         layouts = {
             "dynamic-quotes-api": ("crawl4ai", "tavily", "cloudflare-markdown"),
@@ -120,7 +131,8 @@ class StableAnnotationTests(unittest.TestCase):
                 self.assertEqual(result["stable_unique_record_count"], CASE_ANNOTATIONS[identifier]["contract"]["minimum_records"])
 
     def test_lost_tag_boundaries_and_empty_shells_still_fail(self):
-        evidence=current_evidence_dir()
+        evidence=current_general_evidence()
+        if evidence is None:self.skipTest('current report is not the general benchmark')
         if not (evidence/'artifacts').is_dir():self.skipTest('requires persisted benchmark evidence')
         for source, identifier in (("firecrawl", "dynamic-quotes-api"),
                                    ("tavily", "dynamic-products-api"),

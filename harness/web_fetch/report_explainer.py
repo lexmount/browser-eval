@@ -29,7 +29,7 @@ PROVIDER_NAMES = {'cowagent-built-in': 'CowAgent', 'moli-webfetch': 'Moli',
                   'crawl4ai': 'Crawl4AI', 'openclaw-built-in': 'OpenClaw',
                   'deepseek-harness-built-in': 'DeepSeek Harness', 'tavily': 'Tavily',
                   'lexmount-global': 'Lexmount 国际', 'lexmount-cn': 'Lexmount 中国区',
-                  'moli-1.0.6': 'Moli 1.0.6', 'moli': 'Moli 1.1.1',
+                  'moli-1.0.6': 'Moli 1.0.6', 'moli': 'Moli 1.1.5',
                   'moli-1.1.3': 'Moli 1.1.3'}
 
 METHODOLOGY_FIGURES = (

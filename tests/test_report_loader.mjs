@@ -4,18 +4,19 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 const source=fs.readFileSync(new URL('../scripts/package_artifact_hub.py',import.meta.url),'utf8');
 const js=source.match(/LOADER=r'''([\s\S]*?)'''/)[1];
-let fields=[{dataset:{filter:'provider'},value:'lexmount-global'},{dataset:{filter:'query'},value:'正文核对点-1'}],calls=0;
+let fields=[{dataset:{filter:'provider'},value:'lexmount-global'},{dataset:{filter:'query'},value:'正文核对点-1'},
+ {dataset:{wmbFilter:'method'},value:'moli'},{dataset:{wmbFilter:'metric'},value:'table_TEDS'}],calls=0,wmbCalls=0;
 const context=vm.createContext({TextDecoder,URL,fetch:async()=>({ok:true,json:async()=>({})}),
  window:{scrollX:0,scrollY:650,addEventListener(){}},
  document:{querySelector:()=>({}),querySelectorAll:()=>fields,addEventListener(){}},
- cascadeFilters(){calls++}
+ cascadeFilters(){calls++},wmbFilters(){wmbCalls++}
 });
 vm.runInContext(js,context);
 vm.runInContext("currentPage='analysis/index.html';savePageState()",context);
 fields.forEach(f=>f.value='');
 const saved=vm.runInContext("restorePageState('analysis/index.html')",context);
-assert.deepEqual(fields.map(f=>f.value),['lexmount-global','正文核对点-1']);
-assert.equal(saved.y,650);assert.equal(calls,1);
+assert.deepEqual(fields.map(f=>f.value),['lexmount-global','正文核对点-1','moli','table_TEDS']);
+assert.equal(saved.y,650);assert.equal(calls,1);assert.equal(wmbCalls,1);
 assert.equal(vm.runInContext("restorePageState('missing.html')",context),null);
 console.log('PASS: packaged report restores per-page filters, query and scroll position');
 const anchors=[false,true].map(download=>({dataset:{},getAttribute:()=> 'article.html',hasAttribute:n=>n==='download'&&download}));

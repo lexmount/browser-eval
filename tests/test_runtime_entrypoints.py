@@ -5,7 +5,7 @@ import unittest
 
 from scripts.run_headless_benchmark import require_expected_provider_versions
 from harness.web_fetch.providers.headless import HEADLESS_CONVERSION
-from harness.web_fetch.publication_target import require_publication_site
+from harness.web_fetch.publication_target import current_publication_target, require_publication_site
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,7 +23,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
     def test_versioned_moli_slots_reject_wrong_or_missing_binaries(self) -> None:
         valid = {
             "moli-1.0.6": {"reported_version": "moli 1.0.6"},
-            "moli": {"reported_version": "moli 1.1.1"},
+            "moli": {"reported_version": "moli 1.1.5"},
             "moli-1.1.3": {"reported_version": "moli 1.1.3"},
         }
         require_expected_provider_versions(valid)
@@ -59,31 +59,36 @@ class RuntimeEntrypointTests(unittest.TestCase):
 
     def test_current_report_profile_matches_runner_and_canonical_dataset(self) -> None:
         profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
-        dataset = json.loads((ROOT / 'evaluation/dataset.json').read_text())
         self.assertEqual(profile['conversion'], HEADLESS_CONVERSION)
-        self.assertEqual(dataset['comparison']['conversion'], HEADLESS_CONVERSION)
-        self.assertEqual(profile['comparison_kind'], dataset['comparison']['kind'])
-        self.assertEqual(set(profile['providers']), set(dataset['coverage_plan']['web']))
+        self.assertEqual(profile['comparison_kind'], 'webmainbench_frozen_html_to_markdown')
+        self.assertEqual(profile['dataset_id'], 'webmainbench-545-preselected-200-five-browsers')
+        self.assertEqual(profile['case_count'], 200)
+        self.assertEqual(profile['sample_manifest'], 'evaluation/public-webmainbench-200.json')
+        self.assertEqual(
+            profile['sample_manifest_sha256'],
+            'eea643afddd35f3ae4ed85b689b3a89f6a503f8fce878d546fa56c97c26f8044',
+        )
+        self.assertEqual(
+            set(profile['providers']),
+            {'kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium'},
+        )
+        self.assertEqual(profile['runs_per_case'], 1)
+        self.assertEqual(profile['max_failure_retries'], 1)
+        self.assertEqual(
+            profile['source_dataset_sha256'],
+            '0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e',
+        )
         self.assertEqual(profile['artifact_hub_base_url'], 'https://artifact-hub.app.lexmount.com')
-        self.assertEqual(profile['artifact_hub_site'], 'UUAhhQMnrGwm')
+        self.assertIsNone(profile['artifact_hub_site'])
 
     def test_publication_receipt_must_target_current_site(self) -> None:
         profile = ROOT / 'evaluation/current-report.json'
-        self.assertEqual(
-            require_publication_site({'slug':'UUAhhQMnrGwm'}, profile,
-                                     'https://artifact-hub.app.lexmount.com'),
-            'UUAhhQMnrGwm',
-        )
-        with self.assertRaisesRegex(ValueError, 'expected'):
-            require_publication_site({'slug':'UeZE1vfcEOrM'}, profile,
-                                     'https://artifact-hub.app.lexmount.com')
-        with self.assertRaisesRegex(ValueError, 'expected'):
-            require_publication_site({'slug':'UUAhhQMnrGwm'}, profile,
-                                     'https://artifact-hub.dev.lexmount.net')
-        with self.assertRaisesRegex(ValueError, 'requested'):
-            require_publication_site(
-                {'slug':'UUAhhQMnrGwm','base_url':'https://artifact-hub.dev.lexmount.net'},
-                profile,'https://artifact-hub.app.lexmount.com')
+        with self.assertRaisesRegex(ValueError, 'no bound Artifact Hub site'):
+            current_publication_target(profile)
+        for slug in ('UUAhhQMnrGwm','UeZE1vfcEOrM'):
+            with self.assertRaisesRegex(ValueError, 'missing artifact_hub_site'):
+                require_publication_site({'slug':slug}, profile,
+                                         'https://artifact-hub.app.lexmount.com')
 
     def test_publication_scripts_do_not_load_repository_eval_credentials(self) -> None:
         for relative in ('scripts/publish_artifact_hub.py',

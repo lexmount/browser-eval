@@ -144,3 +144,66 @@ assert.ok(comparisonRows.every(r=>r.hidden));assert.equal(comparisonControls['co
 comparisonControls['compare-track']=null;
 assert.doesNotThrow(()=>vm.runInContext('compareMethods()',comparison));
 console.log('PASS: one unified method-set comparison covers asymmetric, shared, mixed and empty selections');
+
+const wmbRows=[
+ {dataset:{method:'moli',language:'en',level:'hard',request:'failed',failure:'timeout',text_edit:''},textContent:'case-a Moli timeout',cells:[{textContent:''}]},
+ {dataset:{method:'moli',language:'en',level:'hard',request:'success',text_edit:'0.18'},textContent:'case-b Moli content',cells:[{textContent:''}]},
+ {dataset:{method:'kitesurf',language:'zh',level:'mid',request:'success',text_edit:'0.82'},textContent:'case-c Kitesurf content',cells:[{textContent:''}]}
+];
+const wmbTable={tBodies:[{rows:wmbRows}],closest(){return {scrollIntoView(){wmbTable.scrolled=true}}}};
+const wmbCount={textContent:''};
+const wmbControl=(key,value,options=[])=>({dataset:{wmbFilter:key,wmbDefault:''},value,options:options.map(v=>({value:v,disabled:false})),disabled:false});
+const wmbSelections=[wmbControl('method','',['','moli','kitesurf']),wmbControl('axis','',['','language','level']),wmbControl('category','',['','en','zh','hard','mid']),wmbControl('request','',['','failed','success']),wmbControl('failure','',['','timeout']),wmbControl('metric','',['','text_edit']),wmbControl('band','',['','0:0.25','unavailable']),wmbControl('query','')];
+const wmbContext=vm.createContext({window:{addEventListener(){}},URLSearchParams,document:{
+ querySelector(s){return s==='[data-wmb-table]'?wmbTable:s==='[data-wmb-count]'?wmbCount:null},
+ querySelectorAll(s){return s==='[data-wmb-filter]'?wmbSelections:[]}
+}});
+vm.runInContext(js,wmbContext);
+vm.runInContext('wmbFilters()',wmbContext);
+assert.deepEqual(wmbRows.map(r=>r.hidden),[false,false,false]);
+assert.equal(wmbCount.textContent,'显示 3 / 3 条');
+wmbSelections.find(c=>c.dataset.wmbFilter==='request').value='failed';
+wmbSelections.find(c=>c.dataset.wmbFilter==='failure').value='timeout';
+vm.runInContext('wmbFilters()',wmbContext);
+assert.deepEqual(wmbRows.map(r=>r.hidden),[false,true,true]);
+vm.runInContext("wmbInspect('inspect?method=moli&axis=language&category=en&request=success&metric=text_edit&band=0%3A0.25')",wmbContext);
+assert.deepEqual(wmbRows.map(r=>r.hidden),[true,false,true]);
+assert.equal(wmbSelections.find(c=>c.dataset.wmbFilter==='failure').value,'');
+assert.equal(wmbCount.textContent,'显示 1 / 3 条');
+assert.equal(wmbTable.scrolled,true);
+wmbSelections.find(c=>c.dataset.wmbFilter==='band').value='unavailable';
+vm.runInContext('wmbFilters()',wmbContext);
+assert.ok(wmbRows.every(r=>r.hidden));
+vm.runInContext('wmbReset()',wmbContext);
+assert.deepEqual(wmbRows.map(r=>r.hidden),[false,false,false]);
+console.log('PASS: WebMainBench all-default, method, category, request, metric-band, unavailable and deep-link filters');
+
+const wmbCompareRows=[
+ {dataset:{delivered:'a c',failed:'b',language:'en',level:'hard'},cells:[{textContent:''}]},
+ {dataset:{delivered:'a b c',failed:'',language:'zh',level:'easy'},cells:[{textContent:''}]},
+ {dataset:{delivered:'b',failed:'a c',language:'en',level:'hard'},cells:[{textContent:''}]}
+];
+const wmbCompareControls={
+ 'wmb-compare-a':{value:'a'},'wmb-compare-relation':{value:'mixed'},
+ 'wmb-compare-axis':{value:''},'wmb-compare-category':{value:'',options:['','en','zh','hard','easy'].map(value=>({value,disabled:false})),disabled:false},
+ 'wmb-compare-count':{textContent:''}
+};
+const wmbCompareChecks=['a','b','c'].map(value=>({value,checked:value==='b',disabled:false,closest(){return {classList:{toggle(){}}}}}));
+const wmbCompareContext=vm.createContext({window:{addEventListener(){}},document:{
+ getElementById(id){return wmbCompareControls[id]},
+ querySelectorAll(selector){if(selector==='#wmb-compare-rows tr')return wmbCompareRows;if(selector==='[data-wmb-compare-method]')return wmbCompareChecks;return []}
+}});
+vm.runInContext(js,wmbCompareContext);
+vm.runInContext('wmbCompare()',wmbCompareContext);
+assert.deepEqual(wmbCompareRows.map(r=>r.hidden),[false,true,false]);
+assert.equal(wmbCompareControls['wmb-compare-count'].textContent,'显示 2 / 3 页');
+wmbCompareControls['wmb-compare-relation'].value='a_success_others_fail';
+vm.runInContext('wmbCompare()',wmbCompareContext);
+assert.deepEqual(wmbCompareRows.map(r=>r.hidden),[false,true,true]);
+wmbCompareControls['wmb-compare-axis'].value='language';
+wmbCompareControls['wmb-compare-category'].value='zh';
+wmbCompareControls['wmb-compare-relation'].value='all_success';
+vm.runInContext('wmbCompare()',wmbCompareContext);
+assert.deepEqual(wmbCompareRows.map(r=>r.hidden),[true,false,true]);
+assert.equal(wmbCompareChecks[0].disabled,true);
+console.log('PASS: WebMainBench same-page group comparison combines methods, delivery pattern and official categories');

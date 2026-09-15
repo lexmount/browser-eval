@@ -18,6 +18,14 @@ reference-audit = [
   "beautifulsoup4>=4.12,<5",
   "pypdf>=5,<7",
 ]
+webmainbench-eval = [
+  "apted==1.0.3",
+  "beautifulsoup4==4.13.5",
+  "jieba==0.42.1",
+  "openai==1.109.1",
+  "python-dotenv==1.1.1",
+  "rapidfuzz==3.14.1",
+]
 browser-use-eval = [
   "docker>=7,<8",
   "playwright>=1.52,<2",

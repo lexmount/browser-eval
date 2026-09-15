@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+from pathlib import Path
 from urllib.parse import urlencode
 
 from ..models import EvalCase, ProviderResult
@@ -12,6 +14,28 @@ class CloudflareMarkdownProvider(Provider):
         return [name for name in ("api_token", "account_id") if not self.config.get(name)]
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+        return self._fetch_payload(
+            case,
+            timeout,
+            {"url": case.url, "gotoOptions": {"waitUntil": self.config.get("wait_until", "networkidle2")}},
+        )
+
+    def fetch_html(self, case: EvalCase, html: str, timeout: float) -> ProviderResult:
+        """Run the product's documented inline-HTML route for frozen benchmarks."""
+        return self._fetch_payload(
+            case,
+            timeout,
+            {
+                "html": html,
+                "rejectResourceTypes": [
+                    "document", "stylesheet", "image", "media", "font", "script", "texttrack",
+                    "xhr", "fetch", "prefetch", "eventsource", "websocket", "manifest",
+                    "signedexchange", "ping", "cspviolationreport", "preflight", "other",
+                ],
+            },
+        )
+
+    def _fetch_payload(self, case: EvalCase, timeout: float, request_body: dict) -> ProviderResult:
         account_id = str(self.config.get("account_id", ""))
         query = urlencode({"browser": self.config["browser"]}) if self.config.get("browser") else ""
         endpoint = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/markdown"
@@ -21,7 +45,7 @@ class CloudflareMarkdownProvider(Provider):
             timeout=timeout,
             max_bytes=int(self.config.get("max_bytes", 20_000_000)),
             headers={"Authorization": f"Bearer {self.config.get('api_token', '')}"},
-            json_body={"url": case.url, "gotoOptions": {"waitUntil": self.config.get("wait_until", "networkidle2")}},
+            json_body=request_body,
         )
         try:
             payload = response.json()
@@ -41,6 +65,8 @@ class CloudflareMarkdownProvider(Provider):
             error_message=None if ok else ((errors[0].get("message") if errors else None) or f"HTTP {response.status}"),
             metadata={
                 "browser": self.config.get("browser"),
+                "input_mode": "inline_html" if "html" in request_body else "url",
+                "adapter_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                 **({"raw_response": response.text()} if case.task_kind == "file" else {}),
                 "upstream_status": meta.get("status"),
                 "empty_content": ok and not content,

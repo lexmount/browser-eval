@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import hashlib
 from collections import Counter
 from pathlib import Path
 
@@ -111,6 +112,16 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
         failures.append("runs_per_case")
     if comparison.get("conversion") != profile["conversion"]:
         failures.append("conversion")
+    if profile.get("comparison_kind") == "webmainbench_frozen_html_to_markdown":
+        for key in ("max_failure_retries", "source_dataset_sha256", "official_scorer_commit",
+                    "sample_manifest_sha256", "official_metrics", "metric_config", "input_contract"):
+            if comparison.get(key) != profile.get(key):
+                failures.append(key)
+        sample_path = evidence / "sample-manifest.json"
+        if (not sample_path.is_file()
+                or hashlib.sha256(sample_path.read_bytes()).hexdigest() != profile.get("sample_manifest_sha256")
+                or dataset.get("sample_manifest_sha256") != profile.get("sample_manifest_sha256")):
+            failures.append("sample_manifest_file")
     for key in ("concurrency", "reference_binding_mode", "publication_state",
                 "unverified_reference_cases", "require_independent_result_review"):
         if comparison.get(key) != profile[key]:
