@@ -2,13 +2,13 @@ import importlib.util
 import json
 from pathlib import Path
 
-
 _SCRIPT = Path(__file__).parents[2] / "scripts/check_webarena_replay_visual.py"
 _SPEC = importlib.util.spec_from_file_location("check_webarena_replay_visual", _SCRIPT)
 assert _SPEC is not None and _SPEC.loader is not None
 _MODULE = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(_MODULE)
 _routes = _MODULE._routes
+_first_failed_key = _MODULE._first_failed_key
 
 
 def _write_results(tmp_path, results):
@@ -29,6 +29,7 @@ def test_routes_include_failure_detail_and_evidence(tmp_path) -> None:
     routes = _routes(tmp_path)
 
     assert "result/moli-1.html" in routes
+    assert _first_failed_key(tmp_path) == "moli-1"
     assert "evidence-viewer.html?file=data/evidence/moli-1.json" in routes
     assert len(routes) == 14
 
@@ -39,4 +40,5 @@ def test_routes_support_an_all_pass_report(tmp_path) -> None:
     routes = _routes(tmp_path)
 
     assert all("result/" not in route and "evidence-viewer" not in route for route in routes)
+    assert _first_failed_key(tmp_path) is None
     assert len(routes) == 10

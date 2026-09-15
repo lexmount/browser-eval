@@ -25,9 +25,7 @@ def _tree_sha256(root: Path) -> str:
 
 
 def _browser_executable() -> str:
-    configured = os.environ.get("BROWSER_USE_VISUAL_BROWSER") or os.environ.get(
-        "CHROMIUM_BINARY"
-    )
+    configured = os.environ.get("BROWSER_USE_VISUAL_BROWSER") or os.environ.get("CHROMIUM_BINARY")
     for candidate in (
         configured,
         "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -47,7 +45,7 @@ class _QuietHandler(http.server.SimpleHTTPRequestHandler):
         for prefix in ("/api/preview/replay~fixture/", "/api/preview/replay/"):
             if not self.path.startswith(prefix):
                 continue
-            route = self.path[len(prefix):].split("?", 1)[0]
+            route = self.path[len(prefix) :].split("?", 1)[0]
             target = (Path(self.directory) / route).resolve()
             if not target.is_relative_to(Path(self.directory).resolve()) or not target.is_file():
                 self.send_error(404)
@@ -67,12 +65,14 @@ class _QuietHandler(http.server.SimpleHTTPRequestHandler):
         return super().do_GET()
 
 
+def _first_failed_key(report: Path) -> str | None:
+    results = json.loads((report / "data/results.json").read_text(encoding="utf-8"))
+    return next((item["key"] for item in results if item["status"] == "fail"), None)
+
+
 def _routes(report: Path) -> list[str]:
     results = json.loads((report / "data/results.json").read_text(encoding="utf-8"))
-    failed_key = next(
-        (item["key"] for item in results if item["status"] == "fail"),
-        None,
-    )
+    failed_key = _first_failed_key(report)
     passed_key = next(
         (item["key"] for item in results if item["status"] == "pass"),
         None,
@@ -123,26 +123,53 @@ def check(report: Path, receipt: Path) -> None:
                 headless=True,
             )
             try:
-                failed_key = next(item["key"] for item in json.loads((report / "data/results.json").read_text(encoding="utf-8")) if item["status"] == "fail")
-                route_page = browser.new_page()
-                route_page.goto(f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/result/{failed_key}.html", wait_until="domcontentloaded")
-                route_page.wait_for_function("() => document.baseURI.includes('/api/preview/replay/result/')")
-                route_page.wait_for_function("() => !!document.documentElement.dataset.theme")
-                route_page.wait_for_function("() => getComputedStyle(document.body).backgroundColor !== 'rgba(0, 0, 0, 0)'")
-                assert "/api/preview/replay/result/" in route_page.locator('.peer-list a').first.evaluate("element => element.href")
-                assert "/api/preview/replay/evidence-viewer.html" in route_page.locator('#evidence .evidence-actions a').first.evaluate("element => element.href")
-                route_page.locator('nav a[href="../index.html"]').first.click()
-                route_page.wait_for_url(f"http://127.0.0.1:{server.server_port}/api/preview/replay/index.html")
-                route_page.locator('h1').wait_for()
-                route_page.close()
+                failed_key = _first_failed_key(report)
+                if failed_key is not None:
+                    route_page = browser.new_page()
+                    route_page.goto(
+                        f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/result/{failed_key}.html",
+                        wait_until="domcontentloaded",
+                    )
+                    route_page.wait_for_function(
+                        "() => document.baseURI.includes('/api/preview/replay/result/')"
+                    )
+                    route_page.wait_for_function("() => !!document.documentElement.dataset.theme")
+                    route_page.wait_for_function(
+                        "() => getComputedStyle(document.body).backgroundColor"
+                        " !== 'rgba(0, 0, 0, 0)'"
+                    )
+                    assert "/api/preview/replay/result/" in route_page.locator(
+                        ".peer-list a"
+                    ).first.evaluate("element => element.href")
+                    assert "/api/preview/replay/evidence-viewer.html" in route_page.locator(
+                        "#evidence .evidence-actions a"
+                    ).first.evaluate("element => element.href")
+                    route_page.locator('nav a[href="../index.html"]').first.click()
+                    route_page.wait_for_url(
+                        f"http://127.0.0.1:{server.server_port}/api/preview/replay/index.html"
+                    )
+                    route_page.locator("h1").wait_for()
+                    route_page.close()
                 drill_page = browser.new_page()
-                drill_page.goto(f"http://127.0.0.1:{server.server_port}/dataset.html", wait_until="domcontentloaded")
-                drill_task = drill_page.locator('[data-dataset-table] tbody tr').first.get_attribute('data-task')
+                drill_page.goto(
+                    f"http://127.0.0.1:{server.server_port}/dataset.html",
+                    wait_until="domcontentloaded",
+                )
+                drill_task = drill_page.locator("[data-dataset-table] tbody tr").first.get_attribute(
+                    "data-task"
+                )
                 assert drill_task
-                drill_page.locator('[data-dataset-table] tbody tr .dataset-actions a').nth(1).click()
-                drill_page.wait_for_url(f"http://127.0.0.1:{server.server_port}/results.html?task={drill_task}&status=")
+                drill_page.locator("[data-dataset-table] tbody tr .dataset-actions a").nth(1).click()
+                drill_page.wait_for_url(
+                    f"http://127.0.0.1:{server.server_port}/results.html?task={drill_task}&status="
+                )
                 drill_page.locator('[data-results-ready="true"]').wait_for(timeout=5_000)
-                assert drill_page.locator('[data-results] tbody tr:not([hidden])').count() == len(json.loads((report / 'report-manifest.json').read_text(encoding='utf-8'))['participants'])
+                participants = json.loads(
+                    (report / "report-manifest.json").read_text(encoding="utf-8")
+                )["participants"]
+                assert drill_page.locator("[data-results] tbody tr:not([hidden])").count() == len(
+                    participants
+                )
                 drill_page.close()
                 for index, route in enumerate(_routes(report)):
                     for width, height in ((1440, 1000), (390, 844)):
@@ -174,16 +201,32 @@ return node && node.textContent.trim().startsWith('{');
                                 page.locator('[data-dataset-filter="q"]').fill("")
                                 page.locator('[data-dataset-filter="type"]').select_option("")
                             if route.endswith("results.html"):
-                                page.wait_for_function("() => document.querySelector('[data-matrix-count]')?.textContent.includes('/')", timeout=5_000)
-                                page.locator('[data-matrix-relation]').select_option('all-pass')
-                                page.wait_for_function("() => [...document.querySelectorAll('[data-task-matrix] tbody tr:not([hidden])')].every(row => !row.dataset.fail)")
-                                page.locator('[data-matrix-relation]').select_option('different')
-                                page.wait_for_function("() => [...document.querySelectorAll('[data-task-matrix] tbody tr:not([hidden])')].every(row => !!row.dataset.pass && !!row.dataset.fail)")
-                                assert page.locator('[data-matrix-method]').count() >= 2
+                                page.wait_for_function(
+                                    "() => document.querySelector('[data-matrix-count]')"
+                                    "?.textContent.includes('/')",
+                                    timeout=5_000,
+                                )
+                                page.locator("[data-matrix-relation]").select_option("all-pass")
+                                page.wait_for_function(
+                                    "() => [...document.querySelectorAll("
+                                    "'[data-task-matrix] tbody tr:not([hidden])')]"
+                                    ".every(row => !row.dataset.fail)"
+                                )
+                                page.locator("[data-matrix-relation]").select_option("different")
+                                page.wait_for_function(
+                                    "() => [...document.querySelectorAll("
+                                    "'[data-task-matrix] tbody tr:not([hidden])')]"
+                                    ".every(row => !!row.dataset.pass && !!row.dataset.fail)"
+                                )
+                                assert page.locator("[data-matrix-method]").count() >= 2
                                 page.locator('[data-results-ready="true"]').wait_for(timeout=5_000)
-                                page.locator('.inventory tbody tr:not([hidden]) [data-open-diagnosis]').first.click()
-                                page.locator('#diagnosis-dialog[data-loaded]').wait_for(timeout=5_000)
-                                page.locator('.dialog-head button').click()
+                                page.locator(
+                                    ".inventory tbody tr:not([hidden]) [data-open-diagnosis]"
+                                ).first.click()
+                                page.locator("#diagnosis-dialog[data-loaded]").wait_for(
+                                    timeout=5_000
+                                )
+                                page.locator(".dialog-head button").click()
                             page.evaluate(
                                 "value => document.documentElement.dataset.theme=value",
                                 theme,
@@ -241,17 +284,14 @@ return {
                                 )
                             ):
                                 failures.append(state)
-                            if (
-                                theme == "light"
-                                and (
-                                    route
-                                    in {
-                                        "index.html",
-                                        "results.html",
-                                        "environment.html",
-                                    }
-                                    or route.startswith(("result/", "task/"))
-                                )
+                            if theme == "light" and (
+                                route
+                                in {
+                                    "index.html",
+                                    "results.html",
+                                    "environment.html",
+                                }
+                                or route.startswith(("result/", "task/"))
                             ):
                                 shot = screenshot_dir / f"{index}-{width}.png"
                                 page.screenshot(path=str(shot), full_page=True)
