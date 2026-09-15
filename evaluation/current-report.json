@@ -22,7 +22,7 @@
   "execution_contract": "research/popular-sites-two-method-execution-contract-2026-09-15.json",
   "conversion": "Each method's native known-URL fetch output is normalized once into text plus explicit structured links when available.",
   "artifact_hub_base_url": "https://artifact-hub.app.lexmount.com",
-  "artifact_hub_site": null,
+  "artifact_hub_site": "4Tp5X1E97XEV",
   "fresh_formal_result_count": 103,
   "inherited_formal_result_count": 97,
   "score_only_recompute_count": 97,

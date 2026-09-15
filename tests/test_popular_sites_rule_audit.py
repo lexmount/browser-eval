@@ -82,10 +82,15 @@ class PopularSitesRuleAuditTests(unittest.TestCase):
         self.assertEqual(len(cases["challenge-01"]["rounds"]), 3)
         self.assertEqual(len(cases["challenge-09"]["rounds"]), 3)
 
-    def test_publication_hold_targets_popular_sites(self) -> None:
+    def test_publication_hold_state_matches_release_target(self) -> None:
         hold = json.loads((ROOT / "evaluation/publication-hold.json").read_text())
-        self.assertTrue(hold["active"])
+        profile = json.loads((ROOT / "evaluation/current-report.json").read_text())
         self.assertEqual(hold["dataset_id"], "popular-sites")
+        if hold["active"]:
+            self.assertIsNone(profile["artifact_hub_site"])
+        else:
+            self.assertEqual(profile["publication_state"], "measured_independently_reviewed")
+            self.assertTrue(profile["artifact_hub_site"])
 
     def test_bounded_url_search_preserves_named_link_goals_and_gate(self) -> None:
         evidence = json.loads(

@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "active": true,
+  "active": false,
   "dataset_id": "popular-sites",
-  "reason": "The independently reviewed two-method stage and publication package are ready, but external Artifact Hub publication awaits explicit user authorization.",
+  "reason": "External publication of the independently reviewed two-method stage was explicitly authorized after all local release gates passed.",
   "audit_record": "research/popular-sites-rules-audit-v2.json",
   "freeze_receipt": "research/popular-sites-rules-v2-freeze-receipt.json",
-  "release_condition": "Explicit authorization to upload this two-method stage to a new Artifact Hub site; this does not authorize a final 12-method ranking."
+  "release_condition": "Satisfied for this two-method stage; this does not authorize a final 12-method ranking."
 }
