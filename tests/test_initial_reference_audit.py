@@ -35,6 +35,8 @@ class InitialReferenceAuditTests(unittest.TestCase):
         self.assertEqual(row["reference_sha256"], row["reconstructed_sha256"])
         self.assertNotIn("Hello world", json.dumps(row))
         self.assertEqual(before, {str(p): p.read_bytes() for p in self.root.rglob("*") if p.is_file()})
+        self.assertFalse(Path(row['source_path']).is_absolute())
+        self.assertTrue(all(not Path(path).is_absolute() for path in row['source_candidates']))
 
     def test_absent_source_is_unknown_not_false(self):
         row = audit_case(self.case, self.root)

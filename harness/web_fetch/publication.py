@@ -15,7 +15,10 @@ def updated_receipt(receipt, response):
     version = response.get('versionId')
     if not isinstance(version, str) or not version.startswith('ver_'):
         raise ValueError('Publication response omitted activated versionId')
-    return {**receipt, 'versionId': version, 'last_update': response}
+    # Older receipts used ``version``. Keeping it alongside ``versionId`` leaves
+    # two apparently authoritative baselines, one of which becomes stale here.
+    current = {key: value for key, value in receipt.items() if key != 'version'}
+    return {**current, 'versionId': version, 'last_update': response}
 
 
 def put_file(request, path, data):

@@ -16,6 +16,8 @@ from harness.web_fetch.reference_lifecycle import scoring_revision_history_sha25
 
 ALLOWED_REVISION_FIELDS = {
     'body_requirements', 'required_patterns', 'required_facts', 'acceptance_contract',
+    'forbidden_any', 'expected_resources', 'resource_output_contract', 'task_prompt',
+    'mutable_body_policy',
 }
 
 

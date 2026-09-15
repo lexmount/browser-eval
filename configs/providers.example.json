@@ -4,8 +4,14 @@
     "moli-webfetch": {
       "type": "moli_webfetch",
       "binary": "${MOLI_BINARY:-moli}",
+      "expected_reported_version": "moli 1.1.4",
+      "expected_binary_sha256": "dbce6cc79b97eeb558416707a642ca20b9b1b8d6731655a695059d334adb6d5b",
       "wait_until": "done",
       "block_private_networks": true,
+      "private_network_allowlist_hosts": [
+        "browser.lexmount.com",
+        "react-shopping-cart-67954.firebaseapp.com"
+      ],
       "max_bytes": 20000000
     },
     "fixture": {
@@ -19,7 +25,12 @@
     "cowagent-built-in": {
       "type": "cowagent_builtin",
       "repo_path": "${COWAGENT_REPO}",
-      "workspace": "${COWAGENT_BENCHMARK_WORKSPACE:-~/.browser-eval/runs/cowagent-workspace}"
+      "workspace": "${COWAGENT_BENCHMARK_WORKSPACE:-~/.browser-eval/runs/cowagent-workspace}",
+      "expected_repo_revision": "ed5bb344cfe42cee443c8266ba47ee666d8d7471",
+      "required_paths": [
+        "{repo_path}/agent/tools/web_fetch/web_fetch.py",
+        "{repo_path}/agent/tools/utils/url_safety.py"
+      ]
     },
     "lexmount-global": {
       "type": "lexmount",
@@ -41,7 +52,10 @@
       "api_key": "${FIRECRAWL_API_KEY:-}",
       "max_age": 0,
       "max_bytes": 20000000,
-      "min_interval_seconds": 6.1
+      "min_interval_seconds": 6.1,
+      "proxy": "auto",
+      "capacity_credits_per_call": 1,
+      "dynamic_wait_strategy": "actions"
     },
     "firecrawl-resources": {
       "type": "firecrawl",
@@ -50,20 +64,25 @@
       "formats": ["markdown", "links", "images"],
       "max_age": 0,
       "max_bytes": 20000000,
-      "min_interval_seconds": 6.1
+      "min_interval_seconds": 6.1,
+      "proxy": "auto",
+      "capacity_credits_per_call": 1,
+      "dynamic_wait_strategy": "actions"
     },
     "tavily": {
       "type": "tavily_extract",
       "base_url": "https://api.tavily.com",
       "api_key": "${TAVILY_API_KEY}",
-      "extract_depth": "basic",
+      "extract_depth": "advanced",
+      "extract_timeout_seconds": 60.0,
       "max_bytes": 20000000
     },
     "tavily-resources": {
       "type": "tavily_extract",
       "base_url": "https://api.tavily.com",
       "api_key": "${TAVILY_API_KEY}",
-      "extract_depth": "basic",
+      "extract_depth": "advanced",
+      "extract_timeout_seconds": 60.0,
       "include_images": true,
       "max_bytes": 20000000
     },
@@ -71,15 +90,19 @@
       "type": "exa_contents",
       "base_url": "https://api.exa.ai",
       "api_key": "${EXA_API_KEY}",
+      "text_verbosity": "full",
       "max_age_hours": 0,
+      "livecrawl_timeout_ms": 15000,
       "max_bytes": 20000000
     },
     "exa-resources": {
       "type": "exa_contents",
       "base_url": "https://api.exa.ai",
       "api_key": "${EXA_API_KEY}",
+      "text_verbosity": "full",
       "include_resource_links": true,
       "max_age_hours": 0,
+      "livecrawl_timeout_ms": 15000,
       "max_bytes": 20000000
     },
     "cloudflare-markdown": {
@@ -87,6 +110,7 @@
       "api_token": "${CLOUDFLARE_API_TOKEN}",
       "account_id": "${CLOUDFLARE_ACCOUNT_ID}",
       "max_bytes": 20000000,
+      "document_max_bytes": 20000000,
       "wait_until": "networkidle2"
     },
     "cloudflare-content": {
@@ -101,25 +125,56 @@
       "method_type": "openclaw_builtin",
       "repo_path": "${OPENCLAW_REPO}",
       "command": ["${OPENCLAW_NODE:-node}", "--import", "tsx", "{harness_root}/scripts/oss/openclaw_webfetch_worker.mts"],
-      "env": {"OPENCLAW_REPO": "${OPENCLAW_REPO}"}
+      "env": {"OPENCLAW_REPO": "${OPENCLAW_REPO}"},
+      "expected_repo_revision": "12c4bdf7482f24c85b011e9d858fdec3c245101c",
+      "expected_node_version": "v24.15.0",
+      "package_manager_command": "${OPENCLAW_PNPM:-~/.browser-eval/toolchains/openclaw-node/node_modules/.bin/pnpm}",
+      "expected_package_manager_version": "12.1.0",
+      "required_paths": [
+        "{repo_path}/src/agents/tools/web-fetch.ts",
+        "{repo_path}/pnpm-lock.yaml",
+        "{harness_root}/scripts/oss/openclaw_webfetch_worker.mts"
+      ]
     },
     "deepseek-harness-built-in": {
       "type": "subprocess_jsonl",
       "method_type": "deepseek_harness_builtin",
       "repo_path": "${DEEPSEEK_HARNESS_REPO}",
-      "command": ["{repo_path}/node_modules/.bin/tsx", "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts"]
+      "command": ["${OPENCLAW_NODE:-node}", "--import", "tsx", "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts"],
+      "expected_repo_revision": "dd6322d604e00eec1ba5e0c8541159906a21094a",
+      "expected_node_version": "v24.15.0",
+      "required_paths": [
+        "{repo_path}/packages/web/web-fetch-http/src/provider.ts",
+        "{repo_path}/vendor/cordis/lib/index.js",
+        "{repo_path}/packages/llm/llm/lib/index.js",
+        "{repo_path}/packages/core/system-prompt/lib/index.js",
+        "{repo_path}/packages/core/tools/lib/index.js",
+        "{repo_path}/packages/web/web/lib/index.js",
+        "{repo_path}/packages/web/web-fetch-http/lib/index.js",
+        "{repo_path}/packages/web/tool-web/lib/index.js",
+        "{repo_path}/packages/guard/timeout-policy/lib/index.js",
+        "{repo_path}/pnpm-lock.yaml",
+        "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts",
+        "{harness_root}/scripts/oss/dsh_webfetch_worker.mts"
+      ]
     },
     "langchain-webbase": {
       "type": "subprocess_jsonl",
       "method_type": "langchain_webbase",
       "repo_path": ".",
-      "command": ["${OSS_PYTHON:-python3}", "{harness_root}/scripts/oss/langchain_webbase_worker.py"]
+      "command": ["${OSS_PYTHON:-.venv/bin/python}", "{harness_root}/scripts/oss/langchain_webbase_worker.py"],
+      "expected_python_version": "Python 3.11.12",
+      "expected_library_versions": {"langchain-community": "0.3.30"},
+      "required_paths": ["{harness_root}/scripts/oss/langchain_webbase_worker.py"]
     },
     "crawl4ai": {
       "type": "subprocess_jsonl",
       "method_type": "crawl4ai",
       "repo_path": ".",
-      "command": ["${OSS_PYTHON:-python3}", "{harness_root}/scripts/oss/crawl4ai_worker.py"]
+      "command": ["${OSS_PYTHON:-.venv/bin/python}", "{harness_root}/scripts/oss/crawl4ai_worker.py"],
+      "expected_python_version": "Python 3.11.12",
+      "expected_library_versions": {"crawl4ai": "0.9.3"},
+      "required_paths": ["{harness_root}/scripts/oss/crawl4ai_worker.py"]
     }
   }
 }

@@ -1,8 +1,8 @@
 {
   "case_id": "image-pexels-detail",
   "url": "https://www.pexels.com/photo/a-green-trees-in-the-forest-12377231/",
-  "checked_at": "2026-09-02T08:02:52.685322+00:00",
-  "source": "independent HTTP GET (no provider output)",
+  "checked_at": "2026-09-11T13:00:23+00:00",
+  "source": "independent HTTP GET plus independent in-app Chromium accessibility-tree observation (no provider output)",
   "attempts": [
     {
       "status": 403,
@@ -25,7 +25,15 @@
   "text_chars": 0,
   "excerpt": "",
   "missing_facts": [],
-  "state": "needs_review",
-  "browser_review": "已核对实际目标内容；403 不等于站点失效",
+  "state": "browser_observed",
+  "browser_review": "独立浏览器打开真实 Pexels 详情页；可访问树中的下载链接与正文图片链接均明确指向登记目标，未下载图片资源。",
+  "independent_browser_observation": {
+    "path": "browser-observation.json",
+    "sha256": "5a74a7ad4d78609a9163ce6addc3f4542d287b8e09c88a5cb8cdf22a01bc178d",
+    "status": "success",
+    "completion_satisfied": true,
+    "target_count": 1,
+    "target_hits": 1
+  },
   "replacement_reason": "搜索结果会更新，旧规则绑定两张历史作品；改为单张作品详情。"
 }

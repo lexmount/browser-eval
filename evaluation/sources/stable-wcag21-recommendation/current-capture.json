@@ -1,7 +1,7 @@
 {
   "case_id": "stable-wcag21-recommendation",
   "url": "https://www.w3.org/TR/2018/REC-WCAG21-20180605/",
-  "checked_at": "2026-09-08T06:38:11.016723+00:00",
+  "checked_at": "2026-09-11T08:50:57.636084+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -27,9 +27,9 @@
       "alt": "W3C"
     }
   ],
-  "extracted_sha256": "485108d7e7528f5bed7ccbe123ba0ee9745998277fc3e1af75f0805517a7bff4",
-  "reference_sha256": "485108d7e7528f5bed7ccbe123ba0ee9745998277fc3e1af75f0805517a7bff4",
-  "text_chars": 124739,
+  "extracted_sha256": "4e427c638b8372ae21dec876596004451c1bfe43a23ac4331fc3ce8e6f1a1a5c",
+  "reference_sha256": "4e427c638b8372ae21dec876596004451c1bfe43a23ac4331fc3ce8e6f1a1a5c",
+  "text_chars": 124737,
   "excerpt": "Web Content Accessibility Guidelines (WCAG) 2.1\nW3C\nRecommendation\n05 June 2018\nThis version:\nhttps://www.w3.org/TR/2018/REC-WCAG21-20180605/\nLatest published version:\nhttps://www.w3.org/TR/WCAG21/\nLatest editor's draft:\nhttps://w3c.github.io/wcag/21/guidelines/\nImplementation report:\nhttps://www.w3.org/WAI/WCAG21/implementation-report/\nPrevious version:\nhttps://www.w3.org/TR/2018/PR-WCAG21-20180424/\nPrevious Recommendation:\nhttps://www.w3.org/TR/2008/REC-WCAG20-20081211/\nEditors:\nAndrew Kirkpatrick\n(Adobe)\nJoshue O Connor\n(Invited Expert, InterAccess)\nAlastair Campbell\n(Nomensa)\nMichael Cooper\n(\nW3C\n)\nWCAG 2.0 Editors (until December 2008):\nBen Caldwell\n(Trace R&D Center, University of Wisconsin-Madison)\nLoretta Guarino Reid\n(Google, Inc.)\nGregg Vanderheiden\n(Trace R&D Center, University ",
   "missing_facts": [],
   "quality_issues": [

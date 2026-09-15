@@ -12,9 +12,10 @@ from harness.web_fetch.publication import put_file, updated_receipt, upload_larg
 class ArtifactPublisherTests(unittest.TestCase):
     def test_updated_receipt_uses_activated_version_as_next_baseline(self):
         receipt = updated_receipt(
-            {'slug': 'current', 'versionId': 'ver_stale'},
+            {'slug': 'current', 'version': 'ver_legacy', 'versionId': 'ver_stale'},
             {'slug': 'current', 'versionId': 'ver_new'},
         )
+        self.assertNotIn('version', receipt)
         self.assertEqual(receipt['versionId'], 'ver_new')
         self.assertEqual(receipt['last_update']['versionId'], 'ver_new')
         with self.assertRaisesRegex(ValueError, 'versionId'):

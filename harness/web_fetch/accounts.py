@@ -79,15 +79,15 @@ ACCOUNT_REGISTRY: list[dict[str, Any]] = [
     },
     {
         "id": "cloudflare-browser-rendering",
-        "provider": "Cloudflare Browser Rendering /markdown",
+        "provider": "Cloudflare Browser Run /markdown、/scrape 与 Workers AI /ai/tomarkdown",
         "priority": "B · 已知 URL 抽取",
         "registration_url": "https://dash.cloudflare.com/sign-up",
         "key_url": "https://dash.cloudflare.com/profile/api-tokens",
         "env_vars": ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"],
         "required": True,
         "implemented": True,
-        "free_note": "Workers Free 可用 Browser Rendering；token 需要 Browser Rendering Edit 权限，并受账户限额约束。",
-        "steps": "注册 Cloudflare，复制 32 位 Account ID，再创建自定义 API token：Account → Browser Rendering → Edit；运行前用 GET /client/v4/user/tokens/verify 验证。",
+        "free_note": "Browser Run 可用 Workers Free 额度。Browser Run 需要 Browser Rendering Edit；文件转换 API 接受 Workers AI Read 或 Edit。两类产品的配额和计费分开。",
+        "steps": "注册 Cloudflare，复制 Account ID；创建覆盖 Account → Browser Rendering → Edit 与 Account → Workers AI → Read 的自定义 token。官方 Workers AI REST 入门建议 Read 和 Edit 都授予；运行前用 GET /client/v4/user/tokens/verify 验证。",
     },
     {
         "id": "bocha-web-search",
@@ -222,6 +222,108 @@ ACCOUNT_REGISTRY: list[dict[str, Any]] = [
         "steps": "注册或申请试用，开通 Web Scraper API 并复制用户凭据。",
     },
 ]
+
+REPORT_PROVIDER_ACCOUNT_IDS = {
+    "cloudflare-markdown": "cloudflare-browser-rendering",
+    "exa": "exa",
+    "firecrawl": "firecrawl",
+    "lexmount-cn": "lexmount-cn",
+    "lexmount-global": "lexmount-global",
+    "tavily": "tavily",
+}
+
+REPORT_LOCAL_ACCESS: dict[str, dict[str, Any]] = {
+    "fixture": {
+        "provider": "Fixture 测试适配器",
+        "registration_url": "https://github.com/lexmount/browser-eval",
+        "key_url": "https://github.com/lexmount/browser-eval",
+        "env_vars": [],
+        "steps": "仓库内测试适配器；只用于确定性回归测试。",
+        "free_note": "不需要账号或环境变量。",
+    },
+    "moli": {
+        "provider": "Moli 1.1.1",
+        "registration_url": "https://github.com/lexmount/moli/releases/tag/v1.1.1",
+        "key_url": "https://github.com/lexmount/moli/releases/tag/v1.1.1",
+        "env_vars": ["MOLI_BINARY"],
+        "steps": "安装并固定官方 v1.1.1 二进制；不需要供应商账号或 API Key。",
+        "free_note": "本地 CLI。",
+    },
+    "moli-webfetch": {
+        "provider": "Moli WebFetch",
+        "registration_url": "https://github.com/lexmount/moli/tree/main/skills/moli-webfetch",
+        "key_url": "https://github.com/lexmount/moli/releases",
+        "env_vars": ["MOLI_BINARY"],
+        "steps": "安装并固定本轮 Moli 可执行文件；不需要供应商账号或 API Key。",
+        "free_note": "本地 CLI；二进制路径和版本属于运行证据。",
+    },
+    "cowagent-built-in": {
+        "provider": "CowAgent 内置 Web Fetch",
+        "registration_url": "https://github.com/zhayujie/CowAgent",
+        "key_url": "https://github.com/zhayujie/CowAgent",
+        "env_vars": ["COWAGENT_REPO", "COWAGENT_BENCHMARK_WORKSPACE"],
+        "steps": "检出并固定 CowAgent 源码，配置仓库路径和隔离工作目录；不需要供应商 API Key。",
+        "free_note": "本地项目内置实现。",
+    },
+    "openclaw-built-in": {
+        "provider": "OpenClaw 内置 Web Fetch",
+        "registration_url": "https://github.com/openclaw/openclaw",
+        "key_url": "https://github.com/openclaw/openclaw/blob/main/docs/tools/web-fetch.md",
+        "env_vars": ["OPENCLAW_REPO", "OPENCLAW_NODE", "OPENCLAW_PNPM"],
+        "steps": "检出并固定 OpenClaw 源码、Node 与 pnpm；本轮关闭 Firecrawl 回退。",
+        "free_note": "本地项目内置实现；不需要云端抓取 Key。",
+    },
+    "deepseek-harness-built-in": {
+        "provider": "DeepSeek Harness 内置 Web Fetch",
+        "registration_url": "https://github.com/deepseek-ai/deepseek-harness",
+        "key_url": "https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/web",
+        "env_vars": ["DEEPSEEK_HARNESS_REPO", "OPENCLAW_NODE", "DEEPSEEK_PNPM"],
+        "steps": "检出并固定 DeepSeek Harness 源码、Node、pnpm 与构建依赖；本轮不调用聊天模型。",
+        "free_note": "本地项目内置实现；不需要模型 API Key。",
+    },
+    "langchain-webbase": {
+        "provider": "LangChain WebBaseLoader",
+        "registration_url": "https://reference.langchain.com/python/langchain-community/document_loaders/web_base/WebBaseLoader",
+        "key_url": "https://python.langchain.com/docs/how_to/document_loader_web/",
+        "env_vars": ["OSS_PYTHON"],
+        "steps": "使用仓库冻结的 Python 环境运行；OSS_PYTHON 只在显式覆盖 worker 解释器时设置。",
+        "free_note": "本地开源库；不需要供应商账号。",
+    },
+    "crawl4ai": {
+        "provider": "Crawl4AI",
+        "registration_url": "https://github.com/unclecode/crawl4ai",
+        "key_url": "https://docs.crawl4ai.com/core/installation/",
+        "env_vars": ["OSS_PYTHON"],
+        "steps": "使用仓库冻结的 Python 环境及匹配的浏览器运行；OSS_PYTHON 只在显式覆盖 worker 解释器时设置。",
+        "free_note": "本地开源库；不需要供应商账号。",
+    },
+}
+
+
+def report_access_registry(
+    providers: set[str], *, fixture_providers: set[str] | None = None
+) -> list[dict[str, Any]]:
+    """Return access requirements only for methods measured in one report."""
+    account_by_id = {item["id"]: item for item in ACCOUNT_REGISTRY}
+    rows: list[dict[str, Any]] = []
+    missing: list[str] = []
+    fixture_providers = fixture_providers or set()
+    for provider in sorted(providers):
+        account_id = REPORT_PROVIDER_ACCOUNT_IDS.get(provider)
+        if account_id:
+            if account_id not in account_by_id:
+                missing.append(provider)
+                continue
+            rows.append(account_by_id[account_id])
+        elif provider in REPORT_LOCAL_ACCESS:
+            rows.append(REPORT_LOCAL_ACCESS[provider])
+        elif provider in fixture_providers:
+            rows.append({**REPORT_LOCAL_ACCESS["fixture"], "provider": provider})
+        else:
+            missing.append(provider)
+    if missing:
+        raise ValueError(f"missing report access metadata for providers: {', '.join(missing)}")
+    return rows
 
 
 def credential_state(item: dict[str, Any]) -> str:

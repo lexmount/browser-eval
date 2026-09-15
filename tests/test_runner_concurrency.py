@@ -6,7 +6,9 @@ from pathlib import Path
 
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.base import Provider
-from harness.web_fetch.runner import IncompleteEvaluationError, run_evaluation
+from harness.web_fetch.runner import (
+    IncompleteEvaluationError, preflight_declared_capacity, run_evaluation,
+)
 
 
 class BarrierProvider(Provider):
@@ -20,6 +22,104 @@ class BarrierProvider(Provider):
 
 
 class RunnerConcurrencyTest(unittest.TestCase):
+    def test_capacity_hook_is_optional_and_runs_once_per_logical_provider(self):
+        calls = []
+
+        class Capacity(Provider):
+            def preflight_capacity(self, declared_calls, timeout=10):
+                calls.append((self.name, declared_calls, timeout))
+
+            def fetch(self, case, timeout):
+                raise AssertionError('capacity preflight must not fetch')
+
+        providers = [
+            Capacity('metered', {'scope': 'web'}),
+            Capacity('metered', {'scope': 'resources'}),
+            BarrierProvider('without-hook', threading.Barrier(1)),
+        ]
+
+        preflight_declared_capacity(providers, declared_calls=24, timeout=7)
+
+        self.assertEqual(calls, [('metered', 24, 7)])
+
+    def test_capacity_preflight_passes_exact_case_credit_estimate(self):
+        calls = []
+
+        class Capacity(Provider):
+            def capacity_credits_for_cases(
+                self, cases, *, runs, max_failure_retries
+            ):
+                calls.append(("estimate", [case.id for case in cases], runs,
+                              max_failure_retries))
+                return 19
+
+            def preflight_capacity(
+                self, declared_calls, timeout=10, *, required_credits=None
+            ):
+                calls.append(("preflight", declared_calls, timeout, required_credits))
+
+            def fetch(self, case, timeout):
+                raise AssertionError("capacity preflight must not fetch")
+
+        cases = [
+            EvalCase("one", "One", "https://example.com/1", "static", []),
+            EvalCase("two", "Two", "https://example.com/2", "static", []),
+        ]
+        preflight_declared_capacity(
+            [Capacity("metered", {})],
+            declared_calls=8,
+            timeout=7,
+            cases=cases,
+            runs=2,
+            max_failure_retries=1,
+        )
+
+        self.assertEqual(calls, [
+            ("estimate", ["one", "two"], 2, 1),
+            ("preflight", 8, 7, 19),
+        ])
+
+    def test_failed_preflight_creates_no_evidence_or_calls(self):
+        class Invalid(Provider):
+            def validate(self):
+                return ["wrong revision"]
+
+            def fetch(self, case, timeout):
+                raise AssertionError("fetch must not be called")
+
+        case = EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'run'
+            with self.assertRaisesRegex(ValueError, 'wrong revision'):
+                run_evaluation(output_dir=output, dataset_meta={'id': 'test'},
+                    dataset_path=Path('dataset.json'), cases=[case],
+                    providers=[Invalid('invalid', {})],
+                    provider_config_path=Path('providers.json'), runs=1, timeout=2, delay=0)
+            self.assertFalse(output.exists())
+
+    def test_manifest_records_identity_created_by_preflight(self):
+        class Identified(Provider):
+            def validate(self):
+                self._implementation_identity = {
+                    "repository": {"head": "a" * 40, "tracked_status": ""},
+                    "files_sha256": {"repo/worker.py": "b" * 64},
+                }
+                return []
+
+            def fetch(self, case, timeout):
+                return ProviderResult(True, "Expected")
+
+        case = EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run_evaluation(output_dir=root, dataset_meta={'id': 'test'},
+                dataset_path=Path('dataset.json'), cases=[case],
+                providers=[Identified('identified', {})],
+                provider_config_path=Path('providers.json'), runs=1, timeout=2, delay=0)
+            manifest = json.loads((root / 'manifest.json').read_text())
+            identity = manifest['providers'][0]['implementation_identity']
+            self.assertEqual(identity['repository']['head'], 'a' * 40)
+
     def test_failed_task_is_called_once(self):
         class Flaky(Provider):
             def __init__(self):
@@ -172,6 +272,42 @@ class RunnerConcurrencyTest(unittest.TestCase):
                 self.assertEqual(manifest['unexecuted'], [])
         finally:
             release.set()
+
+    def test_cancellable_timeout_cleans_up_and_continues_without_latency_inflation(self):
+        calls = []
+
+        class Cancellable(Provider):
+            def __init__(self, name, config):
+                super().__init__(name, config)
+                self.release = threading.Event()
+
+            @property
+            def cancellation_cleanup_seconds(self):
+                return .2
+
+            def begin_call(self):
+                self.release.clear()
+
+            def fetch(self, case, timeout):
+                calls.append(case.id)
+                self.release.wait(1)
+                raise TimeoutError('cancelled')
+
+            def cancel(self):
+                self.release.set()
+
+        cases = [EvalCase(f'case-{i}', 'Case', 'https://example.com', 'static', []) for i in range(2)]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            records, _ = run_evaluation(
+                output_dir=root, dataset_meta={'id': 'fixture', 'cases': []},
+                dataset_path=Path('dataset.json'), cases=cases,
+                providers=[Cancellable('slow', {})], provider_config_path=Path('providers.json'),
+                runs=1, timeout=.02, delay=0,
+            )
+        self.assertEqual(calls, ['case-0', 'case-1'])
+        self.assertEqual([record['error_type'] for record in records], ['timeout', 'timeout'])
+        self.assertTrue(all(record['elapsed_ms'] < 100 for record in records))
 
     def test_providers_overlap_but_results_remain_deterministic(self) -> None:
         barrier = threading.Barrier(2)
