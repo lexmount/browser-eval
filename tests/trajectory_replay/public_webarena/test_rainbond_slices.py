@@ -247,6 +247,23 @@ def test_provision_rejects_copied_site_without_image_identity(tmp_path):
     assert any(method == "DELETE" for method, _path, _body in api.calls)
 
 
+def test_provision_rejects_initializer_without_image_identity(tmp_path):
+    class MissingInitializerImageAPI(FakeAPI):
+        def request(self, method, path, body=None):
+            response = super().request(method, path, body)
+            if method == "POST" and path.endswith("/192/copy"):
+                response["services"][-1].pop("image")
+            return response
+
+    api = MissingInitializerImageAPI()
+    pool = _pool(tmp_path, api)
+
+    with pytest.raises(RuntimeError, match="initializer component has no image"):
+        pool.provision("run-initializer-image", 1, tmp_path / "slice-receipt.json")
+
+    assert any(method == "DELETE" for method, _path, _body in api.calls)
+
+
 def test_provision_cleanup_does_not_hide_original_failure(tmp_path):
     class CleanupFailureAPI(FakeAPI):
         def request(self, method, path, body=None):
@@ -604,6 +621,45 @@ def test_scale_down_is_atomic_when_an_excess_slice_is_leased(tmp_path, monkeypat
         scale_pool(tmp_path / "pool.json", output, "warm", 1)
 
     assert destroyed == []
+
+
+def test_scale_down_continues_after_one_destroy_failure(tmp_path, monkeypatch):
+    destroyed = []
+
+    class Config:
+        max_parallel_provisions = 2
+
+    class Pool:
+        config = Config()
+
+        def __init__(self, _config):
+            pass
+
+        def validate_receipt(self, receipt_path):
+            return json.loads(receipt_path.read_text())
+
+        def destroy(self, receipt_path):
+            slot = int(receipt_path.parent.name.removeprefix("slice-"))
+            destroyed.append(slot)
+            if slot == 3:
+                raise RuntimeError("slot 3 delete failed")
+            receipt_path.unlink()
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.rainbond_slices.RainbondSlicePool", Pool
+    )
+    output = tmp_path / "runtime"
+    for slot in (1, 2, 3):
+        slot_dir = output / f"slice-{slot}"
+        slot_dir.mkdir(parents=True)
+        (slot_dir / "slice-receipt.json").write_text(json.dumps({"pool_id": "warm", "slot": slot}))
+
+    with pytest.raises(RuntimeError, match="slot 3 delete failed"):
+        scale_pool(tmp_path / "pool.json", output, "warm", 1)
+
+    assert destroyed == [3, 2]
+    assert (output / "slice-3" / "slice-receipt.json").exists()
+    assert not (output / "slice-2" / "slice-receipt.json").exists()
 
 
 def _ready_slot(output: Path, slot: int, app_id: int) -> Path:

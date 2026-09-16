@@ -53,12 +53,18 @@ def main() -> None:
     if args.command == "scale":
         if args.active is not None:
             paths = reconcile_pool_capacity(
-                args.config.resolve(), args.output.resolve(), args.pool_id, args.active,
+                args.config.resolve(),
+                args.output.resolve(),
+                args.pool_id,
+                args.active,
                 minimum_ready=args.minimum_ready,
             )
         else:
             paths = scale_pool(
-                args.config.resolve(), args.output.resolve(), args.pool_id, args.count,
+                args.config.resolve(),
+                args.output.resolve(),
+                args.pool_id,
+                args.count,
                 minimum_ready=args.minimum_ready,
             )
         print(json.dumps([str(path / "webarena.config.json") for path in paths]))
@@ -69,9 +75,12 @@ def main() -> None:
         return
 
     if args.command == "release":
-        print(json.dumps(release_slice(
-            args.config.resolve(), args.output.resolve(), args.lease_id
-        ), sort_keys=True))
+        print(
+            json.dumps(
+                release_slice(args.config.resolve(), args.output.resolve(), args.lease_id),
+                sort_keys=True,
+            )
+        )
         return
 
     pool = RainbondSlicePool(args.config.resolve())
@@ -84,8 +93,17 @@ def main() -> None:
         print(target)
         return
 
+    first_error: BaseException | None = None
     for slot_dir in args.slice_dir:
-        pool.destroy(slot_dir.resolve() / "slice-receipt.json")
+        try:
+            pool.destroy(slot_dir.resolve() / "slice-receipt.json")
+        except BaseException as exc:
+            if first_error is None:
+                first_error = exc
+            else:
+                first_error.add_note(f"additional destroy failure for {slot_dir}: {exc}")
+    if first_error is not None:
+        raise first_error
 
 
 if __name__ == "__main__":

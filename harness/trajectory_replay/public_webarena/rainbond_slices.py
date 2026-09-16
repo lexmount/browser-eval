@@ -454,9 +454,9 @@ class RainbondSlicePool:
         actual_image = str(initializer.get("image") or "")
         if not service_id:
             raise RuntimeError("Rainbond copied initializer has no service_id")
-        if actual_image and _image_digest(actual_image) != _image_digest(
-            self.config.initializer_image
-        ):
+        if not actual_image:
+            raise RuntimeError("Rainbond copied initializer component has no image in response")
+        if _image_digest(actual_image) != _image_digest(self.config.initializer_image):
             raise RuntimeError("Rainbond copied initializer image mismatch")
         aliases = {
             site: self._internal_service_host(app_id, copied_sites[site], 8877)
@@ -908,9 +908,20 @@ def scale_pool(
                 "cannot remove leased Rainbond slices: "
                 + ", ".join(str(path) for path in leased_excess)
             )
+        first_destroy_error: BaseException | None = None
         for slot in excess_slots:
-            slot_dir = existing.pop(slot)
-            pool.destroy(slot_dir / "slice-receipt.json")
+            slot_dir = existing[slot]
+            try:
+                pool.destroy(slot_dir / "slice-receipt.json")
+            except BaseException as exc:
+                if first_destroy_error is None:
+                    first_destroy_error = exc
+                else:
+                    first_destroy_error.add_note(
+                        f"additional scale-down failure for slot {slot}: {exc}"
+                    )
+                continue
+            existing.pop(slot)
             config_file = slot_dir / "webarena.config.json"
             if config_file.exists():
                 config_file.unlink()
@@ -918,6 +929,8 @@ def scale_pool(
                 slot_dir.rmdir()
             except OSError:
                 pass
+        if first_destroy_error is not None:
+            raise first_destroy_error
         return [existing[slot] for slot in sorted(existing)]
 
 
