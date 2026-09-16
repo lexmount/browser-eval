@@ -23,6 +23,11 @@ def scored_output_hash(row: dict) -> str:
 
 def check(archive,source):
     with zipfile.ZipFile(archive) as bundle:
+        shell=BeautifulSoup(bundle.read('index.html'),'html.parser')
+        shell_assets=[node.get('src') or node.get('href')
+                      for node in shell.select('script[src],link[rel="stylesheet"][href]')]
+        if shell_assets != ['style.css','report.js','loader.js']:
+            raise ValueError('Publication shell must use exact query-free physical asset paths')
         manifest=json.loads(bundle.read('manifest.json'))
         @lru_cache(maxsize=8)
         def pack(name):return gzip.decompress(bundle.read(name))

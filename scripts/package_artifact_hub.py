@@ -297,10 +297,11 @@ def build():
  js="function readTheme(){try{return localStorage.getItem('webfetch-theme')}catch{return 'light'}}\nfunction saveTheme(t){try{localStorage.setItem('webfetch-theme',t)}catch{}}\n"+js
  (DEST/'report.js').write_text(js)
  (DEST/'loader.js').write_text(LOADER)
- style_version=hashlib.sha256((DEST/'style.css').read_bytes()).hexdigest()[:16]
- script_version=hashlib.sha256((DEST/'report.js').read_bytes()).hexdigest()[:16]
- loader_version=hashlib.sha256((DEST/'loader.js').read_bytes()).hexdigest()[:16]
- (DEST/'index.html').write_text(f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Web Fetch 评测</title><link rel="stylesheet" href="style.css?v={style_version}"><script defer src="report.js?v={script_version}"></script><script defer src="loader.js?v={loader_version}"></script></head><body><p>正在加载报告…</p></body></html>')
+ # Artifact Site serves each committed version under an immutable signed base URL.
+ # Its signed preview route resolves exact file names but rejects cache-busting
+ # query strings on subresources, so the shell must reference the three physical
+ # assets without ``?v=...``. The versioned base already provides cache isolation.
+ (DEST/'index.html').write_text('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Web Fetch 评测</title><link rel="stylesheet" href="style.css"><script defer src="report.js"></script><script defer src="loader.js"></script></head><body><p>正在加载报告…</p></body></html>')
  # Validate every download and every internal page/file link after transformation.
  for name,digest in original.items():
   assert hashlib.sha256(b''.join(raw_blocks[k] for k in files[name]['parts'])).hexdigest()==digest,name

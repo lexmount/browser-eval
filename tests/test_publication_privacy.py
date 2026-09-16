@@ -10,6 +10,8 @@ import tempfile
 import unittest
 import zipfile
 
+from bs4 import BeautifulSoup
+
 from harness.web_fetch.publication_privacy import project_file, publication_risk
 from scripts.check_publication_bundle import scored_output_hash
 
@@ -176,6 +178,12 @@ class PublicationPrivacyTests(unittest.TestCase):
             self.assertEqual(raw_path.read_bytes(), raw)
             with zipfile.ZipFile(root / 'publish/webfetch-sites.zip') as archive:
                 manifest = json.loads(archive.read('manifest.json'))
+                shell = BeautifulSoup(archive.read('index.html'), 'html.parser')
+                self.assertEqual(
+                    [node.get('src') or node.get('href')
+                     for node in shell.select('script[src],link[rel="stylesheet"][href]')],
+                    ['style.css', 'report.js', 'loader.js'],
+                )
                 self.assertEqual(manifest['architecture']['kind'],
                                  'single_html_shell_with_lazy_virtual_routes')
                 self.assertEqual(manifest['architecture']['logical_routes'], 6)
