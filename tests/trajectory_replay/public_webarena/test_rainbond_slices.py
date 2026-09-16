@@ -38,7 +38,7 @@ class FakeAPI:
                     {
                         "service_id": f"service-{site}-{self.next_app_id}",
                         "service_alias": f"alias-{site}-{self.next_app_id}",
-                        "service_cname": site,
+                        "service_cname": f"{site}-copy",
                         "image": PINNED[site],
                     }
                     for site in STATEFUL_SITES
@@ -47,7 +47,7 @@ class FakeAPI:
                     {
                         "service_id": f"service-initializer-{self.next_app_id}",
                         "service_alias": f"alias-initializer-{self.next_app_id}",
-                        "service_cname": "slice-initializer",
+                        "service_cname": "slice-initializer-copy",
                         "image": INITIALIZER_IMAGE,
                     }
                 ]

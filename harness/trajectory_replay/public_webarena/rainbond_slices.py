@@ -229,7 +229,13 @@ class RainbondSlicePool:
         }
         mapped: dict[str, dict[str, Any]] = {}
         for site, component_name in by_source_name.items():
-            matches = [row for row in rows if str(row.get("service_cname")) == component_name]
+            copied_name = re.compile(rf"^{re.escape(component_name)}-copy(?:-\d+)?$")
+            matches = [
+                row
+                for row in rows
+                if str(row.get("service_cname")) == component_name
+                or copied_name.fullmatch(str(row.get("service_cname")))
+            ]
             if len(matches) != 1:
                 raise RuntimeError(
                     f"Rainbond copy returned {len(matches)} components named {component_name!r}"
@@ -238,8 +244,14 @@ class RainbondSlicePool:
         initializer_name = str(
             self.raw_config.get("initializer_component_name") or "slice-initializer"
         )
+        copied_initializer_name = re.compile(
+            rf"^{re.escape(initializer_name)}-copy(?:-\d+)?$"
+        )
         initializer_matches = [
-            row for row in rows if str(row.get("service_cname")) == initializer_name
+            row
+            for row in rows
+            if str(row.get("service_cname")) == initializer_name
+            or copied_initializer_name.fullmatch(str(row.get("service_cname")))
         ]
         if len(initializer_matches) != 1:
             raise RuntimeError(
