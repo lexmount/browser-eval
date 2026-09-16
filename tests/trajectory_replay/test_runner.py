@@ -22,7 +22,11 @@ from harness.trajectory_replay.suite import BrowserTask, TaskSuite
 
 
 def test_browser_engines_publish_their_external_cdp_ports():
-    assert ENGINE_PORTS == {"chromium": 9223, "moli": 9222}
+    assert ENGINE_PORTS == {
+        "chromium": 9223,
+        "moli": 9222,
+        "moli-1.1.6": 9222,
+    }
 
 
 def test_empty_tool_trace_cannot_pass_process_validation(monkeypatch):
