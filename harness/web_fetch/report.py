@@ -1604,7 +1604,7 @@ def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,mani
   return f'<span class="comparison-winner">{content}</span>' if winner else content
  def core_rows(english=False):
   rows=[]
-  for name in sorted(names,key=lambda item:(-score(item,'text_edit'),labels[item])):
+  for name in sorted(names,key=lambda item:(-score(item,'overall'),labels[item])):
    values=cell(link('providers/'+name+'.html',labels[name]))
    values+=cell(value_html(display_score(score(name,'overall')),winner=score_winners.get('overall')==name),score(name,'overall'))
    for metric in metric_order[1:]:

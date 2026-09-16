@@ -4,6 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from bs4 import BeautifulSoup
+
 from harness.web_fetch.report import JS, generate_webmainbench, _wmb_pct, _wmb_body_state, _wmb_row_attrs
 from harness.web_fetch.report_build import validate_webmainbench_correction
 from harness.web_fetch.report_style import STYLE
@@ -178,6 +180,11 @@ class WebMainBenchReportTests(unittest.TestCase):
             self.assertEqual(records, immutable_records)
             home = (output / 'index.html').read_text()
             self.assertIn('id="wmb-core-results" data-col="2" data-dir="desc"', home)
+            home_soup = BeautifulSoup(home, 'html.parser')
+            self.assertEqual(
+                home_soup.select_one('#wmb-core-results tbody tr td:nth-of-type(2)').get_text(strip=True),
+                'Chromium 152',
+            )
             self.assertNotIn('可能不计分', (output / 'methodology/index.html').read_text())
             self.assertIn('wmb-profile-table', (output / 'guide/index.html').read_text())
             for prefix, label, original in (('', '修正后复算', '官方原始分'),
