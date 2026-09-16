@@ -203,6 +203,8 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
                 or len(guide.select("#delivery .wmb-cause-grid > article")) != 3
                 or len(guide.select("#decision .wmb-choice-table tbody > tr")) != 5):
             raise ValueError(f"WebMainBench {language} guide lacks decision, example or root-cause evidence")
+        # Fixed representative cases in the reviewed WMB-200 cohort. Replacing
+        # the cohort requires re-reviewing the article and its evidence links.
         guide_hrefs = {anchor.get("href") for anchor in guide.select("a[href]")}
         if not {
             "../datasets/c42e7f28-f109-459b-8423-2ce20f651ac9.html",

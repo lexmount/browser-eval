@@ -1441,6 +1441,10 @@ _WMB_ROUTES=[
 
 def _wmb_editorial_guide(*,english,names,labels,cases,bycase,case_count,score,denom,
                          failures,latency_values,anomaly_review):
+ # Editorial analysis of the frozen WMB-200 cohort published as
+ # ver_dab94ad9c17f4db6bec7bff98a82c660. Narrative numbers and selected examples
+ # are a reviewed snapshot: a new cohort/scoring revision requires re-reviewing
+ # this article, not merely substituting numbers into its recommendations.
  def h(zh,en):return en if english else zh
  fail_total=sum(len(failures(name)) for name in names)
  body_total=case_count*len(names)-fail_total
@@ -1452,7 +1456,12 @@ def _wmb_editorial_guide(*,english,names,labels,cases,bycase,case_count,score,de
  scope_case_id='c42e7f28-f109-459b-8423-2ce20f651ac9'
  if scope_case_id in cases:
   scope_rows=sorted(bycase[scope_case_id],key=lambda item:item['provider'])
-  scope_stats=''.join('<span>'+esc(labels[r['provider']])+': '+_wmb_pct(r['metrics']['text_edit']['score'])+' · '+f'{r["metrics"]["text_edit"]["details"]["predicted_text_length"]:,} '+h('字符','chars')+'</span>' for r in scope_rows)
+  scope_stats=''
+  for r in scope_rows:
+   metric=r.get('metrics',{}).get('text_edit',{})
+   length=(metric.get('details') or {}).get('predicted_text_length')
+   length_label=f'{length:,} '+h('字符','chars') if length is not None else h('长度未记录','Length not recorded')
+   scope_stats+='<span>'+esc(labels[r['provider']])+': '+_wmb_pct(metric.get('score'))+' · '+length_label+'</span>'
   scope_example='<div class="wmb-case-study"><header><div><h3>Pantacordis scotinella</h3><p>'+h('同一张 Wikipedia 冻结页；人工答案 1,315 字符。','The same frozen Wikipedia page; the human reference has 1,315 characters.')+'</p></div>'+link('../datasets/'+scope_case_id+'.html',h('打开完整五方法对照','Open the complete five-method comparison'))+'</header><div class="wmb-evidence-pair"><article><h4>'+h('人工答案保留的正文','What the human reference keeps')+'</h4><pre># Pantacordis scotinella\n\nPantacordis scotinella is a moth of the family Autostichidae. It is found on Crete.\n\n## References</pre></article><article><h4>'+h('方法输出开头','How method output begins')+'</h4><pre>Main menu\nNavigation\n- Main page\n- Contents\n- Current events\n- Random article\n- About Wikipedia\n- Contact us\n- Donate\n\nContribute\n- Help\n- Learn to edit</pre></article></div><div class="wmb-case-stats">'+scope_stats+'</div></div>'
  else:
   scope_example='<p class="source-note">'+h('完整报告会在这里展示一页人工答案与五种输出的逐字证据。','The full report shows the human reference and five outputs for one page here.')+'</p>'
@@ -1818,95 +1827,12 @@ def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,mani
    review_body+=section(h('冻结页查询跳转的纠正','Frozen-page query-navigation correction'),'<p>'+h('一页冻结 HTML 在运行脚本后给当前路径加查询参数；原测试夹具只接受无查询参数的路径，三款方法因此拿到 404 错误页，却被记为有输出。现在仍从同一冻结 HTML 开始，夹具按路径找到同一页，原始网页 URL 仍不参与抓取。该页三款方法用相同二进制和原评分器重新测量；旧证据保留在独立存档里。','One frozen page appended a query parameter after its inline script ran. The former fixture served only the bare path, so three methods converted a 404 error page that was counted as output. The fixture now serves the same frozen page by path even with a query; the original source URL is still not fetched. The three methods were remeasured with matching binaries and the unchanged scorer; prior evidence remains in a separate archive.')+'</p>'+table([h('方法','Method'),h('原页 text_edit','Prior page text_edit'),h('纠正后 text_edit','Corrected page text_edit'),h('旧输出校验前缀','Prior output digest prefix'),h('新输出校验前缀','New output digest prefix')],correction_rows,cls='wide-prose-table',metrics=[])+f'<p>{link(receipt_href,h("下载完整纠正影响","Download complete correction effects"))}</p>')
   _wmb_write(out,'review/index.html',h('核验记录','Review'),review_body,english)
 
-  def text_stat(name):
-   rows=[r for r in records if r['provider']==name and r.get('metrics',{}).get('text_edit',{}).get('success')]
-   low=[r for r in rows if r['metrics']['text_edit']['score']<.1]
-   ratios=[]
-   for r in low:
-    details=r['metrics']['text_edit'].get('details',{})
-    ratios.append(details.get('predicted_text_length',0)/max(1,details.get('groundtruth_text_length',0)))
-   return {'low':len(low),'ratio':statistics.median(ratios) if ratios else 0}
-  def component_sides(name,metric):
-   counts=Counter()
-   for r in records:
-    if r['provider']!=name:continue
-    details=r.get('metrics',{}).get(metric,{}).get('details',{})
-    pred=next((value for key,value in details.items() if key.startswith('predicted_') and key.endswith('_length')),0)
-    ref=next((value for key,value in details.items() if key.startswith('groundtruth_') and key.endswith('_length')),0)
-    if pred and ref:counts['both']+=1
-    elif pred:counts['prediction_only']+=1
-    elif ref:counts['reference_only']+=1
-   return counts
-  text_stats={name:text_stat(name) for name in names}
-  common_low=sum(all(any(r['provider']==name and r.get('metrics',{}).get('text_edit',{}).get('success') and r['metrics']['text_edit']['score']<.1 for r in bycase[case_id]) for name in names) for case_id in cases)
-  fail_total=sum(len(failures(name)) for name in names)
   failure_notes={}
   for finding in (anomaly_review or {}).get('cases',[]):
    observed=finding['observed_en' if english else 'observed_zh']
    cause=finding['cause_en' if english else 'cause_zh']
    for provider in finding.get('affected_providers',[]):
     failure_notes[(provider,finding['case_id'])]=(observed,cause)
-  guide=hero(h('几乎都返回了，为什么质量分仍然不高','Nearly every page returned. Why are quality scores still modest?'),h('五种方法在 1,000 次转换中有 991 次得到目标正文，但修正后的 overall 只有 21.6%–32.4%。主要矛盾不在连接成功，而在整页输出与人工主内容答案的范围、结构和语法并不一致。','Five methods produced target body text in 991 of 1,000 conversions, yet corrected overall scores range from 21.6% to 32.4%. The main gap is not connectivity: whole-page output differs from the human main-content reference in scope, structure and syntax.'))
-  interpretation_flow=(r'''flowchart LR
-    A["冻结 HTML"] --> B["方法执行"]
-    B --> C{"得到目标正文?"}
-    C -->|"否 · 9 次"| D["查运行时与页面脚本根因"]
-    C -->|"是 · 991 次"| E["和人工 Markdown 比较"]
-    E --> F["范围差异<br/>整页 vs 主内容"]
-    E --> G["结构差异<br/>代码 · 公式 · 表格"]
-    F --> H["text_edit 与分项分"]
-    G --> H
-    H --> I["按实际可计算页数聚合"]''' if not english else r'''flowchart LR
-    A["Frozen HTML"] --> B["Method runs"]
-    B --> C{"Target body text?"}
-    C -->|"No · 9 calls"| D["Diagnose runtime and page scripts"]
-    C -->|"Yes · 991 calls"| E["Compare with human Markdown"]
-    E --> F["Scope gap<br/>whole page vs main content"]
-    E --> G["Structure gap<br/>code · formula · table"]
-    F --> H["text_edit and component scores"]
-    G --> H
-    H --> I["Aggregate over calculable pages"]''')
-  interpretation_fallback='<div class="wmb-flow-fallback" data-wmb-flow-fallback>'+''.join(f'<span><b>{index}</b> {label}</span>' for index,label in enumerate(([h('冻结 HTML','Frozen HTML'),h('方法执行','Method run'),h('判断是否得到目标正文','Check for target body text'),h('比较范围与结构','Compare scope and structure'),h('按可计算页聚合','Aggregate calculable pages')]),1))+'</div>'
-  guide+=section(h('先把“成功”拆成三层','Three different meanings of success'),'<p>'+h('接口有响应、拿到目标正文、正文接近人工答案，是三个不同判断。前两层用于定位运行故障；第三层才进入内容质量。把它们混成一个成功率，会掩盖“请求完成但内容范围不对”这一批数量更大的问题。','An interface response, target body text and content close to the human reference are three different outcomes. The first two locate runtime failures; the third measures quality. One combined success rate would hide the much larger class of completed requests with the wrong content scope.')+'</p><div class="wmb-flow">'+interpretation_fallback+'<pre class="mermaid" hidden>'+esc(interpretation_flow)+'</pre></div><p class="source-note">'+h('本轮测试的是各方法文档化的原生整页 Markdown 路线，没有加入 WebMainBench 专用的正文选择或后处理。','This run uses each method’s documented native whole-page Markdown route, without WebMainBench-specific main-content selection or post-processing.')+'</p>','success-layers')
-  quality_rows=[]
-  for name in sorted(names,key=lambda item:-score(item,'text_edit')):
-   stat=text_stats[name]
-   quality_rows.append(('',cell(link('../providers/'+name+'.html',labels[name]))+cell(f'{case_count-len(failures(name))}/{case_count}')+cell(display_score(score(name,'text_edit')))+cell(str(stat['low']))+cell(f'{stat["ratio"]:.1f}×')+cell(ms(latency_values[name]['mean']))))
-  guide+=section(h('低文字分主要来自整页噪声，不是空响应','Low text scores mostly reflect whole-page noise, not empty responses'),'<p>'+h(f'{common_low} 页在五种方法上同时低于 10%。这些页面里，各方法输出长度的中位数是人工答案的 17–20 倍；逐页检查能看到导航、页脚、推荐内容和模板文字被一并保留。人工答案通常只保留主内容，字符编辑距离因此很大。共同低分跨越五种实现，说明这里有明显的任务范围错位，不能归咎于某一个浏览器。',f'{common_low} pages score below 10% on every method. On these pages, median output length is 17–20 times the human reference; page-level evidence shows navigation, footers, recommendations and template text retained alongside the article. The human reference usually keeps the main content only, so character edit distance becomes large. Because the pattern spans all five implementations, it is a task-scope mismatch rather than a defect in one browser.')+'</p>'+table([h('方法','Method'),h('目标正文','Target body text'),'text_edit',h('低于 10% 的页数','Pages below 10%'),h('低分页输出 / 答案长度中位数','Median output/reference length on low pages'),h('全部调用均值耗时','Mean latency, all calls')],quality_rows,cls='wide-prose-table',metrics=[])+f'<p class="actions">{link("../analysis/index.html#inspect?request=success&metric=text_edit&band=0%3A0.1",h("打开全部低文字分页","Inspect all low-text pages"))} · {link("../methodology/index.html",h("查看 text_edit 计算方式","How text_edit is calculated"))}</p>','scope-gap')
-  cause_rows=[
-   ('',cell(h('整页范围大于人工答案','Whole-page scope exceeds the reference'))+cell(h(f'{common_low} 页五种方法都低于 10%',f'{common_low} pages below 10% on all five methods'))+cell(h('导航、页脚和模板文字进入整页 Markdown；人工答案偏向主内容。','Navigation, footer and template text enter whole-page Markdown; the reference focuses on main content.'))+cell(link('../analysis/index.html#inspect?request=success&metric=text_edit&band=0%3A0.1',h('低文字分页','Low-text pages')))),
-   ('',cell(h('内容存在，结构已经丢失','Content survives but structure is lost'))+cell(h('Moli 表格 40/40 页为 0；Obscura 39/41 页没有可识别表格','Moli tables score zero on 40/40 pages; Obscura has no recognized table on 39/41 pages'))+cell(h('单元格文字被摊成普通段落，不能等同于请求失败。','Cell text is flattened into paragraphs; this is not a request failure.'))+cell(link('../attempts/moli__6edcd7ea-0503-4ed9-b493-4a6aad2ee584__r001.html',h('表格实例','Table example')))),
-   ('',cell(h('输出语法被识别成额外内容','Output syntax is recognized as extra content'))+cell(h('Lightpanda 有 127 个仅输出侧公式页；Obscura 有 38 个仅输出侧代码页','Lightpanda has 127 prediction-only formula pages; Obscura has 38 prediction-only code pages'))+cell(h('评分器按 Markdown 语法抽取内容；一侧独有会进入分母并计 0。','The scorer extracts Markdown syntax; content found on one side enters the denominator and scores zero.'))+cell(link('../analysis/index.html',h('逐项筛选','Filter components')))),
-   ('',cell(h('冻结页脚本与运行环境冲突','Frozen-page scripts conflict with the runtime'))+cell(h(f'6 个页面、{fail_total} 次没有目标正文',f'6 pages and {fail_total} calls without target body text'))+cell(h('已定位到脚本依赖、frame reload、回源跳转和 DOM / 表格复杂度，不是统一的“网络失败”。','Root causes include script dependencies, frame reloads, origin navigation and DOM/table complexity—not one generic network failure.'))+cell(link('../review/index.html',h('根因复核','Root-cause review')))),
-   ('',cell(h('评分器实现缺陷','Scorer implementation defect'))+cell(h('原始 TEDS 把结构差异严重的表格判成接近满分','Original TEDS gave a near-perfect score to severely different table structures'))+cell(h('已按同一范围重算；浏览器输出、分母和耗时未改。','Recomputed over the same scope; outputs, denominators and latency are unchanged.'))+cell(link('../review/index.html',h('修正记录','Correction record')))),
-  ]
-  guide+=section(h('低分不是一种原因','Low scores do not have one cause'),'<p>'+h('下面五类现象需要不同处理：正文选择解决不了运行时失败，重试也修不好表格结构；评分器误识别则要同时检查输出语法和分母。','These five patterns need different treatments. Main-content selection cannot fix runtime failures, retries cannot restore table structure, and scorer over-recognition requires inspecting both output syntax and denominators.')+'</p>'+table([h('机制','Mechanism'),h('本轮证据','Evidence in this run'),h('如何解释','Interpretation'),h('下钻','Drilldown')],cause_rows,metrics=[]),'causes')
-  denominator_rows=[]
-  for name in names:
-   values=cell(link('../providers/'+name+'.html',labels[name]))
-   for metric in ('code_edit','formula_edit','table_edit'):
-    sides=component_sides(name,metric)
-    values+=cell(f'{denom(name,metric)}<span class="tiny">'+h(f'仅输出 {sides["prediction_only"]} · 仅答案 {sides["reference_only"]}',f'prediction only {sides["prediction_only"]} · reference only {sides["reference_only"]}')+'</span>')
-   denominator_rows.append(('',values))
-  guide+=section(h('分母也在描述方法的输出行为','Denominators also describe output behavior'),'<p>'+h('五种方法都处理同一批 200 页，但代码、公式和表格只在评分器成功算出该项时进入均值。两侧都没有该类内容时，该项跳过；只有一侧存在时，该页以 0 分进入均值。因此分母变大不等于覆盖更好：它也可能说明输出语法让评分器多识别出代码、公式或表格。','All methods process the same 200 pages, but code, formula and table components enter a mean only when the scorer successfully calculates that component. A component absent on both sides is skipped; present on only one side enters the mean with a zero. A larger denominator therefore does not necessarily mean better coverage—it can mean output syntax caused the scorer to recognize extra code, formulas or tables.')+'</p>'+table([h('方法','Method'),h('代码计分页','Code pages scored'),h('公式计分页','Formula pages scored'),h('表格计分页','Table pages scored')],denominator_rows,metrics=[])+f'<p>{h("例如 Lightpanda 的公式分母是 169，其中 127 页只在输出侧识别出公式；这些页全部以 0 分进入均值。overall 又是五个分项均值的算术平均，所以它不是固定 200 页分母下的统一及格率。","For example, Lightpanda’s formula denominator is 169, including 127 pages where formulas are recognized only in the output; every such page enters at zero. Overall is then the arithmetic mean of five component means, so it is not a uniform pass rate over a fixed 200-page denominator.")}</p><p class="actions">{link("../methodology/index.html",h("查看逐项抽取和聚合规则","Extraction and aggregation rules"))}</p>','denominators')
-  profile_copy={
-   'kitesurf':h('修正后 overall 最高，代码和表格较均衡；5 页没有目标正文，均值耗时最高。','Highest corrected overall with relatively balanced code and table retention; no target body on 5 pages and the highest mean latency.'),
-   'lightpanda':h('200 页都有目标正文，代码分较高；公式语法被大量额外识别，公式均值受 127 个零分拖累。','Target body text on all 200 pages and a high code score; formula syntax is over-recognized, adding 127 zero-score pages.'),
-   'moli':h('文字、代码分最高且最快；表格文字仍可能存在，但 40 个计分页都没有可识别表格结构。','Highest text and code scores and fastest latency; table text can remain, but none of 40 scored pages preserves recognized table structure.'),
-   'obscura':h('文字和公式接近本轮最高；表格结构几乎全部丢失，且 38 页被额外识别为代码。','Near the top on text and formula; table structure is almost entirely lost, while 38 pages are additionally recognized as code.'),
-   'chromium':h('200 页都有非空输出，但 1 页是浏览器错误页；表格保留相对较好，代码结构和整页噪声更弱。','Non-empty output on all 200 pages, but one is a browser error page; table retention is relatively stronger, while code structure and whole-page noise are weaker.'),
-  }
-  profile_rows=[]
-  for name in sorted(names,key=lambda item:-score(item,'overall')):
-   profile_rows.append(('',cell(link('../providers/'+name+'.html',labels[name]))+cell(display_score(score(name,'overall')))+cell(display_score(score(name,'text_edit')))+cell(display_score(score(name,'code_edit')))+cell(display_score(score(name,'formula_edit')))+cell(display_score(score(name,'table_TEDS')))+cell(ms(latency_values[name]['mean']))+cell(profile_copy[name])))
-  guide+=section(h('五种方法各自保留了什么','What each method preserves'),'<p>'+h('没有一种方法在所有内容类型和速度上同时占优。下表把分数和输出机制放在一起读；绿色领先值仍以首页的完整比较表为准。','No method leads every content type and latency measure. Read scores together with output behavior below; the complete home comparison remains the authority for highlighted leaders.')+'</p>'+table([h('方法','Method'),'overall','text_edit','code_edit','formula_edit','table_TEDS',h('均值耗时','Mean latency'),h('证据化解读','Evidence-based reading')],profile_rows,cls='wide-prose-table wmb-profile-table',metrics=[]),'method-profiles')
-  anomaly_rows=[]
-  for finding in (anomaly_review or {}).get('cases',[]):
-   providers=(', ' if english else '、').join(labels[name] for name in finding['affected_providers'])
-   anomaly_rows.append(('',cell(link('../datasets/'+finding['case_id']+'.html',finding['case_id']))+cell(esc(providers))+cell(esc(finding['cause_en' if english else 'cause_zh']))+cell(link('../analysis/index.html#inspect?query='+finding['case_id'],h('同页结果','Same-page results')))))
-  guide+=section(h('9 次没有目标正文，根因集中在 6 个页面','Nine missing-body results trace to six pages'),'<p>'+h('这些结果已经逐页查看正式输出、程序错误和同页方法差异，并用不计分的删减对照定位触发条件。两例属于服务端复杂度边界，内部资源阈值没有公开，所以证据只能到“哪类内容触发”；其余能定位到冻结页脚本的具体行为。','These results were reviewed against authoritative output, program errors and same-page method differences, with non-scoring ablations used to isolate triggers. Two reach a service-side complexity boundary whose internal resource threshold is undisclosed, so the evidence stops at the triggering content class; the others identify specific frozen-page script behavior.')+'</p>'+table([h('页面','Page'),h('受影响方法','Affected methods'),h('已验证根因','Verified cause'),h('证据','Evidence')],anomaly_rows,metrics=[])+f'<p class="actions">{link("../review/index.html",h("查看对照观察和证据边界","Control observations and evidence boundaries"))} · {link("../analysis/index.html#inspect?request=failed",h("逐条查看没有目标正文的结果","Inspect every missing-body result"))}</p>','missing-body')
-  guide+=section(h('怎样使用这份结果','How to use these results'),'<p>'+h('如果目标是整页文本转 Markdown，Moli、Obscura 和 Lightpanda 的 text_edit 接近，但生产使用前仍应增加统一的正文选择；否则导航和模板内容会主导差异。代码内容优先看 Moli 与 Lightpanda 的逐页输出。表格场景没有可靠的通吃方案：Kitesurf、Lightpanda 和 Chromium 能保留部分结构，但修正后的 TEDS 也只有约 14%–16%；Moli 与 Obscura 不适合需要表格结构的任务。公式结果必须连同分母和“仅输出侧”数量一起读。','For whole-page Markdown, Moli, Obscura and Lightpanda have similar text_edit scores, but production use still needs consistent main-content selection or navigation and template text will dominate. For code, inspect Moli and Lightpanda page-level output first. No method is broadly reliable for tables: Kitesurf, Lightpanda and Chromium preserve some structure, yet corrected TEDS is only about 14%–16%; Moli and Obscura are unsuitable when table structure matters. Formula results must be read with denominators and prediction-only counts.')+'</p><p>'+h('Kitesurf 的修正后 overall 最高，但速度最慢，也有 5 次没有目标正文。Moli 最快，却完全丢失可识别表格结构。这里应按目标内容类型和延迟预算做选择，而不是把 overall 当作单一采购结论。','Kitesurf has the highest corrected overall, but is slowest and misses target body text five times. Moli is fastest but loses all recognized table structure. Selection should follow content type and latency budget rather than treating overall as one procurement verdict.')+'</p>','decisions')
-  guide+=section(h('这份报告不能外推什么','What this report cannot establish'),'<p>'+h('结论只覆盖预先选定的 200 页冻结 HTML，不是随机样本，也不是 545 页母集或实时互联网。外部资源被隔离，原始 URL 没有实时访问；每个方法每页只有一个正式逻辑结果；本轮没有可比较的 CPU、内存或网络测量，也没有官方统一的“内容通过”阈值。要比较真实网站或主内容提取能力，应预先固定网络条件和正文选择规则，再对全部方法重跑同一范围。','Findings cover the preselected 200 frozen HTML pages only. This is not a random sample, the 545-page parent set or the live web. External resources are isolated and source URLs are not fetched live; each method has one authoritative logical result per page. This run has no comparable CPU, memory or network measurements and no official universal content-pass threshold. Comparing live sites or main-content extraction requires preregistering network conditions and a shared content-selection rule, then rerunning the full scope for every method.')+'</p><p class="actions">'+link('../datasets/index.html',h('评测集与冻结清单','Dataset and frozen manifest'))+' · '+link('../methodology/index.html',h('完整评测流程','Complete methodology'))+' · '+link('../review/index.html',h('纠正与根因核验','Corrections and root-cause review'))+'</p>','limits')
   guide=_wmb_editorial_guide(english=english,names=names,labels=labels,cases=cases,
                              bycase=bycase,case_count=case_count,score=score,denom=denom,
                              failures=failures,latency_values=latency_values,

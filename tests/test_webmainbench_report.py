@@ -6,7 +6,7 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 
-from harness.web_fetch.report import JS, generate_webmainbench, _wmb_pct, _wmb_body_state, _wmb_row_attrs
+from harness.web_fetch.report import JS, generate_webmainbench, _wmb_pct, _wmb_body_state, _wmb_row_attrs, _wmb_editorial_guide
 from harness.web_fetch.report_build import validate_webmainbench_correction
 from harness.web_fetch.report_style import STYLE
 
@@ -16,6 +16,22 @@ METRICS = ("text_edit", "code_edit", "table_edit", "table_TEDS", "formula_edit")
 
 
 class WebMainBenchReportTests(unittest.TestCase):
+    def test_guide_missing_example_metrics_are_unavailable_not_zero(self):
+        case_id = 'c42e7f28-f109-459b-8423-2ce20f651ac9'
+        for english in (False, True):
+            with self.subTest(english=english):
+                html = _wmb_editorial_guide(
+                    english=english, names=list(PROVIDERS),
+                    labels={name: name for name in PROVIDERS},
+                    cases={case_id: {}},
+                    bycase={case_id: [{'provider': name, 'metrics': {}} for name in PROVIDERS]},
+                    case_count=1, score=lambda *args: 0,
+                    denom=lambda *args: 0, failures=lambda name: [],
+                    latency_values={}, anomaly_review={},
+                )
+                self.assertIn('Length not recorded' if english else '长度未记录', html)
+                self.assertIn('kitesurf: —', html)
+
     def test_narrow_reliability_banner_wraps_instead_of_clipping(self):
         self.assertIn(
             '.reliability strong{white-space:normal;overflow-wrap:anywhere}',
