@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "kind": "dynamic_100_body_reference_and_region_audit_receipt",
+  "created_at": "2026-09-16T08:22:38Z",
+  "scope": {
+    "dataset_cases": 100,
+    "body_reference_cases": 41,
+    "provider_output_used_for_rule_revision": false
+  },
+  "reference_binding": {
+    "exact_reference_file_matches": 41,
+    "matching_dataset_reference_hashes": 41,
+    "matching_independent_evidence_bindings": 41,
+    "reference_self_checks_passed": 41,
+    "notes": [
+      "Every standard answer is byte-identical to its independently retained reference.txt file.",
+      "Existing reference-correction receipts are accepted only when they bind the old independent reference hash to the current reference hash and declare that provider output was not used.",
+      "The declared selector or target-scope description remains attached to every case; provider output was not inspected while rebuilding regions."
+    ]
+  },
+  "segmentation": {
+    "section_paragraph_sentence_priority": true,
+    "whole_declared_component_cases": 31,
+    "complete_sentence_group_cases": 10,
+    "approximate_token_fallback_cases": 0,
+    "policy": "Tables, grids, forms, iframe lists, generated operation catalogues, and other indivisible declared components remain whole. Prose without preserved heading or paragraph boundaries is grouped only at complete sentence boundaries."
+  },
+  "sha256": {
+    "body_region_audit_json": "f32886aa1c5a4855cefe2adc3b19a10e78a196d70c339db382f30064d476b190",
+    "revised_dataset_json": "d863abd35d8b76036348d9ecc3aa23be6ed6fdb4f9fcef78a200af0d63b060cd"
+  }
+}
