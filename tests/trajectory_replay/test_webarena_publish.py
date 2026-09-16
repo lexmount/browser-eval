@@ -60,6 +60,13 @@ def test_preview_marker_accepts_each_localized_home_title() -> None:
     assert not publisher.preview_has_report_marker(b"<title>Unrelated site</title>")
 
 
+def test_preview_rejects_bootstrap_that_strips_signed_asset_base() -> None:
+    safe = b"const signedRoot=new URL(node.href,location.href)"
+    unsafe = b"const slug=(parts[at+1]||'').split('~')[0]"
+    assert publisher.preview_preserves_signed_asset_base(safe)
+    assert not publisher.preview_preserves_signed_asset_base(unsafe)
+
+
 def test_bind_publication_updates_profile_and_attestation(monkeypatch, tmp_path: Path) -> None:
     profile = tmp_path / "profile.json"
     profile.write_text(

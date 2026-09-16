@@ -52,7 +52,11 @@ class _QuietHandler(http.server.SimpleHTTPRequestHandler):
                 return
             if prefix.endswith("~fixture/") and target.suffix == ".html":
                 content = target.read_text(encoding="utf-8")
-                content = content.replace("<head>", '<head><base href="/api/preview/">', 1)
+                content = content.replace(
+                    "<head>",
+                    '<head><base href="/api/preview/replay~fixture/">',
+                    1,
+                )
                 encoded = content.encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -133,17 +137,17 @@ def check(report: Path, receipt: Path) -> None:
                         wait_until="domcontentloaded",
                     )
                     route_page.wait_for_function(
-                        "() => document.baseURI.includes('/api/preview/replay/result/')"
+                        "() => document.baseURI.includes('/api/preview/replay~fixture/result/')"
                     )
                     route_page.wait_for_function("() => !!document.documentElement.dataset.theme")
                     route_page.wait_for_function(
                         "() => getComputedStyle(document.body).backgroundColor"
                         " !== 'rgba(0, 0, 0, 0)'"
                     )
-                    assert "/api/preview/replay/result/" in route_page.locator(
+                    assert "/api/preview/replay~fixture/result/" in route_page.locator(
                         ".peer-list a"
                     ).first.evaluate("element => element.href")
-                    assert "/api/preview/replay/evidence-viewer.html" in route_page.locator(
+                    assert "/api/preview/replay~fixture/evidence-viewer.html" in route_page.locator(
                         "#evidence .evidence-actions a"
                     ).first.evaluate("element => element.href")
                     step_button = route_page.locator(
@@ -174,7 +178,7 @@ def check(report: Path, receipt: Path) -> None:
                     route_page.locator('[data-close-step]').click()
                     route_page.locator('nav a[href="../index.html"]').first.click()
                     route_page.wait_for_url(
-                        f"http://127.0.0.1:{server.server_port}/api/preview/replay/index.html"
+                        f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/index.html"
                     )
                     route_page.locator("h1").wait_for()
                     route_page.close()

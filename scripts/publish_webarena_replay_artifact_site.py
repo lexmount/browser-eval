@@ -216,6 +216,12 @@ def preview_has_report_marker(body: bytes) -> bool:
     return any(marker in text for marker in PUBLIC_REPORT_MARKERS)
 
 
+def preview_preserves_signed_asset_base(body: bytes) -> bool:
+    """Reject the retired bootstrap that stripped Artifact Site capabilities."""
+    text = body.decode("utf-8", errors="replace")
+    return "split('~')[0]" not in text and 'split("~")[0]' not in text
+
+
 def archive_hashes(path: Path) -> dict[str, str]:
     with zipfile.ZipFile(path) as archive:
         return {
@@ -370,7 +376,11 @@ def main(*, create: bool) -> None:
         report_path,
         authenticated=False,
     )
-    if preview_status != 200 or not preview_has_report_marker(preview_body):
+    if (
+        preview_status != 200
+        or not preview_has_report_marker(preview_body)
+        or not preview_preserves_signed_asset_base(preview_body)
+    ):
         raise RuntimeError("deployed preview is unavailable or missing report marker")
     bind_publication(
         profile,

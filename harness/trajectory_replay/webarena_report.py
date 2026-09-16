@@ -144,12 +144,15 @@ def _shell(lang: str, active: str, title: str, body: str, *, depth: int = 0, cur
 const parts=location.pathname.split('/');
 const at=parts.indexOf('preview');
 if(at<1||parts[at-1]!=='api')return;
-const slug=(parts[at+1]||'').split('~')[0];
-if(!/^[A-Za-z0-9_-]+$/.test(slug))return;
-const route=parts.slice(at+2).join('/');
-const node=document.querySelector('base[href]')||document.createElement('base');
-node.href=location.origin+'/api/preview/'+slug+'/'+route;
-if(!node.isConnected)document.head.prepend(node);
+const node=document.querySelector('base[href]');
+if(!node)return;
+const signedRoot=new URL(node.href,location.href);
+const route=parts.slice(at+2);
+if(route.length&&!location.pathname.endsWith('/'))route.pop();
+signedRoot.pathname=signedRoot.pathname.replace(/\/?$/,'/')+(route.length?route.join('/')+'/':'');
+signedRoot.search='';
+signedRoot.hash='';
+node.href=signedRoot.href;
 })();</script>'''
     return f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)}</title>{preview_bootstrap}<link rel="stylesheet" href="{asset_prefix}assets/report.css"></head><body>{_nav(lang, active, depth=depth, current_route=current_route)}<main>{body}</main><footer>{footer}</footer><script src="{asset_prefix}assets/app.js"></script></body></html>'''
 

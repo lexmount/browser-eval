@@ -78,6 +78,23 @@ def test_report_shell_localizes_chinese_title_and_footer() -> None:
     assert 'href="../../result/moli-29.html"' in english
 
 
+def test_report_shell_preserves_artifact_site_signed_base() -> None:
+    rendered = _shell(
+        "zh",
+        "results",
+        "结果",
+        "<p>内容</p>",
+        depth=1,
+        current_route="result/moli-29.html",
+    )
+    assert "document.querySelector('base[href]')" in rendered
+    assert "if(!node)return" in rendered
+    assert "new URL(node.href,location.href)" in rendered
+    assert "route.pop()" in rendered
+    assert "split('~')[0]" not in rendered
+    assert "document.createElement('base')" not in rendered
+
+
 def test_replay_task_and_result_have_connected_drilldown() -> None:
     task = {
         "task_id": 29,
