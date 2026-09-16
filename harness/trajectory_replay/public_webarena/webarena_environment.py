@@ -22,6 +22,7 @@ from webarena_verified.environments.container.config import get_container_config
 from webarena_verified.environments.container.manager import ContainerManager
 from webarena_verified.types.task import WebArenaSite
 
+from .rainbond_slices import RainbondSlicePool
 from .suite import BrowserTask
 
 STATEFUL_SITES = frozenset({"shopping_admin", "shopping", "reddit", "gitlab"})
@@ -46,9 +47,8 @@ def wall_clock_timeout(seconds: float, *, operation: str = "environment reset"):
     """Bound one blocking environment phase, including Docker SDK calls, on POSIX."""
     if seconds <= 0:
         raise ValueError("wall-clock timeout must be positive")
-    if (
-        threading.current_thread() is not threading.main_thread()
-        or not hasattr(signal, "setitimer")
+    if threading.current_thread() is not threading.main_thread() or not hasattr(
+        signal, "setitimer"
     ):
         raise RuntimeError("WebArena reset wall-clock timeout requires the POSIX main thread")
     previous_timer = signal.getitimer(signal.ITIMER_REAL)
@@ -132,9 +132,7 @@ class _DockerClientBackend:
             # services become healthy.  The image default of 180 seconds is
             # too short on a busy qualification host and can leave the baked
             # CMU origin active even though env-ctrl /status is healthy.
-            environment["WA_ENV_CTRL_CMD_TIMEOUT_SEC"] = str(
-                MAGENTO_INIT_TIMEOUT_SECONDS
-            )
+            environment["WA_ENV_CTRL_CMD_TIMEOUT_SEC"] = str(MAGENTO_INIT_TIMEOUT_SECONDS)
         # GitLab's image entrypoint does not run env-ctrl init.  Its fallback
         # reconfiguration also rewrites the internal nginx listener to the
         # public host port, breaking Docker's host-port -> 8023 mapping.  Keep
@@ -151,8 +149,7 @@ class _DockerClientBackend:
                 for host_port, container_port in port_mappings.items()
             },
             volumes={
-                source: {"bind": target, "mode": "rw"}
-                for source, target in volume_mappings.items()
+                source: {"bind": target, "mode": "rw"} for source, target in volume_mappings.items()
             },
             environment=environment,
         )
@@ -195,6 +192,29 @@ class WebArenaEnvironment:
         if self.image_lock.get("schema") != "lex_webarena_environment_images/1":
             raise ValueError("WebArena image lock schema is invalid")
         self.remote_receipts = self.config.get("remote_runtime_receipts") or {}
+        slice_value = self.config.get("rainbond_slice")
+        self.rainbond_pool: RainbondSlicePool | None = None
+        self.rainbond_receipt_path: Path | None = None
+        if slice_value is not None:
+            if not isinstance(slice_value, dict):
+                raise ValueError("rainbond_slice must be an object")
+            pool_raw = str(slice_value.get("pool_config") or "").strip()
+            receipt_raw = str(slice_value.get("receipt") or "").strip()
+            if not pool_raw or not receipt_raw:
+                raise ValueError("rainbond_slice requires pool_config and receipt")
+            pool_value = Path(pool_raw)
+            receipt_value = Path(receipt_raw)
+            pool_path = (
+                pool_value
+                if pool_value.is_absolute()
+                else (self.config_path.parent / pool_value).resolve()
+            )
+            self.rainbond_receipt_path = (
+                receipt_value
+                if receipt_value.is_absolute()
+                else (self.config_path.parent / receipt_value).resolve()
+            )
+            self.rainbond_pool = RainbondSlicePool(pool_path)
 
     def site_docker_client(self, default_client: Any) -> tuple[Any, bool]:
         host = self.config.get("site_docker_host")
@@ -216,9 +236,34 @@ class WebArenaEnvironment:
             {str(site) for task in tasks for site in (task.environment or {}).get("sites") or []}
         )
         rows: dict[str, Any] = {}
+        slice_receipt = (
+            self.rainbond_pool.validate_receipt(self.rainbond_receipt_path)
+            if self.rainbond_pool is not None and self.rainbond_receipt_path is not None
+            else None
+        )
         for site in sites:
             locked = self.image_lock["images"][site]
             expected = str(locked["pinned"])
+            if slice_receipt is not None and site in STATEFUL_SITES:
+                component = (slice_receipt.get("components") or {}).get(site) or {}
+                if component.get("image") != expected:
+                    raise RuntimeError(f"Rainbond slice image mismatch for {site}")
+                site_url = str(component.get("site_url") or "")
+                configured_urls = self._site_config(site).get("urls") or []
+                if configured_urls != [site_url]:
+                    raise RuntimeError(f"Rainbond slice URL mismatch for {site}")
+                self._wait_site_ready(site_url, timeout_seconds=60)
+                rows[site] = {
+                    "mode": "remote_rainbond_isolated_slice",
+                    "app_id": slice_receipt["app_id"],
+                    "generation": slice_receipt["generation"],
+                    "service_id": component["service_id"],
+                    "pinned_image": expected,
+                    "receipt_sha256": hashlib.sha256(
+                        self.rainbond_receipt_path.read_bytes()
+                    ).hexdigest(),
+                }
+                continue
             receipt_value = self.remote_receipts.get(site)
             if receipt_value is not None:
                 if site in STATEFUL_SITES:
@@ -413,9 +458,35 @@ class WebArenaEnvironment:
         self, task: BrowserTask, docker_client: Any, *, timeout_seconds: float
     ) -> dict[str, Any]:
         sites = list((task.environment or {}).get("sites") or [])
+        if self.rainbond_pool is not None and any(site in STATEFUL_SITES for site in sites):
+            assert self.rainbond_receipt_path is not None
+            receipt = self.rainbond_pool.reset(self.rainbond_receipt_path)
+            for site, component in receipt["components"].items():
+                token = f"__{site.upper()}__"
+                self.environments[token] = {"urls": [component["site_url"]]}
+            for site in sites:
+                site_config = self._site_config(site)
+                site_urls = site_config.get("urls") or []
+                index = int(site_config.get("active_url_idx") or 0)
+                if not site_urls or index < 0 or index >= len(site_urls):
+                    raise ValueError(f"WebArena environment has no active URL for site {site!r}")
+                self._wait_site_ready(str(site_urls[index]), timeout_seconds=timeout_seconds)
+            return {
+                "mode": "remote_rainbond_isolated_slice",
+                "reset": "application_deleted_and_recreated_from_pinned_baseline",
+                "app_id": receipt["app_id"],
+                "generation": receipt["generation"],
+                "sites": {
+                    site: {
+                        "service_id": receipt["components"][site]["service_id"],
+                        "site_url": receipt["components"][site]["site_url"],
+                    }
+                    for site in sites
+                    if site in receipt["components"]
+                },
+            }
         receipts: dict[str, Any] = {}
         for site in sites:
-            url = self._control_url(site)
             if site in self.remote_receipts:
                 if site in STATEFUL_SITES:
                     raise ValueError(f"remote reset is unsupported for stateful site {site}")
@@ -430,6 +501,7 @@ class WebArenaEnvironment:
                     "reset": "site_health_check_only",
                 }
                 continue
+            url = self._control_url(site)
             if site in STATEFUL_SITES:
                 locked = self.image_lock["images"][site]
                 upstream = get_container_config(site=WebArenaSite(site))
@@ -441,12 +513,8 @@ class WebArenaEnvironment:
                         "host_env_ctrl_port": control_port,
                     }
                 )
-                defer_removal = bool(
-                    self.config.get("defer_stateful_container_removal", False)
-                )
-                backend = _DockerClientBackend(
-                    docker_client, defer_removal=defer_removal
-                )
+                defer_removal = bool(self.config.get("defer_stateful_container_removal", False))
+                backend = _DockerClientBackend(docker_client, defer_removal=defer_removal)
                 manager = ContainerManager(
                     site=WebArenaSite(site),
                     config=config,
@@ -490,9 +558,7 @@ class WebArenaEnvironment:
                     # WA_ENV_CTRL_EXTERNAL_SITE_URL, so its supervisor attempt
                     # exits before mutating state. Supply the URL explicitly
                     # after that no-op attempt has exited.
-                    self._wait_container_initialization(
-                        container, timeout_seconds=timeout_seconds
-                    )
+                    self._wait_container_initialization(container, timeout_seconds=timeout_seconds)
                     self._configure_external_url(container, started.url, site=site)
                     self._wait_ready(url, timeout_seconds=timeout_seconds)
                     receipts[site]["external_url_configuration"] = {
@@ -502,9 +568,7 @@ class WebArenaEnvironment:
                 else:
                     # Shopping and Shopping Admin run their one env-ctrl init
                     # from the official image entrypoint.
-                    self._wait_container_initialization(
-                        container, timeout_seconds=timeout_seconds
-                    )
+                    self._wait_container_initialization(container, timeout_seconds=timeout_seconds)
                     self._verify_entrypoint_initialization(container)
                     receipts[site]["external_url_configuration"] = {
                         "external_url": started.url,
@@ -655,9 +719,7 @@ class WebArenaEnvironment:
             time.sleep(0.5)
         raise RuntimeError(f"WebArena site did not become ready: {last_error}")
 
-    def prepare(
-        self, task: BrowserTask, page: Any, *, timeout_seconds: float = 300
-    ) -> Any:
+    def prepare(self, task: BrowserTask, page: Any, *, timeout_seconds: float = 300) -> Any:
         with wall_clock_timeout(timeout_seconds, operation="environment prepare"):
             return self._prepare_impl(task, page)
 

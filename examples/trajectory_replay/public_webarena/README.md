@@ -32,3 +32,29 @@ Measured attempts, screenshots, HAR, and reports stay outside Git. The repositor
 the suite, qualification reasons, evaluator rules, source bindings, and a sanitized
 publication summary. Use `verify_metrics.py` to audit raw measurements and
 `rebuild_report.py` to render from existing attempts; neither reruns browsers.
+
+## Disposable Rainbond environments
+
+For concurrent state-changing runs, use a complete Rainbond slice per worker instead of
+sharing sites or relying on separate login accounts. A slice contains Shopping Admin,
+Shopping, Reddit, and GitLab with independent writable container layers and unique
+domains. Reset deletes and recreates the whole slice from the pinned baseline; destroy
+removes the application. The read-only Map service may be shared.
+
+Copy `rainbond-pool.example.json`, set `RAINBOND_API_TOKEN` in the process environment,
+and provision the required concurrency:
+
+```text
+uv run --frozen python scripts/manage_webarena_rainbond_pool.py \
+  --config <pool-config> provision --pool-id <run-id> --count <N> --output <runtime-dir>
+```
+
+Pass each generated `slice-*/webarena.config.json` as a separate
+`--webarena-config` argument to `scripts/run_webarena_qualification.py`. Overlapping
+site batches run concurrently only when distinct slice configs are supplied. Afterwards:
+
+```text
+uv run --frozen python scripts/manage_webarena_rainbond_pool.py \
+  --config <pool-config> destroy --slice-dir <runtime-dir>/slice-1 \
+  --slice-dir <runtime-dir>/slice-2
+```

@@ -130,6 +130,103 @@ def test_runtime_verification_rejects_mutable_or_wrong_image(tmp_path):
         environment.verify_runtime(_Docker([]), (_task(),))
 
 
+def test_rainbond_slice_verification_and_reset_replace_the_complete_application(
+    tmp_path, monkeypatch
+):
+    pinned = "am1n3e/webarena-verified-shopping_admin@sha256:" + "d" * 64
+    lock = tmp_path / "images.json"
+    lock.write_text(
+        json.dumps(
+            {
+                "schema": "lex_webarena_environment_images/1",
+                "images": {"shopping_admin": {"pinned": pinned}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    receipt_path = tmp_path / "slice-receipt.json"
+    first = {
+        "app_id": 301,
+        "generation": "first",
+        "components": {
+            "shopping_admin": {
+                "service_id": "old-service",
+                "image": pinned,
+                "site_url": "https://admin-slice.example.test",
+            }
+        },
+    }
+    receipt_path.write_text(json.dumps(first), encoding="utf-8")
+    resets = []
+
+    class Pool:
+        def __init__(self, path):
+            assert path == tmp_path / "pool.json"
+
+        def validate_receipt(self, path):
+            assert path == receipt_path
+            return json.loads(path.read_text())
+
+        def reset(self, path):
+            resets.append(path)
+            return {
+                "app_id": 302,
+                "generation": "second",
+                "components": {
+                    "shopping_admin": {
+                        "service_id": "new-service",
+                        "image": pinned,
+                        "site_url": "https://admin-slice-302.example.test",
+                    }
+                },
+            }
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.webarena_environment.RainbondSlicePool",
+        Pool,
+    )
+    config = tmp_path / "config.json"
+    config.write_text(
+        json.dumps(
+            {
+                "image_lock": "images.json",
+                "environments": {
+                    "__SHOPPING_ADMIN__": {"urls": ["https://admin-slice.example.test"]}
+                },
+                "rainbond_slice": {
+                    "pool_config": "pool.json",
+                    "receipt": "slice-receipt.json",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    environment = WebArenaEnvironment(config)
+    monkeypatch.setattr(environment, "_wait_site_ready", lambda *_args, **_kwargs: None)
+
+    runtime = environment.verify_runtime(object(), (_task(),))
+    reset = environment.reset(_task(), object())
+
+    assert runtime["sites"]["shopping_admin"]["mode"] == ("remote_rainbond_isolated_slice")
+    assert runtime["sites"]["shopping_admin"]["app_id"] == 301
+    assert reset == {
+        "mode": "remote_rainbond_isolated_slice",
+        "reset": "application_deleted_and_recreated_from_pinned_baseline",
+        "app_id": 302,
+        "generation": "second",
+        "sites": {
+            "shopping_admin": {
+                "service_id": "new-service",
+                "site_url": "https://admin-slice-302.example.test",
+            }
+        },
+    }
+    assert environment.environments["__SHOPPING_ADMIN__"]["urls"] == [
+        "https://admin-slice-302.example.test"
+    ]
+    assert resets == [receipt_path]
+
+
 def test_site_docker_client_defaults_or_uses_validated_unix_socket(tmp_path, monkeypatch):
     environment, _ = _environment(tmp_path)
     default_client = object()
