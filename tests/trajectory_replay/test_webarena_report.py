@@ -7,8 +7,10 @@ from harness.trajectory_replay.webarena_report import (
     _detail_page,
     _metrics_table,
     _public_evidence,
+    _resource_comparison,
     _shell,
     _task_page,
+    _timing_comparison,
 )
 from scripts.check_webarena_replay_report import _check_english_localization
 
@@ -40,6 +42,67 @@ def test_core_metrics_are_registry_driven_and_mark_only_unique_winners() -> None
     assert all(name in rendered for name in ("Browser A", "Browser B", "Browser C"))
     assert rendered.count(">Best</span>") == 14
     assert "median" not in rendered.lower()
+
+
+def test_grouped_timing_and_resources_are_complete_and_mark_ranked_winners() -> None:
+    def method(name: str, base: float) -> dict:
+        timing_keys = (
+            "environment_prepare_ms",
+            "browser_session_setup_ms",
+            "trajectory_replay_ms",
+            "evidence_finalize_ms",
+            "evaluation_ms",
+        )
+        resource_keys = (
+            "cpu_ms",
+            "cpu_average_utilization_pct",
+            "cpu_sampled_utilization_p95_pct",
+            "cpu_sampled_utilization_peak_pct",
+            "memory_mean_bytes",
+            "memory_p95_bytes",
+            "memory_peak_bytes",
+            "memory_mib_seconds",
+            "pids_current_peak",
+            "network_rx_bytes",
+            "network_tx_bytes",
+            "network_rx_rate_p95_bytes_per_second",
+            "network_tx_rate_p95_bytes_per_second",
+        )
+        metric = {"mean": base, "p50": base + 1, "p95": base + 2, "n": 54}
+        return {
+            "id": name,
+            "label": name,
+            "timings": {key: metric for key in timing_keys},
+            "resources": {key: metric for key in resource_keys},
+        }
+
+    methods = [method("Browser A", 1.0), method("Browser B", 2.0)]
+    timing = _timing_comparison(methods, "en")
+    resources = _resource_comparison(methods, "en")
+
+    assert all(
+        label in timing
+        for label in (
+            "Environment preparation",
+            "Browser session setup",
+            "Trajectory execution",
+            "Evidence finalization",
+            "Official evaluation",
+        )
+    )
+    assert all(
+        label in resources
+        for label in (
+            "CPU and compute",
+            "Memory and processes",
+            "Network",
+            "Within-task memory P95",
+            "Receive rate P95",
+        )
+    )
+    assert "秒" not in timing + resources
+    assert resources.count(">Best</span>") > 0
+    assert "Mean CPU utilization" in resources
 
 
 def test_english_release_gate_rejects_reader_facing_chinese(tmp_path: Path) -> None:

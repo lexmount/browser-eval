@@ -86,6 +86,7 @@ def _routes(report: Path) -> list[str]:
         "index.html",
         "dataset.html",
         "results.html",
+        "interpretation.html",
         "environment.html",
         "review.html",
     ]

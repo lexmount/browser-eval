@@ -84,6 +84,72 @@ def _format_mib(value: float | None) -> str:
     return "—" if value is None else f"{value / 1024 / 1024:.1f} MiB"
 
 
+def _format_kib(value: float | None) -> str:
+    return "—" if value is None else f"{value / 1024:.1f} KiB"
+
+
+def _format_mib_seconds(value: float | None) -> str:
+    return "—" if value is None else f"{value:.1f} MiB·s"
+
+
+def _format_percent(value: float | None) -> str:
+    return "—" if value is None else f"{value:.1f}%"
+
+
+def _format_count(value: float | None) -> str:
+    return "—" if value is None else f"{value:.1f}"
+
+
+TIMING_GROUPS = (
+    (
+        "分段耗时",
+        "Timing by phase",
+        (
+            ("环境准备", "Environment preparation", "environment_prepare_ms", _format_ms, True),
+            ("浏览器会话准备", "Browser session setup", "browser_session_setup_ms", _format_ms, True),
+            ("轨迹执行", "Trajectory execution", "trajectory_replay_ms", _format_ms, True),
+            ("证据整理", "Evidence finalization", "evidence_finalize_ms", _format_ms, True),
+            ("官方验收", "Official evaluation", "evaluation_ms", _format_ms, True),
+        ),
+    ),
+)
+
+
+RESOURCE_GROUPS = (
+    (
+        "CPU 与计算",
+        "CPU and compute",
+        (
+            ("CPU 时间", "CPU time", "cpu_ms", _format_ms, True),
+            ("平均 CPU 使用率", "Mean CPU utilization", "cpu_average_utilization_pct", _format_percent, False),
+            ("任务内 CPU P95", "Within-task CPU P95", "cpu_sampled_utilization_p95_pct", _format_percent, False),
+            ("任务内 CPU 峰值", "Within-task peak CPU", "cpu_sampled_utilization_peak_pct", _format_percent, False),
+        ),
+    ),
+    (
+        "内存与进程",
+        "Memory and processes",
+        (
+            ("平均内存", "Mean memory", "memory_mean_bytes", _format_mib, True),
+            ("任务内存 P95", "Within-task memory P95", "memory_p95_bytes", _format_mib, True),
+            ("峰值内存", "Peak memory", "memory_peak_bytes", _format_mib, True),
+            ("内存占用量", "Memory integral", "memory_mib_seconds", _format_mib_seconds, True),
+            ("进程数峰值", "Peak process count", "pids_current_peak", _format_count, True),
+        ),
+    ),
+    (
+        "网络",
+        "Network",
+        (
+            ("接收数据", "Data received", "network_rx_bytes", _format_mib, True),
+            ("发送数据", "Data sent", "network_tx_bytes", _format_kib, True),
+            ("接收速率 P95", "Receive rate P95", "network_rx_rate_p95_bytes_per_second", lambda value: "—" if value is None else f"{value / 1024:.1f} KiB/s", False),
+            ("发送速率 P95", "Send rate P95", "network_tx_rate_p95_bytes_per_second", lambda value: "—" if value is None else f"{value / 1024:.1f} KiB/s", False),
+        ),
+    ),
+)
+
+
 def _metric_lines(
     metric: dict[str, Any],
     formatter: Any,
@@ -115,8 +181,8 @@ def _unique_winners(
 
 def _nav(lang: str, active: str, *, depth: int, current_route: str = "index.html") -> str:
     labels = {
-        "zh": (("index", "结论"), ("dataset", "评测集"), ("results", "结果分析"), ("environment", "环境与方法"), ("review", "核验记录")),
-        "en": (("index", "Summary"), ("dataset", "Dataset"), ("results", "Results analysis"), ("environment", "Environment & method"), ("review", "Review history")),
+        "zh": (("index", "结论"), ("dataset", "评测集"), ("results", "结果分析"), ("interpretation", "报告解读"), ("environment", "环境与方法"), ("review", "核验记录")),
+        "en": (("index", "Summary"), ("dataset", "Dataset"), ("results", "Results analysis"), ("interpretation", "Interpretation"), ("environment", "Environment & method"), ("review", "Review history")),
     }[lang]
     local_prefix = "../" * depth
     switch = ("../../" if lang == "en" and depth else "../" if lang == "en" else "../en/" if depth else "en/") + current_route
@@ -216,22 +282,107 @@ def _metrics_table(methods: list[dict[str, Any]], lang: str) -> str:
     return f'<div class="table-scroll"><table class="metrics"><thead><tr>{"".join(f"<th>{_e(h)}</th>" for h in headers)}</tr></thead><tbody>{"".join(body)}</tbody></table></div>'
 
 
-def _resource_table(methods: list[dict[str, Any]], lang: str) -> str:
+def _grouped_metric_tables(
+    methods: list[dict[str, Any]],
+    groups: tuple[Any, ...],
+    metric_field: str,
+    lang: str,
+) -> str:
     zh = lang == "zh"
-    metrics = (
-        ("memory_peak", "峰值内存", "Peak memory", _format_mib),
-        ("network_rx", "接收数据", "Network received", _format_mib),
-        ("network_tx", "发送数据", "Network sent", _format_mib),
-        ("cpu_utilization", "CPU 平均使用率", "Mean CPU utilization", lambda value: "—" if value is None else f"{value:.1f}%"),
+    sections = []
+    for group_zh, group_en, metrics in groups:
+        rows = []
+        for label_zh, label_en, key, formatter, lower_is_better in metrics:
+            localized_formatter = (
+                (lambda value: "—" if value is None else f"{value / 1000:.1f} s")
+                if not zh and formatter is _format_ms
+                else formatter
+            )
+            metric_winners = {
+                stat: (
+                    _unique_winners(
+                        [
+                            {
+                                "id": method["id"],
+                                "value": (method[metric_field].get(key) or {}).get(stat),
+                            }
+                            for method in methods
+                        ],
+                        "value",
+                        higher=False,
+                    )
+                    if lower_is_better
+                    else set()
+                )
+                for stat in ("mean", "p50", "p95")
+            }
+            cells = [_e(label_zh if zh else label_en)]
+            for method in methods:
+                cells.append(
+                    _metric_lines(
+                        method[metric_field].get(key) or _stat([]),
+                        localized_formatter,
+                        method["id"],
+                        metric_winners,
+                        lang=lang,
+                    )
+                )
+            rows.append("<tr>" + "".join(f"<td>{cell}</td>" for cell in cells) + "</tr>")
+        headers = (
+            "指标" if zh else "Metric",
+            *(method["label"] for method in methods),
+        )
+        note = (
+            "绿色标记表示该统计项在全部参评浏览器中数值最低。CPU 使用率和网络速率只描述运行形态，不判优。"
+            if zh
+            else "Green marks the uniquely lowest value across all registered browsers. CPU utilization and network rates describe workload shape and are not ranked."
+        )
+        sections.append(
+            f'<section class="metric-group"><div class="metric-group-head"><h3>{_e(group_zh if zh else group_en)}</h3><p>{note}</p></div>'
+            f'<div class="table-scroll"><table><thead><tr>{"".join(f"<th>{_e(h)}</th>" for h in headers)}</tr></thead><tbody>{"".join(rows)}</tbody></table></div></section>'
+        )
+    return '<div class="metric-groups">' + "".join(sections) + "</div>"
+
+
+def _leader_cards(methods: list[dict[str, Any]], lang: str) -> str:
+    zh = lang == "zh"
+    specs = (
+        ("轨迹执行", "Trajectory execution", "timings", "trajectory_replay_ms", _format_ms),
+        ("CPU 时间", "CPU time", "resources", "cpu_ms", _format_ms),
+        ("峰值内存", "Peak memory", "resources", "memory_peak_bytes", _format_mib),
+        ("接收数据", "Data received", "resources", "network_rx_bytes", _format_mib),
     )
-    rows = []
-    for key, label_zh, label_en, formatter in metrics:
-        cells = [_e(label_zh if zh else label_en)]
-        for method in methods:
-            cells.append(_metric_lines(method[key], formatter, method["id"], {stat: set() for stat in ("mean", "p50", "p95")}, lang=lang))
-        rows.append("<tr>" + "".join(f"<td>{cell}</td>" for cell in cells) + "</tr>")
-    headers = ("资源指标" if zh else "Resource metric", *(method["label"] for method in methods))
-    return f'<div class="table-scroll"><table><thead><tr>{"".join(f"<th>{_e(h)}</th>" for h in headers)}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
+    cards = []
+    for label_zh, label_en, field, key, formatter in specs:
+        values = [
+            (method, (method[field].get(key) or {}).get("mean"))
+            for method in methods
+        ]
+        numeric = [(method, value) for method, value in values if isinstance(value, (int, float))]
+        if not numeric:
+            continue
+        best = min(value for _, value in numeric)
+        leaders = [method for method, value in numeric if value == best]
+        leader = "、".join(str(item["label"]) for item in leaders) if zh else ", ".join(str(item["label"]) for item in leaders)
+        rendered_value = (
+            ("—" if best is None else f"{best / 1000:.1f} s")
+            if not zh and formatter is _format_ms
+            else formatter(best)
+        )
+        cards.append(
+            f'<article><span>{_e(label_zh if zh else label_en)}</span><strong>{_e(leader)}</strong><b>{_e(rendered_value)}</b><small>{"共同通过任务的均值" if zh else "Mean on shared passes"}</small></article>'
+        )
+    return '<div class="leader-grid">' + "".join(cards) + "</div>"
+
+
+def _resource_comparison(methods: list[dict[str, Any]], lang: str) -> str:
+    return _leader_cards(methods, lang) + _grouped_metric_tables(
+        methods, RESOURCE_GROUPS, "resources", lang
+    )
+
+
+def _timing_comparison(methods: list[dict[str, Any]], lang: str) -> str:
+    return _grouped_metric_tables(methods, TIMING_GROUPS, "timings", lang)
 
 
 def _copy_failure_screenshot(attempt: dict[str, Any], output: Path, key: str) -> str | None:
@@ -460,7 +611,7 @@ def _task_page(lang: str, task: dict[str, Any], peers: list[dict[str, Any]]) -> 
 def _assets(output: Path) -> None:
     css = r''':root{--bg:#f4f7fb;--panel:#fff;--ink:#102235;--muted:#60748a;--line:#d4e0ec;--accent:#0969da;--good:#087f4f;--bad:#c52c45;--wash:#eaf3ff}html[data-theme=dark]{--bg:#0c1520;--panel:#121f2d;--ink:#eef5fb;--muted:#9db0c2;--line:#2b4054;--accent:#62a8ff;--good:#4ed29b;--bad:#ff7d91;--wash:#142d49}*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Inter,ui-sans-serif,system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}.top{height:70px;display:flex;align-items:center;gap:28px;padding:0 max(24px,calc((100% - 1440px)/2));background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}.brand{font-weight:900;color:var(--ink);text-decoration:none;white-space:nowrap}.top nav{display:flex;gap:22px;overflow:auto;flex:1}.top nav a,.language{color:var(--accent);text-decoration:none;white-space:nowrap}.top nav a[aria-current=page]{color:var(--ink);font-weight:800;border-bottom:3px solid var(--ink)}.theme{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:50%;width:38px;height:38px}main,footer{width:min(1440px,calc(100% - 48px));margin:auto}footer{padding:36px 0;color:var(--muted);border-top:1px solid var(--line)}section{padding:34px 0}.hero{padding:46px 0 28px}.hero h1,.detail-hero h1{font-size:clamp(36px,5vw,68px);line-height:1.08;margin:8px 0 14px;letter-spacing:-.04em}.hero p,.detail-hero p{max-width:880px;color:var(--muted);font-size:18px}.eyebrow{text-transform:uppercase;letter-spacing:.14em;color:var(--accent)!important;font-size:13px!important;font-weight:800}h2{font-size:30px;margin:0 0 16px}.table-scroll{overflow:auto;border:1px solid var(--line);border-radius:16px;background:var(--panel)}table{border-collapse:collapse;width:100%;min-width:900px}th,td{text-align:left;vertical-align:top;padding:14px 16px;border-bottom:1px solid var(--line)}th{background:color-mix(in srgb,var(--wash) 70%,var(--panel));font-size:14px;position:sticky;top:0}td{overflow-wrap:anywhere}.metrics td{min-width:150px}.metric-label{display:inline-block;width:42px;color:var(--muted);font-size:13px}.winner{color:var(--good)}.winner>span{display:inline-grid;place-items:center;margin-left:7px;min-width:24px;height:24px;padding:0 6px;border-radius:12px;background:var(--good);color:white;font-size:12px}.callout{padding:16px 18px;border-left:4px solid var(--accent);background:var(--panel);border-radius:0 12px 12px 0}.summary-grid,.diagnosis-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.summary-grid article,.diagnosis-grid article{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;min-height:150px}.summary-grid strong,.diagnosis-grid strong{display:block;font-size:24px;margin:8px 0}.summary-grid span,.diagnosis-grid span{color:var(--muted);font-size:13px}.verdict.fail{border-left:5px solid var(--bad)}.verdict.pass{border-left:5px solid var(--good)}.filters{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.filters input,.filters select{padding:10px 12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:9px;min-width:170px}.inventory{height:620px;overflow:auto}.inventory table{min-width:1500px}.inventory tbody tr{cursor:pointer}.inventory tbody tr:hover{background:var(--wash)}.status-pass{color:var(--good);font-weight:800}.status-fail{color:var(--bad);font-weight:800}.failed-step{background:color-mix(in srgb,var(--bad) 10%,var(--panel))}.failed-step td:first-child{border-left:4px solid var(--bad)}pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:420px;overflow:auto;background:#071923;color:#dff4ff;padding:14px;border-radius:10px;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}figure{margin:22px 0}figure img{display:block;max-width:100%;border:1px solid var(--line);border-radius:12px}figcaption{color:var(--muted);font-size:13px}.evidence-actions{display:flex;gap:12px;flex-wrap:wrap}.evidence-actions a{padding:10px 14px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--accent);text-decoration:none}.detail-hero{padding-top:40px}.viewer{height:75vh}.viewer pre{height:100%;max-height:none}dialog{width:min(850px,calc(100% - 32px));border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--ink);padding:0}dialog::backdrop{background:#07111bbf}.dialog-head{display:flex;justify-content:space-between;padding:18px;border-bottom:1px solid var(--line)}.dialog-body{padding:18px}.dialog-head button{border:0;background:none;color:var(--ink);font-size:24px}.mermaid{width:100%;max-width:100%;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;overflow:auto}.flow-fallback{display:flex;align-items:stretch;gap:10px;overflow:auto;padding:18px;background:var(--panel);border:1px solid var(--line);border-radius:14px}.flow-node{min-width:150px;padding:14px;border-radius:10px;background:var(--wash)}.flow-node strong{display:block;color:var(--accent);margin-bottom:6px}.flow-arrow{display:grid;place-items:center;color:var(--muted);font-size:24px}@media(max-width:720px){.top{padding:0 16px;gap:14px}.top nav{gap:14px}main,footer{width:calc(100% - 28px)}section{padding:26px 0}.hero h1,.detail-hero h1{font-size:36px}.inventory{height:560px}.language{display:none}}'''
     css += r'''
-html{scroll-padding-top:88px}a{color:var(--accent)}button,summary{cursor:pointer}
+html{scroll-padding-top:88px}a{color:var(--accent)}button,summary{cursor:pointer}.top nav{min-width:0}
 .top nav a{padding:20px 0 15px}.top nav a:hover{text-decoration:underline}
 .hero{padding:54px 0 38px;border-bottom:1px solid var(--line)}.hero h1{max-width:1100px}
 .compact-section{padding:22px 0}.detail-hero{padding:40px 0 28px;border-bottom:1px solid var(--line)}
@@ -494,7 +645,9 @@ dialog{max-height:90vh;overflow:auto}.dialog-head{position:sticky;top:0;backgrou
 body{background:linear-gradient(180deg,var(--wash) 0,transparent 240px),var(--bg);font-size:15px}.top{height:58px;gap:17px;padding:0 max(20px,calc((100% - 1180px)/2));background:color-mix(in srgb,var(--panel) 92%,transparent);backdrop-filter:blur(14px)}.top nav{gap:17px}.top nav a,.language{font-size:14px}.theme{border-radius:999px;width:auto;height:auto;padding:6px 12px}main,footer{width:min(1180px,calc(100% - 40px))}section{padding:38px 0;border-top:1px solid var(--line)}.hero{padding:38px 0 30px;border:0}.hero h1{font-size:clamp(34px,5vw,58px)}h2{font-size:clamp(25px,3vw,36px);line-height:1.16}.table-scroll{border-radius:13px;box-shadow:var(--shadow)}th{background:var(--panel2);font-size:12px;white-space:nowrap}tbody tr:hover{background:var(--wash)}
 .method-comparison{padding:24px;border:1px solid var(--line);border-radius:18px;background:var(--panel);box-shadow:var(--shadow)}.comparison-heading{display:flex;justify-content:space-between;align-items:start;gap:24px;margin-bottom:20px}.comparison-heading h2{margin-bottom:6px;font-size:25px}.comparison-heading p{margin:0;color:var(--muted)}.comparison-count{white-space:nowrap;padding:7px 11px;border-radius:999px;background:var(--wash);color:var(--accent);font-size:13px}.comparison-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.comparison-controls label{display:grid;gap:5px;font-size:13px;font-weight:700}.comparison-controls select{width:100%;padding:10px 12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;font:inherit}.comparison-methods{border:0;padding:0;margin:18px 0}.comparison-methods legend{font-weight:700}.method-checks,.outcome-list{display:flex;gap:7px;flex-wrap:wrap}.compare-chip{display:flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid var(--line);border-radius:999px;background:var(--bg);cursor:pointer}.compare-chip.disabled{opacity:.45;cursor:not-allowed}.compare-chip input{accent-color:var(--accent)}.outcome-pill{display:inline-block;padding:5px 9px;border-radius:8px;font-size:13px;white-space:nowrap;text-decoration:none}.outcome-pill.pass{background:color-mix(in srgb,var(--good) 12%,var(--panel));color:var(--good)}.outcome-pill.fail{background:color-mix(in srgb,var(--bad) 12%,var(--panel));color:var(--bad)}.matrix-table table{min-width:760px}.matrix-table th:nth-child(n+3),.matrix-table td:nth-child(n+3){min-width:270px}.matrix-table td{vertical-align:middle;overflow-wrap:normal}
 .dataset-browser{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:var(--shadow)}.dataset-browser h2{margin-bottom:4px}.dataset-browser>p{margin:0;color:var(--muted)}.dataset-controls{display:grid;grid-template-columns:minmax(220px,2fr) repeat(3,minmax(145px,1fr));gap:12px;margin:22px 0 10px}.dataset-controls label{display:grid;gap:5px;color:var(--muted);font-size:13px;font-weight:700}.dataset-controls input,.dataset-controls select{width:100%;padding:10px 12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;font:inherit}.dataset-count{color:var(--accent);font-weight:700;margin:10px 0}.dataset-table{height:590px}.dataset-table table{min-width:950px}.dataset-table td,.dataset-table th{vertical-align:middle;white-space:normal;overflow-wrap:normal}.dataset-table td:nth-child(2){min-width:190px}.dataset-table td:nth-child(3){min-width:330px;max-width:460px}.intent-preview{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.45}.dataset-table td:last-child{white-space:nowrap}.dataset-table a{font-weight:700}.dataset-actions{display:flex;gap:10px;flex-wrap:wrap}.dataset-actions a{white-space:nowrap}.dataset-table tbody tr:hover{background:var(--wash)}.dataset-empty{color:var(--muted);padding:20px 0}
-.mermaid svg{min-width:850px;height:auto!important}.flow-fallback{font-size:14px}.flow-node{min-width:170px}
+.leader-grid,.reading-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:18px 0}.leader-grid article,.reading-grid article{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;min-height:148px}.leader-grid span,.leader-grid small{display:block;color:var(--muted)}.leader-grid strong{display:block;font-size:20px;margin:7px 0 2px}.leader-grid b{display:block;color:var(--good);font-size:24px;margin-bottom:5px}.reading-grid h3{margin:0 0 8px}.reading-grid p{margin:0;color:var(--muted)}
+.metric-groups{display:grid;gap:20px;margin-top:18px}.metric-group{padding:0}.metric-group-head{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:8px}.metric-group-head h3{font-size:22px;margin:0}.metric-group-head p{max-width:720px;margin:0;color:var(--muted);font-size:13px;text-align:right}.metric-group table{min-width:780px}.metric-group td:first-child{min-width:190px;font-weight:700}.compact-table{margin-top:18px}.compact-table table{min-width:560px}.compact-table td:first-child{width:75%}
+.metric-groups,.metric-group{min-width:0}.mermaid svg{min-width:850px;height:auto!important}.flow-fallback{font-size:14px}.flow-node{min-width:170px}
 .review-table table{min-width:1120px}.review-table td:first-child{min-width:145px;font-weight:700}.review-table td:nth-child(n+2){min-width:230px;max-width:320px}.review-table td{overflow-wrap:anywhere}
 .trajectory-columns,.aligned-step{display:grid;grid-template-columns:48px minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
 .trajectory-columns{padding:0 18px 10px;color:var(--muted);font-size:13px}.aligned-step{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px 18px}
@@ -502,6 +655,7 @@ body{background:linear-gradient(180deg,var(--wash) 0,transparent 240px),var(--bg
 .mobile-step-label{display:none;color:var(--muted);font-size:12px}.step-dialog-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.step-dialog-grid>div{min-width:0}.step-dialog-grid pre{max-height:250px}.step-dialog-grid h3{margin-top:8px}.step-dialog-grid pre,[data-step-result],[data-step-error]{max-width:100%}
 @media(max-width:760px){.top{padding:0 14px}.comparison-heading{display:block}.comparison-count{display:inline-block;margin-top:10px}.comparison-controls{grid-template-columns:1fr}.method-comparison{padding:16px}main,footer{width:calc(100% - 28px)}}
 @media(max-width:760px){.dataset-browser{padding:16px}.dataset-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.dataset-controls label:first-child{grid-column:1/-1}.dataset-table{height:510px}}
+@media(max-width:760px){.metric-group-head{display:block}.metric-group-head p{text-align:left;margin-top:4px}.leader-grid,.reading-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.trajectory-columns{display:none}.aligned-step{grid-template-columns:34px minmax(0,1fr);padding:12px}.aligned-index{grid-row:1/3}.aligned-standard{border-right:0;border-bottom:1px solid var(--line);padding:0 0 10px}.mobile-step-label{display:block}.step-dialog-grid{grid-template-columns:1fr}}
 '''
     js = r'''const lang=document.documentElement.lang;
@@ -761,19 +915,44 @@ def build_webarena_replay_report(
         )
         action_latency = _stat(action_by_engine[engine])
         comparable_rows = [item for item in rows if item["task_id"] in passing_tasks]
-        cpu = _stat(
-            [float((item.get("resource") or {}).get("cpu_ms") or 0) for item in comparable_rows]
-        )
-        memory = _stat(
-            [
-                float((item.get("resource") or {}).get("memory_mean_bytes") or 0)
-                for item in comparable_rows
-            ]
-        )
-        memory_peak = _stat([float((item.get("resource") or {}).get("memory_peak_bytes") or 0) for item in comparable_rows])
-        network_rx = _stat([float((item.get("resource") or {}).get("network_rx_bytes") or 0) for item in comparable_rows])
-        network_tx = _stat([float((item.get("resource") or {}).get("network_tx_bytes") or 0) for item in comparable_rows])
-        cpu_utilization = _stat([float((item.get("resource") or {}).get("cpu_average_utilization_pct") or 0) for item in comparable_rows])
+        resource_keys = {
+            key
+            for _, _, metric_specs in RESOURCE_GROUPS
+            for _, _, key, _, _ in metric_specs
+        }
+        timing_keys = {
+            key
+            for _, _, metric_specs in TIMING_GROUPS
+            for _, _, key, _, _ in metric_specs
+        }
+        resource_metrics = {
+            key: _stat(
+                [
+                    float(value)
+                    for item in comparable_rows
+                    if isinstance(
+                        value := (item.get("resource") or {}).get(key),
+                        (int, float),
+                    )
+                ]
+            )
+            for key in resource_keys
+        }
+        timing_metrics = {
+            key: _stat(
+                [
+                    float(value)
+                    for item in comparable_rows
+                    if isinstance(
+                        value := (item.get("timings") or {}).get(key),
+                        (int, float),
+                    )
+                ]
+            )
+            for key in timing_keys
+        }
+        cpu = resource_metrics["cpu_ms"]
+        memory = resource_metrics["memory_mean_bytes"]
         method_rows.append(
             {
                 "id": method["id"],
@@ -790,10 +969,8 @@ def build_webarena_replay_report(
                 "cpu_mean": cpu["mean"],
                 "memory": memory,
                 "memory_mean": memory["mean"],
-                "memory_peak": memory_peak,
-                "network_rx": network_rx,
-                "network_tx": network_tx,
-                "cpu_utilization": cpu_utilization,
+                "resources": resource_metrics,
+                "timings": timing_metrics,
                 "physical_executions": len(
                     [item for item in results["physical_executions"] if item["engine"] == engine]
                 ),
@@ -918,12 +1095,54 @@ def build_webarena_replay_report(
                 if count:
                     stage_rows.append(f'<tr><td>{_e(method["label"])}</td><td>{label_pair[0 if zh else 1]}</td><td>{count}</td><td><a href="results.html?engine={_e(engine)}&status=fail&stage={code}">{"下钻到失败结果" if zh else "Inspect failures"} →</a></td></tr>')
         stage_table = f'<div class="table-scroll stage-table"><table><thead><tr><th>{"浏览器" if zh else "Browser"}</th><th>{"失败环节" if zh else "Failure stage"}</th><th>{"结果数" if zh else "Outcomes"}</th><th>{"逐题证据" if zh else "Per-task evidence"}</th></tr></thead><tbody>{"".join(stage_rows)}</tbody></table></div>'
+        resource_comparison = _resource_comparison(method_rows, lang)
+        timing_comparison = _timing_comparison(method_rows, lang)
         summary_body = f'''<section class="hero"><p class="eyebrow">{eyebrow}</p><h1>{"浏览器轨迹重放评测" if zh else "Browser Trajectory Replay"}</h1><p>{"90 条经过资格验证的固定操作轨迹依次在全部注册浏览器上执行。Agent 与模型不参与；每题重置站点，浏览器方法之间完全销毁环境。" if zh else "The same 90 qualified fixed action trajectories ran serially on every registered browser. No Agent or model participated. Sites were reset per task and torn down between browser methods."}</p><div class="detail-links"><a href="results.html">{"逐题查看结果与报错" if zh else "Explore outcomes and exact errors"}</a><a href="dataset.html">{"查看任务与标准轨迹" if zh else "Task contracts and qualified trajectories"}</a></div></section>
         <section><h2>{"核心指标" if zh else "Core metrics"}</h2><p class="callout">{f"通过率覆盖全部 {task_count} 题；端到端耗时、CPU 和内存只比较所有浏览器共同通过的 {shared_count} 题，避免提前失败缩短工作量。单次动作耗时含实际工具调用，调用次数不判优。" if zh else f"Pass rate covers all {task_count} tasks. End-to-end time, CPU, and memory use the {shared_count} tasks passed by every browser so early failure cannot shorten workload. Per-action latency covers actual tool calls; call counts are not ranked."}</p>{_metrics_table(method_rows, lang)}</section>
-        <section><h2>{"资源与网络" if zh else "Resources and network"}</h2><p>{f"下表也只统计共同通过的 {shared_count} 题；每个数值按单题采样。网络传输量和 CPU 使用率不直接判优，低数值可能来自缓存或等待，而非浏览器更快。" if zh else f"These per-task samples also cover the {shared_count} shared passes. Network bytes and CPU utilization are not ranked: lower values can reflect caching or waiting, not a faster browser."}</p><details class="matrix-disclosure"><summary>{"展开资源与网络统计" if zh else "Open resource and network statistics"}</summary>{_resource_table(method_rows, lang)}</details></section>
+        <section><h2>{"速度分解" if zh else "Timing breakdown"}</h2><p>{f"五个阶段均按共同通过的 {shared_count} 题统计。轨迹执行是浏览器实际完成固定动作的时间；环境准备、证据整理和验收单独列出，避免把外围工作混进浏览器执行速度。" if zh else f"All five phases use the {shared_count} shared passes. Trajectory execution is the time spent performing frozen browser actions; environment preparation, evidence finalization, and evaluation remain separate so browser execution is not mixed with surrounding work."}</p>{timing_comparison}</section>
+        <section><h2>{"资源与网络" if zh else "Resources and network"}</h2><p>{f"以下统计同样只覆盖共同通过的 {shared_count} 题。绿色标记只用于含义明确的低耗用指标；CPU 使用率和网络速率不按低值判优。资源领先与任务通过率分开判断。" if zh else f"These statistics also cover only the {shared_count} shared passes. Green marks only metrics where lower consumption has a clear meaning; CPU utilization and network rates are not ranked by the lowest value. Resource leadership is separate from task pass rate."}</p>{resource_comparison}</section>
         <section><h2>{"失败发生在哪个环节" if zh else "Where failures occurred"}</h2><p>{"动作报错与提交请求未出现分别统计。后者表示工具调用返回成功，但验收要求的网络请求没有发生；不能据此改判通过。逐题详情给出触发动作、验收规则和复核原因。" if zh else "Action errors and absent submission requests are counted separately. In the latter case the tool call returned success, but the required network request did not occur; this does not justify changing the verdict to pass. Task detail shows the trigger action, evaluator rule, and reviewed cause."}</p>{stage_table}</section>
         <section><h2>{"浏览器动作耗时" if zh else "Browser action latency"}</h2><p>{"均值、P50、P95 按单次调用统计；调用次数只说明工作量。下钻到结果详情可查看具体动作耗时和工具返回。" if zh else "Mean, P50, and P95 are per-call statistics; call counts only describe workload. Open a task result for the individual action timing and full tool response."}</p><details class="matrix-disclosure"><summary>{"展开各类动作耗时" if zh else "Open latency by action type"}</summary>{action_table}</details></section>'''
         (root / "index.html").write_text(_shell(lang, "index", "浏览器轨迹重放" if zh else "Browser Trajectory Replay", summary_body, current_route="index.html"), encoding="utf-8")
+
+        pass_best = max(method_rows, key=lambda item: item["pass_rate"])
+        trajectory_best = min(
+            method_rows,
+            key=lambda item: float(item["timings"]["trajectory_replay_ms"]["mean"]),
+        )
+        memory_best = min(
+            method_rows,
+            key=lambda item: float(item["resources"]["memory_peak_bytes"]["mean"]),
+        )
+        cause_counts: dict[tuple[str, str], int] = defaultdict(int)
+        for row in public_rows:
+            if row["status"] == "pass":
+                continue
+            label = (row["cause_zh"], row["cause_en"])
+            cause_counts[label] += 1
+        cause_rows = "".join(
+            f'<tr><td>{_e(label_zh if zh else label_en)}</td><td>{count}</td></tr>'
+            for (label_zh, label_en), count in sorted(
+                cause_counts.items(), key=lambda item: (-item[1], item[0][0])
+            )
+        )
+        cause_table = f'<div class="table-scroll compact-table"><table><thead><tr><th>{"复核分类" if zh else "Reviewed category"}</th><th>{"失败结果数" if zh else "Failed outcomes"}</th></tr></thead><tbody>{cause_rows}</tbody></table></div>'
+        interpretation_body = f'''<section class="hero"><p class="eyebrow">{"报告解读" if zh else "Report interpretation"}</p><h1>{"固定轨迹下，差异出现在通过率、执行时间和资源占用" if zh else "Fixed trajectories expose differences in completion, timing, and resource use"}</h1><p>{f"本页解释 {task_count} 个任务、{len(method_rows)} 个浏览器方法的测量结果。通过率使用全部任务；速度与资源只比较 {shared_count} 个所有浏览器都完成的任务。" if zh else f"This page interprets measurements from {task_count} tasks and {len(method_rows)} browser methods. Pass rate uses the full task set; timing and resources use the {shared_count} tasks completed by every browser."}</p></section>
+        <section><h2>{"先看任务是否完成" if zh else "Start with task completion"}</h2><p>{f"{_e(pass_best['label'])} 通过 {pass_best['passed']}/{pass_best['total']} 题（{pass_best['pass_rate'] * 100:.1f}%），是本轮通过率最高的方法。固定轨迹移除了 Agent 规划和模型输出差异，因此这里测到的是浏览器执行同一组动作后的结果，不代表自主 Browser Use 的综合能力。" if zh else f"{_e(pass_best['label'])} passed {pass_best['passed']}/{pass_best['total']} tasks ({pass_best['pass_rate'] * 100:.1f}%), the highest pass rate in this run. Frozen trajectories remove Agent planning and model output differences, so this measures browser execution of the same actions rather than overall autonomous Browser Use capability."}</p>{_metrics_table(method_rows, lang)}</section>
+        <section><h2>{"失败停在哪一步" if zh else "Where failures stop"}</h2><p>{"程序定位回答失败发生在浏览器动作、动作完成后的副作用检查，还是官方验收；复核分类再说明可见证据支持的具体原因。点击结果分析中的“诊断”可直接查看报错、触发动作和处理状态。" if zh else "Programmatic location separates browser-action failures, missing side effects after a completed action, and official evaluation failures. Reviewed categories then state the specific cause supported by evidence. Open Diagnose in Results analysis for the error, trigger action, and treatment status."}</p>{stage_table}{cause_table}<div class="detail-links"><a href="results.html?status=fail">{"查看全部失败与逐步证据" if zh else "Inspect every failure and step evidence"}</a></div></section>
+        <section><h2>{"共同完成任务上的速度" if zh else "Timing on tasks every browser completed"}</h2><p>{f"按轨迹执行均值，{_e(trajectory_best['label'])} 为 {_format_ms(trajectory_best['timings']['trajectory_replay_ms']['mean'])}。均值反映总体工作量，P50 描述典型任务，P95 显示慢任务尾部；三者都需一起看。" if zh else f"By mean trajectory execution time, {_e(trajectory_best['label'])} recorded {_format_ms(trajectory_best['timings']['trajectory_replay_ms']['mean']).replace('秒', 's')}. The mean reflects total workload, P50 describes a typical task, and P95 shows the slow tail; all three matter."}</p>{timing_comparison}</section>
+        <section><h2>{"资源结论与通过率分开" if zh else "Resource results are separate from pass rate"}</h2><p>{f"{_e(memory_best['label'])} 的平均峰值内存最低，为 {_format_mib(memory_best['resources']['memory_peak_bytes']['mean'])}。低内存或低网络流量不会抵消失败任务，也不能单独证明浏览器更快；它们只描述共同完成任务时的资源开销。" if zh else f"{_e(memory_best['label'])} had the lowest mean peak memory at {_format_mib(memory_best['resources']['memory_peak_bytes']['mean'])}. Lower memory or network traffic does not offset failed tasks and does not by itself prove a faster browser; these metrics describe resource cost on shared passes."}</p>{resource_comparison}</section>
+        <section><h2>{"这份结果可以回答什么" if zh else "What this result supports"}</h2><div class="reading-grid"><article><h3>{"可以回答" if zh else "Supported"}</h3><p>{"同一批资格轨迹在各浏览器上的通过差异、失败位置、逐步工具返回、共同完成任务上的速度与资源开销。" if zh else "Pass differences, failure location, per-step tool responses, and timing and resource cost on tasks completed by every browser."}</p></article><article><h3>{"不能回答" if zh else "Not established"}</h3><p>{"Agent 会不会选对操作、模型会不会理解任务，以及换一批任务后的总体能力。它们需要单独的自主 Browser Use 评测。" if zh else "Whether an Agent chooses the right action, whether a model understands the task, or capability on a different task population. Those require a separate autonomous Browser Use evaluation."}</p></article></div></section>'''
+        (root / "interpretation.html").write_text(
+            _shell(
+                lang,
+                "interpretation",
+                "报告解读" if zh else "Report interpretation",
+                interpretation_body,
+                current_route="interpretation.html",
+            ),
+            encoding="utf-8",
+        )
 
         headers = ["任务" if zh else "Task", "站点" if zh else "Site", "任务目标" if zh else "Task goal", "类型" if zh else "Type", "轨迹来源" if zh else "Trajectory source", "标准动作" if zh else "Qualified actions", "下钻" if zh else "Drill down"]
         matrix_rows = []
@@ -949,7 +1168,7 @@ def build_webarena_replay_report(
             cause = row["cause_zh"] if zh else row["cause_en"]
             status = ("通过" if row["status"] == "pass" else "失败") if zh else row["status"].title()
             stage_label = {"browser_tool_execution": "浏览器动作" if zh else "Browser action", "side_effect_not_observed": "提交请求未出现" if zh else "Submission request absent", "official_evaluation": "官方验收" if zh else "Official evaluation", "pass": "—"}.get(row["failure_stage"], row["failure_stage"])
-            result_rows.append(f'<tr data-key="{row["key"]}" data-task="{row["task_id"]}" data-engine="{_e(row["engine"])}" data-status="{row["status"]}" data-site="{_e(row["sites"][0] if row["sites"] else "")}" data-stage="{_e(row["failure_stage"])}" data-cause="{_e((row["cause_zh"] or row["cause_en"]))}"><td><a href="task/{row["task_id"]}.html">#{row["task_id"]}</a><button type="button" data-open-diagnosis>{"诊断" if zh else "Diagnose"}</button></td><td><a href="result/{row["key"]}.html">{_e(row["browser"])}</a></td><td>{_e(row["sites"][0] if row["sites"] else "")}</td><td class="status-{row["status"]}">{status}</td><td>{row["completed_actions"]}/{row["action_count"]}</td><td>{_e(stage_label)}</td><td>{_e(cause) if cause else "—"}</td><td><a href="result/{row["key"]}.html">{"证据页" if zh else "Evidence page"}</a></td></tr>')
+            result_rows.append(f'<tr data-key="{row["key"]}" data-task="{row["task_id"]}" data-engine="{_e(row["engine"])}" data-status="{row["status"]}" data-site="{_e(row["sites"][0] if row["sites"] else "")}" data-stage="{_e(row["failure_stage"])}" data-cause="{_e((row["cause_zh"] or row["cause_en"]))}"><td><a href="task/{row["task_id"]}.html">#{row["task_id"]}</a><button type="button" data-open-diagnosis>{"诊断" if zh else "Diagnose"}</button></td><td><a href="result/{row["key"]}.html">{_e(row["browser"])}</a></td><td>{_e(row["sites"][0] if row["sites"] else "")}</td><td class="status-{row["status"]}">{status}</td><td>{row["completed_actions"]}/{row["action_count"]}</td><td>{_e(stage_label)}</td><td>{_e(cause) if cause else "—"}</td><td><a href="result/{row["key"]}.html">{"详情页" if zh else "Details"}</a></td></tr>')
         browser_options = "".join(f'<option value="{_e(key)}">{_e(item["label"])}</option>' for key, item in methods.items())
         site_options = "".join(f'<option value="{_e(site)}">{_e(site)}</option>' for site in sorted({s for row in public_rows for s in row["sites"]}))
         stage_labels = {"browser_tool_execution": ("浏览器动作", "Browser action"), "side_effect_not_observed": ("提交请求未出现", "Submission request absent"), "official_evaluation": ("官方验收", "Official evaluation")}
@@ -1046,7 +1265,7 @@ def build_webarena_replay_report(
         "logical_results": len(public_rows),
         "failed_results": sum(row["status"] != "pass" for row in public_rows),
         "reviewed_failures": len(reviews),
-        "routes": 12 + 2 * len(public_rows) + 2 * len(tasks),
+        "routes": 14 + 2 * len(public_rows) + 2 * len(tasks),
     }
     _write_json(output / "report-manifest.json", manifest)
     return manifest

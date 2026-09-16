@@ -147,6 +147,7 @@ def check(report_dir: Path) -> dict[str, int]:
         "index.html",
         "dataset.html",
         "results.html",
+        "interpretation.html",
         "environment.html",
         "review.html",
         "evidence-viewer.html",
@@ -177,6 +178,7 @@ def check(report_dir: Path) -> dict[str, int]:
         ">Browser Trajectory Replay</title>",
         ">Dataset</title>",
         ">Results</title>",
+        ">Report interpretation</title>",
         ">Environment</title>",
         ">Review history</title>",
         ">Evidence viewer</title>",
@@ -238,6 +240,18 @@ def check(report_dir: Path) -> dict[str, int]:
         review_html = (language_root / "review.html").read_text(encoding="utf-8")
         if 'class="table-scroll review-table"' not in review_html or review_html.count('<tbody><tr>') != 1:
             raise ValueError("review history must describe review rounds, not enumerate per-result audits")
+        interpretation_html = (language_root / "interpretation.html").read_text(encoding="utf-8")
+        if (
+            'class="metric-groups"' not in interpretation_html
+            or 'class="leader-grid"' not in interpretation_html
+        ):
+            raise ValueError("interpretation must include grouped timing and resource comparisons")
+        home_html = (language_root / "index.html").read_text(encoding="utf-8")
+        if (
+            home_html.count('class="metric-groups"') < 2
+            or home_html.count('class="winner"') < 1
+        ):
+            raise ValueError("home must include complete grouped timing/resource tables and winners")
     js = (root / "assets/app.js").read_text(encoding="utf-8")
     if "const task=params.get('task');" not in js or "row.dataset.task===task" not in js:
         raise ValueError("dataset-to-results drilldown must select an exact task ID")

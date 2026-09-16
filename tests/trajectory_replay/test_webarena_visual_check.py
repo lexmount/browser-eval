@@ -31,7 +31,9 @@ def test_routes_include_failure_detail_and_evidence(tmp_path) -> None:
     assert "result/moli-1.html" in routes
     assert _first_failed_key(tmp_path) == "moli-1"
     assert "evidence-viewer.html?file=data/evidence/moli-1.json" in routes
-    assert len(routes) == 14
+    assert "interpretation.html" in routes
+    assert "en/interpretation.html" in routes
+    assert len(routes) == 16
 
 
 def test_routes_support_an_all_pass_report(tmp_path) -> None:
@@ -41,4 +43,4 @@ def test_routes_support_an_all_pass_report(tmp_path) -> None:
 
     assert all("result/" not in route and "evidence-viewer" not in route for route in routes)
     assert _first_failed_key(tmp_path) is None
-    assert len(routes) == 10
+    assert len(routes) == 12
