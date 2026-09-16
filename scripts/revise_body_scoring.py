@@ -24,9 +24,19 @@ ALLOWED_FIELDS = {
     'acceptance_contract', 'forbidden_any', 'expected_resources',
     'resource_output_contract', 'task_prompt',
     'mutable_body_policy',
+    'stable_text_evidence',
 }
 class IndependentReviewRequired(ValueError):
     """The prior review is valid history but cannot certify revised scores."""
+
+
+def _review_bindings_match(review: dict, dataset_hash: str, results_hash: str) -> bool:
+    """Require scoring-input bindings while allowing extra audit attestations."""
+    bindings = review.get('bindings')
+    return isinstance(bindings, dict) and (
+        bindings.get('dataset_sha256') == dataset_hash
+        and bindings.get('results_sha256') == results_hash
+    )
 
 
 def correction_provenance(category, root_cause, regression_ids, decisions=()):
@@ -79,9 +89,7 @@ def rebind_unchanged_result_review(path, before_dataset, before_results,
     review = json.loads(path.read_text())
     old_dataset_hash = hashlib.sha256(before_dataset).hexdigest()
     old_results_hash = hashlib.sha256(before_results).hexdigest()
-    if review.get('bindings') != {
-            'dataset_sha256': old_dataset_hash,
-            'results_sha256': old_results_hash}:
+    if not _review_bindings_match(review, old_dataset_hash, old_results_hash):
         raise ValueError('Existing result review is not bound to scoring inputs')
     before_document = json.loads(before_dataset)
     after_document = json.loads(after_dataset)
@@ -145,6 +153,7 @@ def rebind_unchanged_result_review(path, before_dataset, before_results,
             raise IndependentReviewRequired(
                 'Reviewed machine verdict changed; independent result review must be rerun')
     review['bindings'] = {
+        **review.get('bindings', {}),
         'dataset_sha256': hashlib.sha256(after_dataset).hexdigest(),
         'results_sha256': hashlib.sha256(after_results).hexdigest(),
     }
@@ -166,9 +175,7 @@ def archive_superseded_result_review(path: Path, *, before_dataset: bytes,
     review = json.loads(review_bytes)
     old_dataset_hash = hashlib.sha256(before_dataset).hexdigest()
     old_results_hash = hashlib.sha256(before_results).hexdigest()
-    if review.get('bindings') != {
-            'dataset_sha256': old_dataset_hash,
-            'results_sha256': old_results_hash}:
+    if not _review_bindings_match(review, old_dataset_hash, old_results_hash):
         raise ValueError('Existing result review is not bound to scoring inputs')
     history = path.parent/'review-history'
     history.mkdir(exist_ok=True)
@@ -200,9 +207,10 @@ def _revise_unlocked(source: Path, canonical_path: Path, *, root_cause_category:
     review_path = source/'result-review.json'
     if review_path.is_file():
         review = json.loads(review_path.read_text())
-        if review.get('bindings') != {
-                'dataset_sha256': hashlib.sha256(before_dataset).hexdigest(),
-                'results_sha256': hashlib.sha256(before_results).hexdigest()}:
+        if not _review_bindings_match(
+                review,
+                hashlib.sha256(before_dataset).hexdigest(),
+                hashlib.sha256(before_results).hexdigest()):
             raise ValueError('Existing result review is not bound to scoring inputs')
     # Validate and retain any preceding reference correction before changing
     # the dataset hash.  The rescore then checks both revisions against the

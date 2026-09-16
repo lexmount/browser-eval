@@ -805,6 +805,7 @@ def valid_scoring_revision(source) -> bool:
         'acceptance_contract', 'forbidden_any', 'expected_resources',
         'resource_output_contract', 'task_prompt',
         'mutable_body_policy',
+        'stable_text_evidence',
     }
     previous_output = None
     for index, row in enumerate(rows):
@@ -972,6 +973,7 @@ def reference_revision_cases(source) -> dict[str, set[str]]:
             "body_requirements", "required_patterns", "required_facts",
             "acceptance_contract", "forbidden_any", "expected_resources",
             "resource_output_contract", "task_prompt", "mutable_body_policy",
+            "stable_text_evidence",
         }
         for receipt in scoring if isinstance(scoring, list) else ():
             before, after = hash_pair(receipt, "input"), hash_pair(receipt, "output")

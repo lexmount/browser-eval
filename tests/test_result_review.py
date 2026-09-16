@@ -150,6 +150,32 @@ class ResultReviewTests(unittest.TestCase):
                 rebind_unchanged_result_review(
                     path,dataset,new_bytes,dataset,(json.dumps(changed)+'\n').encode(),rebound_at='later')
 
+    def test_rebind_accepts_and_preserves_additional_audit_attestation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            dataset=json.dumps({'cases':[{'id':'a','task_kind':'body'}]}).encode()
+            old={'attempt_id':'p__a__r001','provider':'p','case_id':'a',
+                 'artifact_path':'artifacts/a.txt','ok':True,'error_type':None,
+                 'metrics':{'content_pass':False,'content_sha256':'a'*64}}
+            new=json.loads(json.dumps(old));new['failure_category']='missing-content'
+            old_bytes=(json.dumps(old)+'\n').encode();new_bytes=(json.dumps(new)+'\n').encode()
+            review={'bindings':{
+                'dataset_sha256':hashlib.sha256(dataset).hexdigest(),
+                'results_sha256':hashlib.sha256(old_bytes).hexdigest(),
+                'formal_audit_sha256':'f'*64},
+                'review_protocol':{'scope':'all'},
+                'attempts':[{'attempt_id':old['attempt_id'],'machine_verdict':'fail',
+                             'agent_verdict':'fail','final_verdict':'fail'}]}
+            path=root/'result-review.json';path.write_text(json.dumps(review))
+
+            self.assertTrue(rebind_unchanged_result_review(
+                path,dataset,old_bytes,dataset,new_bytes,rebound_at='now'))
+
+            rebound=json.loads(path.read_text())
+            self.assertEqual(rebound['bindings']['formal_audit_sha256'],'f'*64)
+            self.assertEqual(rebound['bindings']['results_sha256'],
+                             hashlib.sha256(new_bytes).hexdigest())
+
     def test_completed_blind_review_rebases_across_score_only_fix(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);reviewed=root/'reviewed';current=root/'current'

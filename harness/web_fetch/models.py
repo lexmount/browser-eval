@@ -37,6 +37,7 @@ class EvalCase:
     source_verification: dict[str, Any] = field(default_factory=dict)
     task_kind: str = "body"
     acceptance_contract: dict[str, Any] = field(default_factory=dict)
+    stable_text_evidence: dict[str, Any] = field(default_factory=dict)
     mutable_body_policy: dict[str, Any] = field(default_factory=dict)
     body_requirements: dict[str, Any] = field(default_factory=dict)
     retrieval_hints: dict[str, Any] = field(default_factory=dict)

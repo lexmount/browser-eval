@@ -110,10 +110,19 @@ def adjudicate(case: dict, observed: dict | None, context: dict | None) -> tuple
             "decision": "unchanged_non_link_contract", "anchors": previous,
         }
     if not observed or not observed.get("all_observations_complete"):
-        return previous, {
+        # Structured list cases remain fully testable through record ownership,
+        # count, uniqueness, host, and path rules.  A prior literal must not be
+        # presented as newly verified stable text when the declared three-load
+        # source observation did not complete; absence of verified text is
+        # preferable to padding the contract.
+        anchors = [] if contract.get("schema") in LINK_SCHEMAS else previous
+        return anchors, {
             "case_id": case["id"], "schema": contract.get("schema"),
-            "decision": "retained_previous_source_evidence_observation_incomplete",
-            "anchors": previous,
+            "decision": ("removed_unverified_link_text_observation_incomplete"
+                         if contract.get("schema") in LINK_SCHEMAS
+                         else "retained_previous_source_evidence_observation_incomplete"),
+            "anchors": anchors,
+            "removed_previous_anchors": previous if not anchors else [],
             "observation_complete": False,
         }
     observations = [row for row in observed["observations"] if row.get("status") == "success"]

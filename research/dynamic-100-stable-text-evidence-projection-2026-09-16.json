@@ -1,0 +1,305 @@
+{
+  "schema_version": 1,
+  "kind": "dynamic_100_stable_text_evidence_projection",
+  "created_at": "2026-09-16T09:28:55.487781+00:00",
+  "provider_output_used": false,
+  "provider_calls": 0,
+  "input_canonical_dataset_sha256": "0e32aa53e2b01a0b709fd69b4a5e6bec3d0f2bc0e07c2ab4b8b6cde2df68369b",
+  "input_evidence_dataset_sha256": "0e32aa53e2b01a0b709fd69b4a5e6bec3d0f2bc0e07c2ab4b8b6cde2df68369b",
+  "source_observations_sha256": "4292456c389591d77b19e28f29ae1b5e188bcfbc34294cf43f06c11e277c6899",
+  "stable_text_adjudication_sha256": "6a06dd7762dd1150e4d7edb9f9cfbde126fa5b52341d2309e26b379b47648c5e",
+  "baseline_scope_dataset_sha256": "d863abd35d8b76036348d9ecc3aa23be6ed6fdb4f9fcef78a200af0d63b060cd",
+  "output_dataset_sha256": "5b20c78a6e2a9746ef01432011638c18ddcab609b7dd05712d3a123b15036753",
+  "projected_case_count": 48,
+  "projected_anchor_count": 1912,
+  "cases": [
+    {
+      "case_id": "dynamic-020-webscraper-io-test",
+      "anchor_count": 23,
+      "evidence_sha256": "26329eedf56eed40627f2717523637827d3b04f23e1a3246ffa105627d961ee6",
+      "manifest_sha256": "e2fdedd1fe084a113cc55c910f8b91d46e22c7355c6afe67b66f008f9da3847e"
+    },
+    {
+      "case_id": "dynamic-026-bilibili-rank",
+      "anchor_count": 34,
+      "evidence_sha256": "ba706da718db1025997490035294e3a212f4c7c841dd786399f0201c217a601d",
+      "manifest_sha256": "a2956fe240af151a1ac68847bbc0c6f0339a79457d78f5b22df3f43b685ced53"
+    },
+    {
+      "case_id": "dynamic-036-yonhap-home",
+      "anchor_count": 64,
+      "evidence_sha256": "21925167edeec3e0c161841da252c81cf9d442f7086b76faf413296accb8c842",
+      "manifest_sha256": "aa20c3e485435cd68aa4aa6e018fa31db51c5ef2dd71a32a7c994f8774f4f94d"
+    },
+    {
+      "case_id": "dynamic-047-naver-news",
+      "anchor_count": 30,
+      "evidence_sha256": "7d4e8bf9db8fe0fa94ae3a84af8dd8cb51f1c6e5ccf56ad1116f4b2f63dcaa8e",
+      "manifest_sha256": "7b8fc5adb7db6e76d769ae8540c6fc105d6c8485999ca627736786aef5a90e9b"
+    },
+    {
+      "case_id": "dynamic-049-amazon-com-s",
+      "anchor_count": 56,
+      "evidence_sha256": "fe65d88140647b395752cf663fe50399249e2146fc25c583d36e7583feb90da8",
+      "manifest_sha256": "a871e76a36faaf9857f821501a89ebba2c132d131d2538026ae8e273a93d712a"
+    },
+    {
+      "case_id": "dynamic-052-bilibili-com-v",
+      "anchor_count": 34,
+      "evidence_sha256": "a4b00c08d4e533e753d74ad2c022a8e2ac585b144bdf906d33af374921f47cbd",
+      "manifest_sha256": "89d455d207b49817690ec91345ecffd2a170e17f1d4b3595afcce6381defcdf5"
+    },
+    {
+      "case_id": "dynamic-053-qq-com",
+      "anchor_count": 29,
+      "evidence_sha256": "f5adf22e4a8ca8a77edc9170f64dfa502951373ef5f30f73bc9b02eeff68907e",
+      "manifest_sha256": "e1e698254a7cb4c426f5376fa4e9bd2e8f05b64520aff3886e0ac211efe41868"
+    },
+    {
+      "case_id": "dynamic-062-36kr-com-hot",
+      "anchor_count": 33,
+      "evidence_sha256": "4e673593673329408d39c61e8485bd290a696ac9a39cbc1e0c75f44ae7385827",
+      "manifest_sha256": "903e9090496884fc63d28aac5a0d99a6e313ed68f0ddf2668287309b41adf5cb"
+    },
+    {
+      "case_id": "dynamic-063-s-weibo-com-top",
+      "anchor_count": 19,
+      "evidence_sha256": "20f2a7017fb422ee572edf665b48a235c675e8b24e66d00c92943344f23f6029",
+      "manifest_sha256": "c2a6c8470ffce5da30a11cd73fd8c38ca0b13c3f56b1758536489070cdc755a9"
+    },
+    {
+      "case_id": "dynamic-065-franceinfo-home",
+      "anchor_count": 46,
+      "evidence_sha256": "3dfaace69921b3d964fea8cbf0323ceedd0e6c3316635ea9d59f65e5c8b5badf",
+      "manifest_sha256": "2b031adc428fb4e971bccac70af298410a6a074803b1493581e682280b8651fc"
+    },
+    {
+      "case_id": "dynamic-066-yahoo-co-jp",
+      "anchor_count": 85,
+      "evidence_sha256": "955f98b06c7084d8070dbf2d461a547fe84acf0703240987b71aaf795965a0f2",
+      "manifest_sha256": "ec9b9dd1a6343b412572018f7c26e87103403fce24c48f3c9b80e3e23fa9aefd"
+    },
+    {
+      "case_id": "dynamic-067-news-yahoo-co-jp",
+      "anchor_count": 43,
+      "evidence_sha256": "4fd0d01b4042f2fcfcdedc0d387ea7099b8701c2d171213e0070ed337310d435",
+      "manifest_sha256": "ce9eedb50162e72389e6c45df7e1ebadb695fef60eb2759d80b3c2eb8e4997c6"
+    },
+    {
+      "case_id": "dynamic-070-nintendo-feature",
+      "anchor_count": 65,
+      "evidence_sha256": "176e80fe576773b61889f70a083673e7c0e97aed48029b61404f233f694773ff",
+      "manifest_sha256": "660083801f2377914adb04a42e1c9d3014853b965bb8eeb13c24c91e3a3781f4"
+    },
+    {
+      "case_id": "dynamic-072-11st-headphones",
+      "anchor_count": 7,
+      "evidence_sha256": "29bb68455b5ba6cdfff176ad6fc7500c6f24690f51c2c390444503ecc123dfcb",
+      "manifest_sha256": "5b628e2a7e987ca70e760e0758c9e99929d86cc90be58a34c74eee819c71b838"
+    },
+    {
+      "case_id": "dynamic-074-melon-com-chart",
+      "anchor_count": 36,
+      "evidence_sha256": "ea21467953e3fbe007b403c0f14dbe73188afdb73d9989fa226320587333496a",
+      "manifest_sha256": "9e609673f3bd06441c7b0af0e586aa8fb806d5d8cbd55a456e6a75c6a3bded7b"
+    },
+    {
+      "case_id": "dynamic-077-rtve-play",
+      "anchor_count": 33,
+      "evidence_sha256": "131cb60344d13e85314c986383c7c7838cf238e5b48c577ca696da873c0816c9",
+      "manifest_sha256": "2b04438ba3fef8a680abbb2d3143c3aab06afa968536430105912b3c84a32036"
+    },
+    {
+      "case_id": "dynamic-081-franceinfo-world",
+      "anchor_count": 335,
+      "evidence_sha256": "89441cacbc003a83f8c4cbfed2a65dd130d3f7d3f296f7f480d5fefa0ef6df04",
+      "manifest_sha256": "2e3b7ae23ca8281cc9903425f3ec164b004316888f4a8e3865cd80504f5c3342"
+    },
+    {
+      "case_id": "dynamic-082-allocine-films",
+      "anchor_count": 67,
+      "evidence_sha256": "b6fd570b7225effa84b2b35886e95afcb640ee030541a3cb9ece054974d20ca5",
+      "manifest_sha256": "2ec3e2adeb67c60a4243bb2bbc83b41eedb7205dce1279de6783a40fd14b7a23"
+    },
+    {
+      "case_id": "dynamic-083-cnnbrasil-home",
+      "anchor_count": 73,
+      "evidence_sha256": "00f272f3e295ab5cd11169d037675fbf4de8f50be7b7182810a2f81e9d934e8f",
+      "manifest_sha256": "d6ec85002a4bb37ecab32532666ef92aeb66e9a4ce5c63f340748213804d036e"
+    },
+    {
+      "case_id": "dynamic-084-france-tv",
+      "anchor_count": 20,
+      "evidence_sha256": "d6784a74432bd5f91e12c49da6b92e02b08c8a1bdb5d702e2accdb84a7b97d7e",
+      "manifest_sha256": "8fccaf490768ffea0212719cf0f5a9936b25a81ca858e507834cfd51814a852e"
+    },
+    {
+      "case_id": "dynamic-086-joyn-prosieben",
+      "anchor_count": 29,
+      "evidence_sha256": "8be89a53570d52c26d9e780ee48e8ea3c34374f7697ab38505b5044a5a189c6f",
+      "manifest_sha256": "84c39c343723740c0d81f111652b29316f746cc6b066ee2049e8bb5f3807456e"
+    },
+    {
+      "case_id": "dynamic-087-joyn-filme",
+      "anchor_count": 24,
+      "evidence_sha256": "aa6208d50cb610278af99d84d4696129d667061fa528c712a180e83c6540438b",
+      "manifest_sha256": "a7f3e9b2c3d151227edc4236ee26e42be0cf16423751465b47cabce3f3af0aed"
+    },
+    {
+      "case_id": "dynamic-088-terra-home",
+      "anchor_count": 37,
+      "evidence_sha256": "f33796afd68c74000584a9cdbbedf90206dde8f8576bdeceb8084ebf48dadef9",
+      "manifest_sha256": "a309a6e3ba0d20f2de734a893c071f6f290e57e3cab0166533782f670cf381d5"
+    },
+    {
+      "case_id": "dynamic-095-joyn-home",
+      "anchor_count": 28,
+      "evidence_sha256": "bc9854234573c9509d6c8f04b9d76daed04f32221dbc13de91bd66cb81a9721c",
+      "manifest_sha256": "b60caee7d488fe5d03b393e177a0618aea9a4de1b0a28f1776a04a35c7365697"
+    },
+    {
+      "case_id": "dynamic-098-shahid-mbc-net-ar",
+      "anchor_count": 14,
+      "evidence_sha256": "88aebf2db5b5368cf78d85461acc1b9b15b431c9e277ddeaded6c4f37e847696",
+      "manifest_sha256": "2b8c5d9c40bb15890e427906f277e230d059847574a05a4eed53da33181e3bdb"
+    },
+    {
+      "case_id": "dynamic-100-kooora-com",
+      "anchor_count": 19,
+      "evidence_sha256": "bd3ce776157946d7343269dc372932a1def8488de25c091d7c3d5b1d56b7919f",
+      "manifest_sha256": "eda8cebcc8cc5f58a0bb75d094509dfa376ce2350f444fe60598df9803731568"
+    },
+    {
+      "case_id": "dynamic-042-en-real-amazon-india",
+      "anchor_count": 52,
+      "evidence_sha256": "1792fc32b265b365a339ddd39866492e853a2cfaf68736eaaf502604129c71b2",
+      "manifest_sha256": "96e4e132f44a94e50cd557ed037bb8d529aa961227661ddae6457e2367d1e7c7"
+    },
+    {
+      "case_id": "dynamic-044-en-real-github-trending",
+      "anchor_count": 18,
+      "evidence_sha256": "b9e92eca717d2f3186b4147c0105d62a2737ca4d1e110d640c39c25b011081f6",
+      "manifest_sha256": "d5a0e86227c679a36c5cd59ba5ebdea084d2f2b5cae2afecf5146d28ad9bcd97"
+    },
+    {
+      "case_id": "dynamic-045-en-real-espn-standings",
+      "anchor_count": 1,
+      "evidence_sha256": "b81e1c98aacd9b4e87242f227ab8700a173728f6da1cadb65dd124dc0a9a5dd6",
+      "manifest_sha256": "060f1f3e1b9100481ed5a7ffb0c47b0e7317733dc739d3a2078cde7aef497ffe"
+    },
+    {
+      "case_id": "dynamic-046-en-real-hn-algolia",
+      "anchor_count": 16,
+      "evidence_sha256": "1332347cad0bfab1876a75b8e551eb98e6437a61a69df312851c82802dfc8590",
+      "manifest_sha256": "f11ff071a9fc7acb596dfddccf06d2013cb59d1eabe9ab64d56cd9cdcce8f3fe"
+    },
+    {
+      "case_id": "dynamic-061-061-juejin-ranking",
+      "anchor_count": 7,
+      "evidence_sha256": "5152e1f27608d89a1726e0ed41e5a81d744afeaac9efd8472af9e0d09d0a36f9",
+      "manifest_sha256": "f368796e78595c98527a5fa48149e11262701412630f49b8079d26c701513644"
+    },
+    {
+      "case_id": "dynamic-064-zh-real-douban-chart",
+      "anchor_count": 27,
+      "evidence_sha256": "8733b504146fc6a0a820b2f23b28a1b5e6c636fb6b381aeaa90ffe7860f8d45f",
+      "manifest_sha256": "bd1e22dd70192e421299f151061c044517e48b372a84bc333a530df8369e39e9"
+    },
+    {
+      "case_id": "dynamic-068-ja-real-nintendo-software",
+      "anchor_count": 66,
+      "evidence_sha256": "d315d5c5b821ba08ef5481eb71109565dac5709cb03aec3ca7aca37fdb9dbf7f",
+      "manifest_sha256": "d8d78a7322773c0087d67aa97956d13d5267653ae9321e6c05c45aa4d85634f4"
+    },
+    {
+      "case_id": "dynamic-069-ja-real-weathernews-tokyo",
+      "anchor_count": 42,
+      "evidence_sha256": "a26beb7af423fd8723ccf7b465c5c877f2110a77b936873842076c9348697534",
+      "manifest_sha256": "a28b5f1bff6bc1a3e4fa282e9197df1128e128b0db079c74beaae791c9d33439"
+    },
+    {
+      "case_id": "dynamic-073-ko-real-naver-politics",
+      "anchor_count": 23,
+      "evidence_sha256": "80967f6689cdd252fc0986a147c95c91dde5b7027a571b2193bd8199b16fa969",
+      "manifest_sha256": "169cc8d6b970a3dc54df6d122a6e6a305e7769235b79ea31b98ac8eaabdf3832"
+    },
+    {
+      "case_id": "dynamic-093-pt-real-terra-noticias",
+      "anchor_count": 16,
+      "evidence_sha256": "e7a7c3ead025b1b61cb95612221b1d2bdb1766e42c31bdae76ef9d0f8335eda2",
+      "manifest_sha256": "2f4f30d950d3efa84fd4372c717a907415cf0f983ba51e3089243b3edc1a86b7"
+    },
+    {
+      "case_id": "dynamic-094-pt-real-cnnbrasil-politica",
+      "anchor_count": 84,
+      "evidence_sha256": "a5badacdad44d0c5f1f183579ddce3f6dd6eef7b8879fc9dd6ec1d9e23110397",
+      "manifest_sha256": "640e155ba9fd2d600646bb67b13c0eb772bd43f0e59b33fa9ebd4411d86cad20"
+    },
+    {
+      "case_id": "dynamic-096-ar-real-cnn-world",
+      "anchor_count": 43,
+      "evidence_sha256": "28fd80cfb553d66dd954d9a78f4c73f78a1869789c31c3ea0787c22571130cdd",
+      "manifest_sha256": "45f6e6ff12011426a9d7dd2e77eeeef406177e5608250b309fa16b7b4373eeab"
+    },
+    {
+      "case_id": "dynamic-099-ar-real-amazon-ae-phone",
+      "anchor_count": 47,
+      "evidence_sha256": "c8fe5c4cfab84bd026babf5a0899597dec49d1f41fbfee9eacfa8713c4b6bdc5",
+      "manifest_sha256": "0653e0f6eb56afe8797c6e8477243a8b5c2caf02713ac846a0902ee3fd19b415"
+    },
+    {
+      "case_id": "dynamic-quotes-api",
+      "anchor_count": 16,
+      "evidence_sha256": "cd7a76b4457b4b6ab16d014c136a8c29a33e3c8f18404811734425476ca7ebf1",
+      "manifest_sha256": "f20133a91bfd994fa6a5200ddba432e178e33cb2fb03b19764a2cf97e67ba8fd"
+    },
+    {
+      "case_id": "dynamic-products-api",
+      "anchor_count": 2,
+      "evidence_sha256": "929f8e64efec2774c0a0391dc2e7d5137dd83f5156368fd442580a2cb191289a",
+      "manifest_sha256": "61fdacc2cbf1e504720e0f8c92094fb9824c7bfec28df61e99d2a49b14e8e02d"
+    },
+    {
+      "case_id": "dynamic-catalog",
+      "anchor_count": 27,
+      "evidence_sha256": "a31617adc2ddb288132d8bb6d3203a1c0acf6229e61961c049471723457feb17",
+      "manifest_sha256": "7d6b10938c08c572d46a28bb7ac80c927a3dad36c5f64cd43779a235d28d2fa6"
+    },
+    {
+      "case_id": "dynamic-delayed",
+      "anchor_count": 17,
+      "evidence_sha256": "99ba69390bd140a74af2997cb17dbb79c7becb7fc46364d5527ef90118b42083",
+      "manifest_sha256": "9965a4df1acb375839deb402b7b8885adbe623731835eee524277b0c80cc41b9"
+    },
+    {
+      "case_id": "dynamic-reviews-graphql",
+      "anchor_count": 36,
+      "evidence_sha256": "b99fe810bb875923229bba1f866039a3c8f805059891d975ec889cbb77a4415e",
+      "manifest_sha256": "1c085da57cc4a5a7d27cf03f1a47ce7997e043373a5b4f9cdd9d8a83c46b641f"
+    },
+    {
+      "case_id": "dynamic-angular-phones",
+      "anchor_count": 20,
+      "evidence_sha256": "0a1b0dd615701dce82acbf5907251a47dbcf71c3191358f7f4f127b50faffc2c",
+      "manifest_sha256": "fcb31cb72ee8356985fdd956712bca74d15a6e79daba2f52c71a1cdc04703292"
+    },
+    {
+      "case_id": "dynamic-swagger",
+      "anchor_count": 29,
+      "evidence_sha256": "8e5de6a4350bb167212aab5b655d83da919b6011fb0eaef8049c19890681c2a7",
+      "manifest_sha256": "c531f2576338bb0493fcfc1c7aad7600fafb91e3e38bc5ef5f713f8ad87c38e9"
+    },
+    {
+      "case_id": "dynamic-product-reviews",
+      "anchor_count": 18,
+      "evidence_sha256": "c1aee16a8c1b8b0723192b61e918f48d3c4d868b1f3ca373f4cbbbbb3010719b",
+      "manifest_sha256": "4fe8a46f5ed5ad2eefff5a939c4a615810f9115c2f4e2281607b2d0c29b1adaa"
+    },
+    {
+      "case_id": "dynamic-iframe",
+      "anchor_count": 22,
+      "evidence_sha256": "d2333e5a527f7cf49e1e430ba3cf55f17c52f300a68cc286e0b739d01639859a",
+      "manifest_sha256": "0270dd13c660ca460bfddc013fa21278d5558208775d2258dae32bdfe3d9a124"
+    }
+  ]
+}

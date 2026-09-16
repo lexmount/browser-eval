@@ -92,13 +92,14 @@ class StableTextSourceReviewTests(unittest.TestCase):
         self.assertEqual(audit["decisions"][0]["reason"],
                          "current_headline_or_content_card")
 
-    def test_preserves_prior_independent_anchor_when_current_page_is_blocked(self):
+    def test_does_not_retain_link_anchor_when_three_load_check_is_incomplete(self):
         old = [{"id": "historical", "alternatives": ["Known stable text"]}]
         anchors, audit = adjudicate(named_link_case(old), None, None)
-        self.assertEqual(anchors, old)
+        self.assertEqual(anchors, [])
+        self.assertEqual(audit["removed_previous_anchors"], old)
         self.assertEqual(
             audit["decision"],
-            "retained_previous_source_evidence_observation_incomplete")
+            "removed_unverified_link_text_observation_incomplete")
 
 
 if __name__ == "__main__":
