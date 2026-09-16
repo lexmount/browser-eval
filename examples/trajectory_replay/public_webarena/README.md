@@ -43,19 +43,35 @@ removes the application. The read-only Map service may be shared.
 
 The baseline also contains a small digest-pinned initializer component. It calls the
 Reddit and GitLab `env-ctrl` endpoints only over Rainbond's internal service network,
-then exposes a harmless readiness page. The unauthenticated control endpoints are never
-published through the gateway. Its command is the base64-encoded content of
+then exposes a harmless readiness page on its unique slice domain. The unauthenticated
+control endpoints themselves are never published through the gateway. Its command is the base64-encoded content of
 `deploy/webarena-rainbond/initializer.sh`, executed by the pinned Alpine image; port
-8080 is internal-only and is the component readiness probe.
+8080 serves only the final readiness marker.
 
 Copy `rainbond-pool.example.json`, set `RAINBOND_API_TOKEN` in the process environment,
-and reconcile the warm pool to the required concurrency. Keep at least one ready slice;
-additional slices are created in bounded parallel and removed when demand falls:
+and reconcile the warm pool to the active task count plus at least one idle slice.
+Additional slices are created in bounded parallel and removed when demand falls:
 
 ```text
 uv run --frozen python scripts/manage_webarena_rainbond_pool.py \
-  --config <pool-config> scale --pool-id <pool-id> --count <N> \
+  --config <pool-config> scale --pool-id <pool-id> --active <N> \
   --minimum-ready 1 --output <runtime-dir>
+```
+
+Admission is an atomic lease, so two schedulers cannot assign the same writable sites:
+
+```text
+uv run --frozen python scripts/manage_webarena_rainbond_pool.py \
+  --config <pool-config> acquire --output <runtime-dir> --owner <task-id>
+```
+
+Use the returned config for exactly one task. Releasing a lease creates and verifies a
+clean replacement application before deleting the dirty generation and making the slot
+available again. If replacement fails, the lease remains held and cannot be reused:
+
+```text
+uv run --frozen python scripts/manage_webarena_rainbond_pool.py \
+  --config <pool-config> release --output <runtime-dir> --lease-id <lease-id>
 ```
 
 For a one-shot pool that will be destroyed in full, use:
@@ -65,9 +81,10 @@ uv run --frozen python scripts/manage_webarena_rainbond_pool.py \
   --config <pool-config> provision --pool-id <run-id> --count <N> --output <runtime-dir>
 ```
 
-Pass each generated `slice-*/webarena.config.json` as a separate
-`--webarena-config` argument to `scripts/run_webarena_qualification.py`. Overlapping
-site batches run concurrently only when distinct slice configs are supplied. Afterwards:
+Pass each leased `webarena.config.json` as a separate `--webarena-config` argument to
+`scripts/run_webarena_qualification.py`. Overlapping site batches run concurrently only
+when distinct slice configs are supplied. Afterwards, release each reusable lease. For a
+one-shot pool, destroy the slices instead:
 
 ```text
 uv run --frozen python scripts/manage_webarena_rainbond_pool.py \

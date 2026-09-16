@@ -6,10 +6,14 @@ from pathlib import Path
 import pytest
 
 from harness.trajectory_replay.public_webarena.rainbond_slices import (
+    LEASE_SCHEMA,
     RECEIPT_SCHEMA,
     STATEFUL_SITES,
     RainbondSlicePool,
+    acquire_slice,
     provision_pool,
+    reconcile_pool_capacity,
+    release_slice,
     scale_pool,
 )
 
@@ -199,6 +203,18 @@ def test_reset_deletes_the_whole_app_and_recreates_a_new_generation(tmp_path):
         method == "DELETE" and f"/{first['app_id']}?force=1" in path
         for method, path, _body in api.calls
     )
+    create_replacement = next(
+        index
+        for index, (method, path, _body) in enumerate(api.calls)
+        if method == "POST" and path.endswith("/apps") and index > 0
+    )
+    delete_old = next(
+        index
+        for index, (method, path, _body) in enumerate(api.calls)
+        if method == "DELETE" and f"/{first['app_id']}?force=1" in path
+    )
+    assert create_replacement < delete_old
+    assert not receipt_path.with_name("slice-receipt.replacement.json").exists()
 
 
 def test_partial_provision_failure_removes_the_new_app_and_leaves_no_receipt(tmp_path):
@@ -291,3 +307,147 @@ def test_scale_pool_keeps_one_warm_slice_and_removes_only_excess(tmp_path, monke
     assert [path.parent.name for path in destroyed] == ["slice-3", "slice-2"]
     with pytest.raises(ValueError, match="minimum_ready"):
         scale_pool(tmp_path / "config.json", output, "warm", 0, minimum_ready=1)
+
+
+def test_capacity_keeps_idle_slice_in_addition_to_active_demand(tmp_path, monkeypatch):
+    calls = []
+
+    def fake_scale(config, output, pool_id, count, *, minimum_ready):
+        calls.append((config, output, pool_id, count, minimum_ready))
+        return []
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.rainbond_slices.scale_pool", fake_scale
+    )
+
+    reconcile_pool_capacity(
+        tmp_path / "pool.json", tmp_path / "runtime", "warm", 3, minimum_ready=1
+    )
+
+    assert calls[0][3:] == (4, 1)
+
+
+def test_scale_down_is_atomic_when_an_excess_slice_is_leased(tmp_path, monkeypatch):
+    destroyed = []
+
+    class Config:
+        max_parallel_provisions = 2
+
+    class Pool:
+        config = Config()
+
+        def __init__(self, _config):
+            pass
+
+        def validate_receipt(self, receipt_path):
+            return json.loads(receipt_path.read_text())
+
+        def destroy(self, receipt_path):
+            destroyed.append(receipt_path)
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.rainbond_slices.RainbondSlicePool", Pool
+    )
+    output = tmp_path / "runtime"
+    for slot in (1, 2, 3):
+        slot_dir = output / f"slice-{slot}"
+        slot_dir.mkdir(parents=True)
+        (slot_dir / "slice-receipt.json").write_text(
+            json.dumps({"pool_id": "warm", "slot": slot})
+        )
+    (output / "slice-2" / "slice-lease.json").write_text("{}")
+
+    with pytest.raises(RuntimeError, match="leased Rainbond slices"):
+        scale_pool(tmp_path / "pool.json", output, "warm", 1)
+
+    assert destroyed == []
+
+
+def _ready_slot(output: Path, slot: int, app_id: int) -> Path:
+    slot_dir = output / f"slice-{slot}"
+    slot_dir.mkdir(parents=True)
+    (slot_dir / "slice-receipt.json").write_text(
+        json.dumps(
+            {
+                "schema": RECEIPT_SCHEMA,
+                "slot": slot,
+                "app_id": app_id,
+                "generation": f"generation-{slot}",
+            }
+        )
+    )
+    (slot_dir / "webarena.config.json").write_text("{}")
+    return slot_dir
+
+
+def test_acquire_grants_distinct_slices_and_exhausts_pool(tmp_path):
+    output = tmp_path / "runtime"
+    _ready_slot(output, 1, 101)
+    _ready_slot(output, 2, 102)
+
+    first = acquire_slice(output, "task-a")
+    second = acquire_slice(output, "task-b")
+
+    assert first["schema"] == LEASE_SCHEMA
+    assert first["slot"] != second["slot"]
+    with pytest.raises(RuntimeError, match="no unleased"):
+        acquire_slice(output, "task-c")
+
+
+def test_release_replaces_dirty_generation_before_unlocking_slice(tmp_path, monkeypatch):
+    output = tmp_path / "runtime"
+    slot_dir = _ready_slot(output, 1, 101)
+    lease = acquire_slice(output, "task-a")
+
+    class Pool:
+        def __init__(self, _config):
+            pass
+
+        def reset(self, _receipt_path):
+            assert (slot_dir / "slice-lease.json").exists()
+            return {
+                "schema": RECEIPT_SCHEMA,
+                "slot": 1,
+                "app_id": 201,
+                "generation": "generation-new",
+            }
+
+        def runtime_config(self, receipt):
+            return {"app_id": receipt["app_id"]}
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.rainbond_slices.RainbondSlicePool", Pool
+    )
+
+    result = release_slice(tmp_path / "pool.json", output, lease["lease_id"])
+
+    assert result["released_app_id"] == 101
+    assert result["ready_app_id"] == 201
+    assert not (slot_dir / "slice-lease.json").exists()
+    assert json.loads((slot_dir / "webarena.config.json").read_text()) == {"app_id": 201}
+
+
+def test_failed_release_keeps_lease_so_dirty_slice_cannot_be_reassigned(
+    tmp_path, monkeypatch
+):
+    output = tmp_path / "runtime"
+    slot_dir = _ready_slot(output, 1, 101)
+    lease = acquire_slice(output, "task-a")
+
+    class Pool:
+        def __init__(self, _config):
+            pass
+
+        def reset(self, _receipt_path):
+            raise RuntimeError("replacement failed")
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.rainbond_slices.RainbondSlicePool", Pool
+    )
+
+    with pytest.raises(RuntimeError, match="replacement failed"):
+        release_slice(tmp_path / "pool.json", output, lease["lease_id"])
+
+    assert (slot_dir / "slice-lease.json").exists()
+    with pytest.raises(RuntimeError, match="no unleased"):
+        acquire_slice(output, "task-b")

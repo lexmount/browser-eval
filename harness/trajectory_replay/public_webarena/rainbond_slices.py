@@ -20,6 +20,7 @@ from urllib.parse import quote
 
 SCHEMA = "lex_webarena_rainbond_pool/1"
 RECEIPT_SCHEMA = "lex_webarena_rainbond_slice/1"
+LEASE_SCHEMA = "lex_webarena_rainbond_slice_lease/1"
 STATEFUL_SITES = ("shopping_admin", "shopping", "reddit", "gitlab")
 SITE_PORTS = {"shopping_admin": 80, "shopping": 80, "reddit": 80, "gitlab": 8023}
 _SAFE_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,47}$")
@@ -562,8 +563,20 @@ class RainbondSlicePool:
         previous = self.validate_receipt(receipt_path)
         pool_id = str(previous["pool_id"])
         slot = int(previous["slot"])
-        self.destroy(receipt_path, missing_ok=False)
-        return self.provision(pool_id, slot, receipt_path)
+        replacement_path = receipt_path.with_name("slice-receipt.replacement.json")
+        if replacement_path.exists():
+            raise RuntimeError(f"unfinished Rainbond slice replacement: {replacement_path}")
+        replacement = self.provision(pool_id, slot, replacement_path)
+        try:
+            self.api.request("DELETE", f"{self._app_path(int(previous['app_id']))}?force=1")
+        except BaseException:
+            self.api.request(
+                "DELETE", f"{self._app_path(int(replacement['app_id']))}?force=1"
+            )
+            replacement_path.unlink(missing_ok=True)
+            raise
+        replacement_path.replace(receipt_path)
+        return replacement
 
     def validate_receipt(self, receipt_path: Path) -> dict[str, Any]:
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
@@ -671,7 +684,17 @@ def scale_pool(
                 for future in as_completed(futures):
                     slot, slot_dir = future.result()
                     existing[slot] = slot_dir
-        for slot in sorted((value for value in existing if value > count), reverse=True):
+        excess_slots = sorted((value for value in existing if value > count), reverse=True)
+        leased_excess = [
+            existing[slot] for slot in excess_slots
+            if (existing[slot] / "slice-lease.json").exists()
+        ]
+        if leased_excess:
+            raise RuntimeError(
+                "cannot remove leased Rainbond slices: "
+                + ", ".join(str(path) for path in leased_excess)
+            )
+        for slot in excess_slots:
             slot_dir = existing.pop(slot)
             pool.destroy(slot_dir / "slice-receipt.json")
             config_file = slot_dir / "webarena.config.json"
@@ -682,3 +705,79 @@ def scale_pool(
             except OSError:
                 pass
         return [existing[slot] for slot in sorted(existing)]
+
+
+def reconcile_pool_capacity(
+    config_path: Path,
+    output_dir: Path,
+    pool_id: str,
+    active_count: int,
+    *,
+    minimum_ready: int = 1,
+) -> list[Path]:
+    """Keep one or more idle slices in addition to current task demand."""
+    if active_count < 0:
+        raise ValueError("active_count must not be negative")
+    return scale_pool(
+        config_path,
+        output_dir,
+        pool_id,
+        active_count + minimum_ready,
+        minimum_ready=minimum_ready,
+    )
+
+
+def acquire_slice(output_dir: Path, owner: str) -> dict[str, Any]:
+    """Atomically grant one ready slice to one task owner."""
+    owner = owner.strip()
+    if not owner:
+        raise ValueError("lease owner is required")
+    with _pool_lock(output_dir):
+        for slot_dir in sorted(output_dir.glob("slice-*")):
+            receipt_path = slot_dir / "slice-receipt.json"
+            config_path = slot_dir / "webarena.config.json"
+            lease_path = slot_dir / "slice-lease.json"
+            if not receipt_path.is_file() or not config_path.is_file() or lease_path.exists():
+                continue
+            receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+            if receipt.get("schema") != RECEIPT_SCHEMA:
+                raise ValueError(f"invalid Rainbond slice receipt: {receipt_path}")
+            lease = {
+                "schema": LEASE_SCHEMA,
+                "lease_id": uuid.uuid4().hex,
+                "owner": owner,
+                "slot": int(receipt["slot"]),
+                "app_id": int(receipt["app_id"]),
+                "generation": str(receipt["generation"]),
+                "config": str(config_path.resolve()),
+                "acquired_at_unix": int(time.time()),
+            }
+            _atomic_json(lease_path, lease)
+            return lease
+    raise RuntimeError("no unleased Rainbond WebArena slice is ready")
+
+
+def release_slice(
+    config_path: Path, output_dir: Path, lease_id: str
+) -> dict[str, Any]:
+    """Replace a dirty slice before returning it to the ready pool."""
+    with _pool_lock(output_dir):
+        matches: list[tuple[Path, dict[str, Any]]] = []
+        for lease_path in output_dir.glob("slice-*/slice-lease.json"):
+            lease = json.loads(lease_path.read_text(encoding="utf-8"))
+            if lease.get("schema") == LEASE_SCHEMA and lease.get("lease_id") == lease_id:
+                matches.append((lease_path, lease))
+        if len(matches) != 1:
+            raise ValueError("lease_id does not identify exactly one active slice")
+        lease_path, lease = matches[0]
+        slot_dir = lease_path.parent
+        pool = RainbondSlicePool(config_path)
+        receipt = pool.reset(slot_dir / "slice-receipt.json")
+        _atomic_json(slot_dir / "webarena.config.json", pool.runtime_config(receipt))
+        lease_path.unlink()
+        return {
+            "lease_id": lease_id,
+            "released_app_id": int(lease["app_id"]),
+            "ready_app_id": int(receipt["app_id"]),
+            "config": str((slot_dir / "webarena.config.json").resolve()),
+        }
