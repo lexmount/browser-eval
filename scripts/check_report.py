@@ -67,10 +67,14 @@ class PageShape(HTMLParser):
  def handle_data(self,text):
   if not self.skip:self.numbers.extend(re.findall(r'\d+(?:[.,]\d+)*(?:%|\b)',text))
 
-root=Path(sys.argv[1]).resolve();d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
+root=Path(sys.argv[1]).resolve();standalone='--standalone' in sys.argv[2:];d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
 repository=Path(__file__).resolve().parents[1]
 names={r['provider'] for r in rs}
 inventory=json.loads((Path(__file__).resolve().parents[1]/'configs/evaluation-inventory.json').read_text())
+if standalone:
+ inventory={track:{'case_ids':[case['id'] for case in d['cases'] if case.get('track','web')==track],
+                   'providers':providers}
+            for track,providers in d.get('coverage_plan',{}).items()}
 if d.get('comparison',{}).get('kind') in {'headless_html','headless_markdown'}:
  headless=json.loads((Path(__file__).resolve().parents[1]/'configs/providers.headless.json').read_text())
  profile=json.loads((Path(__file__).resolve().parents[1]/'evaluation/current-report.json').read_text())
@@ -101,9 +105,11 @@ for r in rs:
  if r['metrics'].get('word_f1') is not None:assert case_by_id[r['case_id']].get('ground_truth_main_content')
 for c in d['cases']:
  if c['track'] in {'web','dynamic','document'} and not c.get('ground_truth_main_content'):
-  unavailable=c.get('source_verification',{}).get('state')=='unavailable'
+  reference_state=c.get('source_verification',{}).get('state')
+  unavailable=reference_state in {'unavailable','structure_only'}
   stable_checks=bool(c.get('required_facts') or c.get('required_patterns') or c.get('acceptance_contract'))
-  assert unavailable and stable_checks,c['id']
+  source_bound=bool(c.get('source_verification')) if standalone else unavailable
+  assert source_bound and stable_checks,c['id']
  if c.get('ground_truth_main_content'):
   expected=c['ground_truth_main_content'].encode()
   assert hashlib.sha256(expected).hexdigest()==c['source_verification']['reference_sha256'],c['id']

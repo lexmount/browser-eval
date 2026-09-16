@@ -849,7 +849,10 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
    rules=stable_contract_details(c)
   source_record=link('../sources/'+c['id']+'/evidence.json','获取记录') if (out/'sources'/c['id']/'evidence.json').exists() else '未保存源页快照'
   if c.get('track')=='dynamic':
-   source_record+=' · '+link('../sources/'+c['id']+'/initial.html.txt','初始 HTML')+' · '+link('../sources/'+c['id']+'/rendered.txt','渲染正文')+' · '+link('../sources/'+c['id']+'/render-audit.json','配对证据校验')
+   dynamic_files=(('initial.html.txt','初始 HTML'),('rendered.txt','渲染正文'),('render-audit.json','配对证据校验'))
+   available=[link('../sources/'+c['id']+'/'+name,label) for name,label in dynamic_files
+              if (out/'sources'/c['id']/name).exists()]
+   if available:source_record+=' · '+' · '.join(available)
    observed=sorted({r['provider'] for r in bycase[c['id']]})
    status_note+='<p class="source-note">动态网站正文已测方法：'+esc('、'.join(observed))+'。未测方法不计为失败。</p>'
   body=hero(esc(c['name']),'<strong>任务 ID：<code>'+esc(c['id'])+'</code></strong><br>'+esc(task_instruction(c)))+section('标准答案与来源',status_note+f'<p>{link(c["url"],"打开任务源页 ↗")} · {link("../references/"+c["id"]+".txt","下载标准答案")} · {source_record}</p><div class="evidence-pane"><header><h3>本任务的标准答案 / 目标结果</h3><p>下方直接展示用于判定的完整内容；长内容可在栏内滚动。</p></header><div class="pane-body"><pre data-kind="reference">{esc(ref)}</pre></div></div><details class="technical-details"><summary>查看来源记录</summary><p>{esc(v.get("method"))} · {esc(v.get("checked_at"))}</p><p>{esc(v.get("note"))}</p></details>')
@@ -1109,7 +1112,9 @@ def write_review_page(out,records):
   write(out,'review/index.html','核验记录',hero('核验记录','本轮没有绑定独立核验记录。'))
   return
  audit=json.loads(path.read_text());reviewer=audit.get('reviewer',{})
- metadata_path=Path(__file__).resolve().parents[2]/'research/report-changes.json'
+ metadata_path=(out/'report-changes.json')
+ if not metadata_path.is_file():
+  metadata_path=Path(__file__).resolve().parents[2]/'research/report-changes.json'
  if not metadata_path.is_file():
   raise ValueError('A reviewed report requires research/report-changes.json')
  changes=json.loads(metadata_path.read_text())

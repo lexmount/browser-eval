@@ -745,6 +745,33 @@ def valid_scoring_revision(source) -> bool:
                     if edge is not None:
                         reference_edges.add(edge)
 
+    replacement_path = root/'case-replacement.json'
+    if replacement_path.is_file():
+        try:
+            replacement = json.loads(replacement_path.read_text())
+        except (OSError, ValueError, TypeError):
+            return False
+        replacement_edge = revision_edge(replacement)
+        superseded = replacement.get('superseded_attempt')
+        selected = replacement.get('replacement_attempt')
+        if (replacement.get('schema_version') != 1
+                or replacement.get('kind') != 'audited_case_replacement_assembly'
+                or replacement_edge is None
+                or not isinstance(replacement.get('provider_calls'), int)
+                or replacement['provider_calls'] <= 0
+                or not isinstance(replacement.get('retained_attempts'), int)
+                or replacement['retained_attempts'] <= 0
+                or not isinstance(superseded, dict)
+                or not isinstance(selected, dict)
+                or superseded.get('case_id') == selected.get('case_id')
+                or any(not isinstance(item.get(key), str) or not item.get(key)
+                       for item in (superseded, selected)
+                       for key in ('case_id', 'attempt_id', 'artifact_sha256'))
+                or replacement.get('selection_policy') !=
+                   'one-for-one eligibility correction; no score-based selection'):
+            return False
+        reference_edges.add(replacement_edge)
+
     def bridged(before, after):
         frontier = {before}
         seen = set()
@@ -783,6 +810,19 @@ def valid_scoring_revision(source) -> bool:
     for index, row in enumerate(rows):
         if not isinstance(row, dict):
             return False
+        if row.get('kind') == 'source_scoring_revision_lineage':
+            sources = row.get('source_receipts')
+            if (index != 0 or row.get('schema_version') != 1
+                    or row.get('provider_calls') != 0
+                    or not isinstance(sources, list) or not sources
+                    or any(not isinstance(source, dict)
+                           or not isinstance(source.get('cohort_cases'), int)
+                           or source['cohort_cases'] <= 0
+                           or not isinstance(source.get('sha256'), str)
+                           or re.fullmatch(r'[0-9a-f]{64}', source['sha256']) is None
+                           for source in sources)):
+                return False
+            continue
         input_binding = (row.get('input_dataset_sha256'),
                          row.get('input_results_sha256'))
         output_binding = (row.get('output_dataset_sha256'),

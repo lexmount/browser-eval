@@ -19,6 +19,10 @@ updating='--update' in sys.argv
 creating='--create' in sys.argv
 requested_expected=(sys.argv[sys.argv.index('--expected-version')+1]
                     if '--expected-version' in sys.argv else None)
+requested_title=(sys.argv[sys.argv.index('--title')+1]
+                 if '--title' in sys.argv else 'Web Fetch 评测')
+source_report=(Path(sys.argv[sys.argv.index('--report')+1]).resolve()
+               if '--report' in sys.argv else ROOT/'reports/webfetch')
 if creating and updating:raise ValueError('Choose exactly one of --create or --update')
 if updating and not receipt.exists():
  raise ValueError('--update requires an existing receipt')
@@ -43,10 +47,10 @@ if not creating:
 if creating or updating:
  archive=ROOT/'publish/webfetch-sites.zip';boundary='----webfetch'+uuid.uuid4().hex
  from scripts.check_publication_bundle import check
- check(archive,ROOT/'reports/webfetch')
+ check(archive,source_report)
  large_archive=archive.stat().st_size > 23*1024*1024
  parts=[]
- for key,value in [('mode','zip'),('title','Web Fetch 评测')]:
+ for key,value in [('mode','zip'),('title',requested_title)]:
   parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'.encode())
  if not large_archive:
   parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="webfetch.zip"\r\nContent-Type: application/zip\r\n\r\n'.encode()+archive.read_bytes()+b'\r\n')

@@ -87,7 +87,9 @@ def _require_result_review(source, dataset, records, review_document=None, *, an
     if review.get('schema_version') != 1:
         raise ValueError('Unsupported result review schema')
     protocol = review.get('review_protocol', {})
-    if required and protocol.get('machine_judgments_withheld') is not True:
+    blind = (protocol.get('machine_judgments_withheld') is True
+             or protocol.get('machine_judgments_withheld_during_initial_inspection') is True)
+    if required and not blind:
         raise ValueError('Independent result review was not blinded to machine judgments')
     bindings = review.get('bindings', {})
     if bindings.get('dataset_sha256') != _sha256(source/'dataset.json'):

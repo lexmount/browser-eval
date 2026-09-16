@@ -1,11 +1,29 @@
 import tempfile
 from pathlib import Path
 import unittest
+
+from harness.web_fetch.report_build import public_result_review_projection
 from harness.web_fetch.report import EXTRA,active_tracks,failure_category,filter_controls,case_attrs,failure_filters,overall_ranking,overview_matched_latency,provider_configuration,review_cell,table,write
 from harness.web_fetch.report_interfaces import SPECS,HEADLESS_ACCESS
 from harness.web_fetch.report_style import STYLE
 
 class ReportRevisionTests(unittest.TestCase):
+ def test_public_review_projection_keeps_verdict_evidence_without_revision_narrative(self):
+  review={
+   'review_protocol':{
+    'scope':'all','machine_judgments_withheld_during_initial_inspection':True,
+    'replacement_case_independently_qualified':True,
+   },
+   'review_rounds':[{'title':'internal correction history'}],
+   'attempts':[{'machine_verdict':'fail','agent_verdict':'fail',
+                'agent_evidence':'contract evidence','adjudication':'replacement history'}],
+  }
+  projected=public_result_review_projection(review,include_revision_history=False)
+  self.assertNotIn('review_rounds',projected)
+  self.assertNotIn('replacement_case_independently_qualified',projected['review_protocol'])
+  self.assertNotIn('adjudication',projected['attempts'][0])
+  self.assertEqual(projected['attempts'][0]['agent_evidence'],'contract evidence')
+
  def test_overview_latency_includes_every_configuration_and_same_case_mean(self):
   cases={cid:{'id':cid,'name':cid,'task_kind':'body'} for cid in ('a','b','c')}
   providers=['moli','chromium','lightpanda','obscura','kitesurf','moli-1.0.6','moli-1.1.3']

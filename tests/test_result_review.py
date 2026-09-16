@@ -53,6 +53,14 @@ class ResultReviewTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'different results'):
                 require_result_review(root,dataset,records)
 
+    def test_accepts_explicit_initial_inspection_blinding_field(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);dataset,records,review=self.fixture(root)
+            review['review_protocol'].pop('machine_judgments_withheld')
+            review['review_protocol']['machine_judgments_withheld_during_initial_inspection']=True
+            (root/'result-review.json').write_text(json.dumps(review))
+            self.assertEqual(require_result_review(root,dataset,records)['reviewed_attempts'],1)
+
     def test_missing_or_unresolved_review_blocks_required_report(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);dataset,records,review=self.fixture(root)

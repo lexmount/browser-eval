@@ -103,7 +103,10 @@ def render_changes(out, cases, records, dataset=None):
             raise FileNotFoundError(
                 'Required file-rerun evidence directories are missing: '
                 + ', '.join(str(path) for path in missing))
-    data=json.loads((ROOT/'research/report-changes.json').read_text())
+    metadata_path = out/'report-changes.json'
+    if not metadata_path.is_file():
+        metadata_path = ROOT/'research/report-changes.json'
+    data=json.loads(metadata_path.read_text())
     require_review_rounds(data)
     public_data=select_cohort_history(data,dataset,records)
     (out/'report-changes.json').write_text(json.dumps(public_data,ensure_ascii=False,indent=2)+'\n')

@@ -15,8 +15,15 @@ if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--evidence',type=Path,default=current_evidence_dir())
     parser.add_argument('--output',type=Path,default=ROOT/'reports/webfetch')
+    parser.add_argument('--report-changes',type=Path)
+    parser.add_argument('--omit-revision-receipts',action='store_true')
     args=parser.parse_args()
     evidence=require_evidence(args.evidence)
     require_canonical_inputs(evidence,ROOT/'evaluation')
     require_current_report_profile(evidence,ROOT/'evaluation/current-report.json')
-    print(build_report(evidence,args.output))
+    print(build_report(
+        evidence,
+        args.output,
+        report_changes=args.report_changes,
+        include_revision_receipts=not args.omit_revision_receipts,
+    ))

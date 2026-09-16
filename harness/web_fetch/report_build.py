@@ -1,8 +1,10 @@
 """Build the single current report from an explicit evidence directory."""
 import hashlib
 import json
+import re
 import shutil
 import tempfile
+from copy import deepcopy
 from pathlib import Path
 from .report import generate, succeeded, measured, failure_category, TRACKS
 from .failure_diagnosis import diagnose
@@ -15,6 +17,55 @@ from .artifacts import (
     record_public_call_log_bindings, verify_record_private_artifacts,
     verify_public_call_log, verify_record_public_call_logs,
 )
+
+
+def public_execution_projection(manifests):
+    """Remove machine-local paths and host names from public run metadata."""
+    repository = Path(__file__).resolve().parents[2]
+
+    def clean(value, field=None):
+        if isinstance(value, dict):
+            return {
+                key: clean(item, key)
+                for key, item in value.items()
+                if key != "hostname"
+            }
+        if isinstance(value, list):
+            return [clean(item, field) for item in value]
+        if isinstance(value, str) and value.startswith("/"):
+            if (field == "alternatives" and re.fullmatch(
+                    r"/[A-Za-z0-9._~!$&'()*+,;=:@%{}/-]+", value)):
+                return value
+            path = Path(value)
+            try:
+                return path.resolve().relative_to(repository).as_posix()
+            except ValueError:
+                return path.name
+        return value
+
+    return clean(deepcopy(manifests))
+
+
+def public_result_review_projection(review, *, include_revision_history=True):
+    """Keep verdict evidence public while optionally withholding revision narrative."""
+    projected = deepcopy(review)
+    if include_revision_history:
+        return projected
+    projected.pop('review_rounds', None)
+    protocol = projected.get('review_protocol', {})
+    projected['review_protocol'] = {
+        key: value for key, value in protocol.items()
+        if key in {
+            'scope', 'machine_judgments_withheld',
+            'machine_judgments_withheld_during_initial_inspection',
+            'complete_artifact_paths_supplied',
+            'declared_acceptance_evidence_supplied',
+        }
+    }
+    for attempt in projected.get('attempts', []):
+        if attempt.get('agent_verdict') == attempt.get('machine_verdict'):
+            attempt.pop('adjudication', None)
+    return projected
 
 
 def scoring_scope(records, cases):
@@ -34,7 +85,13 @@ def copy_methodology_assets(output, assets=None):
             shutil.copy2(source, target)
 
 
-def build_report(source: Path, output: Path) -> Path:
+def build_report(
+    source: Path,
+    output: Path,
+    *,
+    report_changes: Path | None = None,
+    include_revision_receipts: bool = True,
+) -> Path:
     source, output = source.resolve(), output.resolve()
     if source == output or output in source.parents:
         raise ValueError('Report output must not contain its evidence source')
@@ -211,7 +268,8 @@ def build_report(source: Path, output: Path) -> Path:
                 text=[r for r in subset if r['metrics'].get('content_check_coverage') is not None]
                 row['text_checked_attempts']=len(text)
                 row['text_checked_cases']=len({r['case_id'] for r in text})
-        for name,data in [('dataset.json',dataset),('execution.json',{'batches':manifests}),('summary.json',summary)]:
+        public_manifests = public_execution_projection(manifests)
+        for name,data in [('dataset.json',dataset),('execution.json',{'batches':public_manifests}),('summary.json',summary)]:
             (staging/name).write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
         reliability=assess_reliability(dataset,records)
         (staging/'reliability.json').write_text(json.dumps(reliability,ensure_ascii=False,indent=2)+'\n')
@@ -219,12 +277,16 @@ def build_report(source: Path, output: Path) -> Path:
         # reviewed evidence. Derived diagnosis/title fields remain report-only.
         (staging/'results.jsonl').write_bytes(contained_path(source,'results.jsonl').read_bytes())
         if result_review is not None:
-            (staging/'result-review.json').write_text(json.dumps(result_review,ensure_ascii=False,indent=2)+'\n')
+            public_review = public_result_review_projection(
+                result_review,
+                include_revision_history=include_revision_receipts,
+            )
+            (staging/'result-review.json').write_text(json.dumps(public_review,ensure_ascii=False,indent=2)+'\n')
         copy_methodology_assets(staging)
         provenance=Path(__file__).resolve().parents[2]/'research/headless-implementation-provenance.json'
         if provenance.is_file():
             shutil.copy2(provenance,staging/'implementation-provenance.json')
-        if (source/'scoring-revisions.json').is_file():
+        if include_revision_receipts and (source/'scoring-revisions.json').is_file():
             scoring_path = source/'scoring-revisions.json'
             scoring_revisions = json.loads(scoring_path.read_text())
             shutil.copy2(scoring_path, staging/'scoring-revisions.json')
@@ -242,17 +304,19 @@ def build_report(source: Path, output: Path) -> Path:
                 target = staging/relative
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(archived, target)
-        if (source/'reference-revisions.json').is_file():
+        if include_revision_receipts and (source/'reference-revisions.json').is_file():
             shutil.copy2(source/'reference-revisions.json', staging/'reference-revisions.json')
-        if (source/'latency-corrections.json').is_file():
+        if include_revision_receipts and (source/'latency-corrections.json').is_file():
             shutil.copy2(source/'latency-corrections.json', staging/'latency-corrections.json')
-        if (source/'request-status-corrections.json').is_file():
+        if include_revision_receipts and (source/'request-status-corrections.json').is_file():
             shutil.copy2(source/'request-status-corrections.json',
                          staging/'request-status-corrections.json')
         if (source/'file-rerun-selection.json').is_file():
             shutil.copy2(source/'file-rerun-selection.json', staging/'file-rerun-selection.json')
             shutil.copytree(source/'history/file-baseline', staging/'history/file-baseline')
-        generate(staging,dataset,records,manifests)
+        if report_changes is not None:
+            shutil.copy2(report_changes, staging/'report-changes.json')
+        generate(staging,dataset,records,public_manifests)
         (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         # Replace only an explicitly marked generated directory; never merge stale pages.
         if output.exists():

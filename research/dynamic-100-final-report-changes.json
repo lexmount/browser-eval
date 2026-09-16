@@ -1,0 +1,46 @@
+{
+  "schema_version": 2,
+  "history_scope": "本页只说明当前 100 例正式报告的公开范围与状态；更早的 48 例、86 例和 100 例报告继续作为独立历史版本保留。",
+  "history_scope_i18n": "This page describes only the public scope and status of the current formal 100-case report. Earlier 48-case, 86-case, and 100-case reports remain available as separate historical releases.",
+  "review_rounds": [
+    {
+      "date": "2026-09-16",
+      "title": "100 例最终独立复核",
+      "scope": "100 条 Moli WebFetch 权威逻辑结果，以及各自绑定的任务范围、参考、验收规则和完整输出。",
+      "finding": "52 条结果满足声明的验收合同，48 条不满足；最终机器判定与独立复核 100/100 一致。",
+      "fix": "最终数据集、参考、验收合同、结果和复核绑定已作为同一发布候选完成一致性验证。",
+      "pending": "未决 0 条。"
+    }
+  ],
+  "releases": [
+    {
+      "id": "2026-09-16-dynamic-100-final",
+      "date": "2026-09-16",
+      "comparison_kinds": [
+        "single_provider_dynamic_content_pilot"
+      ],
+      "title": "动态网站正文 100 例正式报告",
+      "summary": "报告发布 100 个唯一动态网页正文案例及 Moli WebFetch 1.1.5 的 100 条权威逻辑结果：52 条通过、48 条未通过；独立复核覆盖 100/100，未决 0 条。",
+      "changes": [
+        [
+          "公开范围",
+          "正式报告需要同时绑定完整测试集、最终规则、实测结果和独立复核。",
+          "发布 100 个唯一任务 ID 和 100 个唯一 URL，并为每例提供任务合同、完整实际输出和逐项判定。",
+          "分母固定为 100；未测试的其他方法不显示为零分。"
+        ],
+        [
+          "结果状态",
+          "当前发布候选必须以最终证据对为唯一成绩来源。",
+          "报告只呈现每个方法—任务组合的一条权威逻辑结果。",
+          "Moli WebFetch 通过 52/100、未通过 48/100。"
+        ],
+        [
+          "复核状态",
+          "正式发布要求机器通过和失败均完成独立复核。",
+          "逐例复核覆盖 100/100，并将未决项作为发布阻断条件。",
+          "当前未决 0 条；缺少完整可比参考的质量指标标为不可用。"
+        ]
+      ]
+    }
+  ]
+}

@@ -1,9 +1,11 @@
-"""Lazy-loaded Artifact Hub publication with explicit supplemental HTML redaction.
+"""Lazy-loaded Artifact Hub publication with explicit privacy projection.
 
 The original report is untouched. Repeated reference/output HTML is reconstructed
-from the same source files. Scored outputs remain byte-identical; supplemental
-HTML may be redacted with separate original/published hashes. Hub injects a root base.
+from the same source files. Public files may redact machine-local paths or
+credential-shaped strings with separate original/published hashes while the local
+scored evidence remains immutable. Hub injects a root base.
 """
+import argparse
 import gzip
 import hashlib
 import html
@@ -22,7 +24,12 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.publication_privacy import project_file
 from harness.web_fetch.publication_target import HUB
-SOURCE=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/'reports/webfetch'
+PARSER=argparse.ArgumentParser(description=__doc__)
+PARSER.add_argument('source',nargs='?',type=Path,default=ROOT/'reports/webfetch')
+PARSER.add_argument('--title',default='Web Fetch 评测')
+ARGS=PARSER.parse_args()
+SOURCE=ARGS.source.resolve()
+REPORT_TITLE=ARGS.title
 (ROOT/'publish').mkdir(exist_ok=True)
 DEST=Path(tempfile.mkdtemp(prefix='artifact-hub-',dir=ROOT/'publish'))
 
@@ -269,7 +276,7 @@ def build():
  js="function readTheme(){try{return localStorage.getItem('webfetch-theme')}catch{return 'light'}}\nfunction saveTheme(t){try{localStorage.setItem('webfetch-theme',t)}catch{}}\n"+js
  (DEST/'report.js').write_text(js)
  (DEST/'loader.js').write_text(LOADER)
- (DEST/'index.html').write_text('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Web Fetch 评测</title><link rel="stylesheet" href="style.css"><script defer src="report.js"></script><script defer src="loader.js"></script></head><body><p>正在加载报告…</p></body></html>')
+ (DEST/'index.html').write_text('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+html.escape(REPORT_TITLE)+'</title><link rel="stylesheet" href="style.css"><script defer src="report.js"></script><script defer src="loader.js"></script></head><body><p>正在加载报告…</p></body></html>')
  # Validate every download and every internal page/file link after transformation.
  for name,digest in original.items():
   assert hashlib.sha256(b''.join(raw_blocks[k] for k in files[name]['parts'])).hexdigest()==digest,name

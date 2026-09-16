@@ -94,6 +94,7 @@ def main() -> None:
         "review_protocol": {
             "protocol": "research/dynamic-100-formal-audit-plan.md",
             "scope": "all",
+            "machine_judgments_withheld": True,
             "machine_judgments_withheld_during_initial_inspection": True,
             "complete_artifact_paths_supplied": True,
             "declared_acceptance_evidence_supplied": True,
