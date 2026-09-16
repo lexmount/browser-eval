@@ -52,6 +52,14 @@ def parse_args() -> argparse.Namespace:
         "--qualified-dataset",
         help="complete qualified trajectory dataset required by a formal comparison",
     )
+    parser.add_argument(
+        "--extension-engine",
+        action="append",
+        help=(
+            "run a newly registered browser over the complete qualified task set "
+            "without rerunning unchanged participants"
+        ),
+    )
     return parser.parse_args()
 
 
@@ -67,6 +75,7 @@ def main() -> None:
         qualification_engine=args.qualification_engine,
         qualification_task_ids=args.qualification_task,
         correction_task_ids=args.correction_task,
+        extension_engines=args.extension_engine,
         qualified_dataset_path=args.qualified_dataset,
     )
 

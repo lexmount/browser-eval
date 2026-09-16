@@ -60,6 +60,7 @@ def build_effective_results(
     qualified_dataset_path: str | Path,
     base_receipt_path: str | Path,
     correction_receipt_paths: list[str | Path],
+    extension_receipt_paths: list[str | Path] | None = None,
 ) -> dict[str, Any]:
     """Overlay declared correction shards onto one complete formal base matrix."""
 
@@ -67,9 +68,15 @@ def build_effective_results(
     qualified_sha256 = validate_qualification_dataset(plan, qualified_dataset_path)
     engines = list(plan["engines"])
     base_path, base = _read(base_receipt_path)
-    effective = _validate_receipt(base, scope="formal", engines=engines)
+    base_engines = list(base.get("engines") or [])
+    if not base_engines or any(engine not in engines for engine in base_engines):
+        raise ValueError("base formal receipt browsers are not registered by the current profile")
+    effective = _validate_receipt(base, scope="formal", engines=base_engines)
     expected = {(engine, task_id) for engine in engines for task_id in plan["task_ids"]}
-    if set(effective) != expected:
+    expected_base = {
+        (engine, task_id) for engine in base_engines for task_id in plan["task_ids"]
+    }
+    if set(effective) != expected_base:
         raise ValueError("base formal receipt does not cover the complete current task selection")
 
     source_receipts = [
@@ -89,11 +96,10 @@ def build_effective_results(
     for raw_path in correction_receipt_paths:
         path, receipt = _read(raw_path)
         correction = _validate_receipt(
-            receipt, scope="formal_correction_shard", engines=engines
+            receipt, scope="formal_correction_shard", engines=base_engines
         )
         if (
-            receipt.get("profile_sha256") != plan["profile_sha256"]
-            or receipt.get("source_seed_manifest_sha256") != plan["seed_manifest_sha256"]
+            receipt.get("source_seed_manifest_sha256") != plan["seed_manifest_sha256"]
             or receipt.get("qualification_dataset_sha256") != qualified_sha256
         ):
             raise ValueError("formal correction shard is not bound to the current replay inputs")
@@ -112,6 +118,50 @@ def build_effective_results(
             }
         )
         receipts.append(receipt)
+
+    extension_engines: set[str] = set()
+    for raw_path in extension_receipt_paths or []:
+        path, receipt = _read(raw_path)
+        receipt_engines = list(receipt.get("engines") or [])
+        if (
+            not receipt_engines
+            or any(engine not in engines for engine in receipt_engines)
+            or extension_engines.intersection(receipt_engines)
+            or set(base_engines).intersection(receipt_engines)
+        ):
+            raise ValueError("formal method extension has duplicate or unregistered browsers")
+        extension = _validate_receipt(
+            receipt, scope="formal_method_extension", engines=receipt_engines
+        )
+        if (
+            list(receipt.get("task_ids") or []) != list(plan["task_ids"])
+            or receipt.get("source_seed_manifest_sha256") != plan["seed_manifest_sha256"]
+            or receipt.get("qualification_dataset_sha256") != qualified_sha256
+        ):
+            raise ValueError("formal method extension is not bound to the current replay inputs")
+        overlap = set(effective).intersection(extension)
+        if overlap:
+            raise ValueError(f"formal method extension duplicates existing results: {sorted(overlap)}")
+        effective.update(extension)
+        for row in receipt.get("physical_executions") or []:
+            physical_by_key.setdefault(
+                (str(row["engine"]), int(row["task_id"])), []
+            ).append(row)
+        extension_engines.update(receipt_engines)
+        source_receipts.append(
+            {
+                "role": "method_extension",
+                "path": str(path),
+                "sha256": _sha256(path),
+                "run_id": str(receipt.get("run_id") or ""),
+                "task_ids": list(receipt.get("task_ids") or []),
+                "engines": receipt_engines,
+            }
+        )
+        receipts.append(receipt)
+
+    if set(base_engines).union(extension_engines) != set(engines):
+        raise ValueError("formal base and method extensions do not cover the browser registry")
 
     if set(effective) != expected or set(physical_by_key) != expected:
         raise ValueError("effective replay matrix is incomplete")
@@ -155,4 +205,3 @@ def build_effective_results(
             "failures": sum(row.get("status") != "pass" for row in effective.values()),
         },
     }
-

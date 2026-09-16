@@ -18,6 +18,7 @@ def main() -> None:
     parser.add_argument("--qualified-dataset", required=True)
     parser.add_argument("--base-receipt", required=True)
     parser.add_argument("--correction-receipt", action="append", default=[])
+    parser.add_argument("--extension-receipt", action="append", default=[])
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
     result = build_effective_results(
@@ -26,6 +27,7 @@ def main() -> None:
         qualified_dataset_path=args.qualified_dataset,
         base_receipt_path=args.base_receipt,
         correction_receipt_paths=args.correction_receipt,
+        extension_receipt_paths=args.extension_receipt,
     )
     output = Path(args.output).expanduser().resolve()
     output.parent.mkdir(parents=True, exist_ok=True)

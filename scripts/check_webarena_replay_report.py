@@ -111,8 +111,16 @@ def check(report_dir: Path) -> dict[str, int]:
         or manifest["reviewed_failures"] != len(failures)
     ):
         raise ValueError("report must contain a review for every final failure")
-    if any(not item["reason_zh"] or not item["reason_en"] for item in failures):
+    if any(
+        not item["reason_zh"]
+        or not item["reason_en"]
+        or not item["cause_zh"]
+        or not item["cause_en"]
+        for item in failures
+    ):
         raise ValueError("every failed result needs a bilingual reviewed cause")
+    if any(int(item.get("execution_count") or 0) not in {1, 2} for item in results):
+        raise ValueError("every result must expose one logical outcome with one or two executions")
 
     zh_details = {path.name for path in (root / "result").glob("*.html")}
     en_details = {path.name for path in (root / "en/result").glob("*.html")}
@@ -223,8 +231,19 @@ def check(report_dir: Path) -> dict[str, int]:
     if ".inventory{height:" not in css or "overflow:auto" not in css:
         raise ValueError("result inventory must be fixed-height and horizontally scrollable")
     results_html = (root / "results.html").read_text(encoding="utf-8")
-    if '<option value="fail">' not in results_html or 'id="diagnosis-dialog"' not in results_html:
+    if (
+        '<option value="fail">' not in results_html
+        or 'id="diagnosis-dialog"' not in results_html
+        or 'data-filter="cause"' not in results_html
+        or ">执行次数</th>" not in results_html
+    ):
         raise ValueError("result inventory must default to failure and open a diagnosis dialog")
+    expected_categories = {item["cause_zh"] for item in failures}
+    rendered_categories = set(
+        re.findall(r'<option value="([^"]+)">[^<]+</option>', results_html)
+    )
+    if not expected_categories.issubset(rendered_categories):
+        raise ValueError("result inventory must filter every reviewed failure category")
     for language_root in (root, root / "en"):
         dataset_html = (language_root / "dataset.html").read_text(encoding="utf-8")
         filters = set(re.findall(r'data-dataset-filter="([^\"]+)"', dataset_html))
@@ -244,6 +263,7 @@ def check(report_dir: Path) -> dict[str, int]:
         if (
             'class="metric-groups"' not in interpretation_html
             or 'class="leader-grid"' not in interpretation_html
+            or 'class="winner"' not in interpretation_html
         ):
             raise ValueError("interpretation must include grouped timing and resource comparisons")
         home_html = (language_root / "index.html").read_text(encoding="utf-8")

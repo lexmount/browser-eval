@@ -185,7 +185,13 @@ def validate_qualification_dataset(plan: dict[str, Any], path: str | Path) -> st
     provenance = dataset.get("provenance") or {}
     if provenance.get("seed_manifest_sha256") != plan["seed_manifest_sha256"]:
         raise ValueError("qualified trajectories differ from the frozen replay seeds")
-    if provenance.get("profile_sha256") != plan["profile_sha256"]:
+    qualification_profile_sha256 = str(
+        ((plan.get("profile") or {}).get("qualification") or {}).get(
+            "dataset_profile_sha256"
+        )
+        or plan["profile_sha256"]
+    )
+    if provenance.get("profile_sha256") != qualification_profile_sha256:
         raise ValueError("qualified trajectories differ from the frozen replay profile")
     policy = dataset.get("promotion_policy") or {}
     if policy.get("qualification_browser") != plan["qualification_engine"]:
@@ -835,13 +841,19 @@ def run_replay_suite(  # noqa: PLR0913
     qualification_engine: str | None = None,
     qualification_task_ids: list[int] | None = None,
     correction_task_ids: list[int] | None = None,
+    extension_engines: list[str] | None = None,
     qualified_dataset_path: str | Path | None = None,
 ) -> dict[str, Any]:
     plan = load_replay_plan(profile_path, seed_manifest_path)
     seeds = plan["seed_manifest"]
     selected_scopes = sum(
         scope is not None
-        for scope in (diagnostic_task_ids, qualification_task_ids, correction_task_ids)
+        for scope in (
+            diagnostic_task_ids,
+            qualification_task_ids,
+            correction_task_ids,
+            extension_engines,
+        )
     )
     if selected_scopes > 1:
         raise ValueError("diagnostic, qualification and correction task scopes are exclusive")
@@ -872,6 +884,14 @@ def run_replay_suite(  # noqa: PLR0913
         if diagnostic_engines is not None:
             raise ValueError("formal correction shards must cover every registered browser")
         scope = "formal_correction_shard"
+    elif extension_engines is not None:
+        unknown_engines = sorted(set(extension_engines) - set(engines))
+        if unknown_engines:
+            raise ValueError(f"extension engines are not registered: {unknown_engines}")
+        engines = [engine for engine in engines if engine in set(extension_engines)]
+        if not engines:
+            raise ValueError("formal method extension selection is empty")
+        scope = "formal_method_extension"
     elif diagnostic_engines is not None:
         unknown_engines = sorted(set(diagnostic_engines) - set(engines))
         if unknown_engines:
@@ -883,7 +903,7 @@ def run_replay_suite(  # noqa: PLR0913
     else:
         scope = "formal" if diagnostic_task_ids is None else "diagnostic"
     qualification_dataset_sha256 = None
-    if scope in {"formal", "formal_correction_shard"}:
+    if scope in {"formal", "formal_correction_shard", "formal_method_extension"}:
         if qualified_dataset_path is None:
             raise ValueError("formal replay requires a complete qualified trajectory dataset")
         qualification_dataset_sha256 = validate_qualification_dataset(

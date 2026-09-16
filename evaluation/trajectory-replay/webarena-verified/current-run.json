@@ -24,11 +24,17 @@
       "id": "moli-1.1.3",
       "engine": "moli",
       "label": "Moli 1.1.3"
+    },
+    {
+      "id": "moli-1.1.6",
+      "engine": "moli-1.1.6",
+      "label": "Moli 1.1.6"
     }
   ],
   "qualification": {
     "reference_engine": "chromium",
-    "required_task_count": 90
+    "required_task_count": 90,
+    "dataset_profile_sha256": "3ca5d91cfec570490df202c9cb332957f7e850b70fc5af80b684709e97ef0893"
   },
   "runs_per_task": 1,
   "resources": {

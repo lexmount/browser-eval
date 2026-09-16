@@ -12,8 +12,13 @@ def _write(path: Path, value: object) -> Path:
     return path
 
 
-def _receipt(scope: str, task_ids: list[int], candidates: dict[int, str]) -> dict:
-    engines = ["chromium", "moli"]
+def _receipt(
+    scope: str,
+    task_ids: list[int],
+    candidates: dict[int, str],
+    engines: list[str] | None = None,
+) -> dict:
+    engines = engines or ["chromium", "moli"]
     attempts = [
         {
             "engine": engine,
@@ -99,3 +104,42 @@ def test_correction_shard_replaces_only_its_declared_rows(
         "base",
         "correction",
     ]
+
+
+def test_method_extension_adds_new_browser_without_rerunning_base(
+    tmp_path: Path, monkeypatch
+) -> None:
+    plan = {
+        "profile_path": "profile.json",
+        "profile_sha256": "expanded-profile",
+        "seed_manifest_path": "seeds.json",
+        "seed_manifest_sha256": "seeds",
+        "task_ids": [1, 2],
+        "engines": ["chromium", "moli", "moli-1.1.6"],
+        "profile": {"execution": {"method_parallelism": 1}},
+        "seed_manifest": {"tasks": [
+            {"task_id": 1, "canonical_candidate_id": "candidate-1"},
+            {"task_id": 2, "canonical_candidate_id": "candidate-2"},
+        ]},
+    }
+    monkeypatch.setattr(webarena_results, "load_replay_plan", lambda *_: plan)
+    monkeypatch.setattr(webarena_results, "validate_qualification_dataset", lambda *_: "qualified")
+    candidates = {1: "candidate-1", 2: "candidate-2"}
+    base = _write(tmp_path / "base.json", _receipt("formal", [1, 2], candidates))
+    extension = _write(
+        tmp_path / "extension.json",
+        _receipt("formal_method_extension", [1, 2], candidates, ["moli-1.1.6"]),
+    )
+
+    result = webarena_results.build_effective_results(
+        profile_path="profile.json",
+        seed_manifest_path="seeds.json",
+        qualified_dataset_path="qualified.json",
+        base_receipt_path=base,
+        correction_receipt_paths=[],
+        extension_receipt_paths=[extension],
+    )
+
+    assert result["engines"] == ["chromium", "moli", "moli-1.1.6"]
+    assert result["counts"]["logical_results"] == 6
+    assert result["source_receipts"][-1]["role"] == "method_extension"

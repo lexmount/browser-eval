@@ -34,8 +34,9 @@ from .suite import BrowserTask, load_suite, validate_ground_truth_evidence
 ENGINE_IMAGES = {
     "chromium": "lex-browser-use-eval-chromium:local",
     "moli": "lex-browser-use-eval-moli:local",
+    "moli-1.1.6": "lex-browser-use-eval-moli-1.1.6:local",
 }
-ENGINE_PORTS = {"chromium": 9223, "moli": 9222}
+ENGINE_PORTS = {"chromium": 9223, "moli": 9222, "moli-1.1.6": 9222}
 ENCODING = tiktoken.get_encoding("o200k_base")
 
 

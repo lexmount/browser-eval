@@ -55,7 +55,8 @@ def test_qualification_scope_is_separate_from_diagnostics() -> None:
     assert "qualification and diagnostic scopes cannot be combined" in source
     assert "qualification engine differs from the frozen reference engine" in source
     assert 'scope = "formal_correction_shard"' in source
-    assert 'scope in {"formal", "formal_correction_shard"}' in source
+    assert 'scope = "formal_method_extension"' in source
+    assert '"formal_method_extension"' in source
     assert "formal correction shards must cover every registered browser" in source
 
 
@@ -159,6 +160,28 @@ def test_formal_dataset_binding_requires_all_canonical_trajectories(tmp_path: Pa
     dataset.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError, match="canonical input"):
         validate_qualification_dataset(plan, dataset)
+
+
+def test_qualification_dataset_can_bind_to_declared_dataset_profile(tmp_path: Path) -> None:
+    plan = {
+        "seed_manifest_sha256": "seed-hash",
+        "profile_sha256": "expanded-profile-hash",
+        "profile": {"qualification": {"dataset_profile_sha256": "dataset-profile-hash"}},
+        "qualification_engine": "chromium",
+        "task_ids": [1],
+        "seed_manifest": {
+            "tasks": [{"task_id": 1, "canonical_candidate_id": "candidate-1", "candidates": [{"id": "candidate-1", "tool_calls": [{"action": "snapshot"}]}]}]
+        },
+    }
+    dataset = tmp_path / "trajectories.json"
+    dataset.write_text(json.dumps({
+        "schema": "lex_webarena_verified_trajectory_dataset/1",
+        "promotion_policy": {"qualification_browser": "chromium"},
+        "provenance": {"seed_manifest_sha256": "seed-hash", "profile_sha256": "dataset-profile-hash"},
+        "trajectories": [{"task_id": 1, "tool_calls": [{"action": "snapshot"}]}],
+    }), encoding="utf-8")
+
+    assert len(validate_qualification_dataset(plan, dataset)) == 64
 
 
 def test_rebind_url_changes_only_known_local_site_ports() -> None:
