@@ -8,7 +8,8 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 from harness.web_fetch.report import STYLE, EXTRA, JS
-from harness.web_fetch.webmainbench_diagnostics import validate_teds_revision_if_present
+from harness.web_fetch.webmainbench_diagnostics import ERROR_PAGE, validate_teds_revision_if_present
+from harness.web_fetch.safety import contained_path
 
 
 PROVIDERS = {"kitesurf", "lightpanda", "obscura", "moli", "chromium"}
@@ -140,15 +141,28 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     request = analysis.select_one('[data-wmb-filter="request"]')
     if request is None or request.get("data-wmb-default") != "failed" or request.select_one("option[selected]").get("value") != "failed":
         raise ValueError("WebMainBench request filter must initially locate failed requests")
-    failed_count = sum(not row["ok"] for row in records)
+    body_states = {}
+    output_errors = set()
+    inspection_links = {anchor.get('href'): anchor for anchor in analysis.select('#wmb-attempt-matrix a[href]')}
+    for row in records:
+        output = contained_path(root, row['artifact_path']).read_text(encoding='utf-8', errors='replace')
+        error_page = bool(ERROR_PAGE.search(output))
+        present = bool(row['ok'] and output.strip() and not error_page)
+        body_states[row['attempt_id']] = present
+        if not present:
+            output_errors.add('error_page' if error_page else 'empty_body' if row['ok'] else row.get('error_type'))
+        target = '../attempts/' + row['attempt_id'] + '.html'
+        anchor = inspection_links.get(target)
+        if anchor is None or anchor.find_parent('tr').get('data-request') != ('success' if present else 'failed'):
+            raise ValueError('WebMainBench output filter disagrees with artifact: ' + row['attempt_id'])
+    failed_count = sum(not present for present in body_states.values())
     if f"默认先显示 {failed_count} 条没有生成正文" not in analysis.get_text(" ", strip=True):
         raise ValueError("WebMainBench failure-first explanation does not match the measured matrix")
     if not any("响应与正文" in tag.get_text(strip=True) for tag in analysis.select("#wmb-attempt-matrix th")):
         raise ValueError("WebMainBench result rows must expose response and body-text condition")
     if len(analysis.select("#wmb-compare-rows > tr")) != 200 or len(analysis.select("[data-wmb-compare-method]")) != 5:
         raise ValueError("WebMainBench same-page group comparison is incomplete")
-    if {option.get("value") for option in analysis.select('[data-wmb-filter="failure"] option') if option.get("value")} != {
-            row.get("error_type") for row in records if not row["ok"] and row.get("error_type")}:
+    if {option.get("value") for option in analysis.select('[data-wmb-filter="failure"] option') if option.get("value")} != output_errors - {None}:
         raise ValueError("WebMainBench request failure classes are incomplete")
     expected_slices = sum(len(summaries[provider].get("dimensions", {}).get(axis, {}))
                           for provider in PROVIDERS for axis in ("language", "level", "table", "code", "equation"))

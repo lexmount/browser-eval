@@ -1488,8 +1488,11 @@ def _wmb_row_attrs(case,record=None):
  for axis in ('language','level','table','code','equation'):
   parts.append(f' data-{axis}="{esc(_wmb_category(case,axis))}"')
  if record:
-  parts.extend([f' data-method="{esc(record["provider"])}"',f' data-request="{"success" if record["ok"] else "failed"}"',f' data-failure="{esc(record.get("error_type") or "")}"',
-                f' data-search="{esc(case["id"]+" "+case["url"]+" "+str(record.get("error_type") or "")+" "+str(record.get("error_message") or ""))}"'])
+  error=str(record.get('error_message') or '')
+  # Search a bounded excerpt, including the terminal error; full logs stay in evidence.
+  if len(error)>1024:error=error[:512]+' … '+error[-512:]
+  parts.extend([f' data-method="{esc(record["provider"])}"',f' data-request="{"success" if record.get("_body_present",record["ok"]) else "failed"}"',f' data-failure="{esc(record.get("_output_error") or record.get("error_type") or "")}"',
+                f' data-search="{esc(case["id"]+" "+case["url"]+" "+str(record.get("error_type") or "")+" "+error)}"'])
   for metric in ('text_edit','code_edit','formula_edit','table_edit','table_TEDS'):
    item=record.get('metrics',{}).get(metric,{})
    parts.append(f' data-{metric}="{item.get("score") if item.get("success") else ""}"')
@@ -1548,8 +1551,8 @@ def _wmb_comparison(cases,bycase,names,labels,english=False):
  rows=[]
  for case in cases.values():
   results={r['provider']:r for r in bycase[case['id']]}
-  delivered=[name for name in names if results[name]['ok']]
-  failed=[name for name in names if not results[name]['ok']]
+  delivered=[name for name in names if results[name]['_body_present']]
+  failed=[name for name in names if not results[name]['_body_present']]
   def pills(selected,kind):
    return '<span class="outcome-list">'+''.join('<a class="outcome-pill '+kind+'" href="../attempts/'+esc(results[name]['attempt_id'])+'.html">'+esc(labels[name])+'</a>' for name in selected)+'</span>' if selected else '—'
   values=cell(link('../datasets/'+case['id']+'.html',case['id']))+cell(esc(_wmb_category(case,'language'))+' · '+esc(_wmb_category(case,'level')))+cell(pills(delivered,'pass'))+cell(pills(failed,'fail'))
@@ -1565,11 +1568,19 @@ def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,mani
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
  (out/'assets/style.css').write_text(STYLE+EXTRA,encoding='utf-8')
  (out/'assets/report.js').write_text(JS,encoding='utf-8')
+ # Presentation-only classification: do not change provider status, scores or evidence.
+ classified=[]
+ for record in records:
+  text=contained_path(out,record['artifact_path']).read_text(encoding='utf-8',errors='replace')
+  error_page=_wmb_error_page(text)
+  classified.append({**record,'_body_present':bool(record['ok'] and text.strip() and not error_page),
+                     '_output_error':'error_page' if error_page else 'empty_body' if record['ok'] and not text.strip() else record.get('error_type')})
+ records=classified
  cases={row['id']:row for row in dataset['cases']};bycase=defaultdict(list)
  for row in records:bycase[row['case_id']].append(row)
  names=list(dataset['coverage_plan']['static_html'])
- failure_types=sorted({r.get('error_type') for r in records if not r['ok'] and r.get('error_type')})
- failed_request_count=sum(not r['ok'] for r in records)
+ failure_types=sorted({r['_output_error'] for r in records if not r['_body_present'] and r['_output_error']})
+ failed_request_count=sum(not r['_body_present'] for r in records)
  case_count=len(cases);result_count=case_count*len(names)
  labels={'kitesurf':'Kitesurf','lightpanda':'Lightpanda','obscura':'Obscura','moli':'Moli 1.1.5','chromium':'Chromium 152'}
  metric_order=['overall','text_edit','code_edit','formula_edit','table_edit','table_TEDS']
@@ -1578,7 +1589,7 @@ def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,mani
  def score(name,metric):return summaries[name]['official_aggregate']['scores'][metric]
  def denom(name,metric):return summaries[name]['official_aggregate']['denominators'].get(metric)
  def times(name):return [r['total_elapsed_ms'] for r in records if r['provider']==name]
- def failures(name):return [r for r in records if r['provider']==name and not r['ok']]
+ def failures(name):return [r for r in records if r['provider']==name and not r['_body_present']]
  def unique_winner(values,higher=True):
   ordered=sorted(values,key=lambda item:item[1],reverse=higher)
   return ordered[0][0] if len(ordered)==1 or ordered[0][1]!=ordered[1][1] else None
@@ -1765,7 +1776,7 @@ def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,mani
   origin_case='ccb6033c-0a12-4f9c-8c68-794f26129841'
   if origin_case in cases:
    guide+=section(h('另一种低分：页面跳回原站','A different low score: navigation to the original site'),'<p>'+h('这页的内联脚本根据当前域名决定跳转地址。冻结 HTML 在本地隔离域名上运行时，脚本尝试离开本地夹具访问原站；网络隔离拒绝了这个跳转。Chromium 最终输出的是浏览器“无法访问此网站”，而非目标正文；Moli 和 Obscura 没有交付。Kitesurf 和 Lightpanda 在同一页取得了正文。这里的分歧首先暴露了冻结页的域名依赖，不能直接归因为三款方法的正文提取能力。', 'An inline script on this page chooses a redirect based on the current hostname. Running the frozen HTML on the isolated fixture host caused a navigation toward the original site, which the network sandbox denied. Chromium finally output a browser access-error page rather than the target text; Moli and Obscura did not deliver content. Kitesurf and Lightpanda obtained body text on the same page. This divergence first exposes the frozen page’s hostname dependency and cannot be attributed solely to three methods’ extraction quality.')+'</p><p>'+h('冻结 HTML 和人工答案不能为了让浏览器通过而悄悄改写。这页继续保留在 200 页矩阵中，并标记为解释受限；若要消除此限制，需对所有方法以同一新输入和网络条件重新实验。','The frozen HTML and human reference must not be silently rewritten to make a browser pass. This page remains in the 200-page matrix with a limited interpretation; removing the limitation requires a new, identical input and network setup for every method.')+'</p><p class="actions">'+link('../datasets/'+origin_case+'.html',h('查看内联脚本和官方参考','Inline script and reference'))+' · '+link('../analysis/index.html#inspect?query='+origin_case,h('查看同页五方法结果','Five method results for the page'))+'</p>')
-  mixed_case=next((c for c in cases.values() if 0<sum(r['ok'] for r in bycase[c['id']])<len(names)),None)
+  mixed_case=next((c for c in cases.values() if 0<sum(r['_body_present'] for r in bycase[c['id']])<len(names)),None)
   def text_scores(c):
    return [r['metrics']['text_edit']['score'] for r in bycase[c['id']] if r['ok'] and r.get('metrics',{}).get('text_edit',{}).get('success')]
   scored_cases=[(max(text_scores(c))-min(text_scores(c)),c) for c in cases.values() if len(text_scores(c))>=2]
@@ -1785,7 +1796,7 @@ def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,mani
   for index,(c,reason) in enumerate(example_cases,1):
    rs=bycase[c['id']]
    source=urlsplit(c['url']);source_label=(source.netloc+source.path)[:105] or c['url']
-   example_body='<p>'+h('从五款方法的同页结果继续打开单次调用，就能并排核对完整人工真值、最终输出与每项评分原因。此页因方法之间的差别较大而选作实例，不代表总体平均。','Open a same-page method result, then its call, to compare the complete human reference, final output and each component scorer reason. This page is selected for its large cross-method difference, not as a representative average.')+'</p><h3>'+link('../datasets/'+c['id']+'.html',source_label)+'</h3><p><code>'+esc(c['id'])+'</code> · '+esc(reason)+' · '+h('生成正文的方法','Methods with body text')+f': {sum(r["ok"] for r in rs)}/{len(names)}</p>'+table([h('方法','Method'),h('是否生成正文','Body text produced'),'text_edit','code_edit','formula_edit','table_TEDS',h('逐页 overall','Per-page overall')],[('',cell(link('../attempts/'+r['attempt_id']+'.html',labels[r['provider']]))+cell(h('有正文','Yes') if r['ok'] else h('无正文','No'))+''.join(_wmb_metric_cell(r,m) for m in ('text_edit','code_edit','formula_edit','table_TEDS','overall'))) for r in sorted(rs,key=lambda row:names.index(row['provider']))],cls='wmb-guide-example-table',metrics=[])
+   example_body='<p>'+h('从五款方法的同页结果继续打开单次调用，就能并排核对完整人工真值、最终输出与每项评分原因。此页因方法之间的差别较大而选作实例，不代表总体平均。','Open a same-page method result, then its call, to compare the complete human reference, final output and each component scorer reason. This page is selected for its large cross-method difference, not as a representative average.')+'</p><h3>'+link('../datasets/'+c['id']+'.html',source_label)+'</h3><p><code>'+esc(c['id'])+'</code> · '+esc(reason)+' · '+h('生成正文的方法','Methods with body text')+f': {sum(r["_body_present"] for r in rs)}/{len(names)}</p>'+table([h('方法','Method'),h('是否生成正文','Body text produced'),'text_edit','code_edit','formula_edit','table_TEDS',h('逐页 overall','Per-page overall')],[('',cell(link('../attempts/'+r['attempt_id']+'.html',labels[r['provider']]))+cell(h('有正文','Yes') if r['_body_present'] else h('无正文','No'))+''.join(_wmb_metric_cell(r,m) for m in ('text_edit','code_edit','formula_edit','table_TEDS','overall'))) for r in sorted(rs,key=lambda row:names.index(row['provider']))],cls='wmb-guide-example-table',metrics=[])
    example_panels.append((str(index),reason,example_body))
   guide+=section(guide_sections[2][1],tabs('wmb-guide-examples',example_panels)+'<p class="actions">'+link('../analysis/index.html#comparison',h('按交付组合找更多同题实例','Find more same-page delivery patterns'))+'</p>','examples')
   guide_config=[]
@@ -1798,7 +1809,7 @@ def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,mani
   fail_total=sum(len(failures(name)) for name in names)
   guide_fail_rows=[]
   for name in names:
-   counts=Counter(r.get('error_type') or 'unknown' for r in failures(name))
+   counts=Counter(r['_output_error'] or 'unknown' for r in failures(name))
    guide_fail_rows.append(('',cell(link('../providers/'+name+'.html',labels[name]))+cell(link(_wmb_inspect('../analysis/index.html',method=name,request='failed'),str(len(failures(name)))))+cell('、'.join(f'{esc(key)}: {value}' for key,value in sorted(counts.items())) or '—')))
   guide+=section(guide_sections[4][1],'<p>'+h(f'1,000 条逻辑结果中有 {fail_total} 条没有生成 Markdown 正文。下面按方法和错误类型汇总；没有正文与正文低分是两件事。有正文的页面仍可能漏文字、代码、公式或表格，须对照真值和实际输出。“—”可能是该项没有可评分内容，也可能是评分错误。',f'{fail_total} of 1,000 logical results produced no Markdown body text. The table summarizes method and error type; no body text and low body-text quality are different events. A page with body text may still omit text, code, formulas or tables; compare the reference with actual output. “—” may be inapplicability or a scorer error.')+'</p>'+table([h('方法','Method'),h('没有正文','No body text'),h('错误类型','Error types')],guide_fail_rows,metrics=[])+'<p class="actions">'+link('../analysis/index.html#inspect?request=failed',h('逐条看没有正文的结果','Inspect results without body text'))+' · '+link('../analysis/index.html#inspect?request=success&metric=text_edit&band=0%3A0.25',h('查看有正文但文字低分','Body text produced but low text score'))+' · '+link('../review/index.html',h('独立核验记录','Independent review'))+'</p>','limits')
   failure_notes={
@@ -1811,8 +1822,8 @@ def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,mani
    ('obscura','ccb6033c-0a12-4f9c-8c68-794f26129841'):(h('脚本跳到原站，隔离网络拒绝导航','Script navigated to origin; sandbox denied navigation'),h('冻结页依赖真实域名；这是测试输入和隔离条件的限制。','The frozen page depends on its real hostname; this is a limitation of input and isolation.')),
    ('moli','ccb6033c-0a12-4f9c-8c68-794f26129841'):(h('脚本跳到原站，隔离网络拒绝导航','Script navigated to origin; sandbox denied navigation'),h('供应商错误明确写出原站 URL，而非本地 HTML 不存在。','The worker error names the origin URL rather than a missing local HTML page.')),
   }
-  delivery_leader=max(names,key=lambda name:summaries[name]['request_successes'])
-  guide+=section(guide_sections[5][1],'<p>'+h(f'在这 200 页里，{labels[delivery_leader]} 生成正文的页面最多（{summaries[delivery_leader]["request_successes"]}/{case_count}）。这只说明正文存在。修正后的 TEDS 排除了已证实的计算错误，但计分页数、内容类型和冻结页运行限制仍影响比较。Moli 与 Obscura 的表格低分保留了输出格式损失这一事实。选择方法时应先看目标内容类型对应的逐页输出，再看全部 200 次调用的耗时。',f'On these 200 pages, {labels[delivery_leader]} produces body text on the most pages ({summaries[delivery_leader]["request_successes"]}/{case_count}). This only establishes that body text exists. Corrected TEDS removes the proven calculation defect, but scored-page counts, content types and frozen-page runtime limits still affect comparisons. The low table scores for Moli and Obscura continue to reflect output-format loss. Inspect page-level output for the target content type before latency across all 200 calls.')+'</p><p>'+h('这次给方法的是冻结 HTML，不是实时网页。需要比较当前网站、外部资源加载或 545 页母集，应另做相应实验。','Methods received frozen HTML, not live webpages. Current-site behavior, external-resource loading and the complete 545-page parent set require separate experiments.')+'</p>','outlook')
+  delivery_leader=max(names,key=lambda name:case_count-len(failures(name)))
+  guide+=section(guide_sections[5][1],'<p>'+h(f'在这 200 页里，{labels[delivery_leader]} 生成正文的页面最多（{case_count-len(failures(delivery_leader))}/{case_count}）。这只说明正文存在。修正后的 TEDS 排除了已证实的计算错误，但计分页数、内容类型和冻结页运行限制仍影响比较。Moli 与 Obscura 的表格低分保留了输出格式损失这一事实。选择方法时应先看目标内容类型对应的逐页输出，再看全部 200 次调用的耗时。',f'On these 200 pages, {labels[delivery_leader]} produces body text on the most pages ({case_count-len(failures(delivery_leader))}/{case_count}). This only establishes that body text exists. Corrected TEDS removes the proven calculation defect, but scored-page counts, content types and frozen-page runtime limits still affect comparisons. The low table scores for Moli and Obscura continue to reflect output-format loss. Inspect page-level output for the target content type before latency across all 200 calls.')+'</p><p>'+h('这次给方法的是冻结 HTML，不是实时网页。需要比较当前网站、外部资源加载或 545 页母集，应另做相应实验。','Methods received frozen HTML, not live webpages. Current-site behavior, external-resource loading and the complete 545-page parent set require separate experiments.')+'</p>','outlook')
   _wmb_write(out,'guide/index.html',h('报告解读','Guide'),guide,english)
 
   provider_rows=[]

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness.web_fetch.report import generate_webmainbench, _wmb_pct, _wmb_body_state
+from harness.web_fetch.report import generate_webmainbench, _wmb_pct, _wmb_body_state, _wmb_row_attrs
 from harness.web_fetch.report_build import validate_webmainbench_correction
 
 
@@ -13,6 +13,15 @@ METRICS = ("text_edit", "code_edit", "table_edit", "table_TEDS", "formula_edit")
 
 
 class WebMainBenchReportTests(unittest.TestCase):
+    def test_search_index_bounds_logs_but_keeps_terminal_error(self):
+        message='initial-warning\n'+'x'*50000+'\nterminal-navigation-error'
+        record={'provider':'obscura','ok':False,'error_type':'browser_exit','error_message':message}
+        attrs=_wmb_row_attrs({'id':'case','url':'https://example.test','meta':{}},record)
+        self.assertLess(len(attrs), 2000)
+        self.assertIn('initial-warning',attrs)
+        self.assertIn('terminal-navigation-error',attrs)
+        self.assertEqual(record['error_message'],message)
+
     def test_body_state_does_not_treat_empty_or_error_output_as_body(self):
         for english in (False, True):
             self.assertEqual(_wmb_body_state({'ok': True}, '  ', english),
@@ -159,6 +168,20 @@ class WebMainBenchReportTests(unittest.TestCase):
                 review_page = (output / prefix / 'review/index.html').read_text()
                 self.assertIn('wmb-correction-effects', review_page)
                 self.assertIn('original-results.jsonl', review_page)
+            # A successful API response containing an error page is not target body text.
+            (output / 'artifacts/chromium/case-one.md').write_text('ERR_ACCESS_DENIED')
+            generate_webmainbench(output, dataset, records, summaries, manifests,
+                                 {'status': 'passed'}, teds_revision=({}, revision_review))
+            self.assertEqual(records, immutable_records)
+            for prefix, error_label in (('', '错误页，非目标正文'), ('en/', 'Error page, not target content')):
+                analysis = (output / prefix / 'analysis/index.html').read_text()
+                provider = (output / prefix / 'providers/chromium.html').read_text()
+                detail = (output / prefix / 'attempts/chromium__case-one__r001.html').read_text()
+                self.assertIn('data-delivered="kitesurf lightpanda obscura moli" data-failed="chromium"', analysis)
+                for page in (analysis, provider):
+                    self.assertIn('data-method="chromium" data-request="failed" data-failure="error_page"', page)
+                    self.assertIn(error_label, page)
+                self.assertIn(error_label, detail)
 
 
 if __name__ == "__main__":
