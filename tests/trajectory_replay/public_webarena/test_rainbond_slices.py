@@ -166,6 +166,25 @@ def test_provision_creates_one_complete_isolated_app_without_serializing_token(t
     }
 
 
+def test_provision_accepts_console_items_response_shapes(tmp_path):
+    class ItemsAPI(FakeAPI):
+        def request(self, method, path, body=None):
+            response = super().request(method, path, body)
+            if method == "POST" and path.endswith("/192/copy"):
+                return {"items": response["services"]}
+            if method == "GET" and path.endswith("/ports"):
+                return {"ports": {"items": response["ports"]}}
+            if method == "GET" and path.endswith("/services"):
+                return {"items": response}
+            return response
+
+    receipt = _pool(tmp_path, ItemsAPI()).provision(
+        "run-items", 1, tmp_path / "slice-receipt.json"
+    )
+
+    assert set(receipt["components"]) == set(STATEFUL_SITES)
+
+
 def test_provision_rejects_copied_site_without_internal_control_port(tmp_path):
     class MissingControlPortAPI(FakeAPI):
         def request(self, method, path, body=None):

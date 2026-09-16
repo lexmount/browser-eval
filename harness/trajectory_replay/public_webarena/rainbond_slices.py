@@ -187,6 +187,20 @@ class RainbondSlicePool:
     def _app_path(self, app_id: int) -> str:
         return f"{self._apps_path()}/{app_id}"
 
+    @staticmethod
+    def _response_rows(response: Any, *keys: str) -> list[dict[str, Any]]:
+        if isinstance(response, list):
+            return [row for row in response if isinstance(row, dict)]
+        if not isinstance(response, dict):
+            return []
+        for key in (*keys, "items"):
+            value = response.get(key)
+            if isinstance(value, list):
+                return [row for row in value if isinstance(row, dict)]
+            if isinstance(value, dict) and isinstance(value.get("items"), list):
+                return [row for row in value["items"] if isinstance(row, dict)]
+        return []
+
     def _domain(self, pool_id: str, slot: int, site: str, app_id: int) -> str:
         label = (
             f"{self.config.app_prefix}-{pool_id}-{slot}-{app_id}-{site.replace('_', '-')}"
@@ -223,7 +237,7 @@ class RainbondSlicePool:
                 "target_app_id": app_id,
             },
         )
-        rows = list((result or {}).get("services") or [])
+        rows = self._response_rows(result, "services")
         by_source_name = {
             site: str(self.raw_config.get("source_component_names", {}).get(site) or site)
             for site in STATEFUL_SITES
@@ -433,7 +447,7 @@ class RainbondSlicePool:
             "GET",
             f"{self._app_path(app_id)}/services/{quote(service_id)}/ports",
         )
-        rows = response if isinstance(response, list) else (response or {}).get("ports", [])
+        rows = self._response_rows(response, "ports")
         match = next(
             (
                 row
@@ -455,7 +469,7 @@ class RainbondSlicePool:
         last_status = "not found"
         while time.monotonic() < deadline:
             response = self.api.request("GET", f"{self._app_path(app_id)}/services")
-            rows = response if isinstance(response, list) else (response or {}).get("services", [])
+            rows = self._response_rows(response, "services")
             match = next(
                 (row for row in rows if str(row.get("service_id")) == service_id), None
             )
