@@ -188,12 +188,16 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         raise ValueError("WebMainBench category slices must use one bounded, filterable table")
     guide = BeautifulSoup((root / "guide/index.html").read_text(encoding="utf-8"), "html.parser")
     if {section.get("id") for section in guide.select("section.section[id]")} != {
-            "background", "results", "examples", "configuration", "limits", "outlook"}:
+            "success-layers", "scope-gap", "causes", "denominators", "method-profiles",
+            "missing-body", "decisions", "limits"}:
         raise ValueError("WebMainBench report interpretation is incomplete")
-    if (len(guide.select("#wmb-guide-examples [role=tab]")) < 4
-            or len(guide.select("#configuration table tbody > tr")) != 5
-            or len(guide.select("#limits table tbody > tr")) != 5):
-        raise ValueError("WebMainBench guide lacks same-page examples, routes or failure evidence")
+    if (len(guide.select("#scope-gap table tbody > tr")) != 5
+            or len(guide.select("#causes table tbody > tr")) != 5
+            or len(guide.select("#denominators table tbody > tr")) != 5
+            or len(guide.select("#method-profiles table tbody > tr")) != 5
+            or len(guide.select("#missing-body table tbody > tr")) != 6
+            or guide.select_one("#success-layers [data-wmb-flow-fallback]") is None):
+        raise ValueError("WebMainBench guide lacks aggregate mechanism or root-cause evidence")
     dataset_page = BeautifulSoup((root / "datasets/index.html").read_text(encoding="utf-8"),"html.parser")
     if len(dataset_page.select('table[data-wmb-table] tbody tr')) != 200:
         raise ValueError("WebMainBench 200-case filtered dataset inventory is incomplete")

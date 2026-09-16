@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness.web_fetch.report import generate_webmainbench, _wmb_pct, _wmb_body_state, _wmb_row_attrs
+from harness.web_fetch.report import JS, generate_webmainbench, _wmb_pct, _wmb_body_state, _wmb_row_attrs
 from harness.web_fetch.report_build import validate_webmainbench_correction
 from harness.web_fetch.report_style import STYLE
 
@@ -19,6 +19,9 @@ class WebMainBenchReportTests(unittest.TestCase):
             '.reliability strong{white-space:normal;overflow-wrap:anywhere}',
             STYLE,
         )
+
+    def test_narrow_flow_keeps_readable_html_fallback(self):
+        self.assertIn("window.innerWidth<=700", JS)
 
     def test_search_index_bounds_logs_but_keeps_terminal_error(self):
         message='initial-warning\n'+'x'*50000+'\nterminal-navigation-error'
@@ -143,9 +146,17 @@ class WebMainBenchReportTests(unittest.TestCase):
             self.assertIn('value="success"', analysis)
             guide = (output / "guide/index.html").read_text(encoding="utf-8")
             guide_en = (output / "en/guide/index.html").read_text(encoding="utf-8")
-            for anchor in ("background", "results", "examples", "configuration", "limits", "outlook"):
+            for anchor in ("success-layers", "scope-gap", "causes", "denominators",
+                           "method-profiles", "missing-body", "decisions", "limits"):
                 self.assertIn(f'id="{anchor}"', guide)
                 self.assertIn(f'id="{anchor}"', guide_en)
+            self.assertIn("几乎都返回了，为什么质量分仍然不高", guide)
+            self.assertIn("低分不是一种原因", guide)
+            self.assertIn("分母也在描述方法的输出行为", guide)
+            self.assertIn("data-wmb-flow-fallback", guide)
+            self.assertNotIn("01 测了什么", guide)
+            self.assertIn("Nearly every page returned", guide_en)
+            self.assertIn("Low scores do not have one cause", guide_en)
             self.assertIn('data-kind="reference"', (output / "attempts/kitesurf__case-one__r001.html").read_text(encoding="utf-8"))
             self.assertIn("WebMainBench-545", (output / "index.html").read_text(encoding="utf-8"))
             self.assertIn("table-structure score validity did not", (output / "en/index.html").read_text(encoding="utf-8"))
