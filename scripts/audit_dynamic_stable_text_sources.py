@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import sys
 import time
@@ -97,6 +98,13 @@ def digest_json(value: object) -> str:
     raw = json.dumps(value, ensure_ascii=False, sort_keys=True,
                      separators=(",", ":")).encode()
     return hashlib.sha256(raw).hexdigest()
+
+
+def atomic_write_json(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+    os.replace(temporary, path)
 
 
 def visible_target(page, selectors: list[str]) -> str | None:
@@ -263,28 +271,61 @@ def main() -> None:
     if unknown:
         parser.error("Unknown case IDs: " + ", ".join(unknown))
     from playwright.sync_api import sync_playwright
-    output = {
-        "schema_version": 1,
-        "created_at": utc_now(),
-        "dataset_sha256": hashlib.sha256(args.dataset.read_bytes()).hexdigest(),
-        "protocol": {
-            "observations_per_case": args.observations,
-            "anonymous": "fresh browser context without supplied cookies or storage state",
-            "interaction": "initial automatic load only; no click, input, scroll, search, or pagination",
-            "candidate_scope": "directly visible ordinary DOM text; controls and image/graphic text excluded",
-            "warning": "candidate intersection is not an automatic stable-anchor decision",
-        },
-        "cases": {},
+    dataset_sha256 = hashlib.sha256(args.dataset.read_bytes()).hexdigest()
+    protocol = {
+        "observations_per_case": args.observations,
+        "timeout_ms": args.timeout_ms,
+        "anonymous": "fresh browser context without supplied cookies or storage state",
+        "interaction": "initial automatic load only; no click, input, scroll, search, or pagination",
+        "candidate_scope": "directly visible ordinary DOM text; controls and image/graphic text excluded",
+        "warning": "candidate intersection is not an automatic stable-anchor decision",
     }
+    checkpoint = args.output.with_name(args.output.name + ".partial")
+    if checkpoint.exists():
+        output = json.loads(checkpoint.read_text())
+        if (output.get("dataset_sha256") != dataset_sha256
+                or output.get("protocol") != protocol
+                or set(output.get("cases", {})) - set(wanted)):
+            parser.error("Existing checkpoint does not match this dataset, protocol, and case scope")
+    else:
+        output = {
+            "schema_version": 1,
+            "created_at": utc_now(),
+            "dataset_sha256": dataset_sha256,
+            "protocol": protocol,
+            "cases": {},
+        }
     with sync_playwright() as playwright:
         for index, case_id in enumerate(wanted, 1):
-            output["cases"][case_id] = capture_case(
-                playwright, indexed[case_id], args.observations,
-                args.timeout_ms, args.browser_binary)
+            if case_id in output["cases"]:
+                print(f"Retained {index}/{len(wanted)} from checkpoint: {case_id}", flush=True)
+                continue
+            try:
+                row = capture_case(
+                    playwright, indexed[case_id], args.observations,
+                    args.timeout_ms, args.browser_binary)
+            except Exception as error:
+                row = {
+                    "case_id": case_id,
+                    "name": indexed[case_id]["name"],
+                    "url": indexed[case_id]["url"],
+                    "observation_count": 0,
+                    "successful_observation_count": 0,
+                    "all_observations_complete": False,
+                    "common_ordinary_text_candidates": [],
+                    "observations": [],
+                    "case_error": {
+                        "checked_at": utc_now(),
+                        "type": type(error).__name__,
+                        "message": str(error)[:2000],
+                    },
+                }
+            output["cases"][case_id] = row
+            atomic_write_json(checkpoint, output)
             print(f"Captured {index}/{len(wanted)}: {case_id}", flush=True)
     output["evidence_sha256"] = digest_json(output)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(output, ensure_ascii=False, indent=2) + "\n")
+    atomic_write_json(args.output, output)
+    checkpoint.unlink()
     incomplete = [case_id for case_id, row in output["cases"].items()
                   if not row["all_observations_complete"]]
     print(json.dumps({"cases": len(wanted), "incomplete": incomplete,
