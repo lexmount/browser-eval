@@ -64,6 +64,13 @@ installation and otherwise produces a gateway 502 even while the Pod and port ar
 healthy. The images retain their default startup commands, and application readiness
 still requires a successful request through each public slice domain.
 
+The GitLab baseline must mount an exclusive 2 GiB Rainbond `memoryfs` volume named
+`gitlab-shm` at `/dev/shm`. This preserves the upstream Compose `shm_size: 2gb`
+runtime contract; a generic persistent volume or the container runtime's small default
+shared-memory mount is not equivalent. The four seeded site images otherwise keep their
+data in the slice's disposable writable layers. Do not mount empty volumes over their
+preloaded database directories.
+
 Copy `rainbond-pool.example.json`, set `RAINBOND_API_TOKEN` in the process environment,
 and reconcile the warm pool to the active task count plus at least one idle slice.
 Additional slices are created in bounded parallel and removed when demand falls:
