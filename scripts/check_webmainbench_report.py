@@ -77,6 +77,22 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
             or review.get("failures")):
         raise ValueError("WebMainBench independent review is missing or incomplete")
 
+    anomaly_path = root / "webmainbench-anomaly-review.json"
+    anomaly = json.loads(anomaly_path.read_text(encoding="utf-8"))
+    scope = anomaly.get("scope", {})
+    bindings = anomaly.get("bindings", {})
+    triggered = anomaly.get("triggered_attempt_ids", [])
+    if (anomaly.get("kind") != "webmainbench_anomaly_root_cause_review"
+            or scope.get("signal_triggered_results") != 30
+            or scope.get("distinct_cases") != 6
+            or scope.get("unresolved_triggered_results") != 0
+            or len(triggered) != 30
+            or len(set(triggered)) != 30
+            or bindings.get("dataset_json_sha256") != digest(root / "dataset.json")
+            or bindings.get("results_jsonl_sha256") != digest(root / "results.jsonl")
+            or bindings.get("score_summaries_json_sha256") != digest(root / "score-summaries.json")):
+        raise ValueError("WebMainBench anomaly review is missing, incomplete, or not bound to this report")
+
     summaries = json.loads((root / "score-summaries.json").read_text(encoding="utf-8"))
     if set(summaries) != PROVIDERS:
         raise ValueError("WebMainBench score-summary provider set mismatch")
@@ -201,6 +217,11 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         methodology = BeautifulSoup((root / prefix / "methodology/index.html").read_text(encoding="utf-8"), "html.parser")
         if methodology.select_one(".wmb-flow .mermaid") is None:
             raise ValueError(prefix + "WebMainBench methodology must lead with an evaluation-flow diagram")
+        localized_review = BeautifulSoup((root / prefix / "review/index.html").read_text(encoding="utf-8"), "html.parser")
+        review_text = localized_review.get_text(" ", strip=True)
+        expected_review = "30 条，实际集中在 6 个页面" if not prefix else "30 of 1,000 results, concentrated in 6 pages"
+        if expected_review not in review_text or len(localized_review.select("table.wide-prose-table tbody > tr")) < 6:
+            raise ValueError(prefix + "WebMainBench anomaly causes must be visible in the review")
     impossible_teds = sum(
         all(key in detail for key in ("predicted_nodes", "groundtruth_nodes", "edit_distance"))
         and detail["edit_distance"] + 1e-9 < abs(detail["predicted_nodes"] - detail["groundtruth_nodes"])

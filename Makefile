@@ -107,15 +107,24 @@ public-benchmark-sample: runtime-check
 	@test -n "$(SOURCE)" || (echo 'SOURCE=/absolute/path/to/WebMainBench_545.jsonl is required' >&2; exit 2)
 	$(PY) scripts/select_public_benchmark_sample.py --source "$(SOURCE)"
 
-.PHONY: webmainbench-audit webmainbench-navigation-diagnostic
+.PHONY: webmainbench-audit webmainbench-navigation-diagnostic webmainbench-kitesurf-diagnostic webmainbench-apply-case-correction
 webmainbench-audit: runtime-check
 	@test -n "$(EVIDENCE)" -a -n "$(SOURCE)" -a -n "$(OUTPUT)" || (echo 'EVIDENCE, SOURCE and new OUTPUT paths are required' >&2; exit 2)
 	$(PY) scripts/audit_webmainbench_suspicions.py --evidence "$(EVIDENCE)" --source-dataset "$(SOURCE)" --output "$(OUTPUT)"
+
+webmainbench-apply-case-correction: runtime-check
+	@test -n "$(RUN_ROOT)" -a -n "$(CORRECTION)" -a -n "$(OUTPUT)" -a -n "$(CASE_ID)" -a -n "$(SOURCE)" || (echo 'RUN_ROOT, CORRECTION, OUTPUT, CASE_ID and SOURCE are required' >&2; exit 2)
+	$(PY) scripts/apply_webmainbench_case_correction.py --source-root "$(RUN_ROOT)" --correction "$(CORRECTION)" --output "$(OUTPUT)" --case-id "$(CASE_ID)" $(if $(PROVIDERS),--providers "$(PROVIDERS)",) --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)"
 
 # Diagnostic controls deliberately mutate test inputs and never enter a report cohort.
 webmainbench-navigation-diagnostic: runtime-check
 	@test -n "$(SOURCE)" -a -n "$(BINARY)" -a -n "$(OUTPUT)" || (echo 'SOURCE, BINARY and new OUTPUT paths are required' >&2; exit 2)
 	$(PY) scripts/diagnose_webmainbench_navigation.py --dataset "$(SOURCE)" --binary "$(BINARY)" --output "$(OUTPUT)"
+
+# Diagnostic input ablations are isolated from the score-bearing cohort.
+webmainbench-kitesurf-diagnostic: runtime-check
+	@test -n "$(SOURCE)" -a -n "$(OUTPUT)" || (echo 'SOURCE and new OUTPUT paths are required' >&2; exit 2)
+	$(PY) scripts/diagnose_webmainbench_kitesurf.py --dataset "$(SOURCE)" --output "$(OUTPUT)" $(if $(PROFILE),--profile "$(PROFILE)",) $(if $(RESUME),--resume,)
 
 webmainbench-run: runtime-check
 	@test -n "$(PROVIDER)" || (echo 'PROVIDER is required' >&2; exit 2)

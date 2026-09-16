@@ -333,6 +333,46 @@ def validate_webmainbench_correction(receipt: dict, dataset: dict) -> None:
         raise ValueError('Fixture correction is not bound to the current report dataset')
 
 
+def validate_webmainbench_anomaly_review(receipt: dict, source: Path,
+                                         dataset: dict, records: list[dict]) -> None:
+    """Bind the compact anomaly review to this exact report matrix."""
+    if not isinstance(receipt, dict) or receipt.get('kind') != 'webmainbench_anomaly_root_cause_review':
+        raise ValueError('Invalid WebMainBench anomaly review')
+    bindings = receipt.get('bindings', {})
+    expected_files = {
+        'dataset_json_sha256': 'dataset.json',
+        'results_jsonl_sha256': 'results.jsonl',
+        'score_summaries_json_sha256': 'score-summaries.json',
+    }
+    for binding, filename in expected_files.items():
+        actual = hashlib.sha256(contained_path(source, filename).read_bytes()).hexdigest()
+        if bindings.get(binding) != actual:
+            raise ValueError(f'WebMainBench anomaly review {binding} mismatch')
+    if (bindings.get('source_dataset_sha256') != dataset.get('source_dataset_sha256')
+            or bindings.get('sample_manifest_sha256') != dataset.get('sample_manifest_sha256')):
+        raise ValueError('WebMainBench anomaly review dataset binding mismatch')
+    scope = receipt.get('scope', {})
+    triggered = receipt.get('triggered_attempt_ids')
+    attempts = {row['attempt_id'] for row in records}
+    cases = receipt.get('cases')
+    if (scope.get('logical_results') != len(records)
+            or not isinstance(triggered, list)
+            or len(triggered) != scope.get('signal_triggered_results')
+            or len(set(triggered)) != len(triggered)
+            or not set(triggered).issubset(attempts)
+            or not isinstance(cases, list)
+            or len(cases) != scope.get('distinct_cases')
+            or {row.get('case_id') for row in cases} != {
+                attempt.split('__', 2)[1] for attempt in triggered
+            }
+            or scope.get('unresolved_triggered_results') != 0):
+        raise ValueError('WebMainBench anomaly review scope mismatch')
+    disposition = receipt.get('disposition', {})
+    if any(disposition.get(key) is not False for key in
+           ('score_bearing_results_changed', 'provider_calls_replaced', 'references_changed')):
+        raise ValueError('Diagnostic review must not mutate score-bearing evidence')
+
+
 def build_webmainbench_report(source: Path, output: Path) -> Path:
     """Build the current public-benchmark report without legacy task predicates."""
     dataset = json.loads(contained_path(source, 'dataset.json').read_text())
@@ -348,12 +388,15 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
     adoption = json.loads(adoption_path.read_text(encoding='utf-8'))
     corrections_path = Path(__file__).resolve().parents[2] / 'research/webmainbench-corrections.json'
     corrections = json.loads(corrections_path.read_text(encoding='utf-8'))
+    anomaly_review_path = Path(__file__).resolve().parents[2] / 'research/webmainbench-anomaly-review.json'
+    anomaly_review = json.loads(anomaly_review_path.read_text(encoding='utf-8'))
     fixture_correction_path = source / 'fixture-correction.json'
     fixture_correction = json.loads(fixture_correction_path.read_text(encoding='utf-8')) if fixture_correction_path.is_file() else None
     providers = dataset['coverage_plan']['static_html']
     case_ids = {case['id'] for case in dataset['cases']}
     if fixture_correction is not None:
         validate_webmainbench_correction(fixture_correction, dataset)
+    validate_webmainbench_anomaly_review(anomaly_review, source, dataset, records)
     if len(case_ids) != 200 or len(records) != 200 * 5:
         raise ValueError('WebMainBench report matrix is incomplete')
     if {(row['provider'], row['case_id']) for row in records} != {
@@ -389,6 +432,7 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
         (staging / 'adoption').mkdir(exist_ok=True)
         shutil.copy2(adoption_path, staging / 'adoption' / 'evidence.json')
         shutil.copy2(corrections_path, staging / 'webmainbench-corrections.json')
+        shutil.copy2(anomaly_review_path, staging / 'webmainbench-anomaly-review.json')
         if fixture_correction is not None:
             shutil.copy2(fixture_correction_path, staging / 'fixture-correction.json')
         if teds_revision is not None:
@@ -402,7 +446,7 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
             artifact = contained_path(staging, row['artifact_path'])
             if hashlib.sha256(artifact.read_bytes()).hexdigest() != row['output_sha256']:
                 raise ValueError('WebMainBench output integrity failure: ' + row['attempt_id'])
-        generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption, fixture_correction, teds_revision)
+        generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption, fixture_correction, teds_revision, anomaly_review)
         (staging / '.generated-report').write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         if output.exists():
             backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'

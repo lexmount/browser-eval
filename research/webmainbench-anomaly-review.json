@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "kind": "webmainbench_anomaly_root_cause_review",
+  "reviewed_at": "2026-09-16",
+  "scope": {
+    "logical_results": 1000,
+    "signal_triggered_results": 30,
+    "distinct_cases": 6,
+    "unresolved_triggered_results": 0,
+    "selection": "Deterministic scan for missing body text, error-page output, absent upstream status, origin-navigation candidates, unusually large failed HTML, same-page delivery divergence, and text-score cliffs. Signals select cases for investigation; they are not verdicts."
+  },
+  "bindings": {
+    "source_dataset_sha256": "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e",
+    "sample_manifest_sha256": "eea643afddd35f3ae4ed85b689b3a89f6a503f8fce878d546fa56c97c26f8044",
+    "dataset_json_sha256": "36db20d832dbe5dda9599a5f1d71ba6de0472864ea84a14fdb795c7ed1d6c9dc",
+    "results_jsonl_sha256": "9f3bc98ddd91f9916651d9d895c2e1bae51411f50e6ad2d9c01645df852ab883",
+    "score_summaries_json_sha256": "ab1f39b9e682af93203528409633f4cd10b2ba4dcef7380eb171a6b114a0a766",
+    "signal_scan_sha256": "3be6dd4c4cb086d998fc3975f290f4a5be0fea4b30b1fd1d6d2a05a46301c6a4"
+  },
+  "diagnostic_evidence": {
+    "navigation_controls_results_sha256": "c90eaae0db537bc082d80d9517562197db4d8d95240d06bbd26740b61052ba13",
+    "navigation_controls_manifest_sha256": "19b9508c67d354c2f0232a55aeec9cebf6e6e7d20e44160676d5a82d2798d95b",
+    "kitesurf_ablation_results_sha256": "8e21e54f171018fd169c39728e83429a56961afa2dd100b37e8046f06f64f109",
+    "kitesurf_ablation_manifest_sha256": "c74bac1cf8f49970f8ae9292bd7f3a1702c4242736ebe902319f5b05221cd900",
+    "kitesurf_structure_results_sha256": "82638ac5938712881da606639e593f162b6651ac3f619b9b040fea77dd166030",
+    "kitesurf_structure_manifest_sha256": "029d3463940d76c0b72d89b00d17e9cc892b095174aae81157f890f31cafb535",
+    "kitesurf_structure2_results_sha256": "42dc69eb53e4ff88eee40798dfbac34fb63385874a1f595c0a3e80f9107463a0",
+    "kitesurf_structure2_manifest_sha256": "3cd5838400e5eb9905d58749ecb11ae319a41c8e4ca2885cdbcdbc7b5f95b302",
+    "kitesurf_inline_root_results_sha256": "f3f8029e09432e77e4e09a9155933d990d8aeece016f2d6eb3f00a1eca476245",
+    "kitesurf_inline_root_manifest_sha256": "11be59b4b2f0c50eb55e1d7d188f4bed1f3c1e4f061412c482c40c710c5dc56f"
+  },
+  "disposition": {
+    "score_bearing_results_changed": false,
+    "provider_calls_replaced": false,
+    "references_changed": false,
+    "reason": "The controls explain anomalous outcomes but do not reproduce the declared frozen input. The original calls, outputs, scores, denominators, and latency remain authoritative."
+  },
+  "triggered_attempt_ids": [
+    "kitesurf__4c631939-b5d2-4750-a19e-687459751b91__r001",
+    "kitesurf__30b05f1d-56b3-48d3-b587-aea4e99bc003__r001",
+    "kitesurf__ccb6033c-0a12-4f9c-8c68-794f26129841__r001",
+    "kitesurf__819d17d7-4825-492f-9546-ab61b14e9aab__r001",
+    "kitesurf__a5791c85-1701-4ffd-97e1-779aeefae3b8__r001",
+    "kitesurf__ac11d851-aed7-4b9e-89d1-39c142fa152d__r001",
+    "lightpanda__4c631939-b5d2-4750-a19e-687459751b91__r001",
+    "lightpanda__30b05f1d-56b3-48d3-b587-aea4e99bc003__r001",
+    "lightpanda__ccb6033c-0a12-4f9c-8c68-794f26129841__r001",
+    "lightpanda__819d17d7-4825-492f-9546-ab61b14e9aab__r001",
+    "lightpanda__a5791c85-1701-4ffd-97e1-779aeefae3b8__r001",
+    "lightpanda__ac11d851-aed7-4b9e-89d1-39c142fa152d__r001",
+    "obscura__4c631939-b5d2-4750-a19e-687459751b91__r001",
+    "obscura__30b05f1d-56b3-48d3-b587-aea4e99bc003__r001",
+    "obscura__ccb6033c-0a12-4f9c-8c68-794f26129841__r001",
+    "obscura__819d17d7-4825-492f-9546-ab61b14e9aab__r001",
+    "obscura__a5791c85-1701-4ffd-97e1-779aeefae3b8__r001",
+    "obscura__ac11d851-aed7-4b9e-89d1-39c142fa152d__r001",
+    "moli__4c631939-b5d2-4750-a19e-687459751b91__r001",
+    "moli__30b05f1d-56b3-48d3-b587-aea4e99bc003__r001",
+    "moli__ccb6033c-0a12-4f9c-8c68-794f26129841__r001",
+    "moli__819d17d7-4825-492f-9546-ab61b14e9aab__r001",
+    "moli__a5791c85-1701-4ffd-97e1-779aeefae3b8__r001",
+    "moli__ac11d851-aed7-4b9e-89d1-39c142fa152d__r001",
+    "chromium__4c631939-b5d2-4750-a19e-687459751b91__r001",
+    "chromium__30b05f1d-56b3-48d3-b587-aea4e99bc003__r001",
+    "chromium__ccb6033c-0a12-4f9c-8c68-794f26129841__r001",
+    "chromium__819d17d7-4825-492f-9546-ab61b14e9aab__r001",
+    "chromium__a5791c85-1701-4ffd-97e1-779aeefae3b8__r001",
+    "chromium__ac11d851-aed7-4b9e-89d1-39c142fa152d__r001"
+  ],
+  "cases": [
+    {
+      "case_id": "4c631939-b5d2-4750-a19e-687459751b91",
+      "affected_providers": ["kitesurf"],
+      "classification": "frozen_page_script_dependency",
+      "observed_zh": "Kitesurf 原始输入返回 HTTP 500；删除内联脚本或给缺失的 cleanClickURL 补桩后返回正文，单独删除该缺失函数调用仍失败。",
+      "observed_en": "Kitesurf returned HTTP 500 for the original input. Removing inline scripts or stubbing the missing cleanClickURL function produced body text; deleting only that call still failed.",
+      "cause_zh": "冻结页把 window.onerror 改成会再次调用 cleanClickURL 的处理器，但定义该函数的外部脚本被阻断。页面发生其他脚本错误后，错误处理器自身再次报错，形成页面脚本兼容性故障。",
+      "cause_en": "The frozen page replaces window.onerror with a handler that calls cleanClickURL, whose defining external script is blocked. Another script error then makes the error handler fail recursively, causing a page-script compatibility failure."
+    },
+    {
+      "case_id": "30b05f1d-56b3-48d3-b587-aea4e99bc003",
+      "affected_providers": ["kitesurf"],
+      "classification": "provider_dom_complexity_limit",
+      "observed_zh": "删除全部脚本仍返回 HTTP 500；只保留文本、删除表格或保留 2,500 行表格可成功，保留 4,000 行时再次返回 HTTP 500。",
+      "observed_en": "Removing all scripts still returned HTTP 500. Text-only, no-table and 2,500-row controls succeeded, while the 4,000-row control failed again.",
+      "cause_zh": "触发条件是该页聚合表格 DOM 的复杂度，不是脚本或可验证的请求大小上限。Cloudflare 响应没有公开内部资源阈值，因此不能再细分为内存、转换器或渲染器的某个内部上限。",
+      "cause_en": "The trigger is aggregate table-DOM complexity, not scripts or a demonstrated request-size limit. Cloudflare exposes no internal resource threshold in the response, so memory, converter and renderer internals cannot be distinguished further."
+    },
+    {
+      "case_id": "819d17d7-4825-492f-9546-ab61b14e9aab",
+      "affected_providers": ["kitesurf", "obscura"],
+      "classification": "frozen_page_frame_guard_loop",
+      "observed_zh": "原页包含 iframe 和 top.frames.length!=0 时把 top.location 设为当前地址的脚本。删除这条语句或改成只在子框架运行后，Kitesurf 与 Obscura 的对照均成功。",
+      "observed_en": "The page contains an iframe and a script that assigns top.location to the current address whenever top.frames.length is nonzero. Removing it or limiting it to child frames makes both Kitesurf and Obscura controls succeed.",
+      "cause_zh": "原网页的防框架脚本条件写错：顶层页面只要包含 iframe 就会重复导航自己，最终达到浏览器导航上限。",
+      "cause_en": "The source page has a faulty anti-frame condition: a top-level page containing an iframe repeatedly navigates itself until the browser navigation limit is reached."
+    },
+    {
+      "case_id": "a5791c85-1701-4ffd-97e1-779aeefae3b8",
+      "affected_providers": ["kitesurf"],
+      "classification": "provider_table_complexity_timeout",
+      "observed_zh": "原页及去除脚本版本均超时；去除表格、只取文本、单独保留前 12 张或后 13 张表格都能完成，完整 25 张表格超时。",
+      "observed_en": "The original and script-free page timed out. Removing tables, using text only, or retaining either the first 12 or last 13 tables completed; all 25 tables timed out.",
+      "cause_zh": "触发条件是整页表格结构的累计复杂度；不是某一张表或页面脚本。服务响应未提供内部阶段耗时，无法把超时进一步分到渲染、DOM 转换或传输。",
+      "cause_en": "The trigger is cumulative full-page table complexity, not one table or page script. The service response exposes no internal phase timing, so rendering, DOM conversion and transfer cannot be separated further."
+    },
+    {
+      "case_id": "ac11d851-aed7-4b9e-89d1-39c142fa152d",
+      "affected_providers": ["kitesurf"],
+      "classification": "frozen_page_fallback_navigation",
+      "observed_zh": "删除内联脚本或删除 window.location.search += '&nocdn=true' 后 Kitesurf 成功；只删除外部脚本引用仍失败。",
+      "observed_en": "Kitesurf succeeds after removing inline scripts or the window.location.search += '&nocdn=true' statement; removing external script tags alone still fails.",
+      "cause_zh": "外部前端包被阻断后，冻结页的降级脚本修改查询参数并重新导航。Cloudflare 的原始 HTML 输入没有对应可再次加载的 URL 文档，因此返回未生成 HTML。",
+      "cause_en": "When the external frontend bundle is blocked, the frozen page fallback changes the query string and navigates again. Cloudflare's raw-HTML input has no URL-backed document to reload, so no HTML is produced."
+    },
+    {
+      "case_id": "ccb6033c-0a12-4f9c-8c68-794f26129841",
+      "affected_providers": ["moli", "obscura", "chromium"],
+      "classification": "frozen_page_origin_navigation",
+      "observed_zh": "页面脚本根据当前主机名构造原站 URL 并设置 window.location.href。Moli 与 Obscura 的错误明确包含原站地址，Chromium 输出的是无法访问原站的浏览器错误页。",
+      "observed_en": "A page script constructs an origin-site URL from the current hostname and assigns window.location.href. Moli and Obscura errors name the origin address; Chromium outputs a browser error page for that address.",
+      "cause_zh": "冻结页依赖原站域名并主动离开隔离夹具；网络隔离按评测合同拒绝原站导航。Kitesurf 与 Lightpanda 在同页保留正文，说明这是运行语义差异，不能改写为统一的正文提取失败。",
+      "cause_en": "The frozen page depends on its origin hostname and actively leaves the isolated fixture; the benchmark sandbox rejects that navigation by contract. Kitesurf and Lightpanda retain body text on the same page, so this is a runtime-semantics difference rather than a universal extraction failure."
+    }
+  ]
+}
