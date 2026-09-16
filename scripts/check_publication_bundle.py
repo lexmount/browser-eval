@@ -10,6 +10,7 @@ import zipfile
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.publication_privacy import publication_risk
+from harness.web_fetch.webmainbench_diagnostics import require_valid_teds_for_release
 from bs4 import BeautifulSoup
 
 
@@ -42,6 +43,7 @@ def check(archive,source):
         privacy=json.loads(data('publication-privacy.json'))
         privacy_by_path={row['path']:row for row in privacy['files']}
         rows=[json.loads(line) for line in data('results.jsonl').splitlines()]
+        require_valid_teds_for_release(rows)
         projected_scored=0
         for row in rows:
             raw=data(row['artifact_path'])

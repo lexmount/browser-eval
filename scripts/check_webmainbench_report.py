@@ -155,14 +155,16 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
             or dataset_page.select_one('[data-wmb-distribution-filter]') is None):
         raise ValueError("Dataset axis distributions must use one filterable table")
     home_page = BeautifulSoup((root / "index.html").read_text(encoding="utf-8"), "html.parser")
-    home_headers = {tag.get_text(" ", strip=True) for tag in home_page.select("#wmb-core-results th")}
-    if (len(home_page.select("#wmb-core-results tbody > tr")) != 5
-            or not {"均值耗时 ↕", "P50 ↕", "P95 ↕"}.issubset(home_headers)
-            or "非空内容交付率 ↕" in home_headers):
-        raise ValueError("WebMainBench home must have one core comparison with mean, P50 and P95")
-    methodology = BeautifulSoup((root / "methodology/index.html").read_text(encoding="utf-8"), "html.parser")
-    if methodology.select_one(".wmb-flow .mermaid") is None:
-        raise ValueError("WebMainBench methodology must lead with an evaluation-flow diagram")
+    for prefix, mean_label in (("", "均值耗时 ↕"), ("en/", "Mean latency ↕")):
+        localized_home = BeautifulSoup((root / prefix / "index.html").read_text(encoding="utf-8"), "html.parser")
+        home_headers = {tag.get_text(" ", strip=True) for tag in localized_home.select("#wmb-core-results th")}
+        if (len(localized_home.select("#wmb-core-results tbody > tr")) != 5
+                or not {mean_label, "P50 ↕", "P95 ↕"}.issubset(home_headers)
+                or {"非空内容交付率 ↕", "Non-empty delivery rate ↕"} & home_headers):
+            raise ValueError(prefix + "WebMainBench home must have one core comparison with mean, P50 and P95")
+        methodology = BeautifulSoup((root / prefix / "methodology/index.html").read_text(encoding="utf-8"), "html.parser")
+        if methodology.select_one(".wmb-flow .mermaid") is None:
+            raise ValueError(prefix + "WebMainBench methodology must lead with an evaluation-flow diagram")
     impossible_teds = sum(
         all(key in detail for key in ("predicted_nodes", "groundtruth_nodes", "edit_distance"))
         and detail["edit_distance"] + 1e-9 < abs(detail["predicted_nodes"] - detail["groundtruth_nodes"])

@@ -9,7 +9,7 @@ from pathlib import Path
 
 from scripts.audit_webmainbench_suspicions import scan
 from harness.web_fetch.report import _wmb_error_page
-from harness.web_fetch.webmainbench_diagnostics import ERROR_PAGE
+from harness.web_fetch.webmainbench_diagnostics import ERROR_PAGE, require_valid_teds_for_release
 
 
 def sha(text: str) -> str:
@@ -17,6 +17,15 @@ def sha(text: str) -> str:
 
 
 class WebMainBenchSuspicionTests(unittest.TestCase):
+    def test_release_rejects_impossible_teds_but_allows_valid_zero(self):
+        def record(distance):
+            return {'metrics': {'table_TEDS': {'score': 0, 'details': {
+                'predicted_nodes': 5, 'groundtruth_nodes': 570, 'edit_distance': distance}}}}
+        with self.assertRaisesRegex(ValueError, '1 impossible TEDS'):
+            require_valid_teds_for_release([record(.9)])
+        require_valid_teds_for_release([record(570)])
+        require_valid_teds_for_release([{'metrics': {}}])
+
     def test_report_and_audit_share_error_page_detection(self):
         for text, expected in [("This site can’t be reached\nexample.test", True),
                                ("# 无法访问此网站\nERR_ACCESS_DENIED", True),
