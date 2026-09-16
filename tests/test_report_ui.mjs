@@ -45,10 +45,11 @@ assert.deepEqual(body.rows.map(r=>Number(r.cells[1].dataset.sort)),[9,40,100,-1]
 assert.deepEqual(body.rows.map(r=>r.cells[0].textContent),[1,2,3,4]);
 assert.equal(headCells[1]['aria-sort'],'ascending');
 assert.ok(headCells[1].classList.contains('sorted'));
-assert.ok(body.rows.every(r=>r.cells[1].classList.contains('sorted')&&!r.cells[0].classList.contains('sorted')));
+assert.ok(body.rows.every(r=>!r.cells[1].classList.contains('sorted')&&!r.cells[0].classList.contains('sorted')));
 table.dataset.col='0';table.dataset.dir='desc';
 vm.runInContext('paintSort(document.getElementById("test"))',context);
-assert.ok(body.rows.every(r=>r.cells[0].classList.contains('sorted')&&!r.cells[1].classList.contains('sorted')));
+assert.ok(headCells[0].classList.contains('sorted')&&!headCells[1].classList.contains('sorted'));
+assert.ok(body.rows.every(r=>!r.cells[0].classList.contains('sorted')&&!r.cells[1].classList.contains('sorted')));
 console.log('PASS: combined filters, search, counts, numeric sorting, missing values last, row numbers, aria-sort');
 const choices=(key,values)=>({dataset:{filter:key},value:values[0],options:[...values,''].map(value=>({value,disabled:false}))});
 const dependent=[choices('track',['web','image']),choices('category',['article','photo']),choices('result',['pass','fail'])];
@@ -212,6 +213,27 @@ vm.runInContext('wmbSliceFilters()',sliceContext);
 assert.deepEqual(sliceRows.map(r=>r.hidden),[true,true,true,false]);
 assert.equal(sliceControls['wmb-slice-count'].textContent,'显示 1 / 4 条分类结果');
 console.log('PASS: WebMainBench official category slices use one axis/category/method filter and reset incompatible choices');
+
+const distributionRows=[
+ {dataset:{axis:'language',parent:'545',sample:'200'},cells:[{textContent:''}]},
+ {dataset:{axis:'level',parent:'300',sample:'120'},cells:[{textContent:''}]},
+ {dataset:{axis:'level',parent:'245',sample:'80'},cells:[{textContent:''}]}
+];
+const distributionControls={
+ 'wmb-distribution':{tBodies:[{rows:distributionRows}]},
+ 'wmb-distribution-axis':{value:'language'},
+ 'wmb-distribution-count':{textContent:''}
+};
+const distributionContext=vm.createContext({window:{addEventListener(){}},document:{addEventListener(){},getElementById(id){return distributionControls[id]}}});
+vm.runInContext(js,distributionContext);
+vm.runInContext('wmbDistribution()',distributionContext);
+assert.deepEqual(distributionRows.map(r=>r.hidden),[false,true,true]);
+assert.equal(distributionControls['wmb-distribution-count'].textContent,'1 个分类 · 母集合计 545 · 样本合计 200');
+distributionControls['wmb-distribution-axis'].value='level';
+vm.runInContext('wmbDistribution()',distributionContext);
+assert.deepEqual(distributionRows.map(r=>r.hidden),[true,false,false]);
+assert.equal(distributionControls['wmb-distribution-count'].textContent,'2 个分类 · 母集合计 545 · 样本合计 200');
+console.log('PASS: WebMainBench dataset distribution keeps independent axes filterable and each selected axis totals 200');
 
 const wmbCompareRows=[
  {dataset:{delivered:'a c',failed:'b',language:'en',level:'hard'},cells:[{textContent:''}]},

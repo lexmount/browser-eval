@@ -123,11 +123,10 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     if request is None or request.get("data-wmb-default") != "failed" or request.select_one("option[selected]").get("value") != "failed":
         raise ValueError("WebMainBench request filter must initially locate failed requests")
     failed_count = sum(not row["ok"] for row in records)
-    if f"默认先看 {failed_count} 条没有交付非空内容" not in analysis.get_text(" ", strip=True):
+    if f"默认先显示 {failed_count} 条没有生成正文" not in analysis.get_text(" ", strip=True):
         raise ValueError("WebMainBench failure-first explanation does not match the measured matrix")
-    if (not any("最终输出" in tag.get_text(strip=True) for tag in analysis.select("#wmb-attempt-matrix th"))
-            or "输出是错误页" not in analysis.get_text(" ", strip=True)):
-        raise ValueError("WebMainBench result rows must expose final-output condition")
+    if not any("响应与正文" in tag.get_text(strip=True) for tag in analysis.select("#wmb-attempt-matrix th")):
+        raise ValueError("WebMainBench result rows must expose response and body-text condition")
     if len(analysis.select("#wmb-compare-rows > tr")) != 200 or len(analysis.select("[data-wmb-compare-method]")) != 5:
         raise ValueError("WebMainBench same-page group comparison is incomplete")
     if {option.get("value") for option in analysis.select('[data-wmb-filter="failure"] option') if option.get("value")} != {
@@ -152,11 +151,18 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         raise ValueError("WebMainBench 200-case filtered dataset inventory is incomplete")
     if dataset_page.select('[data-wmb-filter="request"]') or '公式' not in dataset_page.select('#wmb-cases th')[-1].get_text(strip=True):
         raise ValueError("Dataset inventory must describe the frozen pages, not method outcomes")
-    if len(analysis.select('#wmb-denominator-ledger tbody > tr')) != 25:
-        raise ValueError("Method-by-metric denominator ledger is incomplete")
+    if (len(dataset_page.select('#wmb-distribution tbody > tr')) == 0
+            or dataset_page.select_one('[data-wmb-distribution-filter]') is None):
+        raise ValueError("Dataset axis distributions must use one filterable table")
     home_page = BeautifulSoup((root / "index.html").read_text(encoding="utf-8"), "html.parser")
-    if len(home_page.select("#wmb-home-components [role=tab]")) != 5:
-        raise ValueError("WebMainBench five component rankings must be switchable")
+    home_headers = {tag.get_text(" ", strip=True) for tag in home_page.select("#wmb-core-results th")}
+    if (len(home_page.select("#wmb-core-results tbody > tr")) != 5
+            or not {"均值耗时 ↕", "P50 ↕", "P95 ↕"}.issubset(home_headers)
+            or "非空内容交付率 ↕" in home_headers):
+        raise ValueError("WebMainBench home must have one core comparison with mean, P50 and P95")
+    methodology = BeautifulSoup((root / "methodology/index.html").read_text(encoding="utf-8"), "html.parser")
+    if methodology.select_one(".wmb-flow .mermaid") is None:
+        raise ValueError("WebMainBench methodology must lead with an evaluation-flow diagram")
     impossible_teds = sum(
         all(key in detail for key in ("predicted_nodes", "groundtruth_nodes", "edit_distance"))
         and detail["edit_distance"] + 1e-9 < abs(detail["predicted_nodes"] - detail["groundtruth_nodes"])
@@ -165,7 +171,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     )
     if impossible_teds:
         review_page = BeautifulSoup((root / "review/index.html").read_text(encoding="utf-8"), "html.parser")
-        if ("官方 overall（待校验）" not in home_page.get_text(" ", strip=True)
+        if ("overall（待校验）" not in home_page.get_text(" ", strip=True)
                 or f"{impossible_teds} 条 TEDS 记录" not in review_page.get_text(" ", strip=True)
                 or "评分有效性尚未通过" not in review_page.get_text(" ", strip=True)):
             raise ValueError("Known impossible TEDS distances require a visible validity warning")
