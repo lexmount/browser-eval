@@ -390,6 +390,102 @@ def _timing_comparison(methods: list[dict[str, Any]], lang: str) -> str:
     return _grouped_metric_tables(methods, TIMING_GROUPS, "timings", lang)
 
 
+def _version_comparison(
+    rows: list[dict[str, Any]], methods: dict[str, dict[str, Any]], lang: str
+) -> str:
+    """Compare registered versions of one browser family without replacing either."""
+
+    zh = lang == "zh"
+    families: dict[str, list[tuple[str, dict[str, Any]]]] = defaultdict(list)
+    for engine, method in methods.items():
+        if method.get("version"):
+            families[str(method.get("family") or method["id"])].append((engine, method))
+    sections = []
+    by_key = {(row["engine"], int(row["task_id"])): row for row in rows}
+    task_ids = sorted({int(row["task_id"]) for row in rows})
+    for versions in families.values():
+        if len(versions) < 2:
+            continue
+        versions.sort(key=lambda item: str(item[1]["version"]))
+        old, new = versions[-2], versions[-1]
+        transitions = {
+            "fixed": [],
+            "regressed": [],
+            "persistent": [],
+            "stable": [],
+        }
+        for task_id in task_ids:
+            if (old[0], task_id) not in by_key or (new[0], task_id) not in by_key:
+                continue
+            old_pass = by_key[(old[0], task_id)]["status"] == "pass"
+            new_pass = by_key[(new[0], task_id)]["status"] == "pass"
+            bucket = (
+                "stable"
+                if old_pass and new_pass
+                else "regressed"
+                if old_pass
+                else "fixed"
+                if new_pass
+                else "persistent"
+            )
+            transitions[bucket].append(task_id)
+        labels = {
+            "fixed": ("新版通过、旧版失败", "New passes, old fails"),
+            "regressed": ("新版失败、旧版通过", "New fails, old passes"),
+            "persistent": ("两个版本都失败", "Both versions fail"),
+            "stable": ("两个版本都通过", "Both versions pass"),
+        }
+        body = []
+        for code in ("fixed", "regressed", "persistent", "stable"):
+            ids = transitions[code]
+            links = ("、" if zh else ", ").join(
+                f'<a href="result/{_e(new[0])}-{task_id}.html">#{task_id}</a>'
+                for task_id in ids
+            ) or "—"
+            body.append(
+                f'<tr><td>{labels[code][0 if zh else 1]}</td><td>{len(ids)}</td><td>{links}</td></tr>'
+            )
+        note = (
+            "同一标准轨迹、站点重置和验收规则下比较版本变化。新版通过只能说明该题行为改善；只有结合逐步证据与源码才能判断具体缺陷是否修复。"
+            if zh
+            else "Versions use the same qualified trajectories, site resets, and evaluator. A new pass shows improved behavior on that task; exact defect resolution still requires step evidence and source analysis."
+        )
+        sections.append(
+            f'<section class="version-comparison"><h3>{_e(old[1]["label"])} → {_e(new[1]["label"])}</h3><p>{note}</p>'
+            f'<div class="table-scroll"><table><thead><tr><th>{"结果变化" if zh else "Outcome change"}</th><th>{"任务数" if zh else "Tasks"}</th><th>{"逐题详情" if zh else "Task details"}</th></tr></thead><tbody>{"".join(body)}</tbody></table></div></section>'
+        )
+    return "".join(sections)
+
+
+def _metric_leader(
+    methods: list[dict[str, Any]],
+    value: Callable[[dict[str, Any]], float],
+    *,
+    higher: bool,
+) -> tuple[list[dict[str, Any]], float]:
+    ranked = [(method, float(value(method))) for method in methods]
+    best = (max if higher else min)(metric for _, metric in ranked)
+    return [method for method, metric in ranked if metric == best], best
+
+
+def _leader_sentence(
+    leaders: list[dict[str, Any]],
+    value: str,
+    *,
+    lang: str,
+    metric_zh: str,
+    metric_en: str,
+    rank_zh: str,
+    rank_en: str,
+) -> str:
+    names = ("、" if lang == "zh" else ", ").join(_e(item["label"]) for item in leaders)
+    if lang == "zh":
+        relation = f"并列{rank_zh}" if len(leaders) > 1 else rank_zh
+        return f"{names} 的{metric_zh}{relation}，为 {value}。"
+    relation = f"tied for the {rank_en}" if len(leaders) > 1 else f"had the {rank_en}"
+    return f"{names} {relation} for {metric_en}, at {value}."
+
+
 def _copy_failure_screenshot(attempt: dict[str, Any], output: Path, key: str) -> str | None:
     ref = (attempt.get("evidence") or {}).get("failure_screenshot")
     if not ref or not ref.get("path"):
@@ -1114,15 +1210,47 @@ def build_webarena_replay_report(
         <section><h2>{"浏览器动作耗时" if zh else "Browser action latency"}</h2><p>{"均值、P50、P95 按单次调用统计；调用次数只说明工作量。下钻到结果详情可查看具体动作耗时和工具返回。" if zh else "Mean, P50, and P95 are per-call statistics; call counts only describe workload. Open a task result for the individual action timing and full tool response."}</p><details class="matrix-disclosure"><summary>{"展开各类动作耗时" if zh else "Open latency by action type"}</summary>{action_table}</details></section>'''
         (root / "index.html").write_text(_shell(lang, "index", "浏览器轨迹重放" if zh else "Browser Trajectory Replay", summary_body, current_route="index.html"), encoding="utf-8")
 
-        pass_best = max(method_rows, key=lambda item: item["pass_rate"])
-        trajectory_best = min(
-            method_rows,
-            key=lambda item: float(item["timings"]["trajectory_replay_ms"]["mean"]),
+        pass_leaders, pass_value = _metric_leader(
+            method_rows, lambda item: item["pass_rate"], higher=True
         )
-        memory_best = min(
+        trajectory_leaders, trajectory_value = _metric_leader(
             method_rows,
-            key=lambda item: float(item["resources"]["memory_peak_bytes"]["mean"]),
+            lambda item: item["timings"]["trajectory_replay_ms"]["mean"],
+            higher=False,
         )
+        memory_leaders, memory_value = _metric_leader(
+            method_rows,
+            lambda item: item["resources"]["memory_peak_bytes"]["mean"],
+            higher=False,
+        )
+        pass_summary = _leader_sentence(
+            pass_leaders,
+            f"{pass_leaders[0]['passed']}/{pass_leaders[0]['total']}（{pass_value * 100:.1f}%）" if zh else f"{pass_leaders[0]['passed']}/{pass_leaders[0]['total']} ({pass_value * 100:.1f}%)",
+            lang=lang,
+            metric_zh="通过率",
+            metric_en="pass rate",
+            rank_zh="最高",
+            rank_en="highest",
+        )
+        trajectory_summary = _leader_sentence(
+            trajectory_leaders,
+            _format_ms(trajectory_value) if zh else f"{trajectory_value / 1000:.1f} s",
+            lang=lang,
+            metric_zh="轨迹执行均值",
+            metric_en="mean trajectory execution time",
+            rank_zh="最低",
+            rank_en="lowest",
+        )
+        memory_summary = _leader_sentence(
+            memory_leaders,
+            _format_mib(memory_value),
+            lang=lang,
+            metric_zh="平均峰值内存",
+            metric_en="mean peak memory",
+            rank_zh="最低",
+            rank_en="lowest",
+        )
+        version_comparison = _version_comparison(public_rows, methods, lang)
         cause_counts: dict[tuple[str, str], int] = defaultdict(int)
         for row in public_rows:
             if row["status"] == "pass":
@@ -1137,10 +1265,11 @@ def build_webarena_replay_report(
         )
         cause_table = f'<div class="table-scroll compact-table"><table><thead><tr><th>{"复核分类" if zh else "Reviewed category"}</th><th>{"失败结果数" if zh else "Failed outcomes"}</th></tr></thead><tbody>{cause_rows}</tbody></table></div>'
         interpretation_body = f'''<section class="hero"><p class="eyebrow">{"报告解读" if zh else "Report interpretation"}</p><h1>{"固定轨迹下，差异出现在通过率、执行时间和资源占用" if zh else "Fixed trajectories expose differences in completion, timing, and resource use"}</h1><p>{f"本页解释 {task_count} 个任务、{len(method_rows)} 个浏览器方法的测量结果。通过率使用全部任务；速度与资源只比较 {shared_count} 个所有浏览器都完成的任务。" if zh else f"This page interprets measurements from {task_count} tasks and {len(method_rows)} browser methods. Pass rate uses the full task set; timing and resources use the {shared_count} tasks completed by every browser."}</p></section>
-        <section><h2>{"先看任务是否完成" if zh else "Start with task completion"}</h2><p>{f"{_e(pass_best['label'])} 通过 {pass_best['passed']}/{pass_best['total']} 题（{pass_best['pass_rate'] * 100:.1f}%），是本轮通过率最高的方法。固定轨迹移除了 Agent 规划和模型输出差异，因此这里测到的是浏览器执行同一组动作后的结果，不代表自主 Browser Use 的综合能力。" if zh else f"{_e(pass_best['label'])} passed {pass_best['passed']}/{pass_best['total']} tasks ({pass_best['pass_rate'] * 100:.1f}%), the highest pass rate in this run. Frozen trajectories remove Agent planning and model output differences, so this measures browser execution of the same actions rather than overall autonomous Browser Use capability."}</p>{_metrics_table(method_rows, lang)}</section>
+        <section><h2>{"先看任务是否完成" if zh else "Start with task completion"}</h2><p>{pass_summary} {"固定轨迹移除了 Agent 规划和模型输出差异，因此这里测到的是浏览器执行同一组动作后的结果，不代表自主 Browser Use 的综合能力。" if zh else "Frozen trajectories remove Agent planning and model output differences, so this measures browser execution of the same actions rather than overall autonomous Browser Use capability."}</p>{_metrics_table(method_rows, lang)}</section>
+        {f'<section><h2>{"同一浏览器家族的版本变化" if zh else "Version changes within one browser family"}</h2>{version_comparison}</section>' if version_comparison else ''}
         <section><h2>{"失败停在哪一步" if zh else "Where failures stop"}</h2><p>{"程序定位回答失败发生在浏览器动作、动作完成后的副作用检查，还是官方验收；复核分类再说明可见证据支持的具体原因。点击结果分析中的“诊断”可直接查看报错、触发动作和处理状态。" if zh else "Programmatic location separates browser-action failures, missing side effects after a completed action, and official evaluation failures. Reviewed categories then state the specific cause supported by evidence. Open Diagnose in Results analysis for the error, trigger action, and treatment status."}</p>{stage_table}{cause_table}<div class="detail-links"><a href="results.html?status=fail">{"查看全部失败与逐步证据" if zh else "Inspect every failure and step evidence"}</a></div></section>
-        <section><h2>{"共同完成任务上的速度" if zh else "Timing on tasks every browser completed"}</h2><p>{f"按轨迹执行均值，{_e(trajectory_best['label'])} 为 {_format_ms(trajectory_best['timings']['trajectory_replay_ms']['mean'])}。均值反映总体工作量，P50 描述典型任务，P95 显示慢任务尾部；三者都需一起看。" if zh else f"By mean trajectory execution time, {_e(trajectory_best['label'])} recorded {_format_ms(trajectory_best['timings']['trajectory_replay_ms']['mean']).replace('秒', 's')}. The mean reflects total workload, P50 describes a typical task, and P95 shows the slow tail; all three matter."}</p>{timing_comparison}</section>
-        <section><h2>{"资源结论与通过率分开" if zh else "Resource results are separate from pass rate"}</h2><p>{f"{_e(memory_best['label'])} 的平均峰值内存最低，为 {_format_mib(memory_best['resources']['memory_peak_bytes']['mean'])}。低内存或低网络流量不会抵消失败任务，也不能单独证明浏览器更快；它们只描述共同完成任务时的资源开销。" if zh else f"{_e(memory_best['label'])} had the lowest mean peak memory at {_format_mib(memory_best['resources']['memory_peak_bytes']['mean'])}. Lower memory or network traffic does not offset failed tasks and does not by itself prove a faster browser; these metrics describe resource cost on shared passes."}</p>{resource_comparison}</section>
+        <section><h2>{"共同完成任务上的速度" if zh else "Timing on tasks every browser completed"}</h2><p>{trajectory_summary} {"均值反映总体工作量，P50 描述典型任务，P95 显示慢任务尾部；三者都需一起看。" if zh else "The mean reflects total workload, P50 describes a typical task, and P95 shows the slow tail; all three matter."}</p>{timing_comparison}</section>
+        <section><h2>{"资源结论与通过率分开" if zh else "Resource results are separate from pass rate"}</h2><p>{memory_summary} {"低内存或低网络流量不会抵消失败任务，也不能单独证明浏览器更快；它们只描述共同完成任务时的资源开销。" if zh else "Lower memory or network traffic does not offset failed tasks and does not by itself prove a faster browser; these metrics describe resource cost on shared passes."}</p>{resource_comparison}</section>
         <section><h2>{"这份结果可以回答什么" if zh else "What this result supports"}</h2><div class="reading-grid"><article><h3>{"可以回答" if zh else "Supported"}</h3><p>{"同一批资格轨迹在各浏览器上的通过差异、失败位置、逐步工具返回、共同完成任务上的速度与资源开销。" if zh else "Pass differences, failure location, per-step tool responses, and timing and resource cost on tasks completed by every browser."}</p></article><article><h3>{"不能回答" if zh else "Not established"}</h3><p>{"Agent 会不会选对操作、模型会不会理解任务，以及换一批任务后的总体能力。它们需要单独的自主 Browser Use 评测。" if zh else "Whether an Agent chooses the right action, whether a model understands the task, or capability on a different task population. Those require a separate autonomous Browser Use evaluation."}</p></article></div></section>'''
         (root / "interpretation.html").write_text(
             _shell(

@@ -11,6 +11,8 @@ from harness.trajectory_replay.webarena_report import (
     _shell,
     _task_page,
     _timing_comparison,
+    _version_comparison,
+    _leader_sentence,
 )
 from scripts.check_webarena_replay_report import _check_english_localization
 
@@ -103,6 +105,30 @@ def test_grouped_timing_and_resources_are_complete_and_mark_ranked_winners() -> 
     assert "秒" not in timing + resources
     assert resources.count(">Best</span>") > 0
     assert "Mean CPU utilization" in resources
+
+
+def test_version_comparison_keeps_all_outcome_transitions_and_links_latest() -> None:
+    methods = {
+        "old": {"id": "old", "label": "Moli 1.1.3", "family": "moli", "version": "1.1.3"},
+        "new": {"id": "new", "label": "Moli 1.1.6", "family": "moli", "version": "1.1.6"},
+    }
+    rows = [
+        {"engine": engine, "task_id": task_id, "status": status}
+        for task_id, statuses in {
+            1: ("fail", "pass"), 2: ("pass", "fail"),
+            3: ("fail", "fail"), 4: ("pass", "pass"),
+        }.items()
+        for engine, status in zip(("old", "new"), statuses)
+    ]
+    rendered = _version_comparison(rows, methods, "en")
+    assert all(label in rendered for label in ("New passes, old fails", "New fails, old passes", "Both versions fail", "Both versions pass"))
+    assert 'href="result/new-1.html"' in rendered
+
+
+def test_interpretation_leader_sentence_names_ties() -> None:
+    methods = [{"label": "A"}, {"label": "B"}]
+    assert "并列最高" in _leader_sentence(methods, "50.0%", lang="zh", metric_zh="通过率", metric_en="pass rate", rank_zh="最高", rank_en="highest")
+    assert "tied for the highest" in _leader_sentence(methods, "50.0%", lang="en", metric_zh="通过率", metric_en="pass rate", rank_zh="最高", rank_en="highest")
 
 
 def test_english_release_gate_rejects_reader_facing_chinese(tmp_path: Path) -> None:
