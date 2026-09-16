@@ -51,7 +51,7 @@ def check(archive,source):
         require_valid_teds_for_release(rows)
         revision = validate_teds_revision_if_present(source, rows)
         if revision is not None:
-            for name, label in (('index.html', '本地修正版'), ('en/index.html', 'locally corrected')):
+            for name, label in (('index.html', '修正后复算'), ('en/index.html', 'recomputed after correction')):
                 if name not in manifest['files'] or label not in BeautifulSoup(data(name), 'html.parser').get_text(' ', strip=True):
                     raise ValueError('Published corrected scores lack a localized correction label: ' + name)
             bound_files = ['teds-correction.json', 'teds-correction-review.json', 'original-results.jsonl']

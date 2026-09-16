@@ -176,15 +176,19 @@ class WebMainBenchReportTests(unittest.TestCase):
             generate_webmainbench(output, dataset, records, summaries, manifests,
                                  {'status': 'passed'}, teds_revision=({}, revision_review))
             self.assertEqual(records, immutable_records)
-            for prefix, label, original in (('', '本地修正版', '官方原始分'),
-                                            ('en/', 'locally corrected', 'Original official score')):
+            home = (output / 'index.html').read_text()
+            self.assertIn('id="wmb-core-results" data-col="2" data-dir="desc"', home)
+            self.assertNotIn('可能不计分', (output / 'methodology/index.html').read_text())
+            self.assertIn('wmb-profile-table', (output / 'guide/index.html').read_text())
+            for prefix, label, original in (('', '修正后复算', '官方原始分'),
+                                            ('en/', 'recomputed after correction', 'Original official score')):
                 for route in ('index.html', 'analysis/index.html', 'providers/kitesurf.html',
                               'attempts/kitesurf__case-one__r001.html'):
                     page = (output / prefix / route).read_text()
                     self.assertIn(label, page)
                     if prefix == 'en/':
-                        self.assertNotIn('overall（locally corrected）', page)
-                        self.assertNotIn('table_TEDS（locally corrected）', page)
+                        self.assertNotIn('overall（recomputed after correction）', page)
+                        self.assertNotIn('table_TEDS（recomputed after correction）', page)
                 detail = (output / prefix / 'attempts/kitesurf__case-one__r001.html').read_text()
                 self.assertIn(original, detail)
                 self.assertIn('0.000732234%', detail)

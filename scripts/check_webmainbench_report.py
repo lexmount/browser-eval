@@ -216,11 +216,13 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         localized_home = BeautifulSoup((root / prefix / "index.html").read_text(encoding="utf-8"), "html.parser")
         home_headers = {tag.get_text(" ", strip=True) for tag in localized_home.select("#wmb-core-results th")}
         if teds_revision is not None:
-            correction_label = '本地修正版' if not prefix else 'locally corrected'
+            correction_label = '修正后复算' if not prefix else 'recomputed after correction'
             if correction_label not in localized_home.get_text(' ', strip=True):
                 raise ValueError(prefix + 'Corrected scores must not be labeled as original official scores')
         if (len(localized_home.select("#wmb-core-results tbody > tr")) != 5
                 or not {mean_label, "P50 ↕", "P95 ↕"}.issubset(home_headers)
+                or localized_home.select_one('#wmb-core-results').get('data-col') != '2'
+                or localized_home.select_one('#wmb-core-results').get('data-dir') != 'desc'
                 or {"非空内容交付率 ↕", "Non-empty delivery rate ↕"} & home_headers):
             raise ValueError(prefix + "WebMainBench home must have one core comparison with mean, P50 and P95")
         methodology = BeautifulSoup((root / prefix / "methodology/index.html").read_text(encoding="utf-8"), "html.parser")
@@ -244,6 +246,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         if len(wide_tables) < required or any(len(table.select("thead th")) < 6 for table in wide_tables):
             raise ValueError("Evidence-rich tables must expand horizontally inside their scroll container")
     if (".wide-prose-table{min-width:1720px}" not in EXTRA
+            or ".wmb-profile-table{min-width:2250px}" not in EXTRA
             or ".wmb-slice-table-wrap{max-height:70vh;overflow:auto}" not in EXTRA
             or "function wmbSliceFilters()" not in JS):
         raise ValueError("WebMainBench table width, bounded slice layout or filter logic is missing")
