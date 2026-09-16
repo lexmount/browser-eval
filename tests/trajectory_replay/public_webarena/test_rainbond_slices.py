@@ -347,7 +347,7 @@ def test_capacity_safe_reset_stops_old_app_before_creating_replacement(tmp_path)
     assert second["app_id"] != first["app_id"]
 
 
-def test_capacity_safe_reset_restores_old_app_and_keeps_receipt_on_failure(tmp_path):
+def test_stop_before_replace_keeps_old_app_stopped_and_receipt_on_failure(tmp_path):
     api = FakeAPI()
     pool = RainbondSlicePool(
         _pool_config(tmp_path, reset_strategy="stop_before_replace"),
@@ -356,7 +356,6 @@ def test_capacity_safe_reset_restores_old_app_and_keeps_receipt_on_failure(tmp_p
     )
     pool._wait_site = lambda _url: None
     pool._wait_app_stopped = lambda _receipt: None
-    pool._wait_component_running = lambda _app_id, _service_id: None
     receipt_path = tmp_path / "slice-receipt.json"
     first = pool.provision("run-recovery", 1, receipt_path)
     api.fail_domain_for = "reddit"
@@ -370,7 +369,28 @@ def test_capacity_safe_reset_restores_old_app_and_keeps_receipt_on_failure(tmp_p
         for method, path, body in api.calls
         if method == "POST" and path.endswith(f"/{first['app_id']}/operations")
     ]
-    assert operations[-2:] == ["stop", "start"]
+    assert operations[-1:] == ["stop"]
+    assert not receipt_path.with_name("slice-receipt.replacement.json").exists()
+
+
+def test_default_reset_stops_dirty_app_and_keeps_receipt_on_failure(tmp_path):
+    api = FakeAPI()
+    pool = _pool(tmp_path, api)
+    pool._wait_app_stopped = lambda _receipt: None
+    receipt_path = tmp_path / "slice-receipt.json"
+    first = pool.provision("run-quarantine", 1, receipt_path)
+    api.fail_domain_for = "reddit"
+
+    with pytest.raises(RuntimeError, match="injected domain failure"):
+        pool.reset(receipt_path)
+
+    assert json.loads(receipt_path.read_text())["generation"] == first["generation"]
+    operations = [
+        body["action"]
+        for method, path, body in api.calls
+        if method == "POST" and path.endswith(f"/{first['app_id']}/operations")
+    ]
+    assert operations[-1:] == ["stop"]
     assert not receipt_path.with_name("slice-receipt.replacement.json").exists()
 
 
@@ -385,6 +405,7 @@ def test_reset_cleanup_does_not_hide_original_delete_failure(tmp_path):
 
     api = DeleteFailureAPI()
     pool = _pool(tmp_path, api)
+    pool._wait_app_stopped = lambda _receipt: None
     receipt_path = tmp_path / "slice-receipt.json"
     first = pool.provision("run-delete", 1, receipt_path)
 

@@ -614,14 +614,9 @@ class RainbondSlicePool:
             f"Rainbond app did not stop before replacement: {app_id}: {last_statuses}"
         )
 
-    def _restore_previous_app(self, receipt: dict[str, Any]) -> None:
-        self._operate_existing_app(receipt, "start")
-        self._wait_component_running(
-            int(receipt["app_id"]), str(receipt["initializer"]["service_id"])
-        )
-        self._wait_site(str(receipt["initializer"]["readiness_url"]))
-        for component in receipt["components"].values():
-            self._wait_site(str(component["site_url"]))
+    def _stop_existing_app(self, receipt: dict[str, Any]) -> None:
+        self._operate_existing_app(receipt, "stop")
+        self._wait_app_stopped(receipt)
 
     def provision(self, pool_id: str, slot: int, receipt_path: Path) -> dict[str, Any]:
         started = time.monotonic()
@@ -712,16 +707,15 @@ class RainbondSlicePool:
             raise RuntimeError(f"unfinished Rainbond slice replacement: {replacement_path}")
         stopped_previous = self.config.reset_strategy == "stop_before_replace"
         if stopped_previous:
-            self._operate_existing_app(previous, "stop")
-            self._wait_app_stopped(previous)
+            self._stop_existing_app(previous)
         try:
             replacement = self.provision(pool_id, slot, replacement_path)
         except BaseException as exc:
-            if stopped_previous:
+            if not stopped_previous:
                 _attempt_cleanup(
                     exc,
-                    f"restart previous Rainbond app {previous['app_id']}",
-                    lambda: self._restore_previous_app(previous),
+                    f"stop failed Rainbond slice {previous['app_id']}",
+                    lambda: self._stop_existing_app(previous),
                 )
             raise
         try:
@@ -740,11 +734,11 @@ class RainbondSlicePool:
                     f"remove replacement receipt {replacement_path}",
                     lambda: replacement_path.unlink(missing_ok=True),
                 )
-            if stopped_previous and replacement_deleted:
+            if not stopped_previous:
                 _attempt_cleanup(
                     exc,
-                    f"restart previous Rainbond app {previous['app_id']}",
-                    lambda: self._restore_previous_app(previous),
+                    f"stop failed Rainbond slice {previous['app_id']}",
+                    lambda: self._stop_existing_app(previous),
                 )
             raise
         replacement_path.replace(receipt_path)

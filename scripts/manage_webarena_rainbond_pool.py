@@ -87,9 +87,8 @@ def main() -> None:
     if args.command == "reset":
         slot_dir = args.slice_dir.resolve()
         receipt = pool.reset(slot_dir / "slice-receipt.json")
-        config = pool.runtime_config(receipt)
         target = slot_dir / "webarena.config.json"
-        target.write_text(json.dumps(config, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        pool.persist_runtime_config(receipt, target)
         print(target)
         return
 

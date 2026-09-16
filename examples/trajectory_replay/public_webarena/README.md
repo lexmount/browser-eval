@@ -112,19 +112,20 @@ uv run --frozen python scripts/manage_webarena_rainbond_pool.py \
 
 Use the returned config for exactly one task. Releasing a lease creates and verifies a
 clean replacement application before deleting the dirty generation and making the slot
-available again. If replacement fails, the lease remains held and cannot be reused:
+available again. If replacement fails, the lease remains held, the dirty generation is
+stopped, and the slot cannot be reused:
 
 ```text
 uv run --frozen python scripts/manage_webarena_rainbond_pool.py \
   --config <pool-config> release --output <runtime-dir> --lease-id <lease-id>
 ```
 
-Set `reset_strategy` to `stop_before_replace` when the cluster has capacity for only one
-slice. The controller keeps the lease held, stops the dirty application to release its
-CPU and memory, creates and verifies the replacement, and only then deletes the stopped
-generation. If provisioning fails, it restarts and verifies the previous generation while
-keeping the lease held. Use `replace_before_destroy` only when the cluster has enough
-surge capacity for two complete slices during every reset.
+The default `replace_before_destroy` strategy allows the dirty and replacement generations
+to overlap while the replacement becomes ready. This preserves available capacity during
+normal concurrent operation without imposing a fixed pool size. `stop_before_replace` is
+an operator-selected fallback for a temporarily constrained cluster: it stops the dirty
+generation before creating its replacement. Either way, a failed reset leaves the lease
+held and the dirty generation stopped rather than returning an invalid slot to the pool.
 
 For a one-shot pool that will be destroyed in full, use:
 
@@ -150,15 +151,11 @@ ready slice rather than waiting for a cold start.
 
 The baseline resource requests total 10 CPU cores and 20 GiB of memory per slice, plus
 100 millicores and 128 MiB for the initializer. Capacity planning must use schedulable
-resources, not cluster totals. A pool serving `N` active tasks with one idle warm slice
-therefore needs at least `(N + 1) * 10.1` cores and `(N + 1) * 20.125 GiB`, with additional
-headroom for Rainbond's rolling-update surge Pods and unrelated workloads. If that headroom
-is unavailable, replacements remain pending instead of weakening isolation or silently
-sharing a site.
+resources, not cluster totals. Reconcile the pool to current active demand plus the chosen
+idle reserve; the controller destroys excess unleased slices when demand falls. Rainbond
+may also need temporary headroom while a replacement generation starts and for rolling
+updates. When that headroom is unavailable, use `stop_before_replace` for that deployment
+rather than weakening isolation or sharing writable sites.
 
-Rainbond remains the runtime data plane and this repository's lease controller remains the
-source of truth for lifecycle and reset. Kestra is optional above it for queues, schedules,
-timeouts, retries, and guaranteed cleanup; it is not required to allocate a slice and must
-not become a runtime dependency. Argo Workflows is only justified when the deployment moves
-to direct Kubernetes-native orchestration at substantially larger scale, because using it
-for the current pool would duplicate Rainbond application lifecycle management.
+Rainbond is the runtime data plane and this repository's lease controller is the source of
+truth for allocation, reset, quarantine, and cleanup.
