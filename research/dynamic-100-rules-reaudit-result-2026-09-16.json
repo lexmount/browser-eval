@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "kind": "dynamic_100_rules_reaudit_result",
+  "evidence_directory": "dynamic-100-moli-webfetch-2026-09-16-rules-reaudit-v5",
+  "inventory": {
+    "unique_task_ids": 100,
+    "unique_urls": 100,
+    "authoritative_logical_results": 100,
+    "provider_calls_added_to_score": 0,
+    "non_scoring_diagnostic_calls": 9
+  },
+  "result": {
+    "task_pass": 38,
+    "task_fail": 62,
+    "independently_reviewed": 100,
+    "disagreements": 0,
+    "unresolved": 0
+  },
+  "diagnostic_result": {
+    "original_empty_outputs": 9,
+    "empty_outputs_reproduced": 9,
+    "diagnostic_calls_score_bearing": 0,
+    "confirmed_stage": "process completed with exit code 0; output validation observed zero stdout bytes",
+    "deeper_cause": "unconfirmed"
+  },
+  "checksums": {
+    "dataset.json": "5b20c78a6e2a9746ef01432011638c18ddcab609b7dd05712d3a123b15036753",
+    "results.jsonl": "19fcd514710ab297082a40cff632fffa419b087761b8e343aaee2f8f495a4ce9",
+    "result-review.json": "fe59cf411328efb679b72212defeffba9faba0b84e7819dcafbe2271bb6f91fc",
+    "result-audit.json": "f18163f7adc715d2967b1ac80907fd204e2a5380c8822ce299e04998a8bb3a17",
+    "measurement-lineage.json": "e1251c36329c8e2f1aa86f2ced13e9094f0c67304aecaa0a57a1afd82fee106f",
+    "initial-blind-review-bound.json": "0f524e5eb67e93cff03fd04381ccb0f4bb433a96b1e524e349e89d405f4e1e34",
+    "formal-audit-bound.json": "b13476b9fac86c4eda68ad64f3584f50e4df483e0460ddf80f16ba4a83aa631a"
+  }
+}
