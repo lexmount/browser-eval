@@ -402,7 +402,7 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
             artifact = contained_path(staging, row['artifact_path'])
             if hashlib.sha256(artifact.read_bytes()).hexdigest() != row['output_sha256']:
                 raise ValueError('WebMainBench output integrity failure: ' + row['attempt_id'])
-        generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption, fixture_correction)
+        generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption, fixture_correction, teds_revision)
         (staging / '.generated-report').write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         if output.exists():
             backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'

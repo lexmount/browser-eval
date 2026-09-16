@@ -118,6 +118,13 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
     if comparison.get("conversion") != profile["conversion"]:
         failures.append("conversion")
     if profile.get("comparison_kind") == "webmainbench_frozen_html_to_markdown":
+        revision = profile.get("scoring_revision")
+        if revision:
+            receipt_path = evidence / "teds-correction.json"
+            if (not receipt_path.is_file() or receipt_path.is_symlink()
+                    or hashlib.sha256(receipt_path.read_bytes()).hexdigest() != revision.get("receipt_sha256")
+                    or json.loads(receipt_path.read_text()).get("kind") != revision.get("kind")):
+                failures.append("scoring_revision")
         for key in ("max_failure_retries", "source_dataset_sha256", "official_scorer_commit",
                     "sample_manifest_sha256", "official_metrics", "metric_config", "input_contract"):
             if comparison.get(key) != profile.get(key):

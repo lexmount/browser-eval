@@ -82,7 +82,7 @@ def fetch(request):
             result = subprocess.run(command, capture_output=True, timeout=route_timeout,
                                     **({'env': environment} if environment else {}))
             meta.update(browser_exit_code=result.returncode,
-                        browser_stderr=result.stderr.decode('utf-8', 'replace')[:4096])
+                        browser_stderr=result.stderr.decode('utf-8', 'replace'))
             if result.returncode:
                 return dict(ok=False, content='', html='', error_type='browser_exit',
                             error_message=meta['browser_stderr'] or str(result.returncode), metadata=meta)

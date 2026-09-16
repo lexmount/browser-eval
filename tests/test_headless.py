@@ -355,6 +355,23 @@ class HeadlessTests(unittest.TestCase):
         self.assertTrue(result['ok'])
         self.assertEqual(run.call_args.kwargs['env']['SSL_CERT_FILE'], '/tmp/fixture-ca.pem')
 
+    def test_native_browser_diagnostics_retain_terminal_error_after_long_warnings(self):
+        from types import SimpleNamespace
+        diagnostic = b'warning\n' * 1024 + b'ERROR: terminal cause after warnings\n'
+        for engine in ('moli', 'obscura', 'lightpanda'):
+            for code in (0, 1):
+                request = dict(engine=engine, binary='/' + engine,
+                               url='https://example.test/page', timeout=1, output_mode='markdown')
+                completed = SimpleNamespace(returncode=code, stdout=b'# body', stderr=diagnostic)
+                with self.subTest(engine=engine, code=code), patch(
+                    'scripts.headless_worker.subprocess.run', return_value=completed
+                ):
+                    result = fetch(request)
+                self.assertEqual(result['metadata']['browser_stderr'], diagnostic.decode())
+                self.assertEqual(result['ok'], code == 0)
+                if code:
+                    self.assertTrue(result['error_message'].endswith('ERROR: terminal cause after warnings\n'))
+
     def test_moli_raw_document_command_omits_dump(self):
         command = cli_command('moli', '/moli', 'https://example.com/paper.pdf', 1.5,
                               'document')

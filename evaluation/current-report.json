@@ -20,6 +20,10 @@
   "sample_manifest": "evaluation/public-webmainbench-200.json",
   "sample_manifest_sha256": "eea643afddd35f3ae4ed85b689b3a89f6a503f8fce878d546fa56c97c26f8044",
   "official_scorer_commit": "9d991bdc00c57b57521499494d96be85c31317ba",
+  "scoring_revision": {
+    "kind": "webmainbench_teds_tree_adapter_correction",
+    "receipt_sha256": "bef5a55244ddf2b64bb9582dc32b6fa1ef04b94eda13cb11b235454b688b25c4"
+  },
   "official_metrics": [
     "overall",
     "text_edit",

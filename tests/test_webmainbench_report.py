@@ -1,9 +1,10 @@
 import hashlib
+import copy
 import tempfile
 import unittest
 from pathlib import Path
 
-from harness.web_fetch.report import generate_webmainbench
+from harness.web_fetch.report import generate_webmainbench, _wmb_pct, _wmb_body_state
 from harness.web_fetch.report_build import validate_webmainbench_correction
 
 
@@ -12,6 +13,22 @@ METRICS = ("text_edit", "code_edit", "table_edit", "table_TEDS", "formula_edit")
 
 
 class WebMainBenchReportTests(unittest.TestCase):
+    def test_body_state_does_not_treat_empty_or_error_output_as_body(self):
+        for english in (False, True):
+            self.assertEqual(_wmb_body_state({'ok': True}, '  ', english),
+                             'No body text' if english else '没有正文')
+            self.assertEqual(_wmb_body_state({'ok': True}, 'ERR_ACCESS_DENIED', english),
+                             'Error page, not target content' if english else '错误页，非目标正文')
+            self.assertEqual(_wmb_body_state({'ok': True}, 'An ordinary article.', english),
+                             'Body text produced' if english else '正文已生成')
+
+    def test_small_nonzero_scores_do_not_round_to_zero(self):
+        self.assertEqual(_wmb_pct(0), '0.0%')
+        self.assertEqual(_wmb_pct(.5), '50.0%')
+        self.assertEqual(_wmb_pct(None), '—')
+        for value in (.00000732233609980177, .000234599901272541):
+            self.assertGreater(float(_wmb_pct(value).rstrip('%')), 0)
+
     def test_correction_must_match_frozen_scope(self):
         dataset = {'cases': [{'id': 'case-one'}], 'coverage_plan': {'static_html': ['moli']},
                    'sample_manifest_sha256': 'a' * 64, 'source_dataset_sha256': 'b' * 64}
@@ -118,6 +135,30 @@ class WebMainBenchReportTests(unittest.TestCase):
             self.assertIn("table-structure score validity did not", (output / "en/index.html").read_text(encoding="utf-8"))
             self.assertIn("Response and body", analysis_en)
             self.assertIn("API/worker response and final content", (output / "en/attempts/kitesurf__case-one__r001.html").read_text(encoding="utf-8"))
+            for row in records:
+                row['official_metrics'] = copy.deepcopy(row['metrics'])
+                row['official_metrics']['table_TEDS'] = {'score': .024347507646390047, 'success': True}
+                row['metrics']['table_TEDS'] = {'score': .00000732233609980177, 'success': True}
+            revision_review = {'logical_results': 5, 'changed_scores': 5,
+                               'impacts': {name: {'official': summary['official_aggregate'],
+                                                 'corrected': summary['official_aggregate']}
+                                           for name, summary in summaries.items()}}
+            immutable_records = copy.deepcopy(records)
+            generate_webmainbench(output, dataset, records, summaries, manifests,
+                                 {'status': 'passed'}, teds_revision=({}, revision_review))
+            self.assertEqual(records, immutable_records)
+            for prefix, label, original in (('', '本地修正版', '官方原始分'),
+                                            ('en/', 'locally corrected', 'Original official score')):
+                for route in ('index.html', 'analysis/index.html', 'providers/kitesurf.html',
+                              'attempts/kitesurf__case-one__r001.html'):
+                    page = (output / prefix / route).read_text()
+                    self.assertIn(label, page)
+                detail = (output / prefix / 'attempts/kitesurf__case-one__r001.html').read_text()
+                self.assertIn(original, detail)
+                self.assertIn('0.000732234%', detail)
+                review_page = (output / prefix / 'review/index.html').read_text()
+                self.assertIn('wmb-correction-effects', review_page)
+                self.assertIn('original-results.jsonl', review_page)
 
 
 if __name__ == "__main__":
