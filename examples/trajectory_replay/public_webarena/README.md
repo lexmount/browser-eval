@@ -48,6 +48,20 @@ control endpoints themselves are never published through the gateway. Its comman
 `deploy/webarena-rainbond/initializer.sh`, executed by the pinned Alpine image; port
 8080 serves only the final readiness marker.
 
+Both Magento baseline components must also carry this image start command before they
+are copied. It removes Magento's report-only CSP response header at the inner Nginx
+boundary; the header exceeds the upstream-header limit of the APISIX gateway used by
+this Rainbond installation and otherwise produces a gateway 502 even while the Pod and
+port are healthy:
+
+```text
+sh -c "sed -i '/fastcgi_pass[[:space:]]*fastcgi_backend;/a\\        fastcgi_hide_header Content-Security-Policy-Report-Only;' /var/www/magento2/nginx.conf.sample && exec /usr/bin/python3 /usr/bin/supervisord -n -j /supervisord.pid"
+```
+
+The command changes only the report-only response header. It preserves the image's
+entrypoint initialization and supervisor process, and application readiness still
+requires a successful request through each public slice domain.
+
 Copy `rainbond-pool.example.json`, set `RAINBOND_API_TOKEN` in the process environment,
 and reconcile the warm pool to the active task count plus at least one idle slice.
 Additional slices are created in bounded parallel and removed when demand falls:
