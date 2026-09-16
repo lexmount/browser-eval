@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "purpose": "Reproduce the nine original empty-output anomalies with complete public process logs without changing benchmark scores.",
+  "evidence_directory": "dynamic-100-moli-webfetch-empty-diagnostics-2026-09-16-v1",
+  "diagnostic_only": true,
+  "score_bearing": false,
+  "provider": {
+    "name": "Moli WebFetch",
+    "reported_version": "moli 1.1.5",
+    "binary_sha256": "4a947148f9af8726b619558fb72c05def75e1c347464c64af178e2f4ddfa71a5"
+  },
+  "protocol": {
+    "runs_per_case": 1,
+    "timeout_seconds": 45,
+    "retry_count": 0,
+    "execution": "serial",
+    "command_route": "moli fetch --dump markdown --wait-until done --timeout 45000 --block-private-networks URL",
+    "original_result_policy": "preserved; diagnostic calls never replace or rescore the original calls"
+  },
+  "result": {
+    "case_count": 9,
+    "empty_output_reproduced": 9,
+    "not_reproduced": 0,
+    "exit_code_zero": 9,
+    "stderr_empty": 9,
+    "confirmed_stage": "The Moli process completed successfully at process level, then output validation found zero stdout bytes.",
+    "unconfirmed_cause": "No retained evidence identifies a deeper browser, page, extraction, or serialization cause."
+  },
+  "cases": [
+    "dynamic-055-arco-design-vue",
+    "dynamic-063-s-weibo-com-top",
+    "dynamic-033-033-vuetify-usage-table",
+    "dynamic-034-034-vuetify-server-table",
+    "dynamic-035-035-vuetify-virtual-table",
+    "dynamic-043-en-stable-grommet-table",
+    "dynamic-058-zh-stable-tdesign-table",
+    "dynamic-angular-phones",
+    "dynamic-108-swagger-petstore3"
+  ],
+  "checksums": {
+    "manifest.json": "5123ec7acbb4bf506674f6841c0a8df492c13c69b12ff7a848c8ad6a484aaf5d",
+    "results.jsonl": "c08b97af9e14053fe8aba0598e213196651d8b65a7a6cef2fee3b9ff69c6ade4",
+    "diagnostic-lineage.json": "39fe78e817ebe11b127e964dbcc603f9f79149a7e31eefeebb5a1b1f0fc862bc",
+    "diagnostic-input-dataset.json": "b776339990d525fe1fd9a8c589cd5991e3e3a21513be431348723ae40d4e7aeb"
+  }
+}
