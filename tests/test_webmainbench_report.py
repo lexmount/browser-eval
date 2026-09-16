@@ -169,6 +169,9 @@ class WebMainBenchReportTests(unittest.TestCase):
                               'attempts/kitesurf__case-one__r001.html'):
                     page = (output / prefix / route).read_text()
                     self.assertIn(label, page)
+                    if prefix == 'en/':
+                        self.assertNotIn('overall（locally corrected）', page)
+                        self.assertNotIn('table_TEDS（locally corrected）', page)
                 detail = (output / prefix / 'attempts/kitesurf__case-one__r001.html').read_text()
                 self.assertIn(original, detail)
                 self.assertIn('0.000732234%', detail)

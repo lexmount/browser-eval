@@ -1615,7 +1615,8 @@ def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,mani
  for english in (False,True):
   h=lambda zh,en:en if english else zh
   corrected_label=h('本地修正版','locally corrected')
-  metric_labels={name:name+(f'（{corrected_label}）' if corrected and name in ('overall','table_TEDS') else '') for name in metric_order}
+  corrected_suffix=(f' ({corrected_label})' if english else f'（{corrected_label}）')
+  metric_labels={name:name+(corrected_suffix if corrected and name in ('overall','table_TEDS') else '') for name in metric_order}
   status=(h(f'{case_count} 页 × 5 方法 = {result_count:,} 条结果；证据与算术核验通过，表格结构评分的有效性尚未通过。',f'{case_count} pages × 5 methods = {result_count:,} results; evidence and arithmetic checks passed, but table-structure score validity did not.') if review and review.get('status')=='passed' else h('测量完成；独立审查尚未通过，当前页面不可发布。','Measurement complete; independent review has not passed, so this build is not publishable.'))
   if corrected:
    status=h(f'{case_count} 页 × {len(names)} 种方法；TEDS 使用本地修正版，原始分与纠正记录均保留。',f'{case_count} pages × {len(names)} methods; TEDS is locally corrected, with original scores and correction records retained.')
