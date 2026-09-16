@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "dynamic_100_stable_text_source_audit_receipt",
+  "created_at": "2026-09-16T08:06:07Z",
+  "scope": {
+    "dataset_cases": 100,
+    "complete_three_load_observations": 99,
+    "incomplete_cases": [
+      "dynamic-048-reddit-com-r"
+    ],
+    "structured_contract_cases": 56,
+    "link_contract_cases": 45,
+    "provider_output_used": false,
+    "interaction_boundary": "initial automatic load only; no click, input, scroll, search, pagination, or consent action"
+  },
+  "policy": {
+    "minimum_independent_loads": 3,
+    "duplicate_text_counts_once": true,
+    "identifying_power_required": false,
+    "ordinary_navigation_and_footer_text_allowed": true,
+    "buttons_inputs_image_text_and_pagination_controls_excluded": true,
+    "current_records_headlines_prices_dates_and_error_pages_excluded": true,
+    "qualified_anchor_upper_limit": null,
+    "historical_independent_anchors_preserved_when_current_page_access_did_not_reproduce_one_text_node": true
+  },
+  "result": {
+    "stable_text_anchor_groups": 1920,
+    "structured_cases_with_zero_qualified_stable_text": [
+      "dynamic-071-mercadolibre-cl-offers",
+      "dynamic-076-mercadolibre-co-offers",
+      "dynamic-078-mercadolibre-pe-offers",
+      "dynamic-079-mercadolibre-com-mx-ofertas",
+      "dynamic-080-mercadolibre-com-ar-ofertas",
+      "dynamic-091-mercadolivre-com-br-ofertas",
+      "dynamic-react-cart"
+    ],
+    "notes": [
+      "The six Mercado Libre offer pages returned HTTP 403 error pages during the independent context check; error-page text was not promoted to stable text.",
+      "The Reddit source page remained behind a JavaScript challenge in three supplementary attempts; the earlier independently evidenced anchor was retained.",
+      "Zero stable-text groups are allowed for structured-record contracts because record structure, ownership, count, uniqueness, host, and path remain the primary acceptance rules."
+    ]
+  },
+  "sha256": {
+    "source_observations_json": "4292456c389591d77b19e28f29ae1b5e188bcfbc34294cf43f06c11e277c6899",
+    "reddit_supplement_json": "3b77fdf1e34e50d61c1110473b45b6445b6e1a295af48a46c59b7bdafeab31b3",
+    "link_contexts_json": "231c417efde957757e9324a086885e386327e578ce150299cebf0b4682155b7a",
+    "other_structured_contexts_json": "fc184a058ed41a89783c7f14b083f32d29930645a23bf517083873c9b13b3555",
+    "stable_text_adjudication_json": "6a06dd7762dd1150e4d7edb9f9cfbde126fa5b52341d2309e26b379b47648c5e",
+    "revised_dataset_json": "98d64d76035bca43abf85893c4a86d706e7ab958e160dd341ac6590863f39426"
+  }
+}
