@@ -148,17 +148,16 @@ class WebMainBenchReportTests(unittest.TestCase):
             self.assertIn('value="success"', analysis)
             guide = (output / "guide/index.html").read_text(encoding="utf-8")
             guide_en = (output / "en/guide/index.html").read_text(encoding="utf-8")
-            for anchor in ("success-layers", "scope-gap", "causes", "denominators",
-                           "method-profiles", "missing-body", "decisions", "limits"):
+            for anchor in ("overall", "scope", "tables", "delivery", "decision"):
                 self.assertIn(f'id="{anchor}"', guide)
                 self.assertIn(f'id="{anchor}"', guide_en)
-            self.assertIn("几乎都返回了，为什么质量分仍然不高", guide)
-            self.assertIn("低分不是一种原因", guide)
-            self.assertIn("分母也在描述方法的输出行为", guide)
-            self.assertIn("data-wmb-flow-fallback", guide)
+            self.assertIn("200 页冻结 HTML 的选择顺序", guide)
+            self.assertIn("32.4% 不是", guide)
+            self.assertIn("表格文字还在", guide)
+            self.assertIn("Lightpanda", guide)
             self.assertNotIn("01 测了什么", guide)
-            self.assertIn("Nearly every page returned", guide_en)
-            self.assertIn("Low scores do not have one cause", guide_en)
+            self.assertIn("How to read the 200-page frozen-HTML result", guide_en)
+            self.assertIn("does not mean 32.4%", guide_en)
             self.assertNotIn("{common_low}", guide_en)
             self.assertNotIn("{fail_total}", guide_en)
             self.assertIn('data-kind="reference"', (output / "attempts/kitesurf__case-one__r001.html").read_text(encoding="utf-8"))
@@ -187,7 +186,7 @@ class WebMainBenchReportTests(unittest.TestCase):
             ]
             self.assertEqual(overall_values, sorted(overall_values, reverse=True))
             self.assertNotIn('可能不计分', (output / 'methodology/index.html').read_text())
-            self.assertIn('wmb-profile-table', (output / 'guide/index.html').read_text())
+            self.assertIn('wmb-verdict-grid', (output / 'guide/index.html').read_text())
             for prefix, label, original in (('', '修正后复算', '官方原始分'),
                                             ('en/', 'recomputed after correction', 'Original official score')):
                 for route in ('index.html', 'analysis/index.html', 'providers/kitesurf.html',

@@ -186,23 +186,29 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
             or len(analysis.select("[data-wmb-slice-filter]")) != 3
             or not analysis.select_one(".wmb-slice-table-wrap")):
         raise ValueError("WebMainBench category slices must use one bounded, filterable table")
-    expected_guide_sections = {
-        "success-layers", "scope-gap", "causes", "denominators", "method-profiles",
-        "missing-body", "decisions", "limits",
-    }
+    expected_guide_sections = {"overall", "scope", "tables", "delivery", "decision"}
     guides = {}
     for prefix, language in (("", "Chinese"), ("en/", "English")):
         guide = BeautifulSoup((root / prefix / "guide/index.html").read_text(encoding="utf-8"), "html.parser")
         guides[prefix] = guide
-        if {section.get("id") for section in guide.select("section.section[id]")} != expected_guide_sections:
+        if {section.get("id") for section in guide.select(".wmb-editorial section[id]")} != expected_guide_sections:
             raise ValueError(f"WebMainBench {language} report interpretation is incomplete")
-        if (len(guide.select("#scope-gap table tbody > tr")) != 5
-                or len(guide.select("#causes table tbody > tr")) != 5
-                or len(guide.select("#denominators table tbody > tr")) != 5
-                or len(guide.select("#method-profiles table tbody > tr")) != 5
-                or len(guide.select("#missing-body table tbody > tr")) != 6
-                or guide.select_one("#success-layers [data-wmb-flow-fallback]") is None):
-            raise ValueError(f"WebMainBench {language} guide lacks aggregate mechanism or root-cause evidence")
+        if (len(guide.select(".wmb-verdict-grid .wmb-verdict")) != 3
+                or len(guide.select("#overall .wmb-score-part")) != 5
+                or guide.select_one("#overall .wmb-score-result") is None
+                or len(guide.select("#scope .wmb-evidence-pair > article")) != 2
+                or len(guide.select("#scope .wmb-case-stats > span")) != 5
+                or len(guide.select("#tables .wmb-evidence-pair > article")) != 2
+                or len(guide.select("#tables .wmb-case-stats > span")) != 5
+                or len(guide.select("#delivery .wmb-cause-grid > article")) != 3
+                or len(guide.select("#decision .wmb-choice-table tbody > tr")) != 5):
+            raise ValueError(f"WebMainBench {language} guide lacks decision, example or root-cause evidence")
+        guide_hrefs = {anchor.get("href") for anchor in guide.select("a[href]")}
+        if not {
+            "../datasets/c42e7f28-f109-459b-8423-2ce20f651ac9.html",
+            "../datasets/686205e4-4549-42ce-bf42-f285f941c868.html",
+        }.issubset(guide_hrefs):
+            raise ValueError(f"WebMainBench {language} guide lacks representative evidence links")
     dataset_page = BeautifulSoup((root / "datasets/index.html").read_text(encoding="utf-8"),"html.parser")
     if len(dataset_page.select('table[data-wmb-table] tbody tr')) != 200:
         raise ValueError("WebMainBench 200-case filtered dataset inventory is incomplete")
@@ -241,12 +247,13 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     )
     check_teds_warnings(root, impossible_teds)
     adoption_page = BeautifulSoup((root / "adoption/index.html").read_text(encoding="utf-8"), "html.parser")
-    for page, required in ((dataset_page, 2), (adoption_page, 1), (guides[""], 1), (guides["en/"], 1)):
+    for page, required in ((dataset_page, 2), (adoption_page, 1)):
         wide_tables = page.select(".table-wrap > table.wide-prose-table")
         if len(wide_tables) < required or any(len(table.select("thead th")) < 6 for table in wide_tables):
             raise ValueError("Evidence-rich tables must expand horizontally inside their scroll container")
     if (".wide-prose-table{min-width:1720px}" not in EXTRA
-            or ".wmb-profile-table{min-width:2250px}" not in EXTRA
+            or ".wmb-choice-table{min-width:760px}" not in EXTRA
+            or ".wmb-evidence-pair{display:grid" not in EXTRA
             or ".wmb-slice-table-wrap{max-height:70vh;overflow:auto}" not in EXTRA
             or "function wmbSliceFilters()" not in JS):
         raise ValueError("WebMainBench table width, bounded slice layout or filter logic is missing")
