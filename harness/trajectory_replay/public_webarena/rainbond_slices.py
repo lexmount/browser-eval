@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import os
@@ -10,6 +11,8 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -32,6 +35,13 @@ def _image_digest(value: str) -> str:
     if marker not in value:
         raise ValueError(f"container image is not digest pinned: {value!r}")
     return "sha256:" + value.rsplit(marker, 1)[1]
+
+
+def _validate_pool_id(pool_id: str) -> str:
+    normalized = pool_id.strip().lower()
+    if not _SAFE_ID.fullmatch(normalized):
+        raise ValueError("pool_id must be a lowercase DNS-safe identifier")
+    return normalized
 
 
 def _atomic_json(path: Path, value: Any) -> None:
@@ -83,13 +93,15 @@ class PoolConfig:
     region_name: str
     source_app_id: int
     source_services: dict[str, str]
+    initializer_service: str
+    initializer_image: str
     app_prefix: str
     domain_suffix: str
     token_env: str
     image_lock: Path
-    source_runtime_images: dict[str, str]
     shared_environments: dict[str, Any]
     readiness_timeout_seconds: int
+    max_parallel_provisions: int
 
     @classmethod
     def load(cls, path: str | Path) -> tuple[PoolConfig, dict[str, Any], Path]:
@@ -115,14 +127,11 @@ class PoolConfig:
         lock_path = lock_value if lock_value.is_absolute() else (config_path.parent / lock_value)
         if not lock_path.is_file():
             raise ValueError("Rainbond pool image_lock is missing")
-        runtime_images_value = raw.get("source_runtime_images") or {}
-        if not isinstance(runtime_images_value, dict) or set(runtime_images_value) - set(
-            STATEFUL_SITES
-        ):
-            raise ValueError("source_runtime_images contains an unknown site")
-        runtime_images = {str(site): str(image) for site, image in runtime_images_value.items()}
-        for image in runtime_images.values():
-            _image_digest(image)
+        initializer_service = str(raw.get("initializer_service") or "")
+        initializer_image = str(raw.get("initializer_image") or "")
+        if not initializer_service or not initializer_image:
+            raise ValueError("initializer_service and initializer_image are required")
+        _image_digest(initializer_image)
         value = cls(
             api_base_url=str(raw.get("api_base_url") or "").rstrip("/"),
             team_id=str(raw.get("team_id") or ""),
@@ -130,17 +139,20 @@ class PoolConfig:
             region_name=str(raw.get("region_name") or ""),
             source_app_id=int(raw.get("source_app_id") or 0),
             source_services=normalized_services,
+            initializer_service=initializer_service,
+            initializer_image=initializer_image,
             app_prefix=prefix,
             domain_suffix=suffix,
             token_env=str(raw.get("token_env") or "RAINBOND_API_TOKEN"),
             image_lock=lock_path.resolve(),
-            source_runtime_images=runtime_images,
             shared_environments=dict(raw.get("shared_environments") or {}),
             readiness_timeout_seconds=int(raw.get("readiness_timeout_seconds") or 1800),
+            max_parallel_provisions=int(raw.get("max_parallel_provisions") or 2),
         )
         if (
             not all((value.api_base_url, value.team_id, value.team_name, value.region_name))
             or value.source_app_id < 1
+            or value.max_parallel_provisions < 1
         ):
             raise ValueError("Rainbond pool API, team, region, and source app are required")
         return value, raw, config_path
@@ -184,10 +196,7 @@ class RainbondSlicePool:
 
     @staticmethod
     def _validate_pool_id(pool_id: str) -> str:
-        normalized = pool_id.strip().lower()
-        if not _SAFE_ID.fullmatch(normalized):
-            raise ValueError("pool_id must be a lowercase DNS-safe identifier")
-        return normalized
+        return _validate_pool_id(pool_id)
 
     def _create_app(self, pool_id: str, slot: int) -> int:
         name = f"{self.config.app_prefix}-{pool_id}-{slot}"
@@ -198,7 +207,7 @@ class RainbondSlicePool:
             raise RuntimeError("Rainbond create app response has no ID")
         return app_id
 
-    def _copy_components(self, app_id: int) -> dict[str, dict[str, Any]]:
+    def _copy_components(self, app_id: int) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
         config = self.config
         result = self.api.request(
             "POST",
@@ -206,7 +215,8 @@ class RainbondSlicePool:
             {
                 "services": [
                     {"service_id": config.source_services[site]} for site in STATEFUL_SITES
-                ],
+                ]
+                + [{"service_id": config.initializer_service}],
                 "target_team_name": config.team_name,
                 "target_region_name": config.region_name,
                 "target_app_id": app_id,
@@ -225,7 +235,18 @@ class RainbondSlicePool:
                     f"Rainbond copy returned {len(matches)} components named {component_name!r}"
                 )
             mapped[site] = matches[0]
-        return mapped
+        initializer_name = str(
+            self.raw_config.get("initializer_component_name") or "slice-initializer"
+        )
+        initializer_matches = [
+            row for row in rows if str(row.get("service_cname")) == initializer_name
+        ]
+        if len(initializer_matches) != 1:
+            raise RuntimeError(
+                f"Rainbond copy returned {len(initializer_matches)} components named "
+                f"{initializer_name!r}"
+            )
+        return mapped, initializer_matches[0]
 
     def _configure_component(
         self,
@@ -308,12 +329,10 @@ class RainbondSlicePool:
             {"envs": envs},
         )
         expected_image = str(self.image_lock["images"][site]["pinned"])
-        expected_runtime_image = self.config.source_runtime_images.get(site, expected_image)
         actual_image = str(component.get("image") or "")
-        if actual_image and _image_digest(actual_image) != _image_digest(expected_runtime_image):
+        if actual_image and _image_digest(actual_image) != _image_digest(expected_image):
             raise RuntimeError(
-                f"Rainbond copied {site} runtime image mismatch: "
-                f"{actual_image!r} != {expected_runtime_image!r}"
+                f"Rainbond copied {site} image mismatch: {actual_image!r} != {expected_image!r}"
             )
         return {
             "service_id": service_id,
@@ -322,6 +341,62 @@ class RainbondSlicePool:
             "runtime_image": actual_image or expected_image,
             "site_url": site_url,
         }
+
+    def _configure_initializer(
+        self,
+        app_id: int,
+        *,
+        initializer: dict[str, Any],
+        copied_sites: dict[str, dict[str, Any]],
+    ) -> dict[str, Any]:
+        service_id = str(initializer.get("service_id") or "")
+        actual_image = str(initializer.get("image") or "")
+        if not service_id:
+            raise RuntimeError("Rainbond copied initializer has no service_id")
+        if actual_image and _image_digest(actual_image) != _image_digest(
+            self.config.initializer_image
+        ):
+            raise RuntimeError("Rainbond copied initializer image mismatch")
+        aliases = {
+            site: str(copied_sites[site].get("service_alias") or "")
+            for site in ("reddit", "gitlab")
+        }
+        if not all(aliases.values()):
+            raise RuntimeError("Rainbond copy response has no internal service aliases")
+        self.api.request(
+            "PUT",
+            f"{self._app_path(app_id)}/services/{quote(service_id)}/envs",
+            {
+                "envs": [
+                    {
+                        "name": f"{site.upper()}_CTRL_URL",
+                        "value": f"http://{alias}:8877",
+                        "is_change": True,
+                        "scope": "inner",
+                    }
+                    for site, alias in aliases.items()
+                ]
+            },
+        )
+        return {"service_id": service_id}
+
+    def _wait_component_running(self, app_id: int, service_id: str) -> None:
+        deadline = time.monotonic() + self.config.readiness_timeout_seconds
+        last_status = "not found"
+        while time.monotonic() < deadline:
+            response = self.api.request("GET", f"{self._app_path(app_id)}/services")
+            rows = response if isinstance(response, list) else (response or {}).get("services", [])
+            match = next(
+                (row for row in rows if str(row.get("service_id")) == service_id), None
+            )
+            if match is not None:
+                last_status = str(match.get("status") or "unknown")
+                if last_status == "running":
+                    return
+            self.sleep(5)
+        raise TimeoutError(
+            f"Rainbond initializer did not become ready: {service_id}: {last_status}"
+        )
 
     def _wait_site(self, url: str) -> None:
         deadline = time.monotonic() + self.config.readiness_timeout_seconds
@@ -339,12 +414,19 @@ class RainbondSlicePool:
         raise TimeoutError(f"Rainbond WebArena site did not become ready: {url}: {last_error}")
 
     def provision(self, pool_id: str, slot: int, receipt_path: Path) -> dict[str, Any]:
+        started = time.monotonic()
+        phase_started = started
+        timings: dict[str, float] = {}
         pool_id = self._validate_pool_id(pool_id)
         if slot < 1:
             raise ValueError("slot must be positive")
         app_id = self._create_app(pool_id, slot)
+        timings["create_app_seconds"] = round(time.monotonic() - phase_started, 3)
         try:
-            copied = self._copy_components(app_id)
+            phase_started = time.monotonic()
+            copied, copied_initializer = self._copy_components(app_id)
+            timings["copy_components_seconds"] = round(time.monotonic() - phase_started, 3)
+            phase_started = time.monotonic()
             components = {
                 site: self._configure_component(
                     app_id,
@@ -355,16 +437,28 @@ class RainbondSlicePool:
                 )
                 for site in STATEFUL_SITES
             }
+            initializer = self._configure_initializer(
+                app_id,
+                initializer=copied_initializer,
+                copied_sites=copied,
+            )
+            timings["configure_seconds"] = round(time.monotonic() - phase_started, 3)
+            phase_started = time.monotonic()
             self.api.request(
                 "POST",
                 f"{self._app_path(app_id)}/operations",
                 {
                     "action": "deploy",
-                    "service_ids": [row["service_id"] for row in components.values()],
+                    "service_ids": [row["service_id"] for row in components.values()]
+                    + [initializer["service_id"]],
                 },
             )
+            timings["deploy_request_seconds"] = round(time.monotonic() - phase_started, 3)
+            phase_started = time.monotonic()
+            self._wait_component_running(app_id, str(initializer["service_id"]))
             for component in components.values():
                 self._wait_site(str(component["site_url"]))
+            timings["readiness_seconds"] = round(time.monotonic() - phase_started, 3)
         except BaseException:
             self.api.request("DELETE", f"{self._app_path(app_id)}?force=1")
             raise
@@ -376,6 +470,8 @@ class RainbondSlicePool:
             "generation": uuid.uuid4().hex,
             "app_id": app_id,
             "components": components,
+            "initializer": initializer,
+            "timings": {**timings, "total_seconds": round(time.monotonic() - started, 3)},
             "created_at_unix": int(time.time()),
         }
         _atomic_json(receipt_path, receipt)
@@ -427,15 +523,90 @@ def provision_pool(config_path: Path, output_dir: Path, pool_id: str, count: int
         raise ValueError("count must be positive")
     pool = RainbondSlicePool(config_path)
     created: list[Path] = []
+
+    def create_slot(slot: int) -> Path:
+        slot_dir = output_dir / f"slice-{slot}"
+        receipt_path = slot_dir / "slice-receipt.json"
+        if receipt_path.exists():
+            raise FileExistsError(f"Rainbond slice already exists: {receipt_path}")
+        receipt = pool.provision(pool_id, slot, receipt_path)
+        _atomic_json(slot_dir / "webarena.config.json", pool.runtime_config(receipt))
+        return slot_dir
+
     try:
-        for slot in range(1, count + 1):
-            slot_dir = output_dir / f"slice-{slot}"
-            receipt_path = slot_dir / "slice-receipt.json"
-            receipt = pool.provision(pool_id, slot, receipt_path)
-            _atomic_json(slot_dir / "webarena.config.json", pool.runtime_config(receipt))
-            created.append(slot_dir)
+        workers = min(count, getattr(getattr(pool, "config", None), "max_parallel_provisions", 2))
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = {executor.submit(create_slot, slot): slot for slot in range(1, count + 1)}
+            first_error: BaseException | None = None
+            for future in as_completed(futures):
+                try:
+                    created.append(future.result())
+                except BaseException as exc:
+                    first_error = first_error or exc
+            if first_error is not None:
+                raise first_error
     except BaseException:
         for slot_dir in reversed(created):
             pool.destroy(slot_dir / "slice-receipt.json")
         raise
-    return created
+    return sorted(created)
+
+
+@contextmanager
+def _pool_lock(output_dir: Path) -> Any:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    lock_path = output_dir / ".pool.lock"
+    with lock_path.open("a+", encoding="utf-8") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+def scale_pool(
+    config_path: Path,
+    output_dir: Path,
+    pool_id: str,
+    count: int,
+    *,
+    minimum_ready: int = 1,
+) -> list[Path]:
+    """Reconcile a persistent warm pool, never scaling below minimum_ready."""
+    if minimum_ready < 1 or count < minimum_ready:
+        raise ValueError("count must be at least minimum_ready, and minimum_ready must be positive")
+    with _pool_lock(output_dir):
+        pool = RainbondSlicePool(config_path)
+        pool_id = _validate_pool_id(pool_id)
+        existing: dict[int, Path] = {}
+        for receipt_path in output_dir.glob("slice-*/slice-receipt.json"):
+            receipt = pool.validate_receipt(receipt_path)
+            if str(receipt.get("pool_id")) != pool_id:
+                raise ValueError(f"slice belongs to another pool: {receipt_path}")
+            existing[int(receipt["slot"])] = receipt_path.parent
+        missing_slots = [slot for slot in range(1, count + 1) if slot not in existing]
+        if missing_slots:
+            workers = min(len(missing_slots), pool.config.max_parallel_provisions)
+
+            def create_slot(slot: int) -> tuple[int, Path]:
+                slot_dir = output_dir / f"slice-{slot}"
+                receipt = pool.provision(pool_id, slot, slot_dir / "slice-receipt.json")
+                _atomic_json(slot_dir / "webarena.config.json", pool.runtime_config(receipt))
+                return slot, slot_dir
+
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                futures = [executor.submit(create_slot, slot) for slot in missing_slots]
+                for future in as_completed(futures):
+                    slot, slot_dir = future.result()
+                    existing[slot] = slot_dir
+        for slot in sorted((value for value in existing if value > count), reverse=True):
+            slot_dir = existing.pop(slot)
+            pool.destroy(slot_dir / "slice-receipt.json")
+            config_file = slot_dir / "webarena.config.json"
+            if config_file.exists():
+                config_file.unlink()
+            try:
+                slot_dir.rmdir()
+            except OSError:
+                pass
+        return [existing[slot] for slot in sorted(existing)]

@@ -10,12 +10,14 @@ from harness.trajectory_replay.public_webarena.rainbond_slices import (
     STATEFUL_SITES,
     RainbondSlicePool,
     provision_pool,
+    scale_pool,
 )
 
 PINNED = {
     site: f"example/{site}@sha256:{index:064x}"
     for index, site in enumerate(STATEFUL_SITES, start=1)
 }
+INITIALIZER_IMAGE = "alpine@sha256:" + "a" * 64
 
 
 class FakeAPI:
@@ -35,16 +37,32 @@ class FakeAPI:
                 "services": [
                     {
                         "service_id": f"service-{site}-{self.next_app_id}",
+                        "service_alias": f"alias-{site}-{self.next_app_id}",
                         "service_cname": site,
                         "image": PINNED[site],
                     }
                     for site in STATEFUL_SITES
+                ]
+                + [
+                    {
+                        "service_id": f"service-initializer-{self.next_app_id}",
+                        "service_alias": f"alias-initializer-{self.next_app_id}",
+                        "service_cname": "slice-initializer",
+                        "image": INITIALIZER_IMAGE,
+                    }
                 ]
             }
         if method == "POST" and path.endswith("/domains"):
             service_id = body["http"]["service_id"]
             if self.fail_domain_for and self.fail_domain_for in service_id:
                 raise RuntimeError("injected domain failure")
+        if method == "GET" and path.endswith("/services"):
+            return [
+                {
+                    "service_id": f"service-initializer-{self.next_app_id}",
+                    "status": "running",
+                }
+            ]
         return {}
 
 
@@ -70,6 +88,8 @@ def _pool_config(tmp_path: Path) -> Path:
                 "region_name": "rainbond",
                 "source_app_id": 192,
                 "source_services": {site: f"source-{site}" for site in STATEFUL_SITES},
+                "initializer_service": "source-initializer",
+                "initializer_image": INITIALIZER_IMAGE,
                 "app_prefix": "webarena-slice",
                 "domain_suffix": "dev.example.test",
                 "token_env": "TEST_RAINBOND_TOKEN",
@@ -98,19 +118,29 @@ def test_provision_creates_one_complete_isolated_app_without_serializing_token(t
     assert receipt["schema"] == RECEIPT_SCHEMA
     assert set(receipt["components"]) == set(STATEFUL_SITES)
     assert len({row["site_url"] for row in receipt["components"].values()}) == 4
+    assert receipt["initializer"]["service_id"] == "service-initializer-201"
     assert all("run-a-1" in row["site_url"] for row in receipt["components"].values())
     assert "TEST_RAINBOND_TOKEN" not in receipt_path.read_text()
     assert not any("secret-token" in json.dumps(call) for call in api.calls)
     deploy = next(call for call in api.calls if call[1].endswith("/operations"))
     assert set(deploy[2]["service_ids"]) == {
         row["service_id"] for row in receipt["components"].values()
-    }
+    } | {receipt["initializer"]["service_id"]}
     domains = [call[2]["http"] for call in api.calls if call[1].endswith("/domains")]
     admin = next(row for row in domains if "shopping-admin" in row["domain_name"])
     reddit = next(row for row in domains if "reddit" in row["domain_name"])
     assert admin["configuration"]["proxy_buffer_size"] == 64
     assert admin["configuration"]["proxy_buffer_numbers"] == 8
     assert reddit["configuration"]["proxy_buffer_size"] == 4
+    initializer_envs = next(
+        call[2]["envs"]
+        for call in api.calls
+        if call[0] == "PUT" and "service-initializer" in call[1]
+    )
+    assert {row["name"]: row["value"] for row in initializer_envs} == {
+        "REDDIT_CTRL_URL": "http://alias-reddit-201:8877",
+        "GITLAB_CTRL_URL": "http://alias-gitlab-201:8877",
+    }
 
 
 def test_reset_deletes_the_whole_app_and_recreates_a_new_generation(tmp_path):
@@ -176,3 +206,53 @@ def test_provision_pool_rolls_back_already_created_slots(tmp_path, monkeypatch):
         provision_pool(tmp_path / "pool.json", tmp_path / "out", "run-d", 2)
 
     assert destroyed == [tmp_path / "out" / "slice-1" / "slice-receipt.json"]
+
+
+def test_scale_pool_keeps_one_warm_slice_and_removes_only_excess(tmp_path, monkeypatch):
+    created = []
+    destroyed = []
+
+    class Config:
+        max_parallel_provisions = 2
+
+    class Pool:
+        config = Config()
+
+        def __init__(self, _config):
+            pass
+
+        def provision(self, pool_id, slot, receipt_path):
+            created.append(slot)
+            receipt = {
+                "schema": RECEIPT_SCHEMA,
+                "pool_id": pool_id,
+                "slot": slot,
+                "app_id": 100 + slot,
+                "components": {site: {} for site in STATEFUL_SITES},
+            }
+            receipt_path.parent.mkdir(parents=True, exist_ok=True)
+            receipt_path.write_text(json.dumps(receipt))
+            return receipt
+
+        def runtime_config(self, _receipt):
+            return {"ok": True}
+
+        def validate_receipt(self, receipt_path):
+            return json.loads(receipt_path.read_text())
+
+        def destroy(self, receipt_path):
+            destroyed.append(receipt_path)
+            receipt_path.unlink()
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.rainbond_slices.RainbondSlicePool", Pool
+    )
+    output = tmp_path / "pool"
+
+    assert len(scale_pool(tmp_path / "config.json", output, "warm", 3)) == 3
+    assert len(scale_pool(tmp_path / "config.json", output, "warm", 1)) == 1
+
+    assert sorted(created) == [1, 2, 3]
+    assert [path.parent.name for path in destroyed] == ["slice-3", "slice-2"]
+    with pytest.raises(ValueError, match="minimum_ready"):
+        scale_pool(tmp_path / "config.json", output, "warm", 0, minimum_ready=1)

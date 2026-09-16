@@ -41,8 +41,24 @@ Shopping, Reddit, and GitLab with independent writable container layers and uniq
 domains. Reset deletes and recreates the whole slice from the pinned baseline; destroy
 removes the application. The read-only Map service may be shared.
 
+The baseline also contains a small digest-pinned initializer component. It calls the
+Reddit and GitLab `env-ctrl` endpoints only over Rainbond's internal service network,
+then exposes a harmless readiness page. The unauthenticated control endpoints are never
+published through the gateway. Its command is the base64-encoded content of
+`deploy/webarena-rainbond/initializer.sh`, executed by the pinned Alpine image; port
+8080 is internal-only and is the component readiness probe.
+
 Copy `rainbond-pool.example.json`, set `RAINBOND_API_TOKEN` in the process environment,
-and provision the required concurrency:
+and reconcile the warm pool to the required concurrency. Keep at least one ready slice;
+additional slices are created in bounded parallel and removed when demand falls:
+
+```text
+uv run --frozen python scripts/manage_webarena_rainbond_pool.py \
+  --config <pool-config> scale --pool-id <pool-id> --count <N> \
+  --minimum-ready 1 --output <runtime-dir>
+```
+
+For a one-shot pool that will be destroyed in full, use:
 
 ```text
 uv run --frozen python scripts/manage_webarena_rainbond_pool.py \
@@ -58,3 +74,7 @@ uv run --frozen python scripts/manage_webarena_rainbond_pool.py \
   --config <pool-config> destroy --slice-dir <runtime-dir>/slice-1 \
   --slice-dir <runtime-dir>/slice-2
 ```
+
+Each receipt records create, copy, configure, deploy-request, readiness, and total cold-start
+durations. Use those measurements to size the warm pool; task admission should allocate a
+ready slice rather than waiting for a cold start.
