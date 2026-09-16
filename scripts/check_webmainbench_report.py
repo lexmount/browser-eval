@@ -8,6 +8,7 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 from harness.web_fetch.report import STYLE, EXTRA, JS
+from harness.web_fetch.webmainbench_diagnostics import validate_teds_revision_if_present
 
 
 PROVIDERS = {"kitesurf", "lightpanda", "obscura", "moli", "chromium"}
@@ -28,9 +29,26 @@ def close(left: float, right: float) -> bool:
     return abs(left - right) <= 1e-12
 
 
+def check_teds_warnings(root: Path, impossible_teds: int) -> None:
+    if not impossible_teds:
+        return
+    for prefix, label, count, warning in (
+        ('', 'overall（待校验）', f'{impossible_teds} 条 TEDS 记录', '评分有效性尚未通过'),
+        ('en/', 'overall (under review)', f'{impossible_teds} TEDS records',
+         'score validity did not'),
+    ):
+        home = BeautifulSoup((root / prefix / 'index.html').read_text(encoding='utf-8'), 'html.parser')
+        review = BeautifulSoup((root / prefix / 'review/index.html').read_text(encoding='utf-8'), 'html.parser')
+        if (label not in home.get_text(' ', strip=True)
+                or count not in review.get_text(' ', strip=True)
+                or warning not in review.get_text(' ', strip=True)):
+            raise ValueError(prefix + 'Known impossible TEDS distances require a visible validity warning')
+
+
 def check_report(root: Path, dataset: dict | None = None, records: list[dict] | None = None) -> None:
     dataset = dataset or json.loads((root / "dataset.json").read_text(encoding="utf-8"))
     records = records or read_jsonl(root / "results.jsonl")
+    teds_revision = validate_teds_revision_if_present(root, records)
     if dataset.get("id") != "webmainbench-545-preselected-200-five-browsers":
         raise ValueError("Not the current WebMainBench preselected-200 report")
     cases = {row["id"]: row for row in dataset.get("cases", [])}
@@ -158,6 +176,10 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     for prefix, mean_label in (("", "均值耗时 ↕"), ("en/", "Mean latency ↕")):
         localized_home = BeautifulSoup((root / prefix / "index.html").read_text(encoding="utf-8"), "html.parser")
         home_headers = {tag.get_text(" ", strip=True) for tag in localized_home.select("#wmb-core-results th")}
+        if teds_revision is not None:
+            correction_label = '本地修正版' if not prefix else 'locally corrected'
+            if correction_label not in localized_home.get_text(' ', strip=True):
+                raise ValueError(prefix + 'Corrected scores must not be labeled as original official scores')
         if (len(localized_home.select("#wmb-core-results tbody > tr")) != 5
                 or not {mean_label, "P50 ↕", "P95 ↕"}.issubset(home_headers)
                 or {"非空内容交付率 ↕", "Non-empty delivery rate ↕"} & home_headers):
@@ -171,12 +193,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         for row in records
         for detail in [row.get("metrics", {}).get("table_TEDS", {}).get("details", {})]
     )
-    if impossible_teds:
-        review_page = BeautifulSoup((root / "review/index.html").read_text(encoding="utf-8"), "html.parser")
-        if ("overall（待校验）" not in home_page.get_text(" ", strip=True)
-                or f"{impossible_teds} 条 TEDS 记录" not in review_page.get_text(" ", strip=True)
-                or "评分有效性尚未通过" not in review_page.get_text(" ", strip=True)):
-            raise ValueError("Known impossible TEDS distances require a visible validity warning")
+    check_teds_warnings(root, impossible_teds)
     adoption_page = BeautifulSoup((root / "adoption/index.html").read_text(encoding="utf-8"), "html.parser")
     for page, required in ((dataset_page, 2), (adoption_page, 1), (guide, 1)):
         wide_tables = page.select(".table-wrap > table.wide-prose-table")

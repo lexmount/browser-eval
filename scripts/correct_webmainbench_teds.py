@@ -81,77 +81,76 @@ def main():
                 path = args.scorer_repo / 'webmainbench/metrics' / relative
             if digest(path) != expected:
                 raise ValueError('Official source differs: ' + relative)
-    cache = tempfile.TemporaryDirectory(prefix='webmainbench-teds-cache-')
-    calculator = official_calculator(args.scorer_repo, Path(cache.name))
-    metric = calculator.metrics['table_TEDS']
-    metric._tree_edit_distance = types.MethodType(corrected_distance, metric)
-    from webmainbench.metrics.base import MetricResult
-    corrected = []
-    changed = []
-    for index, original in enumerate(records, 1):
-        row = copy.deepcopy(original)
-        artifact = contained_path(source, row['artifact_path'])
-        reference_path = contained_path(source, 'references/' + row['case_id'] + '.md')
-        if digest(artifact) != row['output_sha256'] or digest(reference_path) != row['reference_sha256']:
-            raise ValueError('Evidence binding mismatch: ' + row['attempt_id'])
-        row['official_metrics'] = copy.deepcopy(row.get('metrics', {}))
-        if row.get('ok'):
-            prior = row['metrics']['table_edit']
-            dependency = MetricResult('table_edit', prior['score'], prior.get('details', {}),
-                                      prior.get('success', False), prior.get('error'))
-            current = metric_dict(metric.calculate(artifact.read_text(), reference_path.read_text(),
-                                                    table_edit_result=dependency))
-            old = row['metrics']['table_TEDS']
-            if current['success'] != old['success']:
-                raise ValueError('Unexpected denominator change: ' + row['attempt_id'])
-            row['metrics']['table_TEDS'] = current
-            successful = [item['score'] for key, item in row['metrics'].items()
-                          if key != 'overall' and item.get('success')]
-            if successful:
-                row['metrics']['overall']['score'] = sum(successful) / len(successful)
-                if current['success']:
-                    row['metrics']['overall']['details']['individual_scores']['table_TEDS'] = current['score']
-            if current.get('score') != old.get('score'):
-                changed.append({'attempt_id': row['attempt_id'], 'before': old['score'], 'after': current['score']})
-        corrected.append(row)
-        if index % 10 == 0:
-            print(f'Scored {index}/{len(records)}; changed {len(changed)}', flush=True)
-    require_valid_teds_for_release(corrected)
-    for provider, summary in summaries.items():
-        rows = [row for row in corrected if row['provider'] == provider]
-        summary['original_official_aggregate'] = summary['official_aggregate']
-        summary['official_aggregate'] = aggregate(rows)
-        cases = {case['id']: case for case in dataset['cases']}
-        for axis, values in summary['dimensions'].items():
-            for value in values:
-                def category(row):
-                    item = cases[row['case_id']]['meta'].get(axis)
-                    if isinstance(item, list):
-                        return '+'.join(sorted(item)) if item else 'none'
-                    return str(item if item not in (None, '') else 'unavailable')
-                values[value] = aggregate([row for row in rows if category(row) == value])
-    # Write only after every computation succeeds. The predecessor is untouched.
-    shutil.copytree(source, args.output)
-    shutil.copy2(source / 'results.jsonl', args.output / 'original-results.jsonl')
-    results_path = args.output / 'results.jsonl'
-    results_path.write_text(''.join(json.dumps(row, ensure_ascii=False) + '\n' for row in corrected))
-    (args.output / 'score-summaries.json').write_text(json.dumps(summaries, ensure_ascii=False, indent=2) + '\n')
-    source_files = [Path(__file__), ROOT / 'harness/web_fetch/ordered_tree.py', ROOT / 'harness/web_fetch/scoring.py']
-    for path in source_files:
-        target = args.output / 'correction-source' / path.relative_to(ROOT)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(path, target)
-    receipt = {'schema_version': 2, 'kind': 'webmainbench_teds_tree_adapter_correction',
-               'provider_calls': 0, 'correction_provenance': provenance,
-               'input_results_sha256': digest(source / 'results.jsonl'),
-               'output_results_sha256': digest(results_path),
-               'dataset_sha256': digest(source / 'dataset.json'),
-               'sample_manifest_sha256': dataset['sample_manifest_sha256'],
-               'source_code_sha256': {str(path.relative_to(ROOT)): digest(path) for path in source_files},
-               'scope': {'logical_results': len(records), 'providers': sorted(summaries)},
-               'changed_scores': changed, 'denominator_changed': False, 'latency_changed': False}
-    (args.output / 'teds-correction.json').write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + '\n')
-    cache.cleanup()
+    with tempfile.TemporaryDirectory(prefix='webmainbench-teds-cache-') as cache_dir:
+        calculator = official_calculator(args.scorer_repo, Path(cache_dir))
+        metric = calculator.metrics['table_TEDS']
+        metric._tree_edit_distance = types.MethodType(corrected_distance, metric)
+        from webmainbench.metrics.base import MetricResult
+        corrected = []
+        changed = []
+        for index, original in enumerate(records, 1):
+            row = copy.deepcopy(original)
+            artifact = contained_path(source, row['artifact_path'])
+            reference_path = contained_path(source, 'references/' + row['case_id'] + '.md')
+            if digest(artifact) != row['output_sha256'] or digest(reference_path) != row['reference_sha256']:
+                raise ValueError('Evidence binding mismatch: ' + row['attempt_id'])
+            row['official_metrics'] = copy.deepcopy(row.get('metrics', {}))
+            if row.get('ok'):
+                prior = row['metrics']['table_edit']
+                dependency = MetricResult('table_edit', prior['score'], prior.get('details', {}),
+                                          prior.get('success', False), prior.get('error'))
+                current = metric_dict(metric.calculate(artifact.read_text(), reference_path.read_text(),
+                                                        table_edit_result=dependency))
+                old = row['metrics']['table_TEDS']
+                if current['success'] != old['success']:
+                    raise ValueError('Unexpected denominator change: ' + row['attempt_id'])
+                row['metrics']['table_TEDS'] = current
+                successful = [item['score'] for key, item in row['metrics'].items()
+                              if key != 'overall' and item.get('success')]
+                if successful:
+                    row['metrics']['overall']['score'] = sum(successful) / len(successful)
+                    if current['success']:
+                        row['metrics']['overall']['details']['individual_scores']['table_TEDS'] = current['score']
+                if current.get('score') != old.get('score'):
+                    changed.append({'attempt_id': row['attempt_id'], 'before': old['score'], 'after': current['score']})
+            corrected.append(row)
+            if index % 10 == 0:
+                print(f'Scored {index}/{len(records)}; changed {len(changed)}', flush=True)
+        require_valid_teds_for_release(corrected)
+        for provider, summary in summaries.items():
+            rows = [row for row in corrected if row['provider'] == provider]
+            summary['original_official_aggregate'] = summary['official_aggregate']
+            summary['official_aggregate'] = aggregate(rows)
+            cases = {case['id']: case for case in dataset['cases']}
+            for axis, values in summary['dimensions'].items():
+                for value in values:
+                    def category(row):
+                        item = cases[row['case_id']]['meta'].get(axis)
+                        if isinstance(item, list):
+                            return '+'.join(sorted(item)) if item else 'none'
+                        return str(item if item not in (None, '') else 'unavailable')
+                    values[value] = aggregate([row for row in rows if category(row) == value])
+        # Write only after every computation succeeds. The predecessor is untouched.
+        shutil.copytree(source, args.output)
+        shutil.copy2(source / 'results.jsonl', args.output / 'original-results.jsonl')
+        results_path = args.output / 'results.jsonl'
+        results_path.write_text(''.join(json.dumps(row, ensure_ascii=False) + '\n' for row in corrected))
+        (args.output / 'score-summaries.json').write_text(json.dumps(summaries, ensure_ascii=False, indent=2) + '\n')
+        source_files = [Path(__file__), ROOT / 'harness/web_fetch/ordered_tree.py', ROOT / 'harness/web_fetch/scoring.py']
+        for path in source_files:
+            target = args.output / 'correction-source' / path.relative_to(ROOT)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, target)
+        receipt = {'schema_version': 2, 'kind': 'webmainbench_teds_tree_adapter_correction',
+                   'provider_calls': 0, 'correction_provenance': provenance,
+                   'input_results_sha256': digest(source / 'results.jsonl'),
+                   'output_results_sha256': digest(results_path),
+                   'dataset_sha256': digest(source / 'dataset.json'),
+                   'sample_manifest_sha256': dataset['sample_manifest_sha256'],
+                   'source_code_sha256': {str(path.relative_to(ROOT)): digest(path) for path in source_files},
+                   'scope': {'logical_results': len(records), 'providers': sorted(summaries)},
+                   'changed_scores': changed, 'denominator_changed': False, 'latency_changed': False}
+        (args.output / 'teds-correction.json').write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + '\n')
     print(json.dumps({'output': str(args.output), 'changed_scores': len(changed), 'provider_calls': 0}))
 
 

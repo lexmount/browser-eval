@@ -28,6 +28,8 @@ def require_valid_teds_for_release(records):
 
 def validate_teds_revision(root):
     """Verify the self-contained revision chain before using corrected scores."""
+    if root.is_symlink() or any(path.is_symlink() for path in root.rglob('*')):
+        raise ValueError('Refusing symlinked TEDS correction evidence')
     def digest(path):
         return hashlib.sha256(path.read_bytes()).hexdigest()
     receipt_path = contained_path(root, 'teds-correction.json')
@@ -44,7 +46,7 @@ def validate_teds_revision(root):
             or digest(root / 'dataset.json') != receipt.get('dataset_sha256')):
         raise ValueError('TEDS correction evidence hash mismatch')
     for path, expected in receipt['source_code_sha256'].items():
-        if digest(contained_path(root, 'correction-source/' + path)) != expected:
+        if digest(contained_path(root / 'correction-source', path)) != expected:
             raise ValueError('TEDS correction source hash mismatch')
     original = [json.loads(line) for line in (root / 'original-results.jsonl').read_text().splitlines()]
     current = [json.loads(line) for line in (root / 'results.jsonl').read_text().splitlines()]
@@ -66,3 +68,10 @@ def validate_teds_revision(root):
             raise ValueError('TEDS correction changed the scored population')
     require_valid_teds_for_release(current)
     return receipt, review
+
+
+def validate_teds_revision_if_present(root, records):
+    """A revision marker or receipt requires the complete verified chain."""
+    if (root / 'teds-correction.json').exists() or any('official_metrics' in row for row in records):
+        return validate_teds_revision(root)
+    return None

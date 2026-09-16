@@ -10,7 +10,7 @@ import zipfile
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.publication_privacy import publication_risk
-from harness.web_fetch.webmainbench_diagnostics import require_valid_teds_for_release
+from harness.web_fetch.webmainbench_diagnostics import require_valid_teds_for_release, validate_teds_revision_if_present
 from bs4 import BeautifulSoup
 
 
@@ -44,6 +44,18 @@ def check(archive,source):
         privacy_by_path={row['path']:row for row in privacy['files']}
         rows=[json.loads(line) for line in data('results.jsonl').splitlines()]
         require_valid_teds_for_release(rows)
+        revision = validate_teds_revision_if_present(source, rows)
+        if revision is not None:
+            for name, label in (('index.html', '本地修正版'), ('en/index.html', 'locally corrected')):
+                if name not in manifest['files'] or label not in BeautifulSoup(data(name), 'html.parser').get_text(' ', strip=True):
+                    raise ValueError('Published corrected scores lack a localized correction label: ' + name)
+            bound_files = ['teds-correction.json', 'teds-correction-review.json', 'original-results.jsonl']
+            bound_files += ['correction-source/' + name for name in revision[0]['source_code_sha256']]
+            for name in bound_files:
+                if name not in manifest['files']:
+                    raise ValueError('Published scoring correction evidence missing: ' + name)
+                if data(name) != (source / name).read_bytes() and name not in privacy_by_path:
+                    raise ValueError('Undisclosed scoring correction evidence projection: ' + name)
         projected_scored=0
         for row in rows:
             raw=data(row['artifact_path'])

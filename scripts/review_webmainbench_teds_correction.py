@@ -10,6 +10,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness.web_fetch.scoring_regressions import valid_correction_provenance
+from harness.web_fetch.safety import contained_path
 from harness.web_fetch.webmainbench_diagnostics import require_valid_teds_for_release
 
 
@@ -27,7 +28,7 @@ def review(source, corrected):
         if digest(path) != receipt[field]:
             raise ValueError('Correction hash mismatch: ' + field)
     for relative, expected in receipt['source_code_sha256'].items():
-        if digest(corrected / 'correction-source' / relative) != expected:
+        if digest(contained_path(corrected / 'correction-source', relative)) != expected:
             raise ValueError('Correction implementation snapshot changed: ' + relative)
     if digest(corrected / 'original-results.jsonl') != receipt['input_results_sha256']:
         raise ValueError('Original official records were not preserved byte-for-byte')
@@ -50,7 +51,7 @@ def review(source, corrected):
         for metric in ('text_edit', 'code_edit', 'formula_edit', 'table_edit'):
             if new['metrics'].get(metric) != old['metrics'].get(metric):
                 raise ValueError('Changed unrelated component: ' + metric)
-        if digest(corrected / new['artifact_path']) != new['output_sha256']:
+        if digest(contained_path(corrected, new['artifact_path'])) != new['output_sha256']:
             raise ValueError('Changed raw output bytes')
         if not old['ok']:
             if new['metrics']:

@@ -11,6 +11,7 @@ from .reference_lifecycle import require_verified_reference_checks
 from .reliability import assess_reliability
 from .storage import require_selection_history,data_home
 from .scoring import SCORING_SOURCE_SHA256
+from .webmainbench_diagnostics import validate_teds_revision_if_present
 from .artifacts import (
     record_public_call_log_bindings, verify_record_private_artifacts,
     verify_public_call_log, verify_record_public_call_logs,
@@ -336,6 +337,7 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
     """Build the current public-benchmark report without legacy task predicates."""
     dataset = json.loads(contained_path(source, 'dataset.json').read_text())
     records = [json.loads(line) for line in contained_path(source, 'results.jsonl').read_text().splitlines() if line.strip()]
+    teds_revision = validate_teds_revision_if_present(source, records)
     summaries = json.loads(contained_path(source, 'score-summaries.json').read_text())
     manifests = json.loads(contained_path(source, 'execution.json').read_text())['batches']
     review_path = source / 'result-review.json'
@@ -389,6 +391,13 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
         shutil.copy2(corrections_path, staging / 'webmainbench-corrections.json')
         if fixture_correction is not None:
             shutil.copy2(fixture_correction_path, staging / 'fixture-correction.json')
+        if teds_revision is not None:
+            for name in ('teds-correction.json', 'teds-correction-review.json', 'original-results.jsonl'):
+                shutil.copy2(contained_path(source, name), staging / name)
+            for name in teds_revision[0]['source_code_sha256']:
+                target = contained_path(staging / 'correction-source', name)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(contained_path(source / 'correction-source', name), target)
         for row in records:
             artifact = contained_path(staging, row['artifact_path'])
             if hashlib.sha256(artifact.read_bytes()).hexdigest() != row['output_sha256']:
