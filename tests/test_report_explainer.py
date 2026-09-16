@@ -84,6 +84,10 @@ def _is_general_report_evidence():
     path = EVIDENCE / 'results.jsonl'
     if not path.is_file():
         return False
+    profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
+    dataset = json.loads((EVIDENCE / 'dataset.json').read_text())
+    if profile.get('dataset_id') != dataset.get('id'):
+        return False
     providers = {json.loads(line)['provider'] for line in path.read_text().splitlines() if line.strip()}
     return 'cowagent-built-in' in providers and 'moli-webfetch' in providers
 

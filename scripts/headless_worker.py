@@ -2,6 +2,7 @@
 import base64
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -72,10 +73,16 @@ def fetch(request):
                 output_mode,
                 request.get('wait_until'),
                 plan,
+                allow_private_network=bool(request.get('allow_private_network')),
+                ca_cert=request.get('ca_cert'),
             )
-            result = subprocess.run(command, capture_output=True, timeout=route_timeout)
+            environment = None
+            if engine == 'obscura' and request.get('ca_cert'):
+                environment = {**os.environ, 'SSL_CERT_FILE': str(request['ca_cert'])}
+            result = subprocess.run(command, capture_output=True, timeout=route_timeout,
+                                    **({'env': environment} if environment else {}))
             meta.update(browser_exit_code=result.returncode,
-                        browser_stderr=result.stderr.decode('utf-8', 'replace')[:4096])
+                        browser_stderr=result.stderr.decode('utf-8', 'replace'))
             if result.returncode:
                 return dict(ok=False, content='', html='', error_type='browser_exit',
                             error_message=meta['browser_stderr'] or str(result.returncode), metadata=meta)
@@ -126,7 +133,11 @@ def fetch(request):
                         args=request.get('browser_args') or [], timeout=timeout*1000)
                 try:
                     meta['browser_version'] = browser.version
-                    context = browser.new_context()
+                    # The benchmark fixture has a per-run CA, not a system-trusted
+                    # certificate. Only isolated loopback requests may bypass the
+                    # browser's public trust store.
+                    fixture_https = bool(request.get('ca_cert')) and request.get('network_policy') == 'loopback_only'
+                    context = browser.new_context(ignore_https_errors=fixture_https)
                     page = context.new_page()
                     response = page.goto(
                         request['url'],

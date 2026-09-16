@@ -10,10 +10,19 @@ import tempfile
 import unittest
 import zipfile
 
+from bs4 import BeautifulSoup
+
 from harness.web_fetch.publication_privacy import project_file, publication_risk
+from scripts.check_publication_bundle import scored_output_hash
 
 
 class PublicationPrivacyTests(unittest.TestCase):
+    def test_scored_bundle_requires_an_output_hash(self):
+        self.assertEqual(scored_output_hash({'output_sha256': 'hash'}), 'hash')
+        self.assertEqual(scored_output_hash({'metrics': {'content_sha256': 'fallback'}}), 'fallback')
+        with self.assertRaisesRegex(ValueError, 'missing scored output hash'):
+            scored_output_hash({'artifact_path': 'artifacts/case.md'})
+
     def test_loader_localizes_async_status_and_accessibility_copy(self):
         source=(Path(__file__).resolve().parents[1]/'scripts/package_artifact_hub.py').read_text()
         self.assertIn("function tr(zh,en)",source)
@@ -98,13 +107,18 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / 'sources/case').mkdir(parents=True)
             (source / 'guide').mkdir(parents=True)
             (source / 'attempts').mkdir(parents=True)
+            (source / 'datasets').mkdir(parents=True)
             (source / 'references').mkdir(parents=True)
             (source / 'artifacts/browser/case').mkdir(parents=True)
             (source / 'call-logs/browser/case').mkdir(parents=True)
             (source / 'assets/style.css').write_text('body {color:black}')
-            (source / 'assets/report.js').write_text('')
+            (source / 'assets/report.js').write_text(
+                "window.addEventListener('report-ready',initReport);\n"
+                "window.addEventListener('DOMContentLoaded',initReport);\n"
+            )
             (source / '.generated-report').write_text('local marker')
             (source / 'reliability.json').write_text('{"complete":true}')
+            (source / 'result-review.json').write_text('{"status":"passed","failures":[]}')
             call_logs=[b'{"event":"failed"}\n',b'{"event":"complete"}\n']
             call_log_paths=['call-logs/browser/case/run-001-physical-001.json',
                             'call-logs/browser/case/run-001-physical-002.json']
@@ -127,6 +141,9 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / 'results.jsonl').write_text(results)
             (source / 'references/case.txt').write_text('complete reference')
             (source / 'references/file-case.txt').write_text('file acceptance rule')
+            (source / 'references/md-case.md').write_text('markdown ground truth')
+            unusual_case = r'backslash\1'
+            (source / 'references' / f'{unusual_case}.txt').write_text('literal backslash reference')
             (source / 'artifacts/browser/case/run-001.txt').write_text('actual output')
             (source / 'artifacts/browser/file-case').mkdir(parents=True)
             (source / 'artifacts/browser/file-case/run-001.txt').write_text('')
@@ -142,6 +159,12 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / 'attempts/browser__file-case__r001.html').write_text(
                 '<html><body><h2>目标文件与实际返回</h2>'
                 '<pre data-kind="metadata">{}</pre></body></html>')
+            (source / 'datasets/md-case.html').write_text(
+                '<html><body><h2>Source metadata</h2><pre>{"level":"hard"}</pre>'
+                '<h2>Official human ground truth</h2><pre>markdown ground truth</pre></body></html>')
+            (source / 'datasets' / f'{unusual_case}.html').write_text(
+                '<html><body><h2>Official human ground truth</h2>'
+                '<pre>literal backslash reference</pre></body></html>')
             (source / 'index.html').write_text('<!doctype html><html><head><title>Test</title></head><body><a href="sources/case/source.html.txt">HTML</a></body></html>')
             (source / 'guide/article.html').write_text('<!doctype html><html><body>Article</body></html>')
             key = b'AIzaSy' + b'x' * 33
@@ -155,9 +178,24 @@ class PublicationPrivacyTests(unittest.TestCase):
             self.assertEqual(raw_path.read_bytes(), raw)
             with zipfile.ZipFile(root / 'publish/webfetch-sites.zip') as archive:
                 manifest = json.loads(archive.read('manifest.json'))
+                shell = BeautifulSoup(archive.read('index.html'), 'html.parser')
+                self.assertEqual(
+                    [node.get('src') or node.get('href')
+                     for node in shell.select('script[src],link[rel="stylesheet"][href]')],
+                    ['style.css', 'report.js', 'loader.js'],
+                )
                 self.assertEqual(manifest['architecture']['kind'],
                                  'single_html_shell_with_lazy_virtual_routes')
-                self.assertEqual(manifest['architecture']['logical_routes'], 4)
+                self.assertEqual(manifest['architecture']['logical_routes'], 6)
+                self.assertEqual(
+                    archive.read('report.js').decode().count(
+                        "window.addEventListener('report-ready',initReport);"
+                    ), 1,
+                )
+                self.assertNotIn(
+                    "window.addEventListener('DOMContentLoaded',initReport);",
+                    archive.read('report.js').decode(),
+                )
                 self.assertGreaterEqual(manifest['architecture']['content_packs'], 1)
                 def unpack(name):
                     output = bytearray()
@@ -185,7 +223,13 @@ class PublicationPrivacyTests(unittest.TestCase):
                     self.assertEqual(attempt.count(f'data-file="{call_log_path}"'.encode()), 1)
                 self.assertIn(b'derived body region', attempt)
                 self.assertNotIn(b'>actual output</pre>', attempt)
-                self.assertNotIn(b'private_artifacts/secret.bin', attempt)
+                dataset_page = unpack('datasets/md-case.html')
+                self.assertIn(b'<pre>{"level":"hard"}</pre>', dataset_page)
+                self.assertIn(b'data-file="references/md-case.md"', dataset_page)
+                self.assertNotIn(b'>markdown ground truth</pre>', dataset_page)
+                unusual_page = unpack(f'datasets/{unusual_case}.html')
+                self.assertIn(f'data-file="references/{unusual_case}.txt"'.encode(), unusual_page)
+                self.assertNotIn(b'>literal backslash reference</pre>', unusual_page)
                 self.assertNotIn('.generated-report', manifest['files'])
 
 

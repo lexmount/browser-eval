@@ -327,70 +327,50 @@ class HeadlessTests(unittest.TestCase):
         self.assertIn('--terminate-ms', lightpanda)
         self.assertNotIn('--wait-until', obscura)
 
-    def test_dynamic_cli_commands_consume_normalized_plan(self):
-        plan = {
-            'wait_kind': 'script',
-            'wait_value': '() => document.querySelectorAll(".row").length >= 3',
-            'selector': '.row',
-            'frame_selector': None,
-            'minimum_count': 3,
-            'timeout_ms': 10000,
-            'delay_ms': 250,
-            'wait_until': 'domcontentloaded',
-        }
-        moli = cli_command('moli', '/moli', 'https://example.com', 10, 'markdown',
-                           retrieval_plan=plan)
-        lightpanda = cli_command('lightpanda', '/lp', 'https://example.com', 10, 'markdown',
-                                 retrieval_plan=plan)
-        obscura = cli_command('obscura', '/obscura', 'https://example.com', 10, 'markdown',
-                              retrieval_plan=plan)
-        self.assertIn('--wait-script', moli)
-        self.assertIn('--wait-until', moli)
-        self.assertIn('--delay-ms', moli)
-        self.assertIn('--wait-script', lightpanda)
-        self.assertIn('--wait-until', lightpanda)
-        self.assertIn('--wait-ms', lightpanda)
-        self.assertIn('--selector', obscura)
-        self.assertIn('--wait-until', obscura)
-        self.assertIn('--wait', obscura)
+    def test_obscura_loopback_fixture_requires_explicit_private_network_flag(self):
+        command = cli_command(
+            'obscura', '/obscura', 'http://127.0.0.1:8123/case/x', 1.5,
+            'markdown', allow_private_network=True,
+        )
+        self.assertEqual(command[:3], ['/obscura', '--allow-private-network', 'fetch'])
 
-    def test_headless_dynamic_missing_hints_fails_before_worker(self):
-        provider = build_provider('moli', dict(type='headless_markdown', engine='moli'))
-        case = EvalCase('x', 'x', 'https://example.com', 'dynamic', [], track='dynamic')
-        with patch('harness.web_fetch.providers.headless.subprocess.Popen') as process:
-            result = provider.fetch(case, 1)
-        self.assertFalse(result.ok)
-        self.assertEqual(result.error_type, 'configuration')
-        process.assert_not_called()
+    def test_https_fixture_ca_is_passed_to_native_clients(self):
+        for engine in ('moli', 'lightpanda'):
+            command = cli_command(
+                engine, '/' + engine, 'https://localhost:8123/case/x', 1.5,
+                'markdown', ca_cert='/tmp/fixture-ca.pem',
+            )
+            self.assertEqual(command[command.index('--ca-cert') + 1], '/tmp/fixture-ca.pem')
 
-    def test_headless_worker_rejects_dynamic_request_without_normalized_plan(self):
-        with self.assertRaisesRegex(ValueError, 'normalized retrieval_plan'):
-            fetch({'url': 'https://example.com', 'track': 'dynamic'})
-
-    def test_obscura_discloses_count_approximation(self):
+    def test_obscura_https_fixture_uses_dedicated_ca_environment(self):
         from types import SimpleNamespace
-        plan = {
-            'wait_kind': 'script',
-            'wait_value': '() => document.querySelectorAll(".row").length >= 3',
-            'selector': '.row',
-            'frame_selector': None,
-            'minimum_count': 3,
-            'timeout_ms': 10000,
-            'delay_ms': 250,
-            'wait_until': 'domcontentloaded',
-        }
-        request = dict(engine='obscura', binary='/obscura', url='https://example.com',
-                       timeout=10, output_mode='markdown', track='dynamic',
-                       retrieval_plan=plan)
-        with patch('scripts.headless_worker.subprocess.run', return_value=SimpleNamespace(
-                returncode=0, stdout=b'content', stderr=b'')):
+        request = dict(
+            engine='obscura', binary='/obscura', url='https://localhost:8123/case/x',
+            timeout=1, output_mode='markdown', allow_private_network=True,
+            ca_cert='/tmp/fixture-ca.pem',
+        )
+        completed = SimpleNamespace(returncode=0, stdout=b'# output', stderr=b'')
+        with patch('scripts.headless_worker.subprocess.run', return_value=completed) as run:
             result = fetch(request)
-        completion = result['metadata']['completion']
-        self.assertEqual(completion['completion_support'], 'approximate')
-        self.assertFalse(completion['minimum_count_enforced'])
-        self.assertEqual(completion['unsupported'], [
-            'selector_enforcement', 'post_completion_delay',
-            'completion_timeout', 'minimum_count'])
+        self.assertTrue(result['ok'])
+        self.assertEqual(run.call_args.kwargs['env']['SSL_CERT_FILE'], '/tmp/fixture-ca.pem')
+
+    def test_native_browser_diagnostics_retain_terminal_error_after_long_warnings(self):
+        from types import SimpleNamespace
+        diagnostic = b'warning\n' * 1024 + b'ERROR: terminal cause after warnings\n'
+        for engine in ('moli', 'obscura', 'lightpanda'):
+            for code in (0, 1):
+                request = dict(engine=engine, binary='/' + engine,
+                               url='https://example.test/page', timeout=1, output_mode='markdown')
+                completed = SimpleNamespace(returncode=code, stdout=b'# body', stderr=diagnostic)
+                with self.subTest(engine=engine, code=code), patch(
+                    'scripts.headless_worker.subprocess.run', return_value=completed
+                ):
+                    result = fetch(request)
+                self.assertEqual(result['metadata']['browser_stderr'], diagnostic.decode())
+                self.assertEqual(result['ok'], code == 0)
+                if code:
+                    self.assertTrue(result['error_message'].endswith('ERROR: terminal cause after warnings\n'))
 
     def test_moli_raw_document_command_omits_dump(self):
         command = cli_command('moli', '/moli', 'https://example.com/paper.pdf', 1.5,

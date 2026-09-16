@@ -6,6 +6,7 @@ import math
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 from pathlib import PurePosixPath
 from urllib.parse import urlencode, urljoin, urlsplit
 
@@ -293,6 +294,28 @@ class CloudflareMarkdownProvider(Provider):
         return [name for name in ("api_token", "account_id") if not self.config.get(name)]
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+        return self._fetch_payload(
+            case,
+            timeout,
+            {"url": case.url, "gotoOptions": {"waitUntil": self.config.get("wait_until", "networkidle2")}},
+        )
+
+    def fetch_html(self, case: EvalCase, html: str, timeout: float) -> ProviderResult:
+        """Run the product's documented inline-HTML route for frozen benchmarks."""
+        return self._fetch_payload(
+            case,
+            timeout,
+            {
+                "html": html,
+                "rejectResourceTypes": [
+                    "document", "stylesheet", "image", "media", "font", "script", "texttrack",
+                    "xhr", "fetch", "prefetch", "eventsource", "websocket", "manifest",
+                    "signedexchange", "ping", "cspviolationreport", "preflight", "other",
+                ],
+            },
+        )
+
+    def _fetch_payload(self, case: EvalCase, timeout: float, request_body: dict) -> ProviderResult:
         account_id = str(self.config.get("account_id", ""))
         http_timeout = inner_timeout_budget(timeout)
         if case.task_kind == "resource" and case.track in {"image", "video"}:
@@ -312,17 +335,16 @@ class CloudflareMarkdownProvider(Provider):
         endpoint = (
             f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/markdown"
         )
-        request_body = {
-            "url": case.url,
-            "gotoOptions": {
+        request_body = dict(request_body)
+        if "url" in request_body:
+            request_body["gotoOptions"] = {
                 "waitUntil": self.config.get("wait_until", "networkidle2"),
                 "timeout": service_timeout_ms,
-            },
-            "actionTimeout": service_timeout_ms,
-        }
+            }
+        request_body["actionTimeout"] = service_timeout_ms
         route = "browser_rendering_markdown"
         wait_metadata = None
-        if case.track == "dynamic":
+        if case.track == "dynamic" and "url" in request_body:
             try:
                 if not math.isfinite(timeout) or timeout <= 0:
                     raise ValueError
@@ -446,6 +468,9 @@ class CloudflareMarkdownProvider(Provider):
                 "browser": self.config.get("browser"),
                 "service_timeout_ms": service_timeout_ms,
                 "client_http_timeout_ms": int(http_timeout * 1000),
+                "input_mode": "inline_html" if "html" in request_body else "url",
+                "adapter_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                **({"raw_response": response.text()} if case.task_kind == "file" else {}),
                 "upstream_status": upstream_status,
                 "empty_content": envelope_success and not content,
                 "content_type": origin_headers.get("content-type"),

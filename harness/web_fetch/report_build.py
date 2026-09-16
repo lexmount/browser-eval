@@ -4,13 +4,14 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
-from .report import generate, succeeded, measured, failure_category, TRACKS
+from .report import generate, generate_public_benchmark_research, generate_webmainbench, succeeded, measured, failure_category, TRACKS
 from .failure_diagnosis import diagnose
 from .safety import contained_path, validate_report_ids
 from .reference_lifecycle import require_verified_reference_checks
 from .reliability import assess_reliability
-from .storage import require_selection_history
+from .storage import require_selection_history,data_home
 from .scoring import SCORING_SOURCE_SHA256
+from .webmainbench_diagnostics import validate_teds_revision_if_present
 from .artifacts import (
     record_public_call_log_bindings, verify_record_private_artifacts,
     verify_public_call_log, verify_record_public_call_logs,
@@ -34,6 +35,48 @@ def copy_methodology_assets(output, assets=None):
             shutil.copy2(source, target)
 
 
+def build_public_benchmark_research(source: Path, output: Path) -> Path:
+    """Build the research-only companion without measured evidence."""
+    source, output = source.resolve(), output.resolve()
+    marker = '.generated-report'
+    if output.exists() and not (output / marker).is_file():
+        raise ValueError(f'Refusing to replace an unmarked directory: {output}')
+    research = json.loads(source.read_text(encoding='utf-8'))
+    if research.get('schema_version') != 1:
+        raise ValueError('Unsupported public benchmark research schema')
+    sample_path = contained_path(source.parent.parent, research['sampling_contract']['manifest'])
+    sample = None
+    if sample_path.is_file():
+        sample = json.loads(sample_path.read_text(encoding='utf-8'))
+        research['frozen_sample'] = {
+            'parent': sample['parent'],
+            'sampling': sample['sampling'],
+            'quality_audit': sample['quality_audit'],
+            'parent_distribution': sample['parent_distribution'],
+            'sample_distribution': sample['sample_distribution'],
+            'case_count': len(sample['cases']),
+        }
+    output.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix='.research-report-build-', dir=output.parent))
+    try:
+        generate_public_benchmark_research(staging, research)
+        if sample is not None:
+            shutil.copy2(sample_path, staging / 'sample-manifest.json')
+        (staging / marker).write_text('generated\n', encoding='utf-8')
+        backup = output.with_name(output.name + '.previous')
+        if backup.exists():
+            shutil.rmtree(backup)
+        if output.exists():
+            output.rename(backup)
+        staging.rename(output)
+        if backup.exists():
+            shutil.rmtree(backup)
+    except Exception:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+    return output / 'index.html'
+
+
 def build_report(source: Path, output: Path) -> Path:
     source, output = source.resolve(), output.resolve()
     if source == output or output in source.parents:
@@ -41,6 +84,9 @@ def build_report(source: Path, output: Path) -> Path:
     marker = '.generated-report'
     if output.exists() and not (output/marker).is_file():
         raise ValueError(f'Refusing to replace an unmarked directory: {output}')
+    dataset_probe = json.loads(contained_path(source, 'dataset.json').read_text())
+    if dataset_probe.get('id') == 'webmainbench-545-preselected-200-five-browsers':
+        return build_webmainbench_report(source, output)
     require_selection_history(source)
     dataset = json.loads(contained_path(source,'dataset.json').read_text())
     records = [json.loads(line) for line in contained_path(source,'results.jsonl').read_text().splitlines()]
@@ -267,3 +313,162 @@ def build_report(source: Path, output: Path) -> Path:
     finally:
         if staging.exists(): shutil.rmtree(staging)
     return output/'index.html'
+
+
+def validate_webmainbench_correction(receipt: dict, dataset: dict) -> None:
+    """Reject receipts outside the frozen case and participant scope."""
+    if not isinstance(receipt, dict):
+        raise ValueError('Invalid fixture correction receipt')
+    scope = receipt.get('providers')
+    effects = receipt.get('effects')
+    if (receipt.get('case_id') not in {case['id'] for case in dataset['cases']}
+            or not isinstance(scope, list) or not scope
+            or any(not isinstance(name, str) for name in scope)
+            or len(set(scope)) != len(scope)
+            or not set(scope).issubset(dataset['coverage_plan']['static_html'])
+            or not isinstance(effects, dict) or set(effects) != set(scope)):
+        raise ValueError('Fixture correction scope does not match the report matrix')
+    if any(receipt.get(key) != dataset[key] for key in
+           ('sample_manifest_sha256', 'source_dataset_sha256')):
+        raise ValueError('Fixture correction is not bound to the current report dataset')
+
+
+def validate_webmainbench_anomaly_review(receipt: dict, source: Path,
+                                         dataset: dict, records: list[dict]) -> None:
+    """Bind the compact anomaly review to this exact report matrix."""
+    if not isinstance(receipt, dict) or receipt.get('kind') != 'webmainbench_anomaly_root_cause_review':
+        raise ValueError('Invalid WebMainBench anomaly review')
+    bindings = receipt.get('bindings', {})
+    expected_files = {
+        'dataset_json_sha256': 'dataset.json',
+        'results_jsonl_sha256': 'results.jsonl',
+        'score_summaries_json_sha256': 'score-summaries.json',
+    }
+    for binding, filename in expected_files.items():
+        actual = hashlib.sha256(contained_path(source, filename).read_bytes()).hexdigest()
+        if bindings.get(binding) != actual:
+            raise ValueError(f'WebMainBench anomaly review {binding} mismatch')
+    if (bindings.get('source_dataset_sha256') != dataset.get('source_dataset_sha256')
+            or bindings.get('sample_manifest_sha256') != dataset.get('sample_manifest_sha256')):
+        raise ValueError('WebMainBench anomaly review dataset binding mismatch')
+    scope = receipt.get('scope', {})
+    triggered = receipt.get('triggered_attempt_ids')
+    attempts = {row['attempt_id'] for row in records}
+    providers = {row['provider'] for row in records}
+    cases = receipt.get('cases')
+    if (scope.get('logical_results') != len(records)
+            or not isinstance(triggered, list)
+            or len(triggered) != scope.get('signal_triggered_results')
+            or len(set(triggered)) != len(triggered)
+            or not set(triggered).issubset(attempts)
+            or not isinstance(cases, list)
+            or len(cases) != scope.get('distinct_cases')
+            or {row.get('case_id') for row in cases} != {
+                attempt.split('__', 2)[1] for attempt in triggered
+            }
+            or any(not isinstance(row.get('affected_providers'), list)
+                   or not row['affected_providers']
+                   or len(set(row['affected_providers'])) != len(row['affected_providers'])
+                   or not set(row['affected_providers']).issubset(providers)
+                   or any(not isinstance(row.get(key), str) or not row[key].strip()
+                          for key in ('classification', 'observed_zh', 'observed_en',
+                                      'cause_zh', 'cause_en'))
+                   for row in cases)
+            or scope.get('unresolved_triggered_results') != 0):
+        raise ValueError('WebMainBench anomaly review scope mismatch')
+    disposition = receipt.get('disposition', {})
+    if any(disposition.get(key) is not False for key in
+           ('score_bearing_results_changed', 'provider_calls_replaced', 'references_changed')):
+        raise ValueError('Diagnostic review must not mutate score-bearing evidence')
+
+
+def build_webmainbench_report(source: Path, output: Path) -> Path:
+    """Build the current public-benchmark report without legacy task predicates."""
+    dataset = json.loads(contained_path(source, 'dataset.json').read_text())
+    records = [json.loads(line) for line in contained_path(source, 'results.jsonl').read_text().splitlines() if line.strip()]
+    teds_revision = validate_teds_revision_if_present(source, records)
+    summaries = json.loads(contained_path(source, 'score-summaries.json').read_text())
+    manifests = json.loads(contained_path(source, 'execution.json').read_text())['batches']
+    review_path = source / 'result-review.json'
+    review = json.loads(review_path.read_text()) if review_path.is_file() else None
+    research_path = Path(__file__).resolve().parents[2] / 'research/public-web-benchmarks.json'
+    research = json.loads(research_path.read_text(encoding='utf-8'))
+    adoption_path = Path(__file__).resolve().parents[2] / 'research/provider-adoption.json'
+    adoption = json.loads(adoption_path.read_text(encoding='utf-8'))
+    corrections_path = Path(__file__).resolve().parents[2] / 'research/webmainbench-corrections.json'
+    corrections = json.loads(corrections_path.read_text(encoding='utf-8'))
+    anomaly_review_path = Path(__file__).resolve().parents[2] / 'research/webmainbench-anomaly-review.json'
+    anomaly_review = json.loads(anomaly_review_path.read_text(encoding='utf-8'))
+    fixture_correction_path = source / 'fixture-correction.json'
+    fixture_correction = json.loads(fixture_correction_path.read_text(encoding='utf-8')) if fixture_correction_path.is_file() else None
+    providers = dataset['coverage_plan']['static_html']
+    case_ids = {case['id'] for case in dataset['cases']}
+    if fixture_correction is not None:
+        validate_webmainbench_correction(fixture_correction, dataset)
+    validate_webmainbench_anomaly_review(anomaly_review, source, dataset, records)
+    if len(case_ids) != 200 or len(records) != 200 * 5:
+        raise ValueError('WebMainBench report matrix is incomplete')
+    if {(row['provider'], row['case_id']) for row in records} != {
+        (provider, case_id) for provider in providers for case_id in case_ids
+    }:
+        raise ValueError('WebMainBench provider/case matrix mismatch')
+    parent = data_home() / 'public-benchmarks/webmainbench-545/WebMainBench_545.jsonl'
+    if not parent.is_file() or hashlib.sha256(parent.read_bytes()).hexdigest() != dataset['source_dataset_sha256']:
+        raise ValueError('Frozen WebMainBench parent dataset is unavailable or differs from the bound source hash')
+    parent_rows = [json.loads(line) for line in parent.read_text(encoding='utf-8').splitlines() if line.strip()]
+    source_html = {row['track_id']: row['html'] for row in parent_rows if row['track_id'] in case_ids}
+    if set(source_html) != case_ids:
+        raise ValueError('Frozen source HTML does not cover the current 200-page sample')
+    for case in dataset['cases']:
+        if hashlib.sha256(source_html[case['id']].encode('utf-8')).hexdigest() != case['input_html_sha256']:
+            raise ValueError('Frozen source HTML hash mismatch: ' + case['id'])
+    output.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix='.webmainbench-report-build-', dir=output.parent))
+    try:
+        shutil.copytree(source / 'artifacts', staging / 'artifacts')
+        shutil.copytree(source / 'references', staging / 'references')
+        (staging / 'sources').mkdir()
+        for case_id, raw_html in source_html.items():
+            (staging / 'sources' / f'{case_id}.html.txt').write_text(raw_html, encoding='utf-8')
+        shutil.copytree(source / 'fixture-certificates', staging / 'fixture-certificates')
+        shutil.copy2(source / 'sample-manifest.json', staging / 'sample-manifest.json')
+        for name in ('dataset.json', 'results.jsonl', 'score-summaries.json', 'execution.json',
+                     'physical-attempts.jsonl'):
+            shutil.copy2(source / name, staging / name)
+        if review_path.is_file():
+            shutil.copy2(review_path, staging / 'result-review.json')
+        shutil.copy2(research_path, staging / 'public-benchmark-research.json')
+        (staging / 'adoption').mkdir(exist_ok=True)
+        shutil.copy2(adoption_path, staging / 'adoption' / 'evidence.json')
+        shutil.copy2(corrections_path, staging / 'webmainbench-corrections.json')
+        shutil.copy2(anomaly_review_path, staging / 'webmainbench-anomaly-review.json')
+        if fixture_correction is not None:
+            shutil.copy2(fixture_correction_path, staging / 'fixture-correction.json')
+        if teds_revision is not None:
+            for name in ('teds-correction.json', 'teds-correction-review.json', 'original-results.jsonl'):
+                shutil.copy2(contained_path(source, name), staging / name)
+            for name in teds_revision[0]['source_code_sha256']:
+                target = contained_path(staging / 'correction-source', name)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(contained_path(source / 'correction-source', name), target)
+        for row in records:
+            artifact = contained_path(staging, row['artifact_path'])
+            if hashlib.sha256(artifact.read_bytes()).hexdigest() != row['output_sha256']:
+                raise ValueError('WebMainBench output integrity failure: ' + row['attempt_id'])
+        generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption, fixture_correction, teds_revision, anomaly_review)
+        (staging / '.generated-report').write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
+        if output.exists():
+            backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'
+            output.rename(backup)
+            try:
+                staging.rename(output)
+            except BaseException:
+                backup.rename(output)
+                raise
+            shutil.rmtree(backup.parent)
+        else:
+            staging.rename(output)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
+    return output / 'index.html'

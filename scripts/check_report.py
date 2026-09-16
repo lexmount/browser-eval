@@ -69,6 +69,11 @@ class PageShape(HTMLParser):
 
 root=Path(sys.argv[1]).resolve();d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
 repository=Path(__file__).resolve().parents[1]
+if d.get('comparison',{}).get('kind')=='webmainbench_frozen_html_to_markdown':
+ from scripts.check_webmainbench_report import check_report
+ check_report(root,d,rs)
+ print('PASS: WebMainBench preselected-200 matrix, sample, scores, retries, bilingual routes and reference assets verified')
+ raise SystemExit(0)
 names={r['provider'] for r in rs}
 inventory=json.loads((Path(__file__).resolve().parents[1]/'configs/evaluation-inventory.json').read_text())
 if d.get('comparison',{}).get('kind') in {'headless_html','headless_markdown'}:

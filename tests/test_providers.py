@@ -1306,6 +1306,22 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(result.error_type, "http_status")
         self.assertEqual(result.metadata["upstream_status"], 404)
 
+    @patch("harness.web_fetch.providers.cloudflare.request")
+    def test_cloudflare_frozen_html_disables_dynamic_resources(self, mock_request) -> None:
+        mock_request.return_value = HttpResponse(
+            200, "u", {}, b'{"success":true,"result":"# Example","meta":{"status":200}}'
+        )
+        provider = CloudflareMarkdownProvider("cf", {"api_token": "x", "account_id": "a"})
+        result = provider.fetch_html(self.case, "<h1>Example</h1>", 1)
+        self.assertTrue(result.ok)
+        payload = mock_request.call_args.kwargs["json_body"]
+        self.assertEqual(payload["html"], "<h1>Example</h1>")
+        self.assertNotIn("setJavaScriptEnabled", payload)
+        self.assertIn("document", payload["rejectResourceTypes"])
+        self.assertIn("script", payload["rejectResourceTypes"])
+        self.assertNotIn("url", payload)
+        self.assertEqual(result.metadata["input_mode"], "inline_html")
+
     def test_provider_exposes_plan_rate_interval(self) -> None:
         provider = CloudflareMarkdownProvider(
             "cf", {"api_token": "x", "account_id": "a", "min_interval_seconds": 10.5}

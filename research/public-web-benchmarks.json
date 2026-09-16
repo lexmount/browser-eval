@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "report_id": "public-web-fetch-benchmark-research",
+  "title": {"zh": "Web Fetch 公开评测集选型与执行合同", "en": "Public Web Fetch Benchmark Selection and Execution Contract"},
+  "status": "research_only",
+  "verified_at": "2026-09-14",
+  "measured_results": 0,
+  "decision": {
+    "primary": ["webmainbench-545"],
+    "sample_id": "public-webmainbench-200-v1",
+    "sample_size": 200,
+    "separate_leaderboards": true,
+    "summary_zh": "本轮采用 WebMainBench-545 中预先选定的 200 页。它公开了冻结 HTML、人工校准的 Markdown 答案和可运行的评分器；文本、代码、公式和表格可以分别计分。论文与其他开源项目的使用也有来源可核对。",
+    "summary_en": "This run uses 200 pages preselected from WebMainBench-545. It publishes frozen HTML, human-calibrated Markdown references and a runnable scorer, with separate scores for text, code, formulas and tables. The paper and use in other open-source projects have checkable sources.",
+    "qualification_zh": "这里只测预先选定的 200 页，不是官方 545 页工具链总榜，也不是论文的 7,809 页主榜。每页名单和选取方法见上方。",
+    "qualification_en": "This run measures only the preselected 200 pages, not the official 545-page toolkit leaderboard or the paper's 7,809-page main leaderboard. The page list and selection method are given above."
+  },
+  "selection_rules": [
+    {"criterion": "Evidence of use", "criterion_zh": "采用证据", "rule": "Prefer reproducible runs and named integrations over mentions, stars or search counts.", "rule_zh": "真实运行和具名集成高于提及、Star 或搜索条数。"},
+    {"criterion": "Maintenance", "criterion_zh": "维护状态", "rule": "Reject archived or irreproducible candidates; record the latest push and release rather than assuming age means abandonment.", "rule_zh": "排除已归档或不可复现候选；记录最新提交和发布，不能仅凭年份判断废弃。"},
+    {"criterion": "Ground truth and scorer", "criterion_zh": "标准答案与评分器", "rule": "Prefer human-calibrated structured answers and deterministic scoring; disclose scorer blind spots and optional model dependencies.", "rule_zh": "优先人工校准、保留结构的答案和确定性评分；披露评分盲点与可选模型依赖。"},
+    {"criterion": "Fit to this report", "criterion_zh": "与本报告的适配", "rule": "The public suite must add extraction fidelity without replacing the existing live-URL access, resource and latency suite.", "rule_zh": "公开集应补充抽取保真度，不能替代现有真实 URL 访问、资源与时延评测。"}
+  ],
+  "direct_benchmarks": [
+    {
+      "id": "webmainbench-545", "name": "WebMainBench-545", "pages": 545, "license": "Apache-2.0", "fit": "selected",
+      "scope": "fine-grained Markdown fidelity from frozen HTML", "scope_zh": "从冻结 HTML 评估细粒度 Markdown 保真度",
+      "metric": "text, code, formula and table edit similarity plus table TEDS; overall is the arithmetic mean of five independently aggregated component means",
+      "metric_zh": "文本、代码、公式、表格编辑相似度及表格 TEDS；overall 是五个分别聚合后的分项均值的算术平均",
+      "aggregation": "official 545 toolkit over the complete declared subset; publish every component and valid denominator",
+      "aggregation_zh": "官方 545 工具链评估完整声明子集；公布每个分项及有效分母",
+      "disposition": "Selected for this run: published human references and five reproducible component metrics",
+      "disposition_zh": "本轮采用；公开人工答案和五项可重算指标",
+      "maturity": "KDD 2026 paper; repository updated 2026-06-13; v1.0.0 release; multiple independent integrations",
+      "maturity_zh": "KDD 2026 论文；仓库更新于 2026-06-13；v1.0.0 发布；多个独立项目集成",
+      "standard_answer": "manually calibrated groundtruth_content Markdown, plus full HTML, selected main HTML and canonical converted Markdown",
+      "standard_answer_zh": "人工校准 groundtruth_content Markdown，并保留完整 HTML、选中主 HTML 与规范化转换 Markdown",
+      "official_categories": ["language", "level", "table", "code", "equation"],
+      "declared_but_unavailable_categories": ["style (null in all 545 rows; README schema differs from the released data)"],
+      "users": ["Dripper / KDD 2026", "MinerU-HTML", "WebGraph", "Pulpie", "Clusy Crawler"],
+      "maintenance": {"created_at": "2025-07-28", "latest_push": "2026-06-13", "latest_release": "v1.0.0, 2025-10-24", "archived": false, "commit": "9d991bdc00c57b57521499494d96be85c31317ba"},
+      "adoption_snapshot": {"stars": 22, "forks": 12, "github_exact_code_hits": 199, "note": "Exact-code hits include first-party files and mentions; named integrations were inspected separately.", "note_zh": "精确代码搜索包含第一方文件和仅提及；具名集成另行实查。"},
+      "release_data_audit": {"rows": 545, "unique_track_ids": 545, "unique_urls": 545, "nonempty_groundtruth_content": 545, "null_language": 94, "null_style": 545, "empty_main_html": 445, "empty_convert_main_content": 200, "source_bytes": 109097918, "source_sha256": "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"},
+      "scorer_audit": ["The full-set paper metric is ROUGE-5 F1 after html2text and jieba.", "The 545 toolkit adds character edit similarity for text/code/formula/table and TEDS for table structure.", "Optional LLM splitting changes preprocessing and needs a frozen model, prompt and cache.", "Official overall excludes failed component calculations, so component denominators must be published.", "Released data differs from the README schema: style is null on 545/545 rows, language on 94/545, main_html is empty on 445/545 and convert_main_content on 200/545; groundtruth_content and html are non-empty on all 545."],
+      "scorer_audit_zh": ["全量论文指标是在 html2text 与 jieba 后计算 ROUGE-5 F1。", "545 工具链增加文本/代码/公式/表格字符编辑相似度和表格结构 TEDS。", "可选 LLM 切分会改变预处理，必须冻结模型、提示词和缓存。", "官方 overall 排除计算失败的分项，因此必须公布各分项分母。", "发布数据与 README 模式不一致：545/545 的 style 为空、94/545 的 language 为空、445/545 的 main_html 为空、200/545 的 convert_main_content 为空；但 545 例的 groundtruth_content 与 html 均非空。"],
+      "sources": ["https://github.com/opendatalab/WebMainBench", "https://huggingface.co/datasets/opendatalab/WebMainBench", "https://doi.org/10.1145/3770855.3817915", "https://github.com/opendatalab/MinerU-HTML", "https://github.com/BeastxD7/webgraph/tree/main/benchmark/webmainbench", "https://github.com/feyninc/pulpie/tree/main/eval", "https://github.com/clusy-io/clusy-crawler/tree/main/bench"]
+    },
+    {
+      "id": "webmainbench-full", "name": "WebMainBench v1.1 (full)", "pages": 7809, "domains": 5434, "languages": 46, "license": "Apache-2.0", "fit": "not_selected",
+      "scope": "main-content extraction from frozen HTML", "scope_zh": "从冻结 HTML 抽取主内容",
+      "metric": "ROUGE-5 F1 after html2text and jieba", "metric_zh": "经 html2text 与 jieba 后计算 ROUGE-5 F1",
+      "aggregation": "published overall and difficulty macro means", "aggregation_zh": "论文公布总体与难度宏平均",
+      "disposition": "NOT SELECTED — a useful future full regression, but 1.35 GB / 7,809 cases is excessive for the first run and its Markdown target is not manually calibrated per page",
+      "disposition_zh": "未选——适合后续全量回归，但首轮没必要承担 1.35 GB / 7,809 例成本，且逐页 Markdown 目标不是人工校准",
+      "maturity": "same KDD 2026 project and maintenance line as the 545 subset", "maturity_zh": "与 545 子集同属 KDD 2026 项目和维护线",
+      "users": ["Dripper", "MinerU-HTML"],
+      "sources": ["https://github.com/opendatalab/WebMainBench", "https://huggingface.co/datasets/opendatalab/WebMainBench", "https://doi.org/10.1145/3770855.3817915"]
+    },
+    {
+      "id": "wcxb", "name": "WCXB v1.0", "pages": 2008, "domains": 1613, "license": "CC-BY-4.0", "fit": "reserve",
+      "scope": "modern main-content extraction across seven page types", "scope_zh": "七种页面类型的现代网页主内容抽取",
+      "splits": [["development", 1497], ["test", 511]], "page_types": ["article", "service", "product", "collection", "forum", "listing", "documentation"],
+      "metric": "macro per-page bag-of-words precision, recall and F1; include/exclude hit rates; page-type slices",
+      "metric_zh": "逐页词袋精确率、召回率和 F1 的宏平均；应包含/应排除命中率；页面类型切片",
+      "aggregation": "official evaluate.py over a declared split; missing predictions become empty", "aggregation_zh": "官方 evaluate.py 评估声明 split；缺失预测按空输出处理",
+      "disposition": "RESERVE — borrow its page taxonomy and include/exclude snippets, but do not use it as the sole credibility anchor",
+      "disposition_zh": "保留——借鉴页面分类与应包含/应排除片段，但不作为唯一可信度锚点",
+      "maturity": "new single-author 2026 preprint; no commits after the v1.0 release batch as of 2026-09-14; early adoption",
+      "maturity_zh": "2026 年新单作者预印本；截至 2026-09-14，v1.0 发布批次后无新提交；已有早期采用",
+      "users": ["rs-trafilatura", "rs-trafilatura-python", "Pagemark", "Clusy Crawler", "WebGraph", "Hydrafetch"],
+      "maintenance": {"created_at": "2026-01-12", "latest_push": "2026-04-04", "latest_release": "v1.0, 2026-03-29", "archived": false, "commit": "c039d5ee9f5a3a984a0e167e63aacd04e76e78a9"},
+      "adoption_snapshot": {"stars": 11, "forks": 0, "github_exact_code_hits": 15, "hugging_face_downloads": 222, "hugging_face_likes": 2},
+      "repository_audit": {"development_ground_truth": 1497, "development_html": 1497, "test_ground_truth": 511, "test_html": 511, "empty_main_content": 27, "with_snippets_not_in_main_content": "57 / 8,711", "without_snippets_present_in_main_content": "41 / 7,534", "cross_split_track_id_collisions": 138, "published_test_result_rows": 5, "official_test_rows": 511, "observed_at": "2026-09-14"},
+      "limitations": ["The scorer ignores order and Markdown structure; reordered content can retain a perfect score.", "Twenty-seven ground truths have empty main_content; empty output receives a perfect score on them.", "Audit found 57 required snippets absent from main_content and 41 forbidden snippets present in it.", "README documents an --extractor option that evaluate.py does not implement.", "The only committed test result contains 5 of 511 rows and its nested format is not accepted by evaluate.py."],
+      "limitations_zh": ["评分器忽略顺序和 Markdown 结构，打乱内容仍可能满分。", "27 份标准答案的 main_content 为空，空输出可得满分。", "审计发现 57 个应包含片段不在正文中，41 个应排除片段反而在正文中。", "README 记录了 evaluate.py 实际未实现的 --extractor 参数。", "唯一提交的 test 结果只含 511 例中的 5 例，且其嵌套格式不能被 evaluate.py 读取。"],
+      "sources": ["https://github.com/Murrough-Foley/web-content-extraction-benchmark", "https://arxiv.org/abs/2605.21097", "https://doi.org/10.5281/zenodo.19316874", "https://github.com/Murrough-Foley/rs-trafilatura", "https://github.com/Hydrafetch/extraction-benchmark"]
+    },
+    {
+      "id": "wceb", "name": "Web Content Extraction Benchmark (WCEB)", "pages": 3985, "license": "Apache-2.0 repository; retain corpus provenance", "fit": "regression_only",
+      "scope": "main-content extraction from eight frozen legacy corpora", "scope_zh": "从八个冻结历史语料库抽取主内容",
+      "subsets": [["CETD", 700], ["CleanEval", 738], ["CleanPortalEval", 71], ["Dragnet", 1379], ["Google-Trends-2017", 180], ["L3S-GN1", 621], ["Readability", 115], ["Scrapinghub", 181]],
+      "metric": "ROUGE-LSum precision/recall/F1 and normalized token Levenshtein ratio", "metric_zh": "ROUGE-LSum 精确率/召回率/F1 及归一化 token Levenshtein 比率",
+      "aggregation": "official macro mean/median and micro aggregates by corpus and overall", "aggregation_zh": "官方宏平均/中位数和微聚合，按语料库及总体报告",
+      "disposition": "NOT SELECTED — strongest historical academic adoption, but older article-heavy text targets are less aligned with modern Markdown fidelity",
+      "disposition_zh": "未选——历史学术采用最强，但较旧、偏文章的纯文本目标不够贴合现代 Markdown 保真度",
+      "maturity": "SIGIR 2023; 11 OpenAlex citations observed 2026-09-14; repository updated 2025-12-16",
+      "maturity_zh": "SIGIR 2023；2026-09-14 OpenAlex 观测 11 次引用；仓库更新于 2025-12-16",
+      "users": ["SIGIR 2023 comparison", "Fundus evaluation", "SIGIR 2025 multilingual follow-up", "Dripper generalization"],
+      "maintenance": {"created_at": "2023-04-14", "latest_push": "2025-12-16", "latest_release": null, "archived": false, "commit": "36be6d9c4f96d3c613c21144c4d39e5d0cce93af"},
+      "adoption_snapshot": {"stars": 28, "forks": 7, "github_exact_code_hits": 14, "openalex_citations": 11},
+      "download_audit": {"artifact": "combined.tar.xz", "bytes": 50010844, "sha256": "ed4e57ecad343cdce51d06fa560c1f50965367ea6714cd08e85a439102bc4b1a", "observed_pages": 3985},
+      "sources": ["https://github.com/chatnoir-eu/web-content-extraction-benchmark", "https://doi.org/10.1145/3539618.3591920", "https://github.com/dobbersc/fundus-evaluation"]
+    }
+  ],
+  "current_benchmark": {
+    "name": "Current Web Fetch live suite", "cases": 150,
+    "tracks": {"web": 100, "dynamic": 10, "challenge": 10, "document": 10, "image": 10, "video": 10},
+    "references": {"full_body": 118, "answer": 25, "facts": 121, "stable_contracts": 20, "body_region_requirements": 108},
+    "measures": "live URL access, rendering, dynamic pages, structured popular-site output, documents/media/resources, acceptance, fidelity and latency",
+    "measures_zh": "真实 URL 访问、渲染、动态页面、热门站点结构化输出、文档/媒体/资源、验收、保真与时延",
+    "difference": "WebMainBench freezes HTML and isolates extraction/conversion; the current suite exercises the end-to-end URL-to-output route and remains necessary.",
+    "difference_zh": "WebMainBench 冻结 HTML、隔离抽取/转换；现有套件测端到端 URL 到输出链路，仍不可替代。"
+  },
+  "fusion_plan": [
+    {"layer": "Official public score", "layer_zh": "公开集官方分数", "keep": "Keep all five WebMainBench-545 components and official overall with frozen conversion and splitting.", "keep_zh": "保留 WebMainBench-545 五个分项与官方 overall，冻结转换和切分。"},
+    {"layer": "Acceptance and failure", "layer_zh": "验收与失败", "keep": "Reuse the current one-result predicate, pass/fail filters, failure classes, missing-output denominator and independent review as separate diagnostics.", "keep_zh": "复用现有统一结果判定、通过/失败筛选、失败分类、缺失输出分母和独立复核，作为独立诊断。"},
+    {"layer": "Coverage", "layer_zh": "覆盖诊断", "keep": "Add current full-body P/R/F1, region coverage and forbidden/error-page checks; borrow WCXB include/exclude snippets only after validating them against the answer.", "keep_zh": "增加现有完整正文 P/R/F1、分区覆盖和禁入/错误页检查；WCXB 的应包含/应排除片段须先与答案交叉校验。"},
+    {"layer": "Transport", "layer_zh": "传输层", "keep": "Keep live success and latency in the 150-case suite. Serve identical frozen HTML bytes to URL-only methods and label that latency as fixture-route latency.", "keep_zh": "真实成功率和时延留在 150 例；对仅支持 URL 的方法提供相同冻结 HTML，并把时延标为夹具链路时延。"}
+  ],
+  "sampling_contract": {
+    "parent": "WebMainBench-545", "size": 200, "seed": "browser-eval:webmainbench-545:v1:200",
+    "algorithm": "greedy coverage of every observed marginal official category, then SHA-256 order fill",
+    "official_axes": ["language", "level", "table", "code", "equation"],
+    "declared_but_unavailable_axes": ["style"],
+    "reason": "Cover every official category represented in the parent while bounding provider calls; publish parent and sample distributions so rare slices are not over-interpreted.",
+    "reason_zh": "覆盖母集中出现的每个官方分类并限制供应商调用量；公布母集与样本分布，避免过度解读稀有切片。",
+    "manifest": "evaluation/public-webmainbench-200.json", "status": "current formal sample; frozen before provider calls"
+  },
+  "embedded_or_supplementary": [
+    {"name": "CleanEval", "disposition": "Do not score twice: its 738 pages are already in WCEB.", "disposition_zh": "不重复计分：738 页已包含在 WCEB 中。", "sources": ["https://github.com/chatnoir-eu/web-content-extraction-benchmark"]},
+    {"name": "Scrapinghub Article Extraction Benchmark", "disposition": "Do not score twice: its 181 pages are in WCEB; the standalone repository is archived.", "disposition_zh": "不重复计分：181 页已包含在 WCEB；独立仓库已归档。", "sources": ["https://github.com/scrapinghub/article-extraction-benchmark"]}
+  ],
+  "adjacent_browser_benchmarks": [
+    {"name": "WebArena", "size": "812 tasks", "size_zh": "812 个任务", "measures": "end-to-end browser task success", "measures_zh": "端到端浏览器任务成功率", "adoption": "BrowserGym and AgentLab", "adoption_zh": "BrowserGym 与 AgentLab", "why_separate": "requires actions and environment state", "why_separate_zh": "需要操作和环境状态", "sources": ["https://github.com/web-arena-x/webarena", "https://github.com/ServiceNow/BrowserGym"]},
+    {"name": "Mind2Web / Online-Mind2Web", "size": ">2,000 offline; 300 online", "size_zh": "2,000+ 离线；300 在线", "measures": "action prediction and live agent success", "measures_zh": "操作预测与在线 Agent 成功率", "adoption": "widely used in web-agent research", "adoption_zh": "广泛用于 Web Agent 研究", "why_separate": "scores decisions and actions, not returned content", "why_separate_zh": "评分决策和操作，不是返回内容", "sources": ["https://github.com/OSU-NLP-Group/Mind2Web", "https://github.com/OSU-NLP-Group/Online-Mind2Web"]},
+    {"name": "WebVoyager", "size": "643 tasks / 15 sites", "size_zh": "643 任务 / 15 站点", "measures": "multimodal web-agent success", "measures_zh": "多模态 Web Agent 成功率", "adoption": "prominent online agent evaluation", "adoption_zh": "有代表性的在线 Agent 评测", "why_separate": "volatile live tasks and model judging", "why_separate_zh": "易变在线任务和模型裁判", "sources": ["https://github.com/MinorJerry/WebVoyager"]},
+    {"name": "BrowseComp", "size": "1,266 questions", "size_zh": "1,266 个问题", "measures": "hard factual browsing with a model grader", "measures_zh": "模型裁判的难搜事实问答", "adoption": "frontier systems and Perplexity search-evals", "adoption_zh": "前沿系统与 Perplexity search-evals", "why_separate": "combines search, navigation and reasoning", "why_separate_zh": "混合搜索、导航和推理", "sources": ["https://github.com/openai/simple-evals", "https://openai.com/index/browsecomp/", "https://github.com/perplexityai/search-evals"]}
+  ],
+  "adoption_snapshot": {
+    "observed_at": "2026-09-14",
+    "warning": "Stars, forks and exact-code search counts are context, not user counts or proof of execution. Named runs and integrations are evaluated separately.",
+    "warning_zh": "Star、Fork 和精确代码搜索条数只是背景，不是用户数，也不证明实际运行；具名运行与集成另行判断。",
+    "repositories": [["WebMainBench", 22, 12], ["WCXB", 11, 0], ["WCEB", 28, 7], ["Article Extraction Benchmark (archived)", 378, 37]]
+  },
+  "next_run_contract": [
+    "Freeze the WebMainBench-545 file hash, scorer commit, package versions and license before calls.",
+    "Run every case in the frozen 200-page manifest for every method; extraction failures remain visible and are aggregated exactly as the official evaluator handles failed samples.",
+    "Use the official five metrics; default optional LLM splitting off unless its full model/prompt/cache contract is predeclared.",
+    "Label the 545-toolkit result as distinct from the paper's 7,809-page ROUGE-5 leaderboard.",
+    "Serve identical frozen HTML bytes to URL-only methods; do not fetch current live URLs against frozen answers.",
+    "Keep this extraction suite and the current 150-case live suite separate; never create a synthetic combined rank.",
+    "Preserve failed calls and declared retries; do not select the best retry.",
+    "Publish only after every method has all 200 preselected cases and independent review is resolved."
+  ],
+  "next_run_contract_zh": [
+    "调用前冻结 WebMainBench-545 文件哈希、评分器提交、软件版本和许可证。",
+    "每个方法运行冻结清单中的全部 200 例；抽取失败保持可见，并严格按官方 evaluator 对失败样例的方式聚合。",
+    "使用官方五项指标；默认关闭可选 LLM 切分，除非预先声明完整模型/提示词/缓存合同。",
+    "明确 545 工具链结果不同于论文 7,809 页 ROUGE-5 主榜。",
+    "对仅支持 URL 的方法提供相同冻结 HTML；不能拿冻结答案评当前在线 URL。",
+    "公开抽取套件与现有 150 例在线套件分开，不创造综合排名。",
+    "保留失败调用和声明重试；不挑选最优重试。",
+    "所有方法覆盖预选的 200 例且独立复核完成后才发布。"
+  ]
+}

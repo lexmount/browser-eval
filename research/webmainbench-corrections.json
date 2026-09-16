@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "dataset": "WebMainBench-545 preselected 200",
+  "sample_manifest_sha256": "eea643afddd35f3ae4ed85b689b3a89f6a503f8fce878d546fa56c97c26f8044",
+  "corrections": [
+    {
+      "id": "formal-scope-restored-to-preselected-200",
+      "date": "2026-09-15",
+      "reason": "The dataset name was misread as a requirement to publish all 545 parent pages even though the 200-page manifest had already been frozen before provider results.",
+      "reason_zh": "误把数据集名称理解成必须发布全部 545 页，但 200 页清单其实已在任何方法结果产生前冻结。",
+      "effect": "The formal matrix is 200 pages x 5 methods = 1,000 logical results. Four completed local 545-page batches are projected by the predeclared IDs and rescored; an accidental Kitesurf full-parent run was stopped after 165 logical / 171 physical calls and is excluded.",
+      "effect_zh": "正式矩阵为 200 页 × 5 方法 = 1,000 条逻辑结果。四个已完成的本地 545 页批次按预声明 ID 投影并重新评分；误启动的 Kitesurf 母集全量批次在 165 条逻辑 / 171 次物理调用后停止并排除。"
+    },
+    {
+      "id": "kitesurf-dns-outage-complete-scope-rerun",
+      "date": "2026-09-15",
+      "reason": "Final results 88-200 were 113 consecutive local DNS failures resolving api.cloudflare.com; calls after result 91 collapsed to roughly 20-30 ms, proving an environmental interruption rather than extractor output.",
+      "reason_zh": "第 88–200 条最终结果连续 113 次无法在本机解析 api.cloudflare.com；第 91 条以后调用骤降到约 20–30 ms，证明是测量环境中断而非抽取输出。",
+      "superseded": {
+        "logical_results": 200,
+        "physical_attempts": 316,
+        "request_successes": 85,
+        "request_failures": 115,
+        "total_elapsed_ms": 1049292.54,
+        "median_elapsed_ms": 23.35,
+        "p95_elapsed_ms": 16432.0,
+        "official_scores": {
+          "overall": 0.3954928946234446,
+          "text_edit": 0.3260231214081663,
+          "code_edit": 0.701063562060097,
+          "formula_edit": 0.12450645978091004,
+          "table_edit": 0.2845095296276515,
+          "table_TEDS": 0.541361800240398
+        },
+        "denominators": {"text_edit": 85, "code_edit": 7, "formula_edit": 30, "table_edit": 25, "table_TEDS": 25},
+        "bindings": {
+          "results_sha256": "c9be871cc5c25a92efba0dfe3d41170c36788234b896a7dda06cd858e53733c5",
+          "physical_attempts_sha256": "3e3542205bb9de2604192c010f48168041db705649580459c9a7285d687fba82",
+          "execution_sha256": "cac5cf7353d1ffbe83fb9d9e58774a2503d6b725fef787c1c117e82aedb5e941",
+          "score_summary_sha256": "a266abeb8c1c8150a59976bc1fa6febbd72d3e81eb0bb5fc20121ce2d5923e89"
+        }
+      },
+      "corrected": {
+        "logical_results": 200,
+        "physical_attempts": 206,
+        "request_successes": 195,
+        "request_failures": 5,
+        "total_elapsed_ms": 830129.52,
+        "median_elapsed_ms": 2773.615,
+        "p95_elapsed_ms": 6114.54,
+        "official_scores": {
+          "overall": 0.39044719664476296,
+          "text_edit": 0.37925804264184315,
+          "code_edit": 0.6875435347894421,
+          "formula_edit": 0.15946709621440017,
+          "table_edit": 0.23822917922783346,
+          "table_TEDS": 0.48773813035029573
+        },
+        "denominators": {"text_edit": 195, "code_edit": 40, "formula_edit": 109, "table_edit": 76, "table_TEDS": 76},
+        "bindings": {
+          "results_sha256": "fe8f12c21b3adc9663d2a463cef2381824580117115fe56adc92be6357d5e15c",
+          "physical_attempts_sha256": "436f5bf1e40263b394cad4863a922470e6091865678e603bf1a0a9f7b1a88a3b",
+          "execution_sha256": "b647d82593a1b04dd0cc1fe71b5a4f47df6dcc07e667a4fecc8a81b7595af0cc",
+          "score_summary_sha256": "b5883483f3f866c5c312f89c7270fd1787a50b306596575761618a7cec00d025"
+        }
+      },
+      "effects": {
+        "request_successes": 110,
+        "request_failures": -110,
+        "physical_attempts": -110,
+        "total_elapsed_ms": -219163.02,
+        "median_elapsed_ms": 2750.265,
+        "p95_elapsed_ms": -10317.46,
+        "official_overall": -0.00504569797868164,
+        "denominators": {"text_edit": 110, "code_edit": 33, "formula_edit": 79, "table_edit": 51, "table_TEDS": 51}
+      },
+      "final_review_sha256": "8c062954c914458d6b9e059f81be542139f9772e928587d9ead8cf4941c5000a"
+    }
+  ]
+}

@@ -8,19 +8,22 @@ import shutil
 import statistics
 from collections import Counter,defaultdict
 from pathlib import Path
+from urllib.parse import urlsplit,urlencode
 from .metrics import percentile, task_passed, task_measured
 from .methods import method_info
 from .accounts import report_access_registry
 from .report_interfaces import HEADLESS_ACCESS
+from .report_methods import PROFILES, adoption_counts
 from .report_style import STYLE
 from .report_components import tabs, metric_guide, metric_legend, examples, reference_status, basis_label, reference_label, sources_panel, stable_contract_details, task_instruction
 from .failure_diagnosis import diagnose
 from .safety import contained_path, safe_href, validate_report_ids
 from .models import execution_id
 from .report_resources import render_resource_comparison
+from .webmainbench_diagnostics import ERROR_PAGE
 
 TRACKS={'web':'静态网站正文','dynamic':'动态网站正文','challenge':'热门网站正文','document':'文档正文','image':'图片获取','video':'视频获取'}
-PROVIDER_LABELS={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.1','moli-1.1.3':'Moli 1.1.3'}
+PROVIDER_LABELS={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.5','moli-1.1.3':'Moli 1.1.3'}
 ROUTE_LABELS={
  'cloudflare_native_markdown':'Cloudflare Browser Run /markdown 直接返回 Markdown',
  'lightpanda_native_markdown':'Lightpanda CLI 直接返回 Markdown',
@@ -38,7 +41,7 @@ def is_headless_cohort(records):
  return bool(records) and all(r.get('provider_type') in {'headless_html','headless_markdown'} for r in records)
 
 def provider_configuration(name,records,info):
- """Describe only the route evidenced for this provider, without cohort-wide boilerplate."""
+ """Describe only the route evidenced for this provider."""
  provider_type=records[0].get('provider_type') if records else ''
  if provider_type in {'headless_html','headless_markdown'}:
   metadata=[r.get('provider_metadata',{}) for r in records]
@@ -53,22 +56,38 @@ def provider_configuration(name,records,info):
   'exa_contents':'本轮请求正文文本；资源链接仅来自同一 Contents 响应的 extras 字段。',
  }
  return resource_routes.get(provider_type,'本轮使用该方法的默认正文或文件交付路线。')+' 未启用额外的理解模型或付费后备方法。'
-JS=r'''
-function theme(){let t=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=t;localStorage.setItem('webfetch-theme',t)}
+JS=r'''function readTheme(){try{return localStorage.getItem('webfetch-theme')}catch{return 'light'}}
+function saveTheme(t){try{localStorage.setItem('webfetch-theme',t)}catch{}}
+
+function theme(){let t=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=t;saveTheme(t)}
 function tr(zh,en){return document.documentElement?.lang==='en'?en:zh}
 function filterRows(){let count=0;document.querySelectorAll('#rows tr').forEach(r=>{let show=[...document.querySelectorAll('[data-filter]')].every(s=>!s.value||(s.dataset.filter==='query'?(r.textContent+' '+(r.dataset.search||'')).toLowerCase().includes(s.value.trim().toLowerCase()):r.dataset[s.dataset.filter]===s.value));r.hidden=!show;if(show)count++});let c=document.querySelector('#count');if(c)c.textContent=tr(`显示 ${count} 条`,`Showing ${count}`)}
-function paintSort(t){let col=Number(t.dataset.col);[...t.tHead.rows[0].cells].forEach((h,i)=>{h.classList.toggle('sorted',i===col);h.removeAttribute('aria-sort')});t.tHead.rows[0].cells[col].setAttribute('aria-sort',t.dataset.dir==='asc'?'ascending':'descending');[...t.tBodies[0].rows].forEach(r=>[...r.cells].forEach((c,i)=>c.classList.toggle('sorted',i===col)))}
-function sortTable(id,col){let t=document.getElementById(id),dir=t.dataset.col===String(col)&&t.dataset.dir==='desc'?'asc':'desc';let rows=[...t.tBodies[0].rows];rows.sort((a,b)=>{let av=a.cells[col].dataset.sort,bv=b.cells[col].dataset.sort;if(av==='-1'||bv==='-1')return av===bv?0:av==='-1'?1:-1;let result=(av==null||bv==null)?a.cells[col].textContent.localeCompare(b.cells[col].textContent,document.documentElement.lang):Number(av)-Number(bv);return dir==='asc'?result:-result});rows.forEach((r,i)=>{r.cells[0].textContent=i+1;t.tBodies[0].append(r)});t.dataset.col=String(col);t.dataset.dir=dir;paintSort(t)}
+function paintSort(t){let col=Number(t.dataset.col);if(!Number.isFinite(col)||!t.tHead?.rows[0]?.cells[col])return;[...t.tHead.rows[0].cells].forEach((h,i)=>{h.classList.toggle('sorted',i===col);h.removeAttribute('aria-sort')});t.tHead.rows[0].cells[col].setAttribute('aria-sort',t.dataset.dir==='asc'?'ascending':'descending')}
+function sortTable(id,col){let t=document.getElementById(id),dir=t.dataset.col===String(col)&&t.dataset.dir==='desc'?'asc':'desc';let rows=[...t.tBodies[0].rows];rows.sort((a,b)=>{let av=a.cells[col].dataset.sort,bv=b.cells[col].dataset.sort;if(av==='-1'||bv==='-1')return av===bv?0:av==='-1'?1:-1;let result=(av==null||bv==null)?a.cells[col].textContent.localeCompare(b.cells[col].textContent,document.documentElement.lang):Number(av)-Number(bv);return dir==='asc'?result:-result});rows.forEach((r,i)=>{r.cells[0].textContent=i+1;t.tBodies[0].append(r)});t.dataset.col=String(col);t.dataset.dir=dir;paintSort(t);if(t.hasAttribute?.('data-wmb-table'))wmbFilters();if(t.id==='wmb-slices')wmbSliceFilters()}
 function chooseTab(group,key){let box=document.getElementById(group);if(!box)return;box.querySelectorAll(':scope > .tab-bar > button').forEach(b=>{let on=b.dataset.tab===key;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1});box.querySelectorAll(':scope > [role="tabpanel"]').forEach(p=>p.hidden=p.dataset.panel!==key)}
 function tabKeys(event,group){if(!['ArrowRight','ArrowLeft','Home','End'].includes(event.key))return;let bs=[...document.getElementById(group).querySelectorAll(':scope > .tab-bar > button')],i=bs.indexOf(event.target);i=event.key==='Home'?0:event.key==='End'?bs.length-1:(i+(event.key==='ArrowRight'?1:-1)+bs.length)%bs.length;event.preventDefault();chooseTab(group,bs[i].dataset.tab);bs[i].focus()}
 function cascadeFilters(changed){let rows=[...document.querySelectorAll('#rows tr')],selects=[...document.querySelectorAll('select[data-filter]')],prior=[];selects.forEach(s=>{let available=new Set(rows.filter(r=>prior.every(p=>!p.value||r.dataset[p.dataset.filter]===p.value)).map(r=>r.dataset[s.dataset.filter]));if(s.dataset.filter!=='result'){let failureFilter=['failureStage','failureCategory'].includes(s.dataset.filter);[...s.options].forEach(o=>o.disabled=!!o.value&&!available.has(o.value));if(s.value&&!available.has(s.value))s.value=failureFilter?'':([...s.options].find(o=>o.value&&!o.disabled)?.value||'');if(failureFilter)s.disabled=![...s.options].some(o=>o.value&&!o.disabled);}prior.push(s)});filterRows()}
 function outcomes(row,key){return new Set((row.dataset[key]||'').split(' ').filter(Boolean))}
 function compareMethods(){let a=document.getElementById('compare-a'),relation=document.getElementById('compare-relation'),track=document.getElementById('compare-track'),count=document.getElementById('compare-count');if(!a||!relation||!track||!count)return;let boxes=[...document.querySelectorAll('[data-compare-method]')];boxes.forEach(box=>{box.disabled=box.value===a.value;box.closest('label')?.classList.toggle('disabled',box.disabled);if(box.disabled)box.checked=false});let others=boxes.filter(box=>box.checked&&!box.disabled).map(box=>box.value),selected=[a.value,...others],shown=0;document.querySelectorAll('#compare-rows tr').forEach(row=>{let pass=outcomes(row,'pass'),fail=outcomes(row,'fail'),match=others.length>0&&(!track.value||row.dataset.track===track.value);if(match)match={mixed:selected.some(x=>pass.has(x))&&selected.some(x=>fail.has(x)),a_pass_others_fail:pass.has(a.value)&&others.every(x=>fail.has(x)),a_fail_others_pass:fail.has(a.value)&&others.every(x=>pass.has(x)),all_pass:selected.every(x=>pass.has(x)),all_fail:selected.every(x=>fail.has(x)),exact_pass:selected.every(x=>pass.has(x))&&pass.size===selected.length}[relation.value];row.hidden=!match;if(match)shown++});count.textContent=others.length?tr(`找到 ${shown} 个任务`,`${shown} tasks found`):tr('请至少选择一个对比方法','Select at least one comparison method')}
+function wmbCompare(){let a=document.getElementById('wmb-compare-a'),relation=document.getElementById('wmb-compare-relation'),axis=document.getElementById('wmb-compare-axis'),category=document.getElementById('wmb-compare-category'),count=document.getElementById('wmb-compare-count');if(!a||!relation||!axis||!category||!count)return;let boxes=[...document.querySelectorAll('[data-wmb-compare-method]')];boxes.forEach(box=>{box.disabled=box.value===a.value;box.closest('label')?.classList.toggle('disabled',box.disabled);if(box.disabled)box.checked=false});let others=boxes.filter(box=>box.checked&&!box.disabled).map(box=>box.value),selected=[a.value,...others],rows=[...document.querySelectorAll('#wmb-compare-rows tr')],allowed=new Set(rows.map(row=>row.dataset[axis.value]).filter(Boolean));for(let option of category.options)option.disabled=!!option.value&&!!axis.value&&!allowed.has(option.value);if(category.value&&!allowed.has(category.value))category.value='';category.disabled=!axis.value;let shown=0;for(let row of rows){let delivered=outcomes(row,'delivered'),failed=outcomes(row,'failed'),match=others.length>0&&(!axis.value||!category.value||row.dataset[axis.value]===category.value);if(match)match={mixed:selected.some(x=>delivered.has(x))&&selected.some(x=>failed.has(x)),a_success_others_fail:delivered.has(a.value)&&others.every(x=>failed.has(x)),a_fail_others_success:failed.has(a.value)&&others.every(x=>delivered.has(x)),all_success:selected.every(x=>delivered.has(x)),all_fail:selected.every(x=>failed.has(x)),exact_success:selected.every(x=>delivered.has(x))&&delivered.size===selected.length}[relation.value];row.hidden=!match;if(match){shown++;row.cells[0].textContent=shown}}count.textContent=others.length?tr(`显示 ${shown} / ${rows.length} 页`,`Showing ${shown} / ${rows.length} pages`):tr('请至少选择一个对比方法','Select at least one comparison method')}
 let callLogTrigger=null;
 function openCallLog(button){let dialog=document.getElementById(button.dataset.callLogOpen);if(!dialog)return;callLogTrigger=button;if(!dialog.dataset.bound){dialog.dataset.bound='1';dialog.addEventListener('close',()=>{let trigger=callLogTrigger;callLogTrigger=null;trigger?.focus()});dialog.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();if(typeof dialog.close==='function')dialog.close();else{dialog.removeAttribute('open');let trigger=callLogTrigger;callLogTrigger=null;trigger?.focus()}}});dialog.addEventListener('click',event=>{if(event.target===dialog){if(typeof dialog.close==='function')dialog.close();else closeCallLog({closest:()=>dialog})}})}if(typeof fill==='function')dialog.querySelectorAll('pre[data-file],pre[data-record]').forEach(pre=>fill(pre));if(typeof dialog.showModal==='function')dialog.showModal();else{dialog.setAttribute('open','');dialog.setAttribute('aria-modal','true')}dialog.querySelector('[data-call-log-close]')?.focus()}
 function closeCallLog(button){let dialog=button.closest('dialog');if(!dialog)return;if(typeof dialog.close==='function')dialog.close();else{dialog.removeAttribute('open');let trigger=callLogTrigger;callLogTrigger=null;trigger?.focus()}}
-function applyReportAnchor(anchor){if(!anchor)return;if(anchor.startsWith('track-')){chooseTab('dataset-hub','cases');let s=document.querySelector('select[data-filter="track"]');if(s){s.value=anchor.slice(6);document.querySelectorAll('select[data-filter]').forEach(x=>{if(x!==s)x.value=''});cascadeFilters(s)}}else if(['references','sources'].includes(anchor)){chooseTab('dataset-hub',anchor)}else{let target=document.getElementById(anchor);for(let p=target;p;p=p.parentElement){if(p.dataset?.panel)chooseTab(p.parentElement.id,p.dataset.panel);if(p.tagName==='DETAILS')p.open=true}}}
-window.addEventListener('DOMContentLoaded',()=>{document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light';document.querySelectorAll('[data-filter]').forEach(e=>e.addEventListener(e.tagName==='INPUT'?'input':'change',e.tagName==='INPUT'?filterRows:()=>cascadeFilters(e)));document.querySelectorAll('[data-compare-method],[data-compare-control]').forEach(e=>e.addEventListener('change',compareMethods));cascadeFilters();compareMethods();document.querySelectorAll('table[data-col]').forEach(paintSort);applyReportAnchor(location.hash.slice(1))});
+function applyReportAnchor(anchor){if(!anchor)return;if(wmbInspect(anchor))return;if(anchor.startsWith('track-')){chooseTab('dataset-hub','cases');let s=document.querySelector('select[data-filter="track"]');if(s){s.value=anchor.slice(6);document.querySelectorAll('select[data-filter]').forEach(x=>{if(x!==s)x.value=''});cascadeFilters(s)}}else if(['references','sources'].includes(anchor)){chooseTab('dataset-hub',anchor)}else{let target=document.getElementById(anchor);for(let p=target;p;p=p.parentElement){if(p.dataset?.panel)chooseTab(p.parentElement.id,p.dataset.panel);if(p.tagName==='DETAILS')p.open=true}}}
+function wmbFilters(){let table=document.querySelector('[data-wmb-table]');if(!table)return;let rows=table.tBodies[0].rows,controls=[...document.querySelectorAll('[data-wmb-filter]')],values=Object.fromEntries(controls.map(c=>[c.dataset.wmbFilter,c.value])),axis=values.axis||'',query=(values.query||'').trim().toLowerCase();let category=controls.find(c=>c.dataset.wmbFilter==='category');if(category){let allowed=new Set();for(let row of rows)if(!values.method||row.dataset.method===values.method)allowed.add(row.dataset[axis]);for(let option of category.options)option.disabled=!!option.value&&!allowed.has(option.value);if(category.value&&!allowed.has(category.value)){category.value='';values.category=''}}let failure=controls.find(c=>c.dataset.wmbFilter==='failure');if(failure){let available=new Set();for(let row of rows)if((!values.method||row.dataset.method===values.method)&&(!values.request||row.dataset.request===values.request)&&row.dataset.failure)available.add(row.dataset.failure);for(let option of failure.options)option.disabled=!!option.value&&!available.has(option.value);failure.disabled=values.request==='success'||available.size===0;if(failure.disabled||failure.value&&!available.has(failure.value)){failure.value='';values.failure=''}}let band=controls.find(c=>c.dataset.wmbFilter==='band');if(band){band.disabled=!values.metric;if(band.disabled){band.value='';values.band=''}}let count=0;for(let row of rows){let search=row.dataset.searchNormalized||(row.dataset.searchNormalized=(row.dataset.search||'').toLowerCase());let show=(!values.method||row.dataset.method===values.method)&&(!axis||!values.category||row.dataset[axis]===values.category)&&(!values.request||row.dataset.request===values.request)&&(!values.failure||row.dataset.failure===values.failure)&&(!query||search.includes(query));if(show&&values.metric){let raw=row.dataset[values.metric],number=raw===''||raw==null?null:Number(raw);if(values.band==='unavailable')show=number===null;else if(values.band){let [low,high]=values.band.split(':').map(Number);show=number!==null&&number>=low&&number<(high===1?1.0000001:high)}}row.hidden=!show;if(show){count++;row.cells[0].textContent=count}}let indicator=document.querySelector('[data-wmb-count]');if(indicator)indicator.textContent=tr(`显示 ${count} / ${rows.length} 条`,`Showing ${count} / ${rows.length}`)}
+function wmbInspect(anchor){if(!anchor.startsWith('inspect?'))return false;let params=new URLSearchParams(anchor.slice(8).replace(/\+/g,'%2B'));document.querySelectorAll('[data-wmb-filter]').forEach(c=>{let value=params.get(c.dataset.wmbFilter);if(value!==null)c.value=value});wmbFilters();(document.querySelector('.wmb-controls')||document.querySelector('[data-wmb-table]')?.closest('section'))?.scrollIntoView({block:'start'});return true}
+function wmbReset(){document.querySelectorAll('[data-wmb-filter]').forEach(c=>{c.value=c.dataset.wmbDefault||''});wmbFilters()}
+function wmbSliceFilters(){let table=document.getElementById('wmb-slices'),axis=document.getElementById('wmb-slice-axis'),category=document.getElementById('wmb-slice-category'),method=document.getElementById('wmb-slice-method'),count=document.getElementById('wmb-slice-count');if(!table||!axis||!category||!method||!count)return;let rows=[...table.tBodies[0].rows],available=new Set(rows.filter(r=>r.dataset.axis===axis.value&&(!method.value||r.dataset.method===method.value)).map(r=>r.dataset.category));for(let option of category.options)option.disabled=!!option.value&&!available.has(option.value);if(category.value&&!available.has(category.value))category.value='';let shown=0;for(let row of rows){let visible=row.dataset.axis===axis.value&&(!category.value||row.dataset.category===category.value)&&(!method.value||row.dataset.method===method.value);row.hidden=!visible;if(visible)row.cells[0].textContent=++shown}count.textContent=tr(`显示 ${shown} / ${rows.length} 条分类结果`,`Showing ${shown} / ${rows.length} category results`)}
+function wmbDistribution(){let table=document.getElementById('wmb-distribution'),axis=document.getElementById('wmb-distribution-axis'),count=document.getElementById('wmb-distribution-count');if(!table||!axis||!count)return;let rows=[...table.tBodies[0].rows],shown=0,parent=0,sample=0;for(let row of rows){let visible=row.dataset.axis===axis.value;row.hidden=!visible;if(visible){row.cells[0].textContent=++shown;parent+=Number(row.dataset.parent||0);sample+=Number(row.dataset.sample||0)}}count.textContent=tr(`${shown} 个分类 · 母集合计 ${parent} · 样本合计 ${sample}`,`${shown} categories · parent total ${parent} · sample total ${sample}`)}
+function initReport(){document.documentElement.dataset.theme=readTheme()||'light';document.querySelectorAll('[data-filter]').forEach(e=>e.addEventListener(e.tagName==='INPUT'?'input':'change',e.tagName==='INPUT'?filterRows:()=>cascadeFilters(e)));let wmbTimer;document.querySelectorAll('[data-wmb-filter]').forEach(e=>e.addEventListener(e.tagName==='INPUT'?'input':'change',e.tagName==='INPUT'?()=>{clearTimeout(wmbTimer);wmbTimer=setTimeout(wmbFilters,90)}:wmbFilters));document.querySelectorAll('[data-wmb-slice-filter]').forEach(e=>e.addEventListener('change',wmbSliceFilters));document.querySelectorAll('[data-wmb-distribution-filter]').forEach(e=>e.addEventListener('change',wmbDistribution));document.querySelectorAll('[data-compare-method],[data-compare-control]').forEach(e=>e.addEventListener('change',compareMethods));document.querySelectorAll('[data-wmb-compare-method],[data-wmb-compare-control]').forEach(e=>e.addEventListener('change',wmbCompare));cascadeFilters();wmbFilters();wmbSliceFilters();wmbDistribution();compareMethods();wmbCompare();document.querySelectorAll('table[data-col]').forEach(paintSort);applyReportAnchor(location.hash.slice(1))}
+window.addEventListener('load',()=>{if(location.hash.startsWith('#inspect?'))setTimeout(()=>applyReportAnchor(location.hash.slice(1)),150)});
+window.addEventListener('report-ready',initReport);
+window.addEventListener('DOMContentLoaded',initReport);
+let wmbMermaidModule;
+function wmbLoadMermaid(){if(!wmbMermaidModule)wmbMermaidModule=new Promise((resolve,reject)=>{let script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js';script.integrity='sha384-rbtjAdnIQE/aQJGEgXrVUlMibdfTSa4PQju4HDhN3sR2PmaKFzhEafuePsl9H/9I';script.crossOrigin='anonymous';script.onload=()=>resolve(window.mermaid);script.onerror=()=>{script.remove();wmbMermaidModule=null;reject(new Error('Diagram library unavailable'))};document.head.appendChild(script)});return wmbMermaidModule}
+async function wmbRenderFlow(){let node=document.querySelector('.wmb-flow .mermaid');if(!node||node.dataset.rendering||window.innerWidth<=700)return;node.dataset.rendering='1';try{let mermaid=await wmbLoadMermaid();mermaid.initialize({startOnLoad:false,theme:document.documentElement.dataset.theme==='dark'?'dark':'neutral',flowchart:{htmlLabels:true}});let rendered=await mermaid.render('wmb-evaluation-flow',node.textContent);if(!node.isConnected)return;node.innerHTML=rendered.svg;node.hidden=false;node.closest('.wmb-flow').querySelector('[data-wmb-flow-fallback]').hidden=true}catch(error){node.hidden=true;delete node.dataset.rendering}}
+window.addEventListener('report-ready',wmbRenderFlow);
+window.addEventListener('DOMContentLoaded',wmbRenderFlow);
 window.addEventListener('hashchange',()=>applyReportAnchor(location.hash.slice(1)));
 document.addEventListener('click',event=>{let open=event.target.closest('[data-call-log-open]');if(open){openCallLog(open);return}let close=event.target.closest('[data-call-log-close]');if(close)closeCallLog(close)});
 '''
@@ -77,7 +96,7 @@ EXTRA='''
 '''
 
 EXTRA+='''
-[hidden]{display:none!important}.ranking{min-width:980px}.ranking th,table th{white-space:nowrap}.ranking td:nth-child(2){min-width:220px;max-width:none;white-space:nowrap;overflow-wrap:normal;word-break:normal}.sorted,.sorted a{color:#117541!important;font-weight:750!important}[data-theme="dark"] .sorted,[data-theme="dark"] .sorted a{color:#74e1a8!important}.tab-bar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 22px}.tab-bar button{padding:10px 18px;border:1px solid var(--line);border-radius:999px;color:var(--ink);background:var(--panel);font:inherit;cursor:pointer}.tab-bar button[aria-selected="true"]{background:#075ccf;color:white;border-color:#075ccf}.tab-bar button:focus-visible,.sort-button:focus-visible{outline:3px solid #428bff;outline-offset:3px}.guide-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.guide-card{padding:22px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}.guide-card h3{margin:0 0 10px;font-size:19px}.guide-card p{margin:0;line-height:1.7}.worked-example{display:flex;gap:16px;flex-wrap:wrap;padding:20px;background:var(--panel2);border-radius:14px;margin-top:20px}.tabs [role="tabpanel"]{min-width:0}#filtered-table{min-width:1080px}#filtered-table td:last-child{min-width:170px;max-width:350px;overflow-wrap:anywhere}#filtered-table td:nth-child(2){min-width:155px}.section{padding:40px 0}.hero{padding:38px 0}.top nav{flex-wrap:wrap}.source-note{line-height:1.7}@media(max-width:700px){.guide-grid{grid-template-columns:1fr}.tab-bar button{padding:8px 12px}.section{padding:28px 0}}
+[hidden]{display:none!important}.ranking{min-width:980px}.ranking th,table th{white-space:nowrap}.ranking td:nth-child(2){min-width:220px;max-width:none;white-space:nowrap;overflow-wrap:normal;word-break:normal}th.sorted{background:var(--accent-soft);color:var(--accent)}.comparison-winner,.comparison-winner a{color:#117541!important;font-weight:800!important}[data-theme="dark"] .comparison-winner,[data-theme="dark"] .comparison-winner a{color:#74e1a8!important}.tab-bar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 22px}.tab-bar button{padding:10px 18px;border:1px solid var(--line);border-radius:999px;color:var(--ink);background:var(--panel);font:inherit;cursor:pointer}.tab-bar button[aria-selected="true"]{background:#075ccf;color:white;border-color:#075ccf}.tab-bar button:focus-visible,.sort-button:focus-visible{outline:3px solid #428bff;outline-offset:3px}.guide-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.guide-card{padding:22px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}.guide-card h3{margin:0 0 10px;font-size:19px}.guide-card p{margin:0;line-height:1.7}.worked-example{display:flex;gap:16px;flex-wrap:wrap;padding:20px;background:var(--panel2);border-radius:14px;margin-top:20px}.tabs [role="tabpanel"]{min-width:0}#filtered-table{min-width:1080px}#filtered-table td:last-child{min-width:170px;max-width:350px;overflow-wrap:anywhere}#filtered-table td:nth-child(2){min-width:155px}.section{padding:40px 0}.hero{padding:38px 0}.top nav{flex-wrap:wrap}.source-note{line-height:1.7}@media(max-width:700px){.guide-grid{grid-template-columns:1fr}.tab-bar button{padding:8px 12px}.section{padding:28px 0}}
 '''
 
 EXTRA+='''
@@ -113,7 +132,28 @@ EXTRA+='''
 '''
 
 EXTRA+='''
-.call-log-button,.call-log-close{border:0;border-radius:9px;background:var(--accent);color:#fff;font:inherit;font-weight:750;padding:10px 15px;cursor:pointer}.call-log-button:focus-visible,.call-log-close:focus-visible{outline:3px solid #428bff;outline-offset:3px}.call-log-dialog{width:min(1040px,calc(100vw - 32px));max-height:calc(100vh - 32px);padding:0;border:1px solid var(--line);border-radius:18px;background:var(--bg);color:var(--ink);box-shadow:0 24px 80px rgba(0,0,0,.32)}.call-log-dialog::backdrop{background:rgba(5,18,30,.68)}.call-log-shell{display:flex;flex-direction:column;max-height:calc(100vh - 34px)}.call-log-head{display:flex;justify-content:space-between;align-items:start;gap:20px;padding:20px 24px;border-bottom:1px solid var(--line);background:var(--panel)}.call-log-head h2{margin:0 0 4px;font-size:24px}.call-log-head p{margin:0;color:var(--muted)}.call-log-body{padding:22px 24px;overflow:auto}.call-log-priority{display:grid;grid-template-columns:1fr 1fr;gap:16px}.call-log-card{min-width:0;border:1px solid var(--line);border-radius:13px;background:var(--panel);padding:16px}.call-log-card h3{margin:0 0 10px;font-size:17px}.call-log-card pre{margin:0;max-height:340px}.call-log-error{border-left:4px solid var(--bad)}.call-log-empty{padding:14px;border-radius:9px;background:var(--panel2);line-height:1.65}.call-log-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0}.call-log-fact{padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}.call-log-fact b,.call-log-fact span{display:block}.call-log-fact b{font-size:12px;color:var(--muted);margin-bottom:4px}.call-log-section{margin-top:18px}.call-log-section h3{margin:0 0 9px}.call-log-section details{border-top:1px solid var(--line)}.call-log-section summary{cursor:pointer;color:var(--accent);font-weight:700}.call-log-availability{margin:0 0 18px}.call-log-private{color:var(--muted);font-size:13px}@media(max-width:700px){.call-log-priority,.call-log-facts{grid-template-columns:1fr}.call-log-head,.call-log-body{padding:16px}.call-log-close{white-space:nowrap}}
+.wmb-controls{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:12px;margin:18px 0}.wmb-controls label{display:grid;gap:5px;color:var(--muted);font-size:13px;font-weight:700}.wmb-controls select,.wmb-controls input{width:100%;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink);font:inherit}.wmb-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.wmb-toolbar button{border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:8px 12px;color:var(--ink);cursor:pointer}.wmb-scroll-note{margin:8px 0;color:var(--muted);font-size:13px}.wmb-table-wrap{max-height:72vh;overflow:auto;scrollbar-gutter:stable}.wmb-table{min-width:1580px}.wmb-table th,.wmb-table td{white-space:nowrap}.wmb-table td:nth-child(2){min-width:250px;max-width:250px;overflow:hidden;text-overflow:ellipsis}.wmb-table td:nth-child(3){min-width:125px}.wmb-table td:last-child{min-width:105px}.wmb-table a{font-weight:700}.wmb-metric-note{margin:0 0 16px}.wmb-attempt-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.wmb-attempt-summary .card{grid-column:auto}.wmb-attempt-summary .card b{display:block;font-size:12px;color:var(--muted)}.wmb-attempt-summary .card strong{display:block;font-size:20px}.wmb-diagnostic{font-size:13px;color:var(--muted)}.wmb-evidence pre{max-height:65vh}.wmb-evidence .evidence-pane{min-width:0}.wmb-evidence .evidence-pane .pane-body{padding:14px}.wmb-pill{display:inline-block;padding:2px 8px;border-radius:99px;background:var(--panel2);font-size:12px}.wmb-pill.failure{background:var(--failure-bg);color:var(--bad)}.wmb-pill.success{background:var(--success-bg);color:var(--good)}@media(max-width:950px){.wmb-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.wmb-attempt-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:700px){.wmb-controls,.wmb-attempt-summary,.wmb-evidence{grid-template-columns:1fr}.wmb-table-wrap{max-height:65vh}.wmb-table{min-width:1450px}}
+.wmb-table th:first-child,.wmb-table td:first-child{position:sticky;left:0;z-index:2;min-width:58px;background:var(--panel)}.wmb-table th:nth-child(2),.wmb-table td:nth-child(2){position:sticky;left:58px;z-index:2;min-width:320px;max-width:none;overflow:visible;text-overflow:clip;background:var(--panel)}.wmb-table th:first-child,.wmb-table th:nth-child(2){z-index:4}
+.wmb-controls{scroll-margin-top:76px}
+.wmb-source-pre{max-height:500px;overflow:auto;white-space:pre;scrollbar-gutter:stable}.wmb-attempt-summary{grid-template-columns:repeat(3,minmax(0,1fr));margin:16px 0}.wmb-evidence{align-items:start}.wmb-evidence .evidence-pane{align-self:start}.wmb-evidence pre{height:430px;max-height:50vh;overflow:auto;white-space:pre}.wmb-provenance{font-size:13px;color:var(--muted)}.wmb-provenance code{overflow-wrap:anywhere}.wmb-attempt-summary strong{overflow-wrap:anywhere}@media(max-width:700px){.wmb-attempt-summary{grid-template-columns:1fr}.wmb-evidence pre{height:300px}}
+@media(max-width:700px){.wmb-controls{scroll-margin-top:155px}.wmb-table th:first-child,.wmb-table td:first-child{min-width:40px}.wmb-table th:nth-child(2),.wmb-table td:nth-child(2){left:40px;min-width:310px}}
+@media(max-width:700px){.wmb-table td:nth-child(2) a{display:inline-block;max-width:278px;white-space:normal;overflow-wrap:anywhere}}
+.wmb-comparison-table{min-width:860px}.wmb-comparison-table th:nth-child(2),.wmb-comparison-table td:nth-child(2){min-width:170px}.wmb-comparison-table th:nth-child(3),.wmb-comparison-table td:nth-child(3){min-width:220px}.wmb-comparison-table th:nth-child(4),.wmb-comparison-table td:nth-child(4),.wmb-comparison-table th:nth-child(5),.wmb-comparison-table td:nth-child(5){min-width:245px}.wmb-comparison-table .outcome-pill{margin:3px}.method-comparison .table-wrap{max-height:70vh;overflow:auto}.wmb-comparison-table thead th{position:sticky;top:0;z-index:2}.wmb-guide-nav{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0}.wmb-guide-nav a{padding:8px 12px;border:1px solid var(--line);border-radius:999px;text-decoration:none;background:var(--panel)}.wmb-guide-lead{max-width:900px;font-size:18px;line-height:1.75}.wmb-comparison-table .outcome-list{display:flex;flex-wrap:wrap}
+.method-comparison .comparison-controls{grid-template-columns:repeat(4,minmax(145px,1fr))}@media(max-width:760px){.method-comparison .comparison-controls{grid-template-columns:1fr}}
+.wide-prose-table{min-width:1600px;table-layout:fixed}.wide-prose-table th,.wide-prose-table td{vertical-align:top;overflow-wrap:anywhere;line-height:1.6}.wide-prose-table th:nth-child(2),.wide-prose-table td:nth-child(2){width:190px}.wide-prose-table th:nth-child(3),.wide-prose-table td:nth-child(3){width:230px}.wide-prose-table th:nth-child(4),.wide-prose-table td:nth-child(4){width:280px}.wide-prose-table th:nth-child(5),.wide-prose-table td:nth-child(5){width:250px}.wide-prose-table th:nth-child(6),.wide-prose-table td:nth-child(6){width:280px}.wide-prose-table th:nth-child(7),.wide-prose-table td:nth-child(7){width:370px}.wide-prose-table a{display:inline-block;max-width:100%}.wide-prose-table+.source-note{margin-top:8px}.wmb-slice-controls{display:grid;grid-template-columns:repeat(3,minmax(190px,1fr));gap:12px;margin:18px 0}.wmb-slice-controls label{display:grid;gap:6px;font-weight:700;color:var(--muted)}.wmb-slice-controls select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink);font:inherit}.wmb-slice-table{min-width:1320px;white-space:nowrap}.wmb-slice-table-wrap{max-height:70vh;overflow:auto}.wmb-slice-table th{position:sticky;top:0;background:var(--panel2);z-index:2}@media(max-width:700px){.wmb-slice-controls{grid-template-columns:1fr}}
+.wmb-guide-example-table{min-width:1100px;white-space:nowrap}
+.wide-prose-table{min-width:1720px}
+.wmb-profile-table{min-width:2250px}.wmb-profile-table th:nth-child(8),.wmb-profile-table td:nth-child(8){width:150px;white-space:nowrap}.wmb-profile-table th:nth-child(9),.wmb-profile-table td:nth-child(9){width:450px;white-space:normal}
+.wmb-failure-detail-table{min-width:1160px;table-layout:fixed}.wmb-failure-detail-table th:nth-child(1),.wmb-failure-detail-table td:nth-child(1){width:140px}.wmb-failure-detail-table th:nth-child(2),.wmb-failure-detail-table td:nth-child(2){width:350px}.wmb-failure-detail-table th:nth-child(3),.wmb-failure-detail-table td:nth-child(3){width:250px}.wmb-failure-detail-table td{vertical-align:top;overflow-wrap:anywhere}
+.metric-value{display:block}.tiny{display:block;color:var(--muted);font-size:11px;font-weight:500;margin-top:3px}.wmb-core-table{min-width:1280px;white-space:nowrap}.wmb-distribution-controls{display:grid;grid-template-columns:minmax(220px,360px) 1fr;gap:16px;align-items:end;margin:18px 0}.wmb-distribution-controls label{display:grid;gap:6px;font-weight:700;color:var(--muted)}.wmb-distribution-controls select{padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink);font:inherit}.wmb-flow{overflow:auto;border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:18px}.wmb-flow .mermaid{min-width:980px}.wmb-flow-fallback{display:flex;gap:8px;align-items:center;min-width:900px}.wmb-flow-fallback span{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}.wmb-flow-fallback b{color:var(--accent)}@media(max-width:700px){.wmb-distribution-controls{grid-template-columns:1fr}.wmb-flow{padding:12px}.wmb-flow-fallback{min-width:0;flex-direction:column;align-items:stretch}.wmb-flow-fallback span{width:100%}}
+'''
+
+EXTRA+='''
+.wmb-editorial{max-width:860px}.wmb-editorial .essay-head{max-width:820px}.wmb-editorial .lead strong{color:var(--good)}.wmb-verdict-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:24px 0}.wmb-verdict{padding:18px;border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:13px;background:var(--panel)}.wmb-verdict:nth-child(2){border-top-color:var(--violet)}.wmb-verdict:nth-child(3){border-top-color:var(--lime)}.wmb-verdict b,.wmb-verdict span{display:block}.wmb-verdict b{font-size:20px}.wmb-verdict span{margin-top:7px;color:var(--muted);font-size:13px;line-height:1.65}.wmb-score-formula{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:24px 0}.wmb-score-part{padding:14px 10px;border:1px solid var(--line);border-radius:11px;background:var(--panel);text-align:center}.wmb-score-part b,.wmb-score-part span,.wmb-score-part small{display:block}.wmb-score-part b{font-size:21px;color:var(--accent)}.wmb-score-part span{font-size:12px;font-weight:700}.wmb-score-part small{margin-top:5px;color:var(--muted)}.wmb-score-result{grid-column:1/-1;padding:14px 16px;border-radius:11px;background:var(--accent-soft);font-weight:750;text-align:center}.wmb-case-study{margin:26px 0;padding:22px;border:1px solid var(--line);border-radius:15px;background:var(--panel)}.wmb-case-study>header{display:flex;align-items:start;justify-content:space-between;gap:18px;margin-bottom:16px}.wmb-case-study h3{margin:0}.wmb-case-study>header p{margin:5px 0 0;color:var(--muted);font-size:13px}.wmb-case-study>header a{white-space:nowrap;font-size:13px}.wmb-evidence-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}.wmb-evidence-pair article{min-width:0;padding:15px;border-radius:10px;background:var(--panel2)}.wmb-evidence-pair h4{margin:0 0 8px}.wmb-evidence-pair pre{margin:0;max-height:260px;font-size:12px;line-height:1.6}.wmb-case-stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.wmb-case-stats span{padding:5px 9px;border-radius:999px;background:var(--accent-soft);font-size:12px}.wmb-cause-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:22px 0}.wmb-cause-grid article{padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}.wmb-cause-grid b{display:block;font-size:24px;color:var(--accent)}.wmb-cause-grid span{display:block;margin-top:6px;font-weight:700}.wmb-cause-grid p{margin:7px 0 0;color:var(--muted);font-size:13px;line-height:1.65}.wmb-choice-table{min-width:760px}.wmb-choice-table td:nth-child(2){font-weight:750}.wmb-editorial .source-note a{font-weight:650}@media(max-width:720px){.wmb-verdict-grid,.wmb-score-formula,.wmb-cause-grid,.wmb-evidence-pair{grid-template-columns:1fr}.wmb-score-result{grid-column:auto}.wmb-case-study{padding:16px}.wmb-case-study>header{display:block}.wmb-case-study>header a{display:inline-block;margin-top:8px}.wmb-editorial .editorial-table table{min-width:760px}}
+'''
+
+EXTRA+='''
+.wmb-html-preview{display:block;width:100%;height:65vh;min-height:360px;border:1px solid var(--line);border-radius:12px;background:white}.wmb-scope-map,.wmb-table-examples{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.wmb-scope-map article,.wmb-table-examples article{min-width:0;padding:18px;background:var(--panel);border:1px solid var(--line);border-radius:12px}.wmb-scope-map b{color:var(--accent)}.wmb-scope-map p,.wmb-table-examples p{font-size:14px;line-height:1.65;margin-bottom:0}.wmb-table-examples pre{height:150px;overflow:auto;font-size:12px}.wmb-table-render{min-height:145px;overflow:auto}.wmb-table-render table{width:100%;min-width:0}.wmb-table-render th,.wmb-table-render td{padding:8px;border:1px solid var(--line)}.wmb-table-examples h3{font-size:18px;margin:0 0 14px}.wmb-input-routes{display:grid;grid-template-columns:1fr 1fr;gap:14px}.wmb-input-routes article{border-left:4px solid var(--accent);background:var(--panel);padding:16px}.wmb-input-routes code{display:block;overflow-wrap:anywhere;margin:12px 0}.wmb-source-pre{max-height:60vh;overflow:auto}@media(max-width:720px){.wmb-scope-map,.wmb-table-examples,.wmb-input-routes{grid-template-columns:1fr}}
 '''
 
 def esc(s):return html.escape(str(s if s is not None else ''))
@@ -235,10 +275,11 @@ def cell(value,sort=None):return f'<td'+(f' data-sort="{sort}"' if sort is not N
 def rate(a,b):return pct(a/b) if b else '—'
 def section(title,body,id=''):return f'<section class="section"'+(f' id="{id}"' if id else '')+f'><div class="wrap"><h2>{title}</h2>{body}</div></section>'
 def hero(title,desc):return f'<section class="hero"><div class="wrap"><div class="eyebrow">Web Fetch · 实测报告</div><h1>{title}</h1><p class="lead">{desc}</p></div></section>'
-def table(headers,rows,id='',sortable=False,cls='',metrics=None,index_header='序号'):
+def table(headers,rows,id='',sortable=False,cls='',metrics=None,index_header='序号',default_sort=None):
  head=f'<th>{esc(index_header)}</th>'+''.join(f'<th><button class="sort-button" onclick="sortTable(\'{id}\',{i+1})">{h} ↕</button></th>' if sortable else f'<th>{h}</th>' for i,h in enumerate(headers))
  body=''.join(f'<tr{attrs}><td>{i+1}</td>{values}</tr>' for i,(attrs,values) in enumerate(rows))
- return metric_legend(headers if metrics is None else metrics)+f'<div class="table-wrap"><table class="{cls}"'+(f' id="{id}"' if id else '')+f'><thead><tr>{head}</tr></thead><tbody'+(' id="rows"' if id=='filtered-table' else '')+f'>{body}</tbody></table></div>'
+ sort_attrs=(f' data-col="{default_sort[0]}" data-dir="{default_sort[1]}"' if default_sort else '')
+ return metric_legend(headers if metrics is None else metrics)+f'<div class="table-wrap"><table class="{cls}"'+(f' id="{id}"' if id else '')+sort_attrs+f'><thead><tr>{head}</tr></thead><tbody'+(' id="rows"' if id=='filtered-table' else '')+f'>{body}</tbody></table></div>'
 EXTRA+='\n.change-log section{padding:24px 0}.change-log h2{font-size:24px}.change-log p{margin:10px 0;line-height:1.75}.change-log summary{font-weight:650;color:var(--accent)}.change-log .table-wrap{overflow-x:auto}\n'
 
 _RELIABILITY_BANNER=''
@@ -252,6 +293,153 @@ def write(out,path,title,body):
  footer='所有分数由本轮调用记录计算。网页与服务可能变化；结论仅适用于本轮样本和配置。'
  page=f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}'+''.join(link(base+url,label) for url,label in nav)+f'{language}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main>{_RELIABILITY_BANNER}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
  target=contained_path(out,path);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
+
+_RESEARCH_ROUTES=[
+ ('datasets/index.html','评测集','Datasets'),
+ ('methodology/index.html','评测方法','Methodology'),
+ ('analysis/index.html','调研结论','Research findings'),
+ ('review/index.html','核验记录','Verification'),
+ ('guide/index.html','报告解读','Guide'),
+ ('adoption/index.html','采用情况','Adoption'),
+ ('reproduce/index.html','环境与复现','Reproduction'),
+ ('changes/index.html','变更记录','Changes'),
+ ('accounts/index.html','账号与安装','Accounts and setup'),
+]
+
+def _research_links(urls):
+ return '<br>'.join(link(url,url.replace('https://','')) for url in urls)
+
+def _research_hero(title,desc,english=False):
+ eyebrow='Web Fetch · Research report' if english else 'Web Fetch · 调研报告'
+ return f'<section class="hero"><div class="wrap"><div class="eyebrow">{eyebrow}</div><h1>{title}</h1><p class="lead">{desc}</p></div></section>'
+
+def _research_write(out,path,title,body,english=False):
+ local_path=('en/'+path) if english else path
+ depth=len(Path(local_path).parts)-1;base='../'*depth
+ nav=''.join(link(base+('en/' if english else '')+url,en if english else zh) for url,zh,en in _RESEARCH_ROUTES)
+ brand=link(base+('en/index.html' if english else 'index.html'),'Web Fetch')
+ counterpart=base+path if english else base+'en/'+path
+ language=f'<a href="{safe_href(counterpart)}" hreflang="{"zh-CN" if english else "en"}">{"中文" if english else "English"}</a>'
+ status=('Research edition · 0 measured results' if english else '调研版 · 0 条实测结果')
+ footer=('Research was verified from public papers, repositories, datasets and scorers. No benchmark result is claimed in this edition.' if english else '调研依据为公开论文、仓库、数据和评分器；本版不声称任何实测成绩。')
+ page=f'<!doctype html><html lang="{"en" if english else "zh-CN"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}{nav}{language}<button class="theme-toggle" onclick="theme()">{"Theme" if english else "切换主题"}</button></nav></header><main><div class="wrap reliability" role="status"><strong>{status}</strong></div>{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
+ target=contained_path(out,local_path);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
+
+def generate_public_benchmark_research(out:Path,research:dict):
+ """Render the research-only public benchmark report with no measured-result paths."""
+ if research.get('status')!='research_only' or research.get('measured_results')!=0:
+  raise ValueError('Public benchmark research must explicitly contain zero measured results')
+ out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
+ (out/'assets/style.css').write_text(STYLE+EXTRA,encoding='utf-8')
+ (out/'assets/report.js').write_text(JS,encoding='utf-8')
+ direct=research['direct_benchmarks'];adjacent=research['adjacent_browser_benchmarks']
+ for english in (False,True):
+  def h(zh,en):return en if english else zh
+  def field(row,key):return row.get(key) if english else row.get(key+'_zh',row.get(key))
+  def research_table(headers,rows,**kwargs):return table(headers,rows,index_header=h('序号','No.'),**kwargs)
+  artifact_prefix='../../' if english else '../'
+  home=_research_hero(h('公开 Web Fetch 评测集调研','Public Web Fetch benchmark research'),h('已核对公开数据、官方评分器和采用证据；当前只定义下一轮实测边界。','Public data, official scorers and adoption evidence are verified; this edition only defines the next measurement boundary.'),english)
+  cards=''.join(f'<article class="card"><h3>{esc(x["name"])}</h3><p><b>{x["pages"]:,}</b> {h("页","pages")}</p><p>{esc(field(x,"scope"))}</p></article>' for x in direct)
+  qualification=research['decision']['qualification_en' if english else 'qualification_zh']
+  home+=section(h('结论','Decision'),f'<p class="callout success"><b>{h("选定：","Selected: ")}</b>{esc(research["decision"]["summary_en" if english else "summary_zh"])}</p><p>{esc(qualification)}</p>')
+  home+=section(h('候选基准','Candidate benchmarks'),'<div class="grid">'+cards+'</div>')
+  home+=section(h('当前状态','Current status'),f'<div class="review-summary"><article class="card"><h3>0</h3><p>{h("实测结果", "measured results")}</p></article><article class="card"><h3>{len(direct)}</h3><p>{h("直接赛道","direct tracks")}</p></article><article class="card"><h3>{len(adjacent)}</h3><p>{h("相关浏览器基准","adjacent browser benchmarks")}</p></article></div>')
+  _research_write(out,'index.html',h('公开评测集调研','Public benchmark research'),home,english)
+
+  rows=[]
+  for x in direct:
+   rows.append(('',cell(esc(x['name']))+cell(f'{x["pages"]:,}')+cell(esc(field(x,'metric')))+cell(esc(field(x,'aggregation')))+cell(esc(field(x,'maturity')))+cell(_research_links(x['sources']))))
+  datasets=_research_hero(h('评测集','Datasets'),h('只纳入能直接衡量网页主内容或 Markdown 转换的公开赛道。','Only public tracks that directly measure page main-content or Markdown conversion are included.'),english)
+  datasets+=section(h('主赛道','Primary tracks'),research_table([h('名称','Name'),h('页数','Pages'),h('官方指标','Official metric'),h('聚合','Aggregation'),h('成熟度','Maturity'),h('一手来源','Sources')],rows,metrics=[]))
+  decision_rows=[('',cell(esc(x['name']))+cell(esc(field(x,'disposition')))+cell(esc(x['license']))) for x in direct]
+  datasets+=section(h('选型结果','Selection result'),research_table([h('候选','Candidate'),h('处理','Disposition'),h('许可证','License')],decision_rows,metrics=[]))
+  subsets=next(x for x in direct if x['id']=='wceb')['subsets']
+  datasets+=section('WCEB '+h('组成','composition'),research_table([h('子集','Subset'),h('页数','Pages')],[('',cell(esc(name))+cell(f'{count:,}')) for name,count in subsets],metrics=[])+f'<p>{h("合计","Total")}: <b>{sum(x[1] for x in subsets):,}</b></p>')
+  wcxb=next(x for x in direct if x['id']=='wcxb')
+  datasets+=section('WCXB '+h('分层','stratification'),f'<p>{h("开发集 1,497 页，测试集 511 页；两个 split 的 HTML 和 ground truth 均已核对存在。","The development split has 1,497 pages and the test split 511; HTML and ground truth were verified present for both.")}</p><p>{h("页面类型：","Page types: ")}'+esc(', '.join(wcxb['page_types']))+'</p>')
+  frozen=research.get('frozen_sample')
+  if frozen:
+   distribution_rows=[]
+   for axis in frozen['sampling']['official_axes']:
+    parent_dist=frozen['parent_distribution'][axis];sample_dist=frozen['sample_distribution'][axis]
+    for category in sorted(set(parent_dist)|set(sample_dist)):
+     distribution_rows.append(('',cell(esc(axis))+cell(esc(category))+cell(str(parent_dist.get(category,0)))+cell(str(sample_dist.get(category,0)))))
+   datasets+=section(h('已冻结的 200 例分布','Frozen 200-case distribution'),f'<p>{h("母集与样本分类计数如下；稀有语言只有 1–2 例，不应据此下语言能力结论。","Parent and sample counts follow. Rare languages have only one or two cases and do not support language-capability claims.")} {link(artifact_prefix+"sample-manifest.json",h("完整清单 JSON →","Full manifest JSON →"))}</p>'+research_table([h('轴','Axis'),h('分类','Category'),h('母集 545','Parent 545'),h('样本 200','Sample 200')],distribution_rows,metrics=[]))
+  embedded=''.join(f'<article class="guide-card"><h3>{esc(x["name"])}</h3><p>{esc(field(x,"disposition"))}</p><p>{_research_links(x["sources"])}</p></article>' for x in research['embedded_or_supplementary'])
+  datasets+=section(h('嵌入集与补充集','Embedded and supplementary sets'),'<div class="guide-grid">'+embedded+'</div>')
+  _research_write(out,'datasets/index.html',h('评测集','Datasets'),datasets,english)
+
+  method=_research_hero(h('评测方法','Methodology'),h('尊重每个公开基准的原始数据、预处理、评分器和分母。','Preserve each benchmark\'s original data, preprocessing, scorer and denominator.'),english)
+  contract=research['next_run_contract' if english else 'next_run_contract_zh']
+  rules=''.join(f'<li><b>{i+1}</b><span>{esc(rule)}</span></li>' for i,rule in enumerate(contract))
+  method+=section(h('冻结合同','Frozen contract'),'<ol class="quality-steps">'+rules+'</ol>')
+  sampling=research['sampling_contract']
+  sample_text=(f'{sampling["size"]} · {esc(sampling["seed"])} · '+esc(sampling['reason' if english else 'reason_zh']))
+  method+=section(h('200 例抽样合同','200-case sampling contract'),f'<p><b>{sample_text}</b></p><p>{h("官方分层轴：","Official axes: ")}<code>{esc(", ".join(sampling["official_axes"]))}</code></p><p>{h("算法：","Algorithm: ")}{esc(sampling["algorithm"])}</p>')
+  no_combined=h('公开 200 例使用 WebMainBench-545 的官方分项；现有 150 例继续回答真实访问、资源、动态渲染与时延。两套结果并列，不做重标度综合分。',"The public 200 cases use WebMainBench-545's official components; the current 150 cases continue to measure live access, resources, dynamic rendering and latency. Show both without a rescaled combined score.")
+  method+=section(h('不可混分','No synthetic combined score'),'<p>'+no_combined+'</p>')
+  _research_write(out,'methodology/index.html',h('评测方法','Methodology'),method,english)
+
+  analysis=_research_hero(h('调研结论','Research findings'),h('有直接公开基准，但没有一个基准同时覆盖“现场访问成功”与“抽取内容质量”。','Direct public benchmarks exist, but none jointly isolate live access success and extraction quality.'),english)
+  analysis+=section(h('最小完整方案','Smallest complete design'),f'<p>{esc(research["decision"]["summary_en" if english else "summary_zh"])}</p><p>{h("公开集提供冻结 HTML，所以回答“同一输入下抽取和 Markdown 转换怎样”；现有 150 例继续回答真实 URL 到结果的端到端能力。","The public set freezes HTML and answers extraction/Markdown fidelity on identical input; the current 150 cases continue to answer end-to-end URL-to-output capability.")}</p>')
+  limitations='<ul>'+''.join('<li>'+esc(x)+'</li>' for x in wcxb['limitations' if english else 'limitations_zh'])+'</ul>'
+  analysis+=section('WCXB '+h('实查与处理','audit and disposition'),f'<p>{esc(field(wcxb,"disposition"))}</p>'+limitations)
+  current=research['current_benchmark']
+  track_text=' · '.join(f'{name} {count}' for name,count in current['tracks'].items())
+  analysis+=section(h('与现有 150 例的关系','Relationship to the current 150 cases'),f'<p><b>{esc(track_text)}</b></p><p>{esc(field(current,"measures"))}</p><p>{esc(field(current,"difference"))}</p>')
+  fusion_rows=[('',cell(esc(field(x,'layer')))+cell(esc(field(x,'keep')))) for x in research['fusion_plan']]
+  analysis+=section(h('融合的是流程与诊断，不是总分','Fuse process and diagnostics, not scores'),research_table([h('层','Layer'),h('采用方案','Decision')],fusion_rows,metrics=[]))
+  analysis+=section(h('不纳入主榜的工作','What stays outside the main leaderboard'),f'<p>{h("WebArena、Mind2Web、WebVoyager 和 BrowseComp 都是重要的浏览器/搜索基准，但它们测行为决策、任务完成或研究问答，不能把差异归因到 Web Fetch 层。","WebArena, Mind2Web, WebVoyager and BrowseComp matter for browser/search systems, but score actions, task completion or research QA and cannot attribute differences to the fetch layer.")}</p>')
+  _research_write(out,'analysis/index.html',h('调研结论','Research findings'),analysis,english)
+
+  review=_research_hero(h('核验记录','Verification'),h('这是来源核验，不是结果复核。','This verifies sources, not benchmark results.'),english)
+  audit=next(x for x in direct if x['id']=='wceb')['download_audit']
+  review+=section(h('已核对','Verified'),f'<p>{h("核对日期","Checked")}: {esc(research["verified_at"])}</p><p>WCEB <code>{esc(audit["artifact"])}</code>: {audit["bytes"]:,} bytes · SHA-256 <code class="break">{audit["sha256"]}</code> · {audit["observed_pages"]:,} {h("页","pages")}</p><p>BrowseComp: 1,266 {h("数据行（不含表头）","data rows excluding the header")}</p>')
+  repo_audit=wcxb['repository_audit']
+  review+=section('WCXB '+h('全量仓库实查','full repository audit'),f'<p>dev: {repo_audit["development_html"]:,} HTML / {repo_audit["development_ground_truth"]:,} ground truth · test: {repo_audit["test_html"]:,} HTML / {repo_audit["test_ground_truth"]:,} ground truth</p><p>{h("空正文","Empty main content")}: {repo_audit["empty_main_content"]} · with mismatch: {esc(repo_audit["with_snippets_not_in_main_content"])} · without mismatch: {esc(repo_audit["without_snippets_present_in_main_content"])} · test result rows: {repo_audit["published_test_result_rows"]}/{repo_audit["official_test_rows"]}</p>')
+  selected=next(x for x in direct if x['id']=='webmainbench-545')
+  scorer_items=''.join('<li>'+esc(item)+'</li>' for item in selected['scorer_audit' if english else 'scorer_audit_zh'])
+  review+=section('WebMainBench-545 '+h('评分器实查','scorer audit'),'<ul>'+scorer_items+'</ul>')
+  if frozen:
+   qa=frozen['quality_audit']
+   review+=section('WebMainBench-545 '+h('发布文件全量实查','released-file full audit'),f'<p>{frozen["parent"]["bytes"]:,} bytes · SHA-256 <code class="break">{esc(frozen["parent"]["sha256"])}</code> · {frozen["case_count"]} {h("例已冻结","cases frozen")}</p><p>groundtruth_content empty: {qa["empty_groundtruth_content"]}/545 · HTML empty: {qa["empty_html"]}/545 · main_html empty: {qa["empty_main_html"]}/545 · convert_main_content empty: {qa["empty_convert_main_content"]}/545 · style non-null: {qa["non_null_style"]}/545 · language non-null: {qa["non_null_language"]}/545</p>')
+  review+=section(h('未开始','Not started'),f'<p class="callout">{h("实测结果、排名、分数和独立结果审查均为 0。","Measured results, rankings, scores and independent result reviews are all zero.")}</p>')
+  _research_write(out,'review/index.html',h('核验记录','Verification'),review,english)
+
+  guide=_research_hero(h('报告解读','Guide'),h('这一版回答“该测什么”，还不回答“谁更好”。','This edition answers what to test, not which method wins.'),english)
+  guide+=section(h('阅读顺序','Reading order'),f'<div class="guide-grid"><article class="guide-card"><h3>1 · {h("选型","Selection")}</h3><p>{h("看为什么唯一选择 WebMainBench-545。","See why WebMainBench-545 is the sole selection.")}</p></article><article class="guide-card"><h3>2 · {h("抽样","Sampling")}</h3><p>{h("看 200 例如何覆盖官方分类。","See how 200 cases cover official categories.")}</p></article><article class="guide-card"><h3>3 · {h("采用","Adoption")}</h3><p>{h("区分真实使用、集成和仅提及。","Separate execution, integration and mere mentions.")}</p></article><article class="guide-card"><h3>4 · {h("实测","Measurement")}</h3><p>{h("完整分母和复核通过后才出排名。","Rank only after complete denominators and review.")}</p></article></div>')
+  _research_write(out,'guide/index.html',h('报告解读','Guide'),guide,english)
+
+  adoption=_research_hero(h('采用情况','Adoption'),h('用论文、实际评测仓库和基准框架证明采用；Star 只做背景。','Adoption is evidenced by papers, executable benchmark repositories and framework integrations; stars are context only.'),english)
+  adoption+=section(h('证据边界','Evidence boundary'),f'<p>{h("已核对到论文运行、开源项目适配和可执行评测仓库；没有找到可独立核验的商业生产部署数量，因此报告不把“支持某抽取器”或搜索命中写成商业采用。","Verified evidence covers paper runs, open-source adapters and executable benchmark repositories. No independently auditable commercial production-deployment count was found, so extractor support and search hits are not presented as commercial adoption.")}</p>')
+  adoption_rows=[]
+  for x in direct:
+   adoption_rows.append(('',cell(esc(x['name']))+cell('<br>'.join(esc(u) for u in x['users']))+cell(esc(field(x,'maturity')))+cell(_research_links(x['sources']))))
+  adoption+=section(h('直接基准','Direct benchmarks'),research_table([h('基准','Benchmark'),h('已核对使用者','Verified users'),h('判断','Assessment'),h('证据','Evidence')],adoption_rows,metrics=[]))
+  browser_rows=[('',cell(esc(x['name']))+cell(esc(field(x,'size')))+cell(esc(field(x,'measures')))+cell(esc(field(x,'adoption')))+cell(esc(field(x,'why_separate')))+cell(_research_links(x['sources']))) for x in adjacent]
+  adoption+=section(h('浏览器与搜索基准','Browser and search benchmarks'),research_table([h('名称','Name'),h('规模','Scale'),h('测量目标','Measures'),h('采用','Adoption'),h('为何分开','Why separate'),h('来源','Sources')],browser_rows,metrics=[]))
+  stars=[('',cell(esc(name))+cell(str(stars))+cell(str(forks))) for name,stars,forks in research['adoption_snapshot']['repositories']]
+  warning=research['adoption_snapshot']['warning' if english else 'warning_zh']
+  adoption+=section(h('GitHub 快照','GitHub snapshot'),f'<p class="source-note">{esc(warning)}</p>'+research_table([h('仓库','Repository'),'Stars','Forks'],stars,metrics=[]))
+  _research_write(out,'adoption/index.html',h('采用情况','Adoption'),adoption,english)
+
+  reproduce=_research_hero(h('环境与复现','Reproduction'),h('本版只复现调研报告，不触发供应商调用。','This edition only reproduces the research report and makes no provider calls.'),english)
+  reproduce+=section(h('构建','Build'),'<pre>make public-benchmark-research</pre>')
+  reproduce+=section(h('冻结 200 例清单','Freeze the 200-case manifest'),'<pre>make public-benchmark-sample SOURCE=/absolute/path/to/WebMainBench_545.jsonl</pre>')
+  if frozen: reproduce+=section(h('冻结产物','Frozen artifact'),f'<p>{link(artifact_prefix+"sample-manifest.json",h("下载 200 例清单 JSON →","Download the 200-case manifest JSON →"))}</p>')
+  reproduce+=section(h('下一轮需冻结','Freeze before measurement'),f'<p>{h("为每条赛道记录数据修订、评分器修订、环境、许可证和完整分母；供应商输出仍存 Git 外。","Record dataset and scorer revisions, environment, licenses and the complete denominator for each track; provider outputs remain outside Git.")}</p>')
+  _research_write(out,'reproduce/index.html',h('环境与复现','Reproduction'),reproduce,english)
+
+  changes=_research_hero(h('变更记录','Changes'),h('只记录读者可见的范围与口径。','Reader-visible scope and methodology changes only.'),english)
+  changes+=section('2026-09-14',f'<p>{h("完成候选实查并选定 WebMainBench-545；定义覆盖官方分类的固定 200 例抽样合同；补充 WCXB 全量标准答案/评分器问题、采用证据和与现有 150 例的分层融合方案。未加入供应商实测结果。","Completed candidate audits and selected WebMainBench-545; defined a fixed 200-case official-category coverage contract; added WCXB ground-truth/scorer findings, adoption evidence and a layered integration with the current 150 cases. No provider result was added.")}</p>')
+  _research_write(out,'changes/index.html',h('变更记录','Changes'),changes,english)
+
+  accounts=_research_hero(h('账号与安装','Accounts and setup'),h('调研版不需要供应商账号。','The research edition needs no provider account.'),english)
+  accounts+=section(h('当前要求','Current requirement'),f'<p class="callout success">{h("只读取已提交的调研与样本清单 JSON；不读取 .env、Token、Cookie 或个人登录态。","Only the committed research and sample-manifest JSON files are read; no .env, token, cookie or personal login state is used.")}</p>')
+  accounts+=section(h('实测阶段','Measurement phase'),f'<p>{h("届时按方法单独列出官方安装入口、版本和所需环境变量名，不公开值。","The measured edition will list official installation sources, versions and required environment-variable names per method, never their values.")}</p>')
+  _research_write(out,'accounts/index.html',h('账号与安装','Accounts and setup'),accounts,english)
+ (out/'research.json').write_text(json.dumps(research,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+ return out/'index.html'
 
 def succeeded(r,c):
  return task_passed(r['ok'],r['metrics'],c.get('task_kind','body'))
@@ -1244,3 +1432,595 @@ def write_support(out,records,manifests):
   write(out,'accounts/index.html','账号',hero('账号与凭据','只列官方入口和环境变量名称，不保存实际凭据。')+section('注册清单',table(['提供方','官方入口','环境变量','取得方式','免费 / 准入说明'],accountrows,cls='accounts-table')))
  from .report_methods import render_methods
  write(out,'adoption/index.html','方法介绍',render_methods(out,records,hero=hero,section=section,table=table,cell=cell,link=link,esc=esc))
+
+
+_WMB_ROUTES=[
+ ('datasets/index.html','评测集','Dataset'),('methodology/index.html','评测方法','Methodology'),
+ ('analysis/index.html','结果分析','Analysis'),('review/index.html','核验记录','Review'),
+ ('guide/index.html','报告解读','Guide'),('adoption/index.html','方法介绍','Methods'),
+ ('reproduce/index.html','环境与复现','Reproduction'),('changes/index.html','变更记录','Changes'),
+ ('accounts/index.html','账号与安装','Accounts and setup'),
+]
+
+
+def _wmb_html_preview(source,english=False):
+ from bs4 import BeautifulSoup
+ soup=BeautifulSoup(source,'html.parser')
+ # This is an inert reading view, never a replay of untrusted website scripts.
+ for node in soup.select('script,iframe,object,embed,base,meta,link,svg,math,video,audio,source'):
+  node.decompose()
+ for node in soup.find_all(True):
+  for attr in list(node.attrs):
+   if attr.lower().startswith('on') or attr.lower() in {'src','srcset','href','action','formaction','background','ping','xlink:href','srcdoc'}:
+    del node.attrs[attr]
+ for img in soup.find_all('img'):
+  placeholder=soup.new_tag('span')
+  placeholder.string=('[Image not loaded' if english else '［图片未加载')+(': '+img.get('alt','') if img.get('alt') else '')+(']' if english else '］')
+  img.replace_with(placeholder)
+ policy="default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; form-action 'none'; base-uri 'none'"
+ document='<meta http-equiv="Content-Security-Policy" content="'+html.escape(policy,quote=True)+'"><style>body{margin:20px;color:#172331;background:white;overflow-wrap:anywhere}img,table{max-width:100%}pre{white-space:pre-wrap}</style>'+str(soup)
+ title='Frozen HTML reading view' if english else '冻结 HTML 阅读视图'
+ return '<iframe class="wmb-html-preview" sandbox="" referrerpolicy="no-referrer" loading="lazy" title="'+title+'" srcdoc="'+html.escape(document,quote=True)+'"></iframe>'
+
+
+def _wmb_table_example(english=False):
+ h=lambda zh,en:en if english else zh
+ examples=[
+  (h('可识别，内容完整','Recognized, complete'), '| Name | Value |\n| --- | --- |\n| A | 10 |\n| B | 20 |', '<table><tr><th>Name</th><th>Value</th></tr><tr><td>A</td><td>10</td></tr><tr><td>B</td><td>20</td></tr></table>',h('进入表格比较；与参考完全相同时为满分。','Enters table comparison; an exact reference match scores full marks.')),
+  (h('可识别，但少一行','Recognized, one row missing'), '| Name | Value |\n| --- | --- |\n| A | 10 |', '<table><tr><th>Name</th><th>Value</th></tr><tr><td>A</td><td>10</td></tr></table>',h('仍然计分；缺失行和内容会扣分，不要求先完整恢复。','Still scored; missing content and structure reduce the score. Complete recovery is not a prerequisite.')),
+  (h('文字存在，表格未识别','Text exists, table not recognized'), 'Name Value A 10 B 20', '<p>Name Value A 10 B 20</p>',h('若参考有表格，两项表格分均为 0；这些文字仍参与 text_edit。','With a table in the reference, both table scores are zero; this text still contributes to text_edit.')),
+ ]
+ return '<div class="wmb-table-examples">'+''.join('<article><h3>'+title+'</h3><pre>'+esc(md)+'</pre><div class="wmb-table-render">'+rendered+'</div><p>'+note+'</p></article>' for title,md,rendered,note in examples)+'</div><p class="source-note">'+h('以上为规则示意，不是新增实测数据。网页看起来像表格还不够：评分器必须从输出中识别到表格。table_edit 比较规范化后的表格 HTML 字符串，TEDS 比较行、单元格及内容；两项都受结构缺失影响。','These are rule illustrations, not new measurements. A table-like appearance is insufficient: the scorer must recognize a table in the output. Table_edit compares normalized table HTML strings; TEDS compares rows, cells and content. Missing structure affects both.')+'</p>'
+
+
+def _wmb_editorial_guide(*,english,names,labels,cases,bycase,case_count,score,denom,
+                         failures):
+ # Editorial analysis of the frozen WMB-200 cohort published as
+ # ver_dab94ad9c17f4db6bec7bff98a82c660. Narrative numbers and selected examples
+ # are a reviewed snapshot: a new cohort/scoring revision requires re-reviewing
+ # this article, not merely substituting numbers into its recommendations.
+ def h(zh,en):return en if english else zh
+ fail_total=sum(len(failures(name)) for name in names)
+ body_total=case_count*len(names)-fail_total
+ common_low=sum(all(any(r['provider']==name and r.get('metrics',{}).get('text_edit',{}).get('success') and r['metrics']['text_edit']['score']<.1 for r in bycase[case_id]) for name in names) for case_id in cases)
+ def score_part(metric,label):
+  return '<div class="wmb-score-part"><span>'+esc(label)+'</span><b>'+_wmb_pct(score('kitesurf',metric))+'</b><small>n='+str(denom('kitesurf',metric))+' / '+str(case_count)+'</small></div>'
+ score_formula=''.join((score_part('text_edit',h('正文文字','Body text')),score_part('code_edit',h('代码','Code')),score_part('formula_edit',h('公式','Formula')),score_part('table_edit',h('表格内容与标记','Table content and markup')),score_part('table_TEDS',h('表格结构','Table structure'))))
+ score_formula+='<div class="wmb-score-result">'+h('五项均值再平均 = Kitesurf overall 32.4%','Mean of the five component means = Kitesurf overall 32.4%')+'</div>'
+ scope_case_id='c42e7f28-f109-459b-8423-2ce20f651ac9'
+ if scope_case_id in cases:
+  scope_rows=sorted(bycase[scope_case_id],key=lambda item:item['provider'])
+  scope_stats=''
+  for r in scope_rows:
+   metric=r.get('metrics',{}).get('text_edit',{})
+   length=(metric.get('details') or {}).get('predicted_text_length')
+   length_label=f'{length:,} '+h('字符','chars') if length is not None else h('长度未记录','Length not recorded')
+   scope_stats+='<span>'+esc(labels[r['provider']])+': '+_wmb_pct(metric.get('score'))+' · '+length_label+'</span>'
+  scope_example='<div class="wmb-case-study"><header><div><h3>Pantacordis scotinella</h3><p>'+h('同一张 Wikipedia 冻结页；人工答案 1,315 字符。','The same frozen Wikipedia page; the human reference has 1,315 characters.')+'</p></div>'+link('../datasets/'+scope_case_id+'.html',h('打开完整五方法对照','Open the complete five-method comparison'))+'</header><div class="wmb-evidence-pair"><article><h4>'+h('人工答案保留的正文','What the human reference keeps')+'</h4><pre># Pantacordis scotinella\n\nPantacordis scotinella is a moth of the family Autostichidae. It is found on Crete.\n\n## References</pre></article><article><h4>'+h('方法输出开头','How method output begins')+'</h4><pre>Main menu\nNavigation\n- Main page\n- Contents\n- Current events\n- Random article\n- About Wikipedia\n- Contact us\n- Donate\n\nContribute\n- Help\n- Learn to edit</pre></article></div><div class="wmb-case-stats">'+scope_stats+'</div></div>'
+ else:
+  scope_example='<p class="source-note">'+h('完整报告会在这里展示一页人工答案与五种输出的逐字证据。','The full report shows the human reference and five outputs for one page here.')+'</p>'
+ table_case_id='686205e4-4549-42ce-bf42-f285f941c868'
+ if table_case_id in cases:
+  table_rows=sorted(bycase[table_case_id],key=lambda item:-((item.get('metrics',{}).get('table_TEDS',{}).get('score') or 0)))
+  table_stats=''.join('<span>'+esc(labels[r['provider']])+': TEDS '+_wmb_pct(r.get('metrics',{}).get('table_TEDS',{}).get('score'))+'</span>' for r in table_rows)
+  table_example='<div class="wmb-case-study"><header><div><h3>'+h('Python 随机模块','Python random module')+'</h3><p>'+h('人工答案是一张两列表格，五种方法都返回了正文。','The reference contains a two-column table, and every method returned body text.')+'</p></div>'+link('../datasets/'+table_case_id+'.html',h('打开完整五方法对照','Open the complete five-method comparison'))+'</header><div class="wmb-evidence-pair"><article><h4>'+h('可以重新解析的 Markdown 表格','Parseable Markdown table')+'</h4><pre>| 方法 | 描述 |\n|---|---|\n| seed() | 初始化随机数生成器。 |\n| getstate() | 返回当前内部状态。 |\n| randint() | 返回给定范围之间的随机数。 |</pre></article><article><h4>'+h('Moli 返回的同一段内容','The same content from Moli')+'</h4><pre>方法描述seed()初始化随机数生成器。getstate()返回随机数生成器的当前内部状态。setstate()恢复随机数生成器的内部状态……</pre></article></div><div class="wmb-case-stats">'+table_stats+'</div></div>'
+ else:
+  table_example='<p class="source-note">'+h('完整报告会在这里展示同一表格的结构化输出与摊平文字。','The full report shows structured and flattened versions of the same table here.')+'</p>'
+ choice_rows=[
+  ('',cell(link('../providers/lightpanda.html','Lightpanda'))+cell(h('本轮分数与耗时折中','Score–latency balance in this cohort'))+cell(h('overall 31.7%，200/200 页有目标正文，均值 509 ms，表格结构分本轮最高。','31.7% overall, target body text on 200/200 pages, 509 ms mean, and the highest table-structure score in this run.'))+cell(h('公式语法被额外识别，公式分需逐页核对。','Formula syntax is over-recognized, so formula scores need page-level inspection.'))),
+  ('',cell(link('../providers/moli.html','Moli 1.1.5'))+cell(h('文字、代码和速度优先','Prioritize text, code and speed'))+cell(h('text_edit 40.3%、code_edit 79.4%，均值 153 ms。','40.3% text_edit, 79.4% code_edit, and 153 ms mean latency.'))+cell(h('40 个表格计分页的结构分全部为 0。','Table structure scores zero on all 40 scored table pages.'))),
+  ('',cell(link('../providers/kitesurf.html','Kitesurf'))+cell(h('严格按 overall 选最高分','Choose the highest overall score'))+cell(h('overall 32.4%，比 Lightpanda 高 0.7 个百分点。','32.4% overall, 0.7 percentage points above Lightpanda.'))+cell(h('195/200 页有目标正文，均值 4,151 ms。','Target body text on 195/200 pages and 4,151 ms mean latency.'))),
+  ('',cell(link('../providers/obscura.html','Obscura'))+cell(h('公式内容的备选核验','Formula-content follow-up'))+cell(h('formula_edit 30.8%，接近本轮最高。','30.8% formula_edit, near the top of this run.'))+cell(h('表格结构几乎为 0，且有 38 页只在输出侧识别出代码。','Table structure is near zero, with code recognized only in output on 38 pages.'))),
+  ('',cell(link('../providers/chromium.html','Chromium 152'))+cell(h('渲染 DOM 的本地基线','Local rendered-DOM baseline'))+cell(h('table_edit 25.7%，本轮最高；P95 1,052 ms。','25.7% table_edit, the highest in this run; P95 is 1,052 ms.'))+cell(h('overall 21.6%，代码和正文文字分较低。','21.6% overall, with lower code and body-text scores.'))),
+ ]
+ head='<div class="wrap essay"><article class="essay-body publication-article wmb-editorial" aria-labelledby="article-title"><header class="essay-head"><p class="eyebrow">Web Fetch · '+h('实测解读','Measured analysis')+'</p><h1 id="article-title">'+h('主内容提取得分为何不高：多余内容与表格结构的影响','Why main-content extraction scores are modest: extra content and table structure')+'</h1><p class="lead">'+h('Kitesurf 的 overall 最高，为 32.4%。Lightpanda 只低 0.7 个百分点，却在 200 页上都生成了目标正文，全部调用均值耗时是 509 ms，而 Kitesurf 为 4,151 ms。这些差异只反映冻结 HTML 转换与主内容参考的匹配程度，不能据此给实时 Web Fetch 或浏览器综合能力排名。','Kitesurf has the highest overall score at 32.4%. Lightpanda trails by only 0.7 percentage points, produces target body text on all 200 pages, and averages 509 ms across all calls versus 4,151 ms for Kitesurf. These differences describe frozen-HTML conversion against main-content references, not live Web Fetch or overall browser capability.')+'</p>'
+ head+='<div class="wmb-verdict-grid"><div class="wmb-verdict"><b>Lightpanda</b><span>'+h('平衡项：31.7% overall · 200/200 页有正文 · 509 ms 均值','Balanced: 31.7% overall · body on 200/200 pages · 509 ms mean')+'</span></div><div class="wmb-verdict"><b>Moli 1.1.5</b><span>'+h('速度项：153 ms 均值 · 文字和代码分最高 · 表格结构为 0','Speed: 153 ms mean · best text and code scores · zero table structure')+'</span></div><div class="wmb-verdict"><b>Kitesurf</b><span>'+h('总分项：32.4% overall · 195/200 页有正文 · 4,151 ms 均值','Aggregate: 32.4% overall · body on 195/200 pages · 4,151 ms mean')+'</span></div></div><p class="source-note">'+h('这是一轮固定 HTML 到 Markdown 的比较。原始 URL 没有实时抓取，结论不代表实时网站成功率。','This compares fixed HTML-to-Markdown conversion. Source URLs were not fetched live, so the result is not a live-site success rate.')+'</p></header>'
+ overall='<section id="overall"><h2>'+h('32.4% 不是“200 页里通过了 32.4%”','32.4% does not mean 32.4% of the 200 pages passed')+'</h2><p>'+h('官方程序先分别计算正文文字、代码、公式、表格内容与标记、表格结构五个均值，再把五个均值做算术平均。每个分项只纳入该项成功算出分数的页面，所以分母不同。下面是 Kitesurf 的实际计算。','The official program first computes five means for body text, code, formulas, table content and markup, and table structure, then averages those five means. Each component includes only pages where that component returned a score, so the denominators differ. Kitesurf is the concrete example below.')+'</p><div class="wmb-score-formula">'+score_formula+'</div><p>'+h('代码只有 40 页进入均值，公式是 109 页，表格是 76 页。两侧都没有该类内容时，这一页不进入该分项；只有一侧出现时，以 0 分进入。overall 因而是结构保真度的综合读数，没有官方统一的逐页及格线。','Code uses 40 pages, formulas 109, and tables 76. If neither side contains that content type, the page is omitted from the component. If only one side contains it, the page enters with a zero. Overall is therefore a composite fidelity measure. The official benchmark does not define one universal page-level pass threshold.')+'</p><p class="source-note">'+link('../methodology/index.html',h('查看评分流程和确定分支','See the scoring flow and exact branches'))+' · '+link('../analysis/index.html',h('查看五种方法的完整分项','See all component results'))+'</p></section>'
+ scope='<section id="scope"><h2>'+h('文字低分首先反映了“整页”和“主内容”的范围差','Low text scores first expose a scope gap between the whole page and main content')+'</h2><p>'+h(f'{common_low} 页在五种方法上都低于 10%。这些页面不是普遍没有响应。人工答案保留文章或目标区域，原生转换却把导航、账号入口、页脚和推荐内容一起写入 Markdown。评分比较的是完整字符串，这些额外文字会拉大编辑距离。',f'{common_low} pages score below 10% on all five methods. These are not generally empty responses. Human references keep the article or target region, while native conversion includes navigation, account links, footers and recommendations. The scorer compares complete strings, so the additional text increases edit distance.')+'</p>'+scope_example+'<p>'+h('这个现象跨越五种实现，不能归为某一款浏览器故障。它说明本轮同时测到了页面转换和正文选择，而五种方法没有使用统一的主内容选择器。若产品只需要正文，下一轮应先固定同一套正文范围，再比较转换质量。','The pattern spans all five implementations, so it is not a defect in one browser. This run measures both page conversion and main-content selection, without a shared content selector across methods. A follow-up for article extraction should first fix one content scope, then compare conversion quality.')+'</p></section>'
+ tables='<section id="tables"><h2>'+h('表格文字还在，不代表表格还能被程序读取','Keeping table words does not preserve a machine-readable table')+'</h2><p>'+h('两项都先从 Markdown 识别表格。table_edit 比较规范化的表格 HTML 字符串；table_TEDS 比较表格、行、单元格及内容。没有表头分隔线和单元格边界时，文字仍能被人读到，程序却不能还原原表格。','Both metrics first recognize tables in Markdown. Table_edit compares normalized table HTML strings; table_TEDS compares tables, rows, cells and content. Without a header separator and cell boundaries, people may still read the words, but software cannot reconstruct the original table.')+'</p>'+table_example+'<p>'+h('这也解释了 Moli 的 40 个表格结构分为什么全部为 0：正文并不为空，表格被压成了普通文字。Kitesurf、Lightpanda 和 Chromium 能在这个例子中保留结构，但全 200 页聚合后的 table_TEDS 仍只有 14.4% 到 16.2%，因此本轮没有可称为可靠表格抽取器的方法。','This explains why Moli scores zero on all 40 table-structure pages: the body is present, but the table is flattened into ordinary text. Kitesurf, Lightpanda and Chromium preserve this example, yet their aggregate table_TEDS across the full run is only 14.4% to 16.2%. None is a reliable table extractor in this evaluation.')+'</p><p class="source-note">'+link('../review/index.html',h('查看 TEDS 修正与原始分保留','See the TEDS correction and retained original scores'))+'</p></section>'
+ delivery='<section id="delivery"><h2>'+h(f'{body_total:,} 次有目标正文，另外 {fail_total} 次要按根因处理',f'{body_total:,} calls produced target body text; the other {fail_total} need cause-specific treatment')+'</h2><p>'+h('没有正文的结果集中在 6 个页面，逐页删减对照把它们分成三类。这里没有统一的“网络失败”：页面脚本、隔离边界和服务复杂度上限需要不同修复。','The missing-body results concentrate in six pages. Page-level ablation controls separate them into three groups. There is no single generic network-failure bucket: page scripts, isolation boundaries and service complexity limits require different fixes.')+'</p><div class="wmb-cause-grid"><article><b>4</b><span>'+h('页面脚本与运行环境冲突','Page-script/runtime conflicts')+'</span><p>'+h('缺失外部函数、错误的防框架判断、查询参数重载。删改对应脚本后，对照输入可以完成。','Missing external functions, a faulty anti-frame condition and a query reload. Controls complete after the triggering script is changed.')+'</p></article><article><b>3</b><span>'+h('冻结页主动跳回原站','Frozen page navigates to the source site')+'</span><p>'+h('Moli、Obscura 和 Chromium 离开隔离夹具后被网络规则阻断；Kitesurf 与 Lightpanda 留在当前页。','Moli, Obscura and Chromium leave the isolated fixture and are blocked by the network contract; Kitesurf and Lightpanda remain on the page.')+'</p></article><article><b>2</b><span>'+h('表格或 DOM 复杂度触发服务边界','Table or DOM complexity hits a service boundary')+'</span><p>'+h('删减表格后 Kitesurf 可以完成。Cloudflare 没有公开内部阈值，所以证据只能定位到触发内容类型。','Kitesurf completes after table reduction. Cloudflare does not expose the internal threshold, so evidence stops at the triggering content class.')+'</p></article></div><p class="source-note">'+link('../analysis/index.html#inspect?request=failed',h('打开 9 条没有正文的结果','Open the 9 missing-body results'))+' · '+link('../review/index.html',h('查看逐页对照和证据边界','See page-level controls and evidence boundaries'))+'</p></section>'
+ decision='<section id="decision"><h2>'+h('先按交付目标选候选，再做真实 URL 复测','Choose candidates by delivery target, then rerun on live URLs')+'</h2><p>'+h('本轮给出的最小可用选择是：本轮分数与耗时折中可看 Lightpanda；文字、代码和低延迟先看 Moli；若项目必须严格沿用官方 overall 排序，则 Kitesurf 排第一。表格结构是所有方法的共同弱项，不能只靠换一个浏览器解决。','The smallest useful choice from this run is: start with Lightpanda for score–latency balance in this cohort, Moli for text, code and low latency, and Kitesurf when the official overall ranking is the governing objective. Table structure is a shared weakness and will not be solved by switching browsers alone.')+'</p><p class="editorial-table-hint">'+h('表格可横向滚动查看全部列。','Scroll horizontally to see all columns.')+'</p>'+table([h('方法','Method'),h('适合先验证的场景','Best follow-up role'),h('本轮依据','Evidence from this run'),h('主要代价','Main tradeoff')],choice_rows,cls='wmb-choice-table',metrics=[])+'<p>'+h('这一步仍不是生产定案。公开集使用冻结 HTML，外部资源被隔离，每页每方法只有一次正式结果。生产选型还需在同一时间窗对真实 URL 重跑，并预先确定正文范围、表格是否必须可解析、超时和失败判定。','This is not a production decision. The public set uses frozen HTML, blocks external resources, and has one formal result per method and page. Production selection still requires a same-window live-URL run with preregistered content scope, parseable-table requirements, timeouts and failure criteria.')+'</p><p class="source-note">'+link('../datasets/index.html',h('查看 200 页与人工答案','Inspect the 200 pages and human references'))+' · '+link('../analysis/index.html',h('按方法、分类和分数下钻','Drill down by method, category and score'))+' · '+link('../reproduce/index.html',h('查看环境与复现','Environment and reproduction'))+'</p></section>'
+ return head+overall+scope+tables+delivery+decision+'</article></div>'
+
+
+def _wmb_write(out,path,title,body,english=False):
+ if english:
+  body=body.replace('<div class="eyebrow">Web Fetch · 实测报告</div>','<div class="eyebrow">Web Fetch · Measured report</div>')
+  body=body.replace('aria-label="内容选择"','aria-label="Choose content"').replace('<th>序号</th>','<th>No.</th>')
+ local=('en/'+path) if english else path;depth=len(Path(local).parts)-1;base='../'*depth
+ nav=''.join(link(base+('en/' if english else '')+route,en if english else zh) for route,zh,en in _WMB_ROUTES)
+ brand=link(base+('en/index.html' if english else 'index.html'),'Web Fetch')
+ counterpart=base+path if english else base+'en/'+path
+ language=f'<a href="{safe_href(counterpart)}">{"中文" if english else "English"}</a>'
+ footer=('Scores come only from this preselected 200-page frozen run. They represent neither the live web nor the official 545-toolkit or 7,809-page leaderboards.' if english else '分数只来自本轮预选的 200 页冻结输入；不代表实时网页，也不等同于官方 545 例工具链榜单或 7,809 页论文榜单。')
+ page=f'<!doctype html><html lang="{"en" if english else "zh-CN"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}{nav}{language}<button class="theme-toggle" onclick="theme()">{"Theme" if english else "切换主题"}</button></nav></header><main>{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
+ page=page.replace(f'href="{base}assets/style.css"',f'href="{base}assets/style.css?v={hashlib.sha256((STYLE+EXTRA).encode()).hexdigest()[:16]}"').replace(f'src="{base}assets/report.js"',f'src="{base}assets/report.js?v={hashlib.sha256(JS.encode()).hexdigest()[:16]}"')
+ target=contained_path(out,local);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
+
+
+def _wmb_category(case,axis):
+ value=case['meta'].get(axis)
+ return '+'.join(value) if isinstance(value,list) and value else ('none' if isinstance(value,list) else str(value or 'unavailable'))
+
+
+def _wmb_inspect(base='analysis/index.html',**filters):
+ values={key:value for key,value in filters.items() if value is not None and value!=''}
+ return base+'#inspect?'+urlencode(values)
+
+
+def _wmb_controls(cases,method_labels,english=False,include_method=True,include_metric=True,default_request='',failure_types=(),include_delivery=True):
+ def h(zh,en):return en if english else zh
+ axes=('language','level','table','code','equation')
+ axis_labels={'language':h('语言','Language'),'level':h('难度','Difficulty'),'table':h('表格类型','Table type'),'code':h('代码类型','Code type'),'equation':h('公式类型','Formula type')}
+ categories=sorted({_wmb_category(case,axis) for case in cases.values() for axis in axes})
+ fields=[]
+ def select(key,label,options,default=''):
+  entries=''.join(f'<option value="{esc(value)}"'+(' selected' if value==default else '')+f'>{esc(text)}</option>' for value,text in options)
+  fields.append(f'<label>{label}<select data-wmb-filter="{key}" data-wmb-default="{esc(default)}" aria-label="{label}">{entries}</select></label>')
+ if include_method:
+  select('method',h('方法','Method'),[('',h('全部方法','All methods'))]+[(key,value) for key,value in method_labels.items()])
+ select('axis',h('分类维度','Category dimension'),[('',h('全部分类','All categories'))]+[(axis,axis_labels[axis]) for axis in axes])
+ select('category',h('分类','Category'),[('',h('全部','All'))]+[(value,value) for value in categories])
+ if include_delivery:
+  select('request',h('是否生成正文','Body text produced'),[('',h('全部','All')),('failed',h('没有正文','No body text')),('success',h('已生成正文','Body text produced'))],default_request)
+  if failure_types:
+   select('failure',h('错误类型','Error type'),[('',h('全部','All'))]+[(value,value) for value in failure_types])
+ if include_metric:
+  select('metric',h('定位指标','Inspect metric'),[('',h('全部指标','All metrics'))]+[(key,key) for key in ('text_edit','code_edit','formula_edit','table_edit','table_TEDS')])
+  select('band',h('指标分数区间','Metric score band'),[('',h('不限','Any')),("0:0.1",'0–10%'),("0:0.25",'0–25%'),("0.25:0.5",'25–50%'),("0.5:0.75",'50–75%'),("0.75:1",'75–100%'),('unavailable',h('未计算 / 不适用','Unavailable / not applicable'))])
+ fields.append(f'<label>{h("搜索 Track ID、URL 或错误","Search track ID, URL or error")}<input data-wmb-filter="query" aria-label="{h("搜索","Search")}" placeholder="{h("输入关键词","Enter keywords")}"></label>')
+ return '<div class="wmb-controls">'+''.join(fields)+'</div><div class="wmb-toolbar"><strong data-wmb-count></strong><button type="button" onclick="wmbReset()">'+h('清除筛选','Clear filters')+'</button></div>'
+
+
+def _wmb_row_attrs(case,record=None):
+ parts=[]
+ for axis in ('language','level','table','code','equation'):
+  parts.append(f' data-{axis}="{esc(_wmb_category(case,axis))}"')
+ if record:
+  error=str(record.get('error_message') or '')
+  # Search a bounded excerpt, including the terminal error; full logs stay in evidence.
+  if len(error)>1024:error=error[:512]+' … '+error[-512:]
+  parts.extend([f' data-method="{esc(record["provider"])}"',f' data-request="{"success" if record.get("_body_present",record["ok"]) else "failed"}"',f' data-failure="{esc(record.get("_output_error") or record.get("error_type") or "")}"',
+                f' data-search="{esc(case["id"]+" "+case["url"]+" "+str(record.get("error_type") or "")+" "+error)}"'])
+  for metric in ('text_edit','code_edit','formula_edit','table_edit','table_TEDS'):
+   item=record.get('metrics',{}).get(metric,{})
+   parts.append(f' data-{metric}="{item.get("score") if item.get("success") else ""}"')
+ else:
+  parts.append(f' data-search="{esc(case["id"]+" "+case["url"])}"')
+ return ''.join(parts)
+
+
+def _wmb_pct(value):
+ if value is not None and 0<value<.0005:return f'{value*100:.6g}%'
+ return pct(value)
+
+
+def _wmb_metric_cell(record,metric):
+ item=record.get('metrics',{}).get(metric,{})
+ return cell(_wmb_pct(item.get('score')) if item.get('success') else '—',item.get('score') if item.get('success') else -1)
+
+
+def _wmb_error_page(text):
+ return bool(ERROR_PAGE.search(text))
+
+
+def _wmb_output_label(record,text,english=False):
+ chars=len(text)
+ if _wmb_error_page(text):return ('Error page in output' if english else '输出是错误页')+f' · {chars:,}'
+ if not record.get('ok'):
+  return (('Error response' if english else '有错误信息')+f' · {chars:,}' if chars else ('No readable response' if english else '无可读响应'))
+ if not chars:return 'Empty body text' if english else '正文为空'
+ return f'Body text · {chars:,} characters' if english else f'正文 · {chars:,} 字符'
+
+
+def _wmb_body_state(record,text,english=False):
+ if _wmb_error_page(text):return 'Error page, not target content' if english else '错误页，非目标正文'
+ if not record.get('ok') or not text.strip():return 'No body text' if english else '没有正文'
+ return 'Body text produced' if english else '正文已生成'
+
+
+def _wmb_filter_table(headers,rows,id,english=False):
+ result=table(headers,rows,id,True,metrics=[],index_header='No.' if english else '序号')
+ return result.replace('<div class="table-wrap">','<div class="table-wrap wmb-table-wrap">',1).replace('<table class=""','<table class="wmb-table" data-wmb-table',1)
+
+
+def _wmb_comparison(cases,bycase,names,labels,english=False):
+ def h(zh,en):return en if english else zh
+ default_a=names[0]
+ options=''.join(f'<option value="{esc(name)}"'+(' selected' if name==default_a else '')+f'>{esc(labels[name])}</option>' for name in names)
+ relations=[('mixed',h('正文生成有分歧','Body-text outcome differs')),('a_success_others_fail',h('A 有正文，其余没有','A produced body text; others did not')),('a_fail_others_success',h('A 无正文，其余都有','A produced no body text; others did')),('all_success',h('所选方法都有正文','All selected methods produced body text')),('all_fail',h('所选方法都没有正文','No selected method produced body text')),('exact_success',h('仅所选方法有正文','Only selected methods produced body text'))]
+ relation_options=''.join(f'<option value="{value}">{esc(label)}</option>' for value,label in relations)
+ axes=('language','level','table','code','equation')
+ axis_labels={'language':h('语言','Language'),'level':h('难度','Difficulty'),'table':h('表格类型','Table type'),'code':h('代码类型','Code type'),'equation':h('公式类型','Formula type')}
+ axis_options='<option value="">'+h('全部分类','All categories')+'</option>'+''.join(f'<option value="{axis}">{axis_labels[axis]}</option>' for axis in axes)
+ categories=sorted({_wmb_category(case,axis) for case in cases.values() for axis in axes})
+ category_options='<option value="">'+h('全部','All')+'</option>'+''.join(f'<option value="{esc(value)}">{esc(value)}</option>' for value in categories)
+ checks=''.join(f'<label'+(' class="disabled"' if name==default_a else '')+f'><input type="checkbox" data-wmb-compare-method value="{esc(name)}"'+(' disabled' if name==default_a else ' checked' if name==names[1] else '')+f'> {esc(labels[name])}</label>' for name in names)
+ controls='<div class="comparison-controls"><label>'+h('方法 A','Method A')+'<select id="wmb-compare-a" data-wmb-compare-control>'+options+'</select></label><label>'+h('比较条件','Comparison condition')+'<select id="wmb-compare-relation" data-wmb-compare-control>'+relation_options+'</select></label><label>'+h('分类轴','Category axis')+'<select id="wmb-compare-axis" data-wmb-compare-control>'+axis_options+'</select></label><label>'+h('分类','Category')+'<select id="wmb-compare-category" data-wmb-compare-control>'+category_options+'</select></label></div><fieldset class="comparison-methods"><legend>'+h('对比方法（可多选）','Comparison methods (select multiple)')+'</legend><div class="method-checks">'+checks+'</div></fieldset>'
+ rows=[]
+ for case in cases.values():
+  results={r['provider']:r for r in bycase[case['id']]}
+  delivered=[name for name in names if results[name]['_body_present']]
+  failed=[name for name in names if not results[name]['_body_present']]
+  def pills(selected,kind):
+   return '<span class="outcome-list">'+''.join('<a class="outcome-pill '+kind+'" href="../attempts/'+esc(results[name]['attempt_id'])+'.html">'+esc(labels[name])+'</a>' for name in selected)+'</span>' if selected else '—'
+  values=cell(link('../datasets/'+case['id']+'.html',case['id']))+cell(esc(_wmb_category(case,'language'))+' · '+esc(_wmb_category(case,'level')))+cell(pills(delivered,'pass'))+cell(pills(failed,'fail'))
+  attrs=' data-delivered="'+esc(' '.join(delivered))+'" data-failed="'+esc(' '.join(failed))+'"'+_wmb_row_attrs(case)
+  rows.append((attrs,values))
+  # All 200 frozen pages remain in the DOM; filtering is client-side and evidence links stay per call.
+ result='<div class="method-comparison"><div class="comparison-heading"><div><h3>'+h('同一页是否生成正文','Body text on the same page')+'</h3><p>'+h('这里只比较截止时间内是否得到非空 Markdown 正文，不代表内容质量通过；打开方法可看该页分数、人工真值和实际输出。','This only compares whether non-empty Markdown body text was produced by the deadline; it is not a content-quality pass. Open a method for scores, the human reference and actual output.')+'</p></div><strong class="comparison-count" id="wmb-compare-count"></strong></div>'+controls+'<div class="table-wrap"><table class="wmb-comparison-table"><thead><tr><th>'+h('序号','No.')+'</th><th>Track ID</th><th>'+h('分类','Category')+'</th><th>'+h('生成正文的方法','Methods with body text')+'</th><th>'+h('没有正文的方法','Methods without body text')+'</th></tr></thead><tbody id="wmb-compare-rows">'+''.join(f'<tr{attrs}><td>{i+1}</td>{values}</tr>' for i,(attrs,values) in enumerate(rows))+'</tbody></table></div></div>'
+ return result
+
+
+def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,manifests:list,review:dict|None=None,research:dict|None=None,corrections:dict|None=None,adoption_data:dict|None=None,fixture_correction:dict|None=None,teds_revision:tuple|None=None,anomaly_review:dict|None=None):
+ """Render the current WebMainBench report with the established report shell."""
+ out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
+ (out/'assets/style.css').write_text(STYLE+EXTRA,encoding='utf-8')
+ (out/'assets/report.js').write_text(JS,encoding='utf-8')
+ # Presentation-only classification: do not change provider status, scores or evidence.
+ classified=[]
+ for record in records:
+  text=contained_path(out,record['artifact_path']).read_text(encoding='utf-8',errors='replace')
+  error_page=_wmb_error_page(text)
+  classified.append({**record,'_body_present':bool(record['ok'] and text.strip() and not error_page),
+                     '_output_error':'error_page' if error_page else 'empty_body' if record['ok'] and not text.strip() else record.get('error_type')})
+ records=classified
+ cases={row['id']:row for row in dataset['cases']};bycase=defaultdict(list)
+ for row in records:bycase[row['case_id']].append(row)
+ names=list(dataset['coverage_plan']['static_html'])
+ failure_types=sorted({r['_output_error'] for r in records if not r['_body_present'] and r['_output_error']})
+ failed_request_count=sum(not r['_body_present'] for r in records)
+ case_count=len(cases);result_count=case_count*len(names)
+ labels={'kitesurf':'Kitesurf','lightpanda':'Lightpanda','obscura':'Obscura','moli':'Moli 1.1.5','chromium':'Chromium 152'}
+ metric_order=['overall','text_edit','code_edit','formula_edit','table_edit','table_TEDS']
+ corrected=teds_revision is not None
+ display_score=_wmb_pct
+ def score(name,metric):return summaries[name]['official_aggregate']['scores'][metric]
+ def denom(name,metric):return summaries[name]['official_aggregate']['denominators'].get(metric)
+ def times(name):return [r['total_elapsed_ms'] for r in records if r['provider']==name]
+ def failures(name):return [r for r in records if r['provider']==name and not r['_body_present']]
+ def unique_winner(values,higher=True):
+  ordered=sorted(values,key=lambda item:item[1],reverse=higher)
+  return ordered[0][0] if len(ordered)==1 or ordered[0][1]!=ordered[1][1] else None
+ ranked_metrics=metric_order if corrected else metric_order[1:-1]
+ score_winners={metric:unique_winner([(name,score(name,metric)) for name in names]) for metric in ranked_metrics}
+ latency_values={name:{'mean':statistics.fmean(times(name)),'p50':statistics.median(times(name)),'p95':percentile(times(name),.95)} for name in names}
+ latency_winners={key:unique_winner([(name,values[key]) for name,values in latency_values.items()],higher=False) for key in ('mean','p50','p95')}
+ def value_html(value,winner=False,n=None,population=None):
+  content=f'<span class="metric-value">{value}</span>'
+  if n is not None:content+=f'<span class="tiny">n={n} / {case_count if population is None else population}</span>'
+  return f'<span class="comparison-winner">{content}</span>' if winner else content
+ def core_rows(english=False):
+  rows=[]
+  for name in sorted(names,key=lambda item:(-score(item,'overall'),labels[item])):
+   values=cell(link('providers/'+name+'.html',labels[name]))
+   values+=cell(value_html(display_score(score(name,'overall')),winner=score_winners.get('overall')==name),score(name,'overall'))
+   for metric in metric_order[1:]:
+    values+=cell(value_html(display_score(score(name,metric)),winner=score_winners.get(metric)==name,n=denom(name,metric)),score(name,metric))
+   for key in ('mean','p50','p95'):
+    values+=cell(value_html(ms(latency_values[name][key]),winner=latency_winners[key]==name),latency_values[name][key])
+   rows.append(('',values))
+  return rows
+ for english in (False,True):
+  h=lambda zh,en:en if english else zh
+  corrected_label=h('修正后复算','recomputed after correction')
+  corrected_suffix=(f' ({corrected_label})' if english else f'（{corrected_label}）')
+  metric_labels={name:name+(corrected_suffix if corrected and name in ('overall','table_TEDS') else '') for name in metric_order}
+  status=(h(f'{case_count} 页 × 5 方法 = {result_count:,} 条结果；证据与算术核验通过，表格结构评分的有效性尚未通过。',f'{case_count} pages × 5 methods = {result_count:,} results; evidence and arithmetic checks passed, but table-structure score validity did not.') if review and review.get('status')=='passed' else h('测量完成；独立审查尚未通过，当前页面不可发布。','Measurement complete; independent review has not passed, so this build is not publishable.'))
+  if corrected:
+   status=h(f'{case_count} 页 × {len(names)} 种方法；官方仓库和榜单保持原样。报告用独立复算器修复已证实的 TEDS 计算缺陷，再处理同一批保存输出。',f'{case_count} pages × {len(names)} methods. The official repository and leaderboard remain unchanged. An independent recomputation corrects the demonstrated TEDS defect on the same saved outputs.')
+  home=hero(h('WebMainBench-545 · 预选 200 页 · 五款浏览器实测','WebMainBench-545 · preselected 200 · five-browser evaluation'),h('五款方法读取同一批冻结 HTML，并与同一份人工校准 Markdown 比较；逐页响应、空正文和原因放在结果详情中。','Five methods read the same frozen HTML and are compared with the same human-calibrated Markdown; page-level responses, empty body text and causes live in result details.'))
+  home+='<div class="wrap reliability'+('' if review and review.get('status')=='passed' else ' failure')+'"><strong>'+esc(status)+'</strong></div>'
+  home+=section(h('先看这张榜在测什么','What this ranking measures'),'<div class="wmb-scope-map"><article><b>'+h('输入：同一份网页存档','Input: identical archived HTML')+'</b><p>'+h(f'{case_count} 页 × {len(names)} 种方法；不访问实时源站。',f'{case_count} pages × {len(names)} methods; no live origin fetch.')+'</p></article><article><b>'+h('目标：主内容，而非整页所有文字','Target: main content, not every page element')+'</b><p>'+h('正文、代码、公式、表格；导航、广告和推荐链接不属于目标。','Body text, code, formulas and tables; navigation, ads and recommendations are outside the target.')+'</p></article><article><b>'+h('分数：与人工主内容答案有多接近','Score: similarity to the human main-content reference')+'</b><p>'+h('多带页面模板会扣分；表格文字保留但结构丢失，也会扣分。低分不等于网页没有获取到。','Extra boilerplate and lost table structure reduce scores. A low score does not mean the page was not retrieved.')+'</p></article></div><p class="actions">'+link('guide/index.html#scope',h('看真实页面怎样被扣分 →','See a real scored page →'))+' · '+link('methodology/index.html#input-routes',h('五种方法怎样读取同一份 HTML →','How all methods read the same HTML →'))+'</p><p class="source-note">'+h('这不是实时抓取成功率或浏览器综合能力排名。','This is not a live-fetch success rate or an overall browser-capability ranking.')+'</p>','benchmark-scope')
+  core_headers=[h('方法','Method'),metric_labels['overall'] if corrected else h('overall（待校验）','overall (under review)'),'text_edit','code_edit','formula_edit','table_edit',metric_labels['table_TEDS'] if corrected else h('table_TEDS（待校验）','table_TEDS (under review)'),h('均值耗时','Mean latency'),'P50','P95']
+  core_note=h('分数越高越接近参考答案，耗时越低越快；绿色标出该列唯一最高分或最低耗时。n 是实际参与该项平均的页数，不是成功页数；不同方法的计分页可能不同。耗时覆盖每种方法全部 200 次结果，包含失败和已登记调用。','Higher scores are closer to the reference; lower latency is faster. Green marks the unique highest score or lowest latency in each column. n counts pages included in that component mean, not passed pages; the scored pages can differ by method. Latency covers all 200 results per method, including failed and declared calls.')
+  core_note+=h(' TEDS 和 overall 展示修正后复算值：官方代码保持原样。独立复算器把表格按“表格—行—单元格”的层级交给同一算法，沿用官方的 Markdown 表格解析、文字处理、增删改规则和计分页数；官方原始分仍可下钻核对。',' TEDS and overall show values recomputed after correction, while the official code remains unchanged. The independent recomputation passes an explicit table–row–cell hierarchy to the same algorithm and retains the official Markdown table parsing, text handling, edit rules and scored-page population. Original official scores remain available for inspection.') if corrected else h(' 原始 TEDS 存在已证实的计算缺陷；它和 overall 不标领先者。',' Original TEDS has a proven calculation defect; it and overall have no highlighted leader.')
+  home+=section(h('核心结果','Core results'),'<p class="source-note">'+core_note+'</p>'+table(core_headers,core_rows(english),'wmb-core-results',True,cls='wmb-core-table',metrics=[],default_sort=(2,'desc'))+f'<p class="actions">{link("analysis/index.html",h("筛选逐页结果与响应 →","Filter page-level results and responses →"))} · {link("methodology/index.html",h("评分流程与分母 →","Scoring and denominators →"))} · {link("review/index.html",h("官方原始分与纠正记录 →","Original scores and corrections →"))}</p>')
+  _wmb_write(out,'index.html',h('评测报告','Evaluation report'),home,english)
+
+  dataset_rows=[]
+  for c in cases.values():
+   meta=c['meta']
+   dataset_rows.append((_wmb_row_attrs(c),cell(link(c['id']+'.html',c['id']))+cell(esc(meta.get('language') or 'unavailable'))+cell(esc(meta.get('level')))+cell(esc('+'.join(meta.get('table') or []) or 'none'))+cell(esc('+'.join(meta.get('code') or []) or 'none'))+cell(esc('+'.join(meta.get('equation') or []) or 'none'))))
+  body=hero(h('评测集','Dataset'),h('WebMainBench-545 母集里预先冻结的 200 页；筛选发生在任何方法结果产生之前。','A frozen 200-page sample from the WebMainBench-545 parent, selected before any method result was produced.'))
+  body+=section(h('200 页案例','200 pages'),'<p class="source-note">'+h('可按语言、难度和内容类型查找页面。打开 Track ID 可查看冻结 HTML、人工校准的 Markdown 参考文本和官方元数据；方法成绩在结果分析中单独查看。官方评分直接比较转换结果与参考文本，没有预先写好的逐题得分清单。','Filter by language, difficulty and content type. Open a track ID for the frozen HTML, human-calibrated Markdown reference and official metadata; method results are in the analysis section. Official scoring compares each conversion with the reference directly, without a prewritten per-task checklist.')+'</p>'+_wmb_controls(cases,labels,english,include_method=False,include_metric=False,include_delivery=False)+_wmb_filter_table([h('Track ID','Track ID'),h('语言','Language'),h('难度','Difficulty'),h('表格','Table'),h('代码','Code'),h('公式','Formula')],dataset_rows,'wmb-cases',english))
+  sample=dataset.get('sample',{});sampling=sample.get('sampling',{})
+  if sampling:
+   distribution_rows=[]
+   parent_distribution=sample.get('parent_distribution',{});sample_distribution=sample.get('sample_distribution',{})
+   axis_labels={'language':h('语言','Language'),'level':h('难度','Difficulty'),'table':h('表格类型','Table type'),'code':h('代码类型','Code type'),'equation':h('公式类型','Formula type')}
+   for axis in ('language','level','table','code','equation'):
+    parent_values=parent_distribution.get(axis,{});sample_values=sample_distribution.get(axis,{})
+    for category in sorted(set(parent_values)|set(sample_values)):
+     parent_count=parent_values.get(category,0);sample_count=sample_values.get(category,0)
+     distribution_rows.append((f' data-axis="{esc(axis)}" data-parent="{parent_count}" data-sample="{sample_count}"',cell(esc(category))+cell(str(parent_count))+cell(str(sample_count))))
+   manifest_href='../sample-manifest.json' if not english else '../../sample-manifest.json'
+   distribution_controls='<div class="wmb-distribution-controls"><label>'+h('查看哪一类分布','Distribution axis')+'<select id="wmb-distribution-axis" data-wmb-distribution-filter>'+''.join(f'<option value="{axis}">{label}</option>' for axis,label in axis_labels.items())+'</select></label><p id="wmb-distribution-count" class="source-note" aria-live="polite"></p></div>'
+   distribution_table=table([h('分类','Category'),h('母集 545','Parent 545'),h('样本 200','Sample 200')],distribution_rows,'wmb-distribution',metrics=[])
+   body+=section(h('这 200 页怎么选出来的','How these 200 pages were selected'),'<p>'+h('语言、难度、表格、代码和公式是五套彼此独立的分类，同一页会同时属于每套分类。选择任一分类轴后，“样本 200”这一列会合计为 200；不能把五套分类混在一起相加。完整名单在运行任何浏览器之前已经确定，没有按分数挑页。','Language, difficulty, table, code and formula are five independent classification axes; every page belongs to one category on each axis. After selecting an axis, the “Sample 200” column sums to 200. Counts across different axes must not be added together. The manifest was fixed before any browser ran; scores did not affect selection.')+'</p><p><b>'+h('固定种子：','Fixed seed: ')+'</b><code>'+esc(sampling.get('seed',''))+'</code> · '+link(manifest_href,h('下载 200 页名单','Download the 200-page list'))+'</p>'+distribution_controls+distribution_table)
+  if research:
+   def evidence_links(urls):
+    values=[]
+    for url in urls:
+     parsed=urlsplit(url);label=(parsed.netloc+parsed.path.rstrip('/')) or url
+     values.append(link(url,label))
+    return '<br>'.join(values) or '—'
+   selection=[]
+   for item in research.get('direct_benchmarks',[]):
+    sources=evidence_links(item.get('sources',[]))
+    selection.append(('',cell(esc(item['name']))+cell(esc(item.get('scope' if english else 'scope_zh','—')))+cell(esc(item.get('metric' if english else 'metric_zh','—')))+cell(esc('；'.join(item.get('users',[])) or '—'))+cell(esc(item.get('disposition' if english else 'disposition_zh','—')))+cell(sources)))
+   body+=section(h('为什么选择 WebMainBench-545','Why WebMainBench-545'),'<p>'+esc(research['decision']['summary_en' if english else 'summary_zh'])+'</p><p class="callout">'+esc(research['decision']['qualification_en' if english else 'qualification_zh'])+'</p>'+table([h('候选','Candidate'),h('范围','Scope'),h('指标','Metric'),h('采用者 / 使用者','Named users'),h('结论','Decision'),h('证据','Evidence')],selection,cls='wide-prose-table',metrics=[]))
+   wcxb=next((item for item in research.get('direct_benchmarks',[]) if item.get('id')=='wcxb'),None)
+   if wcxb:
+    limits=wcxb.get('limitations' if english else 'limitations_zh',[])
+    body+=section(h('WCXB 判断','WCXB assessment'),'<p>'+esc(wcxb.get('maturity' if english else 'maturity_zh',''))+'</p><ul>'+''.join('<li>'+esc(value)+'</li>' for value in limits)+'</ul>')
+   adjacent=[]
+   for item in research.get('adjacent_browser_benchmarks',[]):
+    adjacent.append(('',cell(esc(item['name']))+cell(esc(item.get('size' if english else 'size_zh')))+cell(esc(item.get('measures' if english else 'measures_zh')))+cell(esc(item.get('adoption' if english else 'adoption_zh')))+cell(esc(item.get('why_separate' if english else 'why_separate_zh')))+cell(evidence_links(item.get('sources',[])))))
+   body+=section(h('相邻 Browser / Web Agent 评测','Adjacent browser and web-agent benchmarks'),table([h('评测','Benchmark'),h('规模','Size'),h('测什么','Measures'),h('采用情况','Adoption'),h('为何不混榜','Why separate'),h('证据','Evidence')],adjacent,cls='wide-prose-table',metrics=[]))
+  _wmb_write(out,'datasets/index.html',h('评测集','Dataset'),body,english)
+
+  method=hero(h('评测方法','Methodology'),h('从一页冻结网页开始，看浏览器交付了什么、官方怎样给分，以及哪些分数现在不能用。','Start with one frozen page: what the browser delivered, how the official scorer calculates it, and which figures cannot currently support conclusions.'))
+  flow_source=(r'''flowchart LR
+    A["1  冻结 HTML<br/>同一批 200 页"] --> B["2  五款方法转换<br/>每页得到最终响应"]
+    B --> C{"3  是否得到<br/>可读 Markdown 正文"}
+    C -->|"没有"| D["结果详情<br/>错误类型 · 响应 · 原因"]
+    C -->|"有"| E["4  与人工 Markdown 比较<br/>文本 · 代码 · 公式 · 表格"]
+    E --> F["5  逐页分数<br/>两侧都没有该类内容：跳过<br/>只有一侧有：计 0 分"]
+    F --> G["6  分项均值<br/>分数下方显示实际 n / 200"]
+    B --> H["全部 200 次逻辑结果<br/>均值 · P50 · P95 耗时"]''' if not english else r'''flowchart LR
+    A["1  Frozen HTML<br/>the same 200 pages"] --> B["2  Five methods convert<br/>one final response per page"]
+    B --> C{"3  Readable Markdown<br/>body text produced?"}
+    C -->|"No"| D["Result detail<br/>error type · response · cause"]
+    C -->|"Yes"| E["4  Compare with human Markdown<br/>text · code · formula · table"]
+    E --> F["5  Per-page components<br/>absent on both sides: skipped<br/>present on one side: scored zero"]
+    F --> G["6  Component means<br/>actual n / 200 shown below score"]
+    B --> H["All 200 logical results<br/>mean · P50 · P95 latency"]''')
+  flow_fallback='<div class="wmb-flow-fallback" data-wmb-flow-fallback>'+''.join(f'<span><b>{index}</b> {label}</span>' for index,label in enumerate(([h('冻结输入','Frozen input'),h('方法转换','Conversion'),h('检查响应与正文','Inspect response and body'),h('逐页评分','Per-page scoring'),h('按实际 n 聚合','Aggregate with actual n')]),1))+'</div>'
+  flow='<div class="wmb-flow">'+flow_fallback+'<pre class="mermaid" hidden>'+esc(flow_source)+'</pre></div>'
+  method+=section(h('一页怎样变成一行结果','How one page becomes one result'),'<p class="source-note">'+h('先看整条路径，再按需展开下面的实现细节。正文是否生成、接口是否响应和为什么为空，属于逐页结果；质量分只回答已生成内容与人工答案有多接近。','Start with the full path, then open implementation details only when needed. Whether body text exists, whether the interface responded and why it is empty belong to the page result; quality scores only describe similarity to the human reference.')+'</p>'+flow)
+  input_text=h('每个方法接收预选 200 页官方 <code>html</code> 字段的同一组 UTF-8 字节。四款本地方法从 OS 网络隔离的 loopback HTTPS 读取原样正文，每批使用专用临时 CA；HTTPS 避免冻结页因协议差异触发伪跳转。它们的原始批次覆盖母集 545 页，报告只投影到预先冻结的 200-ID 清单，不按结果选题。Kitesurf 从头只执行这 200 页，使用 Cloudflare 官方 <code>html</code> 输入并拒绝外部资源类型。冻结 HTML 自带的内联脚本可以执行，但非 loopback 子资源和数据请求不能出网；原 URL 只保留为来源元数据。每个方法内部严格串行；不同方法的批次可重叠，因此耗时是本轮客户端观测，不是隔离硬件微基准。',"Every method receives the same UTF-8 bytes from the official <code>html</code> field for the preselected 200 pages. Four local methods read the unchanged body over loopback HTTPS under an OS network sandbox, using a dedicated ephemeral CA per batch; HTTPS prevents false redirects caused only by a scheme mismatch. Their source batches measured all 545 parent pages, while this report projects only the pre-frozen 200-ID manifest and never selects by outcome. Kitesurf runs these 200 pages from scratch through Cloudflare's documented <code>html</code> input with external resource types rejected. Inline scripts contained in the frozen HTML may run, but non-loopback subresource and data requests cannot reach the network; the original URL is evidence metadata only. Calls are serial within each method; provider batches may overlap, so latency is this run's client observation rather than an isolated hardware microbenchmark.")
+  cue_text=h('数据 HTML 含公开标注属性 <code>cc-select</code>；五款通用转换器均未按该属性定制，但这是数据集固有的潜在线索。','The dataset HTML contains public <code>cc-select</code> annotation attributes. None of the five generic converters is customized to use them, but they remain an inherent benchmark cue.')
+  method+=section(h('输入与运行边界','Input and runtime boundary'),'<div class="wmb-input-routes"><article><b>'+h('Kitesurf · Cloudflare 接口','Kitesurf · Cloudflare API')+'</b><code>'+h('冻结 HTML → API html 字段 → Markdown','Frozen HTML → API html field → Markdown')+'</code><span>'+h('直接提交同一份 HTML 字节，不让远端重新抓原网址。','The same HTML bytes are submitted directly; the remote service does not refetch the source URL.')+'</span></article><article><b>Lightpanda · Moli · Obscura · Chromium</b><code>'+h('冻结 HTML → 本地 HTTPS → 浏览器 → Markdown','Frozen HTML → local HTTPS → browser → Markdown')+'</code><span>'+h('浏览器打开本地地址，服务器返回同一份 HTML。','The browser opens a local URL whose server returns the same HTML.')+'</span></article></div><p>'+h('每页有一份冻结 HTML 和一份人工校准 Markdown。五款方法转换同一份 HTML；原始 URL 只记录来源，本轮不访问实时网站。','Each page has frozen HTML and a human-calibrated Markdown reference. All five methods convert the same HTML; the original URL records provenance and is not fetched live in this run.')+'</p><details><summary>'+h('查看网络隔离、HTTPS 夹具和批次细节','Network isolation, HTTPS fixture and batch details')+'</summary><p>'+input_text+'</p><p class="callout">'+cue_text+'</p></details><p class="actions">'+link('../datasets/index.html',h('选一页查看完整输入和答案','Open a page with full input and reference'))+'</p>','input-routes')
+  method+=section(h('表格怎样进入评分','How tables enter scoring'),_wmb_table_example(english),'table-scoring')
+  formulas=[('text_edit',h('完整 Markdown 与人工答案','Full Markdown against the human reference'),h('字符编辑距离 ÷ 两份文本中较长者的长度；导航、页脚等多余内容也会拉低分数。','Character edit distance divided by the longer text; extra navigation and footer content can lower the score.')),('code_edit',h('从两份 Markdown 找出的代码块','Code blocks found in the two Markdown files'),h('只比较提取出的代码字符，按较长代码长度归一化。','Compare extracted code characters, normalized by the longer code length.')),('formula_edit',h('从两份 Markdown 找出的公式','Formulas found in the two Markdown files'),h('只比较提取出的公式字符，按较长公式长度归一化。','Compare extracted formula characters, normalized by the longer formula length.')),('table_edit',h('从两份 Markdown 找出的表格内容','Tables found in the two Markdown files'),h('比较规范化后的表格字符；普通段落里有表格字样，不等于输出了可识别的表格。','Compare normalized table characters; table words in a paragraph do not form a recognized table.')),('table_TEDS',h('Markdown 表格还原出的“表格—行—单元格”结构','The table–row–cell structure reconstructed from Markdown'),h('先把 Markdown 表格还原成表格、每一行和每个单元格，再计算把输出结构改成人工答案结构需要多少次增、删、改。只有单元格文字、没有可识别的 Markdown 表格语法时，无法还原表格结构。','Reconstruct tables, rows and cells from Markdown, then count the insertions, deletions and changes needed to turn the output structure into the reference structure. Cell text without recognizable Markdown table syntax cannot be reconstructed as a table.'))]
+  method+=section(h('每项分数怎么来','How component scores are produced'),'<p>'+h('先从实际输出和人工答案里分别识别代码、公式和表格；text_edit 则保留整份 Markdown。字符项的分数＝1 − 编辑距离 ÷ 较长文本长度，完全相同为 100%，只剩一侧内容时就是 0%。表格结构项按下文记录的计算缺陷修正后复算。','The scorer first extracts code, formulas and tables from the output and reference; text_edit instead keeps the entire Markdown. For character metrics, score = 1 − edit distance / longer length: identical content scores 100%, while content on only one side scores 0%. The table-structure component is recomputed after correcting the calculation defect documented below.')+'</p>'+table([h('指标','Metric'),h('比较对象','Compared content'),h('计算与读法','Calculation and reading')],[('',cell(k)+cell(subject)+cell(explanation)) for k,subject,explanation in formulas],cls='wide-prose-table',metrics=[])+f'<p>{h("使用官方提交 <code>9d991bd</code> 的确定性 <code>use_llm=false</code> 配置。代码、公式或表格在两侧都没有时，官方编辑距离返回失败，该项退出均值；只有一侧有内容时，编辑距离正常计算为 0 分并进入均值。","The pinned official commit is <code>9d991bd</code> with deterministic <code>use_llm=false</code>. When code, formulas or tables are absent on both sides, the official edit-distance metric returns a failed result and the component is excluded from the mean. When content exists on only one side, edit distance succeeds with a zero score and the page enters the mean.")}</p>')
+  method+=section(h('分母为什么会不同','Why denominators differ'),'<p>'+h('每个方法都转换固定的 200 页。没有生成目标正文的页面不参加质量均值；有正文的页面再逐项处理。代码、公式或表格在参考和输出中都没有时，该项跳过；只有一侧有时，该页以 0 分进入该项均值；两侧都有时按相似度计分。因此“n=76 / 200”只表示 76 个逐页分数参与平均，并不表示 76 页全部写对，也不表示五个方法使用同样的 76 页。','Every method receives the same 200 pages. Pages without target body text do not enter quality means. For pages with body text, a code, formula or table component absent on both sides is skipped; present on only one side enters that component mean with a zero; present on both sides is scored by similarity. Thus “n=76 / 200” only means 76 page scores enter the mean, not 76 correct pages or the same 76 pages for every method.')+'</p>'+table([h('表格例子','Table example'),h('固定输入','Frozen inputs'),h('生成目标正文的页面','Pages with target body text'),h('计入表格均值','Included in table mean'),h('这批页实际是什么','What those pages contain')],[('',cell(link('../providers/kitesurf.html','Kitesurf'))+cell(str(case_count))+cell(str(case_count-len(failures('kitesurf'))))+cell(str(denom('kitesurf','table_edit')))+cell(h('既包括两侧都有表格的页，也包括输出有表格、人工答案没有表格而计 0 分的页。','Includes pages with tables on both sides and pages where only the output has a table, scored zero.'))),('',cell(link('../providers/moli.html','Moli 1.1.5'))+cell(str(case_count))+cell(str(case_count-len(failures('moli'))))+cell(str(denom('moli','table_edit')))+cell(h('这 40 页的人工答案有表格，但 Moli 的原生 Markdown 没有官方能识别的表格；逐页都计入 0 分。','The human references contain tables on these 40 pages, but Moli’s native Markdown has no officially recognized table; all 40 score zero.')))],cls='wide-prose-table',metrics=[])+f'<p class="actions">{link("../analysis/index.html",h("按方法查看每页计分状态","Inspect per-page scoring status"))}</p>')
+  method+=section(h('表格结构分为什么要复算','Why the table-structure score is recomputed'),'<p>'+h('官方固定版本先把“表格—行—单元格”结构写成一段括号字符串，再把字符串直接交给 APTED。APTED 在这里需要的是能逐层读取子项的树；收到字符串后，它没有读到真实的行和单元格。实测一页的输出只有 5 个结构项，人工答案有 570 个，官方记录的编辑距离却小于 1，因而给出 99.8% 的 TEDS。仅把相差的 565 个结构项补齐，代价就不可能小于 565。','The pinned official version first serializes the table–row–cell structure into one bracketed string and then passes the string directly to APTED. APTED needs a tree whose children can be traversed; with the string it does not see the real rows and cells. In one measured page, the output has 5 structural items and the reference has 570, yet the official recorded edit distance is below 1 and the TEDS score is 99.8%. Adding the 565 missing structural items alone cannot cost less than 565 edits.')+'</p><p class="callout failure">'+h('本报告没有改动官方仓库或官方榜单。我们在独立复算器中把同一张表按“表格—行—单元格”交给 APTED，沿用官方的 Markdown 解析、文字处理和增删改代价。浏览器输出、计分页数和耗时都没有变化；官方原始分与修正后复算分并列保留。table_edit 仍比较规范化后的表格 HTML 字符串。','This report does not modify the official repository or leaderboard. An independent recomputation passes the same table to APTED as an explicit table–row–cell tree while retaining the official Markdown parsing, text handling and edit costs. Browser outputs, scored-page counts and latency are unchanged; original official scores and recomputed values are both retained. Table_edit still compares normalized table HTML strings.')+'</p><p class="actions">'+link('../attempts/obscura__949e1468-eed2-43ab-96e6-5dcb07c52d4b__r001.html',h('查看 5 对 570 个结构项的完整答案和输出','Inspect the complete 5-versus-570-item case'))+' · '+link('https://github.com/opendatalab/WebMainBench/blob/9d991bdc00c57b57521499494d96be85c31317ba/webmainbench/metrics/teds_metrics.py',h('官方 TEDS 源码','Official TEDS source'))+'</p>')
+  method+=section(h('聚合、计时和不可比较项','Aggregation, timing and non-comparable fields'),'<p>'+h('每项聚合分＝该项成功计算的逐页分数之和 ÷ 实际计入页数；榜单 overall＝五项聚合分的算术平均。逐页 overall 则平均该页成功计算的项目，因此它不能直接拿来替代榜单 overall。逐页显示“未计算”只有两类原因：代码、公式或表格在参考答案和实际输出中都不存在，或者评分器执行失败；详情页会显示该页属于哪一类。','Each component aggregate is the sum of successfully calculated page scores divided by its actual scored-page count; leaderboard overall is the arithmetic mean of the five aggregates. Per-page overall averages only that page’s calculated components, so it cannot replace leaderboard overall. A page-level component is marked “not calculated” for exactly two reasons: the content type is absent from both the reference and output, or the scorer failed. The result detail identifies which reason applies.')+'</p><p>'+h('单次总耗时从请求开始到最终响应结束，失败和声明重试均计入。浏览器批次各自串行，但不同方法可能重叠；Cloudflare 远端时间和本地 CLI 时间处于不同执行环境。是否生成正文、质量分和耗时分开报告，不能混成一个分数。','Total call time runs from request start to final response and includes failures and declared retries. Calls are serial within a browser batch, but method batches may overlap; Cloudflare remote time and local CLI time come from different execution environments. Body-text outcome, quality and latency are reported separately, not folded into one score.')+'</p>','calculation')
+  _wmb_write(out,'methodology/index.html',h('评测方法','Methodology'),method,english)
+
+  analysis=hero(h('结果分析','Analysis'),h('先比较同一页上的方法差异，再按分类查看分数，最后下钻到每次响应、正文和原因。','Compare methods on the same page, then inspect category scores, and finally drill into each response, body text and cause.'))
+  analysis+=section(h('方法组合对比','Method group comparison'),_wmb_comparison(cases,bycase,names,labels,english),'comparison')
+  slice_rows=[];slice_categories=set();slice_axis_labels={'language':h('语言','Language'),'level':h('难度','Difficulty'),'table':h('表格类型','Table type'),'code':h('代码类型','Code type'),'equation':h('公式类型','Formula type')}
+  for axis in ('language','level','table','code','equation'):
+   categories=sorted({category for name in names for category in summaries[name].get('dimensions',{}).get(axis,{})})
+   slice_categories.update(categories)
+   for category in categories:
+    category_winners={}
+    for metric in ranked_metrics:
+     eligible=[]
+     for candidate in names:
+      candidate_aggregate=summaries[candidate]['dimensions'][axis][category]
+      if candidate_aggregate['denominators'].get(metric,0)>0:eligible.append((candidate,candidate_aggregate['scores'][metric]))
+     category_winners[metric]=unique_winner(eligible) if eligible else None
+    for name in sorted(names,key=lambda x:(-score(x,'overall'),x)):
+     aggregate=summaries[name]['dimensions'][axis][category]
+     values=[]
+     for metric in metric_order:
+      n=aggregate['denominators'].get(metric,0) if metric!='overall' else None
+      population=sum(_wmb_category(case,axis)==category for case in cases.values())
+      value=value_html(display_score(aggregate['scores'][metric]),winner=category_winners.get(metric)==name,n=n,population=population) if n is None or n>0 else '—'
+      values.append(cell(value,aggregate['scores'][metric] if n is None or n>0 else -1))
+     slice_rows.append((f' data-axis="{esc(axis)}" data-category="{esc(category)}" data-method="{esc(name)}"',cell(esc(slice_axis_labels[axis]))+cell(link(_wmb_inspect('index.html',method=name,axis=axis,category=category),category))+cell(link('../providers/'+name+'.html',labels[name]))+''.join(values)))
+  slice_filter='<div class="wmb-slice-controls"><label>'+h('分类维度','Category dimension')+'<select id="wmb-slice-axis" data-wmb-slice-filter>'+''.join('<option value="'+esc(axis)+'">'+esc(slice_axis_labels[axis])+'</option>' for axis in ('language','level','table','code','equation'))+'</select></label><label>'+h('分类','Category')+'<select id="wmb-slice-category" data-wmb-slice-filter><option value="">'+h('全部','All')+'</option>'+''.join('<option value="'+esc(category)+'">'+esc(category)+'</option>' for category in sorted(slice_categories))+'</select></label><label>'+h('方法','Method')+'<select id="wmb-slice-method" data-wmb-slice-filter><option value="">'+h('全部','All')+'</option>'+''.join('<option value="'+esc(name)+'">'+esc(labels[name])+'</option>' for name in names)+'</select></label></div><p id="wmb-slice-count" class="source-note" aria-live="polite"></p>'
+  slice_table=table([h('分类轴','Axis'),h('分类','Category'),h('方法','Method')]+[metric_labels[m] for m in metric_order],slice_rows,'wmb-slices',True,cls='wmb-slice-table',metrics=[]).replace('<div class="table-wrap">','<div class="table-wrap wmb-slice-table-wrap">',1)
+  analysis_tail=section(h('按页面分类比较','Compare by page category'),'<p class="source-note">'+h('先选择一套独立分类，再按分类或方法缩小范围。分数下方是计分页数 / 当前分类总页数；“—”表示没有可计算页，不等于 0 分。绿色只标出当前分类、当前指标的唯一最高分。TEDS 和 overall 沿用首页注明的修正版本。','Select one independent classification axis, then narrow by category or method. The small fraction below a score is scored pages / all pages in that category; “—” means no scored page, not zero. Green marks a unique highest score within the category and component. TEDS and overall use the correction labeled on the home page.')+'</p>'+slice_filter+slice_table)
+  inspect_rows=[]
+  for r in sorted(records,key=lambda row:(not row['ok'],row['case_id'],row['provider'])):
+   case=cases[r['case_id']]
+   target='../attempts/'+r['attempt_id']+'.html'
+   output=contained_path(out,r['artifact_path']).read_text(encoding='utf-8',errors='replace')
+   state_class='success' if r['ok'] and output.strip() and not _wmb_error_page(output) else 'failure'
+   request=f'<span class="wmb-pill {state_class}">{esc(_wmb_body_state(r,output,english))}</span>'
+   vals=cell(link(target,r['case_id']))+cell(link(target,labels[r['provider']]))+cell(esc(_wmb_category(case,'language')))+cell(esc(_wmb_category(case,'level')))+cell(esc(_wmb_category(case,'table')))+cell(esc(_wmb_category(case,'code')))+cell(esc(_wmb_category(case,'equation')))+cell(request)+cell(esc(_wmb_output_label(r,output,english)))
+   vals+=''.join(_wmb_metric_cell(r,metric) for metric in metric_order[1:])
+   vals+=cell(ms(r['total_elapsed_ms']),r['total_elapsed_ms'])+cell(link(target,h('逐项证据 →','Metric evidence →')))
+   inspect_rows.append((_wmb_row_attrs(case,r),vals))
+  analysis+=section(h('逐页结果与响应','Page results and responses'),'<p class="wmb-metric-note">'+h(f'完整矩阵共有 200×5 条结果，默认先显示 {failed_request_count} 条没有生成正文的转换。每行直接说明是否得到正文，以及接口或程序最后留下的是正文、错误信息、错误页还是无可读响应。点击 Track ID 或方法名进入详情，核对完整响应、人工答案、逐项评分和目前能证实的原因。',f'The complete matrix contains 200×5 results and initially shows the {failed_request_count} conversions without body text. Each row states whether body text was produced and whether the final API/worker material is body text, an error response, an error page or no readable response. Open the track ID or method for the complete response, human reference, component scores and the currently supported cause.')+'</p>'+_wmb_controls(cases,labels,english,default_request='failed',failure_types=failure_types)+'<p class="wmb-scroll-note">'+h('表格可横向滚动查看五项分数和耗时；Track ID 与方法名都可直接进入详情。','Scroll horizontally for component scores and latency; both the track ID and method name open the detail.')+'</p>'+_wmb_filter_table([h('Track ID','Track ID'),h('方法','Method'),h('语言','Language'),h('难度','Difficulty'),h('表格','Table'),h('代码','Code'),h('公式','Formula'),h('是否生成正文','Body text produced'),h('响应与正文','Response and body')]+[metric_labels[m] for m in metric_order[1:]]+[h('总耗时','Total latency'),h('详情','Detail')],inspect_rows,'wmb-attempt-matrix',english))
+  _wmb_write(out,'analysis/index.html',h('结果分析','Analysis'),analysis+analysis_tail,english)
+
+  review_body=hero(h('核验记录','Review'),h('保留官方原始结果，记录计算修正的范围和影响；逐页原因见结果详情。','Original official results are retained alongside the scope and effects of corrections; page-level causes are in result details.'))
+  raw_prefix='../../' if english else '../'
+  if corrected:
+   receipt,revision_review=teds_revision
+   effects=[]
+   for name in names:
+    impact=revision_review['impacts'][name];before=impact['official'];after=impact['corrected']
+    effects.append(('',cell(link('../providers/'+name+'.html',labels[name]))+cell(display_score(before['scores']['table_TEDS']))+cell(display_score(after['scores']['table_TEDS']))+cell(display_score(before['scores']['overall']))+cell(display_score(after['scores']['overall']))+cell(str(after['denominators']['table_TEDS']))))
+   review_body+=section(h('TEDS 计算修正','TEDS calculation correction'),'<p>'+h(f'同一批 {revision_review["logical_results"]:,} 条结果全部重新计算，{revision_review["changed_scores"]} 条 TEDS 分数变化。没有重新调用浏览器，输入、原始输出、计分页数和耗时均未改变。本报告没有修改官方仓库或官方榜单；表中的“修正后”是报告侧独立复算值。',f'All {revision_review["logical_results"]:,} results were reprocessed; {revision_review["changed_scores"]} TEDS values changed. No browser was called again. Inputs, raw outputs, scored-page counts and latency are unchanged. This report does not modify the official repository or leaderboard; “corrected” values are independently recomputed by this report.')+'</p>'+table([h('方法','Method'),h('原始 TEDS','Original TEDS'),h('修正 TEDS','Corrected TEDS'),h('原始 overall','Original overall'),h('修正 overall','Corrected overall'),h('TEDS 计分页数','Pages scored for TEDS')],effects,'wmb-correction-effects',metrics=[])+
+    '<p class="actions">'+link('../methodology/index.html',h('树节点错误及修正原理','Tree-node defect and correction'))+' · '+link(raw_prefix+'teds-correction.json',h('纠正范围与源码校验值','Correction scope and source hashes'))+' · '+link(raw_prefix+'teds-correction-review.json',h('完整性与算术核验','Integrity and arithmetic audit'))+' · '+link(raw_prefix+'original-results.jsonl',h('官方原始逐页结果','Original official page results'))+'</p>')
+  if review:
+   review_body+=section(h('原始结果证据检查','Original-result evidence checks'),'<p>'+h('原始核验检查了 1,000 条结果的覆盖范围、文件哈希、调用耗时、文本类评分及分项聚合。它不能单独证明评分算法正确，也不能证明每条失败都已找到根因。TEDS 的纠正及重新核验单独记录在上方。','The original audit checked the 1,000-result scope, file hashes, call latency, text metrics and component aggregation. It does not alone establish algorithm validity or the root cause of every failure. The TEDS correction and its follow-up checks are recorded above.')+'</p><p>'+link(raw_prefix+'result-review.json',h('下载原始核验记录','Download the original audit'))+'</p>')
+  else:
+   review_body+=section(h('原始核验缺失','Original audit missing'),'<p class="callout failure">'+h('没有原始核验文件，不能发布。','The original audit is missing; publication is blocked.')+'</p>')
+  error_outputs=sum(1 for r in records if _wmb_error_page(contained_path(out,r['artifact_path']).read_text(encoding='utf-8',errors='replace')))
+  if anomaly_review:
+   anomaly_rows=[]
+   for finding in anomaly_review['cases']:
+    providers=(', ' if english else '、').join(labels[name] for name in finding['affected_providers'])
+    anomaly_rows.append(('',cell(link('../datasets/'+finding['case_id']+'.html',finding['case_id']))+cell(esc(providers))+cell(esc(finding['observed_en' if english else 'observed_zh']))+cell(esc(finding['cause_en' if english else 'cause_zh']))))
+   scope=anomaly_review['scope']
+   anomaly_href='../../webmainbench-anomaly-review.json' if english else '../webmainbench-anomaly-review.json'
+   review_body+=section(h('异常结果根因复核','Root-cause review of anomalous results'),'<p>'+h(f'自动规则从 1,000 条结果中触发 {scope["signal_triggered_results"]} 条，实际集中在 {scope["distinct_cases"]} 个页面。复核读取正式输出、人工答案、程序错误和同页五方法差异，并用不计分的删减对照定位触发条件。所有触发项均已归入下列原因；对照输入不是原始任务，因此没有替换调用、分数、分母或耗时。',f'Deterministic rules triggered {scope["signal_triggered_results"]} of 1,000 results, concentrated in {scope["distinct_cases"]} pages. Review used the authoritative outputs, human references, program errors and same-page method differences, then non-scoring ablation controls to isolate triggers. Every triggered result maps to a cause below. Controls are not the original task, so no call, score, denominator or latency was replaced.')+'</p>'+table([h('页面','Page'),h('受影响方法','Affected methods'),h('对照观察','Control observation'),h('根因与证据边界','Cause and evidence boundary')],anomaly_rows,cls='wide-prose-table',metrics=[])+f'<p>{link(anomaly_href,h("下载绑定哈希的复核记录","Download the hash-bound review record"))}</p>')
+  review_body+=section(h('核验边界','Review boundary'),'<p>'+h(f'正式结果中有 {failed_request_count} 次转换没有目标正文，其中 {error_outputs} 条留下的是浏览器错误页；它们现在都能从逐页详情进入对应的直接证据和已验证原因。异常复核覆盖确定性规则触发的 30 条结果，不等于对其余正常结果逐条做人工作品质量复审。服务未公开的内部资源阈值继续明确标为不可再细分。',f'The authoritative matrix has {failed_request_count} conversions without target body text, including {error_outputs} browser error-page output. Each now links from its detail page to direct evidence and a verified cause. The anomaly review covers the 30 deterministically triggered results; it is not a manual editorial-quality review of every remaining normal result. Undisclosed service-internal resource thresholds remain explicitly indivisible.')+'</p><p>'+link('../analysis/index.html#inspect?request=failed',h('查看没有正文的结果','Inspect results without body text'))+'</p>')
+  if fixture_correction:
+   correction_rows=[]
+   for provider,effect in fixture_correction['effects'].items():
+    correction_rows.append(('',cell(link('../attempts/'+provider+'__'+fixture_correction['case_id']+'__r001.html',labels[provider]))+cell(pct(effect['old_text_edit']))+cell(pct(effect['new_text_edit']))+cell(esc(effect['old_output_sha256'][:12]))+cell(esc(effect['new_output_sha256'][:12]))))
+   receipt_href='../../fixture-correction.json' if english else '../fixture-correction.json'
+   review_body+=section(h('冻结页查询跳转的纠正','Frozen-page query-navigation correction'),'<p>'+h('一页冻结 HTML 在运行脚本后给当前路径加查询参数；原测试夹具只接受无查询参数的路径，三款方法因此拿到 404 错误页，却被记为有输出。现在仍从同一冻结 HTML 开始，夹具按路径找到同一页，原始网页 URL 仍不参与抓取。该页三款方法用相同二进制和原评分器重新测量；旧证据保留在独立存档里。','One frozen page appended a query parameter after its inline script ran. The former fixture served only the bare path, so three methods converted a 404 error page that was counted as output. The fixture now serves the same frozen page by path even with a query; the original source URL is still not fetched. The three methods were remeasured with matching binaries and the unchanged scorer; prior evidence remains in a separate archive.')+'</p>'+table([h('方法','Method'),h('原页 text_edit','Prior page text_edit'),h('纠正后 text_edit','Corrected page text_edit'),h('旧输出校验前缀','Prior output digest prefix'),h('新输出校验前缀','New output digest prefix')],correction_rows,cls='wide-prose-table',metrics=[])+f'<p>{link(receipt_href,h("下载完整纠正影响","Download complete correction effects"))}</p>')
+  _wmb_write(out,'review/index.html',h('核验记录','Review'),review_body,english)
+
+  failure_notes={}
+  for finding in (anomaly_review or {}).get('cases',[]):
+   observed=finding['observed_en' if english else 'observed_zh']
+   cause=finding['cause_en' if english else 'cause_zh']
+   for provider in finding.get('affected_providers',[]):
+    failure_notes[(provider,finding['case_id'])]=(observed,cause)
+  guide=_wmb_editorial_guide(english=english,names=names,labels=labels,cases=cases,
+                             bycase=bycase,case_count=case_count,score=score,denom=denom,
+                             failures=failures)
+  _wmb_write(out,'guide/index.html',h('报告解读','Guide'),guide,english)
+
+  provider_rows=[]
+  identities={m['provider']:m['implementation_identity'] for m in manifests}
+  for name in names:
+   ident=identities[name]
+   provider_rows.append(('',cell(labels[name])+cell(esc(ident.get('reported_version') or h('托管后端未公开 / nightly 无版本命令','Hosted backend undisclosed / nightly has no version command')))+cell('<code class="tiny break">'+esc(ident.get('binary_sha256') or '—')+'</code>')+cell(esc(ident.get('deployment')))))
+  adoption=hero(h('方法介绍','Methods'),h('比较的是五种执行实现，不再把旧 Moli 版本重复算作不同浏览器。','The comparison covers five implementations; historical Moli versions are no longer counted as separate browsers.'))
+  adoption+=section(h('本轮实现','Measured implementations'),table([h('方法','Method'),h('版本','Version'),h('二进制 SHA-256','Binary SHA-256'),h('部署','Deployment')],provider_rows,metrics=[]))
+  interface_rows=[]
+  routes={
+   'kitesurf':(h('Cloudflare Browser Run /markdown?browser=kitesurf','Cloudflare Browser Run /markdown?browser=kitesurf'),h('POST html=官方冻结 HTML；拒绝外部资源类型','POST html=official frozen HTML; reject external resource types'),h('服务端原生 Markdown','Server-native Markdown')),
+   'lightpanda':('Lightpanda CLI',h('fetch --dump markdown；loopback HTTPS 冻结页面','fetch --dump markdown; frozen loopback HTTPS page'),h('CLI 原生 Markdown','CLI-native Markdown')),
+   'obscura':('Obscura CLI',h('fetch --dump markdown；loopback HTTPS 冻结页面','fetch --dump markdown; frozen loopback HTTPS page'),h('CLI 原生 Markdown','CLI-native Markdown')),
+   'moli':('Moli CLI',h('fetch --dump markdown；loopback HTTPS 冻结页面','fetch --dump markdown; frozen loopback HTTPS page'),h('CLI 原生 Markdown','CLI-native Markdown')),
+   'chromium':('Playwright Chromium',h('渲染冻结页面 DOM → node-html-markdown 2.0.0','Render frozen page DOM → node-html-markdown 2.0.0'),h('转换后的 Markdown','Converted Markdown')),
+  }
+  for name in names:
+   example=next((r for r in records if r['provider']==name and r['ok']),next(r for r in records if r['provider']==name))
+   entry,input_route,output_route=routes[name]
+   official=PROFILES[name][2]
+   interface_rows.append(('',cell(link('../providers/'+name+'.html',labels[name]))+cell(esc(entry))+cell(esc(input_route))+cell(esc(output_route))+cell(link('../attempts/'+example['attempt_id']+'.html',h('查看实际输入、返回和逐项评分','Actual input, output and component scores')))+cell(link(official,h('官方获取入口','Official source')))))
+  adoption+=section(h('本轮输入、输出与实例','Run inputs, outputs and examples'),'<p>'+h('这里列的是公开集冻结 HTML 的实际路线，不是原 URL 的实时抓取接口。实例链接对应存档调用；账号字段只展示变量名和占位符。','These are the frozen-HTML routes used for this public benchmark, not live fetching of original URLs. Example links open archived calls; account fields show variable names or placeholders only.')+'</p>'+table([h('方法','Method'),h('接口 / 程序','Interface / program'),h('本轮输入','Run input'),h('本轮输出','Run output'),h('真实调用实例','Archived call example'),h('官方来源','Official source')],interface_rows,cls='wide-prose-table',metrics=[]))
+  if research:
+   use_rows=[]
+   for item in research.get('direct_benchmarks',[]):
+    source_links='<br>'.join(link(url,urlsplit(url).netloc) for url in item.get('sources',[]))
+    use_rows.append(('',cell(esc(item['name']))+cell(esc('；'.join(item.get('users',[])) or '—'))+cell(esc(item.get('maturity' if english else 'maturity_zh','—')))+cell(source_links)))
+   adoption+=section(h('公开评测集的具名使用','Named use of public benchmarks'),'<p>'+h('论文、可执行评测仓库和框架集成可证明公开使用；没有可独立核验的商业生产部署数量。这里不把 GitHub Star 或“支持某工具”写成生产采用。','Papers, executable benchmark repositories and framework integrations document public use; no independently auditable commercial production-deployment total was found. Stars or extractor support are not presented as production adoption.')+'</p>'+table([h('评测集','Benchmark'),h('已核对使用者','Verified users'),h('判断','Assessment'),h('一手证据','Primary evidence')],use_rows,metrics=[]))
+  if adoption_data:
+   counts=adoption_counts(adoption_data,sorted(PROFILES))
+   (out/'adoption/counts.json').write_text(json.dumps({'snapshot':adoption_data['generated_at'],'scope':'verified source-signature hits in a bounded candidate set, not production deployment','methods':counts},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+   count_rows=[]
+   details=[]
+   for item in counts:
+    name=item['provider'];n=item['repository_count'];known=n is not None
+    label=labels.get(name,name)+(h('（未参评）',' (not measured)') if name not in names else '')
+    count_rows.append(('',cell(link('#evidence-'+name,label) if known else esc(label))+cell(str(n) if known else '—',n if known else -1)+cell(str(item['file_count']) if known else '—',item['file_count'] if known else -1)))
+    if known:
+     evidence_rows=[('',cell(link(repo['url'],repo['repo']))+cell('<br>'.join(link(match['url'],match['path']) for match in repo['matches']))) for repo in item['repositories']]
+     details.append('<details id="evidence-'+esc(name)+'"><summary>'+esc(label)+f' · {n} '+h('个候选仓库','candidate repositories')+'</summary>'+table([h('仓库','Repository'),h('命中文件','Matched files')],evidence_rows,metrics=[] )+'</details>')
+   data_prefix='../../adoption/' if english else ''
+   adoption+=section(h('开源采用线索','Open-source adoption evidence'),'<p>'+h('这份独立源码快照包括已登记方法，不只包括本轮五款浏览器。搜索候选有排序、活跃度和星数门槛；数值是已核验候选集中的签名命中，不是全网份额或生产用户数。点击方法可核对仓库和文件。','This independent source snapshot covers registered methods, not only the five measured browsers. Search candidates have ranking, activity and star thresholds; the counts are verified signature hits in the bounded candidate set, not global share or production users. Open a method to inspect repositories and files.')+'</p><p class="source-note">'+esc(adoption_data['generated_at'])+' · '+link(data_prefix+'evidence.json',h('下载完整来源证据','Full source evidence'))+' · '+link(data_prefix+'counts.json',h('下载逐方法统计','Per-method counts'))+'</p>'+table([h('方法','Method'),h('命中仓库','Matched repositories'),h('命中文件','Matched files')],count_rows,'wmb-adoption-counts',True,metrics=[])+''.join(details))
+  _wmb_write(out,'adoption/index.html',h('方法介绍','Methods'),adoption,english)
+
+  reproduce=hero(h('环境与复现','Reproduction'),h('数据、评分器、浏览器与结果都由哈希或提交固定。','Dataset, scorer, browsers and outputs are fixed by hashes or commits.'))
+  reproduce+=section(h('核心复现指令','Core reproduction commands'),'<p>'+h('以下命令使用本仓库锁定依赖；运行五款方法和官方评分需要先取得公开母集、固定提交的评分器和本轮方法二进制。评测凭据只从仓库本地 .env 读取，不进入报告。命令中的尖括号为本机路径占位符。','The commands use this repository’s locked dependencies. Running all five methods and official scoring first requires the public parent set, the pinned scorer checkout and the measured binaries. Evaluation credentials come only from the local repository .env and are not included in this report. Angle brackets denote local paths.')+'</p><pre>uv run --frozen --extra headless-eval python scripts/run_webmainbench_benchmark.py --provider &lt;name&gt; --case-ids-file evaluation/public-webmainbench-200.json --output &lt;method-evidence&gt;\nuv run --frozen --extra webmainbench-eval python scripts/score_webmainbench_results.py --evidence &lt;method-evidence&gt; --dataset &lt;WebMainBench_545.jsonl&gt; --scorer-repo &lt;pinned-scorer-checkout&gt;\nuv run --frozen python scripts/assemble_webmainbench_evidence.py --source-root &lt;five-method-batches&gt; --output &lt;assembled-evidence&gt; --dataset &lt;WebMainBench_545.jsonl&gt; --sample-manifest evaluation/public-webmainbench-200.json --review &lt;independent-review.json&gt;\nuv run --frozen --extra webmainbench-eval python scripts/correct_webmainbench_teds.py --source &lt;assembled-evidence&gt; --output &lt;corrected-evidence&gt; --scorer-repo &lt;pinned-scorer-checkout&gt;\nuv run --frozen --extra webmainbench-eval python scripts/review_webmainbench_teds_correction.py --source &lt;assembled-evidence&gt; --corrected &lt;corrected-evidence&gt;\nmake public-benchmark-report EVIDENCE=&lt;corrected-evidence&gt;</pre>')
+  reproduce+=section(h('固定标识','Pinned identities'),f'<p>Parent dataset SHA-256: <code>{esc(dataset["source_dataset_sha256"])}</code></p><p>Sample manifest SHA-256: <code>{esc(dataset["sample_manifest_sha256"])}</code> · {link("../sample-manifest.json" if not english else "../../sample-manifest.json",h("下载 200 页清单","Download 200-page manifest"))}</p><p>Official scorer commit: <code>9d991bdc00c57b57521499494d96be85c31317ba</code></p>')
+  batch_rows=[]
+  for manifest in manifests:
+   batch_rows.append(('',cell(labels[manifest['provider']])+cell(esc(manifest['started_at']))+cell(esc(manifest['completed_at']))+cell(str(manifest['case_count']))+cell(str(manifest['timeout_seconds']))+cell('<code class="tiny break">'+esc(manifest['runner_sha256'])+'</code>')))
+  reproduce+=section(h('实际执行批次','Observed execution batches'),table([h('方法','Method'),h('开始（UTC）','Started (UTC)'),h('完成（UTC）','Completed (UTC)'),h('案例','Cases'),h('截止秒','Deadline seconds'),h('Runner SHA-256','Runner SHA-256')],batch_rows,metrics=[]))
+  _wmb_write(out,'reproduce/index.html',h('环境与复现','Reproduction'),reproduce,english)
+
+  changes=hero(h('变更记录','Changes'),h('本版从自建 150 题矩阵切换为 WebMainBench-545 的预选 200 页公开子集。','This release replaces the custom 150-task matrix with a preselected 200-page public subset of WebMainBench-545.'))
+  changes+=section(h('本版变化','Changes in this edition'),'<p>'+h('每页可以从 Track ID 进入输入、人工答案、实际输出和逐项评分；结果矩阵同时显示交付状态、最终内容长度与可识别的错误页面。评测方法给出每项算法、计分页数形成过程和已发现的 TEDS 结构评分缺陷。证据与算术检查通过，不代表综合分已通过有效性审查。','Track IDs now lead to the frozen input, human reference, actual output and component scores. The result matrix shows delivery, final-output length and recognizable error pages. The methodology details each component, scored-page inclusion and the demonstrated TEDS structural-score defect. Passing evidence and arithmetic checks does not validate the overall score.')+'</p>')
+  if fixture_correction:
+   affected=', '.join(labels[name] for name in fixture_correction['providers'])
+   changes+=section(h('冻结网页 404 夹具错误','Frozen-page fixture 404 correction'),'<p>'+h(f'一页冻结网页在脚本执行后给当前路径添加查询参数。原本地夹具错误返回 404，{affected} 把错误页转成了非空输出。三款方法现以同一冻结输入、二进制和官方评分器完成整页纠正测量；正文、公式和 overall 的均值及该页耗时随之变化，旧物理调用证据不被覆盖。',f'One frozen page appended a query parameter to its current path. The former local fixture mistakenly returned 404, and {affected} converted that error page to non-empty output. The full page was remeasured for the three methods with the same frozen input, binaries and official scorer; text, formula and overall means and page latency changed. Prior physical-call evidence was not overwritten.')+'</p><p class="actions">'+link('../review/index.html',h('查看逐方法纠正影响','Per-method correction effects'))+'</p>')
+  changes+=section(h('读者可见变化','Reader-visible changes'),'<ul><li>'+h('五款浏览器，Moli 升级到 2026-09-15 核验的最新正式版 v1.1.5。','Five browsers; Moli is upgraded to v1.1.5, verified as the latest release on 2026-09-15.')+'</li><li>'+h('正式范围是结果产生前冻结的 200 页，不是母集全部 545 页；页面公开选择算法、种子、分类分布与清单哈希。','The formal scope is the 200 pages frozen before results, not all 545 parent pages; the selection algorithm, seed, category distributions and manifest hash are published.')+'</li><li>'+h('公开冻结输入、官方六项指标、逐页分数、分类切片与逐指标分母，并区分逐页 overall 和榜单 overall。','Frozen public inputs, six official metrics, per-page scores, category slices and per-metric denominators are published, with per-page and leaderboard overall kept distinct.')+'</li><li>'+h('质量、请求成功率、失败和耗时分开报告；受连续 DNS 故障污染的 Kitesurf 批次完整废弃后从头重跑，不拼接也不择优。','Quality, request success, failures and latency are separate. The Kitesurf batch contaminated by a continuous DNS outage was wholly superseded and rerun from the start, without splicing or best-response selection.')+'</li><li>'+h('公开评测集调研加入具名采用证据，并把 WCXB 作为有用但暂不适合作为唯一可信度锚点的保留集。','Public-benchmark research now includes named adoption evidence and treats WCXB as useful but not suitable as the sole credibility anchor.')+'</li></ul>')
+  changes+=section(h('逐条证据入口','Individual evidence access'),'<p>'+h('榜单、失败数和分类切片现在可直接打开带筛选条件的完整结果矩阵；每条结果可继续查看五项分数与错误原因、物理重试、官方人工真值、实际输出和冻结输入。此项只改变查阅方式，不改变成绩、分母、范围或调用数。','Leaderboard, failure counts and category slices now lead directly to the filtered full result matrix. Each result then opens component scores and error details, physical retries, official human reference, actual output and frozen input. This changes navigation only, not scores, denominators, scope or call counts.')+'</p>')
+  changes+=section(h('同题对比与报告解读','Same-page comparison and interpretation'),'<p>'+h(f'结果分析可按方法组合、官方分类和交付失败类型查找差异；逐条矩阵默认定位 {failed_request_count} 条未交付结果，也可切换到已交付或全部 1,000 条。首页分开显示交付、端到端耗时和五项官方分数；报告解读用同页原文说明低表格分数、夹具 404 和原站跳转。交付组合不等于官方质量通过。',f'Analysis filters differences by method group, official category and delivery-failure type. The individual matrix initially locates {failed_request_count} undelivered results, or can show delivered and all 1,000 results. The home page separates delivery, end-to-end latency and five official components. The guide uses original same-page evidence to explain low table scores, the fixture 404 and origin-site navigation. Delivery patterns are not official content-pass verdicts.')+'</p><p>'+h('方法介绍保留各浏览器的实际输入路线、输出实例和具名公开采用证据。样本与官方评分器提交没有改变；夹具错误纠正后的三款方法结果和耗时已改变，完整影响见上文。','The methods section retains each browser’s actual input route, output example and named public-adoption evidence. The sample and pinned official scorer commit did not change. The three methods’ corrected fixture-page results and latency did change; the effects are linked above.')+'</p>')
+  if corrections:
+   correction=next((item for item in corrections.get('corrections',[]) if item.get('id')=='kitesurf-dns-outage-complete-scope-rerun'),None)
+   if correction:
+    before=correction['superseded'];after=correction['corrected']
+    def correction_row(label,key,formatter=str):return ('',cell(label)+cell(formatter(before[key]))+cell(formatter(after[key])))
+    correction_rows=[
+     correction_row(h('请求成功','Request successes'),'request_successes'),correction_row(h('请求失败','Request failures'),'request_failures'),correction_row(h('物理调用','Physical attempts'),'physical_attempts'),
+     correction_row('overall','official_scores',lambda value:pct(value['overall'])),
+     ('',cell('text n')+cell(str(before['denominators']['text_edit']))+cell(str(after['denominators']['text_edit']))),
+     ('',cell('code n')+cell(str(before['denominators']['code_edit']))+cell(str(after['denominators']['code_edit']))),
+     ('',cell('formula n')+cell(str(before['denominators']['formula_edit']))+cell(str(after['denominators']['formula_edit']))),
+     ('',cell('table n')+cell(str(before['denominators']['table_edit']))+cell(str(after['denominators']['table_edit']))),
+     ('',cell('TEDS n')+cell(str(before['denominators']['table_TEDS']))+cell(str(after['denominators']['table_TEDS']))),
+     correction_row(h('累计耗时','Total elapsed'),'total_elapsed_ms',ms),correction_row('P50','median_elapsed_ms',ms),correction_row(h('P95 耗时','P95 elapsed'),'p95_elapsed_ms',ms),
+    ]
+    correction_href='../webmainbench-corrections.json' if not english else '../../webmainbench-corrections.json'
+    changes+=section(h('Kitesurf DNS 故障纠正影响','Kitesurf DNS-outage correction effects'),'<p>'+esc(correction['reason_zh' if not english else 'reason'])+'</p>'+table([h('项目','Measure'),h('废弃批次','Superseded batch'),h('纠正批次','Corrected batch')],correction_rows,metrics=[])+f'<p>{link(correction_href,h("下载机器可读纠正记录","Download machine-readable correction record"))}</p>')
+  _wmb_write(out,'changes/index.html',h('变更记录','Changes'),changes,english)
+
+  account_rows=[]
+  for name in names:
+   access=HEADLESS_ACCESS[name]
+   account_rows.append(('',cell(labels[name])+cell(esc(access['account']))+cell('<br>'.join('<code>'+esc(v)+'</code>' for v in access['env_vars']))+cell('<br>'.join(link(url,label) for label,url in access['links']))))
+  accounts=hero(h('账号与安装','Accounts and setup'),h('只有 Kitesurf 的 Cloudflare 路线需要账号凭据；报告不公开值。','Only the Kitesurf Cloudflare route needs account credentials; values are never published.'))
+  accounts+=section(h('配置','Configuration'),table([h('方法','Method'),h('账号','Account'),h('变量','Variables'),h('官方入口','Official source')],account_rows,cls='accounts-table',metrics=[]))
+  _wmb_write(out,'accounts/index.html',h('账号与安装','Accounts and setup'),accounts,english)
+
+  for c in cases.values():
+   ref=contained_path(out,'references/'+c['id']+'.md').read_text(encoding='utf-8')
+   frozen_html=contained_path(out,'sources/'+c['id']+'.html.txt').read_text(encoding='utf-8',errors='replace')
+   ref_prefix='../../' if english else '../'
+   body=hero(h('冻结页面','Frozen page')+' · '+c['id'],h('官方网页快照与人工校准参考文本','Official HTML snapshot and human-calibrated reference'))+'<nav class="wrap actions">'+link('#frozen-input',h('查看网页存档','Read archived page'))+' · '+link(c['url'],h('打开来源网站 ↗','Open source website ↗'))+' · '+link('../analysis/index.html#inspect?query='+c['id'],h('比较方法输出','Compare method outputs'))+'</nav>'
+   body+=section(h('来源与元数据','Source and metadata'),f'<p>{link(c["url"],h("原始 URL ↗","Original URL ↗"))}</p><pre>{esc(json.dumps(c["meta"],ensure_ascii=False,indent=2))}</pre><p>HTML SHA-256: <code>{esc(c["input_html_sha256"])}</code></p>')
+   body+=section(h('人工校准参考文本','Human-calibrated reference'),'<p>'+h('这份 Markdown 是官方标注的主内容参考，不包含整页导航和推荐区，也不保证覆盖图片中的文字。评分器从转换结果与参考文本中提取正文、代码、公式和表格，并计算五项分数。','This Markdown is the official main-content reference, not the entire page; it excludes navigation and recommendations and does not guarantee coverage of text in images. The scorer extracts text, code, formulas and tables from each conversion and reference, then calculates five components.')+'</p><p class="actions">'+link(ref_prefix+'references/'+c['id']+'.md',h('下载参考文本','Download reference'))+' · '+link('../methodology/index.html',h('查看官方计算方法','Official scoring method'))+'</p><pre class="wmb-source-pre">'+esc(ref)+'</pre>')
+   body+=section(h('冻结网页阅读视图','Frozen-page reading view'),'<p class="actions">'+link(c['url'],h('来源网页 ↗（实时内容，可能已变化）','Source website ↗ (live, may have changed)'))+' · '+link('../analysis/index.html#inspect?query='+c['id'],h('查看该页方法结果','Inspect method results for this page'))+'</p><p class="source-note">'+h('下方直接展示本轮 HTML 存档。为安全阅读，预览禁用脚本、外部资源及页面跳转；图片以占位文字显示。这是静态阅读视图，不是实测浏览器截图，也不重现运行脚本后的页面。完整输入保留在源码中。','Read the HTML archive used in this run below. This safe preview disables scripts, external resources and navigation; images appear as placeholders. It is a static reading view, not a measured browser screenshot or a replay of script execution. The complete input remains in the source view.')+'</p>'+_wmb_html_preview(frozen_html,english)+'<details><summary>'+h('查看完整 HTML 源码','View complete HTML source')+'</summary><pre class="wmb-source-pre">'+esc(frozen_html)+'</pre><p>'+link(ref_prefix+'sources/'+c['id']+'.html.txt',h('另存原始文件','Save raw file'))+'</p></details>','frozen-input')
+   _wmb_write(out,'datasets/'+c['id']+'.html',c['id'],body,english)
+
+  for name in names:
+   rs=[r for r in records if r['provider']==name]
+   rows=[]
+   for r in rs:
+    c=cases[r['case_id']]
+    output=contained_path(out,r['artifact_path']).read_text(encoding='utf-8',errors='replace')
+    state_class='success' if r['ok'] and output.strip() and not _wmb_error_page(output) else 'failure'
+    request=f'<span class="wmb-pill {state_class}">{esc(_wmb_body_state(r,output,english))}</span>'
+    values=cell(link('../attempts/'+r['attempt_id']+'.html',r['case_id']))+cell(esc(_wmb_category(c,'language')))+cell(esc(_wmb_category(c,'level')))+cell(esc(_wmb_category(c,'table')))+cell(esc(_wmb_category(c,'code')))+cell(esc(_wmb_category(c,'equation')))+cell(request)+cell(esc(_wmb_output_label(r,output,english)))
+    values+=''.join(_wmb_metric_cell(r,metric) for metric in metric_order[1:])
+    values+=cell(ms(r['total_elapsed_ms']),r['total_elapsed_ms'])+cell(link('../datasets/'+r['case_id']+'.html',h('页面与参考','Page and reference')))
+    rows.append((_wmb_row_attrs(c,r),values))
+   body=hero(labels[name],h(f'{case_count} 条逻辑结果；失败重试的耗时已累计。',f'{case_count} logical results; failed-retry latency is accumulated.'))
+   body+=section(h('逐页结果','Per-page results'),'<p class="source-note">'+h('点 Track ID 查看评分、完整响应和原因，末列打开冻结页面与人工参考。“正文已生成”只说明存在可读 Markdown，不等于内容通过；错误页会在“响应与正文”列明确标出。','Open a track ID for scores, the complete response and cause; the last column opens the frozen page and human reference. “Body text produced” only states that readable Markdown exists, not that content passed; error pages are explicit in the response column.')+'</p>'+_wmb_controls(cases,labels,english,include_method=False,failure_types=failure_types)+'<p class="wmb-scroll-note">'+h('表格可横向和纵向滚动。','Scroll horizontally and vertically within the table.')+'</p>'+_wmb_filter_table([h('Track ID','Track ID'),h('语言','Language'),h('难度','Difficulty'),h('表格','Table'),h('代码','Code'),h('公式','Formula'),h('是否生成正文','Body text produced'),h('响应与正文','Response and body') ]+[metric_labels[m] for m in metric_order[1:]]+[h('总耗时','Total latency'),h('页面与参考','Page and reference')],rows,'wmb-provider-'+name,english))
+   _wmb_write(out,'providers/'+name+'.html',labels[name],body,english)
+
+  for r in records:
+   c=cases[r['case_id']];case_id=r['case_id'];attempt_id=r['attempt_id']
+   output_path=contained_path(out,r['artifact_path'])
+   output_text=output_path.read_text(encoding='utf-8',errors='replace') if output_path.is_file() else ''
+   reference_text=contained_path(out,'references/'+case_id+'.md').read_text(encoding='utf-8')
+   metric_rows=[]
+   for metric in metric_order:
+    item=r.get('metrics',{}).get(metric,{})
+    detail=item.get('details',{})
+    concise=[]
+    for key in ('distance','predicted_length','groundtruth_length','predicted_text_length','groundtruth_text_length','predicted_code_length','groundtruth_code_length','predicted_formula_length','groundtruth_formula_length','predicted_table_length','groundtruth_table_length'):
+     if key in detail:concise.append(f'{key}: {detail[key]}')
+    if item.get('error'):concise.append(item['error'])
+    description='<br>'.join(esc(value) for value in concise) or '—'
+    if detail:description+=f'<details><summary>{h("完整评分字段","Complete scorer fields")}</summary><pre>{esc(json.dumps(detail,ensure_ascii=False,indent=2))}</pre></details>'
+    if corrected and metric in ('overall','table_TEDS'):
+     original=r.get('official_metrics',{}).get(metric,{})
+     original_score=display_score(original.get('score')) if original.get('success') else '—'
+     description+='<details class="wmb-original-score"><summary>'+h('官方原始分：','Original official score: ')+original_score+'</summary><pre>'+esc(json.dumps(original,ensure_ascii=False,indent=2))+'</pre></details>'
+    metric_rows.append(('',cell(metric_labels[metric])+cell(h('已计算','Calculated') if item.get('success') else h('未计算','Not calculated'))+cell(display_score(item.get('score')) if item.get('success') else '—',item.get('score') if item.get('success') else -1)+cell(description)))
+   delivery=_wmb_body_state(r,output_text,english)
+   metadata=r.get('provider_metadata',{}) or {}
+   failure_text=(esc(r.get('error_type') or 'unknown')+': '+esc(r.get('error_message') or '') if not r['ok']
+                 else h('程序返回的是浏览器错误页，不是目标网页正文。','The program returned a browser error page rather than target-page body text.') if _wmb_error_page(output_text) else '')
+   raw_prefix='../../' if english else '../'
+   attempt_body=hero(labels[r['provider']],h('Track ID: ','Track ID: ')+case_id)
+   attempt_body+='<div class="wrap"><p class="actions">'+link('../datasets/'+case_id+'.html',h('查看该页输入与参考','Page input and reference'))+' · '+link('../providers/'+r['provider']+'.html',h('该方法全部结果','All results for this method'))+' · '+link('../analysis/index.html',h('返回结果筛选','Back to result filters'))+'</p></div>'
+   call_state=(h('Cloudflare 接口 HTTP ','Cloudflare API HTTP ')+str(r['status_code']) if r['provider']=='kitesurf' and r.get('status_code') is not None else h('Cloudflare 接口没有返回 HTTP 状态','No Cloudflare API HTTP status') if r['provider']=='kitesurf' else h('本地程序退出码 ','Local worker exit code ')+str(metadata.get('exit_code','—')))
+   output_state=_wmb_output_label(r,output_text,english)
+   attempt_body+=section(h('接口返回和最终内容','API/worker response and final content'),'<div class="wmb-attempt-summary">'+''.join('<article class="card"><b>'+esc(label)+'</b><strong>'+esc(value)+'</strong></article>' for label,value in [(h('接口或程序','API or worker'),call_state),(h('最终内容','Final content'),output_state),(h('浏览器进程退出码','Browser process exit code'),str(metadata.get('browser_exit_code','—')))])+'</div><p class="source-note">'+h('本地程序退出码不是源站 HTTP 状态；本轮读取冻结 HTML，未请求原始 URL。最终内容为空与接口完全无响应也不是同一件事：上面的状态、下方错误信息和完整供应商字段应合起来看。','A local worker exit code is not an origin-site HTTP status; this run read frozen HTML instead of the original URL. Empty final content is different from no API/worker response: inspect the state above together with the error and raw provider fields below.')+'</p>'+(('<p class="callout failure">'+h('程序返回了非空文字，但文字是错误页面。此页的官方分数不能代表目标网页的提取质量。','The program returned non-empty text, but it is an error page. Its official score does not measure extraction quality on the target page.')+'</p>') if _wmb_error_page(output_text) else ''))
+   attempt_body+=section(h('这次转换的结果','Conversion outcome'),'<div class="wmb-attempt-summary">'+''.join(f'<article class="card"><b>{label}</b><strong>{esc(value)}</strong></article>' for label,value in [(h('是否生成正文','Body text produced'),delivery),(h('逐页综合分','Per-page overall'),pct(r.get('metrics',{}).get('overall',{}).get('score')) if r.get('metrics',{}).get('overall',{}).get('success') else '—'),(h('累计耗时','Total elapsed'),ms(r['total_elapsed_ms']))])+'</div><p class="source-note">'+h('“正文已生成”只表示最终得到可读 Markdown，不是质量通过。官方没有逐页通过阈值；逐页分只平均本页成功计算的指标，和首页 overall 的算法不同。','“Body text produced” only means readable Markdown was returned, not that quality passed. The official benchmark has no per-page pass threshold; per-page score averages only components calculated on this page and differs from home-page overall.')+'</p>'+('<div class="callout failure"><b>'+h('没有生成目标正文','No target body text produced')+'</b><p>'+failure_text+'</p></div>' if not r['_body_present'] else '')+'<p class="actions">'+link('../datasets/'+case_id+'.html#frozen-input',h('查看冻结网页','View frozen page'))+' · '+link(c['url'],h('来源网页 ↗（实时）','Source website ↗ (live)'))+' · '+link(raw_prefix+r['artifact_path'],h('完整方法输出','Complete method output'))+'</p><details><summary>'+h('来源、标识与哈希','Provenance, IDs and hashes')+'</summary><div class="wmb-provenance"><p>Run ID: <code>'+esc(r.get('run_id','—'))+'</code><br>Attempt ID: <code>'+esc(attempt_id)+'</code><br>Track ID: <code>'+esc(case_id)+'</code></p><p>Input SHA-256: <code class="break">'+esc(c['input_html_sha256'])+'</code><br>Reference SHA-256: <code class="break">'+esc(c['reference_sha256'])+'</code><br>Output SHA-256: <code class="break">'+esc(r.get('output_sha256','—'))+'</code></p><p>'+link(c['url'],h('原始来源 URL','Original source URL'))+'</p></div></details>')
+   if not r['_body_present']:
+    observed,interpretation=failure_notes.get((r['provider'],case_id),(h('程序没有生成目标正文','Worker produced no target body text'),h('现有证据不能再区分服务内部阶段；详情保留了完整响应，避免把未知原因写成浏览器结论。','The available evidence cannot separate the service-internal stage further. The complete response remains available rather than turning an unknown into a browser conclusion.')))
+    attempt_body+=section(h('目前能确认的原因范围','Supported cause'),'<div class="guide-grid"><article class="guide-card"><h3>'+h('直接观察','Observed')+'</h3><p>'+esc(observed)+'</p></article><article class="guide-card"><h3>'+h('证据支持的判断','Supported interpretation')+'</h3><p>'+esc(interpretation)+'</p></article></div><p class="source-note">'+h('这是基于本次输入、程序状态、错误文字和同页其他方法结果的证据边界；没有证据的根因不会补写。','This boundary is based on the input, worker state, error text and same-page method results; unsupported root causes are not invented.')+'</p>')
+   attempt_body+=section(h('逐项评分与原因','Component scores and reasons'),'<p class="source-note">'+h('“未计算”只有两类原因：该类内容在参考答案和实际输出中都不存在，或者评分器执行失败。下表直接显示该页的具体状态、官方错误和长度。逐页 overall 只平均成功计算的分项，不是首页榜单 overall。','“Not calculated” has exactly two causes: the content type is absent from both the reference and output, or the scorer failed. The table below shows this page’s exact state, official error and lengths. Per-page overall averages only calculated components and differs from leaderboard overall.')+'</p>'+table([h('指标','Metric'),h('状态','Status'),h('分数','Score'),h('长度、距离与官方错误','Lengths, distance and official error')],metric_rows,'wmb-metrics-'+attempt_id,True,metrics=[]))
+   attempt_body+=section(h('人工真值与完整实际输出','Human reference and complete actual output'),'<p class="source-note">'+h('左侧是官方人工校准 Markdown，右侧是该次调用最终采用的完整返回；可分别滚动，原始文件可从上方下载。冻结 HTML 输入另行提供，原 URL 不参与本轮实时抓取。','The official human-calibrated Markdown is on the left; the complete final authoritative return is on the right. Each pane scrolls independently, and original files are downloadable above. Frozen input HTML is separate; the original URL was not fetched live.')+'</p><div class="evidence-compare wmb-evidence"><div class="evidence-pane"><header><h3>'+h('官方人工真值','Official human reference')+'</h3></header><div class="pane-body"><pre data-kind="reference">'+esc(reference_text)+'</pre></div></div><div class="evidence-pane"><header><h3>'+h('最终实际输出','Final actual output')+'</h3></header><div class="pane-body"><pre data-kind="output">'+esc(readable_output(output_text))+'</pre></div></div></div>')
+   attempt_body+=section(h('完整接口记录','Complete API/worker record'),'<p>'+h('输入方式','Input mode')+': <code>'+esc(metadata.get('input_mode') or '—')+'</code> · '+h('上游状态','Upstream status')+': <code>'+esc(metadata.get('upstream_status') if metadata.get('upstream_status') is not None else '—')+'</code></p><details><summary>'+h('供应商返回字段','Provider response fields')+'</summary><pre data-kind="metadata">'+esc(json.dumps(metadata,ensure_ascii=False,indent=2))+'</pre></details>')
+   _wmb_write(out,'attempts/'+attempt_id+'.html',labels[r['provider']]+' · '+case_id,attempt_body,english)

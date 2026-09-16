@@ -4,6 +4,12 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 ROOT=Path(__file__).resolve().parents[1]
 out=Path(sys.argv[1]) if len(sys.argv)>1 else ROOT/'reports/webfetch'
+dataset=json.loads((out/'dataset.json').read_text())
+if dataset.get('comparison',{}).get('kind')=='webmainbench_frozen_html_to_markdown':
+    from check_webmainbench_report import check_revision
+    check_revision(out)
+    print('PASS: WebMainBench preselected-200 release scope and report acceptance checks verified')
+    raise SystemExit(0)
 for path in out.rglob('*.html'):
     soup=BeautifulSoup(path.read_text(),'html.parser')
     relative_parts=path.relative_to(out).parts

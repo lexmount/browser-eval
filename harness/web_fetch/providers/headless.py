@@ -22,6 +22,12 @@ from ..container_resources import ContainerResourceRunner
 from .base import Provider
 
 ENGINES = ('kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium')
+LOOPBACK_SANDBOX_PROFILE = (
+    '(version 1)(allow default)(deny network*)'
+    '(allow network* (local unix-socket))'
+    '(allow network* (remote unix-socket))'
+    '(allow network-outbound (remote ip "localhost:*"))'
+)
 HEADLESS_CONVERSION = (
     'Native Markdown for Kitesurf, Lightpanda, Obscura and Moli 1.1.1; direct '
     'Moli documents/media use automatic raw output; Chromium '
@@ -149,6 +155,8 @@ def cli_command(
     output_mode='html',
     wait_until=None,
     retrieval_plan=None,
+    allow_private_network=False,
+    ca_cert=None,
 ):
     ms = str(max(1, math.ceil(timeout * 1000)))
     if output_mode not in {'html', 'markdown', 'document', 'file'}:
@@ -167,14 +175,15 @@ def cli_command(
         if engine == 'obscura':
             # Obscura's documented default is load plus an adaptive, at-most
             # five-second quiescence wait. Do not replace it with a fixed delay.
-            return [binary, 'fetch', '--dump', 'markdown', *(completion or []), '--timeout',
+            prefix = [binary, '--allow-private-network'] if allow_private_network else [binary]
+            return prefix + ['fetch', '--dump', 'markdown', *(completion or []), '--timeout',
                     str(math.ceil(timeout)), '--quiet', url]
         common = [binary, 'fetch', '--dump', 'markdown']
         common += completion or ['--wait-until', wait_until or 'done']
         if engine == 'moli':
-            return common + ['--timeout', ms, '--http-timeout', ms, url]
+            return common + (['--ca-cert', str(ca_cert)] if ca_cert else []) + ['--timeout', ms, '--http-timeout', ms, url]
         if engine == 'lightpanda':
-            return common + ['--terminate-ms', ms, '--http-timeout', ms, url]
+            return common + (['--ca-cert', str(ca_cert)] if ca_cert else []) + ['--terminate-ms', ms, '--http-timeout', ms, url]
         raise ValueError('Not a native Markdown CLI engine: ' + engine)
     completion = _cli_completion_arguments(engine, retrieval_plan)
     common = [binary, 'fetch', '--dump', 'html']
@@ -229,6 +238,9 @@ class HeadlessProvider(Provider):
         self._resolved_binary = binary
         if engine == 'kitesurf' and self.type == 'headless_markdown':
             errors.extend(name for name in ('api_token', 'account_id') if not self.config.get(name))
+        if self.config.get('network_policy') == 'loopback_only':
+            if sys.platform != 'darwin' or not Path('/usr/bin/sandbox-exec').is_file():
+                errors.append('macos sandbox-exec for loopback_only network policy')
         dependencies = ('playwright',) if engine in {'chromium'} or self.type == 'headless_html' else ()
         for dependency in dependencies:
             if importlib.util.find_spec(dependency) is None:
@@ -346,6 +358,7 @@ class HeadlessProvider(Provider):
         metadata = {'engine': engine, 'wait_until': wait_until,
                     'extractor': extractor, 'output_contract': output_contract,
                     'session': 'fresh per call',
+                    'network_policy': self.config.get('network_policy', 'unrestricted'),
                     'deployment': ('Cloudflare Browser Run from isolated client container'
                                    if resource_interval is not None and engine == 'kitesurf'
                                    else 'isolated Linux client container'
@@ -384,6 +397,9 @@ class HeadlessProvider(Provider):
                    'wait_until': retrieval_plan.wait_until if retrieval_plan else None,
                    'track': case.track,
                    'retrieval_plan': normalized_plan,
+                   'allow_private_network': bool(self.config.get('allow_private_network')),
+                   'ca_cert': self.config.get('ca_cert'),
+                   'network_policy': self.config.get('network_policy', 'unrestricted'),
                    'endpoint': self.config.get('endpoint',
                    'wss://kitesurf.cloudflare.app/devtools/browser')}
         if engine == 'kitesurf':
@@ -450,6 +466,8 @@ class HeadlessProvider(Provider):
     def _run_local_worker(worker, request, timeout, limit):
         with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
             command = [sys.executable, str(worker)]
+            if request.get('network_policy') == 'loopback_only':
+                command = ['/usr/bin/sandbox-exec', '-p', LOOPBACK_SANDBOX_PROFILE, *command]
             process = subprocess.Popen(command, stdin=subprocess.PIPE,
                 stdout=stdout, stderr=stderr, start_new_session=True)
             process.stdin.write(json.dumps(request).encode())

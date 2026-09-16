@@ -19,7 +19,7 @@ SCORING_SOURCE_SHA256 = hashlib.sha256(b"\0".join(
     Path(__file__).with_name(name).read_bytes() for name in (
         "scoring.py", "metrics.py", "stable_tasks.py", "dynamic_lists.py",
         "list_verification.py", "reference_quality.py", "dynamic_entry_matching.py",
-        "response_input.py", "body_coverage.py",
+        "response_input.py", "body_coverage.py", "ordered_tree.py",
     )
 )).hexdigest()
 
@@ -48,6 +48,7 @@ _CONDITIONAL_FIELDS = {
     "resource_acceptance_contract_sha256",
     "structure_pass", "named_entry_count", "minimum_entries", "snapshot_f1",
     "dynamic_titles", "verification_note", "confirmed_entries", "checked_entries",
+    "ordered_tree", "ordered_tree_similarity",
 }
 
 
@@ -158,5 +159,14 @@ def score_attempt(
                 raise ValueError("Legacy list scoring requires independent list reference")
             result.update(verify_list(content, benchmark, case["url"], list_reference, ok, links))
     result["content_sha256"] = hashlib.sha256(artifact).hexdigest()
+    if case.get('ordered_tree_reference') is not None:
+        from .ordered_tree import tree_distance
+        tree_result = tree_distance(json.loads(artifact), case['ordered_tree_reference'])
+        result['ordered_tree'] = tree_result
+        result['ordered_tree_similarity'] = tree_result['score']
+        # A threshold is only an explicit task requirement, not a benchmark-wide
+        # interpretation of continuous similarity as a pass rate.
+        if 'ordered_tree_min_similarity' in case:
+            result['content_pass'] = bool(ok and tree_result['score'] >= case['ordered_tree_min_similarity'])
     result["scoring_source_sha256"] = SCORING_SOURCE_SHA256
     return result
