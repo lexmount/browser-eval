@@ -111,3 +111,18 @@ uv run --frozen python scripts/manage_webarena_rainbond_pool.py \
 Each receipt records create, copy, configure, deploy-request, readiness, and total cold-start
 durations. Use those measurements to size the warm pool; task admission should allocate a
 ready slice rather than waiting for a cold start.
+
+The baseline resource requests total 10 CPU cores and 20 GiB of memory per slice, plus
+100 millicores and 128 MiB for the initializer. Capacity planning must use schedulable
+resources, not cluster totals. A pool serving `N` active tasks with one idle warm slice
+therefore needs at least `(N + 1) * 10.1` cores and `(N + 1) * 20.125 GiB`, with additional
+headroom for Rainbond's rolling-update surge Pods and unrelated workloads. If that headroom
+is unavailable, replacements remain pending instead of weakening isolation or silently
+sharing a site.
+
+Rainbond remains the runtime data plane and this repository's lease controller remains the
+source of truth for lifecycle and reset. Kestra is optional above it for queues, schedules,
+timeouts, retries, and guaranteed cleanup; it is not required to allocate a slice and must
+not become a runtime dependency. Argo Workflows is only justified when the deployment moves
+to direct Kubernetes-native orchestration at substantially larger scale, because using it
+for the current pool would duplicate Rainbond application lifecycle management.
