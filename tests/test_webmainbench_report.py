@@ -6,6 +6,7 @@ from pathlib import Path
 
 from harness.web_fetch.report import generate_webmainbench, _wmb_pct, _wmb_body_state, _wmb_row_attrs
 from harness.web_fetch.report_build import validate_webmainbench_correction
+from harness.web_fetch.report_style import STYLE
 
 
 PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "chromium")
@@ -13,6 +14,12 @@ METRICS = ("text_edit", "code_edit", "table_edit", "table_TEDS", "formula_edit")
 
 
 class WebMainBenchReportTests(unittest.TestCase):
+    def test_narrow_reliability_banner_wraps_instead_of_clipping(self):
+        self.assertIn(
+            '.reliability strong{white-space:normal;overflow-wrap:anywhere}',
+            STYLE,
+        )
+
     def test_search_index_bounds_logs_but_keeps_terminal_error(self):
         message='initial-warning\n'+'x'*50000+'\nterminal-navigation-error'
         record={'provider':'obscura','ok':False,'error_type':'browser_exit','error_message':message}
