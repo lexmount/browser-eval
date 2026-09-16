@@ -107,6 +107,16 @@ public-benchmark-sample: runtime-check
 	@test -n "$(SOURCE)" || (echo 'SOURCE=/absolute/path/to/WebMainBench_545.jsonl is required' >&2; exit 2)
 	$(PY) scripts/select_public_benchmark_sample.py --source "$(SOURCE)"
 
+.PHONY: webmainbench-audit webmainbench-navigation-diagnostic
+webmainbench-audit: runtime-check
+	@test -n "$(EVIDENCE)" -a -n "$(SOURCE)" -a -n "$(OUTPUT)" || (echo 'EVIDENCE, SOURCE and new OUTPUT paths are required' >&2; exit 2)
+	$(PY) scripts/audit_webmainbench_suspicions.py --evidence "$(EVIDENCE)" --source-dataset "$(SOURCE)" --output "$(OUTPUT)"
+
+# Diagnostic controls deliberately mutate test inputs and never enter a report cohort.
+webmainbench-navigation-diagnostic: runtime-check
+	@test -n "$(SOURCE)" -a -n "$(BINARY)" -a -n "$(OUTPUT)" || (echo 'SOURCE, BINARY and new OUTPUT paths are required' >&2; exit 2)
+	$(PY) scripts/diagnose_webmainbench_navigation.py --dataset "$(SOURCE)" --binary "$(BINARY)" --output "$(OUTPUT)"
+
 webmainbench-run: runtime-check
 	@test -n "$(PROVIDER)" || (echo 'PROVIDER is required' >&2; exit 2)
 	@test -n "$(OUTPUT)" || (echo 'OUTPUT=/absolute/path/to/provider-shard is required' >&2; exit 2)
