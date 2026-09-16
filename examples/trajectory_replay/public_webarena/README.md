@@ -49,6 +49,10 @@ control endpoints themselves are never published through the gateway.
 `/opt/webarena/initializer.sh` and run as `/bin/sh /opt/webarena/initializer.sh` by
 the pinned Alpine image; port 8080 serves only the final readiness marker. Keeping the
 script in a mounted file avoids Rainbond's whitespace-only image-command parsing.
+The initializer depends on the copied Reddit and GitLab components so Rainbond makes
+their internal Service names resolvable. Keep only the site-specific exported variables
+`REDDIT_CTRL_URL` and `GITLAB_CTRL_URL`; remove generic duplicated `CTRL_HOST` and
+`CTRL_PORT` exports before creating both dependency relations.
 
 Both Magento baseline components must also mount a Rainbond `config-file` named
 `wa-hide-csp-*` at `/etc/nginx/conf.d/00-webarena-hide-csp.conf` before they are copied.
@@ -64,12 +68,30 @@ installation and otherwise produces a gateway 502 even while the Pod and port ar
 healthy. The images retain their default startup commands, and application readiness
 still requires a successful request through each public slice domain.
 
-The GitLab baseline must mount an exclusive 2 GiB Rainbond `memoryfs` volume named
-`gitlab-shm` at `/dev/shm`. This preserves the upstream Compose `shm_size: 2gb`
-runtime contract; a generic persistent volume or the container runtime's small default
-shared-memory mount is not equivalent. The four seeded site images otherwise keep their
-data in the slice's disposable writable layers. Do not mount empty volumes over their
-preloaded database directories.
+The GitLab baseline must reproduce the upstream Compose `shm_size: 2gb` contract with
+native Kubernetes attributes, not a Rainbond `memoryfs` storage volume. In the GitLab
+component's **Other settings → Kubernetes attributes**, set `volumes` to:
+
+```yaml
+- name: gitlab-shm
+  emptyDir:
+    medium: Memory
+    sizeLimit: 2Gi
+```
+
+and set `volumeMounts` to:
+
+```yaml
+- name: gitlab-shm
+  mountPath: /dev/shm
+```
+
+Rainbond attribute values omit the top-level `volumes:` and `volumeMounts:` keys.
+Verify inside a running GitLab container that `/dev/shm` is a 2 GiB `tmpfs`; a
+Rainbond `memoryfs` volume is backed by the cluster filesystem in this deployment and
+is not equivalent. The four seeded site images otherwise keep their data in the
+slice's disposable writable layers. Do not mount empty volumes over their preloaded
+database directories.
 
 Copy `rainbond-pool.example.json`, set `RAINBOND_API_TOKEN` in the process environment,
 and reconcile the warm pool to the active task count plus at least one idle slice.

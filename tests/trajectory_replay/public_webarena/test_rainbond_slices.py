@@ -29,6 +29,7 @@ class FakeAPI:
         self.calls = []
         self.next_app_id = 200
         self.fail_domain_for = fail_domain_for
+        self.port_hosts = {}
 
     def request(self, method, path, body=None):
         self.calls.append((method, path, body))
@@ -62,15 +63,34 @@ class FakeAPI:
                 raise RuntimeError("injected domain failure")
         if method == "GET" and path.endswith("/ports"):
             service_id = path.split("/services/", 1)[1].split("/", 1)[0]
+            site = next(site for site in STATEFUL_SITES if site in service_id)
+            site_host = f"internal-{service_id}"
             return {
                 "ports": [
                     {
+                        "container_port": 8023 if site == "gitlab" else 80,
+                        "is_inner_service": True,
+                        "k8s_service_name": site_host,
+                    },
+                    {
                         "container_port": 8877,
                         "is_inner_service": True,
-                        "k8s_service_name": f"internal-{service_id}",
-                    }
+                        "k8s_service_name": self.port_hosts.get(
+                            service_id, f"control-{service_id}"
+                        ),
+                    },
                 ]
             }
+        if method == "PUT" and "/ports/8877" in path:
+            service_id = path.split("/services/", 1)[1].split("/", 1)[0]
+            self.port_hosts.pop(service_id, None)
+            return {}
+        if method == "DELETE" and "/ports/8877" in path:
+            return {}
+        if method == "POST" and path.endswith("/ports"):
+            service_id = path.split("/services/", 1)[1].split("/", 1)[0]
+            self.port_hosts[service_id] = f"internal-{service_id}"
+            return {}
         if method == "GET" and path.endswith("/services"):
             return [
                 {
@@ -152,9 +172,7 @@ def test_provision_creates_one_complete_isolated_app_without_serializing_token(t
         row for row in domains if row["service_id"] == "service-initializer-201"
     )
     assert initializer_domain["container_port"] == 8080
-    assert receipt["initializer"]["readiness_url"].endswith(
-        initializer_domain["domain_name"]
-    )
+    assert receipt["initializer"]["readiness_url"].endswith(initializer_domain["domain_name"])
     initializer_envs = next(
         call[2]["envs"]
         for call in api.calls
@@ -163,6 +181,19 @@ def test_provision_creates_one_complete_isolated_app_without_serializing_token(t
     assert {row["name"]: row["value"] for row in initializer_envs} == {
         "REDDIT_CTRL_URL": "http://internal-service-reddit-201:8877",
         "GITLAB_CTRL_URL": "http://internal-service-gitlab-201:8877",
+        "ENV_CTRL_MAX_ATTEMPTS": "360",
+        "ENV_CTRL_RETRY_SECONDS": "5",
+    }
+    port_mutations = [
+        call for call in api.calls if "/ports" in call[1] and call[0] != "GET"
+    ]
+    assert [call[0] for call in port_mutations] == ["PUT", "DELETE", "POST"] * 4
+    recreated = [call for call in port_mutations if call[0] == "POST"]
+    assert {call[2]["port_alias"] for call in recreated} == {
+        "SHOPPING_ADMIN_CTRL",
+        "SHOPPING_CTRL",
+        "REDDIT_CTRL",
+        "GITLAB_CTRL",
     }
 
 
@@ -178,9 +209,7 @@ def test_provision_accepts_console_items_response_shapes(tmp_path):
                 return {"items": response}
             return response
 
-    receipt = _pool(tmp_path, ItemsAPI()).provision(
-        "run-items", 1, tmp_path / "slice-receipt.json"
-    )
+    receipt = _pool(tmp_path, ItemsAPI()).provision("run-items", 1, tmp_path / "slice-receipt.json")
 
     assert set(receipt["components"]) == set(STATEFUL_SITES)
 
@@ -195,7 +224,7 @@ def test_provision_rejects_copied_site_without_internal_control_port(tmp_path):
     api = MissingControlPortAPI()
     pool = _pool(tmp_path, api)
 
-    with pytest.raises(RuntimeError, match="no internal service on port 8877"):
+    with pytest.raises(RuntimeError, match="must expose internal ports 80 and 8877"):
         pool.provision("run-a", 1, tmp_path / "slice-receipt.json")
 
     assert any(method == "DELETE" for method, _path, _body in api.calls)
@@ -214,10 +243,7 @@ def test_reset_deletes_the_whole_app_and_recreates_a_new_generation(tmp_path):
     assert {row["site_url"] for row in second["components"].values()}.isdisjoint(
         {row["site_url"] for row in first["components"].values()}
     )
-    assert all(
-        f"-{second['app_id']}-" in row["site_url"]
-        for row in second["components"].values()
-    )
+    assert all(f"-{second['app_id']}-" in row["site_url"] for row in second["components"].values())
     assert any(
         method == "DELETE" and f"/{first['app_id']}?force=1" in path
         for method, path, _body in api.calls
@@ -371,9 +397,7 @@ def test_scale_down_is_atomic_when_an_excess_slice_is_leased(tmp_path, monkeypat
     for slot in (1, 2, 3):
         slot_dir = output / f"slice-{slot}"
         slot_dir.mkdir(parents=True)
-        (slot_dir / "slice-receipt.json").write_text(
-            json.dumps({"pool_id": "warm", "slot": slot})
-        )
+        (slot_dir / "slice-receipt.json").write_text(json.dumps({"pool_id": "warm", "slot": slot}))
     (output / "slice-2" / "slice-lease.json").write_text("{}")
 
     with pytest.raises(RuntimeError, match="leased Rainbond slices"):
@@ -446,9 +470,7 @@ def test_release_replaces_dirty_generation_before_unlocking_slice(tmp_path, monk
     assert json.loads((slot_dir / "webarena.config.json").read_text()) == {"app_id": 201}
 
 
-def test_failed_release_keeps_lease_so_dirty_slice_cannot_be_reassigned(
-    tmp_path, monkeypatch
-):
+def test_failed_release_keeps_lease_so_dirty_slice_cannot_be_reassigned(tmp_path, monkeypatch):
     output = tmp_path / "runtime"
     slot_dir = _ready_slot(output, 1, 101)
     lease = acquire_slice(output, "task-a")

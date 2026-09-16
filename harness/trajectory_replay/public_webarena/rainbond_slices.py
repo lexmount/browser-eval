@@ -202,9 +202,7 @@ class RainbondSlicePool:
         return []
 
     def _domain(self, pool_id: str, slot: int, site: str, app_id: int) -> str:
-        label = (
-            f"{self.config.app_prefix}-{pool_id}-{slot}-{app_id}-{site.replace('_', '-')}"
-        )
+        label = f"{self.config.app_prefix}-{pool_id}-{slot}-{app_id}-{site.replace('_', '-')}"
         if len(label) > 63:
             label = f"{label[:50].rstrip('-')}-{hashlib.sha256(label.encode()).hexdigest()[:10]}"
         return f"{label}.{self.config.domain_suffix}"
@@ -259,9 +257,7 @@ class RainbondSlicePool:
         initializer_name = str(
             self.raw_config.get("initializer_component_name") or "slice-initializer"
         )
-        copied_initializer_name = re.compile(
-            rf"^{re.escape(initializer_name)}-copy(?:-\d+)?$"
-        )
+        copied_initializer_name = re.compile(rf"^{re.escape(initializer_name)}-copy(?:-\d+)?$")
         initializer_matches = [
             row
             for row in rows
@@ -287,6 +283,13 @@ class RainbondSlicePool:
         service_id = str(component.get("service_id") or "")
         if not service_id:
             raise RuntimeError(f"Rainbond copied component has no service_id: {site}")
+        self._coalesce_internal_ports(
+            app_id,
+            service_id,
+            site_port=SITE_PORTS[site],
+            control_port=8877,
+            control_alias=f"{site.upper()}_CTRL",
+        )
         domain = self._domain(pool_id, slot, site, app_id)
         site_url = f"http://{domain}"
         magento = site in {"shopping_admin", "shopping"}
@@ -369,6 +372,56 @@ class RainbondSlicePool:
             "site_url": site_url,
         }
 
+    def _coalesce_internal_ports(
+        self,
+        app_id: int,
+        service_id: str,
+        *,
+        site_port: int,
+        control_port: int,
+        control_alias: str,
+    ) -> None:
+        path = f"{self._app_path(app_id)}/services/{quote(service_id)}/ports"
+
+        def inner_ports() -> dict[int, dict[str, Any]]:
+            response = self.api.request("GET", path)
+            return {
+                int(row.get("container_port") or 0): row
+                for row in self._response_rows(response, "ports")
+                if bool(row.get("is_inner_service"))
+            }
+
+        ports = inner_ports()
+        site_host = str(ports.get(site_port, {}).get("k8s_service_name") or "")
+        control_host = str(ports.get(control_port, {}).get("k8s_service_name") or "")
+        if not site_host or not control_host:
+            raise RuntimeError(
+                f"Rainbond copied component {service_id} must expose internal ports "
+                f"{site_port} and {control_port}"
+            )
+        if site_host == control_host:
+            return
+        control_path = f"{path}/{control_port}"
+        self.api.request("PUT", control_path, {"action": "close_inner"})
+        self.api.request("DELETE", control_path)
+        self.api.request(
+            "POST",
+            path,
+            {
+                "port": control_port,
+                "protocol": str(ports[control_port].get("protocol") or "http"),
+                "port_alias": control_alias,
+                "is_inner_service": True,
+            },
+        )
+        ports = inner_ports()
+        updated_host = str(ports.get(control_port, {}).get("k8s_service_name") or "")
+        if updated_host != site_host:
+            raise RuntimeError(
+                f"Rainbond did not attach control port {control_port} to internal "
+                f"service {site_host!r}: got {updated_host!r}"
+            )
+
     def _configure_initializer(
         self,
         app_id: int,
@@ -402,6 +455,20 @@ class RainbondSlicePool:
                         "scope": "inner",
                     }
                     for site, alias in aliases.items()
+                ]
+                + [
+                    {
+                        "name": "ENV_CTRL_MAX_ATTEMPTS",
+                        "value": "360",
+                        "is_change": True,
+                        "scope": "inner",
+                    },
+                    {
+                        "name": "ENV_CTRL_RETRY_SECONDS",
+                        "value": "5",
+                        "is_change": True,
+                        "scope": "inner",
+                    },
                 ]
             },
         )
@@ -439,9 +506,7 @@ class RainbondSlicePool:
         )
         return {"service_id": service_id, "readiness_url": readiness_url}
 
-    def _internal_service_host(
-        self, app_id: int, component: dict[str, Any], port: int
-    ) -> str:
+    def _internal_service_host(self, app_id: int, component: dict[str, Any], port: int) -> str:
         service_id = str(component.get("service_id") or "")
         response = self.api.request(
             "GET",
@@ -452,8 +517,7 @@ class RainbondSlicePool:
             (
                 row
                 for row in rows
-                if int(row.get("container_port") or 0) == port
-                and bool(row.get("is_inner_service"))
+                if int(row.get("container_port") or 0) == port and bool(row.get("is_inner_service"))
             ),
             None,
         )
@@ -470,9 +534,7 @@ class RainbondSlicePool:
         while time.monotonic() < deadline:
             response = self.api.request("GET", f"{self._app_path(app_id)}/services")
             rows = self._response_rows(response, "services")
-            match = next(
-                (row for row in rows if str(row.get("service_id")) == service_id), None
-            )
+            match = next((row for row in rows if str(row.get("service_id")) == service_id), None)
             if match is not None:
                 last_status = str(match.get("status") or "unknown")
                 if last_status == "running":
@@ -584,9 +646,7 @@ class RainbondSlicePool:
         try:
             self.api.request("DELETE", f"{self._app_path(int(previous['app_id']))}?force=1")
         except BaseException:
-            self.api.request(
-                "DELETE", f"{self._app_path(int(replacement['app_id']))}?force=1"
-            )
+            self.api.request("DELETE", f"{self._app_path(int(replacement['app_id']))}?force=1")
             replacement_path.unlink(missing_ok=True)
             raise
         replacement_path.replace(receipt_path)
@@ -700,7 +760,8 @@ def scale_pool(
                     existing[slot] = slot_dir
         excess_slots = sorted((value for value in existing if value > count), reverse=True)
         leased_excess = [
-            existing[slot] for slot in excess_slots
+            existing[slot]
+            for slot in excess_slots
             if (existing[slot] / "slice-lease.json").exists()
         ]
         if leased_excess:
@@ -771,9 +832,7 @@ def acquire_slice(output_dir: Path, owner: str) -> dict[str, Any]:
     raise RuntimeError("no unleased Rainbond WebArena slice is ready")
 
 
-def release_slice(
-    config_path: Path, output_dir: Path, lease_id: str
-) -> dict[str, Any]:
+def release_slice(config_path: Path, output_dir: Path, lease_id: str) -> dict[str, Any]:
     """Replace a dirty slice before returning it to the ready pool."""
     with _pool_lock(output_dir):
         matches: list[tuple[Path, dict[str, Any]]] = []
