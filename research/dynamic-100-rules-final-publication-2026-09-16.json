@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "kind": "dynamic_100_rules_final_publication",
+  "published_at": "2026-09-16T10:08:10Z",
+  "target": "https://artifact-hub.app.lexmount.com",
+  "slug": "xbIDwNwz0b06",
+  "version_id": "ver_6829ec189cce46a1bbfb904ad6dedef8",
+  "share_url": "https://artifact-hub.app.lexmount.com/v/AULwUNvzhuuCEvxQOs4GweLReNNKOWPX",
+  "result": {
+    "unique_tasks": 100,
+    "unique_urls": 100,
+    "task_pass": 38,
+    "task_fail": 62,
+    "independently_reviewed": 100,
+    "unresolved": 0
+  },
+  "checks": {
+    "standalone_report": "pass",
+    "logical_routes": 424,
+    "broken_local_links": 0,
+    "publication_privacy_scan": "pass",
+    "public_browser_smoke_check": "pass",
+    "full_test_suite": "1694 passed, 43 skipped"
+  },
+  "checksums": {
+    "dataset.json": "5b20c78a6e2a9746ef01432011638c18ddcab609b7dd05712d3a123b15036753",
+    "results.jsonl": "19fcd514710ab297082a40cff632fffa419b087761b8e343aaee2f8f495a4ce9",
+    "publication_bundle": "70a74f544eaf946a16668fee662426a30302de85847d83081e2e41423163e9a3",
+    "report_reliability": "d43bffbb5c13ec3fb2d55af5d9ad641ae5f89022669f468c429000da49b15a1b",
+    "report_changes": "bd8ea9249f1bf22ca9f0ac67432173973bc46f327c6ef16f124cde5faa181ee1"
+  },
+  "implementation_commits": [
+    "ef8c0d1bbd15b259b79cf358f6d76f4f24344092",
+    "cc6d274d8475b9aeb1c793302ad559ee23060b2d",
+    "5e4687518ef3ba28660153ffb2fa3e7faecdb5a9"
+  ],
+  "publication_policy": {
+    "created_new_site": true,
+    "overwrote_prior_reports": false,
+    "provider_calls_added_to_score": 0,
+    "diagnostic_calls_score_bearing": 0
+  }
+}
