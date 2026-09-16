@@ -206,7 +206,7 @@ def public_report_path(base: str, slug: str, share_url: str) -> str:
     if not token or "/" in token:
         raise ValueError("current replay profile has no valid public share token")
     return (
-        f"/api/preview/{urllib.parse.quote(slug)}?"
+        f"/api/preview/{urllib.parse.quote(slug, safe='')}?"
         + urllib.parse.urlencode({"share": token})
     )
 

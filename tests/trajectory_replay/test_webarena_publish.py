@@ -50,6 +50,9 @@ def test_public_report_path_uses_the_share_capability() -> None:
     assert publisher.public_report_path(base, "site slug", base + "/v/token-1") == (
         "/api/preview/site%20slug?share=token-1"
     )
+    assert publisher.public_report_path(base, "site/slug", base + "/v/token-1") == (
+        "/api/preview/site%2Fslug?share=token-1"
+    )
 
 
 def test_preview_marker_accepts_each_localized_home_title() -> None:

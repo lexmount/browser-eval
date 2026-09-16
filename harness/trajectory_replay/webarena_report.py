@@ -462,8 +462,14 @@ def _metric_leader(
     value: Callable[[dict[str, Any]], float],
     *,
     higher: bool,
-) -> tuple[list[dict[str, Any]], float]:
-    ranked = [(method, float(value(method))) for method in methods]
+) -> tuple[list[dict[str, Any]], float | None]:
+    ranked = [
+        (method, float(metric))
+        for method in methods
+        if isinstance(metric := value(method), (int, float))
+    ]
+    if not ranked:
+        return [], None
     best = (max if higher else min)(metric for _, metric in ranked)
     return [method for method, metric in ranked if metric == best], best
 
@@ -1232,23 +1238,31 @@ def build_webarena_replay_report(
             rank_zh="最高",
             rank_en="highest",
         )
-        trajectory_summary = _leader_sentence(
-            trajectory_leaders,
-            _format_ms(trajectory_value) if zh else f"{trajectory_value / 1000:.1f} s",
-            lang=lang,
-            metric_zh="轨迹执行均值",
-            metric_en="mean trajectory execution time",
-            rank_zh="最低",
-            rank_en="lowest",
+        trajectory_summary = (
+            _leader_sentence(
+                trajectory_leaders,
+                _format_ms(trajectory_value) if zh else f"{trajectory_value / 1000:.1f} s",
+                lang=lang,
+                metric_zh="轨迹执行均值",
+                metric_en="mean trajectory execution time",
+                rank_zh="最低",
+                rank_en="lowest",
+            )
+            if trajectory_value is not None
+            else ("没有所有浏览器共同通过的任务，无法比较速度。" if zh else "No task passed on every browser, so timing cannot be compared.")
         )
-        memory_summary = _leader_sentence(
-            memory_leaders,
-            _format_mib(memory_value),
-            lang=lang,
-            metric_zh="平均峰值内存",
-            metric_en="mean peak memory",
-            rank_zh="最低",
-            rank_en="lowest",
+        memory_summary = (
+            _leader_sentence(
+                memory_leaders,
+                _format_mib(memory_value),
+                lang=lang,
+                metric_zh="平均峰值内存",
+                metric_en="mean peak memory",
+                rank_zh="最低",
+                rank_en="lowest",
+            )
+            if memory_value is not None
+            else ("没有所有浏览器共同通过的任务，无法比较资源占用。" if zh else "No task passed on every browser, so resource use cannot be compared.")
         )
         version_comparison = _version_comparison(public_rows, methods, lang)
         cause_counts: dict[tuple[str, str], int] = defaultdict(int)

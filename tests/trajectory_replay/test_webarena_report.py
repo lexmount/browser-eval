@@ -13,6 +13,7 @@ from harness.trajectory_replay.webarena_report import (
     _timing_comparison,
     _version_comparison,
     _leader_sentence,
+    _metric_leader,
 )
 from scripts.check_webarena_replay_report import _check_english_localization
 
@@ -129,6 +130,12 @@ def test_interpretation_leader_sentence_names_ties() -> None:
     methods = [{"label": "A"}, {"label": "B"}]
     assert "并列最高" in _leader_sentence(methods, "50.0%", lang="zh", metric_zh="通过率", metric_en="pass rate", rank_zh="最高", rank_en="highest")
     assert "tied for the highest" in _leader_sentence(methods, "50.0%", lang="en", metric_zh="通过率", metric_en="pass rate", rank_zh="最高", rank_en="highest")
+
+
+def test_metric_leader_tolerates_an_empty_shared_pass_population() -> None:
+    leaders, value = _metric_leader([{"label": "A", "mean": None}], lambda item: item["mean"], higher=False)
+    assert leaders == []
+    assert value is None
 
 
 def test_english_release_gate_rejects_reader_facing_chinese(tmp_path: Path) -> None:
