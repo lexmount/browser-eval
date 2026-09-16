@@ -149,6 +149,22 @@ Each receipt records create, copy, configure, deploy-request, readiness, and tot
 durations. Use those measurements to size the warm pool; task admission should allocate a
 ready slice rather than waiting for a cold start.
 
+After a slice becomes ready, exercise all four public origins concurrently:
+
+```text
+WEBARENA_RAINBOND_SMOKE_URLS='{
+  "shopping_admin":"http://<shopping-admin-domain>",
+  "shopping":"http://<shopping-domain>",
+  "reddit":"http://<reddit-domain>",
+  "gitlab":"http://<gitlab-domain>"
+}' uv run --frozen python -m pytest \
+  tests/trajectory_replay/public_webarena/test_rainbond_live_smoke.py \
+  -m real_smoke -q -s
+```
+
+The smoke test makes eight simultaneous page loads per site, checks that each origin
+returns its expected application, and rejects a per-site P95 above ten seconds.
+
 The baseline resource requests total 10 CPU cores and 20 GiB of memory per slice, plus
 100 millicores and 128 MiB for the initializer. Capacity planning must use schedulable
 resources, not cluster totals. Reconcile the pool to current active demand plus the chosen

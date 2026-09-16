@@ -47,7 +47,7 @@ oss-eval = [
 testpaths = ["tests"]
 addopts = ["--import-mode=importlib"]
 markers = [
-  "real_smoke: starts real browser containers and accesses a public website",
+  "real_smoke: accesses real containers or live deployment endpoints",
 ]
 
 [tool.ruff]
