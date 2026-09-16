@@ -48,7 +48,6 @@ class WebMainBenchReportTests(unittest.TestCase):
                     bycase={case_id: [{'provider': name, 'metrics': {}} for name in PROVIDERS]},
                     case_count=1, score=lambda *args: 0,
                     denom=lambda *args: 0, failures=lambda name: [],
-                    latency_values={}, anomaly_review={},
                 )
                 self.assertIn('Length not recorded' if english else '长度未记录', html)
                 self.assertIn('kitesurf: —', html)

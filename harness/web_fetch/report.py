@@ -1474,7 +1474,7 @@ def _wmb_table_example(english=False):
 
 
 def _wmb_editorial_guide(*,english,names,labels,cases,bycase,case_count,score,denom,
-                         failures,latency_values,anomaly_review):
+                         failures):
  # Editorial analysis of the frozen WMB-200 cohort published as
  # ver_dab94ad9c17f4db6bec7bff98a82c660. Narrative numbers and selected examples
  # are a reviewed snapshot: a new cohort/scoring revision requires re-reviewing
@@ -1870,8 +1870,7 @@ def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,mani
     failure_notes[(provider,finding['case_id'])]=(observed,cause)
   guide=_wmb_editorial_guide(english=english,names=names,labels=labels,cases=cases,
                              bycase=bycase,case_count=case_count,score=score,denom=denom,
-                             failures=failures,latency_values=latency_values,
-                             anomaly_review=anomaly_review)
+                             failures=failures)
   _wmb_write(out,'guide/index.html',h('报告解读','Guide'),guide,english)
 
   provider_rows=[]
