@@ -181,10 +181,11 @@ class WebMainBenchReportTests(unittest.TestCase):
             home = (output / 'index.html').read_text()
             self.assertIn('id="wmb-core-results" data-col="2" data-dir="desc"', home)
             home_soup = BeautifulSoup(home, 'html.parser')
-            self.assertEqual(
-                home_soup.select_one('#wmb-core-results tbody tr td:nth-of-type(2)').get_text(strip=True),
-                'Chromium 152',
-            )
+            overall_values = [
+                float(cell['data-sort'])
+                for cell in home_soup.select('#wmb-core-results tbody tr td:nth-of-type(3)')
+            ]
+            self.assertEqual(overall_values, sorted(overall_values, reverse=True))
             self.assertNotIn('可能不计分', (output / 'methodology/index.html').read_text())
             self.assertIn('wmb-profile-table', (output / 'guide/index.html').read_text())
             for prefix, label, original in (('', '修正后复算', '官方原始分'),
