@@ -45,6 +45,13 @@ def test_public_share_must_be_same_origin_and_token_route() -> None:
             raise AssertionError("unsafe public share URL must be rejected")
 
 
+def test_public_report_path_uses_the_share_capability() -> None:
+    base = "https://artifact-hub.app.lexmount.com"
+    assert publisher.public_report_path(base, "site slug", base + "/v/token-1") == (
+        "/api/preview/site%20slug?share=token-1"
+    )
+
+
 def test_preview_marker_accepts_each_localized_home_title() -> None:
     assert publisher.preview_has_report_marker(b"<title>Browser Trajectory Replay</title>")
     assert publisher.preview_has_report_marker(
@@ -69,6 +76,7 @@ def test_bind_publication_updates_profile_and_attestation(monkeypatch, tmp_path:
         json.loads(profile.read_text()),
         slug="abc",
         share_url="https://app.example/v/token",
+        report_url="https://app.example/api/preview/abc?share=token",
         version="ver_new",
     )
 
@@ -77,6 +85,7 @@ def test_bind_publication_updates_profile_and_attestation(monkeypatch, tmp_path:
         "base_url": "https://app.example",
         "site_slug": "abc",
         "share_url": "https://app.example/v/token",
+        "report_url": "https://app.example/api/preview/abc?share=token",
         "expected_version": "ver_new",
         "state": "verified",
     }
@@ -113,6 +122,7 @@ def test_binding_journal_recovers_interrupted_two_file_update(
             json.loads(profile.read_text()),
             slug="abc",
             share_url="https://app.example/v/token",
+            report_url="https://app.example/api/preview/abc?share=token",
             version="ver_new",
         )
     assert journal.is_file()
@@ -186,7 +196,7 @@ def test_share_failure_resumes_same_site_without_second_creation(
             return 200, b'{"url":"https://app.example/v/token"}', {}
         if path == "/api/sites/site-1":
             return 200, b'{"site":{"currentVersionId":"ver_1"}}', {}
-        if path == "/v/token" or path == "/api/preview/site-1":
+        if path in ("/v/token", "/api/preview/site-1?share=token"):
             return 200, "<title>浏览器轨迹重放</title>".encode(), {}
         raise AssertionError(path)
 

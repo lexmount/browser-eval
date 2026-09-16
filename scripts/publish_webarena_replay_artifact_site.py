@@ -200,6 +200,17 @@ def public_share_path(base: str, share_url: str) -> str:
     return target.path
 
 
+def public_report_path(base: str, slug: str, share_url: str) -> str:
+    share_path = public_share_path(base, share_url)
+    token = share_path.removeprefix("/v/")
+    if not token or "/" in token:
+        raise ValueError("current replay profile has no valid public share token")
+    return (
+        f"/api/preview/{urllib.parse.quote(slug)}?"
+        + urllib.parse.urlencode({"share": token})
+    )
+
+
 def preview_has_report_marker(body: bytes) -> bool:
     text = body.decode("utf-8", errors="replace")
     return any(marker in text for marker in PUBLIC_REPORT_MARKERS)
@@ -225,12 +236,20 @@ def verify_export(base: str, slug: str) -> None:
             raise RuntimeError("deployed Artifact Site file tree differs from package")
 
 
-def bind_publication(profile: dict, *, slug: str, share_url: str, version: str) -> None:
+def bind_publication(
+    profile: dict,
+    *,
+    slug: str,
+    share_url: str,
+    report_url: str,
+    version: str,
+) -> None:
     publication = profile.setdefault("publication", {})
     publication.update(
         {
             "site_slug": slug,
             "share_url": share_url,
+            "report_url": report_url,
             "expected_version": version,
             "state": "verified",
         }
@@ -344,19 +363,28 @@ def main(*, create: bool) -> None:
     )
     if public_status != 200:
         response_json(public_status, public_body, operation="public share verification")
+    report_path = public_report_path(base, slug, share_url)
+    report_url = base + report_path
     preview_status, preview_body, _ = request(
         base,
-        f"/api/preview/{urllib.parse.quote(slug)}",
+        report_path,
         authenticated=False,
     )
     if preview_status != 200 or not preview_has_report_marker(preview_body):
         raise RuntimeError("deployed preview is unavailable or missing report marker")
-    bind_publication(profile, slug=slug, share_url=share_url, version=version)
+    bind_publication(
+        profile,
+        slug=slug,
+        share_url=share_url,
+        report_url=report_url,
+        version=version,
+    )
     save_receipt(
         {
             "base_url": base,
             "slug": slug,
             "share_url": share_url,
+            "report_url": report_url,
             "version": version,
             "archive_sha256": sha256(ARCHIVE),
             "verified": True,
@@ -364,7 +392,12 @@ def main(*, create: bool) -> None:
     )
     print(
         json.dumps(
-            {"slug": slug, "url": share_url, "version": version},
+            {
+                "slug": slug,
+                "url": report_url,
+                "share_url": share_url,
+                "version": version,
+            },
             ensure_ascii=False,
         )
     )
