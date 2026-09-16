@@ -3,6 +3,36 @@
   "purpose": "Paired synthetic controls for scoring defects that previously produced false-positive or false-negative task verdicts. These are contracts, not measured provider outputs.",
   "cases": [
     {
+      "id": "ordered-tree-identical-nested-content-is-perfect",
+      "category": "structured-extraction",
+      "root_cause": "serialized_tree_loses_children",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/tree",
+        "ordered_tree_reference": {"tag": "table", "children": [{"tag": "tr", "children": [{"tag": "td", "text": "A", "children": []}]}]},
+        "ordered_tree_min_similarity": 1.0
+      },
+      "artifact": "{\"tag\":\"table\",\"children\":[{\"tag\":\"tr\",\"children\":[{\"tag\":\"td\",\"text\":\"A\",\"children\":[]}]}]}",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"ordered_tree_similarity": 1.0}
+    },
+    {
+      "id": "ordered-tree-missing-children-cannot-be-perfect",
+      "category": "structured-extraction",
+      "root_cause": "serialized_tree_loses_children",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/tree",
+        "ordered_tree_reference": {"tag": "table", "children": [{"tag": "tr", "children": [{"tag": "td", "text": "A", "children": []}]}]},
+        "ordered_tree_min_similarity": 1.0
+      },
+      "artifact": "{\"tag\":\"table\",\"children\":[]}",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"ordered_tree_similarity": 0.33333333333333337}
+    },
+    {
       "id": "wikimedia-thumbnail-host-migration-keeps-same-asset",
       "category": "format-normalization",
       "root_cause": "wikimedia_thumbnail_host_equivalence",
