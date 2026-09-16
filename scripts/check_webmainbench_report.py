@@ -190,8 +190,10 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         "success-layers", "scope-gap", "causes", "denominators", "method-profiles",
         "missing-body", "decisions", "limits",
     }
+    guides = {}
     for prefix, language in (("", "Chinese"), ("en/", "English")):
         guide = BeautifulSoup((root / prefix / "guide/index.html").read_text(encoding="utf-8"), "html.parser")
+        guides[prefix] = guide
         if {section.get("id") for section in guide.select("section.section[id]")} != expected_guide_sections:
             raise ValueError(f"WebMainBench {language} report interpretation is incomplete")
         if (len(guide.select("#scope-gap table tbody > tr")) != 5
@@ -237,7 +239,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     )
     check_teds_warnings(root, impossible_teds)
     adoption_page = BeautifulSoup((root / "adoption/index.html").read_text(encoding="utf-8"), "html.parser")
-    for page, required in ((dataset_page, 2), (adoption_page, 1), (guide, 1)):
+    for page, required in ((dataset_page, 2), (adoption_page, 1), (guides[""], 1), (guides["en/"], 1)):
         wide_tables = page.select(".table-wrap > table.wide-prose-table")
         if len(wide_tables) < required or any(len(table.select("thead th")) < 6 for table in wide_tables):
             raise ValueError("Evidence-rich tables must expand horizontally inside their scroll container")
