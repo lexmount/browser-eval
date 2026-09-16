@@ -6,7 +6,7 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 
-from harness.web_fetch.report import JS, generate_webmainbench, _wmb_pct, _wmb_body_state, _wmb_row_attrs, _wmb_editorial_guide
+from harness.web_fetch.report import JS, generate_webmainbench, _wmb_pct, _wmb_body_state, _wmb_row_attrs, _wmb_editorial_guide, _wmb_html_preview, _wmb_table_example
 from harness.web_fetch.report_build import validate_webmainbench_correction
 from harness.web_fetch.report_style import STYLE
 
@@ -16,6 +16,27 @@ METRICS = ("text_edit", "code_edit", "table_edit", "table_TEDS", "formula_edit")
 
 
 class WebMainBenchReportTests(unittest.TestCase):
+    def test_frozen_html_reader_is_inert_and_keeps_table_content(self):
+        raw = '<script>alert(1)</script><meta http-equiv="refresh" content="0;url=https://example.test"><table onclick="alert(2)"><tr><td>Kept cell</td></tr></table><img src="https://example.test/x" onerror="alert(3)"><iframe srcdoc="bad"></iframe><a href="https://example.test">Link text</a>'
+        for english in (False, True):
+            outer = BeautifulSoup(_wmb_html_preview(raw, english), 'html.parser')
+            frame = outer.iframe
+            self.assertEqual(frame.get('sandbox'), [])
+            inner = BeautifulSoup(frame['srcdoc'], 'html.parser')
+            self.assertIsNone(inner.select_one('script,iframe,img,link,base'))
+            self.assertEqual(inner.select_one('td').text, 'Kept cell')
+            self.assertIn("default-src 'none'", inner.meta['content'])
+            self.assertNotIn('onclick', frame['srcdoc'])
+            self.assertNotIn('https://example.test', frame['srcdoc'])
+
+    def test_table_explanation_shows_partial_credit_and_unrecognized_text(self):
+        for english in (False, True):
+            example = BeautifulSoup(_wmb_table_example(english), 'html.parser')
+            self.assertEqual(len(example.select('article')), 3)
+            self.assertEqual(len(example.select('article:nth-child(1) tr')), 3)
+            self.assertEqual(len(example.select('article:nth-child(2) tr')), 2)
+            self.assertIsNone(example.select_one('article:nth-child(3) table'))
+
     def test_guide_missing_example_metrics_are_unavailable_not_zero(self):
         case_id = 'c42e7f28-f109-459b-8423-2ce20f651ac9'
         for english in (False, True):
@@ -167,12 +188,12 @@ class WebMainBenchReportTests(unittest.TestCase):
             for anchor in ("overall", "scope", "tables", "delivery", "decision"):
                 self.assertIn(f'id="{anchor}"', guide)
                 self.assertIn(f'id="{anchor}"', guide_en)
-            self.assertIn("200 页冻结 HTML 的选择顺序", guide)
+            self.assertIn("主内容提取得分为何不高", guide)
             self.assertIn("32.4% 不是", guide)
             self.assertIn("表格文字还在", guide)
             self.assertIn("Lightpanda", guide)
             self.assertNotIn("01 测了什么", guide)
-            self.assertIn("How to read the 200-page frozen-HTML result", guide_en)
+            self.assertIn("Why main-content extraction scores are modest", guide_en)
             self.assertIn("does not mean 32.4%", guide_en)
             self.assertNotIn("{common_low}", guide_en)
             self.assertNotIn("{fail_total}", guide_en)

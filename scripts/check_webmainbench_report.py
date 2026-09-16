@@ -263,6 +263,9 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         for prefix in ("", "en/"):
             case_page = BeautifulSoup((root / prefix / "datasets" / f"{case_id}.html").read_text(encoding="utf-8"), "html.parser")
             hrefs = {link.get("href", "") for link in case_page.select("a[href]")}
+            preview = case_page.select_one('#frozen-input iframe.wmb-html-preview')
+            if preview is None or preview.get('sandbox') != [] or not preview.get('srcdoc'):
+                raise ValueError('Frozen HTML must have an inert in-page reader: ' + case_id)
             if (not any(f"references/{case_id}.md" in href for href in hrefs)
                     or not any(f"sources/{case_id}.html.txt" in href for href in hrefs)
                     or case_page.select("#case-results")
