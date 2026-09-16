@@ -358,6 +358,8 @@ class RainbondSlicePool:
         self,
         app_id: int,
         *,
+        pool_id: str,
+        slot: int,
         initializer: dict[str, Any],
         copied_sites: dict[str, dict[str, Any]],
     ) -> dict[str, Any]:
@@ -370,11 +372,9 @@ class RainbondSlicePool:
         ):
             raise RuntimeError("Rainbond copied initializer image mismatch")
         aliases = {
-            site: str(copied_sites[site].get("service_alias") or "")
+            site: self._internal_service_host(app_id, copied_sites[site], 8877)
             for site in ("reddit", "gitlab")
         }
-        if not all(aliases.values()):
-            raise RuntimeError("Rainbond copy response has no internal service aliases")
         self.api.request(
             "PUT",
             f"{self._app_path(app_id)}/services/{quote(service_id)}/envs",
@@ -390,7 +390,64 @@ class RainbondSlicePool:
                 ]
             },
         )
-        return {"service_id": service_id}
+        readiness_url = f"http://{self._domain(pool_id, slot, 'initializer', app_id)}"
+        self.api.request(
+            "POST",
+            f"{self._app_path(app_id)}/domains",
+            {
+                "protocol": "http",
+                "http": {
+                    "service_id": service_id,
+                    "container_port": 8080,
+                    "certificate_id": 0,
+                    "domain_name": readiness_url.removeprefix("http://"),
+                    "domain_cookie": "",
+                    "domain_header": "",
+                    "domain_path": "/",
+                    "the_weight": 100,
+                    "whether_open": True,
+                    "auto_ssl": False,
+                    "auto_ssl_config": "",
+                    "rule_extensions": [],
+                    "configuration": {
+                        "proxy_body_size": 0,
+                        "proxy_buffer_numbers": 4,
+                        "proxy_buffer_size": 4,
+                        "proxy_buffering": "off",
+                        "proxy_connect_timeout": 75,
+                        "proxy_read_timeout": 600,
+                        "proxy_send_timeout": 600,
+                        "set_headers": [],
+                    },
+                },
+            },
+        )
+        return {"service_id": service_id, "readiness_url": readiness_url}
+
+    def _internal_service_host(
+        self, app_id: int, component: dict[str, Any], port: int
+    ) -> str:
+        service_id = str(component.get("service_id") or "")
+        response = self.api.request(
+            "GET",
+            f"{self._app_path(app_id)}/services/{quote(service_id)}/ports",
+        )
+        rows = response if isinstance(response, list) else (response or {}).get("ports", [])
+        match = next(
+            (
+                row
+                for row in rows
+                if int(row.get("container_port") or 0) == port
+                and bool(row.get("is_inner_service"))
+            ),
+            None,
+        )
+        host = str((match or {}).get("k8s_service_name") or "")
+        if not host:
+            raise RuntimeError(
+                f"Rainbond copied component {service_id} has no internal service on port {port}"
+            )
+        return host
 
     def _wait_component_running(self, app_id: int, service_id: str) -> None:
         deadline = time.monotonic() + self.config.readiness_timeout_seconds
@@ -451,6 +508,8 @@ class RainbondSlicePool:
             }
             initializer = self._configure_initializer(
                 app_id,
+                pool_id=pool_id,
+                slot=slot,
                 initializer=copied_initializer,
                 copied_sites=copied,
             )
@@ -468,6 +527,7 @@ class RainbondSlicePool:
             timings["deploy_request_seconds"] = round(time.monotonic() - phase_started, 3)
             phase_started = time.monotonic()
             self._wait_component_running(app_id, str(initializer["service_id"]))
+            self._wait_site(str(initializer["readiness_url"]))
             for component in components.values():
                 self._wait_site(str(component["site_url"]))
             timings["readiness_seconds"] = round(time.monotonic() - phase_started, 3)

@@ -56,6 +56,17 @@ class FakeAPI:
             service_id = body["http"]["service_id"]
             if self.fail_domain_for and self.fail_domain_for in service_id:
                 raise RuntimeError("injected domain failure")
+        if method == "GET" and path.endswith("/ports"):
+            service_id = path.split("/services/", 1)[1].split("/", 1)[0]
+            return {
+                "ports": [
+                    {
+                        "container_port": 8877,
+                        "is_inner_service": True,
+                        "k8s_service_name": f"internal-{service_id}",
+                    }
+                ]
+            }
         if method == "GET" and path.endswith("/services"):
             return [
                 {
@@ -127,20 +138,44 @@ def test_provision_creates_one_complete_isolated_app_without_serializing_token(t
         row["service_id"] for row in receipt["components"].values()
     } | {receipt["initializer"]["service_id"]}
     domains = [call[2]["http"] for call in api.calls if call[1].endswith("/domains")]
+    assert len(domains) == 5
     admin = next(row for row in domains if "shopping-admin" in row["domain_name"])
     reddit = next(row for row in domains if "reddit" in row["domain_name"])
     assert admin["configuration"]["proxy_buffer_size"] == 64
     assert admin["configuration"]["proxy_buffer_numbers"] == 8
     assert reddit["configuration"]["proxy_buffer_size"] == 4
+    initializer_domain = next(
+        row for row in domains if row["service_id"] == "service-initializer-201"
+    )
+    assert initializer_domain["container_port"] == 8080
+    assert receipt["initializer"]["readiness_url"].endswith(
+        initializer_domain["domain_name"]
+    )
     initializer_envs = next(
         call[2]["envs"]
         for call in api.calls
         if call[0] == "PUT" and "service-initializer" in call[1]
     )
     assert {row["name"]: row["value"] for row in initializer_envs} == {
-        "REDDIT_CTRL_URL": "http://alias-reddit-201:8877",
-        "GITLAB_CTRL_URL": "http://alias-gitlab-201:8877",
+        "REDDIT_CTRL_URL": "http://internal-service-reddit-201:8877",
+        "GITLAB_CTRL_URL": "http://internal-service-gitlab-201:8877",
     }
+
+
+def test_provision_rejects_copied_site_without_internal_control_port(tmp_path):
+    class MissingControlPortAPI(FakeAPI):
+        def request(self, method, path, body=None):
+            if method == "GET" and path.endswith("/ports"):
+                return {"ports": []}
+            return super().request(method, path, body)
+
+    api = MissingControlPortAPI()
+    pool = _pool(tmp_path, api)
+
+    with pytest.raises(RuntimeError, match="no internal service on port 8877"):
+        pool.provision("run-a", 1, tmp_path / "slice-receipt.json")
+
+    assert any(method == "DELETE" for method, _path, _body in api.calls)
 
 
 def test_reset_deletes_the_whole_app_and_recreates_a_new_generation(tmp_path):
