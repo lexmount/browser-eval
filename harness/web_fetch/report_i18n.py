@@ -49,7 +49,8 @@ TEXT = {
     "最终数据集、参考、验收合同、结果和复核绑定已作为同一发布候选完成一致性验证。": "The final dataset, references, acceptance contracts, results, and review bindings were validated together as one release candidate.",
     "未决 0 条。": "0 unresolved items.",
     "动态网站正文 100 例正式报告": "Formal 100-case dynamic-content report",
-    "报告发布 100 个唯一动态网页正文案例及 Moli WebFetch 1.1.5 的 100 条权威逻辑结果：52 条通过、48 条未通过；独立复核覆盖 100/100，未决 0 条。": "The report publishes 100 unique dynamic-content cases and 100 authoritative logical results for Moli WebFetch 1.1.5: 52 pass and 48 fail; independent review covers 100/100 results, with 0 unresolved.",
+    "动态网站正文 100 例最终规则报告": "Dynamic-content 100-case final-rule report",
+    "报告发布 100 个唯一动态网站正文案例及 Moli WebFetch 1.1.5 的 100 条权威逻辑结果：38 条通过、62 条未通过；独立复核覆盖 100/100，未决 0 条。": "The report publishes 100 unique dynamic-content cases and 100 authoritative logical results for Moli WebFetch 1.1.5: 38 pass and 62 fail; independent review covers 100/100 results, with 0 unresolved.",
     "公开范围": "Public scope",
     "正式报告需要同时绑定完整测试集、最终规则、实测结果和独立复核。": "The formal report must bind the complete dataset, final rules, measured results, and independent review.",
     "发布 100 个唯一任务 ID 和 100 个唯一 URL，并为每例提供任务合同、完整实际输出和逐项判定。": "Publish 100 unique task IDs and 100 unique URLs, with the task contract, complete actual output, and itemized verdict for every case.",
@@ -2535,6 +2536,7 @@ PHRASES = {
     "黄色为本次实际命中的位置；未标色文字就是没有命中的部分。": "Highlighting marks the positions matched in this run; unhighlighted text is unmatched.",
     "这些段落直接由本次评分保存的真实位置生成，黄色是计数所用的命中范围，不是另选的样例。": "These passages are generated directly from exact positions saved by this scoring pass. Highlighting marks the counted match range; these are not separately selected snippets.",
     "文字核对范围：各方法均为 86/100 例。": "Required-text coverage: 86/100 tasks for every method. ",
+    "文字核对范围：各方法均为 92/100 例。": "Required-text coverage: 92/100 tasks for every method. ",
     "的 Moli 已保存输出仍包含": "'s saved Moli output still contains ",
     "，内容规则未通过。请求成功在这里记录了一个正常返回的结果，却没有等来任务要求的内容。这比方法是否具备浏览器功能更接近本次接入要解决的问题。": ", but failed the content rule. A normal response did not wait for the required content. This is closer to the integration problem than whether the method has browser features.",
     "Quotes to Scrape 的": "Quotes to Scrape's ",
@@ -3560,6 +3562,40 @@ def translate_text(value: str) -> str:
         if translated == core:
             translated = None
     return leading + (translated if translated is not None else core) + trailing
+
+
+TEXT.update({
+    "空输出异常：": "Empty-output anomaly:",
+    "不计分诊断调用": "Non-scoring diagnostic call",
+    "用途：": "Purpose:",
+    "这次调用只为补全原空输出的错误记录，不参与计分，也没有覆盖原始调用。": "This call only fills in missing error diagnostics for the original empty output. It is non-scoring and does not replace the original call.",
+    "本次仍返回空内容，异常已复现。": "The diagnostic also returned empty content, reproducing the anomaly.",
+    "本次取得了可用输出；原异常未复现，但原成绩保持不变。": "The diagnostic returned usable output, so the anomaly was not reproduced; the original score remains unchanged.",
+    "本次发生了另一种失败；原成绩保持不变。": "The diagnostic encountered a different failure; the original score remains unchanged.",
+    "可确认阶段：进程结束后检查输出。更深层原因没有证据时记为“无法确认”。": "Confirmed stage: output validation after process completion. A deeper cause is recorded as unavailable when the evidence does not establish one.",
+    "诊断结果": "Diagnostic result",
+    "退出码": "Exit code",
+    "输出 / 错误字节": "Output / error bytes",
+    "查看诊断调用完整日志": "View the complete diagnostic-call log",
+    "不计分诊断再次得到 0 字节输出，已确认异常可复现；进程退出码为 0，且没有错误输出。更深层原因无法确认。": "The non-scoring diagnostic again returned zero bytes, reproducing the anomaly. The process exited with code 0 and produced no error output. A deeper cause could not be established.",
+    "本次为空输出异常；没有可用的独立诊断记录。": "This call has an empty-output anomaly; no separate diagnostic record is available.",
+    "原始成绩保持不变。": "The original score remains unchanged."
+    ,"本页只说明当前 100 例最终规则报告的公开范围与状态；更早的公开报告继续作为独立历史版本保留。": "This page describes only the public scope and status of the current final-rule 100-case report. Earlier public reports remain available as separate historical releases."
+    ,"100 例最终规则独立复核": "Independent review of the final rules for 100 cases"
+    ,"100 条 Moli WebFetch 权威逻辑结果，以及各自绑定的最终任务范围、稳定文字、路径规则、正文参考和完整输出。": "The 100 authoritative Moli WebFetch logical results, each bound to its final task scope, stable text, path rules, body reference, and complete output."
+    ,"38 条结果满足最终验收合同，62 条不满足；最终机器判定与独立复核 100/100 一致。": "38 results satisfy the final acceptance contracts and 62 do not; final machine verdicts agree with independent review for all 100/100 results."
+    ,"最终数据集、参考、验收合同、离线重算结果、空输出诊断和复核绑定已作为同一发布候选完成一致性验证。": "The final dataset, references, acceptance contracts, offline-rescored results, empty-output diagnostics, and review bindings were validated together as one release candidate."
+    ,"100 例最终规则报告": "Final-rule report for 100 cases"
+    ,"最终规则": "Final rules"
+    ,"每个案例按最终冻结的稳定文字、字段归属、数量、唯一性、允许域名与路径或正文区域验收。": "Each case is evaluated against its final frozen stable text, field ownership, count, uniqueness, allowed host and path, or body-region rules."
+    ,"稳定文字不设数量上限；名称—链接任务直接公开允许域名和详情路径规则。": "Stable text has no maximum count; name–link tasks directly disclose their allowed hosts and detail-path rules."
+    ,"正文区域优先按完整组件、章节、自然段或完整句组划分。": "Body regions prioritize complete components, sections, natural paragraphs, or complete-sentence groups."
+    ,"报告只呈现每个任务的一条权威逻辑结果；不计分诊断与正式成绩分开。": "The report presents one authoritative logical result per task; non-scoring diagnostics remain separate from formal scores."
+    ,"Moli WebFetch 通过 38/100、未通过 62/100。": "Moli WebFetch passes 38/100 and fails 62/100."
+    ,"9 次空输出诊断不参与计分，也不覆盖原始调用。": "The 9 empty-output diagnostic calls are non-scoring and do not replace the original calls."
+    ,"机器通过和失败均完成独立复核。": "Both machine passes and failures received independent review."
+    ,"逐例复核覆盖 100/100，机器与人工结论一致。": "Case-by-case review covers 100/100 results, with agreement between machine and human judgments."
+})
 
 
 class Localizer(HTMLParser):

@@ -166,7 +166,22 @@ def empty_output_reason(record,case,output):
   return '最终输出确实为空。上游请求有响应，但适配器没有得到可提取的正文。'
  return '最终输出确实为空；本次历史记录没有保存更具体的原因，不能据此推断是服务端、网络还是适配器问题。'
 
-def call_log_dialog(out,record,case,output):
+def diagnostic_call(out,record):
+ root=out/'diagnostics'/'empty-output'
+ lineage=root/'diagnostic-lineage.json'
+ if not lineage.is_file():return None
+ payload=json.loads(lineage.read_text())
+ match=next((item for item in payload.get('calls',[])
+             if item.get('original_attempt_id')==record.get('attempt_id')),None)
+ if not match:return None
+ path=contained_path(root,match['call_log_path'])
+ if not path.is_file():raise ValueError('Diagnostic call log is missing: '+record['attempt_id'])
+ log=json.loads(path.read_text())
+ if not log.get('diagnostic_only') or log.get('score_bearing') is not False:
+  raise ValueError('Diagnostic call is not explicitly non-scoring: '+record['attempt_id'])
+ return {**match,'log':log}
+
+def call_log_dialog(out,record,case,output,diagnostic=None):
  """Render one honest drill-down view from a native log or legacy result fields."""
  metadata=record.get('provider_metadata') or {}
  public_metadata=public_provider_metadata(metadata)
@@ -210,6 +225,22 @@ def call_log_dialog(out,record,case,output):
  log_section=('' if not logs else '<div class="call-log-section"><h3>原生事件日志</h3>'+''.join(
               f'<details open><summary>{esc(item["label"])}</summary><p class="source-note">SHA-256：<code class="break">{esc(item["sha256"])}</code></p><pre data-kind="call-log">{esc(item["text"])}</pre></details>'
               for item in logs)+'</div>')
+ diagnostic_section=''
+ if diagnostic:
+  dlog=diagnostic['log'];process=dlog.get('process') or {};error=dlog.get('error') or {}
+  outcome=('本次仍返回空内容，异常已复现。' if error.get('type')=='empty_output' else
+           '本次取得了可用输出；原异常未复现，但原成绩保持不变。' if not error.get('type') else
+           '本次发生了另一种失败；原成绩保持不变。')
+  diagnostic_section=(
+   '<div class="call-log-section"><h3>不计分诊断调用</h3>'
+   '<p class="callout"><b>用途：</b>这次调用只为补全原空输出的错误记录，不参与计分，也没有覆盖原始调用。</p>'
+   f'<p>{esc(outcome)} 可确认阶段：进程结束后检查输出。更深层原因没有证据时记为“无法确认”。</p>'
+   '<div class="call-log-facts">'
+   f'<div class="call-log-fact"><b>诊断结果</b><span>{esc(error.get("type") or "可用输出")}</span></div>'
+   f'<div class="call-log-fact"><b>退出码</b><span>{esc(process.get("exit_code"))}</span></div>'
+   f'<div class="call-log-fact"><b>输出 / 错误字节</b><span>{esc(process.get("stdout_bytes"))} / {esc(process.get("stderr_bytes"))}</span></div>'
+   '</div><details><summary>查看诊断调用完整日志</summary>'
+   f'<pre data-kind="diagnostic-call-log">{esc(json.dumps(dlog,ensure_ascii=False,indent=2))}</pre></details></div>')
  retry_section=('<p>本次没有登记重试；只保留一个物理调用。</p>' if not retry else
                 f'<pre data-kind="call-retry">{esc(json.dumps(public_provider_metadata(retry),ensure_ascii=False,indent=2))}</pre>')
  private_note=('原始供应商响应信封仅在内部证据中保留，不进入公开弹窗或发布包。'
@@ -224,7 +255,7 @@ def call_log_dialog(out,record,case,output):
          f'<div class="call-log-body"><p class="callout call-log-availability"><b>日志可用性：</b>{esc(native)}</p>'
          f'<div class="call-log-priority"><article class="call-log-card"><h3>最后输出</h3>{output_html}</article>'
          f'<article class="call-log-card{error_class}"><h3>最后报错</h3><p><b>{esc(error_type)}</b></p><p>{esc(error_message)}</p></article></div>'
-         f'<div class="call-log-facts">{fact_html}</div>{log_section}'
+         f'<div class="call-log-facts">{fact_html}</div>{log_section}{diagnostic_section}'
          f'<div class="call-log-section"><h3>重试与物理调用</h3>{retry_section}</div>'
          f'<div class="call-log-section"><details><summary>查看公开适配器字段</summary><pre data-kind="call-metadata">{esc(json.dumps(public_metadata,ensure_ascii=False,indent=2))}</pre></details><p class="call-log-private">{esc(private_note)}</p></div>'
          '</div></div></dialog>')
@@ -1013,6 +1044,12 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
            f'<p class="source-note">方法：{link("../providers/"+r["provider"]+".html",provider_label(r["provider"]))} · '
            f'请求：{"成功" if r["ok"] else "失败"} · 耗时：{ms(r["elapsed_ms"])} · {actual_summary}</p></div>')
   summary+=f'<p class="source-note">{esc(route_label)}</p>'
+  diagnostic=diagnostic_call(out,r)
+  if not output and r.get('error_type')=='empty_output':
+   diagnostic_note=('不计分诊断再次得到 0 字节输出，已确认异常可复现；进程退出码为 0，且没有错误输出。更深层原因无法确认。'
+                    if diagnostic and diagnostic.get('diagnostic_error_type')=='empty_output' else
+                    '本次为空输出异常；没有可用的独立诊断记录。')
+   summary+=f'<p class="callout failure"><b>空输出异常：</b>{esc(diagnostic_note)} 原始成绩保持不变。</p>'
   summary+=('<p class="actions"><a href="#evidence-reference">查看判定使用的标准答案</a>'
             '<a href="#evidence-output">查看本次完整实际返回</a>'
             '<a href="#decision">查看逐项判定</a>'
@@ -1121,7 +1158,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
            f'<details><summary>接口返回的公开附加字段</summary><pre data-kind="metadata">{esc(json.dumps(public_provider_metadata(r.get("provider_metadata",{})),ensure_ascii=False,indent=2))}</pre></details></details>'
            f'<p class="actions">{link(c["url"],"打开源页 ↗")}{link("../datasets/"+c["id"]+".html","查看该任务的全部方法")}</p>')
   body+=section('运行与评分信息',runtime,'run-info')
-  body+=call_log_dialog(out,r,c,output)
+  body+=call_log_dialog(out,r,c,output,diagnostic)
   if r.get('provider_metadata',{}).get('rendered_html_path'):
    body+=section('浏览器 HTML 证据','<p>'+link('../'+r['provider_metadata']['rendered_html_path'],'下载转换前的完整 DOM HTML')+'</p>')
   if r.get('provider_metadata',{}).get('raw_stdout_path'):

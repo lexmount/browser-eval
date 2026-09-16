@@ -1,0 +1,56 @@
+{
+  "schema_version": 2,
+  "history_scope": "本页只说明当前 100 例最终规则报告的公开范围与状态；更早的公开报告继续作为独立历史版本保留。",
+  "history_scope_i18n": "This page describes only the public scope and status of the current final-rule 100-case report. Earlier public reports remain available as separate historical releases.",
+  "review_rounds": [
+    {
+      "date": "2026-09-16",
+      "title": "100 例最终规则独立复核",
+      "scope": "100 条 Moli WebFetch 权威逻辑结果，以及各自绑定的最终任务范围、稳定文字、路径规则、正文参考和完整输出。",
+      "finding": "38 条结果满足最终验收合同，62 条不满足；最终机器判定与独立复核 100/100 一致。",
+      "fix": "最终数据集、参考、验收合同、离线重算结果、空输出诊断和复核绑定已作为同一发布候选完成一致性验证。",
+      "pending": "未决 0 条。"
+    }
+  ],
+  "releases": [
+    {
+      "id": "2026-09-16-dynamic-100-final-rules",
+      "date": "2026-09-16",
+      "comparison_kinds": [
+        "single_provider_dynamic_content_pilot"
+      ],
+      "scoring_revision_input_sha256": [
+        "1c818e8e761431dea88def706f1a1cb22340a1cd27144d507802d0c0531ce8c2",
+        "3b8636b41c26ef27ddb4b5e80cdb10ab953146da5325cddc4b5615ad40c11348",
+        "46e0d57c624ae59c7ec0abdc952d52777b097ab7a9591ec54ada1699fa0f3fe1",
+        "4a74559dd85f10dc3e01cc34d09eb7e728c14ce34a1ac9d3db391139a13c39e2",
+        "a6b9e79168c3eadb4d235c0866adfe81a210e3a27f01408e9c32e2b8024f0d3e",
+        "bcaaf1450b8bd0c5d1d9b08ec250d5a6ee19b594566b99338d25a76e7b2d9145",
+        "c392866435e8d667c32956f41a7b6a6a802f16c5e5dffab0f74162e9236eb650",
+        "f91208966270d0384a5605c9d29e6318c4cb7665ec8abef0214c06aa694209bc"
+      ],
+      "title": "动态网站正文 100 例最终规则报告",
+      "summary": "报告发布 100 个唯一动态网站正文案例及 Moli WebFetch 1.1.5 的 100 条权威逻辑结果：38 条通过、62 条未通过；独立复核覆盖 100/100，未决 0 条。",
+      "changes": [
+        [
+          "最终规则",
+          "每个案例按最终冻结的稳定文字、字段归属、数量、唯一性、允许域名与路径或正文区域验收。",
+          "稳定文字不设数量上限；名称—链接任务直接公开允许域名和详情路径规则。",
+          "正文区域优先按完整组件、章节、自然段或完整句组划分。"
+        ],
+        [
+          "结果状态",
+          "报告只呈现每个任务的一条权威逻辑结果；不计分诊断与正式成绩分开。",
+          "Moli WebFetch 通过 38/100、未通过 62/100。",
+          "9 次空输出诊断不参与计分，也不覆盖原始调用。"
+        ],
+        [
+          "复核状态",
+          "机器通过和失败均完成独立复核。",
+          "逐例复核覆盖 100/100，机器与人工结论一致。",
+          "当前未决 0 条；缺少完整可比参考的质量指标标为不可用。"
+        ]
+      ]
+    }
+  ]
+}

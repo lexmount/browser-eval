@@ -19,6 +19,33 @@ from .artifacts import (
 )
 
 
+def validate_projected_stable_text_evidence(case, source):
+    """Validate a public source-only evidence projection for every anchor."""
+    projected=case.get('stable_text_evidence') or {}
+    if not projected:
+        return False
+    from .metrics import fact_in_text, normalize_for_match
+    evidence_path=contained_path(source,projected.get('path',''))
+    evidence_raw=evidence_path.read_bytes()
+    if hashlib.sha256(evidence_raw).hexdigest()!=projected.get('sha256'):
+        raise ValueError('Projected stable text evidence changed: '+case['id'])
+    manifest_path=contained_path(source,projected.get('manifest_path',''))
+    manifest_raw=manifest_path.read_bytes()
+    if hashlib.sha256(manifest_raw).hexdigest()!=projected.get('manifest_sha256'):
+        raise ValueError('Projected stable text manifest changed: '+case['id'])
+    manifest=json.loads(manifest_raw)
+    if (manifest.get('case_id')!=case['id'] or manifest.get('url')!=case['url']
+            or manifest.get('provider_output_used') is not False):
+        raise ValueError('Projected stable text manifest is out of scope: '+case['id'])
+    reference=normalize_for_match(evidence_raw.decode('utf-8'))
+    for anchor in case.get('acceptance_contract',{}).get('stable_text_anchors',[]):
+        if not all(fact_in_text(reference,normalize_for_match(value))
+                   for value in anchor.get('alternatives',[])):
+            raise ValueError('Projected stable text lacks independent evidence: '
+                             +case['id']+'/'+str(anchor.get('id')))
+    return True
+
+
 def public_execution_projection(manifests):
     """Remove machine-local paths and host names from public run metadata."""
     repository = Path(__file__).resolve().parents[2]
@@ -137,7 +164,9 @@ def build_report(
                 raise ValueError('Resource cohort output integrity failure: '+row['attempt_id'])
     for c in cases.values():
         annotation=c.get('source_benchmark',{}).get('stable_annotation',{})
-        if annotation.get('anchor_evidence_sha256'):
+        if validate_projected_stable_text_evidence(c,source):
+            pass
+        elif annotation.get('anchor_evidence_sha256'):
             from copy import deepcopy
             from .stable_annotations import bind_annotation_evidence
             checked=deepcopy(c)
@@ -242,6 +271,16 @@ def build_report(
             shutil.copytree(source/'list-references',staging/'list-references')
         if (source/'reference-checks').exists():
             shutil.copytree(source/'reference-checks', staging/'reference-checks')
+        diagnostic_root=source/'diagnostics'/'empty-output'
+        if diagnostic_root.exists():
+            allowed=('manifest.json','diagnostic-lineage.json','results.jsonl','call-logs','artifacts')
+            target_root=staging/'diagnostics'/'empty-output';target_root.mkdir(parents=True)
+            for name in allowed:
+                item=diagnostic_root/name
+                if not item.exists():continue
+                target=target_root/name
+                if item.is_dir():shutil.copytree(item,target)
+                else:shutil.copy2(item,target)
         if speed_root.exists():
             shutil.copytree(speed_root,staging/'speed-cohort',ignore=shutil.ignore_patterns(
                 'result-review.json','review-history','private_artifacts'))

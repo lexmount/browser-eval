@@ -56,7 +56,8 @@ class ReportChangesTests(unittest.TestCase):
             self.assertFalse((out/'file-provider-rerun').exists())
     def test_every_bundled_revision_binds_one_release(self):
         from harness.web_fetch.report_changes import require_revision_release_bindings
-        history=[{'input_results_sha256':'new'}]
+        history=[{'kind':'source_scoring_revision_lineage'},
+                 {'input_results_sha256':'new'}]
         releases=[{'id':'old','scoring_revision_input_sha256':'old'},
                   {'id':'new','scoring_revision_input_sha256':['new','newer']}]
         require_revision_release_bindings(history,releases)

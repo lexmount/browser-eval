@@ -72,6 +72,8 @@ def require_revision_release_bindings(history, releases):
     absence from the current bundle is not evidence that they never existed.
     """
     for receipt in history:
+        if receipt.get('kind') == 'source_scoring_revision_lineage':
+            continue
         digest = receipt.get('input_results_sha256')
         matches = []
         for release in releases:

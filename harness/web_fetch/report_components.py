@@ -300,7 +300,8 @@ def stable_contract_details(c):
                       for a in contract.get('stable_text_anchors', []))
     annotation = (c.get('mutable_body_policy',{}).get('stable_annotation',{})
                   or c.get('source_benchmark',{}).get('stable_annotation',{}))
-    evidence = annotation.get('anchor_evidence')
+    evidence = ((c.get('stable_text_evidence') or {}).get('path')
+                or annotation.get('anchor_evidence'))
     provenance = ('<p>独立文字依据：<a href="../'+escape(evidence,quote=True)+'">查看限定范围原文</a>。'
         '这些核对项验证文字是否保留，不证明整页正文完整，也不以榜单当前成员为答案。</p>') if evidence else ('<p>本例未登记稳定文字依据；文字核对覆盖不计算，已执行的列表规则与结果仍保留。</p>' if annotation else '')
     return ('<p>'+escape(stable_rule_description(c))+'</p>'+requirements

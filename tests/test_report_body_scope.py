@@ -343,6 +343,30 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertIn('<pre data-kind="call-log">event=request.start',detail)
             self.assertIn(r['call_log_sha256'],detail)
 
+    def test_empty_output_page_shows_separate_non_scoring_diagnostic(self):
+        c=case('empty-diagnostic','body','dynamic');r=record(c,passed=False,ok=False)
+        r.update(error_type='empty_output',error_message='Moli returned no usable output')
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True)
+            artifact.write_text('')
+            root=out/'diagnostics'/'empty-output';(root/'call-logs').mkdir(parents=True)
+            call_log={'diagnostic_only':True,'score_bearing':False,
+                      'process':{'exit_code':0,'stdout_bytes':0,'stderr_bytes':0},
+                      'error':{'type':'empty_output','message':'Moli returned no usable output'}}
+            (root/'call-logs'/'empty-diagnostic.json').write_text(json.dumps(call_log))
+            (root/'diagnostic-lineage.json').write_text(json.dumps({'calls':[{
+                'case_id':c['id'],'original_attempt_id':r['attempt_id'],
+                'diagnostic_error_type':'empty_output',
+                'call_log_path':'call-logs/empty-diagnostic.json'}]}))
+            with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
+                generate(out,{'cases':[c]},[r],[])
+            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
+            self.assertIn('空输出异常',detail)
+            self.assertIn('异常可复现',detail)
+            self.assertIn('不计分诊断调用',detail)
+            self.assertIn('不参与计分，也没有覆盖原始调用',detail)
+            self.assertIn('data-kind="diagnostic-call-log"',detail)
+
     def test_minimal_document_scope_is_explicit_and_does_not_claim_long_document_coverage(self):
         c=case('minimal','body','document')
         c['ground_truth_main_content']='Dummy PDF file'
@@ -472,7 +496,7 @@ class ReportBodyScopeTests(unittest.TestCase):
         ])
         r['diagnosis']={'evidence':'body-region-1'}
         rendered=reason(r,c)
-        self.assertIn('开头 10.0%',rendered)
+        self.assertIn('正文区域 1/5 10.0%',rendered)
         self.assertNotIn('body-region',rendered)
 
     def test_current_canonical_challenge_has_zero_body_coverage(self):
