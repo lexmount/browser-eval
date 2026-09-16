@@ -157,6 +157,8 @@ class WebMainBenchReportTests(unittest.TestCase):
             self.assertNotIn("01 测了什么", guide)
             self.assertIn("Nearly every page returned", guide_en)
             self.assertIn("Low scores do not have one cause", guide_en)
+            self.assertNotIn("{common_low}", guide_en)
+            self.assertNotIn("{fail_total}", guide_en)
             self.assertIn('data-kind="reference"', (output / "attempts/kitesurf__case-one__r001.html").read_text(encoding="utf-8"))
             self.assertIn("WebMainBench-545", (output / "index.html").read_text(encoding="utf-8"))
             self.assertIn("table-structure score validity did not", (output / "en/index.html").read_text(encoding="utf-8"))
