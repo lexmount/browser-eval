@@ -428,6 +428,7 @@ def main() -> None:
                     for shard in batch
                 ]
 
+            # Extra ready slices are allowed; only a shortage is an error.
             assigned = tuple(zip(wave, config_paths, strict=False))
             if len(assigned) != len(wave):
                 raise RuntimeError("parallel wave exceeds isolated WebArena slice count")

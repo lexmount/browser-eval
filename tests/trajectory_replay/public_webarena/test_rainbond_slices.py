@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -229,6 +230,39 @@ def test_provision_rejects_copied_site_without_internal_control_port(tmp_path):
     assert any(method == "DELETE" for method, _path, _body in api.calls)
 
 
+def test_provision_rejects_copied_site_without_image_identity(tmp_path):
+    class MissingImageAPI(FakeAPI):
+        def request(self, method, path, body=None):
+            response = super().request(method, path, body)
+            if method == "POST" and path.endswith("/192/copy"):
+                response["services"][0].pop("image")
+            return response
+
+    api = MissingImageAPI()
+    pool = _pool(tmp_path, api)
+
+    with pytest.raises(RuntimeError, match="has no image in response"):
+        pool.provision("run-image", 1, tmp_path / "slice-receipt.json")
+
+    assert any(method == "DELETE" for method, _path, _body in api.calls)
+
+
+def test_provision_cleanup_does_not_hide_original_failure(tmp_path):
+    class CleanupFailureAPI(FakeAPI):
+        def request(self, method, path, body=None):
+            if method == "DELETE" and path.endswith("?force=1"):
+                raise RuntimeError("cleanup delete failed")
+            return super().request(method, path, body)
+
+    api = CleanupFailureAPI(fail_domain_for="reddit")
+    pool = _pool(tmp_path, api)
+
+    with pytest.raises(RuntimeError, match="injected domain failure") as caught:
+        pool.provision("run-cleanup", 1, tmp_path / "slice-receipt.json")
+
+    assert any("cleanup delete failed" in note for note in caught.value.__notes__)
+
+
 def test_reset_deletes_the_whole_app_and_recreates_a_new_generation(tmp_path):
     api = FakeAPI()
     pool = _pool(tmp_path, api)
@@ -323,6 +357,28 @@ def test_capacity_safe_reset_restores_old_app_and_keeps_receipt_on_failure(tmp_p
     assert not receipt_path.with_name("slice-receipt.replacement.json").exists()
 
 
+def test_reset_cleanup_does_not_hide_original_delete_failure(tmp_path):
+    class DeleteFailureAPI(FakeAPI):
+        def request(self, method, path, body=None):
+            if method == "DELETE" and path.endswith("/200?force=1"):
+                raise RuntimeError("old app delete failed")
+            if method == "DELETE" and path.endswith("/201?force=1"):
+                raise RuntimeError("replacement cleanup failed")
+            return super().request(method, path, body)
+
+    api = DeleteFailureAPI()
+    pool = _pool(tmp_path, api)
+    receipt_path = tmp_path / "slice-receipt.json"
+    first = pool.provision("run-delete", 1, receipt_path)
+
+    with pytest.raises(RuntimeError, match="old app delete failed") as caught:
+        pool.reset(receipt_path)
+
+    assert json.loads(receipt_path.read_text())["generation"] == first["generation"]
+    assert receipt_path.with_name("slice-receipt.replacement.json").exists()
+    assert any("replacement cleanup failed" in note for note in caught.value.__notes__)
+
+
 def test_pool_config_rejects_unknown_reset_strategy(tmp_path):
     with pytest.raises(ValueError, match="reset_strategy"):
         RainbondSlicePool(
@@ -373,6 +429,39 @@ def test_provision_pool_rolls_back_already_created_slots(tmp_path, monkeypatch):
     assert destroyed == [tmp_path / "out" / "slice-1" / "slice-receipt.json"]
 
 
+def test_provision_pool_preserves_failure_when_rollback_cleanup_fails(tmp_path, monkeypatch):
+    class Config:
+        max_parallel_provisions = 2
+
+    class Pool:
+        config = Config()
+
+        def __init__(self, _config):
+            pass
+
+        def provision(self, _pool_id, slot, receipt_path):
+            if slot == 2:
+                raise RuntimeError("provision failed")
+            receipt_path.parent.mkdir(parents=True, exist_ok=True)
+            receipt_path.write_text("{}")
+            return {"slot": slot}
+
+        def runtime_config(self, _receipt):
+            return {"ok": True}
+
+        def destroy(self, _receipt_path):
+            raise RuntimeError("rollback failed")
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.rainbond_slices.RainbondSlicePool", Pool
+    )
+
+    with pytest.raises(RuntimeError, match="provision failed") as caught:
+        provision_pool(tmp_path / "pool.json", tmp_path / "out", "run-d", 2)
+
+    assert any("rollback failed" in note for note in caught.value.__notes__)
+
+
 def test_scale_pool_keeps_one_warm_slice_and_removes_only_excess(tmp_path, monkeypatch):
     created = []
     destroyed = []
@@ -421,6 +510,48 @@ def test_scale_pool_keeps_one_warm_slice_and_removes_only_excess(tmp_path, monke
     assert [path.parent.name for path in destroyed] == ["slice-3", "slice-2"]
     with pytest.raises(ValueError, match="minimum_ready"):
         scale_pool(tmp_path / "config.json", output, "warm", 0, minimum_ready=1)
+
+
+def test_scale_pool_rolls_back_every_new_slot_after_partial_failure(tmp_path, monkeypatch):
+    destroyed = []
+
+    class Config:
+        max_parallel_provisions = 3
+
+    class Pool:
+        config = Config()
+
+        def __init__(self, _config):
+            pass
+
+        def provision(self, pool_id, slot, receipt_path):
+            if slot == 2:
+                raise RuntimeError("slot 2 failed")
+            receipt = {"pool_id": pool_id, "slot": slot}
+            receipt_path.parent.mkdir(parents=True, exist_ok=True)
+            receipt_path.write_text(json.dumps(receipt))
+            return receipt
+
+        def runtime_config(self, _receipt):
+            return {"ok": True}
+
+        def validate_receipt(self, receipt_path):
+            return json.loads(receipt_path.read_text())
+
+        def destroy(self, receipt_path):
+            destroyed.append(receipt_path.parent.name)
+            receipt_path.unlink()
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.rainbond_slices.RainbondSlicePool", Pool
+    )
+    output = tmp_path / "runtime"
+
+    with pytest.raises(RuntimeError, match="slot 2 failed"):
+        scale_pool(tmp_path / "pool.json", output, "warm", 3)
+
+    assert sorted(destroyed) == ["slice-1", "slice-3"]
+    assert not list(output.glob("slice-*/slice-receipt.json"))
 
 
 def test_capacity_keeps_idle_slice_in_addition_to_active_demand(tmp_path, monkeypatch):
@@ -504,6 +635,33 @@ def test_acquire_grants_distinct_slices_and_exhausts_pool(tmp_path):
     assert first["slot"] != second["slot"]
     with pytest.raises(RuntimeError, match="no unleased"):
         acquire_slice(output, "task-c")
+
+
+def test_acquire_uses_numeric_slot_order(tmp_path):
+    output = tmp_path / "runtime"
+    _ready_slot(output, 10, 110)
+    _ready_slot(output, 2, 102)
+
+    lease = acquire_slice(output, "task-a")
+
+    assert lease["slot"] == 2
+
+
+def test_concurrent_thread_acquires_never_share_a_slice(tmp_path):
+    output = tmp_path / "runtime"
+    _ready_slot(output, 1, 101)
+    _ready_slot(output, 2, 102)
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        leases = list(
+            executor.map(
+                lambda owner: acquire_slice(output, owner),
+                ("task-a", "task-b"),
+            )
+        )
+
+    assert {lease["slot"] for lease in leases} == {1, 2}
+    assert len({lease["lease_id"] for lease in leases}) == 2
 
 
 def test_release_replaces_dirty_generation_before_unlocking_slice(tmp_path, monkeypatch):

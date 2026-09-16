@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import re
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -24,6 +25,8 @@ LEASE_SCHEMA = "lex_webarena_rainbond_slice_lease/1"
 STATEFUL_SITES = ("shopping_admin", "shopping", "reddit", "gitlab")
 SITE_PORTS = {"shopping_admin": 80, "shopping": 80, "reddit": 80, "gitlab": 8023}
 _SAFE_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,47}$")
+_LOCAL_POOL_LOCKS: dict[Path, threading.Lock] = {}
+_LOCAL_POOL_LOCKS_GUARD = threading.Lock()
 
 
 def _canonical_sha256(value: Any) -> str:
@@ -51,6 +54,16 @@ def _atomic_json(path: Path, value: Any) -> None:
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(content, encoding="utf-8")
     temporary.replace(path)
+
+
+def _attempt_cleanup(original: BaseException, description: str, action: Any) -> bool:
+    """Run cleanup without hiding the failure that made cleanup necessary."""
+    try:
+        action()
+    except BaseException as cleanup_error:
+        original.add_note(f"cleanup failed ({description}): {cleanup_error}")
+        return False
+    return True
 
 
 class RainbondAPI:
@@ -364,7 +377,9 @@ class RainbondSlicePool:
         )
         expected_image = str(self.image_lock["images"][site]["pinned"])
         actual_image = str(component.get("image") or "")
-        if actual_image and _image_digest(actual_image) != _image_digest(expected_image):
+        if not actual_image:
+            raise RuntimeError(f"Rainbond copied {site} component has no image in response")
+        if _image_digest(actual_image) != _image_digest(expected_image):
             raise RuntimeError(
                 f"Rainbond copied {site} image mismatch: {actual_image!r} != {expected_image!r}"
             )
@@ -657,8 +672,12 @@ class RainbondSlicePool:
             for component in components.values():
                 self._wait_site(str(component["site_url"]))
             timings["readiness_seconds"] = round(time.monotonic() - phase_started, 3)
-        except BaseException:
-            self.api.request("DELETE", f"{self._app_path(app_id)}?force=1")
+        except BaseException as exc:
+            _attempt_cleanup(
+                exc,
+                f"delete incomplete Rainbond app {app_id}",
+                lambda: self.api.request("DELETE", f"{self._app_path(app_id)}?force=1"),
+            )
             raise
         receipt = {
             "schema": RECEIPT_SCHEMA,
@@ -697,17 +716,36 @@ class RainbondSlicePool:
             self._wait_app_stopped(previous)
         try:
             replacement = self.provision(pool_id, slot, replacement_path)
-        except BaseException:
+        except BaseException as exc:
             if stopped_previous:
-                self._restore_previous_app(previous)
+                _attempt_cleanup(
+                    exc,
+                    f"restart previous Rainbond app {previous['app_id']}",
+                    lambda: self._restore_previous_app(previous),
+                )
             raise
         try:
             self.api.request("DELETE", f"{self._app_path(int(previous['app_id']))}?force=1")
-        except BaseException:
-            self.api.request("DELETE", f"{self._app_path(int(replacement['app_id']))}?force=1")
-            replacement_path.unlink(missing_ok=True)
-            if stopped_previous:
-                self._restore_previous_app(previous)
+        except BaseException as exc:
+            replacement_deleted = _attempt_cleanup(
+                exc,
+                f"delete replacement Rainbond app {replacement['app_id']}",
+                lambda: self.api.request(
+                    "DELETE", f"{self._app_path(int(replacement['app_id']))}?force=1"
+                ),
+            )
+            if replacement_deleted:
+                _attempt_cleanup(
+                    exc,
+                    f"remove replacement receipt {replacement_path}",
+                    lambda: replacement_path.unlink(missing_ok=True),
+                )
+            if stopped_previous and replacement_deleted:
+                _attempt_cleanup(
+                    exc,
+                    f"restart previous Rainbond app {previous['app_id']}",
+                    lambda: self._restore_previous_app(previous),
+                )
             raise
         replacement_path.replace(receipt_path)
         return replacement
@@ -748,8 +786,17 @@ def provision_pool(config_path: Path, output_dir: Path, pool_id: str, count: int
         receipt_path = slot_dir / "slice-receipt.json"
         if receipt_path.exists():
             raise FileExistsError(f"Rainbond slice already exists: {receipt_path}")
-        receipt = pool.provision(pool_id, slot, receipt_path)
-        _atomic_json(slot_dir / "webarena.config.json", pool.runtime_config(receipt))
+        try:
+            receipt = pool.provision(pool_id, slot, receipt_path)
+            _atomic_json(slot_dir / "webarena.config.json", pool.runtime_config(receipt))
+        except BaseException as exc:
+            if receipt_path.exists():
+                _attempt_cleanup(
+                    exc,
+                    f"destroy incomplete slot {slot}",
+                    lambda: pool.destroy(receipt_path),
+                )
+            raise
         return slot_dir
 
     try:
@@ -764,23 +811,31 @@ def provision_pool(config_path: Path, output_dir: Path, pool_id: str, count: int
                     first_error = first_error or exc
             if first_error is not None:
                 raise first_error
-    except BaseException:
+    except BaseException as exc:
         for slot_dir in reversed(created):
-            pool.destroy(slot_dir / "slice-receipt.json")
+            _attempt_cleanup(
+                exc,
+                f"destroy rolled-back slot {slot_dir.name}",
+                lambda slot_dir=slot_dir: pool.destroy(slot_dir / "slice-receipt.json"),
+            )
         raise
     return sorted(created)
 
 
 @contextmanager
 def _pool_lock(output_dir: Path) -> Any:
-    output_dir.mkdir(parents=True, exist_ok=True)
-    lock_path = output_dir / ".pool.lock"
-    with lock_path.open("a+", encoding="utf-8") as handle:
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
-        try:
-            yield
-        finally:
-            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+    output_dir = output_dir.resolve()
+    with _LOCAL_POOL_LOCKS_GUARD:
+        local_lock = _LOCAL_POOL_LOCKS.setdefault(output_dir, threading.Lock())
+    with local_lock:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        lock_path = output_dir / ".pool.lock"
+        with lock_path.open("a+", encoding="utf-8") as handle:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
 def scale_pool(
@@ -809,15 +864,39 @@ def scale_pool(
 
             def create_slot(slot: int) -> tuple[int, Path]:
                 slot_dir = output_dir / f"slice-{slot}"
-                receipt = pool.provision(pool_id, slot, slot_dir / "slice-receipt.json")
-                _atomic_json(slot_dir / "webarena.config.json", pool.runtime_config(receipt))
+                receipt_path = slot_dir / "slice-receipt.json"
+                try:
+                    receipt = pool.provision(pool_id, slot, receipt_path)
+                    _atomic_json(slot_dir / "webarena.config.json", pool.runtime_config(receipt))
+                except BaseException as exc:
+                    if receipt_path.exists():
+                        _attempt_cleanup(
+                            exc,
+                            f"destroy incomplete slot {slot}",
+                            lambda: pool.destroy(receipt_path),
+                        )
+                    raise
                 return slot, slot_dir
 
+            created: dict[int, Path] = {}
+            first_error: BaseException | None = None
             with ThreadPoolExecutor(max_workers=workers) as executor:
                 futures = [executor.submit(create_slot, slot) for slot in missing_slots]
                 for future in as_completed(futures):
-                    slot, slot_dir = future.result()
-                    existing[slot] = slot_dir
+                    try:
+                        slot, slot_dir = future.result()
+                        created[slot] = slot_dir
+                    except BaseException as exc:
+                        first_error = first_error or exc
+            if first_error is not None:
+                for slot, slot_dir in sorted(created.items(), reverse=True):
+                    _attempt_cleanup(
+                        first_error,
+                        f"destroy rolled-back slot {slot}",
+                        lambda slot_dir=slot_dir: pool.destroy(slot_dir / "slice-receipt.json"),
+                    )
+                raise first_error
+            existing.update(created)
         excess_slots = sorted((value for value in existing if value > count), reverse=True)
         leased_excess = [
             existing[slot]
@@ -868,7 +947,12 @@ def acquire_slice(output_dir: Path, owner: str) -> dict[str, Any]:
     if not owner:
         raise ValueError("lease owner is required")
     with _pool_lock(output_dir):
-        for slot_dir in sorted(output_dir.glob("slice-*")):
+
+        def slot_sort_key(path: Path) -> tuple[int, int | str]:
+            suffix = path.name.removeprefix("slice-")
+            return (0, int(suffix)) if suffix.isdigit() else (1, path.name)
+
+        for slot_dir in sorted(output_dir.glob("slice-*"), key=slot_sort_key):
             receipt_path = slot_dir / "slice-receipt.json"
             config_path = slot_dir / "webarena.config.json"
             lease_path = slot_dir / "slice-lease.json"
