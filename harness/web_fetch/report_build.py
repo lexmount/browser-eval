@@ -314,6 +314,24 @@ def build_report(source: Path, output: Path) -> Path:
     return output/'index.html'
 
 
+def validate_webmainbench_correction(receipt: dict, dataset: dict) -> None:
+    """Reject receipts outside the frozen case and participant scope."""
+    if not isinstance(receipt, dict):
+        raise ValueError('Invalid fixture correction receipt')
+    scope = receipt.get('providers')
+    effects = receipt.get('effects')
+    if (receipt.get('case_id') not in {case['id'] for case in dataset['cases']}
+            or not isinstance(scope, list) or not scope
+            or any(not isinstance(name, str) for name in scope)
+            or len(set(scope)) != len(scope)
+            or not set(scope).issubset(dataset['coverage_plan']['static_html'])
+            or not isinstance(effects, dict) or set(effects) != set(scope)):
+        raise ValueError('Fixture correction scope does not match the report matrix')
+    if any(receipt.get(key) != dataset[key] for key in
+           ('sample_manifest_sha256', 'source_dataset_sha256')):
+        raise ValueError('Fixture correction is not bound to the current report dataset')
+
+
 def build_webmainbench_report(source: Path, output: Path) -> Path:
     """Build the current public-benchmark report without legacy task predicates."""
     dataset = json.loads(contained_path(source, 'dataset.json').read_text())
@@ -332,6 +350,8 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
     fixture_correction = json.loads(fixture_correction_path.read_text(encoding='utf-8')) if fixture_correction_path.is_file() else None
     providers = dataset['coverage_plan']['static_html']
     case_ids = {case['id'] for case in dataset['cases']}
+    if fixture_correction is not None:
+        validate_webmainbench_correction(fixture_correction, dataset)
     if len(case_ids) != 200 or len(records) != 200 * 5:
         raise ValueError('WebMainBench report matrix is incomplete')
     if {(row['provider'], row['case_id']) for row in records} != {
@@ -368,9 +388,6 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
         shutil.copy2(adoption_path, staging / 'adoption' / 'evidence.json')
         shutil.copy2(corrections_path, staging / 'webmainbench-corrections.json')
         if fixture_correction is not None:
-            if (fixture_correction.get('sample_manifest_sha256') != dataset['sample_manifest_sha256']
-                    or fixture_correction.get('source_dataset_sha256') != dataset['source_dataset_sha256']):
-                raise ValueError('Fixture correction is not bound to the current report dataset')
             shutil.copy2(fixture_correction_path, staging / 'fixture-correction.json')
         for row in records:
             artifact = contained_path(staging, row['artifact_path'])

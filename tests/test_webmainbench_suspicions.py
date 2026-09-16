@@ -8,6 +8,8 @@ import unittest
 from pathlib import Path
 
 from scripts.audit_webmainbench_suspicions import scan
+from harness.web_fetch.report import _wmb_error_page
+from harness.web_fetch.webmainbench_diagnostics import ERROR_PAGE
 
 
 def sha(text: str) -> str:
@@ -15,6 +17,14 @@ def sha(text: str) -> str:
 
 
 class WebMainBenchSuspicionTests(unittest.TestCase):
+    def test_report_and_audit_share_error_page_detection(self):
+        for text, expected in [("This site can’t be reached\nexample.test", True),
+                               ("# 无法访问此网站\nERR_ACCESS_DENIED", True),
+                               ("An article explaining why This site can't be reached appears", False),
+                               ("# A normal article\nUseful body", False)]:
+            self.assertEqual(_wmb_error_page(text), expected)
+            self.assertEqual(bool(ERROR_PAGE.search(text)), expected)
+
     def test_flags_impossible_tree_distance_and_error_page_without_a_provider_verdict(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

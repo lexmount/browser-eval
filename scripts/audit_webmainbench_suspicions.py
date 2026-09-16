@@ -13,12 +13,9 @@ from pathlib import Path
 import re
 
 from harness.web_fetch.safety import contained_path
+from harness.web_fetch.webmainbench_diagnostics import ERROR_PAGE
 
 
-ERROR_PAGE = re.compile(
-    r"(?:^#\s*Error response\b|^Error code:\s*404\b|ERR[_\\]ACCESS[_\\]DENIED\b|"
-    r"^#\s*无法访问此网站\b|^This site can.t be reached\b)", re.I | re.M,
-)
 QUERY_NAVIGATION = re.compile(r"(?:window\.)?location\.search\s*(?:\+?=)")
 ORIGIN_NAVIGATION = re.compile(r"(?:window\.)?location\.href\s*=\s*(?:[A-Za-z_$][\w$]*|['\"](?:https?:)?//)")
 SCORE_CLIFF_LOW = .05

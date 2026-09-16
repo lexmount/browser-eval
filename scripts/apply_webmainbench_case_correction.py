@@ -93,8 +93,9 @@ def apply(source_root: Path, correction_roots: dict[str, Path], output: Path, ca
         if (new["provider"] != name or new["track_id"] != case_id or not new["ok"]
                 or execution.get("case_count") != 1 or execution.get("timeout_seconds") != 45
                 or execution.get("max_failure_retries") != 1
-                or execution["implementation_identity"].get("binary_sha256")
-                    != original_execution["implementation_identity"].get("binary_sha256")
+                or not execution.get("implementation_identity", {}).get("binary_sha256")
+                or execution.get("implementation_identity", {}).get("binary_sha256")
+                    != original_execution.get("implementation_identity", {}).get("binary_sha256")
                 or new_summary["scorer"] != original_summary["scorer"]
                 or new_summary["scorer"]["commit"] != SCORER_COMMIT
                 or any(row["track_id"] != case_id or row["provider"] != name for row in replacement_calls)

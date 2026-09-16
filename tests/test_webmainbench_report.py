@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from harness.web_fetch.report import generate_webmainbench
+from harness.web_fetch.report_build import validate_webmainbench_correction
 
 
 PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "chromium")
@@ -11,6 +12,18 @@ METRICS = ("text_edit", "code_edit", "table_edit", "table_TEDS", "formula_edit")
 
 
 class WebMainBenchReportTests(unittest.TestCase):
+    def test_correction_must_match_frozen_scope(self):
+        dataset = {'cases': [{'id': 'case-one'}], 'coverage_plan': {'static_html': ['moli']},
+                   'sample_manifest_sha256': 'a' * 64, 'source_dataset_sha256': 'b' * 64}
+        receipt = {'case_id': 'case-one', 'providers': ['moli'], 'effects': {'moli': {}},
+                   'sample_manifest_sha256': 'a' * 64, 'source_dataset_sha256': 'b' * 64}
+        validate_webmainbench_correction(receipt, dataset)
+        for change in [{'case_id': '../unknown'}, {'providers': ['unknown']},
+                       {'providers': ['moli', 'moli']}, {'effects': {}},
+                       {'source_dataset_sha256': 'c' * 64}]:
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                validate_webmainbench_correction({**receipt, **change}, dataset)
+
     def test_generates_matching_bilingual_route_inventory(self):
         with tempfile.TemporaryDirectory() as folder:
             output = Path(folder)
