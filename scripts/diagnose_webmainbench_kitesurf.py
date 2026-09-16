@@ -58,6 +58,7 @@ def keep_inline_scripts(html: str, start: int, stop: int) -> str:
         index += 1
         return match.group() if keep else ''
     result = SCRIPT.sub(replace, html)
+    # Fail closed if the audited CNN snapshot's observed 63 inline blocks drift.
     if index != 63:
         raise ValueError(f'Expected 63 inline CNN scripts, found {index}')
     return result

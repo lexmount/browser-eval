@@ -354,6 +354,7 @@ def validate_webmainbench_anomaly_review(receipt: dict, source: Path,
     scope = receipt.get('scope', {})
     triggered = receipt.get('triggered_attempt_ids')
     attempts = {row['attempt_id'] for row in records}
+    providers = {row['provider'] for row in records}
     cases = receipt.get('cases')
     if (scope.get('logical_results') != len(records)
             or not isinstance(triggered, list)
@@ -365,6 +366,14 @@ def validate_webmainbench_anomaly_review(receipt: dict, source: Path,
             or {row.get('case_id') for row in cases} != {
                 attempt.split('__', 2)[1] for attempt in triggered
             }
+            or any(not isinstance(row.get('affected_providers'), list)
+                   or not row['affected_providers']
+                   or len(set(row['affected_providers'])) != len(row['affected_providers'])
+                   or not set(row['affected_providers']).issubset(providers)
+                   or any(not isinstance(row.get(key), str) or not row[key].strip()
+                          for key in ('classification', 'observed_zh', 'observed_en',
+                                      'cause_zh', 'cause_en'))
+                   for row in cases)
             or scope.get('unresolved_triggered_results') != 0):
         raise ValueError('WebMainBench anomaly review scope mismatch')
     disposition = receipt.get('disposition', {})

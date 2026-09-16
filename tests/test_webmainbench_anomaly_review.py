@@ -33,7 +33,15 @@ class WebMainBenchAnomalyReviewTests(unittest.TestCase):
                 "unresolved_triggered_results": 0,
             },
             "triggered_attempt_ids": attempts,
-            "cases": [{"case_id": "case-a"}],
+            "cases": [{
+                "case_id": "case-a",
+                "affected_providers": ["p0"],
+                "classification": "fixture",
+                "observed_zh": "观察",
+                "observed_en": "Observed",
+                "cause_zh": "原因",
+                "cause_en": "Cause",
+            }],
             "disposition": {
                 "score_bearing_results_changed": False,
                 "provider_calls_replaced": False,
@@ -41,7 +49,8 @@ class WebMainBenchAnomalyReviewTests(unittest.TestCase):
             },
         }
         dataset = {"source_dataset_sha256": "source", "sample_manifest_sha256": "sample"}
-        records = [{"attempt_id": attempt} for attempt in attempts]
+        records = [{"attempt_id": attempt, "provider": attempt.split("__", 1)[0]}
+                   for attempt in attempts]
         return root, receipt, dataset, records
 
     def test_accepts_exactly_bound_complete_review(self):
@@ -64,6 +73,14 @@ class WebMainBenchAnomalyReviewTests(unittest.TestCase):
         mutating["disposition"]["provider_calls_replaced"] = True
         with self.assertRaisesRegex(ValueError, "must not mutate"):
             validate_webmainbench_anomaly_review(mutating, root, dataset, records)
+
+    def test_rejects_unknown_or_duplicate_affected_provider(self):
+        root, receipt, dataset, records = self.fixture()
+        for affected in (["unknown"], ["p0", "p0"], []):
+            changed = copy.deepcopy(receipt)
+            changed["cases"][0]["affected_providers"] = affected
+            with self.subTest(affected=affected), self.assertRaisesRegex(ValueError, "scope mismatch"):
+                validate_webmainbench_anomaly_review(changed, root, dataset, records)
 
 
 if __name__ == "__main__":
