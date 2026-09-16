@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "status": "published_and_verified",
+  "published_at": "2026-09-16T03:24:58Z",
+  "title": "动态网站正文 100 例 · Moli WebFetch",
+  "artifact_hub": {
+    "base_url": "https://artifact-hub.app.lexmount.com",
+    "site_slug": "bDdEZw4PKDwD",
+    "version_id": "ver_ac66b1960d504f57b1efdaee919d32dc",
+    "share_url": "https://artifact-hub.app.lexmount.com/v/Ab97OH23qAv3rW6nke0iUHYOk6-B23DO",
+    "kind": "folder",
+    "file_count": 20
+  },
+  "report": {
+    "task_count": 100,
+    "method_count": 1,
+    "method": "Moli WebFetch 1.1.5",
+    "pass_count": 52,
+    "fail_count": 48,
+    "reviewed_count": 100,
+    "unresolved_count": 0,
+    "logical_route_count": 424,
+    "localization": [
+      "zh",
+      "en"
+    ]
+  },
+  "integrity": {
+    "dataset_sha256": "ce24ba9bc36b83868b65b0fde0d8282d51319989a47925241ae9cb1d6016f390",
+    "results_sha256": "3b8636b41c26ef27ddb4b5e80cdb10ab953146da5325cddc4b5615ad40c11348",
+    "publication_package_sha256": "bb209303b35ea64f7f2fd4729eacd73420e92875068634f06f43798cde26251c",
+    "source_file_count": 1108,
+    "published_file_count": 20,
+    "remote_export_matches_submitted_package": true,
+    "broken_virtual_links": 0,
+    "sensitive_data_scan": "passed"
+  },
+  "verification": {
+    "report_validation": "passed",
+    "publication_bundle_validation": "passed",
+    "artifact_hub_metadata": "verified",
+    "artifact_hub_public_page": "verified",
+    "artifact_hub_remote_export": "byte_identical_to_submitted_package"
+  },
+  "source_commit": "4e39f00ce2f0c291dd61b0b9aa90a0bf4a8374ac"
+}
