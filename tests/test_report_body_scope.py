@@ -287,12 +287,15 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertLess(detail.index('标准答案与实际返回'),detail.index('为什么这样判'))
             self.assertIn('alpha beta gamma delta',detail)
             for phrase in ['评分使用上方完整标准答案和完整实际返回', '连续六字符片段',
-                           '12 ÷ 12 = 100.0%', '定位样例（仅供人工查看）',
+                           '12 ÷ 12 = 100.0%', '完整实际返回中的全部可读命中段落',
+                           '查看带真实命中标记的完整实际输出',
+                           '黄色位置与覆盖率使用同一组机器记录',
                            '查看判定使用的标准答案', '查看本次完整实际返回']:
                 self.assertIn(phrase,detail)
-            self.assertNotIn('实际返回中的对应原文',detail)
+            self.assertNotIn('定位样例（仅供人工查看）',detail)
+            self.assertIn('<mark>alpha beta gamma delta</mark>',detail)
             self.assertIn('方法直接取得原始文档 → pypdf → 可读正文',detail)
-            self.assertIn('标准答案位置',detail)
+            self.assertIn('标准答案区域',detail)
             self.assertNotIn('第 1/1 段',detail)
             dataset=(out/'datasets/article.html').read_text()
             self.assertIn('同一份标准答案',dataset)
@@ -522,6 +525,10 @@ class ReportBodyScopeTests(unittest.TestCase):
             detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
             for phrase in ['稳定内容检查','条目结构检查','完整且唯一条目数','稳定内容核对点','heading','Catalog','&lt;item&gt;']:
                 self.assertIn(phrase,detail)
+            self.assertIn('允许域名：example.com；详情路径：<code>/items/.*</code>', detail)
+            english=(out/'en/attempts'/f"{r['attempt_id']}.html").read_text()
+            self.assertIn('Allowed hosts:', english)
+            self.assertIn('<code>/items/.*</code>', english)
             self.assertNotIn('obsolete identity failure',detail)
             self.assertNotIn('条已确认',detail)
             for phrase in ['评分方式','保存输出离线评分','评分时间','2026-09-04T01:00:00Z','规则校验值','rule-hash','2026-09-03T00:00:00Z']:

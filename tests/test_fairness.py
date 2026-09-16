@@ -22,6 +22,45 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class FairnessTests(unittest.TestCase):
+    def test_body_regions_prefer_complete_sections_over_equal_length_slices(self):
+        reference = '\n\n'.join(
+            f'# Section {index}\n\n' + ' '.join(f'word{index}_{item}' for item in range(25)) + '.'
+            for index in range(1, 6))
+        contract = body_requirements(reference)
+        self.assertEqual(contract['segmentation_method'], 'sections')
+        self.assertEqual(len(contract['regions']), 5)
+        for index, region in enumerate(contract['regions'], 1):
+            self.assertEqual(region['segmentation_method'], 'sections')
+            self.assertIn(f'section {index}', region['text'])
+            self.assertNotIn(f'section {index + 1}', region['text'])
+
+    def test_body_regions_use_complete_sentences_before_token_fallback(self):
+        sentences = [
+            f'Sentence {index} keeps its own complete wording with enough distinct words.'
+            for index in range(1, 11)
+        ]
+        contract = body_requirements(' '.join(sentences))
+        self.assertEqual(contract['segmentation_method'], 'sentences')
+        self.assertGreater(len(contract['regions']), 1)
+        self.assertTrue(all(region['text'].endswith('words') for region in contract['regions']))
+
+    def test_body_region_machine_record_binds_counts_to_real_output_positions(self):
+        reference = 'Alpha beta gamma delta epsilon zeta eta theta. ' + ' '.join(
+            f'additional{i}' for i in range(30))
+        contract = body_requirements(reference)
+        content = 'prefix Alpha beta gamma delta epsilon zeta eta theta. suffix'
+        result = evaluate_body_requirements(content, contract)
+        matching_text = content.casefold()
+        recorded = []
+        for region in result['body_region_results']:
+            for passage in region['matched_output_passages']:
+                start, end = passage['normalized_start'], passage['normalized_end']
+                self.assertEqual(passage['text'], matching_text[start:end])
+                recorded.append((start, end))
+            self.assertIn('matched_reference_spans', region)
+            self.assertIn('unmatched_reference_passages', region)
+        self.assertTrue(recorded)
+
     def test_legacy_body_region_result_preserves_auditable_counts_and_missing_words(self):
         contract={'version':1,'unit':'region_token_recall','minimum_coverage':.8,
                   'regions':[{'id':'body-region-1','text':'alpha beta beta gamma delta epsilon'}]}

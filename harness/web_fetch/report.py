@@ -321,34 +321,71 @@ def _best_evidence_excerpt(expected, output):
   if score>best_score:best,best_score=chunk,score
  return best if best_score>=min(.25,3/max(1,sum(wanted.values()))) else ''
 
-def _position_label(index,total):
- names=['开头','前部','中部','后部','结尾'] if total==5 else [f'位置 {i+1}' for i in range(total)]
- start=round(index*100/total);end=round((index+1)*100/total)
- return f'{names[index]}（标准答案 {start}–{end}%）'
+def _position_label(index,total,region=None):
+ method=(region or {}).get('segmentation_method')
+ labels={'sections':'章节组','paragraphs':'自然段组','sentences':'完整句组',
+         'balanced_tokens_fallback':'无明显结构后的近似均分',
+         'whole_declared_component':'完整声明组件'}
+ return f'{labels.get(method,"正文区域")} {index+1}/{total}'
+
+def _marked_text(text,spans):
+ ordered=[]
+ for span in sorted(spans or [],key=lambda row:(row.get('normalized_start',-1),row.get('normalized_end',-1))):
+  start,end=span.get('normalized_start'),span.get('normalized_end')
+  if not isinstance(start,int) or not isinstance(end,int) or not 0<=start<end<=len(text):continue
+  if ordered and start<=ordered[-1][1]:ordered[-1][1]=max(ordered[-1][1],end)
+  else:ordered.append([start,end])
+ pieces=[];cursor=0
+ for start,end in ordered:
+  pieces.append(esc(text[cursor:start]));pieces.append('<mark>'+esc(text[start:end])+'</mark>');cursor=end
+ pieces.append(esc(text[cursor:]))
+ return ''.join(pieces)
+
+def _matched_contexts(text,spans,margin=100):
+ windows=[]
+ for span in spans or []:
+  start=max(0,span.get('normalized_start',0)-margin)
+  end=min(len(text),span.get('normalized_end',0)+margin)
+  if windows and start<=windows[-1][1]:windows[-1][1]=max(windows[-1][1],end)
+  else:windows.append([start,end])
+ rendered=[]
+ for start,end in windows:
+  local=[]
+  for span in spans:
+   left=max(start,span.get('normalized_start',0));right=min(end,span.get('normalized_end',0))
+   if left<right:local.append({'normalized_start':left-start,'normalized_end':right-start})
+  rendered.append(_marked_text(text[start:end],local))
+ return rendered
 
 def body_region_rows(case, metrics, output):
  from .body_coverage import evaluate_body_requirements
+ from .metrics import normalize_for_match
  contract=case.get('body_requirements') or {}
  if not contract:return [],''
  recalculated={x['id']:x for x in evaluate_body_requirements(output,contract)['body_region_results']}
  regions={x['id']:x for x in contract['regions']}
- rows=[];cards=[];total=len(regions)
+ rows=[];cards=[];total=len(regions);all_output_spans=[]
+ matching_output=normalize_for_match(output)
  for index,item in enumerate(metrics.get('body_region_results',[]),1):
   actual={**recalculated.get(item['id'],{}),**item}
   expected=regions.get(item['id'],{}).get('text','')
   expected_count=actual.get('expected_units',actual.get('expected_tokens',len(expected.split())))
   matched=actual.get('matched_units',actual.get('matched_tokens',round(actual['coverage']*expected_count)))
   passed=actual.get('target_pass',actual['pass'])
-  label=_position_label(index-1,total)
+  region=regions.get(item['id'],{})
+  label=_position_label(index-1,total,region)
   judgement=('达到目标' if passed else '低于目标，但达到硬下限' if actual.get('floor_pass') else '未达到硬下限')
   css='pass' if passed else 'fail'
   rows.append(('',cell(esc(label))+cell(f'{expected_count:,}')+cell(f'{matched:,}')+
                cell(pct(actual['coverage']))+cell(esc(judgement))))
-  excerpt=_best_evidence_excerpt(expected,output)
-  actual_html=(f'<pre data-kind="region-output">{esc(excerpt)}</pre>' if excerpt else
-               '<p class="empty">没有可供人工定位的连续文字样例；机器覆盖率仍按上方完整实际返回计算。</p>')
-  cards.append(f'<article class="region-card {css}" id="region-{index}"><div class="region-head"><div><h3>{index}. {esc(label)}</h3><p>这一段标准答案产生 {expected_count:,} 个连续六字符片段；在上方完整实际返回（{len(output):,} 字符）中命中 {matched:,} 个，所以覆盖率为 {matched:,} ÷ {expected_count:,} = {pct(actual["coverage"])}。目标 {pct(actual["minimum"])}，硬下限 {pct(actual.get("floor",actual["minimum"]))}。</p></div><span class="verdict-badge">{esc(judgement)}</span></div><div class="region-pair"><div><b>这一位置的完整标准正文</b><pre data-kind="reference">{esc(expected)}</pre></div><div><b>实际输出中的定位样例（仅供人工查看）</b><p class="source-note">这是从完整实际返回中选出的一小段，便于确认文字确实出现；它不是覆盖率计算所使用的全部实际输出。</p>{actual_html}</div></div></article>')
- return rows,cards
+  output_spans=actual.get('matched_output_spans',[]);all_output_spans.extend(output_spans)
+  contexts=_matched_contexts(matching_output,output_spans)
+  actual_html=(''.join(f'<pre data-kind="region-output">{chunk}</pre>' for chunk in contexts) if contexts else
+               '<p class="empty">这一正文区域在完整实际返回中没有可显示的真实命中位置。</p>')
+  expected_view=_marked_text(expected,actual.get('matched_reference_spans',[]))
+  cards.append(f'<article class="region-card {css}" id="region-{index}"><div class="region-head"><div><h3>{index}. {esc(label)}</h3><p>这一段标准答案产生 {expected_count:,} 个连续六字符片段；在上方完整实际返回（{len(output):,} 字符）中命中 {matched:,} 个，所以覆盖率为 {matched:,} ÷ {expected_count:,} = {pct(actual["coverage"])}。目标 {pct(actual["minimum"])}，硬下限 {pct(actual.get("floor",actual["minimum"]))}。</p></div><span class="verdict-badge">{esc(judgement)}</span></div><div class="region-pair"><div><b>这一正文区域的完整标准答案</b><p class="source-note">黄色为本次实际命中的位置；未标色文字就是没有命中的部分。</p><pre data-kind="reference">{expected_view}</pre></div><div><b>完整实际返回中的全部可读命中段落</b><p class="source-note">这些段落直接由本次评分保存的真实位置生成，黄色是计数所用的命中范围，不是另选的样例。</p>{actual_html}</div></div></article>')
+ full_view=f'<details class="technical-details"><summary>查看带真实命中标记的完整实际输出</summary><p class="source-note">这是上方完整实际返回经过同一次评分规范化后的全文视图；黄色位置与覆盖率使用同一组机器记录。只去除了评分规则声明的排版差异，未删减未命中的正文。</p><pre data-kind="matched-output">{_marked_text(matching_output,all_output_spans)}</pre></details>'
+ return rows,cards,full_view
 
 def stable_answer_panel(contract):
  anchors=contract.get('stable_text_anchors',[])
@@ -1013,6 +1050,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
    reference_kind='contract';reference_download='../contracts/'+c['id']+'.json'
    contract_text=json.dumps(c['acceptance_contract'],ensure_ascii=False,indent=2)
    source_body=(stable_answer_panel(c['acceptance_contract'])+
+                '<details class="technical-details"><summary>查看完整公开规则（含允许域名与路径）</summary>'+
+                stable_contract_details(c)+'</details>'+
                 '<details class="technical-details"><summary>查看机器可读契约</summary>'
                 f'<pre data-kind="contract">{esc(contract_text)}</pre></details>')
    source_meta='这里直接列出本任务真正要求的文字和记录数量，不要求用户阅读 JSON。'
@@ -1066,16 +1105,16 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
    checks_html+=table(['记录字段','有效记录数','至少要求','判定'],[('',cell(esc(x['field']))+cell(str(x['count']))+cell(str(x['minimum']))+cell('通过' if x['pass'] else '未通过')) for x in m['stable_field_results']],metrics=[])
   body+=section('为什么这样判',caveat+checks_html,'decision')
   if m.get('body_region_results'):
-   region_rows,region_cards=body_region_rows(c,m,output);rules=c.get('body_requirements',{})
+   region_rows,region_cards,full_match_view=body_region_rows(c,m,output);rules=c.get('body_requirements',{})
    required=rules.get('minimum_region_passes',len(rules.get('regions',[])))
    region_count=len(rules.get('regions',[]))
-   region_intro=(f'<div class="decision-lead"><b>这项分数怎样计算：</b>评分使用上方完整标准答案和完整实际返回，不使用下面展示的短定位样例。'
+   region_intro=(f'<div class="decision-lead"><b>这项分数怎样计算：</b>评分使用上方完整标准答案和完整实际返回；下方命中标记直接来自同一次评分保存的位置。'
                  '两边先统一大小写和常见排版差异，去掉 Markdown 链接地址、空白及标点，再切成连续六字符片段。'
-                 f'标准答案按前后位置分成 {region_count} 份；每份覆盖率 = 在完整实际返回中找到的片段数 ÷ 该份标准片段总数。'
+                 f'标准答案优先按真实章节或自然段组织为 {region_count} 个区域；没有明显结构时才按完整句或近似长度划分。每份覆盖率 = 在完整实际返回中找到的片段数 ÷ 该份标准片段总数。'
                  f'本任务要求每个位置至少达到 {pct(rules.get("minimum_floor",rules.get("minimum_coverage")))}，且至少 {required}/{region_count} 个位置达到 {pct(rules.get("minimum_coverage"))}。'
                  '所有位置同时做全局容量分配，且同一个实际片段实例只能计入一个位置；因此重复文字不会被多次借用，位置排列顺序也不会改变判定。全文完整度、纯净度和 F1 仍按完整文本另行计算。</div>')
-   body+=section('正文是否抓全',region_intro+table(['标准答案位置','标准片段数','命中片段数','覆盖率','判定'],region_rows,metrics=[])+
-                 '<details class="technical-details"><summary>查看各位置的完整标准正文和人工定位样例</summary>'+''.join(region_cards)+'</details>','body-coverage')
+   body+=section('正文是否抓全',region_intro+table(['标准答案区域','标准片段数','命中片段数','覆盖率','判定'],region_rows,metrics=[])+
+                 full_match_view+'<details class="technical-details"><summary>查看各区域的完整标准答案和全部命中段落</summary>'+''.join(region_cards)+'</details>','body-coverage')
   if title_details:body+=section('标题文字质量',title_details)
   runtime=('<details class="technical-details"><summary>查看完整运行、哈希与评分字段</summary>'
            +metric_legend(detail_metrics)+table(['项目','值'],rows,metrics=[])+

@@ -945,6 +945,7 @@ TEXT = {
     "任务结果": "Task result",
     "正文是否抓全": "Body coverage",
     "标准答案位置": "Reference region",
+    "标准答案区域": "Reference region",
     "标准片段数": "Reference shingles",
     "命中片段数": "Matched shingles",
     "为什么这样判": "Why this verdict",
@@ -969,6 +970,10 @@ TEXT = {
     "查看该任务的全部方法": "View all methods for this task",
     "下载转换前的完整 DOM HTML": "Download the complete pre-conversion DOM HTML",
     "查看各位置的完整标准正文和人工定位样例": "View complete reference regions and inspection snippets",
+    "查看带真实命中标记的完整实际输出": "View the complete actual output with exact match markers",
+    "查看各区域的完整标准答案和全部命中段落": "View each complete reference region and every matched passage",
+    "这一正文区域的完整标准答案": "Complete reference answer for this body region",
+    "完整实际返回中的全部可读命中段落": "All readable matched passages from the complete actual output",
     "这一位置的完整标准正文": "Complete reference text for this region",
     "实际输出中的定位样例（仅供人工查看）": "Matching snippet from the actual output (inspection only)",
     "全部方法执行结果": "Results for all methods",
@@ -2520,6 +2525,15 @@ TEXT.update({
 # are deliberately narrow report phrases; they never include task names,
 # reference answers, or provider output.
 PHRASES = {
+    "允许域名：": "Allowed hosts: ",
+    "；详情路径：": "; detail path: ",
+    "。入口按域名与路径去重。": ". Entries are deduplicated by host and path.",
+    "下方命中标记直接来自同一次评分保存的位置。": "The match markers below come directly from positions saved by the same scoring pass. ",
+    "标准答案优先按真实章节或自然段组织为": "The reference is organized first by real sections or natural paragraphs into ",
+    "个区域；没有明显结构时才按完整句或近似长度划分。": " regions; complete sentences or approximate length are used only when no clear structure exists. ",
+    "这是上方完整实际返回经过同一次评分规范化后的全文视图；黄色位置与覆盖率使用同一组机器记录。只去除了评分规则声明的排版差异，未删减未命中的正文。": "This is the full scoring-normalized view of the complete actual output above. Highlighted positions and coverage use the same machine record. Only declared formatting differences are removed; unmatched body text is not omitted.",
+    "黄色为本次实际命中的位置；未标色文字就是没有命中的部分。": "Highlighting marks the positions matched in this run; unhighlighted text is unmatched.",
+    "这些段落直接由本次评分保存的真实位置生成，黄色是计数所用的命中范围，不是另选的样例。": "These passages are generated directly from exact positions saved by this scoring pass. Highlighting marks the counted match range; these are not separately selected snippets.",
     "文字核对范围：各方法均为 86/100 例。": "Required-text coverage: 86/100 tasks for every method. ",
     "的 Moli 已保存输出仍包含": "'s saved Moli output still contains ",
     "，内容规则未通过。请求成功在这里记录了一个正常返回的结果，却没有等来任务要求的内容。这比方法是否具备浏览器功能更接近本次接入要解决的问题。": ", but failed the content rule. A normal response did not wait for the required content. This is closer to the integration problem than whether the method has browser features.",
@@ -3501,6 +3515,20 @@ REGEX.insert(0, (
 REGEX.insert(0, (
     re.compile(r"^在四种可完整观测的本地浏览器中，(.+) 的平均 CPU 时间最低，(.+) 的平均峰值内存最低。这两个最低值可能属于不同浏览器；CPU、内存和任务通过率也不能合成一个总分。Kitesurf 在远端运行，表中只包含本机请求客户端；其远端上游流量也不可见，不能与本地浏览器进程树作引擎资源排名。$"),
     r"Among the four fully observable local browsers, \1 has the lowest mean CPU time and \2 the lowest mean peak memory. These minima may belong to different browsers; CPU, memory, and task pass rate must not be blended into a composite score. Kitesurf runs remotely, so its row includes only the local request client; its remote upstream traffic is also unavailable, and it cannot enter an engine-resource ranking against local browser process trees.",
+))
+REGEX.insert(0, (
+    re.compile(r"^(章节组|自然段组|完整句组|无明显结构后的近似均分|完整声明组件|正文区域) (\d+)/(\d+)$"),
+    lambda match: {
+        "章节组": "Section group", "自然段组": "Paragraph group",
+        "完整句组": "Complete-sentence group",
+        "无明显结构后的近似均分": "Approximate split after no clear structure",
+        "完整声明组件": "Complete declared component",
+        "正文区域": "Body region",
+    }[match.group(1)] + f" {match.group(2)}/{match.group(3)}",
+))
+REGEX.insert(0, (
+    re.compile(r"^这一段标准答案产生 ([\d,]+) 个连续六字符片段；在上方完整实际返回（([\d,]+) 字符）中命中 ([\d,]+) 个，所以覆盖率为 ([\d,]+) ÷ ([\d,]+) = ([\d.]+%)。目标 ([\d.]+%)，硬下限 ([\d.]+%)。$"),
+    r"This reference region produces \1 contiguous six-character shingles; \3 are matched in the complete actual output above (\2 characters), so coverage is \4 ÷ \5 = \6. The target is \7 and the hard floor is \8.",
 ))
 
 

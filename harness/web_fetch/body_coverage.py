@@ -1,5 +1,6 @@
 """Declared, distributed body coverage; independent of the full-text F1 metric."""
 import re
+import hashlib
 from collections import Counter
 from itertools import combinations
 from math import ceil
@@ -10,14 +11,84 @@ def tokens(text):
     return re.findall(r'[\u3400-\u9fff]|[^\W_\u3400-\u9fff]+', normalize_for_match(text))
 
 
-def body_requirements(reference):
+def _group_contiguous(units, count):
+    """Group natural units contiguously without splitting an individual unit."""
+    count = min(count, len(units))
+    if count <= 1:
+        return ['\n\n'.join(units)]
+    weights = [max(1, len(tokens(unit))) for unit in units]
+    total = sum(weights)
+    groups = []
+    start = 0
+    consumed = 0
+    for index in range(1, count):
+        target = total * index / count
+        end = start
+        while end + 1 <= len(units) - (count - index):
+            next_total = consumed + sum(weights[start:end + 1])
+            after_total = consumed + sum(weights[start:end + 2])
+            if end > start and abs(next_total - target) <= abs(after_total - target):
+                break
+            end += 1
+        end = max(start + 1, end)
+        groups.append('\n\n'.join(units[start:end]))
+        consumed += sum(weights[start:end])
+        start = end
+    groups.append('\n\n'.join(units[start:]))
+    return [group for group in groups if group.strip()]
+
+
+def _natural_regions(reference, desired):
+    text = str(reference or '').replace('\r\n', '\n').replace('\r', '\n').strip()
+    paragraphs = [part.strip() for part in re.split(r'\n\s*\n+', text) if part.strip()]
+    heading = re.compile(r'^(?:#{1,6}\s+|[A-Z][^.!?。！？]{0,70}:?$)')
+    if len(paragraphs) >= 2:
+        sections = []
+        current = []
+        for paragraph in paragraphs:
+            first = paragraph.splitlines()[0].strip()
+            is_heading = (bool(re.match(r'^#{1,6}\s+', first))
+                          or (len(paragraph.splitlines()) == 1
+                              and len(tokens(first)) <= 12
+                              and bool(heading.match(first))))
+            if is_heading and current:
+                sections.append('\n\n'.join(current))
+                current = [paragraph]
+            else:
+                current.append(paragraph)
+        if current:
+            sections.append('\n\n'.join(current))
+        if len(sections) >= 2:
+            return _group_contiguous(sections, desired), 'sections'
+        return _group_contiguous(paragraphs, desired), 'paragraphs'
+    sentences = [part.strip() for part in re.split(r'(?<=[.!?。！？])\s+', text)
+                 if part.strip()]
+    if len(sentences) >= 2:
+        return _group_contiguous(sentences, desired), 'sentences'
+    words = tokens(text)
+    return ([' '.join(words[len(words) * index // desired:
+                            len(words) * (index + 1) // desired])
+             for index in range(desired)], 'balanced_tokens_fallback')
+
+
+def body_requirements(reference, *, structure_hint=None):
     words = tokens(reference)
-    count = min(5, max(1, len(words) // 20))
+    desired = min(5, max(1, len(words) // 20))
+    if structure_hint == 'whole_declared_component':
+        natural, method = [reference], 'whole_declared_component'
+    else:
+        natural, method = _natural_regions(reference, desired)
+    regions = []
+    for index, text in enumerate(natural):
+        normalized = ' '.join(tokens(text))
+        if normalized:
+            regions.append({'id': f'body-region-{index + 1}', 'text': normalized,
+                            'segmentation_method': method})
+    count = len(regions)
     return {'version': 3, 'unit': 'region_compact_hexagram_recall',
             'minimum_coverage': 0.8, 'minimum_floor': 0.6,
             'minimum_region_passes': max(1, count - 1),
-            'regions': [{'id': f'body-region-{i+1}', 'text': ' '.join(words[len(words)*i//count:len(words)*(i+1)//count])}
-                        for i in range(count)]}
+            'segmentation_method': method, 'regions': regions}
 
 
 def compact_trigrams(text):
@@ -29,6 +100,91 @@ def compact_ngrams(text, size):
     compact = ''.join(character for character in normalize_for_match(text)
                       if character.isalnum())
     return [compact[index:index+size] for index in range(max(0, len(compact)-size+1))]
+
+
+def _compact_with_positions(text):
+    from .metrics import normalize_for_match
+    normalized = normalize_for_match(text)
+    positions = [index for index, character in enumerate(normalized) if character.isalnum()]
+    return normalized, ''.join(normalized[index] for index in positions), positions
+
+
+def _merge_compact_spans(spans, positions):
+    if not spans:
+        return []
+    merged = []
+    for start, end in sorted(spans):
+        if merged and start <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end])
+    return [{
+        'compact_start': start,
+        'compact_end': end,
+        'normalized_start': positions[start],
+        'normalized_end': positions[end - 1] + 1,
+    } for start, end in merged]
+
+
+def _physical_match_spans(content, expected_by_id, assigned_by_id):
+    """Bind allocated fragment counts to deterministic physical occurrences."""
+    normalized, compact, positions = _compact_with_positions(content)
+    all_units = sorted(set().union(*(set(row) for row in assigned_by_id.values())))
+    wanted = set(all_units)
+    occurrences = {unit: [] for unit in all_units}
+    for start in range(max(0, len(compact) - 5)):
+        unit = compact[start:start + 6]
+        if unit in wanted:
+            occurrences[unit].append(start)
+    cursor = Counter()
+    spans = {identifier: [] for identifier in assigned_by_id}
+    for unit in all_units:
+        for identifier in sorted(assigned_by_id):
+            for _ in range(assigned_by_id[identifier][unit]):
+                index = cursor[unit]
+                if index >= len(occurrences[unit]):
+                    break
+                start = occurrences[unit][index]
+                spans[identifier].append((start, start + len(unit)))
+                cursor[unit] += 1
+    return normalized, {
+        identifier: _merge_compact_spans(rows, positions)
+        for identifier, rows in spans.items()
+    }
+
+
+def _reference_match_spans(reference, matched):
+    normalized, compact, positions = _compact_with_positions(reference)
+    starts_by_unit = {unit: [] for unit in matched}
+    for start in range(max(0, len(compact) - 5)):
+        unit = compact[start:start + 6]
+        if unit in starts_by_unit:
+            starts_by_unit[unit].append(start)
+    spans = []
+    for unit in sorted(matched):
+        starts = starts_by_unit[unit]
+        spans.extend((start, start + len(unit)) for start in starts[:matched[unit]])
+    return normalized, _merge_compact_spans(spans, positions)
+
+
+def _span_passages(text, spans):
+    return [{**span, 'text': text[span['normalized_start']:span['normalized_end']]}
+            for span in spans]
+
+
+def _unmatched_passages(text, spans):
+    passages = []
+    cursor = 0
+    for span in spans:
+        start, end = span['normalized_start'], span['normalized_end']
+        if text[cursor:start].strip():
+            passages.append({'normalized_start': cursor, 'normalized_end': start,
+                             'text': text[cursor:start]})
+        cursor = max(cursor, end)
+    if text[cursor:].strip():
+        passages.append({'normalized_start': cursor, 'normalized_end': len(text),
+                         'text': text[cursor:]})
+    return passages
 
 
 def _maximum_allocation(capacities, demands, limits):
@@ -230,6 +386,8 @@ def evaluate_body_requirements(content, contract):
                          for identifier, row in expected_by_id.items()}
         assigned_by_id, coverage_pass = _global_region_allocation(
             predicted, expected_by_id, floor_counts, target_counts, required_regions)
+        matching_text, output_spans_by_id = _physical_match_spans(
+            content, expected_by_id, assigned_by_id)
     checks = []
     for region in contract['regions']:
         expected_units = (region['text'].split() if version == 1
@@ -252,6 +410,22 @@ def evaluate_body_requirements(content, contract):
                        'minimum': contract['minimum_coverage'], 'floor': floor,
                        'target_pass': target_pass, 'floor_pass': floor_pass,
                        'pass': target_pass})
+        if version == 3:
+            reference_matching_text, reference_spans = _reference_match_spans(
+                region.get('text', ''), matched)
+            output_spans = output_spans_by_id[region['id']]
+            checks[-1].update({
+                'matching_text_sha256': hashlib.sha256(matching_text.encode()).hexdigest(),
+                'matched_output_spans': output_spans,
+                'matched_output_passages': _span_passages(matching_text, output_spans),
+                'reference_matching_text_sha256': hashlib.sha256(
+                    reference_matching_text.encode()).hexdigest(),
+                'matched_reference_spans': reference_spans,
+                'matched_reference_passages': _span_passages(
+                    reference_matching_text, reference_spans),
+                'unmatched_reference_passages': _unmatched_passages(
+                    reference_matching_text, reference_spans),
+            })
         if version == 1:
             checks[-1].update(expected_tokens=checks[-1]['expected_units'],
                               matched_tokens=checks[-1]['matched_units'],
@@ -262,4 +436,6 @@ def evaluate_body_requirements(content, contract):
     return {'body_coverage_pass': coverage_pass,
             'body_target_regions': sum(c['target_pass'] for c in checks),
             'body_required_target_regions': required_regions,
+            **({'body_matching_text_sha256': hashlib.sha256(
+                matching_text.encode()).hexdigest()} if version == 3 else {}),
             'body_region_results': checks}
