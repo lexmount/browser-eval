@@ -167,6 +167,25 @@ def test_rainbond_slice_verification_and_reset_replace_the_complete_application(
             assert path == receipt_path
             return json.loads(path.read_text())
 
+        def runtime_config(self, receipt):
+            return {
+                "image_lock": str(lock),
+                "environments": {
+                    "__SHOPPING_ADMIN__": {
+                        "urls": [receipt["components"]["shopping_admin"]["site_url"]]
+                    }
+                },
+                "rainbond_slice": {
+                    "pool_config": str(tmp_path / "pool.json"),
+                    "receipt": "slice-receipt.json",
+                },
+            }
+
+        def persist_runtime_config(self, receipt, path, *, base_config):
+            value = {**base_config, **self.runtime_config(receipt)}
+            path.write_text(json.dumps(value), encoding="utf-8")
+            return value
+
         def reset(self, path):
             resets.append(path)
             return {
@@ -222,6 +241,10 @@ def test_rainbond_slice_verification_and_reset_replace_the_complete_application(
         },
     }
     assert environment.environments["__SHOPPING_ADMIN__"]["urls"] == [
+        "https://admin-slice-302.example.test"
+    ]
+    persisted = json.loads(config.read_text())
+    assert persisted["environments"]["__SHOPPING_ADMIN__"]["urls"] == [
         "https://admin-slice-302.example.test"
     ]
     assert resets == [receipt_path]

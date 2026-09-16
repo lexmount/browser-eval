@@ -387,7 +387,7 @@ class RainbondSlicePool:
             "service_id": service_id,
             "service_cname": component.get("service_cname"),
             "image": expected_image,
-            "runtime_image": actual_image or expected_image,
+            "runtime_image": actual_image,
             "site_url": site_url,
         }
 
@@ -773,6 +773,18 @@ class RainbondSlicePool:
                 "receipt": "slice-receipt.json",
             },
         }
+
+    def persist_runtime_config(
+        self,
+        receipt: dict[str, Any],
+        path: Path,
+        *,
+        base_config: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Atomically persist receipt-authoritative URLs for crash recovery."""
+        value = {**(base_config or {}), **self.runtime_config(receipt)}
+        _atomic_json(path, value)
+        return value
 
 
 def provision_pool(config_path: Path, output_dir: Path, pool_id: str, count: int) -> list[Path]:

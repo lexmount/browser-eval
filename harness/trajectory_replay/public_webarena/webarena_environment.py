@@ -215,6 +215,10 @@ class WebArenaEnvironment:
                 else (self.config_path.parent / receipt_value).resolve()
             )
             self.rainbond_pool = RainbondSlicePool(pool_path)
+            current_receipt = self.rainbond_pool.validate_receipt(self.rainbond_receipt_path)
+            current_runtime = self.rainbond_pool.runtime_config(current_receipt)
+            self.config = {**self.config, **current_runtime}
+            self.environments = self.config["environments"]
 
     def site_docker_client(self, default_client: Any) -> tuple[Any, bool]:
         host = self.config.get("site_docker_host")
@@ -461,9 +465,12 @@ class WebArenaEnvironment:
         if self.rainbond_pool is not None and any(site in STATEFUL_SITES for site in sites):
             assert self.rainbond_receipt_path is not None
             receipt = self.rainbond_pool.reset(self.rainbond_receipt_path)
-            for site, component in receipt["components"].items():
-                token = f"__{site.upper()}__"
-                self.environments[token] = {"urls": [component["site_url"]]}
+            self.config = self.rainbond_pool.persist_runtime_config(
+                receipt,
+                self.config_path,
+                base_config=self.config,
+            )
+            self.environments = self.config["environments"]
             for site in sites:
                 site_config = self._site_config(site)
                 site_urls = site_config.get("urls") or []
