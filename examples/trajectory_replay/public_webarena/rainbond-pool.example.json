@@ -26,6 +26,7 @@
   "image_lock": "../../../../evaluation/browser-use-public/webarena-environment-images.json",
   "readiness_timeout_seconds": 1800,
   "max_parallel_provisions": 2,
+  "reset_strategy": "stop_before_replace",
   "shared_environments": {
     "__MAP__": {
       "urls": ["https://replace-with-shared-read-only-map"]

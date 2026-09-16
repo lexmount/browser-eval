@@ -101,7 +101,7 @@ class FakeAPI:
         return {}
 
 
-def _pool_config(tmp_path: Path) -> Path:
+def _pool_config(tmp_path: Path, *, reset_strategy: str | None = None) -> Path:
     lock = tmp_path / "images.json"
     lock.write_text(
         json.dumps(
@@ -113,25 +113,26 @@ def _pool_config(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     config = tmp_path / "pool.json"
+    value = {
+        "schema": "lex_webarena_rainbond_pool/1",
+        "api_base_url": "https://rainbond.example",
+        "team_id": "team-id",
+        "team_name": "efficiency",
+        "region_name": "rainbond",
+        "source_app_id": 192,
+        "source_services": {site: f"source-{site}" for site in STATEFUL_SITES},
+        "initializer_service": "source-initializer",
+        "initializer_image": INITIALIZER_IMAGE,
+        "app_prefix": "webarena-slice",
+        "domain_suffix": "dev.example.test",
+        "token_env": "TEST_RAINBOND_TOKEN",
+        "image_lock": "images.json",
+        "readiness_timeout_seconds": 1,
+    }
+    if reset_strategy is not None:
+        value["reset_strategy"] = reset_strategy
     config.write_text(
-        json.dumps(
-            {
-                "schema": "lex_webarena_rainbond_pool/1",
-                "api_base_url": "https://rainbond.example",
-                "team_id": "team-id",
-                "team_name": "efficiency",
-                "region_name": "rainbond",
-                "source_app_id": 192,
-                "source_services": {site: f"source-{site}" for site in STATEFUL_SITES},
-                "initializer_service": "source-initializer",
-                "initializer_image": INITIALIZER_IMAGE,
-                "app_prefix": "webarena-slice",
-                "domain_suffix": "dev.example.test",
-                "token_env": "TEST_RAINBOND_TOKEN",
-                "image_lock": "images.json",
-                "readiness_timeout_seconds": 1,
-            }
-        ),
+        json.dumps(value),
         encoding="utf-8",
     )
     return config
@@ -184,9 +185,7 @@ def test_provision_creates_one_complete_isolated_app_without_serializing_token(t
         "ENV_CTRL_MAX_ATTEMPTS": "360",
         "ENV_CTRL_RETRY_SECONDS": "5",
     }
-    port_mutations = [
-        call for call in api.calls if "/ports" in call[1] and call[0] != "GET"
-    ]
+    port_mutations = [call for call in api.calls if "/ports" in call[1] and call[0] != "GET"]
     assert [call[0] for call in port_mutations] == ["PUT", "DELETE", "POST"] * 4
     recreated = [call for call in port_mutations if call[0] == "POST"]
     assert {call[2]["port_alias"] for call in recreated} == {
@@ -260,6 +259,76 @@ def test_reset_deletes_the_whole_app_and_recreates_a_new_generation(tmp_path):
     )
     assert create_replacement < delete_old
     assert not receipt_path.with_name("slice-receipt.replacement.json").exists()
+
+
+def test_capacity_safe_reset_stops_old_app_before_creating_replacement(tmp_path):
+    api = FakeAPI()
+    pool = RainbondSlicePool(
+        _pool_config(tmp_path, reset_strategy="stop_before_replace"),
+        api=api,
+        sleep=lambda _: None,
+    )
+    pool._wait_site = lambda _url: None
+    pool._wait_app_stopped = lambda _receipt: None
+    receipt_path = tmp_path / "slice-receipt.json"
+    first = pool.provision("run-capacity", 1, receipt_path)
+
+    second = pool.reset(receipt_path)
+
+    stop_index = next(
+        index
+        for index, (method, path, body) in enumerate(api.calls)
+        if method == "POST"
+        and path.endswith(f"/{first['app_id']}/operations")
+        and body["action"] == "stop"
+    )
+    replacement_index = next(
+        index
+        for index, (method, path, _body) in enumerate(api.calls)
+        if method == "POST" and path.endswith("/apps") and index > stop_index
+    )
+    delete_index = next(
+        index
+        for index, (method, path, _body) in enumerate(api.calls)
+        if method == "DELETE" and path.endswith(f"/{first['app_id']}?force=1")
+    )
+    assert stop_index < replacement_index < delete_index
+    assert second["app_id"] != first["app_id"]
+
+
+def test_capacity_safe_reset_restores_old_app_and_keeps_receipt_on_failure(tmp_path):
+    api = FakeAPI()
+    pool = RainbondSlicePool(
+        _pool_config(tmp_path, reset_strategy="stop_before_replace"),
+        api=api,
+        sleep=lambda _: None,
+    )
+    pool._wait_site = lambda _url: None
+    pool._wait_app_stopped = lambda _receipt: None
+    pool._wait_component_running = lambda _app_id, _service_id: None
+    receipt_path = tmp_path / "slice-receipt.json"
+    first = pool.provision("run-recovery", 1, receipt_path)
+    api.fail_domain_for = "reddit"
+
+    with pytest.raises(RuntimeError, match="injected domain failure"):
+        pool.reset(receipt_path)
+
+    assert json.loads(receipt_path.read_text())["generation"] == first["generation"]
+    operations = [
+        body["action"]
+        for method, path, body in api.calls
+        if method == "POST" and path.endswith(f"/{first['app_id']}/operations")
+    ]
+    assert operations[-2:] == ["stop", "start"]
+    assert not receipt_path.with_name("slice-receipt.replacement.json").exists()
+
+
+def test_pool_config_rejects_unknown_reset_strategy(tmp_path):
+    with pytest.raises(ValueError, match="reset_strategy"):
+        RainbondSlicePool(
+            _pool_config(tmp_path, reset_strategy="unsafe"),
+            api=FakeAPI(),
+        )
 
 
 def test_partial_provision_failure_removes_the_new_app_and_leaves_no_receipt(tmp_path):

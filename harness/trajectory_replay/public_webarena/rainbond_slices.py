@@ -103,6 +103,7 @@ class PoolConfig:
     shared_environments: dict[str, Any]
     readiness_timeout_seconds: int
     max_parallel_provisions: int
+    reset_strategy: str
 
     @classmethod
     def load(cls, path: str | Path) -> tuple[PoolConfig, dict[str, Any], Path]:
@@ -149,6 +150,7 @@ class PoolConfig:
             shared_environments=dict(raw.get("shared_environments") or {}),
             readiness_timeout_seconds=int(raw.get("readiness_timeout_seconds") or 1800),
             max_parallel_provisions=int(raw.get("max_parallel_provisions") or 2),
+            reset_strategy=str(raw.get("reset_strategy") or "replace_before_destroy"),
         )
         if (
             not all((value.api_base_url, value.team_id, value.team_name, value.region_name))
@@ -156,6 +158,8 @@ class PoolConfig:
             or value.max_parallel_provisions < 1
         ):
             raise ValueError("Rainbond pool API, team, region, and source app are required")
+        if value.reset_strategy not in {"replace_before_destroy", "stop_before_replace"}:
+            raise ValueError("reset_strategy must be replace_before_destroy or stop_before_replace")
         return value, raw, config_path
 
 
@@ -559,6 +563,51 @@ class RainbondSlicePool:
             self.sleep(5)
         raise TimeoutError(f"Rainbond WebArena site did not become ready: {url}: {last_error}")
 
+    def _operate_existing_app(self, receipt: dict[str, Any], action: str) -> None:
+        service_ids = [
+            str(component["service_id"]) for component in (receipt.get("components") or {}).values()
+        ]
+        service_ids.append(str(receipt["initializer"]["service_id"]))
+        self.api.request(
+            "POST",
+            f"{self._app_path(int(receipt['app_id']))}/operations",
+            {"action": action, "service_ids": service_ids},
+        )
+
+    def _wait_app_stopped(self, receipt: dict[str, Any]) -> None:
+        app_id = int(receipt["app_id"])
+        expected = {
+            str(component["service_id"]) for component in (receipt.get("components") or {}).values()
+        }
+        expected.add(str(receipt["initializer"]["service_id"]))
+        deadline = time.monotonic() + self.config.readiness_timeout_seconds
+        last_statuses: dict[str, str] = {}
+        while time.monotonic() < deadline:
+            response = self.api.request("GET", f"{self._app_path(app_id)}/services")
+            rows = self._response_rows(response, "services")
+            last_statuses = {
+                str(row.get("service_id")): str(row.get("status") or "unknown")
+                for row in rows
+                if str(row.get("service_id")) in expected
+            }
+            if set(last_statuses) == expected and all(
+                status in {"closed", "undeploy"} for status in last_statuses.values()
+            ):
+                return
+            self.sleep(5)
+        raise TimeoutError(
+            f"Rainbond app did not stop before replacement: {app_id}: {last_statuses}"
+        )
+
+    def _restore_previous_app(self, receipt: dict[str, Any]) -> None:
+        self._operate_existing_app(receipt, "start")
+        self._wait_component_running(
+            int(receipt["app_id"]), str(receipt["initializer"]["service_id"])
+        )
+        self._wait_site(str(receipt["initializer"]["readiness_url"]))
+        for component in receipt["components"].values():
+            self._wait_site(str(component["site_url"]))
+
     def provision(self, pool_id: str, slot: int, receipt_path: Path) -> dict[str, Any]:
         started = time.monotonic()
         phase_started = started
@@ -642,12 +691,23 @@ class RainbondSlicePool:
         replacement_path = receipt_path.with_name("slice-receipt.replacement.json")
         if replacement_path.exists():
             raise RuntimeError(f"unfinished Rainbond slice replacement: {replacement_path}")
-        replacement = self.provision(pool_id, slot, replacement_path)
+        stopped_previous = self.config.reset_strategy == "stop_before_replace"
+        if stopped_previous:
+            self._operate_existing_app(previous, "stop")
+            self._wait_app_stopped(previous)
+        try:
+            replacement = self.provision(pool_id, slot, replacement_path)
+        except BaseException:
+            if stopped_previous:
+                self._restore_previous_app(previous)
+            raise
         try:
             self.api.request("DELETE", f"{self._app_path(int(previous['app_id']))}?force=1")
         except BaseException:
             self.api.request("DELETE", f"{self._app_path(int(replacement['app_id']))}?force=1")
             replacement_path.unlink(missing_ok=True)
+            if stopped_previous:
+                self._restore_previous_app(previous)
             raise
         replacement_path.replace(receipt_path)
         return replacement

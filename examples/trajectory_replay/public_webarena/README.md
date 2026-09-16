@@ -119,6 +119,13 @@ uv run --frozen python scripts/manage_webarena_rainbond_pool.py \
   --config <pool-config> release --output <runtime-dir> --lease-id <lease-id>
 ```
 
+Set `reset_strategy` to `stop_before_replace` when the cluster has capacity for only one
+slice. The controller keeps the lease held, stops the dirty application to release its
+CPU and memory, creates and verifies the replacement, and only then deletes the stopped
+generation. If provisioning fails, it restarts and verifies the previous generation while
+keeping the lease held. Use `replace_before_destroy` only when the cluster has enough
+surge capacity for two complete slices during every reset.
+
 For a one-shot pool that will be destroyed in full, use:
 
 ```text
