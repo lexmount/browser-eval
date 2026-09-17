@@ -6,10 +6,10 @@ from types import SimpleNamespace
 
 import pytest
 
+from harness.environments.webarena.backend import DockerBackend
 from harness.trajectory_replay.public_webarena.suite import BrowserTask
 from harness.trajectory_replay.public_webarena.webarena_environment import (
     WebArenaEnvironment,
-    _DockerClientBackend,
     wall_clock_timeout,
 )
 
@@ -128,6 +128,126 @@ def test_runtime_verification_rejects_mutable_or_wrong_image(tmp_path):
 
     with pytest.raises(RuntimeError, match="image mismatch"):
         environment.verify_runtime(_Docker([]), (_task(),))
+
+
+def test_rainbond_slice_verification_and_reset_replace_the_complete_application(
+    tmp_path, monkeypatch
+):
+    pinned = "am1n3e/webarena-verified-shopping_admin@sha256:" + "d" * 64
+    lock = tmp_path / "images.json"
+    lock.write_text(
+        json.dumps(
+            {
+                "schema": "lex_webarena_environment_images/1",
+                "images": {"shopping_admin": {"pinned": pinned}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    receipt_path = tmp_path / "slice-receipt.json"
+    first = {
+        "app_id": 301,
+        "generation": "first",
+        "components": {
+            "shopping_admin": {
+                "service_id": "old-service",
+                "image": pinned,
+                "site_url": "https://admin-slice.example.test",
+            }
+        },
+    }
+    receipt_path.write_text(json.dumps(first), encoding="utf-8")
+    resets = []
+
+    class Pool:
+        def __init__(self, path):
+            assert path == tmp_path / "pool.json"
+
+        def validate_receipt(self, path):
+            assert path == receipt_path
+            return json.loads(path.read_text())
+
+        def runtime_config(self, receipt):
+            return {
+                "image_lock": str(lock),
+                "environments": {
+                    "__SHOPPING_ADMIN__": {
+                        "urls": [receipt["components"]["shopping_admin"]["site_url"]]
+                    }
+                },
+                "rainbond_slice": {
+                    "pool_config": str(tmp_path / "pool.json"),
+                    "receipt": "slice-receipt.json",
+                },
+            }
+
+        def persist_runtime_config(self, receipt, path, *, base_config):
+            value = {**base_config, **self.runtime_config(receipt)}
+            path.write_text(json.dumps(value), encoding="utf-8")
+            return value
+
+        def reset(self, path):
+            resets.append(path)
+            return {
+                "app_id": 302,
+                "generation": "second",
+                "components": {
+                    "shopping_admin": {
+                        "service_id": "new-service",
+                        "image": pinned,
+                        "site_url": "https://admin-slice-302.example.test",
+                    }
+                },
+            }
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.webarena_environment.RainbondSlicePool",
+        Pool,
+    )
+    config = tmp_path / "config.json"
+    config.write_text(
+        json.dumps(
+            {
+                "image_lock": "images.json",
+                "environments": {
+                    "__SHOPPING_ADMIN__": {"urls": ["https://admin-slice.example.test"]}
+                },
+                "rainbond_slice": {
+                    "pool_config": "pool.json",
+                    "receipt": "slice-receipt.json",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    environment = WebArenaEnvironment(config)
+    monkeypatch.setattr(environment, "_wait_site_ready", lambda *_args, **_kwargs: None)
+
+    runtime = environment.verify_runtime(object(), (_task(),))
+    reset = environment.reset(_task(), object())
+
+    assert runtime["sites"]["shopping_admin"]["mode"] == ("remote_rainbond_isolated_slice")
+    assert runtime["sites"]["shopping_admin"]["app_id"] == 301
+    assert reset == {
+        "mode": "remote_rainbond_isolated_slice",
+        "reset": "application_deleted_and_recreated_from_pinned_baseline",
+        "app_id": 302,
+        "generation": "second",
+        "sites": {
+            "shopping_admin": {
+                "service_id": "new-service",
+                "site_url": "https://admin-slice-302.example.test",
+            }
+        },
+    }
+    assert environment.environments["__SHOPPING_ADMIN__"]["urls"] == [
+        "https://admin-slice-302.example.test"
+    ]
+    persisted = json.loads(config.read_text())
+    assert persisted["environments"]["__SHOPPING_ADMIN__"]["urls"] == [
+        "https://admin-slice-302.example.test"
+    ]
+    assert resets == [receipt_path]
 
 
 def test_site_docker_client_defaults_or_uses_validated_unix_socket(tmp_path, monkeypatch):
@@ -406,7 +526,7 @@ def test_stateful_backend_lets_entrypoint_configure_external_origin_once(site):
         def run(self, *args, **kwargs):
             calls.append((args, kwargs))
 
-    backend = _DockerClientBackend(SimpleNamespace(containers=Containers()))
+    backend = DockerBackend(SimpleNamespace(containers=Containers()))
 
     backend.container_run(
         name=f"webarena_verified_{site}",
@@ -432,7 +552,7 @@ def test_gitlab_backend_preserves_internal_listener_for_explicit_init():
         def run(self, *args, **kwargs):
             calls.append((args, kwargs))
 
-    backend = _DockerClientBackend(SimpleNamespace(containers=Containers()))
+    backend = DockerBackend(SimpleNamespace(containers=Containers()))
 
     backend.container_run(
         name="webarena_verified_gitlab",
@@ -450,7 +570,7 @@ def test_gitlab_backend_preserves_internal_listener_for_explicit_init():
 
 def test_stateful_backend_can_defer_large_container_removal():
     container = _Container([])
-    backend = _DockerClientBackend(
+    backend = DockerBackend(
         SimpleNamespace(containers=_Containers(container)), defer_removal=True
     )
 
@@ -462,7 +582,7 @@ def test_stateful_backend_can_defer_large_container_removal():
 
 
 def test_deferred_removal_rejects_shared_writable_mounts():
-    backend = _DockerClientBackend(
+    backend = DockerBackend(
         SimpleNamespace(containers=SimpleNamespace(run=lambda *_args, **_kwargs: None)),
         defer_removal=True,
     )

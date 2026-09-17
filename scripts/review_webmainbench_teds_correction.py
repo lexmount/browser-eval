@@ -34,8 +34,9 @@ def review(source, corrected):
         raise ValueError('Original official records were not preserved byte-for-byte')
     before = [json.loads(line) for line in (source / 'results.jsonl').read_text().splitlines()]
     after = [json.loads(line) for line in (corrected / 'results.jsonl').read_text().splitlines()]
-    if len(before) != 1000 or len(after) != len(before):
-        raise ValueError('Correction must cover all 1,000 results')
+    expected_count = len(json.loads((source / 'dataset.json').read_text())['cases']) * len(receipt['scope']['providers'])
+    if len(before) != expected_count or len(after) != len(before):
+        raise ValueError('Correction must cover the complete declared matrix')
     if len({row['attempt_id'] for row in after}) != len(after):
         raise ValueError('Duplicate corrected attempt')
     for name in ('dataset.json', 'sample-manifest.json', 'physical-attempts.jsonl', 'execution.json', 'result-review.json'):
@@ -58,7 +59,10 @@ def review(source, corrected):
                 raise ValueError('Added scores to a failed conversion')
             continue
         a, b = old['metrics']['table_TEDS'], new['metrics']['table_TEDS']
-        if a['success'] != b['success']:
+        if a['success'] != b['success'] and not (
+            a['success'] and not b['success'] and
+            'Exact tree calculation exceeds safe workspace bound' in b.get('error', '')
+        ):
             raise ValueError('Unexpected denominator change')
         if a['score'] != b['score']:
             changed.append({'attempt_id': new['attempt_id'], 'before': a['score'], 'after': b['score']})
@@ -81,7 +85,7 @@ def review(source, corrected):
                 raise ValueError('Aggregate mismatch: ' + provider + '/' + name)
         impacts[provider] = {'official': summary['original_official_aggregate'], 'corrected': current}
     return {'schema_version': 1, 'status': 'passed', 'scope': 'TEDS correction integrity and arithmetic, not a new provider run',
-            'logical_results': 1000, 'changed_scores': len(changed), 'provider_calls': 0,
+            'logical_results': expected_count, 'changed_scores': len(changed), 'provider_calls': 0,
             'output_results_sha256': digest(corrected / 'results.jsonl'),
             'correction_receipt_sha256': digest(corrected / 'teds-correction.json'),
             'review_script_sha256': digest(Path(__file__)), 'impacts': impacts}

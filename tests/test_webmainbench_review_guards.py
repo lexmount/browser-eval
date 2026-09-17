@@ -85,6 +85,8 @@ class WebMainBenchReviewGuardsTests(unittest.TestCase):
                          'execution.json', 'result-review.json'):
                 for base in (source, corrected):
                     (base / name).write_text('{}')
+            dataset=json.dumps({'cases':[{'id':str(i)} for i in range(200)]}).encode()
+            for base in (source,corrected):(base/'dataset.json').write_bytes(dataset)
             for relative in ('../outside.md', str(outside), 'linked.md'):
                 before = [{'attempt_id': str(i), 'ok': False, 'metrics': {},
                            'artifact_path': relative, 'output_sha256': hashlib.sha256(b'answer').hexdigest()}
@@ -96,7 +98,8 @@ class WebMainBenchReviewGuardsTests(unittest.TestCase):
                 (corrected / 'results.jsonl').write_bytes(final)
                 receipt = {'provider_calls': 0, 'input_results_sha256': hashlib.sha256(original).hexdigest(),
                            'output_results_sha256': hashlib.sha256(final).hexdigest(),
-                           'dataset_sha256': hashlib.sha256(b'{}').hexdigest(), 'source_code_sha256': {}}
+                           'dataset_sha256': hashlib.sha256(dataset).hexdigest(), 'source_code_sha256': {},
+                           'scope':{'providers':['a','b','c','d','e']}}
                 (corrected / 'teds-correction.json').write_text(json.dumps(receipt))
                 with self.subTest(path=relative), patch(
                     'scripts.review_webmainbench_teds_correction.valid_correction_provenance', return_value=True

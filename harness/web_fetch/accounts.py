@@ -242,11 +242,19 @@ REPORT_LOCAL_ACCESS: dict[str, dict[str, Any]] = {
         "free_note": "不需要账号或环境变量。",
     },
     "moli": {
-        "provider": "Moli 1.1.1",
-        "registration_url": "https://github.com/lexmount/moli/releases/tag/v1.1.1",
-        "key_url": "https://github.com/lexmount/moli/releases/tag/v1.1.1",
+        "provider": "Moli 1.1.5",
+        "registration_url": "https://github.com/lexmount/moli/releases/tag/v1.1.5",
+        "key_url": "https://github.com/lexmount/moli/releases/tag/v1.1.5",
         "env_vars": ["MOLI_BINARY"],
-        "steps": "安装并固定官方 v1.1.1 二进制；不需要供应商账号或 API Key。",
+        "steps": "安装并固定官方 v1.1.5 二进制；不需要供应商账号或 API Key。",
+        "free_note": "本地 CLI。",
+    },
+    "moli-1.1.7": {
+        "provider": "Moli 1.1.7",
+        "registration_url": "https://github.com/lexmount/moli/releases/tag/v1.1.7",
+        "key_url": "https://github.com/lexmount/moli/releases/tag/v1.1.7",
+        "env_vars": ["MOLI_1_1_7_BINARY"],
+        "steps": "安装并固定官方 v1.1.7 二进制；不需要供应商账号或 API Key。",
         "free_note": "本地 CLI。",
     },
     "moli-webfetch": {

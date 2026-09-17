@@ -62,11 +62,17 @@ def qualification_shards(scope_path: Path, suite_path: Path) -> tuple[dict[str, 
 
 
 def qualification_waves(
-    shards: tuple[dict[str, Any], ...], scope: dict[str, Any], *, max_workers: int
+    shards: tuple[dict[str, Any], ...],
+    scope: dict[str, Any],
+    *,
+    max_workers: int,
+    isolated_instances: int = 1,
 ) -> tuple[tuple[tuple[dict[str, Any], ...], ...], ...]:
     """Group complete site batches into deterministic, conflict-free parallel waves."""
     if max_workers < 1:
         raise ValueError("max_workers must be positive")
+    if isolated_instances < 1:
+        raise ValueError("isolated_instances must be positive")
     sites_by_batch = {
         str(batch["id"]): frozenset(str(site) for site in batch.get("sites") or [])
         for batch in scope.get("qualification_batches") or []
@@ -84,7 +90,9 @@ def qualification_waves(
         selected: list[str] = []
         for batch_id in remaining:
             sites = sites_by_batch[batch_id]
-            if len(selected) < max_workers and not occupied.intersection(sites):
+            capacity = min(max_workers, isolated_instances)
+            isolated = isolated_instances > 1
+            if len(selected) < capacity and (isolated or not occupied.intersection(sites)):
                 selected.append(batch_id)
                 occupied.update(sites)
         waves.append(tuple(tuple(shards_by_batch[batch_id]) for batch_id in selected))
@@ -108,10 +116,9 @@ def validate_completed_shard(
         raise ValueError(f"{shard['id']}: incomplete qualification output; missing {missing}")
     manifest = json.loads(required["manifest.json"].read_text(encoding="utf-8"))
     provenance = manifest.get("artifact_provenance") or {}
-    if (
-        provenance.get("attempts_sha256") != _sha256(required["attempts.jsonl"])
-        or provenance.get("summary_sha256") != _sha256(required["summary.json"])
-    ):
+    if provenance.get("attempts_sha256") != _sha256(required["attempts.jsonl"]) or provenance.get(
+        "summary_sha256"
+    ) != _sha256(required["summary.json"]):
         raise ValueError(f"{shard['id']}: qualification artifact hash mismatch")
     protocol = manifest.get("protocol") or {}
     selection = protocol.get("task_selection") or {}
@@ -212,11 +219,7 @@ def build_scoped_repair_queue(
                     "architecture": scope.get("architecture"),
                     "sites": row.get("sites") or [],
                     "incompatible_sites": row.get("incompatible_sites") or [],
-                    **(
-                        {"kind": row["exclusion_kind"]}
-                        if row.get("exclusion_kind")
-                        else {}
-                    ),
+                    **({"kind": row["exclusion_kind"]} if row.get("exclusion_kind") else {}),
                     **({"evidence_id": row["evidence_id"]} if row.get("evidence_id") else {}),
                 },
             },
@@ -246,7 +249,16 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--suite", type=Path, required=True)
     parser.add_argument("--native-scope", type=Path, required=True)
-    parser.add_argument("--webarena-config", type=Path, required=True)
+    parser.add_argument(
+        "--webarena-config",
+        type=Path,
+        action="append",
+        required=True,
+        help=(
+            "runtime config; repeat with independently provisioned Rainbond slice configs "
+            "to run overlapping site batches concurrently"
+        ),
+    )
     parser.add_argument(
         "--env-file",
         type=Path,
@@ -278,10 +290,13 @@ def main() -> None:
     args = parser.parse_args()
     suite_path = args.suite.resolve()
     scope_path = args.native_scope.resolve()
-    config_path = args.webarena_config.resolve()
+    config_paths = tuple(path.resolve() for path in args.webarena_config)
     evidence_root = args.evidence_root.resolve()
-    if not config_path.is_file():
-        raise ValueError("WebArena runtime config is missing")
+    missing_configs = [str(path) for path in config_paths if not path.is_file()]
+    if missing_configs:
+        raise ValueError(f"WebArena runtime configs are missing: {missing_configs}")
+    if len(set(config_paths)) != len(config_paths):
+        raise ValueError("WebArena runtime configs must be distinct isolated instances")
     all_shards = qualification_shards(scope_path, suite_path)
     scope = json.loads(scope_path.read_text(encoding="utf-8"))
     selected_batches = set(args.batch_ids or [])
@@ -296,14 +311,15 @@ def main() -> None:
     )
     suite_sha256 = _sha256(suite_path)
     scope_sha256 = _sha256(scope_path)
-    waves = qualification_waves(selected_shards, scope, max_workers=args.max_site_workers)
+    waves = qualification_waves(
+        selected_shards,
+        scope,
+        max_workers=args.max_site_workers,
+        isolated_instances=len(config_paths),
+    )
 
-    def run_shard(shard: dict[str, Any], qualification_pass_index: int) -> Path:
-        output = (
-            evidence_root
-            / f"pass-{qualification_pass_index}"
-            / str(shard["id"])
-        )
+    def run_shard(shard: dict[str, Any], qualification_pass_index: int, config_path: Path) -> Path:
+        output = evidence_root / f"pass-{qualification_pass_index}" / str(shard["id"])
         if output.exists():
             try:
                 validate_completed_shard(
@@ -401,21 +417,31 @@ def main() -> None:
 
             def run_batch(
                 batch: tuple[dict[str, Any], ...],
+                config_path: Path,
                 qualification_pass_index: int = qualification_pass_index,
             ) -> list[tuple[tuple[int, str], Path]]:
                 return [
                     (
                         (qualification_pass_index, str(shard["id"])),
-                        run_shard(shard, qualification_pass_index),
+                        run_shard(shard, qualification_pass_index, config_path),
                     )
                     for shard in batch
                 ]
 
+            # Extra ready slices are allowed; only a shortage is an error.
+            assigned = tuple(zip(wave, config_paths, strict=False))
+            if len(assigned) != len(wave):
+                raise RuntimeError("parallel wave exceeds isolated WebArena slice count")
             if args.dry_run or len(wave) == 1:
-                completed = [run_batch(batch) for batch in wave]
+                completed = [run_batch(batch, config) for batch, config in assigned]
             else:
                 with ThreadPoolExecutor(max_workers=len(wave)) as executor:
-                    completed = list(executor.map(run_batch, wave))
+                    completed = list(
+                        executor.map(
+                            lambda item: run_batch(item[0], item[1]),
+                            assigned,
+                        )
+                    )
             for batch_rows in completed:
                 attempts_by_id.update(batch_rows)
     attempts_paths = [

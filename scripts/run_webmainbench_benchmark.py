@@ -33,8 +33,8 @@ from harness.web_fetch.runner import classify_exception
 
 DATASET_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
 SCORER_COMMIT = "9d991bdc00c57b57521499494d96be85c31317ba"
-PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "chromium")
-EXPECTED_VERSIONS = {"obscura": "0.2.2", "moli": "1.1.5"}
+PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "moli-1.1.7", "chromium")
+EXPECTED_VERSIONS = {"obscura": "0.2.2", "moli": "1.1.5", "moli-1.1.7": "1.1.7"}
 CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"
 
 

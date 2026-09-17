@@ -62,22 +62,31 @@ def tree_distance(predicted: dict, reference: dict) -> dict:
         pending = [reference]
         while pending:
             node = pending.pop()
-            targets.setdefault(node['tag'], {})[node.get('text', '')] = node
+            label = node.get('text', '')
+            targets.setdefault(node['tag'], {}).setdefault(len(label), {})[label] = node
             pending.extend(config.children(node))
-        lower = 0.
         pairs = [(predicted, reference)]
         while pairs:
             left, right = pairs.pop()
-            cost = min(1., config.rename(left, right))
+            aligned_node_cost = config.rename(left, right)
+            cost = min(1., aligned_node_cost)
+            if cost < aligned_node_cost:
+                raise ValueError('Exact tree bound not certified; no approximate score emitted')
             if cost:
-                for candidate in targets.get(left['tag'], {}).values():
-                    cost = min(cost, config.rename(left, candidate))
+                length = len(left.get('text', ''))
+                for candidate_length, candidates in targets.get(left['tag'], {}).items():
+                    maximum = max(length, candidate_length)
+                    if maximum and abs(length - candidate_length) / maximum >= cost:
+                        continue
+                    for candidate in candidates.values():
+                        cost = min(cost, 1., config.rename(left, candidate))
+                        if cost < aligned_node_cost:
+                            raise ValueError('Exact tree bound not certified; no approximate score emitted')
+                        if cost == 0:
+                            break
                     if cost == 0:
                         break
-                lower += cost
             pairs.extend(zip(config.children(left), config.children(right)))
-        if abs(lower - aligned) > 1e-10:
-            raise ValueError('Exact tree bound not certified; no approximate score emitted')
         distance = float(aligned)
     else:
         distance = float(APTED(predicted, reference, config).compute_edit_distance())
