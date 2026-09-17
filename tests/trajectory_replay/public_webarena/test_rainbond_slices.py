@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import json
+import threading
 import urllib.error
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
 
-from harness.trajectory_replay.public_webarena.rainbond_slices import (
+from harness.environments.webarena.rainbond import (
     LEASE_SCHEMA,
     RECEIPT_SCHEMA,
     STATEFUL_SITES,
@@ -24,6 +25,43 @@ PINNED = {
     for index, site in enumerate(STATEFUL_SITES, start=1)
 }
 INITIALIZER_IMAGE = "alpine@sha256:" + "a" * 64
+
+
+def test_slow_release_does_not_block_acquisition_of_another_slot(tmp_path, monkeypatch):
+    output = tmp_path / "runtime"
+    _ready_slot(output, 1, 101)
+    _ready_slot(output, 2, 102)
+    lease = acquire_slice(output, "task-a")
+    resetting = threading.Event()
+    finish_reset = threading.Event()
+
+    class Pool:
+        def __init__(self, _config):
+            pass
+
+        def reset(self, receipt_path):
+            resetting.set()
+            assert finish_reset.wait(5)
+            receipt = json.loads(receipt_path.read_text())
+            receipt["app_id"] = 201
+            receipt_path.write_text(json.dumps(receipt))
+            return receipt
+
+        def runtime_config(self, receipt):
+            return {"app_id": receipt["app_id"]}
+
+    monkeypatch.setattr("harness.environments.webarena.rainbond.RainbondSlicePool", Pool)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        releasing = executor.submit(
+            release_slice, tmp_path / "pool.json", output, lease["lease_id"]
+        )
+        try:
+            assert resetting.wait(2)
+            acquiring = executor.submit(acquire_slice, output, "task-b")
+            assert acquiring.result(timeout=2)["app_id"] == 102
+        finally:
+            finish_reset.set()
+        assert releasing.result(timeout=2)["ready_app_id"] == 201
 
 
 class FakeAPI:
@@ -101,7 +139,8 @@ class FakeAPI:
                 {
                     "service_id": f"service-initializer-{self.next_app_id}",
                     "status": (
-                        "closed" if path.removesuffix("/services") in self.stopped_apps
+                        "closed"
+                        if path.removesuffix("/services") in self.stopped_apps
                         else "running"
                     ),
                 }
@@ -197,7 +236,7 @@ def test_app_deletion_does_not_trust_a_successful_stop_ack(tmp_path, monkeypatch
     pool = _pool(tmp_path, api)
     ticks = iter([0, 100_000])
     monkeypatch.setattr(
-        "harness.trajectory_replay.public_webarena.rainbond_slices.time.monotonic",
+        "harness.environments.webarena.rainbond.time.monotonic",
         lambda: next(ticks),
     )
     with pytest.raises(TimeoutError, match="did not stop before deletion"):
@@ -224,7 +263,10 @@ def test_control_port_convergence_is_bounded_and_does_not_repeat_writes(tmp_path
 
     def configure():
         pool._coalesce_internal_ports(
-            200, "service-shopping", site_port=80, control_port=8877,
+            200,
+            "service-shopping",
+            site_port=80,
+            control_port=8877,
             control_alias="SHOPPING_CTRL",
         )
 
@@ -551,9 +593,7 @@ def test_provision_pool_rolls_back_already_created_slots(tmp_path, monkeypatch):
         def destroy(self, receipt_path):
             destroyed.append(receipt_path)
 
-    monkeypatch.setattr(
-        "harness.trajectory_replay.public_webarena.rainbond_slices.RainbondSlicePool", Pool
-    )
+    monkeypatch.setattr("harness.environments.webarena.rainbond.RainbondSlicePool", Pool)
 
     with pytest.raises(RuntimeError, match="second slot"):
         provision_pool(tmp_path / "pool.json", tmp_path / "out", "run-d", 2)
@@ -584,9 +624,7 @@ def test_provision_pool_preserves_failure_when_rollback_cleanup_fails(tmp_path, 
         def destroy(self, _receipt_path):
             raise RuntimeError("rollback failed")
 
-    monkeypatch.setattr(
-        "harness.trajectory_replay.public_webarena.rainbond_slices.RainbondSlicePool", Pool
-    )
+    monkeypatch.setattr("harness.environments.webarena.rainbond.RainbondSlicePool", Pool)
 
     with pytest.raises(RuntimeError, match="provision failed") as caught:
         provision_pool(tmp_path / "pool.json", tmp_path / "out", "run-d", 2)
@@ -630,9 +668,7 @@ def test_scale_pool_keeps_one_warm_slice_and_removes_only_excess(tmp_path, monke
             destroyed.append(receipt_path)
             receipt_path.unlink()
 
-    monkeypatch.setattr(
-        "harness.trajectory_replay.public_webarena.rainbond_slices.RainbondSlicePool", Pool
-    )
+    monkeypatch.setattr("harness.environments.webarena.rainbond.RainbondSlicePool", Pool)
     output = tmp_path / "pool"
 
     assert len(scale_pool(tmp_path / "config.json", output, "warm", 3)) == 3
@@ -674,9 +710,7 @@ def test_scale_pool_rolls_back_every_new_slot_after_partial_failure(tmp_path, mo
             destroyed.append(receipt_path.parent.name)
             receipt_path.unlink()
 
-    monkeypatch.setattr(
-        "harness.trajectory_replay.public_webarena.rainbond_slices.RainbondSlicePool", Pool
-    )
+    monkeypatch.setattr("harness.environments.webarena.rainbond.RainbondSlicePool", Pool)
     output = tmp_path / "runtime"
 
     with pytest.raises(RuntimeError, match="slot 2 failed"):
@@ -693,9 +727,7 @@ def test_capacity_keeps_idle_slice_in_addition_to_active_demand(tmp_path, monkey
         calls.append((config, output, pool_id, count, minimum_ready))
         return []
 
-    monkeypatch.setattr(
-        "harness.trajectory_replay.public_webarena.rainbond_slices.scale_pool", fake_scale
-    )
+    monkeypatch.setattr("harness.environments.webarena.rainbond.scale_pool", fake_scale)
 
     reconcile_pool_capacity(
         tmp_path / "pool.json", tmp_path / "runtime", "warm", 3, minimum_ready=1
@@ -722,9 +754,7 @@ def test_scale_down_is_atomic_when_an_excess_slice_is_leased(tmp_path, monkeypat
         def destroy(self, receipt_path):
             destroyed.append(receipt_path)
 
-    monkeypatch.setattr(
-        "harness.trajectory_replay.public_webarena.rainbond_slices.RainbondSlicePool", Pool
-    )
+    monkeypatch.setattr("harness.environments.webarena.rainbond.RainbondSlicePool", Pool)
     output = tmp_path / "runtime"
     for slot in (1, 2, 3):
         slot_dir = output / f"slice-{slot}"
@@ -760,9 +790,7 @@ def test_scale_down_continues_after_one_destroy_failure(tmp_path, monkeypatch):
                 raise RuntimeError("slot 3 delete failed")
             receipt_path.unlink()
 
-    monkeypatch.setattr(
-        "harness.trajectory_replay.public_webarena.rainbond_slices.RainbondSlicePool", Pool
-    )
+    monkeypatch.setattr("harness.environments.webarena.rainbond.RainbondSlicePool", Pool)
     output = tmp_path / "runtime"
     for slot in (1, 2, 3):
         slot_dir = output / f"slice-{slot}"
@@ -856,9 +884,7 @@ def test_release_replaces_dirty_generation_before_unlocking_slice(tmp_path, monk
         def runtime_config(self, receipt):
             return {"app_id": receipt["app_id"]}
 
-    monkeypatch.setattr(
-        "harness.trajectory_replay.public_webarena.rainbond_slices.RainbondSlicePool", Pool
-    )
+    monkeypatch.setattr("harness.environments.webarena.rainbond.RainbondSlicePool", Pool)
 
     result = release_slice(tmp_path / "pool.json", output, lease["lease_id"])
 
@@ -880,9 +906,7 @@ def test_failed_release_keeps_lease_so_dirty_slice_cannot_be_reassigned(tmp_path
         def reset(self, _receipt_path):
             raise RuntimeError("replacement failed")
 
-    monkeypatch.setattr(
-        "harness.trajectory_replay.public_webarena.rainbond_slices.RainbondSlicePool", Pool
-    )
+    monkeypatch.setattr("harness.environments.webarena.rainbond.RainbondSlicePool", Pool)
 
     with pytest.raises(RuntimeError, match="replacement failed"):
         release_slice(tmp_path / "pool.json", output, lease["lease_id"])
@@ -920,9 +944,7 @@ def test_release_retry_only_unlinks_after_reset_was_persisted(tmp_path, monkeypa
         def runtime_config(self, receipt):
             return {"app_id": receipt["app_id"]}
 
-    monkeypatch.setattr(
-        "harness.trajectory_replay.public_webarena.rainbond_slices.RainbondSlicePool", Pool
-    )
+    monkeypatch.setattr("harness.environments.webarena.rainbond.RainbondSlicePool", Pool)
     original_unlink = Path.unlink
     failures = 0
 

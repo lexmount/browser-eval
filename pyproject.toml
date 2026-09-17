@@ -53,6 +53,8 @@ markers = [
 [tool.ruff]
 line-length = 100
 include = [
+  "harness/environments/**/*.py",
+  "tests/environments/**/*.py",
   "harness/browser_use/**/*.py",
   "harness/trajectory_replay/**/*.py",
   "tests/browser_use/**/*.py",

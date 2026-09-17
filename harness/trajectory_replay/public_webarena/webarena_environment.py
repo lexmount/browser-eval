@@ -7,7 +7,6 @@ import json
 import os
 import re
 import signal
-import socket
 import threading
 import time
 import urllib.error
@@ -22,11 +21,13 @@ from webarena_verified.environments.container.config import get_container_config
 from webarena_verified.environments.container.manager import ContainerManager
 from webarena_verified.types.task import WebArenaSite
 
-from .rainbond_slices import RainbondSlicePool
+from harness.environments.webarena.backend import MAGENTO_INIT_TIMEOUT_SECONDS, DockerBackend
+from harness.environments.webarena.manager import EnvironmentManager
+from harness.environments.webarena.rainbond import RainbondSlicePool
+
 from .suite import BrowserTask
 
 STATEFUL_SITES = frozenset({"shopping_admin", "shopping", "reddit", "gitlab"})
-MAGENTO_INIT_TIMEOUT_SECONDS = 600
 LEGACY_PORT_SITES = {
     3000: "map",
     4399: "reddit",
@@ -66,111 +67,6 @@ def wall_clock_timeout(seconds: float, *, operation: str = "environment reset"):
     finally:
         signal.setitimer(signal.ITIMER_REAL, 0)
         signal.signal(signal.SIGALRM, previous_handler)
-
-
-class _DockerClientBackend:
-    """Bind WebArena's container manager to an explicit Docker SDK client."""
-
-    def __init__(self, client: Any, *, defer_removal: bool = False) -> None:
-        self.client = client
-        self.defer_removal = defer_removal
-        self.retired_containers: list[str] = []
-
-    def _container(self, name: str) -> Any | None:
-        try:
-            return self.client.containers.get(name)
-        except docker.errors.NotFound:
-            return None
-
-    def container_exists(self, *, name: str) -> bool:
-        return self._container(name) is not None
-
-    def container_running(self, *, name: str) -> bool:
-        container = self._container(name)
-        if container is None:
-            return False
-        container.reload()
-        return container.status == "running"
-
-    def container_remove(self, *, name: str) -> None:
-        container = self._container(name)
-        if container is not None:
-            if not self.defer_removal:
-                container.remove(force=True)
-                return
-            # Removing WebArena's tens-of-gigabytes writable layer can block a
-            # rootless daemon for hours.  Stopping releases the fixed ports;
-            # renaming preserves the old layer for deferred garbage collection.
-            # The next container still starts from the immutable pinned image,
-            # and these official images have no shared writable mounts.
-            container.reload()
-            if container.status == "running":
-                container.stop(timeout=10)
-            retired_name = f"{name}__retired__{container.id[:12]}"
-            container.rename(retired_name)
-            self.retired_containers.append(retired_name)
-
-    def container_run(
-        self,
-        *,
-        name: str,
-        image: str,
-        port_mappings: dict[int, int],
-        volume_mappings: dict[str, str],
-        env_vars: dict[str, str] | None = None,
-    ) -> None:
-        environment = dict(env_vars or {})
-        if self.defer_removal and volume_mappings:
-            raise RuntimeError(
-                "deferred WebArena container removal requires no shared writable mounts"
-            )
-        if name in {
-            "webarena_verified_shopping",
-            "webarena_verified_shopping_admin",
-        }:
-            # Magento's official init performs cache/database work after the
-            # services become healthy.  The image default of 180 seconds is
-            # too short on a busy qualification host and can leave the baked
-            # CMU origin active even though env-ctrl /status is healthy.
-            environment["WA_ENV_CTRL_CMD_TIMEOUT_SEC"] = str(MAGENTO_INIT_TIMEOUT_SECONDS)
-        # GitLab's image entrypoint does not run env-ctrl init.  Its fallback
-        # reconfiguration also rewrites the internal nginx listener to the
-        # public host port, breaking Docker's host-port -> 8023 mapping.  Keep
-        # the baked internal listener here; WebArenaEnvironment performs one
-        # explicit official init after the service is healthy.
-        if name == "webarena_verified_gitlab":
-            environment["WA_ENV_CTRL_SKIP_RECONFIGURE"] = "true"
-        self.client.containers.run(
-            image,
-            detach=True,
-            name=name,
-            ports={
-                f"{container_port}/tcp": host_port
-                for host_port, container_port in port_mappings.items()
-            },
-            volumes={
-                source: {"bind": target, "mode": "rw"} for source, target in volume_mappings.items()
-            },
-            environment=environment,
-        )
-
-    def get_container_ports(self, *, name: str) -> dict[int, int]:
-        container = self._container(name)
-        if container is None:
-            return {}
-        container.reload()
-        result: dict[int, int] = {}
-        ports = container.attrs.get("NetworkSettings", {}).get("Ports") or {}
-        for key, bindings in ports.items():
-            if bindings:
-                result[int(str(key).split("/", 1)[0])] = int(bindings[0]["HostPort"])
-        return result
-
-    def find_free_port(self) -> int:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as value:
-            value.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            value.bind(("", 0))
-            return int(value.getsockname()[1])
 
 
 class WebArenaEnvironment:
@@ -521,7 +417,7 @@ class WebArenaEnvironment:
                     }
                 )
                 defer_removal = bool(self.config.get("defer_stateful_container_removal", False))
-                backend = _DockerClientBackend(docker_client, defer_removal=defer_removal)
+                backend = DockerBackend(docker_client, defer_removal=defer_removal)
                 manager = ContainerManager(
                     site=WebArenaSite(site),
                     config=config,
@@ -609,68 +505,19 @@ class WebArenaEnvironment:
 
     @staticmethod
     def _wait_ready(url: str, *, timeout_seconds: float) -> None:
-        deadline = time.monotonic() + timeout_seconds
-        last_error: Exception | None = None
-        while time.monotonic() < deadline:
-            try:
-                with urllib.request.urlopen(url.rstrip("/") + "/status", timeout=5) as response:
-                    payload = json.load(response)
-                    if response.status == 200 and payload.get("success") is True:
-                        return
-            except (OSError, urllib.error.URLError) as exc:
-                last_error = exc
-            time.sleep(0.5)
-        raise RuntimeError(f"WebArena environment did not become ready: {last_error}")
+        EnvironmentManager._wait_control(url, timeout=timeout_seconds)
 
     @staticmethod
     def _wait_container_initialization(container: Any, *, timeout_seconds: float) -> None:
-        """Wait for the image entrypoint's one-time env-ctrl init to exit."""
-        deadline = time.monotonic() + timeout_seconds
-        while time.monotonic() < deadline:
-            # Docker's remote ``top`` endpoint requires the PID column to be
-            # present even though we only inspect the command text.
-            process_table = container.top(ps_args="-eo pid,args")
-            processes = process_table.get("Processes") or []
-            active = any(
-                "environment_control.cli init" in " ".join(map(str, row))
-                or re.search(r"\benv-ctrl\b.*\binit\b", " ".join(map(str, row)))
-                for row in processes
-            )
-            if not active:
-                return
-            time.sleep(0.5)
-        raise RuntimeError("WebArena entrypoint initialization did not finish")
+        EnvironmentManager._wait_entrypoint_init(container, timeout=timeout_seconds)
 
     @staticmethod
     def _configure_external_url(container: Any, external_url: str, *, site: str) -> None:
-        """Run a site's official initializer with an explicit public URL."""
-        result = container.exec_run(
-            ["env-ctrl", "--verbose", "init", "--base-url", external_url],
-            demux=False,
-        )
-        output = result.output
-        if isinstance(output, bytes):
-            output = output.decode("utf-8", errors="replace")
-        try:
-            payload = json.loads(str(output or ""))
-        except json.JSONDecodeError as exc:
-            raise RuntimeError(f"WebArena {site} init returned invalid JSON") from exc
-        if result.exit_code != 0 or payload.get("success") is not True:
-            message = str(payload.get("message") or "official initializer failed")
-            raise RuntimeError(f"WebArena {site} init failed: {message}")
+        EnvironmentManager._explicit_init(container, external_url, site=site)
 
     @staticmethod
     def _verify_entrypoint_initialization(container: Any) -> None:
-        """Fail immediately if the official supervisor init did not finish cleanly."""
-        result = container.exec_run(
-            ["sh", "-lc", "tail -n 1 /tmp/env-ctrl-init.log"],
-            demux=False,
-        )
-        output = result.output
-        if isinstance(output, bytes):
-            output = output.decode("utf-8", errors="replace")
-        if result.exit_code != 0 or str(output or "").strip() != "[OK]":
-            raise RuntimeError("WebArena entrypoint initialization failed")
+        EnvironmentManager._verify_entrypoint_init(container)
 
     @staticmethod
     def _wait_site_ready(url: str, *, timeout_seconds: float) -> None:

@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from harness.trajectory_replay.public_webarena.rainbond_slices import (
+from harness.environments.webarena.rainbond import (
     RainbondSlicePool,
     acquire_slice,
     provision_pool,

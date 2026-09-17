@@ -641,17 +641,14 @@ class RainbondSlicePool:
         service_ids = {str(row["service_id"]) for row in rows if row.get("service_id")}
         if service_ids:
             self.api.request(
-                "POST", f"{path}/operations",
+                "POST",
+                f"{path}/operations",
                 {"action": "stop", "service_ids": sorted(service_ids)},
             )
             deadline = time.monotonic() + self.config.readiness_timeout_seconds
             while True:
-                rows = self._response_rows(
-                    self.api.request("GET", f"{path}/services"), "services"
-                )
-                statuses = {
-                    str(row.get("service_id")): row.get("status") for row in rows
-                }
+                rows = self._response_rows(self.api.request("GET", f"{path}/services"), "services")
+                statuses = {str(row.get("service_id")): row.get("status") for row in rows}
                 if all(statuses.get(sid) in {"closed", "undeploy"} for sid in service_ids):
                     break
                 if time.monotonic() >= deadline:
@@ -1005,7 +1002,6 @@ def acquire_slice(output_dir: Path, owner: str) -> dict[str, Any]:
     if not owner:
         raise ValueError("lease owner is required")
     with _pool_lock(output_dir):
-
         for slot_dir in sorted(output_dir.glob("slice-*"), key=_slot_sort_key):
             receipt_path = slot_dir / "slice-receipt.json"
             config_path = slot_dir / "webarena.config.json"
@@ -1042,17 +1038,20 @@ def release_slice(config_path: Path, output_dir: Path, lease_id: str) -> dict[st
             raise ValueError("lease_id does not identify exactly one active slice")
         lease_path, lease = matches[0]
         slot_dir = lease_path.parent
+    # Keep the lease while resetting so acquire/scale skip this slot. The slot
+    # lock serializes competing releases without blocking unrelated ready slots.
+    with _pool_lock(slot_dir):
+        if not lease_path.is_file() or json.loads(lease_path.read_text(encoding="utf-8")) != lease:
+            raise ValueError("lease changed before release")
         pool = RainbondSlicePool(config_path)
         receipt_path = slot_dir / "slice-receipt.json"
         runtime_config_path = slot_dir / "webarena.config.json"
         current_receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
         if int(current_receipt["app_id"]) != int(lease["app_id"]):
             current_receipt = pool.validate_receipt(receipt_path)
-            if (
-                runtime_config_path.is_file()
-                and json.loads(runtime_config_path.read_text(encoding="utf-8"))
-                == pool.runtime_config(current_receipt)
-            ):
+            if runtime_config_path.is_file() and json.loads(
+                runtime_config_path.read_text(encoding="utf-8")
+            ) == pool.runtime_config(current_receipt):
                 lease_path.unlink()
                 return {
                     "lease_id": lease_id,

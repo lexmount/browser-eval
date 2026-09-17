@@ -6,10 +6,10 @@ from types import SimpleNamespace
 
 import pytest
 
+from harness.environments.webarena.backend import DockerBackend
 from harness.trajectory_replay.public_webarena.suite import BrowserTask
 from harness.trajectory_replay.public_webarena.webarena_environment import (
     WebArenaEnvironment,
-    _DockerClientBackend,
     wall_clock_timeout,
 )
 
@@ -526,7 +526,7 @@ def test_stateful_backend_lets_entrypoint_configure_external_origin_once(site):
         def run(self, *args, **kwargs):
             calls.append((args, kwargs))
 
-    backend = _DockerClientBackend(SimpleNamespace(containers=Containers()))
+    backend = DockerBackend(SimpleNamespace(containers=Containers()))
 
     backend.container_run(
         name=f"webarena_verified_{site}",
@@ -552,7 +552,7 @@ def test_gitlab_backend_preserves_internal_listener_for_explicit_init():
         def run(self, *args, **kwargs):
             calls.append((args, kwargs))
 
-    backend = _DockerClientBackend(SimpleNamespace(containers=Containers()))
+    backend = DockerBackend(SimpleNamespace(containers=Containers()))
 
     backend.container_run(
         name="webarena_verified_gitlab",
@@ -570,7 +570,7 @@ def test_gitlab_backend_preserves_internal_listener_for_explicit_init():
 
 def test_stateful_backend_can_defer_large_container_removal():
     container = _Container([])
-    backend = _DockerClientBackend(
+    backend = DockerBackend(
         SimpleNamespace(containers=_Containers(container)), defer_removal=True
     )
 
@@ -582,7 +582,7 @@ def test_stateful_backend_can_defer_large_container_removal():
 
 
 def test_deferred_removal_rejects_shared_writable_mounts():
-    backend = _DockerClientBackend(
+    backend = DockerBackend(
         SimpleNamespace(containers=SimpleNamespace(run=lambda *_args, **_kwargs: None)),
         defer_removal=True,
     )

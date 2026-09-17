@@ -1,0 +1,49 @@
+{
+  "schema": "lexmount_webarena_runtime/1",
+  "image_lock": "../../evaluation/browser-use-public/webarena-environment-images.json",
+  "hostname": "${HOST}",
+  "sites": {
+    "shopping_admin": {
+      "port": 7780,
+      "control_port": 7781
+    },
+    "shopping": {
+      "port": 7770,
+      "control_port": 7771
+    },
+    "gitlab": {
+      "port": 8023,
+      "control_port": 8024
+    },
+    "reddit": {
+      "port": 9999,
+      "control_port": 9998
+    },
+    "map": {
+      "port": 3000,
+      "control_port": 3001
+    },
+    "wikipedia": {
+      "port": 8888,
+      "control_port": 8889
+    }
+  },
+  "credentials_env": {
+    "shopping_admin": {
+      "username": "WEBARENA_SHOPPING_ADMIN_USERNAME",
+      "password": "WEBARENA_SHOPPING_ADMIN_PASSWORD"
+    },
+    "shopping": {
+      "username": "WEBARENA_SHOPPING_USERNAME",
+      "password": "WEBARENA_SHOPPING_PASSWORD"
+    },
+    "reddit": {
+      "username": "WEBARENA_REDDIT_USERNAME",
+      "password": "WEBARENA_REDDIT_PASSWORD"
+    },
+    "gitlab": {
+      "username": "WEBARENA_GITLAB_USERNAME",
+      "password": "WEBARENA_GITLAB_PASSWORD"
+    }
+  }
+}

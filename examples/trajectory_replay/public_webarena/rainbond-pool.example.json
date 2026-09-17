@@ -23,13 +23,9 @@
   "app_prefix": "webarena-slice",
   "domain_suffix": "dev.example.com",
   "token_env": "RAINBOND_API_TOKEN",
-  "image_lock": "../../../../evaluation/browser-use-public/webarena-environment-images.json",
+  "image_lock": "../../../evaluation/browser-use-public/webarena-environment-images.json",
   "readiness_timeout_seconds": 1800,
   "max_parallel_provisions": 2,
   "reset_strategy": "replace_before_destroy",
-  "shared_environments": {
-    "__MAP__": {
-      "urls": ["https://replace-with-shared-read-only-map"]
-    }
-  }
+  "shared_environments": {}
 }
