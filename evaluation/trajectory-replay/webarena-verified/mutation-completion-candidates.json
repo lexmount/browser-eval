@@ -133,6 +133,171 @@
         "response_status": 302
       },
       "qualification": "pre-commit observer, post-commit observer and official evaluator must all pass"
+    },
+    {
+      "task_id": 448,
+      "action_count": 8,
+      "observer": {
+        "kind": "same_origin_get_json",
+        "path": "/api/v4/user",
+        "require_authenticated_user": "byteblaze",
+        "json_key": "website_url",
+        "equals": "https://egg.tart.com"
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/-/profile",
+        "post_data": {"user[website_url]": "https://egg.tart.com"},
+        "response_status": 302
+      },
+      "qualification": "observer and official evaluator must both pass"
+    },
+    {
+      "task_id": 465,
+      "action_count": 8,
+      "observer": {
+        "kind": "pending_read_only_wishlist_item_contract",
+        "target_product_id": 71337,
+        "reason": "No independent account-scoped wishlist item view has been bound to product 71337. The old action-only HAR lacks the required add POST; a wishlist count or successful click is not enough."
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/wishlist/index/add/",
+        "post_data": {"product": "71337", "qty": null},
+        "response_status": 302
+      },
+      "qualification": "blocked until an authenticated read-only wishlist item identity check is qualified; official evaluator remains mandatory"
+    },
+    {
+      "task_id": 506,
+      "action_count": 18,
+      "observer": {
+        "kind": "pending_read_only_order_contract",
+        "target_product_id": 22490,
+        "reason": "A checkout page and cart totals are not a durable placed-order receipt. No account-scoped read-only order ID plus exact item has been qualified; four distinct official network rules still apply."
+      },
+      "official_network_evaluator_count": 4,
+      "qualification": "blocked until a read-only placed-order identity and item check is qualified; all four official network evaluators remain mandatory"
+    },
+    {
+      "task_id": 571,
+      "action_count": 13,
+      "observer": {
+        "kind": "same_origin_get_html",
+        "path": "/customer/address/edit/id/26/",
+        "require_authenticated_customer": "Emma Lopez",
+        "fields": {
+          "input[name=\"firstname\"]": "Emma",
+          "input[name=\"lastname\"]": "Lopez",
+          "input[name=\"street[0]\"]": "231 Willow Way",
+          "input[name=\"street[1]\"]": "Suite 100",
+          "select[name=\"country_id\"]": "US",
+          "select[name=\"region_id\"]": "23",
+          "input[name=\"city\"]": "Chicago",
+          "input[name=\"postcode\"]": "60601"
+        }
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/customer/address/formPost/id/26/",
+        "post_data": {
+          "firstname": "Emma",
+          "lastname": "Lopez",
+          "street[0]": "231 Willow Way",
+          "street[1]": "Suite 100",
+          "country_id": "US",
+          "city": "Chicago",
+          "postcode": "60601"
+        },
+        "response_status": 302
+      },
+      "qualification": "observer and official evaluator must both pass"
+    },
+    {
+      "task_id": 576,
+      "action_count": 13,
+      "observer": {
+        "kind": "same_origin_get_json_pair",
+        "paths": [
+          "/api/v4/projects/179/members/5",
+          "/api/v4/projects/179/members/1842"
+        ],
+        "require_user_ids": [5, 1842],
+        "require_access_level": 30,
+        "require_direct_project_membership": true
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/api/v4/projects/179/invitations",
+        "post_data": {"user_id": "5,1842", "access_level": 30},
+        "response_status": 201
+      },
+      "qualification": "both direct membership records and official evaluator must pass"
+    },
+    {
+      "task_id": 585,
+      "action_count": 11,
+      "observer": {
+        "kind": "pending_read_only_review_contract",
+        "target_product_id": 73063,
+        "reason": "Submitted reviews may await moderation. No stable authenticated read-only review record with product, nickname, title, text and five-star rating has been qualified; the old action-only HAR lacks the required POST."
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/review/product/post/id/73063/",
+        "post_data": {
+          "ratings[4]": "20",
+          "nickname": "Emma Lopez",
+          "title": "Good purchase",
+          "detail": "I like it"
+        },
+        "response_status": 302
+      },
+      "qualification": "blocked until a read-only review-record identity check is qualified; official evaluator remains mandatory"
+    },
+    {
+      "task_id": 590,
+      "action_count": 12,
+      "observer": {
+        "kind": "same_origin_get_json_collection",
+        "path": "/api/v4/projects/primer%2Fdesign/milestones?state=all&per_page=100",
+        "require_single_page": true,
+        "require_exactly_one_match": true,
+        "fields": {
+          "title": "product launch",
+          "start_date": "2023-01-16",
+          "due_date": "2023-01-30"
+        }
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/primer/design/-/milestones",
+        "post_data": {
+          "milestone[title]": "product launch",
+          "milestone[start_date]": "2023-01-16",
+          "milestone[due_date]": "2023-01-30"
+        },
+        "response_status": 302
+      },
+      "qualification": "observer and official evaluator must both pass"
+    },
+    {
+      "task_id": 595,
+      "action_count": 15,
+      "observer": {
+        "kind": "same_origin_get_html",
+        "path": "/f/space/69581/the-moon-saturn-and-jupiter-through-my-4-telescope-and",
+        "selector": "button.subscribe-button.subscribe-button--unsubscribe",
+        "require_exactly_one": true,
+        "require_authenticated_user": "MarvelsGrantMan136"
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": ["/f/space/subscribe.json", "/f/space/unsubscribe.json"],
+        "referer_suffix": "/f/space/69581/the-moon-saturn-and-jupiter-through-my-4-telescope-and",
+        "response_content": {"subscribed": true}
+      },
+      "qualification": "observer and official evaluator must both pass"
     }
   ]
 }
