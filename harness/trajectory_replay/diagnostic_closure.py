@@ -194,8 +194,13 @@ def load_diagnostic_closure(path: str | Path, *, old_failed_tasks: set[int]) -> 
                     )
                 for audit in audits:
                     observation = next(
-                        item for item in observations if item["browser"] == audit["browser"]
+                        (item for item in observations if item["browser"] == audit["browser"]),
+                        None,
                     )
+                    if observation is None:
+                        raise ValueError(
+                            f"current diagnostic task {task_id} has an unmatched browser audit"
+                        )
                     observation["downstream_accepted"] = audit.get("accepted") is True
                     observation["downstream_kind"] = audit.get("acceptance_kind")
                     observation["audit_sha256"] = _verified_digest(audit["audit"])
