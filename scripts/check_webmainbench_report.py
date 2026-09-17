@@ -14,6 +14,7 @@ from harness.web_fetch.metrics import percentile
 from harness.web_fetch.webmainbench_diagnostics import ERROR_PAGE, validate_teds_revision_if_present
 from harness.web_fetch.safety import contained_path
 from harness.web_fetch.webmainbench_evidence import retry_chain_matches
+from harness.web_fetch.webmainbench_latency_correction import prior_results_path, validate_latency_correction
 
 
 PROVIDERS = {"kitesurf", "lightpanda", "obscura", "moli", "moli-1.1.7", "chromium"}
@@ -53,6 +54,7 @@ def check_teds_warnings(root: Path, impossible_teds: int) -> None:
 def check_report(root: Path, dataset: dict | None = None, records: list[dict] | None = None) -> None:
     dataset = dataset or json.loads((root / "dataset.json").read_text(encoding="utf-8"))
     records = records or read_jsonl(root / "results.jsonl")
+    latency_correction = validate_latency_correction(root)
     current_profile = json.loads((Path(__file__).resolve().parents[1] / 'evaluation/current-report.json').read_text())
     diagnostic_profile = current_profile.get('latency_diagnostic')
     diagnostic_path = root / 'latency-diagnostic.json'
@@ -61,13 +63,23 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     latency_diagnostic = json.loads(diagnostic_path.read_text(encoding='utf-8')) if diagnostic_path.is_file() else None
     if latency_diagnostic:
         if (latency_diagnostic.get('kind') != 'same_host_latency_diagnostic'
-                or latency_diagnostic.get('official_results_sha256') != digest(root / 'results.jsonl')
+                or latency_diagnostic.get('official_results_sha256') != digest(prior_results_path(root))
                 or len(latency_diagnostic.get('per_case', [])) != 200
                 or {row['case_id'] for row in latency_diagnostic['per_case']} !=
                    {row['id'] for row in dataset.get('cases', [])}
                 or set(latency_diagnostic.get('runs', {})) != {
                     'moli-115-control', 'moli-117-repeat'}):
             raise ValueError('Published latency diagnostic is incomplete or no longer bound to official evidence')
+    if latency_correction:
+        for prefix, home_marker, change_marker in (
+                ('', '交叉复测的第二轮', '正式耗时纠正'),
+                ('en/', 'round two', 'timing correction')):
+            home_text = BeautifulSoup((root / prefix / 'index.html').read_text(),
+                                      'html.parser').get_text(' ', strip=True)
+            changes_text = BeautifulSoup((root / prefix / 'changes/index.html').read_text(),
+                                         'html.parser').get_text(' ', strip=True)
+            if home_marker not in home_text or change_marker not in changes_text:
+                raise ValueError('Published Moli timing correction is not explained in both languages')
     teds_revision = validate_teds_revision_if_present(root, records)
     if dataset.get("id") != "webmainbench-545-preselected-200-six-methods":
         raise ValueError("Not the current WebMainBench preselected-200 report")
@@ -93,6 +105,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     if (review.get("status") != "passed" or set(review.get("providers", [])) != PROVIDERS
             or review.get("sample_manifest_sha256") != sample_sha
             or review.get("sample_case_count") != 200
+            or review.get('bindings', {}).get('results_jsonl_sha256') != digest(prior_results_path(root))
             or review.get("failures")):
         raise ValueError("WebMainBench independent review is missing or incomplete")
 
@@ -108,7 +121,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
             or len(triggered) != 36
             or len(set(triggered)) != 36
             or bindings.get("dataset_json_sha256") != digest(root / "dataset.json")
-            or bindings.get("results_jsonl_sha256") != digest(root / "results.jsonl")
+            or bindings.get("results_jsonl_sha256") != digest(prior_results_path(root))
             or bindings.get("score_summaries_json_sha256") != digest(root / "score-summaries.json")):
         raise ValueError("WebMainBench anomaly review is missing, incomplete, or not bound to this report")
 

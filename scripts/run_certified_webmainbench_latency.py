@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import sys
 import time
@@ -25,11 +26,27 @@ def competing_benchmark_pids() -> list[int]:
     listing = subprocess.run(['ps', '-axo', 'pid=,command='], check=True,
                              capture_output=True, text=True).stdout
     markers = ('-m harness.browser_use.runner', '-m harness.trajectory_replay.',
-               'scripts/run_webmainbench_benchmark.py', 'scripts/run_benchmark.py')
+               'scripts/run_webmainbench_benchmark.py', 'scripts/run_benchmark.py',
+               'scripts/build_report.py', 'scripts/check_report.py',
+               'scripts/check_report_links.py')
     processes = [line.strip().split(None, 1) for line in listing.splitlines() if line.strip()]
     return [int(pid) for pid, command in processes if
             not command.startswith(('zsh -c ', 'bash -lc ', '/bin/sh -c '))
             and any(marker in command for marker in markers)]
+
+
+def host_sample() -> dict:
+    top = subprocess.run(['top', '-l', '1', '-n', '0'], capture_output=True,
+                         text=True, check=True).stdout
+    pressure = subprocess.run(['memory_pressure', '-Q'], capture_output=True,
+                              text=True, check=True).stdout
+    def match(pattern: str, value: str) -> float | None:
+        found = re.search(pattern, value)
+        return float(found.group(1)) if found else None
+    return {'cpu_idle_percent': match(r'([\d.]+)% idle', top),
+            'physical_unused_mb': match(r'PhysMem:.*?([\d.]+)M unused', top),
+            'memory_free_percent': match(r'System-wide memory free percentage:\s*([\d.]+)%',
+                                         pressure)}
 
 
 def snapshot(dataset: Path, sample: Path, official: Path) -> dict:
@@ -64,6 +81,8 @@ def main(argv: list[str] | None = None) -> None:
     if competing:
         raise ValueError(f'Concurrent browser benchmark is active (PIDs {competing}); '
                          'do not collect comparable latency now')
+    clean_process_checks = 1
+    before_host = host_sample()
     before = snapshot(args.dataset, args.sample, args.official_evidence)
     command = [sys.executable, str(ROOT / 'scripts/diagnose_webmainbench_moli_tail.py'),
                '--older', str(args.older), '--newer', str(args.newer),
@@ -80,8 +99,10 @@ def main(argv: list[str] | None = None) -> None:
             (args.output / 'environment-interference.json').write_text(
                 json.dumps({'kind': 'concurrent_benchmark', 'pids': competing}, indent=2) + '\n')
             raise ValueError(f'Concurrent browser benchmark started during Moli timing: {competing}')
+        clean_process_checks += 1
     if process.returncode:
         raise subprocess.CalledProcessError(process.returncode, command)
+    after_host = host_sample()
     after = snapshot(args.dataset, args.sample, args.official_evidence)
     if before != after:
         raise ValueError('Source or references changed during Moli calls')
@@ -110,6 +131,12 @@ def main(argv: list[str] | None = None) -> None:
                'calls_sha256': binding['calls_jsonl_sha256'],
                'physical_calls': len(calls), 'failed_calls': len(failures),
                'selected_round': 2, 'versions': expected_binaries,
-               'prior_results_sha256': expected_prior}
+               'prior_results_sha256': expected_prior,
+               'environment_exclusion': {
+                   'rule': 'no other browser benchmark process before or during Moli timing',
+                   'clean_process_checks': clean_process_checks,
+                   'certifying_runner_sha256': digest(Path(__file__)),
+               },
+               'host_resources': {'before': before_host, 'after': after_host}}
     (args.output / 'certification.json').write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + '\n')
     print('Certified WebMainBench Moli latency cohort:', args.output)

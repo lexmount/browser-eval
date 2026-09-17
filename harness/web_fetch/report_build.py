@@ -12,6 +12,7 @@ from .reliability import assess_reliability
 from .storage import require_selection_history,data_home
 from .scoring import SCORING_SOURCE_SHA256
 from .webmainbench_diagnostics import validate_teds_revision_if_present
+from .webmainbench_latency_correction import prior_results_path
 from .artifacts import (
     record_public_call_log_bindings, verify_record_private_artifacts,
     verify_public_call_log, verify_record_public_call_logs,
@@ -341,13 +342,15 @@ def validate_webmainbench_anomaly_review(receipt: dict, source: Path,
     bindings = receipt.get('bindings', {})
     expected_files = {
         'dataset_json_sha256': 'dataset.json',
-        'results_jsonl_sha256': 'results.jsonl',
         'score_summaries_json_sha256': 'score-summaries.json',
     }
     for binding, filename in expected_files.items():
         actual = hashlib.sha256(contained_path(source, filename).read_bytes()).hexdigest()
         if bindings.get(binding) != actual:
             raise ValueError(f'WebMainBench anomaly review {binding} mismatch')
+    if bindings.get('results_jsonl_sha256') != hashlib.sha256(
+            prior_results_path(source).read_bytes()).hexdigest():
+        raise ValueError('WebMainBench anomaly review results_jsonl_sha256 mismatch')
     if (bindings.get('source_dataset_sha256') != dataset.get('source_dataset_sha256')
             or bindings.get('sample_manifest_sha256') != dataset.get('sample_manifest_sha256')):
         raise ValueError('WebMainBench anomaly review dataset binding mismatch')
@@ -398,6 +401,9 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
     latency_diagnostic = load_diagnostic(source, dataset, records, manifests)
     review_path = source / 'result-review.json'
     review = json.loads(review_path.read_text()) if review_path.is_file() else None
+    if review is not None and review.get('bindings', {}).get('results_jsonl_sha256') != hashlib.sha256(
+            prior_results_path(source).read_bytes()).hexdigest():
+        raise ValueError('WebMainBench result review is not bound to preserved scored evidence')
     research_path = Path(__file__).resolve().parents[2] / 'research/public-web-benchmarks.json'
     research = json.loads(research_path.read_text(encoding='utf-8'))
     adoption_path = Path(__file__).resolve().parents[2] / 'research/provider-adoption.json'
@@ -442,6 +448,9 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
         for name in ('dataset.json', 'results.jsonl', 'score-summaries.json', 'execution.json',
                      'physical-attempts.jsonl'):
             shutil.copy2(source / name, staging / name)
+        if (source / 'latency-corrections.json').is_file():
+            for name in ('latency-corrections.json', 'prior-latency-results.jsonl'):
+                shutil.copy2(contained_path(source, name), staging / name)
         if review_path.is_file():
             shutil.copy2(review_path, staging / 'result-review.json')
         shutil.copy2(research_path, staging / 'public-benchmark-research.json')

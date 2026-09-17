@@ -1,4 +1,5 @@
 import json
+import hashlib
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import tempfile
@@ -55,5 +56,8 @@ class LatencyDiagnosticTests(unittest.TestCase):
                 'official_results_sha256': 'different',
             }))
             (root / 'results.jsonl').write_text('unchanged\n')
-            with self.assertRaisesRegex(ValueError, 'unchanged official matrix'):
+            with self.assertRaisesRegex(ValueError, 'manifest differs'):
                 load_diagnostic(root, {'cases': []}, [], [])
+            expected = hashlib.sha256((diagnostic / 'manifest.json').read_bytes()).hexdigest()
+            with self.assertRaisesRegex(ValueError, 'preserved original matrix'):
+                load_diagnostic(root, {'cases': []}, [], [], expected)

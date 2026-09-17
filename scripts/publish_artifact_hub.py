@@ -1,4 +1,5 @@
 """Publish the validated package to the user-specified Artifact Hub service."""
+import hashlib
 import json
 import os
 import sys
@@ -29,11 +30,19 @@ if updating and not receipt.exists():
  raise ValueError('--update requires an existing receipt')
 expected=(require_publication_version(ROOT/'evaluation/current-report.json',requested_expected)
           if updating else None)
+archive_sha256=None
+if creating or updating:
+ with archive.open('rb') as stream:archive_sha256=hashlib.file_digest(stream,'sha256').hexdigest()
 
 def request(path,data=None,content_type=None,auth=True,method=None):
  headers={'User-Agent':'WebFetch-Report-Publisher/1.0'}
  if auth:headers['Authorization']='Bearer '+token
  if content_type:headers['Content-Type']=content_type
+ if archive_sha256 and data is not None and method is None and (
+         path.startswith('/api/uploads?') or path.startswith('/api/uploads/') and '/commit' in path):
+  operation='start' if path.startswith('/api/uploads?') else 'commit'
+  seed='|'.join((operation,archive_sha256,expected or '',path))
+  headers['Idempotency-Key']='webfetch-'+operation+'-'+hashlib.sha256(seed.encode()).hexdigest()
  req=urllib.request.Request(BASE+path if path.startswith('/') else path,data=data,headers=headers,method=method)
  with urllib.request.urlopen(req,timeout=90 if method=='PUT' else 240) as response:return response.status,response.read()
 

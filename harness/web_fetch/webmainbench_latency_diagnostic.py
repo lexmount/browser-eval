@@ -13,6 +13,7 @@ from .metrics import percentile
 from .safety import contained_path
 from .webmainbench_diagnostics import ERROR_PAGE
 from .webmainbench_evidence import retry_chain_matches
+from .webmainbench_latency_correction import prior_results_path
 
 
 RUNS = {'moli-115-control': 'moli', 'moli-117-repeat': 'moli-1.1.7'}
@@ -116,17 +117,25 @@ def _resource_samples(path: Path | str, execution: dict) -> dict:
             'swapins_delta': complete[-1]['swapins'] - complete[0]['swapins']}
 
 
-def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], manifests: list[dict]) -> dict | None:
+def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], manifests: list[dict],
+                    expected_manifest_sha256: str | None = None) -> dict | None:
     root = source / 'latency-diagnostic'
     if not root.exists():
         return None
-    manifest = json.loads(contained_path(root, 'manifest.json').read_text(encoding='utf-8'))
+    manifest_bytes = contained_path(root, 'manifest.json').read_bytes()
+    if expected_manifest_sha256 is None:
+        profile_path = Path(__file__).resolve().parents[2] / 'evaluation/current-report.json'
+        profile = json.loads(profile_path.read_text(encoding='utf-8'))
+        expected_manifest_sha256 = profile.get('latency_diagnostic', {}).get('manifest_sha256')
+    if hashlib.sha256(manifest_bytes).hexdigest() != expected_manifest_sha256:
+        raise ValueError('Latency diagnostic manifest differs from the current report profile')
+    manifest = json.loads(manifest_bytes)
     if manifest.get('kind') != 'moli_115_117_latency_rerun_v1':
         raise ValueError('Unrecognized Moli latency diagnostic')
     cases = {case['id']: case for case in dataset['cases']}
     original_manifests = {row['provider']: row for row in manifests}
-    if manifest.get('official_results_sha256') != digest(source / 'results.jsonl'):
-        raise ValueError('Latency diagnostic does not bind the unchanged official matrix')
+    if manifest.get('official_results_sha256') != digest(prior_results_path(source)):
+        raise ValueError('Latency diagnostic does not bind the preserved original matrix')
     monitor_data = verified_bytes(root, 'system-monitor.log', manifest.get('system_monitor_sha256'))
     all_rows = {}
     all_executions = {}
