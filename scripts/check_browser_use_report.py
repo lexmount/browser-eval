@@ -475,6 +475,12 @@ def check(
             raise ValueError(f"English excluded-task list uses Chinese punctuation: {page}")
     for relative, allowed in {
         "index.html": {"中文"},
+        "methodology/index.html": {"中文"},
+        "review/index.html": {"中文"},
+        "reproduce/index.html": {"中文"},
+        "adoption/index.html": {"中文"},
+        "changes/index.html": {"中文"},
+        "accounts/index.html": {"中文"},
     }.items():
         page = report_dir / "en" / relative
         visible = re.sub(r"\s+", " ", _visible_text(rendered_pages[page]))
@@ -511,13 +517,20 @@ def check(
     ):
         raise ValueError("review page must present review rounds, not a per-result audit table")
     methodology_index = rendered_pages[report_dir / "methodology/index.html"]
-    for marker in ("192.168.5.2", "Wikipedia", "Map", "环境准备证据"):
+    expected_gateway = str(
+        ((bundles[0]["manifest"].get("environment") or {}).get("site_access_host"))
+        or bundles[0]["config"].get("site_access_host")
+        or ""
+    )
+    if not expected_gateway:
+        raise ValueError("measured evidence omitted the site access host")
+    for marker in (expected_gateway, "Wikipedia", "Map", "环境准备证据"):
         if marker not in methodology_index:
             raise ValueError(f"methodology is missing deployment evidence boundary: {marker}")
     analysis_index = rendered_pages[report_dir / "analysis/index.html"]
     for marker in (
         "comparison-winner",
-        "完整 90 题结果入口",
+        f"完整 {len(selection.tasks)} 题结果入口",
         "BrowserTool 动作延迟",
         "action-card-grid",
         "全部配置 · 单次调用墙钟时间",
@@ -532,14 +545,14 @@ def check(
 
     guide_index = rendered_pages[report_dir / "index.html"]
     for marker in (
-        "90 题核心指标",
+        f"{len(selection.tasks)} 题核心指标",
         "Agent 总耗时",
         "BrowserTool 耗时",
         "均值",
         "P50",
         "P95",
         "comparison-winner",
-        "四种完整配置中统一比较",
+        "全部注册配置中统一比较",
         "已通过结果没有再做独立语义盲审",
         "程序判分落点与复核根因",
         'class="verdict-strip"',
@@ -547,10 +560,20 @@ def check(
         'id="home-qualified-results"',
         'class="audit-ladder"',
         'id="home-resource-table"',
-        'results/gpt-6-astra-chromium-699.html#verification',
+        'href="data/interpretation-evidence.json"',
     ):
         if marker not in guide_index:
             raise ValueError(f"interpretation is missing an evidence-backed reading aid: {marker}")
+    common_success_table = re.search(
+        r'<table\b[^>]*\bid="home-resource-table"[^>]*>.*?</table>',
+        guide_index,
+        flags=re.I | re.S,
+    )
+    if common_success_table is None or any(
+        marker in common_success_table.group(0)
+        for marker in ("comparison-winner", "winner-mark", "winner-cell")
+    ):
+        raise ValueError("post-hoc common-success resource table must remain unranked")
     if "首次成功与重试恢复" in guide_index:
         raise ValueError("homepage must present one final logical result, not retry narration")
     for forbidden in (

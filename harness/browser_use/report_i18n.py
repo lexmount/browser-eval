@@ -27,6 +27,13 @@ NAV = (
 
 
 TEXT = {
+    "全部注册配置中通过数最高": "Highest pass count across all registered configurations",
+    "全部注册配置中通过率最高": "Highest pass rate across all registered configurations",
+    "均值、P50、P95 都在全部注册配置中统一比较。CPU、内存和网络只计浏览器容器，不含 CowAgent 或模型服务；模型会改变动作数量和页面停留时间，因此这里比较整套配置，不能单独归因于浏览器内核。": "Mean, P50, and P95 are compared across all registered configurations. CPU, memory, and network measurements cover only the browser container, not CowAgent or the model service. Because the model can change action counts and time spent on pages, these whole-configuration measurements cannot be attributed to the browser core alone.",
+    "仅对方向明确的指标标记全部注册配置中数值唯一最低者；占用率与网络传输量不标优劣。CPU 时间与网络总量累计逻辑结果使用的全部执行；内存来自 Browser Use 执行阶段的浏览器容器采样。": "Only metrics with a clear lower-is-better direction mark a unique lowest value across all registered configurations; utilization and network transfer are not ranked. CPU time and network totals include every execution used by a logical result; memory comes from browser-container samples during Browser Use execution.",
+    "扩展条件：": "Expansion requirements:",
+    "前者核对证据包与 evaluator 记录，后者检查失败的直接原因；已通过结果没有再做独立语义盲审，其判定依据仍是官方 evaluator。": "The first checks evidence bundles against evaluator records; the second investigates the direct causes of failures. Passed results did not receive a separate blinded semantic review and still rely on the official evaluator.",
+    "通过率、耗时和资源的具体差异以上表为准。每个配置每题只有一个最终逻辑结果；模型会改变动作数量，站点和验收也可能影响分数，不能把端到端差异单独归因于浏览器。已确认的外部干扰按整题隔离并保留原始分数，修复后须另行完整复测。": "Use the tables above for the exact pass-rate, latency, and resource differences. Each configuration has one final logical result per task. Models change the number of actions, while sites and acceptance rules can also affect scores, so end-to-end differences cannot be attributed to the browser alone. Confirmed external interference is quarantined by task without changing raw scores and requires a separate full rerun after correction.",
     "完整执行证据": "Complete execution evidence",
     "按原始结构展示本次物理执行的脱敏回答、evaluator、事件流、轨迹、计量与公开画面索引。": "Shows the sanitized response, evaluator record, event stream, trajectory, measurements, and public-frame index for this physical execution in their original structure.",
     "执行证据 JSON": "Execution evidence JSON",
@@ -1673,6 +1680,30 @@ def translate_text(value: str) -> str:
     translated = TEXT.get(core)
     if translated is None:
         patterns = (
+            (
+                r"查看 (.+) 自主轨迹示例",
+                lambda m: f"View an autonomous trajectory for {m.group(1)}",
+            ),
+            (
+                r"CowAgent；(.+)；模型推理强度为低",
+                lambda m: f"CowAgent; {m.group(1).replace('、', ', ')}; low reasoning effort",
+            ),
+            (
+                r"(.+)，reasoning=low",
+                lambda m: f"{m.group(1).replace('、', ', ')}, reasoning=low",
+            ),
+            (
+                r"若另行扩充 Browser Use 评测，当前四个已实跑站点可预检 (\d+) 个单站任务；计入只依赖这四站的跨站任务后，共有 (\d+) 个候选，其中 hard 子集 (\d+) 个。轨迹回放使用独立任务合同，不由本报告决定题量。",
+                lambda m: f"For a separate Browser Use expansion, the four sites already exercised here provide {m.group(1)} single-site tasks for preflight. Including cross-site tasks that use only these sites yields {m.group(2)} candidates, of which {m.group(3)} are hard. Trajectory Replay has a separate task contract; this report does not set its scope.",
+            ),
+            (
+                r"先对四个已验证站点的 (\d+) 个候选做可完成性预检和分层抽样；Wikipedia、Map 等数据环境须先完成独立部署资格验证。",
+                lambda m: f"First preflight task feasibility and stratified sampling among {m.group(1)} candidates on the four qualified sites. Wikipedia, Map, and other data-heavy environments need separate deployment qualification first.",
+            ),
+            (
+                r"账号隔离只用于避免用户级对象冲突，不能替代环境 lane。本轮有 (\d+) 题经复核确认受外部干扰；这些任务只在事后诊断子集中按整题排除，官方分数仍完整保留。",
+                lambda m: f"Account separation only prevents user-level object conflicts; it does not replace environment isolation. Review confirmed external interference in {m.group(1)} tasks. They are excluded by whole task only from the post-hoc diagnostic subset; their official scores remain intact.",
+            ),
             (r"(\d+) 题核心指标", lambda m: f"Core metrics for all {m.group(1)} tasks"),
             (
                 r"每个模型×浏览器配置都保留完整 (\d+) 题。以上是官方 evaluator 决定的最终逻辑结果；物理执行记录可在单题证据页下钻。",
@@ -1683,8 +1714,12 @@ def translate_text(value: str) -> str:
                 lambda m: f"This is a post-hoc diagnostic subset, not an official score and not a replacement for the official {m.group(1)}-task result. All {m.group(2)} original failure records remain available in the result and review pages.",
             ),
             (
-                r"完整 (\d+) 题官方结果是本报告的主口径；(\d+) 题事后诊断子集只用于分离已知外部干扰，不改写成绩。",
+                r"完整 (\d+) 题官方结果是本报告的主口径；(\d+) 题事后诊断子集只用于分离已确认的外部干扰，不改写成绩。",
                 lambda m: f"The complete official {m.group(1)}-task result is the report's primary view. The {m.group(2)}-task post-hoc diagnostic subset only separates known external interference and does not rewrite scores.",
+            ),
+            (
+                r"下表仅供诊断，限定为所有配置最终都通过的 (\d+) 题，并以每题最终逻辑结果包含的全部物理执行计算 P50。这个事后选出的子集不用于性能排名；完整样本的指标见上表。",
+                lambda m: f"The table is diagnostic only. It covers the {m.group(1)} tasks ultimately passed by every configuration and calculates P50 across all physical executions included in each final logical result. This post-hoc subset is not used for performance rankings; the complete-cohort metrics appear above.",
             ),
             (
                 r"先修复可控的合同、evaluator、站点和共享状态问题，再按同一协议完整重跑 (\d+) 题四种配置；历史官方分数在新证据批次出现前保持不变。",
@@ -1704,7 +1739,7 @@ def translate_text(value: str) -> str:
             ),
             (r"首次 (\d+/\d+)", lambda m: f"First attempt {m.group(1)}"),
             (r"失败后重试 (\d+) 题", lambda m: f"{m.group(1)} failed tasks retried"),
-            (r"查看 (\d+) 题的四配置矩阵 →", lambda m: f"View the four-configuration matrix for all {m.group(1)} tasks →"),
+            (r"查看 (\d+) 题的全配置矩阵 →", lambda m: f"View the all-configuration matrix for {m.group(1)} tasks →"),
             (
                 r"Sol × Chromium 首次 (\d+/\d+)，有 (\d+) 个任务在重试中恢复，最终 (\d+/\d+)；Astra × Chromium 首次和最终均为 (\d+/\d+)。",
                 lambda m: f"Sol × Chromium passed {m.group(1)} on the first attempt, recovered {m.group(2)} tasks on retry, and finished at {m.group(3)}. Astra × Chromium was {m.group(4)} both before and after retries.",

@@ -1130,12 +1130,12 @@ def _summary_comparison_rows(summary: dict[str, dict[str, dict[str, Any]]]) -> l
                     _winner(
                         f"{current['passed']}/{current['completed']}",
                         won=key in higher_metrics["passed"],
-                        label="四种配置中通过数最高",
+                        label="全部注册配置中通过数最高",
                     ),
                     _winner(
                         _pct(current["score"]),
                         won=key in higher_metrics["score"],
-                        label="四种配置中通过率最高",
+                        label="全部注册配置中通过率最高",
                     ),
                     _metric_stack(
                         [
@@ -2057,32 +2057,17 @@ def _common_final_success_resource_rows(
             metric_values["cpu"][key] = median(
                 [float((row.get("resource") or {}).get("cpu_ms") or 0) for row in cohort]
             )
-    winners = {
-        name: _best(
-            values,
-            higher=False,
-            display=(
-                (lambda value: round(value / 1000, 1))
-                if name in {"duration", "browser_tool", "cpu"}
-                else ((lambda value: round(value / 1048576, 1)) if name == "memory" else lambda value: round(value))
-            ),
-        )
-        for name, values in metric_values.items()
-    }
     rows: list[list[Any]] = []
     for key, (model, engine) in configurations.items():
         rows.append(
             [
                 MODEL_LABELS[model],
                 ENGINE_LABELS[engine],
-                _winner(_seconds(metric_values["duration"][key]), won=key in winners["duration"]),
-                _winner(_seconds(metric_values["browser_tool"][key]), won=key in winners["browser_tool"]),
-                _winner(_number(metric_values["tokens"][key]), won=key in winners["tokens"]),
-                _winner(
-                    "—" if metric_values["memory"][key] is None else f"{metric_values['memory'][key] / 1048576:.1f} MiB",
-                    won=key in winners["memory"],
-                ),
-                _winner(_seconds(metric_values["cpu"][key]), won=key in winners["cpu"]),
+                _seconds(metric_values["duration"][key]),
+                _seconds(metric_values["browser_tool"][key]),
+                _number(metric_values["tokens"][key]),
+                "—" if metric_values["memory"][key] is None else f"{metric_values['memory'][key] / 1048576:.1f} MiB",
+                _seconds(metric_values["cpu"][key]),
             ]
         )
     return len(common), rows
@@ -2152,32 +2137,6 @@ def _automatic_failure_figure(counts: Counter[str]) -> str:
         for key, label, description in items
     )
     return '<div class="verdict-strip" aria-label="官方 evaluator 的失败规则组合">' + cards + "</div>"
-
-
-def _resource_summary_cards(common_resources: tuple[int, list[list[Any]]]) -> str:
-    task_count, rows = common_resources
-    if not task_count:
-        return '<p class="callout">当前没有四种配置最终都成功的任务，资源差异暂不比较。</p>'
-
-    def values(engine: str, column: int) -> list[float]:
-        label = ENGINE_LABELS[engine]
-        return [
-            float(re.sub(r"<[^>]+>", "", str(row[column])).split()[0].replace(",", ""))
-            for row in rows
-            if row[1] == label
-        ]
-
-    chromium_memory, moli_memory = values("chromium", 5), values("moli", 5)
-    chromium_tool, moli_tool = values("chromium", 3), values("moli", 3)
-    chromium_cpu, moli_cpu = values("chromium", 6), values("moli", 6)
-    return (
-        '<div class="decision-grid"><article><h3>Moli 的内存区间更低</h3><p>'
-        f'{task_count} 题最终共同成功样本中，Moli 峰值内存 P50 为 {min(moli_memory):.1f}–{max(moli_memory):.1f} MiB；'
-        f'Chromium 为 {min(chromium_memory):.1f}–{max(chromium_memory):.1f} MiB。</p></article>'
-        '<article><h3>Chromium 的工具耗时与 CPU 更低</h3><p>'
-        f'BrowserTool P50：Chromium {min(chromium_tool):.1f}–{max(chromium_tool):.1f} 秒，Moli {min(moli_tool):.1f}–{max(moli_tool):.1f} 秒；'
-        f'CPU 时间 P50：Chromium {min(chromium_cpu):.1f}–{max(chromium_cpu):.1f} 秒，Moli {min(moli_cpu):.1f}–{max(moli_cpu):.1f} 秒。</p></article></div>'
-    )
 
 
 def _article_body(
@@ -2269,29 +2228,28 @@ def _article_body(
         + f'<p class="source-note">每个模型×浏览器配置都保留完整 {task_count} 题。以上是官方 evaluator 决定的最终逻辑结果；物理执行记录可在单题证据页下钻。</p></section>'
         '<section><h2>按同题比较浏览器</h2><p>浏览器对比必须留在同一模型层内。汇总数会隐藏互换的成败任务；下表给出同题对照。</p>'
         + _table(["模型", "浏览器 A", "浏览器 B", "同题数", "两边都通过", "A 通过、B 失败", "A 失败、B 通过", "两边都失败"], comparison_rows, caption=f"每行只比较同一模型下的 {task_count} 个配对任务。")
-        + f'<p>两个模型层合计有 {discordant} 个单边通过，可用于定位兼容性问题；样本量和方向都不支持总体优劣判断。<a href="analysis/#same-task">查看 {task_count} 题的四配置矩阵 →</a></p></section>'
+        + f'<p>两个模型层合计有 {discordant} 个单边通过，可用于定位兼容性问题；样本量和方向都不支持总体优劣判断。<a href="analysis/#same-task">查看 {task_count} 题的全配置矩阵 →</a></p></section>'
         '<section id="failure-findings"><h2>程序判分落点与复核根因</h2><p>程序判分先说明哪类规则未通过；人工复核再沿最终回答、evaluator 断言、HAR 和 Agent 轨迹追到直接原因。这两个层次需要分开。</p><h3>程序判分落点</h3>'
         + _automatic_failure_figure(automatic_failure_counts)
         + '<p class="source-note">“网络副作用未通过”只描述程序判分位置。它可能源于 Agent 没有提交，也可能源于 evaluator、站点或 HAR 采集问题。</p><h3>复核根因</h3>'
         + _failure_scope_figure(verified_causes)
         + cause_section
-        + '<div class="evidence-examples"><article><h3>Agent 行为</h3><p>例如漏掉商品、选错最优候选、写错字段，或在 40 步前提前结束。这些属于当前 Agent × 模型配置的真实失败。</p></article><article><h3>验收规则</h3><p><a href="results/gpt-6-astra-chromium-699.html#verification">Task 699</a> 的 evaluator 在比较实际提交前就因单元素 Alternatives 配置抛错；<a href="results/gpt-6-astra-chromium-528.html#verification">Task 528</a> 要求“不提交”，验收却要求 POST。这些 0 分不能归给模型或浏览器。</p></article><article><h3>站点与环境</h3><p>Magento 搜索或库存保存服务失效，以及 <a href="results/gpt-6-astra-chromium-77.html#verification">Task 77</a> 的并发状态污染，都会让正确操作无法通过。</p></article><article><h3>请求证据</h3><p><a href="results/gpt-6-astra-moli-595.html#verification">Task 595</a> 的订阅 POST 在服务端带有官方要求的 Referer，但 Moli 的 CDP、Playwright 与 HAR 均漏记；站点已完成订阅，历史 0 分保留，整题隔离待证据采集修复后重跑。<a href="results/gpt-6-astra-moli-676.html#verification">Task 676</a> 的网络事件选择缺陷另已确认并隔离。</p></article></div>'
         + f'<h3>{total_task_count} 题官方结果与事后诊断分开看</h3><p>首页主结果始终使用完整 {total_task_count} 题官方 evaluator 分母。为了观察排除已知外部干扰后的差异，下表再按整题、四种配置一致排除 {len(excluded)} 题，得到 {clean_task_count} 题事后诊断子集。</p>'
         + _table(["模型", "浏览器", f"{clean_task_count} 题通过", "通过率"], clean_rows, table_id="home-qualified-results", classes="core-comparison-table")
         + f'<p class="source-note">这是事后诊断子集，不是正式分数，也不替代 {total_task_count} 题官方结果。{raw_failed_result_count} 个原始失败记录继续保存在结果页和核验记录中。</p></section>'
         '<section><h2>审查覆盖与边界</h2><div class="audit-ladder"><article><span>1</span><b>证据完整性</b><p>'
         + f'{reviewed_attempts}/{recorded_attempts} 个证据包由程序核对文件存在性、哈希、JSON 可读性、回答 / 分数 / 状态一致性和运行身份。</p></article><article><span>2</span><b>官方程序验收</b><p>每题按最终回答和必要网络副作用判分；没有 LLM judge。</p></article><article><span>3</span><b>失败根因复核</b><p>{len(verified_causes)}/{raw_failed_result_count} 个原始最终失败结果逐条阅读错误、断言、最终回答、HAR 和 Agent 轨迹，归类并给出处理边界。</p></article></div>'
-        + '<p class="callout"><strong>审查分为完整性检查和失败根因复核。</strong> 前者确认“证据包与 evaluator 记录一致”；后者检查 evaluator 语义，并识别出 Task 699 等问题。已通过结果没有再做独立语义盲审，其判定依据仍是官方 evaluator。<a href="review/">查看核验记录 →</a></p></section>'
-        f'<section><h2>完整 {task_count} 题的速度与浏览器资源</h2><p>均值、P50、P95 都在四种完整配置中统一比较。CPU、内存和网络只计浏览器容器，不含 CowAgent 或模型服务；模型会改变动作数量和页面停留时间，因此这里比较整套配置，不能单独归因于浏览器内核。</p>'
+        + '<p class="callout"><strong>审查分为完整性检查和失败根因复核。</strong> 前者核对证据包与 evaluator 记录，后者检查失败的直接原因；已通过结果没有再做独立语义盲审，其判定依据仍是官方 evaluator。<a href="review/">查看核验记录 →</a></p></section>'
+        f'<section><h2>完整 {task_count} 题的速度与浏览器资源</h2><p>均值、P50、P95 都在全部注册配置中统一比较。CPU、内存和网络只计浏览器容器，不含 CowAgent 或模型服务；模型会改变动作数量和页面停留时间，因此这里比较整套配置，不能单独归因于浏览器内核。</p>'
         + _resource_comparison_table(summary)
-        + '<p class="source-note"><span class="winner-mark" aria-hidden="true">优</span> 每项只标记四种配置中数值唯一最低者。CPU 时间与网络总量累计逻辑结果使用的全部执行；内存来自 Browser Use 执行阶段的浏览器容器采样。</p></section>'
-        '<section><h2>共同成功任务的性能与资源</h2><p>下表限定为四种配置最终都通过的 '
+        + '<p class="source-note"><span class="winner-mark" aria-hidden="true">优</span> 仅对方向明确的指标标记全部注册配置中数值唯一最低者；占用率与网络传输量不标优劣。CPU 时间与网络总量累计逻辑结果使用的全部执行；内存来自 Browser Use 执行阶段的浏览器容器采样。</p></section>'
+        '<section><h2>共同成功任务的性能与资源</h2><p>下表仅供诊断，限定为所有配置最终都通过的 '
         + str(common_count)
-        + ' 题，并以每题最终逻辑结果包含的全部物理执行计算 P50；这样不会把快速失败误当成性能优势。</p>'
+        + ' 题，并以每题最终逻辑结果包含的全部物理执行计算 P50。这个事后选出的子集不用于性能排名；完整样本的指标见上表。</p>'
         + _table(["模型", "浏览器", "Agent 链路 P50", "BrowserTool P50", "Tokens P50", "峰值内存 P50", "CPU 时间 P50"], resource_rows, table_id="home-resource-table", classes="core-comparison-table")
-        + _resource_summary_cards((common_count, resource_rows))
         + '<p class="source-note">Agent 链路还包含模型推理和页面等待，因此不能解读为纯内核性能。</p></section>'
-        f'<section><h2>工程结论</h2><p>完整 {task_count} 题官方结果是本报告的主口径；{clean_task_count} 题事后诊断子集只用于分离已知外部干扰，不改写成绩。</p><p>Moli 的内存占用明显更低，但 HAR 完整性、工具耗时和部分任务兼容性还需修复；Chromium 在本轮 Sol 层多通过 3 题，Astra 层通过数相同，但当前每种配置只有一个正式样本，不能外推成总体优势。</p><div class="essay-note"><h3>下一轮验证</h3><p>先修复可控的合同、evaluator、站点和共享状态问题，再按同一协议完整重跑 {total_task_count} 题四种配置；历史官方分数在新证据批次出现前保持不变。</p></div></section></article>'
+        f'<section><h2>工程结论</h2><p>完整 {task_count} 题官方结果是本报告的主口径；{clean_task_count} 题事后诊断子集只用于分离已确认的外部干扰，不改写成绩。</p>'
+        '<p>通过率、耗时和资源的具体差异以上表为准。每个配置每题只有一个最终逻辑结果；模型会改变动作数量，站点和验收也可能影响分数，不能把端到端差异单独归因于浏览器。已确认的外部干扰按整题隔离并保留原始分数，修复后须另行完整复测。</p></section></article>'
     )
 
 
@@ -2694,6 +2652,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         selection, expected_data_checksum=str(official.get("data_checksum") or "") or None
     )
     task_count = len(tasks)
+    example_task_id = int(tasks[0]["task_id"]) if tasks else None
     result_count = len(attempts)
     max_agent_steps = str(
         config.get("max_agent_steps") or protocol.get("max_agent_steps") or "未记录"
@@ -2933,22 +2892,23 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             )
             + '<p class="page-links">'
             + "".join(
-                f'<a href="results/{model_id}-{engine}-44.html#trajectory">查看 {_e(MODEL_LABELS[model_id])} · {_e(ENGINE_LABELS[engine])} 自主轨迹示例</a>'
+                f'<a href="results/{model_id}-{engine}-{example_task_id}.html#trajectory">查看 {_e(MODEL_LABELS[model_id])} · {_e(ENGINE_LABELS[engine])} 自主轨迹示例</a>'
                 for model_id in MODEL_LABELS
                 for engine in ENGINE_LABELS
-                if (model_id, engine, 44) in by_attempt
+                if example_task_id is not None
+                and (model_id, engine, example_task_id) in by_attempt
             )
             + '<a href="reproduce/">核对镜像与运行身份</a></p>',
         )
         methodology += _section(
             "Mac 上可以继续扩展哪些实例",
-            f"<p>下一轮轨迹重放固定使用本报告当前 {task_count} 题，不扩充任务范围。若未来另行扩充 Browser Use 评测，当前四个已实跑站点可预检 {MAC_COUNTS['current_four_sites_single_site']} 个单站任务；计入只依赖这四站的跨站任务后，共有 {MAC_COUNTS['current_four_sites_including_cross_site']} 个候选，其中 hard 子集 {MAC_COUNTS['current_four_sites_hard_including_cross_site']} 个。</p>"
+            f"<p>若另行扩充 Browser Use 评测，当前四个已实跑站点可预检 {MAC_COUNTS['current_four_sites_single_site']} 个单站任务；计入只依赖这四站的跨站任务后，共有 {MAC_COUNTS['current_four_sites_including_cross_site']} 个候选，其中 hard 子集 {MAC_COUNTS['current_four_sites_hard_including_cross_site']} 个。轨迹回放使用独立任务合同，不由本报告决定题量。</p>"
             + _table(
                 ["环境", "Apple Silicon Mac 状态", "完整集单站题", "hard 单站题", "约束"],
                 MAC_ENVIRONMENT_CANDIDATES,
                 caption="Wikipedia 与 Map 的容量来自官方环境说明；状态中的“实跑”只指本项目已有执行证据。",
             )
-            + '<p class="callout"><strong>最小扩展方案：</strong>先从四个已验证站点的 678 个候选中做可完成性预检和分层抽样；Wikipedia、Map 等大数据环境后置。这样扩容不会先引入新的部署变量。</p>'
+            + f'<p class="callout"><strong>扩展条件：</strong>先对四个已验证站点的 {MAC_COUNTS["current_four_sites_including_cross_site"]} 个候选做可完成性预检和分层抽样；Wikipedia、Map 等数据环境须先完成独立部署资格验证。</p>'
             '<p class="page-links"><a href="https://github.com/ServiceNow/webarena-verified">官方任务集与安装说明</a><a href="https://servicenow.github.io/webarena-verified/dev/environments/">官方环境容量说明</a></p>',
         )
         methodology += _section(
@@ -3451,7 +3411,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     ],
                 ],
             )
-            + '<p class="fine">账号隔离只用于避免用户级对象冲突，不能替代环境 lane。Task 77/771 的旧证据来自修正前的共享状态，正式比较已将整题四种配置一并排除；只有新的完整四配置证据批次才能重新纳入。</p>',
+            + f'<p class="fine">账号隔离只用于避免用户级对象冲突，不能替代环境 lane。本轮有 {len(excluded_task_ids)} 题经复核确认受外部干扰；这些任务只在事后诊断子集中按整题排除，官方分数仍完整保留。</p>',
         )
         reproduce += _section(
             "公开复现入口",
@@ -3514,7 +3474,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     },
                 },
                 {
-                    "claim": "四配置最终共同成功任务的性能与资源 P50",
+                    "claim": "全部注册配置最终共同成功任务的性能与资源 P50（仅供诊断）",
                     "basis": dict(
                         zip(
                             ("task_count", "rows"),

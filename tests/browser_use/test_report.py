@@ -731,7 +731,7 @@ def test_common_success_resources_use_final_logical_results(tmp_path: Path, monk
     }
     assert all("1.5 MiB" in str(row[5]) for row in rows)
     for metric_column in range(2, 7):
-        assert sum("comparison-winner" in str(row[metric_column]) for row in rows) <= 1
+        assert all("comparison-winner" not in str(row[metric_column]) for row in rows)
 
 
 def test_resource_utilization_and_transfer_are_neutral(monkeypatch) -> None:
