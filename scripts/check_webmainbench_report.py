@@ -53,6 +53,22 @@ def check_teds_warnings(root: Path, impossible_teds: int) -> None:
 def check_report(root: Path, dataset: dict | None = None, records: list[dict] | None = None) -> None:
     dataset = dataset or json.loads((root / "dataset.json").read_text(encoding="utf-8"))
     records = records or read_jsonl(root / "results.jsonl")
+    current_profile = json.loads((Path(__file__).resolve().parents[1] / 'evaluation/current-report.json').read_text())
+    diagnostic_profile = current_profile.get('latency_diagnostic')
+    diagnostic_path = root / 'latency-diagnostic.json'
+    if diagnostic_profile and not diagnostic_path.is_file():
+        raise ValueError('Current WebMainBench release lacks the declared latency diagnostic')
+    latency_diagnostic = json.loads(diagnostic_path.read_text(encoding='utf-8')) if diagnostic_path.is_file() else None
+    if latency_diagnostic:
+        if (latency_diagnostic.get('kind') != 'same_host_latency_diagnostic'
+                or latency_diagnostic.get('official_results_sha256') != digest(root / 'results.jsonl')
+                or len(latency_diagnostic.get('per_case', [])) != 200
+                or {row['case_id'] for row in latency_diagnostic['per_case']} !=
+                   {row['id'] for row in dataset.get('cases', [])}
+                or set(latency_diagnostic.get('runs', {})) != {
+                    'moli-115-original', 'moli-117-original',
+                    'moli-115-control', 'moli-117-repeat'}):
+            raise ValueError('Published latency diagnostic is incomplete or no longer bound to official evidence')
     teds_revision = validate_teds_revision_if_present(root, records)
     if dataset.get("id") != "webmainbench-545-preselected-200-six-methods":
         raise ValueError("Not the current WebMainBench preselected-200 report")
@@ -236,6 +252,21 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         localized_home = BeautifulSoup((root / prefix / "index.html").read_text(encoding="utf-8"), "html.parser")
         check_presentation(localized_home)
         check_presentation((root / prefix / "guide/index.html").read_text())
+        if latency_diagnostic:
+            guide_page = BeautifulSoup((root / prefix / 'guide/index.html').read_text(encoding='utf-8'), 'html.parser')
+            for section in (localized_home.select_one('#moli-latency-rerun'), guide_page.select_one('#delivery .wmb-rerun-diagnostic')):
+                if section is None or len(section.select('.wmb-rerun-table tbody tr')) != 4:
+                    raise ValueError(prefix + 'Moli latency rerun must show four distinct rows')
+                for row, name in zip(section.select('.wmb-rerun-table tbody tr'),
+                                     ('moli-115-original', 'moli-117-original', 'moli-115-control', 'moli-117-repeat')):
+                    cells = row.find_all('td', recursive=False)
+                    run = latency_diagnostic['runs'][name]
+                    if (cells[-4].get_text(strip=True) != f"{run['n']}/200"
+                            or any(not close(float(td['data-sort']), run[key])
+                                   for td, key in zip(cells[-3:], ('mean', 'p50', 'p95')))):
+                        raise ValueError(prefix + 'Moli latency rerun values differ from verified evidence')
+                if len(section.select('.wmb-rerun-resource tbody tr')) != 2 or not section.select_one('a[href$="latency-diagnostic.json"]'):
+                    raise ValueError(prefix + 'Moli latency rerun lacks resource evidence or per-case download')
         home_headers = {tag.get_text(" ", strip=True) for tag in localized_home.select("#wmb-core-results th")}
         if teds_revision is not None:
             correction_label = '修正后复算' if not prefix else 'recomputed after correction'

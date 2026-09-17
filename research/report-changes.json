@@ -1253,6 +1253,17 @@
   ],
   "releases": [
     {
+      "id": "2026-09-17-public-webmainbench-moli-latency-rerun",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-17",
+      "title": "增加 Moli 版本同机耗时复跑",
+      "summary": "保留原报告六种方法的 1,200 条正式结果，另列 Moli 1.1.7 的完整 200 页复跑及 Moli 1.1.5 同机对照。新增逐页耗时、交错调用和系统资源诊断；质量分与正式结果不变。",
+      "changes": [
+        ["完整复跑", "原轮 Moli 1.1.7 均值 285 ms，1.1.5 均值 153 ms。", "同机分别完整复跑两版并保留旧轮；新轮成功页均为 199/200，均值分别约 273 ms 与 211 ms。", "新轮逐页中位差接近 0，额外均值主要集中于尾部页面。"],
+        ["负荷与转换定位", "原轮缺少同时记录的系统资源。", "记录 CPU、内存与换页；对 40 页交错运行两版 HTML 和 Markdown 命令。", "观测到内存压力，但无新增 swap-out；交错实验未稳定复现 Markdown 专属版本延迟，不能据此归因于系统负荷。"]
+      ]
+    },
+    {
       "id": "2026-09-17-public-webmainbench-detail-drilldown",
       "comparison_kinds": [
         "webmainbench_frozen_html_to_markdown"

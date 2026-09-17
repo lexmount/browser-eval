@@ -48,7 +48,7 @@
   "conversion": "Native Markdown for Kitesurf, Lightpanda, Obscura and Moli; Chromium whole-DOM HTML via node-html-markdown 2.0.0",
   "artifact_hub_base_url": "https://artifact-site.lexmount.cn",
   "artifact_hub_site": "uTWj6VaWPYCh",
-  "artifact_hub_expected_version": "ver_5e08c76441d34f5b895428d26e7394dc",
+  "artifact_hub_expected_version": "ver_bf417523ca2a48a9b0859e94ebcba6e3",
   "latency_reporting": {
     "primary": "final_successful_fetch",
     "time_field": "elapsed_ms",
@@ -57,5 +57,10 @@
     "population": "each_method_successful_pages_with_explicit_coverage",
     "matched_population": "all_method_success_intersection_diagnostic_only_no_ranking",
     "retained_execution_cost": "total_elapsed_ms_all_200_pages"
+  },
+  "latency_diagnostic": {
+    "kind": "moli_115_117_latency_rerun_v1",
+    "manifest_sha256": "2c1c6a905393fb1107cbb89215bf1d6c0119ff5730c9865dda398877a839eab9",
+    "role": "append_only_latency_diagnostic_not_score_bearing"
   }
 }
