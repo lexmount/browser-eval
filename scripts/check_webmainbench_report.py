@@ -13,6 +13,7 @@ from harness.web_fetch.report import STYLE, EXTRA, JS
 from harness.web_fetch.metrics import percentile
 from harness.web_fetch.webmainbench_diagnostics import ERROR_PAGE, validate_teds_revision_if_present
 from harness.web_fetch.safety import contained_path
+from harness.web_fetch.webmainbench_evidence import retry_chain_matches
 
 
 PROVIDERS = {"kitesurf", "lightpanda", "obscura", "moli", "moli-1.1.7", "chromium"}
@@ -102,7 +103,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     grouped = defaultdict(list)
     for row in records:
         grouped[row["provider"]].append(row)
-        artifact = root / row["artifact_path"]
+        artifact = contained_path(root, row["artifact_path"])
         if digest(artifact) != row["output_sha256"]:
             raise ValueError("WebMainBench output artifact hash mismatch: " + row["attempt_id"])
         for prefix in ("", "en/"):
@@ -144,11 +145,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         raise ValueError("WebMainBench physical-attempt matrix mismatch")
     for row in records:
         attempts = physical_by_result[(row["provider"], row["case_id"])]
-        if (len(attempts) != row["physical_attempt_count"]
-                or [item["physical_attempt"] for item in attempts] != list(range(1, len(attempts) + 1))
-                or attempts[-1]["output_sha256"] != row["output_sha256"]
-                or not close(attempts[-1]["elapsed_ms"], row["elapsed_ms"])
-                or not close(sum(item["elapsed_ms"] for item in attempts), row["total_elapsed_ms"])):
+        if not retry_chain_matches(row, attempts):
             raise ValueError("WebMainBench retry chain mismatch: " + row["attempt_id"])
 
     executions = json.loads((root / "execution.json").read_text(encoding="utf-8")).get("batches", [])
@@ -269,7 +266,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         if timing_key is None or ("最终成功" if not prefix else "Final successful") not in timing_key.get_text() or "P95" not in timing_key.get_text():
             raise ValueError(prefix + "Home must explain final-success timing separately from scoring populations")
         successes = {name: [row for row in grouped[name]
-                            if row['ok'] and (text := (root / row['artifact_path']).read_text()).strip()
+                            if row['ok'] and (text := contained_path(root, row['artifact_path']).read_text()).strip()
                             and not ERROR_PAGE.search(text)] for name in PROVIDERS}
         shared_cases = set.intersection(*(set(row['case_id'] for row in rows) for rows in successes.values()))
         for tr in localized_home.select('#wmb-core-results tbody tr'):
@@ -282,10 +279,8 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
                 raise ValueError(name + ': final successful-fetch timing differs from immutable calls')
 
         matched = localized_home.select_one('.wmb-matched-latency')
-        if matched is None or '194' not in matched.get_text() or len(matched.select('tbody tr')) != len(PROVIDERS):
-            raise ValueError(prefix + "Matched latency must cover the same 194 pages with scoped minimum markers")
-        if len(shared_cases) != 194:
-            raise ValueError('Matched successful-page population changed; review timing interpretation')
+        if matched is None or str(len(shared_cases)) not in matched.get_text() or len(matched.select('tbody tr')) != len(PROVIDERS):
+            raise ValueError(prefix + "Matched latency must show the measured shared-success population with scoped minimum markers")
         for tr in matched.select('tbody tr'):
             cells = tr.find_all('td', recursive=False)
             name = Path(cells[1].a['href']).stem

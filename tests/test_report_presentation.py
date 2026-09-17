@@ -119,7 +119,7 @@ class ReportRevisionTests(unittest.TestCase):
   row=review_cell(audit,[{'attempt_id':'one'}])
   self.assertIn('1/1 · Codex 已核验',row)
  def test_headless_access_covers_every_method_and_lists_setup_variables(self):
-  self.assertEqual(set(HEADLESS_ACCESS),{'kitesurf','lightpanda','obscura','moli-1.0.6','moli','moli-1.1.3','chromium'})
+  self.assertEqual(set(HEADLESS_ACCESS),{'kitesurf','lightpanda','obscura','moli-1.0.6','moli','moli-1.1.3','moli-1.1.7','chromium'})
   for access in HEADLESS_ACCESS.values():
    self.assertTrue(access['env_vars'])
    self.assertTrue(access['links'])

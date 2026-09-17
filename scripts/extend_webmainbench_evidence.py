@@ -8,6 +8,7 @@ import shutil
 from pathlib import Path
 
 from harness.web_fetch.safety import contained_path
+from harness.web_fetch.webmainbench_evidence import retry_chain_matches
 
 
 NEW_PROVIDER = "moli-1.1.7"
@@ -75,9 +76,7 @@ def main() -> None:
         if (digest(artifact) != row["output_sha256"]
                 or row["input_html_sha256"] != case["input_html_sha256"]
                 or row["reference_sha256"] != case["reference_sha256"]
-                or len(attempts) != row["physical_attempt_count"]
-                or attempts[-1]["output_sha256"] != row["output_sha256"]
-                or abs(sum(item["elapsed_ms"] for item in attempts) - row["total_elapsed_ms"]) > 1e-9):
+                or not retry_chain_matches(row, attempts)):
             raise ValueError("New evidence binding failed: " + row["track_id"])
     for row in old_rows:
         if digest(contained_path(source, row["artifact_path"])) != row["output_sha256"]:

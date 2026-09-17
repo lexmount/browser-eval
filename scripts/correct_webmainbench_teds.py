@@ -82,7 +82,7 @@ def main():
                 for case in dataset['cases']}
     if len(records) != len(expected) or len(expected) != 200 * len(summaries) or {
             (row['provider'], row['case_id']) for row in records} != expected:
-        raise ValueError('Correction requires the complete declared 200-by-5 matrix')
+        raise ValueError(f'Correction requires the complete declared 200-by-{len(summaries)} matrix')
     # Verify the exact official implementation, not only its Git HEAD.
     for summary in summaries.values():
         for relative, expected in summary['scorer']['metric_source_sha256'].items():

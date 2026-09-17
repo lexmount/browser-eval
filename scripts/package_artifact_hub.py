@@ -173,7 +173,8 @@ def build():
    case_ids={row['id'] for row in dataset.get('cases',[])}
    providers=set(review.get('providers',[]))
    assert len(case_ids)==review.get('sample_case_count')==200, 'Current sample/review size mismatch'
-   assert len(records_for_release)==len(case_ids)*len(providers)==1200, 'Current result matrix is incomplete'
+   assert providers==set(dataset['coverage_plan']['static_html']), 'Review provider scope differs from the declared matrix'
+   assert len(records_for_release)==len(case_ids)*len(providers), 'Current result matrix is incomplete'
    assert {(row.get('provider'),row.get('case_id')) for row in records_for_release}=={
        (provider,case_id) for provider in providers for case_id in case_ids}, 'Current result matrix differs from the reviewed scope'
    assert dataset.get('sample_manifest_sha256')==review.get('sample_manifest_sha256'), 'Current sample/review binding mismatch'
