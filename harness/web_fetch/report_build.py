@@ -566,7 +566,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
                 'page_type': record['meta']['page_type'],
                 'with': gt.get('with') or [], 'without': gt.get('without') or [],
             }
-        generate_wcxb(staging, rows, summary, ground_truth, identities)
+        generate_wcxb(staging, rows, summary, ground_truth, identities, profile)
         evidence_root = staging / 'evidence'
         evidence_root.mkdir()
         evidence_hashes = {}
