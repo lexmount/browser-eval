@@ -1,5 +1,5 @@
 {
-  "image_lock": "../../evaluation/browser-use-public/webarena-environment-images.json",
+  "image_lock": "../../../evaluation/browser-use-public/webarena-environment-images.json",
   "docker_site_hostname": "host.docker.internal",
   "environments": {
     "__SHOPPING_ADMIN__": {

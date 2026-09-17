@@ -15,11 +15,12 @@ def verify(root: Path = ROOT) -> dict:
     lock = json.loads(lock_path.read_text(encoding="utf-8"))
     runtime_path = root / "deploy/webarena/runtime.example.json"
     runtime = json.loads(runtime_path.read_text(encoding="utf-8"))
-    evaluation = json.loads(
-        (
-            root / "examples/trajectory_replay/public_webarena/webarena.config.example.json"
-        ).read_text(encoding="utf-8")
+    evaluation_path = (
+        root / "examples/trajectory_replay/public_webarena/webarena.config.example.json"
     )
+    evaluation = json.loads(evaluation_path.read_text(encoding="utf-8"))
+    pool_path = root / "examples/trajectory_replay/public_webarena/rainbond-pool.example.json"
+    pool = json.loads(pool_path.read_text(encoding="utf-8"))
     delivery_path = root / "deploy/webarena/site-delivery-contract.json"
     delivery = json.loads(delivery_path.read_text(encoding="utf-8"))
     if lock.get("schema") != "lex_webarena_environment_images/1":
@@ -32,7 +33,12 @@ def verify(root: Path = ROOT) -> dict:
     sites = {"shopping_admin", "shopping", "reddit", "gitlab", "map", "wikipedia"}
     if set(lock.get("images") or {}) != sites or set(runtime.get("sites") or {}) != sites:
         raise ValueError("site inventory differs")
-    for path, config in ((runtime_path, runtime), (delivery_path, delivery)):
+    for path, config in (
+        (runtime_path, runtime),
+        (delivery_path, delivery),
+        (evaluation_path, evaluation),
+        (pool_path, pool),
+    ):
         if (
             not config.get("image_lock")
             or (path.parent / config["image_lock"]).resolve() != lock_path.resolve()

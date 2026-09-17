@@ -12,6 +12,7 @@ def _checkout(tmp_path):
     for name in (
         "evaluation/browser-use-public/webarena-environment-images.json",
         "examples/trajectory_replay/public_webarena/webarena.config.example.json",
+        "examples/trajectory_replay/public_webarena/rainbond-pool.example.json",
         "deploy/webarena/runtime.example.json",
         "deploy/webarena/site-delivery-contract.json",
     ):
@@ -23,6 +24,17 @@ def _checkout(tmp_path):
 
 def test_repository_contract_uses_one_image_lock():
     assert verify()["status"] == "pass"
+
+
+@pytest.mark.parametrize("template", ["webarena.config", "rainbond-pool"])
+def test_evaluation_templates_reject_wrong_relative_lock_path(tmp_path, template):
+    root = _checkout(tmp_path)
+    path = root / f"examples/trajectory_replay/public_webarena/{template}.example.json"
+    data = json.loads(path.read_text())
+    data["image_lock"] = "../../evaluation/browser-use-public/webarena-environment-images.json"
+    path.write_text(json.dumps(data))
+    with pytest.raises(ValueError, match="canonical image lock"):
+        verify(root)
 
 
 @pytest.mark.parametrize(
