@@ -218,18 +218,19 @@
       "action_count": 13,
       "observer": {
         "kind": "same_origin_get_html",
-        "path": "/customer/address/edit/id/26/",
+        "path": "/customer/address/index/",
         "require_authenticated_customer": "Emma Lopez",
-        "fields": {
-          "input[name=\"firstname\"]": "Emma",
-          "input[name=\"lastname\"]": "Lopez",
-          "input[name=\"street[0]\"]": "231 Willow Way",
-          "input[name=\"street[1]\"]": "Suite 100",
-          "select[name=\"country_id\"]": "US",
-          "select[name=\"region_id\"]": "23",
-          "input[name=\"city\"]": "Chicago",
-          "input[name=\"postcode\"]": "60601"
-        }
+        "address_selectors": [
+          ".box-address-billing address",
+          ".box-address-shipping address"
+        ],
+        "address_lines": [
+          "Emma Lopez",
+          "231 Willow Way",
+          "Suite 100",
+          "Chicago, Illinois, 60601",
+          "United States"
+        ]
       },
       "official_network_event": {
         "method": "POST",
@@ -245,7 +246,7 @@
         },
         "response_status": 302
       },
-      "qualification": "observer and official evaluator must both pass"
+      "qualification": "persisted address-book text and official evaluator must both pass; the edit form's region select is populated by JavaScript and is not a valid static-HTML persistence observer"
     },
     {
       "task_id": 576,
@@ -498,6 +499,8 @@
       "observer": {
         "kind": "same_origin_get_html",
         "path": "/f/MachineLearning/1/nvidia-rtx-4090",
+        "body_selector": "main article p",
+        "exclude_ancestor": "header",
         "title": "Nvidia RTX 4090",
         "body_exact_lines": ["Crazy device for ML!", "EDIT: This news aged well"],
         "author_href": "/user/MarvelsGrantMan136",

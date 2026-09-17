@@ -213,16 +213,13 @@ def _observed(candidate: dict, body: str, path: str | None = None) -> bool:
                     matches.append(item)
             return len(matches) == 1
         if candidate["task_id"] == 571:
-            for selector, expected in observer["fields"].items():
+            expected = " ".join(observer["address_lines"])
+            for selector in observer["address_selectors"]:
                 nodes = soup.select(selector)
                 if len(nodes) != 1:
                     return False
-                actual = (
-                    nodes[0].select_one("option[selected]").get("value")
-                    if nodes[0].name == "select" and nodes[0].select_one("option[selected]")
-                    else nodes[0].get("value")
-                )
-                if actual != expected:
+                actual = re.sub(r"\s+", " ", nodes[0].get_text(" ", strip=True))
+                if not actual.startswith(expected):
                     return False
             return True
         if candidate["task_id"] == 595:
@@ -230,7 +227,11 @@ def _observed(candidate: dict, body: str, path: str | None = None) -> bool:
         if candidate["task_id"] == 731:
             title = soup.select_one("main article h1")
             author = soup.select_one(f'a[href="{observer["author_href"]}"]')
-            paragraphs = [p.get_text(" ", strip=True) for p in soup.select("main article p")]
+            paragraphs = [
+                p.get_text(" ", strip=True)
+                for p in soup.select(observer["body_selector"])
+                if p.find_parent(observer["exclude_ancestor"]) is None
+            ]
             return (
                 title is not None
                 and title.get_text(" ", strip=True) == observer["title"]
@@ -364,18 +365,14 @@ def _order_observed(
         ),
         (
             571,
-            '<input name="firstname" value="Emma"><input name="lastname" value="Lopez">'
-            '<input name="street[0]" value="231 Willow Way">'
-            '<input name="street[1]" value="Suite 100">'
-            '<select name="country_id"><option value="US" selected>United States</option></select>'
-            '<select name="region_id"><option value="23" selected>Illinois</option></select>'
-            '<input name="city" value="Chicago"><input name="postcode" value="60601">',
-            '<input name="firstname" value="Emma"><input name="lastname" value="Lopez">'
-            '<input name="street[0]" value="old">'
-            '<input name="street[1]" value="Suite 100">'
-            '<select name="country_id"><option value="US" selected>United States</option></select>'
-            '<select name="region_id"><option value="23" selected>Illinois</option></select>'
-            '<input name="city" value="Chicago"><input name="postcode" value="60601">',
+            '<div class="box-address-billing"><address>Emma Lopez<br>231 Willow Way<br>'
+            'Suite 100<br>Chicago,  Illinois, 60601<br>United States</address></div>'
+            '<div class="box-address-shipping"><address>Emma Lopez<br>231 Willow Way<br>'
+            'Suite 100<br>Chicago,  Illinois, 60601<br>United States</address></div>',
+            '<div class="box-address-billing"><address>Emma Lopez<br>231 Willow Way<br>'
+            'Suite 100<br>Chicago, California, 60601<br>United States</address></div>'
+            '<div class="box-address-shipping"><address>Emma Lopez<br>231 Willow Way<br>'
+            'Suite 100<br>Chicago, Illinois, 60601<br>United States</address></div>',
         ),
         (
             576,
@@ -406,10 +403,15 @@ def _order_observed(
         ),
         (
             731,
-            '<main><article><h1>Nvidia RTX 4090</h1><a href="/user/MarvelsGrantMan136">author</a>'
-            "<p>Crazy device for ML!</p><p>EDIT: This news aged well</p></article></main>",
-            '<main><article><h1>Nvidia RTX 4090</h1><a href="/user/MarvelsGrantMan136">author</a>'
-            "<p>Crazy device for ML!</p></article></main>",
+            '<main><article><header><h1>Nvidia RTX 4090</h1>'
+            '<p>Submitted by <a href="/user/MarvelsGrantMan136">author</a></p></header>'
+            '<div class="submission__body"><p>Crazy device for ML!</p>'
+            '<p>EDIT: This news aged well</p></div></article>'
+            '<section><p>Unrelated comment</p></section></main>',
+            '<main><article><header><h1>Nvidia RTX 4090</h1>'
+            '<p>Submitted by <a href="/user/MarvelsGrantMan136">author</a></p></header>'
+            '<div class="submission__body"><p>Crazy device for ML!</p></div></article>'
+            '<section><p>EDIT: This news aged well</p></section></main>',
         ),
     ],
 )
