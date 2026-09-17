@@ -26,6 +26,23 @@ class ReportChangesTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'bilingual summary'):
             webmainbench_history(broken)
 
+    def test_web_fetch_release_translations_come_from_history(self):
+        from harness.web_fetch.report_changes import ROOT
+        from harness.web_fetch.report_i18n import translate_text
+        data = json.loads((ROOT / 'research/report-changes.json').read_text(encoding='utf-8'))
+        releases = [row for row in data['releases']
+                    if 'webmainbench_frozen_html_to_markdown' not in row.get('comparison_kinds', [])
+                    and 'public_benchmark_research' not in row.get('comparison_kinds', [])]
+        self.assertEqual(len(releases), 20)
+        for row in releases:
+            english = row['i18n']['en']
+            for key in ('title', 'summary'):
+                self.assertEqual(translate_text(row[key]), english[key], row['id'])
+            self.assertEqual(len(row['changes']), len(english['changes']))
+            for source, target in zip(row['changes'], english['changes'], strict=True):
+                for zh, en in zip(source, target, strict=True):
+                    self.assertEqual(translate_text(zh), en, row['id'])
+
     def test_current_web_fetch_release_binds_score_revision_and_exact_rerun_scope(self):
         from harness.web_fetch.report_changes import ROOT, select_cohort_history
         from harness.web_fetch.report_i18n import translate_text

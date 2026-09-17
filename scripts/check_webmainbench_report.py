@@ -84,7 +84,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         localized = latest['i18n']['en'] if language == 'en' else latest
         current = changes.select_one('#current-release [data-release-id]')
         if (current is None or localized['title'] not in current.get_text(' ', strip=True)
-                or localized['summary'] not in current.get_text(' ', strip=True)
+                or localized['summary'] not in changes.select_one('.hero').get_text(' ', strip=True)
                 or len(current.select('tbody tr')) != len(localized['changes'])):
             raise ValueError(prefix + 'Current release content differs from structured record')
         for row, cells in zip(localized['changes'], current.select('tbody tr')):
@@ -287,6 +287,11 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
             for section in (localized_home.select_one('#moli-latency-rerun'), guide_page.select_one('#delivery .wmb-rerun-diagnostic')):
                 if section is None or len(section.select('.wmb-rerun-table tbody tr')) != 2:
                     raise ValueError(prefix + 'Moli latency rerun must show the current two-version comparison')
+                context = section.select_one('[data-timing-context="prior-overlap"]')
+                if latency_correction and (context is None or not context.get_text(' ', strip=True)):
+                    raise ValueError(prefix + 'Corrected timing must distinguish the earlier diagnostic run')
+                if not latency_correction and context is not None:
+                    raise ValueError(prefix + 'Uncorrected timing must not claim a later formal run')
                 rerun_rows = dict(zip(('1.1.5', '1.1.7'),
                                       section.select('.wmb-rerun-table tbody tr')))
                 for name, row in rerun_rows.items():

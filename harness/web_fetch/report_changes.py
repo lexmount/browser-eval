@@ -90,29 +90,32 @@ def release_details(release, table, cell, esc):
             +'</details>')
 
 
-def webmainbench_history(data):
-    """Select the WebMainBench release records, newest first, with complete EN labels."""
-    kind = 'webmainbench_frozen_html_to_markdown'
+def localized_release_history(data, kind):
+    """Select one report's release records, newest first, with complete EN labels."""
     releases = [row for row in data.get('releases', []) if kind in row.get('comparison_kinds', [])]
     if not releases or len({row['id'] for row in releases}) != len(releases):
-        raise ValueError('WebMainBench release history is absent or has duplicate IDs')
+        raise ValueError(kind + ' release history is absent or has duplicate IDs')
     for row in releases:
         en = row.get('i18n', {}).get('en', {})
         if not row.get('date') or not row.get('title') or not en.get('title'):
-            raise ValueError('WebMainBench release requires a date and bilingual title: ' + row['id'])
+            raise ValueError(kind + ' release requires a date and bilingual title: ' + row['id'])
     latest = releases[0]
     en = latest['i18n']['en']
     if not latest.get('summary') or not en.get('summary') or len(latest.get('changes', [])) != len(en.get('changes', [])):
-        raise ValueError('Current WebMainBench release requires bilingual summary and change details')
+        raise ValueError('Current ' + kind + ' release requires bilingual summary and change details')
     if any(len(row) != 4 for row in latest['changes'] + en['changes']):
-        raise ValueError('WebMainBench release change rows require four columns')
+        raise ValueError(kind + ' release change rows require four columns')
     return releases
 
 
-def render_webmainbench_history(data, english, evidence_links=()):
+def webmainbench_history(data):
+    return localized_release_history(data, 'webmainbench_frozen_html_to_markdown')
+
+
+def render_localized_release_history(data, english, evidence_links=(), *, kind='webmainbench_frozen_html_to_markdown'):
     """Render reader-facing release history without embedding release prose in report.py."""
     from .report import hero, section, table, cell, esc, link
-    releases = webmainbench_history(data)
+    releases = localized_release_history(data, kind)
     latest, *older = releases
     def localized(row, key):
         return row['i18n']['en'][key] if english else row[key]
@@ -121,7 +124,9 @@ def render_webmainbench_history(data, english, evidence_links=()):
             for change in localized(latest, 'changes')]
     headings = (['Measure', 'Prior issue', 'Correction', 'Effect and limits'] if english
                 else ['项目', '此前问题', '正式修正', '结果影响与边界'])
-    details = '<p>' + esc(localized(latest, 'summary')) + '</p>' + table(headings, rows, metrics=[])
+    details = ('<details><summary>'
+               + ('Inspect basis, correction and effects' if english else '查看依据、修正与影响')
+               + '</summary>' + table(headings, rows, metrics=[]) + '</details>')
     if evidence_links:
         details += '<p class="actions">' + ' · '.join(
             link(('../../' if english else '../') + path, label_en if english else label_zh)
@@ -140,6 +145,10 @@ def render_webmainbench_history(data, english, evidence_links=()):
         '../../report-changes.json' if english else '../report-changes.json',
         'Download the structured release record' if english else '下载结构化版本记录') + '</p>'
     return body
+
+
+def render_webmainbench_history(data, english, evidence_links=()):
+    return render_localized_release_history(data, english, evidence_links)
 
 
 def render_changes(out, cases, records, dataset=None):

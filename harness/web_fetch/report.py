@@ -338,6 +338,13 @@ def generate_public_benchmark_research(out:Path,research:dict):
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
  (out/'assets/style.css').write_text(STYLE+EXTRA,encoding='utf-8')
  (out/'assets/report.js').write_text(JS,encoding='utf-8')
+ from .report_changes import localized_release_history, render_localized_release_history, ROOT
+ release_history=localized_release_history(
+  json.loads((ROOT/'research/report-changes.json').read_text(encoding='utf-8')),
+  'public_benchmark_research')
+ (out/'report-changes.json').write_text(
+  json.dumps({'schema_version':2,'releases':release_history},ensure_ascii=False,indent=2)+'\n',
+  encoding='utf-8')
  direct=research['direct_benchmarks'];adjacent=research['adjacent_browser_benchmarks']
  for english in (False,True):
   def h(zh,en):return en if english else zh
@@ -436,8 +443,8 @@ def generate_public_benchmark_research(out:Path,research:dict):
   reproduce+=section(h('下一轮需冻结','Freeze before measurement'),f'<p>{h("为每条赛道记录数据修订、评分器修订、环境、许可证和完整分母；供应商输出仍存 Git 外。","Record dataset and scorer revisions, environment, licenses and the complete denominator for each track; provider outputs remain outside Git.")}</p>')
   _research_write(out,'reproduce/index.html',h('环境与复现','Reproduction'),reproduce,english)
 
-  changes=_research_hero(h('变更记录','Changes'),h('只记录读者可见的范围与口径。','Reader-visible scope and methodology changes only.'),english)
-  changes+=section('2026-09-14',f'<p>{h("完成候选实查并选定 WebMainBench-545；定义覆盖官方分类的固定 200 例抽样合同；补充 WCXB 全量标准答案/评分器问题、采用证据和与现有 150 例的分层融合方案。未加入供应商实测结果。","Completed candidate audits and selected WebMainBench-545; defined a fixed 200-case official-category coverage contract; added WCXB ground-truth/scorer findings, adoption evidence and a layered integration with the current 150 cases. No provider result was added.")}</p>')
+  changes=render_localized_release_history(
+   {'releases':release_history},english,kind='public_benchmark_research')
   _research_write(out,'changes/index.html',h('变更记录','Changes'),changes,english)
 
   accounts=_research_hero(h('账号与安装','Accounts and setup'),h('调研版不需要供应商账号。','The research edition needs no provider account.'),english)
@@ -1649,7 +1656,7 @@ def _wmb_latency_rerun(diagnostic,english=False,prefix='',formal_corrected=False
  body='<p>'+h('同一批 200 页各测两轮；每页两版轮流先请求，所有调用串行执行。下表仅统计成功且有正文的调用，两版都是 398/400 次成功；它是版本耗时诊断，六方法正式结果仍见核心表。',
              'The same 200 pages were run twice. On each page the two versions took turns going first, and all calls ran serially. The table counts only successful calls with body text: both versions succeeded on 398/400 calls. This diagnoses version timing; the formal six-method results remain in the core table.')+'</p>'
  if formal_corrected:
-  body+='<p class="source-note">'+h('这组较早的复测与另一项浏览器任务同时运行，只用于定位慢页和调用顺序效应；首页正式耗时采用之后无并发认证复测的预选第二轮，因此两张表的数值不同。',
+  body+='<p class="source-note" data-timing-context="prior-overlap">'+h('这组较早的复测与另一项浏览器任务同时运行，只用于定位慢页和调用顺序效应；首页正式耗时采用之后无并发认证复测的预选第二轮，因此两张表的数值不同。',
                                      'This earlier crossover overlapped another browser benchmark and is retained only to diagnose slow pages and call order. The formal home-page timing uses the preselected second round of a later certified run without concurrent benchmarks, so the table values differ.')+'</p>'
  body+=table([h('版本','Version'),h('成功调用 / 全部调用','Successful / all calls'),h('均值耗时','Mean latency'),h('P50 耗时','P50 latency'),h('P95 耗时','P95 latency')],rows,cls='wmb-rerun-table',metrics=[])
  body+='<p class="source-note">'+h('绿色标出同页交叉复测中该列较低的耗时。','Green marks the lower latency in this matched crossover.')+'</p>'
