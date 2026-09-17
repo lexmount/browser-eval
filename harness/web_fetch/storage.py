@@ -121,12 +121,13 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
         latency_diagnostic = profile.get("latency_diagnostic")
         if latency_diagnostic:
             diagnostic_manifest = evidence / "latency-diagnostic/manifest.json"
-            if (not diagnostic_manifest.is_file() or diagnostic_manifest.is_symlink()
-                    or hashlib.sha256(diagnostic_manifest.read_bytes()).hexdigest() !=
-                    latency_diagnostic.get("manifest_sha256")
-                    or json.loads(diagnostic_manifest.read_text()).get("kind") !=
-                    latency_diagnostic.get("kind")):
+            if not diagnostic_manifest.is_file() or diagnostic_manifest.is_symlink():
                 failures.append("latency_diagnostic")
+            else:
+                manifest_data = diagnostic_manifest.read_bytes()
+                if (hashlib.sha256(manifest_data).hexdigest() != latency_diagnostic.get("manifest_sha256")
+                        or json.loads(manifest_data).get("kind") != latency_diagnostic.get("kind")):
+                    failures.append("latency_diagnostic")
         revision = profile.get("scoring_revision")
         if revision:
             receipt_path = evidence / "teds-correction.json"
