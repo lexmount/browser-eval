@@ -5,10 +5,19 @@ from pathlib import Path
 import pytest
 
 from harness.trajectory_replay.diagnostic_closure import (
+    CURRENT_FINDINGS,
     CURRENT_TASKS,
     _verified_digest,
     load_diagnostic_closure,
 )
+
+
+def test_retrospective_retrieval_findings_do_not_claim_current_qualification() -> None:
+    for task_id in (243, 313):
+        chinese, english = CURRENT_FINDINGS[task_id][2:]
+        assert "当前候选" in chinese
+        assert "current candidate" in english
+        assert "qualified output" not in english.lower()
 from harness.trajectory_replay.webarena_report import _assets, _write_diagnostic_closure
 
 

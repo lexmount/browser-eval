@@ -41,17 +41,18 @@ CURRENT_FINDINGS = {
     243: (
         "身份与验收合同",
         "Identity and acceptance contract",
-        "原身份匹配规则未声明。修订合同允许完整客户集合中的唯一全名匹配，但这只是推断，不是访客作者身份认证。",
-        "The original identity-join rule was undeclared. The revised contract permits a unique "
-        "full-name match in the complete customer set, an inference rather than authenticated "
-        "guest authorship.",
+        "原身份匹配规则未声明。较早诊断曾按完整客户集合中的唯一全名推断身份；这不是访客作者身份认证，当前候选尚未通过独立资格核验。",
+        "The original identity-join rule was undeclared. An earlier diagnostic inferred identity "
+        "from a unique full-name match in the customer set. That is not authenticated guest "
+        "authorship, and the current candidate has not passed independent qualification.",
     ),
     313: (
         "空结果验收合同",
         "Empty-result acceptance contract",
-        "当前官网 Contact 和 Privacy 范围未列客服电话；合格输出是明确的未找到结果，不能编造号码。",
-        "The inspected current Contact and Privacy pages list no customer-service phone. "
-        "The qualified output is an explicit not-found result, not a fabricated number.",
+        "较早诊断检查的 Contact 和 Privacy 页面未列客服电话，但不足以证明全站不存在；当前候选的范围核验未通过，不能把“未找到”推广为合格答案。",
+        "The Contact and Privacy pages checked in an earlier diagnostic listed no customer-service "
+        "phone, but do not establish site-wide absence. The current candidate failed its scope "
+        "check, so a not-found response cannot be promoted as a qualified answer.",
     ),
     314: (
         "观察范围",
