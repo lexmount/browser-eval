@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -34,7 +35,29 @@ def test_candidates_bind_frozen_actions_and_official_task_contract(candidates):
         for row in json.loads(TRAJECTORIES.read_text(encoding="utf-8"))["trajectories"]
     }
     benchmark = _configure_benchmark(hostname="192.168.5.2")
-    assert set(candidates) == {399, 404, 415, 418, 441, 448, 465, 506, 571, 576, 585, 590, 595}
+    assert set(candidates) == {
+        399,
+        404,
+        415,
+        418,
+        441,
+        448,
+        465,
+        506,
+        571,
+        576,
+        585,
+        590,
+        595,
+        464,
+        620,
+        640,
+        645,
+        658,
+        666,
+        714,
+        731,
+    }
     for task_id, candidate in candidates.items():
         source = trajectories[task_id]
         assert candidate["action_count"] == len(source["tool_calls"])
@@ -49,24 +72,31 @@ def test_candidates_bind_frozen_actions_and_official_task_contract(candidates):
             expected = official[0].expected.model_dump(exclude_none=True)
             event = candidate["official_network_event"]
             assert expected["http_method"] == event["method"]
-            if isinstance(event["url_suffix"], list):
+            if "url_pattern" in event:
+                assert expected["url"] == event["url_pattern"]
+                assert expected["post_data"] == event["post_data"]
+            elif isinstance(event["url_suffix"], list):
                 assert isinstance(expected["url"], list)
                 assert [url.split("__REDDIT__")[-1] for url in expected["url"]] == event[
                     "url_suffix"
                 ]
-                assert expected["headers"]["referer"].endswith(event["referer_suffix"])
-                assert expected["response_content"] == event["response_content"]
+                if "referer_suffix" in event:
+                    assert expected["headers"]["referer"].endswith(event["referer_suffix"])
+                if "response_content" in event:
+                    assert expected["response_content"] == event["response_content"]
             else:
                 assert expected["url"].endswith(event["url_suffix"])
                 assert expected.get("post_data") == event["post_data"]
             if "response_status" in event:
                 assert expected["response_status"] == event["response_status"]
-        assert candidate["observer"]["kind"].startswith(("same_origin_get", "pending_"))
+        assert candidate["observer"]["kind"].startswith(
+            ("same_origin_get", "current_redirect_get", "pending_")
+        )
         assert "official" in candidate["qualification"]
         assert "evaluator" in candidate["qualification"]
 
 
-def _observed(candidate: dict, body: str) -> bool:
+def _observed(candidate: dict, body: str, path: str | None = None) -> bool:
     """Exercise the proposed read-only predicates on synthetic response bodies."""
     observer = candidate["observer"]
     kind = observer["kind"]
@@ -90,9 +120,31 @@ def _observed(candidate: dict, body: str) -> bool:
             isinstance(values, list)
             and sum(
                 all(row.get(key) == expected for key, expected in observer["fields"].items())
+                and (
+                    "assignee_id" not in observer
+                    or any(
+                        assignee.get("id") == observer["assignee_id"]
+                        for assignee in row.get("assignees", [])
+                    )
+                )
                 for row in values
             )
             == 1
+        )
+    if kind == "current_redirect_get_html":
+        if path is None or re.fullmatch(observer["path_pattern"], path) is None:
+            return False
+        soup = BeautifulSoup(body, "html.parser")
+        titles = [node.get_text(" ", strip=True) for node in soup.select("main article h1")]
+        if titles != [observer["title"]]:
+            return False
+        if not soup.select_one(f'a[href="{observer["forum_href"]}"]'):
+            return False
+        if not soup.select_one(f'a[href="{observer["author_href"]}"]'):
+            return False
+        return "body" not in observer or any(
+            node.get_text(" ", strip=True) == observer["body"]
+            for node in soup.select("main article p")
         )
     if kind == "same_origin_get_text":
         soup = BeautifulSoup(body, "html.parser")
@@ -105,6 +157,9 @@ def _observed(candidate: dict, body: str) -> bool:
         if candidate["task_id"] == 399:
             fields = soup.select(observer["selector"])
             return len(fields) == 1 and fields[0].get_text() == observer["equals"]
+        if candidate["task_id"] == 464:
+            fields = soup.select(observer["selector"])
+            return len(fields) == 1 and fields[0].decode_contents() == observer["html_value"]
         if candidate["task_id"] == 571:
             for selector, expected in observer["fields"].items():
                 nodes = soup.select(selector)
@@ -120,6 +175,16 @@ def _observed(candidate: dict, body: str) -> bool:
             return True
         if candidate["task_id"] == 595:
             return len(soup.select(observer["selector"])) == 1
+        if candidate["task_id"] == 731:
+            title = soup.select_one("main article h1")
+            author = soup.select_one(f'a[href="{observer["author_href"]}"]')
+            paragraphs = [p.get_text(" ", strip=True) for p in soup.select("main article p")]
+            return (
+                title is not None
+                and title.get_text(" ", strip=True) == observer["title"]
+                and author is not None
+                and paragraphs == observer["body_exact_lines"]
+            )
         notes = []
         for node in soup.select(observer["within"]):
             author = node.select_one(f'a[href="{observer["require_author_href"]}"]')
@@ -132,8 +197,6 @@ def _observed(candidate: dict, body: str) -> bool:
                 and observer["paragraph_contains"]
                 in " ".join(p.get_text(" ", strip=True) for p in paragraphs)
             ):
-                import re
-
                 if re.fullmatch(observer["require_permalink_pattern"], permalink.get("href", "")):
                     notes.append(node)
         return len(notes) == 1
@@ -211,6 +274,23 @@ def _pre_commit_observed(candidate: dict, actual_value: str) -> bool:
             '<button class="subscribe-button subscribe-button--unsubscribe">Unsubscribe</button>',
             '<button class="subscribe-button">Subscribe</button>',
         ),
+        (
+            464,
+            '<textarea name="product[short_description]"><p>1 customer(s) love it!</p></textarea>',
+            '<textarea name="product[short_description]"><p>0 customer(s) love it!</p></textarea>',
+        ),
+        (
+            658,
+            '[{"title":"401 bad gateway","due_date":"2030-12-31","assignees":[{"id":2264}]}]',
+            '[{"title":"401 bad gateway","due_date":"2030-12-31","assignees":[{"id":3}]}]',
+        ),
+        (
+            731,
+            '<main><article><h1>Nvidia RTX 4090</h1><a href="/user/MarvelsGrantMan136">author</a>'
+            "<p>Crazy device for ML!</p><p>EDIT: This news aged well</p></article></main>",
+            '<main><article><h1>Nvidia RTX 4090</h1><a href="/user/MarvelsGrantMan136">author</a>'
+            "<p>Crazy device for ML!</p></article></main>",
+        ),
     ],
 )
 def test_read_only_observer_requires_persisted_state(
@@ -233,6 +313,50 @@ def test_unqualified_persisted_state_stays_blocked(candidates, task_id: int):
     assert candidate["observer"]["kind"].startswith("pending_")
     assert candidate["qualification"].startswith("blocked")
     assert not _observed(candidate, '{"success":true}')
+
+
+@pytest.mark.parametrize(
+    ("task_id", "forum", "title", "body"),
+    [
+        (620, "relationship_advice", "deal with long-distance relationships", "Please help"),
+        (640, "books", "book reading Meet up!", "virtual meetup for book reading on March 15th"),
+        (645, "books", "What could machine learning help the books field?", None),
+    ],
+)
+def test_new_forum_post_requires_fresh_numeric_permalink_and_saved_content(
+    candidates, task_id: int, forum: str, title: str, body: str | None
+):
+    candidate = candidates[task_id]
+    path = f"/f/{forum}/2/new-post"
+    article = (
+        f'<main><article><h1>{title}</h1><a href="/f/{forum}">forum</a>'
+        '<a href="/user/MarvelsGrantMan136">author</a>'
+        + (f"<p>{body}</p>" if body else "")
+        + "</article></main>"
+    )
+    assert _observed(candidate, article, path)
+    assert not _observed(candidate, article, f"/f/{forum}/new-post")
+    assert not _observed(candidate, article.replace(title, "wrong title"), path)
+    if body:
+        assert not _observed(candidate, article.replace(body, "wrong body"), path)
+
+
+@pytest.mark.parametrize("task_id", [666, 714])
+def test_remaining_unqualified_inputs_stay_blocked(candidates, task_id: int):
+    candidate = candidates[task_id]
+    assert candidate["observer"]["kind"].startswith("pending_")
+    assert candidate["qualification"].startswith("blocked")
+    if task_id == 666:
+        gate = candidate["input_gate"]
+        source = next(
+            row
+            for row in json.loads(TRAJECTORIES.read_text(encoding="utf-8"))["trajectories"]
+            if row["task_id"] == 666
+        )
+        assert (
+            source["tool_calls"][gate["tool_call_index"]]["selector"] == gate["qualified_selector"]
+        )
+        assert gate["qualified_selector"] != gate["recompiled_selector"]
 
 
 def test_task441_pre_commit_value_and_post_commit_raw_file_have_paired_controls(candidates):

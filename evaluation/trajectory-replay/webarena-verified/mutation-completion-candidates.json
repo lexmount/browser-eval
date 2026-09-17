@@ -298,6 +298,187 @@
         "response_content": {"subscribed": true}
       },
       "qualification": "observer and official evaluator must both pass"
+    },
+    {
+      "task_id": 464,
+      "action_count": 7,
+      "observer": {
+        "kind": "same_origin_get_html",
+        "path": "/admin/catalog/product/edit/id/1796/",
+        "selector": "textarea[name=\"product[short_description]\"]",
+        "require_product_id": 1796,
+        "html_value": "<p>1 customer(s) love it!</p>",
+        "require_exactly_one": true
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_pattern": "^__SHOPPING_ADMIN__/catalog/product/save/id/1796/type/configurable/store/0/set/\\d+/back/edit$",
+        "post_data": {"product[short_description]": "<p>1 customer(s) love it!</p>"},
+        "response_status": 302
+      },
+      "qualification": "observer and official evaluator must both pass"
+    },
+    {
+      "task_id": 620,
+      "action_count": 13,
+      "observer": {
+        "kind": "current_redirect_get_html",
+        "path_pattern": "^/f/relationship_advice/[0-9]+/[^/]+$",
+        "forum_href": "/f/relationship_advice",
+        "title": "deal with long-distance relationships",
+        "body": "Please help",
+        "author_href": "/user/MarvelsGrantMan136",
+        "require_unique_numeric_post_id": true
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": ["/submit", "/submit/relationship_advice"],
+        "post_data": {
+          "submission[title]": "deal with long-distance relationships",
+          "submission[body]": "Please help",
+          "submission[forum]": "10075"
+        },
+        "response_status": 302
+      },
+      "qualification": "fresh redirected post page and official evaluator must both pass"
+    },
+    {
+      "task_id": 640,
+      "action_count": 13,
+      "observer": {
+        "kind": "current_redirect_get_html",
+        "path_pattern": "^/f/books/[0-9]+/[^/]+$",
+        "forum_href": "/f/books",
+        "title": "book reading Meet up!",
+        "body": "virtual meetup for book reading on March 15th",
+        "author_href": "/user/MarvelsGrantMan136",
+        "require_unique_numeric_post_id": true
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": ["/submit", "/submit/books"],
+        "post_data": {
+          "submission[title]": "book reading Meet up!",
+          "submission[body]": "virtual meetup for book reading on March 15th",
+          "submission[forum]": "10037"
+        },
+        "response_status": 302
+      },
+      "qualification": "fresh redirected post page and official evaluator must both pass"
+    },
+    {
+      "task_id": 645,
+      "action_count": 12,
+      "observer": {
+        "kind": "current_redirect_get_html",
+        "path_pattern": "^/f/books/[0-9]+/[^/]+$",
+        "forum_href": "/f/books",
+        "title": "What could machine learning help the books field?",
+        "author_href": "/user/MarvelsGrantMan136",
+        "require_unique_numeric_post_id": true
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": ["/submit", "/submit/books"],
+        "post_data": {
+          "submission[title]": "What could machine learning help the books field?",
+          "submission[forum]": "10037"
+        },
+        "response_status": 302
+      },
+      "qualification": "fresh redirected post page and official evaluator must both pass"
+    },
+    {
+      "task_id": 658,
+      "action_count": 13,
+      "observer": {
+        "kind": "same_origin_get_json_collection",
+        "path": "/api/v4/projects/a11yproject%2Fa11yproject.com/issues?search=401%20bad%20gateway&per_page=100",
+        "require_single_page": true,
+        "require_exactly_one_match": true,
+        "fields": {"title": "401 bad gateway", "due_date": "2030-12-31"},
+        "assignee_id": 2264,
+        "require_project_path": "a11yproject/a11yproject.com"
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/a11yproject/a11yproject.com/-/issues",
+        "post_data": {
+          "issue[title]": "401 bad gateway",
+          "issue[assignee_ids][]": "2264",
+          "issue[due_date]": "2030-12-31"
+        },
+        "response_status": 302
+      },
+      "qualification": "observer and official evaluator must both pass"
+    },
+    {
+      "task_id": 666,
+      "action_count": 20,
+      "input_gate": {
+        "kind": "recompiled_seed_differs_from_qualified_trajectory",
+        "tool_call_index": 7,
+        "qualified_selector": ":nth-match(a[href=\"#\"]:visible, 11)",
+        "recompiled_selector": "a[href=\"#\"]:visible:has-text(\"dialog-component\")",
+        "recompiled_seed_sha256": "fd756fa1801d1daa704f851979e29d618e0eebacecc77c6fda5c121bb736f86f"
+      },
+      "observer": {
+        "kind": "pending_requalified_trajectory",
+        "proposed_read_only_path": "/api/v4/projects/180/merge_requests?state=all&source_branch=dialog-component&target_branch=dialog",
+        "proposed_required_reviewer_id": 2367,
+        "reason": "The latest recompiled seed changes frozen click index 7 from positional a[href=#] match 11 to the dialog-component text selector. The original qualified 20-action trajectory therefore is not byte-identical to the current seed and needs new Chromium qualification before a latest-seed Moli run."
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/primer/design/-/merge_requests",
+        "post_data": {
+          "merge_request[target_branch]": "dialog",
+          "merge_request[source_branch]": "dialog-component",
+          "merge_request[target_project_id]": "180",
+          "merge_request[source_project_id]": "180",
+          "merge_request[assignee_ids][]": "0",
+          "merge_request[reviewer_ids][]": "2367"
+        },
+        "response_status": 302
+      },
+      "qualification": "blocked until latest-seed selector is independently Chromium-qualified; official evaluator remains mandatory"
+    },
+    {
+      "task_id": 714,
+      "action_count": 14,
+      "observer": {
+        "kind": "pending_read_only_vote_state_contract",
+        "target_post_id": 19459,
+        "reason": "The old snapshot omits authenticated downvote-state attributes. A successful click or POST response does not independently prove the persisted vote; inspect the rendered state under the shared lock before defining a read-only predicate."
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/sv/19459.json",
+        "post_data": {"choice": "-1"}
+      },
+      "qualification": "blocked until authenticated persisted downvote state can be read; official evaluator remains mandatory"
+    },
+    {
+      "task_id": 731,
+      "action_count": 11,
+      "observer": {
+        "kind": "same_origin_get_html",
+        "path": "/f/MachineLearning/1/nvidia-rtx-4090",
+        "title": "Nvidia RTX 4090",
+        "body_exact_lines": ["Crazy device for ML!", "EDIT: This news aged well"],
+        "author_href": "/user/MarvelsGrantMan136",
+        "require_existing_post_id": 1
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/f/MachineLearning/1/-/edit",
+        "post_data": {
+          "submission[title]": "Nvidia RTX 4090",
+          "submission[body]": "^\\s*Crazy device for ML!\\s*EDIT: This news aged well\\s*$"
+        },
+        "response_status": 302
+      },
+      "qualification": "observer and official evaluator must both pass"
     }
   ]
 }
