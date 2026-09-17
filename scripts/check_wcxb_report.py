@@ -196,17 +196,26 @@ def check(root: Path) -> None:
                     require('id="home-type"' in html, 'Page-type filter missing')
                     require('官方全量 F1' not in html and 'Official full F1' not in html, 'Invalid full-reference score remains visible')
                     require(len(BeautifulSoup(html, 'html.parser').select('#wcxb-core .comparison-winner')) >= 4, 'Core comparison winners missing')
+                    first_card = BeautifulSoup(html, 'html.parser').select_one('.lead-grid .panel')
+                    require(first_card is not None and all(word not in first_card.get_text() for word in ('得分', 'scores')),
+                            'Home dataset card claims ownership of measured scores')
                     if all(summary['providers'][provider]['success_latency_count'] == len(case_ids) for provider in providers):
                         require('Conditional latency for delivered content' not in html and '仅成功交付的条件耗时' not in html,
                                 'Duplicate conditional latency table remains on the home page')
                 else:
-                    require('id="wcxb-dataset"' in html and 'id="dataset-type"' in html and 'id="dataset-query"' in html, 'Dataset result filters missing')
-                    require(len(BeautifulSoup(html, 'html.parser').select('#wcxb-dataset tbody tr')) == len(case_ids), 'Dataset result matrix differs')
+                    require('id="wcxb-dataset"' in html and 'id="dataset-type"' in html and 'id="dataset-query"' in html, 'Dataset inventory filters missing')
+                    dataset = BeautifulSoup(html, 'html.parser')
+                    require(len(dataset.select('#wcxb-dataset tbody tr')) == len(case_ids), 'Dataset case inventory differs')
+                    require('F1' not in dataset.select_one('#wcxb-dataset thead').get_text(), 'Measured scores leaked into the dataset inventory')
+                    require(len(dataset.select('#wcxb-dataset tbody a[href$="#reference"]')) == len(case_ids), 'Dataset references are not linked')
+                    require(('搜索网页 ID 或地址' if lang == 'zh' else 'Search page ID or URL') in dataset.get_text(),
+                            'Dataset search label does not describe its searchable fields')
             if route.startswith('cases/'):
                 require_case_summary(html, lang)
                 require(set(providers) <= page.ids and page.outputs == 5, f'Case participant evidence missing: {route}')
                 require(f'evidence/{Path(route).stem}.json' in html, f'Case evidence link missing: {route}')
                 require('id="preview"' in html and 'class="frozen-preview"' in html, f'Frozen-page preview missing: {route}')
+                require('id="reference"' in html, f'Human reference anchor missing: {route}')
                 case = Path(route).stem
                 require(BeautifulSoup(html, 'html.parser').select_one(f'.hero .source a[href$="cases/{case}.html#preview"]') is not None,
                         f'Case source URL does not link to the frozen preview: {route}')

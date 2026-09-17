@@ -65,8 +65,8 @@ class ArtifactPublisherTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.archive = Path(self.temp.name) / 'site.zip'
         with zipfile.ZipFile(self.archive, 'w') as bundle:
-            bundle.writestr('index.html', '<head></head>')
             bundle.writestr('packs/output.gz', b'\x00\xffevidence')
+            bundle.writestr('index.html', '<head></head>')
         self.calls = []
         self.versions = iter(['ver_old', 'ver_old'])
 
@@ -85,6 +85,7 @@ class ArtifactPublisherTests(unittest.TestCase):
         self.assertEqual(result['versionId'], 'ver_new')
         puts = [call for call in self.calls if call[2].get('method') == 'PUT']
         self.assertEqual(len(puts), 2)
+        self.assertEqual(puts[0][0], '/api/uploads/ver_upload/files/index.html')
         self.assertEqual(puts[1][0], '/api/uploads/ver_upload/files/packs/output.gz')
         self.assertEqual(puts[1][1], b'\x00\xffevidence')
         self.assertEqual(json.loads(self.calls[1][1]), {'slug': 'current'})
@@ -94,6 +95,7 @@ class ArtifactPublisherTests(unittest.TestCase):
         result = json.loads(upload_large_archive(self.request, self.archive, 'current', 'ver_old', max_workers=2))
         self.assertEqual(result['versionId'], 'ver_new')
         puts = [call for call in self.calls if call[2].get('method') == 'PUT']
+        self.assertEqual(puts[0][0], '/api/uploads/ver_upload/files/index.html')
         self.assertEqual({call[0] for call in puts}, {
             '/api/uploads/ver_upload/files/index.html',
             '/api/uploads/ver_upload/files/packs/output.gz',

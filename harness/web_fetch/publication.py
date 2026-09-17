@@ -91,6 +91,11 @@ def upload_large_archive(request, archive, slug=None, expected=None, max_workers
         _, raw = request('/api/uploads' + query, json.dumps(payload).encode(), 'application/json')
         session = json.loads(raw)['versionId']
         endpoint = '/api/uploads/' + quote(session, safe='')
+        # The current service may choose the first uploaded HTML as the
+        # version entry. Stage the root page before concurrent file uploads.
+        entry = next(info for info in files if info.filename == 'index.html')
+        put_file(request, endpoint + '/files/index.html', bundle.read(entry))
+        remaining = [info for info in files if info.filename != 'index.html']
         if max_workers > 1:
             from concurrent.futures import ThreadPoolExecutor, as_completed
             with ThreadPoolExecutor(max_workers=max_workers) as pool:
@@ -98,14 +103,14 @@ def upload_large_archive(request, archive, slug=None, expected=None, max_workers
                     pool.submit(put_file, request,
                                 endpoint + '/files/' + quote(info.filename, safe='/'),
                                 bundle.read(info)): info.filename
-                    for info in files
+                    for info in remaining
                 }
-                for index, future in enumerate(as_completed(pending), 1):
+                for index, future in enumerate(as_completed(pending), 2):
                     future.result()
                     if index % 100 == 0 or index == len(files):
                         print(f'Uploaded {index}/{len(files)} files', flush=True)
         else:
-            for index, info in enumerate(files, 1):
+            for index, info in enumerate(remaining, 2):
                 put_file(request, endpoint + '/files/' + quote(info.filename, safe='/'),
                          bundle.read(info))
                 print(f'Uploaded {index}/{len(files)} files', flush=True)

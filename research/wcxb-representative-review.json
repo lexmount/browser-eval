@@ -1,0 +1,157 @@
+{
+  "schema_version": 1,
+  "scope": "targeted_representative_anomaly_review",
+  "protocol": "Selected source and output anomalies across five method results; reviewed frozen HTML, human reference, full outputs, official token scores and cross-method contrasts. Not a blind or full-matrix review.",
+  "case_count": 5,
+  "result_count": 25,
+  "total_results": 2520,
+  "unreviewed_results": 2495,
+  "reviewer_class": "manual_cross_layer_analysis",
+  "cases": [
+    {
+      "case_id": "4017",
+      "finding": "cross_method_scope",
+      "reason": "Product description reference versus whole-page output; Lightpanda has higher raw F1 but lower reference recall.",
+      "source_html_sha256": "1d5d96b44be6a39ad7f7ed9e650a37def2c2a413358c6d80cd9eeca7356a3bd7",
+      "reference_sha256": "af30b94fe3dfd51a9051b500b06239289ce451aa83dc650eb06c68d7e0cab466",
+      "outputs": {
+        "kitesurf": {
+          "sha256": "363d6c9372153edf05e83ee4c6381094d5e6c18c07bdcd50201e57e199e5c031",
+          "attempt_id": "kitesurf__4017__r001"
+        },
+        "lightpanda": {
+          "sha256": "a773c6e5cdad5d4c4d660996b315d77f11aca350f9a067f663baf54765d4926f",
+          "attempt_id": "lightpanda__4017__r001"
+        },
+        "obscura": {
+          "sha256": "742becf6f2681fea1e72b4c8cfca6bcab0230668f483100a6f2232e34bec5308",
+          "attempt_id": "obscura__4017__r001"
+        },
+        "moli": {
+          "sha256": "7be7c0723c1e961c9314f4e691eb54c1084afb87e36418d2ea2a87d64167e133",
+          "attempt_id": "moli__4017__r001"
+        },
+        "chromium": {
+          "sha256": "2fd22789ed36c17acc60b549bf7679c0e12b6646842c17915878b45905ace9b6",
+          "attempt_id": "chromium__4017__r001"
+        }
+      }
+    },
+    {
+      "case_id": "4021",
+      "finding": "reference_scope",
+      "reason": "Collection reference contains only the selected product list; all five whole-page Markdown responses also include site navigation.",
+      "source_html_sha256": "a145bd6096a3688402b620924072051f5ef95649c37c60994b2f6c9f607fba39",
+      "reference_sha256": "3ad8f1795f1eb3e68d37ebacc8fb7b7701a0b1eabe7dc09614cffb65679b6fe7",
+      "outputs": {
+        "kitesurf": {
+          "sha256": "7312e7a233843b3843acfa035a63784f418a855efdba37ff1cf4a4dccb13e43f",
+          "attempt_id": "kitesurf__4021__r001"
+        },
+        "lightpanda": {
+          "sha256": "bc5024e3d9016da14d9a1274e0f9be59d6140d82377a700f7995c76328dc487c",
+          "attempt_id": "lightpanda__4021__r001"
+        },
+        "obscura": {
+          "sha256": "e3dba003da475f469c8182c11feab7cf7b9ee8bf3e43a3ae089dda02de17d04b",
+          "attempt_id": "obscura__4021__r001"
+        },
+        "moli": {
+          "sha256": "73d7f92767e685b772540db96225eeed34e670fa678b110769b1267304e3fce8",
+          "attempt_id": "moli__4021__r001"
+        },
+        "chromium": {
+          "sha256": "ae3532bd4684f1be64060120020cdd809680d6e17b8e78def0691f679675ff79",
+          "attempt_id": "chromium__4021__r001"
+        }
+      }
+    },
+    {
+      "case_id": "5649",
+      "finding": "markdown_link_penalty",
+      "reason": "All methods include the reference body; Moli emits more link destinations than Obscura and raw token precision counts URL components.",
+      "source_html_sha256": "d554ffb92ddedc5fd5600c57c25c5e6e97e66bd0594861162ed01f933fa0517c",
+      "reference_sha256": "53a518f4c2dc66c2d6955498ffcfd8b8e9c9c7fe72573cfdfcc072f695e12af7",
+      "outputs": {
+        "kitesurf": {
+          "sha256": "a3bd0b30d2ae4e40ff4c76683e22837795830cdef9b634ffa1db19cf90597d1b",
+          "attempt_id": "kitesurf__5649__r001"
+        },
+        "lightpanda": {
+          "sha256": "24d65a8a39203b7a8957cd9ee94306e4e4a879f5eba009deea8563dc8fbd471c",
+          "attempt_id": "lightpanda__5649__r001"
+        },
+        "obscura": {
+          "sha256": "620bd31ae27d87d5c8864da53ae1b81e1bbc1903d52e6dd09388edc4c431ea29",
+          "attempt_id": "obscura__5649__r001"
+        },
+        "moli": {
+          "sha256": "f2761e5805204a0fdd2003e679558d7ed976a7adce432edcd69026ad27373e2f",
+          "attempt_id": "moli__5649__r001"
+        },
+        "chromium": {
+          "sha256": "2bd5e05f72b79c58a00dc8b785c9d6b7e9f1fd0d26806bed091f320d9ac9cd9b",
+          "attempt_id": "chromium__5649__r001"
+        }
+      }
+    },
+    {
+      "case_id": "5571",
+      "finding": "moli_empty_svg_placeholder",
+      "reason": "Frozen HTML contains empty inline SVG lazy-image placeholders; Moli serializes their data URIs into Markdown while Chromium omits them.",
+      "source_html_sha256": "665d39281aa4a0319fc0081ededcd64f59c578cae31f5e3ebdcf11890e588ca8",
+      "reference_sha256": "6fe915cdc01d1f94e21dda15e3cb998e7ee4f186dd63a9f88da2f214adba4cfd",
+      "outputs": {
+        "kitesurf": {
+          "sha256": "01ccea5e778ea602a5865aa84597793ac8e81b62b8cc6de9c3e00a4915a70e49",
+          "attempt_id": "kitesurf__5571__r001"
+        },
+        "lightpanda": {
+          "sha256": "2c3892cb2e3284ab3613c40a768ca3d58228e450ea96884d9a55d0ce1dd766ae",
+          "attempt_id": "lightpanda__5571__r001"
+        },
+        "obscura": {
+          "sha256": "2ff9b319b05c0b756ada7b60042310faeac2ca8982ebb39f1699601377764a14",
+          "attempt_id": "obscura__5571__r001"
+        },
+        "moli": {
+          "sha256": "3f2e3e653e7a864b09c000185ac8fc187c700dee54c2d9aacace247f34f9c801",
+          "attempt_id": "moli__5571__r001"
+        },
+        "chromium": {
+          "sha256": "c02811770c0e51ea726c0b960b91d1a87dc802da889d62a6f210652b4f7292bc",
+          "attempt_id": "chromium__5571__r001"
+        }
+      }
+    },
+    {
+      "case_id": "5677",
+      "finding": "lightpanda_missing_body",
+      "reason": "The frozen HTML contains the reference opening body passage; Lightpanda output omits it while the other four include it.",
+      "source_html_sha256": "4e9cafc0d2b7a0ab500dea97a01862c053a8ef23974c0154ea08b7d9f79f3908",
+      "reference_sha256": "2408f12ddb2eadaccedf1d8dc3d6bf6e7399a61799ce8b7b71d8d231be291c00",
+      "outputs": {
+        "kitesurf": {
+          "sha256": "bcfd9f4d6158a2e1cbd19875362089c8b9bb22e7b0aebd9eaec951e8a36363b4",
+          "attempt_id": "kitesurf__5677__r001"
+        },
+        "lightpanda": {
+          "sha256": "462a5da29972df2641cbdb534a89b4df13ff67f61fcd01a1fc6308032ad86748",
+          "attempt_id": "lightpanda__5677__r001"
+        },
+        "obscura": {
+          "sha256": "2a3bd76d2c16704c01647e610e597fd51a80ad4597bb586074378deedd13c392",
+          "attempt_id": "obscura__5677__r001"
+        },
+        "moli": {
+          "sha256": "02f022a721700e999a98a861fb84aaf032e30bf7cf089cd0cc498bae1fcd5ca8",
+          "attempt_id": "moli__5677__r001"
+        },
+        "chromium": {
+          "sha256": "badd007188f18f8c8abeccb196e05b1f6cecad79e93d1a669a64074ca64814f5",
+          "attempt_id": "chromium__5677__r001"
+        }
+      }
+    }
+  ]
+}

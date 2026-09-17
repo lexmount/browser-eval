@@ -11,7 +11,13 @@
   "source_commit": "c039d5ee9f5a3a984a0e167e63aacd04e76e78a9",
   "source_dataset_sha256": "080a35a399880bb74ce23f40d9a1008f974500716af183a990f8701ab3e5e7bb",
   "official_evaluator_sha256": "ae4ad6299e190177fbb04a7c1190077fc6086b3fa0f31fb37a6538a5e979c559",
-  "providers": ["kitesurf", "lightpanda", "obscura", "moli", "chromium"],
+  "providers": [
+    "kitesurf",
+    "lightpanda",
+    "obscura",
+    "moli",
+    "chromium"
+  ],
   "versions": {
     "kitesurf": "Cloudflare hosted stable backend; version undisclosed",
     "lightpanda": "0.4.1",
@@ -24,12 +30,18 @@
   "concurrency": 1,
   "max_failure_retries": 1,
   "reference_binding_mode": "pinned_wcxb_v1_test_html_and_ground_truth_pre_and_post_verified",
-  "official_metrics": ["precision", "recall", "f1", "with_rate", "without_rate"],
+  "official_metrics": [
+    "precision",
+    "recall",
+    "f1",
+    "with_rate",
+    "without_rate"
+  ],
   "output_contract": "Markdown from the complete frozen page; no common main-content selector",
   "publication_state": "published",
   "require_independent_result_review": false,
   "artifact_hub_base_url": "https://artifact-site.lexmount.cn",
   "artifact_hub_site": "p3sFcZrww_nx",
-  "artifact_hub_expected_version": "ver_828bded0c1e54b7ca6333f316a8336c0",
+  "artifact_hub_expected_version": "ver_4c5424ce304145d183f9e056fdc2c839",
   "artifact_hub_share_url": "https://artifact-site.lexmount.cn/v/7GfS87N6u4G1VWcEJlT9sG3j8YWV1Zjo"
 }

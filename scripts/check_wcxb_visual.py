@@ -85,7 +85,9 @@ def check(root: Path, browser_binary: str) -> None:
                                             raise ValueError('Page-type filter does not narrow the comparison')
                                     if route == 'datasets/index.html' and not dark:
                                         if page.locator('#wcxb-dataset tbody tr:visible').count() != qualified_count:
-                                            raise ValueError('Dataset does not show every page result')
+                                            raise ValueError('Dataset does not show every frozen page')
+                                        if 'F1' in page.locator('#wcxb-dataset thead').inner_text():
+                                            raise ValueError('Dataset contains measured result columns')
                                         page.locator('#dataset-query').fill(case_id)
                                         if page.locator('#dataset-count').inner_text() != '1':
                                             raise ValueError('Dataset page search failed')
@@ -94,6 +96,8 @@ def check(root: Path, browser_binary: str) -> None:
                                         preview_href = page.locator('#wcxb-dataset tbody tr:visible a[href$="#preview"]').get_attribute('href')
                                         if f'cases/{case_id}.html#preview' not in (preview_href or ''):
                                             raise ValueError('Dataset preview does not target its page')
+                                        if not page.locator('#wcxb-dataset tbody tr:visible a[href$="#reference"]').count():
+                                            raise ValueError('Dataset reference is not linked')
                                     if route == 'analysis/index.html' and not dark:
                                         if int(page.locator('#count').inner_text()) == 0:
                                             raise ValueError('Default results filter is empty')

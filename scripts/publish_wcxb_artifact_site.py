@@ -55,15 +55,16 @@ def main() -> None:
     archive = private / 'wcxb-current.zip'
     digests = package(source, archive)
     package_hash = hashlib.sha256(archive.read_bytes()).hexdigest()
-    journal = private / f'wcxb-update-{package_hash[:24]}.json'
+    operation_hash = hashlib.sha256((package_hash + expected).encode()).hexdigest()
+    journal = private / f'wcxb-update-{operation_hash[:24]}.json'
     if journal.exists():
         operation = json.loads(journal.read_text())
         if operation['expected_version'] != expected or operation['slug'] != slug:
             raise ValueError('An existing publication operation targets another version or site')
     else:
         operation = {'slug': slug, 'expected_version': expected, 'archive_sha256': package_hash,
-                     'start_key': f'wcxb-start-{package_hash[:32]}',
-                     'commit_key': f'wcxb-commit-{package_hash[:32]}'}
+                     'start_key': f'wcxb-start-{operation_hash[:32]}',
+                     'commit_key': f'wcxb-commit-{operation_hash[:32]}'}
         journal.write_text(json.dumps(operation, indent=2))
         os.chmod(journal, 0o600)
 
@@ -88,6 +89,11 @@ def main() -> None:
     version = response.get('versionId')
     if response.get('slug', slug) != slug or not isinstance(version, str) or not version.startswith('ver_'):
         raise ValueError('Update response did not bind the expected WCXB site and version')
+
+    _, raw = request('/api/sites/' + quote(slug, safe=''))
+    published = json.loads(raw)
+    if published['version']['id'] != version or published['version']['entry'] != 'index.html':
+        raise ValueError('Published WCXB version does not open at the report home page')
 
     _, exported = request('/api/sites/' + quote(slug, safe='') + '/export')
     with zipfile.ZipFile(io.BytesIO(exported)) as bundle:
