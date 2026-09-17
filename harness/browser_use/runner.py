@@ -58,7 +58,11 @@ from harness.trajectory_replay.runner import (
 from .har import CdpHarRecorder
 from .model import OpenAIResponsesModel
 from .selection import PilotTask, load_pilot, validate_against_official
-from .wire_witness import fill_missing_referers, parse_access_log
+from .wire_witness import (
+    MAX_WIRE_LOG_SEGMENT_BYTES,
+    fill_missing_referers,
+    parse_access_log,
+)
 
 SCHEMA = "lex_browser_use_attempt/1"
 SITE_PORTS = {
@@ -87,7 +91,6 @@ WIRE_ACCESS_LOG_PATHS = (
     "/var/log/apache2/access.log",
     "/var/log/httpd/access_log",
 )
-MAX_WIRE_LOG_SEGMENT_BYTES = 32 * 1024 * 1024
 # The official all-in-one shopping image restores Magento, MariaDB and
 # Elasticsearch before env-ctrl declares the fixture ready. On Colima/QEMU this
 # repeatedly exceeded the package example's 180-second default despite becoming
@@ -444,7 +447,10 @@ def _reconcile_server_wire_headers(
             "original CDP HAR is retained separately."
         ),
     }
-    witness_path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n")
+    witness_path.write_text(
+        json.dumps(receipt, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
     return receipt
 
 

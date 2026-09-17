@@ -21,6 +21,7 @@ _ACCESS_LINE = re.compile(
     r'^.*?"(?P<method>[A-Z]+) (?P<target>\S+) HTTP/\d(?:\.\d)?" '
     r'(?P<status>\d{3}) \S+ "(?P<referer>[^"]*)"(?: |$)'
 )
+MAX_WIRE_LOG_SEGMENT_BYTES = 32 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -184,7 +185,7 @@ def validate_wire_source(
                 or set(names) != set(declared)
                 or any(
                     item.compress_type != zipfile.ZIP_STORED
-                    or item.file_size > 32 * 1024 * 1024
+                    or item.file_size > MAX_WIRE_LOG_SEGMENT_BYTES
                     for item in members
                 )
             ):
