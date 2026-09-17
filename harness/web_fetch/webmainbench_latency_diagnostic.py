@@ -34,6 +34,8 @@ def read_jsonl(path: Path) -> list[dict]:
 
 
 def stats(values: list[float]) -> dict:
+    if not values:
+        raise ValueError('Latency diagnostic has no successful timed pages')
     return {'n': len(values), 'mean': statistics.fmean(values),
             'p50': statistics.median(values), 'p95': percentile(values, .95)}
 
@@ -149,6 +151,8 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
                            'runner_sha256': original_manifests[provider]['runner_sha256'], **stats(values)}
     common = sorted(set(run_rows['moli-115-control']['success_case_ids']) &
                     set(run_rows['moli-117-repeat']['success_case_ids']))
+    if not common:
+        raise ValueError('Moli reruns have no common successful pages')
     differences = [all_rows['moli-117-repeat'][case_id]['elapsed_ms'] -
                    all_rows['moli-115-control'][case_id]['elapsed_ms'] for case_id in common]
     mechanism = contained_path(root, 'mechanism')
@@ -180,6 +184,8 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
         raise ValueError('Mechanism call matrix incomplete')
     valid = [case_id for case_id in selected if all(probe[case_id, version, mode]['exit_code'] == 0
              for version in ('1.1.5', '1.1.7') for mode in ('html', 'markdown'))]
+    if not valid:
+        raise ValueError('Moli mechanism probe has no complete successful pairs')
     probe_differences = {mode: [probe[case_id, '1.1.7', mode]['elapsed_ms'] -
                                 probe[case_id, '1.1.5', mode]['elapsed_ms'] for case_id in valid]
                          for mode in ('html', 'markdown')}

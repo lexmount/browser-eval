@@ -4,10 +4,14 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from harness.web_fetch.webmainbench_latency_diagnostic import _resource_samples, load_diagnostic, top_positive_gap_share
+from harness.web_fetch.webmainbench_latency_diagnostic import _resource_samples, load_diagnostic, stats, top_positive_gap_share
 
 
 class LatencyDiagnosticTests(unittest.TestCase):
+    def test_empty_timing_population_is_rejected_as_incomplete_evidence(self):
+        with self.assertRaisesRegex(ValueError, 'no successful timed pages'):
+            stats([])
+
     def test_tail_share_is_unavailable_without_net_added_time(self):
         self.assertIsNone(top_positive_gap_share([10, -10]))
         self.assertIsNone(top_positive_gap_share([2, -10]))
