@@ -4,6 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from webarena_verified.types.task import WebArenaSite
 
 from harness.browser_use.runner import (
@@ -421,6 +422,29 @@ def test_browser_start_readiness_waits_past_502_before_agent(monkeypatch) -> Non
     )
 
     assert len(observed) == 4
+
+
+def test_browser_start_readiness_retries_navigation_timeout(monkeypatch) -> None:
+    monkeypatch.setattr("harness.browser_use.runner.time.sleep", lambda _seconds: None)
+    statuses = iter((200, PlaywrightTimeoutError("navigation timeout"), 200, 200, 200))
+    observed = []
+
+    class Page:
+        def goto(self, url, **_kwargs):
+            observed.append(url)
+            value = next(statuses)
+            if isinstance(value, PlaywrightTimeoutError):
+                raise value
+            return SimpleNamespace(status=value)
+
+        def wait_for_timeout(self, _timeout):
+            pass
+
+    _wait_browser_start_ready(
+        Page(), "http://gitlab.test/", timeout_seconds=3, stable_responses=3
+    )
+
+    assert len(observed) == 5
 
 
 def test_browser_start_readiness_rejects_persistent_502(monkeypatch) -> None:

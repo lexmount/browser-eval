@@ -1599,8 +1599,6 @@ TEXT.update(
         "要求“不提交”，验收却要求 POST。这些 0 分不能归给模型或浏览器。": " says not to submit, while its evaluator requires a POST. These zeros cannot be attributed to the model or browser.",
         "Magento 搜索或库存保存服务失效，以及": "Magento search or stock-save services failed, and ",
         "的并发状态污染，都会让正确操作无法通过。": " suffered shared-state contamination. Either can prevent correct work from passing.",
-        "的订阅 POST 在服务端带有官方要求的 Referer，但 Moli 的 CDP、Playwright 与 HAR 均漏记；站点已完成订阅，历史 0 分保留，整题隔离待证据采集修复后重跑。": " sent the officially required Referer on its subscription POST, as confirmed by the site log, but Moli CDP, Playwright, and HAR all omitted it. The site completed the subscription; the historical zero remains, and the task is quarantined pending a capture fix and full rerun. ",
-        "的网络事件选择缺陷另已确认并隔离。": " has a separately confirmed network-event selection defect and is also quarantined.",
         "Moli 的部分 HAR 没有 Referer 或响应正文，例如": "Some Moli HAR records omit Referer or response bodies, including ",
         "。页面可能已经操作成功，但 evaluator 无法从网络记录确认；这是浏览器集成层的有效信号。": ". The UI operation may have succeeded, but the evaluator cannot confirm it from network evidence. This is a valid browser-integration signal.",
         "Moli 的部分 HAR 没有 Referer 或响应正文。页面可能已经操作成功，但 evaluator 无法从网络记录确认；这是浏览器集成层的有效信号。": "Some Moli HAR records omit Referer or response bodies. The UI operation may have succeeded, but the evaluator cannot confirm it from network evidence. This is a valid browser-integration signal.",

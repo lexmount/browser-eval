@@ -27,6 +27,7 @@ import docker
 import requests
 from dotenv import dotenv_values
 from json_repair import repair_json
+from playwright.sync_api import Error as PlaywrightError
 from webarena_verified import WebArenaVerified
 from webarena_verified.environments.container.config import get_container_config
 from webarena_verified.environments.container.manager import ContainerManager
@@ -613,7 +614,13 @@ def _wait_browser_start_ready(
     consecutive = 0
     last_detail = "no response"
     while time.monotonic() < deadline:
-        response = page.goto(url, wait_until="domcontentloaded")
+        try:
+            response = page.goto(url, wait_until="domcontentloaded")
+        except PlaywrightError as exc:
+            consecutive = 0
+            last_detail = str(exc)
+            time.sleep(2)
+            continue
         status = response.status if response is not None else None
         last_detail = f"HTTP {status}" if status is not None else "no HTTP response"
         consecutive = consecutive + 1 if status is not None and status < 500 else 0
