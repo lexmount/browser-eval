@@ -10,6 +10,7 @@
   "source_repository": "https://github.com/Murrough-Foley/web-content-extraction-benchmark",
   "source_commit": "c039d5ee9f5a3a984a0e167e63aacd04e76e78a9",
   "source_dataset_sha256": "080a35a399880bb74ce23f40d9a1008f974500716af183a990f8701ab3e5e7bb",
+  "official_evaluator_sha256": "ae4ad6299e190177fbb04a7c1190077fc6086b3fa0f31fb37a6538a5e979c559",
   "providers": ["kitesurf", "lightpanda", "obscura", "moli", "chromium"],
   "versions": {
     "kitesurf": "Cloudflare hosted stable backend; version undisclosed",

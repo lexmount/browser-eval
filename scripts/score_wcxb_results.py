@@ -26,14 +26,17 @@ def public_error(value: str | None) -> str | None:
     return re.sub(r'/(?:Users|home|private/var)/[^\s:]+', '[local path]', value)
 
 
-def official_evaluator(source: Path):
+def official_evaluator(source: Path, expected_sha256: str):
     module_path = source / "evaluate.py"
+    evaluator_hash = digest(module_path)
+    if evaluator_hash != expected_sha256:
+        raise ValueError("WCXB official evaluator hash differs from the current profile")
     spec = importlib.util.spec_from_file_location("wcxb_official_evaluate", module_path)
     if spec is None or spec.loader is None:
         raise ValueError("WCXB official evaluator unavailable")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module, digest(module_path)
+    return module, evaluator_hash
 
 
 def classify(row: dict, predicted: str, precision: float, recall: float, reference: str) -> str:
@@ -86,7 +89,8 @@ def main() -> None:
         raise ValueError("WCXB cohort is not certified against these frozen inputs")
     if [x["provider"] for x in certificate["providers"]] != list(WCXB_PROVIDERS):
         raise ValueError("WCXB provider matrix differs from the certificate")
-    evaluator, evaluator_hash = official_evaluator(args.source)
+    profile = json.loads((Path(__file__).resolve().parents[1] / 'evaluation/current-report.json').read_text())
+    evaluator, evaluator_hash = official_evaluator(args.source, profile['official_evaluator_sha256'])
     ground_truth = evaluator.load_ground_truth("test")
     if not {r["track_id"] for r in records} <= set(ground_truth):
         raise ValueError("Official evaluator is missing selected cases")

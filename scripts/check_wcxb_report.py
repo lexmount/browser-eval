@@ -126,6 +126,7 @@ def check(root: Path) -> None:
     require(sample_hash == certificate['sample_sha256_before'] == certificate['sample_sha256_after'], 'WCXB sample changed during calls')
     require(certificate['complete'] is True, 'WCXB certificate is incomplete')
     require(certificate['source_sha256_before'] == certificate['source_sha256_after'] == summary['source_sha256'] == profile['source_dataset_sha256'], 'WCXB source hash differs')
+    require(summary.get('official_evaluator_sha256') == profile['official_evaluator_sha256'], 'WCXB official evaluator hash differs')
     providers = profile['providers']
     case_ids = {row['file_id'] for row in sample['cases']}
     excluded = {row['file_id'] for row in sample['exclusions']}

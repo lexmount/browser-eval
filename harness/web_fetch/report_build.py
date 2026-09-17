@@ -499,6 +499,9 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             or corpus_hash != summary['source_sha256']
             or corpus_hash != profile['source_dataset_sha256']):
         raise ValueError('WCXB source, certificate, summary and profile disagree')
+    evaluator_hash = hashlib.sha256(contained_path(corpus, 'evaluate.py').read_bytes()).hexdigest()
+    if evaluator_hash != profile['official_evaluator_sha256'] or summary.get('official_evaluator_sha256') != evaluator_hash:
+        raise ValueError('WCXB official evaluator differs from the certified profile')
     if [x['provider'] for x in certificate['providers']] != list(WCXB_PROVIDERS) or profile['providers'] != list(WCXB_PROVIDERS):
         raise ValueError('WCXB participant registry differs from the certificate')
     rows = [json.loads(line) for line in (source / 'wcxb-scores.jsonl').read_text().splitlines() if line]

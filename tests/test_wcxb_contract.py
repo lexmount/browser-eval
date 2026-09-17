@@ -1,9 +1,10 @@
 import hashlib
 import json
+import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.score_wcxb_results import classify, percentile
+from scripts.score_wcxb_results import classify, official_evaluator, percentile
 from scripts.select_wcxb_sample import choose, full_test_exclusions
 from scripts.run_webmainbench_benchmark import PROVIDERS, WCXB_PROVIDERS
 from harness.web_fetch.report import format_wcxb_conditional_latency
@@ -13,6 +14,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class WCXBContractTests(unittest.TestCase):
+    def test_changed_official_evaluator_is_rejected_before_import(self):
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder) / 'evaluate.py').write_text('raise RuntimeError("executed")\n')
+            with self.assertRaisesRegex(ValueError, 'official evaluator hash differs'):
+                official_evaluator(Path(folder), '0' * 64)
+
     def test_conditional_latency_is_unavailable_without_delivered_pages(self):
         self.assertEqual(format_wcxb_conditional_latency(None), '—')
         self.assertEqual(format_wcxb_conditional_latency(1234.2), '1,234 ms')
