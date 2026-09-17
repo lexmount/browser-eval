@@ -251,6 +251,71 @@ def _pre_commit_observed(candidate: dict, actual_value: str) -> bool:
     ] and _normalized(actual_value) == _normalized(expected)
 
 
+def _order_observed(
+    candidate: dict, success_text: str, history_html: str, detail_html: str, detail_path: str
+) -> bool:
+    """Exercise the dynamic order-number lookup followed by two independent GET bodies."""
+    observer = candidate["observer"]
+    numbers = re.findall(observer["order_number_pattern"], success_text)
+    if len(numbers) != 1:
+        return False
+    number = numbers[0]
+    history = BeautifulSoup(history_html, "html.parser")
+    detail = BeautifulSoup(detail_html, "html.parser")
+    sign_out = f'a[href="{observer["require_authenticated_sign_out_href"]}"]'
+    if [node.get_text(" ", strip=True) for node in history.select(sign_out)] != ["Sign Out"] or [
+        node.get_text(" ", strip=True) for node in detail.select(sign_out)
+    ] != ["Sign Out"]:
+        return False
+    rows = [
+        row
+        for row in history.select("main table tr")
+        if any(cell.get_text(" ", strip=True) == number for cell in row.select("td"))
+    ]
+    if len(rows) != 1:
+        return False
+    links = [
+        urlsplit(link.get("href", ""))
+        for link in rows[0].select("a")
+        if link.get_text(" ", strip=True) == "View Order"
+    ]
+    if len(links) != 1 or links[0].netloc not in (
+        "",
+        "host.docker.internal:7770",
+        "127.0.0.1:7770",
+    ):
+        return False
+    if (
+        re.fullmatch(observer["history_detail_href_path_pattern"], links[0].path) is None
+        or links[0].path != detail_path
+    ):
+        return False
+    headings = [node.get_text(" ", strip=True) for node in detail.select("main h1")]
+    if headings != [observer["detail_heading_prefix"] + number]:
+        return False
+    tables = [
+        table
+        for table in detail.select("main table")
+        if table.select_one("caption")
+        and table.select_one("caption").get_text(" ", strip=True) == "Items Ordered"
+    ]
+    if len(tables) != 1:
+        return False
+    matching_items = [
+        row
+        for row in tables[0].select("tbody tr")
+        if any(
+            cell.get_text(" ", strip=True).startswith(observer["ordered_item_name"])
+            for cell in row.select("td")
+        )
+        and re.search(
+            rf"\bOrdered\s+{observer['ordered_item_quantity']}\b",
+            row.get_text(" ", strip=True),
+        )
+    ]
+    return len(matching_items) == 1
+
+
 @pytest.mark.parametrize(
     ("task_id", "positive", "negative"),
     [
@@ -304,9 +369,9 @@ def _pre_commit_observed(candidate: dict, actual_value: str) -> bool:
         (
             464,
             '<textarea name="product[short_description]">'
-            '&lt;p&gt;1 customer(s) love it!&lt;/p&gt;</textarea>',
+            "&lt;p&gt;1 customer(s) love it!&lt;/p&gt;</textarea>",
             '<textarea name="product[short_description]">'
-            '&lt;p&gt;0 customer(s) love it!&lt;/p&gt;</textarea>',
+            "&lt;p&gt;0 customer(s) love it!&lt;/p&gt;</textarea>",
         ),
         (
             658,
@@ -336,12 +401,76 @@ def test_reddit_vote_is_blocked_without_independent_read_only_state(candidates):
     assert candidate["qualification"].startswith("blocked")
 
 
-@pytest.mark.parametrize("task_id", [506, 585])
+@pytest.mark.parametrize("task_id", [585])
 def test_unqualified_persisted_state_stays_blocked(candidates, task_id: int):
     candidate = candidates[task_id]
     assert candidate["observer"]["kind"].startswith("pending_")
     assert candidate["qualification"].startswith("blocked")
     assert not _observed(candidate, '{"success":true}')
+
+
+def test_order_observer_requires_success_number_history_and_matching_detail(candidates):
+    candidate = candidates[506]
+    assert candidate["observer"]["kind"] == "same_origin_get_order_history_detail"
+    assert candidate["observer"]["history_path"] == "/sales/order/history/?limit=50"
+    assert candidate["observer"]["read_only_get_count"] == 2
+    success = "Thank you for your purchase! Your order number is: 000000190."
+    sign_out = '<a href="/customer/account/logout/">Sign Out</a>'
+    history = (
+        sign_out + "<main><table><tr><td>000000190</td><td>"
+        '<a href="/sales/order/view/order_id/190/">View Order</a></td></tr></table></main>'
+    )
+    detail = (
+        sign_out + "<main><h1>Order # 000000190</h1><table><caption>Items Ordered</caption><tbody>"
+        "<tr><td>Beyond Meat Beef Beefy Crumble, 5 Pound -- 2 per case.</td>"
+        "<td>Ordered 1</td></tr></tbody></table></main>"
+    )
+    path = "/sales/order/view/order_id/190/"
+    assert _order_observed(candidate, success, history, detail, path)
+    assert not _order_observed(candidate, "Thank you for your purchase!", history, detail, path)
+    assert not _order_observed(
+        candidate, success, history.replace("000000190", "000000191"), detail, path
+    )
+    assert not _order_observed(candidate, success, history + history, detail, path)
+    assert not _order_observed(
+        candidate, success, history.replace("Sign Out", "Log In"), detail, path
+    )
+    assert not _order_observed(
+        candidate, success, history, detail.replace("000000190", "000000191"), path
+    )
+    assert not _order_observed(
+        candidate, success, history, detail.replace("Beyond Meat", "Other"), path
+    )
+    assert not _order_observed(
+        candidate, success, history, detail.replace("Ordered 1", "Ordered 2"), path
+    )
+    assert not _order_observed(
+        candidate, success, history, detail, "/sales/order/view/order_id/191/"
+    )
+
+
+def test_order_candidate_does_not_replace_any_of_four_official_events(candidates):
+    candidate = candidates[506]
+    assert candidate["official_network_evaluator_count"] == 4
+    official = [
+        row.expected.model_dump(exclude_none=True)
+        for row in _configure_benchmark(hostname="192.168.5.2").get_task(506).eval
+        if row.evaluator == "NetworkEventEvaluator"
+    ]
+    assert [(row["http_method"], row["response_status"]) for row in official] == [
+        ("POST", 200),
+        ("GET", 200),
+        ("POST", 200),
+        ("GET", 200),
+    ]
+    assert official[0]["post_data"]["product"] == "22490"
+    assert official[1]["response_content"]["items_qty"] == 1
+    assert (
+        official[1]["response_content"]["$.items[0].name"]
+        == candidate["observer"]["ordered_item_name"]
+    )
+    assert official[2]["post_data"]["$.billingAddress.customerId"] == "27"
+    assert official[3]["url"].endswith("/checkout/onepage/success")
 
 
 def test_wishlist_observer_binds_product_id_name_and_authenticated_item(candidates):

@@ -184,12 +184,31 @@
       "task_id": 506,
       "action_count": 18,
       "observer": {
-        "kind": "pending_read_only_order_contract",
-        "target_product_id": 22490,
-        "reason": "A checkout page and cart totals are not a durable placed-order receipt. No account-scoped read-only order ID plus exact item has been qualified; four distinct official network rules still apply."
+        "kind": "same_origin_get_order_history_detail",
+        "order_number_source": "current_success_page_text_only_as_lookup_key",
+        "order_number_pattern": "Your order number is:\\s*([0-9]+)",
+        "require_unique_order_number": true,
+        "history_path": "/sales/order/history/?limit=50",
+        "require_authenticated_sign_out_href": "/customer/account/logout/",
+        "history_detail_href_path_pattern": "^/sales/order/view/order_id/[0-9]+/$",
+        "require_same_origin_detail_href": true,
+        "require_exactly_one_history_row_for_order_number": true,
+        "detail_heading_prefix": "Order # ",
+        "ordered_item_name": "Beyond Meat Beef Beefy Crumble, 5 Pound -- 2 per case.",
+        "ordered_item_quantity": 1,
+        "require_exactly_one_matching_order_item": true,
+        "read_only_get_count": 2,
+        "target_product_id_for_official_cart_add_only": 22490
+      },
+      "observer_basis": {
+        "historical_chromium_506_trace_sha256": "1f76d49e8a80d27611ce3b7fc022c4dd53a9d8330f66c6cb65d287ed075b4937",
+        "historical_chromium_506_har_sha256": "3771aad8f66d38e91e2f0cd02ef7f85e0e0efc7efc7925acc9506a9e6e01cfa3",
+        "historical_order_history_trace_sha256": "53c0cc449ea0d4fdff00898ec061628e03d6de63c0404de0ef84c8605bdbec80",
+        "historical_order_detail_trace_sha256": "e7fd92654d552d51dee4e7c3b0fbdd6ea2bfbb237a824742bda7d1a29e191065",
+        "evidence": "Chromium task 506 ends on the purchase success page with order number 000000190; its HAR contains all four official events, including the exact cart item name, but no subsequent order-detail GET. Other authenticated Shopping traces establish that order history lists order numbers with View Order links to /sales/order/view/order_id/<id>/ and detail pages expose an Order # heading and Items Ordered table. The order number is only a lookup key; the new same-run history and detail GETs must independently bind that number to the exact ordered item. This is a predeclared observer, not a historically qualified 506 order-detail result."
       },
       "official_network_evaluator_count": 4,
-      "qualification": "blocked until a read-only placed-order identity and item check is qualified; all four official network evaluators remain mandatory"
+      "qualification": "current success order number, authenticated history GET, exact order-detail GET item and all four official network evaluators must pass; candidate requires live GET qualification"
     },
     {
       "task_id": 571,
