@@ -2,9 +2,12 @@
 
 This directory contains bounded, non-score-bearing current-source observation candidates for
 21 of the 37 WebArena-Verified retrieval tasks. `recompiled-seed-bindings.json` freezes each
-task's canonical action count and digest from the recompiled 90-task seed. A candidate can
-extend that sequence only by preserving every canonical action exactly and appending declared
-read-only observations; matching a final answer is not evidence that the action boundary holds.
+task's canonical action count and digest from the recompiled 90-task seed. Preserving every
+canonical action exactly is necessary for an observation-tail candidate, but not sufficient for
+qualification. The public contract validator binds JSON observation steps and action hashes;
+it does not prove that an `evaluate` script or navigation is side-effect-free. No candidate in
+this directory claims qualified read-only tail semantics. Matching a final answer is not
+evidence that the action boundary or observation scope holds.
 `qualification-matrix.json` separately records prefix compatibility, contract validity,
 current observation acceptance, diagnostic official evaluation, and remaining blockers.
 

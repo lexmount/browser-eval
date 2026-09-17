@@ -30,17 +30,28 @@ def _candidate(row: dict) -> dict:
     return json.loads(path.read_text())
 
 
-def _assert_current_seed_extension(row: dict, calls: list[dict]) -> None:
-    """A claim of qualification must preserve every frozen action before observations."""
-    assert row["level"] in {"contract_only", "accepted", "pass"}
+def _assert_current_seed_prefix(row: dict, calls: list[dict]) -> None:
+    """Necessary action-prefix check, not proof that appended scripts are read-only."""
     seed = SEED_BY_TASK[row["task_id"]]
     count = seed["canonical_action_count"]
     assert len(calls) > count
     assert digest(calls[:count]) == seed["canonical_calls_sha256"]
-    assert all(
-        action.get("action") in {"navigate", "wait", "evaluate", "get_text"}
-        for action in calls[count:]
+
+
+def _assert_qualification_claim(row: dict, candidate: dict) -> None:
+    """Fail closed until production validates side-effect-free tail semantics."""
+    assert row["level"] in {"contract_only", "accepted", "pass"}
+    calls, contract = candidate["tool_calls"], candidate["retrieval_contract"]
+    validate_contract(contract, calls)
+    _assert_current_seed_prefix(row, calls)
+    count = SEED_BY_TASK[row["task_id"]]["canonical_action_count"]
+    declared_steps = {source["step"] for source in contract["sources"]}
+    assert set(range(count + 1, len(calls) + 1)) <= declared_steps, (
+        "every appended action must be bound to an observation source"
     )
+    # validate_contract binds get_text/evaluate action hashes and JSON decoding,
+    # but does not prove that an evaluate script has no DOM or network writes.
+    raise AssertionError("no production read-only semantics proof for appended observations")
 
 
 def test_batch_separates_contract_validity_from_official_score():
@@ -63,13 +74,7 @@ def test_batch_separates_contract_validity_from_official_score():
             row["canonical_action_count"] is None and row["candidate_path"] is None
         )
         assert row["task_intent_sha256"] == seed["intent_sha256"]
-        assert row["level"] in {
-            "diagnostic_only",
-            "blocked",
-            "contract_only",
-            "accepted",
-            "pass",
-        }
+        assert row["level"] in {"diagnostic_only", "blocked"}
         if row["level"] == "blocked":
             assert row["eligible_for_qualification"] is False
             assert row["candidate_path"] is None
@@ -90,11 +95,7 @@ def test_batch_separates_contract_validity_from_official_score():
             and digest(candidate["tool_calls"][: seed["canonical_action_count"]])
             == seed["canonical_calls_sha256"]
         )
-        if row["level"] in {"contract_only", "accepted", "pass"}:
-            assert row["eligible_for_qualification"] is True
-            _assert_current_seed_extension(row, candidate["tool_calls"])
-        else:
-            assert row["eligible_for_qualification"] is False
+        assert row["eligible_for_qualification"] is False
         if row["level"] != "diagnostic_only":
             continue
         if row["task_id"] == 108:
@@ -175,32 +176,54 @@ def test_scope_false_and_retrospective_identity_review_are_not_promoted():
     assert "identity" in rows[243]["blocker"]
 
 
-def test_frozen_prefix_gate_has_paired_positive_and_negative_controls():
+def test_frozen_prefix_is_a_necessary_but_insufficient_condition():
     rows = {row["task_id"]: row for row in MATRIX["rows"]}
-    positive = copy.deepcopy(rows[29])
-    positive["level"] = "contract_only"
     calls = _candidate(rows[29])["tool_calls"]
-    _assert_current_seed_extension(positive, calls)
+    _assert_current_seed_prefix(rows[29], calls)
 
     changed_prior_action = copy.deepcopy(calls)
     changed_prior_action[0]["regression_mutation"] = True
     with pytest.raises(AssertionError):
-        _assert_current_seed_extension(positive, changed_prior_action)
+        _assert_current_seed_prefix(rows[29], changed_prior_action)
 
-    changed_tail = copy.deepcopy(calls)
-    changed_tail[-1] = {"action": "click", "selector": "button"}
+    prior_action_replaced = rows[108]
     with pytest.raises(AssertionError):
-        _assert_current_seed_extension(positive, changed_tail)
+        _assert_current_seed_prefix(
+            prior_action_replaced, _candidate(prior_action_replaced)["tool_calls"]
+        )
 
-    prior_action_replaced = copy.deepcopy(rows[108])
-    prior_action_replaced["level"] = "accepted"
-    with pytest.raises(AssertionError):
-        _assert_current_seed_extension(prior_action_replaced, _candidate(rows[108])["tool_calls"])
 
-    blocked = copy.deepcopy(rows[313])
-    blocked["level"] = "pass"
-    with pytest.raises(AssertionError):
-        _assert_current_seed_extension(blocked, [])
+def test_undeclared_tail_action_cannot_be_claimed_as_qualified():
+    row = next(row for row in MATRIX["rows"] if row["task_id"] == 29)
+    candidate = _candidate(row)
+    candidate["tool_calls"].append({"action": "evaluate", "script": "return 1"})
+    candidate["retrieval_contract"]["canonical_calls_sha256"] = digest(candidate["tool_calls"])
+    validate_contract(candidate["retrieval_contract"], candidate["tool_calls"])
+    claimed = {**row, "level": "contract_only"}
+    with pytest.raises(AssertionError, match="every appended action"):
+        _assert_qualification_claim(claimed, candidate)
+
+    # The existing task-66 navigation and wait are in the tail but are not
+    # JSON observation sources, despite being ordinary BrowserTool actions.
+    row_66 = next(row for row in MATRIX["rows"] if row["task_id"] == 66)
+    with pytest.raises(AssertionError, match="every appended action"):
+        _assert_qualification_claim({**row_66, "level": "contract_only"}, _candidate(row_66))
+
+
+def test_hash_bound_evaluate_can_still_mutate_and_must_not_be_qualified():
+    row = next(row for row in MATRIX["rows"] if row["task_id"] == 29)
+    candidate = _candidate(row)
+    calls, contract = candidate["tool_calls"], candidate["retrieval_contract"]
+    calls[-1] = {
+        "action": "evaluate",
+        "script": "return fetch('/orders', {method: 'POST', body: 'unsafe'})",
+    }
+    contract["canonical_calls_sha256"] = digest(calls)
+    contract["sources"][0]["action_sha256"] = digest(calls[-1])
+    validate_contract(contract, calls)  # Hash binding alone accepts this unsafe script.
+    claimed = {**row, "level": "accepted"}
+    with pytest.raises(AssertionError, match="read-only semantics proof"):
+        _assert_qualification_claim(claimed, candidate)
 
 
 def test_next_batch_proposals_stay_blocked_without_current_page_qualification():
