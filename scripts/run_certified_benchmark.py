@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 
 def _browser_contract(case: dict) -> bool:
@@ -208,4 +209,8 @@ def main(argv: list[str] | None = None) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] == 'webmainbench-latency':
+        from scripts.run_certified_webmainbench_latency import main as webmainbench_latency_main
+        webmainbench_latency_main(sys.argv[2:])
+    else:
+        main()

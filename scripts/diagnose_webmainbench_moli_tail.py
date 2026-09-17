@@ -31,9 +31,12 @@ def main() -> None:
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--rounds', type=int, default=5)
     parser.add_argument('--all-cases', action='store_true', help='Repeat all 200 pages in balanced version order')
+    parser.add_argument('--formal-correction', action='store_true', help='Declare final-round timing authority before calls')
     args = parser.parse_args()
     if args.rounds < (2 if args.all_cases else 3) or args.output.exists():
         raise ValueError('Insufficient rounds or output directory already exists')
+    if args.formal_correction and (not args.all_cases or args.rounds != 2):
+        raise ValueError('Formal correction requires all 200 pages and exactly two balanced rounds')
     binaries = {'1.1.5': args.older.resolve(), '1.1.7': args.newer.resolve()}
     for version, binary in binaries.items():
         result = subprocess.run([str(binary), '--version'], capture_output=True, text=True, check=True)
@@ -64,10 +67,17 @@ def main() -> None:
         'dataset_sha256': sha256(args.dataset), 'sample_sha256': sha256(args.sample),
         'prior_sha256': {'1.1.5': sha256(args.prior_older), '1.1.7': sha256(args.prior_newer)},
         'binaries': {v: {'path': str(p), 'sha256': sha256(p)} for v, p in binaries.items()},
+        'runner_sha256': sha256(Path(__file__)),
         'call': 'sandbox-exec loopback-only moli fetch --dump markdown --wait-until done '
                 '--ca-cert CA --timeout 45000 --http-timeout 45000 URL',
         'order': 'one process at a time; page order shuffled by round; each page alternates which version runs first',
     }
+    if args.formal_correction:
+        selection['authority'] = {
+            'selected_round': 2,
+            'rule': 'final_round_for_every_version_and_page; never select a fastest call',
+            'scope': 'latency only; preserve original output, scoring and verdict',
+        }
     (args.output / 'selection.json').write_text(json.dumps(selection, indent=2) + '\n')
     with fixture_server([source[case_id] for case_id in cases]) as (base, ca_cert):
         selection['network_probe'] = verify_loopback_sandbox(base, ca_cert, source[cases[0]])
