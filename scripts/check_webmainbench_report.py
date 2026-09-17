@@ -186,7 +186,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
             or len(analysis.select("[data-wmb-slice-filter]")) != 3
             or not analysis.select_one(".wmb-slice-table-wrap")):
         raise ValueError("WebMainBench category slices must use one bounded, filterable table")
-    expected_guide_sections = {"overall", "scope", "tables", "delivery", "decision"}
+    expected_guide_sections = {"overall", "scope", "tables", "version-differences", "delivery", "decision"}
     guides = {}
     for prefix, language in (("", "Chinese"), ("en/", "English")):
         guide = BeautifulSoup((root / prefix / "guide/index.html").read_text(encoding="utf-8"), "html.parser")
@@ -200,6 +200,8 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
                 or len(guide.select("#scope .wmb-case-stats > span")) != len(PROVIDERS)
                 or len(guide.select("#tables .wmb-evidence-pair > article")) != 2
                 or len(guide.select("#tables .wmb-case-stats > span")) != len(PROVIDERS)
+                or len(guide.select("#version-differences .wmb-version-case")) != 4
+                or len(guide.select("#version-differences .wmb-version-case .actions a")) != 12
                 or len(guide.select("#delivery .wmb-cause-grid > article")) != 3
                 or len(guide.select("#decision .wmb-choice-table tbody > tr")) != len(PROVIDERS)):
             raise ValueError(f"WebMainBench {language} guide lacks decision, example or root-cause evidence")
@@ -233,6 +235,10 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
                 or localized_home.select_one('#wmb-core-results').get('data-dir') != 'desc'
                 or {"非空内容交付率 ↕", "Non-empty delivery rate ↕"} & home_headers):
             raise ValueError(prefix + "WebMainBench home must have one core comparison with mean, P50 and P95")
+        if (len(localized_home.select(".wmb-denominator-matrix tbody tr")) != 2
+                or len(localized_home.select(".wmb-denominator-matrix tbody td")) != 6
+                or localized_home.select_one(".wmb-denominator-example .mermaid") is None):
+            raise ValueError(prefix + "WebMainBench home lacks the denominator example")
         methodology = BeautifulSoup((root / prefix / "methodology/index.html").read_text(encoding="utf-8"), "html.parser")
         if methodology.select_one(".wmb-flow .mermaid") is None:
             raise ValueError(prefix + "WebMainBench methodology must lead with an evaluation-flow diagram")
