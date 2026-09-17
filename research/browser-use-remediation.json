@@ -12,9 +12,9 @@
     {
       "category": "benchmark_or_evaluator",
       "task_ids": [339, 475, 600, 625, 676, 699],
-      "status": "correction_implemented_upstream_review_and_rerun_required",
-      "upstream_pr": "https://github.com/ServiceNow/webarena-verified/pull/45",
-      "action": "The corrected contracts and network-event selection logic pass regression tests and replay checks against saved HAR evidence. Merge the upstream correction, then rerun the complete four-configuration scope before readmission."
+      "status": "upstream_correction_unmerged_full_rerun_required",
+      "upstream_pr": "https://github.com/ServiceNow/webarena-verified/pull/46",
+      "action": "The proposed contract and network-event selection corrections pass saved-evidence replay checks, but upstream PR #46 was closed without merge. Keep official scores unchanged and these tasks quarantined. Readmit only after an accepted upstream correction and a preregistered full four-configuration rerun."
     },
     {
       "category": "benchmark_instruction_contract",
