@@ -67,10 +67,12 @@ def check(root: Path, browser_binary: str) -> None:
                                     if route == 'index.html' and not dark:
                                         if page.locator('#wcxb-core .comparison-winner').count() < 4:
                                             raise ValueError('Core comparison is missing column winners')
-                                        if not page.locator('#wcxb-core tbody tr').first.inner_text().startswith('Obscura'):
+                                        quality = [float(cell.get_attribute('data-sort')) for cell in page.locator('#wcxb-core tbody td:nth-child(5)').all()]
+                                        if float(page.locator('#wcxb-core tbody tr').first.locator('td').nth(4).get_attribute('data-sort')) != max(quality):
                                             raise ValueError('Core table is not ordered by qualified F1')
                                         page.locator('[data-core-sort="5"]').click()
-                                        if not page.locator('#wcxb-core tbody tr').first.inner_text().startswith('Moli'):
+                                        latency = [float(cell.get_attribute('data-sort')) for cell in page.locator('#wcxb-core tbody td:nth-child(6)').all()]
+                                        if float(page.locator('#wcxb-core tbody tr').first.locator('td').nth(5).get_attribute('data-sort')) != min(latency):
                                             raise ValueError('Core latency sorting did not work')
                                         page.locator('#home-type').select_option('article')
                                         if page.locator('#wcxb-types tbody tr:visible').count() != 1:

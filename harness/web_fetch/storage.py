@@ -90,6 +90,8 @@ def require_canonical_inputs(evidence: Path, canonical: Path) -> None:
 def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
     """Reject evidence from another valid cohort when building the current report."""
     profile = json.loads(profile_path.read_text())
+    if profile.get("comparison_kind") == "wcxb_frozen_html_to_markdown":
+        raise ValueError("WCXB evidence uses the certified cohort validator, not the legacy current-report profile validator")
     dataset = json.loads((evidence / "dataset.json").read_text())
     records = [json.loads(line) for line in (evidence / "results.jsonl").read_text().splitlines()]
     comparison = dataset.get("comparison", {})

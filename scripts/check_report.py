@@ -84,6 +84,8 @@ inventory=json.loads((Path(__file__).resolve().parents[1]/'configs/evaluation-in
 if d.get('comparison',{}).get('kind') in {'headless_html','headless_markdown'}:
  headless=json.loads((Path(__file__).resolve().parents[1]/'configs/providers.headless.json').read_text())
  profile=json.loads((Path(__file__).resolve().parents[1]/'evaluation/current-report.json').read_text())
+ if profile.get('comparison_kind') not in {'headless_html','headless_markdown'}:
+  raise ValueError('Legacy headless report cannot be checked against a different current report profile')
  current_providers=profile['providers']
  assert set(current_providers)<=set(headless['providers']),'Current report references an unknown provider configuration'
  inventory={track:{**group,'providers':current_providers} for track,group in inventory.items()}
