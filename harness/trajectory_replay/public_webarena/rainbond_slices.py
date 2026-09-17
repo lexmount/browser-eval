@@ -1037,8 +1037,25 @@ def release_slice(config_path: Path, output_dir: Path, lease_id: str) -> dict[st
         lease_path, lease = matches[0]
         slot_dir = lease_path.parent
         pool = RainbondSlicePool(config_path)
-        receipt = pool.reset(slot_dir / "slice-receipt.json")
-        _atomic_json(slot_dir / "webarena.config.json", pool.runtime_config(receipt))
+        receipt_path = slot_dir / "slice-receipt.json"
+        runtime_config_path = slot_dir / "webarena.config.json"
+        current_receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        if int(current_receipt["app_id"]) != int(lease["app_id"]):
+            current_receipt = pool.validate_receipt(receipt_path)
+            if (
+                runtime_config_path.is_file()
+                and json.loads(runtime_config_path.read_text(encoding="utf-8"))
+                == pool.runtime_config(current_receipt)
+            ):
+                lease_path.unlink()
+                return {
+                    "lease_id": lease_id,
+                    "released_app_id": int(lease["app_id"]),
+                    "ready_app_id": int(current_receipt["app_id"]),
+                    "config": str(runtime_config_path.resolve()),
+                }
+        receipt = pool.reset(receipt_path)
+        _atomic_json(runtime_config_path, pool.runtime_config(receipt))
         lease_path.unlink()
         return {
             "lease_id": lease_id,

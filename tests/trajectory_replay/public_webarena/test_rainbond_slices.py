@@ -879,3 +879,57 @@ def test_failed_release_keeps_lease_so_dirty_slice_cannot_be_reassigned(tmp_path
     assert (slot_dir / "slice-lease.json").exists()
     with pytest.raises(RuntimeError, match="no unleased"):
         acquire_slice(output, "task-b")
+
+
+def test_release_retry_only_unlinks_after_reset_was_persisted(tmp_path, monkeypatch):
+    output = tmp_path / "runtime"
+    slot_dir = _ready_slot(output, 1, 101)
+    lease = acquire_slice(output, "task-a")
+    lease_path = slot_dir / "slice-lease.json"
+    reset_calls = []
+
+    class Pool:
+        def __init__(self, _config):
+            pass
+
+        def reset(self, receipt_path):
+            reset_calls.append(receipt_path)
+            receipt = {
+                "schema": RECEIPT_SCHEMA,
+                "slot": 1,
+                "app_id": 201,
+                "generation": "generation-new",
+            }
+            receipt_path.write_text(json.dumps(receipt))
+            return receipt
+
+        def validate_receipt(self, receipt_path):
+            return json.loads(receipt_path.read_text())
+
+        def runtime_config(self, receipt):
+            return {"app_id": receipt["app_id"]}
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.rainbond_slices.RainbondSlicePool", Pool
+    )
+    original_unlink = Path.unlink
+    failures = 0
+
+    def fail_first_lease_unlink(path, *args, **kwargs):
+        nonlocal failures
+        if path == lease_path and failures == 0:
+            failures += 1
+            raise OSError("transient unlink failure")
+        return original_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", fail_first_lease_unlink)
+    with pytest.raises(OSError, match="transient unlink failure"):
+        release_slice(tmp_path / "pool.json", output, lease["lease_id"])
+    assert lease_path.exists()
+    assert len(reset_calls) == 1
+
+    result = release_slice(tmp_path / "pool.json", output, lease["lease_id"])
+    assert result["released_app_id"] == 101
+    assert result["ready_app_id"] == 201
+    assert not lease_path.exists()
+    assert len(reset_calls) == 1
