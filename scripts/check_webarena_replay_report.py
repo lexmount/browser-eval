@@ -61,6 +61,24 @@ def _check_english_localization(pages: list[Path]) -> None:
             )
 
 
+def _semantic_page_inventory(
+    root: Path, core_names: tuple[str, ...]
+) -> tuple[list[Path], list[Path], list[Path]]:
+    core = [
+        *(root / name for name in core_names),
+        *(root / "en" / name for name in core_names),
+    ]
+    chinese_details = [
+        *(root / "fix").glob("*.html"),
+        *(root / "diagnostic").glob("*.html"),
+    ]
+    english_details = [
+        *(root / "en/fix").glob("*.html"),
+        *(root / "en/diagnostic").glob("*.html"),
+    ]
+    return core, chinese_details, english_details
+
+
 def _local_target(page: Path, raw: str) -> Path | None:
     parsed = urlsplit(raw)
     if parsed.scheme or raw.startswith(("#", "mailto:", "javascript:")):
@@ -208,14 +226,13 @@ def check(report_dir: Path) -> dict[str, int]:
         "index.html",
         "dataset.html",
         "results.html",
+        "fixes.html",
+        "diagnostics.html",
         "environment.html",
         "review.html",
         "evidence-viewer.html",
     )
-    core = [
-        *(root / name for name in core_names),
-        *(root / "en" / name for name in core_names),
-    ]
+    core, chinese_details, english_details = _semantic_page_inventory(root, core_names)
     forbidden = (
         "用户提示词",
         "我的思考",
@@ -225,7 +242,7 @@ def check(report_dir: Path) -> dict[str, int]:
         "median",
         "后续 179 题",
     )
-    for page in core:
+    for page in [*core, *chinese_details, *english_details]:
         text = page.read_text(encoding="utf-8")
         if any(term in text for term in forbidden):
             raise ValueError(f"formal report contains internal or retired prose: {page}")
@@ -248,13 +265,14 @@ def check(report_dir: Path) -> dict[str, int]:
         ">Result</th>",
         " calls</small>",
     )
-    for page in [*core[: len(core_names)], *(root / "result").glob("*.html")]:
+    for page in [*core[: len(core_names)], *chinese_details, *(root / "result").glob("*.html")]:
         text = page.read_text(encoding="utf-8")
         if any(marker in text for marker in untranslated_zh_markers):
             raise ValueError(f"Chinese report contains untranslated interface text: {page}")
     _check_english_localization(
         [
             *core[len(core_names) :],
+            *english_details,
             *(root / "en/result").glob("*.html"),
             *(root / "en/task").glob("*.html"),
         ]

@@ -487,7 +487,7 @@ def _detail_page(
             f'<div class="aligned-index"><span class="step-number">{number}</span></div>'
             f'<div class="aligned-standard"><span class="mobile-step-label">{"标准轨迹" if zh else "Fixed input"}</span><strong>{_e(planned.get("action") or "")}</strong>'
             f'<code>{_e(planned_target)}</code><button type="button" data-open-step="{number}">'
-            f'{"查看标准参数" if zh else "Qualified arguments"}</button></div>'
+            f'{"查看标准参数" if zh else "Fixed arguments"}</button></div>'
             f'<div class="aligned-actual"><span class="mobile-step-label">{"实际执行" if zh else "Actual execution"}</span><div class="aligned-actual-head"><strong>{_e(actual_arguments.get("action") or "—")}</strong>'
             f'<span class="{status_class}">{status_text}</span><span>{_e(duration)}</span></div>'
             f'<code>{_e(actual_target) if actual else "—"}</code>'
@@ -517,10 +517,10 @@ def _detail_page(
     body = f'''
     <section class="detail-hero"><p class="eyebrow">{_e(key)}</p><h1>{_e(method["label"])} · {"任务" if zh else "Task"} #{attempt["task_id"]}</h1><p class="task-intent">{_e(task["task"]["intent"])}</p><div class="detail-links"><a href="../task/{attempt["task_id"]}.html">{"查看任务定义与标准轨迹" if zh else "Task contract and fixed trajectory"}</a><a href="../results.html">{"返回结果筛选" if zh else "Back to results"}</a></div></section>
     <section class="compact-section"><h2>{"同题浏览器结果" if zh else "All browser results for this task"}</h2><div class="peer-list">{''.join(peer_cells)}</div></section>
-    <section class="compact-section"><div class="verdict-line {attempt["status"]}"><strong>{status}</strong><span>{_e(stage) if attempt["status"] != "pass" else ("固定轨迹及官方验收均通过" if zh else "Qualified trajectory and official evaluation passed")}</span></div><div class="fact-strip">{fact_html}</div></section>
+    <section class="compact-section"><div class="verdict-line {attempt["status"]}"><strong>{status}</strong><span>{_e(stage) if attempt["status"] != "pass" else ("固定轨迹及官方验收均通过" if zh else "Fixed trajectory and official evaluation passed")}</span></div><div class="fact-strip">{fact_html}</div></section>
     {failure_panel}
     <section id="trajectory"><h2>{"标准轨迹与实际执行" if zh else "Fixed trajectory and actual execution"}</h2><p>{"左侧是所有浏览器共用的固定输入，右侧是本浏览器的实际操作。未执行不等于动作报错；点击任一步读取完整参数、工具返回、日志和原始报错。" if zh else "The left column is the fixed input shared by all browsers; the right column is this browser's execution. Not executed does not mean an action error. Open a step for exact arguments, tool response, logs and errors."}</p><div class="trajectory-columns"><span>#</span><strong>{"标准轨迹" if zh else "Fixed input"}</strong><strong>{"本浏览器实际执行" if zh else "Actual execution in this browser"}</strong></div><div class="trace-list">{''.join(steps)}</div></section>
-    <dialog id="step-dialog" data-evidence-url="{report_root}data/evidence/{key}.json" data-standard-url="{report_root}data/trajectory/{attempt['task_id']}.json"><div class="dialog-head"><strong data-step-title></strong><button type="button" data-close-step aria-label="{'关闭逐步证据' if zh else 'Close step evidence'}">×</button></div><div class="dialog-body"><p data-step-status></p><div class="step-dialog-grid"><div><h3>{"标准动作参数" if zh else "Qualified action arguments"}</h3><pre data-step-planned></pre></div><div><h3>{"实际动作参数" if zh else "Actual action arguments"}</h3><pre data-step-actual></pre></div></div><h3>{"工具返回、日志与报错" if zh else "Tool response, logs and error"}</h3><pre data-step-result></pre><div data-step-finding hidden><h3>{"程序原始失败判定" if zh else "Exact programmatic failure"}</h3><pre data-step-error></pre></div><p data-step-image-wrap hidden><a data-step-image target="_blank" rel="noopener">{"查看最后观测页面（并非该步截图）" if zh else "Open last observed page (not a screenshot of this step)"}</a></p><p><a href="../evidence-viewer.html?file={viewer_file}">{"查看完整执行证据" if zh else "Inspect complete execution evidence"}</a></p></div></dialog>
+    <dialog id="step-dialog" data-evidence-url="{report_root}data/evidence/{key}.json" data-standard-url="{report_root}data/trajectory/{attempt['task_id']}.json"><div class="dialog-head"><strong data-step-title></strong><button type="button" data-close-step aria-label="{'关闭逐步证据' if zh else 'Close step evidence'}">×</button></div><div class="dialog-body"><p data-step-status></p><div class="step-dialog-grid"><div><h3>{"标准动作参数" if zh else "Fixed action arguments"}</h3><pre data-step-planned></pre></div><div><h3>{"实际动作参数" if zh else "Actual action arguments"}</h3><pre data-step-actual></pre></div></div><h3>{"工具返回、日志与报错" if zh else "Tool response, logs and error"}</h3><pre data-step-result></pre><div data-step-finding hidden><h3>{"程序原始失败判定" if zh else "Exact programmatic failure"}</h3><pre data-step-error></pre></div><p data-step-image-wrap hidden><a data-step-image target="_blank" rel="noopener">{"查看最后观测页面（并非该步截图）" if zh else "Open last observed page (not a screenshot of this step)"}</a></p><p><a href="../evidence-viewer.html?file={viewer_file}">{"查看完整执行证据" if zh else "Inspect complete execution evidence"}</a></p></div></dialog>
     <section id="evidence"><h2>{"验收、资源与页面证据" if zh else "Evaluation, resources, and page evidence"}</h2><div class="evidence-actions"><a href="../evidence-viewer.html?file={viewer_file}">{"网页查看完整证据" if zh else "Inspect complete evidence in the browser"}</a><a href="{report_root}data/evidence/{key}.json">{"下载净化 JSON" if zh else "Download sanitized JSON"}</a></div>{screenshot}</section>'''
     title = (
         f"{method['label']} · 任务 #{attempt['task_id']}"
@@ -758,7 +758,7 @@ if(stepDialog){
       if(current!==requestId||!stepDialog.open)return;
       const planned=frozen.tool_calls[index-1];
       const actual=(measured.trajectory||[]).find(item=>item.index===index);
-      if(!planned)throw Error(zh?'标准轨迹缺少该步':'Qualified trajectory is missing this step');
+      if(!planned)throw Error(zh?'标准轨迹缺少该步':'Fixed trajectory is missing this step');
       stepDialog.querySelector('[data-step-planned]').textContent=JSON.stringify(planned,null,2);
       stepDialog.querySelector('[data-step-actual]').textContent=actual?JSON.stringify(actual.arguments||{},null,2):(zh?'未执行':'Not executed');
       stepDialog.querySelector('[data-step-result]').textContent=actual?(actual.result||''):(zh?'该步没有工具调用或返回。':'No tool call or response for this step.');
@@ -1447,7 +1447,7 @@ def build_webarena_replay_report(
         summary_body += f'<section><h2>{"各浏览器自身成功任务的条件分布" if zh else "Conditional distributions on each browser’s own successful tasks"}</h2><p>{"各列仅含该浏览器自身成功的任务，任务集合与样本数可能不同，不用于排名，也不替代上方共同任务全集的统计。" if zh else "Each column includes only that browser’s own successful tasks. Task sets and sample counts may differ; these distributions are not ranked and do not replace the all-task statistics above."}</p>{_successful_distribution_table(method_rows, lang)}</section>'
         (root / "index.html").write_text(_shell(lang, "index", "浏览器轨迹重放" if zh else "Browser Trajectory Replay", summary_body, current_route="index.html"), encoding="utf-8")
 
-        headers = ["任务" if zh else "Task", "站点" if zh else "Site", "任务目标" if zh else "Task goal", "类型" if zh else "Type", "轨迹来源" if zh else "Trajectory source", "标准动作" if zh else "Qualified actions", "下钻" if zh else "Drill down"]
+        headers = ["任务" if zh else "Task", "站点" if zh else "Site", "任务目标" if zh else "Task goal", "类型" if zh else "Type", "轨迹来源" if zh else "Trajectory source", "标准动作" if zh else "Fixed actions", "下钻" if zh else "Drill down"]
         matrix_rows = []
         for task_id, task in tasks.items():
             source = str((task.get("source") or {}).get("kind") or "")

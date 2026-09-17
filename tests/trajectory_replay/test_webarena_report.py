@@ -22,7 +22,10 @@ from harness.trajectory_replay.webarena_report import (
     _unique_winners,
     _write_replay_fix_log,
 )
-from scripts.check_webarena_replay_report import _check_english_localization
+from scripts.check_webarena_replay_report import (
+    _check_english_localization,
+    _semantic_page_inventory,
+)
 
 
 def _method(name: str, pass_rate: float, base: float) -> dict:
@@ -145,6 +148,38 @@ def test_english_release_gate_rejects_reader_facing_chinese(tmp_path: Path) -> N
     )
     with pytest.raises(ValueError, match="accessibility text"):
         _check_english_localization([page])
+
+
+def test_release_gate_includes_fix_and_diagnostic_routes(tmp_path: Path) -> None:
+    for relative in (
+        "fix/one.html",
+        "diagnostic/313.html",
+        "en/fix/one.html",
+        "en/diagnostic/313.html",
+    ):
+        page = tmp_path / relative
+        page.parent.mkdir(parents=True, exist_ok=True)
+        page.write_text("<title>Fixture</title><p>Fixture</p>", encoding="utf-8")
+    core, chinese_details, english_details = _semantic_page_inventory(
+        tmp_path, ("fixes.html", "diagnostics.html")
+    )
+    assert {path.relative_to(tmp_path).as_posix() for path in core} == {
+        "fixes.html",
+        "diagnostics.html",
+        "en/fixes.html",
+        "en/diagnostics.html",
+    }
+    assert {path.relative_to(tmp_path).as_posix() for path in chinese_details} == {
+        "fix/one.html",
+        "diagnostic/313.html",
+    }
+    assert {path.relative_to(tmp_path).as_posix() for path in english_details} == {
+        "en/fix/one.html",
+        "en/diagnostic/313.html",
+    }
+    english_details[0].write_text("<title>Fixture</title><p>未翻译</p>", encoding="utf-8")
+    with pytest.raises(ValueError, match="Chinese prose"):
+        _check_english_localization(english_details)
 
 
 def test_report_shell_localizes_chinese_title_and_footer() -> None:
