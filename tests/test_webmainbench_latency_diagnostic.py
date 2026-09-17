@@ -4,10 +4,15 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from harness.web_fetch.webmainbench_latency_diagnostic import _resource_samples, load_diagnostic
+from harness.web_fetch.webmainbench_latency_diagnostic import _resource_samples, load_diagnostic, top_positive_gap_share
 
 
 class LatencyDiagnosticTests(unittest.TestCase):
+    def test_tail_share_is_unavailable_without_net_added_time(self):
+        self.assertIsNone(top_positive_gap_share([10, -10]))
+        self.assertIsNone(top_positive_gap_share([2, -10]))
+        self.assertEqual(top_positive_gap_share([3, 1]), 1.0)
+
     def test_system_samples_respect_run_window_and_swap_deltas(self):
         start = datetime(2026, 9, 17, 6, 0, tzinfo=timezone.utc)
         lines = []

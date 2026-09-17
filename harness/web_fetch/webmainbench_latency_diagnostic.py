@@ -22,6 +22,13 @@ def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def verified_bytes(root: Path, filename: str, expected: str) -> bytes:
+    data = contained_path(root, filename).read_bytes()
+    if hashlib.sha256(data).hexdigest() != expected:
+        raise ValueError('Latency diagnostic file hash mismatch: ' + filename)
+    return data
+
+
 def read_jsonl(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
 
@@ -31,12 +38,18 @@ def stats(values: list[float]) -> dict:
             'p50': statistics.median(values), 'p95': percentile(values, .95)}
 
 
-def _resource_samples(path: Path, execution: dict) -> dict:
+def top_positive_gap_share(differences: list[float]) -> float | None:
+    net = sum(differences)
+    return sum(sorted(differences, reverse=True)[:20]) / net if net > 0 else None
+
+
+def _resource_samples(path: Path | str, execution: dict) -> dict:
     start = datetime.fromisoformat(execution['started_at'])
     end = datetime.fromisoformat(execution['completed_at'])
     samples = []
     current = None
-    for line in path.read_text(encoding='utf-8').splitlines():
+    content = path.read_text(encoding='utf-8') if isinstance(path, Path) else path
+    for line in content.splitlines():
         if re.fullmatch(r'\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ', line):
             current = {'time': datetime.fromisoformat(line.replace('Z', '+00:00'))}
             if start <= current['time'] <= end:
@@ -74,18 +87,16 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
     original_manifests = {row['provider']: row for row in manifests}
     if manifest.get('official_results_sha256') != digest(source / 'results.jsonl'):
         raise ValueError('Latency diagnostic does not bind the unchanged official matrix')
-    if manifest.get('system_monitor_sha256') != digest(contained_path(root, 'system-monitor.log')):
-        raise ValueError('System monitor hash mismatch')
+    monitor_data = verified_bytes(root, 'system-monitor.log', manifest.get('system_monitor_sha256'))
     all_rows = {}
     all_executions = {}
     resource = {}
     for label, provider in RUNS.items():
         run = contained_path(root, label)
         binding = manifest['runs'][label]
-        for filename in ('execution.json', 'results.jsonl', 'physical-attempts.jsonl'):
-            if binding.get(filename + '_sha256') != digest(contained_path(run, filename)):
-                raise ValueError('Latency run file hash mismatch: ' + label + '/' + filename)
-        execution = json.loads((run / 'execution.json').read_text(encoding='utf-8'))
+        files = {name: verified_bytes(run, name, binding.get(name + '_sha256')) for name in
+                 ('execution.json', 'results.jsonl', 'physical-attempts.jsonl')}
+        execution = json.loads(files['execution.json'])
         original_execution = original_manifests[provider]
         if (execution['provider'] != provider or execution['case_count'] != len(cases)
                 or execution['source_dataset_sha256'] != dataset['source_dataset_sha256']
@@ -95,25 +106,25 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
                 or execution['implementation_identity']['binary_sha256'] !=
                    original_execution['implementation_identity']['binary_sha256']):
             raise ValueError('Latency run changed input, binary, or execution contract: ' + label)
-        rows = read_jsonl(run / 'results.jsonl')
+        rows = [json.loads(line) for line in files['results.jsonl'].splitlines() if line.strip()]
         physical = defaultdict(list)
-        for attempt in read_jsonl(run / 'physical-attempts.jsonl'):
+        for attempt in (json.loads(line) for line in files['physical-attempts.jsonl'].splitlines() if line.strip()):
             physical[attempt['track_id']].append(attempt)
         if len(rows) != len(cases) or {row['track_id'] for row in rows} != set(cases) or set(physical) != set(cases):
             raise ValueError('Latency rerun is missing declared cases: ' + label)
         by_case = {}
         for row in rows:
             case_id = row['track_id']
+            artifact_data = verified_bytes(run, row['artifact_path'], row['output_sha256'])
             if (row['provider'] != provider or row['input_html_sha256'] != cases[case_id]['input_html_sha256']
                     or row['reference_sha256'] != cases[case_id]['reference_sha256']
-                    or not retry_chain_matches(row, physical[case_id])
-                    or digest(contained_path(run, row['artifact_path'])) != row['output_sha256']):
+                    or not retry_chain_matches(row, physical[case_id])):
                 raise ValueError('Latency rerun result is unbound: ' + label + '/' + case_id)
-            text = contained_path(run, row['artifact_path']).read_text(encoding='utf-8')
+            text = artifact_data.decode('utf-8')
             by_case[case_id] = {**row, '_body_present': bool(row['ok'] and text.strip() and not ERROR_PAGE.search(text))}
         all_rows[label] = by_case
         all_executions[label] = execution
-        resource[label] = _resource_samples(root / 'system-monitor.log', execution)
+        resource[label] = _resource_samples(monitor_data.decode('utf-8'), execution)
     if (all_executions['moli-115-control']['runner_sha256'] !=
             all_executions['moli-117-repeat']['runner_sha256']):
         raise ValueError('Moli reruns used different runner implementations')
@@ -127,9 +138,12 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
                            **stats(values), 'success_case_ids': sorted(row['track_id'] for row in candidates if row['_body_present'])}
     for label, provider in [('moli-115-original', 'moli'), ('moli-117-original', 'moli-1.1.7')]:
         rows = [official[provider, case_id] for case_id in cases]
-        values = [row['elapsed_ms'] for row in rows if row['ok'] and
-                  contained_path(source, row['artifact_path']).read_text(encoding='utf-8').strip() and
-                  not ERROR_PAGE.search(contained_path(source, row['artifact_path']).read_text(encoding='utf-8'))]
+        values = []
+        for row in rows:
+            if row['ok']:
+                body = contained_path(source, row['artifact_path']).read_text(encoding='utf-8')
+                if body.strip() and not ERROR_PAGE.search(body):
+                    values.append(row['elapsed_ms'])
         run_rows[label] = {'provider': provider, 'run_id': original_manifests[provider]['run_id'],
                            'binary_sha256': original_manifests[provider]['implementation_identity']['binary_sha256'],
                            'runner_sha256': original_manifests[provider]['runner_sha256'], **stats(values)}
@@ -137,13 +151,10 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
                     set(run_rows['moli-117-repeat']['success_case_ids']))
     differences = [all_rows['moli-117-repeat'][case_id]['elapsed_ms'] -
                    all_rows['moli-115-control'][case_id]['elapsed_ms'] for case_id in common]
-    sorted_differences = sorted(differences, reverse=True)
     mechanism = contained_path(root, 'mechanism')
-    if (manifest['mechanism']['selection_json_sha256'] != digest(mechanism / 'selection.json')
-            or manifest['mechanism']['calls_jsonl_sha256'] != digest(mechanism / 'calls.jsonl')):
-        raise ValueError('Mechanism probe hash mismatch')
-    selection = json.loads((mechanism / 'selection.json').read_text(encoding='utf-8'))
-    calls = read_jsonl(mechanism / 'calls.jsonl')
+    selection = json.loads(verified_bytes(mechanism, 'selection.json', manifest['mechanism']['selection_json_sha256']))
+    calls = [json.loads(line) for line in verified_bytes(mechanism, 'calls.jsonl',
+             manifest['mechanism']['calls_jsonl_sha256']).splitlines() if line.strip()]
     selected = selection['case_ids']
     if (len(selected) != 40 or len(set(selected)) != 40 or not set(selected).issubset(cases)
             or len(calls) != 4 * len(selected)
@@ -157,11 +168,11 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
     probe = {}
     for row in calls:
         key = (row['case_id'], row['version'], row['mode'])
-        artifact = contained_path(mechanism, f'outputs/{row["version"]}/{row["mode"]}/{row["case_id"]}.txt')
+        artifact_name = f'outputs/{row["version"]}/{row["mode"]}/{row["case_id"]}.txt'
         if (key in probe or row['case_id'] not in selected
-                or row['input_html_sha256'] != cases[row['case_id']]['input_html_sha256']
-                or digest(artifact) != row['output_sha256']):
+                or row['input_html_sha256'] != cases[row['case_id']]['input_html_sha256']):
             raise ValueError('Mechanism call binding failed')
+        verified_bytes(mechanism, artifact_name, row['output_sha256'])
         probe[key] = row
     expected = {(case_id, version, mode) for case_id in selected
                 for version in ('1.1.5', '1.1.7') for mode in ('html', 'markdown')}
@@ -178,7 +189,7 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
                        'new_faster': sum(x < 0 for x in differences),
                        'mean_difference_ms': statistics.fmean(differences),
                        'median_difference_ms': statistics.median(differences),
-                       'top_20_share_of_net_difference': sum(sorted_differences[:20]) / sum(differences),
+                       'top_20_share_of_net_difference': top_positive_gap_share(differences),
                        'older_over_500_ms': sum(all_rows['moli-115-control'][cid]['elapsed_ms'] > 500 for cid in common),
                        'newer_over_500_ms': sum(all_rows['moli-117-repeat'][cid]['elapsed_ms'] > 500 for cid in common)},
             'mechanism': {'selected': len(selected), 'valid_pairs': len(valid),

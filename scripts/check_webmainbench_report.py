@@ -257,14 +257,20 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
             for section in (localized_home.select_one('#moli-latency-rerun'), guide_page.select_one('#delivery .wmb-rerun-diagnostic')):
                 if section is None or len(section.select('.wmb-rerun-table tbody tr')) != 4:
                     raise ValueError(prefix + 'Moli latency rerun must show four distinct rows')
-                for row, name in zip(section.select('.wmb-rerun-table tbody tr'),
-                                     ('moli-115-original', 'moli-117-original', 'moli-115-control', 'moli-117-repeat')):
+                rerun_rows = dict(zip(('moli-115-original', 'moli-117-original', 'moli-115-control', 'moli-117-repeat'),
+                                      section.select('.wmb-rerun-table tbody tr')))
+                for name, row in rerun_rows.items():
                     cells = row.find_all('td', recursive=False)
                     run = latency_diagnostic['runs'][name]
                     if (cells[-4].get_text(strip=True) != f"{run['n']}/200"
                             or any(not close(float(td['data-sort']), run[key])
                                    for td, key in zip(cells[-3:], ('mean', 'p50', 'p95')))):
                         raise ValueError(prefix + 'Moli latency rerun values differ from verified evidence')
+                    for key, td in zip(('mean', 'p50', 'p95'), cells[-3:]):
+                        other = 'moli-117-repeat' if name == 'moli-115-control' else 'moli-115-control'
+                        expected = name in ('moli-115-control', 'moli-117-repeat') and run[key] < latency_diagnostic['runs'][other][key]
+                        if bool(td.select('.comparison-winner')) != expected or len(td.select('.comparison-winner')) > 1:
+                            raise ValueError(prefix + 'Moli rerun winner marker disagrees with same-host evidence')
                 if len(section.select('.wmb-rerun-resource tbody tr')) != 2 or not section.select_one('a[href$="latency-diagnostic.json"]'):
                     raise ValueError(prefix + 'Moli latency rerun lacks resource evidence or per-case download')
         home_headers = {tag.get_text(" ", strip=True) for tag in localized_home.select("#wmb-core-results th")}
