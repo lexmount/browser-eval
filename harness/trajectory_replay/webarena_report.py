@@ -1084,6 +1084,11 @@ def _write_diagnostic_closure(
                     else ("未接受" if zh else "Not accepted") if audit is False
                     else "—"
                 )
+                if audit is True and task_id in {243, 313}:
+                    audit_text = (
+                        "早期有限范围复核接受；当前资格未通过"
+                        if zh else "Earlier limited-scope audit accepted; current qualification failed"
+                    )
                 receipt_sha = observed.get("receipt_sha256") or ""
                 audit_sha = observed.get("audit_sha256")
                 evidence_cell = f'<code>{_e(receipt_sha)}</code>'

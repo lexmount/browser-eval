@@ -157,10 +157,33 @@ def test_diagnostic_pages_keep_old_verdict_and_bilingual_routes(tmp_path: Path) 
                 "evidence_sha256": ["b" * 64],
                 "observations": [],
             },
+            {
+                "task_id": 313,
+                "task_type": "RETRIEVE",
+                "generation": "current_b96",
+                "finding": CURRENT_FINDINGS[313],
+                "owning_process": "retrieval acceptance",
+                "owning_process_zh": "取数验收",
+                "evidence_sha256": ["c" * 64],
+                "observations": [
+                    {
+                        "browser": "moli",
+                        "binary_sha256": "d" * 64,
+                        "receipt_sha256": "e" * 64,
+                        "status": "diagnostic_current_retrieval_incomplete",
+                        "completed_actions": 7,
+                        "action_count": 7,
+                        "official_rule_score": None,
+                        "downstream_accepted": True,
+                    }
+                ],
+            },
         ],
     }
     _write_diagnostic_closure(
-        tmp_path, model, moli_result_keys={108: "moli-1.1.3-108", 29: "moli-1.1.3-29"}
+        tmp_path,
+        model,
+        moli_result_keys={108: "moli-1.1.3-108", 29: "moli-1.1.3-29", 313: "moli-1.1.3-313"},
     )
     zh = (tmp_path / "diagnostics.html").read_text(encoding="utf-8")
     en = (tmp_path / "en/diagnostics.html").read_text(encoding="utf-8")
@@ -173,4 +196,10 @@ def test_diagnostic_pages_keep_old_verdict_and_bilingual_routes(tmp_path: Path) 
     assert "no new code-level cause" in (tmp_path / "en/diagnostic/29.html").read_text(
         encoding="utf-8"
     )
+    assert "早期有限范围复核接受；当前资格未通过" in (
+        tmp_path / "diagnostic/313.html"
+    ).read_text(encoding="utf-8")
+    assert "Earlier limited-scope audit accepted; current qualification failed" in (
+        tmp_path / "en/diagnostic/313.html"
+    ).read_text(encoding="utf-8")
     assert "diagnostics.html" in (tmp_path / "index.html").read_text(encoding="utf-8")
