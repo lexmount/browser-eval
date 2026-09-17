@@ -142,8 +142,8 @@
       "classification": "frozen_page_origin_navigation",
       "observed_zh": "页面脚本根据当前主机名构造原站 URL 并设置 window.location.href。Moli 两版各自独立重测，首次和一次重试仍报同一原站请求错误；禁用页面脚本的定位对照均返回正文。Obscura 的错误也包含原站地址，Chromium 输出的是无法访问原站的浏览器错误页。",
       "observed_en": "A page script constructs an origin-site URL from the current hostname and assigns window.location.href. Separate reruns of both Moli versions failed on the same origin request on the initial call and retry; disabling page-authored JavaScript returned body text in both diagnostic controls. Obscura also named the origin address, while Chromium produced a browser error page.",
-      "cause_zh": "冻结页依赖原站域名并主动离开隔离夹具；网络隔离按评测合同拒绝原站导航。Kitesurf 与 Lightpanda 在同页保留正文，说明这是运行语义差异，不能改写为统一的正文提取失败。",
-      "cause_en": "The frozen page depends on its origin hostname and actively leaves the isolated fixture; the benchmark sandbox rejects that navigation by contract. Kitesurf and Lightpanda retain body text on the same page, so this is a runtime-semantics difference rather than a universal extraction failure."
+      "cause_zh": "冻结页的脚本主动从本地测试服务器跳转到原站；网络隔离按评测合同拒绝原站导航。Kitesurf 与 Lightpanda 在同页保留正文，说明这是运行语义差异，不能改写为统一的正文提取失败。",
+      "cause_en": "The frozen page depends on its origin hostname and navigates away from the local test server; the benchmark sandbox rejects that navigation by contract. Kitesurf and Lightpanda retain body text on the same page, so this is a runtime-semantics difference rather than a universal extraction failure."
     }
   ]
 }

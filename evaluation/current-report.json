@@ -48,7 +48,7 @@
   "conversion": "Native Markdown for Kitesurf, Lightpanda, Obscura and Moli; Chromium whole-DOM HTML via node-html-markdown 2.0.0",
   "artifact_hub_base_url": "https://artifact-site.lexmount.cn",
   "artifact_hub_site": "uTWj6VaWPYCh",
-  "artifact_hub_expected_version": "ver_0c32bbf9a849404caf6c98de9f74b337",
+  "artifact_hub_expected_version": "ver_f1e79a3bbb0043fba8d2c56cf3fd55e5",
   "latency_reporting": {
     "primary": "final_successful_fetch",
     "time_field": "elapsed_ms",

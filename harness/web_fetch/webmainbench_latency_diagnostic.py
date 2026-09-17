@@ -84,7 +84,6 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
     manifest = json.loads(contained_path(root, 'manifest.json').read_text(encoding='utf-8'))
     if manifest.get('kind') != 'moli_115_117_latency_rerun_v1':
         raise ValueError('Unrecognized Moli latency diagnostic')
-    official = {(row['provider'], row['case_id']): row for row in official_records}
     cases = {case['id']: case for case in dataset['cases']}
     original_manifests = {row['provider']: row for row in manifests}
     if manifest.get('official_results_sha256') != digest(source / 'results.jsonl'):
@@ -138,17 +137,6 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
                            'binary_sha256': all_executions[label]['implementation_identity']['binary_sha256'],
                            'runner_sha256': all_executions[label]['runner_sha256'],
                            **stats(values), 'success_case_ids': sorted(row['track_id'] for row in candidates if row['_body_present'])}
-    for label, provider in [('moli-115-original', 'moli'), ('moli-117-original', 'moli-1.1.7')]:
-        rows = [official[provider, case_id] for case_id in cases]
-        values = []
-        for row in rows:
-            if row['ok']:
-                body = contained_path(source, row['artifact_path']).read_text(encoding='utf-8')
-                if body.strip() and not ERROR_PAGE.search(body):
-                    values.append(row['elapsed_ms'])
-        run_rows[label] = {'provider': provider, 'run_id': original_manifests[provider]['run_id'],
-                           'binary_sha256': original_manifests[provider]['implementation_identity']['binary_sha256'],
-                           'runner_sha256': original_manifests[provider]['runner_sha256'], **stats(values)}
     common = sorted(set(run_rows['moli-115-control']['success_case_ids']) &
                     set(run_rows['moli-117-repeat']['success_case_ids']))
     if not common:
@@ -232,8 +220,6 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
                           'html_median_difference_ms': statistics.median(probe_differences['html'])},
             'per_case': [{
                 'case_id': case_id,
-                'original_115_ms': official['moli', case_id]['elapsed_ms'],
-                'original_117_ms': official['moli-1.1.7', case_id]['elapsed_ms'],
                 'repeat_115_ms': all_rows['moli-115-control'][case_id]['elapsed_ms'],
                 'repeat_117_ms': all_rows['moli-117-repeat'][case_id]['elapsed_ms'],
                 'repeat_115_ok': all_rows['moli-115-control'][case_id]['_body_present'],
