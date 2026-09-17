@@ -288,7 +288,11 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
                 if section is None or len(section.select('.wmb-rerun-table tbody tr')) != 2:
                     raise ValueError(prefix + 'Moli latency rerun must show the current two-version comparison')
                 context = section.select_one('[data-timing-context="prior-overlap"]')
-                if latency_correction and (context is None or not context.get_text(' ', strip=True)):
+                context_markers = (('较早', '同时运行', '正式', '无并发', '第二轮') if not prefix
+                                   else ('earlier', 'overlapped', 'formal', 'without concurrent', 'second round'))
+                if latency_correction and (context is None
+                                           or context.get('data-formal-round') != str(latency_correction['selected_round'])
+                                           or not all(marker in context.get_text(' ', strip=True) for marker in context_markers)):
                     raise ValueError(prefix + 'Corrected timing must distinguish the earlier diagnostic run')
                 if not latency_correction and context is not None:
                     raise ValueError(prefix + 'Uncorrected timing must not claim a later formal run')
@@ -309,6 +313,17 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
                 case_rows = section.select('.wmb-rerun-cases tbody tr')
                 if len(case_rows) != 20:
                     raise ValueError(prefix + 'Moli slow-page inventory must include all 20 cases')
+                outliers = [row for row in latency_diagnostic['tail_repeat']['cases']
+                            if abs(row['older_median_ms'] - row['newer_median_ms']) > 20]
+                direction = section.select_one('[data-tail-outliers]')
+                if (direction is None
+                        or direction.get('data-tail-outliers') != str(len(outliers))
+                        or direction.get('data-tail-newer-faster') != str(sum(
+                            row['newer_median_ms'] < row['older_median_ms'] for row in outliers))
+                        or direction.get('data-tail-older-faster') != str(sum(
+                            row['older_median_ms'] < row['newer_median_ms'] for row in outliers))
+                        or not direction.get_text(' ', strip=True)):
+                    raise ValueError(prefix + 'Moli tail conclusion disagrees with per-page medians')
                 for rendered, evidence in zip(case_rows, latency_diagnostic['tail_repeat']['cases']):
                     cells = rendered.find_all('td', recursive=False)
                     if (not cells[1].select_one(f'a[href$="datasets/{evidence["case_id"]}.html"]')

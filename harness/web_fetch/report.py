@@ -1632,6 +1632,11 @@ def _wmb_latency_rerun(diagnostic,english=False,prefix='',formal_corrected=False
  h=lambda zh,en:en if english else zh
  if not diagnostic:return ''
  runs=diagnostic['balanced_200']['runs'];tail=diagnostic['tail_repeat'];resources=diagnostic['resource']
+ tail_count=len(tail['cases'])
+ tail_outliers=[row for row in tail['cases']
+                if abs(row['older_median_ms']-row['newer_median_ms'])>20]
+ tail_newer_faster=sum(row['newer_median_ms']<row['older_median_ms'] for row in tail_outliers)
+ tail_older_faster=len(tail_outliers)-tail_newer_faster
  labels={'1.1.5':'Moli 1.1.5','1.1.7':'Moli 1.1.7'}
  def timing_cell(version,key):
   value=runs[version][key];other='1.1.7' if version=='1.1.5' else '1.1.5'
@@ -1656,15 +1661,23 @@ def _wmb_latency_rerun(diagnostic,english=False,prefix='',formal_corrected=False
  body='<p>'+h('同一批 200 页各测两轮；每页两版轮流先请求，所有调用串行执行。下表仅统计成功且有正文的调用，两版都是 398/400 次成功；它是版本耗时诊断，六方法正式结果仍见核心表。',
              'The same 200 pages were run twice. On each page the two versions took turns going first, and all calls ran serially. The table counts only successful calls with body text: both versions succeeded on 398/400 calls. This diagnoses version timing; the formal six-method results remain in the core table.')+'</p>'
  if formal_corrected:
-  body+='<p class="source-note" data-timing-context="prior-overlap">'+h('这组较早的复测与另一项浏览器任务同时运行，只用于定位慢页和调用顺序效应；首页正式耗时采用之后无并发认证复测的预选第二轮，因此两张表的数值不同。',
+  body+='<p class="source-note" data-timing-context="prior-overlap" data-formal-round="2">'+h('这组较早的复测与另一项浏览器任务同时运行，只用于定位慢页和调用顺序效应；首页正式耗时采用之后无并发认证复测的预选第二轮，因此两张表的数值不同。',
                                      'This earlier crossover overlapped another browser benchmark and is retained only to diagnose slow pages and call order. The formal home-page timing uses the preselected second round of a later certified run without concurrent benchmarks, so the table values differ.')+'</p>'
  body+=table([h('版本','Version'),h('成功调用 / 全部调用','Successful / all calls'),h('均值耗时','Mean latency'),h('P50 耗时','P50 latency'),h('P95 耗时','P95 latency')],rows,cls='wmb-rerun-table',metrics=[])
  body+='<p class="source-note">'+h('绿色标出同页交叉复测中该列较低的耗时。','Green marks the lower latency in this matched crossover.')+'</p>'
  balanced=diagnostic['balanced_200']
  body+='<p>'+h(f'最初单批测试出现的 1.1.7 耗时劣势，在交叉顺序复测中没有复现。连续两次请求同一页时，先请求的一次平均多花 {balanced["first_call_extra_mean_ms"]:.0f} ms（{balanced["first_call_slower_count"]}/{balanced["paired_success_calls"]} 对更慢）；两版都受影响。单次调用仍会偶发变慢，不能保证每一页每一次都耗时相同。',
                  f'The apparent 1.1.7 slowdown from the initial separate batches did not recur in the balanced crossover. When the same page was fetched twice in succession, the first call took {balanced["first_call_extra_mean_ms"]:.0f} ms longer on average ({balanced["first_call_slower_count"]}/{balanced["paired_success_calls"]} pairs slower); both versions were affected. Individual calls still have slow outliers, so equal latency on every call cannot be guaranteed.')+'</p>'
- body+='<p>'+h(f'针对最初差距最大的 20 页，两版每页再各测 15 次，共 600 次均成功，且同一版本的正文哈希保持一致。{tail["within_20_ms"]}/20 页的两版中位耗时相差不超过 20 ms；其余 1 页是 1.1.7 更快。下表逐页列出典型耗时和最慢一次，便于区分稳定差异与偶发慢调用。',
-                 f'For the 20 pages with the largest initial gaps, each version was called 15 more times per page: all 600 calls succeeded, and output hashes stayed constant within each version. Median timing differed by no more than 20 ms on {tail["within_20_ms"]}/20 pages; 1.1.7 was faster on the remaining page. The table shows each page’s typical and slowest call.')+'</p>'
+ repetitions={row['repetitions_per_version'] for row in tail['cases']}
+ if len(repetitions)!=1 or tail['within_20_ms']+len(tail_outliers)!=tail_count:
+  raise ValueError('Latency tail summary disagrees with the per-page evidence')
+ repetition=repetitions.pop()
+ tail_calls=tail_count*2*repetition
+ tail_direction=(f'<span data-tail-outliers="{len(tail_outliers)}" data-tail-newer-faster="{tail_newer_faster}" data-tail-older-faster="{tail_older_faster}">'
+                 +h(f'其余页面中新版更快 {tail_newer_faster} 页、旧版更快 {tail_older_faster} 页。',
+                    f'Among the rest, 1.1.7 was faster on {tail_newer_faster} pages and 1.1.5 on {tail_older_faster}.')+'</span>')
+ body+='<p>'+h(f'针对最初差距最大的 {tail_count} 页，两版每页再各测 {repetition} 次，共 {tail_calls} 次均成功，且同一版本的正文哈希保持一致。{tail["within_20_ms"]}/{tail_count} 页的两版中位耗时相差不超过 20 ms；',
+                 f'For the {tail_count} pages with the largest initial gaps, each version was called {repetition} more times per page: all {tail_calls} calls succeeded, and output hashes stayed constant within each version. Median timing differed by no more than 20 ms on {tail["within_20_ms"]}/{tail_count} pages; ')+tail_direction+h('下表逐页列出典型耗时和最慢一次，便于区分稳定差异与偶发慢调用。',' The table shows each page’s typical and slowest call.')+'</p>'
  body+='<details><summary>'+h('查看差异最大的 20 页及逐页复测','Inspect all 20 divergent pages and repeated calls')+'</summary>'+table([h('页面','Page'),h('1.1.5 中位耗时','1.1.5 median'),h('1.1.7 中位耗时','1.1.7 median'),h('1.1.5 最慢一次','1.1.5 slowest'),h('1.1.7 最慢一次','1.1.7 slowest')],case_rows,cls='wmb-rerun-cases',metrics=[])+'</details>'
  failure=diagnostic['failure_retest']
  body+='<p>'+h(f'两版各有 1 页未成功，均为同一页。各自独立重测时，首次和一次重试仍因页面脚本跳转原站而失败；禁用页面脚本后两版都返回正文。继续按相同条件重试不能恢复该页；禁用脚本会改变评测条件，因此该页仍计为失败，覆盖率为 199/200。',
