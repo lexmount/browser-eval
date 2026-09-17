@@ -33,7 +33,11 @@ class WireWitness:
 
 
 def parse_access_log(segment: bytes, *, origin: str) -> list[WireWitness]:
-    """Read only request identity and Referer from one isolated site's log tail."""
+    """Read request identity/Referer from WebArena's nginx combined-format log tail.
+
+    Malformed UTF-8 lines and formats outside the observed combined layout are
+    ignored rather than reconstructed into evaluator evidence.
+    """
 
     parsed_origin = urlsplit(origin)
     if parsed_origin.scheme not in {"http", "https"} or not parsed_origin.netloc:
@@ -41,7 +45,10 @@ def parse_access_log(segment: bytes, *, origin: str) -> list[WireWitness]:
     root = f"{parsed_origin.scheme}://{parsed_origin.netloc}"
     witnesses: list[WireWitness] = []
     for raw_line in segment.splitlines():
-        line = raw_line.decode("utf-8", errors="replace")
+        try:
+            line = raw_line.decode("utf-8")
+        except UnicodeDecodeError:
+            continue
         match = _ACCESS_LINE.match(line)
         if not match or not match["target"].startswith("/"):
             continue

@@ -163,6 +163,24 @@ def test_uncertain_create_recovers_same_site_from_operation(
     assert json.loads(receipt.read_text())["slug"] == "site-1"
 
 
+def test_create_reuses_pending_known_slug_without_network(monkeypatch, tmp_path: Path) -> None:
+    archive = tmp_path / "report.zip"
+    archive.write_bytes(b"report")
+    receipt = tmp_path / "receipt.json"
+    receipt.write_text(json.dumps({
+        "base_url": "https://site.example",
+        "archive_sha256": _sha256(archive),
+        "slug": "site-1",
+        "verified": False,
+    }))
+    monkeypatch.setattr(publisher, "ARCHIVE", archive)
+    monkeypatch.setattr(publisher, "RECEIPT", receipt)
+    monkeypatch.setattr(
+        publisher, "request", lambda *args, **kwargs: pytest.fail("unexpected network call")
+    )
+    assert publisher.create_site("https://site.example", b"report", "application/zip") == "site-1"
+
+
 def test_uncertain_update_recovers_same_version_from_operation(monkeypatch, tmp_path: Path) -> None:
     archive = tmp_path / "report.zip"
     archive.write_bytes(b"new report")

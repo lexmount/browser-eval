@@ -12,6 +12,7 @@ from harness.browser_use.runner import (
     PHYSICAL_EXECUTION_LOCK_NAMESPACE,
     QEMU_X86_64_HOST_PATH,
     SITE_AUTH_HEADERS,
+    WIRE_ACCESS_LOG_PATHS,
     _allow_official_container_hostname,
     _configure_benchmark,
     _container_host_gateway,
@@ -24,6 +25,7 @@ from harness.browser_use.runner import (
     _max_steps_response,
     _physical_execution_lock,
     _physical_execution_lock_path,
+    _preserve_aborted_attempt,
     _reconcile_server_wire_headers,
     _run_attempt,
     _scheduled_tasks,
@@ -118,6 +120,36 @@ def test_wire_witness_reads_only_post_setup_bytes_and_binds_separate_hars(
     assert len(receipt["unique_header_additions"]) == 1
     assert "thread" not in witness.read_text()
     assert source.is_file()
+
+
+def test_missing_server_log_fails_closed(monkeypatch) -> None:
+    assert "/var/log/gitlab/nginx/gitlab_access.log" in WIRE_ACCESS_LOG_PATHS
+    container = SimpleNamespace(
+        name="site",
+        image=SimpleNamespace(id="sha256:site"),
+        exec_run=lambda command: SimpleNamespace(exit_code=1, output=b""),
+    )
+    monkeypatch.setattr(
+        "harness.browser_use.runner.docker.from_env",
+        lambda: SimpleNamespace(containers=SimpleNamespace(get=lambda name: container)),
+    )
+    monkeypatch.setattr(
+        "harness.browser_use.runner._site_container_manager",
+        lambda site: SimpleNamespace(container_name="site"),
+    )
+    with pytest.raises(RuntimeError, match="no readable server access log for gitlab"):
+        _wire_log_cursors((WebArenaSite.GITLAB,), SimpleNamespace())
+
+
+def test_aborted_attempt_is_preserved_before_retry(tmp_path: Path) -> None:
+    attempt = tmp_path / "chromium" / "44" / "attempt-1"
+    attempt.mkdir(parents=True)
+    (attempt / "network-cdp.har").write_text("raw")
+    saved = _preserve_aborted_attempt(tmp_path, attempt)
+    assert saved is not None
+    assert (saved / "network-cdp.har").read_text() == "raw"
+    assert not attempt.exists()
+    assert _preserve_aborted_attempt(tmp_path, attempt) is None
 
 
 def test_user_prompt_exposes_schema_but_not_reference_answer() -> None:

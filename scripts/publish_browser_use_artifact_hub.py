@@ -241,7 +241,9 @@ def create_site(base: str, payload: bytes, content_type: str) -> str:
     """Resume an uncertain create with its persisted operation key."""
     receipt = json.loads(RECEIPT.read_text(encoding="utf-8")) if RECEIPT.is_file() else {}
     if receipt and not receipt.get("verified"):
-        pending_created_site(base)
+        existing_slug = pending_created_site(base)
+        if existing_slug:
+            return existing_slug
     if receipt.get("verified"):
         raise ValueError("Browser Use site is already published; refusing another create")
     key = str(receipt.get("idempotency_key") or "")

@@ -89,6 +89,8 @@ def test_existing_client_header_is_never_overwritten():
 
 def test_invalid_log_or_origin_cannot_create_a_witness():
     assert parse_access_log(b'POST /f/space/subscribe.json 200 "secret"\n', origin=ORIGIN) == []
+    invalid = access_line().replace(b"private-user-agent", b"\xff")
+    assert parse_access_log(invalid, origin=ORIGIN) == []
     with pytest.raises(ValueError, match="absolute HTTP URL"):
         parse_access_log(access_line(), origin="/relative")
 

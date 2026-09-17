@@ -82,6 +82,8 @@ SITE_AUTH_HEADERS = {
 WIRE_ACCESS_LOG_PATHS = (
     "/var/log/nginx/project_access.log",
     "/var/log/nginx/access.log",
+    "/var/log/gitlab/nginx/gitlab_access.log",
+    "/var/log/gitlab/nginx/access.log",
     "/var/log/apache2/access.log",
     "/var/log/httpd/access_log",
 )
@@ -370,6 +372,8 @@ def _wire_log_cursors(
                 }
             )
             break
+        else:
+            raise RuntimeError(f"no readable server access log for {site.value}")
     return cursors
 
 
@@ -770,6 +774,7 @@ def _run_attempt_locked(  # noqa: PLR0913
     start_urls = list(benchmark.config.render_url(list(task.start_urls), list(task.sites)))
 
     attempt_dir = output_dir / engine / str(selected.task_id) / f"attempt-{attempt}"
+    _preserve_aborted_attempt(output_dir, attempt_dir)
     attempt_dir.mkdir(parents=True, exist_ok=True)
     prepare_path = attempt_dir / "environment_prepare.json"
     prepare_started = time.perf_counter()
@@ -925,9 +930,18 @@ def _run_attempt_locked(  # noqa: PLR0913
     events_path.write_text(json.dumps(events, ensure_ascii=False, indent=2), encoding="utf-8")
     if raw_har_path.exists():
         evaluation_started = time.perf_counter()
-        _reconcile_server_wire_headers(
-            raw_har_path, har_path, witness_path, wire_source_path, wire_cursors
-        )
+        try:
+            _reconcile_server_wire_headers(
+                raw_har_path, har_path, witness_path, wire_source_path, wire_cursors
+            )
+        except Exception as exc:
+            (attempt_dir / "network-wire-error.json").write_text(
+                json.dumps({"error_type": type(exc).__name__, "error": str(exc)}) + "\n",
+                encoding="utf-8",
+            )
+            raise RuntimeError(
+                "server wire evidence failed; attempt remains diagnostic and is not scored"
+            ) from exc
         evaluation = benchmark.evaluate_task(
             task_id=selected.task_id,
             agent_response=parsed_response,
@@ -1032,6 +1046,18 @@ def _scheduled_tasks(tasks: tuple[PilotTask, ...], max_tasks: int | None) -> tup
     if max_tasks < 1 or max_tasks > len(tasks):
         raise ValueError(f"--max-tasks must be between 1 and {len(tasks)}")
     return tasks[:max_tasks]
+
+
+def _preserve_aborted_attempt(output_dir: Path, attempt_dir: Path) -> Path | None:
+    """Retain unindexed diagnostic evidence before resuming the same logical attempt."""
+    if not attempt_dir.is_dir() or not any(attempt_dir.iterdir()):
+        return None
+    diagnostics = output_dir / "diagnostics"
+    diagnostics.mkdir(exist_ok=True)
+    label = f"{attempt_dir.parent.parent.name}-{attempt_dir.parent.name}-{attempt_dir.name}"
+    destination = diagnostics / f"{label}-{uuid.uuid4().hex}"
+    attempt_dir.rename(destination)
+    return destination
 
 
 def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
