@@ -156,9 +156,21 @@
       "task_id": 465,
       "action_count": 8,
       "observer": {
-        "kind": "pending_read_only_wishlist_item_contract",
-        "target_product_id": 71337,
-        "reason": "No independent account-scoped wishlist item view has been bound to product 71337. The old action-only HAR lacks the required add POST; a wishlist count or successful click is not enough."
+        "kind": "same_origin_get_html",
+        "path": "/wishlist/index/index/wishlist_id/5/",
+        "within": "main form li",
+        "require_authenticated_sign_out_href": "/customer/account/logout/",
+        "product_name": "Tide PODS Spring Meadow Scent HE Turbo Laundry Detergent Pacs, 81 Count",
+        "edit_href_path_pattern": "^/wishlist/index/configure/id/[0-9]+/product_id/71337/?$",
+        "require_same_origin_edit_href": true,
+        "require_product_name_and_edit_link_in_same_item": true,
+        "require_exactly_one_matching_item": true
+      },
+      "observer_basis": {
+        "historical_chromium_trace_sha256": "a5ea0a4d6b365ce221dafed1098c0748695c9bde39b1946de47928df36434938",
+        "historical_chromium_har_sha256": "20db92ae2d20944e60e20bf860345b1c3ee8a13d31ac8d2a7edec5cf172a47e5",
+        "historical_moli_har_sha256": "60d59efd6139020711a617bd9f3704034dd8be9d15e9fd94cefda27b0917fe2f",
+        "evidence": "Chromium final authenticated wishlist snapshot shows the named item with an Edit URL under /wishlist/index/configure/id/3/product_id/713..., while the same-run HAR confirms POST product=71337, wishlist GET 200, and a subsequent GET customer-section JSON item with product_id=71337 and the exact name. The snapshot URL is truncated, so the complete Edit URL remains a proposed live GET predicate, not a historical assertion. Formal Moli HAR has no wishlist add or wishlist page request."
       },
       "official_network_event": {
         "method": "POST",
@@ -166,7 +178,7 @@
         "post_data": {"product": "71337", "qty": null},
         "response_status": 302
       },
-      "qualification": "blocked until an authenticated read-only wishlist item identity check is qualified; official evaluator remains mandatory"
+      "qualification": "same-run authenticated wishlist GET must expose exact product identity and official evaluator must pass; offline observer candidate is not a new result"
     },
     {
       "task_id": 506,

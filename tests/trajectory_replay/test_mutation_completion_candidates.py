@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import hashlib
-from html import unescape
 import json
 import re
+from html import unescape
 from pathlib import Path
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 import pytest
 from bs4 import BeautifulSoup
@@ -160,7 +160,33 @@ def _observed(candidate: dict, body: str, path: str | None = None) -> bool:
             return len(fields) == 1 and fields[0].get_text() == observer["equals"]
         if candidate["task_id"] == 464:
             fields = soup.select(observer["selector"])
-            return len(fields) == 1 and unescape(fields[0].decode_contents()) == observer["html_value"]
+            return (
+                len(fields) == 1 and unescape(fields[0].decode_contents()) == observer["html_value"]
+            )
+        if candidate["task_id"] == 465:
+            if (
+                len(soup.select(f'a[href="{observer["require_authenticated_sign_out_href"]}"]'))
+                != 1
+            ):
+                return False
+            matches = []
+            for item in soup.select(observer["within"]):
+                named = any(
+                    link.get_text(" ", strip=True) == observer["product_name"]
+                    for link in item.select("a")
+                )
+                edit = any(
+                    urlsplit(link.get("href", "")).netloc
+                    in ("", "host.docker.internal:7770", "127.0.0.1:7770")
+                    and re.fullmatch(
+                        observer["edit_href_path_pattern"], urlsplit(link.get("href", "")).path
+                    )
+                    for link in item.select("a")
+                    if link.get_text(" ", strip=True) == "Edit"
+                )
+                if named and edit:
+                    matches.append(item)
+            return len(matches) == 1
         if candidate["task_id"] == 571:
             for selector, expected in observer["fields"].items():
                 nodes = soup.select(selector)
@@ -277,8 +303,10 @@ def _pre_commit_observed(candidate: dict, actual_value: str) -> bool:
         ),
         (
             464,
-            '<textarea name="product[short_description]">&lt;p&gt;1 customer(s) love it!&lt;/p&gt;</textarea>',
-            '<textarea name="product[short_description]">&lt;p&gt;0 customer(s) love it!&lt;/p&gt;</textarea>',
+            '<textarea name="product[short_description]">'
+            '&lt;p&gt;1 customer(s) love it!&lt;/p&gt;</textarea>',
+            '<textarea name="product[short_description]">'
+            '&lt;p&gt;0 customer(s) love it!&lt;/p&gt;</textarea>',
         ),
         (
             658,
@@ -308,12 +336,52 @@ def test_reddit_vote_is_blocked_without_independent_read_only_state(candidates):
     assert candidate["qualification"].startswith("blocked")
 
 
-@pytest.mark.parametrize("task_id", [465, 506, 585])
+@pytest.mark.parametrize("task_id", [506, 585])
 def test_unqualified_persisted_state_stays_blocked(candidates, task_id: int):
     candidate = candidates[task_id]
     assert candidate["observer"]["kind"].startswith("pending_")
     assert candidate["qualification"].startswith("blocked")
     assert not _observed(candidate, '{"success":true}')
+
+
+def test_wishlist_observer_binds_product_id_name_and_authenticated_item(candidates):
+    candidate = candidates[465]
+    assert candidate["observer"]["kind"] == "same_origin_get_html"
+    assert not candidate["qualification"].startswith("blocked")
+    name = "Tide PODS Spring Meadow Scent HE Turbo Laundry Detergent Pacs, 81 Count"
+    item = (
+        '<main><form><li><a href="/tide-pods.html">'
+        + name
+        + '</a><a href="/wishlist/index/configure/id/3/product_id/71337/">Edit</a>'
+        "</li></form></main>"
+    )
+    signed_in = '<header><a href="/customer/account/logout/">Sign Out</a></header>'
+    assert _observed(candidate, signed_in + item)
+    assert _observed(
+        candidate,
+        signed_in
+        + item.replace(
+            "/wishlist/index/configure/",
+            "http://host.docker.internal:7770/wishlist/index/configure/",
+        ),
+    )
+    assert not _observed(candidate, item)
+    assert not _observed(candidate, signed_in + item.replace("71337", "71338"))
+    assert not _observed(
+        candidate,
+        signed_in
+        + item.replace(
+            "/wishlist/index/configure/", "https://other.example/wishlist/index/configure/"
+        ),
+    )
+    assert not _observed(candidate, signed_in + item.replace(name, "Other product"))
+    assert not _observed(candidate, signed_in + item + item)
+    separate_items = item.replace(
+        '<a href="/wishlist/index/configure/id/3/product_id/71337/">Edit</a>',
+        '</li><li><a href="/wishlist/index/configure/id/3/product_id/71337/">Edit</a>',
+    )
+    assert not _observed(candidate, signed_in + separate_items)
+    assert not _observed(candidate, signed_in + "<p>1 item</p>")
 
 
 @pytest.mark.parametrize(
