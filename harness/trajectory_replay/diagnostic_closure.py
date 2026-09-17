@@ -13,6 +13,9 @@ from typing import Any
 
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 CURRENT_TASKS = {108, 196, 204, 243, 313, 314, 349, 464, 784}
+LATEST_TASKS = {29, 66, 163, 173, 389}
+LATEST_SOURCE_HEAD = "b7ba9d47d1bfaf7c8d8530be52c5775cf5ceeada"
+LATEST_BINARY_SHA256 = "af808b3f7bb5dd0604262bba95cecdf06ba18d9547a169c1443bfbb1255b4397"
 
 # These are report-authored explanations of the current evidence, not copied
 # from internal receipts. Historical classifications are not promoted here.
@@ -49,7 +52,8 @@ CURRENT_FINDINGS = {
     313: (
         "空结果验收合同",
         "Empty-result acceptance contract",
-        "较早诊断检查的 Contact 和 Privacy 页面未列客服电话，但不足以证明全站不存在；当前候选的范围核验未通过，不能把“未找到”推广为合格答案。",
+        "较早诊断检查的 Contact 和 Privacy 页面未列客服电话，但不足以证明全站不存在；"
+        "当前候选的范围核验未通过，不能把“未找到”推广为合格答案。",
         "The Contact and Privacy pages checked in an earlier diagnostic listed no customer-service "
         "phone, but do not establish site-wide absence. The current candidate failed its scope "
         "check, so a not-found response cannot be promoted as a qualified answer.",
@@ -122,6 +126,8 @@ def load_diagnostic_closure(path: str | Path, *, old_failed_tasks: set[int]) -> 
         raise ValueError("diagnostic closure index is missing or symlinked")
     source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
     index = json.loads(source.read_text(encoding="utf-8"))
+    if index.get("schema") == "original36_latest_moli_diagnostic_index/6":
+        return _load_latest_index(index, source_sha, old_failed_tasks=old_failed_tasks)
     if index.get("schema") != "original36_diagnostic_closure_index/5":
         raise ValueError("unsupported diagnostic closure index")
     if any(
@@ -258,4 +264,141 @@ def load_diagnostic_closure(path: str | Path, *, old_failed_tasks: set[int]) -> 
         "inherited_mixed_build": 27,
         "current_b96": 9,
         "entries": sorted(entries, key=lambda item: item["task_id"]),
+    }
+
+
+def _load_latest_index(
+    index: dict[str, Any], source_sha: str, *, old_failed_tasks: set[int]
+) -> dict[str, Any]:
+    """Attach five later single-browser diagnostics without changing the v5 rows."""
+    if any(
+        index.get(key) is not False
+        for key in ("promotable", "formal_release", "cohort_certified", "official_scores_modified")
+    ):
+        raise ValueError("latest diagnostics cannot claim certification or modify scores")
+    if _verified_digest(index["predecessor"]) != index["predecessor"]["sha256"]:
+        raise ValueError("latest diagnostic predecessor changed")
+    predecessor = Path(index["predecessor"]["path"])
+    if json.loads(predecessor.read_text(encoding="utf-8")).get("schema") != (
+        "original36_diagnostic_closure_index/5"
+    ):
+        raise ValueError("latest diagnostic predecessor is not the v5 original-36 index")
+    baseline = load_diagnostic_closure(predecessor, old_failed_tasks=old_failed_tasks)
+    release_sha = _verified_digest(index["source_receipt"])
+    release = json.loads(Path(index["source_receipt"]["path"]).read_text(encoding="utf-8"))
+    binary_sha = _verified_digest(index["binary"])
+    archive_sha = _verified_digest(index["archive"])
+    manifest_sha = _verified_digest(index["retrieval_manifest"])
+    manifest = json.loads(Path(index["retrieval_manifest"]["path"]).read_text(encoding="utf-8"))
+    if (
+        release.get("schema") != "moli_latest_main_release_diagnostic/1"
+        or release.get("source_head") != LATEST_SOURCE_HEAD
+        or release.get("binary_sha256") != LATEST_BINARY_SHA256
+        or release.get("source_diff_sha256_before") != release.get("source_diff_sha256_after")
+        or release.get("source_changed_during_check") is not False
+        or release.get("exit_code") != 0
+        or binary_sha != LATEST_BINARY_SHA256
+        or manifest.get("schema") != "moli_latest_main_retrieval_four_diagnostic/1"
+        or manifest.get("promotable") is not False
+        or manifest.get("source_head") != LATEST_SOURCE_HEAD
+        or manifest.get("moli_binary_sha256") != binary_sha
+        or set(manifest.get("task_ids", [])) != LATEST_TASKS - {389}
+        or manifest.get("retry") is not False
+    ):
+        raise ValueError("latest Moli build or retrieval manifest does not match the frozen scope")
+    if not SHA256.fullmatch(release.get("source_diff_sha256_after", "")):
+        raise ValueError("latest Moli source-diff binding is invalid")
+    candidates = manifest.get("candidate_bindings") or []
+    if {row.get("task_id") for row in candidates} != LATEST_TASKS - {389}:
+        raise ValueError("latest retrieval candidate inventory differs from the four tasks")
+    for candidate_ref in candidates:
+        _verified_digest(candidate_ref)
+        if candidate_ref["task_id"] == 163:
+            candidate = json.loads(
+                Path(candidate_ref["path"]).read_text(encoding="utf-8")
+            )
+            contract = candidate.get("retrieval_contract") or {}
+            if (
+                candidate.get("task_id") != 163
+                or contract.get("schema") != "lex_replay_current_run_retrieval/3"
+                or (contract.get("semantic_reference") or {}).get("kind")
+                != "reviewed_value_set"
+            ):
+                raise ValueError("task 163 does not bind the declared shared v3 correction")
+    task_refs = index.get("tasks") or []
+    if len(task_refs) != 5 or {row.get("task_id") for row in task_refs} != LATEST_TASKS:
+        raise ValueError("latest Moli diagnostics require exactly five affected tasks")
+    observations = []
+    for task_ref in sorted(task_refs, key=lambda row: row["task_id"]):
+        task_id = task_ref["task_id"]
+        receipt_sha = _verified_digest(task_ref["receipt"])
+        completion_sha = _verified_digest(task_ref["completion"])
+        receipt = json.loads(Path(task_ref["receipt"]["path"]).read_text(encoding="utf-8"))
+        completion = json.loads(Path(task_ref["completion"]["path"]).read_text(encoding="utf-8"))
+        expected_status = (
+            "diagnostic_mutation_completion_pass"
+            if task_id == 389 else "diagnostic_current_retrieval_pass"
+        )
+        if (
+            receipt.get("task_id") != task_id
+            or completion.get("task_id") != task_id
+            or receipt.get("binary_sha256") != binary_sha
+            or receipt.get("status") != expected_status
+            or completion.get("status") != expected_status
+            or receipt.get("official_score") != 1.0
+            or completion.get("official_score") != 1.0
+            or receipt.get("completed_action_count") != receipt.get("action_count")
+            or receipt.get("process_status") != "pass"
+            or receipt.get("recorded_response_used") is not False
+        ):
+            raise ValueError(f"latest Moli diagnostic receipt is inconsistent for task {task_id}")
+        evidence = receipt.get("evidence") or {}
+        required = {"trace.json", "network.har", "evaluation.json", "candidate-input.json"}
+        if task_id == 389:
+            required.add("completion-observation.json")
+        else:
+            required.add("retrieval-acceptance.json")
+        if not required.issubset(evidence):
+            raise ValueError(f"latest Moli diagnostic evidence is incomplete for task {task_id}")
+        evidence_hashes = {name: _verified_digest(ref) for name, ref in evidence.items()}
+        evaluation = json.loads(
+            Path(evidence["evaluation.json"]["path"]).read_text(encoding="utf-8")
+        )
+        if evaluation.get("task_id") != task_id or evaluation.get("score") != 1.0:
+            raise ValueError(f"latest Moli official rule differs for task {task_id}")
+        observations.append(
+            {
+                "task_id": task_id,
+                "browser": "Moli 1.1.7",
+                "status": expected_status,
+                "completed_actions": receipt["completed_action_count"],
+                "action_count": receipt["action_count"],
+                "official_rule_score": receipt["official_score"],
+                "receipt_sha256": receipt_sha,
+                "completion_sha256": completion_sha,
+                "evidence_sha256": evidence_hashes,
+                "recorded_response_used": False,
+                "qualification": "affected_task_diagnostic_only",
+                "scope_note": (
+                    "predeclared_shared_v3_correction" if task_id == 163
+                    else "read_only_completion_observation" if task_id == 389
+                    else "current_source_retrieval"
+                ),
+            }
+        )
+    return {
+        **baseline,
+        "source_sha256": source_sha,
+        "baseline_source_sha256": baseline["source_sha256"],
+        "latest_moli": {
+            "formal_cohort": False,
+            "official_scores_changed": False,
+            "source_head": LATEST_SOURCE_HEAD,
+            "source_diff_sha256": release["source_diff_sha256_after"],
+            "binary_sha256": binary_sha,
+            "source_receipt_sha256": release_sha,
+            "retrieval_manifest_sha256": manifest_sha,
+            "archive_sha256": archive_sha,
+            "observations": observations,
+        },
     }

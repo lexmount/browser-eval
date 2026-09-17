@@ -4,11 +4,20 @@ from pathlib import Path
 
 import pytest
 
+import harness.trajectory_replay.diagnostic_closure as closure_module
 from harness.trajectory_replay.diagnostic_closure import (
     CURRENT_FINDINGS,
     CURRENT_TASKS,
+    LATEST_SOURCE_HEAD,
+    LATEST_TASKS,
+    _load_latest_index,
     _verified_digest,
     load_diagnostic_closure,
+)
+from harness.trajectory_replay.webarena_report import (
+    _assets,
+    _latest_moli_task_section,
+    _write_diagnostic_closure,
 )
 
 
@@ -18,7 +27,6 @@ def test_retrospective_retrieval_findings_do_not_claim_current_qualification() -
         assert "当前候选" in chinese
         assert "current candidate" in english
         assert "qualified output" not in english.lower()
-from harness.trajectory_replay.webarena_report import _assets, _write_diagnostic_closure
 
 
 def _write(path: Path, value: object) -> dict[str, str]:
@@ -128,6 +136,22 @@ def test_diagnostic_pages_keep_old_verdict_and_bilingual_routes(tmp_path: Path) 
         for landing in ("index.html", "fixes.html"):
             (lang_root / landing).write_text("<html><main>existing</main></html>", encoding="utf-8")
     model = {
+        "latest_moli": {
+            "source_head": LATEST_SOURCE_HEAD,
+            "source_diff_sha256": "f" * 64,
+            "binary_sha256": "a" * 64,
+            "observations": [
+                {
+                    "task_id": 29,
+                    "completed_actions": 9,
+                    "action_count": 9,
+                    "official_rule_score": 1.0,
+                    "receipt_sha256": "c" * 64,
+                    "completion_sha256": "d" * 64,
+                    "scope_note": "current_source_retrieval",
+                }
+            ],
+        },
         "entries": [
             {
                 "task_id": 108,
@@ -203,3 +227,181 @@ def test_diagnostic_pages_keep_old_verdict_and_bilingual_routes(tmp_path: Path) 
         tmp_path / "en/diagnostic/313.html"
     ).read_text(encoding="utf-8")
     assert "diagnostics.html" in (tmp_path / "index.html").read_text(encoding="utf-8")
+    assert "Moli 1.1.7 定点诊断" in (tmp_path / "diagnostic/29.html").read_text(
+        encoding="utf-8"
+    )
+    detail_json = json.loads((tmp_path / "data/diagnostic/29.json").read_text(encoding="utf-8"))
+    assert detail_json["latest_moli"]["observation"]["official_rule_score"] == 1.0
+    assert detail_json["latest_moli"]["source_head"] == LATEST_SOURCE_HEAD
+
+
+def _latest_fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict:
+    predecessor = _write(tmp_path / "v5.json", {"schema": "original36_diagnostic_closure_index/5"})
+    binary = _write(tmp_path / "moli", {"binary": "fixture"})
+    monkeypatch.setattr(closure_module, "LATEST_BINARY_SHA256", binary["sha256"])
+    release = _write(
+        tmp_path / "release.json",
+        {
+            "schema": "moli_latest_main_release_diagnostic/1",
+            "source_head": LATEST_SOURCE_HEAD,
+            "binary_sha256": binary["sha256"],
+            "source_diff_sha256_before": "a" * 64,
+            "source_diff_sha256_after": "a" * 64,
+            "source_changed_during_check": False,
+            "exit_code": 0,
+        },
+    )
+    candidates = [
+        {
+            "task_id": task_id,
+            **_write(
+                tmp_path / f"{task_id}-candidate.json",
+                {
+                    "task_id": task_id,
+                    "retrieval_contract": {
+                        "schema": "lex_replay_current_run_retrieval/3",
+                        "semantic_reference": {"kind": "reviewed_value_set"},
+                    }
+                    if task_id == 163 else {},
+                },
+            ),
+        }
+        for task_id in (29, 66, 163, 173)
+    ]
+    manifest = _write(
+        tmp_path / "manifest.json",
+        {
+            "schema": "moli_latest_main_retrieval_four_diagnostic/1",
+            "promotable": False,
+            "source_head": LATEST_SOURCE_HEAD,
+            "moli_binary_sha256": binary["sha256"],
+            "task_ids": [29, 66, 163, 173],
+            "candidate_bindings": candidates,
+            "retry": False,
+        },
+    )
+    archive = _write(tmp_path / "archive.json", {"archived": True})
+    tasks = []
+    for task_id in sorted(LATEST_TASKS):
+        evaluation = _write(
+            tmp_path / f"{task_id}-evaluation.json", {"task_id": task_id, "score": 1.0}
+        )
+        shared = _write(tmp_path / f"{task_id}-trace.json", {"task_id": task_id})
+        evidence = {
+            "trace.json": shared,
+            "network.har": shared,
+            "evaluation.json": evaluation,
+            "candidate-input.json": shared,
+        }
+        evidence[
+            "completion-observation.json" if task_id == 389 else "retrieval-acceptance.json"
+        ] = shared
+        status = (
+            "diagnostic_mutation_completion_pass"
+            if task_id == 389 else "diagnostic_current_retrieval_pass"
+        )
+        receipt = _write(
+            tmp_path / f"{task_id}-receipt.json",
+            {
+                "task_id": task_id,
+                "binary_sha256": binary["sha256"],
+                "status": status,
+                "official_score": 1.0,
+                "completed_action_count": 7,
+                "action_count": 7,
+                "process_status": "pass",
+                "recorded_response_used": False,
+                "evidence": evidence,
+            },
+        )
+        completion = _write(
+            tmp_path / f"{task_id}-completion.json",
+            {"task_id": task_id, "status": status, "official_score": 1.0},
+        )
+        tasks.append({"task_id": task_id, "receipt": receipt, "completion": completion})
+    index = {
+        "schema": "original36_latest_moli_diagnostic_index/6",
+        "promotable": False,
+        "formal_release": False,
+        "cohort_certified": False,
+        "official_scores_modified": False,
+        "predecessor": predecessor,
+        "source_receipt": release,
+        "binary": binary,
+        "archive": archive,
+        "retrieval_manifest": manifest,
+        "tasks": tasks,
+    }
+    monkeypatch.setattr(
+        closure_module,
+        "load_diagnostic_closure",
+        lambda _path, old_failed_tasks: {
+            "source_sha256": predecessor["sha256"],
+            "entries": [],
+            "original_failures": 36,
+            "inherited_mixed_build": 27,
+            "current_b96": 9,
+        },
+    )
+    return index
+
+
+def test_latest_five_are_separate_and_all_named_evidence_is_verified(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    index = _latest_fixture(tmp_path, monkeypatch)
+    model = _load_latest_index(index, "c" * 64, old_failed_tasks=set())
+    latest = model["latest_moli"]
+    assert model["original_failures"] == 36
+    assert len(latest["observations"]) == 5
+    assert latest["formal_cohort"] is False
+    assert latest["source_diff_sha256"] == "a" * 64
+    assert next(row for row in latest["observations"] if row["task_id"] == 163)[
+        "scope_note"
+    ] == "predeclared_shared_v3_correction"
+    assert next(row for row in latest["observations"] if row["task_id"] == 389)[
+        "scope_note"
+    ] == "read_only_completion_observation"
+    assert str(tmp_path) not in json.dumps(model)
+    (tmp_path / "29-trace.json").write_text("changed", encoding="utf-8")
+    with pytest.raises(ValueError, match="hash mismatch"):
+        _load_latest_index(index, "c" * 64, old_failed_tasks=set())
+
+
+def test_latest_five_rejects_promotion_and_wrong_scope(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    index = _latest_fixture(tmp_path, monkeypatch)
+    index["cohort_certified"] = True
+    with pytest.raises(ValueError, match="cannot claim certification"):
+        _load_latest_index(index, "c" * 64, old_failed_tasks=set())
+    index["cohort_certified"] = False
+    index["tasks"] = index["tasks"][:-1]
+    with pytest.raises(ValueError, match="exactly five"):
+        _load_latest_index(index, "c" * 64, old_failed_tasks=set())
+
+
+def test_latest_diagnostic_page_keeps_later_receipt_separate() -> None:
+    latest = {
+        "source_head": LATEST_SOURCE_HEAD,
+        "source_diff_sha256": "a" * 64,
+        "binary_sha256": "b" * 64,
+        "observations": [
+            {
+                "task_id": 389,
+                "completed_actions": 10,
+                "action_count": 10,
+                "official_rule_score": 1.0,
+                "receipt_sha256": "c" * 64,
+                "completion_sha256": "d" * 64,
+                "scope_note": "read_only_completion_observation",
+            }
+        ],
+    }
+    zh = _latest_moli_task_section("zh", latest, 389)
+    en = _latest_moli_task_section("en", latest, 389)
+    assert "Moli 1.1.7 定点诊断" in zh
+    assert "只读完成观察" in zh
+    assert "does not replace the historical score" in en
+    assert LATEST_SOURCE_HEAD in zh and "c" * 64 in en
+    assert _latest_moli_task_section("zh", latest, 29) == ""

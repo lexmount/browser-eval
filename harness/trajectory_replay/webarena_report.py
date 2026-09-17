@@ -1036,6 +1036,49 @@ def _write_replay_fix_log(output: Path, model: dict[str, Any]) -> None:
         )
 
 
+def _latest_moli_task_section(lang: str, latest: dict[str, Any] | None, task_id: int) -> str:
+    if not latest:
+        return ""
+    observation = next(
+        (row for row in latest["observations"] if row["task_id"] == task_id), None
+    )
+    if observation is None:
+        return ""
+    zh = lang == "zh"
+    note = {
+        "predeclared_shared_v3_correction": (
+            "这题采用预先声明的 v3 共享验收修正；本次结果不能单独归因于浏览器。",
+            "This task uses the preregistered v3 shared acceptance correction; the outcome cannot be attributed to the browser alone.",
+        ),
+        "read_only_completion_observation": (
+            "提交后增加一次只读完成观察；它不修改站点，但与较早轨迹的动作数不同。",
+            "A read-only completion observation followed submission. It did not mutate the site, but changed the action count relative to the earlier trajectory.",
+        ),
+        "current_source_retrieval": (
+            "基于本轮页面数据的定点检索验证；未使用历史记录答案。",
+            "An affected-task retrieval check using current page data, not the historical recorded answer.",
+        ),
+    }[observation["scope_note"]][0 if zh else 1]
+    result = (
+        "当前取数验收通过" if zh else "Current-data acceptance passed"
+    ) if task_id != 389 else (
+        "提交完成的定点验证" if zh else "Affected-task mutation completion verified"
+    )
+    return (
+        f'<section class="latest-diagnostic"><h2>{"Moli 1.1.7 定点诊断" if zh else "Moli 1.1.7 affected-task diagnostic"}</h2>'
+        f'<p class="callout">{"仅这一题的新收据；不纳入上方历史分数，也不构成新版 90 题成绩。" if zh else "This later receipt covers this task only. It does not replace the historical score above or form a new 90-task result."}</p>'
+        f'<div class="table-scroll diagnostic-observations"><table><thead><tr><th>{"浏览器" if zh else "Browser"}</th><th>{"动作" if zh else "Actions"}</th><th>{"原始状态" if zh else "Raw status"}</th><th>{"官方规则分数" if zh else "Official-rule score"}</th><th>{"收据 SHA-256" if zh else "Receipt SHA-256"}</th></tr></thead>'
+        f'<tbody><tr><td>Moli 1.1.7</td><td>{observation["completed_actions"]}/{observation["action_count"]}</td>'
+        f'<td>{_e(result)}</td><td>{observation["official_rule_score"]:g}</td><td><code>{_e(observation["receipt_sha256"])}</code></td></tr></tbody></table></div>'
+        f'<p>{_e(note)}</p>'
+        f'<p>{"源码提交" if zh else "Source commit"}: <code>{_e(latest["source_head"])}</code><br>'
+        f'{"源码差异 SHA-256" if zh else "Source diff SHA-256"}: <code>{_e(latest["source_diff_sha256"])}</code><br>'
+        f'{"二进制 SHA-256" if zh else "Binary SHA-256"}: <code>{_e(latest["binary_sha256"])}</code></p>'
+        f'<p>{"执行记录 SHA-256" if zh else "Completion receipt SHA-256"}: <code>{_e(observation["completion_sha256"])}</code></p>'
+        '</section>'
+    )
+
+
 def _write_diagnostic_closure(
     output: Path,
     model: dict[str, Any],
@@ -1053,7 +1096,25 @@ def _write_diagnostic_closure(
         rows = []
         for item in model["entries"]:
             task_id = item["task_id"]
-            _write_json(output / "data/diagnostic" / f"{task_id}.json", item)
+            latest = model.get("latest_moli")
+            latest_observation = next(
+                (row for row in latest["observations"] if row["task_id"] == task_id),
+                None,
+            ) if latest else None
+            public_item = (
+                {
+                    **item,
+                    "latest_moli": {
+                        "source_head": latest["source_head"],
+                        "source_diff_sha256": latest["source_diff_sha256"],
+                        "binary_sha256": latest["binary_sha256"],
+                        "observation": latest_observation,
+                        "formal_cohort": False,
+                    },
+                }
+                if latest_observation else item
+            )
+            _write_json(output / "data/diagnostic" / f"{task_id}.json", public_item)
             current = item["generation"] == "current_b96"
             group = ("本轮 Moli 修复构建" if zh else "Current Moli repair build") if current else ("较早混合构建的后续观察" if zh else "Earlier mixed-build observations")
             finding = item["finding"]
@@ -1159,7 +1220,8 @@ def _write_diagnostic_closure(
                 + f'<section><h2>{"后续观察与复核" if zh else "Subsequent observations and audit"}</h2>{build_identity}{observation_table}{observation_note}</section>'
                 + f'<section><h2>{"证据绑定" if zh else "Evidence bindings"}</h2><p>{"以下摘要经构建时逐个校验；原始本地路径、运行日志和页面数据不公开。" if zh else "Each digest was verified at build time. Local paths, runtime logs, and page data are not published."}</p><ul>{digest_list}</ul></section>'
                 f'<p><a href="{data_prefix}data/diagnostic/{task_id}.json">{"查看结构化摘要" if zh else "Inspect structured summary"}</a></p>'
-                f'<p><a href="../diagnostics.html">{"返回诊断总览" if zh else "Back to diagnostic overview"}</a></p>'
+                + _latest_moli_task_section(lang, model.get("latest_moli"), task_id)
+                + f'<p><a href="../diagnostics.html">{"返回诊断总览" if zh else "Back to diagnostic overview"}</a></p>'
             )
             (detail_root / f"{task_id}.html").write_text(
                 _shell(lang, "fixes", f"#{task_id} · {topic}", detail, depth=1, current_route=f"diagnostic/{task_id}.html"),
@@ -1195,10 +1257,27 @@ def _write_diagnostic_closure(
             if zh else
             f"All 36 original failures have subsequent diagnostic records: 27 use different earlier Moli builds; the last retained receipt for {earlier_action_only} shows completed actions without official evaluation. Nine have affected-task validation on the current Moli repair build. These are neither a single-new-version 36/36 score nor a certified new 90-task cohort. The earlier records have no new per-task code-level cause adjudication; read them alongside the original failure pages."
         )
+        latest = model.get("latest_moli")
+        latest_section = ""
+        if latest:
+            latest_rows = "".join(
+                f'<tr><td><a href="diagnostic/{row["task_id"]}.html">#{row["task_id"]}</a></td>'
+                f'<td>Moli 1.1.7</td><td>{row["completed_actions"]}/{row["action_count"]}</td>'
+                f'<td>{row["official_rule_score"]:g}</td></tr>'
+                for row in latest["observations"]
+            )
+            latest_section = (
+                f'<section><h2>{"另外五条 Moli 1.1.7 定点诊断" if zh else "Five additional Moli 1.1.7 affected-task diagnostics"}</h2>'
+                f'<p>{"这五条使用最新构建，仅验证列出的受影响任务；163 使用预声明的共享 v3 修正，389 增加提交后的只读观察。收据不替换原 27+9 条记录，也不是新版本的 36 题或 90 题成绩。" if zh else "These five later receipts cover only the listed affected tasks. Task 163 uses the preregistered shared v3 correction; task 389 adds a read-only post-submit observation. They do not replace the earlier 27+9 records or form a new 36- or 90-task score."}</p>'
+                '<div class="table-scroll diagnostic-observations"><table><thead><tr>'
+                f'<th>{"任务" if zh else "Task"}</th><th>{"浏览器" if zh else "Browser"}</th><th>{"动作" if zh else "Actions"}</th><th>{"官方规则分数" if zh else "Official-rule score"}</th></tr></thead>'
+                f'<tbody>{latest_rows}</tbody></table></div></section>'
+            )
         body = (
             f'<section class="hero"><p class="eyebrow">{"原始 36 条失败" if zh else "Original 36 failures"}</p><h1>{"修复诊断总览" if zh else "Repair diagnosis overview"}</h1><p>{_e(intro)}</p></section>'
             f'<section><h2>{"验证范围" if zh else "Validation scope"}</h2><p>{_e(boundary)}</p></section>'
-            f'<section><h2>{"逐题诊断" if zh else "Per-task diagnosis"}</h2>'
+            + latest_section
+            + f'<section><h2>{"逐题诊断" if zh else "Per-task diagnosis"}</h2>'
             f'<div class="filters"><label>{"搜索" if zh else "Search"}<input type="search" data-closure-search placeholder="{"任务编号或原因" if zh else "Task ID or finding"}"></label>'
             f'<label>{"证据批次" if zh else "Evidence group"}<select data-closure-group><option value="">{"全部" if zh else "All"}</option><option value="inherited_mixed_build">{"较早混合构建（27）" if zh else "Earlier mixed builds (27)"}</option><option value="current_b96">{"本轮修复构建（9）" if zh else "Current repair build (9)"}</option></select></label></div>'
             f'<p data-closure-count></p><div class="table-scroll inventory"><table><thead><tr><th>{"任务" if zh else "Task"}</th><th>{"类型" if zh else "Type"}</th><th>{"范围" if zh else "Scope"}</th><th>{"诊断主题" if zh else "Finding"}</th><th>{"历史证据" if zh else "Historical evidence"}</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div></section>'
