@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from html import unescape
 import json
 import re
 from pathlib import Path
@@ -159,7 +160,7 @@ def _observed(candidate: dict, body: str, path: str | None = None) -> bool:
             return len(fields) == 1 and fields[0].get_text() == observer["equals"]
         if candidate["task_id"] == 464:
             fields = soup.select(observer["selector"])
-            return len(fields) == 1 and fields[0].decode_contents() == observer["html_value"]
+            return len(fields) == 1 and unescape(fields[0].decode_contents()) == observer["html_value"]
         if candidate["task_id"] == 571:
             for selector, expected in observer["fields"].items():
                 nodes = soup.select(selector)
@@ -276,8 +277,8 @@ def _pre_commit_observed(candidate: dict, actual_value: str) -> bool:
         ),
         (
             464,
-            '<textarea name="product[short_description]"><p>1 customer(s) love it!</p></textarea>',
-            '<textarea name="product[short_description]"><p>0 customer(s) love it!</p></textarea>',
+            '<textarea name="product[short_description]">&lt;p&gt;1 customer(s) love it!&lt;/p&gt;</textarea>',
+            '<textarea name="product[short_description]">&lt;p&gt;0 customer(s) love it!&lt;/p&gt;</textarea>',
         ),
         (
             658,
