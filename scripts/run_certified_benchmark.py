@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -101,6 +102,9 @@ def run(command: list[str]) -> None:
 
 
 def main(argv: list[str] | None = None) -> None:
+    if (argv or sys.argv[1:])[:1] == ["wcxb"]:
+        run_wcxb((argv or sys.argv[1:])[1:])
+        return
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", type=Path, default=ROOT / "evaluation/dataset.json")
     parser.add_argument("--output", type=Path, required=True)
@@ -205,6 +209,56 @@ def main(argv: list[str] | None = None) -> None:
     run([python, "scripts/finalize_benchmark_run.py", "--run-dir", str(args.output),
          "--observations", str(observations)])
     print("Certified benchmark cohort:", args.output)
+
+
+def run_wcxb(argv: list[str]) -> None:
+    """Certify the complete immutable WCXB test matrix around all five calls."""
+    parser = argparse.ArgumentParser(description="Certify five-browser WCXB test cohort")
+    parser.add_argument("--dataset", type=Path, required=True)
+    parser.add_argument("--sample-manifest", type=Path, required=True)
+    parser.add_argument("--output-root", type=Path, required=True)
+    parser.add_argument("--env-file", type=Path, default=ROOT / ".env")
+    args = parser.parse_args(argv)
+    sys.path.insert(0, str(ROOT))
+    from scripts.run_webmainbench_benchmark import PROVIDERS, load_wcxb_source
+
+    if args.output_root.exists():
+        parser.error("WCXB output root must be new and immutable")
+    source_records, before = load_wcxb_source(args.dataset)
+    from scripts.select_wcxb_sample import validate_manifest
+    manifest = json.loads(args.sample_manifest.read_text())
+    selected, _ = validate_manifest(source_records, before, manifest)
+    expected_ids = {row['track_id'] for row in selected}
+    sample_before = hashlib.sha256(args.sample_manifest.read_bytes()).hexdigest()
+    args.output_root.mkdir(parents=True)
+    runs = []
+    for provider in PROVIDERS:
+        output = args.output_root / provider
+        run([sys.executable, "scripts/run_webmainbench_benchmark.py", "--benchmark", "wcxb",
+             "--dataset", str(args.dataset), "--provider", provider,
+             "--output", str(output), "--env-file", str(args.env_file),
+             "--case-ids-file", str(args.sample_manifest)])
+        execution = json.loads((output / "execution.json").read_text(encoding="utf-8"))
+        if (execution["case_count"] != len(selected) or execution["source_dataset_sha256"] != before
+                or execution["selection_manifest"]["sha256"] != sample_before):
+            raise ValueError("Incomplete or drifted WCXB provider cohort: " + provider)
+        rows = [json.loads(line) for line in (output / "results.jsonl").read_text(encoding="utf-8").splitlines()]
+        if len(rows) != len(selected) or {row["track_id"] for row in rows} != expected_ids:
+            raise ValueError("Incomplete WCXB result matrix: " + provider)
+        runs.append({"provider": provider, "run_id": execution["run_id"],
+                     "identity": execution["implementation_identity"],
+                     "results_sha256": hashlib.sha256((output / "results.jsonl").read_bytes()).hexdigest()})
+    _, after = load_wcxb_source(args.dataset)
+    sample_after = hashlib.sha256(args.sample_manifest.read_bytes()).hexdigest()
+    if after != before or sample_after != sample_before:
+        raise ValueError("WCXB references changed during provider calls")
+    receipt = {"schema_version": 1, "benchmark": manifest['dataset_id'],
+               "source_sha256_before": before, "source_sha256_after": after,
+               "sample_sha256_before": sample_before, "sample_sha256_after": sample_after,
+               "providers": runs, "complete": True}
+    (args.output_root / "certification.json").write_text(
+        json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print("Certified WCXB cohort:", args.output_root)
 
 
 if __name__ == "__main__":

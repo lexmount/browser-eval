@@ -67,7 +67,12 @@ class PageShape(HTMLParser):
  def handle_data(self,text):
   if not self.skip:self.numbers.extend(re.findall(r'\d+(?:[.,]\d+)*(?:%|\b)',text))
 
-root=Path(sys.argv[1]).resolve();d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
+root=Path(sys.argv[1]).resolve()
+if (root/'sample-manifest.json').is_file() and (root/'certification.json').is_file():
+ from scripts.check_wcxb_report import check
+ check(root)
+ raise SystemExit(0)
+d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
 repository=Path(__file__).resolve().parents[1]
 if d.get('comparison',{}).get('kind')=='webmainbench_frozen_html_to_markdown':
  from scripts.check_webmainbench_report import check_report
