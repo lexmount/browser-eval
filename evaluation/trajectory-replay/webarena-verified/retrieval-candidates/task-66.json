@@ -1,0 +1,367 @@
+{
+  "task_id": 66,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://192.168.5.2:9999"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"/forums\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"/f/books\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "wait",
+      "timeout": 1000
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"/f/books/81371/the-letters-of-t-s-eliot-to-emily-hale-that-were-kept-sealed\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:9999/f/Books"
+    },
+    {
+      "action": "wait",
+      "seconds": 2
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => {\n  const controller=new AbortController();\n  const deadlineTimer=setTimeout(()=>controller.abort(),20000);\n  try {\n  const normalize = value => String(value ?? '').replace(/\\s+/g, ' ').trim();\n  const listingUrl = new URL(location.href);\n  if (listingUrl.origin !== location.origin ||\n      listingUrl.pathname.toLowerCase().replace(/\\/$/, '') !== '/f/books') {\n    throw new Error('wrong Books listing');\n  }\n  const sortControl = [...document.querySelectorAll('button[aria-label]')]\n    .find(button => /^sort by:\\s*hot$/i.test(button.getAttribute('aria-label') || ''));\n  if (!sortControl) throw new Error('Books listing is not visibly sorted by Hot');\n\n  const listingArticles = [...document.querySelectorAll('main > article')];\n  if (listingArticles.length < 10) {\n    throw new Error('expected at least ten hot posts, found ' + listingArticles.length);\n  }\n  const discovered = listingArticles.slice(0, 10).map((article, rank) => {\n    const permalinks = [...article.querySelectorAll('a[href]')]\n      .map(anchor => anchor.getAttribute('href'))\n      .filter(Boolean)\n      .map(href => ({href, match: /^\\/f\\/books\\/(\\d+)(?:\\/|$)/i.exec(href)}))\n      .filter(entry => entry.match);\n    const ids = [...new Set(permalinks.map(entry => entry.match[1]))];\n    if (ids.length !== 1) throw new Error('rank ' + (rank + 1) + ' has ambiguous post identity');\n    const href = permalinks.find(entry => entry.match[1] === ids[0]).href;\n    const title = normalize(article.querySelector('header h1')?.textContent);\n    if (!title) throw new Error('rank ' + (rank + 1) + ' has no post title');\n    return {rank: rank + 1, post_id: ids[0], href, title};\n  });\n  if (new Set(discovered.map(post => post.post_id)).size !== 10) {\n    throw new Error('hot top ten contains duplicate post identities');\n  }\n\n  const posts = [];\n  for (const listed of discovered) {\n    const detailUrl = new URL(listed.href, location.href);\n    if (detailUrl.origin !== location.origin) throw new Error('cross-origin post permalink');\n    const response = await fetch(detailUrl.href, {credentials: 'same-origin',redirect:'error',signal:controller.signal});\n    if (!response.ok || response.redirected) {\n      throw new Error('post fetch failed ' + response.status + ' ' + listed.href);\n    }\n    const page = new DOMParser().parseFromString(await response.text(), 'text/html');\n    const article = page.querySelector('main > article');\n    if (!article) throw new Error('post article missing ' + listed.post_id);\n    const pattern = new RegExp('^/f/books/' + listed.post_id + '(?:/|$)', 'i');\n    const detailPermalink = [...article.querySelectorAll('a[href]')]\n      .map(anchor => anchor.getAttribute('href'))\n      .find(href => pattern.test(href || ''));\n    if (!detailPermalink) throw new Error('post identity mismatch ' + listed.post_id);\n    const title = normalize(article.querySelector('header h1')?.textContent);\n    if (title !== listed.title) throw new Error('listing/detail title mismatch ' + listed.post_id);\n    const articleText = normalize(article.textContent);\n    const body = article.querySelector('.submission__body');\n    const bodyText = body ? body.textContent : null;\n    posts.push({\n      ...listed,\n      article_text: articleText,\n      body_text: bodyText,\n    });\n  }\n\n  return {\n    schema: 'books_hot_current_observation/1',\n    scope: true,\n    complete: posts.length === 10,\n    forum: 'books',\n    sort: 'hot',\n    listing_url: listingUrl.href,\n    posts,\n  };\n  } finally { controller.abort();clearTimeout(deadlineTimer); }\n})()\n"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/3",
+    "task_id": 66,
+    "canonical_calls_sha256": "6f26e505ed350c7ab7b73cd46fb523002f362bbb8ccb9e20f7906096480bf661",
+    "sources": [
+      {
+        "name": "books",
+        "step": 12,
+        "action_sha256": "bc265165c93aaf89406a6284690e99fe1438bd7a6e2bfade4c981fc760b7b1ec",
+        "decode": "json"
+      }
+    ],
+    "semantic_reference": {
+      "kind": "reviewed_span_annotation",
+      "browser_semantic_inference": false,
+      "reviewer": {
+        "kind": "agent",
+        "identity": "parent agent, independent of candidate author"
+      },
+      "scope": "exactly one book recommendation: complete ordered ten-post annotation",
+      "evidence_sha256": "d1a5d8251a10dd7a0120bb73ed569bfc3698bcedf5633da33fa9a025fa2f0983"
+    },
+    "reviewed_span_projection": {
+      "kind": "reviewed_ordered_spans/1",
+      "source": "books",
+      "collection_pointer": "/posts",
+      "identity_pointer": "/post_id",
+      "semantic_text_pointer": "/article_text",
+      "output_text_pointer": "/title",
+      "output": "selected_item_text",
+      "span_unit": "unicode_code_points",
+      "annotation": {
+        "schema": "lex_replay_reviewed_span_annotation/1",
+        "semantic": "exactly_one_book_recommendation",
+        "items": [
+          {
+            "identity_sha256": "c2f152d486b7f4c22aca89e884a338e7c44e8cde0f14dc2caa4e5c09c92361a3",
+            "semantic_text_sha256": "d3fdb3c488e53ed58c7f3ce84ce916858d3d2d24acb9c1f030a5bac4500db457",
+            "output_text_sha256": "d52c282aedb6a94ece3ee54e3326e24902f1c1cf83db1d3d32126d3e7226f66f",
+            "recommendation_count": 0,
+            "spans": []
+          },
+          {
+            "identity_sha256": "75fd57a688ee1139be8d59d299593518bd6f6c3318cc4462c60c49145c240c0f",
+            "semantic_text_sha256": "308566470e823dd5c52c7865dd274c044246dc898a174c4b7717f7a33dc370bb",
+            "output_text_sha256": "23c8d20d6ec994ff4ea67c911e1c92832a3a974b982d158fd7ed58151a6c3bd9",
+            "recommendation_count": 0,
+            "spans": []
+          },
+          {
+            "identity_sha256": "e4ea530a9e7192d38a22cd7e39616e9cff23240f6d71bca3e2ce23404d794828",
+            "semantic_text_sha256": "bb31ad3f3d96340e3e70fb1608d4e86b519b05c65cbbdc14ab1124fafaea4212",
+            "output_text_sha256": "15ac1a86f7556949e2e8a7a7a7a8afb3dc981b9c434dd341f9b4ec654cdb08d5",
+            "recommendation_count": 0,
+            "spans": []
+          },
+          {
+            "identity_sha256": "a2577600b0089626a300c9bdd613f95a97336f559fa42cdf045978d43459b833",
+            "semantic_text_sha256": "eb079fe67aa2953061bb9013a0197e9d15daadfa926899b85cd6fcdb0d778889",
+            "output_text_sha256": "63228ee63c7769d8bfbfe0ee3749fd1f8bd1a0dc13e1583cbe9712a657b9116d",
+            "recommendation_count": 0,
+            "spans": []
+          },
+          {
+            "identity_sha256": "e7f270e372477c9c2e16c97f7f8e3ffd17ef64939587b89c22b56c9f0c9cd2fc",
+            "semantic_text_sha256": "37b19f8c3c3e98b7864a24951c28e8b84725cdf9aa5cc29c2cddd9d88f2101d3",
+            "output_text_sha256": "9fbf39b5c8e3401dbc5dda2645b0a00e6de5c9e04a9154bedf7cc64fcb3a544f",
+            "recommendation_count": 0,
+            "spans": []
+          },
+          {
+            "identity_sha256": "84652a06807063cc0672d570ff11aefd5c8aabd888150e87b9222e2d5f2062f9",
+            "semantic_text_sha256": "0519589599386324a7f7ec5a27f7fe7faa6c2f6aa8e482b5626a1c1104219544",
+            "output_text_sha256": "011c110f00e30033ec4503bed8655f09015f8efd7ee4b83c340bb9026e0e02c6",
+            "recommendation_count": 0,
+            "spans": []
+          },
+          {
+            "identity_sha256": "66a895fc34d189481c060a627adbf5f208cb6b45e4d2d2627da985546c820887",
+            "semantic_text_sha256": "bd624901cd6c90158cf98a3f3d2b913ffa80691db2d823d0b87656428206e7a3",
+            "output_text_sha256": "09a0f9d96e1e78f88fa25232e976a7451dacf9b9a25cb04c207defb4c33f97d7",
+            "recommendation_count": 0,
+            "spans": []
+          },
+          {
+            "identity_sha256": "cde84afcd407f4393eea42c81753c12363d4b600e9475bb3a0c077ff9bb84f67",
+            "semantic_text_sha256": "e1a850ebc83c5f736178401c59d53fe2d8134a2f9572a9a95ffc226c592e2f80",
+            "output_text_sha256": "b9d9393f991fcdac1e27d170349766fa6cd91d3d1f95cb42fb3f9640aec04d61",
+            "recommendation_count": 1,
+            "spans": [
+              {
+                "start": 24,
+                "end": 34
+              }
+            ]
+          },
+          {
+            "identity_sha256": "27589092311867d58a79762b17f6ba77ce79c2a4e0bb2d78703c814dc0acb1b9",
+            "semantic_text_sha256": "86270b68643f2ba5bce707d889d0c98e874074f57f56d29d1b51477a5e7a2ec1",
+            "output_text_sha256": "79098a0b5125a7afdccad32f6b7c44f281752ad85ccee3ef575f28b1d8919edd",
+            "recommendation_count": 1,
+            "spans": [
+              {
+                "start": 36,
+                "end": 53
+              }
+            ]
+          },
+          {
+            "identity_sha256": "db89597c0d478af089407db4a7d26adc52db46f99e1d0ba35893dd8abd995191",
+            "semantic_text_sha256": "7ddb5043f154cfbc688660c5a4b91f7e94e901f58b76cc855f81633efa29f447",
+            "output_text_sha256": "4a550a5932e0be6991b6b4a0cc71184ba247c65fc1ff018368b26b35b5721f02",
+            "recommendation_count": 0,
+            "spans": []
+          }
+        ]
+      }
+    },
+    "requirements": {
+      "scope": {
+        "source": "books",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "books",
+        "pointer": "/complete"
+      }
+    },
+    "review_evidence": {
+      "schema": "lex_replay_review_evidence/1",
+      "reviewer": {
+        "kind": "agent",
+        "identity": "parent agent, independent of candidate author"
+      },
+      "scope": "exactly one book recommendation: complete ordered ten-post annotation",
+      "task_id": 66,
+      "sources_sha256": "2913c6c7436c85f4cf8a77fa1eff836a00a905b903066e0321cb061a18513237",
+      "projection_sha256": "340a5d725d78633f2472acd51d17dd614e4998aa2b0473f74300784d572472e8",
+      "source_review": {
+        "reviewer": {
+          "kind": "agent",
+          "identity": "parent agent, independent of candidate author"
+        },
+        "scope": "exactly one book recommendation: complete ordered ten-post annotation",
+        "task_id": 66,
+        "sources_sha256": "2913c6c7436c85f4cf8a77fa1eff836a00a905b903066e0321cb061a18513237",
+        "projection_sha256": "340a5d725d78633f2472acd51d17dd614e4998aa2b0473f74300784d572472e8",
+        "decision": "Preserve raw source identities; apply explicitly scoped downstream interpretation only.",
+        "predecessor_artifacts": [
+          {
+            "utf8": "{\n  \"scope\": \"Independent review of ten proposed semantic reference labels, not a review or alteration of browser verdicts\",\n  \"reviewer\": \"parent agent, independent of candidate author\",\n  \"source_trace_sha256\": \"f34650670d1191068129bc0087cc7b936f8aa99af4728e1834da3f3257ad57d7\",\n  \"draft_annotation_sha256\": \"7229d803c15826271bbc0065b866df334da782152a6ced0c53fc3a9855221b6d\",\n  \"method\": \"Read complete retained article text for all ten posts in observed order; distinguish positive recommendation of one identifiable book from mentions, general author praise, news and bookstore recommendations.\",\n  \"decisions\": [\n    {\"post_id\": \"81371\", \"qualifies\": false, \"reason\": \"Notice of an online letter release, not a recommendation of a single book.\"},\n    {\"post_id\": \"59421\", \"qualifies\": false, \"reason\": \"Recommends a bookstore purchasing platform, not a book.\"},\n    {\"post_id\": \"59447\", \"qualifies\": false, \"reason\": \"Prison education and notebook donation news, with no individual book recommendation.\"},\n    {\"post_id\": \"103102\", \"qualifies\": false, \"reason\": \"Author collaboration news mentioning a catalogue of books, not one recommendation.\"},\n    {\"post_id\": \"124017\", \"qualifies\": false, \"reason\": \"Ranch preservation news; a title in the ranch's identity is not a reading recommendation.\"},\n    {\"post_id\": \"59466\", \"qualifies\": false, \"reason\": \"Publishing-industry survival news, no individual recommended book.\"},\n    {\"post_id\": \"59478\", \"qualifies\": false, \"reason\": \"General praise and critique of an author's mysteries; indirect allusions and plot examples do not isolate one recommended book.\"},\n    {\"post_id\": \"17445\", \"qualifies\": true, \"reason\": \"A positive report of reading the title book. The trilogy is mentioned as a tentative future possibility with reservations; movie adaptations are not additional recommended books.\"},\n    {\"post_id\": \"59396\", \"qualifies\": true, \"reason\": \"Explicitly positive reading/listening recommendation of the title book; the print and audio versions are the same book, not two.\"},\n    {\"post_id\": \"103061\", \"qualifies\": false, \"reason\": \"Used-bookstore appreciation, not a specific book recommendation.\"}\n  ],\n  \"agreement\": \"All ten inclusion/exclusion labels agree with the draft under the stated rule. Nonqualifying zero counts mean no individually identified book satisfying this rule, not a claim that every general endorsement has literal cardinality zero.\",\n  \"limits\": \"This validates only the retained semantic reference. Fresh current-page content, order, full-text hashes and source spans must still match during qualification; otherwise fail closed. No historical answer is a measured output.\"\n}\n",
+            "sha256": "8edda3e2c4c12c75a11a25adf167c741b695b839e39f14a38416f84f9220966f",
+            "content": {
+              "scope": "Independent review of ten proposed semantic reference labels, not a review or alteration of browser verdicts",
+              "reviewer": "parent agent, independent of candidate author",
+              "source_trace_sha256": "f34650670d1191068129bc0087cc7b936f8aa99af4728e1834da3f3257ad57d7",
+              "draft_annotation_sha256": "7229d803c15826271bbc0065b866df334da782152a6ced0c53fc3a9855221b6d",
+              "method": "Read complete retained article text for all ten posts in observed order; distinguish positive recommendation of one identifiable book from mentions, general author praise, news and bookstore recommendations.",
+              "decisions": [
+                {
+                  "post_id": "81371",
+                  "qualifies": false,
+                  "reason": "Notice of an online letter release, not a recommendation of a single book."
+                },
+                {
+                  "post_id": "59421",
+                  "qualifies": false,
+                  "reason": "Recommends a bookstore purchasing platform, not a book."
+                },
+                {
+                  "post_id": "59447",
+                  "qualifies": false,
+                  "reason": "Prison education and notebook donation news, with no individual book recommendation."
+                },
+                {
+                  "post_id": "103102",
+                  "qualifies": false,
+                  "reason": "Author collaboration news mentioning a catalogue of books, not one recommendation."
+                },
+                {
+                  "post_id": "124017",
+                  "qualifies": false,
+                  "reason": "Ranch preservation news; a title in the ranch's identity is not a reading recommendation."
+                },
+                {
+                  "post_id": "59466",
+                  "qualifies": false,
+                  "reason": "Publishing-industry survival news, no individual recommended book."
+                },
+                {
+                  "post_id": "59478",
+                  "qualifies": false,
+                  "reason": "General praise and critique of an author's mysteries; indirect allusions and plot examples do not isolate one recommended book."
+                },
+                {
+                  "post_id": "17445",
+                  "qualifies": true,
+                  "reason": "A positive report of reading the title book. The trilogy is mentioned as a tentative future possibility with reservations; movie adaptations are not additional recommended books."
+                },
+                {
+                  "post_id": "59396",
+                  "qualifies": true,
+                  "reason": "Explicitly positive reading/listening recommendation of the title book; the print and audio versions are the same book, not two."
+                },
+                {
+                  "post_id": "103061",
+                  "qualifies": false,
+                  "reason": "Used-bookstore appreciation, not a specific book recommendation."
+                }
+              ],
+              "agreement": "All ten inclusion/exclusion labels agree with the draft under the stated rule. Nonqualifying zero counts mean no individually identified book satisfying this rule, not a claim that every general endorsement has literal cardinality zero.",
+              "limits": "This validates only the retained semantic reference. Fresh current-page content, order, full-text hashes and source spans must still match during qualification; otherwise fail closed. No historical answer is a measured output."
+            },
+            "bindings": [
+              {
+                "artifact_pointer": "/reviewer",
+                "contract_pointer": "/semantic_reference/reviewer/identity"
+              }
+            ]
+          }
+        ],
+        "qualification_note": "Original qualified nine-action prefix retained; appended current reading route returns from long article to Books listing. Semantic annotation unchanged."
+      },
+      "source_review_sha256": "568dc5ff1085b7dd0e926a3607c7bb68915ad9112a944e66431060f71f874ed2",
+      "source_review_artifact": {
+        "utf8": "{\n  \"reviewer\": {\n    \"kind\": \"agent\",\n    \"identity\": \"parent agent, independent of candidate author\"\n  },\n  \"scope\": \"exactly one book recommendation: complete ordered ten-post annotation\",\n  \"task_id\": 66,\n  \"sources_sha256\": \"2913c6c7436c85f4cf8a77fa1eff836a00a905b903066e0321cb061a18513237\",\n  \"projection_sha256\": \"340a5d725d78633f2472acd51d17dd614e4998aa2b0473f74300784d572472e8\",\n  \"decision\": \"Preserve raw source identities; apply explicitly scoped downstream interpretation only.\",\n  \"predecessor_artifacts\": [\n    {\n      \"utf8\": \"{\\n  \\\"scope\\\": \\\"Independent review of ten proposed semantic reference labels, not a review or alteration of browser verdicts\\\",\\n  \\\"reviewer\\\": \\\"parent agent, independent of candidate author\\\",\\n  \\\"source_trace_sha256\\\": \\\"f34650670d1191068129bc0087cc7b936f8aa99af4728e1834da3f3257ad57d7\\\",\\n  \\\"draft_annotation_sha256\\\": \\\"7229d803c15826271bbc0065b866df334da782152a6ced0c53fc3a9855221b6d\\\",\\n  \\\"method\\\": \\\"Read complete retained article text for all ten posts in observed order; distinguish positive recommendation of one identifiable book from mentions, general author praise, news and bookstore recommendations.\\\",\\n  \\\"decisions\\\": [\\n    {\\\"post_id\\\": \\\"81371\\\", \\\"qualifies\\\": false, \\\"reason\\\": \\\"Notice of an online letter release, not a recommendation of a single book.\\\"},\\n    {\\\"post_id\\\": \\\"59421\\\", \\\"qualifies\\\": false, \\\"reason\\\": \\\"Recommends a bookstore purchasing platform, not a book.\\\"},\\n    {\\\"post_id\\\": \\\"59447\\\", \\\"qualifies\\\": false, \\\"reason\\\": \\\"Prison education and notebook donation news, with no individual book recommendation.\\\"},\\n    {\\\"post_id\\\": \\\"103102\\\", \\\"qualifies\\\": false, \\\"reason\\\": \\\"Author collaboration news mentioning a catalogue of books, not one recommendation.\\\"},\\n    {\\\"post_id\\\": \\\"124017\\\", \\\"qualifies\\\": false, \\\"reason\\\": \\\"Ranch preservation news; a title in the ranch's identity is not a reading recommendation.\\\"},\\n    {\\\"post_id\\\": \\\"59466\\\", \\\"qualifies\\\": false, \\\"reason\\\": \\\"Publishing-industry survival news, no individual recommended book.\\\"},\\n    {\\\"post_id\\\": \\\"59478\\\", \\\"qualifies\\\": false, \\\"reason\\\": \\\"General praise and critique of an author's mysteries; indirect allusions and plot examples do not isolate one recommended book.\\\"},\\n    {\\\"post_id\\\": \\\"17445\\\", \\\"qualifies\\\": true, \\\"reason\\\": \\\"A positive report of reading the title book. The trilogy is mentioned as a tentative future possibility with reservations; movie adaptations are not additional recommended books.\\\"},\\n    {\\\"post_id\\\": \\\"59396\\\", \\\"qualifies\\\": true, \\\"reason\\\": \\\"Explicitly positive reading/listening recommendation of the title book; the print and audio versions are the same book, not two.\\\"},\\n    {\\\"post_id\\\": \\\"103061\\\", \\\"qualifies\\\": false, \\\"reason\\\": \\\"Used-bookstore appreciation, not a specific book recommendation.\\\"}\\n  ],\\n  \\\"agreement\\\": \\\"All ten inclusion/exclusion labels agree with the draft under the stated rule. Nonqualifying zero counts mean no individually identified book satisfying this rule, not a claim that every general endorsement has literal cardinality zero.\\\",\\n  \\\"limits\\\": \\\"This validates only the retained semantic reference. Fresh current-page content, order, full-text hashes and source spans must still match during qualification; otherwise fail closed. No historical answer is a measured output.\\\"\\n}\\n\",\n      \"sha256\": \"8edda3e2c4c12c75a11a25adf167c741b695b839e39f14a38416f84f9220966f\",\n      \"content\": {\n        \"scope\": \"Independent review of ten proposed semantic reference labels, not a review or alteration of browser verdicts\",\n        \"reviewer\": \"parent agent, independent of candidate author\",\n        \"source_trace_sha256\": \"f34650670d1191068129bc0087cc7b936f8aa99af4728e1834da3f3257ad57d7\",\n        \"draft_annotation_sha256\": \"7229d803c15826271bbc0065b866df334da782152a6ced0c53fc3a9855221b6d\",\n        \"method\": \"Read complete retained article text for all ten posts in observed order; distinguish positive recommendation of one identifiable book from mentions, general author praise, news and bookstore recommendations.\",\n        \"decisions\": [\n          {\n            \"post_id\": \"81371\",\n            \"qualifies\": false,\n            \"reason\": \"Notice of an online letter release, not a recommendation of a single book.\"\n          },\n          {\n            \"post_id\": \"59421\",\n            \"qualifies\": false,\n            \"reason\": \"Recommends a bookstore purchasing platform, not a book.\"\n          },\n          {\n            \"post_id\": \"59447\",\n            \"qualifies\": false,\n            \"reason\": \"Prison education and notebook donation news, with no individual book recommendation.\"\n          },\n          {\n            \"post_id\": \"103102\",\n            \"qualifies\": false,\n            \"reason\": \"Author collaboration news mentioning a catalogue of books, not one recommendation.\"\n          },\n          {\n            \"post_id\": \"124017\",\n            \"qualifies\": false,\n            \"reason\": \"Ranch preservation news; a title in the ranch's identity is not a reading recommendation.\"\n          },\n          {\n            \"post_id\": \"59466\",\n            \"qualifies\": false,\n            \"reason\": \"Publishing-industry survival news, no individual recommended book.\"\n          },\n          {\n            \"post_id\": \"59478\",\n            \"qualifies\": false,\n            \"reason\": \"General praise and critique of an author's mysteries; indirect allusions and plot examples do not isolate one recommended book.\"\n          },\n          {\n            \"post_id\": \"17445\",\n            \"qualifies\": true,\n            \"reason\": \"A positive report of reading the title book. The trilogy is mentioned as a tentative future possibility with reservations; movie adaptations are not additional recommended books.\"\n          },\n          {\n            \"post_id\": \"59396\",\n            \"qualifies\": true,\n            \"reason\": \"Explicitly positive reading/listening recommendation of the title book; the print and audio versions are the same book, not two.\"\n          },\n          {\n            \"post_id\": \"103061\",\n            \"qualifies\": false,\n            \"reason\": \"Used-bookstore appreciation, not a specific book recommendation.\"\n          }\n        ],\n        \"agreement\": \"All ten inclusion/exclusion labels agree with the draft under the stated rule. Nonqualifying zero counts mean no individually identified book satisfying this rule, not a claim that every general endorsement has literal cardinality zero.\",\n        \"limits\": \"This validates only the retained semantic reference. Fresh current-page content, order, full-text hashes and source spans must still match during qualification; otherwise fail closed. No historical answer is a measured output.\"\n      },\n      \"bindings\": [\n        {\n          \"artifact_pointer\": \"/reviewer\",\n          \"contract_pointer\": \"/semantic_reference/reviewer/identity\"\n        }\n      ]\n    }\n  ],\n  \"qualification_note\": \"Original qualified nine-action prefix retained; appended current reading route returns from long article to Books listing. Semantic annotation unchanged.\"\n}",
+        "sha256": "6865889bf87ec2d9c5e04deacfea70b5b11cdfd9eaf28777edbc7d34b11e01a5",
+        "content": {
+          "reviewer": {
+            "kind": "agent",
+            "identity": "parent agent, independent of candidate author"
+          },
+          "scope": "exactly one book recommendation: complete ordered ten-post annotation",
+          "task_id": 66,
+          "sources_sha256": "2913c6c7436c85f4cf8a77fa1eff836a00a905b903066e0321cb061a18513237",
+          "projection_sha256": "340a5d725d78633f2472acd51d17dd614e4998aa2b0473f74300784d572472e8",
+          "decision": "Preserve raw source identities; apply explicitly scoped downstream interpretation only.",
+          "predecessor_artifacts": [
+            {
+              "utf8": "{\n  \"scope\": \"Independent review of ten proposed semantic reference labels, not a review or alteration of browser verdicts\",\n  \"reviewer\": \"parent agent, independent of candidate author\",\n  \"source_trace_sha256\": \"f34650670d1191068129bc0087cc7b936f8aa99af4728e1834da3f3257ad57d7\",\n  \"draft_annotation_sha256\": \"7229d803c15826271bbc0065b866df334da782152a6ced0c53fc3a9855221b6d\",\n  \"method\": \"Read complete retained article text for all ten posts in observed order; distinguish positive recommendation of one identifiable book from mentions, general author praise, news and bookstore recommendations.\",\n  \"decisions\": [\n    {\"post_id\": \"81371\", \"qualifies\": false, \"reason\": \"Notice of an online letter release, not a recommendation of a single book.\"},\n    {\"post_id\": \"59421\", \"qualifies\": false, \"reason\": \"Recommends a bookstore purchasing platform, not a book.\"},\n    {\"post_id\": \"59447\", \"qualifies\": false, \"reason\": \"Prison education and notebook donation news, with no individual book recommendation.\"},\n    {\"post_id\": \"103102\", \"qualifies\": false, \"reason\": \"Author collaboration news mentioning a catalogue of books, not one recommendation.\"},\n    {\"post_id\": \"124017\", \"qualifies\": false, \"reason\": \"Ranch preservation news; a title in the ranch's identity is not a reading recommendation.\"},\n    {\"post_id\": \"59466\", \"qualifies\": false, \"reason\": \"Publishing-industry survival news, no individual recommended book.\"},\n    {\"post_id\": \"59478\", \"qualifies\": false, \"reason\": \"General praise and critique of an author's mysteries; indirect allusions and plot examples do not isolate one recommended book.\"},\n    {\"post_id\": \"17445\", \"qualifies\": true, \"reason\": \"A positive report of reading the title book. The trilogy is mentioned as a tentative future possibility with reservations; movie adaptations are not additional recommended books.\"},\n    {\"post_id\": \"59396\", \"qualifies\": true, \"reason\": \"Explicitly positive reading/listening recommendation of the title book; the print and audio versions are the same book, not two.\"},\n    {\"post_id\": \"103061\", \"qualifies\": false, \"reason\": \"Used-bookstore appreciation, not a specific book recommendation.\"}\n  ],\n  \"agreement\": \"All ten inclusion/exclusion labels agree with the draft under the stated rule. Nonqualifying zero counts mean no individually identified book satisfying this rule, not a claim that every general endorsement has literal cardinality zero.\",\n  \"limits\": \"This validates only the retained semantic reference. Fresh current-page content, order, full-text hashes and source spans must still match during qualification; otherwise fail closed. No historical answer is a measured output.\"\n}\n",
+              "sha256": "8edda3e2c4c12c75a11a25adf167c741b695b839e39f14a38416f84f9220966f",
+              "content": {
+                "scope": "Independent review of ten proposed semantic reference labels, not a review or alteration of browser verdicts",
+                "reviewer": "parent agent, independent of candidate author",
+                "source_trace_sha256": "f34650670d1191068129bc0087cc7b936f8aa99af4728e1834da3f3257ad57d7",
+                "draft_annotation_sha256": "7229d803c15826271bbc0065b866df334da782152a6ced0c53fc3a9855221b6d",
+                "method": "Read complete retained article text for all ten posts in observed order; distinguish positive recommendation of one identifiable book from mentions, general author praise, news and bookstore recommendations.",
+                "decisions": [
+                  {
+                    "post_id": "81371",
+                    "qualifies": false,
+                    "reason": "Notice of an online letter release, not a recommendation of a single book."
+                  },
+                  {
+                    "post_id": "59421",
+                    "qualifies": false,
+                    "reason": "Recommends a bookstore purchasing platform, not a book."
+                  },
+                  {
+                    "post_id": "59447",
+                    "qualifies": false,
+                    "reason": "Prison education and notebook donation news, with no individual book recommendation."
+                  },
+                  {
+                    "post_id": "103102",
+                    "qualifies": false,
+                    "reason": "Author collaboration news mentioning a catalogue of books, not one recommendation."
+                  },
+                  {
+                    "post_id": "124017",
+                    "qualifies": false,
+                    "reason": "Ranch preservation news; a title in the ranch's identity is not a reading recommendation."
+                  },
+                  {
+                    "post_id": "59466",
+                    "qualifies": false,
+                    "reason": "Publishing-industry survival news, no individual recommended book."
+                  },
+                  {
+                    "post_id": "59478",
+                    "qualifies": false,
+                    "reason": "General praise and critique of an author's mysteries; indirect allusions and plot examples do not isolate one recommended book."
+                  },
+                  {
+                    "post_id": "17445",
+                    "qualifies": true,
+                    "reason": "A positive report of reading the title book. The trilogy is mentioned as a tentative future possibility with reservations; movie adaptations are not additional recommended books."
+                  },
+                  {
+                    "post_id": "59396",
+                    "qualifies": true,
+                    "reason": "Explicitly positive reading/listening recommendation of the title book; the print and audio versions are the same book, not two."
+                  },
+                  {
+                    "post_id": "103061",
+                    "qualifies": false,
+                    "reason": "Used-bookstore appreciation, not a specific book recommendation."
+                  }
+                ],
+                "agreement": "All ten inclusion/exclusion labels agree with the draft under the stated rule. Nonqualifying zero counts mean no individually identified book satisfying this rule, not a claim that every general endorsement has literal cardinality zero.",
+                "limits": "This validates only the retained semantic reference. Fresh current-page content, order, full-text hashes and source spans must still match during qualification; otherwise fail closed. No historical answer is a measured output."
+              },
+              "bindings": [
+                {
+                  "artifact_pointer": "/reviewer",
+                  "contract_pointer": "/semantic_reference/reviewer/identity"
+                }
+              ]
+            }
+          ],
+          "qualification_note": "Original qualified nine-action prefix retained; appended current reading route returns from long article to Books listing. Semantic annotation unchanged."
+        }
+      }
+    }
+  }
+}

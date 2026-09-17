@@ -1,0 +1,63 @@
+{
+  "task_id": 314,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://192.168.5.2:8023"
+    },
+    {
+      "action": "click",
+      "selector": ":nth-match(a[href=\"/primer/design\"]:visible, 2)",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "navigate",
+      "url": "http://192.168.5.2:8023/primer/design/-/graphs/main/charts"
+    },
+    {
+      "action": "scroll",
+      "direction": "down"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "navigate",
+      "url": "http://192.168.5.2:8023/primer/design/-/graphs/main"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => {\n  const controller = new AbortController();\n  const deadlineTimer = setTimeout(() => controller.abort(), 20000);\n  try {\n  const expectedPath = 'primer/design';\n  const api = location.origin + '/api/v4';\n  const readJson = async url => {\n    const response = await fetch(url, {credentials: 'same-origin',redirect:'error',signal:controller.signal});\n    if (!response.ok || response.redirected) {\n      throw new Error('GitLab API request failed or redirected: ' + response.status);\n    }\n    return {response, body: await response.json()};\n  };\n  const projectRead = await readJson(api + '/projects/' + encodeURIComponent(expectedPath));\n  const project = projectRead.body;\n  if (!Number.isInteger(project.id) || project.path_with_namespace !== expectedPath ||\n      typeof project.default_branch !== 'string' || !project.default_branch) {\n    throw new Error('project identity or default branch mismatch');\n  }\n  const branch = project.default_branch;\n  const contributors = [];\n  const pages = [];\n  const perPage = 100;\n  for (let page = 1; page <= 100; page++) {\n    const url = new URL(api + '/projects/' + project.id + '/repository/contributors');\n    url.searchParams.set('ref', branch);\n    url.searchParams.set('per_page', String(perPage));\n    url.searchParams.set('page', String(page));\n    const {response, body} = await readJson(url.href);\n    const current = response.headers.get('x-page');\n    const next = response.headers.get('x-next-page');\n    if (current !== String(page) || next === null || !Array.isArray(body) ||\n        body.length > perPage) {\n      throw new Error('contributor pagination metadata or page body is invalid');\n    }\n    if (body.some(row => typeof row.name !== 'string' || !row.name.trim() ||\n        typeof row.email !== 'string' || !row.email ||\n        !Number.isInteger(row.commits) || row.commits < 0)) {\n      throw new Error('invalid contributor row');\n    }\n    contributors.push(...body.map(row => ({\n      name: row.name.trim(), email: row.email, commits: row.commits,\n    })));\n    pages.push({page, next, rows: body.length});\n    if (next === '') break;\n    if (next !== String(page + 1)) throw new Error('contributor pagination gap');\n    if (page === 100) throw new Error('contributor pagination exceeds safety bound');\n  }\n  const identities = contributors.map(row => row.name + '\\u0000' + row.email);\n  if (contributors.length < 3 || new Set(identities).size !== contributors.length ||\n      pages.at(-1)?.next !== '') {\n    throw new Error('contributor enumeration is incomplete or ambiguous');\n  }\n  const ranked = contributors.map((row, sourceIndex) => ({...row, sourceIndex}))\n    .sort((a, b) => b.commits - a.commits || a.sourceIndex - b.sourceIndex);\n  if (ranked.length > 3 && ranked[2].commits === ranked[3].commits) {\n    throw new Error('commit-count tie crosses the top-three boundary');\n  }\n  const names = ranked.slice(0, 3).map(row => row.name);\n  if (new Set(names).size !== 3) throw new Error('top contributors lack distinct full names');\n  return {\n    schema: 'gitlab_project_top_contributors/1',\n    scope: project.path_with_namespace === expectedPath && branch === project.default_branch,\n    complete: pages.at(-1)?.next === '',\n    project: {id: project.id, path_with_namespace: project.path_with_namespace},\n    branch,\n    pages,\n    contributors,\n    boundary: ranked.length > 3 ? {third: ranked[2].commits, fourth: ranked[3].commits} : null,\n    answer: names,\n  };\n  } finally { controller.abort(); clearTimeout(deadlineTimer); }\n})()\n"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/1",
+    "task_id": 314,
+    "canonical_calls_sha256": "7d8b2c3d376ef62b5dcd2e5e0f7f0fe04ea22adfdb637cd2c2852219df413751",
+    "sources": [
+      {
+        "name": "observation",
+        "step": 8,
+        "action_sha256": "f6352520bb8f3fe1f13d0e27e94477e05e4a20a3321c1e6c193767199a04cdee",
+        "decode": "json"
+      }
+    ],
+    "requirements": {
+      "scope": {
+        "source": "observation",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "observation",
+        "pointer": "/complete"
+      }
+    },
+    "projection": {
+      "source": "observation",
+      "pointer": "/answer"
+    }
+  }
+}

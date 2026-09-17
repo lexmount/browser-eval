@@ -1,0 +1,138 @@
+{
+  "schema": "webarena_mutation_completion_candidates/1",
+  "purpose": "Diagnostic qualification only; does not replace frozen actions, official evaluator, or scores",
+  "observation_protocol": {
+    "start_after": "last frozen action",
+    "timeout_ms": 20000,
+    "poll_interval_ms": 100,
+    "method": "GET only, same authenticated origin, HTTP 200, no redirect, no retry of the mutating action",
+    "require_independent_official_evaluation": true,
+    "physical_executions_per_task": 1,
+    "score_effect": "none; diagnostic evidence only"
+  },
+  "official_evaluator": {
+    "package": "webarena-verified",
+    "version": "1.2.3",
+    "invocation": "WebArenaVerified.evaluate_task(task_id, agent_response, network_trace)",
+    "agent_response": {
+      "task_type": "MUTATE",
+      "status": "SUCCESS",
+      "retrieved_data": null,
+      "error_details": null
+    },
+    "network_trace": "fresh same-execution HAR captured from before the trigger action through observer completion",
+    "required_score": 1.0
+  },
+  "rules": [
+    {
+      "task_id": 399,
+      "action_count": 14,
+      "observer": {
+        "kind": "same_origin_get_html",
+        "path": "/user/MarvelsGrantMan136/edit_biography",
+        "selector": "textarea[name=\"user_biography[biography]\"]",
+        "property": "value",
+        "equals": "I am a robot",
+        "require_authenticated_user": "MarvelsGrantMan136"
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/user/MarvelsGrantMan136/edit_biography",
+        "post_data": {"user_biography[biography]": "I am a robot"},
+        "response_status": 302
+      },
+      "qualification": "observer and official evaluator must both pass"
+    },
+    {
+      "task_id": 404,
+      "action_count": 11,
+      "observer": {
+        "kind": "pending_live_dom_contract",
+        "path": "/f/books/new",
+        "target_post_id": 124260,
+        "reason": "The old snapshot omits vote-state attributes. POST JSON netScore=1 is a response, not a read-only persisted-state observation. Inspect the authenticated rendered post under the shared lock before specifying the exact state predicate."
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/sv/124260.json",
+        "post_data": {"choice": "1"}
+      },
+      "qualification": "blocked until observer has a tested persisted-state predicate; official evaluator remains mandatory"
+    },
+    {
+      "task_id": 415,
+      "action_count": 6,
+      "observer": {
+        "kind": "same_origin_get_html",
+        "path": "/byteblaze/a11y-webring.club/-/merge_requests/40",
+        "within": "main li",
+        "require_author_href": "/byteblaze",
+        "require_permalink_pattern": "^#note_[0-9]+$",
+        "paragraph_contains": "@davepgreene",
+        "require_exactly_one_matching_note": true
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/byteblaze/a11y-webring.club/notes?target_id=138783&target_type=merge_request",
+        "post_data": {
+          "$.note.noteable_type": "MergeRequest",
+          "$.note.note": "^.*@davepgreene.*$"
+        }
+      },
+      "qualification": "observer and official evaluator must both pass"
+    },
+    {
+      "task_id": 418,
+      "action_count": 8,
+      "observer": {
+        "kind": "same_origin_get_json",
+        "path": "/api/v4/user/status",
+        "json_key": "availability",
+        "equals": "busy",
+        "require_authenticated_user": "byteblaze"
+      },
+      "official_network_event": {
+        "method": "PUT",
+        "url_suffix": "/api/v4/user/status",
+        "post_data": {"availability": "busy", "clear_status_after": null}
+      },
+      "qualification": "observer and official evaluator must both pass"
+    },
+    {
+      "task_id": 441,
+      "action_count": 16,
+      "pre_commit_observer": {
+        "kind": "current_dom_property",
+        "position_before_tool_call_index": 13,
+        "selector": "textarea[aria-label^=\"Editor content\"]",
+        "property": "value",
+        "expected_from_tool_call_index": 10,
+        "expected_text_sha256": "1685f452f0aa0e0430b8454c746ef7496b859121298490b60ce2ef2841d15b6f",
+        "compare": "exact text after CRLF normalization",
+        "read_only": true
+      },
+      "observer": {
+        "kind": "same_origin_get_text",
+        "path": "/api/v4/projects/byteblaze%2Fgimmiethat.space/repository/files/index.html/raw?ref=main",
+        "body_kind": "repository_file_source",
+        "require_html_title": "GIVE ME SPACE",
+        "require_no_other_title": true,
+        "expected_from_tool_call_index": 10,
+        "compare": "exact text after CRLF normalization"
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/byteblaze/gimmiethat.space/-/update/main/index.html",
+        "post_data": {
+          "_method": "put",
+          "file_path": "index.html",
+          "branch_name": "main",
+          "original_branch": "main",
+          "content": "^<\\!doctype html>.*<head>.*<title>GIVE ME SPACE</title>.*</head>.*</html>$"
+        },
+        "response_status": 302
+      },
+      "qualification": "pre-commit observer, post-commit observer and official evaluator must all pass"
+    }
+  ]
+}

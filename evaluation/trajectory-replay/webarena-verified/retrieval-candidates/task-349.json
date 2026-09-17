@@ -1,0 +1,52 @@
+{
+  "task_id": 349,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://192.168.5.2:8023"
+    },
+    {
+      "action": "click",
+      "selector": ":nth-match(a[href=\"/byteblaze/gimmiethat.space\"]:visible, 2)",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "navigate",
+      "url": "http://192.168.5.2:8023/byteblaze/gimmiethat.space/-/project_members"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => {\n  const controller = new AbortController();\n  const deadlineTimer = setTimeout(() => controller.abort(), 20000);\n  try {\n  const expectedPath = 'byteblaze/gimmiethat.space';\n  const api = location.origin + '/api/v4';\n  const readJson = async url => {\n    const response = await fetch(url, {credentials: 'same-origin',redirect:'error',signal:controller.signal});\n    if (!response.ok || response.redirected) {\n      throw new Error('GitLab API request failed or redirected: ' + response.status);\n    }\n    return {response, body: await response.json()};\n  };\n  const [{body: currentUser}, {body: project}] = await Promise.all([\n    readJson(api + '/user'),\n    readJson(api + '/projects/' + encodeURIComponent(expectedPath)),\n  ]);\n  if (!Number.isInteger(currentUser.id) || typeof currentUser.username !== 'string' ||\n      !Number.isInteger(project.id) || project.path_with_namespace !== expectedPath ||\n      project.namespace?.kind !== 'user' || project.owner?.id !== currentUser.id) {\n    throw new Error('current-user or owned-project identity mismatch');\n  }\n  const members = [];\n  const pages = [];\n  const perPage = 100;\n  for (let page = 1; page <= 100; page++) {\n    const url = new URL(api + '/projects/' + project.id + '/members/all');\n    url.searchParams.set('per_page', String(perPage));\n    url.searchParams.set('page', String(page));\n    const {response, body} = await readJson(url.href);\n    const current = response.headers.get('x-page');\n    const next = response.headers.get('x-next-page');\n    if (current !== String(page) || next === null || !Array.isArray(body) ||\n        body.length > perPage) {\n      throw new Error('effective-member pagination metadata or page body is invalid');\n    }\n    if (body.some(row => !Number.isInteger(row.id) || typeof row.username !== 'string' ||\n        !row.username || !Number.isInteger(row.access_level) || row.access_level <= 0)) {\n      throw new Error('invalid effective-member row');\n    }\n    members.push(...body.map(row => ({\n      id: row.id,\n      username: row.username,\n      access_level: row.access_level,\n      membership_state: row.membership_state ?? null,\n      source: 'projects/:id/members/all',\n    })));\n    pages.push({page, next, rows: body.length});\n    if (next === '') break;\n    if (next !== String(page + 1)) throw new Error('effective-member pagination gap');\n    if (page === 100) throw new Error('effective-member pagination exceeds safety bound');\n  }\n  if (pages.at(-1)?.next !== '' || new Set(members.map(row => row.id)).size !== members.length ||\n      !members.some(row => row.id === currentUser.id)) {\n    throw new Error('effective-member enumeration is incomplete or lacks current user');\n  }\n  const others = members.filter(row => row.id !== currentUser.id);\n  const answer = others.map(row => row.username)\n    .sort((a, b) => a < b ? -1 : a > b ? 1 : 0);\n  return {\n    schema: 'gitlab_owned_project_effective_members/1',\n    scope: project.path_with_namespace === expectedPath && project.owner.id === currentUser.id,\n    complete: pages.at(-1)?.next === '',\n    project: {id: project.id, path_with_namespace: project.path_with_namespace},\n    current_user: {id: currentUser.id, username: currentUser.username},\n    membership_semantics: 'effective direct, inherited, and invited-group access from members/all',\n    pages,\n    members,\n    answer,\n  };\n  } finally { controller.abort(); clearTimeout(deadlineTimer); }\n})()\n"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/1",
+    "task_id": 349,
+    "canonical_calls_sha256": "0a38ac087eaaf0f4aa73ff8cbf7a2ebe9b8b5d3963f015aa5a87724289eededf",
+    "sources": [
+      {
+        "name": "observation",
+        "step": 5,
+        "action_sha256": "09877af45e4299fb82a8d85a4de5d4a99067b32464d007dda96fad36dbe6b55a",
+        "decode": "json"
+      }
+    ],
+    "requirements": {
+      "scope": {
+        "source": "observation",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "observation",
+        "pointer": "/complete"
+      }
+    },
+    "projection": {
+      "source": "observation",
+      "pointer": "/answer"
+    }
+  }
+}
