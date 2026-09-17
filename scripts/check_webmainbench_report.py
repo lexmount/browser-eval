@@ -200,8 +200,8 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
                 or len(guide.select("#scope .wmb-case-stats > span")) != len(PROVIDERS)
                 or len(guide.select("#tables .wmb-evidence-pair > article")) != 2
                 or len(guide.select("#tables .wmb-case-stats > span")) != len(PROVIDERS)
-                or len(guide.select("#version-differences .wmb-version-case")) != 4
-                or len(guide.select("#version-differences .wmb-version-case .actions a")) != 12
+                or len(guide.select("#version-differences .wmb-version-case")) != 5
+                or len(guide.select("#version-differences .wmb-version-case .actions a")) != 15
                 or len(guide.select("#delivery .wmb-cause-grid > article")) != 3
                 or len(guide.select("#decision .wmb-choice-table tbody > tr")) != len(PROVIDERS)):
             raise ValueError(f"WebMainBench {language} guide lacks decision, example or root-cause evidence")
