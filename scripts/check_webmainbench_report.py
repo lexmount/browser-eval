@@ -261,20 +261,34 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
             for section in (localized_home.select_one('#moli-latency-rerun'), guide_page.select_one('#delivery .wmb-rerun-diagnostic')):
                 if section is None or len(section.select('.wmb-rerun-table tbody tr')) != 2:
                     raise ValueError(prefix + 'Moli latency rerun must show the current two-version comparison')
-                rerun_rows = dict(zip(('moli-115-control', 'moli-117-repeat'),
+                rerun_rows = dict(zip(('1.1.5', '1.1.7'),
                                       section.select('.wmb-rerun-table tbody tr')))
                 for name, row in rerun_rows.items():
                     cells = row.find_all('td', recursive=False)
-                    run = latency_diagnostic['runs'][name]
-                    if (cells[-4].get_text(strip=True) != f"{run['n']}/200"
+                    run = latency_diagnostic['balanced_200']['runs'][name]
+                    if (cells[-4].get_text(strip=True) != f"{run['n']}/{run['calls']}"
                             or any(not close(float(td['data-sort']), run[key])
                                    for td, key in zip(cells[-3:], ('mean', 'p50', 'p95')))):
                         raise ValueError(prefix + 'Moli latency rerun values differ from verified evidence')
                     for key, td in zip(('mean', 'p50', 'p95'), cells[-3:]):
-                        other = 'moli-117-repeat' if name == 'moli-115-control' else 'moli-115-control'
-                        expected = run[key] < latency_diagnostic['runs'][other][key]
+                        other = '1.1.7' if name == '1.1.5' else '1.1.5'
+                        expected = run[key] < latency_diagnostic['balanced_200']['runs'][other][key]
                         if bool(td.select('.comparison-winner')) != expected or len(td.select('.comparison-winner')) > 1:
                             raise ValueError(prefix + 'Moli rerun winner marker disagrees with same-host evidence')
+                case_rows = section.select('.wmb-rerun-cases tbody tr')
+                if len(case_rows) != 20:
+                    raise ValueError(prefix + 'Moli slow-page inventory must include all 20 cases')
+                for rendered, evidence in zip(case_rows, latency_diagnostic['tail_repeat']['cases']):
+                    cells = rendered.find_all('td', recursive=False)
+                    if (not cells[1].select_one(f'a[href$="datasets/{evidence["case_id"]}.html"]')
+                            or any(not close(float(td['data-sort']), evidence[key])
+                                   for td, key in zip(cells[2:], ('older_median_ms', 'newer_median_ms',
+                                                                   'older_max_ms', 'newer_max_ms')))):
+                        raise ValueError(prefix + 'Moli per-case repeat table differs from verified evidence')
+                conclusion_markers = (('先请求', '不能保证', '20 页') if not prefix
+                                      else ('first call', 'cannot be guaranteed', '20 pages'))
+                if not all(marker in section.get_text(' ', strip=True) for marker in conclusion_markers):
+                    raise ValueError(prefix + 'Moli repeat conclusion or ordering effect is missing')
                 if len(section.select('.wmb-rerun-resource tbody tr')) != 2 or not section.select_one('a[href$="latency-diagnostic.json"]'):
                     raise ValueError(prefix + 'Moli latency rerun lacks resource evidence or per-case download')
                 failed_case = latency_diagnostic['failure_retest']['case_id']

@@ -45,6 +45,45 @@ def top_positive_gap_share(differences: list[float]) -> float | None:
     return sum(sorted(differences, reverse=True)[:20]) / net if net > 0 else None
 
 
+def _repeat_calls(root: Path, binding: dict, cases: dict, source_sha256: str,
+                  sample_sha256: str, prior_sha256: dict, binaries: dict,
+                  expected_count: int, expected_rounds: int) -> tuple[dict, list[dict]]:
+    directory = contained_path(root, binding['directory'])
+    selection = json.loads(verified_bytes(directory, 'selection.json', binding['selection_json_sha256']))
+    calls = [json.loads(line) for line in verified_bytes(directory, 'calls.jsonl',
+             binding['calls_jsonl_sha256']).splitlines() if line.strip()]
+    selected = selection['case_ids']
+    if (len(selected) != expected_count or len(set(selected)) != expected_count
+            or not set(selected).issubset(cases) or selection['rounds'] != expected_rounds
+            or len(calls) != 2 * expected_count * expected_rounds
+            or {version: selection['binaries'][version]['sha256'] for version in binaries} != binaries
+            or selection.get('source_dataset_sha256', selection.get('dataset_sha256')) != source_sha256
+            or selection['sample_sha256'] != sample_sha256
+            or selection.get('prior_results_sha256', selection.get('prior_sha256')) != prior_sha256):
+        raise ValueError('Moli repeat selection or binary identity changed')
+    seen = set()
+    for row in calls:
+        key = (row['case_id'], row['version'], row['round'])
+        if (key in seen or row['case_id'] not in selected or row['version'] not in binaries
+                or not isinstance(row['round'], int) or not 1 <= row['round'] <= expected_rounds
+                or row['input_html_sha256'] != cases[row['case_id']]['input_html_sha256']):
+            raise ValueError('Moli repeat call is outside the frozen matrix')
+        seen.add(key)
+        artifact = verified_bytes(directory,
+                                  f'outputs/{row["round"]}/{row["version"]}/{row["case_id"]}.md',
+                                  row['output_sha256'])
+        if row['output_bytes'] != len(artifact):
+            raise ValueError('Moli repeat output length disagrees with evidence')
+        row['_body_present'] = bool(row['exit_code'] == 0 and artifact.strip()
+                                    and not ERROR_PAGE.search(artifact.decode('utf-8', 'replace')))
+    expected = {(case_id, version, round_index)
+                for case_id in selected for version in binaries
+                for round_index in range(1, expected_rounds + 1)}
+    if seen != expected:
+        raise ValueError('Moli repeat call matrix is incomplete')
+    return selection, calls
+
+
 def _resource_samples(path: Path | str, execution: dict) -> dict:
     start = datetime.fromisoformat(execution['started_at'])
     end = datetime.fromisoformat(execution['completed_at'])
@@ -204,8 +243,82 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
         verified_bytes(root, f'failure-retest/disable-js/{version}.stderr', disabled['stderr_sha256'])
         if disabled['exit_code'] != 0 or not output.strip() or disabled['output_bytes'] != len(output):
             raise ValueError('Moli script-disabled control did not return body text')
+    binaries = {'1.1.5': run_rows['moli-115-control']['binary_sha256'],
+                '1.1.7': run_rows['moli-117-repeat']['binary_sha256']}
+    initial_gaps = sorted(common, key=lambda case_id:
+                          all_rows['moli-117-repeat'][case_id]['elapsed_ms'] -
+                          all_rows['moli-115-control'][case_id]['elapsed_ms'], reverse=True)
+    tail_calls = defaultdict(list)
+    for key in ('tail_repeat_r1', 'tail_repeat_r2'):
+        tail_selection, repeated = _repeat_calls(root, manifest[key], cases,
+                                                  dataset['source_dataset_sha256'],
+                                                  dataset['sample_manifest_sha256'],
+                                                  {'1.1.5': manifest['runs']['moli-115-control']['results.jsonl_sha256'],
+                                                   '1.1.7': manifest['runs']['moli-117-repeat']['results.jsonl_sha256']},
+                                                  binaries,
+                                                  expected_count=30,
+                                                  expected_rounds=5 if key.endswith('r1') else 10)
+        if tail_selection['slow_case_ids'] != initial_gaps[:20]:
+            raise ValueError('Moli tail repeat selected different slow pages')
+        for row in repeated:
+            if not row['_body_present']:
+                raise ValueError('Moli slow-page repeat failed to return body text')
+            tail_calls[row['case_id'], row['version']].append(row)
+    tail_cases = []
+    for case_id in initial_gaps[:20]:
+        older = tail_calls[case_id, '1.1.5']
+        newer = tail_calls[case_id, '1.1.7']
+        if len(older) != 15 or len(newer) != 15 or any(len({row['output_sha256'] for row in group}) != 1
+                                                  for group in (older, newer)):
+            raise ValueError('Moli slow-page repeated output is incomplete or inconsistent')
+        old_median = statistics.median(row['elapsed_ms'] for row in older)
+        new_median = statistics.median(row['elapsed_ms'] for row in newer)
+        tail_cases.append({'case_id': case_id, 'url': cases[case_id]['url'],
+                           'initial_gap_ms': all_rows['moli-117-repeat'][case_id]['elapsed_ms'] -
+                                             all_rows['moli-115-control'][case_id]['elapsed_ms'],
+                           'older_median_ms': old_median, 'newer_median_ms': new_median,
+                           'older_max_ms': max(row['elapsed_ms'] for row in older),
+                           'newer_max_ms': max(row['elapsed_ms'] for row in newer),
+                           'repetitions_per_version': 15})
+    balanced_selection, balanced_calls = _repeat_calls(
+        root, manifest['balanced_200'], cases, dataset['source_dataset_sha256'],
+        dataset['sample_manifest_sha256'],
+        {'1.1.5': manifest['runs']['moli-115-control']['results.jsonl_sha256'],
+         '1.1.7': manifest['runs']['moli-117-repeat']['results.jsonl_sha256']}, binaries,
+        expected_count=len(cases), expected_rounds=2)
+    if (set(balanced_selection['case_ids']) != set(cases)
+            or balanced_selection['slow_case_ids'] != initial_gaps[:20]):
+        raise ValueError('Balanced Moli crossover changed the 200-page scope')
+    first_versions = defaultdict(list)
+    first_minus_second = []
+    for first, second in zip(balanced_calls[::2], balanced_calls[1::2]):
+        if (first['case_id'] != second['case_id'] or first['round'] != second['round']
+                or first['version'] == second['version']):
+            raise ValueError('Balanced Moli calls are not serial page pairs')
+        first_versions[first['case_id']].append(first['version'])
+        if first['_body_present'] and second['_body_present']:
+            first_minus_second.append(first['elapsed_ms'] - second['elapsed_ms'])
+    if any(sorted(order) != ['1.1.5', '1.1.7'] for order in first_versions.values()):
+        raise ValueError('Balanced Moli version order was not reversed per page')
+    balanced_runs = {}
+    for version in binaries:
+        relevant = [row for row in balanced_calls if row['version'] == version]
+        success = [row['elapsed_ms'] for row in relevant if row['_body_present']]
+        failures = [row for row in relevant if not row['_body_present']]
+        if (len(relevant) != 2 * len(cases) or len(failures) != 2
+                or {row['case_id'] for row in failures} != {failed_case}
+                or any('langrensha.163.com/wanfa/guize/' not in row['stderr'] for row in failures)):
+            raise ValueError('Balanced Moli success/failure population changed')
+        balanced_runs[version] = {**stats(success), 'calls': len(relevant),
+                                  'failed_calls': len(failures)}
     return {'kind': 'same_host_latency_diagnostic', 'official_results_sha256': manifest['official_results_sha256'],
             'runs': run_rows, 'resource': resource,
+            'tail_repeat': {'cases': tail_cases,
+                            'within_20_ms': sum(abs(row['newer_median_ms'] - row['older_median_ms']) <= 20
+                                                for row in tail_cases)},
+            'balanced_200': {'runs': balanced_runs, 'paired_success_calls': len(first_minus_second),
+                             'first_call_extra_mean_ms': statistics.fmean(first_minus_second),
+                             'first_call_slower_count': sum(value > 0 for value in first_minus_second)},
             'failure_retest': {'case_id': failed_case, 'attempts_per_version': 2,
                                'same_origin_failure': True, 'script_disabled_returns_body': True},
             'paired': {'n': len(common), 'new_slower': sum(x > 0 for x in differences),

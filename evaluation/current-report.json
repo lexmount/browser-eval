@@ -60,7 +60,7 @@
   },
   "latency_diagnostic": {
     "kind": "moli_115_117_latency_rerun_v1",
-    "manifest_sha256": "cf6bad3d0c0e2443e3164481b7a640bb958035511493023d3711d81900932b20",
+    "manifest_sha256": "2f3a544b7dd454791037c74954e8f50259ba1b2438356550a5021cf9811a6382",
     "role": "append_only_latency_diagnostic_not_score_bearing"
   }
 }
