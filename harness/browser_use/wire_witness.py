@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import ipaddress
 import re
 import zipfile
 from collections import defaultdict
@@ -22,6 +23,7 @@ _ACCESS_LINE = re.compile(
     r'(?P<status>\d{3}) \S+ "(?P<referer>[^"]*)"(?: |$)'
 )
 MAX_WIRE_LOG_SEGMENT_BYTES = 32 * 1024 * 1024
+RouteKey = tuple[str, str, int, str, str, int]
 
 
 @dataclass(frozen=True)
@@ -72,9 +74,17 @@ def parse_access_log(segment: bytes, *, origin: str) -> list[WireWitness]:
 
 
 def fill_missing_referers(
-    har: dict[str, Any], witnesses: list[WireWitness]
+    har: dict[str, Any], witnesses: list[WireWitness], *, gateway_host: str | None = None
 ) -> tuple[dict[str, Any], list[dict[str, str]]]:
-    """Fill only unique, exact request/status matches; never override CDP data."""
+    """Fill unique matches; allow the bound gateway's Docker hostname alias in v2."""
+
+    if gateway_host is not None:
+        try:
+            gateway_address = ipaddress.ip_address(gateway_host)
+        except ValueError as exc:
+            raise ValueError("gateway host must be a private IP address") from exc
+        if not gateway_address.is_private:
+            raise ValueError("gateway host must be a private IP address")
 
     result = copy.deepcopy(har)
     entries = result.get("log", {}).get("entries")
@@ -82,6 +92,21 @@ def fill_missing_referers(
         raise ValueError("HAR has no entries list")
     har_by_key: dict[tuple[str, str, int], list[int]] = defaultdict(list)
     witness_by_key: dict[tuple[str, str, int], list[WireWitness]] = defaultdict(list)
+    alias_har_by_key: dict[RouteKey, list[int]] = defaultdict(list)
+    alias_witness_by_key: dict[RouteKey, list[WireWitness]] = defaultdict(list)
+
+    def route_key(method: str, url: str, status: int) -> RouteKey | None:
+        parsed = urlsplit(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            return None
+        try:
+            port = parsed.port
+        except ValueError:
+            return None
+        if port is None:
+            return None
+        return method, parsed.scheme, port, parsed.path, parsed.query, status
+
     for index, entry in enumerate(entries):
         request, response = entry.get("request", {}), entry.get("response", {})
         key = (
@@ -90,12 +115,27 @@ def fill_missing_referers(
             int(response.get("status") or 0),
         )
         har_by_key[key].append(index)
+        parsed = urlsplit(key[1])
+        if gateway_host is not None and parsed.hostname == "host.docker.internal":
+            alias_key = route_key(*key)
+            if alias_key is not None:
+                alias_har_by_key[alias_key].append(index)
     for witness in witnesses:
         witness_by_key[(witness.method, witness.url, witness.status)].append(witness)
+        parsed = urlsplit(witness.url)
+        if gateway_host is None or parsed.hostname != gateway_host:
+            continue
+        alias_key = route_key(witness.method, witness.url, witness.status)
+        if alias_key is not None:
+            alias_witness_by_key[alias_key].append(witness)
 
     additions: list[dict[str, str]] = []
     for key, matches in witness_by_key.items():
         indices = har_by_key.get(key, [])
+        if not indices and gateway_host is not None and urlsplit(key[1]).hostname == gateway_host:
+            alias_key = route_key(*key)
+            if alias_key is not None and len(alias_witness_by_key.get(alias_key, [])) == 1:
+                indices = alias_har_by_key.get(alias_key, [])
         if len(matches) != 1 or len(indices) != 1:
             continue
         request = entries[indices[0]]["request"]
@@ -109,7 +149,7 @@ def fill_missing_referers(
         additions.append(
             {
                 "method": witness.method,
-                "url_sha256": hashlib.sha256(witness.url.encode()).hexdigest(),
+                "url_sha256": hashlib.sha256(str(request["url"]).encode()).hexdigest(),
                 "referer_sha256": hashlib.sha256(witness.referer.encode()).hexdigest(),
                 "source_line_sha256": witness.line_sha256,
             }
@@ -168,6 +208,8 @@ def validate_wire_source(
     evaluated: dict[str, Any],
     receipt: dict[str, Any],
     source_archive: Path,
+    *,
+    gateway_host: str | None = None,
 ) -> bool:
     """Recompute every addition from the retained private server-log bytes."""
 
@@ -201,7 +243,17 @@ def validate_wire_source(
                 if len(parsed) != source["parsed_request_count"]:
                     return False
                 witnesses.extend(parsed)
-        reproduced, additions = fill_missing_referers(raw, witnesses)
+        schema = receipt.get("schema")
+        if schema == "lex_browser_use_server_wire_witness/2":
+            if not gateway_host or receipt.get("gateway_host") != gateway_host:
+                return False
+            reproduced, additions = fill_missing_referers(
+                raw, witnesses, gateway_host=gateway_host
+            )
+        elif schema in {None, "lex_browser_use_server_wire_witness/1"}:
+            reproduced, additions = fill_missing_referers(raw, witnesses)
+        else:
+            return False
         return (
             reproduced == evaluated
             and additions == receipt.get("unique_header_additions")

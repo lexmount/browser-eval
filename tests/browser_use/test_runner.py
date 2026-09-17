@@ -69,7 +69,7 @@ def test_wire_witness_reads_only_post_setup_bytes_and_binds_separate_hars(
     new_line = (
         b'127.0.0.1 - - [17/Sep/2026:00:00:00 +0000] '
         b'"POST /f/space/subscribe.json HTTP/1.1" 200 19 '
-        b'"http://site.test/f/space/thread" "agent"\n'
+        b'"http://192.168.5.2/f/space/thread" "agent"\n'
     )
     state = {"log": initial}
 
@@ -96,7 +96,7 @@ def test_wire_witness_reads_only_post_setup_bytes_and_binds_separate_hars(
     )
     benchmark = SimpleNamespace(
         config=SimpleNamespace(
-            get_environment=lambda site: SimpleNamespace(active_url="http://site.test")
+            get_environment=lambda site: SimpleNamespace(active_url="http://192.168.5.2")
         )
     )
     cursors = _wire_log_cursors((WebArenaSite.REDDIT,), benchmark)
@@ -110,16 +110,18 @@ def test_wire_witness_reads_only_post_setup_bytes_and_binds_separate_hars(
     raw.write_text(json.dumps({"log": {"entries": [{
         "request": {
             "method": "POST",
-            "url": "http://site.test/f/space/subscribe.json",
+            "url": "http://192.168.5.2/f/space/subscribe.json",
             "headers": [],
         },
         "response": {"status": 200},
     }]}}))
     receipt = _reconcile_server_wire_headers(raw, evaluated, witness, source, cursors)
     headers = json.loads(evaluated.read_text())["log"]["entries"][0]["request"]["headers"]
-    assert headers == [{"name": "Referer", "value": "http://site.test/f/space/thread"}]
+    assert headers == [{"name": "Referer", "value": "http://192.168.5.2/f/space/thread"}]
     assert json.loads(raw.read_text())["log"]["entries"][0]["request"]["headers"] == []
     assert len(receipt["unique_header_additions"]) == 1
+    assert receipt["schema"] == "lex_browser_use_server_wire_witness/2"
+    assert receipt["gateway_host"] == "192.168.5.2"
     assert "thread" not in witness.read_text()
     assert source.is_file()
 

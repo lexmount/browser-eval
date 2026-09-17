@@ -59,6 +59,96 @@ def test_real_site_shape_recovers_exact_on_wire_header_without_mutating_input():
     )
 
 
+def test_site_gateway_alias_recovers_only_unique_matching_request(tmp_path):
+    alias_url = "http://host.docker.internal:9999" + TARGET
+    alias_referer = "http://host.docker.internal:9999/f/space/thread"
+    line = access_line(referer=alias_referer)
+    raw = har(url=alias_url)
+    witnesses = parse_access_log(line, origin=ORIGIN)
+
+    evaluated, additions = fill_missing_referers(raw, witnesses, gateway_host="192.168.5.2")
+
+    assert evaluated["log"]["entries"][0]["request"]["headers"] == [
+        {"name": "Referer", "value": alias_referer}
+    ]
+    assert additions[0]["url_sha256"] == hashlib.sha256(alias_url.encode()).hexdigest()
+    assert validate_reconciled_har(raw, evaluated, {"unique_header_additions": additions})
+    source = tmp_path / "network-wire-source.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("0-reddit.log", line)
+    receipt = {
+        "schema": "lex_browser_use_server_wire_witness/2",
+        "gateway_host": "192.168.5.2",
+        "sources": [{
+            "archive_member": "0-reddit.log",
+            "origin": ORIGIN,
+            "segment_sha256": hashlib.sha256(line).hexdigest(),
+            "segment_bytes": len(line),
+            "parsed_request_count": 1,
+        }],
+        "unique_header_additions": additions,
+    }
+    assert validate_wire_source(raw, evaluated, receipt, source, gateway_host="192.168.5.2")
+    assert not validate_wire_source(raw, evaluated, receipt, source, gateway_host="192.168.5.3")
+
+
+def test_site_gateway_alias_refuses_ambiguous_or_foreign_matches():
+    alias_url = "http://host.docker.internal:9999" + TARGET
+    witnesses = parse_access_log(access_line(), origin=ORIGIN)
+    for record, sources in (
+        ({"log": {"entries": har(url=alias_url)["log"]["entries"] * 2}}, witnesses),
+        (har(url=alias_url), witnesses * 2),
+        (har(url=alias_url), parse_access_log(access_line(), origin="http://192.168.5.3:9999")),
+        (har(url=alias_url), parse_access_log(access_line(), origin="http://8.8.8.8:9999")),
+        (har(url="http://other.test:9999" + TARGET), witnesses),
+        (har(url="http://host.docker.internal:9988" + TARGET), witnesses),
+        (har(url=alias_url + "?changed=1"), witnesses),
+    ):
+        corrected, additions = fill_missing_referers(
+            record, sources, gateway_host="192.168.5.2"
+        )
+        assert corrected == record
+        assert additions == []
+
+
+def test_site_gateway_alias_rejects_other_witness_regardless_of_order():
+    alias_url = "http://host.docker.internal:9999" + TARGET
+    gateway = parse_access_log(access_line(), origin=ORIGIN)
+    for foreign_origin in ("http://8.8.8.8:9999", "http://192.168.5.3:9999"):
+        foreign = parse_access_log(
+            access_line(referer="http://other.test/source"), origin=foreign_origin
+        )
+        for witnesses in (foreign + gateway, gateway + foreign):
+            corrected, additions = fill_missing_referers(
+                har(url=alias_url), witnesses, gateway_host="192.168.5.2"
+            )
+            assert corrected["log"]["entries"][0]["request"]["headers"] == [
+                {"name": "Referer", "value": REFERER}
+            ]
+            assert len(additions) == 1
+
+
+def test_legacy_receipt_keeps_exact_matching_when_new_alias_would_match(tmp_path):
+    alias_url = "http://host.docker.internal:9999" + TARGET
+    line = access_line()
+    raw = har(url=alias_url)
+    source = tmp_path / "network-wire-source.zip"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("0-reddit.log", line)
+    receipt = {
+        "schema": "lex_browser_use_server_wire_witness/1",
+        "sources": [{
+            "archive_member": "0-reddit.log",
+            "origin": ORIGIN,
+            "segment_sha256": hashlib.sha256(line).hexdigest(),
+            "segment_bytes": len(line),
+            "parsed_request_count": 1,
+        }],
+        "unique_header_additions": [],
+    }
+    assert validate_wire_source(raw, raw, receipt, source, gateway_host="192.168.5.2")
+
+
 @pytest.mark.parametrize(
     "segment, record",
     [

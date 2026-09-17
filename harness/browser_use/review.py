@@ -128,7 +128,11 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
                     Path(str(paths["network_witness"])).read_text(encoding="utf-8")
                 )
                 checks["wire_witness_binding"] = (
-                    witness.get("schema") == "lex_browser_use_server_wire_witness/1"
+                    witness.get("schema")
+                    in {
+                        "lex_browser_use_server_wire_witness/1",
+                        "lex_browser_use_server_wire_witness/2",
+                    }
                     and witness.get("raw_har_sha256") == artifacts["network_har_raw"]["sha256"]
                     and witness.get("evaluated_har_sha256") == artifacts["network_har"]["sha256"]
                     and witness.get("source_archive_sha256")
@@ -138,6 +142,7 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
                         json.loads(Path(str(paths["network_har"])).read_text(encoding="utf-8")),
                         witness,
                         Path(str(paths["network_wire_source"])),
+                        gateway_host=(manifest.get("environment") or {}).get("site_access_host"),
                     )
                 )
             except (KeyError, OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError):

@@ -432,19 +432,27 @@ def _reconcile_server_wire_headers(
                 }
             )
     raw_bytes = raw_har_path.read_bytes()
-    evaluated, additions = fill_missing_referers(json.loads(raw_bytes), witnesses)
+    gateway_hosts = {urlparse(cursor["origin"]).hostname for cursor in cursors}
+    if len(gateway_hosts) != 1 or None in gateway_hosts:
+        raise RuntimeError("server wire origins disagree on the browser gateway")
+    gateway_host = next(iter(gateway_hosts))
+    evaluated, additions = fill_missing_referers(
+        json.loads(raw_bytes), witnesses, gateway_host=gateway_host
+    )
     evaluated_har_path.write_text(
         json.dumps(evaluated, ensure_ascii=False), encoding="utf-8"
     )
     receipt = {
-        "schema": "lex_browser_use_server_wire_witness/1",
+        "schema": "lex_browser_use_server_wire_witness/2",
+        "gateway_host": gateway_host,
         "raw_har_sha256": hashlib.sha256(raw_bytes).hexdigest(),
         "evaluated_har_sha256": hashlib.sha256(evaluated_har_path.read_bytes()).hexdigest(),
         "source_archive_sha256": hashlib.sha256(source_archive_path.read_bytes()).hexdigest(),
         "sources": sources,
         "unique_header_additions": additions,
         "note": (
-            "Only exact, unique method/URL/status matches can fill a missing Referer; "
+            "Only unique method/URL/status matches, including the official Docker gateway "
+            "host alias with identical port, path and query, can fill a missing Referer; "
             "original CDP HAR is retained separately."
         ),
     }
