@@ -10,6 +10,7 @@ from harness.trajectory_replay.webarena_corrections import (
     CorrectedReplayContract,
     apply_correction,
     corrected_task_ids,
+    evaluate_corrected_contract,
     load_corrections,
     normalize_agent_response_for_evaluator,
 )
@@ -114,6 +115,61 @@ def test_448_matches_the_profile_save_event_before_recency(benchmark, catalog) -
         "user[website_url]": "https://egg.tart.com"
     }
     assert evaluator["last_event_only"] is False
+
+
+def test_448_official_evaluator_selects_matching_save_not_later_profile_event(
+    tmp_path, benchmark, catalog
+) -> None:
+    corrected = apply_correction(benchmark.get_task(448), catalog)
+    target = "http://host.docker.internal:8023/-/profile"
+
+    def entry(value: str) -> dict:
+        return {
+            "request": {
+                "method": "POST",
+                "url": target,
+                "headers": [],
+                "postData": {
+                    "mimeType": "application/x-www-form-urlencoded",
+                    "text": f"user%5Bwebsite_url%5D={value}",
+                },
+            },
+            "response": {
+                "status": 302,
+                "redirectURL": target,
+                "headers": [],
+                "cookies": [],
+                "content": {"mimeType": "text/html", "text": ""},
+            },
+        }
+
+    response = {"task_type": "MUTATE", "status": "SUCCESS", "retrieved_data": None}
+
+    def score(values: list[str]) -> tuple[float, float]:
+        har = tmp_path / "task-448.har"
+        har.write_text(
+            json.dumps(
+                {
+                    "log": {
+                        "version": "1.2",
+                        "creator": {"name": "task-448-control", "version": "1"},
+                        "entries": [entry(value) for value in values],
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        original = benchmark.evaluate_task(
+            task_id=448, agent_response=response, network_trace=har
+        ).score
+        fixed = evaluate_corrected_contract(
+            benchmark, corrected, agent_response=response, network_trace=har
+        ).score
+        return original, fixed
+
+    assert score(["https%3A%2F%2Fegg.tart.com"]) == (1, 1)
+    assert score(["https%3A%2F%2Fegg.tart.com", "https%3A%2F%2Fother.test"]) == (0, 1)
+    assert score(["https%3A%2F%2Fother.test"]) == (0, 0)
 
 
 def test_510_freezes_selection_order_and_product(benchmark, catalog) -> None:
