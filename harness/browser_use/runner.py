@@ -550,7 +550,11 @@ def _wait_application_ready(
     that startup race from consuming an Agent attempt.
     """
     port = SITE_PORTS[site][0]
-    url = f"http://127.0.0.1:{port}{health_path}"
+    # GitLab's /help can return 200 while the project-list backend is still
+    # returning 502 after a reset. Exercise the public application route that
+    # benchmark tasks actually need, not only the container health page.
+    probe_path = "/explore?visibility_level=20" if site == WebArenaSite.GITLAB else health_path
+    url = f"http://127.0.0.1:{port}{probe_path}"
     deadline = time.monotonic() + timeout_seconds
     consecutive = 0
     last_detail = "no response"
@@ -564,7 +568,12 @@ def _wait_application_ready(
             # actual browser before tracing or model calls begin.
             response = requests.get(url, timeout=15, allow_redirects=False)
             last_detail = f"HTTP {response.status_code}"
-            consecutive = consecutive + 1 if response.status_code < 500 else 0
+            usable = (
+                response.status_code == 200
+                if site == WebArenaSite.GITLAB
+                else response.status_code < 500
+            )
+            consecutive = consecutive + 1 if usable else 0
             if consecutive >= stable_responses:
                 return
         except requests.RequestException as exc:
@@ -582,6 +591,28 @@ def _prepare_sites(sites: tuple[WebArenaSite, ...]) -> None:
             manager.stop()
     for site in sites:
         _ensure_site(site, reset=True)
+
+
+def _wait_browser_start_ready(
+    page: Any,
+    url: str,
+    *,
+    timeout_seconds: float = 300,
+    stable_responses: int = 1,
+) -> None:
+    """Verify the real CDP session can load the task entry before scoring."""
+    deadline = time.monotonic() + timeout_seconds
+    consecutive = 0
+    last_detail = "no response"
+    while time.monotonic() < deadline:
+        response = page.goto(url, wait_until="domcontentloaded")
+        status = response.status if response is not None else None
+        last_detail = f"HTTP {status}" if status is not None else "no HTTP response"
+        consecutive = consecutive + 1 if status is not None and status < 500 else 0
+        if consecutive >= stable_responses:
+            return
+        page.wait_for_timeout(2_000)
+    raise RuntimeError(f"task entry page was not stably ready: {last_detail}")
 
 
 def _login_context(
@@ -644,7 +675,11 @@ def _login_context(
                 page.close()
         primary_page.set_default_timeout(60_000)
         primary_page.set_default_navigation_timeout(90_000)
-        primary_page.goto(start_urls[0], wait_until="domcontentloaded")
+        _wait_browser_start_ready(
+            primary_page,
+            start_urls[0],
+            stable_responses=3 if WebArenaSite.GITLAB in sites else 1,
+        )
         primary_page.wait_for_timeout(500)
 
     readiness_retries = 0

@@ -33,6 +33,7 @@ from harness.browser_use.runner import (
     _site_runtime_compatibility,
     _user_prompt,
     _wait_application_ready,
+    _wait_browser_start_ready,
     _wait_container_healthy,
     _wait_magento_dependencies_ready,
     _wire_log_cursors,
@@ -225,8 +226,9 @@ def test_login_context_closes_old_tabs_and_opens_official_start_url() -> None:
         def set_default_navigation_timeout(self, _timeout: int) -> None:
             pass
 
-        def goto(self, url: str, **_kwargs) -> None:
+        def goto(self, url: str, **_kwargs):
             self.url = url
+            return SimpleNamespace(status=200)
 
         def wait_for_timeout(self, _timeout: int) -> None:
             pass
@@ -289,8 +291,8 @@ def test_login_context_recovers_one_transient_unloaded_context(monkeypatch) -> N
                 pass
 
             @staticmethod
-            def goto(_url: str, **_kwargs) -> None:
-                pass
+            def goto(_url: str, **_kwargs):
+                return SimpleNamespace(status=200)
 
             @staticmethod
             def wait_for_timeout(_timeout: int) -> None:
@@ -369,6 +371,59 @@ def test_application_readiness_does_not_follow_container_only_hostname(monkeypat
             {"timeout": 15, "allow_redirects": False},
         )
     ]
+
+
+def test_gitlab_readiness_probes_project_route_not_help(monkeypatch) -> None:
+    calls = []
+    statuses = iter((502, 200, 200, 200))
+
+    def get(url, **kwargs):
+        calls.append((url, kwargs))
+        return SimpleNamespace(status_code=next(statuses))
+
+    monkeypatch.setattr("harness.browser_use.runner.requests.get", get)
+    monkeypatch.setattr("harness.browser_use.runner.time.sleep", lambda _seconds: None)
+    _wait_application_ready(WebArenaSite.GITLAB, "/help", timeout_seconds=1)
+
+    assert len(calls) == 4
+    assert all(
+        url == "http://127.0.0.1:8023/explore?visibility_level=20"
+        for url, _ in calls
+    )
+
+
+def test_browser_start_readiness_waits_past_502_before_agent(monkeypatch) -> None:
+    statuses = iter((502, 200, 200, 200))
+    observed = []
+
+    class Page:
+        def goto(self, url, **kwargs):
+            observed.append((url, kwargs))
+            return SimpleNamespace(status=next(statuses))
+
+        def wait_for_timeout(self, _timeout):
+            pass
+
+    _wait_browser_start_ready(
+        Page(), "http://gitlab.test/", timeout_seconds=1, stable_responses=3
+    )
+
+    assert len(observed) == 4
+
+
+def test_browser_start_readiness_rejects_persistent_502(monkeypatch) -> None:
+    ticks = iter((0, 1, 2, 3))
+    monkeypatch.setattr("harness.browser_use.runner.time.monotonic", lambda: next(ticks))
+
+    class Page:
+        def goto(self, _url, **_kwargs):
+            return SimpleNamespace(status=502)
+
+        def wait_for_timeout(self, _timeout):
+            pass
+
+    with pytest.raises(RuntimeError, match="not stably ready: HTTP 502"):
+        _wait_browser_start_ready(Page(), "http://gitlab.test/", timeout_seconds=3)
 
 
 def test_environment_control_wait_covers_slow_official_image_restore() -> None:
