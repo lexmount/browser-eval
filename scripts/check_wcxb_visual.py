@@ -33,11 +33,17 @@ def check(root: Path, browser_binary: str) -> None:
     checked = 0
     try:
         score_rows = [json.loads(line) for line in (root / 'wcxb-scores.jsonl').read_text().splitlines() if line]
-        case_id = next(row['case_id'] for row in score_rows if row['quality_eligible'] and row['diagnosis'] == 'none')
-        diagnostic_row = next(row for row in score_rows if row['quality_eligible'] and row['diagnosis'] == 'low_precision')
+        providers = list(dict.fromkeys(row['provider'] for row in score_rows))
+        if len(providers) < 2:
+            raise ValueError('WCXB visual comparison requires at least two providers')
+        passing_row = next((row for row in score_rows if row['quality_eligible'] and row['diagnosis'] == 'none'), None)
+        diagnostic_row = next((row for row in score_rows if row['quality_eligible'] and row['diagnosis'] == 'low_precision'), None)
+        if passing_row is None or diagnostic_row is None:
+            raise ValueError('WCXB visual gate requires an unlocated result and a low-precision result')
+        case_id = passing_row['case_id']
         diagnostic_id = diagnostic_row['case_id']
         qualified_count = len({row['case_id'] for row in score_rows if row['quality_eligible']})
-        provider_count = len({row['provider'] for row in score_rows})
+        provider_count = len(providers)
         routes = ('index.html', 'datasets/index.html', 'analysis/index.html',
                   'methodology/index.html', 'review/index.html', 'guide/index.html',
                   'adoption/index.html', 'reproduce/index.html', 'changes/index.html',
@@ -84,8 +90,8 @@ def check(root: Path, browser_binary: str) -> None:
                                         page.locator('#q').fill(case_id)
                                         if page.locator('#count').inner_text() != str(provider_count):
                                             raise ValueError('Same-case search does not expose five results')
-                                        page.locator('#compare-baseline').select_option('moli')
-                                        page.locator('[name="compare-provider"][value="chromium"]').check()
+                                        page.locator('#compare-baseline').select_option(providers[0])
+                                        page.locator(f'[name="compare-provider"][value="{providers[1]}"]').check()
                                         if page.locator('#comparison-rows tr').count() != qualified_count:
                                             raise ValueError('Same-page comparison does not cover every qualified page')
                                         page.locator('#compare-query').fill(case_id)
