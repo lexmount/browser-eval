@@ -3,10 +3,74 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from harness.trajectory_replay.browser_use_seeds import (
+    _selector_for_ref,
+    _snapshot_nodes,
     build_replay_seed_manifest,
     compile_replay_calls,
 )
+
+
+@pytest.mark.parametrize("order", [("Sales", "Marketing"), ("Marketing", "Sales")])
+def test_duplicate_href_uses_unique_complete_text_independent_of_order(order: tuple) -> None:
+    nodes = _snapshot_nodes(
+        "\n".join(f'[{index}] a href="#": {label}' for index, label in enumerate(order, 1))
+    )
+    target = next(node for node in nodes if node["text"] == "Sales")
+    assert _selector_for_ref(nodes, target["ref"], context="fixture") == (
+        'a[href="#"]:visible:has-text("Sales")'
+    )
+
+
+@pytest.mark.parametrize("other", ["Sales", "SALES", "Sales reports", "Sales...", "Other…"])
+def test_duplicate_href_does_not_treat_ambiguous_text_as_unique(other: str) -> None:
+    nodes = _snapshot_nodes(f'[1] a href="#": {other}\n[2] a href="#": Sales')
+    assert _selector_for_ref(nodes, 2, context="fixture") == ':nth-match(a[href="#"]:visible, 2)'
+
+
+@pytest.mark.parametrize("text", ["", "Sales...", "Sales…"])
+def test_duplicate_href_does_not_use_missing_or_truncated_target_text(text: str) -> None:
+    nodes = _snapshot_nodes(f'[1] a href="#": Other\n[2] a href="#": {text}')
+    assert _selector_for_ref(nodes, 2, context="fixture") == ':nth-match(a[href="#"]:visible, 2)'
+
+
+def test_duplicate_href_text_escaping_and_whitespace() -> None:
+    # Quotes in text must remain text, not become snapshot attributes or selector syntax.
+    nodes = _snapshot_nodes('[1] a href="#": Other\n[2] a href="#": Sale "A" \\ B')
+    assert _selector_for_ref(nodes, 2, context="fixture") == (
+        'a[href="#"]:visible:has-text(' + json.dumps('Sale "A" \\ B') + ")"
+    )
+    nodes = _snapshot_nodes('[1] a href="#": Sales   reports\n[2] a href="#": Sales reports')
+    assert _selector_for_ref(nodes, 2, context="fixture") == ':nth-match(a[href="#"]:visible, 2)'
+
+
+def test_duplicate_href_compilation_preserves_ref_action_mode(tmp_path: Path) -> None:
+    events = []
+    for key, arguments, result in [
+        ("snapshot", {"action": "snapshot"}, '[1] a href="#": Other\n[2] a href="#": Sales'),
+        ("click", {"action": "click", "ref": 2}, "ok"),
+    ]:
+        events.extend(
+            [
+                {
+                    "type": "tool_execution_start",
+                    "data": {"tool_call_id": key, "tool_name": "browser", "arguments": arguments},
+                },
+                {
+                    "type": "tool_execution_end",
+                    "data": {"tool_call_id": key, "status": "success", "result": result},
+                },
+            ]
+        )
+    path = tmp_path / "events.json"
+    path.write_text(json.dumps(events), encoding="utf-8")
+    assert compile_replay_calls(path)[1] == {
+        "action": "click",
+        "selector": 'a[href="#"]:visible:has-text("Sales")',
+        "replay_mode": "snapshot_ref_semantics",
+    }
 
 
 def _write_attempt(
@@ -201,7 +265,7 @@ def test_compile_replay_calls_replaces_snapshot_refs_with_selectors(tmp_path: Pa
                         "tool_call_id": "navigate",
                         "status": "success",
                         "result": (
-                            'Page: Example\nInteractive elements: 2\n---\n'
+                            "Page: Example\nInteractive elements: 2\n---\n"
                             '  [1] a href="/one": One\n'
                             '  [2] a href="/two": Two'
                         ),

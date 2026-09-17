@@ -35,6 +35,10 @@
     "source_path": "research/browser-use-failure-cause-review.json",
     "source_sha256": "a11134919f5e7b9a65c601374211e20e7e940f82e6f363ed025c49b52336e721"
   },
+  "trajectory_replay_bridge": {
+    "source_path": "research/browser-use-trajectory-replay-bridge.json",
+    "source_sha256": "632049d90d198a9dc58f127e6d7e7e1b24c8f0657ba103aadcf279d0fc9ee3f6"
+  },
   "publication": {
     "base_url": "https://artifact-hub.app.lexmount.com",
     "site_slug": "7l77EeXPRfml",

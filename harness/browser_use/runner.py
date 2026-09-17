@@ -462,11 +462,123 @@ def _prepare_sites(sites: tuple[WebArenaSite, ...]) -> None:
         _ensure_site(site, reset=True)
 
 
+BENCHMARK_VIEWPORT = {"width": 1280, "height": 900}
+
+
+def _browser_session_contract() -> dict[str, Any]:
+    return {
+        "mode": "owned_cdp_context",
+        "viewport": dict(BENCHMARK_VIEWPORT),
+        "postmill_auth": "single_request_bootstrap",
+        "verification": "primary and inherited new page before navigation, then after execution",
+    }
+
+
+def _browser_tool_config(endpoint: str) -> dict[str, Any]:
+    return {
+        "cdp_endpoint": endpoint,
+        "headless": True,
+        "viewport_width": BENCHMARK_VIEWPORT["width"],
+        "viewport_height": BENCHMARK_VIEWPORT["height"],
+        "cdp_isolated_context": True,
+        "startup_timeout": 90,
+    }
+
+
+def _record_page_viewport(page: Any, evidence: dict[str, Any], phase: str) -> None:
+    try:
+        observed = page.evaluate(
+            "() => ({width: innerWidth, height: innerHeight, "
+            "device_scale_factor: devicePixelRatio})"
+        )
+    except Exception:
+        evidence["verified"] = False
+        raise
+    evidence["observations"].append({"phase": phase, **observed})
+    if {key: observed.get(key) for key in BENCHMARK_VIEWPORT} != BENCHMARK_VIEWPORT:
+        evidence["verified"] = False
+        raise RuntimeError(f"browser viewport mismatch during {phase}: {observed}")
+
+
+def _verify_session_viewport(service: Any, evidence: dict[str, Any], phase: str) -> None:
+    def verify() -> None:
+        pages = service._context.pages
+        if not pages:
+            evidence["verified"] = False
+            raise RuntimeError("browser viewport cannot be verified without a live page")
+        for page in pages:
+            _record_page_viewport(page, evidence, phase)
+
+    service._submit(verify)
+
+
+def _prepare_browser_viewport(service: Any) -> dict[str, Any]:
+    evidence: dict[str, Any] = {
+        "requested": dict(BENCHMARK_VIEWPORT),
+        "mode": "owned_cdp_context",
+        "verified": False,
+        "observations": [],
+        "resource_scope": "whole browser process, including pre-existing default contexts",
+    }
+
+    def prepare() -> None:
+        if not getattr(service, "_owns_cdp_context", False):
+            raise RuntimeError("CowAgent lacks the required owned CDP context contract")
+        _record_page_viewport(service._page, evidence, "primary_before_navigation")
+        # Verify inheritance using a blank child before any login/site script.
+        child = service._context.new_page()
+        try:
+            _record_page_viewport(child, evidence, "new_page_before_navigation")
+        finally:
+            child.close()
+        evidence["retained_external_context_count"] = sum(
+            context != service._context for context in service._browser.contexts
+        )
+        evidence["verified"] = True
+
+    service._submit(prepare)
+    return evidence
+
+
+def _bootstrap_postmill_session(context: Any, base_url: str) -> None:
+    """Authenticate once, without loading subresources or following redirects.
+
+    The image's header authenticator migrates (and destroys) the previous
+    session on every authenticated request. A persistent context header makes
+    concurrent thumbnail requests race with CSRF form sessions. The context's
+    API client shares the browser cookie jar but does not execute page content.
+    Use the configured, host-accessible origin, not a browser-only DNS alias.
+    """
+    creds = SITE_CREDENTIALS[WebArenaSite.REDDIT]
+    response = context.request.get(
+        base_url,
+        headers={
+            SITE_AUTH_HEADERS[WebArenaSite.REDDIT]: (f"{creds['username']}:{creds['password']}")
+        },
+        max_redirects=0,
+        max_retries=0,
+        timeout=90_000,
+    )
+    try:
+        if not 200 <= response.status < 300:
+            raise RuntimeError(
+                f"Postmill session bootstrap requires a direct 2xx response; got {response.status}"
+            )
+        if not any(
+            cookie.get("name") == "PHPSESSID" and cookie.get("value")
+            for cookie in context.cookies(base_url)
+        ):
+            raise RuntimeError("Postmill session bootstrap did not establish a session cookie")
+    finally:
+        response.dispose()
+
+
 def _login_context(
     service: Any,
     sites: tuple[WebArenaSite, ...],
     benchmark: WebArenaVerified,
     start_urls: list[str],
+    viewport_evidence: dict[str, Any] | None = None,
 ) -> int:
     def login() -> None:
         context = service._context
@@ -483,7 +595,7 @@ def _login_context(
                     f"{SITE_CREDENTIALS[site]['username']}:{SITE_CREDENTIALS[site]['password']}"
                 )
                 for site in sites
-                if site in SITE_AUTH_HEADERS
+                if site in SITE_AUTH_HEADERS and site != WebArenaSite.REDDIT
             }
         )
         for site in sites:
@@ -491,6 +603,8 @@ def _login_context(
             creds = SITE_CREDENTIALS[site]
             page = context.new_page()
             try:
+                if viewport_evidence is not None:
+                    _record_page_viewport(page, viewport_evidence, "login_before_navigation")
                 page.set_default_timeout(60_000)
                 page.set_default_navigation_timeout(90_000)
                 if site == WebArenaSite.SHOPPING:
@@ -504,6 +618,7 @@ def _login_context(
                     page.reload(wait_until="domcontentloaded")
                     page.locator(".page-title").wait_for()
                 elif site == WebArenaSite.REDDIT:
+                    _bootstrap_postmill_session(context, base)
                     page.goto(base, wait_until="commit")
                     page.evaluate("localStorage.clear(); sessionStorage.clear()")
                     page.reload(wait_until="domcontentloaded")
@@ -689,14 +804,7 @@ def _run_attempt_locked(  # noqa: PLR0913
     response_path = attempt_dir / "agent_response.json"
     eval_path = attempt_dir / "eval_result.json"
     events_path = attempt_dir / "agent_events.json"
-    tool = BrowserTool(
-        config={
-            "cdp_endpoint": endpoint,
-            "headless": True,
-            "viewport": {"width": 1280, "height": 900},
-            "startup_timeout": 90,
-        }
-    )
+    tool = BrowserTool(config=_browser_tool_config(endpoint))
     _allow_official_container_hostname(tool)
     events: list[dict[str, Any]] = []
     resources = DockerStatsResources(container)
@@ -705,6 +813,7 @@ def _run_attempt_locked(  # noqa: PLR0913
     raw_response = ""
     error = ""
     prepared = False
+    viewport_evidence: dict[str, Any] = {}
     recorder = CdpHarRecorder()
     sampler_started = False
     browser_session_setup_ms = 0.0
@@ -718,7 +827,11 @@ def _run_attempt_locked(  # noqa: PLR0913
         model.reset()
         service = tool._get_service()
         service._submit(lambda: None)
-        browser_session_readiness_retries = _login_context(service, sites, benchmark, start_urls)
+        viewport_evidence = _prepare_browser_viewport(service)
+        browser_session_readiness_retries = _login_context(
+            service, sites, benchmark, start_urls, viewport_evidence
+        )
+        _verify_session_viewport(service, viewport_evidence, "after_login")
         service._submit(
             lambda: (
                 recorder.start(service._context),
@@ -754,6 +867,7 @@ def _run_attempt_locked(  # noqa: PLR0913
                 _max_steps_response(str(response_eval.expected.task_type), max_agent_steps)
             )
         agent_run_ms = (time.perf_counter() - agent_started) * 1000
+        _verify_session_viewport(service, viewport_evidence, "after_agent")
         finalize_started = time.perf_counter()
         service._submit(
             lambda: (
@@ -793,7 +907,7 @@ def _run_attempt_locked(  # noqa: PLR0913
         except Exception as exc:
             cleanup_errors.append(f"browser tool close failed: {exc}")
 
-    if not prepared:
+    if not prepared or not viewport_evidence.get("verified"):
         raise RuntimeError(
             f"{engine} task {selected.task_id}: environment precondition failed\n{error}"
         )
@@ -841,6 +955,7 @@ def _run_attempt_locked(  # noqa: PLR0913
             "measured_run_wall_ms": round(duration_ms, 3),
         },
         "browser_session_readiness_retries": browser_session_readiness_retries,
+        "viewport": viewport_evidence,
         "agent_response": parsed_response,
         "error": error,
         "cleanup_errors": cleanup_errors,
@@ -943,9 +1058,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     require_linux_cgroup_v2(client)
     docker_info = client.info()
     physical_execution_lock_namespace = _docker_daemon_lock_namespace(docker_info)
-    physical_execution_lock_path = _physical_execution_lock_path(
-        physical_execution_lock_namespace
-    )
+    physical_execution_lock_path = _physical_execution_lock_path(physical_execution_lock_namespace)
     run_id = uuid.uuid4().hex[:12]
     containers: dict[str, Any] = {}
     networks: dict[str, Any] = {}
@@ -1000,7 +1113,6 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
         site_access_host = gateway_addresses.pop()
         benchmark = _configure_benchmark(hostname=site_access_host)
         resolved = validate_against_official(selection, benchmark)
-
         _write_or_validate_run_config(
             run_config_file,
             {
@@ -1008,6 +1120,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                 "selection_sha256": selection.sha256,
                 "browser_eval_commit": harness_commit,
                 "cowagent_commit": cowagent_commit,
+                "browser_session_contract": _browser_session_contract(),
                 "model": args.model,
                 "reasoning_effort": "low",
                 "model_transport_retries": 1,
@@ -1053,11 +1166,21 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                                 ),
                                 flush=True,
                             )
-                            if float(row["score"]) == 1.0:
+                            if (
+                                float(row.get("score") or 0) == 1.0
+                                or row.get("status") == "unsupported"
+                            ):
                                 break
                             continue
                         primary = completed.get((args.model, engine, selected.task_id, 1))
-                        if attempt == 2 and primary is not None and float(primary["score"]) == 1.0:
+                        if (
+                            attempt == 2
+                            and primary is not None
+                            and (
+                                float(primary.get("score") or 0) == 1.0
+                                or primary.get("status") == "unsupported"
+                            )
+                        ):
                             break
                         row = _run_attempt(
                             lock_path=physical_execution_lock_path,
@@ -1142,6 +1265,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             "official_container_hostname_allowlist": ["host.docker.internal"],
         },
         "environment": {
+            "browser_session_contract": _browser_session_contract(),
             "platform": platform.platform(),
             "docker_server_version": client.version().get("Version"),
             "docker_architecture": docker_info.get("Architecture"),

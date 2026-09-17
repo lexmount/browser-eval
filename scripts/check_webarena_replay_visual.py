@@ -70,6 +70,38 @@ def _first_failed_key(report: Path) -> str | None:
     return next((item["key"] for item in results if item["status"] == "fail"), None)
 
 
+def _first_fix_id(report: Path) -> str | None:
+    fix_log = report / "data/fix-log.json"
+    if not fix_log.is_file():
+        return None
+    records = json.loads(fix_log.read_text(encoding="utf-8")).get("records") or []
+    return next(
+        (
+            str(record["id"])
+            for record in records
+            if record.get("id")
+            and (report / "fix" / f"{record['id']}.html").is_file()
+            and (report / "en/fix" / f"{record['id']}.html").is_file()
+        ),
+        None,
+    )
+
+
+def _diagnostic_samples(report: Path) -> list[int]:
+    source = report / "data/diagnostic-closure.json"
+    if not source.is_file():
+        return []
+    entries = json.loads(source.read_text(encoding="utf-8")).get("entries") or []
+    samples = []
+    for generation in ("current_b96", "inherited_mixed_build"):
+        entry = next((row for row in entries if row.get("generation") == generation), None)
+        if entry:
+            task_id = int(entry["task_id"])
+            if (report / "diagnostic" / f"{task_id}.html").is_file():
+                samples.append(task_id)
+    return samples
+
+
 def _routes(report: Path) -> list[str]:
     results = json.loads((report / "data/results.json").read_text(encoding="utf-8"))
     failed_key = _first_failed_key(report)
@@ -84,8 +116,16 @@ def _routes(report: Path) -> list[str]:
         "results.html",
         "environment.html",
         "review.html",
+        "fixes.html",
     ]
     routes = [*fixed, *(f"en/{item}" for item in fixed)]
+    fix_id = _first_fix_id(report)
+    if fix_id is not None:
+        routes.extend((f"fix/{fix_id}.html", f"en/fix/{fix_id}.html"))
+    if (report / "diagnostics.html").is_file():
+        routes.extend(("diagnostics.html", "en/diagnostics.html"))
+        for task_id in _diagnostic_samples(report):
+            routes.extend((f"diagnostic/{task_id}.html", f"en/diagnostic/{task_id}.html"))
     if task_id is not None and (report / "task" / f"{task_id}.html").is_file():
         routes.extend((f"task/{task_id}.html", f"en/task/{task_id}.html"))
     if failed_key is not None:
@@ -155,23 +195,29 @@ def check(report: Path, receipt: Path) -> None:
                         ).first
                     step_button.click()
                     try:
-                        route_page.locator('#step-dialog[open]').wait_for(timeout=5_000)
+                        route_page.locator("#step-dialog[open]").wait_for(timeout=5_000)
                     except Exception as exc:
                         state = route_page.evaluate(
                             """() => ({dialog:document.querySelector('#step-dialog')?.open,
-                            button:document.querySelector('.aligned-step button[data-open-step]')?.outerHTML,
-                            fields:['title','status','planned','actual','result','error'].map(key=>[key,!!document.querySelector('#step-dialog [data-step-'+key+']')]),
+                            button:document.querySelector(
+                              '.aligned-step button[data-open-step]')?.outerHTML,
+                            fields:['title','status','planned','actual','result','error']
+                              .map(key=>[key,!!document.querySelector(
+                                '#step-dialog [data-step-'+key+']')]),
                             script:[...document.scripts].map(item=>item.src),
                             theme:document.documentElement.dataset.theme})"""
                         )
-                        raise ValueError(f"step dialog did not open: {state}; errors: {page_errors}") from exc
+                        raise ValueError(
+                            f"step dialog did not open: {state}; errors: {page_errors}"
+                        ) from exc
                     route_page.wait_for_function(
-                        "() => document.querySelector('[data-step-planned]')?.textContent.includes('action')",
+                        "() => document.querySelector('[data-step-planned]')"
+                        "?.textContent.includes('action')",
                         timeout=5_000,
                     )
-                    assert route_page.locator('[data-step-actual]').inner_text()
-                    assert route_page.locator('[data-step-result]').inner_text()
-                    route_page.locator('[data-close-step]').click()
+                    assert route_page.locator("[data-step-actual]").inner_text()
+                    assert route_page.locator("[data-step-result]").inner_text()
+                    route_page.locator("[data-close-step]").click()
                     route_page.locator('nav a[href="../index.html"]').first.click()
                     route_page.wait_for_url(
                         f"http://127.0.0.1:{server.server_port}/api/preview/replay/index.html"
@@ -194,7 +240,8 @@ def check(report: Path, receipt: Path) -> None:
                             ).first
                         modal_step.click()
                         modal_page.wait_for_function(
-                            "() => document.querySelector('[data-step-planned]')?.textContent.includes('action')",
+                            "() => document.querySelector('[data-step-planned]')"
+                            "?.textContent.includes('action')",
                             timeout=5_000,
                         )
                         dialog_box = modal_page.locator("#step-dialog").bounding_box()
@@ -205,16 +252,34 @@ def check(report: Path, receipt: Path) -> None:
                             path=str(screenshot_dir / f"step-dialog-{language}.png")
                         )
                         modal_page.close()
+                fix_id = _first_fix_id(report)
+                if fix_id is not None:
+                    fix_page = browser.new_page()
+                    fix_page.goto(
+                        f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/fix/{fix_id}.html",
+                        wait_until="domcontentloaded",
+                    )
+                    fix_page.wait_for_function(
+                        "() => document.baseURI.includes('/api/preview/replay/fix/')"
+                    )
+                    fix_page.locator('nav a[href="../index.html"]').first.click()
+                    fix_page.wait_for_url(
+                        f"http://127.0.0.1:{server.server_port}/api/preview/replay/index.html"
+                    )
+                    fix_page.locator("h1").wait_for()
+                    fix_page.close()
                 drill_page = browser.new_page()
                 drill_page.goto(
                     f"http://127.0.0.1:{server.server_port}/dataset.html",
                     wait_until="domcontentloaded",
                 )
-                drill_task = drill_page.locator("[data-dataset-table] tbody tr").first.get_attribute(
-                    "data-task"
-                )
+                drill_task = drill_page.locator(
+                    "[data-dataset-table] tbody tr"
+                ).first.get_attribute("data-task")
                 assert drill_task
-                drill_page.locator("[data-dataset-table] tbody tr .dataset-actions a").nth(1).click()
+                drill_page.locator("[data-dataset-table] tbody tr .dataset-actions a").nth(
+                    1
+                ).click()
                 drill_page.wait_for_url(
                     f"http://127.0.0.1:{server.server_port}/results.html?task={drill_task}&status="
                 )
@@ -243,18 +308,59 @@ return node && node.textContent.trim().startsWith('{');
                                     timeout=5_000,
                                 )
                             if route.endswith("dataset.html"):
-                                page.wait_for_function("() => document.querySelector('[data-dataset-count]')?.textContent.includes('/')", timeout=5_000)
-                                page.locator('[data-dataset-filter="type"]').select_option("RETRIEVE")
-                                page.wait_for_function("() => [...document.querySelectorAll('[data-dataset-table] tbody tr:not([hidden])')].every(row => row.dataset.type === 'RETRIEVE')")
-                                visible_rows = page.locator('[data-dataset-table] tbody tr:not([hidden])')
+                                page.wait_for_function(
+                                    "() => document.querySelector('[data-dataset-count]')"
+                                    "?.textContent.includes('/')",
+                                    timeout=5_000,
+                                )
+                                page.locator('[data-dataset-filter="type"]').select_option(
+                                    "RETRIEVE"
+                                )
+                                page.wait_for_function(
+                                    "() => [...document.querySelectorAll("
+                                    "'[data-dataset-table] tbody tr:not([hidden])')]"
+                                    ".every(row => row.dataset.type === 'RETRIEVE')"
+                                )
+                                visible_rows = page.locator(
+                                    "[data-dataset-table] tbody tr:not([hidden])"
+                                )
                                 assert visible_rows.count() > 0
                                 task_id = visible_rows.first.get_attribute("data-task")
                                 assert task_id
                                 page.locator('[data-dataset-filter="q"]').fill(task_id)
-                                assert page.locator(f'[data-dataset-table] tbody tr:not([hidden])[data-task="{task_id}"]').count() == 1
-                                assert f"task={task_id}&status=" in page.locator(f'[data-dataset-table] tbody tr[data-task="{task_id}"] .dataset-actions a').last.get_attribute('href')
+                                assert (
+                                    page.locator(
+                                        "[data-dataset-table] tbody tr:not([hidden])"
+                                        f'[data-task="{task_id}"]'
+                                    ).count()
+                                    == 1
+                                )
+                                assert f"task={task_id}&status=" in page.locator(
+                                    "[data-dataset-table] tbody "
+                                    f'tr[data-task="{task_id}"] .dataset-actions a'
+                                ).last.get_attribute("href")
                                 page.locator('[data-dataset-filter="q"]').fill("")
                                 page.locator('[data-dataset-filter="type"]').select_option("")
+                            if route.endswith("diagnostics.html"):
+                                page.wait_for_function(
+                                    "() => document.querySelector('[data-closure-count]')"
+                                    "?.textContent.includes('/')",
+                                    timeout=5_000,
+                                )
+                                page.locator("[data-closure-group]").select_option("current_b96")
+                                assert (
+                                    page.locator(
+                                        'tr[data-group="current_b96"]:not([hidden])'
+                                    ).count()
+                                    > 0
+                                )
+                                assert (
+                                    page.locator(
+                                        'tr[data-group="inherited_mixed_build"]:not([hidden])'
+                                    ).count()
+                                    == 0
+                                )
+                                page.locator("[data-closure-group]").select_option("")
                             if route.endswith("results.html"):
                                 page.wait_for_function(
                                     "() => document.querySelector('[data-matrix-count]')"
@@ -347,6 +453,8 @@ return {
                                     "environment.html",
                                 }
                                 or route.startswith(("result/", "task/"))
+                                or route.endswith("diagnostics.html")
+                                or route.startswith("diagnostic/")
                             ):
                                 shot = screenshot_dir / f"{index}-{width}.png"
                                 page.screenshot(path=str(shot), full_page=True)

@@ -9,6 +9,8 @@ import json
 import zipfile
 from pathlib import Path
 
+from harness.trajectory_replay.diagnostic_closure import load_diagnostic_closure
+
 if __package__:
     from scripts.check_webarena_replay_report import check as check_report
     from scripts.check_webarena_replay_visual import check as check_visual
@@ -60,10 +62,38 @@ def validate_release(report: Path, visual_receipt: Path) -> dict[str, int]:
     return summary
 
 
-def package(report: Path, evidence: Path, output: Path, visual_receipt: Path) -> dict:
+def package(
+    report: Path,
+    evidence: Path,
+    output: Path,
+    visual_receipt: Path,
+    diagnostic_closure: Path | None = None,
+) -> dict:
     if not evidence.is_file():
         raise ValueError(f"missing replay evidence: {evidence}")
     summary = validate_release(report, visual_receipt)
+    report_manifest = json.loads((report / "report-manifest.json").read_text(encoding="utf-8"))
+    closure_sha = report_manifest.get("diagnostic_closure_sha256")
+    if bool(closure_sha) != bool(diagnostic_closure):
+        raise ValueError("diagnostic closure source must match the report manifest")
+    closure_binding = {}
+    if diagnostic_closure is not None:
+        if sha256(diagnostic_closure) != closure_sha:
+            raise ValueError("diagnostic closure changed since report build")
+        public_path = report / "data/diagnostic-closure.json"
+        public_model = json.loads(public_path.read_text(encoding="utf-8"))
+        task_ids = {int(row["task_id"]) for row in public_model["entries"]}
+        rebuilt = load_diagnostic_closure(diagnostic_closure, old_failed_tasks=task_ids)
+        if (
+            json.dumps(rebuilt, ensure_ascii=False, sort_keys=True)
+            != json.dumps(public_model, ensure_ascii=False, sort_keys=True)
+            or rebuilt["source_sha256"] != closure_sha
+        ):
+            raise ValueError("diagnostic closure changed since report build")
+        closure_binding = {
+            "diagnostic_closure": str(diagnostic_closure),
+            "diagnostic_closure_sha256": closure_sha,
+        }
     files = sorted(path for path in report.rglob("*") if path.is_file())
     if not files or len(files) > MAX_FILES:
         raise ValueError(f"Artifact Site file count is outside 1..{MAX_FILES}: {len(files)}")
@@ -91,6 +121,7 @@ def package(report: Path, evidence: Path, output: Path, visual_receipt: Path) ->
         "review_sha256": sha256(REVIEW),
         "evidence": str(evidence),
         "evidence_sha256": sha256(evidence),
+        **closure_binding,
         **summary,
     }
     ATTESTATION.write_text(
@@ -106,10 +137,17 @@ def main() -> None:
     parser.add_argument("--evidence", type=Path, required=True)
     parser.add_argument("--output", type=Path, default=ARCHIVE)
     parser.add_argument("--visual-receipt", type=Path, default=VISUAL_RECEIPT)
+    parser.add_argument("--diagnostic-closure", type=Path)
     args = parser.parse_args()
     print(
         json.dumps(
-            package(args.report, args.evidence, args.output, args.visual_receipt),
+            package(
+                args.report,
+                args.evidence,
+                args.output,
+                args.visual_receipt,
+                args.diagnostic_closure,
+            ),
             ensure_ascii=False,
         )
     )

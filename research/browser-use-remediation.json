@@ -1,8 +1,24 @@
 {
   "schema": "lex_browser_use_remediation/1",
-  "updated_at": "2026-09-14",
+  "updated_at": "2026-09-16",
   "score_policy": "Raw evaluator outputs remain unchanged. A task is excluded from the formal comparison across every configuration when any verified result is affected by benchmark/evaluator, site, shared-environment, or mixed reference-state interference. Readmission requires a corrected contract or runtime, independent preflight, and a complete four-configuration rerun.",
   "items": [
+    {
+      "category": "shared_viewport_configuration",
+      "task_ids": [173],
+      "status": "implementation_fixed_owned_context_validation_and_full_rerun_required",
+      "score_policy": "Historical evaluator scores remain immutable. Quarantine task 173 across all four model-by-browser configurations; the shared configuration defect affects the runtime contract for all 90 tasks, without asserting that every verdict changes.",
+      "root_cause": "Both runners supplied an unsupported nested viewport key, while CowAgent's existing-context CDP path did not apply viewport settings. Historical trace metadata shows Chromium width 780 and Moli width 1920. Task 173's search link has a d-lg-none ancestor hidden by CSS at min-width 992px.",
+      "action": "Use explicit owned CDP contexts with viewport_width=1280 and viewport_height=900, verify primary and inherited new-page viewport before navigation, and retain actual viewport receipts. Freeze the updated CowAgent revision and harness before new runs. Requalify the complete 90-task trajectory set at the chosen viewport, then rerun every registered replay browser over all 90 tasks and the complete two-model by two-browser Browser Use matrix. Preserve all former trajectories, attempts and scores; do not substitute task-specific selectors into old evidence.",
+      "historical_configuration_evidence": {
+        "scope": "First frame-snapshot viewport and context options from 442 retained physical Playwright traces across four configurations, each covering all 90 tasks; not a review of their task verdicts",
+        "context_no_default_viewport": true,
+        "sol_chromium": {"780x437": 81, "780x493": 29},
+        "sol_moli": {"1920x1080": 110},
+        "astra_chromium": {"780x437": 81, "780x493": 28, "snapshot_unavailable": 2},
+        "astra_moli": {"1920x1080": 109, "snapshot_unavailable": 2}
+      }
+    },
     {
       "category": "shared_environment",
       "task_ids": [77, 771],

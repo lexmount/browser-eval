@@ -24,8 +24,7 @@ def _sha256(path: Path) -> str:
 
 def _attempt_map(receipt: dict[str, Any]) -> dict[tuple[str, int], dict[str, Any]]:
     attempts = {
-        (str(row["engine"]), int(row["task_id"])): row
-        for row in receipt.get("attempts") or []
+        (str(row["engine"]), int(row["task_id"])): row for row in receipt.get("attempts") or []
     }
     expected = {
         (str(engine), int(task_id))
@@ -38,7 +37,11 @@ def _attempt_map(receipt: dict[str, Any]) -> dict[tuple[str, int], dict[str, Any
 
 
 def _validate_receipt(
-    receipt: dict[str, Any], *, scope: str, engines: list[str]
+    receipt: dict[str, Any],
+    *,
+    scope: str,
+    engines: list[str],
+    retrieval_task_ids: set[int] | None = None,
 ) -> dict[tuple[str, int], dict[str, Any]]:
     if (
         receipt.get("schema") != RECEIPT_SCHEMA
@@ -50,6 +53,17 @@ def _validate_receipt(
         raise ValueError("replay receipt browser registry differs from the current profile")
     if not all((receipt.get("method_teardown") or {}).get(engine) for engine in engines):
         raise ValueError("replay receipt does not prove method teardown")
+    for attempt in receipt.get("attempts", []):
+        if attempt.get("status") == "pass" and not (
+            attempt.get("process_status") == attempt.get("evaluator_status") == "pass"
+        ):
+            raise ValueError("claimed pass contradicts process or evaluator status")
+        if attempt.get("status") == "unsupported":
+            raise ValueError("unsupported acceptance cannot enter a formal cohort")
+        if int(attempt["task_id"]) in (retrieval_task_ids or set()) and (
+            not receipt.get("run_id") or attempt.get("run_id") != receipt.get("run_id")
+        ):
+            raise ValueError("retrieval answer belongs to another cohort run")
     return _attempt_map(receipt)
 
 
@@ -67,7 +81,12 @@ def build_effective_results(
     qualified_sha256 = validate_qualification_dataset(plan, qualified_dataset_path)
     engines = list(plan["engines"])
     base_path, base = _read(base_receipt_path)
-    effective = _validate_receipt(base, scope="formal", engines=engines)
+    retrieval_task_ids = set(plan.get("retrieval_task_ids", [])) | set(
+        plan.get("state_contracts", {})
+    )
+    effective = _validate_receipt(
+        base, scope="formal", engines=engines, retrieval_task_ids=retrieval_task_ids
+    )
     expected = {(engine, task_id) for engine in engines for task_id in plan["task_ids"]}
     if set(effective) != expected:
         raise ValueError("base formal receipt does not cover the complete current task selection")
@@ -89,7 +108,10 @@ def build_effective_results(
     for raw_path in correction_receipt_paths:
         path, receipt = _read(raw_path)
         correction = _validate_receipt(
-            receipt, scope="formal_correction_shard", engines=engines
+            receipt,
+            scope="formal_correction_shard",
+            engines=engines,
+            retrieval_task_ids=retrieval_task_ids,
         )
         if (
             receipt.get("profile_sha256") != plan["profile_sha256"]
@@ -127,6 +149,42 @@ def build_effective_results(
     if stale:
         raise ValueError(f"effective replay matrix contains stale trajectories: {stale}")
 
+    from .retrieval_acceptance import verify_attempt
+
+    seed_candidates = {
+        int(task["task_id"]): next(
+            item for item in task["candidates"] if item["id"] == task["canonical_candidate_id"]
+        )
+        for task in plan["seed_manifest"]["tasks"]
+        if int(task["task_id"]) in plan.get("retrieval_task_ids", [])
+    }
+    from harness.webarena_state import validate_attempt_identities
+
+    validate_attempt_identities(list(effective.values()), set(plan.get("state_contracts", {})))
+    for (_, task_id), attempt in effective.items():
+        if task_id in plan.get("state_contracts", {}):
+            from harness.webarena_state import verify_attempt as verify_state_attempt
+
+            if attempt.get("state_contract_sha256") != plan["state_contracts"][
+                task_id
+            ].definition_sha256 or attempt.get("contract_correction_id"):
+                raise ValueError("legacy result cannot enter observed-state cohort")
+            if attempt.get("process_status") == "pass":
+                verify_state_attempt(attempt, plan["state_contracts"][task_id])
+        if task_id in plan.get("retrieval_task_ids", []):
+            contract = plan["retrieval_contracts"][task_id]
+            if attempt.get("retrieval_protocol") != contract["schema"]:
+                raise ValueError("legacy retrieval result cannot enter a current-run cohort")
+            if attempt.get("process_status") == "pass":
+                verify_attempt(
+                    attempt,
+                    contract,
+                    seed_candidates[task_id]["tool_calls"],
+                    expected_data_checksum=str(
+                        plan["seed_manifest"].get("source", {}).get("official_data_checksum") or ""
+                    ),
+                )
+
     bindings = json.dumps(source_receipts, sort_keys=True, separators=(",", ":"))
     return {
         "schema": EFFECTIVE_SCHEMA,
@@ -155,4 +213,3 @@ def build_effective_results(
             "failures": sum(row.get("status") != "pass" for row in effective.values()),
         },
     }
-

@@ -7,9 +7,11 @@ import pytest
 from webarena_verified.core.utils.checksum import compute_evaluator_checksum
 
 from harness.trajectory_replay.webarena_dataset import (
+    OBSERVATION_PROTOCOL,
     _effective_correction_bindings,
     _has_stale_correction_binding,
     _official_evaluator_names,
+    _validate_observations,
     build_verified_trajectory_dataset,
 )
 from harness.trajectory_replay.webarena_plan import (
@@ -21,19 +23,15 @@ from harness.trajectory_replay.webarena_plan import (
 def test_repository_dataset_covers_the_current_frozen_selection() -> None:
     root = Path(__file__).resolve().parents[2]
     profile = json.loads(
-        (
-            root
-            / "evaluation/trajectory-replay/webarena-verified/current-run.json"
-        ).read_text(encoding="utf-8")
+        (root / "evaluation/trajectory-replay/webarena-verified/current-run.json").read_text(
+            encoding="utf-8"
+        )
     )
-    selection = json.loads(
-        (root / profile["task_selection"]["path"]).read_text(encoding="utf-8")
-    )
+    selection = json.loads((root / profile["task_selection"]["path"]).read_text(encoding="utf-8"))
     dataset = json.loads(
-        (
-            root
-            / "evaluation/trajectory-replay/webarena-verified/trajectories.json"
-        ).read_text(encoding="utf-8")
+        (root / "evaluation/trajectory-replay/webarena-verified/trajectories.json").read_text(
+            encoding="utf-8"
+        )
     )
 
     expected_ids = {int(item["task_id"]) for item in selection["tasks"]}
@@ -48,9 +46,7 @@ def test_repository_dataset_covers_the_current_frozen_selection() -> None:
     }
     for item in dataset["trajectories"]:
         verification = item["verification"]
-        assert verification["browsers"] == [
-            profile["qualification"]["reference_engine"]
-        ]
+        assert verification["browsers"] == [profile["qualification"]["reference_engine"]]
         assert verification["process_status"] == "pass"
         assert verification["evaluator_status"] == "pass"
         assert verification["model_calls"] == 0
@@ -160,9 +156,7 @@ def _materialize_autonomous_sources(seeds: Path) -> dict[str, object]:
         )
         attempts = root / "attempts.jsonl"
         attempts.parent.mkdir(parents=True, exist_ok=True)
-        attempts.write_text(
-            "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
-        )
+        attempts.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
         source_evidence[model] = {
             "root": str(root),
             "attempts_sha256": _sha256(attempts),
@@ -267,9 +261,7 @@ def _receipt(
         session["task_ids"].append(attempt["task_id"])
         task = seed_tasks[int(attempt["task_id"])]
         candidate = next(
-            item
-            for item in task["candidates"]
-            if item["id"] == attempt["source_candidate_id"]
+            item for item in task["candidates"] if item["id"] == attempt["source_candidate_id"]
         )
         trace_arguments = candidate["tool_calls"]
         attempt["source_tool_calls_sha256"] = _json_sha256(candidate["tool_calls"])
@@ -282,7 +274,16 @@ def _receipt(
         attempt["evaluation_input_sha256"] = _json_sha256(candidate["recorded_response"])
         payloads = {
             "trace": [
-                {"index": index, "arguments": arguments, "status": "success"}
+                {
+                    "index": index,
+                    "arguments": arguments,
+                    "status": "success",
+                    "result": (
+                        "Navigated to: http://host\n--- Page Snapshot ---\nPage: example\n"
+                        if arguments.get("action") == "navigate"
+                        else "Page: example\nInteractive elements: 0\n---\nobserved"
+                    ),
+                }
                 for index, arguments in enumerate(trace_arguments, start=1)
             ],
             "network_har": {"log": {"entries": []}},
@@ -292,9 +293,7 @@ def _receipt(
                 "score": 1.0,
                 "webarena_verified_version": version("webarena-verified"),
                 "webarena_verified_evaluator_checksum": compute_evaluator_checksum(),
-                "webarena_verified_data_checksum": seed_payload["source"][
-                    "official_data_checksum"
-                ],
+                "webarena_verified_data_checksum": seed_payload["source"]["official_data_checksum"],
                 "evaluators_results": [
                     {
                         "evaluator_name": evaluator,
@@ -310,11 +309,16 @@ def _receipt(
                 ],
             },
         }
+        if attempt.get("contract_correction_id"):
+            payloads["evaluation"]["replay_contract_correction"] = {
+                "correction_id": attempt["contract_correction_id"],
+                "source_sha256": attempt["contract_correction_source_sha256"],
+                "corrected_task_sha256": attempt["corrected_task_sha256"],
+            }
         evidence = {}
         for kind, payload in payloads.items():
             path = _write(
-                seeds.parent
-                / f"{run_id}-{attempt['engine']}-{attempt['task_id']}-{kind}.json",
+                seeds.parent / f"{run_id}-{attempt['engine']}-{attempt['task_id']}-{kind}.json",
                 payload,
             )
             evidence[kind] = {"path": str(path), "sha256": _sha256(path)}
@@ -491,6 +495,37 @@ def test_promotion_requires_candidate_to_pass_reference_qualification(tmp_path: 
     }
     assert result["trajectories"][0]["verification"]["receipt_run_ids"] == ["run-44"]
     assert result["semantics"]["browser_use_agent_visibility"] == "hidden"
+    assert result["provenance"]["observation_protocol"] == OBSERVATION_PROTOCOL
+
+
+@pytest.mark.parametrize("row", [
+    {"arguments": {"action": "snapshot"}, "observation_status": "error", "result": "Page: x"},
+    {"arguments": {"action": "snapshot"}, "result": "[Snapshot error: context destroyed]"},
+    {
+        "arguments": {"action": "navigate"},
+        "result": "Navigated\n--- Page Snapshot ---\n[Snapshot error: gone]",
+    },
+    {"arguments": {"action": "snapshot"}},
+    {"arguments": {"action": "snapshot"}, "result": ""},
+    {"arguments": {"action": "navigate"}, "result": "Navigated successfully"},
+])
+def test_qualification_rejects_unavailable_observations(row):
+    with pytest.raises(ValueError, match="qualification"):
+        _validate_observations([{"status": "success", **row}])
+
+
+def test_qualification_keeps_literal_page_content_and_successful_observations():
+    _validate_observations([
+        {
+            "arguments": {"action": "snapshot"},
+            "result": "Page: example\n---\n[Snapshot error: quoted page content]",
+        },
+        {
+            "arguments": {"action": "navigate"},
+            "result": "Navigated\n--- Page Snapshot ---\nPage: example",
+        },
+        {"arguments": {"action": "click"}, "result": "Clicked"},
+    ])
 
 
 def test_promotion_rejects_incomplete_method_task_matrix(tmp_path: Path) -> None:
@@ -619,6 +654,7 @@ def test_promotion_supports_hash_bound_expert_repair(tmp_path: Path) -> None:
         "correction_source_sha256": correction[1],
         "corrected_task_sha256": correction[2],
     }
+
 
 def test_promotion_accepts_qualification_shard_but_rejects_nonisolated_receipt(
     tmp_path: Path,
@@ -754,7 +790,10 @@ def test_promotion_rejects_receipt_claim_when_evaluation_evidence_failed(
         raise AssertionError("a receipt pass claim must not override failed evaluator evidence")
 
 
-def test_promotion_rejects_trace_that_differs_from_canonical_actions(tmp_path: Path) -> None:
+@pytest.mark.parametrize("degraded_observation", [False, True])
+def test_promotion_rejects_trace_that_differs_from_canonical_actions(
+    tmp_path: Path, degraded_observation: bool
+) -> None:
     profile, selection_sha256, repair_sha256 = _profile(tmp_path, [1])
     seeds = _write(
         tmp_path / "seeds.json",
@@ -800,11 +839,16 @@ def test_promotion_rejects_trace_that_differs_from_canonical_actions(tmp_path: P
     )
     attempt = receipt_payload["attempts"][0]
     trace_path = Path(attempt["evidence"]["trace"]["path"])
-    different_arguments = [{"action": "navigate", "url": "https://example.com"}]
+    different_arguments = (
+        [{"action": "snapshot"}]
+        if degraded_observation
+        else [{"action": "navigate", "url": "https://example.com"}]
+    )
     trace_path.write_text(
-        json.dumps(
-            [{"index": 1, "arguments": different_arguments[0], "status": "success"}]
-        ),
+        json.dumps([{
+            "index": 1, "arguments": different_arguments[0], "status": "success",
+            "result": "[Snapshot error: context destroyed]",
+        }]),
         encoding="utf-8",
     )
     attempt["evidence"]["trace"]["sha256"] = _sha256(trace_path)
@@ -817,7 +861,8 @@ def test_promotion_rejects_trace_that_differs_from_canonical_actions(tmp_path: P
     try:
         build_verified_trajectory_dataset(seeds, [receipt], profile_path=profile)
     except ValueError as error:
-        assert "canonical replay actions" in str(error)
+        expected = "snapshot error" if degraded_observation else "canonical replay actions"
+        assert expected in str(error)
     else:
         raise AssertionError("a different successful trace must not be promotable")
 

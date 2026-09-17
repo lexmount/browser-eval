@@ -14,7 +14,58 @@
     "failed_results": 36,
     "verified_results": 36
   },
+  "review_revisions": [
+    {
+      "id": "task-173-shared-viewport-20260916",
+      "scope": [{"engine": "moli", "task_id": 173}],
+      "predecessor_review_sha256": "a4a2b4909ceea617b2889b5b9c9d557f4553d8ac254c44dc15179eed37cb499e",
+      "score_effect": "none; historical official verdicts and measured evidence are unchanged",
+      "superseded_review": {
+        "cause_code": "moli_navigation_readiness_race",
+        "responsibility": "browser",
+        "reason_zh": "前一步快照已报告导航导致执行上下文销毁，Moli 随后仍未恢复到可点击 Search 的稳定文档；Chromium 同轨迹通过。",
+        "reason_en": "The preceding snapshot reported execution-context destruction during navigation, and Moli did not recover to a stable document with an actionable Search link; Chromium passes the same trajectory."
+      },
+      "evidence_bindings": {
+        "effective_results_sha256": "abaaa0e90aced74a831093f2d6d7c3371639acb984b3a2c057f3cc39632ea935",
+        "native_diagnostic_trace_sha256": "913402034ea86e11bc361a359023a28685a30697a63cd42f993b20715c838e5e",
+        "native_diagnostic_har_sha256": "9130b7c5f695081e5e3e1057dde0229b6a5b753e73aee7443f111bf10c49342e",
+        "native_diagnostic_last_observed_page_sha256": "e7babdf313bedee4609e2db49e0701054407c524990adb9373f5bda01030dd16"
+      },
+      "historical_trace_observations": {
+        "task_id": 173,
+        "physical_attempt": 1,
+        "snapshot_zip_entry": "trace.trace",
+        "selector": "a[href=\"/search\"]",
+        "ancestor_class": "nav-item d-none d-sm-inline-block d-lg-none",
+        "media_query": "@media (min-width: 992px)",
+        "css_rule": ".d-lg-none{display:none !important}",
+        "artifacts": [
+          {"run":"gpt-5.6-sol-90","engine":"chromium","viewport":{"width":780,"height":437},"artifact_sha256":"07ecf278a32f0f936780bebee6033915aba3daeafde23a512b9970b66cec4522"},
+          {"run":"gpt-5.6-sol-90","engine":"moli","viewport":{"width":1920,"height":1080},"artifact_sha256":"7d064c3b43ecf912c4c7a219a7be416c4a0190f5baa2196edf1c069684acb554"},
+          {"run":"gpt-6-astra-90","engine":"chromium","viewport":{"width":780,"height":437},"artifact_sha256":"85b58806ca0e162c336757952e983b1d2398ecfd065c6e4b59257aa12738fb30"},
+          {"run":"gpt-6-astra-90","engine":"moli","viewport":{"width":1920,"height":1080},"artifact_sha256":"d2e8ad206b8200a9efcec34ce457ff130b7bbdce895007cf5f73a0060073403f"}
+        ],
+        "css_resources": [
+          {"engine":"chromium","zip_entry":"resources/87b0656b7cf9aa468bea0d2a0ecaafce17eee8f0.css","sha256":"5e549119b3452a53a382c10911a1444bee6ab5b74e4b4bfc67e6891fe1376ca3"},
+          {"engine":"moli","zip_entry":"resources/1b3ec9f8a35f94dbd2620aa29fabb5734592be53.css","sha256":"180834c76ec47def7637ca8cd524372e8e0d58dbc70366906c77838e32b97edf"}
+        ]
+      },
+      "evidence_scope": "Existing historical trace metadata and a non-promotable native Task 173 diagnostic; no additional result review or score replacement. The last observed page is not asserted to be an exact error-time screenshot."
+    }
+  ],
   "cause_groups": [
+    {
+      "code": "shared_viewport_configuration",
+      "label_zh": "共享视口设置不一致",
+      "label_en": "Shared viewport configuration mismatch",
+      "responsibility": "benchmark",
+      "remediation_owner": "Benchmark harness and CowAgent CDP configuration",
+      "remediation_status": "fixed_pending_full_scope_requalification_and_rerun",
+      "results": [
+        {"engine":"moli","task_id":173,"review_revision":"task-173-shared-viewport-20260916","reason_zh":"历史设置未统一视口：Chromium 宽度为 780，Moli 为 1920。Search 链接祖先含 d-lg-none，网页 CSS 在宽度达到 992 时隐藏该入口；桌面页面显示完整搜索框。因此后续 a[href=\"/search\"]:visible 超时属于共享基准设置干扰，不能据此归因于 Moli 导航恢复。前一步快照的执行上下文销毁仍是独立记录的导航观测错误，不证明后续链接因导航而不可见。旧浏览器责任归因已被本修订替代；官方失败分数不变，须统一视口后重新资格验证完整轨迹集并全范围重跑。","reason_en":"Historical viewport settings differed: Chromium was 780 pixels wide and Moli 1920. The Search link has a d-lg-none ancestor, which site CSS hides at widths of 992 or more; the desktop page shows the full search field. The later a[href=\"/search\"]:visible timeout is therefore affected by shared benchmark settings and does not establish a Moli navigation-recovery defect. The preceding snapshot's destroyed execution context remains a separate navigation observation error; it does not establish why the later link was hidden. This revision supersedes the previous browser attribution without changing the official failure score. Requalify the full trajectory set and rerun the full scope at a common viewport."}
+      ]
+    },
     {
       "code": "moli_snapshot_actionability_mismatch",
       "label_zh": "快照与可操作节点不一致",
@@ -67,7 +118,6 @@
       "remediation_owner": "Moli navigation lifecycle",
       "remediation_status": "open",
       "results": [
-        {"engine":"moli","task_id":173,"reason_zh":"前一步快照已报告导航导致执行上下文销毁，Moli 随后仍未恢复到可点击 Search 的稳定文档；Chromium 同轨迹通过。","reason_en":"The preceding snapshot reported execution-context destruction during navigation, and Moli did not recover to a stable document with an actionable Search link; Chromium passes the same trajectory."},
         {"engine":"moli","task_id":196,"reason_zh":"前一步发生导航切换后，Moli 未在下一动作前恢复 Clear all 控件，点击超时；Chromium 同轨迹通过。","reason_en":"After the preceding navigation transition, Moli did not restore the Clear all control before the next action and the click timed out; Chromium passes the same trajectory."},
         {"engine":"moli","task_id":204,"reason_zh":"前一步导航尚未形成稳定文档，Moli 未暴露目标订单链接，点击超时；Chromium 同轨迹通过。","reason_en":"The preceding navigation did not settle into a stable document in Moli, so the target order link never became actionable; Chromium passes the same trajectory."},
         {"engine":"moli","task_id":313,"reason_zh":"Moli 在按键动作执行时仍处于文档导航切换，CDP 返回 Navigation is changing the document；Chromium 同轨迹通过。","reason_en":"Moli was still changing documents when the keypress was dispatched, and CDP returned 'Navigation is changing the document'; Chromium passes the same trajectory."},

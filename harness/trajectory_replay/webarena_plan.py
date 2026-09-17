@@ -15,6 +15,7 @@ from harness.trajectory_replay.browser_use_seeds import (
     compile_replay_calls,
     extract_browser_calls,
 )
+from harness.trajectory_replay.retrieval_acceptance import load_contracts
 from harness.trajectory_replay.runner import ENGINE_IMAGES
 
 PROFILE_SCHEMA = "lex_webarena_trajectory_replay_profile/1"
@@ -36,15 +37,11 @@ def replay_site_hosts(calls: list[dict[str, Any]]) -> set[str]:
         for call in calls
         if isinstance(call.get("url"), str)
         for parsed in [urlsplit(call["url"])]
-        if parsed.scheme in {"http", "https"}
-        and parsed.port in site_ports
-        and parsed.hostname
+        if parsed.scheme in {"http", "https"} and parsed.port in site_ports and parsed.hostname
     }
 
 
-def replay_calls_binding_sha256(
-    calls: list[dict[str, Any]], *, allowed_hosts: set[str]
-) -> str:
+def replay_calls_binding_sha256(calls: list[dict[str, Any]], *, allowed_hosts: set[str]) -> str:
     """Hash calls while ignoring only the deployment-specific WebArena gateway host."""
 
     site_ports = {port for pair in SITE_PORTS.values() for port in pair}
@@ -69,9 +66,7 @@ def replay_calls_binding_sha256(
                     )
                 )
         normalized.append(call)
-    payload = json.dumps(
-        normalized, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    )
+    payload = json.dumps(normalized, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode()).hexdigest()
 
 
@@ -98,9 +93,7 @@ def _validate_canonical_candidate(
             or source.get("kind") != "expert_repair_spec"
             or source.get("repair_spec_sha256") != repair_sha256
             or candidate.get("id")
-            != str(
-                repair_record.get("candidate_id") or f"expert__task-{task_id}"
-            )
+            != str(repair_record.get("candidate_id") or f"expert__task-{task_id}")
             or calls != repair_record.get("tool_calls")
             or candidate["recorded_response"] != repair_record.get("expected_response")
             or source.get("details") != repair_record.get("source")
@@ -114,10 +107,8 @@ def _validate_canonical_candidate(
     method = candidate.get("method") or {}
     if (
         authoritative_row is None
-        or int(candidate.get("source_execution") or 0)
-        != int(authoritative_row.get("attempt") or 0)
-        or str(candidate.get("source_run_id") or "")
-        != str(authoritative_row.get("run_id") or "")
+        or int(candidate.get("source_execution") or 0) != int(authoritative_row.get("attempt") or 0)
+        or str(candidate.get("source_run_id") or "") != str(authoritative_row.get("run_id") or "")
         or method.get("model") != authoritative_row.get("model")
         or method.get("engine") != authoritative_row.get("engine")
         or float(authoritative_row.get("score") or 0) != 1.0
@@ -132,9 +123,12 @@ def _validate_canonical_candidate(
     for kind, path in paths.items():
         if not path.is_file() or _sha256(path) != source.get(f"{kind}_sha256"):
             raise ValueError(f"task {task_id} autonomous {kind} evidence is missing or changed")
-        if path != Path(
-            str((authoritative_row.get("paths") or {}).get(kind) or "")
-        ).expanduser().resolve():
+        if (
+            path
+            != Path(str((authoritative_row.get("paths") or {}).get(kind) or ""))
+            .expanduser()
+            .resolve()
+        ):
             raise ValueError(
                 f"task {task_id} autonomous {kind} evidence is not from the final execution"
             )
@@ -146,15 +140,14 @@ def _validate_canonical_candidate(
     ):
         raise ValueError(f"task {task_id} autonomous trajectory differs from source evidence")
     evaluation = _read_json(paths["evaluation"])
-    if int(evaluation.get("task_id") or -1) != task_id or float(
-        evaluation.get("score") or 0
-    ) != 1.0:
+    if (
+        int(evaluation.get("task_id") or -1) != task_id
+        or float(evaluation.get("score") or 0) != 1.0
+    ):
         raise ValueError(f"task {task_id} autonomous source evaluation is not passing")
 
 
-def load_replay_plan(
-    profile_path: str | Path, seed_manifest_path: str | Path
-) -> dict[str, Any]:
+def load_replay_plan(profile_path: str | Path, seed_manifest_path: str | Path) -> dict[str, Any]:
     """Return a validated, exact method and task plan for one formal replay suite."""
 
     profile_file = Path(profile_path).expanduser().resolve()
@@ -180,14 +173,10 @@ def load_replay_plan(
     repair_file = (repo_root / str(repair.get("expert_repairs_path") or "")).resolve()
     if repo_root not in repair_file.parents:
         raise ValueError("expert repairs must stay inside the repository")
-    if not repair_file.is_file() or _sha256(repair_file) != repair.get(
-        "expert_repairs_sha256"
-    ):
+    if not repair_file.is_file() or _sha256(repair_file) != repair.get("expert_repairs_sha256"):
         raise ValueError("expert repairs do not match the frozen replay profile")
     repair_payload = _read_json(repair_file)
-    repair_records = {
-        int(item["task_id"]): item for item in repair_payload.get("repairs") or []
-    }
+    repair_records = {int(item["task_id"]): item for item in repair_payload.get("repairs") or []}
     if len(repair_records) != len(repair_payload.get("repairs") or []):
         raise ValueError("expert repairs contain duplicate task IDs")
 
@@ -215,9 +204,7 @@ def load_replay_plan(
             raise ValueError("replay seed authority manifest is missing or changed")
         manifest, rows = _authoritative_rows(root)
         model = str((manifest.get("protocol") or {}).get("model") or "")
-        if model != declared_model or manifest.get("selection_sha256") != selection.get(
-            "sha256"
-        ):
+        if model != declared_model or manifest.get("selection_sha256") != selection.get("sha256"):
             raise ValueError("replay seed authority differs from the frozen selection")
         for row in rows:
             key = (model, str(row["engine"]), int(row["task_id"]))
@@ -318,8 +305,42 @@ def load_replay_plan(
     if (profile.get("scoring") or {}).get("model_calls") != 0:
         raise ValueError("trajectory replay must not call a model")
 
+    retrieval_candidates = {}
+    for task in seed_tasks:
+        canonical = next(
+            item for item in task["candidates"] if item["id"] == task["canonical_candidate_id"]
+        )
+        if str(canonical["recorded_response"].get("task_type", "")).upper() == "RETRIEVE":
+            retrieval_candidates[int(task["task_id"])] = canonical
+    retrieval_contracts = load_contracts(
+        (profile.get("scoring") or {}).get("retrieval_acceptance"), repo_root, retrieval_candidates
+    )
+    from harness.webarena_state import load_profile_contracts, require_supersession
+
+    from .webarena_corrections import load_corrections
+
+    state_contracts = load_profile_contracts(
+        (profile.get("scoring") or {}).get("observed_state"), repo_root
+    )
+    if state_contracts:
+        corrections = load_corrections()
+        for task_id, contract in state_contracts.items():
+            if task_id not in {int(task["task_id"]) for task in seed_tasks}:
+                raise ValueError("state contract outside replay task selection")
+            if task_id in corrections.records:
+                require_supersession(
+                    contract,
+                    corrections.records[task_id]["correction_id"],
+                    corrections.record_sha256s[task_id],
+                )
     return {
         "profile": profile,
+        "retrieval_task_ids": sorted(retrieval_candidates),
+        "retrieval_contracts": retrieval_contracts,
+        "retrieval_protocols": {
+            task_id: contract["schema"] for task_id, contract in retrieval_contracts.items()
+        },
+        "state_contracts": state_contracts,
         "profile_path": str(profile_file),
         "profile_sha256": _sha256(profile_file),
         "seed_manifest": seeds,

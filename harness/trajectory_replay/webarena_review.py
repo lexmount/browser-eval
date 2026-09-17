@@ -8,6 +8,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from .participants import bind_participant, participant_registry, resolve_participant_id
+
 REVIEW_SCHEMA = "lex_webarena_trajectory_replay_failure_review/1"
 
 
@@ -36,13 +38,17 @@ def programmatic_failure(attempt: dict[str, Any]) -> dict[str, Any]:
 
 
 def load_validated_failure_review(
-    results_path: str | Path, review_path: str | Path
+    results_path: str | Path, review_path: str | Path,
+    *, methods: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Load a review only when it exactly covers the bound final failures."""
 
     results_file = Path(results_path).expanduser().resolve()
     review_file = Path(review_path).expanduser().resolve()
     results = json.loads(results_file.read_text(encoding="utf-8"))
+    registry = participant_registry(methods or results.get("methods") or [
+        {"id": engine, "engine": engine} for engine in results.get("engines", [])
+    ])
     review = json.loads(review_file.read_text(encoding="utf-8"))
     if review.get("schema") != REVIEW_SCHEMA:
         raise ValueError("unsupported trajectory replay failure review")
@@ -51,13 +57,14 @@ def load_validated_failure_review(
     ):
         raise ValueError("failure review is not bound to the effective result bytes")
 
-    attempts = results.get("attempts") or []
+    attempts = [bind_participant(row, registry) for row in results.get("attempts") or []]
     failed = {
-        (str(item.get("engine") or ""), int(item["task_id"]))
+        (item["participant_id"], int(item["task_id"]))
         for item in attempts
         if item.get("status") != "pass"
     }
     reviewed: dict[tuple[str, int], dict[str, Any]] = {}
+    revisions = {item["id"]: item for item in review.get("review_revisions") or []}
     for group in review.get("cause_groups") or []:
         required_group_fields = {
             "code",
@@ -71,14 +78,27 @@ def load_validated_failure_review(
         if required_group_fields - set(group):
             raise ValueError("failure review cause group is incomplete")
         for item in group["results"]:
-            key = (str(item.get("engine") or ""), int(item["task_id"]))
+            key = (resolve_participant_id(item, registry), int(item["task_id"]))
             if key in reviewed:
                 raise ValueError(f"duplicate failure review result: {key}")
             if not str(item.get("reason_zh") or "").strip() or not str(
                 item.get("reason_en") or ""
             ).strip():
                 raise ValueError(f"failure review reason is incomplete: {key}")
-            reviewed[key] = {**item, "cause_group": group}
+            reviewed[key] = {**bind_participant(item, registry), "cause_group": group}
+            if item.get("review_revision"):
+                revision = revisions.get(item["review_revision"])
+                if (
+                    revision is None
+                    or key not in {
+                        (resolve_participant_id(row, registry), int(row["task_id"]))
+                        for row in revision.get("scope", [])
+                    }
+                    or revision.get("evidence_bindings", {}).get("effective_results_sha256")
+                    != review["bindings"]["effective_results_sha256"]
+                ):
+                    raise ValueError(f"failure review revision is not evidence-bound: {key}")
+                reviewed[key]["revision_evidence"] = revision
 
     if set(reviewed) != failed:
         missing = sorted(failed - set(reviewed))

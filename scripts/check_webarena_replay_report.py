@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 from html.parser import HTMLParser
 from pathlib import Path
@@ -67,6 +68,62 @@ def _local_target(page: Path, raw: str) -> Path | None:
     return (page.parent / unquote(parsed.path)).resolve()
 
 
+def _check_metric_populations(metrics: dict, results: list[dict], participants: list[str]) -> None:
+    """Audit denominators against the result inventory, not renderer claims."""
+    if (
+        metrics.get("distribution_scope") != "all_declared_tasks"
+        or metrics.get("successful_scope") != "per_method_success"
+        or metrics.get("passing_intersection_scope") != "diagnostic_only"
+    ):
+        raise ValueError(
+            "metric distributions must preserve all tasks and separate successful subsets"
+        )
+    methods = metrics.get("methods", [])
+    if len(methods) != len(participants) or {row.get("participant_id") for row in methods} != set(
+        participants
+    ):
+        raise ValueError("metric participants differ from the result inventory")
+    names = (
+        "duration",
+        "cpu",
+        "memory",
+        "memory_peak",
+        "network_rx",
+        "network_tx",
+        "cpu_utilization",
+    )
+    for method in methods:
+        rows = [row for row in results if row["participant_id"] == method["participant_id"]]
+        total = len(rows)
+        passed = sum(row["status"] == "pass" for row in rows)
+        if method.get("total") != total or method.get("passed") != passed:
+            raise ValueError("metric outcome counts differ from the result inventory")
+        for distributions, population in ((method, total), (method.get("successful", {}), passed)):
+            for name in names:
+                sample = distributions.get(name, {})
+                n, missing = sample.get("n"), sample.get("missing")
+                if (
+                    type(n) is not int
+                    or type(missing) is not int
+                    or n < 0
+                    or missing < 0
+                    or n + missing != population
+                    or sample.get("population") != population
+                ):
+                    raise ValueError(f"metric population or missing count is invalid: {name}")
+                for statistic in ("mean", "p50", "p95"):
+                    value = sample.get(statistic)
+                    if (n == 0 and value is not None) or (
+                        n > 0
+                        and (
+                            type(value) not in (int, float) or not math.isfinite(value) or value < 0
+                        )
+                    ):
+                        raise ValueError(
+                            f"missing or nonfinite metric is represented as measured: {name}"
+                        )
+
+
 def check(report_dir: Path) -> dict[str, int]:
     root = report_dir.resolve()
     manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
@@ -79,13 +136,10 @@ def check(report_dir: Path) -> dict[str, int]:
         "failed_results",
         "reviewed_failures",
     )
-    missing_manifest_fields = [
-        field for field in required_manifest_fields if field not in manifest
-    ]
+    missing_manifest_fields = [field for field in required_manifest_fields if field not in manifest]
     if missing_manifest_fields:
         raise ValueError(
-            "report manifest is missing required fields: "
-            + ", ".join(missing_manifest_fields)
+            "report manifest is missing required fields: " + ", ".join(missing_manifest_fields)
         )
     participants = manifest.get("participants") or []
     task_count = int(manifest.get("task_count") or 0)
@@ -99,16 +153,22 @@ def check(report_dir: Path) -> dict[str, int]:
         or manifest["logical_results"] != expected_results
         or len(results) != expected_results
     ):
-        raise ValueError("report must contain the complete manifest-declared participant-task matrix")
+        raise ValueError(
+            "report must contain the complete manifest-declared participant-task matrix"
+        )
     task_ids = {int(item["task_id"]) for item in results}
-    result_keys = {(str(item["engine"]), int(item["task_id"])) for item in results}
+    result_keys = {(str(item["participant_id"]), int(item["task_id"])) for item in results}
     expected_keys = {(participant, task_id) for participant in participants for task_id in task_ids}
     if len(task_ids) != task_count or result_keys != expected_keys:
-        raise ValueError("report results do not match the manifest-declared participant-task matrix")
+        raise ValueError(
+            "report results do not match the manifest-declared participant-task matrix"
+        )
+    _check_metric_populations(
+        json.loads((root / "data/metrics.json").read_text(encoding="utf-8")), results, participants
+    )
     failures = [item for item in results if item["status"] != "pass"]
-    if (
-        manifest["failed_results"] != len(failures)
-        or manifest["reviewed_failures"] != len(failures)
+    if manifest["failed_results"] != len(failures) or manifest["reviewed_failures"] != len(
+        failures
     ):
         raise ValueError("report must contain a review for every final failure")
     if any(not item["reason_zh"] or not item["reason_en"] for item in failures):
@@ -138,7 +198,8 @@ def check(report_dir: Path) -> dict[str, int]:
                 relative_root = "../" if language_root == root else "../../"
                 if (
                     text.count('class="aligned-step ') != action_count
-                    or f'data-standard-url="{relative_root}data/trajectory/{task_id}.json"' not in text
+                    or f'data-standard-url="{relative_root}data/trajectory/{task_id}.json"'
+                    not in text
                     or f'data-evidence-url="{relative_root}data/evidence/{key}.json"' not in text
                     or 'id="step-dialog"' not in text
                 ):
@@ -192,7 +253,11 @@ def check(report_dir: Path) -> dict[str, int]:
         if any(marker in text for marker in untranslated_zh_markers):
             raise ValueError(f"Chinese report contains untranslated interface text: {page}")
     _check_english_localization(
-        [*core[len(core_names) :], *(root / "en/result").glob("*.html"), *(root / "en/task").glob("*.html")]
+        [
+            *core[len(core_names) :],
+            *(root / "en/result").glob("*.html"),
+            *(root / "en/task").glob("*.html"),
+        ]
     )
 
     checked_links = 0
@@ -213,9 +278,7 @@ def check(report_dir: Path) -> dict[str, int]:
         for path in root.rglob("*")
         if path.is_file() and path.suffix in {".html", ".json", ".js", ".css"}
     )
-    if LOCAL_PATH_RE.search(distributable) or re.search(
-        r"sk-[A-Za-z0-9_-]{12,}", distributable
-    ):
+    if LOCAL_PATH_RE.search(distributable) or re.search(r"sk-[A-Za-z0-9_-]{12,}", distributable):
         raise ValueError("report contains a local path or credential-like token")
     css = (root / "assets/report.css").read_text(encoding="utf-8")
     if ".inventory{height:" not in css or "overflow:auto" not in css:
@@ -231,28 +294,46 @@ def check(report_dir: Path) -> dict[str, int]:
         if dataset_html.count('data-task="') != task_count:
             raise ValueError("dataset must contain one filterable row per task")
         for task_id in task_ids:
-            if f'href="task/{task_id}.html"' not in dataset_html or f'href="results.html?task={task_id}&status="' not in dataset_html:
-                raise ValueError("every dataset task must drill down to its contract and measured outcomes")
-        if 'data-dataset-count' not in dataset_html or 'data-dataset-empty' not in dataset_html:
+            if (
+                f'href="task/{task_id}.html"' not in dataset_html
+                or f'href="results.html?task={task_id}&status="' not in dataset_html
+            ):
+                raise ValueError(
+                    "every dataset task must drill down to its contract and measured outcomes"
+                )
+        if "data-dataset-count" not in dataset_html or "data-dataset-empty" not in dataset_html:
             raise ValueError("dataset filters must show result count and empty state")
         review_html = (language_root / "review.html").read_text(encoding="utf-8")
-        if 'class="table-scroll review-table"' not in review_html or review_html.count('<tbody><tr>') != 1:
-            raise ValueError("review history must describe review rounds, not enumerate per-result audits")
+        if (
+            'class="table-scroll review-table"' not in review_html
+            or review_html.count("<tbody><tr>") != 1
+        ):
+            raise ValueError(
+                "review history must describe review rounds, not enumerate per-result audits"
+            )
     js = (root / "assets/app.js").read_text(encoding="utf-8")
     if "const task=params.get('task');" not in js or "row.dataset.task===task" not in js:
         raise ValueError("dataset-to-results drilldown must select an exact task ID")
-    if "const stepDialog=document.querySelector('#step-dialog');" not in js or "Promise.all([standard(),evidence()])" not in js:
+    if (
+        "const stepDialog=document.querySelector('#step-dialog');" not in js
+        or "Promise.all([standard(),evidence()])" not in js
+    ):
         raise ValueError("step dialog must load qualified and actual evidence on demand")
     for page in (root / "results.html", root / "en/results.html"):
         rendered = page.read_text(encoding="utf-8")
-        baseline = re.search(r'<select data-matrix-baseline>(.*?)</select>', rendered, re.S)
+        baseline = re.search(r"<select data-matrix-baseline>(.*?)</select>", rendered, re.S)
         if baseline is None:
             raise ValueError("same-task comparison needs a baseline browser selector")
         baseline_ids = re.findall(r'<option value="([^"]+)">', baseline.group(1))
         comparison_ids = re.findall(r'data-matrix-method value="([^"]+)"', rendered)
         if baseline_ids != participants or comparison_ids != participants:
-            raise ValueError("same-task comparison controls must come from the complete participant registry")
-        if rendered.count('data-pass="') != task_count or rendered.count('data-fail="') != task_count:
+            raise ValueError(
+                "same-task comparison controls must come from the complete participant registry"
+            )
+        if (
+            rendered.count('data-pass="') != task_count
+            or rendered.count('data-fail="') != task_count
+        ):
             raise ValueError("same-task comparison needs one grouped outcome row per task")
     return {"html_pages": len(list(root.rglob("*.html"))), "checked_links": checked_links}
 

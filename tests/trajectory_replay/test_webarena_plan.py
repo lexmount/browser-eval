@@ -80,9 +80,7 @@ def _profile(tmp_path: Path) -> tuple[Path, Path]:
             "schema": "lex_browser_use_replay_seeds/2",
             "source": {"selection_sha256": profile["task_selection"]["sha256"]},
             "expert_repairs": {
-                "repair_spec_sha256": profile["seed_inventory"][
-                    "expert_repairs_sha256"
-                ]
+                "repair_spec_sha256": profile["seed_inventory"]["expert_repairs_sha256"]
             },
             "tasks": [
                 {
@@ -122,6 +120,40 @@ def test_plan_binds_all_tasks_and_serial_methods(tmp_path: Path) -> None:
     assert plan["task_ids"] == [1, 2]
     assert plan["engines"] == ["chromium", "moli"]
     assert len(plan["profile_sha256"]) == len(plan["seed_manifest_sha256"]) == 64
+
+
+@pytest.mark.parametrize("supersession", [None, "wrong", "correct"])
+def test_plan_state_opt_in_requires_exact_legacy_supersession(tmp_path, monkeypatch, supersession):
+    from types import SimpleNamespace
+
+    from harness import webarena_state
+    from harness.trajectory_replay import webarena_corrections
+
+    profile, seeds = _profile(tmp_path)
+    assert load_replay_plan(profile, seeds)["state_contracts"] == {}
+    definition = {}
+    if supersession:
+        definition["supersedes_replay_correction"] = {
+            "correction_id": "old-rule",
+            "record_sha256": "old-hash" if supersession == "correct" else "wrong",
+        }
+    contract = SimpleNamespace(definition=definition)
+    monkeypatch.setattr(webarena_state, "load_profile_contracts", lambda *_: {1: contract})
+    monkeypatch.setattr(
+        webarena_corrections,
+        "load_corrections",
+        lambda: SimpleNamespace(
+            records={1: {"correction_id": "old-rule"}}, record_sha256s={1: "old-hash"}
+        ),
+    )
+    payload = json.loads(profile.read_text())
+    payload["scoring"]["observed_state"] = {"explicit_opt_in": True}
+    _write(profile, payload)
+    if supersession == "correct":
+        assert load_replay_plan(profile, seeds)["state_contracts"] == {1: contract}
+    else:
+        with pytest.raises(ValueError, match="explicitly supersede"):
+            load_replay_plan(profile, seeds)
 
 
 def test_plan_uses_frozen_order_not_seed_file_order(tmp_path: Path) -> None:
@@ -217,6 +249,4 @@ def test_replay_binding_does_not_normalize_an_unapproved_host() -> None:
 
     assert replay_calls_binding_sha256(
         expected, allowed_hosts={"host.docker.internal"}
-    ) != replay_calls_binding_sha256(
-        attacker, allowed_hosts={"host.docker.internal"}
-    )
+    ) != replay_calls_binding_sha256(attacker, allowed_hosts={"host.docker.internal"})
