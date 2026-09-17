@@ -1,0 +1,137 @@
+{
+  "schema": "lexmount_webarena_site_delivery/1",
+  "image_lock": "../../evaluation/browser-use-public/webarena-environment-images.json",
+  "webarena_verified_version": "1.2.3",
+  "components": {
+    "shopping_admin": {
+      "architecture": "amd64",
+      "service_port": 80,
+      "control_port": 8877,
+      "health_path": "/",
+      "baseline": "fresh_container_writable_layer",
+      "init": "official_entrypoint",
+      "required_env_names": [
+        "WA_ENV_CTRL_EXTERNAL_SITE_URL",
+        "WA_ENV_CTRL_CMD_TIMEOUT_SEC"
+      ],
+      "required_env_values": {
+        "WA_ENV_CTRL_CMD_TIMEOUT_SEC": "600"
+      },
+      "mounts": []
+    },
+    "shopping": {
+      "architecture": "amd64",
+      "service_port": 80,
+      "control_port": 8877,
+      "health_path": "/customer/account/login",
+      "baseline": "fresh_container_writable_layer",
+      "init": "official_entrypoint",
+      "required_env_names": [
+        "WA_ENV_CTRL_EXTERNAL_SITE_URL",
+        "WA_ENV_CTRL_CMD_TIMEOUT_SEC"
+      ],
+      "required_env_values": {
+        "WA_ENV_CTRL_CMD_TIMEOUT_SEC": "600"
+      },
+      "mounts": []
+    },
+    "reddit": {
+      "architecture": "amd64",
+      "service_port": 80,
+      "control_port": 8877,
+      "health_path": "/login",
+      "baseline": "fresh_container_writable_layer",
+      "init": "official_explicit_env_ctrl",
+      "required_env_names": [
+        "WA_ENV_CTRL_EXTERNAL_SITE_URL"
+      ],
+      "required_env_values": {},
+      "mounts": []
+    },
+    "gitlab": {
+      "architecture": "amd64",
+      "service_port": 8023,
+      "control_port": 8877,
+      "health_path": "/users/sign_in",
+      "baseline": "fresh_container_writable_layer",
+      "init": "official_explicit_env_ctrl",
+      "required_env_names": [
+        "WA_ENV_CTRL_EXTERNAL_SITE_URL",
+        "WA_ENV_CTRL_SKIP_RECONFIGURE"
+      ],
+      "required_env_values": {
+        "WA_ENV_CTRL_SKIP_RECONFIGURE": "true"
+      },
+      "mounts": []
+    },
+    "map": {
+      "architecture": "amd64",
+      "service_port": 8080,
+      "control_port": 8877,
+      "health_path": "/",
+      "baseline": "verified_read_only_dataset",
+      "init": "official_dataset_setup",
+      "required_env_names": [
+        "WA_ENV_CTRL_EXTERNAL_SITE_URL"
+      ],
+      "required_env_values": {},
+      "mounts": [
+        {
+          "volume": "webarena_verified_map_tile_db",
+          "path": "/data/database"
+        },
+        {
+          "volume": "webarena_verified_map_routing_car",
+          "path": "/data/routing/car"
+        },
+        {
+          "volume": "webarena_verified_map_routing_bike",
+          "path": "/data/routing/bike"
+        },
+        {
+          "volume": "webarena_verified_map_routing_foot",
+          "path": "/data/routing/foot"
+        },
+        {
+          "volume": "webarena_verified_map_nominatim_db",
+          "path": "/data/nominatim/postgres"
+        },
+        {
+          "volume": "webarena_verified_map_nominatim_flatnode",
+          "path": "/data/nominatim/flatnode"
+        },
+        {
+          "volume": "webarena_verified_map_website_db",
+          "path": "/var/lib/postgresql/14/main"
+        },
+        {
+          "volume": "webarena_verified_map_tiles",
+          "path": "/data/tiles"
+        },
+        {
+          "volume": "webarena_verified_map_style",
+          "path": "/data/style"
+        }
+      ],
+      "data_urls": [
+        "https://webarena-map-server-data.s3.amazonaws.com/osm_tile_server.tar",
+        "https://webarena-map-server-data.s3.amazonaws.com/nominatim_volumes.tar",
+        "https://webarena-map-server-data.s3.amazonaws.com/osrm_routing.tar"
+      ],
+      "data_archive_sha256": {
+        "osm_tile_server.tar": "2d802a915af14a13bcf393e9abd23d0de003eb043137736a54876410e05c4df2",
+        "nominatim_volumes.tar": "888ad53f754948f660796b6fcb440294a3dec647e141d606b1c7cb2616695baa",
+        "osrm_routing.tar": "99a4d10aae831fb3410b7d4743be03d9e02691283ec5105952839b84b9204806"
+      },
+      "data_archive_bytes": {
+        "osm_tile_server.tar": 41280327680,
+        "nominatim_volumes.tar": 124774901760,
+        "osrm_routing.tar": 21278935040
+      },
+      "data_archive_digest_basis": "5090_downloaded_bytes_not_upstream_signature"
+    }
+  },
+  "excluded_on_amd64": [
+    "wikipedia"
+  ]
+}

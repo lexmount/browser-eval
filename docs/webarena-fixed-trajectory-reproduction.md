@@ -1,17 +1,19 @@
-# WebArena 固定轨迹回放：双仓库复现契约
+# WebArena 固定轨迹回放：环境与复现
 
 这是一套 RPA 式固定轨迹回放，不是 Agent browser-use。正式运行不调用 Agent、模型或
 LLM judge；两个浏览器重放相同的 WebArena 公开人工轨迹，再由固定 evaluator 验收最终
 回答、服务状态和 HAR。
 
-## 两个仓库各自负责什么
+## 代码与依赖
 
-- `lexmount/webarena-env#2`：固定 WebArena-Verified 1.2.3、站点镜像 digest、原生架构、
-  端口、启动/重置和机器可读回执。
-- 本仓库 PR：固定公开轨迹清单、离线修复记录、资格门禁、Chromium/Moli 镜像、动作
+- `harness/environments/webarena/`：Docker 和 Rainbond 站点生命周期、初始化与机器可读回执；
+  `deploy/webarena/` 保存部署配置和数据挂载契约。
+- `harness/trajectory_replay/public_webarena/`：公开轨迹清单、离线修复记录、资格门禁、Chromium/Moli 镜像、动作
   重放、HAR、evaluator、一次失败重试、首次/最终成功统计、证据审计和独立报告发布。
 
-两者共同足以在新机器上重新执行同一协议，但不会仅凭 Git 还原旧运行的逐字节证据：
+WebArena-Verified 1.2.3 作为独立依赖提供任务和评分器；全部官方镜像只在
+`evaluation/browser-use-public/webarena-environment-images.json` 中锁定。
+本仓库提供在新机器上重新执行协议所需的代码，但不会仅凭 Git 还原旧运行的逐字节证据：
 原始截图、HAR、attempts、manifest 和 summary 按仓库规则保存在 Git 外。Git 中的
 `evaluation/browser-use-public/current-report.json` 保存当前公开结果与外部证据哈希，
 用于证明报告绑定，而不是替代一次新运行。
@@ -28,14 +30,16 @@ LLM judge；两个浏览器重放相同的 WebArena 公开人工轨迹，再由�
 
 ## 从空机器复现
 
-1. 检出并固定两个 PR 的合并提交；两个仓库都执行 `uv sync --frozen` 和各自的检查。
-   再在本仓库运行
-   `uv run --frozen python scripts/verify_webarena_env_contract.py --environment-repo <webarena-env>`，
-   确认上游版本、六个站点、镜像 digest 和架构完全一致。
-2. 在 `webarena-env` 复制 `config/runtime.example.json`，填写浏览器容器可访问的主机名，
-   运行 `webarena-env verify/start` 并保留回执。Map 的三份 tar 须先用
-   `uv run --frozen python -m webarena_env.map_archives --data-dir <下载目录>` 核对 SHA-256，
-   再按官方 setup 初始化九个数据卷。账号只通过环境变量提供。
+1. 检出并固定本仓库提交，执行 `make setup` 和 `make ci`。运行
+   `uv run --frozen python scripts/verify_webarena_env_contract.py`，检查部署和评测
+   配置使用同一份镜像锁以及一致的端口、凭据变量名。
+2. 复制 `deploy/webarena/runtime.example.json` 到 Git 外，填写可访问的 `hostname`，
+   将 `image_lock` 设置为本仓库镜像锁的绝对路径。使用
+   `uv run --frozen python scripts/manage_webarena_environment.py verify --config <配置> --site reddit`
+   校验环境，将 `verify` 换为 `start` 或 `reset` 启动或重建站点，通过 `--receipt <路径>` 保存回执。
+   仅在需要 Map 的任务范围内准备地图数据；`setup --config <配置> --site map --data-dir <目录>`
+   会先核对三份归档的 SHA-256，再运行官方初始化。当前 Rainbond 部署不包含 Map。
+   账号只通过环境变量提供。
 3. 在本仓库复制 `examples/trajectory_replay/public_webarena/webarena.config.example.json`，使用同一组端口、
    镜像 digest、网站地址与凭据变量名；运行环境 smoke，确认 CDP、登录、HAR 与站点 origin。
    示例默认共用本机 Docker daemon，不假定存在某个用户的 rootless socket。若使用两条
@@ -55,9 +59,11 @@ uv run --frozen python -m harness.trajectory_replay.public_webarena.cli \
 5. 运行 `examples/trajectory_replay/public_webarena/verify_metrics.py` 和报告打包器。任何缺失回答、动作、终止
    原因、评分，或进入浏览器阶段后缺失截图、最终页面、HAR，都按失败处理。
 
-正式运行前必须核对两个仓库的 WebArena-Verified 版本和六个站点镜像 digest 完全一致。
+正式运行前必须核对 WebArena-Verified 版本和任务涉及的站点镜像 digest。
 这项检查不允许用 mutable tag、跨架构模拟或手工修改数据库替代。
 
-当前正式执行器按 Docker 容器身份验证并重建有状态站点，不能直接用 Rainbond 中的
-远程有状态组件替代。Rainbond 的镜像部署和站点连通性可以先单独验证；要发布与本协议
-等价的成绩，仍需受控重建与初态回执接入评测执行器。
+执行器支持 Docker 容器重建和带回执的 Rainbond 独立槽位重建。每个并发执行者必须
+独占一整个有状态槽位；只读 Wikipedia 可共享。Rainbond 使用方法见
+[环境示例](../examples/trajectory_replay/public_webarena/README.md)。HTTP 并发测试只证明
+网页可访问；正式运行仍须生成与本次重置、镜像、初态和就绪检查绑定的回执。
+共享 Kiwix 的 amd64 部署与官方 arm64 镜像身份不同，不能直接沿用官方镜像的验证回执。

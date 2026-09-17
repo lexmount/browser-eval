@@ -1,0 +1,31 @@
+{
+  "schema": "lex_webarena_rainbond_pool/1",
+  "api_base_url": "https://rainbond.example.com",
+  "team_id": "replace-with-efficiency-team-id",
+  "team_name": "replace-with-efficiency-team-name",
+  "region_name": "rainbond",
+  "source_app_id": 192,
+  "source_services": {
+    "shopping_admin": "replace-with-baseline-service-id",
+    "shopping": "replace-with-baseline-service-id",
+    "reddit": "replace-with-baseline-service-id",
+    "gitlab": "replace-with-baseline-service-id"
+  },
+  "initializer_service": "replace-with-slice-initializer-service-id",
+  "initializer_image": "alpine@sha256:replace-with-pinned-multiarch-digest",
+  "initializer_component_name": "slice-initializer",
+  "source_component_names": {
+    "shopping_admin": "shopping-admin",
+    "shopping": "shopping",
+    "reddit": "reddit",
+    "gitlab": "gitlab"
+  },
+  "app_prefix": "webarena-slice",
+  "domain_suffix": "dev.example.com",
+  "token_env": "RAINBOND_API_TOKEN",
+  "image_lock": "../../../evaluation/browser-use-public/webarena-environment-images.json",
+  "readiness_timeout_seconds": 1800,
+  "max_parallel_provisions": 2,
+  "reset_strategy": "replace_before_destroy",
+  "shared_environments": {}
+}

@@ -7,7 +7,6 @@ import json
 import os
 import re
 import signal
-import socket
 import threading
 import time
 import urllib.error
@@ -22,10 +21,13 @@ from webarena_verified.environments.container.config import get_container_config
 from webarena_verified.environments.container.manager import ContainerManager
 from webarena_verified.types.task import WebArenaSite
 
+from harness.environments.webarena.backend import MAGENTO_INIT_TIMEOUT_SECONDS, DockerBackend
+from harness.environments.webarena.manager import EnvironmentManager
+from harness.environments.webarena.rainbond import RainbondSlicePool
+
 from .suite import BrowserTask
 
 STATEFUL_SITES = frozenset({"shopping_admin", "shopping", "reddit", "gitlab"})
-MAGENTO_INIT_TIMEOUT_SECONDS = 600
 LEGACY_PORT_SITES = {
     3000: "map",
     4399: "reddit",
@@ -46,9 +48,8 @@ def wall_clock_timeout(seconds: float, *, operation: str = "environment reset"):
     """Bound one blocking environment phase, including Docker SDK calls, on POSIX."""
     if seconds <= 0:
         raise ValueError("wall-clock timeout must be positive")
-    if (
-        threading.current_thread() is not threading.main_thread()
-        or not hasattr(signal, "setitimer")
+    if threading.current_thread() is not threading.main_thread() or not hasattr(
+        signal, "setitimer"
     ):
         raise RuntimeError("WebArena reset wall-clock timeout requires the POSIX main thread")
     previous_timer = signal.getitimer(signal.ITIMER_REAL)
@@ -66,114 +67,6 @@ def wall_clock_timeout(seconds: float, *, operation: str = "environment reset"):
     finally:
         signal.setitimer(signal.ITIMER_REAL, 0)
         signal.signal(signal.SIGALRM, previous_handler)
-
-
-class _DockerClientBackend:
-    """Bind WebArena's container manager to an explicit Docker SDK client."""
-
-    def __init__(self, client: Any, *, defer_removal: bool = False) -> None:
-        self.client = client
-        self.defer_removal = defer_removal
-        self.retired_containers: list[str] = []
-
-    def _container(self, name: str) -> Any | None:
-        try:
-            return self.client.containers.get(name)
-        except docker.errors.NotFound:
-            return None
-
-    def container_exists(self, *, name: str) -> bool:
-        return self._container(name) is not None
-
-    def container_running(self, *, name: str) -> bool:
-        container = self._container(name)
-        if container is None:
-            return False
-        container.reload()
-        return container.status == "running"
-
-    def container_remove(self, *, name: str) -> None:
-        container = self._container(name)
-        if container is not None:
-            if not self.defer_removal:
-                container.remove(force=True)
-                return
-            # Removing WebArena's tens-of-gigabytes writable layer can block a
-            # rootless daemon for hours.  Stopping releases the fixed ports;
-            # renaming preserves the old layer for deferred garbage collection.
-            # The next container still starts from the immutable pinned image,
-            # and these official images have no shared writable mounts.
-            container.reload()
-            if container.status == "running":
-                container.stop(timeout=10)
-            retired_name = f"{name}__retired__{container.id[:12]}"
-            container.rename(retired_name)
-            self.retired_containers.append(retired_name)
-
-    def container_run(
-        self,
-        *,
-        name: str,
-        image: str,
-        port_mappings: dict[int, int],
-        volume_mappings: dict[str, str],
-        env_vars: dict[str, str] | None = None,
-    ) -> None:
-        environment = dict(env_vars or {})
-        if self.defer_removal and volume_mappings:
-            raise RuntimeError(
-                "deferred WebArena container removal requires no shared writable mounts"
-            )
-        if name in {
-            "webarena_verified_shopping",
-            "webarena_verified_shopping_admin",
-        }:
-            # Magento's official init performs cache/database work after the
-            # services become healthy.  The image default of 180 seconds is
-            # too short on a busy qualification host and can leave the baked
-            # CMU origin active even though env-ctrl /status is healthy.
-            environment["WA_ENV_CTRL_CMD_TIMEOUT_SEC"] = str(
-                MAGENTO_INIT_TIMEOUT_SECONDS
-            )
-        # GitLab's image entrypoint does not run env-ctrl init.  Its fallback
-        # reconfiguration also rewrites the internal nginx listener to the
-        # public host port, breaking Docker's host-port -> 8023 mapping.  Keep
-        # the baked internal listener here; WebArenaEnvironment performs one
-        # explicit official init after the service is healthy.
-        if name == "webarena_verified_gitlab":
-            environment["WA_ENV_CTRL_SKIP_RECONFIGURE"] = "true"
-        self.client.containers.run(
-            image,
-            detach=True,
-            name=name,
-            ports={
-                f"{container_port}/tcp": host_port
-                for host_port, container_port in port_mappings.items()
-            },
-            volumes={
-                source: {"bind": target, "mode": "rw"}
-                for source, target in volume_mappings.items()
-            },
-            environment=environment,
-        )
-
-    def get_container_ports(self, *, name: str) -> dict[int, int]:
-        container = self._container(name)
-        if container is None:
-            return {}
-        container.reload()
-        result: dict[int, int] = {}
-        ports = container.attrs.get("NetworkSettings", {}).get("Ports") or {}
-        for key, bindings in ports.items():
-            if bindings:
-                result[int(str(key).split("/", 1)[0])] = int(bindings[0]["HostPort"])
-        return result
-
-    def find_free_port(self) -> int:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as value:
-            value.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            value.bind(("", 0))
-            return int(value.getsockname()[1])
 
 
 class WebArenaEnvironment:
@@ -195,6 +88,33 @@ class WebArenaEnvironment:
         if self.image_lock.get("schema") != "lex_webarena_environment_images/1":
             raise ValueError("WebArena image lock schema is invalid")
         self.remote_receipts = self.config.get("remote_runtime_receipts") or {}
+        slice_value = self.config.get("rainbond_slice")
+        self.rainbond_pool: RainbondSlicePool | None = None
+        self.rainbond_receipt_path: Path | None = None
+        if slice_value is not None:
+            if not isinstance(slice_value, dict):
+                raise ValueError("rainbond_slice must be an object")
+            pool_raw = str(slice_value.get("pool_config") or "").strip()
+            receipt_raw = str(slice_value.get("receipt") or "").strip()
+            if not pool_raw or not receipt_raw:
+                raise ValueError("rainbond_slice requires pool_config and receipt")
+            pool_value = Path(pool_raw)
+            receipt_value = Path(receipt_raw)
+            pool_path = (
+                pool_value
+                if pool_value.is_absolute()
+                else (self.config_path.parent / pool_value).resolve()
+            )
+            self.rainbond_receipt_path = (
+                receipt_value
+                if receipt_value.is_absolute()
+                else (self.config_path.parent / receipt_value).resolve()
+            )
+            self.rainbond_pool = RainbondSlicePool(pool_path)
+            current_receipt = self.rainbond_pool.validate_receipt(self.rainbond_receipt_path)
+            current_runtime = self.rainbond_pool.runtime_config(current_receipt)
+            self.config = {**self.config, **current_runtime}
+            self.environments = self.config["environments"]
 
     def site_docker_client(self, default_client: Any) -> tuple[Any, bool]:
         host = self.config.get("site_docker_host")
@@ -216,9 +136,34 @@ class WebArenaEnvironment:
             {str(site) for task in tasks for site in (task.environment or {}).get("sites") or []}
         )
         rows: dict[str, Any] = {}
+        slice_receipt = (
+            self.rainbond_pool.validate_receipt(self.rainbond_receipt_path)
+            if self.rainbond_pool is not None and self.rainbond_receipt_path is not None
+            else None
+        )
         for site in sites:
             locked = self.image_lock["images"][site]
             expected = str(locked["pinned"])
+            if slice_receipt is not None and site in STATEFUL_SITES:
+                component = (slice_receipt.get("components") or {}).get(site) or {}
+                if component.get("image") != expected:
+                    raise RuntimeError(f"Rainbond slice image mismatch for {site}")
+                site_url = str(component.get("site_url") or "")
+                configured_urls = self._site_config(site).get("urls") or []
+                if configured_urls != [site_url]:
+                    raise RuntimeError(f"Rainbond slice URL mismatch for {site}")
+                self._wait_site_ready(site_url, timeout_seconds=60)
+                rows[site] = {
+                    "mode": "remote_rainbond_isolated_slice",
+                    "app_id": slice_receipt["app_id"],
+                    "generation": slice_receipt["generation"],
+                    "service_id": component["service_id"],
+                    "pinned_image": expected,
+                    "receipt_sha256": hashlib.sha256(
+                        self.rainbond_receipt_path.read_bytes()
+                    ).hexdigest(),
+                }
+                continue
             receipt_value = self.remote_receipts.get(site)
             if receipt_value is not None:
                 if site in STATEFUL_SITES:
@@ -413,9 +358,38 @@ class WebArenaEnvironment:
         self, task: BrowserTask, docker_client: Any, *, timeout_seconds: float
     ) -> dict[str, Any]:
         sites = list((task.environment or {}).get("sites") or [])
+        if self.rainbond_pool is not None and any(site in STATEFUL_SITES for site in sites):
+            assert self.rainbond_receipt_path is not None
+            receipt = self.rainbond_pool.reset(self.rainbond_receipt_path)
+            self.config = self.rainbond_pool.persist_runtime_config(
+                receipt,
+                self.config_path,
+                base_config=self.config,
+            )
+            self.environments = self.config["environments"]
+            for site in sites:
+                site_config = self._site_config(site)
+                site_urls = site_config.get("urls") or []
+                index = int(site_config.get("active_url_idx") or 0)
+                if not site_urls or index < 0 or index >= len(site_urls):
+                    raise ValueError(f"WebArena environment has no active URL for site {site!r}")
+                self._wait_site_ready(str(site_urls[index]), timeout_seconds=timeout_seconds)
+            return {
+                "mode": "remote_rainbond_isolated_slice",
+                "reset": "application_deleted_and_recreated_from_pinned_baseline",
+                "app_id": receipt["app_id"],
+                "generation": receipt["generation"],
+                "sites": {
+                    site: {
+                        "service_id": receipt["components"][site]["service_id"],
+                        "site_url": receipt["components"][site]["site_url"],
+                    }
+                    for site in sites
+                    if site in receipt["components"]
+                },
+            }
         receipts: dict[str, Any] = {}
         for site in sites:
-            url = self._control_url(site)
             if site in self.remote_receipts:
                 if site in STATEFUL_SITES:
                     raise ValueError(f"remote reset is unsupported for stateful site {site}")
@@ -430,6 +404,7 @@ class WebArenaEnvironment:
                     "reset": "site_health_check_only",
                 }
                 continue
+            url = self._control_url(site)
             if site in STATEFUL_SITES:
                 locked = self.image_lock["images"][site]
                 upstream = get_container_config(site=WebArenaSite(site))
@@ -441,12 +416,8 @@ class WebArenaEnvironment:
                         "host_env_ctrl_port": control_port,
                     }
                 )
-                defer_removal = bool(
-                    self.config.get("defer_stateful_container_removal", False)
-                )
-                backend = _DockerClientBackend(
-                    docker_client, defer_removal=defer_removal
-                )
+                defer_removal = bool(self.config.get("defer_stateful_container_removal", False))
+                backend = DockerBackend(docker_client, defer_removal=defer_removal)
                 manager = ContainerManager(
                     site=WebArenaSite(site),
                     config=config,
@@ -490,9 +461,7 @@ class WebArenaEnvironment:
                     # WA_ENV_CTRL_EXTERNAL_SITE_URL, so its supervisor attempt
                     # exits before mutating state. Supply the URL explicitly
                     # after that no-op attempt has exited.
-                    self._wait_container_initialization(
-                        container, timeout_seconds=timeout_seconds
-                    )
+                    self._wait_container_initialization(container, timeout_seconds=timeout_seconds)
                     self._configure_external_url(container, started.url, site=site)
                     self._wait_ready(url, timeout_seconds=timeout_seconds)
                     receipts[site]["external_url_configuration"] = {
@@ -502,9 +471,7 @@ class WebArenaEnvironment:
                 else:
                     # Shopping and Shopping Admin run their one env-ctrl init
                     # from the official image entrypoint.
-                    self._wait_container_initialization(
-                        container, timeout_seconds=timeout_seconds
-                    )
+                    self._wait_container_initialization(container, timeout_seconds=timeout_seconds)
                     self._verify_entrypoint_initialization(container)
                     receipts[site]["external_url_configuration"] = {
                         "external_url": started.url,
@@ -538,68 +505,19 @@ class WebArenaEnvironment:
 
     @staticmethod
     def _wait_ready(url: str, *, timeout_seconds: float) -> None:
-        deadline = time.monotonic() + timeout_seconds
-        last_error: Exception | None = None
-        while time.monotonic() < deadline:
-            try:
-                with urllib.request.urlopen(url.rstrip("/") + "/status", timeout=5) as response:
-                    payload = json.load(response)
-                    if response.status == 200 and payload.get("success") is True:
-                        return
-            except (OSError, urllib.error.URLError) as exc:
-                last_error = exc
-            time.sleep(0.5)
-        raise RuntimeError(f"WebArena environment did not become ready: {last_error}")
+        EnvironmentManager._wait_control(url, timeout=timeout_seconds)
 
     @staticmethod
     def _wait_container_initialization(container: Any, *, timeout_seconds: float) -> None:
-        """Wait for the image entrypoint's one-time env-ctrl init to exit."""
-        deadline = time.monotonic() + timeout_seconds
-        while time.monotonic() < deadline:
-            # Docker's remote ``top`` endpoint requires the PID column to be
-            # present even though we only inspect the command text.
-            process_table = container.top(ps_args="-eo pid,args")
-            processes = process_table.get("Processes") or []
-            active = any(
-                "environment_control.cli init" in " ".join(map(str, row))
-                or re.search(r"\benv-ctrl\b.*\binit\b", " ".join(map(str, row)))
-                for row in processes
-            )
-            if not active:
-                return
-            time.sleep(0.5)
-        raise RuntimeError("WebArena entrypoint initialization did not finish")
+        EnvironmentManager._wait_entrypoint_init(container, timeout=timeout_seconds)
 
     @staticmethod
     def _configure_external_url(container: Any, external_url: str, *, site: str) -> None:
-        """Run a site's official initializer with an explicit public URL."""
-        result = container.exec_run(
-            ["env-ctrl", "--verbose", "init", "--base-url", external_url],
-            demux=False,
-        )
-        output = result.output
-        if isinstance(output, bytes):
-            output = output.decode("utf-8", errors="replace")
-        try:
-            payload = json.loads(str(output or ""))
-        except json.JSONDecodeError as exc:
-            raise RuntimeError(f"WebArena {site} init returned invalid JSON") from exc
-        if result.exit_code != 0 or payload.get("success") is not True:
-            message = str(payload.get("message") or "official initializer failed")
-            raise RuntimeError(f"WebArena {site} init failed: {message}")
+        EnvironmentManager._explicit_init(container, external_url, site=site)
 
     @staticmethod
     def _verify_entrypoint_initialization(container: Any) -> None:
-        """Fail immediately if the official supervisor init did not finish cleanly."""
-        result = container.exec_run(
-            ["sh", "-lc", "tail -n 1 /tmp/env-ctrl-init.log"],
-            demux=False,
-        )
-        output = result.output
-        if isinstance(output, bytes):
-            output = output.decode("utf-8", errors="replace")
-        if result.exit_code != 0 or str(output or "").strip() != "[OK]":
-            raise RuntimeError("WebArena entrypoint initialization failed")
+        EnvironmentManager._verify_entrypoint_init(container)
 
     @staticmethod
     def _wait_site_ready(url: str, *, timeout_seconds: float) -> None:
@@ -655,9 +573,7 @@ class WebArenaEnvironment:
             time.sleep(0.5)
         raise RuntimeError(f"WebArena site did not become ready: {last_error}")
 
-    def prepare(
-        self, task: BrowserTask, page: Any, *, timeout_seconds: float = 300
-    ) -> Any:
+    def prepare(self, task: BrowserTask, page: Any, *, timeout_seconds: float = 300) -> Any:
         with wall_clock_timeout(timeout_seconds, operation="environment prepare"):
             return self._prepare_impl(task, page)
 
