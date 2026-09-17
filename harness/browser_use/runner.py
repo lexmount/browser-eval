@@ -16,6 +16,7 @@ import tempfile
 import time
 import traceback
 import uuid
+import zipfile
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -39,6 +40,7 @@ from webarena_verified.types.config import (
 )
 from webarena_verified.types.task import WebArenaSite
 
+from harness.browser_viewport import set_verified_viewport
 from harness.container_isolation import require_linux_cgroup_v2
 from harness.resource_accounting import (
     DockerStatsResources,
@@ -56,6 +58,7 @@ from harness.trajectory_replay.runner import (
 from .har import CdpHarRecorder
 from .model import OpenAIResponsesModel
 from .selection import PilotTask, load_pilot, validate_against_official
+from .wire_witness import fill_missing_referers, parse_access_log
 
 SCHEMA = "lex_browser_use_attempt/1"
 SITE_PORTS = {
@@ -76,6 +79,13 @@ SITE_AUTH_HEADERS = {
     WebArenaSite.SHOPPING_ADMIN: "X-M2-Admin-Auto-Login",
     WebArenaSite.REDDIT: "X-Postmill-Auto-Login",
 }
+WIRE_ACCESS_LOG_PATHS = (
+    "/var/log/nginx/project_access.log",
+    "/var/log/nginx/access.log",
+    "/var/log/apache2/access.log",
+    "/var/log/httpd/access_log",
+)
+MAX_WIRE_LOG_SEGMENT_BYTES = 32 * 1024 * 1024
 # The official all-in-one shopping image restores Magento, MariaDB and
 # Elasticsearch before env-ctrl declares the fixture ready. On Colima/QEMU this
 # repeatedly exceeded the package example's 180-second default despite becoming
@@ -332,6 +342,108 @@ def _site_container_manager(site: WebArenaSite) -> ContainerManager:
     )
 
 
+def _wire_log_cursors(
+    sites: tuple[WebArenaSite, ...], benchmark: WebArenaVerified
+) -> list[dict[str, Any]]:
+    """Bind readable server logs immediately before the measured Agent run."""
+
+    client = docker.from_env()
+    cursors: list[dict[str, Any]] = []
+    for site in sites:
+        container = client.containers.get(_site_container_manager(site).container_name)
+        for path in WIRE_ACCESS_LOG_PATHS:
+            result = container.exec_run(["stat", "-c", "%s", path])
+            if result.exit_code != 0:
+                continue
+            try:
+                offset = int(result.output.decode().strip())
+            except ValueError as exc:
+                raise RuntimeError(f"invalid site access-log size for {site.value}") from exc
+            cursors.append(
+                {
+                    "site": site.value,
+                    "container_name": container.name,
+                    "container_image_id": container.image.id,
+                    "origin": str(benchmark.config.get_environment(site).active_url),
+                    "path": path,
+                    "offset": offset,
+                }
+            )
+            break
+    return cursors
+
+
+def _reconcile_server_wire_headers(
+    raw_har_path: Path,
+    evaluated_har_path: Path,
+    witness_path: Path,
+    source_archive_path: Path,
+    cursors: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Create a separate evaluator HAR from uniquely matched server observations."""
+
+    client = docker.from_env()
+    witnesses = []
+    sources = []
+    with zipfile.ZipFile(source_archive_path, "w", compression=zipfile.ZIP_STORED) as archive:
+        for index, cursor in enumerate(cursors):
+            container = client.containers.get(cursor["container_name"])
+            if container.image.id != cursor["container_image_id"]:
+                raise RuntimeError("site container image changed during wire capture")
+            size_result = container.exec_run(["stat", "-c", "%s", cursor["path"]])
+            if size_result.exit_code != 0:
+                raise RuntimeError("site access log disappeared during wire capture")
+            size = int(size_result.output.decode().strip())
+            offset = int(cursor["offset"])
+            if size < offset:
+                raise RuntimeError("site access log was truncated during wire capture")
+            if size - offset > MAX_WIRE_LOG_SEGMENT_BYTES:
+                raise RuntimeError("site access-log segment exceeds the evidence limit")
+            segment_result = container.exec_run(
+                ["tail", "-c", f"+{offset + 1}", cursor["path"]]
+            )
+            if segment_result.exit_code != 0:
+                raise RuntimeError("site access-log tail failed")
+            segment = bytes(segment_result.output)
+            if len(segment) != size - offset:
+                raise RuntimeError("site access log changed while reading wire evidence")
+            member = f"{index}-{cursor['site']}.log"
+            archive.writestr(member, segment)
+            parsed = parse_access_log(segment, origin=cursor["origin"])
+            witnesses.extend(parsed)
+            sources.append(
+                {
+                    "site": cursor["site"],
+                    "origin": cursor["origin"],
+                    "container_image_id": cursor["container_image_id"],
+                    "log_kind": Path(cursor["path"]).name,
+                    "archive_member": member,
+                    "segment_sha256": hashlib.sha256(segment).hexdigest(),
+                    "segment_bytes": len(segment),
+                    "parsed_request_count": len(parsed),
+                }
+            )
+    raw_bytes = raw_har_path.read_bytes()
+    evaluated, additions = fill_missing_referers(json.loads(raw_bytes), witnesses)
+    evaluated_har_path.write_text(
+        json.dumps(evaluated, ensure_ascii=False), encoding="utf-8"
+    )
+    receipt = {
+        "schema": "lex_browser_use_server_wire_witness/1",
+        "raw_har_sha256": hashlib.sha256(raw_bytes).hexdigest(),
+        "evaluated_har_sha256": hashlib.sha256(evaluated_har_path.read_bytes()).hexdigest(),
+        "source_archive_sha256": hashlib.sha256(source_archive_path.read_bytes()).hexdigest(),
+        "sources": sources,
+        "unique_header_additions": additions,
+        "note": (
+            "Only exact, unique method/URL/status matches can fill a missing Referer; "
+            "original CDP HAR is retained separately."
+        ),
+    }
+    witness_path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n")
+    return receipt
+
+
 def _verify_arm_php_compatibility(container_name: str) -> None:
     container = docker.from_env().containers.get(container_name)
     processes = container.exec_run(["ps", "-o", "pid,args"])
@@ -491,6 +603,7 @@ def _login_context(
             creds = SITE_CREDENTIALS[site]
             page = context.new_page()
             try:
+                set_verified_viewport(page)
                 page.set_default_timeout(60_000)
                 page.set_default_navigation_timeout(90_000)
                 if site == WebArenaSite.SHOPPING:
@@ -685,7 +798,10 @@ def _run_attempt_locked(  # noqa: PLR0913
     _limit_cowagent_transport_retries(AgentStreamExecutor)
 
     trace_path = attempt_dir / "agent_trace.zip"
+    raw_har_path = attempt_dir / "network-cdp.har"
     har_path = attempt_dir / "network.har"
+    witness_path = attempt_dir / "network-wire-witness.json"
+    wire_source_path = attempt_dir / "network-wire-source.zip"
     response_path = attempt_dir / "agent_response.json"
     eval_path = attempt_dir / "eval_result.json"
     events_path = attempt_dir / "agent_events.json"
@@ -709,16 +825,20 @@ def _run_attempt_locked(  # noqa: PLR0913
     sampler_started = False
     browser_session_setup_ms = 0.0
     browser_session_readiness_retries = 0
+    viewport_receipt = None
     agent_run_ms = 0.0
     evidence_finalize_ms = 0.0
     evaluation_ms = 0.0
+    wire_cursors: list[dict[str, Any]] = []
     started = time.perf_counter()
     try:
         session_setup_started = time.perf_counter()
         model.reset()
         service = tool._get_service()
         service._submit(lambda: None)
+        viewport_receipt = service._submit(lambda: set_verified_viewport(service._page))
         browser_session_readiness_retries = _login_context(service, sites, benchmark, start_urls)
+        wire_cursors = _wire_log_cursors(sites, benchmark)
         service._submit(
             lambda: (
                 recorder.start(service._context),
@@ -758,7 +878,7 @@ def _run_attempt_locked(  # noqa: PLR0913
         service._submit(
             lambda: (
                 service._page.wait_for_timeout(500),
-                recorder.stop(service._context, har_path),
+                recorder.stop(service._context, raw_har_path),
                 service._context.tracing.stop(path=str(trace_path)),
             )
         )
@@ -769,7 +889,7 @@ def _run_attempt_locked(  # noqa: PLR0913
             service = tool._get_service()
             service._submit(
                 lambda: (
-                    recorder.stop(service._context, har_path),
+                    recorder.stop(service._context, raw_har_path),
                     service._context.tracing.stop(path=str(trace_path)),
                 )
             )
@@ -803,8 +923,11 @@ def _run_attempt_locked(  # noqa: PLR0913
         json.dumps(parsed_response, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     events_path.write_text(json.dumps(events, ensure_ascii=False, indent=2), encoding="utf-8")
-    if har_path.exists():
+    if raw_har_path.exists():
         evaluation_started = time.perf_counter()
+        _reconcile_server_wire_headers(
+            raw_har_path, har_path, witness_path, wire_source_path, wire_cursors
+        )
         evaluation = benchmark.evaluate_task(
             task_id=selected.task_id,
             agent_response=parsed_response,
@@ -841,6 +964,7 @@ def _run_attempt_locked(  # noqa: PLR0913
             "measured_run_wall_ms": round(duration_ms, 3),
         },
         "browser_session_readiness_retries": browser_session_readiness_retries,
+        "viewport": viewport_receipt,
         "agent_response": parsed_response,
         "error": error,
         "cleanup_errors": cleanup_errors,
@@ -854,6 +978,9 @@ def _run_attempt_locked(  # noqa: PLR0913
         "model_transport_errors": model.transport_errors,
         "paths": {
             "network_har": str(har_path),
+            "network_har_raw": str(raw_har_path),
+            "network_witness": str(witness_path),
+            "network_wire_source": str(wire_source_path),
             "agent_trace": str(trace_path),
             "response": str(response_path),
             "evaluation": str(eval_path),
@@ -1132,6 +1259,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             "evaluator": "official webarena-verified package, unmodified",
             "environment_reset": "official site container reset before every attempt",
             "environment_prepare_receipt": "required",
+            "server_wire_witness": "required",
             "environment_lane": {
                 "lock_namespace": physical_execution_lock_namespace,
                 "isolation_unit": "docker-daemon-and-fixed-site-ports",

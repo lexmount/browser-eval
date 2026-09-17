@@ -346,6 +346,153 @@
   ],
   "browser_use_releases": [
     {
+      "id": "2026-09-17-browser-use-profile-event-contract-clarification",
+      "date": "2026-09-17",
+      "title": "澄清个人资料保存失败的验收条件",
+      "summary": "第 448 题的一次保存产生两条不同的资料更新请求：符合期望的 302 后还有 200。官方规则只检查最后一条并要求 302，因此报告将原因明确为验收条件与实际请求序列不匹配。历史分数与 90 题分母不变。",
+      "changes": [
+        [
+          "失败原因",
+          "此前将第二条 200 请求描述为重复记录，容易误解为 HAR 复制了同一事件。",
+          "核对请求响应、一次保存动作和官方 last_event_only 规则后，区分两条真实请求与验收条件。",
+          "第 448 题仍隔离于事后诊断子集；不删除网络事件，不改写官方成绩。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Clarify the profile-save acceptance condition",
+          "summary": "One save in Task 448 produced two distinct profile POSTs: the expected 302 followed by a 200. The official rule examines only the last event and requires 302. The report now describes this contract mismatch precisely; historical scores and the 90-task denominator are unchanged.",
+          "changes": [
+            [
+              "Failure cause",
+              "The previous description called the 200 request a duplicate, which could imply a copied HAR entry.",
+              "Check both responses, the single save action, and the official last_event_only rule to distinguish two real requests from the acceptance condition.",
+              "Task 448 remains excluded from the post-hoc diagnostic subset; no network event or official score is altered."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "2026-09-17-browser-use-request-header-witness",
+      "date": "2026-09-17",
+      "title": "核实订阅请求头并修正失败归因",
+      "summary": "自托管站点日志证实第 595 题的 Moli 订阅请求实际携带官方要求的 Referer；CDP、Playwright 和 HAR 均漏记，导致程序误判。第 448 题也由网络事件选择误判造成。两题改列事后诊断排除项；90 题历史官方分数不变。",
+      "changes": [
+        [
+          "请求证据",
+          "第 595 题此前只确认 HAR 缺少 Referer，无法区分真实发包与采集漏记。",
+          "对同一真实站点请求核对服务端访问日志和客户端三条证据接口；服务端记录的 Referer 与验收期望完全一致。",
+          "只修正根因说明与事后诊断分类，不改写官方分数或历史证据。"
+        ],
+        [
+          "诊断子集",
+          "第 448、595 题的已证实证据路径误判仍混在浏览器操作失败中。",
+          "按整题同时排除四种配置，得到 73 题事后诊断子集；完整 90 题官方结果仍单独展示。",
+          "修正采集或事件选择后，需重新执行完整四配置才可重新纳入。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Verify the subscription request header and correct failure attribution",
+          "summary": "The self-hosted site log confirms that Moli's Task 595 subscription request carried the exact required Referer on the wire. CDP, Playwright, and HAR all omitted it, causing a false negative. Task 448 also failed because the wrong network event was selected. Both tasks are excluded from the post-hoc diagnostic subset; historical official scores on all 90 tasks are unchanged.",
+          "changes": [
+            [
+              "Request evidence",
+              "Task 595 previously established only that the HAR lacked Referer, not whether the browser sent it.",
+              "Compare the server access log with three client evidence interfaces for the same real-site request; the server's Referer exactly matches the evaluator requirement.",
+              "Correct the cause and post-hoc classification only; official scores and historical evidence are unchanged."
+            ],
+            [
+              "Diagnostic subset",
+              "Tasks 448 and 595 had confirmed evidence-path false negatives mixed with browser-action failures.",
+              "Exclude each task across all four configurations, leaving a 73-task post-hoc diagnostic subset; the complete 90-task official results remain separate.",
+              "Readmission requires corrected capture or event selection and a complete four-configuration rerun."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "2026-09-17-browser-use-reviewed-cause-filter",
+      "date": "2026-09-17",
+      "title": "结果清单增加复核原因筛选",
+      "summary": "失败结果现在可按程序判分环节和复核原因子类分别筛选；每条结果仍可打开程序报错、根因、轨迹和执行证据。正式 90 题分数及历史证据未变。",
+      "changes": [
+        [
+          "结果定位",
+          "原清单只能筛选程序判分环节，无法直接汇集同一复核根因的失败结果。",
+          "新增按当前已核验原因子类生成的筛选选项，筛选状态可保留在页面地址中。",
+          "失败判定、任务重试次数及完整历史证据保持原样。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Filter failed results by reviewed cause",
+          "summary": "Failed results can now be filtered separately by programmatic failure stage and reviewed cause subtype. Each result still opens its exact error, root cause, trajectory, and execution evidence. Official 90-task scores and historical evidence are unchanged.",
+          "changes": [
+            [
+              "Result diagnosis",
+              "The inventory filtered only by programmatic failure stage, making it hard to collect failures with the same reviewed cause.",
+              "Add filter options generated from the currently verified cause subtypes and preserve the selection in the page URL.",
+              "Verdicts, task retry counts, and complete historical evidence remain unchanged."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "2026-09-16-har-body-capture-and-request-evidence-review",
+      "date": "2026-09-16",
+      "title": "修复 HAR JSON 正文采集并完成请求证据复核",
+      "summary": "HAR 采集器现在按媒体类型而非精确 Content-Type 字符串读取 JSON 正文；Task 506 的 Astra/Moli 失败已证实为采集器漏掉 charset JSON 正文并隔离。Task 595 的两个 Moli 结果经实页正常点击、控制器、fetch 和站点响应复现后确认是请求 Referer 证据差异，保留为浏览器集成信号而不编造内核修复。历史官方分数不变。",
+      "attempts_sha256_by_model": {
+        "gpt-5.6-sol": "73146500152db62d79f84b63c85a14027c005a6320c19bce7426651f167466bd",
+        "gpt-6-astra": "0659d227cf6d29fbfaf64d39f8e77a56bec73c87f7f6e1f2ac23ea13fd9b667c"
+      },
+      "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+      "publication": {
+        "service": "Artifact Hub",
+        "site_slug": "7l77EeXPRfml",
+        "share_url": "https://artifact-hub.app.lexmount.com/v/Ghn1BR6PCy-njsCMqCe2LRIJ-eyJEJoa",
+        "version": "ver_61a48e69a3be4e65ad02814509498e31"
+      },
+      "changes": [
+        [
+          "HAR 正文采集",
+          "采集器只接受精确 application/json，导致带 charset 参数的 JSON 响应正文缺失。",
+          "按 Content-Type 的媒体类型匹配 application/json 和 +json，并通过真实 Moli 结账控制复现验证。",
+          "Task 506 的历史官方分数不回写；该题在完整四配置修正重跑前保持隔离。"
+        ],
+        [
+          "请求证据复核",
+          "Task 595 只显示网络验收失败，无法判断操作、站点还是浏览器请求证据出了问题。",
+          "隔离实页复现确认点击、Postmill 控制器、fetch 与 subscribed 状态均成功；Chromium 记录 Referer，Moli 的最小对照未复现成通用内核缺陷。",
+          "两个 Moli 595 结果保留为浏览器请求证据信号；不将其归因为 Agent、站点或未经证实的内核错误。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Fix HAR JSON-body capture and complete request-evidence review",
+          "summary": "The HAR collector now reads JSON bodies by media type rather than an exact Content-Type string. Astra/Moli Task 506 is confirmed as a collector omission of a charset-qualified JSON body and is quarantined. Real-page controls for both Moli Task 595 results confirm the normal click, controller, fetch, and site response; the remaining difference is request Referer evidence, retained as a browser-integration signal rather than an invented kernel fix. Historical official scores are unchanged.",
+          "changes": [
+            [
+              "HAR body collection",
+              "The collector accepted only exact application/json and omitted bodies from JSON responses with charset parameters.",
+              "Match application/json and +json by the Content-Type media type, verified by a real Moli checkout control.",
+              "Task 506 historical scores are not rewritten and the task remains quarantined until a corrected full four-configuration rerun."
+            ],
+            [
+              "Request-evidence review",
+              "Task 595 exposed only a network-acceptance failure, leaving it unclear whether the operation, site, or browser request evidence was responsible.",
+              "An isolated real-page reproduction confirms the click, Postmill controller, fetch, and subscribed state; Chromium records Referer, while minimal Moli controls do not reproduce a general browser-core defect.",
+              "Both Moli 595 results remain browser request-evidence signals, not Agent, site, or unproven kernel defects."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "2026-09-14-restore-complete-90-task-results",
       "date": "2026-09-14",
       "title": "恢复完整 90 题正式结果并修正报告下钻",

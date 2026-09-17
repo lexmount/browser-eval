@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Package the complete browser-use report for Artifact Hub."""
+"""Package the complete Browser Use report for Artifact Site."""
 
 from __future__ import annotations
 
@@ -64,6 +64,22 @@ def validate_release(report: Path, evidence: list[Path], visual_receipt: Path) -
         check_visual(report, visual_receipt)
 
 
+def publication_files(report: Path) -> list[Path]:
+    files = []
+    for path in sorted(report.rglob("*")):
+        if not path.is_file():
+            continue
+        if path.is_symlink():
+            raise ValueError(f"publication cannot contain symlinks: {path}")
+        relative = path.relative_to(report)
+        if relative.as_posix() == ".generated-report":
+            continue  # Local build marker; dot-leading site paths are rejected.
+        if any(part.startswith(".") or part.lower() in {"node_modules", "__macosx"} for part in relative.parts):
+            raise ValueError(f"publication contains a forbidden site path: {relative}")
+        files.append(path)
+    return files
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--report", type=Path, default=Path("reports/browser-use"))
@@ -74,11 +90,8 @@ def main() -> None:
     validate_release(args.report, args.evidence, args.visual_receipt)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(args.output, "w", zipfile.ZIP_DEFLATED) as archive:
-        for path in sorted(args.report.rglob("*")):
-            if path.is_file():
-                if path.is_symlink():
-                    raise ValueError(f"publication cannot contain symlinks: {path}")
-                archive.write(path, path.relative_to(args.report))
+        for path in publication_files(args.report):
+            archive.write(path, path.relative_to(args.report))
     evidence_files = {
         str(evidence): {
             name: sha256(evidence / name)

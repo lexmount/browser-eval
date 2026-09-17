@@ -1,4 +1,6 @@
+import hashlib
 import json
+import zipfile
 from pathlib import Path
 
 from harness.browser_use.review import review_results, write_review
@@ -106,3 +108,38 @@ def test_review_requires_declared_environment_prepare_receipt(tmp_path: Path) ->
 
     assert review["unresolved"] == []
     assert "environment_prepare" in review["attempts"][0]["artifacts"]
+
+
+def test_review_binds_raw_and_evaluated_hars_to_wire_witness(tmp_path: Path) -> None:
+    _write_fixture(tmp_path)
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["protocol"]["server_wire_witness"] = "required"
+    manifest_path.write_text(json.dumps(manifest))
+    attempts_path = tmp_path / "attempts.jsonl"
+    row = json.loads(attempts_path.read_text())
+    raw = tmp_path / "chromium/44/attempt-1/network-cdp.har"
+    raw.write_text(json.dumps({"log": {"entries": []}}))
+    evaluated = Path(row["paths"]["network_har"])
+    evaluated.write_bytes(raw.read_bytes())
+    witness = raw.parent / "network-wire-witness.json"
+    source = raw.parent / "network-wire-source.zip"
+    with zipfile.ZipFile(source, "w"):
+        pass
+    witness.write_text(json.dumps({
+        "schema": "lex_browser_use_server_wire_witness/1",
+        "raw_har_sha256": hashlib.sha256(raw.read_bytes()).hexdigest(),
+        "evaluated_har_sha256": hashlib.sha256(evaluated.read_bytes()).hexdigest(),
+        "source_archive_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+        "sources": [],
+        "unique_header_additions": [],
+    }))
+    row["paths"].update(
+        network_har_raw=str(raw), network_witness=str(witness), network_wire_source=str(source)
+    )
+    attempts_path.write_text(json.dumps(row) + "\n")
+    assert review_results(evidence=tmp_path, selection_sha256="selection-sha")["unresolved"] == []
+
+    evaluated.write_text('{"tampered":true}')
+    review = review_results(evidence=tmp_path, selection_sha256="selection-sha")
+    assert review["unresolved"][0]["failed_checks"] == ["wire_witness_binding"]

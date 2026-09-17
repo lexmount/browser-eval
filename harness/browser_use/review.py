@@ -12,6 +12,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from .wire_witness import validate_wire_source
+
 REQUIRED_ARTIFACTS = ("network_har", "agent_trace", "response", "evaluation", "events")
 
 
@@ -51,6 +53,9 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
     required_artifacts = list(REQUIRED_ARTIFACTS)
     if (manifest.get("protocol") or {}).get("environment_prepare_receipt") == "required":
         required_artifacts.append("environment_prepare")
+    require_wire_witness = (manifest.get("protocol") or {}).get("server_wire_witness") == "required"
+    if require_wire_witness:
+        required_artifacts.extend(("network_har_raw", "network_witness", "network_wire_source"))
     reviewed: list[dict[str, Any]] = []
     disagreements: list[dict[str, Any]] = []
     unresolved: list[dict[str, Any]] = []
@@ -76,6 +81,25 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
             checks[f"{name}_exists"] = exists
             if exists:
                 artifacts[name] = {"sha256": _sha256(path), "bytes": path.stat().st_size}
+
+        if require_wire_witness:
+            try:
+                witness = json.loads(Path(str(paths["network_witness"])).read_text())
+                checks["wire_witness_binding"] = (
+                    witness.get("schema") == "lex_browser_use_server_wire_witness/1"
+                    and witness.get("raw_har_sha256") == artifacts["network_har_raw"]["sha256"]
+                    and witness.get("evaluated_har_sha256") == artifacts["network_har"]["sha256"]
+                    and witness.get("source_archive_sha256")
+                    == artifacts["network_wire_source"]["sha256"]
+                    and validate_wire_source(
+                        json.loads(Path(str(paths["network_har_raw"])).read_text()),
+                        json.loads(Path(str(paths["network_har"])).read_text()),
+                        witness,
+                        Path(str(paths["network_wire_source"])),
+                    )
+                )
+            except (KeyError, OSError, json.JSONDecodeError, TypeError):
+                checks["wire_witness_binding"] = False
 
         evaluation: dict[str, Any] = {}
         response: Any = None

@@ -1,0 +1,137 @@
+{
+  "schema": "browser_use_har_capture_review/1",
+  "scope": "Browser Use Moli 1.1.3 subscription failures; historical scores unchanged",
+  "result_ids": ["gpt-5.6-sol-moli-595", "gpt-6-astra-moli-595", "gpt-6-astra-moli-506"],
+  "related_historical_evidence": {
+    "task_506": "Both Moli model cohorts contain HTTP 200 /carts/mine/totals responses with application/json; charset=utf-8 and empty HAR bodies. These are skipped by the same collector MIME check. Astra's missing response evidence is reclassified; Sol's separate Agent workflow failure is not overwritten. The corrected isolated Moli execution completed all qualified actions and captured the expected totals JSON body, including the target product; it is diagnostic evidence, not a replacement formal score.",
+    "quarantine": "Exclude affected tasks across all configurations in the diagnostic subset until complete corrected reruns; retain historical official scores."
+  },
+  "attempt_bindings": {
+    "gpt-5.6-sol": "73146500152db62d79f84b63c85a14027c005a6320c19bce7426651f167466bd",
+    "gpt-6-astra": "0659d227cf6d29fbfaf64d39f8e77a56bec73c87f7f6e1f2ac23ea13fd9b667c"
+  },
+  "confirmed_defect": {
+    "owner": "browser-eval HAR collector",
+    "mechanism": "The collector compared the entire MIME value with application/json or a +json suffix. Moli reports application/json; charset=UTF-8, causing both loadingFinished capture and stop fallback to skip Network.getResponseBody.",
+    "correction": "Parse the media type before parameters, strip whitespace and compare case-insensitively; retain the original reported MIME in the HAR. No browser-specific branch or fabricated response body.",
+    "regressions": [
+      "tests/browser_use/test_har.py::test_stop_decodes_base64_json_for_official_har_parser",
+      "tests/browser_use/test_har.py::test_recorder_captures_json_body_when_loading_finishes",
+      "tests/browser_use/test_har.py::test_non_json_content_is_not_selected_by_parameters"
+    ],
+    "red_green": {"before": {"failed": 6, "passed": 8}, "after_with_negative_controls": {"failed": 0, "passed": 20}}
+  },
+  "real_page_control": {
+    "id": "har-json-mime-595-moli-20260916",
+    "receipt_sha256": "4b9f8430a20902f2c625ac38408b3b5848751bd6b546a2f2e732b128d4fe1ebd",
+    "har_sha256": "d626577d27b116311b70fa78d70377a8f4916f568d7440db836d809c9f154648",
+    "scope": "Diagnostic execution of the same real subscription task using recorded BrowserTool actions; not a fresh autonomous model run or formal score replacement.",
+    "image_id": "sha256:6519892d79641d565192f555c8269ab9b83c5444d07a73871f51881229c3bcd4",
+    "process_status": "pass",
+    "evaluator_status": "fail",
+    "response_body_characters": 19,
+    "subscribed": true,
+    "referer_present": false
+  },
+  "header_controls": {
+    "scope": "Isolated same-origin HTTP fetch and XMLHttpRequest GET and JSON POST controls, not a reproduction of task 595's site implementation.",
+    "fetch_receipt_sha256": "6fb821b186331a93249fcb74031bc956e1b1be51323cf3e0396bf4d7dd79049c",
+    "xhr_receipt_sha256": "695fbf4bbd67981da060e5642741cb582402361de2fdba6d808371b407804e11",
+    "fetch_post_receipt_sha256": "5bcd3600b34fbc1b982c3d1f07d3587586c2cf26c78657e1ab54266daecaf563",
+    "xhr_post_receipt_sha256": "a0dcf96610c1119098a2e5fd6cecd4d9ed4f3c761883bad94b39030618787155",
+    "xhr_post_custom_header_receipt_sha256": "10dcf03315b97ee857e341c7444674c8116b1ca9869a82166601b9b41e0c3396",
+    "collector_sha256": "508c42507aef7fa0f8d090bc1e7f13efb461326c4aa1521dab31059ad49009a3",
+    "chromium": {"wire_referer": true, "request_event_referer": true, "extra_info_referer": true, "har_referer": true},
+    "moli": {"wire_referer": true, "request_event_referer": false, "extra_info_referer": true, "har_referer": true},
+    "conclusion": "Moli can send Referer on same-origin Fetch and XMLHttpRequest, including JSON POST and an XHR POST carrying the Postmill-named custom header, and expose it through ExtraInfo; the shared recorder merges it correctly in every control. Missing Referer in the historical site HAR is not a generic Moli POST, custom-header, or recorder-merge defect. A site-specific event comparison remains necessary."
+  },
+  "incomplete_site_control": {
+    "id": "site-header-595-moli-20260916-run2",
+    "receipt_sha256": "02613c60bc85475fd3c75c2ea79b5e52eeef4e4aa6b785e1962adca2ba1d6c18",
+    "header_events_sha256": "bb247960688bf20037f12b49c8e507e506f3b2387727e30bed7c5847e451211c",
+    "scope": "Sanitized real-site subscription-event observation using the same recorded actions and frozen Moli image.",
+    "status": "inconclusive",
+    "stop_point": "The run stopped at action 10 of 15 during snapshot recovery after a navigation context reset, before the subscription action. No subscription request was observed and the official evaluator did not run.",
+    "treatment": "Retain as failed diagnostic evidence only; it neither confirms nor excludes a Moli request-header defect."
+  },
+  "completed_site_header_control": {
+    "id": "site-header-595-moli-20260916-run3",
+    "receipt_sha256": "ecf18ecab9b6029398385c8c45fc2e27d3993ec5542d65551c748515aa21c35e",
+    "header_events_sha256": "15e294f7d3a1044493ee062f41c8d1932dab0da6d0f78dc544982124b83b1ff4",
+    "scope": "Completed 15-action real-site diagnostic with observation-only CDP request-header recording and official evaluator; historical formal score unchanged.",
+    "result": "The /f/space/subscribe.json POST returned HTTP 200, but neither Network.requestWillBeSent nor Network.requestWillBeSentExtraInfo reported Referer. The HAR had no Referer and the official evaluator failed. This establishes the missing header in CDP evidence, not whether it was absent on the wire or why this site differs from isolated controls."
+  },
+  "request_shape_controls_20260917": {
+    "scope": "Independent synthetic server; the request matches Postmill's nested URL path, same-origin Referrer-Policy, FormData POST, same-origin credentials, error redirect mode and a context-level auto-login header. The server records only whether Referer arrived.",
+    "postmill_source_sha256": {
+      "assets/js/controller/subscribe-button-controller.js": "3719cad50c27467b9ee06f865236413ca348acfe779b79c7ec2fbb6603ee1783",
+      "assets/js/lib/http.js": "260a4c8fd520083dade67a0323fde1445d59b5eb48c538e8b74ab86a59cedfb7"
+    },
+    "site_shaped_receipt_sha256": "bd4273aedce1c88f8c292fa5d963bdb2f070caaeca5e76bb3980fda684a1bbdc",
+    "context_header_receipt_sha256": "03f76806b3d207075c03139c48b32bca3e70350c70b07caf3b799b3abfe25754",
+    "result": "In both controls Chromium and Moli sent Referer on the wire. Moli's Network.requestWillBeSent omitted it but Network.requestWillBeSentExtraInfo contained it and the shared HAR collector preserved it. The real-site missing Referer is not explained by FormData, a nested URL, same-origin policy or context.set_extra_http_headers alone."
+  },
+  "failed_fetch_shape_site_diagnostics_20260917": {
+    "receipt_sha256": ["82d810e3b8f8f6e808656c59330893b07de529fabd75a38ca6f79a8bd6891d5c", "79b30537cf3b544845fd90040ce35924816d5a958c8d71d744914451455003be"],
+    "result": "Both reset real-site probes stopped before the subscription trigger because the target Postmill thread navigation timed out. Neither executed the observation probe or evaluator; they do not determine the Referer cause."
+  },
+  "paired_route_and_click_diagnostics_20260917": {
+    "direct_site_route_receipt_sha256": "ebe0b84f8e388376c10f7402e8446b9d3faa874a8f107a3f6a66d2ed3bf5133e",
+    "chromium_receipt_sha256": "58576f53352e951b06c6e0d1a3c0f803d56f55349074002c547e945962885c4f",
+    "moli_default_click_receipt_sha256": "e0a1a11bf69667d36c90b81a98f6e6e0649b447c922415180b97d41edaf3b0a6",
+    "moli_extended_click_receipt_sha256": "c6c31e9ce8ff9aa1d6056fd7110d5d6d695cd25620dba1387e349195fd34ef26",
+    "scope": "Same frozen task-595 seed and reset Postmill site, with only the Moli trigger substituted by Astra's historical normal BrowserTool click. The 20-second timeout is diagnostic-only; it changes neither the formal trajectory nor official score.",
+    "result": "A direct no-browser check after site reset received HTTP 200 from the target thread in 11.2 seconds, so earlier navigation timeouts did not prove a dead route. Chromium completed 15 actions and passed the evaluator. Moli's 5-second native click timed out after resolving a visible, stable button, before any subscription POST. With a 20-second click timeout, the same Moli action completed in 7.9 seconds; all 15 actions completed, the page displayed Unsubscribe, and the POST returned HTTP 200 with subscribed=true. The official evaluator still failed because the recorded POST lacks Referer.",
+    "fetch_shape": "The real-page controller passed a string URL and FormData body to fetch without an explicit referrer or referrerPolicy override; the document response specified Referrer-Policy: same-origin. Synthetic same-origin FormData controls under the same named policy did send Referer in Moli, so the real-site discrepancy remains unlocalized.",
+    "interpretation": "The 5-second click timeout is a separate execution nuisance, not evidence that the historical subscription mutation failed. The successful extended-click control isolates the remaining official rejection to the missing Referer; it does not identify a proven Moli source defect or license a browser-specific score correction."
+  },
+  "task_595_server_wire_vs_cdp_20260917": {
+    "server_presence_receipt_sha256": "d22acb298b48be1b290566bd502c0a5340b64d758ba2188e10de00676f888b03",
+    "exact_value_and_cdp_receipt_sha256": "d97a56087faa5cb9f71f1a1822864cad1664986e38da6219f203cd76c63c906d",
+    "incomplete_playwright_probe_receipt_sha256": "b3050609f7acffe7cb1323cee2f7ea1ad9d6a96bf360cb9b927e3c8c55f2d525",
+    "completed_playwright_probe_receipt_sha256": "f20508d1d569ebcbe1d07d1a5e3d67f29bb711df58d8e1d60715cff549b2b8a2",
+    "scope": "Two reset real Postmill Moli diagnostics with the same frozen source task and historical normal click, allowing a 20-second diagnostic click timeout. Nginx project access logs were inspected in-container before teardown; only request count and Referer presence/equality booleans were retained outside the container.",
+    "observation": "The one /f/space/subscribe.json POST reached the site with a Referer exactly equal to the evaluator's expected thread URL. The same request's Network.requestWillBeSent and Network.requestWillBeSentExtraInfo events both omitted Referer; ExtraInfo contained no raw headersText. Playwright request.headers and request.all_headers() also omitted it without error. The HAR consequently omitted it and the official evaluator failed, despite HTTP 200 subscribed=true and a completed site mutation. An earlier Playwright probe stopped before the POST because the slow deep page destroyed a snapshot execution context; it is retained as incomplete evidence, not counted as a negative request control.",
+    "root_cause_boundary": "The acceptance failure is a client-side CDP-to-HAR evidence loss, not a missing on-wire browser header or failed Postmill mutation. Which internal Moli CDP component drops the field remains unknown; no Moli source change is justified by these observations alone.",
+    "treatment": "Keep historical scores immutable and task 595 quarantined across configurations. Find an authoritative client-side capture route or add a narrowly bound server-wire witness before a preregistered corrected full-scope rerun; never synthesize Referer from page URL."
+  },
+  "task_595_wire_witness_red_green_20260917": {
+    "receipt_sha256": "4e712700f8e373e87ad50d64e7a33b286c98101235d8e8218bd88d798f67969f",
+    "scope": "One reset, fixed-action diagnostic on Moli with the frozen task-595 source. The original CDP HAR and evaluator output are retained; a second HAR contains only uniquely matched Referer values observed in the self-hosted site's access log. Diagnostic only, not a formal autonomous score replacement.",
+    "raw_har_sha256": "d04d61ddec9b51321e36d60c61d477d70bea60e7a43dd0f2e71d08e7c8fc3a33",
+    "witnessed_har_sha256": "b5c5587bc50ccd57b6c15760430264929fd6ec4026e1fe087a167c78a1e6d5f7",
+    "site_log_segment_sha256": "f880a367f1e998a4e895becbacdbc67f9019972f235a7a0a0f35f1f41167a85a",
+    "result": "All 15 actions completed. The raw HAR failed official evaluation; the separate server-witnessed HAR passed the same official evaluator with score 1.0. The site recorded exactly one subscription POST whose Referer matched the expected thread URL. No score-bearing historical artifact was changed.",
+    "implementation": "The shared Browser Use runner now preserves raw CDP HAR separately and reconciles only an unambiguous method/full-URL/HTTP-status match from the current isolated site log segment. The evidence review binds the raw HAR, evaluated HAR and sanitized witness receipt."
+  },
+  "task_448_event_contract_reaudit_20260917": {
+    "scope": "Reinspection of frozen official task 448, score-bearing HAR, evaluator output, and autonomous tool-call events; scores unchanged.",
+    "official_rule": "NetworkEventEvaluator declares last_event_only=true and expected response_status=302 for POST /-/profile.",
+    "observation": "In the Astra Chromium final attempt, the Agent filled the requested URL and clicked Save once. The HAR contains two distinct profile POSTs with separate response request IDs: first HTTP 302 with the expected user[website_url], then HTTP 200 with the same field. The official evaluator considered only the final 200 event. This is not one duplicated HAR entry, nor a missing browser submission.",
+    "treatment": "Correct the reviewed diagnosis to a last-event acceptance-contract mismatch. Keep task 448 quarantined across configurations; do not delete or reorder observed events to manufacture a pass. Any task-contract correction requires a separately declared revision and full-scope rerun."
+  },
+  "native_click_control": {
+    "id": "postmill-595-normal-click-console-probe-moli-20260916",
+    "receipt_sha256": "39e8a880eed8f7309b1747c15205da350695dc4ddc703da2ff9e7d0d8e4e5c82",
+    "scope": "Reset real-site diagnostic. The canonical Sol evaluate-based activation was replaced only for this diagnostic with the exact normal BrowserTool selector click recorded in Astra's historical Moli attempt; no score or frozen trajectory was changed.",
+    "result": "The target was visible, enabled and stable. The first normal-click diagnostic emitted a trusted click event but timed out before the request, so it is retained only as an incomplete failed diagnostic.",
+    "interpretation": "A subsequent isolated normal-click run completed all 15 actions: the Postmill controller prevented the default action, invoked fetch, and the site returned subscribed=true. The official evaluator still failed because Referer was absent from the captured POST. The first diagnostic is not used to infer a failed action or a missing site mutation.",
+    "treatment": "Keep historical scores immutable. Classify both task-595 Moli results as verified browser request-evidence failures; do not make a source patch until a general red/green reproduction identifies a fix scope."
+  },
+  "task_595_real_page_controller_control": {
+    "id": "postmill-595-normal-click-controller-probe-moli-20260916",
+    "receipt_sha256": "2592fef9827fac540a6805568081c79179865402574f7be2a1b36045837ece3e",
+    "scope": "Isolated Moli real-page run with the historical normal BrowserTool selector click, an observation-only controller/fetch probe, and the official evaluator; diagnostic only, not a score replacement.",
+    "result": "All 15 actions completed. The probe recorded defaultPrevented=true and fetch invocation; the HTTP response body was {\"subscribed\":true}. The official evaluator rejected only the absent Referer field on that successful POST.",
+    "cross_browser_check": "Both frozen Chromium task-595 attempts contain the exact required Referer on the same subscription POST.",
+    "negative_controls": "Moli native-click controls with and without Referrer-Policy: same-origin, with inline and external ES-module handlers, and after a navigation all sent a Referer. The issue is therefore not established as a general policy, module, or navigation defect."
+  },
+  "task_506_corrected_replay_control": {
+    "id": "moli-seven-fixes-failure-actions-recovery2-task-506-20260916",
+    "receipt_sha256": "8e008f7eeb6a66fa8041b2f85e74f671fc897f035a795feb73c4844bce9a7a61",
+    "scope": "Isolated Moli fixed-action diagnostic using the qualified task-506 trajectory; official acceptance intentionally not rerun and historical scores remain immutable.",
+    "result": "All 18 actions completed. The captured /rest/default/V1/carts/mine/totals response has application/json; charset=utf-8 and a JSON body with items_qty=1 and the required Beyond Meat Beef Beefy Crumble product.",
+    "conclusion": "This confirms the corrected collector preserves the exact evidence the historical Astra attempt needed for its only failed rule. It does not alter the historical verdict; it verifies the root-cause classification as evidence capture."
+  },
+  "remaining_issue": "The JSON-body collector defect is fixed and the shared runner has a server-wire reconciliation path for missing Referer with raw evidence preserved. Task 595 has a real-site diagnostic red/green control, but the corrected formal full-scope comparison has not run; historical scores remain unchanged and task 595 stays quarantined. The internal Moli CDP omission is not localized, so no Moli source patch is justified. Task 448's event-selection diagnosis still needs re-audit before correction."
+}

@@ -1,7 +1,24 @@
 import base64
 import json
 
-from harness.browser_use.har import CdpHarRecorder, _har_request, _har_response
+import pytest
+
+from harness.browser_use.har import CdpHarRecorder, _har_request, _har_response, _is_json_mime
+
+
+@pytest.mark.parametrize(
+    "mime_type",
+    [
+        None,
+        "",
+        "text/html",
+        "application/jsonp",
+        "text/plain; note=application/json",
+        "application/octet-stream; filename=data.json",
+    ],
+)
+def test_non_json_content_is_not_selected_by_parameters(mime_type):
+    assert not _is_json_mime(mime_type)
 
 
 def test_har_preserves_multipart_post_data_and_json_response() -> None:
@@ -112,7 +129,16 @@ def test_stop_serializes_one_response_snapshot_when_callbacks_append(tmp_path) -
     assert [entry["request"]["url"] for entry in entries] == ["http://example.test/first"]
 
 
-def test_stop_decodes_base64_json_for_official_har_parser(tmp_path) -> None:
+@pytest.mark.parametrize(
+    "mime_type",
+    [
+        "application/json",
+        "application/json; charset=UTF-8",
+        " Application/JSON ; charset=utf-8",
+        "application/problem+json; charset=utf-8",
+    ],
+)
+def test_stop_decodes_base64_json_for_official_har_parser(tmp_path, mime_type) -> None:
     class Session:
         def send(self, _method, _params):
             return {
@@ -132,7 +158,7 @@ def test_stop_decodes_base64_json_for_official_har_parser(tmp_path) -> None:
             session,
             "1",
             {"method": "GET", "url": "http://example.test/totals", "headers": {}},
-            {"status": 200, "mimeType": "application/json", "headers": {}},
+            {"status": 200, "mimeType": mime_type, "headers": {}},
         )
     )
     path = tmp_path / "network.har"
@@ -140,10 +166,19 @@ def test_stop_decodes_base64_json_for_official_har_parser(tmp_path) -> None:
     recorder.stop(object(), path)
 
     content = json.loads(path.read_text())["log"]["entries"][0]["response"]["content"]
-    assert content == {"mimeType": "application/json", "text": '{"items_qty":1}'}
+    assert content == {"mimeType": mime_type, "text": '{"items_qty":1}'}
 
 
-def test_recorder_captures_json_body_when_loading_finishes(tmp_path) -> None:
+@pytest.mark.parametrize(
+    "mime_type",
+    [
+        "application/json",
+        "application/json; charset=UTF-8",
+        " Application/JSON ; charset=utf-8",
+        "application/problem+json; charset=utf-8",
+    ],
+)
+def test_recorder_captures_json_body_when_loading_finishes(tmp_path, mime_type) -> None:
     class Session:
         calls = 0
 
@@ -172,7 +207,7 @@ def test_recorder_captures_json_body_when_loading_finishes(tmp_path) -> None:
         id(session),
         {
             "requestId": "1",
-            "response": {"status": 200, "mimeType": "application/json", "headers": {}},
+            "response": {"status": 200, "mimeType": mime_type, "headers": {}},
         },
     )
 

@@ -1,7 +1,7 @@
 {
   "schema": "lex_browser_use_remediation/1",
-  "updated_at": "2026-09-14",
-  "score_policy": "Raw evaluator outputs remain unchanged. A task is excluded from the formal comparison across every configuration when any verified result is affected by benchmark/evaluator, site, shared-environment, or mixed reference-state interference. Readmission requires a corrected contract or runtime, independent preflight, and a complete four-configuration rerun.",
+  "updated_at": "2026-09-17",
+  "score_policy": "Raw evaluator outputs remain unchanged. A task is excluded from the formal comparison across every configuration when any verified result is affected by benchmark/evaluator or evidence-collector defects, site, shared-environment, or mixed reference-state interference. Readmission requires a corrected contract or runtime, independent preflight, and a complete four-configuration rerun.",
   "items": [
     {
       "category": "shared_environment",
@@ -35,10 +35,18 @@
       "action": "Refreeze the expected state before execution and rerun all configurations so the Agent contribution can be separated from reference drift."
     },
     {
-      "category": "browser_evidence_capture",
-      "task_ids": [448, 506, 595, 676],
-      "status": "retained_as_browser_integration_signal",
-      "action": "Keep in the primary browser comparison because HAR completeness is part of the browser integration contract; improve response-body and Referer capture and rerun."
+      "category": "benchmark_har_capture",
+      "task_ids": [506],
+      "status": "body_capture_fixed_rerun_required",
+      "review_source": "research/browser-use-har-capture-review.json",
+      "action": "The shared collector skipped JSON MIME types containing charset parameters. Task 506's corrected isolated replay captures the required totals body and confirms the historical Astra failure was collector-only. Keep this task quarantined across all four configurations until the declared corrected full-scope rerun; preserve historical scores."
+    },
+    {
+      "category": "benchmark_network_evidence",
+      "task_ids": [448, 595],
+      "status": "quarantined_pending_capture_or_event_selection_fix",
+      "review_source": "research/browser-use-har-capture-review.json",
+      "action": "Task 448's one save produced two distinct profile POSTs: a matching 302 followed by a 200. The official last_event_only rule requires 302 and rejects the updated profile; this is a contract mismatch, not a duplicated HAR event. For task 595, a reset real-site diagnostic proves the subscription POST carried the exact required Referer on the server wire while Moli CDP, Playwright and HAR omitted it. Preserve official historical scores. The shared collector now retains raw HAR and can reconcile only uniquely matched server-wire Referer evidence, but no corrected formal cohort has run. Keep both tasks quarantined across all configurations pending separately declared full-scope reruns or a task-contract revision. Task 676 remains quarantined under benchmark_or_evaluator."
     }
   ]
 }

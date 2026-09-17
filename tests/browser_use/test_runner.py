@@ -1,6 +1,7 @@
 import json
 import multiprocessing
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from webarena_verified.types.task import WebArenaSite
@@ -23,6 +24,7 @@ from harness.browser_use.runner import (
     _max_steps_response,
     _physical_execution_lock,
     _physical_execution_lock_path,
+    _reconcile_server_wire_headers,
     _run_attempt,
     _scheduled_tasks,
     _site_container_manager,
@@ -31,6 +33,7 @@ from harness.browser_use.runner import (
     _wait_application_ready,
     _wait_container_healthy,
     _wait_magento_dependencies_ready,
+    _wire_log_cursors,
 )
 from harness.browser_use.selection import load_pilot
 
@@ -53,6 +56,68 @@ def test_official_container_urls_and_header_auth() -> None:
         WebArenaSite.SHOPPING_ADMIN: "X-M2-Admin-Auto-Login",
         WebArenaSite.REDDIT: "X-Postmill-Auto-Login",
     }
+
+
+def test_wire_witness_reads_only_post_setup_bytes_and_binds_separate_hars(
+    monkeypatch, tmp_path: Path
+) -> None:
+    initial = b'prior log line\n'
+    new_line = (
+        b'127.0.0.1 - - [17/Sep/2026:00:00:00 +0000] '
+        b'"POST /f/space/subscribe.json HTTP/1.1" 200 19 '
+        b'"http://site.test/f/space/thread" "agent"\n'
+    )
+    state = {"log": initial}
+
+    class Container:
+        name = "site"
+        image = SimpleNamespace(id="sha256:site")
+
+        def exec_run(self, command):
+            if command[0] == "stat":
+                return SimpleNamespace(exit_code=0, output=str(len(state["log"])).encode())
+            if command[0] == "tail":
+                offset = int(command[2][1:]) - 1
+                return SimpleNamespace(exit_code=0, output=state["log"][offset:])
+            raise AssertionError(command)
+
+    container = Container()
+    monkeypatch.setattr(
+        "harness.browser_use.runner.docker.from_env",
+        lambda: SimpleNamespace(containers=SimpleNamespace(get=lambda name: container)),
+    )
+    monkeypatch.setattr(
+        "harness.browser_use.runner._site_container_manager",
+        lambda site: SimpleNamespace(container_name="site"),
+    )
+    benchmark = SimpleNamespace(
+        config=SimpleNamespace(
+            get_environment=lambda site: SimpleNamespace(active_url="http://site.test")
+        )
+    )
+    cursors = _wire_log_cursors((WebArenaSite.REDDIT,), benchmark)
+    assert cursors[0]["offset"] == len(initial)
+    state["log"] += new_line
+
+    raw = tmp_path / "network-cdp.har"
+    evaluated = tmp_path / "network.har"
+    witness = tmp_path / "network-wire-witness.json"
+    source = tmp_path / "network-wire-source.zip"
+    raw.write_text(json.dumps({"log": {"entries": [{
+        "request": {
+            "method": "POST",
+            "url": "http://site.test/f/space/subscribe.json",
+            "headers": [],
+        },
+        "response": {"status": 200},
+    }]}}))
+    receipt = _reconcile_server_wire_headers(raw, evaluated, witness, source, cursors)
+    headers = json.loads(evaluated.read_text())["log"]["entries"][0]["request"]["headers"]
+    assert headers == [{"name": "Referer", "value": "http://site.test/f/space/thread"}]
+    assert json.loads(raw.read_text())["log"]["entries"][0]["request"]["headers"] == []
+    assert len(receipt["unique_header_additions"]) == 1
+    assert "thread" not in witness.read_text()
+    assert source.is_file()
 
 
 def test_user_prompt_exposes_schema_but_not_reference_answer() -> None:

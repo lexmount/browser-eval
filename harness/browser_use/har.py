@@ -12,6 +12,12 @@ def _headers(values: dict[str, Any]) -> list[dict[str, str]]:
     return [{"name": str(name), "value": str(value)} for name, value in values.items()]
 
 
+def _is_json_mime(value: Any) -> bool:
+    """Match the media type, not optional Content-Type parameters."""
+    media_type = str(value or "").partition(";")[0].strip().lower()
+    return media_type == "application/json" or media_type.endswith("+json")
+
+
 def _har_request(request: dict[str, Any]) -> dict[str, Any]:
     headers = dict(request.get("headers", {}))
     if request.get("__resource_type") == "Document" and not any(
@@ -99,9 +105,7 @@ class CdpHarRecorder:
             responses = list(self._responses)
             last_response_by_key = {
                 (id(session), request_id): index
-                for index, (session, request_id, _request, _response) in enumerate(
-                    responses
-                )
+                for index, (session, request_id, _request, _response) in enumerate(responses)
             }
             for index, (session, request_id, request, response) in enumerate(responses):
                 key = (id(session), request_id)
@@ -111,12 +115,11 @@ class CdpHarRecorder:
                 extras = self._extra_headers.get(key, [])
                 if ordinal < len(extras):
                     request["headers"] = {**request.get("headers", {}), **extras[ordinal]}
-                mime_type = str(response.get("mimeType") or "")
                 if (
                     index == last_response_by_key[key]
                     and key in self._finished
                     and body is None
-                    and (mime_type == "application/json" or mime_type.endswith("+json"))
+                    and _is_json_mime(response.get("mimeType"))
                 ):
                     try:
                         body = session.send("Network.getResponseBody", {"requestId": request_id})
@@ -209,9 +212,7 @@ class CdpHarRecorder:
             }
         return body
 
-    def _record_finished(
-        self, session: Any, session_index: int, event: dict[str, Any]
-    ) -> None:
+    def _record_finished(self, session: Any, session_index: int, event: dict[str, Any]) -> None:
         """Capture JSON bodies while CDP still retains them.
 
         Waiting until the whole agent run ends is too late for long tasks: CDP may
@@ -231,8 +232,7 @@ class CdpHarRecorder:
             ),
             None,
         )
-        mime_type = str((response or {}).get("mimeType") or "")
-        if mime_type != "application/json" and not mime_type.endswith("+json"):
+        if not _is_json_mime((response or {}).get("mimeType")):
             return
         try:
             self._response_bodies[key] = self._decode_body(

@@ -115,8 +115,11 @@ def _check_execution_artifacts(
         public = public_by_id[result_id]
         indexed = indexed_by_id[result_id]
         detail_text = (report_dir / "results" / f"{result_id}.html").read_text(encoding="utf-8")
-        if f"包含 <strong>{len(sources)}</strong> 次物理执行" not in detail_text:
-            raise ValueError(f"result page omits physical execution count: {result_id}")
+        retries = len(sources) - 1
+        if f'<b>任务重试次数</b>：<strong>{retries}</strong>' not in detail_text:
+            raise ValueError(f"result page omits retry count: {result_id}")
+        if 'href="data/evidence-index.json"' not in detail_text:
+            raise ValueError(f"result page omits the complete evidence index: {result_id}")
         expected_public = _public_attempt(logical)
         for key in (
             "execution_count",
@@ -185,6 +188,11 @@ def _check_execution_artifacts(
                     raise ValueError(f"missing physical execution artifact: {path}")
                 if artifact.get("sha256") != _sha256(path):
                     raise ValueError(f"physical execution artifact hash differs: {path}")
+                # The detail page exposes only the score-bearing execution.  Every
+                # physical execution remains hash-verified in the public index,
+                # rather than duplicating retry cards and their raw artifacts.
+                if number != authority:
+                    continue
                 if (
                     f'href="{relative.as_posix()}"' not in detail_text
                     or str(artifact["sha256"]) not in detail_text
@@ -860,6 +868,8 @@ def check(
             in {
                 "shared_environment",
                 "benchmark_or_evaluator",
+                "benchmark_har_capture",
+                "benchmark_network_evidence",
                 "benchmark_instruction_contract",
                 "self_hosted_site",
                 "reference_state_mixed",

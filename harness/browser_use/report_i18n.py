@@ -1365,6 +1365,7 @@ TEXT.update(
         "修复与验证": "Fix and verification",
         "保留": "Retain",
         "保留并修复": "Retain and fix",
+        "核验后修复": "Verify and fix",
         "排除并修复": "Exclude and fix",
         "排除，修复已完成": "Exclude; fix completed",
         "排除并重建": "Exclude and rebuild",
@@ -1372,6 +1373,7 @@ TEXT.update(
         "修正验收合同，通过独立预检后重跑四种配置。": "Correct the acceptance contract, pass an independent preflight, then rerun all four configurations.",
         "修复依赖、会话或保存链路，通过读写预检后重跑。": "Fix the dependency, session, or save path, then rerun after read/write preflight checks.",
         "这是浏览器集成能力的一部分；补齐响应正文或 Referer 采集后重跑。": "This is part of browser integration capability; complete response-body or Referer capture and rerun.",
+        "先核对站点真实请求与 CDP/HAR；不能把证据缺失直接当成浏览器操作失败。": "First compare the site's actual request with CDP/HAR; missing evidence alone does not prove a browser action failed.",
         "跨进程串行锁已经上线；受污染任务仍需重跑。": "The cross-process serialization lock is deployed; contaminated tasks still require reruns.",
         "重新冻结参考状态，再重跑以区分 Agent 错误。": "Refreeze the reference state, then rerun to distinguish Agent errors.",
         "参考状态与 Agent 混合": "Reference state mixed with Agent behavior",
@@ -1379,6 +1381,7 @@ TEXT.update(
         "默认显示失败。点击“查看诊断”可先在当前页核对发生位置、程序报错、复核根因和处理方案，再进入完整轨迹、画面与日志。": "Failures are shown by default. Select Open diagnosis to inspect the location, exact program error, reviewed root cause, and treatment before opening the full trajectory, screenshots, and logs.",
         "该结果通过全部官方程序化验收；下方可核对任务合同、执行轨迹和运行证据。": "This result passed every official programmatic evaluator. The task contract, execution trajectory, and runtime evidence are available below.",
         "失败位置": "Failure stage",
+        "复核原因": "Reviewed cause",
         "人工复核根因": "Reviewed root cause",
         "页面画面": "Page frames",
         "查看 evaluator 断言": "View evaluator assertions",
@@ -1436,6 +1439,20 @@ PHRASES = {
     "检索遗漏与参考状态差异": "Retrieval omission and reference-state drift",
     "保留为目标变量；按轨迹修正策略或工具合同": "Keep as a target-variable signal; improve the strategy or tool contract from the trajectory",
     "评测集 / evaluator": "Benchmark / evaluator",
+    "任务重试次数": "Task retries",
+    "页面展示最终判定与对应日志；耗时、Tokens 和动作数包含全部尝试。完整历史保留在证据索引中。": "This page shows the final verdict and its logs; time, tokens, and action counts include all attempts. The evidence index preserves the full history.",
+    "完整历史与文件校验": "Full history and file checksums",
+    "下载全部尝试的证据索引": "Download the evidence index for all attempts",
+    "网络响应正文采集": "Network response-body capture",
+    "评测证据采集器": "Benchmark evidence collector",
+    "评测证据接口": "Benchmark evidence interface",
+    "站点日志已证实请求头正确；修复 CDP/HAR 漏采后整题重跑": "The site log confirms the header was correct; fix CDP/HAR capture loss and rerun the whole task",
+    "JSON 正文采集已修复；整题隔离后重跑": "JSON body capture is fixed; rerun the quarantined task",
+    "JSON 正文采集已修复；请求头缺失待定位，整题隔离后重跑": "JSON body capture is fixed; investigate missing headers and rerun the quarantined task",
+    "评测实现 / 任务合同": "Benchmark implementation / task contract",
+    "修正任务合同、验收器或证据采集，通过独立预检后重跑四种配置。": "Fix task contracts, evaluation, or evidence collection; rerun all four configurations after independent preflight.",
+    "任务合同、验收器或证据采集实现存在缺陷": "Defects in task contracts, evaluation, or evidence collection",
+    "网络记录缺字段；需与站点真实请求核对": "Network records lack fields; compare them with the site's actual requests",
     "修正合同并重跑；当前仅纳入官方分数": "Fix the contract and rerun; retain only the official score for now",
     "修复依赖或保存链路，通过写入预检后重跑": "Fix the dependency or save path, then rerun after a write preflight",
     "保留为浏览器集成信号；补齐 HAR 后重跑": "Keep as a browser-integration signal; rerun after completing HAR capture",
@@ -1569,10 +1586,13 @@ TEXT.update(
         "站点与环境": "Sites and environment",
         "Magento 搜索或库存保存服务失效，以及 Task 77 的并发状态污染，都会让正确操作无法通过。": "Magento search or stock-save failures, plus shared-state contamination in Task 77, can prevent otherwise correct work from passing.",
         "浏览器证据": "Browser evidence",
+        "请求证据": "Request evidence",
         "的 evaluator 在比较实际提交前就因单元素 Alternatives 配置抛错；": " fails before comparing the actual submission because the evaluator throws on a one-item Alternatives configuration; ",
         "要求“不提交”，验收却要求 POST。这些 0 分不能归给模型或浏览器。": " says not to submit, while its evaluator requires a POST. These zeros cannot be attributed to the model or browser.",
         "Magento 搜索或库存保存服务失效，以及": "Magento search or stock-save services failed, and ",
         "的并发状态污染，都会让正确操作无法通过。": " suffered shared-state contamination. Either can prevent correct work from passing.",
+        "的订阅 POST 在服务端带有官方要求的 Referer，但 Moli 的 CDP、Playwright 与 HAR 均漏记；站点已完成订阅，历史 0 分保留，整题隔离待证据采集修复后重跑。": " sent the officially required Referer on its subscription POST, as confirmed by the site log, but Moli CDP, Playwright, and HAR all omitted it. The site completed the subscription; the historical zero remains, and the task is quarantined pending a capture fix and full rerun. ",
+        "的网络事件选择缺陷另已确认并隔离。": " has a separately confirmed network-event selection defect and is also quarantined.",
         "Moli 的部分 HAR 没有 Referer 或响应正文，例如": "Some Moli HAR records omit Referer or response bodies, including ",
         "。页面可能已经操作成功，但 evaluator 无法从网络记录确认；这是浏览器集成层的有效信号。": ". The UI operation may have succeeded, but the evaluator cannot confirm it from network evidence. This is a valid browser-integration signal.",
         "Moli 的部分 HAR 没有 Referer 或响应正文。页面可能已经操作成功，但 evaluator 无法从网络记录确认；这是浏览器集成层的有效信号。": "Some Moli HAR records omit Referer or response bodies. The UI operation may have succeeded, but the evaluator cannot confirm it from network evidence. This is a valid browser-integration signal.",
@@ -1653,6 +1673,35 @@ def translate_text(value: str) -> str:
     translated = TEXT.get(core)
     if translated is None:
         patterns = (
+            (r"(\d+) 题核心指标", lambda m: f"Core metrics for all {m.group(1)} tasks"),
+            (
+                r"每个模型×浏览器配置都保留完整 (\d+) 题。以上是官方 evaluator 决定的最终逻辑结果；物理执行记录可在单题证据页下钻。",
+                lambda m: f"Every model-browser configuration retains all {m.group(1)} tasks. These are the final logical outcomes from the official evaluator; physical execution records remain available on each task's evidence page.",
+            ),
+            (
+                r"这是事后诊断子集，不是正式分数，也不替代 (\d+) 题官方结果。(\d+) 个原始失败记录继续保存在结果页和核验记录中。",
+                lambda m: f"This is a post-hoc diagnostic subset, not an official score and not a replacement for the official {m.group(1)}-task result. All {m.group(2)} original failure records remain available in the result and review pages.",
+            ),
+            (
+                r"完整 (\d+) 题官方结果是本报告的主口径；(\d+) 题事后诊断子集只用于分离已知外部干扰，不改写成绩。",
+                lambda m: f"The complete official {m.group(1)}-task result is the report's primary view. The {m.group(2)}-task post-hoc diagnostic subset only separates known external interference and does not rewrite scores.",
+            ),
+            (
+                r"先修复可控的合同、evaluator、站点和共享状态问题，再按同一协议完整重跑 (\d+) 题四种配置；历史官方分数在新证据批次出现前保持不变。",
+                lambda m: f"Fix controllable contract, evaluator, site, and shared-state defects first, then rerun all four configurations across the same {m.group(1)}-task protocol. Historical official scores remain unchanged until a new evidence cohort exists.",
+            ),
+            (
+                r"(\d+) 题官方结果与事后诊断分开看",
+                lambda m: f"Separate the official {m.group(1)}-task result from post-hoc diagnosis",
+            ),
+            (
+                r"首页主结果始终使用完整 (\d+) 题官方 evaluator 分母。为了观察排除已知外部干扰后的差异，下表再按整题、四种配置一致排除 (\d+) 题，得到 (\d+) 题事后诊断子集。",
+                lambda m: f"The homepage always uses all {m.group(1)} tasks as the official evaluator denominator. To inspect differences after known external interference, the table below removes the same {m.group(2)} tasks across all four configurations and shows a {m.group(3)}-task post-hoc diagnostic subset.",
+            ),
+            (
+                r"首页按预注册的 (\d+) 题展示四种配置的官方 evaluator 结果。其中 (\d+) 题经复核存在验收合同、站点、共享状态或参考状态干扰；这些题仍保留在 (\d+) 题官方结果中，另外提供 (\d+) 题事后诊断子集。",
+                lambda m: f"The homepage reports official evaluator outcomes for all {m.group(1)} preregistered tasks across four configurations. Review found acceptance-contract, site, shared-state, or reference-state interference in {m.group(2)} tasks. They remain in the official {m.group(3)}-task result, while a separate {m.group(4)}-task post-hoc diagnostic subset is also provided.",
+            ),
             (r"首次 (\d+/\d+)", lambda m: f"First attempt {m.group(1)}"),
             (r"失败后重试 (\d+) 题", lambda m: f"{m.group(1)} failed tasks retried"),
             (r"查看 (\d+) 题的四配置矩阵 →", lambda m: f"View the four-configuration matrix for all {m.group(1)} tasks →"),
@@ -2115,6 +2164,13 @@ def translate_text(value: str) -> str:
                     f"{match.group(1)} rule{'s' if match.group(1) != '1' else ''} failed: "
                     + match.group(2).replace("规则 ", "Rule ").replace("、", ", ")
                     + "."
+                ),
+            ),
+            (
+                r"当前有 (\d+) 个原始失败结果，详细原因仍在核验中；未核验结果不展示推测。",
+                lambda match: (
+                    f"There are {match.group(1)} raw failed results. Detailed causes are still "
+                    "under review; unverified results do not display inferred causes."
                 ),
             ),
         )

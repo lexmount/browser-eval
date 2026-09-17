@@ -33,13 +33,14 @@
   "failure_cause_review": {
     "required_for_publication": true,
     "source_path": "research/browser-use-failure-cause-review.json",
-    "source_sha256": "a11134919f5e7b9a65c601374211e20e7e940f82e6f363ed025c49b52336e721"
+    "source_sha256": "03893af6900bcb7c0016190699a352b50b9d115a0af0afe4d667684267c3fdf8"
   },
   "publication": {
-    "base_url": "https://artifact-hub.app.lexmount.com",
-    "site_slug": "7l77EeXPRfml",
-    "share_url": "https://artifact-hub.app.lexmount.com/v/Ghn1BR6PCy-njsCMqCe2LRIJ-eyJEJoa",
-    "expected_version": "ver_ce4dd70fde2e444ab18d24bba3ee0e93",
-    "state": "verified"
+    "base_url": "https://artifact-site.lexmount.cn",
+    "site_slug": "mvIBimINNtRt",
+    "share_url": "https://artifact-site.lexmount.cn/v/E27Vrwfyu0m6D3QIkw13EWm5ycRXs2zt",
+    "expected_version": "ver_22039986e21c465695ad55c722daa7a0",
+    "state": "verified",
+    "report_url": "https://artifact-site.lexmount.cn/api/preview/mvIBimINNtRt?share=E27Vrwfyu0m6D3QIkw13EWm5ycRXs2zt"
   }
 }

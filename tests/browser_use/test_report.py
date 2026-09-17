@@ -11,6 +11,7 @@ from harness.browser_use.report import (
     _automatic_failure_type,
     _best,
     _common_final_success_resource_rows,
+    _failure_cause_table,
     _failure_diagnosis,
     _failure_scope_counts,
     _load_evidence_bundles,
@@ -48,14 +49,68 @@ def test_failure_scope_summary_does_not_merge_browser_evidence_into_agent() -> N
     causes = {
         "a": {"subcategory": {"code": "agent_retrieval"}},
         "b": {"subcategory": {"code": "benchmark_evaluator"}},
-        "c": {"subcategory": {"code": "evidence_capture"}},
+        "c": {"subcategory": {"code": "browser_evidence_capture", "zh": "浏览器请求证据缺失"}},
     }
 
     assert [(label, count) for label, count, _ in _failure_scope_counts(causes)] == [
         ("Agent / 模型", 1),
-        ("任务 / evaluator", 1),
+        ("评测实现 / 任务合同", 1),
         ("浏览器证据接口", 1),
     ]
+    assert "浏览器证据接口" in _failure_cause_table(causes)
+
+
+def test_dynamic_homepage_interference_summary_is_localized() -> None:
+    page = (
+        "首页按预注册的 90 题展示四种配置的官方 evaluator 结果。其中 16 题经复核存在验收合同、"
+        "站点、共享状态或参考状态干扰；这些题仍保留在 90 题官方结果中，另外提供 74 题事后诊断子集。"
+    )
+    localized = localize_html(f"<p>{page}</p>", PurePosixPath("index.html"))
+    assert "16 tasks" in localized
+    assert "90 题" not in localized
+
+
+def test_pending_failure_cause_notice_is_localized() -> None:
+    page = "当前有 75 个原始失败结果，详细原因仍在核验中；未核验结果不展示推测。"
+    localized = localize_html(f"<p>{page}</p>", PurePosixPath("analysis/index.html"))
+
+    assert "There are 75 raw failed results" in localized
+    assert "原始失败结果" not in localized
+
+
+def test_collector_defect_is_quarantined_without_blaming_a_browser_action() -> None:
+    code = "benchmark_har_capture"
+    causes = {"gpt-6-astra-moli-506": {"task_id": 506, "subcategory": {"code": code}}}
+    assert report_module._external_interference_task_ids(causes) == {506}
+    owner, action, external = report_module._remediation(code)
+    assert owner == "评测证据采集器"
+    assert external is True
+    assert "JSON 正文采集已修复" in action
+    assert report_module._failure_point(code, [{"step": 10, "status": "success"}]) == (
+        "网络响应正文采集",
+        None,
+    )
+    english = localize_html(f"<p>{owner}</p><p>{action}</p>", PurePosixPath("index.html"))
+    assert "Benchmark evidence collector" in english
+    assert "请求头" not in english
+
+
+def test_on_wire_header_loss_is_quarantined_as_evidence_failure() -> None:
+    code = "benchmark_cdp_har_header_loss"
+    causes = {"gpt-6-astra-moli-595": {"task_id": 595, "subcategory": {"code": code}}}
+    assert report_module._external_interference_task_ids(causes) == {595}
+    owner, action, external = report_module._remediation(code)
+    assert owner == "评测证据接口"
+    assert "站点日志已证实请求头正确" in action
+    assert external is True
+    english = localize_html(f"<p>{owner}</p><p>{action}</p>", PurePosixPath("index.html"))
+    assert "site log confirms" in english
+    assert "请求头" not in english
+
+
+def test_report_check_registers_collector_quarantine() -> None:
+    source = Path("scripts/check_browser_use_report.py").read_text(encoding="utf-8")
+    assert '"benchmark_har_capture"' in source
 
 
 def test_trace_screenshot_labels_count_only_publishable_frames(tmp_path: Path) -> None:
@@ -151,7 +206,17 @@ def test_failed_result_inventory_opens_exact_diagnosis_and_links_trajectory(
         }
     ]
 
-    html = _attempt_table([attempt], tasks)
+    reviewed = {
+        "gpt-5.6-sol-chromium-44": {
+            "subcategory": {
+                "code": "agent_navigation_semantics",
+                "zh": "导航语义错误",
+                "en": "Navigation-semantics error",
+            },
+            "reason": {"zh": "打开了错误页面。", "en": "Opened the wrong page."},
+        }
+    }
+    html = _attempt_table([attempt], tasks, reviewed)
 
     for expected in (
         "查看诊断",
@@ -164,8 +229,15 @@ def test_failed_result_inventory_opens_exact_diagnosis_and_links_trajectory(
         "#trajectory-step-1",
         "#screenshots",
         "#runtime",
+        'data-filter="cause"',
+        '<option value="agent_navigation_semantics">导航语义错误</option>',
+        'data-cause="agent_navigation_semantics"',
     ):
         assert expected in html
+
+    english = localize_html(html, PurePosixPath("analysis/index.html"))
+    assert "Reviewed cause" in english
+    assert "Navigation-semantics error" in english
 
 
 def test_english_localization_includes_visible_attributes() -> None:
@@ -511,10 +583,10 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
         "BrowserTool 动作延迟",
         "action-card-grid",
         "同题全配置对比",
-            "browser-comparison",
-            'id="configuration-matrix"',
-            "完整 90 题结果入口",
-            "全部配置 · 单次调用墙钟时间",
+        "browser-comparison",
+        'id="configuration-matrix"',
+        "完整 90 题结果入口",
+        "全部配置 · 单次调用墙钟时间",
     ):
         assert expected in analysis
     assert analysis.index("同题全配置对比") < analysis.index("BrowserTool 动作延迟")
@@ -546,9 +618,11 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
         assert artifact.is_file()
         bundle = json.loads(artifact.read_text(encoding="utf-8"))
         assert set(("agent_response", "evaluation", "agent_events", "trajectory")) <= set(bundle)
-    assert "包含 <strong>2</strong> 次物理执行" in attempt
-    assert "物理执行 1" in attempt
-    assert "物理执行 2 · 判分权威" in attempt
+    assert '<b>任务重试次数</b>：<strong>1</strong>' in attempt
+    assert "物理执行 1" not in attempt
+    assert "物理执行 2 · 判分权威" not in attempt
+    assert 'href="data/evidence-index.json"' in attempt
+    assert "Task retries" in (output / f"en/results/{result_id}.html").read_text()
     assert "SHA-256" in attempt
     assert "_inline_evidence" not in attempt
     viewer = (output / "evidence-viewer.html").read_text(encoding="utf-8")
@@ -607,13 +681,9 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
     assert not list(output.rglob("*.svg"))
 
 
-def test_common_success_resources_use_final_logical_results(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_common_success_resources_use_final_logical_results(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(report_module, "MODEL_LABELS", {"a": "A", "b": "B"})
-    monkeypatch.setattr(
-        report_module, "ENGINE_LABELS", {"chromium": "Chromium", "moli": "Moli"}
-    )
+    monkeypatch.setattr(report_module, "ENGINE_LABELS", {"chromium": "Chromium", "moli": "Moli"})
 
     def execution(task_id: int, model: str, engine: str, attempt: int, score: int) -> dict:
         events = tmp_path / f"{task_id}-{model}-{engine}-{attempt}.json"
@@ -656,15 +726,61 @@ def test_common_success_resources_use_final_logical_results(
     count, rows = _common_final_success_resource_rows(logical)
 
     assert count == 2
-    assert {row[2] for row in rows} == {"1.5 秒", "2.5 秒"}
-    assert {row[5] for row in rows} == {"1.5 MiB"}
+    assert {"1.5 秒", "2.5 秒"} == {
+        "1.5 秒" if "1.5 秒" in str(row[2]) else "2.5 秒" for row in rows
+    }
+    assert all("1.5 MiB" in str(row[5]) for row in rows)
+    for metric_column in range(2, 7):
+        assert sum("comparison-winner" in str(row[metric_column]) for row in rows) <= 1
+
+
+def test_resource_utilization_and_transfer_are_neutral(monkeypatch) -> None:
+    monkeypatch.setattr(report_module, "MODEL_LABELS", {"a": "A", "b": "B"})
+    monkeypatch.setattr(report_module, "ENGINE_LABELS", {"chromium": "Chromium", "moli": "Moli"})
+    resources = {
+        name: {stat: float(index + 1) for stat in ("mean", "p50", "p95")}
+        for index, name in enumerate(
+            (
+                "cpu_ms",
+                "cpu_average_utilization_pct",
+                "memory_mean_bytes",
+                "memory_peak_bytes",
+                "network_rx_bytes",
+                "network_tx_bytes",
+            )
+        )
+    }
+    summary = {
+        model: {
+            engine: {
+                "resources": {
+                    name: {
+                        stat: (
+                            value
+                            + (
+                                0
+                                if model == "a" and engine == "chromium"
+                                else (1_048_576 if "memory" in name else 1)
+                            )
+                        )
+                        for stat, value in values.items()
+                    }
+                    for name, values in resources.items()
+                }
+            }
+            for engine in report_module.ENGINE_LABELS
+        }
+        for model in report_module.MODEL_LABELS
+    }
+    html = str(report_module._resource_comparison_table(summary))
+    assert "CPU 单核占用" in html
+    assert "网络接收量" in html
+    assert html.count("comparison-winner") == 9
 
 
 def test_summary_winners_are_scoped_to_all_configurations(monkeypatch) -> None:
     monkeypatch.setattr(report_module, "MODEL_LABELS", {"a": "A", "b": "B"})
-    monkeypatch.setattr(
-        report_module, "ENGINE_LABELS", {"chromium": "Chromium", "moli": "Moli"}
-    )
+    monkeypatch.setattr(report_module, "ENGINE_LABELS", {"chromium": "Chromium", "moli": "Moli"})
 
     def metrics(passed: int) -> dict:
         return {
@@ -705,19 +821,13 @@ def test_summary_winners_are_scoped_to_all_configurations(monkeypatch) -> None:
 
 def test_unknown_failure_scope_is_rejected() -> None:
     with pytest.raises(ValueError, match="unknown failure-cause scope"):
-        _failure_scope_counts(
-            {"result": {"subcategory": {"code": "new_unregistered_scope"}}}
-        )
+        _failure_scope_counts({"result": {"subcategory": {"code": "new_unregistered_scope"}}})
 
 
 def test_unknown_failed_evaluator_combination_is_rejected() -> None:
     with pytest.raises(ValueError, match="unknown failed evaluator combination"):
         _automatic_failure_type(
-            {
-                "evaluators_results": [
-                    {"evaluator_name": "NewEvaluator", "score": 0}
-                ]
-            }
+            {"evaluators_results": [{"evaluator_name": "NewEvaluator", "score": 0}]}
         )
 
 
