@@ -54,3 +54,9 @@ After all 90 qualify, promote that receipt with `scripts/promote_webarena_trajec
 the measured method matrix with `--qualified-dataset` and no scope option. The runner rejects formal
 execution when that dataset is missing, incomplete, or differs from the frozen profile, seeds, or
 canonical actions. Never edit a verdict or verification claim by hand.
+
+The report can add a separate original-failure diagnostic appendix by passing
+`DIAGNOSTIC_CLOSURE=/absolute/path/to/closure-index.json` to both
+`make trajectory-replay-report` and `make trajectory-replay-package`. The builder verifies the
+referenced receipts and publishes only sanitized summaries; packaging rechecks the source digest.
+This appendix does not replace any score-bearing result or certify a new full-scope cohort.
