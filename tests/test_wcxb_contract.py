@@ -6,12 +6,17 @@ from pathlib import Path
 from scripts.score_wcxb_results import classify, percentile
 from scripts.select_wcxb_sample import choose, full_test_exclusions
 from scripts.run_webmainbench_benchmark import PROVIDERS, WCXB_PROVIDERS
+from harness.web_fetch.report import format_wcxb_conditional_latency
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class WCXBContractTests(unittest.TestCase):
+    def test_conditional_latency_is_unavailable_without_delivered_pages(self):
+        self.assertEqual(format_wcxb_conditional_latency(None), '—')
+        self.assertEqual(format_wcxb_conditional_latency(1234.2), '1,234 ms')
+
     def test_wcxb_participants_do_not_inherit_webmainbench_version_rows(self):
         profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
         self.assertEqual(tuple(profile['providers']), WCXB_PROVIDERS)

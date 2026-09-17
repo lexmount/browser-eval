@@ -9,6 +9,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.report_presentation_contract import check_presentation
+from harness.web_fetch.safety import contained_path
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -38,9 +39,9 @@ def require(condition: bool, message: str) -> None:
         raise ValueError(message)
 
 
-def require_analysis_controls(html: str | BeautifulSoup) -> BeautifulSoup:
+def require_analysis_controls(html: str | BeautifulSoup, result_count: int) -> BeautifulSoup:
     soup = BeautifulSoup(html, 'html.parser') if isinstance(html, str) else html
-    if len(soup.select('tr[data-provider]')) != 2520:
+    if len(soup.select('tr[data-provider]')) != result_count:
         raise ValueError('Qualified result inventory is incomplete')
     if any(soup.select_one(selector) is None for selector in (
             '#compare-baseline', '[name="compare-provider"]', '#compare-relation',
@@ -48,7 +49,7 @@ def require_analysis_controls(html: str | BeautifulSoup) -> BeautifulSoup:
             '#diagnosis-dialog [data-call-log-close]',
             '#diagnosis-dialog [data-diagnosis-link]')):
         raise ValueError('Comparison or diagnosis control is missing')
-    if len(soup.select('[data-diagnosis-open]')) != 2520:
+    if len(soup.select('[data-diagnosis-open]')) != result_count:
         raise ValueError('Result row lacks a diagnosis control')
     return soup
 
@@ -91,7 +92,7 @@ def check(root: Path) -> None:
         by_case.setdefault(row['case_id'], {})[row['provider']] = row
         require(row['quality_eligible'] == (row['case_id'] not in excluded), 'WCXB quality eligibility differs')
         for retry in row.get('retry_failures', []):
-            retry_path = root / retry['artifact_path']
+            retry_path = contained_path(root, retry['artifact_path'])
             require(retry_path.is_file() and not retry_path.is_symlink() and digest(retry_path) == retry['output_sha256'], 'WCXB retry evidence differs')
         require(all(0 <= row[k] <= 1 for k in ('precision', 'recall', 'f1', 'with_rate', 'without_rate')), 'WCXB score is out of range')
     for case in case_ids:
@@ -127,7 +128,7 @@ def check(root: Path) -> None:
                 require(page.results == len(qualified) * len(providers), 'Qualified result inventory differs')
                 require('id="scope"' in html and 'value="fail"' in html and 'value="pass"' in html and 'value="all"' in html, 'Result status filters missing')
                 require('id="diagnosis"' in html and 'value="issues"' in html, 'Result diagnosis filter missing')
-                require_analysis_controls(html)
+                require_analysis_controls(html, len(qualified) * len(providers))
                 require(all(f'data-case="{case}"' not in html for case in excluded), 'Invalid references entered result inventory')
             if route in ('index.html', 'datasets/index.html'):
                 check_presentation(html)
@@ -167,10 +168,10 @@ def check(root: Path) -> None:
         pass
     else:
         raise AssertionError('An incorrect comparison highlight was accepted')
-    analysis = require_analysis_controls((root / 'analysis/index.html').read_text())
+    analysis = require_analysis_controls((root / 'analysis/index.html').read_text(), len(qualified) * len(providers))
     analysis.select_one('#diagnosis-dialog [data-diagnosis-link]').decompose()
     try:
-        require_analysis_controls(analysis)
+        require_analysis_controls(analysis, len(qualified) * len(providers))
     except ValueError:
         pass
     else:
