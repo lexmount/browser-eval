@@ -90,6 +90,58 @@ def release_details(release, table, cell, esc):
             +'</details>')
 
 
+def webmainbench_history(data):
+    """Select the WebMainBench release records, newest first, with complete EN labels."""
+    kind = 'webmainbench_frozen_html_to_markdown'
+    releases = [row for row in data.get('releases', []) if kind in row.get('comparison_kinds', [])]
+    if not releases or len({row['id'] for row in releases}) != len(releases):
+        raise ValueError('WebMainBench release history is absent or has duplicate IDs')
+    for row in releases:
+        en = row.get('i18n', {}).get('en', {})
+        if not row.get('date') or not row.get('title') or not en.get('title'):
+            raise ValueError('WebMainBench release requires a date and bilingual title: ' + row['id'])
+    latest = releases[0]
+    en = latest['i18n']['en']
+    if not latest.get('summary') or not en.get('summary') or len(latest.get('changes', [])) != len(en.get('changes', [])):
+        raise ValueError('Current WebMainBench release requires bilingual summary and change details')
+    if any(len(row) != 4 for row in latest['changes'] + en['changes']):
+        raise ValueError('WebMainBench release change rows require four columns')
+    return releases
+
+
+def render_webmainbench_history(data, english, evidence_links=()):
+    """Render reader-facing release history without embedding release prose in report.py."""
+    from .report import hero, section, table, cell, esc, link
+    releases = webmainbench_history(data)
+    latest, *older = releases
+    def localized(row, key):
+        return row['i18n']['en'][key] if english else row[key]
+    body = hero('Changes' if english else '变更记录', localized(latest, 'summary'))
+    rows = [('', ''.join(cell(esc(value)) for value in change))
+            for change in localized(latest, 'changes')]
+    headings = (['Measure', 'Prior issue', 'Correction', 'Effect and limits'] if english
+                else ['项目', '此前问题', '正式修正', '结果影响与边界'])
+    details = '<p>' + esc(localized(latest, 'summary')) + '</p>' + table(headings, rows, metrics=[])
+    if evidence_links:
+        details += '<p class="actions">' + ' · '.join(
+            link(('../../' if english else '../') + path, label_en if english else label_zh)
+            for path, label_zh, label_en in evidence_links) + '</p>'
+    body += section('Current release' if english else '当前版本',
+                    '<article class="release-current" data-release-id="' + esc(latest['id']) + '">'
+                    '<div class="eyebrow">' + esc(latest['date']) + '</div><h3>'
+                    + esc(localized(latest, 'title')) + '</h3>' + details + '</article>',
+                    'current-release')
+    if older:
+        history = ''.join('<li data-release-id="' + esc(row['id']) + '"><time>'
+                          + esc(row['date']) + '</time> · ' + esc(localized(row, 'title'))
+                          + '</li>' for row in older)
+        body += section('Earlier releases' if english else '早期版本', '<ol>' + history + '</ol>')
+    body += '<p class="source-note">' + link(
+        '../../report-changes.json' if english else '../report-changes.json',
+        'Download the structured release record' if english else '下载结构化版本记录') + '</p>'
+    return body
+
+
 def render_changes(out, cases, records, dataset=None):
     from .report import hero, section, table, cell, esc, link, write
     from .storage import research_evidence_dir

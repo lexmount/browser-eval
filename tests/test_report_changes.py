@@ -3,10 +3,29 @@ import tempfile
 import unittest
 from unittest.mock import patch
 from pathlib import Path
-from harness.web_fetch.report_changes import render_changes
+from harness.web_fetch.report_changes import render_changes, render_webmainbench_history, webmainbench_history
 from harness.web_fetch.report import overview_card, ranking
 
 class ReportChangesTests(unittest.TestCase):
+    def test_webmainbench_history_is_localized_from_one_record(self):
+        from harness.web_fetch.report_changes import ROOT
+        source = json.loads((ROOT / 'research/report-changes.json').read_text(encoding='utf-8'))
+        releases = webmainbench_history(source)
+        self.assertEqual(len(releases), 15)
+        for english in (False, True):
+            page = render_webmainbench_history(
+                {'releases': releases}, english,
+                [('latency-corrections.json', '纠正收据', 'Correction receipt')])
+            self.assertEqual(page.count('data-release-id='), len(releases))
+            latest = releases[0]['i18n']['en'] if english else releases[0]
+            self.assertIn(latest['summary'], page)
+            self.assertIn('latency-corrections.json', page)
+        broken = json.loads(json.dumps(source))
+        first = next(row for row in broken['releases'] if row['id'] == releases[0]['id'])
+        first['i18n']['en'].pop('summary')
+        with self.assertRaisesRegex(ValueError, 'bilingual summary'):
+            webmainbench_history(broken)
+
     def test_current_web_fetch_release_binds_score_revision_and_exact_rerun_scope(self):
         from harness.web_fetch.report_changes import ROOT, select_cohort_history
         from harness.web_fetch.report_i18n import translate_text

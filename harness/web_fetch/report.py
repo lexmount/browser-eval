@@ -1998,6 +1998,7 @@ def _wmb_result_detail(r,c,output,reference,labels,metric_labels,failure_notes,c
 
 def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,manifests:list,review:dict|None=None,research:dict|None=None,corrections:dict|None=None,adoption_data:dict|None=None,fixture_correction:dict|None=None,teds_revision:tuple|None=None,anomaly_review:dict|None=None,latency_diagnostic:dict|None=None):
  """Render the current WebMainBench report with the established report shell."""
+ from .report_changes import render_webmainbench_history, webmainbench_history, ROOT
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
  (out/'assets/style.css').write_text(STYLE+EXTRA,encoding='utf-8')
  (out/'assets/report.js').write_text(JS,encoding='utf-8')
@@ -2030,12 +2031,6 @@ def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,mani
  ranked_metrics=metric_order if corrected else metric_order[1:-1]
  score_winners={metric:unique_winner([(name,score(name,metric)) for name in names]) for metric in ranked_metrics}
  latency_values=timing['successful']
- prior_latency_values=None
- if latency_corrected:
-  body_state={row['attempt_id']:row['_body_present'] for row in records}
-  prior_rows=[json.loads(line) for line in (out/'prior-latency-results.jsonl').read_text().splitlines() if line.strip()]
-  for row in prior_rows:row['_body_present']=body_state[row['attempt_id']]
-  prior_latency_values=_wmb_latency_summary(prior_rows,names)['successful']
  def value_html(value,winner=False,n=None,population=None,english=False):
   content=f'<span class="metric-value">{value}</span>'
   if n is not None:
@@ -2295,38 +2290,17 @@ flowchart LR
   reproduce+=section(h('实际执行批次','Observed execution batches'),table([h('方法','Method'),h('开始（UTC）','Started (UTC)'),h('完成（UTC）','Completed (UTC)'),h('案例','Cases'),h('截止秒','Deadline seconds'),h('Runner SHA-256','Runner SHA-256')],batch_rows,metrics=[]))
   _wmb_write(out,'reproduce/index.html',h('环境与复现','Reproduction'),reproduce,english)
 
-  version_change=h(
-   f'新版 Moli 的 table_TEDS 为 13.9%（n=73），旧版为 0（n=40）；新版 overall 为 32.0%，旧版为 30.0%。本版正式均值耗时：1.1.5 为 {ms(latency_values["moli"]["mean"])}，1.1.7 为 {ms(latency_values["moli-1.1.7"]["mean"])}。表格计分页数随可识别结构变化，不能把两个表格均值当作相同页面的配对差值。',
-   f'Moli table_TEDS is 13.9% (n=73) on 1.1.7 versus 0% (n=40) on 1.1.5; overall is 32.0% versus 30.0%. Formal mean latency in this edition is {ms(latency_values["moli"]["mean"])} for 1.1.5 and {ms(latency_values["moli-1.1.7"]["mean"])} for 1.1.7. Recognized tables change the scoring population, so the two table means are not a paired-page difference.') if 'moli-1.1.7' in latency_values else ''
-  changes=hero(h('变更记录','Changes'),h('本版纠正 Moli 两版耗时；质量分和六方法结果范围不变。','This edition corrects timing for both Moli versions while keeping quality scores and the six-method scope.') if latency_corrected else h('本版增加 Moli 1.1.7，并保留此前五种配置的结果。','This release adds Moli 1.1.7 while retaining the previous five configurations.'))
-  if latency_corrected:
-   changes+=section(h('Moli 两版正式耗时纠正','Formal Moli timing correction'),'<p>'+h(
-    f'对同一批 200 页串行交叉复测两轮，预先指定第二轮作为正式耗时。1.1.5 成功均值从 {ms(prior_latency_values["moli"]["mean"])} 改为 {ms(latency_values["moli"]["mean"])}；1.1.7 从 {ms(prior_latency_values["moli-1.1.7"]["mean"])} 改为 {ms(latency_values["moli-1.1.7"]["mean"])}。两版均有 199/200 页成功。原始逐页耗时保留；正文、质量分、分母、判定和其他四种方法未改。',
-    f'Two serial, order-balanced rounds covered the same 200 pages; round two was selected before calls as the formal timing source. The successful-call mean changes from {ms(prior_latency_values["moli"]["mean"])} to {ms(latency_values["moli"]["mean"])} for 1.1.5, and from {ms(prior_latency_values["moli-1.1.7"]["mean"])} to {ms(latency_values["moli-1.1.7"]["mean"])} for 1.1.7. Both succeed on 199/200 pages. Prior per-page timing is retained; text, quality scores, denominators, verdicts and the other four methods are unchanged.')+'</p><p>'+link(('../../' if english else '../')+'latency-corrections.json',h('查看逐页纠正收据','Inspect the per-page correction receipt'))+' · '+link(('../../' if english else '../')+'prior-latency-results.jsonl',h('下载原始逐页结果','Download prior per-page results'))+'</p>')
-  changes+=section(h('成功 fetch 耗时与同题对照','Successful-fetch timing and matched-page diagnosis'),'<p>'+h('均值、P50、P95 改为只统计最终成功且有目标正文的 fetch；不累计前次失败耗时，成功覆盖单列。六种方法共同成功的 194 页另作同题诊断，不作为完整 200 页的速度排名。Kitesurf 成功 fetch 均值为 3,335 ms；此前含失败和重试的 4,151 ms 保留在执行成本中。质量分、输入和最终输出均未改变。','Mean, P50 and P95 now use only final successful fetches with target content. Earlier failed-call durations are not added, and success coverage is shown separately. The 194 pages with success across all six methods provide a matched diagnosis, not a speed ranking for the full 200 pages. Kitesurf has a 3,335 ms successful-fetch mean; the former 4,151 ms remains as execution cost including failures and retries. Quality scores, inputs and final outputs are unchanged.')+'</p>')
-  changes+=section(h('完整报告解读与耗时口径','Whole-report interpretation and latency population'),'<p>'+h('解读从六种配置的整体结果展开，解释冻结输入、计分分母、内容范围、表格与语法差异，再比较均值、P50、P95。新增并排原始输出节选，耗时采用最终成功 fetch，单列成功覆盖，并提供共同成功 194 页的同题诊断。质量分和原始正文保留；耗时的正式纠正另有收据。','The interpretation starts with all six configurations, explains frozen inputs, scoring populations, content scope, tables and syntax, then compares mean, P50 and P95 latency. Verbatim outputs are shown side by side. Timing uses final successful fetches, exposes success coverage and adds a matched diagnosis on 194 shared-success pages. Quality scores and original output text are retained; formal timing changes have a separate receipt.')+'</p>')
-  changes+=section(h('方法和质量结果','Methods and quality results'),'<p>'+h('Moli 1.1.7 与原有五种配置在同一预选 200 页上各有独立结果；六种配置共 1,200 条逻辑结果。','Moli 1.1.7 and the previous five configurations each have separate results on the same preselected 200 pages: 1,200 logical results across six configurations.')+'</p><p>'+version_change+'</p><p>'+link('../guide/index.html#tables',h('查看版本对照与表格案例','See the version comparison and table example'))+' · '+link('../analysis/index.html',h('查看全部逐页结果','Inspect every page result'))+'</p>')
-  changes+=section(h('计分页数与版本差异解读','Scored-page counts and version differences'),'<p>'+h('首页用 Moli 1.1.7 的公式分展示各页进入或退出均值的原因；解读页用两版同页结果和五个输出案例区分实际内容差异、计分页变化与评分器误识别。分数、分母、原始正文和调用记录均保留；耗时若经纠正则见独立收据。','The home page uses Moli 1.1.7 formula scores to show why pages enter or leave a component mean. The interpretation compares matched pages and five output cases to separate content differences, denominator changes and scorer misrecognition. Scores, denominators, original text and call records are retained; any timing correction has its own receipt.')+'</p><p class="actions">'+link('../index.html#denominator-example',h('查看分母四格例子','See the denominator example'))+' · '+link('../guide/index.html#version-differences',h('查看版本差异案例','See version-difference cases'))+'</p>')
-  if fixture_correction:
-   affected=', '.join(labels[name] for name in fixture_correction['providers'])
-   changes+=section(h('冻结网页的本地服务器 404 错误','Frozen-page local-server 404 correction'),'<p>'+h(f'一页冻结网页在脚本执行后给当前路径添加查询参数。原本地测试服务器错误返回 404，{affected} 把错误页转成了非空输出。三款方法现以同一冻结输入、二进制和官方评分器完成整页纠正测量；正文、公式和 overall 的均值及该页耗时随之变化，旧物理调用证据不被覆盖。',f'One frozen page appended a query parameter to its current path. The former local test server mistakenly returned 404, and {affected} converted that error page to non-empty output. The full page was remeasured for the three methods with the same frozen input, binaries and official scorer; text, formula and overall means and page latency changed. Prior physical-call evidence was not overwritten.')+'</p><p class="actions">'+link('../review/index.html',h('查看逐方法纠正影响','Per-method correction effects'))+'</p>')
-  if corrections:
-   correction=next((item for item in corrections.get('corrections',[]) if item.get('id')=='kitesurf-dns-outage-complete-scope-rerun'),None)
-   if correction:
-    before=correction['superseded'];after=correction['corrected']
-    def correction_row(label,key,formatter=str):return ('',cell(label)+cell(formatter(before[key]))+cell(formatter(after[key])))
-    correction_rows=[
-     correction_row(h('请求成功','Request successes'),'request_successes'),correction_row(h('请求失败','Request failures'),'request_failures'),correction_row(h('物理调用','Physical attempts'),'physical_attempts'),
-     correction_row('overall','official_scores',lambda value:pct(value['overall'])),
-     ('',cell('text n')+cell(str(before['denominators']['text_edit']))+cell(str(after['denominators']['text_edit']))),
-     ('',cell('code n')+cell(str(before['denominators']['code_edit']))+cell(str(after['denominators']['code_edit']))),
-     ('',cell('formula n')+cell(str(before['denominators']['formula_edit']))+cell(str(after['denominators']['formula_edit']))),
-     ('',cell('table n')+cell(str(before['denominators']['table_edit']))+cell(str(after['denominators']['table_edit']))),
-     ('',cell('TEDS n')+cell(str(before['denominators']['table_TEDS']))+cell(str(after['denominators']['table_TEDS']))),
-     correction_row(h('累计耗时','Total elapsed'),'total_elapsed_ms',ms),correction_row('P50','median_elapsed_ms',ms),correction_row(h('P95 耗时','P95 elapsed'),'p95_elapsed_ms',ms),
-    ]
-    correction_href='../webmainbench-corrections.json' if not english else '../../webmainbench-corrections.json'
-    changes+=section(h('Kitesurf DNS 故障纠正影响','Kitesurf DNS-outage correction effects'),'<p>'+esc(correction['reason_zh' if not english else 'reason'])+'</p>'+table([h('项目','Measure'),h('废弃批次','Superseded batch'),h('纠正批次','Corrected batch')],correction_rows,metrics=[])+f'<p>{link(correction_href,h("下载机器可读纠正记录","Download machine-readable correction record"))}</p>')
+  release_path=out/'report-changes.json'
+  if not release_path.is_file():
+   release_data={'schema_version':2,'releases':webmainbench_history(json.loads((ROOT/'research/report-changes.json').read_text(encoding='utf-8')))}
+   release_path.write_text(json.dumps(release_data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+  else:
+   release_data=json.loads(release_path.read_text(encoding='utf-8'))
+  release_links=(
+   ('latency-corrections.json','查看逐页纠正收据','Inspect the per-page correction receipt'),
+   ('prior-latency-results.jsonl','下载原始逐页结果','Download prior per-page results'),
+  ) if latency_corrected else ()
+  changes=render_webmainbench_history(release_data,english,release_links)
   _wmb_write(out,'changes/index.html',h('变更记录','Changes'),changes,english)
 
   account_rows=[]

@@ -5,6 +5,7 @@ import shutil
 import tempfile
 from pathlib import Path
 from .report import generate, generate_public_benchmark_research, generate_webmainbench, succeeded, measured, failure_category, TRACKS
+from .report_changes import webmainbench_history
 from .failure_diagnosis import diagnose
 from .safety import contained_path, validate_report_ids
 from .reference_lifecycle import require_verified_reference_checks
@@ -412,6 +413,8 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
     corrections = json.loads(corrections_path.read_text(encoding='utf-8'))
     anomaly_review_path = Path(__file__).resolve().parents[2] / 'research/webmainbench-anomaly-review.json'
     anomaly_review = json.loads(anomaly_review_path.read_text(encoding='utf-8'))
+    release_path = Path(__file__).resolve().parents[2] / 'research/report-changes.json'
+    release_history = webmainbench_history(json.loads(release_path.read_text(encoding='utf-8')))
     fixture_correction_path = source / 'fixture-correction.json'
     fixture_correction = json.loads(fixture_correction_path.read_text(encoding='utf-8')) if fixture_correction_path.is_file() else None
     providers = dataset['coverage_plan']['static_html']
@@ -458,6 +461,9 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
         shutil.copy2(adoption_path, staging / 'adoption' / 'evidence.json')
         shutil.copy2(corrections_path, staging / 'webmainbench-corrections.json')
         shutil.copy2(anomaly_review_path, staging / 'webmainbench-anomaly-review.json')
+        (staging / 'report-changes.json').write_text(
+            json.dumps({'schema_version': 2, 'releases': release_history}, ensure_ascii=False, indent=2) + '\n',
+            encoding='utf-8')
         if fixture_correction is not None:
             shutil.copy2(fixture_correction_path, staging / 'fixture-correction.json')
         if teds_revision is not None:

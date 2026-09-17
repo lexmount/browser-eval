@@ -15,6 +15,7 @@ from harness.web_fetch.webmainbench_diagnostics import ERROR_PAGE, validate_teds
 from harness.web_fetch.safety import contained_path
 from harness.web_fetch.webmainbench_evidence import retry_chain_matches
 from harness.web_fetch.webmainbench_latency_correction import prior_results_path, validate_latency_correction
+from harness.web_fetch.report_changes import ROOT, webmainbench_history
 
 
 PROVIDERS = {"kitesurf", "lightpanda", "obscura", "moli", "moli-1.1.7", "chromium"}
@@ -70,16 +71,28 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
                 or set(latency_diagnostic.get('runs', {})) != {
                     'moli-115-control', 'moli-117-repeat'}):
             raise ValueError('Published latency diagnostic is incomplete or no longer bound to official evidence')
-    if latency_correction:
-        for prefix, home_marker, change_marker in (
-                ('', '交叉复测的第二轮', '正式耗时纠正'),
-                ('en/', 'round two', 'timing correction')):
-            home_text = BeautifulSoup((root / prefix / 'index.html').read_text(),
-                                      'html.parser').get_text(' ', strip=True)
-            changes_text = BeautifulSoup((root / prefix / 'changes/index.html').read_text(),
-                                         'html.parser').get_text(' ', strip=True)
-            if home_marker not in home_text or change_marker not in changes_text:
-                raise ValueError('Published Moli timing correction is not explained in both languages')
+    source_history = webmainbench_history(json.loads((ROOT / 'research/report-changes.json').read_text(encoding='utf-8')))
+    bundled_history = json.loads((root / 'report-changes.json').read_text(encoding='utf-8'))
+    if bundled_history.get('releases') != source_history:
+        raise ValueError('Bundled WebMainBench release history differs from the reviewed source')
+    for prefix, language in (('', 'zh'), ('en/', 'en')):
+        changes = BeautifulSoup((root / prefix / 'changes/index.html').read_text(encoding='utf-8'), 'html.parser')
+        ids = [node.get('data-release-id') for node in changes.select('[data-release-id]')]
+        if ids != [row['id'] for row in source_history]:
+            raise ValueError(prefix + 'Release page omits a structured release record')
+        latest = source_history[0]
+        localized = latest['i18n']['en'] if language == 'en' else latest
+        current = changes.select_one('#current-release [data-release-id]')
+        if (current is None or localized['title'] not in current.get_text(' ', strip=True)
+                or localized['summary'] not in current.get_text(' ', strip=True)
+                or len(current.select('tbody tr')) != len(localized['changes'])):
+            raise ValueError(prefix + 'Current release content differs from structured record')
+        for row, cells in zip(localized['changes'], current.select('tbody tr')):
+            if [cell.get_text(' ', strip=True) for cell in cells.select('td')[-4:]] != row:
+                raise ValueError(prefix + 'Current release effect differs from structured record')
+        if latency_correction and not (changes.select_one('a[href$="latency-corrections.json"]')
+                                       and changes.select_one('a[href$="prior-latency-results.jsonl"]')):
+            raise ValueError(prefix + 'Timing correction evidence links are missing')
     teds_revision = validate_teds_revision_if_present(root, records)
     if dataset.get("id") != "webmainbench-545-preselected-200-six-methods":
         raise ValueError("Not the current WebMainBench preselected-200 report")
@@ -434,6 +447,3 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
 
 def check_revision(root: Path) -> None:
     check_report(root)
-    changes = BeautifulSoup((root / "changes" / "index.html").read_text(encoding="utf-8"), "html.parser").get_text(" ", strip=True)
-    if "200" not in changes or "Moli" not in changes or "1.1.5" not in changes or "1.1.7" not in changes:
-        raise ValueError("WebMainBench release page omits the current scope or Moli version")
