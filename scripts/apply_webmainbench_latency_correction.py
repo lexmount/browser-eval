@@ -28,7 +28,8 @@ def main() -> None:
     if args.output.exists() or (args.cohort / 'environment-interference.json').exists():
         raise ValueError('Output already exists or cohort is known to have host interference')
     cert_path = args.cohort / 'certification.json'
-    cert = json.loads(cert_path.read_text())
+    cert = json.loads(cert_path.read_text(encoding='utf-8'))
+    selection_bytes = (args.cohort / 'selection.json').read_bytes()
     exclusion = cert.get('environment_exclusion', {})
     resources = cert.get('host_resources', {})
     observed_resources = [resources.get(point, {}).get(metric)
@@ -45,10 +46,10 @@ def main() -> None:
                    for value in observed_resources)
             or exclusion.get('certifying_runner_sha256') != digest(
                 ROOT / 'scripts/run_certified_webmainbench_latency.py')
-            or cert.get('selection_sha256') != digest(args.cohort / 'selection.json')
+            or cert.get('selection_sha256') != hashlib.sha256(selection_bytes).hexdigest()
             or cert.get('calls_sha256') != digest(args.cohort / 'calls.jsonl')):
         raise ValueError('Moli latency cohort is not certified against the formal references')
-    selection = json.loads((args.cohort / 'selection.json').read_text())
+    selection = json.loads(selection_bytes)
     if selection.get('authority') != {
         'selected_round': 2,
         'rule': 'final_round_for_every_version_and_page; never select a fastest call',

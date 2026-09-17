@@ -1628,7 +1628,7 @@ def _wmb_matched_latency(records,names,labels,english=False,prefix='../'):
  return '<div class="wmb-matched-latency"><h3>'+h(f'同题耗时对照：共同成功的 {len(common)} 页',f'Matched-page timing: {len(common)} pages with success across all methods')+'</h3><p>'+h(f'以下每行使用完全相同的 {len(common)} 页，只取最终成功 fetch 的单次耗时。它用于检查同页速度差异；共同成功页是在运行后确定的，所以不据此给整个 200 页评测排速度名次。',f'Every row uses the same {len(common)} pages and the duration of the final successful fetch only. This diagnoses same-page timing differences. The shared-success subset is determined after execution, so it does not rank speed over the entire 200-page benchmark.')+'</p><p class="source-note">'+_wmb_timing_note(english,matched=True)+'</p>'+table([h('方法','Method'),h('均值耗时','Mean latency'),h('P50 耗时','P50 latency'),h('P95 耗时','P95 latency')],rows,cls='wmb-matched-latency-table',metrics=[])+'<details><summary>'+h(f'未进入同题对照的 {len(excluded)} 页（仍保留在完整结果中）',f'{len(excluded)} pages outside this comparison (retained in the full matrix)')+'</summary><ul>'+''.join('<li>'+link(prefix+'datasets/'+case_id+'.html',case_id)+'</li>' for case_id in excluded)+'</ul></details></div>'
 
 
-def _wmb_latency_rerun(diagnostic,english=False,prefix='',formal_corrected=False):
+def _wmb_latency_rerun(diagnostic,english=False,prefix='',formal_round=None):
  h=lambda zh,en:en if english else zh
  if not diagnostic:return ''
  runs=diagnostic['balanced_200']['runs'];tail=diagnostic['tail_repeat'];resources=diagnostic['resource']
@@ -1660,8 +1660,8 @@ def _wmb_latency_rerun(diagnostic,english=False,prefix='',formal_corrected=False
                 for name,label in (('moli-115-control','Moli 1.1.5'),('moli-117-repeat','Moli 1.1.7'))]
  body='<p>'+h('同一批 200 页各测两轮；每页两版轮流先请求，所有调用串行执行。下表仅统计成功且有正文的调用，两版都是 398/400 次成功；它是版本耗时诊断，六方法正式结果仍见核心表。',
              'The same 200 pages were run twice. On each page the two versions took turns going first, and all calls ran serially. The table counts only successful calls with body text: both versions succeeded on 398/400 calls. This diagnoses version timing; the formal six-method results remain in the core table.')+'</p>'
- if formal_corrected:
-  body+='<p class="source-note" data-timing-context="prior-overlap" data-formal-round="2">'+h('这组较早的复测与另一项浏览器任务同时运行，只用于定位慢页和调用顺序效应；首页正式耗时采用之后无并发认证复测的预选第二轮，因此两张表的数值不同。',
+ if formal_round is not None:
+  body+=f'<p class="source-note" data-timing-context="prior-overlap" data-formal-round="{int(formal_round)}">'+h('这组较早的复测与另一项浏览器任务同时运行，只用于定位慢页和调用顺序效应；首页正式耗时采用之后无并发认证复测的预选第二轮，因此两张表的数值不同。',
                                      'This earlier crossover overlapped another browser benchmark and is retained only to diagnose slow pages and call order. The formal home-page timing uses the preselected second round of a later certified run without concurrent benchmarks, so the table values differ.')+'</p>'
  body+=table([h('版本','Version'),h('成功调用 / 全部调用','Successful / all calls'),h('均值耗时','Mean latency'),h('P50 耗时','P50 latency'),h('P95 耗时','P95 latency')],rows,cls='wmb-rerun-table',metrics=[])
  body+='<p class="source-note">'+h('绿色标出同页交叉复测中该列较低的耗时。','Green marks the lower latency in this matched crossover.')+'</p>'
@@ -1689,7 +1689,7 @@ def _wmb_latency_rerun(diagnostic,english=False,prefix='',formal_corrected=False
 
 
 def _wmb_editorial_guide(*,english,names,labels,cases,bycase,case_count,score,denom,
-                         failures, out=None, latency_diagnostic=None):
+                         failures, out=None, latency_diagnostic=None, formal_round=None):
  # Editorial analysis of the frozen WMB-200 cohort published as
  # ver_dab94ad9c17f4db6bec7bff98a82c660. Narrative numbers and selected examples
  # are a reviewed snapshot: a new cohort/scoring revision requires re-reviewing
@@ -1824,7 +1824,7 @@ def _wmb_editorial_guide(*,english,names,labels,cases,bycase,case_count,score,de
  delivery=chapter('delivery','06 · 成功 fetch 的耗时，与同页对照','06 · Successful-fetch latency and matched pages',paragraph('每页采用最终结果。计时从这次 fetch 请求开始，到返回转换结果为止；只有最终调用成功、返回非空目标正文且不是错误页，才进入下表。前一次失败的耗时不相加。例如先失败 800 ms、再成功 200 ms，这页的成功 fetch 耗时就是 200 ms。','Each page uses its final result. Timing runs from that fetch request to its converted response. A page enters this table only when the final call succeeds with non-empty target content, not an error page. Previous failed calls are not added: an 800 ms failure followed by a 200 ms success contributes 200 ms.')+paragraph('均值是成功 fetch 耗时之和除以成功页数；P50 是这些耗时的中位数；P95 是约 95% 的成功 fetch 所需时间上限。三项使用同一批成功页，与文字、公式或表格的计分页数无关。','The mean divides successful-fetch time by the success count. P50 is the median of those durations; P95 is the time within which roughly 95% of successful fetches finish. All three use the same success population, independently of text, formula or table scoring populations.')+'<p class="wmb-latency-population"><strong>'+h('仅最终成功 fetch；成功页数单列，失败不进入耗时均值','Final successful fetches only; success counts shown separately, failures excluded')+'</strong></p>'+table([h('方法','Method'),h('成功页 / 总页数','Successful / all pages'),h('均值耗时','Mean latency'),h('P50 耗时','P50 latency'),h('P95 耗时','P95 latency')],latency_rows,cls='wmb-guide-latency',metrics=[])+latency_interpretation+(_wmb_matched_latency(timed,names,labels,english) if timed else '')+paragraph(f'完整结果仍保留全部 {case_count*len(names):,} 条：{body_total:,} 条有目标正文，{fail_total} 条没有，集中在 6 页。失败反映在成功覆盖中，不以 0 ms 冒充快速返回，也不混进成功耗时。异常证据分别指向脚本与环境冲突、离开冻结页后的网络隔离，以及复杂表格触发远程服务边界。',f'The full matrix retains all {case_count*len(names):,} results: {body_total:,} with target content and {fail_total} without it, concentrated on six pages. Failures reduce coverage; they are neither counted as fast zero-duration results nor mixed into successful-fetch timing. Anomaly evidence identifies script/runtime conflicts, network isolation after navigation away from a frozen page, and complex tables hitting a remote-service boundary.')+paragraph('同题对照统一了页面，但没有消除执行环境差异：Kitesurf 包含远程服务与网络开销，其他路线在本地运行；各批次也并非同一时间窗。这些数字比较的是本轮端到端转换耗时。原始六方法比较没有可比的 CPU、内存或网络资源测量；下方的 Moli 复跑另有宿主机采样。','Matching pages controls the input population, not the execution environment: Kitesurf includes remote service and network overhead, while the other routes run locally. Batches also ran in different time windows. These numbers compare this run’s end-to-end conversion latency; the original six-method comparison has no comparable CPU, memory or network-resource measurements; the Moli rerun below adds host-level samples.')+'<p class="source-note">'+link('../methodology/index.html#latency-policy',h('完整计时规则与原始执行成本','Timing rules and retained execution cost'))+' · '+link('../review/index.html',h('异常审核与证据','Anomaly review and evidence'))+'</p>')
  decision=chapter('decision','07 · 选型取决于要交付的内容','07 · Choose for the content you need to deliver',paragraph('如果需要可被程序继续读取的 Markdown，表格边界、公式定界符和代码块应成为明确的验收条件。Moli 1.1.7 修复了旧版表格摊平问题，综合分从 30.0% 升到 32.0%；与此同时，全文相似度下降、缩进文案进入代码评分、转义影响公式识别，都应纳入版本取舍。','For machine-readable Markdown, table boundaries, formula delimiters and code blocks should be explicit acceptance criteria. Moli 1.1.7 repairs flattened tables and raises overall from 30.0% to 32.0%. Its lower full-text similarity, indented prose entering code scoring and escaped formula syntax are also part of the version tradeoff.')+paragraph('Kitesurf 以 32.4% 综合分领先，适合优先核验质量、可以接受秒级耗时的场景。Lightpanda 的 31.7% 综合分、200/200 页有正文和 129 ms 中位耗时，使它值得进入低延迟候选，但必须检查慢尾部。Moli 1.1.5 的文字和代码均值领先，代价是表格不可解析；两版实际速度应看同页交叉顺序复测。Chromium 可作整页 DOM 转换基线；Obscura 的公式均值最高，但表格结构几乎为零，不能用单项最高代替整体选择。','Kitesurf leads overall at 32.4%, making it a candidate where quality is prioritized and seconds of latency are acceptable. Lightpanda combines 31.7% overall, body text on 200/200 pages and a 129 ms median, but its slow tail needs attention. Moli 1.1.5 leads the text and code means, at the cost of unparseable tables. The matched crossover below is the relevant version-speed check. Chromium provides a whole-DOM conversion baseline. Obscura has the highest formula mean but almost zero table structure; one leading component is insufficient for an overall choice.')+paragraph('共同的下一步是先确定正文范围，再要求结构保真。实时网站还涉及访问限制、外部资源与动态请求，应在同一时间窗另做真实 URL 验证。本轮结果可用于筛选转换方案，实时交付能力由后续实站测试验证。','The shared next step is to define main-content scope, then require structural fidelity. Live websites add access restrictions, external resources and dynamic requests, so they need a separate same-window URL evaluation. This cohort establishes results for the 200 frozen conversions.')+'<p class="source-note">'+h('分数、输出哈希与重试链已对全部 1,200 个结果做程序核对；异常审核覆盖 6 页的 36 个结果，其余 1,164 个未做逐条人工内容审核。文中的版本案例是针对性核查，不等于全量内容验收。','Scores, output hashes and retry chains were checked programmatically for all 1,200 results. Anomaly review covers 36 results on six pages; the remaining 1,164 have no individual human content review. Targeted version examples are not a full content acceptance review.')+'</p><p class="actions">'+link('../analysis/index.html',h('逐页结果与完整输出','Per-page results and full outputs'))+' · '+link('../review/index.html',h('审核与修正记录','Reviews and corrections'))+'</p>')
  if latency_diagnostic:
-  delivery=delivery.removesuffix('</section>')+'<h3>'+h('Moli 同机耗时：版本差异是否稳定？','Moli on one host: is the version gap stable?')+'</h3>'+_wmb_latency_rerun(latency_diagnostic,english,prefix='../',formal_corrected=bool(out and (out/'latency-corrections.json').is_file()))+'</section>'
+  delivery=delivery.removesuffix('</section>')+'<h3>'+h('Moli 同机耗时：版本差异是否稳定？','Moli on one host: is the version gap stable?')+'</h3>'+_wmb_latency_rerun(latency_diagnostic,english,prefix='../',formal_round=formal_round)+'</section>'
  return head+scope+overall+content+tables+version+delivery+decision+'</article></div>'
 
 
@@ -2044,6 +2044,7 @@ def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,mani
  def denom(name,metric):return summaries[name]['official_aggregate']['denominators'].get(metric)
  timing=_wmb_latency_summary(records,names)
  latency_corrected=(out/'latency-corrections.json').is_file()
+ formal_round=json.loads((out/'latency-corrections.json').read_text(encoding='utf-8'))['selected_round'] if latency_corrected else None
  def failures(name):return [r for r in records if r['provider']==name and not r['_body_present']]
  def unique_winner(values,higher=True):
   ordered=sorted(values,key=lambda item:item[1],reverse=higher)
@@ -2094,7 +2095,7 @@ def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,mani
   home+=section(h('核心结果','Core results'),timing_key+'<p class="source-note">'+core_note+'</p>'+table(core_headers,core_rows(english),'wmb-core-results',True,cls='wmb-core-table',metrics=[],default_sort=(2,'desc'))+coverage_note+_wmb_table_population(records,names,labels,english,prefix='')+'<details><summary>'+h('公式计分示例与计算流程','Formula-scoring example and flow')+'</summary>'+_wmb_denominator_example(records,english,case_count)+'</details>'+f'<p class="actions">{link("analysis/index.html",h("筛选逐页结果与响应 →","Filter page-level results and responses →"))} · {link("methodology/index.html",h("完整评分规则 →","Full scoring rules →"))} · {link("review/index.html",h("官方原始分与纠正记录 →","Original scores and corrections →"))}</p>')
   home+=section(h('相同页面上的耗时','Timing on identical pages'),_wmb_matched_latency(records,names,labels,english,prefix=''),'matched-latency')
   if latency_diagnostic:
-   home+=section(h('Moli 版本耗时比较','Moli version latency comparison'),_wmb_latency_rerun(latency_diagnostic,english,formal_corrected=latency_corrected),'moli-latency-rerun')
+   home+=section(h('Moli 版本耗时比较','Moli version latency comparison'),_wmb_latency_rerun(latency_diagnostic,english,formal_round=formal_round),'moli-latency-rerun')
   _wmb_write(out,'index.html',h('评测报告','Evaluation report'),home,english)
 
   dataset_rows=[]
@@ -2254,7 +2255,8 @@ flowchart LR
     failure_notes[(provider,finding['case_id'])]=(observed,cause)
   guide=_wmb_editorial_guide(english=english,names=names,labels=labels,cases=cases,
                              bycase=bycase,case_count=case_count,score=score,denom=denom,
-                             failures=failures,out=out,latency_diagnostic=latency_diagnostic)
+                             failures=failures,out=out,latency_diagnostic=latency_diagnostic,
+                             formal_round=formal_round)
   _wmb_write(out,'guide/index.html',h('报告解读','Guide'),guide,english)
 
   provider_rows=[]

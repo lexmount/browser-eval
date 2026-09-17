@@ -8,10 +8,6 @@ from pathlib import Path
 from .safety import contained_path
 
 
-def digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def prior_results_path(root: Path) -> Path:
     if (root / 'latency-corrections.json').is_file():
         validate_latency_correction(root)
@@ -26,15 +22,17 @@ def validate_latency_correction(root: Path) -> dict | None:
     receipt = json.loads(contained_path(root, 'latency-corrections.json').read_text(encoding='utf-8'))
     prior_path = contained_path(root, 'prior-latency-results.jsonl')
     current_path = contained_path(root, 'results.jsonl')
+    prior_bytes = prior_path.read_bytes()
+    current_bytes = current_path.read_bytes()
     if (receipt.get('schema_version') != 1
             or receipt.get('kind') != 'webmainbench_moli_200_balanced_latency_only_v1'
-            or receipt.get('prior_results_sha256') != digest(prior_path)
-            or receipt.get('output_results_sha256') != digest(current_path)
+            or receipt.get('prior_results_sha256') != hashlib.sha256(prior_bytes).hexdigest()
+            or receipt.get('output_results_sha256') != hashlib.sha256(current_bytes).hexdigest()
             or receipt.get('selected_round') != 2
             or receipt.get('changed_result_count') != 400):
         raise ValueError('Invalid WebMainBench latency correction binding')
-    previous = [json.loads(line) for line in prior_path.read_text(encoding='utf-8').splitlines() if line.strip()]
-    current = [json.loads(line) for line in current_path.read_text(encoding='utf-8').splitlines() if line.strip()]
+    previous = [json.loads(line) for line in prior_bytes.decode('utf-8').splitlines() if line.strip()]
+    current = [json.loads(line) for line in current_bytes.decode('utf-8').splitlines() if line.strip()]
     if len(previous) != len(current) or len(current) != 1200:
         raise ValueError('WebMainBench latency correction changed result inventory')
     changes = receipt.get('changes')
