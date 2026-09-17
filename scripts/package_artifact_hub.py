@@ -164,7 +164,7 @@ document.addEventListener('click',downloadClick);
 def build():
  dataset_path=SOURCE/'dataset.json'
  dataset=json.loads(dataset_path.read_text()) if dataset_path.exists() else {}
- webmainbench=dataset.get('id')=='webmainbench-545-preselected-200-five-browsers'
+ webmainbench=dataset.get('id')=='webmainbench-545-preselected-200-six-methods'
  if webmainbench:
    review=json.loads((SOURCE/'result-review.json').read_text())
    assert review.get('status')=='passed' and not review.get('failures'), \
@@ -173,7 +173,7 @@ def build():
    case_ids={row['id'] for row in dataset.get('cases',[])}
    providers=set(review.get('providers',[]))
    assert len(case_ids)==review.get('sample_case_count')==200, 'Current sample/review size mismatch'
-   assert len(records_for_release)==len(case_ids)*len(providers)==1000, 'Current result matrix is incomplete'
+   assert len(records_for_release)==len(case_ids)*len(providers)==1200, 'Current result matrix is incomplete'
    assert {(row.get('provider'),row.get('case_id')) for row in records_for_release}=={
        (provider,case_id) for provider in providers for case_id in case_ids}, 'Current result matrix differs from the reviewed scope'
    assert dataset.get('sample_manifest_sha256')==review.get('sample_manifest_sha256'), 'Current sample/review binding mismatch'

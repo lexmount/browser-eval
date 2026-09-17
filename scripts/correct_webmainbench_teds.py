@@ -18,6 +18,7 @@ from harness.web_fetch.scoring import score_attempt
 from harness.web_fetch.scoring_regressions import build_correction_provenance, load_scoring_regressions
 from harness.web_fetch.safety import contained_path
 from harness.web_fetch.webmainbench_diagnostics import require_valid_teds_for_release
+from harness.web_fetch.webmainbench_diagnostics import validate_teds_revision
 from scripts.score_webmainbench_results import aggregate, metric_dict, official_calculator
 
 CONTROLS = ['ordered-tree-identical-nested-content-is-perfect',
@@ -57,6 +58,8 @@ def main():
     parser.add_argument('--source', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--scorer-repo', required=True, type=Path)
+    parser.add_argument('--prior-corrected', type=Path,
+                        help='Previously verified correction whose unchanged results are inherited')
     args = parser.parse_args()
     if args.output.exists():
         raise ValueError('Refusing to overwrite corrected evidence')
@@ -66,11 +69,18 @@ def main():
     dataset = json.loads((source / 'dataset.json').read_text())
     summaries = json.loads((source / 'score-summaries.json').read_text())
     records = [json.loads(line) for line in (source / 'results.jsonl').read_text().splitlines()]
+    inherited = {}
+    inherited_receipt_sha256 = None
+    if args.prior_corrected:
+        validate_teds_revision(args.prior_corrected)
+        inherited = {row['attempt_id']: row for row in
+                     (json.loads(line) for line in (args.prior_corrected / 'results.jsonl').read_text().splitlines())}
+        inherited_receipt_sha256 = digest(args.prior_corrected / 'teds-correction.json')
     if any(path.is_symlink() for path in source.rglob('*')):
         raise ValueError('Refusing symlinked correction evidence')
     expected = {(provider, case['id']) for provider in dataset['coverage_plan']['static_html']
                 for case in dataset['cases']}
-    if len(records) != 1000 or len(expected) != 1000 or {
+    if len(records) != len(expected) or len(expected) != 200 * len(summaries) or {
             (row['provider'], row['case_id']) for row in records} != expected:
         raise ValueError('Correction requires the complete declared 200-by-5 matrix')
     # Verify the exact official implementation, not only its Git HEAD.
@@ -94,15 +104,30 @@ def main():
             reference_path = contained_path(source, 'references/' + row['case_id'] + '.md')
             if digest(artifact) != row['output_sha256'] or digest(reference_path) != row['reference_sha256']:
                 raise ValueError('Evidence binding mismatch: ' + row['attempt_id'])
-            row['official_metrics'] = copy.deepcopy(row.get('metrics', {}))
-            if row.get('ok'):
+            prior = inherited.get(row['attempt_id'])
+            if prior is not None:
+                if (prior.get('official_metrics') != row.get('metrics') or
+                    {key: value for key, value in prior.items() if key not in ('metrics', 'official_metrics')} !=
+                    {key: value for key, value in row.items() if key != 'metrics'}):
+                    raise ValueError('Inherited correction differs from frozen provider evidence: ' + row['attempt_id'])
+                row = copy.deepcopy(prior)
+                old = original['metrics'].get('table_TEDS', {})
+                current = row['metrics'].get('table_TEDS', {})
+                if current.get('score') != old.get('score'):
+                    changed.append({'attempt_id': row['attempt_id'], 'before': old['score'], 'after': current['score']})
+            else:
+                row['official_metrics'] = copy.deepcopy(row.get('metrics', {}))
+            if prior is None and row.get('ok'):
                 prior = row['metrics']['table_edit']
                 dependency = MetricResult('table_edit', prior['score'], prior.get('details', {}),
                                           prior.get('success', False), prior.get('error'))
                 current = metric_dict(metric.calculate(artifact.read_text(), reference_path.read_text(),
                                                         table_edit_result=dependency))
                 old = row['metrics']['table_TEDS']
-                if current['success'] != old['success']:
+                if current['success'] != old['success'] and not (
+                    old['success'] and not current['success'] and
+                    'Exact tree calculation exceeds safe workspace bound' in current.get('error', '')
+                ):
                     raise ValueError('Unexpected denominator change: ' + row['attempt_id'])
                 row['metrics']['table_TEDS'] = current
                 successful = [item['score'] for key, item in row['metrics'].items()
@@ -111,6 +136,8 @@ def main():
                     row['metrics']['overall']['score'] = sum(successful) / len(successful)
                     if current['success']:
                         row['metrics']['overall']['details']['individual_scores']['table_TEDS'] = current['score']
+                    else:
+                        row['metrics']['overall']['details']['individual_scores'].pop('table_TEDS', None)
                 if current.get('score') != old.get('score'):
                     changed.append({'attempt_id': row['attempt_id'], 'before': old['score'], 'after': current['score']})
             corrected.append(row)
@@ -141,15 +168,20 @@ def main():
             target = args.output / 'correction-source' / path.relative_to(ROOT)
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(path, target)
+        unavailable = [row['attempt_id'] for row in corrected if row.get('official_metrics', {}).get('table_TEDS', {}).get('success')
+                       and not row.get('metrics', {}).get('table_TEDS', {}).get('success')]
         receipt = {'schema_version': 2, 'kind': 'webmainbench_teds_tree_adapter_correction',
                    'provider_calls': 0, 'correction_provenance': provenance,
                    'input_results_sha256': digest(source / 'results.jsonl'),
                    'output_results_sha256': digest(results_path),
                    'dataset_sha256': digest(source / 'dataset.json'),
                    'sample_manifest_sha256': dataset['sample_manifest_sha256'],
+                   'inherited_correction_receipt_sha256': inherited_receipt_sha256,
+                   'inherited_logical_results': len(inherited),
                    'source_code_sha256': {str(path.relative_to(ROOT)): digest(path) for path in source_files},
                    'scope': {'logical_results': len(records), 'providers': sorted(summaries)},
-                   'changed_scores': changed, 'denominator_changed': False, 'latency_changed': False}
+                   'changed_scores': changed, 'unavailable_exact_teds': unavailable,
+                   'denominator_changed': bool(unavailable), 'latency_changed': False}
         (args.output / 'teds-correction.json').write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + '\n')
     print(json.dumps({'output': str(args.output), 'changed_scores': len(changed), 'provider_calls': 0}))
 

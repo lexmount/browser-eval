@@ -11,7 +11,7 @@ from pathlib import Path
 from rapidfuzz.distance import Levenshtein
 
 
-PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "chromium")
+PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "moli-1.1.7", "chromium")
 DATASET_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
 SCORER_COMMIT = "9d991bdc00c57b57521499494d96be85c31317ba"
 METRIC_SOURCE_MANIFEST_SHA256 = "d1a503f7a475da2e118f008f9a63c49cba6fb2378b08de01fb2c3c4c1b96dc31"
@@ -74,10 +74,12 @@ def main() -> None:
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--sample-manifest", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--single-shard", type=Path,
+                        help="Use this immutable shard path when reviewing exactly one provider")
     parser.add_argument(
         "--providers",
         default=",".join(PROVIDERS),
-        help="Comma-separated provider shards; the default is the publishable five-provider matrix",
+        help="Comma-separated provider shards; the default is the publishable matrix",
     )
     args = parser.parse_args()
     if args.output.exists():
@@ -95,7 +97,9 @@ def main() -> None:
         raise ValueError("Invalid WebMainBench sample manifest")
     providers = tuple(value.strip() for value in args.providers.split(",") if value.strip())
     if not providers or len(set(providers)) != len(providers) or any(value not in PROVIDERS for value in providers):
-        raise ValueError("Providers must be a unique, non-empty subset of the declared five-provider matrix")
+        raise ValueError("Providers must be a unique, non-empty subset of the declared provider matrix")
+    if args.single_shard and len(providers) != 1:
+        raise ValueError("--single-shard requires exactly one provider")
     source = {row["track_id"]: row for row in lines(args.dataset)}
     failures = []
     counts = {"logical": 0, "physical": 0, "artifacts": 0, "text_recomputed": 0,
@@ -103,7 +107,7 @@ def main() -> None:
               "network_isolation_probes": 0, "scorer_bindings": 0}
     provider_notes = {}
     for provider in providers:
-        root = args.source_root / provider
+        root = args.single_shard if args.single_shard else args.source_root / provider
         logical = lines(root / "scored-results.jsonl")
         physical = lines(root / "physical-attempts.jsonl")
         summary = json.loads((root / "score-summary.json").read_text(encoding="utf-8"))

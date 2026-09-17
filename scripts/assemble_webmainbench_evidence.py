@@ -1,4 +1,4 @@
-"""Assemble five immutable WebMainBench provider shards into one evidence bundle."""
+"""Assemble immutable WebMainBench provider shards into one evidence bundle."""
 from __future__ import annotations
 
 import argparse
@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harness.web_fetch.safety import contained_path
 
 
-PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "chromium")
+PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "moli-1.1.7", "chromium")
 DATASET_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
 
 
@@ -126,8 +126,8 @@ def main() -> None:
     dataset = {
         "schema_version": 1,
         "tool": "web_fetch",
-        "id": "webmainbench-545-preselected-200-five-browsers",
-        "name": "WebMainBench-545 preselected 200 · five browser Web Fetch methods",
+        "id": "webmainbench-545-preselected-200-six-methods",
+        "name": "WebMainBench-545 preselected 200 · six Web Fetch methods",
         "source_dataset_sha256": DATASET_SHA256,
         "sample_manifest_sha256": sample_sha256,
         "sample": {

@@ -85,7 +85,7 @@ def build_report(source: Path, output: Path) -> Path:
     if output.exists() and not (output/marker).is_file():
         raise ValueError(f'Refusing to replace an unmarked directory: {output}')
     dataset_probe = json.loads(contained_path(source, 'dataset.json').read_text())
-    if dataset_probe.get('id') == 'webmainbench-545-preselected-200-five-browsers':
+    if dataset_probe.get('comparison', {}).get('kind') == 'webmainbench_frozen_html_to_markdown':
         return build_webmainbench_report(source, output)
     require_selection_history(source)
     dataset = json.loads(contained_path(source,'dataset.json').read_text())
@@ -406,7 +406,7 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
     if fixture_correction is not None:
         validate_webmainbench_correction(fixture_correction, dataset)
     validate_webmainbench_anomaly_review(anomaly_review, source, dataset, records)
-    if len(case_ids) != 200 or len(records) != 200 * 5:
+    if len(case_ids) != 200 or len(records) != len(case_ids) * len(providers):
         raise ValueError('WebMainBench report matrix is incomplete')
     if {(row['provider'], row['case_id']) for row in records} != {
         (provider, case_id) for provider in providers for case_id in case_ids

@@ -1253,6 +1253,35 @@
   ],
   "releases": [
     {
+      "id": "2026-09-17-public-webmainbench-moli-1-1-7",
+      "comparison_kinds": [
+        "webmainbench_frozen_html_to_markdown"
+      ],
+      "date": "2026-09-17",
+      "title": "增加 Moli 1.1.7 独立结果",
+      "summary": "同一预选 200 页新增 Moli 1.1.7 的 200 条正式结果；原 Moli 1.1.5 与另外四种配置的 1,000 条结果保留。新版表格结构得分由旧版 0% 提高至 13.9%，综合分由 30.0% 提高至 32.0%，平均耗时由 153 ms 增至 285 ms。",
+      "changes": [
+        [
+          "评测范围",
+          "五种配置各 200 页，共 1,000 条逻辑结果。",
+          "增加 Moli 1.1.7 的 200 条结果，形成六种配置、1,200 条逻辑结果；旧版 Moli 保持独立。",
+          "输入和人工答案沿用同一预选 200 页。"
+        ],
+        [
+          "表格与综合分",
+          "Moli 1.1.5 的 table_TEDS 和 table_edit 均为 0%，表格计分页 40。",
+          "Moli 1.1.7 的 table_TEDS 为 13.9%、table_edit 为 18.5%，各计 73 页；overall 为 32.0%。",
+          "可识别表格改变分母；旧版 40 个表格计分页中，新版 33 页 table_edit 为正。"
+        ],
+        [
+          "其他分项与耗时",
+          "旧版正文、代码和公式分别为 40.3%、79.4%、30.3%，平均耗时 153 ms。",
+          "新版分别为 39.3%、75.3%、12.9%，平均耗时 285 ms。",
+          "版本改善限于本轮冻结 HTML；不是全部维度均改善。"
+        ]
+      ]
+    },
+    {
       "id": "2026-09-16-public-webmainbench-reading-view",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-16",

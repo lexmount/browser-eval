@@ -37,7 +37,8 @@ def validate_teds_revision(root):
     review = json.loads(contained_path(root, 'teds-correction-review.json').read_text())
     if not valid_correction_provenance(receipt) or receipt.get('provider_calls') != 0:
         raise ValueError('Invalid TEDS correction provenance')
-    if review.get('status') != 'passed' or review.get('logical_results') != 1000:
+    expected_count = receipt.get('scope', {}).get('logical_results')
+    if review.get('status') != 'passed' or review.get('logical_results') != expected_count:
         raise ValueError('TEDS correction review incomplete')
     if (digest(receipt_path) != review.get('correction_receipt_sha256')
             or digest(root / 'results.jsonl') != receipt.get('output_results_sha256')
@@ -50,9 +51,9 @@ def validate_teds_revision(root):
             raise ValueError('TEDS correction source hash mismatch')
     original = [json.loads(line) for line in (root / 'original-results.jsonl').read_text().splitlines()]
     current = [json.loads(line) for line in (root / 'results.jsonl').read_text().splitlines()]
-    if len(original) != 1000 or len(current) != 1000:
+    if len(original) != expected_count or len(current) != expected_count:
         raise ValueError('TEDS correction scope mismatch')
-    if len({row['attempt_id'] for row in current}) != 1000:
+    if len({row['attempt_id'] for row in current}) != expected_count:
         raise ValueError('Duplicate corrected result')
     for before, after in zip(original, current):
         if after.get('official_metrics') != before.get('metrics'):
@@ -64,8 +65,13 @@ def validate_teds_revision(root):
         for metric in ('text_edit', 'code_edit', 'formula_edit', 'table_edit'):
             if before['metrics'].get(metric) != after['metrics'].get(metric):
                 raise ValueError('Unrelated metric changed in TEDS correction')
-        if before['metrics'].get('table_TEDS', {}).get('success') != after['metrics'].get('table_TEDS', {}).get('success'):
-            raise ValueError('TEDS correction changed the scored population')
+        prior_teds = before['metrics'].get('table_TEDS', {})
+        current_teds = after['metrics'].get('table_TEDS', {})
+        if prior_teds.get('success') != current_teds.get('success') and not (
+            prior_teds.get('success') and not current_teds.get('success') and
+            'Exact tree calculation exceeds safe workspace bound' in current_teds.get('error', '')
+        ):
+            raise ValueError('Unexpected TEDS scoring population change')
     require_valid_teds_for_release(current)
     return receipt, review
 

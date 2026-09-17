@@ -12,7 +12,7 @@ from harness.web_fetch.webmainbench_diagnostics import ERROR_PAGE, validate_teds
 from harness.web_fetch.safety import contained_path
 
 
-PROVIDERS = {"kitesurf", "lightpanda", "obscura", "moli", "chromium"}
+PROVIDERS = {"kitesurf", "lightpanda", "obscura", "moli", "moli-1.1.7", "chromium"}
 CORE = ("text_edit", "code_edit", "table_edit", "table_TEDS", "formula_edit")
 EXPECTED_STYLE_SHA256 = hashlib.sha256((STYLE + EXTRA).encode("utf-8")).hexdigest()
 EXPECTED_SCRIPT_SHA256 = hashlib.sha256(JS.encode("utf-8")).hexdigest()
@@ -50,10 +50,10 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     dataset = dataset or json.loads((root / "dataset.json").read_text(encoding="utf-8"))
     records = records or read_jsonl(root / "results.jsonl")
     teds_revision = validate_teds_revision_if_present(root, records)
-    if dataset.get("id") != "webmainbench-545-preselected-200-five-browsers":
+    if dataset.get("id") != "webmainbench-545-preselected-200-six-methods":
         raise ValueError("Not the current WebMainBench preselected-200 report")
     cases = {row["id"]: row for row in dataset.get("cases", [])}
-    if len(cases) != 200 or len(records) != 1000:
+    if len(cases) != 200 or len(records) != 200 * len(PROVIDERS):
         raise ValueError("WebMainBench report matrix size mismatch")
     expected = {(provider, case_id) for provider in PROVIDERS for case_id in cases}
     if {(row.get("provider"), row.get("case_id")) for row in records} != expected:
@@ -83,11 +83,11 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     bindings = anomaly.get("bindings", {})
     triggered = anomaly.get("triggered_attempt_ids", [])
     if (anomaly.get("kind") != "webmainbench_anomaly_root_cause_review"
-            or scope.get("signal_triggered_results") != 30
+            or scope.get("signal_triggered_results") != 36
             or scope.get("distinct_cases") != 6
             or scope.get("unresolved_triggered_results") != 0
-            or len(triggered) != 30
-            or len(set(triggered)) != 30
+            or len(triggered) != 36
+            or len(set(triggered)) != 36
             or bindings.get("dataset_json_sha256") != digest(root / "dataset.json")
             or bindings.get("results_jsonl_sha256") != digest(root / "results.jsonl")
             or bindings.get("score_summaries_json_sha256") != digest(root / "score-summaries.json")):
@@ -147,10 +147,10 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
 
     zh = {path.relative_to(root) for path in root.rglob("*.html") if "en" not in path.relative_to(root).parts}
     en = {Path(*path.relative_to(root).parts[1:]) for path in (root / "en").rglob("*.html")}
-    if zh != en or len(zh) != 1215:
+    if zh != en or len(zh) != 16 + len(cases) + len(records):
         raise ValueError("WebMainBench bilingual route inventory mismatch")
     analysis = BeautifulSoup((root / "analysis/index.html").read_text(encoding="utf-8"),"html.parser")
-    if (len(analysis.select('table[data-wmb-table] tbody tr')) != 1000
+    if (len(analysis.select('table[data-wmb-table] tbody tr')) != len(records)
             or {tag.get('data-wmb-filter') for tag in analysis.select('[data-wmb-filter]')} != {
                 'method','axis','category','request','failure','metric','band','query'}):
         raise ValueError("WebMainBench full-matrix inspection table or filters are incomplete")
@@ -176,7 +176,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         raise ValueError("WebMainBench failure-first explanation does not match the measured matrix")
     if not any("响应与正文" in tag.get_text(strip=True) for tag in analysis.select("#wmb-attempt-matrix th")):
         raise ValueError("WebMainBench result rows must expose response and body-text condition")
-    if len(analysis.select("#wmb-compare-rows > tr")) != 200 or len(analysis.select("[data-wmb-compare-method]")) != 5:
+    if len(analysis.select("#wmb-compare-rows > tr")) != 200 or len(analysis.select("[data-wmb-compare-method]")) != len(PROVIDERS):
         raise ValueError("WebMainBench same-page group comparison is incomplete")
     if {option.get("value") for option in analysis.select('[data-wmb-filter="failure"] option') if option.get("value")} != output_errors - {None}:
         raise ValueError("WebMainBench request failure classes are incomplete")
@@ -197,11 +197,11 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
                 or len(guide.select("#overall .wmb-score-part")) != 5
                 or guide.select_one("#overall .wmb-score-result") is None
                 or len(guide.select("#scope .wmb-evidence-pair > article")) != 2
-                or len(guide.select("#scope .wmb-case-stats > span")) != 5
+                or len(guide.select("#scope .wmb-case-stats > span")) != len(PROVIDERS)
                 or len(guide.select("#tables .wmb-evidence-pair > article")) != 2
-                or len(guide.select("#tables .wmb-case-stats > span")) != 5
+                or len(guide.select("#tables .wmb-case-stats > span")) != len(PROVIDERS)
                 or len(guide.select("#delivery .wmb-cause-grid > article")) != 3
-                or len(guide.select("#decision .wmb-choice-table tbody > tr")) != 5):
+                or len(guide.select("#decision .wmb-choice-table tbody > tr")) != len(PROVIDERS)):
             raise ValueError(f"WebMainBench {language} guide lacks decision, example or root-cause evidence")
         # Fixed representative cases in the reviewed WMB-200 cohort. Replacing
         # the cohort requires re-reviewing the article and its evidence links.
@@ -227,7 +227,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
             correction_label = '修正后复算' if not prefix else 'recomputed after correction'
             if correction_label not in localized_home.get_text(' ', strip=True):
                 raise ValueError(prefix + 'Corrected scores must not be labeled as original official scores')
-        if (len(localized_home.select("#wmb-core-results tbody > tr")) != 5
+        if (len(localized_home.select("#wmb-core-results tbody > tr")) != len(PROVIDERS)
                 or not {mean_label, "P50 ↕", "P95 ↕"}.issubset(home_headers)
                 or localized_home.select_one('#wmb-core-results').get('data-col') != '2'
                 or localized_home.select_one('#wmb-core-results').get('data-dir') != 'desc'
@@ -238,7 +238,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
             raise ValueError(prefix + "WebMainBench methodology must lead with an evaluation-flow diagram")
         localized_review = BeautifulSoup((root / prefix / "review/index.html").read_text(encoding="utf-8"), "html.parser")
         review_text = localized_review.get_text(" ", strip=True)
-        expected_review = "30 条，实际集中在 6 个页面" if not prefix else "30 of 1,000 results, concentrated in 6 pages"
+        expected_review = "36 条，实际集中在 6 个页面" if not prefix else "36 of 1,200 results, concentrated in 6 pages"
         if expected_review not in review_text or len(localized_review.select("table.wide-prose-table tbody > tr")) < 6:
             raise ValueError(prefix + "WebMainBench anomaly causes must be visible in the review")
     impossible_teds = sum(
@@ -303,5 +303,5 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
 def check_revision(root: Path) -> None:
     check_report(root)
     changes = BeautifulSoup((root / "changes" / "index.html").read_text(encoding="utf-8"), "html.parser").get_text(" ", strip=True)
-    if "200" not in changes or "Moli" not in changes or "1.1.5" not in changes:
+    if "200" not in changes or "Moli" not in changes or "1.1.5" not in changes or "1.1.7" not in changes:
         raise ValueError("WebMainBench release page omits the current scope or Moli version")

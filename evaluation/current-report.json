@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "dataset_id": "webmainbench-545-preselected-200-five-browsers",
+  "dataset_id": "webmainbench-545-preselected-200-six-methods",
   "comparison_kind": "webmainbench_frozen_html_to_markdown",
   "case_count": 200,
   "case_ids_sha256": "2a2ad7b561a33cef1063f2c16d1ddbc6ff57061567c827e772453d8a6562dc8e",
@@ -9,6 +9,7 @@
     "lightpanda",
     "obscura",
     "moli",
+    "moli-1.1.7",
     "chromium"
   ],
   "timeout_seconds": 45,
@@ -22,7 +23,7 @@
   "official_scorer_commit": "9d991bdc00c57b57521499494d96be85c31317ba",
   "scoring_revision": {
     "kind": "webmainbench_teds_tree_adapter_correction",
-    "receipt_sha256": "bef5a55244ddf2b64bb9582dc32b6fa1ef04b94eda13cb11b235454b688b25c4"
+    "receipt_sha256": "b2e1aa9218b8fe43cbb18f6ebefd8d606716009d978d897ada10255c6ec31024"
   },
   "official_metrics": [
     "overall",
@@ -45,7 +46,7 @@
   "unverified_reference_cases": [],
   "require_independent_result_review": true,
   "conversion": "Native Markdown for Kitesurf, Lightpanda, Obscura and Moli; Chromium whole-DOM HTML via node-html-markdown 2.0.0",
-  "artifact_hub_base_url": "https://artifact-hub.app.lexmount.com",
-  "artifact_hub_site": "6jNzpGiPozLW",
-  "artifact_hub_expected_version": "ver_fd93f9013f81457db56ad19a33983e25"
+  "artifact_hub_base_url": "https://artifact-site.lexmount.cn",
+  "artifact_hub_site": "uTWj6VaWPYCh",
+  "artifact_hub_expected_version": "ver_39422b01ce3747dfa3e74d5807c26d18"
 }

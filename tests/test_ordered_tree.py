@@ -33,6 +33,14 @@ class OrderedTreeTests(unittest.TestCase):
         right = {'tag': 'table', 'children': [{'tag': 'td', 'text': 'B'} for _ in range(3000)]}
         self.assertEqual(tree_distance(left, right)['edit_distance'], 3000)
 
+    def test_large_unique_near_matches_have_exact_normalized_cost(self):
+        predicted = [f'Item {index}: 5\\.00' for index in range(3000)]
+        reference = [item.replace('\\.', '.') for item in predicted]
+        left = {'tag': 'table', 'children': [{'tag': 'td', 'text': item} for item in predicted]}
+        right = {'tag': 'table', 'children': [{'tag': 'td', 'text': item} for item in reference]}
+        expected = sum(1 / len(item) for item in predicted)
+        self.assertAlmostEqual(tree_distance(left, right)['edit_distance'], expected)
+
     def test_large_shift_does_not_claim_aligned_cost_is_exact(self):
         left = {'tag': 'table', 'children': [{'tag': 'td', 'text': str(x)} for x in range(3000)]}
         right = {'tag': 'table', 'children': left['children'][1:] + left['children'][:1]}

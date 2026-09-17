@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "webmainbench_anomaly_root_cause_review",
-  "reviewed_at": "2026-09-16",
+  "reviewed_at": "2026-09-17",
   "scope": {
-    "logical_results": 1000,
-    "signal_triggered_results": 30,
+    "logical_results": 1200,
+    "signal_triggered_results": 36,
     "distinct_cases": 6,
     "unresolved_triggered_results": 0,
     "selection": "Deterministic scan for missing body text, error-page output, absent upstream status, origin-navigation candidates, unusually large failed HTML, same-page delivery divergence, and text-score cliffs. Signals select cases for investigation; they are not verdicts."
@@ -12,10 +12,10 @@
   "bindings": {
     "source_dataset_sha256": "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e",
     "sample_manifest_sha256": "eea643afddd35f3ae4ed85b689b3a89f6a503f8fce878d546fa56c97c26f8044",
-    "dataset_json_sha256": "36db20d832dbe5dda9599a5f1d71ba6de0472864ea84a14fdb795c7ed1d6c9dc",
-    "results_jsonl_sha256": "9f3bc98ddd91f9916651d9d895c2e1bae51411f50e6ad2d9c01645df852ab883",
-    "score_summaries_json_sha256": "ab1f39b9e682af93203528409633f4cd10b2ba4dcef7380eb171a6b114a0a766",
-    "signal_scan_sha256": "3be6dd4c4cb086d998fc3975f290f4a5be0fea4b30b1fd1d6d2a05a46301c6a4"
+    "dataset_json_sha256": "0e00ac4a7f7fc14b7c4c4cc444a906fea8379ab0434fca83af9f68e101fd8600",
+    "results_jsonl_sha256": "7ab6ec0968707ef5b4cdbe608ace867fe22d29f5c55ae310cb7f4ac65065f046",
+    "score_summaries_json_sha256": "00b1c5005afd7bbe72d2f0d02315ae21a72131a6410425144b6ee707b65cb070",
+    "signal_scan_sha256": "9c1f3490f56a0d44ad575af11c969fcc9f890dd944156b727710ffe92893db23"
   },
   "diagnostic_evidence": {
     "navigation_controls_results_sha256": "c90eaae0db537bc082d80d9517562197db4d8d95240d06bbd26740b61052ba13",
@@ -65,12 +65,20 @@
     "chromium__ccb6033c-0a12-4f9c-8c68-794f26129841__r001",
     "chromium__819d17d7-4825-492f-9546-ab61b14e9aab__r001",
     "chromium__a5791c85-1701-4ffd-97e1-779aeefae3b8__r001",
-    "chromium__ac11d851-aed7-4b9e-89d1-39c142fa152d__r001"
+    "chromium__ac11d851-aed7-4b9e-89d1-39c142fa152d__r001",
+    "moli-1.1.7__4c631939-b5d2-4750-a19e-687459751b91__r001",
+    "moli-1.1.7__30b05f1d-56b3-48d3-b587-aea4e99bc003__r001",
+    "moli-1.1.7__ccb6033c-0a12-4f9c-8c68-794f26129841__r001",
+    "moli-1.1.7__819d17d7-4825-492f-9546-ab61b14e9aab__r001",
+    "moli-1.1.7__a5791c85-1701-4ffd-97e1-779aeefae3b8__r001",
+    "moli-1.1.7__ac11d851-aed7-4b9e-89d1-39c142fa152d__r001"
   ],
   "cases": [
     {
       "case_id": "4c631939-b5d2-4750-a19e-687459751b91",
-      "affected_providers": ["kitesurf"],
+      "affected_providers": [
+        "kitesurf"
+      ],
       "classification": "frozen_page_script_dependency",
       "observed_zh": "Kitesurf 原始输入返回 HTTP 500；删除内联脚本或给缺失的 cleanClickURL 补桩后返回正文，单独删除该缺失函数调用仍失败。",
       "observed_en": "Kitesurf returned HTTP 500 for the original input. Removing inline scripts or stubbing the missing cleanClickURL function produced body text; deleting only that call still failed.",
@@ -79,7 +87,9 @@
     },
     {
       "case_id": "30b05f1d-56b3-48d3-b587-aea4e99bc003",
-      "affected_providers": ["kitesurf"],
+      "affected_providers": [
+        "kitesurf"
+      ],
       "classification": "provider_dom_complexity_limit",
       "observed_zh": "删除全部脚本仍返回 HTTP 500；只保留文本、删除表格或保留 2,500 行表格可成功，保留 4,000 行时再次返回 HTTP 500。",
       "observed_en": "Removing all scripts still returned HTTP 500. Text-only, no-table and 2,500-row controls succeeded, while the 4,000-row control failed again.",
@@ -88,7 +98,10 @@
     },
     {
       "case_id": "819d17d7-4825-492f-9546-ab61b14e9aab",
-      "affected_providers": ["kitesurf", "obscura"],
+      "affected_providers": [
+        "kitesurf",
+        "obscura"
+      ],
       "classification": "frozen_page_frame_guard_loop",
       "observed_zh": "原页包含 iframe 和 top.frames.length!=0 时把 top.location 设为当前地址的脚本。删除这条语句或改成只在子框架运行后，Kitesurf 与 Obscura 的对照均成功。",
       "observed_en": "The page contains an iframe and a script that assigns top.location to the current address whenever top.frames.length is nonzero. Removing it or limiting it to child frames makes both Kitesurf and Obscura controls succeed.",
@@ -97,7 +110,9 @@
     },
     {
       "case_id": "a5791c85-1701-4ffd-97e1-779aeefae3b8",
-      "affected_providers": ["kitesurf"],
+      "affected_providers": [
+        "kitesurf"
+      ],
       "classification": "provider_table_complexity_timeout",
       "observed_zh": "原页及去除脚本版本均超时；去除表格、只取文本、单独保留前 12 张或后 13 张表格都能完成，完整 25 张表格超时。",
       "observed_en": "The original and script-free page timed out. Removing tables, using text only, or retaining either the first 12 or last 13 tables completed; all 25 tables timed out.",
@@ -106,7 +121,9 @@
     },
     {
       "case_id": "ac11d851-aed7-4b9e-89d1-39c142fa152d",
-      "affected_providers": ["kitesurf"],
+      "affected_providers": [
+        "kitesurf"
+      ],
       "classification": "frozen_page_fallback_navigation",
       "observed_zh": "删除内联脚本或删除 window.location.search += '&nocdn=true' 后 Kitesurf 成功；只删除外部脚本引用仍失败。",
       "observed_en": "Kitesurf succeeds after removing inline scripts or the window.location.search += '&nocdn=true' statement; removing external script tags alone still fails.",
@@ -115,10 +132,15 @@
     },
     {
       "case_id": "ccb6033c-0a12-4f9c-8c68-794f26129841",
-      "affected_providers": ["moli", "obscura", "chromium"],
+      "affected_providers": [
+        "moli",
+        "moli-1.1.7",
+        "obscura",
+        "chromium"
+      ],
       "classification": "frozen_page_origin_navigation",
-      "observed_zh": "页面脚本根据当前主机名构造原站 URL 并设置 window.location.href。Moli 与 Obscura 的错误明确包含原站地址，Chromium 输出的是无法访问原站的浏览器错误页。",
-      "observed_en": "A page script constructs an origin-site URL from the current hostname and assigns window.location.href. Moli and Obscura errors name the origin address; Chromium outputs a browser error page for that address.",
+      "observed_zh": "页面脚本根据当前主机名构造原站 URL 并设置 window.location.href。Moli 1.1.5、1.1.7 与 Obscura 的错误明确包含原站地址，Chromium 输出的是无法访问原站的浏览器错误页。",
+      "observed_en": "A page script constructs an origin-site URL from the current hostname and assigns window.location.href. Moli 1.1.5, Moli 1.1.7 and Obscura errors name the origin address; Chromium outputs a browser error page for that address.",
       "cause_zh": "冻结页依赖原站域名并主动离开隔离夹具；网络隔离按评测合同拒绝原站导航。Kitesurf 与 Lightpanda 在同页保留正文，说明这是运行语义差异，不能改写为统一的正文提取失败。",
       "cause_en": "The frozen page depends on its origin hostname and actively leaves the isolated fixture; the benchmark sandbox rejects that navigation by contract. Kitesurf and Lightpanda retain body text on the same page, so this is a runtime-semantics difference rather than a universal extraction failure."
     }
