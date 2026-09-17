@@ -2,10 +2,10 @@
   "schema_version": 1,
   "scope": "targeted_representative_anomaly_review",
   "protocol": "Selected source and output anomalies across five method results; reviewed frozen HTML, human reference, full outputs, official token scores and cross-method contrasts. Not a blind or full-matrix review.",
-  "case_count": 5,
-  "result_count": 25,
+  "case_count": 8,
+  "result_count": 40,
   "total_results": 2520,
-  "unreviewed_results": 2495,
+  "unreviewed_results": 2480,
   "reviewer_class": "manual_cross_layer_analysis",
   "cases": [
     {
@@ -150,6 +150,93 @@
         "chromium": {
           "sha256": "badd007188f18f8c8abeccb196e05b1f6cecad79e93d1a669a64074ca64814f5",
           "attempt_id": "chromium__5677__r001"
+        }
+      }
+    },
+    {
+      "case_id": "4394",
+      "finding": "embedded_image_placeholders",
+      "reason": "The frozen HTML contains an embedded 1×1 GIF placeholder repeated 131 times in Moli output. Kitesurf and Obscura also emit 131; Chromium emits none. These nonvisual image addresses contribute raw tokens but are not a Moli-only defect.",
+      "source_html_sha256": "a924ea4657f1b3560fb43c156676d8662a8cb11cb3e485e9e4d4fc238ea3ed73",
+      "reference_sha256": "0d2a9724d8c112d51835c47e0f89ecd8917eb3ff521daac81731f7aac27f46b2",
+      "outputs": {
+        "kitesurf": {
+          "sha256": "01af59f4925fabe6748782ecc1afb7d6ff507e4c08b026d00172008bcbbeb164",
+          "attempt_id": "kitesurf__4394__r001"
+        },
+        "lightpanda": {
+          "sha256": "3b7f39498b1f9bf1597c956b18ebf6eaf0e1f1169a48d97abbe8dfc4260e90f3",
+          "attempt_id": "lightpanda__4394__r001"
+        },
+        "obscura": {
+          "sha256": "f970e4a4b6de377d80f79033ae138981b5691114bae30d82042324969b1b620b",
+          "attempt_id": "obscura__4394__r001"
+        },
+        "moli": {
+          "sha256": "4b9f571f09c6e2c17d3c9dd1501c67c824987f5042b7c35737c8a7fa80f65a06",
+          "attempt_id": "moli__4394__r001"
+        },
+        "chromium": {
+          "sha256": "1803f512cc4d82b88564736a0b97abfd99c9f317d2cc9ad7ec445c73993f445f",
+          "attempt_id": "chromium__4394__r001"
+        }
+      }
+    },
+    {
+      "case_id": "5458",
+      "finding": "adjacent_code_boundary",
+      "reason": "The frozen HTML has adjacent code elements with distinct name and string labels. Moli joins them as namestring, while Chromium retains separate code spans. This is a converter content-boundary defect independent of the scorer.",
+      "source_html_sha256": "eb80481ae411cae7b7d999372ace01664dd71819eb4ccb23cf1fd43d9760b305",
+      "reference_sha256": "a86c77d3ef4ec260cc16ad1a497f4ed9c5dba7ae914568437550b27c0d973e1a",
+      "outputs": {
+        "kitesurf": {
+          "sha256": "f8e91491d0ecaa757857248cc845608455a8a0cb4afbb104481e2980fcaa950f",
+          "attempt_id": "kitesurf__5458__r001"
+        },
+        "lightpanda": {
+          "sha256": "b29d2e6bfd88d71235aa316d99036d9daa21a4ee03fb97c4173da01dc2dfbcb3",
+          "attempt_id": "lightpanda__5458__r001"
+        },
+        "obscura": {
+          "sha256": "c4fbcb8ec985e330e067db7149facab1bbc69a1f225f6293e473be410ab2af11",
+          "attempt_id": "obscura__5458__r001"
+        },
+        "moli": {
+          "sha256": "3e4ede163fbb713866b7e9f43b178abe04c3f13cc87bfdb74d092a66f95af566",
+          "attempt_id": "moli__5458__r001"
+        },
+        "chromium": {
+          "sha256": "001f8f28d98dbf7de8310a7fcd0230ea13fb0085e15a12291043e518c9a23434",
+          "attempt_id": "chromium__5458__r001"
+        }
+      }
+    },
+    {
+      "case_id": "4923",
+      "finding": "block_link_serialization",
+      "reason": "The frozen HTML has 161 anchors, many around block cards. Moli repeats destinations across block fragments and emits 501 URL starts versus 196-257 for peers, while retaining 99.8% reference recall. The raw-score penalty alone does not establish an invalid Markdown conversion.",
+      "source_html_sha256": "56d8bd12cfcb32fb58973df62df9c2d1dfcf67dff72612c948bd422eb68e8603",
+      "reference_sha256": "295dcc81a0ab9814be1dd6621076ccc413215a98224017c5601593c1a127cdd6",
+      "outputs": {
+        "kitesurf": {
+          "sha256": "9de6a28050aeddd77a6890a5198ddbea8454766670e07412ae6246afa5c75adc",
+          "attempt_id": "kitesurf__4923__r001"
+        },
+        "lightpanda": {
+          "sha256": "8c92e7939f15d6ab55ceff67e3d6a0804a3fa66ade274e036ca63f499a3afe7c",
+          "attempt_id": "lightpanda__4923__r001"
+        },
+        "obscura": {
+          "sha256": "67278c7c8569e3c4d1608db45978375e299e2822faf12b79e346fe466c970ee5",
+          "attempt_id": "obscura__4923__r001"
+        },
+        "moli": {
+          "sha256": "161ac7789e57b94f500b08c1ec6c0da19cbfbb03356814466a5aaf2f1ee59157",
+          "attempt_id": "moli__4923__r001"
+        },
+        "chromium": {
+          "sha256": "3b1b23aeacb7ec7b7908a66ae9b1f29238ce8303fa264d584590089572f9c64b",
+          "attempt_id": "chromium__4923__r001"
         }
       }
     }
