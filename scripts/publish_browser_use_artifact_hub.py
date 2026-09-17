@@ -280,6 +280,38 @@ def create_site(base: str, payload: bytes, content_type: str) -> str:
     return slug
 
 
+def create_or_reuse_share(base: str, slug: str) -> str:
+    """Never repeat an uncertain, non-idempotent share-creation POST."""
+    receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
+    if receipt.get("base_url") != base or receipt.get("slug") != slug:
+        raise ValueError("pending share receipt differs from the created site")
+    share_url = str(receipt.get("share_url") or "")
+    if share_url:
+        if not share_url.startswith("https://"):
+            raise ValueError("pending share receipt has an invalid public URL")
+        return share_url
+    if receipt.get("share_state") == "requesting":
+        raise RuntimeError(
+            "share creation response is uncertain; inspect existing site shares before retry"
+        )
+    receipt["share_state"] = "requesting"
+    save_receipt(receipt)
+    status, raw = request(
+        base,
+        f"/api/sites/{urllib.parse.quote(slug)}/shares",
+        json.dumps({"policy": "public"}).encode(),
+        "application/json",
+        method="POST",
+    )
+    share_url = str(response_json(status, raw, operation="public share creation").get("url") or "")
+    if not share_url.startswith("https://"):
+        raise RuntimeError("share creation response omitted public URL")
+    receipt["share_url"] = share_url
+    receipt["share_state"] = "created"
+    save_receipt(receipt)
+    return share_url
+
+
 def update_site(base: str, slug: str, expected_version: str, payload: bytes, content_type: str) -> None:
     """Keep one operation key across retries of a version upload."""
     digest = sha256(ARCHIVE)
@@ -341,10 +373,7 @@ def main(*, create: bool = False, base_url: str = "") -> None:
             raise ValueError("no bound site or matching pending creation receipt")
         else:
             slug = create_site(base, payload, content_type)
-        status, raw = request(base, f"/api/sites/{urllib.parse.quote(slug)}/shares", json.dumps({"policy": "public"}).encode(), "application/json", method="POST")
-        share_url = str(response_json(status, raw, operation="public share creation").get("url") or "")
-        if not share_url.startswith("https://"):
-            raise RuntimeError("share creation response omitted public URL")
+        share_url = create_or_reuse_share(base, slug)
     status, raw = request(base, f"/api/sites/{urllib.parse.quote(slug)}")
     version = current_version(response_json(status, raw, operation="site lookup after upload"))
     verify_export(base, slug)

@@ -181,6 +181,45 @@ def test_create_reuses_pending_known_slug_without_network(monkeypatch, tmp_path:
     assert publisher.create_site("https://site.example", b"report", "application/zip") == "site-1"
 
 
+def test_share_creation_is_reused_after_successful_response(monkeypatch, tmp_path: Path) -> None:
+    receipt = tmp_path / "receipt.json"
+    receipt.write_text(json.dumps({"base_url": "https://site.example", "slug": "site-1"}))
+    monkeypatch.setattr(publisher, "RECEIPT", receipt)
+    calls = []
+
+    def fake_request(_base, path, *_args, **_kwargs):
+        calls.append(path)
+        assert json.loads(receipt.read_text())["share_state"] == "requesting"
+        return 200, b'{"url":"https://site.example/v/shared"}'
+
+    monkeypatch.setattr(publisher, "request", fake_request)
+    assert publisher.create_or_reuse_share("https://site.example", "site-1") == (
+        "https://site.example/v/shared"
+    )
+    assert publisher.create_or_reuse_share("https://site.example", "site-1") == (
+        "https://site.example/v/shared"
+    )
+    assert len(calls) == 1
+
+
+def test_uncertain_share_creation_does_not_post_twice(monkeypatch, tmp_path: Path) -> None:
+    receipt = tmp_path / "receipt.json"
+    receipt.write_text(json.dumps({"base_url": "https://site.example", "slug": "site-1"}))
+    monkeypatch.setattr(publisher, "RECEIPT", receipt)
+    calls = []
+
+    def fake_request(_base, path, *_args, **_kwargs):
+        calls.append(path)
+        raise TimeoutError("response lost")
+
+    monkeypatch.setattr(publisher, "request", fake_request)
+    with pytest.raises(TimeoutError, match="response lost"):
+        publisher.create_or_reuse_share("https://site.example", "site-1")
+    with pytest.raises(RuntimeError, match="uncertain"):
+        publisher.create_or_reuse_share("https://site.example", "site-1")
+    assert len(calls) == 1
+
+
 def test_uncertain_update_recovers_same_version_from_operation(monkeypatch, tmp_path: Path) -> None:
     archive = tmp_path / "report.zip"
     archive.write_bytes(b"new report")
