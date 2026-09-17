@@ -194,6 +194,13 @@ def test_review_binds_raw_and_evaluated_hars_to_wire_witness(tmp_path: Path) -> 
     ] == ["wire_witness_binding"]
     receipt["gateway_host"] = "192.168.5.2"
     witness.write_text(json.dumps(receipt))
+    receipt["sources"][0]["origin"] = "http://192.168.5.3:8023"
+    witness.write_text(json.dumps(receipt))
+    assert review_results(evidence=tmp_path, selection_sha256="selection-sha")["unresolved"][0][
+        "failed_checks"
+    ] == ["wire_witness_binding"]
+    receipt["sources"][0]["origin"] = "http://192.168.5.2:8023"
+    witness.write_text(json.dumps(receipt))
 
     evaluated.write_text('{"tampered":true}')
     review = review_results(evidence=tmp_path, selection_sha256="selection-sha")

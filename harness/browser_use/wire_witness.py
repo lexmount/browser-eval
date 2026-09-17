@@ -216,6 +216,12 @@ def validate_wire_source(
     sources = receipt.get("sources")
     if not isinstance(sources, list) or not sources:
         return False
+    schema = receipt.get("schema")
+    if schema == "lex_browser_use_server_wire_witness/2":
+        if not gateway_host or receipt.get("gateway_host") != gateway_host:
+            return False
+    elif schema not in {None, "lex_browser_use_server_wire_witness/1"}:
+        return False
     try:
         with zipfile.ZipFile(source_archive) as archive:
             members = archive.infolist()
@@ -234,6 +240,11 @@ def validate_wire_source(
                 return False
             witnesses = []
             for source in sources:
+                if (
+                    schema == "lex_browser_use_server_wire_witness/2"
+                    and urlsplit(source["origin"]).hostname != gateway_host
+                ):
+                    return False
                 segment = archive.read(source["archive_member"])
                 if hashlib.sha256(segment).hexdigest() != source["segment_sha256"]:
                     return False
@@ -243,17 +254,12 @@ def validate_wire_source(
                 if len(parsed) != source["parsed_request_count"]:
                     return False
                 witnesses.extend(parsed)
-        schema = receipt.get("schema")
         if schema == "lex_browser_use_server_wire_witness/2":
-            if not gateway_host or receipt.get("gateway_host") != gateway_host:
-                return False
             reproduced, additions = fill_missing_referers(
                 raw, witnesses, gateway_host=gateway_host
             )
-        elif schema in {None, "lex_browser_use_server_wire_witness/1"}:
-            reproduced, additions = fill_missing_referers(raw, witnesses)
         else:
-            return False
+            reproduced, additions = fill_missing_referers(raw, witnesses)
         return (
             reproduced == evaluated
             and additions == receipt.get("unique_header_additions")
