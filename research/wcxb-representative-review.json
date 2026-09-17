@@ -2,10 +2,10 @@
   "schema_version": 1,
   "scope": "targeted_representative_anomaly_review",
   "protocol": "Selected source and output anomalies across five method results; reviewed frozen HTML, human reference, full outputs, official token scores and cross-method contrasts. Not a blind or full-matrix review.",
-  "case_count": 8,
-  "result_count": 40,
+  "case_count": 9,
+  "result_count": 45,
   "total_results": 2520,
-  "unreviewed_results": 2480,
+  "unreviewed_results": 2475,
   "reviewer_class": "manual_cross_layer_analysis",
   "cases": [
     {
@@ -237,6 +237,35 @@
         "chromium": {
           "sha256": "3b1b23aeacb7ec7b7908a66ae9b1f29238ce8303fa264d584590089572f9c64b",
           "attempt_id": "chromium__4923__r001"
+        }
+      }
+    },
+    {
+      "case_id": "5412",
+      "finding": "preformatted_block_boundary",
+      "reason": "The frozen HTML uses adjacent div blocks inside pre: one displays the ts language label and the next contains code beginning with function. Moli joins these into tsfunction, whereas the four peers preserve the token boundary. This is a converter content-boundary defect, not a scorer exception.",
+      "source_html_sha256": "c385a4b732ecee6bb4960153033308e068df392f9a03c37c021c91063742f640",
+      "reference_sha256": "f20974bfd791c6caf4c283725c0d778ba36efb203444a049562acd17a65c6eaf",
+      "outputs": {
+        "kitesurf": {
+          "sha256": "3975cde2a8084866585470da4b57d3662d934e6d4af6c794108cda6f0b63130e",
+          "attempt_id": "kitesurf__5412__r001"
+        },
+        "lightpanda": {
+          "sha256": "bc69c60a582433a8f356f0395365d095ff3b63de45c3a6e4f314dfdc66d3fa90",
+          "attempt_id": "lightpanda__5412__r001"
+        },
+        "obscura": {
+          "sha256": "359c9e0b12de511e330b3f0481e42462ff48f21da05b466516731baf3dec90a5",
+          "attempt_id": "obscura__5412__r001"
+        },
+        "moli": {
+          "sha256": "2f8e9f794251eb79d98bb34163be3b754528b6a13dfdcba9aca7c98b2b3ebf33",
+          "attempt_id": "moli__5412__r001"
+        },
+        "chromium": {
+          "sha256": "5716694f03427bcf823172e8d34179656357ead7a814add9ed86b36bb260f6e9",
+          "attempt_id": "chromium__5412__r001"
         }
       }
     }
