@@ -84,7 +84,9 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
 
         if require_wire_witness:
             try:
-                witness = json.loads(Path(str(paths["network_witness"])).read_text())
+                witness = json.loads(
+                    Path(str(paths["network_witness"])).read_text(encoding="utf-8")
+                )
                 checks["wire_witness_binding"] = (
                     witness.get("schema") == "lex_browser_use_server_wire_witness/1"
                     and witness.get("raw_har_sha256") == artifacts["network_har_raw"]["sha256"]
@@ -92,13 +94,13 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
                     and witness.get("source_archive_sha256")
                     == artifacts["network_wire_source"]["sha256"]
                     and validate_wire_source(
-                        json.loads(Path(str(paths["network_har_raw"])).read_text()),
-                        json.loads(Path(str(paths["network_har"])).read_text()),
+                        json.loads(Path(str(paths["network_har_raw"])).read_text(encoding="utf-8")),
+                        json.loads(Path(str(paths["network_har"])).read_text(encoding="utf-8")),
                         witness,
                         Path(str(paths["network_wire_source"])),
                     )
                 )
-            except (KeyError, OSError, json.JSONDecodeError, TypeError):
+            except (KeyError, OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError):
                 checks["wire_witness_binding"] = False
 
         evaluation: dict[str, Any] = {}
@@ -107,7 +109,7 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
             try:
                 evaluation = json.loads(Path(str(paths["evaluation"])).read_text(encoding="utf-8"))
                 checks["evaluation_json"] = isinstance(evaluation, dict)
-            except (OSError, json.JSONDecodeError):
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
                 checks["evaluation_json"] = False
         else:
             checks["evaluation_json"] = False
@@ -115,7 +117,7 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
             try:
                 response = json.loads(Path(str(paths["response"])).read_text(encoding="utf-8"))
                 checks["response_json"] = True
-            except (OSError, json.JSONDecodeError):
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
                 checks["response_json"] = False
         else:
             checks["response_json"] = False

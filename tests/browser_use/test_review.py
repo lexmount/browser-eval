@@ -149,3 +149,8 @@ def test_review_binds_raw_and_evaluated_hars_to_wire_witness(tmp_path: Path) -> 
     evaluated.write_text('{"tampered":true}')
     review = review_results(evidence=tmp_path, selection_sha256="selection-sha")
     assert review["unresolved"][0]["failed_checks"] == ["wire_witness_binding"]
+
+    evaluated.write_bytes(raw.read_bytes())
+    witness.write_bytes(b"\xff")
+    review = review_results(evidence=tmp_path, selection_sha256="selection-sha")
+    assert "wire_witness_binding" in review["unresolved"][0]["failed_checks"]
