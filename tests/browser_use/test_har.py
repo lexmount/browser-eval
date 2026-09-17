@@ -248,3 +248,9 @@ def test_invalid_base64_is_not_written_as_plain_json(tmp_path) -> None:
     content = json.loads(path.read_text())["log"]["entries"][0]["response"]["content"]
     assert content["text"] == ""
     assert recorder.errors
+
+
+def test_base64_json_with_invalid_utf8_is_not_silently_replaced() -> None:
+    invalid = base64.b64encode(b'{"value":"\xff"}').decode()
+    with pytest.raises(UnicodeDecodeError):
+        CdpHarRecorder._decode_body({"body": invalid, "base64Encoded": True})

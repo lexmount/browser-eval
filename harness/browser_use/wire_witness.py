@@ -171,7 +171,7 @@ def validate_wire_source(
     """Recompute every addition from the retained private server-log bytes."""
 
     sources = receipt.get("sources")
-    if not isinstance(sources, list):
+    if not isinstance(sources, list) or not sources:
         return False
     try:
         with zipfile.ZipFile(source_archive) as archive:

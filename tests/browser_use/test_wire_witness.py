@@ -127,3 +127,13 @@ def test_private_server_log_must_reproduce_every_added_header(tmp_path):
     assert not validate_wire_source(raw, forged, receipt, source)
     receipt["sources"] = []
     assert not validate_wire_source(raw, evaluated, receipt, source)
+
+
+def test_empty_wire_source_never_passes_by_vacuous_equality(tmp_path):
+    source = tmp_path / "empty.zip"
+    with zipfile.ZipFile(source, "w"):
+        pass
+    raw = har()
+    assert not validate_wire_source(
+        raw, raw, {"sources": [], "unique_header_additions": []}, source
+    )

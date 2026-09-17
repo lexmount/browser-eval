@@ -206,7 +206,7 @@ class CdpHarRecorder:
         if body.get("base64Encoded"):
             return {
                 "body": base64.b64decode(body.get("body") or "", validate=True).decode(
-                    "utf-8", errors="replace"
+                    "utf-8"
                 ),
                 "base64Encoded": False,
             }

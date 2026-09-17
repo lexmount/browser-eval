@@ -124,14 +124,20 @@ def test_review_binds_raw_and_evaluated_hars_to_wire_witness(tmp_path: Path) -> 
     evaluated.write_bytes(raw.read_bytes())
     witness = raw.parent / "network-wire-witness.json"
     source = raw.parent / "network-wire-source.zip"
-    with zipfile.ZipFile(source, "w"):
-        pass
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr("0-gitlab.log", b"")
     witness.write_text(json.dumps({
         "schema": "lex_browser_use_server_wire_witness/1",
         "raw_har_sha256": hashlib.sha256(raw.read_bytes()).hexdigest(),
         "evaluated_har_sha256": hashlib.sha256(evaluated.read_bytes()).hexdigest(),
         "source_archive_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
-        "sources": [],
+        "sources": [{
+            "archive_member": "0-gitlab.log",
+            "origin": "http://site.test",
+            "segment_sha256": hashlib.sha256(b"").hexdigest(),
+            "segment_bytes": 0,
+            "parsed_request_count": 0,
+        }],
         "unique_header_additions": [],
     }))
     row["paths"].update(
