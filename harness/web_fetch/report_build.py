@@ -5,6 +5,7 @@ import shutil
 import tempfile
 from pathlib import Path
 from .report import generate, generate_public_benchmark_research, generate_webmainbench, succeeded, measured, failure_category, TRACKS
+from .report_changes import webmainbench_history
 from .failure_diagnosis import diagnose
 from .safety import contained_path, validate_report_ids
 from .reference_lifecycle import require_verified_reference_checks
@@ -12,6 +13,8 @@ from .reliability import assess_reliability
 from .storage import require_selection_history,data_home
 from .scoring import SCORING_SOURCE_SHA256
 from .webmainbench_diagnostics import validate_teds_revision_if_present
+from .webmainbench_latency_correction import prior_results_path
+from .webmainbench_latency_diagnostic import load_diagnostic
 from .artifacts import (
     record_public_call_log_bindings, verify_record_private_artifacts,
     verify_public_call_log, verify_record_public_call_logs,
@@ -341,16 +344,23 @@ def validate_webmainbench_anomaly_review(receipt: dict, source: Path,
     bindings = receipt.get('bindings', {})
     expected_files = {
         'dataset_json_sha256': 'dataset.json',
-        'results_jsonl_sha256': 'results.jsonl',
         'score_summaries_json_sha256': 'score-summaries.json',
     }
     for binding, filename in expected_files.items():
         actual = hashlib.sha256(contained_path(source, filename).read_bytes()).hexdigest()
         if bindings.get(binding) != actual:
             raise ValueError(f'WebMainBench anomaly review {binding} mismatch')
+    if bindings.get('results_jsonl_sha256') != hashlib.sha256(
+            prior_results_path(source).read_bytes()).hexdigest():
+        raise ValueError('WebMainBench anomaly review results_jsonl_sha256 mismatch')
     if (bindings.get('source_dataset_sha256') != dataset.get('source_dataset_sha256')
             or bindings.get('sample_manifest_sha256') != dataset.get('sample_manifest_sha256')):
         raise ValueError('WebMainBench anomaly review dataset binding mismatch')
+    retest_sha = receipt.get('diagnostic_evidence', {}).get('moli_origin_retest_summary_sha256')
+    if retest_sha:
+        retest_path = contained_path(source, 'latency-diagnostic/failure-retest/summary.json')
+        if not retest_path.is_file() or hashlib.sha256(retest_path.read_bytes()).hexdigest() != retest_sha:
+            raise ValueError('Moli origin-failure retest is not bound to the anomaly review')
     scope = receipt.get('scope', {})
     triggered = receipt.get('triggered_attempt_ids')
     attempts = {row['attempt_id'] for row in records}
@@ -389,8 +399,12 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
     teds_revision = validate_teds_revision_if_present(source, records)
     summaries = json.loads(contained_path(source, 'score-summaries.json').read_text())
     manifests = json.loads(contained_path(source, 'execution.json').read_text())['batches']
+    latency_diagnostic = load_diagnostic(source, dataset, records, manifests)
     review_path = source / 'result-review.json'
     review = json.loads(review_path.read_text()) if review_path.is_file() else None
+    if review is not None and review.get('bindings', {}).get('results_jsonl_sha256') != hashlib.sha256(
+            prior_results_path(source).read_bytes()).hexdigest():
+        raise ValueError('WebMainBench result review is not bound to preserved scored evidence')
     research_path = Path(__file__).resolve().parents[2] / 'research/public-web-benchmarks.json'
     research = json.loads(research_path.read_text(encoding='utf-8'))
     adoption_path = Path(__file__).resolve().parents[2] / 'research/provider-adoption.json'
@@ -399,6 +413,8 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
     corrections = json.loads(corrections_path.read_text(encoding='utf-8'))
     anomaly_review_path = Path(__file__).resolve().parents[2] / 'research/webmainbench-anomaly-review.json'
     anomaly_review = json.loads(anomaly_review_path.read_text(encoding='utf-8'))
+    release_path = Path(__file__).resolve().parents[2] / 'research/report-changes.json'
+    release_history = webmainbench_history(json.loads(release_path.read_text(encoding='utf-8')))
     fixture_correction_path = source / 'fixture-correction.json'
     fixture_correction = json.loads(fixture_correction_path.read_text(encoding='utf-8')) if fixture_correction_path.is_file() else None
     providers = dataset['coverage_plan']['static_html']
@@ -435,6 +451,9 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
         for name in ('dataset.json', 'results.jsonl', 'score-summaries.json', 'execution.json',
                      'physical-attempts.jsonl'):
             shutil.copy2(source / name, staging / name)
+        if (source / 'latency-corrections.json').is_file():
+            for name in ('latency-corrections.json', 'prior-latency-results.jsonl'):
+                shutil.copy2(contained_path(source, name), staging / name)
         if review_path.is_file():
             shutil.copy2(review_path, staging / 'result-review.json')
         shutil.copy2(research_path, staging / 'public-benchmark-research.json')
@@ -442,6 +461,9 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
         shutil.copy2(adoption_path, staging / 'adoption' / 'evidence.json')
         shutil.copy2(corrections_path, staging / 'webmainbench-corrections.json')
         shutil.copy2(anomaly_review_path, staging / 'webmainbench-anomaly-review.json')
+        (staging / 'report-changes.json').write_text(
+            json.dumps({'schema_version': 2, 'releases': release_history}, ensure_ascii=False, indent=2) + '\n',
+            encoding='utf-8')
         if fixture_correction is not None:
             shutil.copy2(fixture_correction_path, staging / 'fixture-correction.json')
         if teds_revision is not None:
@@ -455,7 +477,10 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
             artifact = contained_path(staging, row['artifact_path'])
             if hashlib.sha256(artifact.read_bytes()).hexdigest() != row['output_sha256']:
                 raise ValueError('WebMainBench output integrity failure: ' + row['attempt_id'])
-        generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption, fixture_correction, teds_revision, anomaly_review)
+        if latency_diagnostic is not None:
+            (staging / 'latency-diagnostic.json').write_text(
+                json.dumps(latency_diagnostic, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption, fixture_correction, teds_revision, anomaly_review, latency_diagnostic)
         (staging / '.generated-report').write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         if output.exists():
             backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'

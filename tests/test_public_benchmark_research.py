@@ -72,6 +72,13 @@ class PublicBenchmarkResearchTest(unittest.TestCase):
             self.assertEqual(rendered_model["decision"], json.loads(SOURCE.read_text())["decision"])
             self.assertEqual(rendered_model["frozen_sample"]["case_count"], 200)
             self.assertTrue((output / "sample-manifest.json").is_file())
+            history = json.loads((output / "report-changes.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(history["releases"]), 1)
+            for prefix, summary in (("", history["releases"][0]["summary"]),
+                                    ("en/", history["releases"][0]["i18n"]["en"]["summary"])):
+                page = (output / prefix / "changes/index.html").read_text(encoding="utf-8")
+                self.assertIn(summary, page)
+                self.assertIn('data-release-id="2026-09-14-public-benchmark-research"', page)
 
     def test_does_not_replace_unmarked_output(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -57,6 +57,16 @@ class WebMainBenchAnomalyReviewTests(unittest.TestCase):
         root, receipt, dataset, records = self.fixture()
         validate_webmainbench_anomaly_review(receipt, root, dataset, records)
 
+    def test_retest_claim_requires_matching_private_evidence(self):
+        root, receipt, dataset, records = self.fixture()
+        receipt['diagnostic_evidence'] = {'moli_origin_retest_summary_sha256': hashlib.sha256(b'retest').hexdigest()}
+        with self.assertRaisesRegex(ValueError, 'origin-failure retest'):
+            validate_webmainbench_anomaly_review(receipt, root, dataset, records)
+        path = root / 'latency-diagnostic/failure-retest/summary.json'
+        path.parent.mkdir(parents=True)
+        path.write_bytes(b'retest')
+        validate_webmainbench_anomaly_review(receipt, root, dataset, records)
+
     def test_rejects_changed_results_file(self):
         root, receipt, dataset, records = self.fixture()
         (root / "results.jsonl").write_text("changed\n")
