@@ -181,7 +181,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
                          'Native Markdown for Kitesurf, Lightpanda, Obscura and Moli; '
                          'Chromium whole-DOM HTML via node-html-markdown 2.0.0')
         self.assertEqual(profile['comparison_kind'], 'webmainbench_frozen_html_to_markdown')
-        self.assertEqual(profile['dataset_id'], 'webmainbench-545-preselected-200-five-browsers')
+        self.assertEqual(profile['dataset_id'], 'webmainbench-545-preselected-200-six-methods')
         self.assertEqual(profile['case_count'], 200)
         self.assertEqual(profile['sample_manifest'], 'evaluation/public-webmainbench-200.json')
         self.assertEqual(
@@ -190,7 +190,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         )
         self.assertEqual(
             set(profile['providers']),
-            {'kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium'},
+            {'kitesurf', 'lightpanda', 'obscura', 'moli', 'moli-1.1.7', 'chromium'},
         )
         self.assertEqual(profile['runs_per_case'], 1)
         self.assertEqual(profile['max_failure_retries'], 1)
@@ -198,18 +198,18 @@ class RuntimeEntrypointTests(unittest.TestCase):
             profile['source_dataset_sha256'],
             '0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e',
         )
-        self.assertEqual(profile['artifact_hub_base_url'], 'https://artifact-hub.app.lexmount.com')
-        self.assertEqual(profile['artifact_hub_site'], '6jNzpGiPozLW')
+        self.assertEqual(profile['artifact_hub_base_url'], 'https://artifact-site.lexmount.cn')
+        self.assertEqual(profile['artifact_hub_site'], 'uTWj6VaWPYCh')
         self.assertRegex(profile['artifact_hub_expected_version'], r'^ver_[0-9a-f]+$')
 
     def test_publication_receipt_must_target_current_site(self) -> None:
         profile = ROOT / 'evaluation/current-report.json'
         self.assertEqual(current_publication_target(profile),
-                         ('https://artifact-hub.app.lexmount.com', '6jNzpGiPozLW'))
+                         ('https://artifact-site.lexmount.cn', 'uTWj6VaWPYCh'))
         for slug in ('UUAhhQMnrGwm','UeZE1vfcEOrM'):
             with self.assertRaisesRegex(ValueError, 'expected'):
                 require_publication_site({'slug':slug}, profile,
-                                         'https://artifact-hub.app.lexmount.com')
+                                         'https://artifact-site.lexmount.cn')
 
     def test_publication_version_defaults_to_profile_and_rejects_override(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
