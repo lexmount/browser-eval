@@ -3,11 +3,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import statistics
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from scripts.report_presentation_contract import check_presentation
 from bs4 import BeautifulSoup
 from harness.web_fetch.report import STYLE, EXTRA, JS
+from harness.web_fetch.metrics import percentile
 from harness.web_fetch.webmainbench_diagnostics import ERROR_PAGE, validate_teds_revision_if_present
 from harness.web_fetch.safety import contained_path
 
@@ -104,6 +107,12 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
             raise ValueError("WebMainBench output artifact hash mismatch: " + row["attempt_id"])
         for prefix in ("", "en/"):
             detail = root / prefix / "attempts" / f'{row["attempt_id"]}.html'
+            if detail.is_file():
+                detail_soup=check_presentation(detail.read_text())
+                if row.get('error_message'):
+                    exact=detail_soup.select_one('#result-logs pre[data-kind="error"]')
+                    if exact is None or exact.get_text() != row['error_message']:
+                        raise ValueError('Detail lost the exact recorded error: '+row['attempt_id'])
             if not detail.is_file():
                 raise ValueError("WebMainBench attempt-detail route missing: " + row["attempt_id"])
         case = cases[row["case_id"]]
@@ -138,6 +147,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         if (len(attempts) != row["physical_attempt_count"]
                 or [item["physical_attempt"] for item in attempts] != list(range(1, len(attempts) + 1))
                 or attempts[-1]["output_sha256"] != row["output_sha256"]
+                or not close(attempts[-1]["elapsed_ms"], row["elapsed_ms"])
                 or not close(sum(item["elapsed_ms"] for item in attempts), row["total_elapsed_ms"])):
             raise ValueError("WebMainBench retry chain mismatch: " + row["attempt_id"])
 
@@ -186,31 +196,34 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
             or len(analysis.select("[data-wmb-slice-filter]")) != 3
             or not analysis.select_one(".wmb-slice-table-wrap")):
         raise ValueError("WebMainBench category slices must use one bounded, filterable table")
-    expected_guide_sections = {"overall", "scope", "tables", "version-differences", "delivery", "decision"}
+    expected_guide_sections = {"overall", "scope", "content", "tables", "version-differences", "delivery", "decision"}
     guides = {}
     for prefix, language in (("", "Chinese"), ("en/", "English")):
         guide = BeautifulSoup((root / prefix / "guide/index.html").read_text(encoding="utf-8"), "html.parser")
         guides[prefix] = guide
         if {section.get("id") for section in guide.select(".wmb-editorial section[id]")} != expected_guide_sections:
             raise ValueError(f"WebMainBench {language} report interpretation is incomplete")
-        if (len(guide.select(".wmb-verdict-grid .wmb-verdict")) != 3
+        if (len(guide.select(".wmb-guide-results tbody > tr")) != len(PROVIDERS)
+                or len(guide.select(".wmb-guide-toc a")) != len(expected_guide_sections)
                 or len(guide.select("#overall .wmb-score-part")) != 5
                 or guide.select_one("#overall .wmb-score-result") is None
-                or len(guide.select("#scope .wmb-evidence-pair > article")) != 2
-                or len(guide.select("#scope .wmb-case-stats > span")) != len(PROVIDERS)
+                or guide.select_one("#overall .wmb-denominator-matrix") is None
+                or len(guide.select("#content .wmb-evidence-pair > article")) != 2
+                or len(guide.select("#content .wmb-case-stats > span")) != len(PROVIDERS)
                 or len(guide.select("#tables .wmb-evidence-pair > article")) != 2
                 or len(guide.select("#tables .wmb-case-stats > span")) != len(PROVIDERS)
-                or len(guide.select("#version-differences .wmb-version-case")) != 5
+                or len(guide.select("#version-differences details.wmb-version-case")) != 5
                 or len(guide.select("#version-differences .wmb-version-case .actions a")) != 15
-                or len(guide.select("#delivery .wmb-cause-grid > article")) != 3
-                or len(guide.select("#decision .wmb-choice-table tbody > tr")) != len(PROVIDERS)):
-            raise ValueError(f"WebMainBench {language} guide lacks decision, example or root-cause evidence")
+                or len(guide.select("#version-differences .wmb-evidence-pair pre")) != 10
+                or len(guide.select("#delivery .wmb-guide-latency tbody > tr")) != len(PROVIDERS)):
+            raise ValueError(f"WebMainBench {language} guide lacks cohort, scoring, specimens or latency evidence")
         # Fixed representative cases in the reviewed WMB-200 cohort. Replacing
         # the cohort requires re-reviewing the article and its evidence links.
         guide_hrefs = {anchor.get("href") for anchor in guide.select("a[href]")}
         if not {
             "../datasets/c42e7f28-f109-459b-8423-2ce20f651ac9.html",
             "../datasets/686205e4-4549-42ce-bf42-f285f941c868.html",
+            "../attempts/chromium__ccb6033c-0a12-4f9c-8c68-794f26129841__r001.html",
         }.issubset(guide_hrefs):
             raise ValueError(f"WebMainBench {language} guide lacks representative evidence links")
     dataset_page = BeautifulSoup((root / "datasets/index.html").read_text(encoding="utf-8"),"html.parser")
@@ -224,17 +237,62 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     home_page = BeautifulSoup((root / "index.html").read_text(encoding="utf-8"), "html.parser")
     for prefix, mean_label in (("", "均值耗时 ↕"), ("en/", "Mean latency ↕")):
         localized_home = BeautifulSoup((root / prefix / "index.html").read_text(encoding="utf-8"), "html.parser")
+        check_presentation(localized_home)
+        check_presentation((root / prefix / "guide/index.html").read_text())
         home_headers = {tag.get_text(" ", strip=True) for tag in localized_home.select("#wmb-core-results th")}
         if teds_revision is not None:
             correction_label = '修正后复算' if not prefix else 'recomputed after correction'
             if correction_label not in localized_home.get_text(' ', strip=True):
                 raise ValueError(prefix + 'Corrected scores must not be labeled as original official scores')
         if (len(localized_home.select("#wmb-core-results tbody > tr")) != len(PROVIDERS)
-                or not {mean_label, "P50 ↕", "P95 ↕"}.issubset(home_headers)
+                or not {mean_label, "P50 latency ↕" if prefix else "P50 耗时 ↕", "P95 latency ↕" if prefix else "P95 耗时 ↕"}.issubset(home_headers)
                 or localized_home.select_one('#wmb-core-results').get('data-col') != '2'
                 or localized_home.select_one('#wmb-core-results').get('data-dir') != 'desc'
                 or {"非空内容交付率 ↕", "Non-empty delivery rate ↕"} & home_headers):
             raise ValueError(prefix + "WebMainBench home must have one core comparison with mean, P50 and P95")
+        table_population=localized_home.select('.wmb-table-population-table tbody tr')
+        if len(table_population)!=len(PROVIDERS):raise ValueError('Table-scoring population breakdown missing')
+        for tr in table_population:
+            cells=tr.find_all('td',recursive=False)
+            name=Path(cells[1].a['href']).stem
+            eligible=extra=0
+            for row in grouped[name]:
+                if not row['ok']:continue
+                detail=row.get('metrics',{}).get('table_edit',{}).get('details',{})
+                gt=detail.get('groundtruth_table_length',0)>0
+                pred=detail.get('predicted_table_length',0)>0
+                eligible+=gt
+                extra+=pred and not gt
+            if [int(td['data-sort']) for td in cells[2:5]] != [eligible,extra,eligible+extra]:
+                raise ValueError('Table-scoring breakdown disagrees with evidence: '+name)
+        timing_key = localized_home.select_one(".wmb-reading-key")
+        if timing_key is None or ("最终成功" if not prefix else "Final successful") not in timing_key.get_text() or "P95" not in timing_key.get_text():
+            raise ValueError(prefix + "Home must explain final-success timing separately from scoring populations")
+        successes = {name: [row for row in grouped[name]
+                            if row['ok'] and (text := (root / row['artifact_path']).read_text()).strip()
+                            and not ERROR_PAGE.search(text)] for name in PROVIDERS}
+        shared_cases = set.intersection(*(set(row['case_id'] for row in rows) for rows in successes.values()))
+        for tr in localized_home.select('#wmb-core-results tbody tr'):
+            cells = tr.find_all('td', recursive=False)
+            name = Path(cells[1].a['href']).stem
+            values = [row['elapsed_ms'] for row in successes[name]]
+            expected_times = (statistics.fmean(values), statistics.median(values), percentile(values, .95))
+            if cells[-4].get_text(strip=True) != f'{len(values)}/200' or any(
+                    not close(float(td['data-sort']), value) for td, value in zip(cells[-3:], expected_times)):
+                raise ValueError(name + ': final successful-fetch timing differs from immutable calls')
+
+        matched = localized_home.select_one('.wmb-matched-latency')
+        if matched is None or '194' not in matched.get_text() or len(matched.select('tbody tr')) != len(PROVIDERS):
+            raise ValueError(prefix + "Matched latency must cover the same 194 pages with scoped minimum markers")
+        if len(shared_cases) != 194:
+            raise ValueError('Matched successful-page population changed; review timing interpretation')
+        for tr in matched.select('tbody tr'):
+            cells = tr.find_all('td', recursive=False)
+            name = Path(cells[1].a['href']).stem
+            values = [row['elapsed_ms'] for row in successes[name] if row['case_id'] in shared_cases]
+            expected_times = (statistics.fmean(values), statistics.median(values), percentile(values, .95))
+            if any(not close(float(td['data-sort']), value) for td, value in zip(cells[-3:], expected_times)):
+                raise ValueError(name + ': matched-page timing differs from the common final-call population')
         if (len(localized_home.select(".wmb-denominator-matrix tbody tr")) != 2
                 or len(localized_home.select(".wmb-denominator-matrix tbody td")) != 6
                 or localized_home.select_one(".wmb-denominator-example .mermaid") is None):

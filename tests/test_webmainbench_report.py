@@ -6,7 +6,7 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 
-from harness.web_fetch.report import JS, generate_webmainbench, _wmb_pct, _wmb_body_state, _wmb_row_attrs, _wmb_editorial_guide, _wmb_html_preview, _wmb_table_example
+from harness.web_fetch.report import JS, generate_webmainbench, _wmb_pct, _wmb_body_state, _wmb_row_attrs, _wmb_editorial_guide, _wmb_html_preview, _wmb_table_example, _wmb_latency_summary, _wmb_table_population
 from harness.web_fetch.report_build import validate_webmainbench_correction
 from harness.web_fetch.report_style import STYLE
 
@@ -16,6 +16,35 @@ METRICS = ("text_edit", "code_edit", "table_edit", "table_TEDS", "formula_edit")
 
 
 class WebMainBenchReportTests(unittest.TestCase):
+    def test_table_population_separates_reference_presence_from_component_presence(self):
+        rows=[]
+        for name, values in {'a': [(5,0,True),(0,8,True),(0,0,True)], 'b': [(5,5,True),(0,0,True),(0,0,False)]}.items():
+            for i,(gt,pred,ok) in enumerate(values):
+                rows.append({'provider':name,'case_id':str(i),'attempt_id':name+str(i),'ok':ok,'metrics':{'table_edit':{'details':{'groundtruth_table_length':gt,'predicted_table_length':pred}}}})
+        soup=BeautifulSoup(_wmb_table_population(rows,['a','b'],{'a':'A','b':'B'}),'html.parser')
+        actual=[[int(td['data-sort']) for td in row.select('td[data-sort]')] for row in soup.select('tbody tr')]
+        self.assertEqual(actual,[[1,1,2],[1,0,1]])
+        self.assertIn('只有 1 页',soup.get_text())
+
+    def test_success_timing_excludes_failure_and_uses_only_final_call(self):
+        rows = [
+            {'provider': 'a', 'case_id': 'shared', '_body_present': True, 'elapsed_ms': 20, 'total_elapsed_ms': 820},
+            {'provider': 'a', 'case_id': 'extra', '_body_present': True, 'elapsed_ms': 40, 'total_elapsed_ms': 40},
+            {'provider': 'a', 'case_id': 'failed', '_body_present': False, 'elapsed_ms': 1, 'total_elapsed_ms': 2},
+            {'provider': 'b', 'case_id': 'shared', '_body_present': True, 'elapsed_ms': 50, 'total_elapsed_ms': 50},
+            {'provider': 'b', 'case_id': 'extra', '_body_present': False, 'elapsed_ms': 2, 'total_elapsed_ms': 2},
+            {'provider': 'b', 'case_id': 'failed', '_body_present': True, 'elapsed_ms': 80, 'total_elapsed_ms': 80},
+        ]
+        result = _wmb_latency_summary(rows, ['a', 'b'])
+        self.assertEqual(result['successful']['a']['count'], 2)
+        self.assertEqual(result['successful']['a']['mean'], 30)
+        self.assertEqual(result['successful']['a']['p50'], 30)
+        self.assertEqual(result['common_cases'], {'shared'})
+        self.assertEqual(result['matched']['a']['mean'], 20)
+        self.assertEqual(result['matched']['b']['mean'], 50)
+        self.assertEqual(result['cost']['a']['mean'], 862 / 3)
+        self.assertEqual(len(rows), 6)
+
     def test_frozen_html_reader_is_inert_and_keeps_table_content(self):
         raw = '<script>alert(1)</script><meta http-equiv="refresh" content="0;url=https://example.test"><table onclick="alert(2)"><tr><td>Kept cell</td></tr></table><img src="https://example.test/x" onerror="alert(3)"><iframe srcdoc="bad"></iframe><a href="https://example.test">Link text</a>'
         for english in (False, True):
@@ -130,6 +159,7 @@ class WebMainBenchReportTests(unittest.TestCase):
                     "run_id": f"run-{provider}",
                     "ok": True,
                     "total_elapsed_ms": index * 100,
+                    "elapsed_ms": index * 100,
                     "artifact_path": f"artifacts/{provider}/{case_id}.md",
                     "output_sha256": hashlib.sha256(f"output from {provider}".encode()).hexdigest(),
                     "physical_attempt_count": 1,
@@ -187,20 +217,20 @@ class WebMainBenchReportTests(unittest.TestCase):
             for anchor in ("overall", "scope", "tables", "delivery", "decision"):
                 self.assertIn(f'id="{anchor}"', guide)
                 self.assertIn(f'id="{anchor}"', guide_en)
-            self.assertIn("主内容提取得分为何不高", guide)
-            self.assertIn("32.4% 不是", guide)
-            self.assertIn("表格文字还在", guide)
-            self.assertIn("Lightpanda", guide)
-            self.assertNotIn("01 测了什么", guide)
-            self.assertIn("Why main-content extraction scores are modest", guide_en)
-            self.assertIn("does not mean 32.4%", guide_en)
+            for article in (guide, guide_en):
+                parsed = BeautifulSoup(article, 'html.parser')
+                self.assertEqual(len(parsed.select('.wmb-guide-results tbody tr')), len(PROVIDERS))
+                self.assertEqual(len(parsed.select('.wmb-guide-latency tbody tr')), len(PROVIDERS))
+                self.assertEqual(len(parsed.select('#overall .wmb-score-part')), 5)
+                self.assertIsNotNone(parsed.select_one('#content'))
+                self.assertIn('P95', parsed.select_one('#delivery').get_text())
             self.assertNotIn("{common_low}", guide_en)
             self.assertNotIn("{fail_total}", guide_en)
             self.assertIn('data-kind="reference"', (output / "attempts/kitesurf__case-one__r001.html").read_text(encoding="utf-8"))
             self.assertIn("WebMainBench-545", (output / "index.html").read_text(encoding="utf-8"))
             self.assertIn("table-structure score validity did not", (output / "en/index.html").read_text(encoding="utf-8"))
             self.assertIn("Response and body", analysis_en)
-            self.assertIn("API/worker response and final content", (output / "en/attempts/kitesurf__case-one__r001.html").read_text(encoding="utf-8"))
+            self.assertIn("Result summary", (output / "en/attempts/kitesurf__case-one__r001.html").read_text(encoding="utf-8"))
             for row in records:
                 row['official_metrics'] = copy.deepcopy(row['metrics'])
                 row['official_metrics']['table_TEDS'] = {'score': .024347507646390047, 'success': True}
@@ -222,7 +252,7 @@ class WebMainBenchReportTests(unittest.TestCase):
             ]
             self.assertEqual(overall_values, sorted(overall_values, reverse=True))
             self.assertNotIn('可能不计分', (output / 'methodology/index.html').read_text())
-            self.assertIn('wmb-verdict-grid', (output / 'guide/index.html').read_text())
+            self.assertIn('wmb-guide-results', (output / 'guide/index.html').read_text())
             for prefix, label, original in (('', '修正后复算', '官方原始分'),
                                             ('en/', 'recomputed after correction', 'Original official score')):
                 for route in ('index.html', 'analysis/index.html', 'providers/kitesurf.html',
