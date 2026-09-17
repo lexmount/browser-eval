@@ -510,6 +510,14 @@ def test_publication_rejects_stale_diagnostic_source(monkeypatch, tmp_path: Path
     monkeypatch.setattr(publisher, "ATTESTATION", attestation_path)
     monkeypatch.setattr(publisher, "BINDING_JOURNAL", tmp_path / "pending.json")
     assert publisher.validate_package()["diagnostic_closure_sha256"] == _sha256(closure)
+    linked_parent = tmp_path / "linked-parent"
+    linked_parent.symlink_to(tmp_path, target_is_directory=True)
+    attestation["diagnostic_closure"] = str(linked_parent / closure.name)
+    attestation_path.write_text(json.dumps(attestation), encoding="utf-8")
+    with pytest.raises(ValueError, match="diagnostic_closure"):
+        publisher.validate_package()
+    attestation["diagnostic_closure"] = str(closure)
+    attestation_path.write_text(json.dumps(attestation), encoding="utf-8")
     closure.write_text('{"changed":true}', encoding="utf-8")
     with pytest.raises(ValueError, match="diagnostic_closure"):
         publisher.validate_package()

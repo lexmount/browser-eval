@@ -468,6 +468,12 @@ def test_saved_answer_is_recomputed_and_cross_run_replay_rejected(tmp_path, monk
             "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
         }
     verify_attempt(attempt, contract, calls)
+    original_trace_path = attempt["evidence"]["trace"]["path"]
+    for unsafe_path in ("trace.json", "~/trace.json"):
+        attempt["evidence"]["trace"]["path"] = unsafe_path
+        with pytest.raises(ValueError, match="unsafe current-run retrieval evidence"):
+            verify_attempt(attempt, contract, calls)
+    attempt["evidence"]["trace"]["path"] = original_trace_path
     for field in (
         "webarena_verified_version",
         "webarena_verified_evaluator_checksum",

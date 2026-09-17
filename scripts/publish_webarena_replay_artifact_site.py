@@ -168,6 +168,7 @@ def validate_package() -> dict:
         checks["diagnostic_closure"] = (
             closure.is_file()
             and not closure.is_symlink()
+            and not any(parent.is_symlink() for parent in closure.parents)
             and sha256(closure) == source_closure_sha
         )
     failed = [name for name, valid in checks.items() if not valid]

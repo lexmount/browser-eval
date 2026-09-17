@@ -834,8 +834,12 @@ def verify_attempt(
     loaded = {}
     for name in ("trace", "retrieval_acceptance", "actual_response", "evaluation"):
         ref = evidence.get(name) or {}
-        raw = Path(str(ref.get("path") or "")).expanduser()
-        if any(path.is_symlink() for path in [raw, *raw.parents]) or not raw.is_file():
+        raw = Path(str(ref.get("path") or ""))
+        if (
+            not raw.is_absolute()
+            or any(path.is_symlink() for path in [raw, *raw.parents])
+            or not raw.is_file()
+        ):
             raise ValueError("missing or unsafe current-run retrieval evidence")
         data = raw.read_bytes()
         if hashlib.sha256(data).hexdigest() != ref.get("sha256"):
