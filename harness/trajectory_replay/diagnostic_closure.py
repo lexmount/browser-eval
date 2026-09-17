@@ -112,7 +112,12 @@ def _verified_digest(ref: dict[str, Any]) -> str:
 def load_diagnostic_closure(path: str | Path, *, old_failed_tasks: set[int]) -> dict[str, Any]:
     """Verify selected evidence and expose only compact, publication-safe facts."""
     source = Path(path)
-    if source.is_symlink() or not source.is_file():
+    if (
+        not source.is_absolute()
+        or source.is_symlink()
+        or any(parent.is_symlink() for parent in source.parents)
+        or not source.is_file()
+    ):
         raise ValueError("diagnostic closure index is missing or symlinked")
     source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
     index = json.loads(source.read_text(encoding="utf-8"))

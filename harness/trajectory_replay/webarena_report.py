@@ -148,8 +148,13 @@ def _historical_replay_validity_notice(
 def _load_artifact(ref: dict[str, Any] | None) -> Any:
     if not ref or not ref.get("path"):
         return None
-    path = Path(str(ref["path"])).expanduser().resolve()
-    if not path.is_file() or _sha256(path) != ref.get("sha256"):
+    path = Path(str(ref["path"]))
+    if (
+        not path.is_absolute()
+        or any(part.is_symlink() for part in (path, *path.parents))
+        or not path.is_file()
+        or _sha256(path) != ref.get("sha256")
+    ):
         raise ValueError(f"evidence artifact is missing or changed: {path.name}")
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -343,8 +348,13 @@ def _copy_failure_screenshot(attempt: dict[str, Any], output: Path, key: str) ->
     ref = (attempt.get("evidence") or {}).get("failure_screenshot")
     if not ref or not ref.get("path"):
         return None
-    source = Path(str(ref["path"])).expanduser().resolve()
-    if not source.is_file() or _sha256(source) != ref.get("sha256"):
+    source = Path(str(ref["path"]))
+    if (
+        not source.is_absolute()
+        or any(part.is_symlink() for part in (source, *source.parents))
+        or not source.is_file()
+        or _sha256(source) != ref.get("sha256")
+    ):
         raise ValueError(f"failure screenshot is missing or changed: {key}")
     target = output / "assets/screenshots" / f"{key}.png"
     target.parent.mkdir(parents=True, exist_ok=True)

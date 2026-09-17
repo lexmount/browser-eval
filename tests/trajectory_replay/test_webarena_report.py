@@ -1,3 +1,4 @@
+import hashlib
 import json
 from pathlib import Path
 
@@ -10,8 +11,10 @@ from harness.trajectory_replay.webarena_report import (
     LEGACY_REPLAY_VALIDITY_INPUTS,
     _assets,
     _clean,
+    _copy_failure_screenshot,
     _detail_page,
     _historical_replay_validity_notice,
+    _load_artifact,
     _measured_validity_identity,
     _metrics_table,
     _outcome_metrics,
@@ -563,6 +566,21 @@ def test_report_removes_macos_and_linux_local_paths() -> None:
         "/opt/hostedtoolcache/trace.json",
     ):
         assert _clean(f"failure at {path}") == "failure at [local path removed]"
+
+
+def test_report_rejects_symlinked_evidence_parent(tmp_path: Path) -> None:
+    evidence = tmp_path / "evidence.json"
+    evidence.write_text("{}", encoding="utf-8")
+    linked_parent = tmp_path / "linked-parent"
+    linked_parent.symlink_to(tmp_path, target_is_directory=True)
+    ref = {
+        "path": str(linked_parent / evidence.name),
+        "sha256": hashlib.sha256(evidence.read_bytes()).hexdigest(),
+    }
+    with pytest.raises(ValueError, match="missing or changed"):
+        _load_artifact(ref)
+    with pytest.raises(ValueError, match="missing or changed"):
+        _copy_failure_screenshot({"evidence": {"failure_screenshot": ref}}, tmp_path, "fixture")
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])

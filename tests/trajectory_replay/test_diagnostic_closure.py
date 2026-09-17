@@ -29,6 +29,15 @@ def test_diagnostic_evidence_requires_matching_regular_file(tmp_path: Path) -> N
         _verified_digest({"path": str(link), "sha256": ref["sha256"]})
 
 
+def test_diagnostic_index_rejects_symlinked_parent(tmp_path: Path) -> None:
+    source = tmp_path / "index.json"
+    source.write_text("{}", encoding="utf-8")
+    linked_parent = tmp_path / "linked-parent"
+    linked_parent.symlink_to(tmp_path, target_is_directory=True)
+    with pytest.raises(ValueError, match="missing or symlinked"):
+        load_diagnostic_closure(linked_parent / source.name, old_failed_tasks=set())
+
+
 def test_diagnostic_closure_is_bounded_and_public_safe(tmp_path: Path) -> None:
     receipt = _write(tmp_path / "receipt.json", {"local_path": str(tmp_path), "status": "pass"})
     ids = sorted(CURRENT_TASKS | set(range(1000, 1027)))
