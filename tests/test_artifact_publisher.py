@@ -90,6 +90,16 @@ class ArtifactPublisherTests(unittest.TestCase):
         self.assertEqual(json.loads(self.calls[1][1]), {'slug': 'current'})
         self.assertEqual(self.calls[-1][0], '/api/uploads/ver_upload/commit?expected_version=ver_old')
 
+    def test_parallel_upload_finishes_all_files_before_commit(self):
+        result = json.loads(upload_large_archive(self.request, self.archive, 'current', 'ver_old', max_workers=2))
+        self.assertEqual(result['versionId'], 'ver_new')
+        puts = [call for call in self.calls if call[2].get('method') == 'PUT']
+        self.assertEqual({call[0] for call in puts}, {
+            '/api/uploads/ver_upload/files/index.html',
+            '/api/uploads/ver_upload/files/packs/output.gz',
+        })
+        self.assertEqual(self.calls[-1][0], '/api/uploads/ver_upload/commit?expected_version=ver_old')
+
     def test_changed_remote_never_commits(self):
         self.versions = iter(['ver_old', 'ver_someone_else'])
         with self.assertRaisesRegex(RuntimeError, 'Remote version changed'):

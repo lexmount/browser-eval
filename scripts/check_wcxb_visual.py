@@ -21,25 +21,8 @@ def check(root: Path, browser_binary: str) -> None:
     root = root.resolve()
 
     class Handler(SimpleHTTPRequestHandler):
-        def translate_path(self, path):
-            return str(root / path.split('?', 1)[0].lstrip('/'))
-
-        def do_GET(self):
-            if self.path.split('?', 1)[0].endswith('.html'):
-                source = Path(self.translate_path(self.path))
-                if not source.is_file():
-                    self.send_error(404)
-                    return
-                data = source.read_text().replace(
-                    '<head>', f'<head><base href="http://127.0.0.1:{self.server.server_port}/">', 1
-                ).encode()
-                self.send_response(200)
-                self.send_header('Content-Type', 'text/html; charset=utf-8')
-                self.send_header('Content-Length', str(len(data)))
-                self.end_headers()
-                self.wfile.write(data)
-            else:
-                super().do_GET()
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, directory=str(root), **kwargs)
 
         def log_message(self, *args):
             pass
@@ -49,11 +32,16 @@ def check(root: Path, browser_binary: str) -> None:
     thread.start()
     checked = 0
     try:
-        case_id = json.loads((root / 'sample-manifest.json').read_text())['cases'][0]['file_id']
+        score_rows = [json.loads(line) for line in (root / 'wcxb-scores.jsonl').read_text().splitlines() if line]
+        case_id = next(row['case_id'] for row in score_rows if row['quality_eligible'] and row['diagnosis'] == 'none')
+        diagnostic_row = next(row for row in score_rows if row['quality_eligible'] and row['diagnosis'] == 'low_precision')
+        diagnostic_id = diagnostic_row['case_id']
+        qualified_count = len({row['case_id'] for row in score_rows if row['quality_eligible']})
+        provider_count = len({row['provider'] for row in score_rows})
         routes = ('index.html', 'datasets/index.html', 'analysis/index.html',
                   'methodology/index.html', 'review/index.html', 'guide/index.html',
                   'adoption/index.html', 'reproduce/index.html', 'changes/index.html',
-                  'accounts/index.html', f'cases/{case_id}.html')
+                  'accounts/index.html', f'cases/{case_id}.html', f'cases/{diagnostic_id}.html')
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True, executable_path=browser_binary)
             try:
@@ -68,20 +56,63 @@ def check(root: Path, browser_binary: str) -> None:
                                     prefix = 'en/' if lang == 'en' else ''
                                     page.goto(f'http://127.0.0.1:{server.server_port}/{prefix}{route}',
                                               wait_until='networkidle')
+                                    if not page.locator('link[rel="stylesheet"]').evaluate('(node) => Boolean(node.sheet)'):
+                                        raise ValueError(f'Report stylesheet did not load: {lang} {route}')
                                     if dark:
                                         page.locator('header button').click()
                                     if page.locator('body').evaluate('(node) => node.scrollWidth') > width:
                                         raise ValueError(f'Horizontal page overflow: {lang} {route} {width} {dark}')
                                     if errors:
                                         raise ValueError(f'Browser error: {lang} {route}: {errors}')
+                                    if route == 'index.html' and not dark:
+                                        if page.locator('#wcxb-core .comparison-winner').count() < 4:
+                                            raise ValueError('Core comparison is missing column winners')
+                                        if not page.locator('#wcxb-core tbody tr').first.inner_text().startswith('Obscura'):
+                                            raise ValueError('Core table is not ordered by qualified F1')
+                                        page.locator('[data-core-sort="5"]').click()
+                                        if not page.locator('#wcxb-core tbody tr').first.inner_text().startswith('Moli'):
+                                            raise ValueError('Core latency sorting did not work')
+                                        page.locator('#home-type').select_option('article')
+                                        if page.locator('#wcxb-types tbody tr:visible').count() != 1:
+                                            raise ValueError('Page-type filter does not narrow the comparison')
                                     if route == 'analysis/index.html' and not dark:
                                         page.locator('#scope').select_option('all')
-                                        if page.locator('#count').inner_text() != '2555':
-                                            raise ValueError('Results filter does not expose the full matrix')
+                                        if page.locator('#count').inner_text() != str(qualified_count * provider_count):
+                                            raise ValueError('Results filter does not expose the qualified matrix')
                                         page.locator('#q').fill(case_id)
-                                        if page.locator('#count').inner_text() != '5':
+                                        if page.locator('#count').inner_text() != str(provider_count):
                                             raise ValueError('Same-case search does not expose five results')
+                                        page.locator('#compare-baseline').select_option('moli')
+                                        page.locator('[name="compare-provider"][value="chromium"]').check()
+                                        if page.locator('#comparison-rows tr').count() != qualified_count:
+                                            raise ValueError('Same-page comparison does not cover every qualified page')
+                                        page.locator('#compare-query').fill(case_id)
+                                        if page.locator('#compare-count').inner_text() != '1':
+                                            raise ValueError('Same-page comparison search failed')
+                                        page.locator('tr[data-provider] button[data-diagnosis-open]:visible').first.click()
+                                        if not page.locator('#diagnosis-dialog').evaluate('(node) => node.open'):
+                                            raise ValueError('Inventory diagnosis did not open')
+                                        detail_href = page.locator('#diagnosis-dialog [data-diagnosis-link]').get_attribute('href')
+                                        if not detail_href or f'cases/{case_id}.html' not in detail_href:
+                                            raise ValueError('Inventory diagnosis does not target the matching case')
+                                        trigger = page.locator('tr[data-provider] button[data-diagnosis-open]:visible').first
+                                        page.keyboard.press('Escape')
+                                        if page.locator('#diagnosis-dialog').evaluate('(node) => node.open'):
+                                            raise ValueError('Escape did not close the diagnosis dialog')
+                                        if not trigger.evaluate('(node) => document.activeElement === node'):
+                                            raise ValueError('Diagnosis focus did not return to its trigger')
+                                        if lang == 'zh' and width == 1365:
+                                            page.locator('tr[data-provider] a:visible').first.click()
+                                            if f'cases/{case_id}.html' not in page.url:
+                                                raise ValueError('Nested result link does not open the case')
+                                            page.locator('header a').first.click()
+                                            if not page.url.endswith('/index.html'):
+                                                raise ValueError('Nested result cannot return to the report root')
                                     if route.startswith('cases/') and not dark:
+                                        if route.endswith(f'/{diagnostic_id}.html'):
+                                            locator = page.locator(f'#{diagnostic_row["provider"]} .tag').inner_text()
+                                            if locator != ('精确率低' if lang == 'zh' else 'Low precision'):
+                                                raise ValueError('Diagnostic case lacks its locator evidence')
                                         page.locator('details[data-output]:has(pre[data-provider])').first.click()
                                         page.wait_for_function("() => document.querySelector('pre[data-provider]')?.textContent.length > 0")
                                         if 'Unable to load evidence' in page.locator('pre[data-provider]').first.inner_text():
