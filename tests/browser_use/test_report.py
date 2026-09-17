@@ -328,6 +328,7 @@ def test_formal_fix_rejects_borrowed_certification_after_trajectory_changes(
         "raw_har",
         "exact_frame",
         "symlink",
+        "root_path",
         "unsafe",
         "comparison_claim",
         "credential",
@@ -354,6 +355,8 @@ def test_fix_log_rejects_unbound_or_misrepresented_evidence(tmp_path: Path, chan
         link = tmp_path / "linked.png"
         link.symlink_to(model["artifacts"][0]["path"])
         model["artifacts"][0]["path"] = str(link)
+    elif change == "root_path":
+        model["records"][0]["title"]["zh"] = "本地文件 /root/work/evidence.json"
     elif change == "unsafe":
         model["artifacts"][0]["public_safe"] = False
     elif change == "comparison_claim":
@@ -387,6 +390,16 @@ def test_fix_log_empty_state_does_not_invent_measurements(tmp_path: Path) -> Non
         "No fix records with bound validation evidence"
         in (tmp_path / "en/fixes/index.html").read_text()
     )
+
+
+def test_fix_log_rejects_source_under_symlinked_parent(tmp_path: Path) -> None:
+    profile, _ = _fix_log_fixture(tmp_path)
+    linked_parent = tmp_path / "linked-parent"
+    linked_parent.symlink_to(tmp_path, target_is_directory=True)
+    source = Path(profile["fix_log"]["source_path"])
+    profile["fix_log"]["source_path"] = str(linked_parent / source.name)
+    with pytest.raises(ValueError, match="not hash-bound"):
+        report_module._load_fix_log(profile)
 
 
 @pytest.mark.parametrize("explicit", [True, False])

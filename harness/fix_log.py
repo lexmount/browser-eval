@@ -40,7 +40,12 @@ def load_fix_log(
     if not binding:
         return {**EMPTY_FIX_LOG, "records": [], "artifacts": []}
     source = Path(binding["source_path"])
-    if source.is_symlink() or not source.is_file() or _sha256(source) != binding["source_sha256"]:
+    if (
+        source.is_symlink()
+        or any(parent.is_symlink() for parent in source.parents)
+        or not source.is_file()
+        or _sha256(source) != binding["source_sha256"]
+    ):
         raise ValueError("fix log is not hash-bound")
     model = _read_json(source)
     if model.get("schema") != EMPTY_FIX_LOG["schema"]:
@@ -62,7 +67,9 @@ def load_fix_log(
 
     def public_text(value: Any) -> None:
         text = json.dumps(value, ensure_ascii=False)
-        if sanitize_value(value) != value or re.search(r"/(?:Users|home|private|tmp|var)/", text):
+        if sanitize_value(value) != value or re.search(
+            r"/(?:Users|home|root|private|tmp|var|opt)/", text
+        ):
             raise ValueError("fix log contains private data or local paths")
         if re.search(
             r'"(?:authorization|cookie|set-cookie|password|access_token|api_key)"\s*:',

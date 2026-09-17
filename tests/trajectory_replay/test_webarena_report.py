@@ -522,6 +522,7 @@ def test_report_removes_macos_and_linux_local_paths() -> None:
     for path in (
         "/Users/example/run/trace.json",
         "/home/runner/work/trace.json",
+        "/root/work/trace.json",
         "/private/tmp/run/trace.json",
         "/var/lib/docker/trace.json",
         "/opt/hostedtoolcache/trace.json",
