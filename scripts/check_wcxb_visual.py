@@ -130,6 +130,9 @@ def check(root: Path, browser_binary: str) -> None:
                                             if not page.url.endswith('/index.html'):
                                                 raise ValueError('Nested result cannot return to the report root')
                                     if route.startswith('cases/') and not dark:
+                                        page.locator('.hero .source a').click()
+                                        if not page.url.endswith(route + '#preview'):
+                                            raise ValueError('Case source URL does not open its frozen preview')
                                         preview = page.frame_locator('iframe.frozen-preview').locator('body')
                                         if not preview.inner_text().strip():
                                             raise ValueError('Frozen page preview is blank')

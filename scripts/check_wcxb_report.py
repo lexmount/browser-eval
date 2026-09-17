@@ -208,6 +208,8 @@ def check(root: Path) -> None:
                 require(f'evidence/{Path(route).stem}.json' in html, f'Case evidence link missing: {route}')
                 require('id="preview"' in html and 'class="frozen-preview"' in html, f'Frozen-page preview missing: {route}')
                 case = Path(route).stem
+                require(BeautifulSoup(html, 'html.parser').select_one(f'.hero .source a[href$="cases/{case}.html#preview"]') is not None,
+                        f'Case source URL does not link to the frozen preview: {route}')
                 for provider in providers:
                     row = by_case[case][provider]
                     if row['error_message']:
