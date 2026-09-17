@@ -273,6 +273,11 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
                             raise ValueError(prefix + 'Moli rerun winner marker disagrees with same-host evidence')
                 if len(section.select('.wmb-rerun-resource tbody tr')) != 2 or not section.select_one('a[href$="latency-diagnostic.json"]'):
                     raise ValueError(prefix + 'Moli latency rerun lacks resource evidence or per-case download')
+                failed_case = latency_diagnostic['failure_retest']['case_id']
+                if (not section.select_one(f'a[href$="datasets/{failed_case}.html"]')
+                        or not all(marker in section.get_text(' ', strip=True) for marker in
+                                   (('重试', '禁用页面脚本') if not prefix else ('retry', 'Disabling page-authored JavaScript')))):
+                    raise ValueError(prefix + 'Moli failed-page retest conclusion is missing')
         home_headers = {tag.get_text(" ", strip=True) for tag in localized_home.select("#wmb-core-results th")}
         if teds_revision is not None:
             correction_label = '修正后复算' if not prefix else 'recomputed after correction'

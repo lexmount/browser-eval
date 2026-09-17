@@ -189,8 +189,37 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
     probe_differences = {mode: [probe[case_id, '1.1.7', mode]['elapsed_ms'] -
                                 probe[case_id, '1.1.5', mode]['elapsed_ms'] for case_id in valid]
                          for mode in ('html', 'markdown')}
+    failure = json.loads(verified_bytes(root, 'failure-retest/summary.json',
+                         manifest['failure_retest']['summary_json_sha256']))
+    failed_case = failure.get('case_id')
+    if failure.get('kind') != 'moli_origin_redirect_retry_diagnostic_v1' or failed_case not in cases:
+        raise ValueError('Moli failed-page retest has an invalid case binding')
+    for version, label in (('1.1.5', 'moli-115-control'), ('1.1.7', 'moli-117-repeat')):
+        item = failure['runs'][version]
+        run = contained_path(root, 'failure-retest/' + version)
+        files = {name: verified_bytes(run, name, digest_value) for name, digest_value in item['files'].items()}
+        execution = json.loads(files['execution.json'])
+        rows = [json.loads(line) for line in files['results.jsonl'].splitlines() if line.strip()]
+        attempts = [json.loads(line) for line in files['physical-attempts.jsonl'].splitlines() if line.strip()]
+        if (len(rows) != 1 or len(attempts) != 2 or rows[0]['track_id'] != failed_case
+                or rows[0]['provider'] != RUNS[label] or rows[0]['ok'] or any(attempt['ok'] for attempt in attempts)
+                or not retry_chain_matches(rows[0], attempts)
+                or rows[0]['input_html_sha256'] != cases[failed_case]['input_html_sha256']
+                or execution['implementation_identity']['binary_sha256'] != run_rows[label]['binary_sha256']
+                or item['binary_sha256'] != run_rows[label]['binary_sha256']
+                or item['attempts'] != 2 or item['result_ok'] is not False
+                or item['error_type'] != rows[0]['error_type']
+                or 'langrensha.163.com/wanfa/guize/' not in rows[0]['error_message']):
+            raise ValueError('Moli failed-page retest did not reproduce the bound origin failure')
+        disabled = failure['disable_page_js'][version]
+        output = verified_bytes(root, f'failure-retest/disable-js/{version}.md', disabled['output_sha256'])
+        verified_bytes(root, f'failure-retest/disable-js/{version}.stderr', disabled['stderr_sha256'])
+        if disabled['exit_code'] != 0 or not output.strip() or disabled['output_bytes'] != len(output):
+            raise ValueError('Moli script-disabled control did not return body text')
     return {'kind': 'same_host_latency_diagnostic', 'official_results_sha256': manifest['official_results_sha256'],
             'runs': run_rows, 'resource': resource,
+            'failure_retest': {'case_id': failed_case, 'attempts_per_version': 2,
+                               'same_origin_failure': True, 'script_disabled_returns_body': True},
             'paired': {'n': len(common), 'new_slower': sum(x > 0 for x in differences),
                        'new_faster': sum(x < 0 for x in differences),
                        'mean_difference_ms': statistics.fmean(differences),

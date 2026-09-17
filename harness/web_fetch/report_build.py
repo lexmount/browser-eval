@@ -351,6 +351,11 @@ def validate_webmainbench_anomaly_review(receipt: dict, source: Path,
     if (bindings.get('source_dataset_sha256') != dataset.get('source_dataset_sha256')
             or bindings.get('sample_manifest_sha256') != dataset.get('sample_manifest_sha256')):
         raise ValueError('WebMainBench anomaly review dataset binding mismatch')
+    retest_sha = receipt.get('diagnostic_evidence', {}).get('moli_origin_retest_summary_sha256')
+    if retest_sha:
+        retest_path = contained_path(source, 'latency-diagnostic/failure-retest/summary.json')
+        if not retest_path.is_file() or hashlib.sha256(retest_path.read_bytes()).hexdigest() != retest_sha:
+            raise ValueError('Moli origin-failure retest is not bound to the anomaly review')
     scope = receipt.get('scope', {})
     triggered = receipt.get('triggered_attempt_ids')
     attempts = {row['attempt_id'] for row in records}
