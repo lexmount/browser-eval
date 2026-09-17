@@ -108,6 +108,31 @@ def _observed(candidate: dict, body: str, path: str | None = None) -> bool:
             or candidate["task_id"] == 418
             or value.get("username") == observer["require_authenticated_user"]
         )
+    if kind == "same_origin_get_json_discussions":
+        value = json.loads(body)
+        if (
+            not isinstance(value, list)
+            or len(value) >= observer["page_size"]
+            or not all(
+                isinstance(discussion, dict) and isinstance(discussion.get("notes"), list)
+                for discussion in value
+            )
+        ):
+            return False
+        notes = [note for discussion in value for note in discussion["notes"]]
+        return (
+            sum(
+                isinstance(note, dict)
+                and note.get("noteable_id") == observer["noteable_id"]
+                and note.get("noteable_type") == observer["noteable_type"]
+                and note.get("noteable_iid") == observer["noteable_iid"]
+                and isinstance(note.get("author"), dict)
+                and note.get("author", {}).get("username") == observer["author_username"]
+                and note.get("note") == observer["note_equals"]
+                for note in notes
+            )
+            == 1
+        )
     if kind == "same_origin_get_json_pair":
         values = json.loads(body)
         return (
@@ -326,9 +351,10 @@ def _order_observed(
         ),
         (
             415,
-            '<main><li><a href="/byteblaze">Byte Blaze</a>'
-            '<a href="#note_42">Permalink</a><p>@davepgreene</p></li></main>',
-            '<main><li><a href="/byteblaze">Byte Blaze</a><p>@davepgreene</p></li></main>',
+            '[{"notes":[{"noteable_id":138783,"noteable_type":"MergeRequest",'
+            '"noteable_iid":40,"author":{"username":"byteblaze"},"note":"@davepgreene"}]}]',
+            '[{"notes":[{"noteable_id":138783,"noteable_type":"MergeRequest",'
+            '"noteable_iid":40,"author":{"username":"byteblaze"},"note":"other"}]}]',
         ),
         (418, '{"availability":"busy"}', '{"availability":"available"}'),
         (
@@ -392,6 +418,52 @@ def test_read_only_observer_requires_persisted_state(
 ):
     assert _observed(candidates[task_id], positive)
     assert not _observed(candidates[task_id], negative)
+
+
+@pytest.mark.parametrize(
+    "replacement",
+    [
+        {"noteable_id": 1},
+        {"noteable_type": "Issue"},
+        {"noteable_iid": 41},
+        {"author": {"username": "another-user"}},
+        {"author": None},
+        {"note": "@someoneelse"},
+    ],
+)
+def test_gitlab_note_observer_rejects_wrong_identity(candidates, replacement):
+    note = {
+        "noteable_id": 138783,
+        "noteable_type": "MergeRequest",
+        "noteable_iid": 40,
+        "author": {"username": "byteblaze"},
+        "note": "@davepgreene",
+    }
+    note.update(replacement)
+    assert not _observed(candidates[415], json.dumps([{"notes": [note]}]))
+
+
+def test_gitlab_note_observer_rejects_duplicate_exact_notes(candidates):
+    note = {
+        "noteable_id": 138783,
+        "noteable_type": "MergeRequest",
+        "noteable_iid": 40,
+        "author": {"username": "byteblaze"},
+        "note": "@davepgreene",
+    }
+    assert not _observed(candidates[415], json.dumps([{"notes": [note, note]}]))
+
+
+def test_gitlab_note_observer_rejects_unknown_next_page(candidates):
+    note = {
+        "noteable_id": 138783,
+        "noteable_type": "MergeRequest",
+        "noteable_iid": 40,
+        "author": {"username": "byteblaze"},
+        "note": "@davepgreene",
+    }
+    discussions = [{"notes": [note]}] + [{"notes": []} for _ in range(19)]
+    assert not _observed(candidates[415], json.dumps(discussions))
 
 
 def test_reddit_vote_is_blocked_without_independent_read_only_state(candidates):

@@ -63,12 +63,15 @@
       "task_id": 415,
       "action_count": 6,
       "observer": {
-        "kind": "same_origin_get_html",
-        "path": "/byteblaze/a11y-webring.club/-/merge_requests/40",
-        "within": "main li",
-        "require_author_href": "/byteblaze",
-        "require_permalink_pattern": "^#note_[0-9]+$",
-        "paragraph_contains": "@davepgreene",
+        "kind": "same_origin_get_json_discussions",
+        "path": "/byteblaze/a11y-webring.club/-/merge_requests/40/discussions.json?per_page=20",
+        "page_size": 20,
+        "require_not_full_page": true,
+        "noteable_id": 138783,
+        "noteable_type": "MergeRequest",
+        "noteable_iid": 40,
+        "author_username": "byteblaze",
+        "note_equals": "@davepgreene",
         "require_exactly_one_matching_note": true
       },
       "official_network_event": {
