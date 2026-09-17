@@ -5,6 +5,7 @@ import json
 
 from .safety import contained_path
 from .scoring_regressions import valid_correction_provenance
+from .webmainbench_latency_correction import prior_results_path
 
 ERROR_PAGE = re.compile(
     r"(?:^#\s*Error response\b|^Error code:\s*404\b|ERR[_\\]ACCESS[_\\]DENIED\b|"
@@ -33,6 +34,7 @@ def validate_teds_revision(root):
     def digest(path):
         return hashlib.sha256(path.read_bytes()).hexdigest()
     receipt_path = contained_path(root, 'teds-correction.json')
+    teds_output_path = prior_results_path(root)
     receipt = json.loads(receipt_path.read_text())
     review = json.loads(contained_path(root, 'teds-correction-review.json').read_text())
     if not valid_correction_provenance(receipt) or receipt.get('provider_calls') != 0:
@@ -41,7 +43,7 @@ def validate_teds_revision(root):
     if review.get('status') != 'passed' or review.get('logical_results') != expected_count:
         raise ValueError('TEDS correction review incomplete')
     if (digest(receipt_path) != review.get('correction_receipt_sha256')
-            or digest(root / 'results.jsonl') != receipt.get('output_results_sha256')
+            or digest(teds_output_path) != receipt.get('output_results_sha256')
             or receipt['output_results_sha256'] != review.get('output_results_sha256')
             or digest(root / 'original-results.jsonl') != receipt.get('input_results_sha256')
             or digest(root / 'dataset.json') != receipt.get('dataset_sha256')):
@@ -50,7 +52,7 @@ def validate_teds_revision(root):
         if digest(contained_path(root / 'correction-source', path)) != expected:
             raise ValueError('TEDS correction source hash mismatch')
     original = [json.loads(line) for line in (root / 'original-results.jsonl').read_text().splitlines()]
-    current = [json.loads(line) for line in (root / 'results.jsonl').read_text().splitlines()]
+    current = [json.loads(line) for line in teds_output_path.read_text().splitlines()]
     if len(original) != expected_count or len(current) != expected_count:
         raise ValueError('TEDS correction scope mismatch')
     if len({row['attempt_id'] for row in current}) != expected_count:

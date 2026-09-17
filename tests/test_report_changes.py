@@ -3,10 +3,46 @@ import tempfile
 import unittest
 from unittest.mock import patch
 from pathlib import Path
-from harness.web_fetch.report_changes import render_changes
+from harness.web_fetch.report_changes import render_changes, render_webmainbench_history, webmainbench_history
 from harness.web_fetch.report import overview_card, ranking
 
 class ReportChangesTests(unittest.TestCase):
+    def test_webmainbench_history_is_localized_from_one_record(self):
+        from harness.web_fetch.report_changes import ROOT
+        source = json.loads((ROOT / 'research/report-changes.json').read_text(encoding='utf-8'))
+        releases = webmainbench_history(source)
+        self.assertEqual(len(releases), 15)
+        for english in (False, True):
+            page = render_webmainbench_history(
+                {'releases': releases}, english,
+                [('latency-corrections.json', '纠正收据', 'Correction receipt')])
+            self.assertEqual(page.count('data-release-id='), len(releases))
+            latest = releases[0]['i18n']['en'] if english else releases[0]
+            self.assertIn(latest['summary'], page)
+            self.assertIn('latency-corrections.json', page)
+        broken = json.loads(json.dumps(source))
+        first = next(row for row in broken['releases'] if row['id'] == releases[0]['id'])
+        first['i18n']['en'].pop('summary')
+        with self.assertRaisesRegex(ValueError, 'bilingual summary'):
+            webmainbench_history(broken)
+
+    def test_web_fetch_release_translations_come_from_history(self):
+        from harness.web_fetch.report_changes import ROOT
+        from harness.web_fetch.report_i18n import translate_text
+        data = json.loads((ROOT / 'research/report-changes.json').read_text(encoding='utf-8'))
+        releases = [row for row in data['releases']
+                    if 'webmainbench_frozen_html_to_markdown' not in row.get('comparison_kinds', [])
+                    and 'public_benchmark_research' not in row.get('comparison_kinds', [])]
+        self.assertEqual(len(releases), 20)
+        for row in releases:
+            english = row['i18n']['en']
+            for key in ('title', 'summary'):
+                self.assertEqual(translate_text(row[key]), english[key], row['id'])
+            self.assertEqual(len(row['changes']), len(english['changes']))
+            for source, target in zip(row['changes'], english['changes'], strict=True):
+                for zh, en in zip(source, target, strict=True):
+                    self.assertEqual(translate_text(zh), en, row['id'])
+
     def test_current_web_fetch_release_binds_score_revision_and_exact_rerun_scope(self):
         from harness.web_fetch.report_changes import ROOT, select_cohort_history
         from harness.web_fetch.report_i18n import translate_text

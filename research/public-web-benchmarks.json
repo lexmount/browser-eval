@@ -105,7 +105,7 @@
     {"layer": "Official public score", "layer_zh": "公开集官方分数", "keep": "Keep all five WebMainBench-545 components and official overall with frozen conversion and splitting.", "keep_zh": "保留 WebMainBench-545 五个分项与官方 overall，冻结转换和切分。"},
     {"layer": "Acceptance and failure", "layer_zh": "验收与失败", "keep": "Reuse the current one-result predicate, pass/fail filters, failure classes, missing-output denominator and independent review as separate diagnostics.", "keep_zh": "复用现有统一结果判定、通过/失败筛选、失败分类、缺失输出分母和独立复核，作为独立诊断。"},
     {"layer": "Coverage", "layer_zh": "覆盖诊断", "keep": "Add current full-body P/R/F1, region coverage and forbidden/error-page checks; borrow WCXB include/exclude snippets only after validating them against the answer.", "keep_zh": "增加现有完整正文 P/R/F1、分区覆盖和禁入/错误页检查；WCXB 的应包含/应排除片段须先与答案交叉校验。"},
-    {"layer": "Transport", "layer_zh": "传输层", "keep": "Keep live success and latency in the 150-case suite. Serve identical frozen HTML bytes to URL-only methods and label that latency as fixture-route latency.", "keep_zh": "真实成功率和时延留在 150 例；对仅支持 URL 的方法提供相同冻结 HTML，并把时延标为夹具链路时延。"}
+    {"layer": "Transport", "layer_zh": "传输层", "keep": "Keep live success and latency in the 150-case suite. Serve identical frozen HTML bytes to URL-only methods and label that latency as local-test-server latency.", "keep_zh": "真实成功率和时延留在 150 例；对仅支持 URL 的方法提供相同冻结 HTML，并把时延标为本地测试服务器链路时延。"}
   ],
   "sampling_contract": {
     "parent": "WebMainBench-545", "size": 200, "seed": "browser-eval:webmainbench-545:v1:200",
