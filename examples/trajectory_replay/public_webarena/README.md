@@ -186,7 +186,11 @@ PVC without verifying its ownership and that no retained workload mounts it.
 The baseline resource requests total 10 CPU cores and 20 GiB of memory per slice, plus
 100 millicores and 128 MiB for the initializer. Capacity planning must use schedulable
 resources, not cluster totals. Reconcile the pool to current active demand plus the chosen
-idle reserve; the controller destroys excess unleased slices when demand falls. Rainbond
+idle reserve; the controller destroys excess unleased slices when demand falls.
+Use `scale --count 0 --minimum-ready 0` to remove all unleased slots when no
+idle reserve is needed. Active leases remain protected. Release progress is
+persisted before reset so a retry cannot confuse task preparation with cleanup
+or unnecessarily repeat a completed replacement after a local write failure. Rainbond
 may also need temporary headroom while a replacement generation starts and for rolling
 updates. When that headroom is unavailable, use `stop_before_replace` for that deployment
 rather than weakening isolation or sharing writable sites.

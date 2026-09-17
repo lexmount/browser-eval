@@ -678,6 +678,8 @@ def test_scale_pool_keeps_one_warm_slice_and_removes_only_excess(tmp_path, monke
     assert [path.parent.name for path in destroyed] == ["slice-3", "slice-2"]
     with pytest.raises(ValueError, match="minimum_ready"):
         scale_pool(tmp_path / "config.json", output, "warm", 0, minimum_ready=1)
+    assert scale_pool(tmp_path / "config.json", output, "warm", 0, minimum_ready=0) == []
+    assert [path.parent.name for path in destroyed] == ["slice-3", "slice-2", "slice-1"]
 
 
 def test_scale_pool_rolls_back_every_new_slot_after_partial_failure(tmp_path, monkeypatch):
@@ -736,7 +738,8 @@ def test_capacity_keeps_idle_slice_in_addition_to_active_demand(tmp_path, monkey
     assert calls[0][3:] == (4, 1)
 
 
-def test_scale_down_is_atomic_when_an_excess_slice_is_leased(tmp_path, monkeypatch):
+@pytest.mark.parametrize("count", [0, 1])
+def test_scale_down_is_atomic_when_an_excess_slice_is_leased(tmp_path, monkeypatch, count):
     destroyed = []
 
     class Config:
@@ -763,7 +766,7 @@ def test_scale_down_is_atomic_when_an_excess_slice_is_leased(tmp_path, monkeypat
     (output / "slice-2" / "slice-lease.json").write_text("{}")
 
     with pytest.raises(RuntimeError, match="leased Rainbond slices"):
-        scale_pool(tmp_path / "pool.json", output, "warm", 1)
+        scale_pool(tmp_path / "pool.json", output, "warm", count, minimum_ready=0)
 
     assert destroyed == []
 
@@ -916,7 +919,8 @@ def test_failed_release_keeps_lease_so_dirty_slice_cannot_be_reassigned(tmp_path
         acquire_slice(output, "task-b")
 
 
-def test_release_retry_only_unlinks_after_reset_was_persisted(tmp_path, monkeypatch):
+@pytest.mark.parametrize("failure_point", ["unlink", "config"])
+def test_release_retry_only_unlinks_after_reset_was_persisted(tmp_path, monkeypatch, failure_point):
     output = tmp_path / "runtime"
     slot_dir = _ready_slot(output, 1, 101)
     lease = acquire_slice(output, "task-a")
@@ -946,17 +950,30 @@ def test_release_retry_only_unlinks_after_reset_was_persisted(tmp_path, monkeypa
 
     monkeypatch.setattr("harness.environments.webarena.rainbond.RainbondSlicePool", Pool)
     original_unlink = Path.unlink
+    original_replace = Path.replace
     failures = 0
 
     def fail_first_lease_unlink(path, *args, **kwargs):
         nonlocal failures
-        if path == lease_path and failures == 0:
+        if failure_point == "unlink" and path == lease_path and failures == 0:
             failures += 1
             raise OSError("transient unlink failure")
         return original_unlink(path, *args, **kwargs)
 
+    def fail_first_config_replace(path, target):
+        nonlocal failures
+        if (
+            failure_point == "config"
+            and Path(target) == slot_dir / "webarena.config.json"
+            and failures == 0
+        ):
+            failures += 1
+            raise OSError("transient config failure")
+        return original_replace(path, target)
+
     monkeypatch.setattr(Path, "unlink", fail_first_lease_unlink)
-    with pytest.raises(OSError, match="transient unlink failure"):
+    monkeypatch.setattr(Path, "replace", fail_first_config_replace)
+    with pytest.raises(OSError, match="transient .* failure"):
         release_slice(tmp_path / "pool.json", output, lease["lease_id"])
     assert lease_path.exists()
     assert len(reset_calls) == 1
@@ -966,3 +983,41 @@ def test_release_retry_only_unlinks_after_reset_was_persisted(tmp_path, monkeypa
     assert result["ready_app_id"] == 201
     assert not lease_path.exists()
     assert len(reset_calls) == 1
+
+
+def test_release_does_not_mistake_task_preparation_for_cleanup(tmp_path, monkeypatch):
+    output = tmp_path / "runtime"
+    slot_dir = _ready_slot(output, 1, 101)
+    lease = acquire_slice(output, "task-a")
+    receipt_path = slot_dir / "slice-receipt.json"
+    receipt = json.loads(receipt_path.read_text())
+    receipt["app_id"] = 201
+    receipt_path.write_text(json.dumps(receipt))
+    (slot_dir / "webarena.config.json").write_text(json.dumps({"app_id": 201}))
+    reset_calls = []
+
+    class Pool:
+        def __init__(self, _config):
+            pass
+
+        def validate_receipt(self, path):
+            return json.loads(path.read_text())
+
+        def runtime_config(self, current):
+            return {"app_id": current["app_id"]}
+
+        def reset(self, path):
+            reset_calls.append(path)
+            assert (
+                json.loads((slot_dir / "slice-lease.json").read_text())["release_from_app_id"]
+                == 201
+            )
+            clean = {**receipt, "app_id": 301}
+            path.write_text(json.dumps(clean))
+            return clean
+
+    monkeypatch.setattr("harness.environments.webarena.rainbond.RainbondSlicePool", Pool)
+    result = release_slice(tmp_path / "pool.json", output, lease["lease_id"])
+    assert result["ready_app_id"] == 301
+    assert reset_calls == [receipt_path]
+    assert not (slot_dir / "slice-lease.json").exists()

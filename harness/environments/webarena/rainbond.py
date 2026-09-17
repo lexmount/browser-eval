@@ -889,8 +889,10 @@ def scale_pool(
     minimum_ready: int = 1,
 ) -> list[Path]:
     """Reconcile a persistent warm pool, never scaling below minimum_ready."""
-    if minimum_ready < 1 or count < minimum_ready:
-        raise ValueError("count must be at least minimum_ready, and minimum_ready must be positive")
+    if minimum_ready < 0 or count < minimum_ready:
+        raise ValueError(
+            "count must be at least minimum_ready, and minimum_ready must not be negative"
+        )
     with _pool_lock(output_dir):
         pool = RainbondSlicePool(config_path)
         pool_id = _validate_pool_id(pool_id)
@@ -1047,18 +1049,24 @@ def release_slice(config_path: Path, output_dir: Path, lease_id: str) -> dict[st
         receipt_path = slot_dir / "slice-receipt.json"
         runtime_config_path = slot_dir / "webarena.config.json"
         current_receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-        if int(current_receipt["app_id"]) != int(lease["app_id"]):
+        release_from_app_id = lease.get("release_from_app_id")
+        if release_from_app_id is not None and int(current_receipt["app_id"]) != int(
+            release_from_app_id
+        ):
             current_receipt = pool.validate_receipt(receipt_path)
-            if runtime_config_path.is_file() and json.loads(
-                runtime_config_path.read_text(encoding="utf-8")
-            ) == pool.runtime_config(current_receipt):
-                lease_path.unlink()
-                return {
-                    "lease_id": lease_id,
-                    "released_app_id": int(lease["app_id"]),
-                    "ready_app_id": int(current_receipt["app_id"]),
-                    "config": str(runtime_config_path.resolve()),
-                }
+            _atomic_json(runtime_config_path, pool.runtime_config(current_receipt))
+            lease_path.unlink()
+            return {
+                "lease_id": lease_id,
+                "released_app_id": int(lease["app_id"]),
+                "ready_app_id": int(current_receipt["app_id"]),
+                "config": str(runtime_config_path.resolve()),
+            }
+        if release_from_app_id is None:
+            # Task preparation also replaces instances. Only this release's
+            # replacement proves the task's mutations have been removed.
+            lease = {**lease, "release_from_app_id": int(current_receipt["app_id"])}
+            _atomic_json(lease_path, lease)
         receipt = pool.reset(receipt_path)
         _atomic_json(runtime_config_path, pool.runtime_config(receipt))
         lease_path.unlink()
