@@ -35,6 +35,7 @@ from harness.web_fetch.runner import classify_exception
 DATASET_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
 SCORER_COMMIT = "9d991bdc00c57b57521499494d96be85c31317ba"
 PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "moli-1.1.7", "chromium")
+WCXB_PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "chromium")
 EXPECTED_VERSIONS = {"obscura": "0.2.2", "moli": "1.1.5", "moli-1.1.7": "1.1.7"}
 CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"
 
@@ -281,6 +282,8 @@ def run(args: argparse.Namespace) -> None:
     if args.case_ids_file and args.benchmark == "webmainbench":
         selected, selection_binding = load_selected_ids(args.case_ids_file)
     if args.benchmark == "wcxb":
+        if args.provider not in WCXB_PROVIDERS:
+            raise ValueError("WCXB provider is not in the five-browser contract: " + args.provider)
         records, source_digest = load_wcxb_source(args.dataset)
         if not args.case_ids_file:
             raise ValueError("WCXB requires a frozen stratified sample manifest")

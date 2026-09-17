@@ -11,7 +11,7 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from scripts.run_webmainbench_benchmark import PROVIDERS, load_wcxb_source
+from scripts.run_webmainbench_benchmark import WCXB_PROVIDERS, load_wcxb_source
 from scripts.select_wcxb_sample import validate_manifest
 from harness.web_fetch.safety import contained_path
 
@@ -84,7 +84,7 @@ def main() -> None:
     quality_count = case_count - len(exclusions)
     if not certificate.get("complete") or source_hash != certificate["source_sha256_before"] or source_hash != certificate["source_sha256_after"]:
         raise ValueError("WCXB cohort is not certified against these frozen inputs")
-    if [x["provider"] for x in certificate["providers"]] != list(PROVIDERS):
+    if [x["provider"] for x in certificate["providers"]] != list(WCXB_PROVIDERS):
         raise ValueError("WCXB provider matrix differs from the certificate")
     evaluator, evaluator_hash = official_evaluator(args.source)
     ground_truth = evaluator.load_ground_truth("test")
@@ -105,7 +105,7 @@ def main() -> None:
         raise ValueError("Refusing to overwrite WCXB scores")
     summaries = {}
     with output.open("w", encoding="utf-8") as scored:
-        for provider in PROVIDERS:
+        for provider in WCXB_PROVIDERS:
             run_dir = args.evidence_root / provider
             bound = next(x for x in certificate["providers"] if x["provider"] == provider)
             if digest(run_dir / "results.jsonl") != bound["results_sha256"]:

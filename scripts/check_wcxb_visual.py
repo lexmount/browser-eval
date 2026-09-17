@@ -45,49 +45,56 @@ def check(root: Path, browser_binary: str) -> None:
             pass
 
     server = HTTPServer(('127.0.0.1', 0), Handler)
-    threading.Thread(target=server.serve_forever, daemon=True).start()
-    case_id = json.loads((root / 'sample-manifest.json').read_text())['cases'][0]['file_id']
-    routes = ('index.html', 'datasets/index.html', 'analysis/index.html',
-              'methodology/index.html', 'review/index.html', 'guide/index.html',
-              'adoption/index.html', 'reproduce/index.html', 'changes/index.html',
-              'accounts/index.html', f'cases/{case_id}.html')
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
     checked = 0
     try:
+        case_id = json.loads((root / 'sample-manifest.json').read_text())['cases'][0]['file_id']
+        routes = ('index.html', 'datasets/index.html', 'analysis/index.html',
+                  'methodology/index.html', 'review/index.html', 'guide/index.html',
+                  'adoption/index.html', 'reproduce/index.html', 'changes/index.html',
+                  'accounts/index.html', f'cases/{case_id}.html')
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True, executable_path=browser_binary)
-            for lang in ('zh', 'en'):
-                for route in routes:
-                    for width in (390, 1365):
-                        for dark in (False, True):
-                            page = browser.new_page(viewport={'width': width, 'height': 844})
-                            errors = []
-                            page.on('pageerror', lambda error: errors.append(str(error)))
-                            prefix = 'en/' if lang == 'en' else ''
-                            page.goto(f'http://127.0.0.1:{server.server_port}/{prefix}{route}',
-                                      wait_until='networkidle')
-                            if dark:
-                                page.locator('header button').click()
-                            if page.locator('body').evaluate('(node) => node.scrollWidth') > width:
-                                raise ValueError(f'Horizontal page overflow: {lang} {route} {width} {dark}')
-                            if errors:
-                                raise ValueError(f'Browser error: {lang} {route}: {errors}')
-                            if route == 'analysis/index.html' and not dark:
-                                page.locator('#scope').select_option('all')
-                                if page.locator('#count').inner_text() != '2555':
-                                    raise ValueError('Results filter does not expose the full matrix')
-                                page.locator('#q').fill(case_id)
-                                if page.locator('#count').inner_text() != '5':
-                                    raise ValueError('Same-case search does not expose five results')
-                            if route.startswith('cases/') and not dark:
-                                page.locator('details[data-output]:has(pre[data-provider])').first.click()
-                                page.wait_for_function("() => document.querySelector('pre[data-provider]')?.textContent.length > 0")
-                                if 'Unable to load evidence' in page.locator('pre[data-provider]').first.inner_text():
-                                    raise ValueError('Case evidence did not load')
-                            checked += 1
-                            page.close()
-            browser.close()
+            try:
+                for lang in ('zh', 'en'):
+                    for route in routes:
+                        for width in (390, 1365):
+                            for dark in (False, True):
+                                page = browser.new_page(viewport={'width': width, 'height': 844})
+                                try:
+                                    errors = []
+                                    page.on('pageerror', lambda error: errors.append(str(error)))
+                                    prefix = 'en/' if lang == 'en' else ''
+                                    page.goto(f'http://127.0.0.1:{server.server_port}/{prefix}{route}',
+                                              wait_until='networkidle')
+                                    if dark:
+                                        page.locator('header button').click()
+                                    if page.locator('body').evaluate('(node) => node.scrollWidth') > width:
+                                        raise ValueError(f'Horizontal page overflow: {lang} {route} {width} {dark}')
+                                    if errors:
+                                        raise ValueError(f'Browser error: {lang} {route}: {errors}')
+                                    if route == 'analysis/index.html' and not dark:
+                                        page.locator('#scope').select_option('all')
+                                        if page.locator('#count').inner_text() != '2555':
+                                            raise ValueError('Results filter does not expose the full matrix')
+                                        page.locator('#q').fill(case_id)
+                                        if page.locator('#count').inner_text() != '5':
+                                            raise ValueError('Same-case search does not expose five results')
+                                    if route.startswith('cases/') and not dark:
+                                        page.locator('details[data-output]:has(pre[data-provider])').first.click()
+                                        page.wait_for_function("() => document.querySelector('pre[data-provider]')?.textContent.length > 0")
+                                        if 'Unable to load evidence' in page.locator('pre[data-provider]').first.inner_text():
+                                            raise ValueError('Case evidence did not load')
+                                    checked += 1
+                                finally:
+                                    page.close()
+            finally:
+                browser.close()
     finally:
         server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
     print(f'PASS: {checked} bilingual WCXB route, width and theme combinations')
 
 

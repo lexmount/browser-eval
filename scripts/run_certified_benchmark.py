@@ -220,7 +220,7 @@ def run_wcxb(argv: list[str]) -> None:
     parser.add_argument("--env-file", type=Path, default=ROOT / ".env")
     args = parser.parse_args(argv)
     sys.path.insert(0, str(ROOT))
-    from scripts.run_webmainbench_benchmark import PROVIDERS, load_wcxb_source
+    from scripts.run_webmainbench_benchmark import WCXB_PROVIDERS, load_wcxb_source
 
     if args.output_root.exists():
         parser.error("WCXB output root must be new and immutable")
@@ -232,7 +232,7 @@ def run_wcxb(argv: list[str]) -> None:
     sample_before = hashlib.sha256(args.sample_manifest.read_bytes()).hexdigest()
     args.output_root.mkdir(parents=True)
     runs = []
-    for provider in PROVIDERS:
+    for provider in WCXB_PROVIDERS:
         output = args.output_root / provider
         run([sys.executable, "scripts/run_webmainbench_benchmark.py", "--benchmark", "wcxb",
              "--dataset", str(args.dataset), "--provider", provider,

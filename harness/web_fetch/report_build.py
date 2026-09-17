@@ -476,7 +476,7 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
 
 def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: dict, output: Path) -> Path:
     """Build the one current report from a fully certified WCXB matrix."""
-    from scripts.run_webmainbench_benchmark import PROVIDERS, load_wcxb_source
+    from scripts.run_webmainbench_benchmark import WCXB_PROVIDERS, load_wcxb_source
     from scripts.select_wcxb_sample import validate_manifest
     source, output = source.resolve(), output.resolve()
     certificate = json.loads((source / 'certification.json').read_text())
@@ -497,11 +497,11 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             or corpus_hash != summary['source_sha256']
             or corpus_hash != profile['source_dataset_sha256']):
         raise ValueError('WCXB source, certificate, summary and profile disagree')
-    if [x['provider'] for x in certificate['providers']] != list(PROVIDERS) or profile['providers'] != list(PROVIDERS):
+    if [x['provider'] for x in certificate['providers']] != list(WCXB_PROVIDERS) or profile['providers'] != list(WCXB_PROVIDERS):
         raise ValueError('WCXB participant registry differs from the certificate')
     rows = [json.loads(line) for line in (source / 'wcxb-scores.jsonl').read_text().splitlines() if line]
     case_ids = {r['track_id'] for r in records}
-    if len(rows) != len(records) * len(PROVIDERS) or {(r['provider'], r['case_id']) for r in rows} != {(p,c) for p in PROVIDERS for c in case_ids}:
+    if len(rows) != len(records) * len(WCXB_PROVIDERS) or {(r['provider'], r['case_id']) for r in rows} != {(p,c) for p in WCXB_PROVIDERS for c in case_ids}:
         raise ValueError('WCXB score matrix is incomplete')
     if output.exists() and not (output / '.generated-report').is_file():
         raise ValueError('Refusing to replace an unmarked report')
@@ -571,7 +571,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             case_id = record['track_id']
             outputs = {}
             retries = {}
-            for provider in PROVIDERS:
+            for provider in WCXB_PROVIDERS:
                 outputs[provider] = (staging / 'artifacts' / provider / f'{case_id}.txt').read_text(encoding='utf-8')
                 retries[provider] = [
                     {**retry, 'output': contained_path(staging, retry['artifact_path']).read_text(encoding='utf-8')}
