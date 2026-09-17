@@ -44,7 +44,7 @@ def main() -> None:
     by_id = {row['track_id']: row for row in original}
     prior = {}
     for version, path in [('1.1.5', args.prior_older), ('1.1.7', args.prior_newer)]:
-        rows = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines()]
+        rows = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
         prior[version] = {row['track_id']: row for row in rows}
         if set(prior[version]) != set(by_id):
             raise ValueError('Prior full-run task population differs')
