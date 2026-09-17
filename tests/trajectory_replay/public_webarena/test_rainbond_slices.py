@@ -31,9 +31,12 @@ class FakeAPI:
         self.next_app_id = 200
         self.fail_domain_for = fail_domain_for
         self.port_hosts = {}
+        self.stopped_apps = set()
 
     def request(self, method, path, body=None):
         self.calls.append((method, path, body))
+        if method == "POST" and path.endswith("/operations") and body["action"] == "stop":
+            self.stopped_apps.add(path.removesuffix("/operations"))
         if method == "POST" and path.endswith("/apps"):
             app_id = self.next_app_id
             self.next_app_id += 1
@@ -96,7 +99,10 @@ class FakeAPI:
             return [
                 {
                     "service_id": f"service-initializer-{self.next_app_id}",
-                    "status": "running",
+                    "status": (
+                        "closed" if path.removesuffix("/services") in self.stopped_apps
+                        else "running"
+                    ),
                 }
             ]
         return {}
@@ -143,6 +149,83 @@ def _pool(tmp_path: Path, api: FakeAPI) -> RainbondSlicePool:
     pool = RainbondSlicePool(_pool_config(tmp_path), api=api, sleep=lambda _: None)
     pool._wait_site = lambda _url: None
     return pool
+
+
+def test_app_deletion_waits_for_service_stop(tmp_path):
+    api = FakeAPI()
+    pool = _pool(tmp_path, api)
+    pool._delete_app(200)
+    methods = [method for method, _, _ in api.calls]
+    assert methods == ["GET", "POST", "GET", "DELETE"]
+    assert api.calls[1][2]["action"] == "stop"
+
+
+def test_app_deletion_keeps_record_when_stop_fails(tmp_path):
+    class StopFailureAPI(FakeAPI):
+        def request(self, method, path, body=None):
+            if method == "POST" and path.endswith("/operations"):
+                raise RuntimeError("stop failed")
+            return super().request(method, path, body)
+
+    api = StopFailureAPI()
+    pool = _pool(tmp_path, api)
+    with pytest.raises(RuntimeError, match="stop failed"):
+        pool._delete_app(200)
+    assert not any(method == "DELETE" for method, _, _ in api.calls)
+
+
+def test_app_deletion_does_not_trust_a_successful_stop_ack(tmp_path, monkeypatch):
+    class StillRunningAPI(FakeAPI):
+        def request(self, method, path, body=None):
+            result = super().request(method, path, body)
+            if method == "GET" and path.endswith("/services"):
+                result[0]["status"] = "running"
+            return result
+
+    api = StillRunningAPI()
+    pool = _pool(tmp_path, api)
+    ticks = iter([0, 100_000])
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.rainbond_slices.time.monotonic",
+        lambda: next(ticks),
+    )
+    with pytest.raises(TimeoutError, match="did not stop before deletion"):
+        pool._delete_app(200)
+    assert not any(method == "DELETE" for method, _, _ in api.calls)
+
+
+@pytest.mark.parametrize("stale_reads", [2, 4])
+def test_control_port_convergence_is_bounded_and_does_not_repeat_writes(tmp_path, stale_reads):
+    class EventuallyConsistentAPI(FakeAPI):
+        def request(self, method, path, body=None):
+            response = super().request(method, path, body)
+            if method == "GET" and path.endswith("/ports") and self.port_hosts:
+                if self.stale_reads:
+                    self.stale_reads -= 1
+                    response["ports"][1]["k8s_service_name"] = "stale-control"
+            return response
+
+    api = EventuallyConsistentAPI()
+    api.stale_reads = stale_reads
+    pool = _pool(tmp_path, api)
+    waits = []
+    pool.sleep = waits.append
+
+    def configure():
+        pool._coalesce_internal_ports(
+            200, "service-shopping", site_port=80, control_port=8877,
+            control_alias="SHOPPING_CTRL",
+        )
+
+    if stale_reads == 2:
+        configure()
+    else:
+        with pytest.raises(RuntimeError, match="did not attach control port"):
+            configure()
+    assert waits == [1, 2]
+    assert sum(method == "POST" for method, _, _ in api.calls) == 1
+    assert sum(method == "DELETE" for method, _, _ in api.calls) == 1
+    assert sum(method == "GET" for method, _, _ in api.calls) == 4
 
 
 def test_provision_creates_one_complete_isolated_app_without_serializing_token(tmp_path):

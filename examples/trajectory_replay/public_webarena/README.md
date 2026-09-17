@@ -39,7 +39,8 @@ For concurrent state-changing runs, use a complete Rainbond slice per worker ins
 sharing sites or relying on separate login accounts. A slice contains Shopping Admin,
 Shopping, Reddit, and GitLab with independent writable container layers and unique
 domains. Reset deletes and recreates the whole slice from the pinned baseline; destroy
-removes the application. The read-only Map service may be shared.
+removes the application. Read-only Map and Wikipedia services may be shared when
+separately deployed; they are different services, not substitutes for each other.
 
 The baseline also contains a small digest-pinned initializer component. It calls the
 Reddit and GitLab `env-ctrl` endpoints only over Rainbond's internal service network,
@@ -164,6 +165,23 @@ WEBARENA_RAINBOND_SMOKE_URLS='{
 
 The smoke test makes eight simultaneous page loads per site, checks that each origin
 returns its expected application, and rejects a per-site P95 above ten seconds.
+To verify multiple slices in the same concurrency window, supply a JSON array of
+four-site objects instead. Duplicate mutable-site URLs are rejected. Set
+`WEBARENA_RAINBOND_SMOKE_WIKIPEDIA_URL` to a shared Kiwix origin to add eight
+simultaneous requests for its May 2022 Boston Celtics article. A green HTTP test
+does not validate login, mutations, or database isolation; check those separately
+before assigning state-changing tasks.
+
+Keep the stopped baseline application used by `source_app_id`, `source_services`,
+and `initializer_service`: it is required for new slices and resets even though it
+uses no running compute. Remove superseded slice generations only after their
+replacement receipt is authoritative and no lease references the old app. Never
+delete a shared Wikipedia data volume as part of a mutable slice reset.
+Deletion first stops the app's services and waits for their stopped status. If stopping
+fails, the app record and receipt remain available for recovery. After deletion, also
+inspect Kubernetes-native workloads and storage: a missing Rainbond app record alone
+does not prove that the platform removed every underlying resource. Never remove a
+PVC without verifying its ownership and that no retained workload mounts it.
 
 The baseline resource requests total 10 CPU cores and 20 GiB of memory per slice, plus
 100 millicores and 128 MiB for the initializer. Capacity planning must use schedulable

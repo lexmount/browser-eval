@@ -433,13 +433,19 @@ class RainbondSlicePool:
                 "is_inner_service": True,
             },
         )
-        ports = inner_ports()
-        updated_host = str(ports.get(control_port, {}).get("k8s_service_name") or "")
-        if updated_host != site_host:
-            raise RuntimeError(
-                f"Rainbond did not attach control port {control_port} to internal "
-                f"service {site_host!r}: got {updated_host!r}"
-            )
+        # The write may finish before the read model reflects the recreated port.
+        # Retry only observation: repeating DELETE/POST could disrupt the service.
+        for attempt in range(3):
+            ports = inner_ports()
+            updated_host = str(ports.get(control_port, {}).get("k8s_service_name") or "")
+            if updated_host == site_host:
+                return
+            if attempt < 2:
+                self.sleep(attempt + 1)
+        raise RuntimeError(
+            f"Rainbond did not attach control port {control_port} to internal "
+            f"service {site_host!r}: got {updated_host!r}"
+        )
 
     def _configure_initializer(
         self,
@@ -618,6 +624,31 @@ class RainbondSlicePool:
         self._operate_existing_app(receipt, "stop")
         self._wait_app_stopped(receipt)
 
+    def _delete_app(self, app_id: int) -> None:
+        """Stop runtime services before removing their control-plane app record."""
+        path = self._app_path(app_id)
+        rows = self._response_rows(self.api.request("GET", f"{path}/services"), "services")
+        service_ids = {str(row["service_id"]) for row in rows if row.get("service_id")}
+        if service_ids:
+            self.api.request(
+                "POST", f"{path}/operations",
+                {"action": "stop", "service_ids": sorted(service_ids)},
+            )
+            deadline = time.monotonic() + self.config.readiness_timeout_seconds
+            while True:
+                rows = self._response_rows(
+                    self.api.request("GET", f"{path}/services"), "services"
+                )
+                statuses = {
+                    str(row.get("service_id")): row.get("status") for row in rows
+                }
+                if all(statuses.get(sid) in {"closed", "undeploy"} for sid in service_ids):
+                    break
+                if time.monotonic() >= deadline:
+                    raise TimeoutError(f"Rainbond app did not stop before deletion: {app_id}")
+                self.sleep(5)
+        self.api.request("DELETE", f"{path}?force=1")
+
     def provision(self, pool_id: str, slot: int, receipt_path: Path) -> dict[str, Any]:
         started = time.monotonic()
         phase_started = started
@@ -671,7 +702,7 @@ class RainbondSlicePool:
             _attempt_cleanup(
                 exc,
                 f"delete incomplete Rainbond app {app_id}",
-                lambda: self.api.request("DELETE", f"{self._app_path(app_id)}?force=1"),
+                lambda: self._delete_app(app_id),
             )
             raise
         receipt = {
@@ -695,7 +726,7 @@ class RainbondSlicePool:
                 return
             raise FileNotFoundError(receipt_path)
         receipt = self.validate_receipt(receipt_path)
-        self.api.request("DELETE", f"{self._app_path(int(receipt['app_id']))}?force=1")
+        self._delete_app(int(receipt["app_id"]))
         receipt_path.unlink()
 
     def reset(self, receipt_path: Path) -> dict[str, Any]:
@@ -719,14 +750,12 @@ class RainbondSlicePool:
                 )
             raise
         try:
-            self.api.request("DELETE", f"{self._app_path(int(previous['app_id']))}?force=1")
+            self._delete_app(int(previous["app_id"]))
         except BaseException as exc:
             replacement_deleted = _attempt_cleanup(
                 exc,
                 f"delete replacement Rainbond app {replacement['app_id']}",
-                lambda: self.api.request(
-                    "DELETE", f"{self._app_path(int(replacement['app_id']))}?force=1"
-                ),
+                lambda: self._delete_app(int(replacement["app_id"])),
             )
             if replacement_deleted:
                 _attempt_cleanup(
