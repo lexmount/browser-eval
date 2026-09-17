@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 from .report import generate, generate_public_benchmark_research, generate_webmainbench, generate_wcxb, succeeded, measured, failure_category, TRACKS
 from .failure_diagnosis import diagnose
-from .safety import contained_path, validate_report_ids
+from .safety import contained_path, safe_identifier, validate_report_ids
 from .reference_lifecycle import require_verified_reference_checks
 from .reliability import assess_reliability
 from .storage import require_selection_history,data_home
@@ -492,6 +492,8 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             or sample.get('size') != profile['case_count']):
         raise ValueError('WCXB stratified sample binding failed')
     records = selected
+    for record in records:
+        safe_identifier(record['track_id'])
     if (not certificate.get('complete') or corpus_hash != certificate['source_sha256_before']
             or corpus_hash != certificate['source_sha256_after']
             or corpus_hash != summary['source_sha256']
@@ -554,7 +556,8 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
                     shutil.copy2(artifact, target)
         ground_truth = {}
         for record in records:
-            gt = json.loads((corpus / 'test' / 'ground-truth' / f'{record["track_id"]}.json').read_text())['ground_truth']
+            gt_path = contained_path(corpus / 'test' / 'ground-truth', f'{record["track_id"]}.json')
+            gt = json.loads(gt_path.read_text())['ground_truth']
             ground_truth[record['track_id']] = {
                 'main_content': record['groundtruth_content'],
                 'page_type': record['meta']['page_type'],

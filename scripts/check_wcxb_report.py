@@ -10,6 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.report_presentation_contract import check_presentation
 from harness.web_fetch.safety import contained_path
+from harness.web_fetch.storage import data_home
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -123,7 +124,8 @@ def check(root: Path) -> None:
             html = path.read_text(encoding='utf-8')
             page = Page(); page.feed(html)
             require(page.lang == lang, f'WCXB language differs: {route}')
-            require('/Users/lianglinkai/' not in html and '/.browser-eval/' not in html, f'WCXB private path leaked: {route}')
+            private_paths = (str(ROOT.resolve()), str(data_home()))
+            require(all(path not in html for path in private_paths), f'WCXB private path leaked: {route}')
             if route == 'analysis/index.html':
                 require(page.results == len(qualified) * len(providers), 'Qualified result inventory differs')
                 require('id="scope"' in html and 'value="fail"' in html and 'value="pass"' in html and 'value="all"' in html, 'Result status filters missing')
