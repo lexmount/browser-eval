@@ -188,6 +188,33 @@ def test_reviewed_scope_projects_current_email_without_changing_false_scope():
     assert json.loads(rows[0]["result"])["scope"] is False
 
 
+@pytest.mark.parametrize(
+    "scope,complete,expected",
+    [
+        (False, True, "insufficient"),
+        (True, False, "insufficient"),
+        (True, True, "supported"),
+    ],
+)
+def test_reviewed_scope_cannot_turn_partial_empty_observation_into_not_found(
+    scope, complete, expected
+):
+    calls, contract, rows = fixture()
+    contract["projection"] = {
+        "distinct_exact_strings": {"source": "read", "pointer": "/answers"}
+    }
+    contract["empty_result"] = "NOT_FOUND_ERROR"
+    mutate(rows, lambda value: value.update(answers=[], scope=scope, complete=complete))
+    materialize(contract, rows)
+    result = build(calls, contract, rows)
+    assert result["status"] == expected
+    if expected == "supported":
+        assert result["actual_response"]["status"] == "NOT_FOUND_ERROR"
+        assert result["actual_response"]["retrieved_data"] is None
+    else:
+        assert result["actual_response"] is None
+
+
 @pytest.mark.parametrize("kind", ["missing", "null", "zero", "string_false"])
 def test_reviewed_scope_only_replaces_explicit_false(kind):
     calls, contract, rows = fixture()

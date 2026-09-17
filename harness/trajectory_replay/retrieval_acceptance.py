@@ -760,6 +760,11 @@ def build_actual_response(
             and not data
             and contract.get("empty_result") == "NOT_FOUND_ERROR"
         )
+        if proven_absence and any(
+            project(contract["requirements"][name], values) is not True
+            for name in ("scope", "completeness")
+        ):
+            raise ValueError("empty retrieval requires observed complete task scope")
         if not proven_absence and (data is None or data == [] or data == {} or data == ""):
             raise ValueError("empty retrieval requires a completeness contract")
         if not proven_absence:
