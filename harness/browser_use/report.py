@@ -804,7 +804,7 @@ def _failure_cause_table(verified_causes: dict[str, dict[str, Any]]) -> str:
         "benchmark": (
             "评测实现 / 任务合同",
             "排除并修复",
-            "修正任务合同、验收器或证据采集，通过独立预检后重跑四种配置。",
+            "修正任务合同、验收器或证据采集，通过独立预检后重跑全部配置。",
         ),
         "site": ("自托管站点", "排除并修复", "修复依赖、会话或保存链路，通过读写预检后重跑。"),
         "evidence": (
@@ -2156,6 +2156,8 @@ def _article_body(
     diagnostic_task_count = total_task_count - len(excluded)
     task_count = total_task_count
     summary = _primary_summary(attempts)
+    configuration_count = sum(len(browser_rows) for browser_rows in summary.values())
+    browser_names = "、".join(ENGINE_LABELS.values())
     paired = _paired_summary(attempts)
     raw_failed_result_count = sum(float(row.get("score") or 0) < 1 for row in attempts)
     comparison_rows = [
@@ -2214,8 +2216,8 @@ def _article_body(
     clean_task_count = diagnostic_task_count
     return (
         '<article class="publication-article interpretation-v2"><header class="essay-head"><div class="eyebrow">Browser Use 能力评测</div>'
-        f"<h1>{task_count} 题 Browser Use 完整结果：Chromium 与 Moli 的成功率、代价与失败根因</h1>"
-        f'<p class="lead">首页按预注册的 {total_task_count} 题展示四种配置的官方 evaluator 结果。其中 {len(excluded)} 题经复核存在验收合同、站点、共享状态或参考状态干扰；这些题仍保留在 {total_task_count} 题官方结果中，另外提供 {diagnostic_task_count} 题事后诊断子集。</p>'
+        f"<h1>{task_count} 题 Browser Use 完整结果：{_e(browser_names)} 的成功率、代价与失败根因</h1>"
+        f'<p class="lead">首页按预注册的 {total_task_count} 题展示 {configuration_count} 种配置的官方 evaluator 结果。其中 {len(excluded)} 题经复核存在验收合同、站点、共享状态或参考状态干扰；这些题仍保留在 {total_task_count} 题官方结果中，另外提供 {diagnostic_task_count} 题事后诊断子集。</p>'
         '<p class="source-note">WebArena‑Verified 1.2.3 · CowAgent · 模型推理强度固定为低 · 官方程序化 evaluator</p>'
         '<p class="page-links"><a href="datasets/">查看评测集</a><a href="analysis/">下钻全部结果</a><a href="data/interpretation-evidence.json" download>下载论点与证据</a></p></header>'
         f'<section><h2>{total_task_count} 题核心指标</h2>'
@@ -2228,13 +2230,13 @@ def _article_body(
         + f'<p class="source-note">每个模型×浏览器配置都保留完整 {task_count} 题。以上是官方 evaluator 决定的最终逻辑结果；物理执行记录可在单题证据页下钻。</p></section>'
         '<section><h2>按同题比较浏览器</h2><p>浏览器对比必须留在同一模型层内。汇总数会隐藏互换的成败任务；下表给出同题对照。</p>'
         + _table(["模型", "浏览器 A", "浏览器 B", "同题数", "两边都通过", "A 通过、B 失败", "A 失败、B 通过", "两边都失败"], comparison_rows, caption=f"每行只比较同一模型下的 {task_count} 个配对任务。")
-        + f'<p>两个模型层合计有 {discordant} 个单边通过，可用于定位兼容性问题；样本量和方向都不支持总体优劣判断。<a href="analysis/#same-task">查看 {task_count} 题的全配置矩阵 →</a></p></section>'
+        + f'<p>{len(paired)} 个模型层的浏览器配对共出现 {discordant} 次单边通过，可用于定位兼容性问题；同一任务可能出现在多个配对中，这不是去重任务数。样本量和方向都不支持总体优劣判断。<a href="analysis/#same-task">查看 {task_count} 题的全配置矩阵 →</a></p></section>'
         '<section id="failure-findings"><h2>程序判分落点与复核根因</h2><p>程序判分先说明哪类规则未通过；人工复核再沿最终回答、evaluator 断言、HAR 和 Agent 轨迹追到直接原因。这两个层次需要分开。</p><h3>程序判分落点</h3>'
         + _automatic_failure_figure(automatic_failure_counts)
         + '<p class="source-note">“网络副作用未通过”只描述程序判分位置。它可能源于 Agent 没有提交，也可能源于 evaluator、站点或 HAR 采集问题。</p><h3>复核根因</h3>'
         + _failure_scope_figure(verified_causes)
         + cause_section
-        + f'<h3>{total_task_count} 题官方结果与事后诊断分开看</h3><p>首页主结果始终使用完整 {total_task_count} 题官方 evaluator 分母。为了观察排除已知外部干扰后的差异，下表再按整题、四种配置一致排除 {len(excluded)} 题，得到 {clean_task_count} 题事后诊断子集。</p>'
+        + f'<h3>{total_task_count} 题官方结果与事后诊断分开看</h3><p>首页主结果始终使用完整 {total_task_count} 题官方 evaluator 分母。为了观察排除已知外部干扰后的差异，下表再按整题、全部 {configuration_count} 种配置一致排除 {len(excluded)} 题，得到 {clean_task_count} 题事后诊断子集。</p>'
         + _table(["模型", "浏览器", f"{clean_task_count} 题通过", "通过率"], clean_rows, table_id="home-qualified-results", classes="core-comparison-table")
         + f'<p class="source-note">这是事后诊断子集，不是正式分数，也不替代 {total_task_count} 题官方结果。{raw_failed_result_count} 个原始失败记录继续保存在结果页和核验记录中。</p></section>'
         '<section><h2>审查覆盖与边界</h2><div class="audit-ladder"><article><span>1</span><b>证据完整性</b><p>'
@@ -2671,6 +2673,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         tier: sum(task["tier"] == tier for task in tasks) for tier in ("easy", "medium", "hard")
     }
     summary_by_model, paired_by_model = _primary_summary(attempts), _paired_summary(attempts)
+    configuration_count = sum(len(browser_rows) for browser_rows in summary_by_model.values())
     excluded_task_ids = _external_interference_task_ids(verified_causes)
     qualified_attempts = [
         row for row in attempts if int(row["task_id"]) not in excluded_task_ids
@@ -2962,16 +2965,16 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         analysis = _hero(
             "Results",
             "结果分析",
-            "四种配置先在同一张表和同一任务矩阵中比较；失败结果可直接打开诊断，查看发生位置、程序报错、复核根因、轨迹、画面和日志。",
+            f"{configuration_count} 种配置先在同一张表和同一任务矩阵中比较；失败结果可直接打开诊断，查看发生位置、程序报错、复核根因、轨迹、画面和日志。",
         )
         analysis += _section(
             f"完整 {len(tasks)} 题结果入口",
-            '<p>四种配置的通过率、耗时、Tokens 与浏览器资源总表已放在首页，避免在分析页重复。这里直接进入同题矩阵和逐结果失败诊断。</p>'
+            f'<p>{configuration_count} 种配置的通过率、耗时、Tokens 与浏览器资源总表已放在首页，避免在分析页重复。这里直接进入同题矩阵和逐结果失败诊断。</p>'
             '<p class="page-links"><a href="./#home-core-metrics">查看首页核心指标</a></p>',
         )
         analysis += _section(
             f"同题全配置对比：完整 {len(tasks)} 题",
-            "<p>每行是一道预注册任务，四列分别对应模型×浏览器配置；可筛出结果有差异、全部通过或全部失败的任务。</p>"
+            f"<p>每行是一道预注册任务，{configuration_count} 列分别对应模型×浏览器配置；可筛出结果有差异、全部通过或全部失败的任务。</p>"
             + _same_task_comparison(tasks, attempts),
         ).replace('<section class="section">', '<section class="section" id="same-task">', 1)
         analysis += _section(

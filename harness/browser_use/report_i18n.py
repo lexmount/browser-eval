@@ -27,6 +27,7 @@ NAV = (
 
 
 TEXT = {
+    "修正任务合同、验收器或证据采集，通过独立预检后重跑全部配置。": "Fix the task contract, evaluator, or evidence collection; pass an independent preflight before rerunning every configuration.",
     "全部注册配置中通过数最高": "Highest pass count across all registered configurations",
     "全部注册配置中通过率最高": "Highest pass rate across all registered configurations",
     "均值、P50、P95 都在全部注册配置中统一比较。CPU、内存和网络只计浏览器容器，不含 CowAgent 或模型服务；模型会改变动作数量和页面停留时间，因此这里比较整套配置，不能单独归因于浏览器内核。": "Mean, P50, and P95 are compared across all registered configurations. CPU, memory, and network measurements cover only the browser container, not CowAgent or the model service. Because the model can change action counts and time spent on pages, these whole-configuration measurements cannot be attributed to the browser core alone.",
@@ -1680,6 +1681,34 @@ def translate_text(value: str) -> str:
     translated = TEXT.get(core)
     if translated is None:
         patterns = (
+            (
+                r"(\d+) 题 Browser Use 完整结果：(.+) 的成功率、代价与失败根因",
+                lambda m: f"Complete {m.group(1)}-task Browser Use results: success, cost, and failure causes across {m.group(2).replace('、', ', ')}",
+            ),
+            (
+                r"首页按预注册的 (\d+) 题展示 (\d+) 种配置的官方 evaluator 结果。其中 (\d+) 题经复核存在验收合同、站点、共享状态或参考状态干扰；这些题仍保留在 (\d+) 题官方结果中，另外提供 (\d+) 题事后诊断子集。",
+                lambda m: f"The homepage reports official evaluator outcomes for all {m.group(1)} preregistered tasks across {m.group(2)} configurations. Review found acceptance-contract, site, shared-state, or reference-state interference in {m.group(3)} tasks. They remain in the official {m.group(4)}-task result, while a separate {m.group(5)}-task post-hoc diagnostic subset is provided.",
+            ),
+            (
+                r"首页主结果始终使用完整 (\d+) 题官方 evaluator 分母。为了观察排除已知外部干扰后的差异，下表再按整题、全部 (\d+) 种配置一致排除 (\d+) 题，得到 (\d+) 题事后诊断子集。",
+                lambda m: f"The homepage always uses all {m.group(1)} tasks as the official evaluator denominator. To inspect differences after known external interference, the table removes the same {m.group(3)} tasks across all {m.group(2)} configurations and shows a {m.group(4)}-task post-hoc diagnostic subset.",
+            ),
+            (
+                r"(\d+) 个模型层的浏览器配对共出现 (\d+) 次单边通过，可用于定位兼容性问题；同一任务可能出现在多个配对中，这不是去重任务数。样本量和方向都不支持总体优劣判断。",
+                lambda m: f"Browser pairings across {m.group(1)} model cohorts produced {m.group(2)} one-sided outcomes. A task can appear in several pairings, so this is not a distinct-task count. These cases help locate compatibility issues but do not support an overall ranking.",
+            ),
+            (
+                r"(\d+) 种配置先在同一张表和同一任务矩阵中比较；失败结果可直接打开诊断，查看发生位置、程序报错、复核根因、轨迹、画面和日志。",
+                lambda m: f"Compare all {m.group(1)} configurations in one table and same-task matrix. Open failed results for the failure point, program error, reviewed cause, trajectory, frames, and logs.",
+            ),
+            (
+                r"(\d+) 种配置的通过率、耗时、Tokens 与浏览器资源总表已放在首页，避免在分析页重复。这里直接进入同题矩阵和逐结果失败诊断。",
+                lambda m: f"The homepage already compares pass rates, latency, tokens, and browser resources for all {m.group(1)} configurations. This page focuses on the same-task matrix and individual failure diagnoses.",
+            ),
+            (
+                r"每行是一道预注册任务，(\d+) 列分别对应模型×浏览器配置；可筛出结果有差异、全部通过或全部失败的任务。",
+                lambda m: f"Each row is a preregistered task, with {m.group(1)} model-browser configuration columns. Filter for divergent, all-pass, or all-fail outcomes.",
+            ),
             (
                 r"查看 (.+) 自主轨迹示例",
                 lambda m: f"View an autonomous trajectory for {m.group(1)}",
