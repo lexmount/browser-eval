@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from scripts.score_wcxb_results import classify, official_evaluator, percentile
-from scripts.select_wcxb_sample import choose, full_test_exclusions
+from scripts.select_wcxb_sample import choose, full_test_exclusions, validate_manifest
 from scripts.run_webmainbench_benchmark import PROVIDERS, WCXB_PROVIDERS
 from harness.web_fetch.report import format_wcxb_conditional_latency
 
@@ -31,22 +31,22 @@ class WCXBContractTests(unittest.TestCase):
         self.assertNotIn('moli-1.1.7', WCXB_PROVIDERS)
 
     def test_frozen_manifest_is_unique_stratified_and_profile_bound(self):
-        raw = (ROOT / 'evaluation/public-wcxb-test-full.json').read_bytes()
+        raw = (ROOT / 'evaluation/public-wcxb-test-qualified.json').read_bytes()
         sample = json.loads(raw)
         profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
-        self.assertEqual(sample['size'], 511)
-        self.assertEqual(len(sample['cases']), 511)
-        self.assertEqual(len({r['file_id'] for r in sample['cases']}), 511)
-        self.assertEqual(sum(sample['distribution']['sample'].values()), 511)
+        self.assertEqual(sample['size'], 504)
+        self.assertEqual(len(sample['cases']), 504)
+        self.assertEqual(len({r['file_id'] for r in sample['cases']}), 504)
+        self.assertEqual(sum(sample['distribution']['sample'].values()), 504)
         self.assertEqual(set(sample['distribution']['sample']), set(sample['distribution']['parent']))
         self.assertEqual(hashlib.sha256(raw).hexdigest(), profile['sample_manifest_sha256'])
         self.assertEqual(sample['source_sha256'], profile['source_dataset_sha256'])
         self.assertEqual(sample['primary_quality_case_count'], 504)
 
     def test_full_test_exclusions_follow_source_content_only(self):
-        manifest = json.loads((ROOT / 'evaluation/public-wcxb-test-full.json').read_text())
-        self.assertEqual({r['file_id'] for r in manifest['exclusions']},
-                         {'4066', '4145', '4181', '4285', '4482', '4542', '4922'})
+        manifest = json.loads((ROOT / 'evaluation/public-wcxb-test-qualified.json').read_text())
+        self.assertEqual(manifest['scope'], 'qualified_test')
+        self.assertNotIn('exclusions', manifest)
         records = [
             {'track_id': 'a', 'html': '<html><body><p>Visible</p></body></html>',
              'groundtruth_content': '', 'meta': {'page_type': 'article'}},
@@ -58,6 +58,10 @@ class WCXBContractTests(unittest.TestCase):
         self.assertEqual([(r['file_id'], r['reason']) for r in full_test_exclusions(records)],
                          [('a', 'empty_main_content_reference'),
                           ('b', 'reference_body_absent_from_frozen_html')])
+        sample = {**manifest, 'source_sha256': 'source', 'distribution': {'parent': {'article': 3}, 'sample': {'article': 1}},
+                  'size': 1, 'cases': [{'file_id': 'c', 'page_type': 'article'}], 'primary_quality_case_count': 1}
+        selected, _ = validate_manifest(records, 'source', sample)
+        self.assertEqual([row['track_id'] for row in selected], ['c'])
 
     def test_selection_uses_type_and_id_only(self):
         records = [

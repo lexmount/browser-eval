@@ -97,7 +97,7 @@ def main() -> None:
         for name, digest in digests.items():
             if hashlib.sha256(bundle.read(name)).hexdigest() != digest:
                 raise ValueError('Deployed WCXB file differs: ' + name)
-    title = 'WCXB 五款浏览器主内容提取报告 · 504 页有效参考'
+    title = 'WCXB 五款浏览器主内容提取报告 · 504 页评测'
     request('/api/sites/' + quote(slug, safe=''), json.dumps({'title': title}, ensure_ascii=False).encode(),
             'application/json', method='PATCH')
     profile['artifact_hub_expected_version'] = version

@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
-  "dataset_id": "wcxb-v1-test-full-five-browsers",
+  "dataset_id": "wcxb-v1-test-qualified-five-browsers",
   "comparison_kind": "wcxb_frozen_html_to_markdown",
-  "case_count": 511,
+  "case_count": 504,
   "primary_quality_case_count": 504,
   "split": "test",
-  "sample_manifest": "evaluation/public-wcxb-test-full.json",
-  "sample_manifest_sha256": "46e0eeef499aff58429c5122efb32228a857a6738cf42d7ffabdab895ac90ed2",
+  "sample_manifest": "evaluation/public-wcxb-test-qualified.json",
+  "sample_manifest_sha256": "2f42daa5a793cdf64654bcc1e58e332315c0d972bbc9e2e06510cfa59ea94754",
   "source_repository": "https://github.com/Murrough-Foley/web-content-extraction-benchmark",
   "source_commit": "c039d5ee9f5a3a984a0e167e63aacd04e76e78a9",
   "source_dataset_sha256": "080a35a399880bb74ce23f40d9a1008f974500716af183a990f8701ab3e5e7bb",
@@ -30,6 +30,6 @@
   "require_independent_result_review": false,
   "artifact_hub_base_url": "https://artifact-site.lexmount.cn",
   "artifact_hub_site": "p3sFcZrww_nx",
-  "artifact_hub_expected_version": "ver_a12ce8048ded4656977caffae502c1b0",
+  "artifact_hub_expected_version": "ver_74e882df0add4ad1867321ef630c780c",
   "artifact_hub_share_url": "https://artifact-site.lexmount.cn/v/7GfS87N6u4G1VWcEJlT9sG3j8YWV1Zjo"
 }

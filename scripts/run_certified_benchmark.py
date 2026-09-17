@@ -227,6 +227,12 @@ def run_wcxb(argv: list[str]) -> None:
     source_records, before = load_wcxb_source(args.dataset)
     from scripts.select_wcxb_sample import validate_manifest
     manifest = json.loads(args.sample_manifest.read_text())
+    profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
+    if (profile.get('comparison_kind') != 'wcxb_frozen_html_to_markdown'
+            or hashlib.sha256(args.sample_manifest.read_bytes()).hexdigest() != profile['sample_manifest_sha256']
+            or manifest.get('scope') != 'qualified_test'
+            or manifest.get('size') != profile['case_count']):
+        raise ValueError('WCXB certified run must use the current qualified-case manifest')
     selected, _ = validate_manifest(source_records, before, manifest)
     expected_ids = {row['track_id'] for row in selected}
     sample_before = hashlib.sha256(args.sample_manifest.read_bytes()).hexdigest()

@@ -90,6 +90,9 @@ def main() -> None:
     if [x["provider"] for x in certificate["providers"]] != list(WCXB_PROVIDERS):
         raise ValueError("WCXB provider matrix differs from the certificate")
     profile = json.loads((Path(__file__).resolve().parents[1] / 'evaluation/current-report.json').read_text())
+    if (sample_hash != profile['sample_manifest_sha256'] or case_count != profile['case_count']
+            or sample.get('scope') != 'qualified_test' or exclusions):
+        raise ValueError('WCXB scoring must use the current qualified-case manifest')
     evaluator, evaluator_hash = official_evaluator(args.source, profile['official_evaluator_sha256'])
     ground_truth = evaluator.load_ground_truth("test")
     if not {r["track_id"] for r in records} <= set(ground_truth):

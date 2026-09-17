@@ -178,10 +178,10 @@ class RuntimeEntrypointTests(unittest.TestCase):
     def test_current_report_profile_matches_runner_and_canonical_dataset(self) -> None:
         profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
         self.assertEqual(profile['comparison_kind'], 'wcxb_frozen_html_to_markdown')
-        self.assertEqual(profile['dataset_id'], 'wcxb-v1-test-full-five-browsers')
-        self.assertEqual(profile['case_count'], 511)
+        self.assertEqual(profile['dataset_id'], 'wcxb-v1-test-qualified-five-browsers')
+        self.assertEqual(profile['case_count'], 504)
         self.assertEqual(profile['primary_quality_case_count'], 504)
-        self.assertEqual(profile['sample_manifest'], 'evaluation/public-wcxb-test-full.json')
+        self.assertEqual(profile['sample_manifest'], 'evaluation/public-wcxb-test-qualified.json')
         manifest = ROOT / profile['sample_manifest']
         self.assertEqual(profile['sample_manifest_sha256'], hashlib.sha256(manifest.read_bytes()).hexdigest())
         self.assertEqual(len(json.loads(manifest.read_text())['cases']), profile['case_count'])

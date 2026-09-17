@@ -55,14 +55,18 @@ def full_test_exclusions(records: list[dict]) -> list[dict]:
 
 def validate_manifest(records: list[dict], source_hash: str, manifest: dict) -> tuple[list[dict], dict]:
     scope = manifest.get('scope')
-    if scope == 'full_test':
-        selected = sorted(records, key=lambda r: r['track_id'])
+    if scope in ('full_test', 'qualified_test'):
+        invalid = {row['file_id'] for row in full_test_exclusions(records)}
+        selected = sorted((r for r in records if scope == 'full_test' or r['track_id'] not in invalid), key=lambda r: r['track_id'])
         distribution = {'parent': dict(Counter(r['meta']['page_type'] for r in records)),
                         'sample': dict(Counter(r['meta']['page_type'] for r in selected))}
-        expected_exclusions = full_test_exclusions(selected)
-        if (manifest.get('size') != len(selected) or manifest.get('exclusions') != expected_exclusions
-                or manifest.get('primary_quality_case_count') != len(selected) - len(expected_exclusions)):
-            raise ValueError('WCXB full-test source qualification drifted')
+        if scope == 'full_test':
+            expected_exclusions = full_test_exclusions(selected)
+            if (manifest.get('size') != len(selected) or manifest.get('exclusions') != expected_exclusions
+                    or manifest.get('primary_quality_case_count') != len(selected) - len(expected_exclusions)):
+                raise ValueError('WCXB full-test source qualification drifted')
+        elif manifest.get('size') != len(selected) or manifest.get('exclusions') or manifest.get('primary_quality_case_count') != len(selected):
+            raise ValueError('WCXB qualified-test selection drifted')
     else:
         selected, distribution = choose(records, 200)
         if manifest.get('seed') != SEED or manifest.get('size') != 200:
@@ -98,24 +102,33 @@ def main() -> None:
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--full-test", action="store_true")
+    parser.add_argument("--qualified-test", action="store_true")
     args = parser.parse_args()
     if args.output.exists():
         parser.error("Sample manifest already exists")
     records, source_hash = load_wcxb_source(args.source)
-    selected, distribution = (sorted(records, key=lambda r: r['track_id']),
-                              {'parent': dict(Counter(r['meta']['page_type'] for r in records)),
-                               'sample': dict(Counter(r['meta']['page_type'] for r in records))}) if args.full_test else choose(records, 200)
-    payload = {"schema_version": 1, "dataset_id": "wcxb-v1-test-full" if args.full_test else "wcxb-v1-test-stratified-200",
+    if args.full_test and args.qualified_test:
+        parser.error('Choose one test scope')
+    if args.full_test or args.qualified_test:
+        invalid = {row['file_id'] for row in full_test_exclusions(records)} if args.qualified_test else set()
+        selected = sorted((r for r in records if r['track_id'] not in invalid), key=lambda r: r['track_id'])
+        distribution = {'parent': dict(Counter(r['meta']['page_type'] for r in records)),
+                        'sample': dict(Counter(r['meta']['page_type'] for r in selected))}
+    else:
+        selected, distribution = choose(records, 200)
+    payload = {"schema_version": 1, "dataset_id": "wcxb-v1-test-qualified" if args.qualified_test else "wcxb-v1-test-full" if args.full_test else "wcxb-v1-test-stratified-200",
                "source_commit": "c039d5ee9f5a3a984a0e167e63aacd04e76e78a9",
-               "source_sha256": source_hash, "split": "test", "scope": "full_test" if args.full_test else "stratified_sample",
-               "seed": None if args.full_test else SEED,
-               "algorithm": "all test cases by file ID" if args.full_test else "Hamilton proportional quotas by page type; within each type sort by SHA-256(seed:case_id)",
+               "source_sha256": source_hash, "split": "test", "scope": "qualified_test" if args.qualified_test else "full_test" if args.full_test else "stratified_sample",
+               "seed": None if (args.full_test or args.qualified_test) else SEED,
+               "algorithm": "all source-qualified test cases by file ID" if args.qualified_test else "all test cases by file ID" if args.full_test else "Hamilton proportional quotas by page type; within each type sort by SHA-256(seed:case_id)",
                "size": len(selected), "distribution": distribution,
                "cases": [{"file_id": r["track_id"], "page_type": r["meta"]["page_type"]} for r in selected]}
     if args.full_test:
         exclusions = full_test_exclusions(selected)
         payload['exclusions'] = exclusions
         payload['primary_quality_case_count'] = len(selected) - len(exclusions)
+    if args.qualified_test:
+        payload['primary_quality_case_count'] = len(selected)
     validate_manifest(records, source_hash, payload)
     args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
     print(json.dumps({"source_sha256": source_hash, "sample_sha256": hashlib.sha256(args.output.read_bytes()).hexdigest(),

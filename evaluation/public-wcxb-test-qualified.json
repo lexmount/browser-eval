@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
-  "dataset_id": "wcxb-v1-test-full",
+  "dataset_id": "wcxb-v1-test-qualified",
   "source_commit": "c039d5ee9f5a3a984a0e167e63aacd04e76e78a9",
   "source_sha256": "080a35a399880bb74ce23f40d9a1008f974500716af183a990f8701ab3e5e7bb",
   "split": "test",
-  "scope": "full_test",
+  "scope": "qualified_test",
   "seed": null,
-  "algorithm": "all test cases by file ID",
-  "size": 511,
+  "algorithm": "all source-qualified test cases by file ID",
+  "size": 504,
   "distribution": {
     "parent": {
       "article": 257,
@@ -19,13 +19,13 @@
       "service": 59
     },
     "sample": {
-      "article": 257,
-      "collection": 34,
-      "product": 28,
-      "listing": 40,
-      "forum": 51,
+      "article": 256,
+      "collection": 33,
+      "product": 27,
+      "listing": 39,
       "documentation": 42,
-      "service": 59
+      "service": 57,
+      "forum": 50
     }
   },
   "cases": [
@@ -130,10 +130,6 @@
       "page_type": "collection"
     },
     {
-      "file_id": "4066",
-      "page_type": "listing"
-    },
-    {
       "file_id": "4067",
       "page_type": "article"
     },
@@ -206,10 +202,6 @@
       "page_type": "article"
     },
     {
-      "file_id": "4145",
-      "page_type": "forum"
-    },
-    {
       "file_id": "4150",
       "page_type": "article"
     },
@@ -236,10 +228,6 @@
     {
       "file_id": "4179",
       "page_type": "article"
-    },
-    {
-      "file_id": "4181",
-      "page_type": "product"
     },
     {
       "file_id": "4186",
@@ -304,10 +292,6 @@
     {
       "file_id": "4277",
       "page_type": "article"
-    },
-    {
-      "file_id": "4285",
-      "page_type": "collection"
     },
     {
       "file_id": "4291",
@@ -438,10 +422,6 @@
       "page_type": "article"
     },
     {
-      "file_id": "4482",
-      "page_type": "service"
-    },
-    {
       "file_id": "4486",
       "page_type": "article"
     },
@@ -463,10 +443,6 @@
     },
     {
       "file_id": "4538",
-      "page_type": "article"
-    },
-    {
-      "file_id": "4542",
       "page_type": "article"
     },
     {
@@ -623,10 +599,6 @@
     },
     {
       "file_id": "4920",
-      "page_type": "service"
-    },
-    {
-      "file_id": "4922",
       "page_type": "service"
     },
     {
@@ -2072,50 +2044,6 @@
     {
       "file_id": "5696",
       "page_type": "article"
-    }
-  ],
-  "exclusions": [
-    {
-      "file_id": "4066",
-      "reason": "empty_main_content_reference",
-      "visible_body_chars": 4195,
-      "reference_chars": 0
-    },
-    {
-      "file_id": "4145",
-      "reason": "reference_body_absent_from_frozen_html",
-      "visible_body_chars": 0,
-      "reference_chars": 6599
-    },
-    {
-      "file_id": "4181",
-      "reason": "empty_main_content_reference",
-      "visible_body_chars": 24,
-      "reference_chars": 0
-    },
-    {
-      "file_id": "4285",
-      "reason": "empty_main_content_reference",
-      "visible_body_chars": 0,
-      "reference_chars": 0
-    },
-    {
-      "file_id": "4482",
-      "reason": "empty_main_content_reference",
-      "visible_body_chars": 1110,
-      "reference_chars": 0
-    },
-    {
-      "file_id": "4542",
-      "reason": "empty_main_content_reference",
-      "visible_body_chars": 2154,
-      "reference_chars": 0
-    },
-    {
-      "file_id": "4922",
-      "reason": "empty_main_content_reference",
-      "visible_body_chars": 0,
-      "reference_chars": 0
     }
   ],
   "primary_quality_case_count": 504

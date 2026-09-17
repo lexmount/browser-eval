@@ -118,6 +118,7 @@ def check(root: Path) -> None:
     profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
     sample_file = root / 'sample-manifest.json'
     sample = json.loads(sample_file.read_text())
+    require(sample.get('scope') == 'qualified_test', 'WCXB current selection is not source-qualified')
     certificate = json.loads((root / 'certification.json').read_text())
     summary = json.loads((root / 'wcxb-score-summary.json').read_text())
     scores = [json.loads(line) for line in (root / 'wcxb-scores.jsonl').read_text().splitlines() if line]
@@ -129,12 +130,13 @@ def check(root: Path) -> None:
     require(summary.get('official_evaluator_sha256') == profile['official_evaluator_sha256'], 'WCXB official evaluator hash differs')
     providers = profile['providers']
     case_ids = {row['file_id'] for row in sample['cases']}
-    excluded = {row['file_id'] for row in sample['exclusions']}
+    excluded = {row['file_id'] for row in sample.get('exclusions', [])}
     qualified = case_ids - excluded
-    require(len(case_ids) == profile['case_count'] == 511, 'WCXB case count differs')
+    require(len(case_ids) == profile['case_count'] == 504, 'WCXB case count differs')
     require(len(scores) == len(case_ids) * len(providers), 'WCXB score count differs')
     require(summary['quality_case_count'] == profile['primary_quality_case_count'] == sample['primary_quality_case_count'] == 504, 'WCXB quality denominator differs')
-    require(summary['exclusions'] == sample['exclusions'], 'WCXB exclusions differ')
+    require(summary['exclusions'] == sample.get('exclusions', []) == [], 'WCXB current cohort contains excluded cases')
+    require(summary['benchmark'] == sample['dataset_id'] == certificate['benchmark'], 'WCXB certified dataset identity differs')
     require({(r['provider'], r['case_id']) for r in scores} == {(p, c) for p in providers for c in case_ids}, 'WCXB method-case matrix differs')
     require([r['provider'] for r in certificate['providers']] == providers, 'WCXB certificate participants differ')
     evidence_hashes = json.loads((root / 'evidence-manifest.json').read_text())
@@ -190,14 +192,21 @@ def check(root: Path) -> None:
                 require(all(f'data-case="{case}"' not in html for case in excluded), 'Invalid references entered result inventory')
             if route in ('index.html', 'datasets/index.html'):
                 check_presentation(html)
-                require('id="home-type"' in html, 'Page-type filter missing')
                 if route == 'index.html':
+                    require('id="home-type"' in html, 'Page-type filter missing')
                     require('官方全量 F1' not in html and 'Official full F1' not in html, 'Invalid full-reference score remains visible')
                     require(len(BeautifulSoup(html, 'html.parser').select('#wcxb-core .comparison-winner')) >= 4, 'Core comparison winners missing')
+                    if all(summary['providers'][provider]['success_latency_count'] == len(case_ids) for provider in providers):
+                        require('Conditional latency for delivered content' not in html and '仅成功交付的条件耗时' not in html,
+                                'Duplicate conditional latency table remains on the home page')
+                else:
+                    require('id="wcxb-dataset"' in html and 'id="dataset-type"' in html and 'id="dataset-query"' in html, 'Dataset result filters missing')
+                    require(len(BeautifulSoup(html, 'html.parser').select('#wcxb-dataset tbody tr')) == len(case_ids), 'Dataset result matrix differs')
             if route.startswith('cases/'):
                 require_case_summary(html, lang)
                 require(set(providers) <= page.ids and page.outputs == 5, f'Case participant evidence missing: {route}')
                 require(f'evidence/{Path(route).stem}.json' in html, f'Case evidence link missing: {route}')
+                require('id="preview"' in html and 'class="frozen-preview"' in html, f'Frozen-page preview missing: {route}')
                 case = Path(route).stem
                 for provider in providers:
                     row = by_case[case][provider]

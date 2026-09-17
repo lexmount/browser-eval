@@ -83,7 +83,20 @@ def check(root: Path, browser_binary: str) -> None:
                                         page.locator('#home-type').select_option('article')
                                         if page.locator('#wcxb-types tbody tr:visible').count() != 1:
                                             raise ValueError('Page-type filter does not narrow the comparison')
+                                    if route == 'datasets/index.html' and not dark:
+                                        if page.locator('#wcxb-dataset tbody tr:visible').count() != qualified_count:
+                                            raise ValueError('Dataset does not show every page result')
+                                        page.locator('#dataset-query').fill(case_id)
+                                        if page.locator('#dataset-count').inner_text() != '1':
+                                            raise ValueError('Dataset page search failed')
+                                        if page.locator('#wcxb-dataset').locator('..').evaluate('(node) => node.getBoundingClientRect().height') > 180:
+                                            raise ValueError('Filtered dataset leaves a large empty table')
+                                        preview_href = page.locator('#wcxb-dataset tbody tr:visible a[href$="#preview"]').get_attribute('href')
+                                        if f'cases/{case_id}.html#preview' not in (preview_href or ''):
+                                            raise ValueError('Dataset preview does not target its page')
                                     if route == 'analysis/index.html' and not dark:
+                                        if int(page.locator('#count').inner_text()) == 0:
+                                            raise ValueError('Default results filter is empty')
                                         page.locator('#scope').select_option('all')
                                         if page.locator('#count').inner_text() != str(qualified_count * provider_count):
                                             raise ValueError('Results filter does not expose the qualified matrix')
@@ -117,6 +130,9 @@ def check(root: Path, browser_binary: str) -> None:
                                             if not page.url.endswith('/index.html'):
                                                 raise ValueError('Nested result cannot return to the report root')
                                     if route.startswith('cases/') and not dark:
+                                        preview = page.frame_locator('iframe.frozen-preview').locator('body')
+                                        if not preview.inner_text().strip():
+                                            raise ValueError('Frozen page preview is blank')
                                         if route.endswith(f'/{diagnostic_id}.html'):
                                             locator = page.locator(f'#{diagnostic_row["provider"]} .tag').inner_text()
                                             if locator != ('精确率低' if lang == 'zh' else 'Low precision'):
