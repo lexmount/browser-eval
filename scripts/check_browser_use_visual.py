@@ -97,26 +97,63 @@ def check(report: Path, receipt: Path) -> None:
 const root=document.documentElement;
 const overflow=root.scrollWidth-root.clientWidth;
 const clipped=[];
-for(const element of document.querySelectorAll('.filters input,.filters select,.attempt-fact,.evidence-card,.review-round,.action-card')){
+for(const element of document.querySelectorAll(
+  '.filters input,.filters select,.attempt-fact,.evidence-card,.review-round,.action-card'
+)){
   if(!element.getClientRects().length)continue;
   const box=element.getBoundingClientRect();
   if(box.left < -2 || box.right > innerWidth + 2)clipped.push(element.className || element.tagName);
 }
 const vertical=[];
 for(const button of document.querySelectorAll('th .sort-button')){
-  const box=button.getBoundingClientRect(),style=getComputedStyle(button),line=parseFloat(style.lineHeight)||16;
-  if(button.textContent.trim().length>2 && box.height>line*2.6 && box.width<52)vertical.push(button.textContent.trim());
+  const box=button.getBoundingClientRect();
+  const style=getComputedStyle(button),line=parseFloat(style.lineHeight)||16;
+  if(button.textContent.trim().length>2 && box.height>line*2.6 && box.width<52)
+    vertical.push(button.textContent.trim());
 }
 const textOverflow=[];
 for(const element of document.querySelectorAll('.hero h1,.hero .lead')){
-  if(element.scrollWidth > element.clientWidth + 2)textOverflow.push(element.tagName+'.'+element.className);
+  if(element.scrollWidth > element.clientWidth + 2)
+    textOverflow.push(element.tagName+'.'+element.className);
 }
 return {overflow,clipped:[...new Set(clipped)],vertical,textOverflow};
 }
 """
                         )
+                        relative_route = route.relative_to(report).as_posix()
+                        if (
+                            relative_route in ("analysis/index.html", "en/analysis/index.html")
+                            and width in (1440, 390)
+                            and theme == "light"
+                        ):
+                            try:
+                                cause_filter = page.locator('select[data-filter="cause"]')
+                                if cause_filter.locator("option").count() > 1:
+                                    initial_count = page.locator(
+                                        "#result-table tbody tr:visible"
+                                    ).count()
+                                    selected_cause = (
+                                        cause_filter.locator("option").nth(1).get_attribute("value")
+                                    )
+                                    cause_filter.select_option(selected_cause)
+                                    filtered_rows = page.locator(
+                                        "#result-table tbody tr:visible"
+                                    )
+                                    filtered_count = filtered_rows.count()
+                                    if not 0 < filtered_count < initial_count:
+                                        raise ValueError(
+                                            "cause filter did not narrow the visible results"
+                                        )
+                                    filtered_rows.first.locator(".diagnosis-button").click(
+                                        timeout=3_000
+                                    )
+                                    if page.locator("dialog[open]").count() != 1:
+                                        raise ValueError("diagnosis dialog did not open")
+                                result["interaction_error"] = None
+                            except Exception as exc:
+                                result["interaction_error"] = str(exc)[:500]
                         state = {
-                            "route": route.relative_to(report).as_posix(),
+                            "route": relative_route,
                             "width": width,
                             "height": height,
                             "theme": theme,
@@ -128,6 +165,7 @@ return {overflow,clipped:[...new Set(clipped)],vertical,textOverflow};
                             or result["clipped"]
                             or result["vertical"]
                             or result["textOverflow"]
+                            or result.get("interaction_error")
                         ):
                             failures.append(state)
                         page.close()
@@ -142,6 +180,7 @@ return {overflow,clipped:[...new Set(clipped)],vertical,textOverflow};
                 "browser_executable": executable,
                 "route_classes": len(routes),
                 "states_checked": len(states),
+                "interaction_checks": sum("interaction_error" in state for state in states),
                 "failures": failures,
             },
             ensure_ascii=False,

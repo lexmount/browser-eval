@@ -1359,17 +1359,18 @@ REPORT_STYLE = (
 #pair-table th:nth-child(-n+4),#pair-table td:nth-child(-n+4){white-space:nowrap}
 #pair-table th:nth-child(1),#pair-table td:nth-child(1){min-width:260px;white-space:normal}
 #pair-table th:nth-child(n+5),#pair-table td:nth-child(n+5){min-width:235px}
-#result-table{min-width:1580px;table-layout:fixed}
+#result-table{min-width:1760px;width:1760px;table-layout:fixed}
 #result-table th,#result-table td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;height:72px;max-height:72px}
 #result-table th:nth-child(1),#result-table td:nth-child(1){width:230px}
-#result-table th:nth-child(2),#result-table td:nth-child(2){width:170px}
+#result-table th:nth-child(2),#result-table td:nth-child(2){width:180px}
 #result-table th:nth-child(3),#result-table td:nth-child(3){width:80px}
-#result-table th:nth-child(4),#result-table td:nth-child(4){width:75px}
-#result-table th:nth-child(5),#result-table td:nth-child(5){width:250px}
-#result-table th:nth-child(6),#result-table td:nth-child(6){width:180px}
-#result-table th:nth-child(7),#result-table td:nth-child(7){width:180px}
-#result-table th:nth-child(8),#result-table td:nth-child(8){width:310px}
-#result-table th:nth-child(9),#result-table td:nth-child(9){width:170px}
+#result-table th:nth-child(4),#result-table td:nth-child(4){width:80px}
+#result-table th:nth-child(5),#result-table td:nth-child(5){width:130px}
+#result-table th:nth-child(6),#result-table td:nth-child(6){width:190px}
+#result-table th:nth-child(7),#result-table td:nth-child(7){width:200px}
+#result-table th:nth-child(8),#result-table td:nth-child(8){width:210px}
+#result-table th:nth-child(9),#result-table td:nth-child(9){width:320px}
+#result-table th:nth-child(10),#result-table td:nth-child(10){width:140px}
 #engine-result-table,#change-table{min-width:1080px}
 #result-table td:first-child,#engine-result-table td:first-child{white-space:nowrap;min-width:150px}
 .json-view,.log-view{background:var(--code-bg)!important;color:var(--code-ink)!important;border-color:#334b68!important;line-height:1.65}
