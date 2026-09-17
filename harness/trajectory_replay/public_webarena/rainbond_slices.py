@@ -48,6 +48,11 @@ def _validate_pool_id(pool_id: str) -> str:
     return normalized
 
 
+def _slot_sort_key(path: Path) -> tuple[int, int | str]:
+    suffix = path.name.removeprefix("slice-")
+    return (0, int(suffix)) if suffix.isdigit() else (1, path.name)
+
+
 def _atomic_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     content = json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
@@ -627,7 +632,12 @@ class RainbondSlicePool:
     def _delete_app(self, app_id: int) -> None:
         """Stop runtime services before removing their control-plane app record."""
         path = self._app_path(app_id)
-        rows = self._response_rows(self.api.request("GET", f"{path}/services"), "services")
+        try:
+            rows = self._response_rows(self.api.request("GET", f"{path}/services"), "services")
+        except RuntimeError as exc:
+            if isinstance(exc.__cause__, urllib.error.HTTPError) and exc.__cause__.code == 404:
+                return
+            raise
         service_ids = {str(row["service_id"]) for row in rows if row.get("service_id")}
         if service_ids:
             self.api.request(
@@ -854,7 +864,7 @@ def provision_pool(config_path: Path, output_dir: Path, pool_id: str, count: int
                 lambda slot_dir=slot_dir: pool.destroy(slot_dir / "slice-receipt.json"),
             )
         raise
-    return sorted(created)
+    return sorted(created, key=_slot_sort_key)
 
 
 @contextmanager
@@ -996,11 +1006,7 @@ def acquire_slice(output_dir: Path, owner: str) -> dict[str, Any]:
         raise ValueError("lease owner is required")
     with _pool_lock(output_dir):
 
-        def slot_sort_key(path: Path) -> tuple[int, int | str]:
-            suffix = path.name.removeprefix("slice-")
-            return (0, int(suffix)) if suffix.isdigit() else (1, path.name)
-
-        for slot_dir in sorted(output_dir.glob("slice-*"), key=slot_sort_key):
+        for slot_dir in sorted(output_dir.glob("slice-*"), key=_slot_sort_key):
             receipt_path = slot_dir / "slice-receipt.json"
             config_path = slot_dir / "webarena.config.json"
             lease_path = slot_dir / "slice-lease.json"

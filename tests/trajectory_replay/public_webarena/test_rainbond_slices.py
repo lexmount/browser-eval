@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import urllib.error
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -158,6 +159,16 @@ def test_app_deletion_waits_for_service_stop(tmp_path):
     methods = [method for method, _, _ in api.calls]
     assert methods == ["GET", "POST", "GET", "DELETE"]
     assert api.calls[1][2]["action"] == "stop"
+
+
+def test_app_deletion_is_idempotent_after_control_plane_record_is_gone(tmp_path):
+    class MissingAppAPI(FakeAPI):
+        def request(self, method, path, body=None):
+            error = urllib.error.HTTPError(path, 404, "Not Found", None, None)
+            raise RuntimeError("Rainbond OpenAPI returned HTTP 404") from error
+
+    pool = _pool(tmp_path, MissingAppAPI())
+    pool._delete_app(200)
 
 
 def test_app_deletion_keeps_record_when_stop_fails(tmp_path):
