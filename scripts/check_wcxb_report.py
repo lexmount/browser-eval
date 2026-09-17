@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sys
+from collections import Counter
 from bs4 import BeautifulSoup
 from html.parser import HTMLParser
 from pathlib import Path
@@ -31,6 +33,48 @@ class Page(HTMLParser):
         if tag == 'pre' and values.get('data-provider'): self.outputs += 1
 
 
+class ReportShape(HTMLParser):
+    """Compare authored bilingual structure while excluding verbatim evidence blocks."""
+    def __init__(self):
+        super().__init__()
+        self.tags = Counter()
+        self.ids = set()
+        self.links = Counter()
+        self.numbers = Counter()
+        self.controls = Counter()
+        self.untranslated = []
+        self.skip = 0
+
+    def handle_starttag(self, tag, attrs):
+        values = dict(attrs)
+        self.tags[tag] += 1
+        if values.get('id'):
+            self.ids.add(values['id'])
+        if tag == 'a' and values.get('href'):
+            self.links[re.sub(r'^en/', '', values['href'])] += 1
+        for name in ('value', 'data-provider', 'data-case', 'data-result',
+                     'data-diagnosis', 'data-page-type', 'data-sort', 'data-core-sort'):
+            if name in values:
+                self.controls[(tag, name, values[name])] += 1
+        for name in ('aria-label', 'title', 'placeholder', 'alt'):
+            value = values.get(name, '')
+            if re.search(r'[\u4e00-\u9fff]', value) and value != '中文':
+                self.untranslated.append(f'{name}: {value[:80]}')
+        if tag in {'pre', 'code', 'script', 'style'}:
+            self.skip += 1
+
+    def handle_endtag(self, tag):
+        if tag in {'pre', 'code', 'script', 'style'}:
+            self.skip = max(0, self.skip - 1)
+
+    def handle_data(self, value):
+        if self.skip:
+            return
+        self.numbers.update(re.findall(r'\d+(?:[.,]\d+)*(?:%|\b)', value))
+        if re.search(r'[\u4e00-\u9fff]', value) and value.strip() != '中文':
+            self.untranslated.append(value.strip()[:80])
+
+
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -38,6 +82,12 @@ def digest(path: Path) -> str:
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise ValueError(message)
+
+
+def require_bilingual_shape(zh: ReportShape, en: ReportShape, route: str) -> None:
+    require(zh.tags == en.tags and zh.ids == en.ids and zh.links == en.links
+            and zh.numbers == en.numbers and zh.controls == en.controls,
+            f'WCXB bilingual structure or value differs: {route}')
 
 
 def require_analysis_controls(html: str | BeautifulSoup, result_count: int) -> BeautifulSoup:
@@ -114,6 +164,7 @@ def check(root: Path) -> None:
                 'changes/index.html', 'accounts/index.html',
                 *(f'providers/{provider}.html' for provider in providers),
                 *(f'cases/{case}.html' for case in qualified)}
+    shapes = {'zh': {}, 'en': {}}
     for lang, prefix in (('zh', ''), ('en', 'en/')):
         routes = {str(path.relative_to(root / prefix)) for path in (root / prefix).rglob('*.html')}
         if not prefix:
@@ -123,7 +174,11 @@ def check(root: Path) -> None:
             path = root / prefix / route
             html = path.read_text(encoding='utf-8')
             page = Page(); page.feed(html)
+            shape = ReportShape(); shape.feed(html)
+            shapes[lang][route] = shape
             require(page.lang == lang, f'WCXB language differs: {route}')
+            if lang == 'en':
+                require(not shape.untranslated, f'Untranslated WCXB interface: {route}: {shape.untranslated[:3]}')
             private_paths = (str(ROOT.resolve()), str(data_home()))
             require(all(path not in html for path in private_paths), f'WCXB private path leaked: {route}')
             if route == 'analysis/index.html':
@@ -147,6 +202,20 @@ def check(root: Path) -> None:
                     row = by_case[case][provider]
                     if row['error_message']:
                         require(row['error_message'] in BeautifulSoup(html, 'html.parser').get_text(), f'Exact error missing: {route}')
+    for route in expected:
+        zh, en = shapes['zh'][route], shapes['en'][route]
+        require_bilingual_shape(zh, en, route)
+    untranslated = ReportShape(); untranslated.feed('<p>未翻译的界面文字</p>')
+    require(bool(untranslated.untranslated), 'Untranslated-English negative control was accepted')
+    broken = ReportShape()
+    broken.feed((root / 'en/index.html').read_text().replace('href="en/analysis/index.html"',
+                'href="en/broken.html"', 1))
+    try:
+        require_bilingual_shape(shapes['zh']['index.html'], broken, 'index.html')
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('A broken bilingual navigation link was accepted')
     # Negative controls ensure the semantic contract rejects missing or wrong highlights.
     home = BeautifulSoup((root / 'index.html').read_text(), 'html.parser')
     winner = home.select_one('#wcxb-core .comparison-winner')
