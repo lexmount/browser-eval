@@ -13,6 +13,7 @@ from .storage import require_selection_history,data_home
 from .scoring import SCORING_SOURCE_SHA256
 from .webmainbench_diagnostics import validate_teds_revision_if_present
 from .webmainbench_latency_correction import prior_results_path
+from .webmainbench_latency_diagnostic import load_diagnostic
 from .artifacts import (
     record_public_call_log_bindings, verify_record_private_artifacts,
     verify_public_call_log, verify_record_public_call_logs,
@@ -397,7 +398,6 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
     teds_revision = validate_teds_revision_if_present(source, records)
     summaries = json.loads(contained_path(source, 'score-summaries.json').read_text())
     manifests = json.loads(contained_path(source, 'execution.json').read_text())['batches']
-    from .webmainbench_latency_diagnostic import load_diagnostic
     latency_diagnostic = load_diagnostic(source, dataset, records, manifests)
     review_path = source / 'result-review.json'
     review = json.loads(review_path.read_text()) if review_path.is_file() else None

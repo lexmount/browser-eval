@@ -23,7 +23,7 @@ def validate_latency_correction(root: Path) -> dict | None:
     receipt_path = root / 'latency-corrections.json'
     if not receipt_path.is_file():
         return None
-    receipt = json.loads(contained_path(root, 'latency-corrections.json').read_text())
+    receipt = json.loads(contained_path(root, 'latency-corrections.json').read_text(encoding='utf-8'))
     prior_path = contained_path(root, 'prior-latency-results.jsonl')
     current_path = contained_path(root, 'results.jsonl')
     if (receipt.get('schema_version') != 1
@@ -33,8 +33,8 @@ def validate_latency_correction(root: Path) -> dict | None:
             or receipt.get('selected_round') != 2
             or receipt.get('changed_result_count') != 400):
         raise ValueError('Invalid WebMainBench latency correction binding')
-    previous = [json.loads(line) for line in prior_path.read_text().splitlines() if line.strip()]
-    current = [json.loads(line) for line in current_path.read_text().splitlines() if line.strip()]
+    previous = [json.loads(line) for line in prior_path.read_text(encoding='utf-8').splitlines() if line.strip()]
+    current = [json.loads(line) for line in current_path.read_text(encoding='utf-8').splitlines() if line.strip()]
     if len(previous) != len(current) or len(current) != 1200:
         raise ValueError('WebMainBench latency correction changed result inventory')
     changes = receipt.get('changes')
