@@ -110,6 +110,38 @@ def test_review_requires_declared_environment_prepare_receipt(tmp_path: Path) ->
     assert "environment_prepare" in review["attempts"][0]["artifacts"]
 
 
+def test_review_binds_application_probe_and_rejects_help_only_gitlab(tmp_path: Path) -> None:
+    _write_fixture(tmp_path, require_prepare_receipt=True)
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["protocol"]["environment_prepare_receipt"] = "application_probe_v2"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    receipt_path = tmp_path / "chromium/44/attempt-1/environment_prepare.json"
+    receipt = {
+        "reset_requested": True,
+        "status": "ready",
+        "required_sites": ["gitlab"],
+        "application_readiness": {
+            "gitlab": {
+                "site": "gitlab",
+                "probe_path": "/explore?visibility_level=20",
+                "http_statuses": [200, 200, 200],
+                "required_consecutive_responses": 3,
+            }
+        },
+    }
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+
+    verified = review_results(evidence=tmp_path, selection_sha256="selection-sha")
+    assert verified["unresolved"] == []
+    assert verified["attempts"][0]["checks"]["application_readiness_binding"]
+
+    receipt["application_readiness"]["gitlab"]["probe_path"] = "/help"
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+    rejected = review_results(evidence=tmp_path, selection_sha256="selection-sha")
+    assert rejected["unresolved"][0]["failed_checks"] == ["application_readiness_binding"]
+
+
 def test_review_binds_raw_and_evaluated_hars_to_wire_witness(tmp_path: Path) -> None:
     _write_fixture(tmp_path)
     manifest_path = tmp_path / "manifest.json"

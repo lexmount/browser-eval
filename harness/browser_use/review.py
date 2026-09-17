@@ -51,7 +51,8 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
     if not model:
         raise ValueError("manifest protocol must identify the evidence model")
     required_artifacts = list(REQUIRED_ARTIFACTS)
-    if (manifest.get("protocol") or {}).get("environment_prepare_receipt") == "required":
+    prepare_contract = (manifest.get("protocol") or {}).get("environment_prepare_receipt")
+    if prepare_contract in {"required", "application_probe_v2"}:
         required_artifacts.append("environment_prepare")
     require_wire_witness = (manifest.get("protocol") or {}).get("server_wire_witness") == "required"
     if require_wire_witness:
@@ -81,6 +82,45 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
             checks[f"{name}_exists"] = exists
             if exists:
                 artifacts[name] = {"sha256": _sha256(path), "bytes": path.stat().st_size}
+
+        if prepare_contract == "application_probe_v2":
+            try:
+                preparation = json.loads(
+                    Path(str(paths["environment_prepare"])).read_text(encoding="utf-8")
+                )
+                sites = preparation["required_sites"]
+                probes = preparation["application_readiness"]
+                checks["application_readiness_binding"] = (
+                    preparation.get("reset_requested") is True
+                    and preparation.get("status") == "ready"
+                    and isinstance(sites, list)
+                    and bool(sites)
+                    and isinstance(probes, dict)
+                    and set(sites) == set(probes)
+                    and all(
+                        isinstance(probe, dict)
+                        and probe.get("site") == site
+                        and isinstance(probe.get("probe_path"), str)
+                        and probe["probe_path"].startswith("/")
+                        and (
+                            site != "gitlab"
+                            or probe["probe_path"] == "/explore?visibility_level=20"
+                        )
+                        and isinstance(probe.get("required_consecutive_responses"), int)
+                        and probe["required_consecutive_responses"] >= 1
+                        and isinstance(probe.get("http_statuses"), list)
+                        and len(probe["http_statuses"])
+                        == probe["required_consecutive_responses"]
+                        and all(
+                            type(status) is int
+                            and (status == 200 if site == "gitlab" else 200 <= status < 500)
+                            for status in probe["http_statuses"]
+                        )
+                        for site, probe in probes.items()
+                    )
+                )
+            except (KeyError, OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError):
+                checks["application_readiness_binding"] = False
 
         if require_wire_witness:
             try:

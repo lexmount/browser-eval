@@ -358,7 +358,7 @@ def test_application_readiness_does_not_follow_container_only_hostname(monkeypat
         return Response()
 
     monkeypatch.setattr("harness.browser_use.runner.requests.get", get)
-    _wait_application_ready(
+    receipt = _wait_application_ready(
         WebArenaSite.SHOPPING_ADMIN,
         "/",
         timeout_seconds=1,
@@ -371,6 +371,12 @@ def test_application_readiness_does_not_follow_container_only_hostname(monkeypat
             {"timeout": 15, "allow_redirects": False},
         )
     ]
+    assert receipt == {
+        "site": "shopping_admin",
+        "probe_path": "/",
+        "http_statuses": [302],
+        "required_consecutive_responses": 1,
+    }
 
 
 def test_gitlab_readiness_probes_project_route_not_help(monkeypatch) -> None:
@@ -383,13 +389,19 @@ def test_gitlab_readiness_probes_project_route_not_help(monkeypatch) -> None:
 
     monkeypatch.setattr("harness.browser_use.runner.requests.get", get)
     monkeypatch.setattr("harness.browser_use.runner.time.sleep", lambda _seconds: None)
-    _wait_application_ready(WebArenaSite.GITLAB, "/help", timeout_seconds=1)
+    receipt = _wait_application_ready(WebArenaSite.GITLAB, "/help", timeout_seconds=1)
 
     assert len(calls) == 4
     assert all(
         url == "http://127.0.0.1:8023/explore?visibility_level=20"
         for url, _ in calls
     )
+    assert receipt == {
+        "site": "gitlab",
+        "probe_path": "/explore?visibility_level=20",
+        "http_statuses": [200, 200, 200],
+        "required_consecutive_responses": 3,
+    }
 
 
 def test_browser_start_readiness_waits_past_502_before_agent(monkeypatch) -> None:

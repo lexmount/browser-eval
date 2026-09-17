@@ -478,7 +478,7 @@ def _site_runtime_compatibility(docker_arch: str) -> dict[str, Any]:
     }
 
 
-def _ensure_site(site: WebArenaSite, *, reset: bool) -> None:
+def _ensure_site(site: WebArenaSite, *, reset: bool) -> dict[str, Any]:
     port, ctrl_port = SITE_PORTS[site]
     manager = _site_container_manager(site)
     if reset or not manager.is_running():
@@ -497,9 +497,10 @@ def _ensure_site(site: WebArenaSite, *, reset: bool) -> None:
         _wait_container_healthy(container)
     if site in {WebArenaSite.SHOPPING, WebArenaSite.SHOPPING_ADMIN}:
         _wait_magento_dependencies_ready(container)
-    _wait_application_ready(site, manager.config.health_check_path)
+    application_readiness = _wait_application_ready(site, manager.config.health_check_path)
     if QEMU_X86_64_HOST_PATH in manager.config.volumes:
         _verify_arm_php_compatibility(manager.container_name)
+    return application_readiness
 
 
 def _wait_magento_dependencies_ready(
@@ -541,7 +542,7 @@ def _wait_application_ready(
     *,
     timeout_seconds: float = 300,
     stable_responses: int = 3,
-) -> None:
+) -> dict[str, Any]:
     """Require a stable app endpoint after env-ctrl reports ready.
 
     GitLab's control process can report ready during the Puma handover performed
@@ -557,6 +558,7 @@ def _wait_application_ready(
     url = f"http://127.0.0.1:{port}{probe_path}"
     deadline = time.monotonic() + timeout_seconds
     consecutive = 0
+    stable_statuses: list[int] = []
     last_detail = "no response"
     while time.monotonic() < deadline:
         try:
@@ -574,23 +576,29 @@ def _wait_application_ready(
                 else response.status_code < 500
             )
             consecutive = consecutive + 1 if usable else 0
+            stable_statuses = [*stable_statuses, response.status_code] if usable else []
             if consecutive >= stable_responses:
-                return
+                return {
+                    "site": site.value,
+                    "probe_path": probe_path,
+                    "http_statuses": stable_statuses[-stable_responses:],
+                    "required_consecutive_responses": stable_responses,
+                }
         except requests.RequestException as exc:
             consecutive = 0
+            stable_statuses = []
             last_detail = str(exc)
         time.sleep(2)
     raise RuntimeError(f"{site.value} application was not stably ready: {last_detail}")
 
 
-def _prepare_sites(sites: tuple[WebArenaSite, ...]) -> None:
+def _prepare_sites(sites: tuple[WebArenaSite, ...]) -> dict[str, dict[str, Any]]:
     """Keep only task-required sites running, then reset those sites from official images."""
     for site in SITE_PORTS:
         manager = _site_container_manager(site)
         if site not in sites and manager.is_running():
             manager.stop()
-    for site in sites:
-        _ensure_site(site, reset=True)
+    return {site.value: _ensure_site(site, reset=True) for site in sites}
 
 
 def _wait_browser_start_ready(
@@ -823,7 +831,7 @@ def _run_attempt_locked(  # noqa: PLR0913
         sites, lock_wait_ms=lock_wait_ms, lock_namespace=lock_namespace
     )
     try:
-        _prepare_sites(sites)
+        prepare_receipt["application_readiness"] = _prepare_sites(sites)
         prepare_receipt["status"] = "ready"
     except Exception as exc:
         prepare_receipt["status"] = "failed"
@@ -1222,6 +1230,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                     "isolation_unit": "docker-daemon-and-fixed-site-ports",
                 },
                 "site_runtime_compatibility": site_runtime_compatibility,
+                "application_readiness_contract": "stable-task-route-v2",
             },
         )
 
@@ -1325,7 +1334,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             "logical_result_cost": "sum of all executions used for each browser and task",
             "evaluator": "official webarena-verified package, unmodified",
             "environment_reset": "official site container reset before every attempt",
-            "environment_prepare_receipt": "required",
+            "environment_prepare_receipt": "application_probe_v2",
             "server_wire_witness": "required",
             "environment_lane": {
                 "lock_namespace": physical_execution_lock_namespace,
