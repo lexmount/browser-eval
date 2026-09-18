@@ -16,8 +16,36 @@ def _write(path: Path, value: object) -> Path:
     return path
 
 
+def _reset_receipt(method_id: str, task_id: int) -> dict:
+    sites = {}
+    for site in ("shopping_admin", "shopping", "gitlab", "reddit"):
+        sites[site] = {
+            "service_id": f"{site}-service",
+            "image_digest": "a" * 64,
+            "event_id": f"{site}-{task_id}",
+            "event_status": "success",
+            "old_pod": f"{site}-old-{task_id}",
+            "new_pod": f"{site}-new-{task_id}",
+            "data_volume_count": 0,
+            "public_http_status": 200,
+        }
+        if site in {"gitlab", "reddit"}:
+            sites[site]["baseline_check"] = {"row_count": 0}
+    return {
+        "schema": "webarena_remote_cohort_reset/1",
+        "app_id": 195,
+        "method_id": method_id,
+        "task_id": task_id,
+        "site_map_sha256": "d" * 64,
+        "reset_scope": "before_each_three_method_task",
+        "site_reset_between_tasks": True,
+        "completed_at_unix": float(task_id),
+        "sites": sites,
+    }
+
+
 def _fixture(root: Path) -> dict:
-    ids = list(range(1, 90))
+    ids = list(range(1, 91))
     selection = _write(
         root / "selection.json",
         {"schema": "lex_webarena_verified_pilot/1", "tasks": [{"task_id": i} for i in ids]},
@@ -100,7 +128,7 @@ def _fixture(root: Path) -> dict:
                 [{"index": 1, "status": "success", "arguments": actions[0], "duration_ms": 1}],
             )
             readiness = _write(directory / "readiness.json", [])
-            site_reset = _write(directory / "site-reset.json", {"method_id": name, "task_id": i})
+            site_reset = _write(directory / "site-reset.json", _reset_receipt(name, i))
             actual = _write(directory / "actual_response.json", {"status": "SUCCESS"})
             evaluation = _write(directory / "evaluation.json", {"score": 1})
             network = directory / "network.har"
@@ -164,6 +192,7 @@ def _fixture(root: Path) -> dict:
                 "run_count": 1,
                 "retry_count": 0,
                 "site_reset_between_tasks": True,
+                "app_id": 195,
                 "browser_context_per_task": "fresh",
                 "manifest_sha256": _sha(manifest),
                 "dataset_sha256": _sha(dataset),
@@ -190,7 +219,7 @@ def _fixture(root: Path) -> dict:
 def test_aggregate_has_exact_three_method_selected_task_matrix(tmp_path: Path) -> None:
     inputs = _fixture(tmp_path)
     result = aggregate(**inputs)
-    assert len(result["attempts"]) == len(result["physical_executions"]) == 267
+    assert len(result["attempts"]) == len(result["physical_executions"]) == 270
     assert {row["participant_id"] for row in result["attempts"]} == {
         "chromium",
         "moli-old",
@@ -239,4 +268,32 @@ def test_rejects_missing_evidence_or_validity(tmp_path: Path) -> None:
     data["tasks"][0].pop("status")
     _write(validity, data)
     with pytest.raises(ValueError, match="validity lacks current source proof"):
+        aggregate(**inputs)
+
+
+def test_rejects_hash_bound_but_false_site_reset(tmp_path: Path) -> None:
+    inputs = _fixture(tmp_path)
+    reset_path = tmp_path / "chromium/task-1/site-reset.json"
+    reset = json.loads(reset_path.read_text())
+    reset["sites"]["reddit"]["new_pod"] = reset["sites"]["reddit"]["old_pod"]
+    _write(reset_path, reset)
+    receipt_path = inputs["cohort_inputs"]["chromium"][1]
+    receipt = json.loads(receipt_path.read_text())
+    receipt["results"][0]["evidence_sha256"]["site_reset"] = _sha(reset_path)
+    _write(receipt_path, receipt)
+    with pytest.raises(ValueError, match="remote cohort reset is not proven"):
+        aggregate(**inputs)
+
+
+def test_rejects_reset_receipt_from_other_task(tmp_path: Path) -> None:
+    inputs = _fixture(tmp_path)
+    reset_path = tmp_path / "chromium/task-1/site-reset.json"
+    reset = json.loads(reset_path.read_text())
+    reset["task_id"] = 2
+    _write(reset_path, reset)
+    receipt_path = inputs["cohort_inputs"]["chromium"][1]
+    receipt = json.loads(receipt_path.read_text())
+    receipt["results"][0]["evidence_sha256"]["site_reset"] = _sha(reset_path)
+    _write(receipt_path, receipt)
+    with pytest.raises(ValueError, match="site reset belongs to a different task"):
         aggregate(**inputs)

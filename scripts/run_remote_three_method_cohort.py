@@ -370,6 +370,7 @@ def main(argv: list[str] | None = None) -> int:
         "run_count": 1,
         "retry_count": 0,
         "site_reset_between_tasks": True,
+        "app_id": args.app_id,
         "browser_context_per_task": "fresh",
         "manifest_sha256": file_sha256(args.manifest),
         "dataset_sha256": file_sha256(args.dataset),

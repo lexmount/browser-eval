@@ -12,6 +12,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from harness.trajectory_replay.remote_runtime import validate_remote_cohort_reset_receipt
+
+RESET_SCOPE = "before_each_three_method_task"
+
 EVIDENCE_FILES = {
     "trace": "trace.json",
     "readiness": "readiness.json",
@@ -132,6 +136,8 @@ def _cohort(
         or manifest.get("site_reset_between_tasks") is not True
         or receipt.get("site_reset_between_tasks") is not True
         or receipt.get("browser_context_per_task") != "fresh"
+        or type(receipt.get("app_id")) is not int
+        or receipt["app_id"] < 1
         or receipt.get("reference_sha256_before") != receipt.get("reference_sha256_after")
     ):
         raise ValueError(f"{method_id}: cohort identity/certification changed")
@@ -210,6 +216,21 @@ def _cohort(
             if _sha(path) != expected:
                 raise ValueError(f"{method_id}/{task_id}: {kind} hash changed")
             evidence[kind] = {"path": str(path.resolve()), "sha256": expected}
+        reset = validate_remote_cohort_reset_receipt(
+            directory / "site-reset.json",
+            site_map_sha256=receipt["site_map_sha256"],
+            app_id=receipt["app_id"],
+            reset_scope=RESET_SCOPE,
+            site_reset_between_tasks=True,
+            required_readiness_probes=manifest.get("site_readiness"),
+        )
+        if (
+            reset.get("method_id") != method_id
+            or reset.get("task_id") != task_id
+            or type(reset.get("completed_at_unix")) not in {int, float}
+            or reset["completed_at_unix"] <= 0
+        ):
+            raise ValueError(f"{method_id}/{task_id}: site reset belongs to a different task")
         trace = json.loads((directory / "trace.json").read_text(encoding="utf-8"))
         if (
             not isinstance(trace, list)
