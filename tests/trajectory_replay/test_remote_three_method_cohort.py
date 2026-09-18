@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -13,6 +14,7 @@ from webarena_verified.types.task import WebArenaSite
 from harness.trajectory_replay.remote_runtime import file_sha256
 from harness.trajectory_replay.webarena_replay import _json_sha256
 from scripts import run_remote_three_method_cohort as cohort
+from tests.trajectory_replay.test_aggregate_webarena_three_method_cohorts import _reset_receipt
 
 
 def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, retrieval: bool = False):
@@ -103,6 +105,49 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, retrieval: bool
 
     save()
     return args, manifest, save
+
+
+def test_task_execution_order_matches_upstream_numeric_order(tmp_path, monkeypatch):
+    selection = tmp_path / "selection.json"
+    selection.write_text(
+        json.dumps(
+            {
+                "schema": "lex_webarena_verified_pilot/1",
+                "tasks": [{"task_id": n} for n in [645, 66, 610]],
+            }
+        )
+    )
+    monkeypatch.setattr(cohort, "TASK_SELECTION", selection)
+    assert cohort._task_ids() == [66, 610, 645]
+
+
+@pytest.mark.parametrize("fault", [None, "upgrade", "scripts", "loader"])
+def test_browser_readiness_rejects_origin_and_magento_setup_errors(monkeypatch, fault):
+    page = SimpleNamespace(
+        url="https://admin.example/admin",
+        goto=lambda *a, **k: SimpleNamespace(status=200),
+        locator=lambda *_: SimpleNamespace(
+            evaluate_all=lambda *_: [
+                "http://admin.example/script.js"
+                if fault == "scripts"
+                else "https://admin.example/script.js"
+            ]
+        ),
+        evaluate=lambda *_: "undefined" if fault == "loader" else "function",
+    )
+    if fault == "upgrade":
+        page.url = "https://other.example/admin"
+    service = SimpleNamespace(_page=page, _submit=lambda callback: callback())
+    closed = []
+    tool = SimpleNamespace(_get_service=lambda: service, close=lambda: closed.append(True))
+    monkeypatch.setattr(cohort, "_prepare_browser_viewport", lambda *_: None)
+    sites = {WebArenaSite.SHOPPING_ADMIN: "https://admin.example/admin"}
+    if fault:
+        with pytest.raises(ValueError):
+            cohort._verify_browser_session(tool, sites)
+    else:
+        assert cohort._verify_browser_session(tool, sites)[0]["status"] == 200
+    assert closed == [True]
 
 
 def test_certificate_accepts_measured_failures() -> None:
@@ -244,3 +289,53 @@ def test_complete_evidence_requires_current_run_artifacts(
         cohort._verify_complete_evidence(tmp_path, [row], {1: {"retrieval_contract": {}}})
     row["evidence_sha256"]["acceptance"] = "c"
     cohort._verify_complete_evidence(tmp_path, [row], {1: {"retrieval_contract": {}}})
+
+
+@pytest.mark.parametrize("configured", [False, True])
+def test_https_admin_reset_requires_restored_application_settings(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, configured: bool
+) -> None:
+    receipt = _reset_receipt("chromium")
+    receipt["completed_at_unix"] = time.time()
+    if configured:
+        receipt["sites"]["shopping_admin"]["https_admin_config"] = {
+            "web_secure_base_url": "https://admin.example/",
+            "web_secure_use_in_adminhtml": 1,
+            "config_cache_cleaned": True,
+            "public_static_resource_scheme": "https",
+        }
+    monkeypatch.setattr(
+        cohort.subprocess,
+        "run",
+        lambda *_a, **_k: (tmp_path / "site-reset.json").write_text(json.dumps(receipt)),
+    )
+    args = argparse.Namespace(
+        output=tmp_path,
+        cohort_reset_hook=Path("hook.py"),
+        method_id="chromium",
+        app_id=195,
+        site_map=Path("sites.json"),
+    )
+    manifest = {"site_map_sha256": "d" * 64}
+    sites = {WebArenaSite.SHOPPING_ADMIN: "https://admin.example/admin"}
+    if configured:
+        assert cohort._reset_method(args, manifest, sites)
+    else:
+        with pytest.raises(ValueError, match="admin HTTPS configuration"):
+            cohort._reset_method(args, manifest, sites)
+
+
+def test_browser_session_setup_error_closes_probe_and_propagates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    closed = []
+    service = SimpleNamespace(_submit=lambda fn: fn())
+    tool = SimpleNamespace(_get_service=lambda: service, close=lambda: closed.append(True))
+
+    def reject(_service):
+        raise RuntimeError("CowAgent lacks the required owned CDP context contract")
+
+    monkeypatch.setattr(cohort, "_prepare_browser_viewport", reject)
+    with pytest.raises(RuntimeError, match="owned CDP context"):
+        cohort._verify_browser_session(tool)
+    assert closed == [True]

@@ -1,18 +1,56 @@
 {
   "task_id": 124,
   "tool_calls": [
-    {"action": "navigate", "url": "http://host.docker.internal:7770/catalogsearch/result/index/?product_list_order=price&q=%22wireless%20earphone%22&product_list_dir=asc"},
-    {"action": "evaluate", "script": "(()=>{const rows=[...document.querySelectorAll('.product-item')].map(e=>({name:e.querySelector('.product-item-link')?.textContent.trim(),price:e.querySelector('[data-price-type=finalPrice] .price, .price-box .price')?.textContent.trim()})).filter(x=>x.name&&x.price);if(!rows.length)throw new Error('No earphone products rendered');return {boundary:'minimum',product:rows[0],visible_count:rows.length};})()"},
-    {"action": "navigate", "url": "http://host.docker.internal:7770/sony-wi-1000xm2-industry-leading-noise-canceling-wireless-behind-neck-in-ear-headset-headphones-with-mic-for-phone-call-with-alexa-voice-control-black.html"},
-    {"action": "evaluate", "script": "(()=>{const product={name:document.querySelector('h1.page-title')?.textContent.trim(),price:document.querySelector('[data-price-type=finalPrice] .price, .product-info-price .price')?.textContent.trim(),description:document.querySelector('.product.attribute.description')?.textContent.replace(/\\s+/g,' ').trim()};if(!product.name||!product.price||!/wireless/i.test(product.description||'')||!/(in-ear|in ear|behind-neck)/i.test(product.name+' '+(product.description||'')))throw new Error('Upper-bound product is not a wireless in-ear model');return {boundary:'maximum',product};})()"},
-    {"action": "evaluate", "script": "(async()=>{const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),30000);try{const query='\"wireless earphone\"',read=async url=>{const u=new URL(url);if(u.origin!==location.origin||u.pathname!=='/catalogsearch/result/index/'||u.searchParams.get('q')!==query||u.searchParams.get('product_list_order')!=='price'||u.searchParams.get('product_list_dir')!=='asc')throw Error('search scope drift');const r=await fetch(u.href,{credentials:'same-origin',redirect:'error',cache:'no-store',signal:ctl.signal});if(r.status!==200||r.redirected||!/^text\\/html\\b/i.test(r.headers.get('content-type')||''))throw Error('missing search HTML');return {url:r.url,doc:new DOMParser().parseFromString(await r.text(),'text/html')}};const money=s=>{if(!/^\\$(?:\\d+|\\d{1,3}(?:,\\d{3})+)\\.\\d{2}$/.test(s||''))throw Error('invalid USD final price');const n=Number(s.replace(/[$,.]/g,''));if(!Number.isSafeInteger(n))throw Error('unsafe price');return n},records=[],pages=[],seen=new Set();let declaredTotal=null;let next=location.origin+'/catalogsearch/result/index/?product_list_order=price&q=%22wireless%20earphone%22&product_list_dir=asc';for(let page=1;page<=100;page++){const {url,doc}=await read(next),items=[...doc.querySelectorAll('.products-grid .product-item')];if(!items.length)throw Error('empty search page');const amount=doc.querySelector('.toolbar-amount')?.textContent||'';const counts=[...amount.matchAll(/\\d+/g)].map(x=>Number(x[0]));const pageTotal=counts.at(-1);if(!Number.isSafeInteger(pageTotal)||pageTotal<items.length||declaredTotal!==null&&declaredTotal!==pageTotal)throw Error('search total missing or changed');declaredTotal=pageTotal;for(const item of items){const link=item.querySelector('.product-item-link[href]'),price=item.querySelector('[data-price-type=finalPrice] .price');if(!link||!price)throw Error('missing product identity or price');const href=new URL(link.getAttribute('href'),url);if(href.origin!==location.origin||!href.pathname.endsWith('.html')||seen.has(href.href))throw Error('duplicate or foreign product');seen.add(href.href);records.push({url:href.href,name:link.textContent.replace(/\\s+/g,' ').trim(),cents:money(price.textContent.trim())})}const links=[...new Set([...doc.querySelectorAll('a.action.next[href],.pages-item-next a[href]')].map(x=>new URL(x.getAttribute('href'),url).href))];if(links.length>1)throw Error('ambiguous search next page');next=links[0]||null;pages.push({url,page,rows:items.length,next});if(!next)break;if(page===100)throw Error('search pagination safety bound')}if(!records.length||records.length!==declaredTotal||pages.at(-1).next!==null||pages.reduce((n,p)=>n+p.rows,0)!==records.length)throw Error('incomplete search population');const values=records.map(x=>x.cents);return {scope:true,complete:true,query,pages,products:records,answer:{min:Math.min(...values)/100,max:Math.max(...values)/100}}}finally{ctl.abort();clearTimeout(timer)}})()"}
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7770/catalogsearch/result/index/?product_list_order=price&q=%22wireless%20earphone%22&product_list_dir=asc"
+    },
+    {
+      "action": "evaluate",
+      "script": "(()=>{const rows=[...document.querySelectorAll('.product-item')].map(e=>({name:e.querySelector('.product-item-link')?.textContent.trim(),price:e.querySelector('[data-price-type=finalPrice] .price, .price-box .price')?.textContent.trim()})).filter(x=>x.name&&x.price);if(!rows.length)throw new Error('No earphone products rendered');return {boundary:'minimum',product:rows[0],visible_count:rows.length};})()"
+    },
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7770/sony-wi-1000xm2-industry-leading-noise-canceling-wireless-behind-neck-in-ear-headset-headphones-with-mic-for-phone-call-with-alexa-voice-control-black.html"
+    },
+    {
+      "action": "evaluate",
+      "script": "(()=>{const product={name:document.querySelector('h1.page-title')?.textContent.trim(),price:document.querySelector('[data-price-type=finalPrice] .price, .product-info-price .price')?.textContent.trim(),description:document.querySelector('.product.attribute.description')?.textContent.replace(/\\s+/g,' ').trim()};if(!product.name||!product.price||!/wireless/i.test(product.description||'')||!/(in-ear|in ear|behind-neck)/i.test(product.name+' '+(product.description||'')))throw new Error('Upper-bound product is not a wireless in-ear model');return {boundary:'maximum',product};})()"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async()=>{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),120000);try{\nif(!location.pathname.endsWith('.html'))throw Error('wrong current product page');\nconst records=new Map(),coverage=[];for(const term of ['ear','earphone','earbud','neckband']){const rows=[],pages=[],seen=new Set();let total=null;\nfor(let page=1;page<=100;page++){\n const query='query {products(filter:{name:{match:'+JSON.stringify(term)+'}},pageSize:100,currentPage:'+page+'){total_count page_info{current_page total_pages} items{sku name url_key description{html} rating_summary price_range{minimum_price{final_price{value currency}}}}}}';\n const url=new URL('/graphql',location.origin);url.searchParams.set('query',query);\n const response=await fetch(url.href,{credentials:'same-origin',redirect:'error',signal:controller.signal,headers:{Accept:'application/json'}});\n if(!response.ok||response.redirected||!/^application\\/json\\b/i.test(response.headers.get('content-type')||''))throw Error('catalog response unavailable');\n const payload=await response.json(),data=payload.data?.products;\n if(payload.errors?.length||!data||!Number.isSafeInteger(data.total_count)||data.total_count<0||!Array.isArray(data.items))throw Error('invalid catalog response');\n if(total===null)total=data.total_count;\n const count=Math.max(1,Math.ceil(total/100));\n if(total!==data.total_count||count>100||data.page_info.current_page!==page||data.page_info.total_pages!==Math.ceil(total/100)||data.items.length!==Math.min(100,Math.max(0,total-(page-1)*100)))throw Error('incomplete or changed catalog');\n for(const row of data.items){\n  if(typeof row.sku!=='string'||!row.sku||seen.has(row.sku)||typeof row.name!=='string'||!row.name||typeof row.url_key!=='string'||!row.url_key||row.url_key.includes('/'))throw Error('catalog identity missing or duplicated');\n  seen.add(row.sku);\n  const doc=new DOMParser().parseFromString(row.description?.html||'','text/html');\n  for(const n of doc.querySelectorAll('script,style,noscript,template'))n.remove();\n  const price=row.price_range?.minimum_price?.final_price;\n  if(price?.currency!=='USD'||typeof price.value!=='number'||!Number.isFinite(price.value)||price.value<0)throw Error('invalid USD catalog price');\n  rows.push({sku:row.sku,name:row.name,url:new URL('/'+row.url_key+'.html',location.origin).href,description:doc.body.textContent.replace(/\\s+/g,' ').trim(),rating:row.rating_summary,cents:Math.round(price.value*100)});\n }\n pages.push({page,rows:data.items.length,total,ids:data.items.map(r=>r.sku)});\n if(page===count)break;\n}\nif(rows.length!==total)throw Error('catalog population incomplete');\n\nfor(const r of rows){const prior=records.get(r.sku);if(prior&&(prior.name!==r.name||prior.cents!==r.cents))throw Error('catalog changed between searches');records.set(r.sku,r)}\ncoverage.push({term,total,pages});\n}\nconst rows=[...records.values()];\nconst classified=rows.map(r=>{\n const n=r.name;\n const earForm=/earphones?|earbuds?|in[- ]ear|behind[- ]neck|neckband/i.test(n);\n const wireless=/wireless|bluetooth/i.test(n+' '+r.description);\n const unrelated=/\\b(smartphone|cell phone|tablet|laptop|smartwatch|television|smart tv|sunglasses|goggles|amplifier)\\b/i.test(n);\n const accessory=/earphone accessories|earbuds? cover|replacement ear|ear tips|earpads|ear cushions|protective earhooks|charging case only|case for|cover for/i.test(n);\n const overEar=/\\b(over[- ]ear|on[- ]ear)\\b/i.test(n)&&!/\\bin[- ]ear\\b/i.test(n);\n return {...r,qualified:earForm&&wireless&&!unrelated&&!accessory&&!overEar};\n});\nconst selected=classified.filter(r=>r.qualified);\nif(!selected.length)throw Error('no wireless earphones in complete catalog');\nconst prices=selected.map(r=>r.cents);\nreturn {scope:true,complete:true,coverage,products:classified,answer:{min:Math.min(...prices)/100,max:Math.max(...prices)/100}};\n}finally{controller.abort();clearTimeout(timer)}})()\n"
+    }
   ],
   "retrieval_contract": {
     "schema": "lex_replay_current_run_retrieval/1",
     "task_id": 124,
-    "canonical_calls_sha256": "f2e2bd4968bd5941f4c4004cfb8ccf0607d2a7d2b17b0f4e0292aa51c8fd918c",
-    "sources": [{"name": "observation", "step": 5, "action_sha256": "80f695a8baeaa0c742fd517c31e749236d81218d34bbd42fe42e0a34d0c0872f", "decode": "json"}],
-    "requirements": {"scope": {"source": "observation", "pointer": "/scope"}, "completeness": {"source": "observation", "pointer": "/complete"}},
-    "projection": {"array": [{"source": "observation", "pointer": "/answer"}]}
+    "canonical_calls_sha256": "8602b461bd3ef93d7639129f9bbc524de84f1848d2a79b04ae4dab546a5f5585",
+    "sources": [
+      {
+        "name": "observation",
+        "step": 5,
+        "action_sha256": "9bcf063e09f3bd7a88dd3e3e13033641e9788534d3555ceba25b216591d19dfc",
+        "decode": "json"
+      }
+    ],
+    "requirements": {
+      "scope": {
+        "source": "observation",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "observation",
+        "pointer": "/complete"
+      }
+    },
+    "projection": {
+      "array": [
+        {
+          "source": "observation",
+          "pointer": "/answer"
+        }
+      ]
+    }
   }
 }

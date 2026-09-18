@@ -1,0 +1,80 @@
+{
+  "task_id": 610,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://192.168.5.2:9999"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"/submit\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "wait",
+      "timeout": 1000
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "fill",
+      "text": "To Kill a Mockingbird by Harper Lee",
+      "selector": "textarea[name=\"submission[title]\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "select",
+      "value": "10037",
+      "selector": "select[name=\"submission[forum]\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "click",
+      "selector": "button:visible:has-text(\"Create submission\")",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "wait",
+      "timeout": 1000
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "wait",
+      "timeout": 1500
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "evaluate",
+      "script": "(()=>{const match=/^\\/f\\/books\\/(\\d+)\\//.exec(location.pathname);if(!match)throw Error('not the created Books post');const fields=[...document.querySelectorAll('main form textarea[name^=\"reply_to_submission_\"][name$=\"[comment]\"]')];if(fields.length!==1||fields[0].name!=='reply_to_submission_'+match[1]+'[comment]')throw Error('comment form does not belong to current post');return {post_id:match[1],comment_field:fields[0].name};})()"
+    },
+    {
+      "action": "fill",
+      "text": "good book!",
+      "selector": "main form textarea[name^=\"reply_to_submission_\"][name$=\"[comment]\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "click",
+      "selector": "button:visible:has-text(\"Post\")",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "wait",
+      "timeout": 1200
+    },
+    {
+      "action": "snapshot"
+    }
+  ]
+}

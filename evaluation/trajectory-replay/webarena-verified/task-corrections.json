@@ -57,8 +57,8 @@
     {
       "task_id": 279,
       "official_revision": 2,
-      "correction_id": "wv-279-reference-title-drift-20260911",
-      "rationale": "The current seeded catalog title contains two closing parentheses; the frozen reference contains one.",
+      "correction_id": "wv-279-complete-bluetooth-catalog-20260918",
+      "rationale": "The reference omitted the seeded Sony WI-1000XM2 because its storefront description lacks the word Bluetooth, although the exact model has Bluetooth capability. This is separate from the current observer duplicate-product exception.",
       "preconditions": [
         {
           "path": "/eval/0/expected/retrieved_data/0/names/9",
@@ -71,6 +71,16 @@
           "path": "/eval/0/expected/retrieved_data/0/names/9",
           "value": "Sony WI-C300 Wireless In-Ear Headphones, Red (WIC300/R))"
         }
+      ],
+      "root_cause": "The reference omitted the seeded Sony WI-1000XM2 because its storefront description lacks the word Bluetooth, although the exact model has Bluetooth capability. This is separate from the current observer duplicate-product exception.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task279-revised-reference.json",
+        "sha256": "c6064850ebb16044bd3ba945333686d378575822c4563e08564343e52fe54b85"
+      },
+      "regression_ids": [
+        "tr-279-complete-thirteen-products",
+        "tr-279-reject-omitted-product",
+        "tr-279-reject-wired-product"
       ]
     },
     {

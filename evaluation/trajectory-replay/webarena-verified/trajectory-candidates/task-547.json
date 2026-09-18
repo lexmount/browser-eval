@@ -1,0 +1,77 @@
+{
+  "task_id": 547,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7780/admin/catalog/product/edit/id/1130/"
+    },
+    {
+      "action": "wait",
+      "seconds": 4
+    },
+    {
+      "action": "evaluate",
+      "script": "(() => { const button=[...document.querySelectorAll('button')].find(e=>e.textContent.trim()==='Edit Configurations'); if(!button) throw new Error('Edit Configurations button missing'); button.click(); return true; })()"
+    },
+    {
+      "action": "wait",
+      "seconds": 2
+    },
+    {
+      "action": "evaluate",
+      "script": "(async()=>{\nconst deadline=Date.now()+30000;\nconst visible=e=>{const s=getComputedStyle(e);return s.visibility!=='hidden'&&s.display!=='none'&&e.getClientRects().length>0};\nlet step,dialog,nextButton;\nwhile(Date.now()<deadline){\n const dialogs=[...document.querySelectorAll('aside[role=dialog]._show')].filter(visible);\n const components=[];\n if(typeof requirejs==='function'&&requirejs.defined('uiRegistry'))require('uiRegistry').get(p=>{if(typeof p.doSelectSavedAttributes==='function')components.push(p)});\n if(dialogs.length===1&&components.length===1){\n  const p=components[0],selected=p.multiselect?.()?.selected?.();\n  const labels=Array.isArray(selected)?selected.map(id=>p.attributesLabels?.[id]).sort():[];\n  if(p.stepInitialized===true&&labels.join(',')==='Color,Size'){\n   const buttons=[...dialogs[0].querySelectorAll('button')].filter(e=>visible(e)&&e.textContent.trim()==='Next'&&!e.disabled);\n   if(buttons.length===1&&typeof jQuery==='function'&&requirejs.defined('ko')){\n    const button=buttons[0],owner=require('ko').contextFor(button)?.$data;\n    const handlers=jQuery._data(button,'events')?.click;\n    if(owner?.wizard===p.wizard&&owner?.wizard?.getStep()===p&&\n       owner.selectedStep?.()===p.name&&Array.isArray(handlers)&&handlers.length>0){\n     step=p;dialog=dialogs[0];nextButton=button;break;\n    }\n   }\n  }\n }\n await new Promise(r=>setTimeout(r,100));\n}\nif(!step||!dialog||!nextButton)throw Error('configuration attributes or Next event binding not initialized');\nnextButton.click();\nif(step.wizard.index!==1)throw Error('configuration Next did not advance: '+JSON.stringify({index:step.wizard.index,notification:step.notificationMessage}));\nwhile(Date.now()<deadline){\n if(step.notificationMessage?.error===true)throw Error('configuration transition rejected: '+step.notificationMessage.text);\n const labels=[...dialog.querySelectorAll('input[type=checkbox]')].filter(visible).map(e=>(e.labels?.[0]?.textContent||'').trim());\n if(labels.includes('S')&&labels.includes('Brown'))return {attributes:['Color','Size'],values_ready:true};\n await new Promise(r=>setTimeout(r,100));\n}\nthrow Error('configuration Attribute Values did not become ready');\n})()"
+    },
+    {
+      "action": "wait",
+      "seconds": 2
+    },
+    {
+      "action": "evaluate",
+      "script": "(() => { const boxes=[...document.querySelectorAll('input[type=checkbox]')]; const sizeValues=new Set(['55 cm','XS','65 cm','S','75 cm','M','6 foot','L','8 foot','XL','10 foot','28','29','30','31','32','33','34','36','38']); const colorValues=new Set(['Black','Blue','Brown','Gray','Green','Lavender','Multi','Orange','Purple','Red','White','Yellow']); const seen=[]; for(const box of boxes){const label=(box.labels?.[0]?.textContent||'').trim(); if(!sizeValues.has(label)&&!colorValues.has(label)) continue; const should=label==='S'||label==='Brown'; if(box.checked!==should) box.click(); if(should) seen.push(label);} if(!seen.includes('S')||!seen.includes('Brown')) throw new Error(`missing Size/Color options: ${seen.join(',')}`); const next=[...document.querySelectorAll('button')].filter(e=>e.textContent.trim()==='Next'&&!e.disabled).at(-1); if(!next) throw new Error('Attribute Values Next button missing'); next.click(); return seen; })()"
+    },
+    {
+      "action": "wait",
+      "seconds": 2
+    },
+    {
+      "action": "evaluate",
+      "script": "(() => { const price=document.querySelector('#apply-single-price-radio'); const quantity=document.querySelector('#apply-single-inventory-radio'); if(!price||!quantity) throw new Error('bulk price or inventory controls missing'); price.click(); quantity.click(); return true; })()"
+    },
+    {
+      "action": "wait",
+      "seconds": 1
+    },
+    {
+      "action": "evaluate",
+      "script": "(() => { const set=(name,value)=>{const field=document.querySelector(`input[name=${name}]`); if(!field) throw new Error(`missing ${name}`); field.value=value; field.dispatchEvent(new Event('input',{bubbles:true})); field.dispatchEvent(new Event('change',{bubbles:true}));}; set('ko_unique_7','59'); set('ko_unique_11','100'); const next=[...document.querySelectorAll('button')].filter(e=>e.textContent.trim()==='Next'&&!e.disabled).at(-1); if(!next) throw new Error('Bulk Images and Price Next button missing'); next.click(); return true; })()"
+    },
+    {
+      "action": "wait",
+      "seconds": 2
+    },
+    {
+      "action": "evaluate",
+      "script": "(() => { const button=[...document.querySelectorAll('button')].filter(e=>e.textContent.trim()==='Generate Products'&&!e.disabled).at(-1); if(!button) throw new Error('Generate Products button missing'); button.click(); return true; })()"
+    },
+    {
+      "action": "wait",
+      "seconds": 5
+    },
+    {
+      "action": "evaluate",
+      "script": "(() => { const button=document.querySelector('#save-button')||[...document.querySelectorAll('button')].find(e=>e.offsetParent!==null&&e.textContent.trim()==='Save'); if(!button) throw new Error('parent Save button missing'); button.click(); return true; })()"
+    },
+    {
+      "action": "wait",
+      "seconds": 8
+    },
+    {
+      "action": "get_text",
+      "selector": "main"
+    }
+  ],
+  "repair": {
+    "cause": "Attribute selection can initialize before the visible Next control has its Knockout click handler and matching wizard owner.",
+    "change": "Wait for selected Color/Size, matching active wizard and bound Next click handler; click once and verify actual wizard advancement and values."
+  }
+}

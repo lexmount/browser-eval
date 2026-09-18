@@ -1,0 +1,82 @@
+{
+  "task_id": 590,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://webarena-slice-warm-1-195-gitlab.dev.lexmount.net/primer/design"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"/primer/design/-/issues\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "navigate",
+      "url": "http://webarena-slice-warm-1-195-gitlab.dev.lexmount.net/primer/design/-/milestones"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"/primer/design/-/milestones/new\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "fill",
+      "text": "product launch",
+      "selector": "input[name=\"milestone[title]\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async name => {\n  const start = performance.now(); let stableSince = null;\n  while (performance.now() - start < 3000) {\n    const el = document.querySelector(`input[name=\"${name}\"]`);\n    if (!el || el.disabled) throw new Error('Date input is unavailable');\n    if (document.activeElement !== el) { el.focus(); stableSince = null; }\n    else {\n      stableSince ??= performance.now();\n      if (performance.now() - stableSince >= 50) return true;\n    }\n    await new Promise(resolve => setTimeout(resolve, 10));\n  }\n  throw new Error('Date input focus did not settle');\n})(\"milestone[start_date]\")"
+    },
+    {
+      "action": "fill",
+      "text": "2023-01-16",
+      "selector": "input[name=\"milestone[start_date]\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async ({name, expected}) => {\n  const start = performance.now(); let stableSince = null;\n  while (performance.now() - start < 3000) {\n    const el = document.querySelector(`input[name=\"${name}\"]`);\n    if (el && el.value === expected && document.activeElement === el) {\n      stableSince ??= performance.now();\n      if (performance.now() - stableSince >= 50) return true;\n    } else stableSince = null;\n    await new Promise(resolve => setTimeout(resolve, 10));\n  }\n  throw new Error('Date input did not retain its value and focus');\n})({\"name\": \"milestone[start_date]\", \"expected\": \"2023-01-16\"})"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async name => {\n  const start = performance.now(); let stableSince = null;\n  while (performance.now() - start < 3000) {\n    const el = document.querySelector(`input[name=\"${name}\"]`);\n    if (!el || el.disabled) throw new Error('Date input is unavailable');\n    if (document.activeElement !== el) { el.focus(); stableSince = null; }\n    else {\n      stableSince ??= performance.now();\n      if (performance.now() - stableSince >= 50) return true;\n    }\n    await new Promise(resolve => setTimeout(resolve, 10));\n  }\n  throw new Error('Date input focus did not settle');\n})(\"milestone[due_date]\")"
+    },
+    {
+      "action": "fill",
+      "text": "2023-01-30",
+      "selector": "input[name=\"milestone[due_date]\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async ({name, expected}) => {\n  const start = performance.now(); let stableSince = null;\n  while (performance.now() - start < 3000) {\n    const el = document.querySelector(`input[name=\"${name}\"]`);\n    if (el && el.value === expected && document.activeElement === el) {\n      stableSince ??= performance.now();\n      if (performance.now() - stableSince >= 50) return true;\n    } else stableSince = null;\n    await new Promise(resolve => setTimeout(resolve, 10));\n  }\n  throw new Error('Date input did not retain its value and focus');\n})({\"name\": \"milestone[due_date]\", \"expected\": \"2023-01-30\"})"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "evaluate",
+      "script": "(expected => { for (const [name, value] of Object.entries(expected)) { const el = document.querySelector(`input[name=\"${name}\"]`); if (!el || el.value !== value) throw new Error('Date field differs before submit: ' + name); } return {completion:'date_fields_verified', fields:expected}; })({\"milestone[start_date]\": \"2023-01-16\", \"milestone[due_date]\": \"2023-01-30\"})"
+    },
+    {
+      "action": "click",
+      "selector": "button:visible:has-text(\"Create milestone\")",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => {\n      const started = Date.now();\n      const sameOrigin = location.origin;\n      const read = async (path) => {\n        const response = await fetch(path, {method: 'GET', credentials: 'same-origin',\n          redirect: 'error', cache: 'no-store'});\n        if (response.status !== 200 || response.redirected ||\n            new URL(response.url).origin !== sameOrigin) {\n          throw new Error('read-only observation did not return same-origin HTTP 200');\n        }\n        return response;\n      };\n      let last = null;\n      while (Date.now() - started <= 20000) {\n        try {\n          const response = await read(\"/api/v4/projects/primer%2Fdesign/milestones?state=all&per_page=100\");\n          const rows = await response.json();\n          const expected = {\"title\": \"product launch\", \"start_date\": \"2023-01-16\", \"due_date\": \"2023-01-30\"};\n          const matches = Array.isArray(rows) ? rows.filter(row =>\n            Object.entries(expected).every(([key, value]) => row?.[key] === value)) : [];\n          const nextPage = /rel=[\"']next[\"']/.test(response.headers.get('Link') || '');\n          last = {rowCount: Array.isArray(rows) ? rows.length : null,\n            matchingRecords: matches.length, nextPage};\n          if (matches.length === 1 && !nextPage) {\n            return {completion: \"persisted_collection_record_observed\", ...last, elapsedMs: Date.now() - started};\n          }\n        } catch (error) {\n          last = {error: String(error)};\n        }\n        if (Date.now() - started >= 20000) break;\n        await new Promise(resolve => setTimeout(resolve, 100));\n      }\n      throw new Error('post-action completion not observed: ' + JSON.stringify(last));\n    })()"
+    }
+  ]
+}

@@ -53,7 +53,9 @@ def _ids(selection: dict[str, Any]) -> list[int]:
     ids = [row.get("task_id") for row in rows if isinstance(row, dict)]
     if not ids or len(set(ids)) != len(ids) or any(type(i) is not int for i in ids):
         raise ValueError("selection must contain unique task IDs")
-    return ids
+    # Selection-file order describes sampling, not the execution schedule.
+    # The runner freezes and executes ascending numeric task IDs.
+    return sorted(ids)
 
 
 def _validity(path: Path, task_ids: list[int], dataset_sha256: str) -> dict[int, dict[str, Any]]:
@@ -64,7 +66,8 @@ def _validity(path: Path, task_ids: list[int], dataset_sha256: str) -> dict[int,
         or audit.get("dataset_sha256") != dataset_sha256
         or not isinstance(rows, list)
         or len(rows) != len(task_ids)
-        or [r.get("task_id") for r in rows if isinstance(r, dict)] != task_ids
+        or any(not isinstance(r, dict) or type(r.get("task_id")) is not int for r in rows)
+        or sorted(r["task_id"] for r in rows) != task_ids
     ):
         raise ValueError("reference-validity audit is not bound to the exact selected dataset")
     result = {}
@@ -319,7 +322,8 @@ def aggregate(
         or set(cohort_inputs) != {m["id"] for m in methods}
         or not isinstance(rows, list)
         or len(rows) != len(task_ids)
-        or [r.get("task_id") for r in rows if isinstance(r, dict)] != task_ids
+        or any(not isinstance(r, dict) or type(r.get("task_id")) is not int for r in rows)
+        or sorted(r["task_id"] for r in rows) != task_ids
     ):
         raise ValueError("three methods and the same corrected task selection are required")
     execution = profile.get("execution") or {}

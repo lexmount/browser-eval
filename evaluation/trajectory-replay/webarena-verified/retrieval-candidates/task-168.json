@@ -11,18 +11,18 @@
     },
     {
       "action": "evaluate",
-      "script": "(async()=>{\n const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),30000);\n try{\n  const api=location.origin+'/api/v4';\n  async function read(url){\n   const target=new URL(url);\n   if(target.origin!==location.origin||!target.pathname.startsWith('/api/v4/'))throw Error('foreign GitLab API');\n   const response=await fetch(target.href,{credentials:'same-origin',redirect:'error',cache:'no-store',signal:ctl.signal,headers:{Accept:'application/json'}});\n   if(response.status!==200||response.redirected||!/^application\\/json\\b/i.test(response.headers.get('content-type')||''))throw Error('authenticated JSON read failed');\n   return {response,body:await response.json()};\n  }\n  const {body:user}=await read(api+'/user');\n  if(!Number.isInteger(user.id)||user.username!=='byteblaze')throw Error('wrong current-user identity');\n  const records=[],pages=[],seen=new Set(),size=100;\n  let total=null;\n  for(let page=1;page<=100;page++){\n   const url=new URL(api+'/projects');\n   for(const [key,value] of Object.entries({owned:'true',per_page:String(size),page:String(page)}))url.searchParams.set(key,value);\n   const {response,body}=await read(url.href);\n   const current=response.headers.get('x-page'),next=response.headers.get('x-next-page'),reported=Number(response.headers.get('x-total'));\n   if(current!==String(page)||next===null||!Number.isSafeInteger(reported)||reported<0||!Array.isArray(body)||body.length>size||total!==null&&reported!==total)throw Error('owned-project pagination invalid');\n   total=reported;\n   const ids=[];\n   for(const item of body){\n    if(!Number.isInteger(item.id)||seen.has(item.id)||item.namespace?.kind!=='user'||item.namespace?.id!==user.id||item.owner?.id!==user.id||!Number.isInteger(item.star_count)||item.star_count<0)throw Error('not a unique owned personal project');\n    seen.add(item.id);ids.push(String(item.id));\n    records.push({id:item.id,star_count:item.star_count,namespace_kind:item.namespace.kind,owner_id:item.owner.id,path_with_namespace:item.path_with_namespace,visibility:item.visibility});\n   }\n   pages.push({page,rows:body.length,total,has_next:next!=='',ids});\n   if(next==='')break;\n   if(next!==String(page+1)||page===100)throw Error('owned-project pagination gap or safety bound');\n  }\n  if(!pages.length||pages.at(-1).has_next||records.length!==total||pages.reduce((n,p)=>n+p.rows,0)!==total||new Set(records.map(x=>x.id)).size!==total)throw Error('owned personal project set incomplete');\n  const answer=records.filter(x=>x.star_count>100).map(x=>String(x.id));\n  return {scope:{owner_username:user.username,namespace_kind:'user'},scope_ok:true,complete:true,source:'authenticated GitLab owned-project API',page_size:size,total,pages,records,match_count:answer.length,answer};\n }finally{ctl.abort();clearTimeout(timer)}\n})()"
+      "script": "(async()=>{\n const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),30000);\n try{\n  const api=location.origin+'/api/v4';\n  async function read(url){\n   const target=new URL(url);\n   if(target.origin!==location.origin||!target.pathname.startsWith('/api/v4/'))throw Error('foreign GitLab API');\n   const response=await fetch(target.href,{credentials:'same-origin',redirect:'error',cache:'no-store',signal:ctl.signal,headers:{Accept:'application/json'}});\n   if(response.status!==200||response.redirected||!/^application\\/json\\b/i.test(response.headers.get('content-type')||''))throw Error('authenticated JSON read failed');\n   return {response,body:await response.json()};\n  }\n  const {body:user}=await read(api+'/user');\n  if(!Number.isInteger(user.id)||user.username!=='byteblaze')throw Error('wrong current-user identity');\n  const records=[],pages=[],seen=new Set(),size=100;\n  let total=null;\n  for(let page=1;page<=100;page++){\n   const url=new URL(api+'/projects');\n   for(const [key,value] of Object.entries({owned:'true',per_page:String(size),page:String(page)}))url.searchParams.set(key,value);\n   const {response,body}=await read(url.href);\n   const current=response.headers.get('x-page'),next=response.headers.get('x-next-page'),reported=Number(response.headers.get('x-total'));\n   if(current!==String(page)||next===null||!Number.isSafeInteger(reported)||reported<0||!Array.isArray(body)||body.length>size||total!==null&&reported!==total)throw Error('owned-project pagination invalid');\n   total=reported;\n   const ids=[];\n   for(const item of body){\n    if(!Number.isInteger(item.id)||seen.has(item.id)||item.namespace?.kind!=='user'||item.namespace?.path!==user.username||item.owner?.id!==user.id||!Number.isInteger(item.star_count)||item.star_count<0)throw Error('not a unique owned personal project');\n    seen.add(item.id);ids.push(String(item.id));\n    records.push({id:item.id,star_count:item.star_count,namespace_kind:item.namespace.kind,owner_id:item.owner.id,path_with_namespace:item.path_with_namespace,visibility:item.visibility});\n   }\n   pages.push({page,rows:body.length,total,has_next:next!=='',ids});\n   if(next==='')break;\n   if(next!==String(page+1)||page===100)throw Error('owned-project pagination gap or safety bound');\n  }\n  if(!pages.length||pages.at(-1).has_next||records.length!==total||pages.reduce((n,p)=>n+p.rows,0)!==total||new Set(records.map(x=>x.id)).size!==total)throw Error('owned personal project set incomplete');\n  const answer=records.filter(x=>x.star_count>100).map(x=>String(x.id));\n  return {scope:{owner_username:user.username,namespace_kind:'user'},scope_ok:true,complete:true,source:'authenticated GitLab owned-project API',page_size:size,total,pages,records,match_count:answer.length,answer};\n }finally{ctl.abort();clearTimeout(timer)}\n})()"
     }
   ],
   "retrieval_contract": {
     "schema": "lex_replay_current_run_retrieval/3",
     "task_id": 168,
-    "canonical_calls_sha256": "4c65ab1d4fa7a641c9966ed00f31f9f00a0adad57314443bd80d13bb491f55c6",
+    "canonical_calls_sha256": "83b256dcae4d80d544e2c169b09919bcc8b0ba109ccde731d424d6caf656f4f7",
     "sources": [
       {
         "name": "owned",
         "step": 3,
-        "action_sha256": "214dd3e115006f5e620f86bb3aa3a85ea44b54712849c7ad613bd68ff45873ec",
+        "action_sha256": "e0720548e98e541be6a18f9f25c5f0402bc0e54d60702c1967800fae61a4b03a",
         "decode": "json"
       }
     ],
@@ -34,7 +34,7 @@
         "identity": "Codex current GitLab source investigation"
       },
       "scope": "Authenticated complete personal-project set for current byteblaze user; stars greater than 100",
-      "evidence_sha256": "4f4e29cbee6fabfae897690580ef9df14c4af6c12e371e1288ee3cb56ea186bd"
+      "evidence_sha256": "7afe0dc21e6d9566d518e25a00332a8867eed4147cef59bc11879445737a55d8"
     },
     "projection": {
       "distinct_exact_strings": {
@@ -89,7 +89,7 @@
       },
       "scope": "Authenticated complete personal-project set for current byteblaze user; stars greater than 100",
       "task_id": 168,
-      "sources_sha256": "156e43a46be84d605bd4fd5004a481835cd4d29e2e2661ccd4c2442dd2f3895a",
+      "sources_sha256": "a8cb987d130f86fcc0dd1af7529159d273e32c327f092c5a77ae876e5291dbde",
       "projection_sha256": "9f0876f2ea3b3be0ccbd766aaf91d3f8ac12ef7f8a84202b7609f04217e34ce7",
       "source_review": {
         "reviewer": {
@@ -98,10 +98,10 @@
         },
         "scope": "Authenticated complete personal-project set for current byteblaze user; stars greater than 100",
         "task_id": 168,
-        "sources_sha256": "156e43a46be84d605bd4fd5004a481835cd4d29e2e2661ccd4c2442dd2f3895a",
+        "sources_sha256": "a8cb987d130f86fcc0dd1af7529159d273e32c327f092c5a77ae876e5291dbde",
         "projection_sha256": "9f0876f2ea3b3be0ccbd766aaf91d3f8ac12ef7f8a84202b7609f04217e34ce7",
         "decision": "accept",
-        "rationale": "The authenticated current-user API and owned-project endpoint returned one terminal page with all 12 distinct projects, including three private projects. Each project is owned by the current user's personal namespace; the greatest observed star count was 6. No project exceeds 100 stars.",
+        "rationale": "The owned-project API identifies ownership through owner.id and personal namespace.path. The current user has user ID 2330 and namespace ID 2505; these are different database identity domains. Check owner.id against user.id and namespace.path against user.username, retaining exhaustive pagination and the original star threshold.",
         "observation": {
           "current_user": "byteblaze",
           "total": 12,
@@ -110,12 +110,39 @@
           "matching_count": 0,
           "endpoint": "/api/v4/projects?owned=true&per_page=100&page=1",
           "pagination": "X-Total=12; X-Next-Page empty"
-        }
+        },
+        "predecessor_artifacts": [
+          {
+            "utf8": "{\n  \"reviewer\": {\n    \"kind\": \"agent\",\n    \"identity\": \"Codex current GitLab source investigation\"\n  },\n  \"scope\": \"Authenticated complete personal-project set for current byteblaze user; stars greater than 100\",\n  \"task_id\": 168,\n  \"sources_sha256\": \"156e43a46be84d605bd4fd5004a481835cd4d29e2e2661ccd4c2442dd2f3895a\",\n  \"projection_sha256\": \"9f0876f2ea3b3be0ccbd766aaf91d3f8ac12ef7f8a84202b7609f04217e34ce7\",\n  \"decision\": \"accept\",\n  \"rationale\": \"The authenticated current-user API and owned-project endpoint returned one terminal page with all 12 distinct projects, including three private projects. Each project is owned by the current user's personal namespace; the greatest observed star count was 6. No project exceeds 100 stars.\",\n  \"observation\": {\n    \"current_user\": \"byteblaze\",\n    \"total\": 12,\n    \"private_count\": 3,\n    \"max_star_count\": 6,\n    \"matching_count\": 0,\n    \"endpoint\": \"/api/v4/projects?owned=true&per_page=100&page=1\",\n    \"pagination\": \"X-Total=12; X-Next-Page empty\"\n  }\n}",
+            "sha256": "f9512cfaf465d123ffabf2a30bb3dbd221c431381613e84308c359f943889891",
+            "content": {
+              "reviewer": {
+                "kind": "agent",
+                "identity": "Codex current GitLab source investigation"
+              },
+              "scope": "Authenticated complete personal-project set for current byteblaze user; stars greater than 100",
+              "task_id": 168,
+              "sources_sha256": "156e43a46be84d605bd4fd5004a481835cd4d29e2e2661ccd4c2442dd2f3895a",
+              "projection_sha256": "9f0876f2ea3b3be0ccbd766aaf91d3f8ac12ef7f8a84202b7609f04217e34ce7",
+              "decision": "accept",
+              "rationale": "The authenticated current-user API and owned-project endpoint returned one terminal page with all 12 distinct projects, including three private projects. Each project is owned by the current user's personal namespace; the greatest observed star count was 6. No project exceeds 100 stars.",
+              "observation": {
+                "current_user": "byteblaze",
+                "total": 12,
+                "private_count": 3,
+                "max_star_count": 6,
+                "matching_count": 0,
+                "endpoint": "/api/v4/projects?owned=true&per_page=100&page=1",
+                "pagination": "X-Total=12; X-Next-Page empty"
+              }
+            }
+          }
+        ]
       },
-    "source_review_sha256": "76a6c4df911d6ce7e15e0888d28cd5126c7332d57053181e440284c34e2bb339",
+      "source_review_sha256": "19a5487d8418ed151a7501e36c9fdcdfa21430ec35c47fbb52256c6d35856777",
       "source_review_artifact": {
-        "utf8": "{\n  \"reviewer\": {\n    \"kind\": \"agent\",\n    \"identity\": \"Codex current GitLab source investigation\"\n  },\n  \"scope\": \"Authenticated complete personal-project set for current byteblaze user; stars greater than 100\",\n  \"task_id\": 168,\n  \"sources_sha256\": \"156e43a46be84d605bd4fd5004a481835cd4d29e2e2661ccd4c2442dd2f3895a\",\n  \"projection_sha256\": \"9f0876f2ea3b3be0ccbd766aaf91d3f8ac12ef7f8a84202b7609f04217e34ce7\",\n  \"decision\": \"accept\",\n  \"rationale\": \"The authenticated current-user API and owned-project endpoint returned one terminal page with all 12 distinct projects, including three private projects. Each project is owned by the current user's personal namespace; the greatest observed star count was 6. No project exceeds 100 stars.\",\n  \"observation\": {\n    \"current_user\": \"byteblaze\",\n    \"total\": 12,\n    \"private_count\": 3,\n    \"max_star_count\": 6,\n    \"matching_count\": 0,\n    \"endpoint\": \"/api/v4/projects?owned=true&per_page=100&page=1\",\n    \"pagination\": \"X-Total=12; X-Next-Page empty\"\n  }\n}",
-      "sha256": "f9512cfaf465d123ffabf2a30bb3dbd221c431381613e84308c359f943889891",
+        "utf8": "{\n  \"reviewer\": {\n    \"kind\": \"agent\",\n    \"identity\": \"Codex current GitLab source investigation\"\n  },\n  \"scope\": \"Authenticated complete personal-project set for current byteblaze user; stars greater than 100\",\n  \"task_id\": 168,\n  \"sources_sha256\": \"a8cb987d130f86fcc0dd1af7529159d273e32c327f092c5a77ae876e5291dbde\",\n  \"projection_sha256\": \"9f0876f2ea3b3be0ccbd766aaf91d3f8ac12ef7f8a84202b7609f04217e34ce7\",\n  \"decision\": \"accept\",\n  \"rationale\": \"The owned-project API identifies ownership through owner.id and personal namespace.path. The current user has user ID 2330 and namespace ID 2505; these are different database identity domains. Check owner.id against user.id and namespace.path against user.username, retaining exhaustive pagination and the original star threshold.\",\n  \"observation\": {\n    \"current_user\": \"byteblaze\",\n    \"total\": 12,\n    \"private_count\": 3,\n    \"max_star_count\": 6,\n    \"matching_count\": 0,\n    \"endpoint\": \"/api/v4/projects?owned=true&per_page=100&page=1\",\n    \"pagination\": \"X-Total=12; X-Next-Page empty\"\n  },\n  \"predecessor_artifacts\": [\n    {\n      \"utf8\": \"{\\n  \\\"reviewer\\\": {\\n    \\\"kind\\\": \\\"agent\\\",\\n    \\\"identity\\\": \\\"Codex current GitLab source investigation\\\"\\n  },\\n  \\\"scope\\\": \\\"Authenticated complete personal-project set for current byteblaze user; stars greater than 100\\\",\\n  \\\"task_id\\\": 168,\\n  \\\"sources_sha256\\\": \\\"156e43a46be84d605bd4fd5004a481835cd4d29e2e2661ccd4c2442dd2f3895a\\\",\\n  \\\"projection_sha256\\\": \\\"9f0876f2ea3b3be0ccbd766aaf91d3f8ac12ef7f8a84202b7609f04217e34ce7\\\",\\n  \\\"decision\\\": \\\"accept\\\",\\n  \\\"rationale\\\": \\\"The authenticated current-user API and owned-project endpoint returned one terminal page with all 12 distinct projects, including three private projects. Each project is owned by the current user's personal namespace; the greatest observed star count was 6. No project exceeds 100 stars.\\\",\\n  \\\"observation\\\": {\\n    \\\"current_user\\\": \\\"byteblaze\\\",\\n    \\\"total\\\": 12,\\n    \\\"private_count\\\": 3,\\n    \\\"max_star_count\\\": 6,\\n    \\\"matching_count\\\": 0,\\n    \\\"endpoint\\\": \\\"/api/v4/projects?owned=true&per_page=100&page=1\\\",\\n    \\\"pagination\\\": \\\"X-Total=12; X-Next-Page empty\\\"\\n  }\\n}\",\n      \"sha256\": \"f9512cfaf465d123ffabf2a30bb3dbd221c431381613e84308c359f943889891\",\n      \"content\": {\n        \"reviewer\": {\n          \"kind\": \"agent\",\n          \"identity\": \"Codex current GitLab source investigation\"\n        },\n        \"scope\": \"Authenticated complete personal-project set for current byteblaze user; stars greater than 100\",\n        \"task_id\": 168,\n        \"sources_sha256\": \"156e43a46be84d605bd4fd5004a481835cd4d29e2e2661ccd4c2442dd2f3895a\",\n        \"projection_sha256\": \"9f0876f2ea3b3be0ccbd766aaf91d3f8ac12ef7f8a84202b7609f04217e34ce7\",\n        \"decision\": \"accept\",\n        \"rationale\": \"The authenticated current-user API and owned-project endpoint returned one terminal page with all 12 distinct projects, including three private projects. Each project is owned by the current user's personal namespace; the greatest observed star count was 6. No project exceeds 100 stars.\",\n        \"observation\": {\n          \"current_user\": \"byteblaze\",\n          \"total\": 12,\n          \"private_count\": 3,\n          \"max_star_count\": 6,\n          \"matching_count\": 0,\n          \"endpoint\": \"/api/v4/projects?owned=true&per_page=100&page=1\",\n          \"pagination\": \"X-Total=12; X-Next-Page empty\"\n        }\n      }\n    }\n  ]\n}\n",
+        "sha256": "d3334db56ae272fd492306fcc4a4b7265cf8c3c14d34d5650b07148c7cda9b68",
         "content": {
           "reviewer": {
             "kind": "agent",
@@ -123,10 +150,10 @@
           },
           "scope": "Authenticated complete personal-project set for current byteblaze user; stars greater than 100",
           "task_id": 168,
-          "sources_sha256": "156e43a46be84d605bd4fd5004a481835cd4d29e2e2661ccd4c2442dd2f3895a",
+          "sources_sha256": "a8cb987d130f86fcc0dd1af7529159d273e32c327f092c5a77ae876e5291dbde",
           "projection_sha256": "9f0876f2ea3b3be0ccbd766aaf91d3f8ac12ef7f8a84202b7609f04217e34ce7",
           "decision": "accept",
-          "rationale": "The authenticated current-user API and owned-project endpoint returned one terminal page with all 12 distinct projects, including three private projects. Each project is owned by the current user's personal namespace; the greatest observed star count was 6. No project exceeds 100 stars.",
+          "rationale": "The owned-project API identifies ownership through owner.id and personal namespace.path. The current user has user ID 2330 and namespace ID 2505; these are different database identity domains. Check owner.id against user.id and namespace.path against user.username, retaining exhaustive pagination and the original star threshold.",
           "observation": {
             "current_user": "byteblaze",
             "total": 12,
@@ -135,7 +162,34 @@
             "matching_count": 0,
             "endpoint": "/api/v4/projects?owned=true&per_page=100&page=1",
             "pagination": "X-Total=12; X-Next-Page empty"
-          }
+          },
+          "predecessor_artifacts": [
+            {
+              "utf8": "{\n  \"reviewer\": {\n    \"kind\": \"agent\",\n    \"identity\": \"Codex current GitLab source investigation\"\n  },\n  \"scope\": \"Authenticated complete personal-project set for current byteblaze user; stars greater than 100\",\n  \"task_id\": 168,\n  \"sources_sha256\": \"156e43a46be84d605bd4fd5004a481835cd4d29e2e2661ccd4c2442dd2f3895a\",\n  \"projection_sha256\": \"9f0876f2ea3b3be0ccbd766aaf91d3f8ac12ef7f8a84202b7609f04217e34ce7\",\n  \"decision\": \"accept\",\n  \"rationale\": \"The authenticated current-user API and owned-project endpoint returned one terminal page with all 12 distinct projects, including three private projects. Each project is owned by the current user's personal namespace; the greatest observed star count was 6. No project exceeds 100 stars.\",\n  \"observation\": {\n    \"current_user\": \"byteblaze\",\n    \"total\": 12,\n    \"private_count\": 3,\n    \"max_star_count\": 6,\n    \"matching_count\": 0,\n    \"endpoint\": \"/api/v4/projects?owned=true&per_page=100&page=1\",\n    \"pagination\": \"X-Total=12; X-Next-Page empty\"\n  }\n}",
+              "sha256": "f9512cfaf465d123ffabf2a30bb3dbd221c431381613e84308c359f943889891",
+              "content": {
+                "reviewer": {
+                  "kind": "agent",
+                  "identity": "Codex current GitLab source investigation"
+                },
+                "scope": "Authenticated complete personal-project set for current byteblaze user; stars greater than 100",
+                "task_id": 168,
+                "sources_sha256": "156e43a46be84d605bd4fd5004a481835cd4d29e2e2661ccd4c2442dd2f3895a",
+                "projection_sha256": "9f0876f2ea3b3be0ccbd766aaf91d3f8ac12ef7f8a84202b7609f04217e34ce7",
+                "decision": "accept",
+                "rationale": "The authenticated current-user API and owned-project endpoint returned one terminal page with all 12 distinct projects, including three private projects. Each project is owned by the current user's personal namespace; the greatest observed star count was 6. No project exceeds 100 stars.",
+                "observation": {
+                  "current_user": "byteblaze",
+                  "total": 12,
+                  "private_count": 3,
+                  "max_star_count": 6,
+                  "matching_count": 0,
+                  "endpoint": "/api/v4/projects?owned=true&per_page=100&page=1",
+                  "pagination": "X-Total=12; X-Next-Page empty"
+                }
+              }
+            }
+          ]
         }
       }
     }

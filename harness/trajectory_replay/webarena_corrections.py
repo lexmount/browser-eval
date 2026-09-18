@@ -261,6 +261,44 @@ def apply_correction(
             ):
                 raise ValueError(f"task {task.task_id}: incomplete independent reference")
             corrected["eval"][0]["expected"] = copy.deepcopy(expected_response)
+        elif observation.get("derivation", {}).get("kind") == "qualified_catalog_price_range/1":
+            source = observation.get("independent_source") or {}
+            products = source.get("qualified_products") or []
+            if (
+                observation.get("schema") != "trajectory_replay_revised_reference/1"
+                or source.get("total_count") != source.get("returned_items")
+                or type(source.get("total_count")) is not int
+                or source["total_count"] < len(products)
+                or not products
+                or len({row.get("sku") for row in products}) != len(products)
+                or len({row.get("name") for row in products}) != len(products)
+                or any(
+                    not row.get("sku")
+                    or not row.get("name")
+                    or type(row.get("price_cents")) is not int
+                    or row["price_cents"] < 0
+                    or row.get("currency") != "USD"
+                    or not row.get("qualification_evidence")
+                    for row in products
+                )
+            ):
+                raise ValueError(f"task {task.task_id}: incomplete qualified catalog reference")
+            prices = [row["price_cents"] for row in products]
+            expected = {
+                "task_type": "RETRIEVE",
+                "status": "SUCCESS",
+                "retrieved_data": [
+                    {
+                        "names": [row["name"] for row in products],
+                        "min": min(prices) / 100,
+                        "max": max(prices) / 100,
+                    }
+                ],
+                "error_details": None,
+            }
+            if observation.get("expected_response") != expected:
+                raise ValueError(f"task {task.task_id}: catalog reference derivation differs")
+            corrected["eval"][0]["expected"] = expected
         else:
             raise ValueError(f"task {task.task_id}: unsupported independent reference")
 

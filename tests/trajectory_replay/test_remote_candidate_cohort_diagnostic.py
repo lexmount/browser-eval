@@ -93,6 +93,9 @@ def test_chromium_qualification_uses_a_separate_ephemeral_profile() -> None:
     )
     assert chrome[0] == "/opt/chrome"
     assert "--headless=new" in chrome
+    expected_disabled = "HttpsUpgrades,HttpsFirstBalancedMode,HttpsFirstModeIncognito"
+    assert f"--disable-features={expected_disabled}" in chrome
+    assert not any("disable-web-security" in arg for arg in chrome)
     assert "--user-data-dir=/tmp/qualification-profile" in chrome
     assert moli[0:2] == ["/opt/moli", "serve"]
     assert moli[-2:] == ["--profile-dir", "/tmp/qualification-profile"]

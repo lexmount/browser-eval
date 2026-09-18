@@ -93,11 +93,61 @@ def test_apply_is_pure_traceable_and_fails_closed(benchmark, catalog) -> None:
         apply_correction(type(task).model_validate(changed), catalog)
 
 
-def test_279_corrects_only_drifted_reference_title(benchmark, catalog) -> None:
+def test_279_corrects_title_and_omitted_bluetooth_model(benchmark, catalog) -> None:
     applied = apply_correction(benchmark.get_task(279), catalog)
     names = _dump_eval(applied, 0)["expected"]["retrieved_data"][0]["names"]
-    assert names[9] == "Sony WI-C300 Wireless In-Ear Headphones, Red (WIC300/R))"
-    assert len(names) == 12
+    assert "Sony WI-C300 Wireless In-Ear Headphones, Red (WIC300/R))" in names
+    assert len(names) == 13
+    assert sum("WI-1000XM2" in name for name in names) == 1
+
+
+@pytest.mark.parametrize(
+    "mutation,score",
+    [("complete", 1.0), ("omitted", 0.0), ("wired", 0.0)],
+    ids=[
+        "tr-279-complete-thirteen-products",
+        "tr-279-reject-omitted-product",
+        "tr-279-reject-wired-product",
+    ],
+)
+def test_279_complete_catalog_scores_both_directions(tmp_path, benchmark, catalog, mutation, score):
+    contract = apply_correction(benchmark.get_task(279), catalog)
+    response = copy.deepcopy(_dump_eval(contract, 0)["expected"])
+    names = response["retrieved_data"][0]["names"]
+    if mutation == "omitted":
+        names[:] = [name for name in names if "WI-1000XM2" not in name]
+    elif mutation == "wired":
+        names.append("SONY MDR-Z1R WW2 Signature, Hi-Res Headphone, Black (International Version)")
+    trace = tmp_path / "catalog.har"
+    trace.write_text(
+        json.dumps(
+            {
+                "log": {
+                    "version": "1.2",
+                    "creator": {"name": "control", "version": "1"},
+                    "entries": [
+                        {
+                            "request": {
+                                "method": "GET",
+                                "url": "http://example.test/",
+                                "headers": [],
+                            },
+                            "response": {
+                                "status": 200,
+                                "headers": [],
+                                "cookies": [],
+                                "content": {"mimeType": "text/html", "text": ""},
+                            },
+                        }
+                    ],
+                }
+            }
+        )
+    )
+    result = evaluate_corrected_contract(
+        benchmark, contract, agent_response=response, network_trace=trace
+    )
+    assert float(result.score) == score
 
 
 def test_225_corrects_unverifiable_brand_scope_from_independent_catalog(benchmark, catalog) -> None:

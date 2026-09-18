@@ -84,7 +84,7 @@ def freeze(
     affected_rows = affected.get("candidates") or []
     by_affected = {int(row["task_id"]): row for row in affected_rows}
     by_canonical = {int(row["task_id"]): row for row in canonical}
-    task_ids = [int(row["task_id"]) for row in selection.get("tasks") or []]
+    task_ids = sorted(int(row["task_id"]) for row in selection.get("tasks") or [])
     if (
         selection.get("schema") != "lex_webarena_verified_pilot/1"
         or len(canonical) != len(task_ids)

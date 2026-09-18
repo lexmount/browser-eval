@@ -115,6 +115,13 @@ def rebind_remote_calls(
         url = call.get("url")
         if isinstance(url, str):
             call["url"] = rebind_url(url)
+        # URL-valued form inputs refer to the same fixture deployment as
+        # navigation URLs. Do not rewrite prose or arbitrary external URLs.
+        text = call.get("text")
+        if call.get("action") == "fill" and isinstance(text, str) and not any(
+            char.isspace() for char in text
+        ):
+            call["text"] = rebind_url(text)
         selector = call.get("selector")
         if isinstance(selector, str):
             call["selector"] = href_pattern.sub(rebind_href, selector)

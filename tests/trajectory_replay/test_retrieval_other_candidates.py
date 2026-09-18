@@ -68,11 +68,11 @@ def test_candidate_has_no_frozen_answer_or_mutating_network_call(task_id: int):
 @pytest.mark.parametrize("task_id", [124, 279, 386])
 def test_shopping_candidates_require_declared_total_and_linked_products(task_id: int):
     script = json.loads((ROOT / f"task-{task_id}.json").read_text())["tool_calls"][-1]["script"]
-    assert "declaredTotal" in script or "currentTotal" in script
-    assert "pageTotal" in script or "currentTotal" in script
-    assert "products-grid .product-item" in script
+    assert "rows.length!==total" in script
+    assert "total!==data.total_count" in script
+    assert "data.page_info.current_page!==page" in script
     assert "location.origin" in script
-    assert "seen.has(href.href)" in script
+    assert "seen.has(row.sku)" in script
 
 
 def test_task168_absence_requires_complete_authenticated_personal_project_set():

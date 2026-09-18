@@ -65,6 +65,19 @@ def test_rebind_remote_calls_preserves_path_query_and_non_site_urls(tmp_path):
     assert calls[0]["url"].startswith("http://host.docker.internal")
 
 
+def test_rebind_url_form_input_without_rewriting_prose_or_external_links(tmp_path):
+    calls = [
+        {"action": "fill", "text": "http://192.168.5.2:9999/submission_images/a.jpg?x=1#image"},
+        {"action": "fill", "text": "See http://192.168.5.2:9999/f/books"},
+        {"action": "fill", "text": "https://external.example/image.jpg"},
+        {"action": "fill", "text": "plain-text"},
+    ]
+    result = rebind_remote_calls(calls, load_remote_sites(_site_map(tmp_path)), {"192.168.5.2"})
+    assert result[0]["text"] == "http://reddit.example/submission_images/a.jpg?x=1#image"
+    assert result[1:] == calls[1:]
+    assert calls[0]["text"].startswith("http://192.168.5.2")
+
+
 def test_remote_reset_requires_pod_replacement_and_readiness(tmp_path):
     site_path = _site_map(tmp_path)
     receipt_path = tmp_path / "reset.json"

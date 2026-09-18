@@ -295,6 +295,9 @@ def _browser_command(args: argparse.Namespace, port: int, profile: str) -> list[
             "--headless=new",
             "--no-first-run",
             "--no-default-browser-check",
+            # Respect the explicitly configured HTTP fixture origins. An
+            # automatic scheme upgrade changes exact evaluator URL identity.
+            "--disable-features=HttpsUpgrades,HttpsFirstBalancedMode,HttpsFirstModeIncognito",
             f"--user-data-dir={profile}",
             f"--remote-debugging-port={port}",
             "--remote-debugging-address=127.0.0.1",

@@ -38,6 +38,11 @@
       "replay_mode": "snapshot_ref_semantics"
     },
     {
+      "action": "wait",
+      "selector": "button[aria-label=\"Sort by: New\"]:visible",
+      "timeout": 30000
+    },
+    {
       "action": "evaluate",
       "script": "(async () => { if (document.readyState !== 'complete') await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('vote_page_load_timeout')), 15000); window.addEventListener('load', () => { clearTimeout(timer); resolve(); }, {once: true}); }); await new Promise(resolve => setTimeout(resolve, 500)); const form = document.querySelector('article:has(a[href^=\"/f/books/124260/\"]) form[data-controller~=\"vote\"]'); if (!form || !form.querySelector('button[data-action=\"vote#up\"]')) throw new Error('target_vote_controller_missing'); return {ready_state: document.readyState, target_post_id: 124260, vote_controller_declared: true}; })()"
     },
@@ -50,5 +55,9 @@
       "action": "wait",
       "seconds": 2
     }
-  ]
+  ],
+  "repair": {
+    "cause": "The observer entered the old execution context while the New-list navigation was pending.",
+    "change": "Wait for the destination-specific visible sort control before observing the vote controller."
+  }
 }

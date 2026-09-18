@@ -44,20 +44,25 @@ def _reset_receipt(method_id: str) -> dict:
     }
 
 
-def _fixture(root: Path) -> dict:
+def _fixture(root: Path, *, reverse_inventory: bool = False) -> dict:
     ids = list(range(1, 91))
+    inventory_ids = list(reversed(ids)) if reverse_inventory else ids
     selection = _write(
         root / "selection.json",
-        {"schema": "lex_webarena_verified_pilot/1", "tasks": [{"task_id": i} for i in ids]},
+        {
+            "schema": "lex_webarena_verified_pilot/1",
+            "tasks": [{"task_id": i} for i in inventory_ids],
+        },
     )
     dataset_rows = [
         {"task_id": i, "task": {"intent": f"task {i}"}, "evaluation_input": {"task_type": "ACTION"}}
-        for i in ids
+        for i in inventory_ids
     ]
     dataset = _write(
         root / "dataset.json",
         {"schema": "lex_webarena_verified_trajectory_dataset/1", "trajectories": dataset_rows},
     )
+    dataset_by_id = {row["task_id"]: row for row in dataset_rows}
     methods = [
         {"id": name, "engine": "chromium" if name == "chromium" else "moli"}
         for name in ("chromium", "moli-old", "moli-fixed")
@@ -92,7 +97,7 @@ def _fixture(root: Path) -> dict:
                     "source_path": str(source),
                     "source_sha256": _sha(source),
                 }
-                for i in ids
+                for i in inventory_ids
             ],
         },
     )
@@ -113,8 +118,8 @@ def _fixture(root: Path) -> dict:
                     "task_id": i,
                     "task_contract_sha256": _digest(
                         {
-                            "task": dataset_rows[i - 1]["task"],
-                            "evaluation_input": dataset_rows[i - 1]["evaluation_input"],
+                            "task": dataset_by_id[i]["task"],
+                            "evaluation_input": dataset_by_id[i]["evaluation_input"],
                         }
                     ),
                     "actions": actions,
@@ -238,6 +243,38 @@ def test_rejects_incomplete_old_cohort(tmp_path: Path) -> None:
     data["results"] = data["results"][:36]
     _write(receipt, data)
     with pytest.raises(ValueError, match="exactly one execution"):
+        aggregate(**inputs)
+
+
+def test_sampling_inventory_order_does_not_override_numeric_execution(tmp_path: Path) -> None:
+    inputs = _fixture(tmp_path, reverse_inventory=True)
+    result = aggregate(**inputs)
+    assert [r["task_id"] for r in result["attempts"][:90]] == list(range(1, 91))
+
+
+def test_rejects_execution_in_sampling_order(tmp_path: Path) -> None:
+    inputs = _fixture(tmp_path, reverse_inventory=True)
+    receipt_path = inputs["cohort_inputs"]["chromium"][1]
+    receipt = json.loads(receipt_path.read_text())
+    receipt["executed_task_ids"].reverse()
+    _write(receipt_path, receipt)
+    with pytest.raises(ValueError, match="exactly one execution"):
+        aggregate(**inputs)
+
+
+@pytest.mark.parametrize("inventory", ["dataset_path", "validity_path"])
+def test_rejects_duplicate_inventory_task_ids(tmp_path: Path, inventory: str) -> None:
+    inputs = _fixture(tmp_path)
+    path = inputs[inventory]
+    data = json.loads(path.read_text())
+    rows = data["trajectories" if inventory == "dataset_path" else "tasks"]
+    rows[1]["task_id"] = rows[0]["task_id"]
+    _write(path, data)
+    if inventory == "dataset_path":
+        profile = json.loads(inputs["profile_path"].read_text())
+        profile["dataset"]["sha256"] = _sha(path)
+        _write(inputs["profile_path"], profile)
+    with pytest.raises(ValueError, match="selection|reference-validity"):
         aggregate(**inputs)
 
 

@@ -71,7 +71,7 @@ def test_freeze_requires_all_90_tasks_and_current_retrieval_contracts(tmp_path: 
     )
     result = freeze(**kwargs)
     assert len(result["tasks"]) == 90
-    assert result["task_ids"] == list(reversed(range(90)))
+    assert result["task_ids"] == list(range(90))
     assert result["tasks"][0]["actions"] == result["tasks"][36]["actions"]
     assert result["browser_binary_sha256"] == _sha256(binary)
     tasks[36]["evaluation_input"]["task_type"] = "RETRIEVE"

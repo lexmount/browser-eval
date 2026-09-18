@@ -21,6 +21,9 @@ import time
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from webarena_verified.types.task import WebArenaSite
+
+from harness.browser_use.runner import _browser_tool_config, _prepare_browser_viewport
 from harness.trajectory_replay.remote_runtime import (
     file_sha256,
     load_remote_sites,
@@ -66,7 +69,8 @@ def _task_ids() -> list[int]:
     ids = [row["task_id"] for row in selection["tasks"]]
     if not ids or len(set(ids)) != len(ids) or any(type(value) is not int for value in ids):
         raise ValueError("selected-task set is empty or duplicated")
-    return ids
+    # Match the upstream run.py numeric task order, not sampling order.
+    return sorted(ids)
 
 
 def _preflight(args: argparse.Namespace) -> tuple[dict, dict, object, dict[int, dict]]:
@@ -180,8 +184,14 @@ def _reference_hashes(args: argparse.Namespace) -> dict[str, str]:
         "candidate_runner": ROOT / "scripts/run_remote_candidate_cohort_diagnostic.py",
         "replay_logic": ROOT / "harness/trajectory_replay/webarena_replay.py",
         "retrieval_acceptance": ROOT / "harness/trajectory_replay/retrieval_acceptance.py",
+        "correction_logic": ROOT / "harness/trajectory_replay/webarena_corrections.py",
         "remote_runtime": ROOT / "harness/trajectory_replay/remote_runtime.py",
     }
+    catalog = load_corrections()
+    for task_id, record in catalog.records.items():
+        reference = record.get("reference_receipt")
+        if reference:
+            paths[f"reference_receipt_{task_id}"] = ROOT / reference["path"]
     return {name: _checked_file(path, name) for name, path in paths.items()}
 
 
@@ -225,7 +235,7 @@ def _verify_complete_evidence(output: Path, rows: list[dict], tasks: dict[int, d
             raise ValueError(f"task {task_id}: evaluator/current-run evidence is incomplete")
 
 
-def _reset_method(args: argparse.Namespace, manifest: dict) -> str:
+def _reset_method(args: argparse.Namespace, manifest: dict, sites: dict) -> str:
     """Restore the site baseline once for this method's complete ordered cohort."""
 
     receipt_path = args.output / "site-reset.json"
@@ -246,12 +256,16 @@ def _reset_method(args: argparse.Namespace, manifest: dict) -> str:
         check=True,
         timeout=1800,
     )
+    admin = urlsplit(sites[WebArenaSite.SHOPPING_ADMIN])
     validated = validate_remote_cohort_reset_receipt(
         receipt_path,
         site_map_sha256=manifest["site_map_sha256"],
         app_id=args.app_id,
         reset_scope=RESET_SCOPE,
         site_reset_between_tasks=False,
+        admin_https_base_url=(
+            f"{admin.scheme}://{admin.netloc}/" if admin.scheme == "https" else None
+        ),
         required_readiness_probes=manifest.get("site_readiness"),
     )
     if (
@@ -262,6 +276,50 @@ def _reset_method(args: argparse.Namespace, manifest: dict) -> str:
     ):
         raise ValueError("cohort reset receipt is stale or belongs to another method")
     return file_sha256(receipt_path)
+
+
+def _verify_browser_session(tool: object, sites: dict | None = None) -> list[dict]:
+    """Reject shared session setup errors before recording task outcomes."""
+    try:
+        service = tool._get_service()
+        service._submit(lambda: None)
+        _prepare_browser_viewport(service)
+
+        def check_sites() -> list[dict]:
+            rows = []
+            for site, url in (sites or {}).items():
+                page = service._page
+                response = page.goto(url, wait_until="load", timeout=60000)
+                expected, actual = urlsplit(url), urlsplit(page.url)
+                if (actual.scheme, actual.netloc) != (expected.scheme, expected.netloc):
+                    raise ValueError(f"{site.value}: browser changed configured site origin")
+                if response is None or response.status != 200:
+                    raise ValueError(f"{site.value}: browser readiness did not return HTTP 200")
+                if site == WebArenaSite.SHOPPING_ADMIN:
+                    scripts = page.locator("script[src]").evaluate_all(
+                        "nodes => nodes.map(n => n.src)"
+                    )
+                    if not scripts or any(
+                        urlsplit(src).scheme != expected.scheme for src in scripts
+                    ):
+                        raise ValueError(
+                            "shopping_admin: script protocol differs from configured origin"
+                        )
+                    if page.evaluate("typeof require") != "function":
+                        raise ValueError("shopping_admin: Magento JavaScript loader is unavailable")
+                rows.append(
+                    {
+                        "site": site.value,
+                        "requested_url": url,
+                        "actual_url": page.url,
+                        "status": response.status,
+                    }
+                )
+            return rows
+
+        return service._submit(check_sites)
+    finally:
+        tool.close()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -276,13 +334,32 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--app-id", type=int, required=True)
     parser.add_argument("--cohort-reset-hook", type=Path, required=True)
+    parser.add_argument(
+        "--tasks",
+        help="Explicit correction subset, in numeric order; never a publishable complete cohort",
+    )
     args = parser.parse_args(argv)
     manifest, sites, benchmark, tasks = _preflight(args)
+    execution_manifest = manifest
+    if args.tasks:
+        selected = [int(value) for value in args.tasks.split(",")]
+        if not selected or selected != sorted(set(selected)) or not set(selected) <= set(tasks):
+            raise ValueError(
+                "correction subset must be unique, ordered and inside the frozen task set"
+            )
+        execution_manifest = {
+            **manifest,
+            "task_ids": selected,
+            "tasks": [tasks[n] for n in selected],
+        }
     if str(args.cowagent) not in sys.path:
         sys.path.insert(0, str(args.cowagent))
+    from agent.tools.browser.browser_tool import BrowserTool
+
     os.umask(0o077)
     args.output.mkdir(parents=True, mode=0o700)
-    reset_sha256 = _reset_method(args, manifest)
+    _write(args.output / "execution-inputs.json", execution_manifest)
+    reset_sha256 = _reset_method(args, manifest, sites)
     # The cohort's reference boundary starts after its one site restoration.
     # Comparing pre-reset bytes with post-run bytes would reject a valid reset.
     before = _reference_hashes(args)
@@ -319,7 +396,11 @@ def main(argv: list[str] | None = None) -> int:
         )
         try:
             _wait_cdp(endpoint, process)
-            for task_id in manifest["task_ids"]:
+            readiness = _verify_browser_session(
+                BrowserTool(config=_browser_tool_config(endpoint)), sites
+            )
+            _write(args.output / "browser-readiness.json", readiness)
+            for task_id in execution_manifest["task_ids"]:
                 result = _run_task(
                     task_id=task_id,
                     row=tasks[task_id],
@@ -355,13 +436,15 @@ def main(argv: list[str] | None = None) -> int:
     after = _reference_hashes(args)
     _verify_complete_evidence(args.output, results, tasks)
     certified = _certificate(
-        manifest=manifest, rows=results, before=before, after=after, evidence_valid=True
+        manifest=execution_manifest, rows=results, before=before, after=after, evidence_valid=True
     )
     receipt = {
         "schema": "webarena_three_method_cohort/1",
         "method_id": args.method_id,
         "engine": args.engine,
-        "promotable": certified,
+        "promotable": certified and not args.tasks,
+        "execution_task_ids": execution_manifest["task_ids"],
+        "correction_subset": bool(args.tasks),
         "certified": certified,
         "certification_independent_of_pass_rate": True,
         "run_count": 1,
