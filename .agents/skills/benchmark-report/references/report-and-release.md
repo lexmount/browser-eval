@@ -69,6 +69,7 @@ Common publication gates:
 The responsive/visual gate must cover every core route class, both languages, desktop and narrow widths, and light and dark themes. Check that short headers do not wrap one character per line, long cells receive deliberate width or scrolling, filters remain operable, code and evidence blocks have readable contrast, and text-heavy diagrams use scalable/vector rendering or retain a readable minimum width. A screenshot of only the home page is insufficient.
 
 Render release history like a report, not a heading plus a raw table: show the current version summary first, keep evidence/handling/impact details expandable, retain older versions in a compact history, and provide the structured record download. Each entry states what changed, why, the formal handling, and the score, denominator, latency, evidence, and limitation effects.
+Keep localized release text beside each structured release record and render every language from that record. Do not copy release-specific prose or historical measurements into report renderers or exact-string translation tables. Check the rendered release IDs, summary, effects and evidence links against the record; wording changes alone must not require a release-gate code edit.
 
 Credentials belong in the approved secret store, never HTML or Git. If a service requires an account, list the account and official acquisition location in the report. Do not include live keys.
 

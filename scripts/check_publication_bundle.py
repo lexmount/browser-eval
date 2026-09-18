@@ -11,6 +11,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.publication_privacy import publication_risk
 from harness.web_fetch.webmainbench_diagnostics import require_valid_teds_for_release, validate_teds_revision_if_present
+from harness.web_fetch.webmainbench_latency_correction import validate_latency_correction
 from bs4 import BeautifulSoup
 
 
@@ -49,6 +50,13 @@ def check(archive,source):
         privacy_by_path={row['path']:row for row in privacy['files']}
         rows=[json.loads(line) for line in data('results.jsonl').splitlines()]
         require_valid_teds_for_release(rows)
+        latency_receipt = validate_latency_correction(source)
+        if latency_receipt is not None:
+            for name in ('latency-corrections.json', 'prior-latency-results.jsonl'):
+                if name not in manifest['files'] or (
+                        data(name) != (source / name).read_bytes()
+                        and name not in privacy_by_path):
+                    raise ValueError('Published latency correction history is missing or changed: ' + name)
         revision = validate_teds_revision_if_present(source, rows)
         if revision is not None:
             for name, label in (('index.html', '修正后复算'), ('en/index.html', 'recomputed after correction')):

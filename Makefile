@@ -46,8 +46,11 @@ report-check: runtime-check
 	$(PY) scripts/check_report_links.py reports/webfetch
 	$(PY) scripts/check_report_revision.py reports/webfetch
 
-wcxb-release-check: report-check
-	$(UV) run --frozen --extra headless-eval python scripts/check_wcxb_visual.py reports/webfetch
+wcxb-release-check: runtime-check
+	$(PY) scripts/check_report.py reports/wcxb
+	$(PY) scripts/check_report_links.py reports/wcxb
+	$(PY) scripts/check_report_revision.py reports/wcxb
+	$(UV) run --frozen --extra headless-eval python scripts/check_wcxb_visual.py reports/wcxb
 
 browser-use-report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE="/absolute/path [/absolute/path...]" is required' >&2; exit 2)

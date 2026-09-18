@@ -198,7 +198,7 @@ def require_case_summary(html: str | BeautifulSoup, lang: str) -> BeautifulSoup:
 
 def check(root: Path) -> None:
     root = root.resolve()
-    profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
+    profile = json.loads((ROOT / 'evaluation/wcxb/current-report.json').read_text())
     sample_file = root / 'sample-manifest.json'
     sample = json.loads(sample_file.read_text())
     require(sample.get('scope') == 'qualified_test', 'WCXB current selection is not source-qualified')
@@ -330,6 +330,14 @@ def check(root: Path) -> None:
                 require(set(providers) <= page.ids and page.outputs == len(providers), f'Case participant evidence missing: {route}')
                 require(f'evidence/{Path(route).stem}.json' in html, f'Case evidence link missing: {route}')
                 require('id="preview"' in html and 'class="frozen-preview"' in html, f'Frozen-page preview missing: {route}')
+                preview_section = BeautifulSoup(html, 'html.parser').select_one('#preview')
+                expected_title = '冻结 HTML 阅读视图' if lang == 'zh' else 'Frozen HTML reading view'
+                require(preview_section.select_one('h2').get_text(strip=True) == expected_title,
+                        f'Frozen HTML view is mislabeled as a webpage preview: {route}')
+                require(preview_section.select_one(f'a[href="evidence/{Path(route).stem}.json"]') is not None,
+                        f'Complete frozen HTML input link missing: {route}')
+                require(('不是原网页截图' if lang == 'zh' else 'not a screenshot') in preview_section.get_text(),
+                        f'Frozen HTML view lacks provenance warning: {route}')
                 require('id="reference"' in html, f'Human reference anchor missing: {route}')
                 case = Path(route).stem
                 require(BeautifulSoup(html, 'html.parser').select_one(f'.hero .source a[href$="cases/{case}.html#preview"]') is not None,

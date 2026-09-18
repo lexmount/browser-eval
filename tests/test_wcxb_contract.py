@@ -26,7 +26,7 @@ class WCXBContractTests(unittest.TestCase):
         self.assertEqual(format_wcxb_conditional_latency(1234.2), '1,234 ms')
 
     def test_wcxb_participants_do_not_inherit_webmainbench_version_rows(self):
-        profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
+        profile = json.loads((ROOT / 'evaluation/wcxb/current-report.json').read_text())
         self.assertEqual(tuple(profile['providers']), WCXB_PROVIDERS)
         self.assertIn('moli-1.1.7', PROVIDERS)
         self.assertNotIn('moli-1.1.7', WCXB_PROVIDERS)
@@ -34,7 +34,7 @@ class WCXBContractTests(unittest.TestCase):
     def test_frozen_manifest_is_unique_stratified_and_profile_bound(self):
         raw = (ROOT / 'evaluation/public-wcxb-test-qualified.json').read_bytes()
         sample = json.loads(raw)
-        profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
+        profile = json.loads((ROOT / 'evaluation/wcxb/current-report.json').read_text())
         self.assertEqual(sample['size'], 504)
         self.assertEqual(len(sample['cases']), 504)
         self.assertEqual(len({r['file_id'] for r in sample['cases']}), 504)

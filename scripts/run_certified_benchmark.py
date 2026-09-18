@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 
 def _browser_contract(case: dict) -> bool:
@@ -233,7 +234,7 @@ def run_wcxb(argv: list[str]) -> None:
     source_records, before = load_wcxb_source(args.dataset)
     from scripts.select_wcxb_sample import validate_manifest
     manifest = json.loads(args.sample_manifest.read_text())
-    profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
+    profile = json.loads((ROOT / 'evaluation/wcxb/current-report.json').read_text())
     if (profile.get('comparison_kind') != 'wcxb_frozen_html_to_markdown'
             or profile.get('providers') != list(WCXB_PROVIDERS)
             or hashlib.sha256(args.sample_manifest.read_bytes()).hexdigest() != profile['sample_manifest_sha256']
@@ -328,7 +329,7 @@ def certify_wcxb_latency(argv: list[str]) -> None:
     certificate_path = args.evidence_root / 'certification.json'
     if certificate_path.exists():
         parser.error('paired latency cohort is already certified')
-    profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
+    profile = json.loads((ROOT / 'evaluation/wcxb/current-report.json').read_text())
     records, source_before = load_wcxb_source(args.dataset)
     manifest_bytes = args.sample_manifest.read_bytes()
     selected, _ = validate_manifest(records, source_before, json.loads(manifest_bytes))
@@ -353,4 +354,8 @@ def certify_wcxb_latency(argv: list[str]) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] == 'webmainbench-latency':
+        from scripts.run_certified_webmainbench_latency import main as webmainbench_latency_main
+        webmainbench_latency_main(sys.argv[2:])
+    else:
+        main()

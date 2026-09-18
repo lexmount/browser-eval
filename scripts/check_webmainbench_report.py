@@ -14,6 +14,8 @@ from harness.web_fetch.metrics import percentile
 from harness.web_fetch.webmainbench_diagnostics import ERROR_PAGE, validate_teds_revision_if_present
 from harness.web_fetch.safety import contained_path
 from harness.web_fetch.webmainbench_evidence import retry_chain_matches
+from harness.web_fetch.webmainbench_latency_correction import prior_results_path, validate_latency_correction
+from harness.web_fetch.report_changes import ROOT, webmainbench_history
 
 
 PROVIDERS = {"kitesurf", "lightpanda", "obscura", "moli", "moli-1.1.7", "chromium"}
@@ -53,6 +55,44 @@ def check_teds_warnings(root: Path, impossible_teds: int) -> None:
 def check_report(root: Path, dataset: dict | None = None, records: list[dict] | None = None) -> None:
     dataset = dataset or json.loads((root / "dataset.json").read_text(encoding="utf-8"))
     records = records or read_jsonl(root / "results.jsonl")
+    latency_correction = validate_latency_correction(root)
+    current_profile = json.loads((Path(__file__).resolve().parents[1] / 'evaluation/current-report.json').read_text())
+    diagnostic_profile = current_profile.get('latency_diagnostic')
+    diagnostic_path = root / 'latency-diagnostic.json'
+    if diagnostic_profile and not diagnostic_path.is_file():
+        raise ValueError('Current WebMainBench release lacks the declared latency diagnostic')
+    latency_diagnostic = json.loads(diagnostic_path.read_text(encoding='utf-8')) if diagnostic_path.is_file() else None
+    if latency_diagnostic:
+        if (latency_diagnostic.get('kind') != 'same_host_latency_diagnostic'
+                or latency_diagnostic.get('official_results_sha256') != digest(prior_results_path(root))
+                or len(latency_diagnostic.get('per_case', [])) != 200
+                or {row['case_id'] for row in latency_diagnostic['per_case']} !=
+                   {row['id'] for row in dataset.get('cases', [])}
+                or set(latency_diagnostic.get('runs', {})) != {
+                    'moli-115-control', 'moli-117-repeat'}):
+            raise ValueError('Published latency diagnostic is incomplete or no longer bound to official evidence')
+    source_history = webmainbench_history(json.loads((ROOT / 'research/report-changes.json').read_text(encoding='utf-8')))
+    bundled_history = json.loads((root / 'report-changes.json').read_text(encoding='utf-8'))
+    if bundled_history.get('releases') != source_history:
+        raise ValueError('Bundled WebMainBench release history differs from the reviewed source')
+    for prefix, language in (('', 'zh'), ('en/', 'en')):
+        changes = BeautifulSoup((root / prefix / 'changes/index.html').read_text(encoding='utf-8'), 'html.parser')
+        ids = [node.get('data-release-id') for node in changes.select('[data-release-id]')]
+        if ids != [row['id'] for row in source_history]:
+            raise ValueError(prefix + 'Release page omits a structured release record')
+        latest = source_history[0]
+        localized = latest['i18n']['en'] if language == 'en' else latest
+        current = changes.select_one('#current-release [data-release-id]')
+        if (current is None or localized['title'] not in current.get_text(' ', strip=True)
+                or localized['summary'] not in changes.select_one('.hero').get_text(' ', strip=True)
+                or len(current.select('tbody tr')) != len(localized['changes'])):
+            raise ValueError(prefix + 'Current release content differs from structured record')
+        for row, cells in zip(localized['changes'], current.select('tbody tr')):
+            if [cell.get_text(' ', strip=True) for cell in cells.select('td')[-4:]] != row:
+                raise ValueError(prefix + 'Current release effect differs from structured record')
+        if latency_correction and not (changes.select_one('a[href$="latency-corrections.json"]')
+                                       and changes.select_one('a[href$="prior-latency-results.jsonl"]')):
+            raise ValueError(prefix + 'Timing correction evidence links are missing')
     teds_revision = validate_teds_revision_if_present(root, records)
     if dataset.get("id") != "webmainbench-545-preselected-200-six-methods":
         raise ValueError("Not the current WebMainBench preselected-200 report")
@@ -78,6 +118,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     if (review.get("status") != "passed" or set(review.get("providers", [])) != PROVIDERS
             or review.get("sample_manifest_sha256") != sample_sha
             or review.get("sample_case_count") != 200
+            or review.get('bindings', {}).get('results_jsonl_sha256') != digest(prior_results_path(root))
             or review.get("failures")):
         raise ValueError("WebMainBench independent review is missing or incomplete")
 
@@ -93,7 +134,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
             or len(triggered) != 36
             or len(set(triggered)) != 36
             or bindings.get("dataset_json_sha256") != digest(root / "dataset.json")
-            or bindings.get("results_jsonl_sha256") != digest(root / "results.jsonl")
+            or bindings.get("results_jsonl_sha256") != digest(prior_results_path(root))
             or bindings.get("score_summaries_json_sha256") != digest(root / "score-summaries.json")):
         raise ValueError("WebMainBench anomaly review is missing, incomplete, or not bound to this report")
 
@@ -236,6 +277,71 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         localized_home = BeautifulSoup((root / prefix / "index.html").read_text(encoding="utf-8"), "html.parser")
         check_presentation(localized_home)
         check_presentation((root / prefix / "guide/index.html").read_text())
+        if latency_diagnostic:
+            guide_page = BeautifulSoup((root / prefix / 'guide/index.html').read_text(encoding='utf-8'), 'html.parser')
+            core = localized_home.select_one('#wmb-core-results')
+            if (core is None or not core.find_next('p', class_='source-note')
+                    or not core.find_next('p', class_='source-note').select_one(
+                        f'a[href$="datasets/{latency_diagnostic["failure_retest"]["case_id"]}.html"]')):
+                raise ValueError(prefix + 'Core coverage lacks the verified fixture-failure explanation')
+            for section in (localized_home.select_one('#moli-latency-rerun'), guide_page.select_one('#delivery .wmb-rerun-diagnostic')):
+                if section is None or len(section.select('.wmb-rerun-table tbody tr')) != 2:
+                    raise ValueError(prefix + 'Moli latency rerun must show the current two-version comparison')
+                context = section.select_one('[data-timing-context="prior-overlap"]')
+                context_markers = (('较早', '同时运行', '正式', '无并发', '第二轮') if not prefix
+                                   else ('earlier', 'overlapped', 'formal', 'without concurrent', 'second round'))
+                if latency_correction and (context is None
+                                           or context.get('data-formal-round') != str(latency_correction['selected_round'])
+                                           or not all(marker in context.get_text(' ', strip=True) for marker in context_markers)):
+                    raise ValueError(prefix + 'Corrected timing must distinguish the earlier diagnostic run')
+                if not latency_correction and context is not None:
+                    raise ValueError(prefix + 'Uncorrected timing must not claim a later formal run')
+                rerun_rows = dict(zip(('1.1.5', '1.1.7'),
+                                      section.select('.wmb-rerun-table tbody tr')))
+                for name, row in rerun_rows.items():
+                    cells = row.find_all('td', recursive=False)
+                    run = latency_diagnostic['balanced_200']['runs'][name]
+                    if (cells[-4].get_text(strip=True) != f"{run['n']}/{run['calls']}"
+                            or any(not close(float(td['data-sort']), run[key])
+                                   for td, key in zip(cells[-3:], ('mean', 'p50', 'p95')))):
+                        raise ValueError(prefix + 'Moli latency rerun values differ from verified evidence')
+                    for key, td in zip(('mean', 'p50', 'p95'), cells[-3:]):
+                        other = '1.1.7' if name == '1.1.5' else '1.1.5'
+                        expected = run[key] < latency_diagnostic['balanced_200']['runs'][other][key]
+                        if bool(td.select('.comparison-winner')) != expected or len(td.select('.comparison-winner')) > 1:
+                            raise ValueError(prefix + 'Moli rerun winner marker disagrees with same-host evidence')
+                case_rows = section.select('.wmb-rerun-cases tbody tr')
+                if len(case_rows) != 20:
+                    raise ValueError(prefix + 'Moli slow-page inventory must include all 20 cases')
+                outliers = [row for row in latency_diagnostic['tail_repeat']['cases']
+                            if abs(row['older_median_ms'] - row['newer_median_ms']) > 20]
+                direction = section.select_one('[data-tail-outliers]')
+                if (direction is None
+                        or direction.get('data-tail-outliers') != str(len(outliers))
+                        or direction.get('data-tail-newer-faster') != str(sum(
+                            row['newer_median_ms'] < row['older_median_ms'] for row in outliers))
+                        or direction.get('data-tail-older-faster') != str(sum(
+                            row['older_median_ms'] < row['newer_median_ms'] for row in outliers))
+                        or not direction.get_text(' ', strip=True)):
+                    raise ValueError(prefix + 'Moli tail conclusion disagrees with per-page medians')
+                for rendered, evidence in zip(case_rows, latency_diagnostic['tail_repeat']['cases']):
+                    cells = rendered.find_all('td', recursive=False)
+                    if (not cells[1].select_one(f'a[href$="datasets/{evidence["case_id"]}.html"]')
+                            or any(not close(float(td['data-sort']), evidence[key])
+                                   for td, key in zip(cells[2:], ('older_median_ms', 'newer_median_ms',
+                                                                   'older_max_ms', 'newer_max_ms')))):
+                        raise ValueError(prefix + 'Moli per-case repeat table differs from verified evidence')
+                conclusion_markers = (('先请求', '不能保证', '20 页') if not prefix
+                                      else ('first call', 'cannot be guaranteed', '20 pages'))
+                if not all(marker in section.get_text(' ', strip=True) for marker in conclusion_markers):
+                    raise ValueError(prefix + 'Moli repeat conclusion or ordering effect is missing')
+                if len(section.select('.wmb-rerun-resource tbody tr')) != 2 or not section.select_one('a[href$="latency-diagnostic.json"]'):
+                    raise ValueError(prefix + 'Moli latency rerun lacks resource evidence or per-case download')
+                failed_case = latency_diagnostic['failure_retest']['case_id']
+                if (not section.select_one(f'a[href$="datasets/{failed_case}.html"]')
+                        or not all(marker in section.get_text(' ', strip=True) for marker in
+                                   (('重试', '禁用页面脚本') if not prefix else ('retry', 'Disabling page-authored JavaScript')))):
+                    raise ValueError(prefix + 'Moli failed-page retest conclusion is missing')
         home_headers = {tag.get_text(" ", strip=True) for tag in localized_home.select("#wmb-core-results th")}
         if teds_revision is not None:
             correction_label = '修正后复算' if not prefix else 'recomputed after correction'
@@ -361,6 +467,3 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
 
 def check_revision(root: Path) -> None:
     check_report(root)
-    changes = BeautifulSoup((root / "changes" / "index.html").read_text(encoding="utf-8"), "html.parser").get_text(" ", strip=True)
-    if "200" not in changes or "Moli" not in changes or "1.1.5" not in changes or "1.1.7" not in changes:
-        raise ValueError("WebMainBench release page omits the current scope or Moli version")

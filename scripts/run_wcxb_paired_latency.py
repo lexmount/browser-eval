@@ -82,7 +82,7 @@ def main() -> None:
         parser.error('latency correction requires the entire qualified population')
     binaries = {'release': args.release.resolve(), 'pr': args.candidate.resolve()}
     hashes = {name: sha(path.read_bytes()) for name, path in binaries.items()}
-    profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
+    profile = json.loads((ROOT / 'evaluation/wcxb/current-report.json').read_text())
     if (source_before != profile['source_dataset_sha256']
             or sha(manifest_bytes) != profile['sample_manifest_sha256']
             or hashes != {'release': profile['release_binary_sha256'],

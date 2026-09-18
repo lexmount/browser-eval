@@ -37,12 +37,12 @@ def package(source: Path, archive: Path) -> dict[str, str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--source', type=Path, default=ROOT / 'reports/webfetch')
+    parser.add_argument('--source', type=Path, default=ROOT / 'reports/wcxb')
     args = parser.parse_args()
     source = args.source.resolve()
     check_report(source)
     check_links(source)
-    profile_path = ROOT / 'evaluation/current-report.json'
+    profile_path = ROOT / 'evaluation/wcxb/current-report.json'
     profile = json.loads(profile_path.read_text())
     if profile['comparison_kind'] != 'wcxb_frozen_html_to_markdown':
         raise ValueError('Current publication target is not WCXB')
