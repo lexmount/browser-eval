@@ -105,6 +105,89 @@ def require_analysis_controls(html: str | BeautifulSoup, result_count: int) -> B
     return soup
 
 
+def require_home_interpretation(html: str | BeautifulSoup, summary: dict,
+                                paired_latency: dict, lang: str) -> BeautifulSoup:
+    """Keep the version comparison readable and its timing caveat beside the table."""
+    soup = BeautifulSoup(html, 'html.parser') if isinstance(html, str) else html
+    core = soup.select_one('#wcxb-core')
+    contexts = soup.select('#moli-latency-context')
+    changes = soup.select('#moli-change')
+    require(core is not None and len(contexts) == len(changes) == 1,
+            'Home Moli comparison or timing context is missing or duplicated')
+    context = contexts[0]
+    require(core.find_parent('section') == context.find_parent('section'),
+            'Moli timing context must be beside the core comparison')
+    require(core.find_next(id='moli-latency-context') == context,
+            'Moli timing context must follow the core comparison')
+    release = summary['providers']['moli']['mean_latency_ms']
+    candidate = summary['providers']['moli-pr643']['mean_latency_ms']
+    required = (f'{release:,.0f} ms', f'{candidate:,.0f} ms',
+                f'{paired_latency["release"]["mean_ms"]:.1f} ms',
+                f'{paired_latency["pr"]["mean_ms"]:.1f} ms',
+                f'{paired_latency["paired_delta_mean_ms"]:+.1f} ms')
+    context_text = context.get_text(' ', strip=True)
+    require(all(value in context_text for value in required),
+            'Home timing context disagrees with measured evidence')
+    require(('不同时间' if lang == 'zh' else 'different times') in context_text
+            and ('64 页' if lang == 'zh' else '64 pages') in context_text
+            and ('128 次' if lang == 'zh' else '128 calls') in context_text,
+            'Home timing context does not distinguish the measured populations')
+    require(context.select_one('a[href$="guide/index.html"]') is not None,
+            'Home timing context does not link to the analysis')
+    change = changes[0]
+    change_text = change.get_text(' ', strip=True)
+    require(len(change_text) <= (190 if lang == 'zh' else 370),
+            'Home Moli change summary is too long; move detail to the interpretation page')
+    require(len(change.select('p')) == 2 and change.select_one('a[href$="cases/5458.html"]')
+            and change.select_one('a[href$="guide/index.html"]'),
+            'Home Moli change summary lacks concise evidence links')
+    require(not any(f'{summary["providers"][provider]["quality_f1"] * 100:.4f}%'
+                    in change_text for provider in ('moli', 'moli-pr643')),
+            'Home Moli change summary repeats exact table values')
+    return soup
+
+
+def require_guide_interpretation(html: str | BeautifulSoup, summary: dict,
+                                 providers: list[str], lang: str) -> BeautifulSoup:
+    """A guide must work as a standalone explanation, with traceable examples."""
+    soup = BeautifulSoup(html, 'html.parser') if isinstance(html, str) else html
+    anchors = ('guide-results', 'guide-score', 'guide-cases', 'guide-methods',
+               'guide-timing', 'guide-conclusion')
+    toc = soup.select_one('nav.essay-toc')
+    require(toc is not None and all(soup.select_one(f'#{anchor}') is not None
+                                     and toc.select_one(f'a[href="#{anchor}"]') is not None
+                                     for anchor in anchors),
+            'Guide lacks a working reading path or major interpretation')
+    results = soup.select_one('#guide-results')
+    check_presentation(results)
+    rows = results.select('tbody tr')
+    require(len(rows) == len(providers), 'Guide overview omits a measured method')
+    for provider in providers:
+        target = f'providers/{provider}.html'
+        row = next((r for r in rows if r.select_one(f'a[href$="{target}"]')), None)
+        require(row is not None, f'Guide overview omits {provider}')
+        score = summary['providers'][provider]
+        values = row.get_text(' ', strip=True)
+        require(f'{score["quality_f1"] * 100:.2f}%' in values
+                and f'{score["mean_latency_ms"]:,.0f} ms' in values,
+                f'Guide overview disagrees with {provider} evidence')
+    specimen = soup.select_one('#guide-cases')
+    require(specimen is not None and len(specimen.select('.specimen-grid > div')) == 3
+            and all(specimen.select_one(f'a[href$="cases/5458.html#{anchor}"]')
+                    for anchor in ('reference', 'moli', 'moli-pr643')),
+            'Guide lacks a source/reference/output worked example')
+    require(all(token in specimen.get_text(' ', strip=True) for token in ('name', 'string', 'namestring')),
+            'Guide specimen no longer demonstrates the actual boundary error')
+    require(soup.select_one('#guide-methods table') is not None
+            and len(soup.select('#guide-methods tbody tr')) == len(providers),
+            'Guide does not diagnose every measured configuration')
+    require(soup.select_one('#guide-timing a[href="research/wcxb-paired-latency.json"]') is not None,
+            'Guide timing is missing paired evidence')
+    require(len(soup.select_one('#guide-conclusion').get_text(' ', strip=True)) > 200,
+            'Guide conclusion lacks a substantive finding')
+    return soup
+
+
 def require_case_summary(html: str | BeautifulSoup, lang: str) -> BeautifulSoup:
     soup = BeautifulSoup(html, 'html.parser') if isinstance(html, str) else html
     label = '同一网页的全部方法结果' if lang == 'zh' else 'All method results for this page'
@@ -146,7 +229,7 @@ def check(root: Path) -> None:
     require(released['identity'].get('binary_sha256') == profile['release_binary_sha256'],
             'WCXB released Moli binary differs from the current report profile')
     from harness.web_fetch.wcxb_latency import load_paired_latency
-    load_paired_latency(root / 'research/wcxb-paired-latency.json', profile, case_ids)
+    _, paired_latency = load_paired_latency(root / 'research/wcxb-paired-latency.json', profile, case_ids)
     evidence_hashes = json.loads((root / 'evidence-manifest.json').read_text())
     require(set(evidence_hashes) == case_ids, 'WCXB evidence inventory differs')
     by_case = {}
@@ -200,6 +283,7 @@ def check(root: Path) -> None:
                 require(all(f'data-case="{case}"' not in html for case in excluded), 'Invalid references entered result inventory')
             if route == 'guide/index.html':
                 guide = BeautifulSoup(html, 'html.parser')
+                require_guide_interpretation(guide, summary, providers, lang)
                 headings = {node.get_text(' ', strip=True) for node in guide.select('h2')}
                 require(('Obscura 为什么分数更高' if lang == 'zh' else 'Why Obscura scores higher') in headings,
                         'Obscura content analysis is missing')
@@ -212,6 +296,7 @@ def check(root: Path) -> None:
             if route in ('index.html', 'datasets/index.html'):
                 check_presentation(html)
                 if route == 'index.html':
+                    require_home_interpretation(html, summary, paired_latency, lang)
                     require('id="home-type"' in html, 'Page-type filter missing')
                     require('官方全量 F1' not in html and 'Official full F1' not in html, 'Invalid full-reference score remains visible')
                     require(len(BeautifulSoup(html, 'html.parser').select('#wcxb-core .comparison-winner')) >= 4, 'Core comparison winners missing')
@@ -298,6 +383,38 @@ def check(root: Path) -> None:
         pass
     else:
         raise AssertionError('A duplicate result summary was accepted')
+    guide = BeautifulSoup((root / 'guide/index.html').read_text(), 'html.parser')
+    guide.select_one('#guide-results tbody tr').decompose()
+    try:
+        require_guide_interpretation(guide, summary, providers, 'zh')
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('A guide with a missing measured method was accepted')
+    guide = BeautifulSoup((root / 'guide/index.html').read_text(), 'html.parser')
+    guide.select_one('#guide-cases a[href$="cases/5458.html#moli-pr643"]').decompose()
+    try:
+        require_guide_interpretation(guide, summary, providers, 'zh')
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('A guide with broken worked evidence was accepted')
+    guide = BeautifulSoup((root / 'guide/index.html').read_text(), 'html.parser')
+    guide.select_one('#guide-results .comparison-winner').unwrap()
+    try:
+        require_guide_interpretation(guide, summary, providers, 'zh')
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('A guide without a winning-column highlight was accepted')
+    home = BeautifulSoup((root / 'index.html').read_text(), 'html.parser')
+    home.select_one('#moli-latency-context').decompose()
+    try:
+        require_home_interpretation(home, summary, paired_latency, 'zh')
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('A home page without adjacent timing context was accepted')
     require((root / 'assets/style.css').is_file() and (root / 'assets/report.js').is_file(), 'WCXB report assets missing')
     require(len([path for path in root.rglob('*') if path.is_file()]) < 2000, 'WCXB report tree unexpectedly large')
     print(f'PASS: WCXB {len(case_ids)}-case, {len(providers)}-method, bilingual evidence and route inventory')

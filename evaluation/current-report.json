@@ -44,7 +44,7 @@
   "require_independent_result_review": false,
   "artifact_hub_base_url": "https://artifact-site.lexmount.cn",
   "artifact_hub_site": "p3sFcZrww_nx",
-  "artifact_hub_expected_version": "ver_bcc99fbbcb834e72bc7571fa8b9c3e0d",
+  "artifact_hub_expected_version": "ver_0d82d4149d174cfeb089a85eeaa8d090",
   "artifact_hub_share_url": "https://artifact-site.lexmount.cn/v/7GfS87N6u4G1VWcEJlT9sG3j8YWV1Zjo",
   "candidate_source_commit": "30c4f85b4e3cf1b37b8581a4157a7c91715027e4",
   "candidate_binary_sha256": "ace767cd35a60673a4a5c84662fa4439ba86d9320fa6f002627c72450172e293",
