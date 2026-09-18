@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -212,12 +213,14 @@ def main(argv: list[str] | None = None) -> None:
 
 
 def run_wcxb(argv: list[str]) -> None:
-    """Certify the complete immutable WCXB test matrix around all five calls."""
-    parser = argparse.ArgumentParser(description="Certify five-browser WCXB test cohort")
+    """Certify a complete WCXB matrix, reusing unchanged certified methods."""
+    parser = argparse.ArgumentParser(description="Certify WCXB test cohort")
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--sample-manifest", type=Path, required=True)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--env-file", type=Path, default=ROOT / ".env")
+    parser.add_argument("--reuse-certified-root", type=Path,
+                        help="Reuse unchanged, hash-bound methods from a prior complete cohort")
     args = parser.parse_args(argv)
     sys.path.insert(0, str(ROOT))
     from scripts.run_webmainbench_benchmark import WCXB_PROVIDERS, load_wcxb_source
@@ -229,6 +232,7 @@ def run_wcxb(argv: list[str]) -> None:
     manifest = json.loads(args.sample_manifest.read_text())
     profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
     if (profile.get('comparison_kind') != 'wcxb_frozen_html_to_markdown'
+            or profile.get('providers') != list(WCXB_PROVIDERS)
             or hashlib.sha256(args.sample_manifest.read_bytes()).hexdigest() != profile['sample_manifest_sha256']
             or manifest.get('scope') != 'qualified_test'
             or manifest.get('size') != profile['case_count']):
@@ -236,15 +240,50 @@ def run_wcxb(argv: list[str]) -> None:
     selected, _ = validate_manifest(source_records, before, manifest)
     expected_ids = {row['track_id'] for row in selected}
     sample_before = hashlib.sha256(args.sample_manifest.read_bytes()).hexdigest()
+    old_runs = []
+    if args.reuse_certified_root:
+        prior = args.reuse_certified_root.resolve()
+        if prior == args.output_root.resolve():
+            raise ValueError("WCXB prior and new evidence roots must differ")
+        old_certificate = json.loads((prior / 'certification.json').read_text())
+        old_runs = old_certificate.get('providers', [])
+        old_names = [item['provider'] for item in old_runs]
+        if (not old_certificate.get('complete') or not old_names
+                or old_names != list(WCXB_PROVIDERS[:len(old_names)])
+                or len(old_names) >= len(WCXB_PROVIDERS)
+                or old_certificate['source_sha256_before'] != before
+                or old_certificate['source_sha256_after'] != before
+                or old_certificate['sample_sha256_before'] != sample_before
+                or old_certificate['sample_sha256_after'] != sample_before):
+            raise ValueError("WCXB reusable cohort is incomplete or differs from frozen inputs")
+        for item in old_runs:
+            provider = item['provider']
+            old_dir = prior / provider
+            if old_dir.is_symlink() or hashlib.sha256((old_dir / 'results.jsonl').read_bytes()).hexdigest() != item['results_sha256']:
+                raise ValueError("WCXB prior result identity changed: " + provider)
+            if any(path.is_symlink() for path in old_dir.rglob('*')):
+                raise ValueError("WCXB prior evidence contains a symlink: " + provider)
+            execution = json.loads((old_dir / 'execution.json').read_text())
+            rows = [json.loads(line) for line in (old_dir / 'results.jsonl').read_text().splitlines()]
+            if (execution['run_id'] != item['run_id'] or execution['implementation_identity'] != item['identity']
+                    or execution['case_count'] != len(selected) or execution['source_dataset_sha256'] != before
+                    or execution['selection_manifest']['sha256'] != sample_before
+                    or len(rows) != len(selected) or {row['track_id'] for row in rows} != expected_ids):
+                raise ValueError("WCXB reusable provider is incomplete: " + provider)
     args.output_root.mkdir(parents=True)
-    runs = []
-    for provider in WCXB_PROVIDERS:
+    runs = list(old_runs)
+    for item in old_runs:
+        provider = item['provider']
+        shutil.copytree(args.reuse_certified_root / provider, args.output_root / provider, symlinks=False)
+    for provider in WCXB_PROVIDERS[len(old_runs):]:
         output = args.output_root / provider
         run([sys.executable, "scripts/run_webmainbench_benchmark.py", "--benchmark", "wcxb",
              "--dataset", str(args.dataset), "--provider", provider,
              "--output", str(output), "--env-file", str(args.env_file),
              "--case-ids-file", str(args.sample_manifest)])
         execution = json.loads((output / "execution.json").read_text(encoding="utf-8"))
+        if provider == 'moli-pr643' and execution['implementation_identity'].get('binary_sha256') != profile['candidate_binary_sha256']:
+            raise ValueError('WCXB candidate binary differs from the pinned PR build')
         if (execution["case_count"] != len(selected) or execution["source_dataset_sha256"] != before
                 or execution["selection_manifest"]["sha256"] != sample_before):
             raise ValueError("Incomplete or drifted WCXB provider cohort: " + provider)
@@ -261,7 +300,8 @@ def run_wcxb(argv: list[str]) -> None:
     receipt = {"schema_version": 1, "benchmark": manifest['dataset_id'],
                "source_sha256_before": before, "source_sha256_after": after,
                "sample_sha256_before": sample_before, "sample_sha256_after": sample_after,
-               "providers": runs, "complete": True}
+               "providers": runs, "complete": True,
+               "reused_provider_count": len(old_runs)}
     (args.output_root / "certification.json").write_text(
         json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print("Certified WCXB cohort:", args.output_root)

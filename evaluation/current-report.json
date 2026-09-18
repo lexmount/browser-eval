@@ -16,14 +16,16 @@
     "lightpanda",
     "obscura",
     "moli",
-    "chromium"
+    "chromium",
+    "moli-pr643"
   ],
   "versions": {
     "kitesurf": "Cloudflare hosted stable backend; version undisclosed",
     "lightpanda": "0.4.1",
     "obscura": "0.2.2",
     "moli": "1.1.7",
-    "chromium": "Google Chrome for Testing 153.0.8010.47"
+    "chromium": "Google Chrome for Testing 153.0.8010.47",
+    "moli-pr643": "1.1.7 source build, PR #643, commit 30c4f85b4e3cf1b37b8581a4157a7c91715027e4"
   },
   "timeout_seconds": 45,
   "runs_per_case": 1,
@@ -42,6 +44,8 @@
   "require_independent_result_review": false,
   "artifact_hub_base_url": "https://artifact-site.lexmount.cn",
   "artifact_hub_site": "p3sFcZrww_nx",
-  "artifact_hub_expected_version": "ver_c6dce32fbb104c0d928e05ce5c47f766",
-  "artifact_hub_share_url": "https://artifact-site.lexmount.cn/v/7GfS87N6u4G1VWcEJlT9sG3j8YWV1Zjo"
+  "artifact_hub_expected_version": "ver_ce82e66f737d4c25b62a6cec81987bcc",
+  "artifact_hub_share_url": "https://artifact-site.lexmount.cn/v/7GfS87N6u4G1VWcEJlT9sG3j8YWV1Zjo",
+  "candidate_source_commit": "30c4f85b4e3cf1b37b8581a4157a7c91715027e4",
+  "candidate_binary_sha256": "ace767cd35a60673a4a5c84662fa4439ba86d9320fa6f002627c72450172e293"
 }

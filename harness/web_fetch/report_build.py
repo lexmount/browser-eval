@@ -599,18 +599,18 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             review = json.loads(review_file.read_text())
             if (review.get('scope') != 'targeted_representative_anomaly_review'
                     or review.get('total_results') != len(rows)
-                    or review.get('result_count') != len(review['cases']) * len(WCXB_PROVIDERS)
+                    or review.get('result_count') != sum(len(case['outputs']) for case in review['cases'])
                     or review.get('unreviewed_results') != len(rows) - review['result_count']):
                 raise ValueError('WCXB representative review scope differs from measured matrix')
             for case_review in review['cases']:
                 case_id = case_review['case_id']
-                if case_id not in rows_by_case or set(case_review['outputs']) != set(WCXB_PROVIDERS):
+                if case_id not in rows_by_case or not set(case_review['outputs']) <= set(WCXB_PROVIDERS):
                     raise ValueError('WCXB review case or method inventory differs')
                 evidence = json.loads((evidence_root / f'{case_id}.json').read_text())
                 if (hashlib.sha256(evidence['source_html'].encode()).hexdigest() != case_review['source_html_sha256']
                         or hashlib.sha256(evidence['reference'].encode()).hexdigest() != case_review['reference_sha256']):
                     raise ValueError('WCXB reviewed input or reference changed: ' + case_id)
-                for provider in WCXB_PROVIDERS:
+                for provider in case_review['outputs']:
                     bound = case_review['outputs'][provider]
                     if (bound['sha256'] != rows_by_case[case_id][provider]['output_sha256']
                             or bound['attempt_id'] != rows_by_case[case_id][provider]['attempt_id']):

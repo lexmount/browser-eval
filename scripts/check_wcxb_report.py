@@ -107,7 +107,7 @@ def require_analysis_controls(html: str | BeautifulSoup, result_count: int) -> B
 
 def require_case_summary(html: str | BeautifulSoup, lang: str) -> BeautifulSoup:
     soup = BeautifulSoup(html, 'html.parser') if isinstance(html, str) else html
-    label = '同一网页的五种结果' if lang == 'zh' else 'Five results for this page'
+    label = '同一网页的全部方法结果' if lang == 'zh' else 'All method results for this page'
     if sum(node.get_text(' ', strip=True) == label for node in soup.select('h2')) != 1:
         raise ValueError('Result detail has missing or duplicate summary')
     return soup
@@ -212,7 +212,7 @@ def check(root: Path) -> None:
                             'Dataset search label does not describe its searchable fields')
             if route.startswith('cases/'):
                 require_case_summary(html, lang)
-                require(set(providers) <= page.ids and page.outputs == 5, f'Case participant evidence missing: {route}')
+                require(set(providers) <= page.ids and page.outputs == len(providers), f'Case participant evidence missing: {route}')
                 require(f'evidence/{Path(route).stem}.json' in html, f'Case evidence link missing: {route}')
                 require('id="preview"' in html and 'class="frozen-preview"' in html, f'Frozen-page preview missing: {route}')
                 require('id="reference"' in html, f'Human reference anchor missing: {route}')
@@ -270,8 +270,9 @@ def check(root: Path) -> None:
         raise AssertionError('A broken diagnosis link was accepted')
     case = next(iter(sorted(qualified)))
     detail = require_case_summary((root / 'cases' / f'{case}.html').read_text(), 'zh')
-    heading = next(node for node in detail.select('h2') if node.get_text(' ', strip=True) == '同一网页的五种结果')
-    heading.insert_after(BeautifulSoup('<h2>同一网页的五种结果</h2>', 'html.parser'))
+    label = '同一网页的全部方法结果'
+    heading = next(node for node in detail.select('h2') if node.get_text(' ', strip=True) == label)
+    heading.insert_after(BeautifulSoup(f'<h2>{label}</h2>', 'html.parser'))
     try:
         require_case_summary(detail, 'zh')
     except ValueError:
@@ -280,7 +281,7 @@ def check(root: Path) -> None:
         raise AssertionError('A duplicate result summary was accepted')
     require((root / 'assets/style.css').is_file() and (root / 'assets/report.js').is_file(), 'WCXB report assets missing')
     require(len([path for path in root.rglob('*') if path.is_file()]) < 2000, 'WCXB report tree unexpectedly large')
-    print(f'PASS: WCXB {len(case_ids)}-case, five-browser, bilingual evidence and route inventory')
+    print(f'PASS: WCXB {len(case_ids)}-case, {len(providers)}-method, bilingual evidence and route inventory')
 
 
 if __name__ == '__main__':

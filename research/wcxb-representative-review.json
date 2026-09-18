@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "scope": "targeted_representative_anomaly_review",
-  "protocol": "Selected source and output anomalies across five method results; reviewed frozen HTML, human reference, full outputs, official token scores and cross-method contrasts. Not a blind or full-matrix review.",
-  "case_count": 9,
-  "result_count": 45,
-  "total_results": 2520,
-  "unreviewed_results": 2475,
+  "protocol": "Targeted representative anomaly review of frozen HTML, human reference, full measured outputs, official token scores and cross-method contrasts. Reviewed method-case pairs are hash-bound below; other pairs were not individually reviewed.",
+  "case_count": 10,
+  "result_count": 52,
+  "total_results": 3024,
+  "unreviewed_results": 2972,
   "reviewer_class": "manual_cross_layer_analysis",
   "cases": [
     {
@@ -34,6 +34,10 @@
         "chromium": {
           "sha256": "2fd22789ed36c17acc60b549bf7679c0e12b6646842c17915878b45905ace9b6",
           "attempt_id": "chromium__4017__r001"
+        },
+        "moli-pr643": {
+          "sha256": "7be7c0723c1e961c9314f4e691eb54c1084afb87e36418d2ea2a87d64167e133",
+          "attempt_id": "moli-pr643__4017__r001"
         }
       }
     },
@@ -97,8 +101,8 @@
     },
     {
       "case_id": "5571",
-      "finding": "moli_empty_svg_placeholder",
-      "reason": "Frozen HTML contains empty inline SVG lazy-image placeholders; Moli serializes their data URIs into Markdown while Chromium omits them.",
+      "finding": "image_reference_scoring_boundary",
+      "reason": "Frozen HTML contains 34 inline SVG image references. Moli retains their Markdown image links; Chromium omits them. Pixel emptiness alone does not establish that the references lack page meaning, while the plain-text scorer counts their URI tokens.",
       "source_html_sha256": "665d39281aa4a0319fc0081ededcd64f59c578cae31f5e3ebdcf11890e588ca8",
       "reference_sha256": "6fe915cdc01d1f94e21dda15e3cb998e7ee4f186dd63a9f88da2f214adba4cfd",
       "outputs": {
@@ -121,6 +125,10 @@
         "chromium": {
           "sha256": "c02811770c0e51ea726c0b960b91d1a87dc802da889d62a6f210652b4f7292bc",
           "attempt_id": "chromium__5571__r001"
+        },
+        "moli-pr643": {
+          "sha256": "3f2e3e653e7a864b09c000185ac8fc187c700dee54c2d9aacace247f34f9c801",
+          "attempt_id": "moli-pr643__5571__r001"
         }
       }
     },
@@ -155,8 +163,8 @@
     },
     {
       "case_id": "4394",
-      "finding": "embedded_image_placeholders",
-      "reason": "The frozen HTML contains an embedded 1×1 GIF placeholder repeated 131 times in Moli output. Kitesurf and Obscura also emit 131; Chromium emits none. These nonvisual image addresses contribute raw tokens but are not a Moli-only defect.",
+      "finding": "image_reference_scoring_boundary",
+      "reason": "Frozen HTML contains 131 embedded single-pixel GIF references. Moli, Kitesurf and Obscura retain the addresses; pixel size or transparency is insufficient reason to delete an image link. The plain-text reference does not validate image fidelity.",
       "source_html_sha256": "a924ea4657f1b3560fb43c156676d8662a8cb11cb3e485e9e4d4fc238ea3ed73",
       "reference_sha256": "0d2a9724d8c112d51835c47e0f89ecd8917eb3ff521daac81731f7aac27f46b2",
       "outputs": {
@@ -179,6 +187,10 @@
         "chromium": {
           "sha256": "1803f512cc4d82b88564736a0b97abfd99c9f317d2cc9ad7ec445c73993f445f",
           "attempt_id": "chromium__4394__r001"
+        },
+        "moli-pr643": {
+          "sha256": "4b9f571f09c6e2c17d3c9dd1501c67c824987f5042b7c35737c8a7fa80f65a06",
+          "attempt_id": "moli-pr643__4394__r001"
         }
       }
     },
@@ -208,6 +220,10 @@
         "chromium": {
           "sha256": "001f8f28d98dbf7de8310a7fcd0230ea13fb0085e15a12291043e518c9a23434",
           "attempt_id": "chromium__5458__r001"
+        },
+        "moli-pr643": {
+          "sha256": "93c4ecc06472f3a4753b7fa04bb5f25b5800c926e653436e4752054d3bd34de8",
+          "attempt_id": "moli-pr643__5458__r001"
         }
       }
     },
@@ -266,6 +282,27 @@
         "chromium": {
           "sha256": "5716694f03427bcf823172e8d34179656357ead7a814add9ed86b36bb260f6e9",
           "attempt_id": "chromium__5412__r001"
+        },
+        "moli-pr643": {
+          "sha256": "b3b3e43ca546d39930d692896e600cb39cfd664b208736e922394963c321b843",
+          "attempt_id": "moli-pr643__5412__r001"
+        }
+      }
+    },
+    {
+      "case_id": "5411",
+      "finding": "reference_merges_preformatted_blocks",
+      "reason": "The frozen HTML separates a ts language label and code-body div inside pre, but the official human main-content reference contains tsfunction 13 times. The repaired Moli preserves the DOM boundary; its official F1 is lower by 0.92 percentage points because the reference rewards the merged token. This is an annotation defect, not lost output content.",
+      "source_html_sha256": "5d6d8343b2ae90e51754d65d724d7a25a110cf105cb511f86a6771e2073df975",
+      "reference_sha256": "16ad08186659a60c9641b6669ca42cbccb5b14ff712b1b927bfda794bcca553c",
+      "outputs": {
+        "moli": {
+          "sha256": "d9480512dad3cdfa79da914cb4d0a8448591a80d34e2f4b3c786cc4fe53265df",
+          "attempt_id": "moli__5411__r001"
+        },
+        "moli-pr643": {
+          "sha256": "2575dabec6238fd4bf381c4a4d284ee976bf397c50fc6f443e477ec29df6ced8",
+          "attempt_id": "moli-pr643__5411__r001"
         }
       }
     }

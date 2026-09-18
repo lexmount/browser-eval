@@ -35,7 +35,7 @@ from harness.web_fetch.runner import classify_exception
 DATASET_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
 SCORER_COMMIT = "9d991bdc00c57b57521499494d96be85c31317ba"
 PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "moli-1.1.7", "chromium")
-WCXB_PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "chromium")
+WCXB_PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "chromium", "moli-pr643")
 EXPECTED_VERSIONS = {"obscura": "0.2.2", "moli": "1.1.5", "moli-1.1.7": "1.1.7"}
 CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"
 
@@ -283,7 +283,7 @@ def run(args: argparse.Namespace) -> None:
         selected, selection_binding = load_selected_ids(args.case_ids_file)
     if args.benchmark == "wcxb":
         if args.provider not in WCXB_PROVIDERS:
-            raise ValueError("WCXB provider is not in the five-browser contract: " + args.provider)
+            raise ValueError("WCXB provider is not in the current method contract: " + args.provider)
         records, source_digest = load_wcxb_source(args.dataset)
         if not args.case_ids_file:
             raise ValueError("WCXB requires a frozen stratified sample manifest")
@@ -295,7 +295,7 @@ def run(args: argparse.Namespace) -> None:
         records = [r for r in records if r["track_id"] in selected]
         selection_binding = {"sha256": sha256_bytes(sample_bytes), "case_count": len(records),
                              "scope": sample.get('scope'), "seed": sample.get('seed')}
-        expected_versions = {"lightpanda": "0.4.1", "obscura": "0.2.2", "moli": "1.1.7", "chromium": "153.0.8010.47"}
+        expected_versions = {"lightpanda": "0.4.1", "obscura": "0.2.2", "moli": "1.1.7", "moli-pr643": "1.1.7", "chromium": "153.0.8010.47"}
         dataset_id = sample['dataset_id']
     else:
         records = load_source(args.dataset, selected)
@@ -446,7 +446,7 @@ def run(args: argparse.Namespace) -> None:
 def main() -> None:
     data_home = Path(os.environ.get("BROWSER_EVAL_DATA_HOME", Path.home() / ".browser-eval"))
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--provider", choices=PROVIDERS, required=True)
+    parser.add_argument("--provider", choices=sorted(set(PROVIDERS + WCXB_PROVIDERS)), required=True)
     parser.add_argument("--benchmark", choices=("webmainbench", "wcxb"), default="webmainbench")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--dataset", type=Path, default=data_home / "public-benchmarks/webmainbench-545/WebMainBench_545.jsonl")
@@ -458,7 +458,9 @@ def main() -> None:
     parser.add_argument("--max-failure-retries", type=int, choices=(0, 1), default=1)
     args = parser.parse_args()
     if args.benchmark == 'wcxb' and args.provider not in WCXB_PROVIDERS:
-        parser.error(f'--provider {args.provider} is not in the WCXB five-browser matrix')
+        parser.error(f'--provider {args.provider} is not in the WCXB method matrix')
+    if args.benchmark == 'webmainbench' and args.provider not in PROVIDERS:
+        parser.error(f'--provider {args.provider} is not in the WebMainBench matrix')
     run(args)
 
 
