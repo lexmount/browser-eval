@@ -176,7 +176,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
             self.assertEqual(len(providers), 10, track)
 
     def test_current_report_profile_matches_runner_and_canonical_dataset(self) -> None:
-        profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
+        profile = json.loads((ROOT / 'evaluation/wcxb/current-report.json').read_text())
         self.assertEqual(profile['comparison_kind'], 'wcxb_frozen_html_to_markdown')
         self.assertEqual(profile['dataset_id'], 'wcxb-v1-test-qualified-five-browsers')
         self.assertEqual(profile['case_count'], 504)
@@ -187,7 +187,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertEqual(len(json.loads(manifest.read_text())['cases']), profile['case_count'])
         self.assertEqual(
             set(profile['providers']),
-            {'kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium'},
+            {'kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium', 'moli-pr643'},
         )
         self.assertEqual(profile['runs_per_case'], 1)
         self.assertEqual(profile['max_failure_retries'], 1)
@@ -200,7 +200,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertRegex(profile['artifact_hub_expected_version'], r'^ver_[0-9a-f]+$')
 
     def test_publication_receipt_must_target_current_site(self) -> None:
-        profile = ROOT / 'evaluation/current-report.json'
+        profile = ROOT / 'evaluation/wcxb/current-report.json'
         self.assertEqual(current_publication_target(profile),
                          ('https://artifact-site.lexmount.cn', 'p3sFcZrww_nx'))
         for slug in ('uTWj6VaWPYCh', 'UUAhhQMnrGwm', 'UeZE1vfcEOrM'):

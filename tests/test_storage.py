@@ -21,7 +21,7 @@ class StorageTests(unittest.TestCase):
     def test_legacy_profile_validator_rejects_wcxb_with_track_specific_error(self):
         root = Path(__file__).resolve().parents[1]
         with self.assertRaisesRegex(ValueError, 'WCXB evidence uses the certified cohort validator'):
-            require_current_report_profile(root, root / 'evaluation/current-report.json')
+            require_current_report_profile(root, root / 'evaluation/wcxb/current-report.json')
 
     def test_explicit_data_home_and_evidence_override(self):
         with patch.dict(os.environ, {"BROWSER_EVAL_DATA_HOME": "/tmp/browser-data"}, clear=False):
