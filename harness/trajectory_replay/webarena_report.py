@@ -1086,6 +1086,11 @@ if(stepDialog){
       stepDialog.querySelector('[data-step-planned]').textContent=JSON.stringify(planned,null,2);
       stepDialog.querySelector('[data-step-actual]').textContent=actual?JSON.stringify(actual.arguments||{},null,2):(zh?'未执行':'Not executed');
       stepDialog.querySelector('[data-step-result]').textContent=actual?(actual.result||''):(zh?'该步没有工具调用或返回。':'No tool call or response for this step.');
+      if(actual?.failure_ui_state||actual?.failure_ui_state_error){
+        const observation=actual.failure_ui_state||{observation_error:actual.failure_ui_state_error};
+        const label=zh?'失败后观测的页面状态（补充诊断，不替代上方原始错误）':'Page state observed after failure (supplementary diagnosis, not the original error above)';
+        stepDialog.querySelector('[data-step-result]').textContent+='\n\n'+label+'\n'+JSON.stringify(observation,null,2);
+      }
       stepDialog.querySelector('[data-step-status]').textContent=actual
         ?(zh?'实际状态：':'Actual status: ')+(actual.status||'—')+' · '+((Number(actual.duration_ms)||0)/1000).toFixed(2)+' s'
         :(zh?'实际状态：未执行':'Actual status: not executed');

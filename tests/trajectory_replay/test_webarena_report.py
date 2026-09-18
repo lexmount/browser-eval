@@ -1166,6 +1166,16 @@ def test_site_reset_and_readiness_are_available_in_public_result_evidence(
     assert stored["site_reset"] == public["site_reset"]
 
 
+def test_step_dialog_exposes_secondary_failure_state_without_replacing_error(tmp_path: Path) -> None:
+    _assets(tmp_path)
+    script = (tmp_path / "assets/app.js").read_text()
+    assert "actual?.failure_ui_state||actual?.failure_ui_state_error" in script
+    assert "observation_error:actual.failure_ui_state_error" in script
+    assert "textContent+='\\n\\n'+label+'\\n'+JSON.stringify(observation,null,2)" in script
+    assert "补充诊断，不替代上方原始错误" in script
+    assert "supplementary diagnosis, not the original error above" in script
+
+
 def test_missing_submission_is_located_at_trigger_without_calling_it_a_failed_action(
     tmp_path: Path,
 ) -> None:
