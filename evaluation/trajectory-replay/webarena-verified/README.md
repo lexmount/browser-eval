@@ -4,7 +4,7 @@
 Each trajectory is one verified feasible BrowserTool path, not the task's only correct path.
 
 `current-run.json` is the run authority for the next formal replay. It freezes the same 90-task
-selection used by the current Browser Use evaluation, the two registered browser methods, resource
+selection used by the current Browser Use evaluation, the three registered browser methods, resource
 limits, and the isolation schedule. The private ready-to-run seed manifest must contain exactly one
 canonical candidate for each of those 90 tasks. The current inventory is assembled from 60 clean
 autonomous successes and 30 reviewed repairs; successful executions from different methods are
@@ -34,8 +34,8 @@ candidate evidence, not additional tasks.
   `BROWSER_EVAL_DATA_HOME`; this directory stores deterministic actions and provenance hashes.
 - The current self-hosted WebArena deployment has one fixed-port site stack, so a formal suite owns
   the physical environment exclusively. It runs every task for one browser before starting the next
-  browser, restores the official fixture before every task, and tears down both the browser and site
-  containers between browsers. Parallel methods are valid only after separate site stacks also have
+  browser, restores the site stack once before each browser method, and tears down the browser and site
+  containers between methods. It does not reset the site between tasks. Parallel methods are valid only after separate site stacks also have
   separate containers, data stores, ports, gateways, and lock namespaces; multiple browser
   containers against one site stack are not independent environments.
 - Formal execution requires clean browser-eval and CowAgent checkouts and binds their commits, the
@@ -55,8 +55,5 @@ the measured method matrix with `--qualified-dataset` and no scope option. The r
 execution when that dataset is missing, incomplete, or differs from the frozen profile, seeds, or
 canonical actions. Never edit a verdict or verification claim by hand.
 
-The report can add a separate original-failure diagnostic appendix by passing
-`DIAGNOSTIC_CLOSURE=/absolute/path/to/closure-index.json` to both
-`make trajectory-replay-report` and `make trajectory-replay-package`. The builder verifies the
-referenced receipts and publishes only sanitized summaries; packaging rechecks the source digest.
-This appendix does not replace any score-bearing result or certify a new full-scope cohort.
+The report presents one same-protocol, three-browser comparison. Diagnostic-only cohorts cannot
+enter its score-bearing matrix or add a separate result appendix.

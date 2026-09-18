@@ -145,6 +145,7 @@ def _validate_qualification_receipt(
     seed_task_ids: set[int],
     required_engines: tuple[str, ...],
     expected_resources: dict[str, Any],
+    expected_execution: dict[str, Any],
 ) -> None:
     def required_int(value: Any, field: str) -> int:
         try:
@@ -189,7 +190,8 @@ def _validate_qualification_receipt(
         "environment_pool_count": 1,
         "method_parallelism": 1,
         "task_parallelism": 1,
-        "reset_before_every_task": True,
+        "reset_before_every_task": expected_execution["reset_before_every_task"],
+        "reset_before_every_method": expected_execution["reset_before_every_method"],
         "teardown_between_methods": True,
     }
     if any(isolation.get(key) != value for key, value in required_isolation.items()):
@@ -471,6 +473,7 @@ def build_verified_trajectory_dataset(
             seed_task_ids=seed_task_ids,
             required_engines=required_engines,
             expected_resources=profile["resources"],
+            expected_execution=profile["execution"],
         )
         receipts.append(
             {

@@ -1005,8 +1005,7 @@ def _validated_resume(
         keys.append(key)
     if len(keys) != len(set(keys)):
         raise ValueError("existing replay receipt contains duplicate method/task attempts")
-    if (plan.get("profile", {}).get("execution", {}).get("reset_before_every_task", True)
-            is False):
+    if plan["profile"]["execution"]["reset_before_every_task"] is False:
         _reject_partial_method_resume(keys, engines, task_ids)
         site_preparation = receipt.get("method_site_preparation") or {}
         for engine in engines:

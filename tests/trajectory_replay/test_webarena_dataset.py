@@ -221,6 +221,7 @@ def _profile(tmp_path: Path, task_ids: list[int]) -> tuple[Path, str, str]:
                 "method_parallelism": 1,
                 "task_parallelism": 1,
                 "reset_before_every_task": True,
+                "reset_before_every_method": True,
                 "teardown_between_methods": True,
                 "trusted_source_site_hosts": ["host.docker.internal"],
             },
@@ -355,6 +356,7 @@ def _receipt(
             "method_parallelism": 1,
             "task_parallelism": 1,
             "reset_before_every_task": True,
+            "reset_before_every_method": True,
             "teardown_between_methods": True,
         },
         "run_id": run_id,
@@ -407,8 +409,15 @@ def test_qualification_receipt_rejects_missing_attempt_identifier(tmp_path: Path
         build_verified_trajectory_dataset(seeds, [receipt], profile_path=profile)
 
 
-def test_promotion_requires_candidate_to_pass_reference_qualification(tmp_path: Path) -> None:
+@pytest.mark.parametrize("reset_per_task", [True, False])
+def test_promotion_requires_candidate_to_pass_reference_qualification(
+    tmp_path: Path, reset_per_task: bool
+) -> None:
     profile, selection_sha256, repair_sha256 = _profile(tmp_path, [44])
+    profile_payload = json.loads(profile.read_text(encoding="utf-8"))
+    profile_payload["execution"]["reset_before_every_task"] = reset_per_task
+    profile_payload["execution"]["retry_failed_task"] = False
+    _write(profile, profile_payload)
     seeds = _write(
         tmp_path / "seeds.json",
         {
@@ -442,9 +451,7 @@ def test_promotion_requires_candidate_to_pass_reference_qualification(tmp_path: 
             ],
         },
     )
-    receipt = _write(
-        tmp_path / "receipt.json",
-        _receipt(
+    passing_payload = _receipt(
             seeds,
             profile,
             task_ids=[44],
@@ -460,11 +467,10 @@ def test_promotion_requires_candidate_to_pass_reference_qualification(tmp_path: 
                 }
                 for engine in ("chromium",)
             ],
-        ),
-    )
-    failed_receipt = _write(
-        tmp_path / "failed-receipt.json",
-        _receipt(
+        )
+    passing_payload["isolation"]["reset_before_every_task"] = reset_per_task
+    receipt = _write(tmp_path / "receipt.json", passing_payload)
+    failed_payload = _receipt(
             seeds,
             profile,
             task_ids=[44],
@@ -479,8 +485,9 @@ def test_promotion_requires_candidate_to_pass_reference_qualification(tmp_path: 
                     "completed_action_count": 0,
                 }
             ],
-        ),
-    )
+        )
+    failed_payload["isolation"]["reset_before_every_task"] = reset_per_task
+    failed_receipt = _write(tmp_path / "failed-receipt.json", failed_payload)
 
     result = build_verified_trajectory_dataset(
         seeds, [failed_receipt, receipt], profile_path=profile
