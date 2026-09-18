@@ -2787,7 +2787,9 @@ def _register_release_translations() -> None:
     path = Path(__file__).parents[2] / 'research/report-changes.json'
     history = json.loads(path.read_text(encoding='utf-8'))
     for release in history['releases']:
-        if 'webmainbench_frozen_html_to_markdown' in release.get('comparison_kinds', []) or 'public_benchmark_research' in release.get('comparison_kinds', []):
+        if any(kind in release.get('comparison_kinds', []) for kind in (
+                'webmainbench_frozen_html_to_markdown', 'public_benchmark_research',
+                'wcxb_frozen_html_to_markdown')):
             continue
         english = release.get('i18n', {}).get('en', {})
         if (not english.get('title') or not english.get('summary')

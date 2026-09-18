@@ -12,6 +12,8 @@ Organize around reader questions, not storage tables. A useful report usually ma
 - How were all results independently checked, what changed, and what remains unresolved?
 - What is needed to reproduce the current run?
 
+When a report has a dedicated interpretation page, make it useful without a visit to the home page: place the current result and denominator near the opening, explain why it arose through an actual source/reference/output comparison, cover material issues for every method, and close with decisions and review scope. Use the supplied reference report for reading depth and hierarchy while keeping its data out of the new report. A renderer check should validate those facts and evidence targets from the current measured model and reject a missing method, broken example, misplaced timing context, or empty conclusion. A visual reader pass remains necessary because structural checks cannot judge whether prose is clear.
+
 Show the task ID and run ID on result pages. Put the task requirement, usable reference scope, complete actual output, normalization, individual checks, and verdict rationale together. If the reference is shorter than the output or only covers anchors, state locally that the metric measures required coverage rather than whole-output equality.
 
 Keep environment and reproduction together and deduplicated. Show repository/version, platform, method versions and routes, material runtime settings, credential names and acquisition locations, and current commands. Never expose secret values or machine-local paths.

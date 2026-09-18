@@ -1,0 +1,327 @@
+{
+  "schema_version": 1,
+  "scope": "targeted_representative_anomaly_review",
+  "protocol": "Targeted representative anomaly review of frozen HTML, human reference, full measured outputs, official token scores and cross-method contrasts. Reviewed method-case pairs are hash-bound below; other pairs were not individually reviewed.",
+  "case_count": 11,
+  "result_count": 54,
+  "total_results": 3024,
+  "unreviewed_results": 2970,
+  "reviewer_class": "manual_cross_layer_analysis",
+  "cases": [
+    {
+      "case_id": "4017",
+      "finding": "cross_method_scope",
+      "reason": "Product description reference versus whole-page output; Lightpanda has higher raw F1 but lower reference recall.",
+      "source_html_sha256": "1d5d96b44be6a39ad7f7ed9e650a37def2c2a413358c6d80cd9eeca7356a3bd7",
+      "reference_sha256": "af30b94fe3dfd51a9051b500b06239289ce451aa83dc650eb06c68d7e0cab466",
+      "outputs": {
+        "kitesurf": {
+          "sha256": "363d6c9372153edf05e83ee4c6381094d5e6c18c07bdcd50201e57e199e5c031",
+          "attempt_id": "kitesurf__4017__r001"
+        },
+        "lightpanda": {
+          "sha256": "a773c6e5cdad5d4c4d660996b315d77f11aca350f9a067f663baf54765d4926f",
+          "attempt_id": "lightpanda__4017__r001"
+        },
+        "obscura": {
+          "sha256": "742becf6f2681fea1e72b4c8cfca6bcab0230668f483100a6f2232e34bec5308",
+          "attempt_id": "obscura__4017__r001"
+        },
+        "moli": {
+          "sha256": "7be7c0723c1e961c9314f4e691eb54c1084afb87e36418d2ea2a87d64167e133",
+          "attempt_id": "moli__4017__r001"
+        },
+        "chromium": {
+          "sha256": "2fd22789ed36c17acc60b549bf7679c0e12b6646842c17915878b45905ace9b6",
+          "attempt_id": "chromium__4017__r001"
+        },
+        "moli-pr643": {
+          "sha256": "7be7c0723c1e961c9314f4e691eb54c1084afb87e36418d2ea2a87d64167e133",
+          "attempt_id": "moli-pr643__4017__r001"
+        }
+      }
+    },
+    {
+      "case_id": "4021",
+      "finding": "reference_scope",
+      "reason": "Collection reference contains only the selected product list; all five whole-page Markdown responses also include site navigation.",
+      "source_html_sha256": "a145bd6096a3688402b620924072051f5ef95649c37c60994b2f6c9f607fba39",
+      "reference_sha256": "3ad8f1795f1eb3e68d37ebacc8fb7b7701a0b1eabe7dc09614cffb65679b6fe7",
+      "outputs": {
+        "kitesurf": {
+          "sha256": "7312e7a233843b3843acfa035a63784f418a855efdba37ff1cf4a4dccb13e43f",
+          "attempt_id": "kitesurf__4021__r001"
+        },
+        "lightpanda": {
+          "sha256": "bc5024e3d9016da14d9a1274e0f9be59d6140d82377a700f7995c76328dc487c",
+          "attempt_id": "lightpanda__4021__r001"
+        },
+        "obscura": {
+          "sha256": "e3dba003da475f469c8182c11feab7cf7b9ee8bf3e43a3ae089dda02de17d04b",
+          "attempt_id": "obscura__4021__r001"
+        },
+        "moli": {
+          "sha256": "73d7f92767e685b772540db96225eeed34e670fa678b110769b1267304e3fce8",
+          "attempt_id": "moli__4021__r001"
+        },
+        "chromium": {
+          "sha256": "ae3532bd4684f1be64060120020cdd809680d6e17b8e78def0691f679675ff79",
+          "attempt_id": "chromium__4021__r001"
+        }
+      }
+    },
+    {
+      "case_id": "5649",
+      "finding": "markdown_link_penalty",
+      "reason": "All methods include the reference body; Moli emits more link destinations than Obscura and raw token precision counts URL components.",
+      "source_html_sha256": "d554ffb92ddedc5fd5600c57c25c5e6e97e66bd0594861162ed01f933fa0517c",
+      "reference_sha256": "53a518f4c2dc66c2d6955498ffcfd8b8e9c9c7fe72573cfdfcc072f695e12af7",
+      "outputs": {
+        "kitesurf": {
+          "sha256": "a3bd0b30d2ae4e40ff4c76683e22837795830cdef9b634ffa1db19cf90597d1b",
+          "attempt_id": "kitesurf__5649__r001"
+        },
+        "lightpanda": {
+          "sha256": "24d65a8a39203b7a8957cd9ee94306e4e4a879f5eba009deea8563dc8fbd471c",
+          "attempt_id": "lightpanda__5649__r001"
+        },
+        "obscura": {
+          "sha256": "620bd31ae27d87d5c8864da53ae1b81e1bbc1903d52e6dd09388edc4c431ea29",
+          "attempt_id": "obscura__5649__r001"
+        },
+        "moli": {
+          "sha256": "f2761e5805204a0fdd2003e679558d7ed976a7adce432edcd69026ad27373e2f",
+          "attempt_id": "moli__5649__r001"
+        },
+        "chromium": {
+          "sha256": "2bd5e05f72b79c58a00dc8b785c9d6b7e9f1fd0d26806bed091f320d9ac9cd9b",
+          "attempt_id": "chromium__5649__r001"
+        }
+      }
+    },
+    {
+      "case_id": "5571",
+      "finding": "image_reference_scoring_boundary",
+      "reason": "Frozen HTML contains 34 inline SVG image references. Moli retains their Markdown image links; Chromium omits them. Pixel emptiness alone does not establish that the references lack page meaning, while the plain-text scorer counts their URI tokens.",
+      "source_html_sha256": "665d39281aa4a0319fc0081ededcd64f59c578cae31f5e3ebdcf11890e588ca8",
+      "reference_sha256": "6fe915cdc01d1f94e21dda15e3cb998e7ee4f186dd63a9f88da2f214adba4cfd",
+      "outputs": {
+        "kitesurf": {
+          "sha256": "01ccea5e778ea602a5865aa84597793ac8e81b62b8cc6de9c3e00a4915a70e49",
+          "attempt_id": "kitesurf__5571__r001"
+        },
+        "lightpanda": {
+          "sha256": "2c3892cb2e3284ab3613c40a768ca3d58228e450ea96884d9a55d0ce1dd766ae",
+          "attempt_id": "lightpanda__5571__r001"
+        },
+        "obscura": {
+          "sha256": "2ff9b319b05c0b756ada7b60042310faeac2ca8982ebb39f1699601377764a14",
+          "attempt_id": "obscura__5571__r001"
+        },
+        "moli": {
+          "sha256": "3f2e3e653e7a864b09c000185ac8fc187c700dee54c2d9aacace247f34f9c801",
+          "attempt_id": "moli__5571__r001"
+        },
+        "chromium": {
+          "sha256": "c02811770c0e51ea726c0b960b91d1a87dc802da889d62a6f210652b4f7292bc",
+          "attempt_id": "chromium__5571__r001"
+        },
+        "moli-pr643": {
+          "sha256": "3f2e3e653e7a864b09c000185ac8fc187c700dee54c2d9aacace247f34f9c801",
+          "attempt_id": "moli-pr643__5571__r001"
+        }
+      }
+    },
+    {
+      "case_id": "5677",
+      "finding": "lightpanda_missing_body",
+      "reason": "The frozen HTML contains the reference opening body passage; Lightpanda output omits it while the other four include it.",
+      "source_html_sha256": "4e9cafc0d2b7a0ab500dea97a01862c053a8ef23974c0154ea08b7d9f79f3908",
+      "reference_sha256": "2408f12ddb2eadaccedf1d8dc3d6bf6e7399a61799ce8b7b71d8d231be291c00",
+      "outputs": {
+        "kitesurf": {
+          "sha256": "bcfd9f4d6158a2e1cbd19875362089c8b9bb22e7b0aebd9eaec951e8a36363b4",
+          "attempt_id": "kitesurf__5677__r001"
+        },
+        "lightpanda": {
+          "sha256": "462a5da29972df2641cbdb534a89b4df13ff67f61fcd01a1fc6308032ad86748",
+          "attempt_id": "lightpanda__5677__r001"
+        },
+        "obscura": {
+          "sha256": "2a3bd76d2c16704c01647e610e597fd51a80ad4597bb586074378deedd13c392",
+          "attempt_id": "obscura__5677__r001"
+        },
+        "moli": {
+          "sha256": "02f022a721700e999a98a861fb84aaf032e30bf7cf089cd0cc498bae1fcd5ca8",
+          "attempt_id": "moli__5677__r001"
+        },
+        "chromium": {
+          "sha256": "badd007188f18f8c8abeccb196e05b1f6cecad79e93d1a669a64074ca64814f5",
+          "attempt_id": "chromium__5677__r001"
+        }
+      }
+    },
+    {
+      "case_id": "4394",
+      "finding": "image_reference_scoring_boundary",
+      "reason": "Frozen HTML contains 131 embedded single-pixel GIF references. Moli, Kitesurf and Obscura retain the addresses; pixel size or transparency is insufficient reason to delete an image link. The plain-text reference does not validate image fidelity.",
+      "source_html_sha256": "a924ea4657f1b3560fb43c156676d8662a8cb11cb3e485e9e4d4fc238ea3ed73",
+      "reference_sha256": "0d2a9724d8c112d51835c47e0f89ecd8917eb3ff521daac81731f7aac27f46b2",
+      "outputs": {
+        "kitesurf": {
+          "sha256": "01af59f4925fabe6748782ecc1afb7d6ff507e4c08b026d00172008bcbbeb164",
+          "attempt_id": "kitesurf__4394__r001"
+        },
+        "lightpanda": {
+          "sha256": "3b7f39498b1f9bf1597c956b18ebf6eaf0e1f1169a48d97abbe8dfc4260e90f3",
+          "attempt_id": "lightpanda__4394__r001"
+        },
+        "obscura": {
+          "sha256": "f970e4a4b6de377d80f79033ae138981b5691114bae30d82042324969b1b620b",
+          "attempt_id": "obscura__4394__r001"
+        },
+        "moli": {
+          "sha256": "4b9f571f09c6e2c17d3c9dd1501c67c824987f5042b7c35737c8a7fa80f65a06",
+          "attempt_id": "moli__4394__r001"
+        },
+        "chromium": {
+          "sha256": "1803f512cc4d82b88564736a0b97abfd99c9f317d2cc9ad7ec445c73993f445f",
+          "attempt_id": "chromium__4394__r001"
+        },
+        "moli-pr643": {
+          "sha256": "4b9f571f09c6e2c17d3c9dd1501c67c824987f5042b7c35737c8a7fa80f65a06",
+          "attempt_id": "moli-pr643__4394__r001"
+        }
+      }
+    },
+    {
+      "case_id": "5458",
+      "finding": "adjacent_code_boundary",
+      "reason": "The frozen HTML has adjacent code elements with distinct name and string labels. Moli joins them as namestring, while Chromium retains separate code spans. This is a converter content-boundary defect independent of the scorer.",
+      "source_html_sha256": "eb80481ae411cae7b7d999372ace01664dd71819eb4ccb23cf1fd43d9760b305",
+      "reference_sha256": "a86c77d3ef4ec260cc16ad1a497f4ed9c5dba7ae914568437550b27c0d973e1a",
+      "outputs": {
+        "kitesurf": {
+          "sha256": "f8e91491d0ecaa757857248cc845608455a8a0cb4afbb104481e2980fcaa950f",
+          "attempt_id": "kitesurf__5458__r001"
+        },
+        "lightpanda": {
+          "sha256": "b29d2e6bfd88d71235aa316d99036d9daa21a4ee03fb97c4173da01dc2dfbcb3",
+          "attempt_id": "lightpanda__5458__r001"
+        },
+        "obscura": {
+          "sha256": "c4fbcb8ec985e330e067db7149facab1bbc69a1f225f6293e473be410ab2af11",
+          "attempt_id": "obscura__5458__r001"
+        },
+        "moli": {
+          "sha256": "3e4ede163fbb713866b7e9f43b178abe04c3f13cc87bfdb74d092a66f95af566",
+          "attempt_id": "moli__5458__r001"
+        },
+        "chromium": {
+          "sha256": "001f8f28d98dbf7de8310a7fcd0230ea13fb0085e15a12291043e518c9a23434",
+          "attempt_id": "chromium__5458__r001"
+        },
+        "moli-pr643": {
+          "sha256": "93c4ecc06472f3a4753b7fa04bb5f25b5800c926e653436e4752054d3bd34de8",
+          "attempt_id": "moli-pr643__5458__r001"
+        }
+      }
+    },
+    {
+      "case_id": "4923",
+      "finding": "block_link_serialization",
+      "reason": "The frozen HTML has 161 anchors, many around block cards. Moli repeats destinations across block fragments and emits 501 URL starts versus 196-257 for peers, while retaining 99.8% reference recall. The raw-score penalty alone does not establish an invalid Markdown conversion.",
+      "source_html_sha256": "56d8bd12cfcb32fb58973df62df9c2d1dfcf67dff72612c948bd422eb68e8603",
+      "reference_sha256": "295dcc81a0ab9814be1dd6621076ccc413215a98224017c5601593c1a127cdd6",
+      "outputs": {
+        "kitesurf": {
+          "sha256": "9de6a28050aeddd77a6890a5198ddbea8454766670e07412ae6246afa5c75adc",
+          "attempt_id": "kitesurf__4923__r001"
+        },
+        "lightpanda": {
+          "sha256": "8c92e7939f15d6ab55ceff67e3d6a0804a3fa66ade274e036ca63f499a3afe7c",
+          "attempt_id": "lightpanda__4923__r001"
+        },
+        "obscura": {
+          "sha256": "67278c7c8569e3c4d1608db45978375e299e2822faf12b79e346fe466c970ee5",
+          "attempt_id": "obscura__4923__r001"
+        },
+        "moli": {
+          "sha256": "161ac7789e57b94f500b08c1ec6c0da19cbfbb03356814466a5aaf2f1ee59157",
+          "attempt_id": "moli__4923__r001"
+        },
+        "chromium": {
+          "sha256": "3b1b23aeacb7ec7b7908a66ae9b1f29238ce8303fa264d584590089572f9c64b",
+          "attempt_id": "chromium__4923__r001"
+        }
+      }
+    },
+    {
+      "case_id": "5412",
+      "finding": "preformatted_block_boundary",
+      "reason": "The frozen HTML uses adjacent div blocks inside pre: one displays the ts language label and the next contains code beginning with function. Moli joins these into tsfunction, whereas the four peers preserve the token boundary. This is a converter content-boundary defect, not a scorer exception.",
+      "source_html_sha256": "c385a4b732ecee6bb4960153033308e068df392f9a03c37c021c91063742f640",
+      "reference_sha256": "f20974bfd791c6caf4c283725c0d778ba36efb203444a049562acd17a65c6eaf",
+      "outputs": {
+        "kitesurf": {
+          "sha256": "3975cde2a8084866585470da4b57d3662d934e6d4af6c794108cda6f0b63130e",
+          "attempt_id": "kitesurf__5412__r001"
+        },
+        "lightpanda": {
+          "sha256": "bc69c60a582433a8f356f0395365d095ff3b63de45c3a6e4f314dfdc66d3fa90",
+          "attempt_id": "lightpanda__5412__r001"
+        },
+        "obscura": {
+          "sha256": "359c9e0b12de511e330b3f0481e42462ff48f21da05b466516731baf3dec90a5",
+          "attempt_id": "obscura__5412__r001"
+        },
+        "moli": {
+          "sha256": "2f8e9f794251eb79d98bb34163be3b754528b6a13dfdcba9aca7c98b2b3ebf33",
+          "attempt_id": "moli__5412__r001"
+        },
+        "chromium": {
+          "sha256": "5716694f03427bcf823172e8d34179656357ead7a814add9ed86b36bb260f6e9",
+          "attempt_id": "chromium__5412__r001"
+        },
+        "moli-pr643": {
+          "sha256": "b3b3e43ca546d39930d692896e600cb39cfd664b208736e922394963c321b843",
+          "attempt_id": "moli-pr643__5412__r001"
+        }
+      }
+    },
+    {
+      "case_id": "4461",
+      "finding": "higher_f1_with_broken_text_boundary",
+      "reason": "Obscura scores higher F1 than Moli on this product collection, but joins adjacent price and membership-label elements as $149.95VIP. The frozen HTML contains separate elements and the human reference separates these words. Its shorter output and higher raw precision do not make this boundary loss desirable.",
+      "source_html_sha256": "eecce6d48a86521c555d9895673847034613e1c5c31d0723ccb0096c52cb96ca",
+      "reference_sha256": "04d00c947dd0b9131d7116eb06f97bbe1af04f321190a1c8e9cca40a9228bf13",
+      "outputs": {
+        "moli": {
+          "sha256": "0ce8cb8196d51f598627c9458741bdab72db5486ff3bd9ca979422a7499da9c0",
+          "attempt_id": "moli__4461__r001"
+        },
+        "obscura": {
+          "sha256": "b407686ecc5e1670bb2cfe0a593be5f4837288df3425580a426ba8efa7b8e6e7",
+          "attempt_id": "obscura__4461__r001"
+        }
+      }
+    },
+    {
+      "case_id": "5411",
+      "finding": "reference_merges_preformatted_blocks",
+      "reason": "The frozen HTML separates a ts language label and code-body div inside pre, but the official human main-content reference contains tsfunction 13 times. The repaired Moli preserves the DOM boundary; its official F1 is lower by 0.92 percentage points because the reference rewards the merged token. This is an annotation defect, not lost output content.",
+      "source_html_sha256": "5d6d8343b2ae90e51754d65d724d7a25a110cf105cb511f86a6771e2073df975",
+      "reference_sha256": "16ad08186659a60c9641b6669ca42cbccb5b14ff712b1b927bfda794bcca553c",
+      "outputs": {
+        "moli": {
+          "sha256": "d9480512dad3cdfa79da914cb4d0a8448591a80d34e2f4b3c786cc4fe53265df",
+          "attempt_id": "moli__5411__r001"
+        },
+        "moli-pr643": {
+          "sha256": "2575dabec6238fd4bf381c4a4d284ee976bf397c50fc6f443e477ec29df6ced8",
+          "attempt_id": "moli-pr643__5411__r001"
+        }
+      }
+    }
+  ]
+}

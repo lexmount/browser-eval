@@ -176,37 +176,34 @@ class RuntimeEntrypointTests(unittest.TestCase):
             self.assertEqual(len(providers), 10, track)
 
     def test_current_report_profile_matches_runner_and_canonical_dataset(self) -> None:
-        profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
-        self.assertEqual(profile['conversion'],
-                         'Native Markdown for Kitesurf, Lightpanda, Obscura and Moli; '
-                         'Chromium whole-DOM HTML via node-html-markdown 2.0.0')
-        self.assertEqual(profile['comparison_kind'], 'webmainbench_frozen_html_to_markdown')
-        self.assertEqual(profile['dataset_id'], 'webmainbench-545-preselected-200-six-methods')
-        self.assertEqual(profile['case_count'], 200)
-        self.assertEqual(profile['sample_manifest'], 'evaluation/public-webmainbench-200.json')
-        self.assertEqual(
-            profile['sample_manifest_sha256'],
-            'eea643afddd35f3ae4ed85b689b3a89f6a503f8fce878d546fa56c97c26f8044',
-        )
+        profile = json.loads((ROOT / 'evaluation/wcxb/current-report.json').read_text())
+        self.assertEqual(profile['comparison_kind'], 'wcxb_frozen_html_to_markdown')
+        self.assertEqual(profile['dataset_id'], 'wcxb-v1-test-qualified-five-browsers')
+        self.assertEqual(profile['case_count'], 504)
+        self.assertEqual(profile['primary_quality_case_count'], 504)
+        self.assertEqual(profile['sample_manifest'], 'evaluation/public-wcxb-test-qualified.json')
+        manifest = ROOT / profile['sample_manifest']
+        self.assertEqual(profile['sample_manifest_sha256'], hashlib.sha256(manifest.read_bytes()).hexdigest())
+        self.assertEqual(len(json.loads(manifest.read_text())['cases']), profile['case_count'])
         self.assertEqual(
             set(profile['providers']),
-            {'kitesurf', 'lightpanda', 'obscura', 'moli', 'moli-1.1.7', 'chromium'},
+            {'kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium', 'moli-pr643'},
         )
         self.assertEqual(profile['runs_per_case'], 1)
         self.assertEqual(profile['max_failure_retries'], 1)
         self.assertEqual(
             profile['source_dataset_sha256'],
-            '0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e',
+            '080a35a399880bb74ce23f40d9a1008f974500716af183a990f8701ab3e5e7bb',
         )
         self.assertEqual(profile['artifact_hub_base_url'], 'https://artifact-site.lexmount.cn')
-        self.assertEqual(profile['artifact_hub_site'], 'uTWj6VaWPYCh')
+        self.assertEqual(profile['artifact_hub_site'], 'p3sFcZrww_nx')
         self.assertRegex(profile['artifact_hub_expected_version'], r'^ver_[0-9a-f]+$')
 
     def test_publication_receipt_must_target_current_site(self) -> None:
-        profile = ROOT / 'evaluation/current-report.json'
+        profile = ROOT / 'evaluation/wcxb/current-report.json'
         self.assertEqual(current_publication_target(profile),
-                         ('https://artifact-site.lexmount.cn', 'uTWj6VaWPYCh'))
-        for slug in ('UUAhhQMnrGwm','UeZE1vfcEOrM'):
+                         ('https://artifact-site.lexmount.cn', 'p3sFcZrww_nx'))
+        for slug in ('uTWj6VaWPYCh', 'UUAhhQMnrGwm', 'UeZE1vfcEOrM'):
             with self.assertRaisesRegex(ValueError, 'expected'):
                 require_publication_site({'slug':slug}, profile,
                                          'https://artifact-site.lexmount.cn')

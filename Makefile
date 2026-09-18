@@ -3,7 +3,7 @@ PY := $(UV) run --frozen python
 TEST_PY := $(UV) run --frozen --all-extras python
 WEBMAINBENCH_SAMPLE ?= evaluation/public-webmainbench-200.json
 
-.PHONY: setup import-env runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check resource-image public-benchmark-report public-benchmark-sample webmainbench-run webmainbench-score webmainbench-review webmainbench-assemble browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check trajectory-replay-report trajectory-replay-report-check trajectory-replay-visual-check trajectory-replay-release-check trajectory-replay-package trajectory-replay-publish public-webarena-report public-webarena-report-audit public-webarena-report-release
+.PHONY: setup import-env runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check wcxb-release-check resource-image public-benchmark-report public-benchmark-sample webmainbench-run webmainbench-score webmainbench-review webmainbench-assemble browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check trajectory-replay-report trajectory-replay-report-check trajectory-replay-visual-check trajectory-replay-release-check trajectory-replay-package trajectory-replay-publish public-webarena-report public-webarena-report-audit public-webarena-report-release
 
 setup:
 	$(UV) sync --frozen --all-extras
@@ -45,6 +45,12 @@ report-check: runtime-check
 	$(PY) scripts/check_report.py reports/webfetch
 	$(PY) scripts/check_report_links.py reports/webfetch
 	$(PY) scripts/check_report_revision.py reports/webfetch
+
+wcxb-release-check: runtime-check
+	$(PY) scripts/check_report.py reports/wcxb
+	$(PY) scripts/check_report_links.py reports/wcxb
+	$(PY) scripts/check_report_revision.py reports/wcxb
+	$(UV) run --frozen --extra headless-eval python scripts/check_wcxb_visual.py reports/wcxb
 
 browser-use-report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE="/absolute/path [/absolute/path...]" is required' >&2; exit 2)

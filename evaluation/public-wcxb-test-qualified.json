@@ -1,0 +1,2050 @@
+{
+  "schema_version": 1,
+  "dataset_id": "wcxb-v1-test-qualified",
+  "source_commit": "c039d5ee9f5a3a984a0e167e63aacd04e76e78a9",
+  "source_sha256": "080a35a399880bb74ce23f40d9a1008f974500716af183a990f8701ab3e5e7bb",
+  "split": "test",
+  "scope": "qualified_test",
+  "seed": null,
+  "algorithm": "all source-qualified test cases by file ID",
+  "size": 504,
+  "distribution": {
+    "parent": {
+      "article": 257,
+      "collection": 34,
+      "product": 28,
+      "listing": 40,
+      "forum": 51,
+      "documentation": 42,
+      "service": 59
+    },
+    "sample": {
+      "article": 256,
+      "collection": 33,
+      "product": 27,
+      "listing": 39,
+      "documentation": 42,
+      "service": 57,
+      "forum": 50
+    }
+  },
+  "cases": [
+    {
+      "file_id": "4011",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4015",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4016",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4017",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4021",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4024",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4026",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4028",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4029",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4035",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4038",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4044",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4048",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4050",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4051",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4052",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4054",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "4055",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4058",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4060",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4061",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4062",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4063",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4064",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4065",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4067",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4071",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "4072",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4082",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4092",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4096",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4098",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4103",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4107",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4108",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4110",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4113",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4114",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4117",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4126",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4129",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4132",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4142",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4150",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4160",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4168",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4169",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4171",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4174",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4179",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4186",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4190",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4195",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4200",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4206",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4207",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4211",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4212",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4213",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4219",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4221",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4224",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4225",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4241",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4263",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4277",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4291",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4313",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4329",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4335",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4351",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4352",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "4360",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4368",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4369",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4370",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4371",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4372",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "4373",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4375",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4376",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4381",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4394",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4396",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4400",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "4408",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "4410",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4418",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4419",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4437",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4440",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4442",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4443",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4449",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4456",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4461",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4465",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4478",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4486",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4487",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4495",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4498",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4499",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4538",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4547",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4549",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4562",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4570",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4579",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4587",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4596",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4598",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4599",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4608",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4621",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4633",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4643",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4644",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4645",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4669",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4672",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4679",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4680",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4683",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4691",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4692",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4702",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4706",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4709",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4757",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4762",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "4771",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4780",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4781",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4787",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4789",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4795",
+      "page_type": "product"
+    },
+    {
+      "file_id": "4830",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4833",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4846",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4897",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4919",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4920",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4923",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "4925",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4926",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4928",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4930",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4931",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4933",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4934",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4936",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4937",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4939",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4941",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4943",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4947",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4948",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4950",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4953",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4958",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4959",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4963",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4965",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4966",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4971",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4973",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4974",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "4975",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4976",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4978",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4979",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4982",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4985",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4986",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4987",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4988",
+      "page_type": "service"
+    },
+    {
+      "file_id": "4992",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4993",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4995",
+      "page_type": "article"
+    },
+    {
+      "file_id": "4997",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5001",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5003",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5004",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5005",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5006",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5007",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5009",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5013",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5019",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5022",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5024",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5028",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5029",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5031",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5032",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5033",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5039",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5044",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5049",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5055",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5060",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5061",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5063",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5071",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5072",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5073",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5080",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5083",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5084",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5086",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5087",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5089",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5090",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5092",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5095",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5097",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5101",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5103",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5104",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5105",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5111",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5115",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5120",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5121",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5124",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5127",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5132",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5134",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5144",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5148",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5149",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5151",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5152",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5153",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5155",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5162",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5163",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5164",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5166",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5167",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5168",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5170",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5171",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5172",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5175",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5176",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5177",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5178",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5179",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5180",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5181",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5182",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5183",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5189",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5191",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5195",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5197",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5199",
+      "page_type": "forum"
+    },
+    {
+      "file_id": "5201",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5202",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "5203",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5205",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5208",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5209",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5210",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5215",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5216",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5218",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5225",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5233",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5234",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5235",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5241",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5245",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5247",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5248",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5249",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5252",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5253",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5261",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5263",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5264",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5266",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5268",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5269",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5273",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5276",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5277",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5285",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5286",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5287",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5289",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5290",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5291",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5292",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5294",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5295",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5300",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5301",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5302",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5314",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5316",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5317",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5318",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5324",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5326",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5330",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5335",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5341",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5342",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5343",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5345",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5346",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5350",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5354",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5356",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5357",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5364",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5371",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5372",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5373",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5374",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5375",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5379",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5380",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5381",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5382",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5384",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5385",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5388",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5390",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5393",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5394",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5395",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5406",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5407",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5409",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5410",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5411",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5412",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5413",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5415",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5416",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5417",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5418",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5420",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5422",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5423",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5426",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5427",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5428",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5430",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5431",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5433",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5434",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5435",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5436",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5437",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5438",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5440",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5441",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5442",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5444",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5445",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5446",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5447",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5449",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5452",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5454",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5456",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5458",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5461",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5463",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5467",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5468",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5469",
+      "page_type": "documentation"
+    },
+    {
+      "file_id": "5475",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "5511",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "5512",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "5521",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5530",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5531",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5532",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5533",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5534",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5535",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5536",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5537",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5538",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5539",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5540",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5541",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5542",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5545",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5546",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5547",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5548",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5549",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5550",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5551",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5553",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5554",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5555",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5559",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5562",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5564",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5565",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5566",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5570",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5571",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "5572",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5575",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5576",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5577",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5578",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5579",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5580",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5581",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5582",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5583",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5584",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5585",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5587",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5588",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5591",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5592",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5594",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5595",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5596",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5597",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5598",
+      "page_type": "collection"
+    },
+    {
+      "file_id": "5600",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5601",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5602",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5603",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5604",
+      "page_type": "listing"
+    },
+    {
+      "file_id": "5606",
+      "page_type": "product"
+    },
+    {
+      "file_id": "5607",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5608",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5609",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5610",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5611",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5612",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5613",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5614",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5615",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5617",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5618",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5620",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5621",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5623",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5624",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5626",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5627",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5628",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5629",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5631",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5634",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5635",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5636",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5637",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5638",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5639",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5640",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5642",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5643",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5644",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5645",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5646",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5647",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5648",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5649",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5650",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5651",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5652",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5654",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5656",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5657",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5659",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5662",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5663",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5664",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5665",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5667",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5668",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5670",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5671",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5672",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5673",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5674",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5676",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5677",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5678",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5682",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5684",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5685",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5687",
+      "page_type": "service"
+    },
+    {
+      "file_id": "5689",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5690",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5691",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5693",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5695",
+      "page_type": "article"
+    },
+    {
+      "file_id": "5696",
+      "page_type": "article"
+    }
+  ],
+  "primary_quality_case_count": 504
+}

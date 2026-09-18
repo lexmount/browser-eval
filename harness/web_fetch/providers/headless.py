@@ -305,7 +305,8 @@ class HeadlessProvider(Provider):
         reported = None
         probe_error = None
         try:
-            version = subprocess.run([binary, '--version'], capture_output=True, text=True,
+            version_args = ['version'] if engine == 'lightpanda' else ['--version']
+            version = subprocess.run([binary, *version_args], capture_output=True, text=True,
                                      timeout=5, check=False)
             candidate = (version.stdout or version.stderr).strip()[:200]
             if version.returncode == 0 and candidate:
