@@ -181,8 +181,8 @@
         "site_map_sha256": "78c6c9498a07db4cd2b0b1ea3e573ad2ab92c4a9275b24c6dca054a641221ced",
         "action_count_per_browser": 16,
         "retrieval_status": "supported",
-        "chromium_official_score": 1.0,
-        "moli_official_score": 1.0
+        "chromium_official_score": 1,
+        "moli_official_score": 1
       },
       "level": "diagnostic_only",
       "official_score": null,
@@ -306,14 +306,14 @@
     {
       "task_id": 196,
       "candidate_path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-196.json",
-      "candidate_sha256": "eff2bd31c203fa0303f8c139af20e75514305fe8c8b5097b7ca9be22a2149888",
-      "receipt_sha256": "e908d39aedb386f20b1add720028f225a8d7cc4d17d957f43b5555af5de1629c",
+      "candidate_sha256": "1bf312ea7e6e75921d225517364ad784c128bc731904267682c1bf52a28c65c6",
+      "receipt_sha256": null,
       "level": "diagnostic_only",
-      "official_score": 1,
-      "blocker": "Diagnostic candidate changes a frozen canonical action before its observation tail; requalification on a newly declared trajectory is required.",
-      "contract_sha256": "c769b8c2533a7112c298c93092db94016e010f33038301cff92a5572a1714845",
-      "calls_sha256": "429b63b185f781af6c6f966e3d153dd3ac5a285caa035156343acdd1269df9ad",
-      "independent_downstream_audit_sha256": "fa73042fd3ea491e70d7f813ccb3deb88f160db827716753ace8022b7b7e311c",
+      "official_score": null,
+      "blocker": "The current grid observer waits for loaded data and enumerates unique record IDs. Historical diagnostic scores apply only to the superseded input; qualification requires a new complete cohort.",
+      "contract_sha256": "438ea0f89d62bed6cd92e22300ec51087ff4f3336d6c165ad26ae9f3a8efd8df",
+      "calls_sha256": "a0413e6b6e28d2f540e4db75ea42337f671cdf65a284f95ede14573d579905ff",
+      "independent_downstream_audit_sha256": null,
       "canonical_seed_calls_sha256": "e0801082043fd71f8a86ec0636c62023ede890a7ae6e4b21fe4c3bb3a53fa158",
       "task_intent_sha256": "a831964838291a142eec1243a9460ab0e20bd1b2bc13bd44332f3ce70b62605b",
       "eligible_for_qualification": false,
@@ -321,11 +321,19 @@
       "proposal_sha256": null,
       "proposed_contract_sha256": null,
       "proposed_calls_sha256": null,
-      "diagnostic_stage": "official_evaluator",
+      "diagnostic_stage": "revised_input_pending_qualification",
       "canonical_action_count": 9,
       "canonical_prefix_preserved": false,
       "tail_action_types": [],
-      "first_differing_action": 2
+      "first_differing_action": 2,
+      "historical_receipt": {
+        "candidate_sha256": "eff2bd31c203fa0303f8c139af20e75514305fe8c8b5097b7ca9be22a2149888",
+        "receipt_sha256": "e908d39aedb386f20b1add720028f225a8d7cc4d17d957f43b5555af5de1629c",
+        "official_score": 1,
+        "contract_sha256": "c769b8c2533a7112c298c93092db94016e010f33038301cff92a5572a1714845",
+        "calls_sha256": "429b63b185f781af6c6f966e3d153dd3ac5a285caa035156343acdd1269df9ad",
+        "independent_downstream_audit_sha256": "fa73042fd3ea491e70d7f813ccb3deb88f160db827716753ace8022b7b7e311c"
+      }
     },
     {
       "task_id": 198,
@@ -358,14 +366,14 @@
     {
       "task_id": 204,
       "candidate_path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-204.json",
-      "candidate_sha256": "cded742171d7d4b58444e270dd4c3b95a7ba25c7bed75d8c29cfa5ee5ff6757f",
-      "receipt_sha256": "804a52f5ff94e405cf8ac8137d8b55a96a72dd8b9576896a97469ccc24eb6b65",
+      "candidate_sha256": "729ece693e0ec1105c1239cb993c9875caacb675668bead4aea00e86f61e358f",
+      "receipt_sha256": null,
       "level": "diagnostic_only",
-      "official_score": 1,
-      "blocker": "Diagnostic candidate changes a frozen canonical action before its observation tail; requalification on a newly declared trajectory is required.",
-      "contract_sha256": "a452816d4bbb459a57319bb1dc55c986c3bf4fe6651e05936c8e9e02f1942fd8",
-      "calls_sha256": "ec6d93eec0fb1d21d14d9d8a8ea43d4bae997ff9397dd3b58f398d2be416dd6e",
-      "independent_downstream_audit_sha256": "9415eaf0343ff0cf99884ef5e57478a5fe476c01eaa4088ae41d9d9a4af928e2",
+      "official_score": null,
+      "blocker": "The current grid observer waits for loaded data and enumerates unique record IDs. Historical diagnostic scores apply only to the superseded input; qualification requires a new complete cohort.",
+      "contract_sha256": "b96e6d577b4f2aa20588f5a625d9473f1aace8f627309ffad84c24b2bfdcb12b",
+      "calls_sha256": "614431b974142f756bb5aeecc29f190cf0a76b6e93ff4ce7f7a15ee0e0ad4276",
+      "independent_downstream_audit_sha256": null,
       "canonical_seed_calls_sha256": "3b50b31b06da571f40b0bc27a23c4e896ac51b6314d36410f9869813f7b42cc4",
       "task_intent_sha256": "d7460c7441d80f646291f76fe7a4fa3cedd596e9ea43f8de612db215b5b2cba0",
       "eligible_for_qualification": false,
@@ -373,11 +381,19 @@
       "proposal_sha256": null,
       "proposed_contract_sha256": null,
       "proposed_calls_sha256": null,
-      "diagnostic_stage": "official_evaluator",
+      "diagnostic_stage": "revised_input_pending_qualification",
       "canonical_action_count": 7,
       "canonical_prefix_preserved": false,
       "tail_action_types": [],
-      "first_differing_action": 2
+      "first_differing_action": 2,
+      "historical_receipt": {
+        "candidate_sha256": "cded742171d7d4b58444e270dd4c3b95a7ba25c7bed75d8c29cfa5ee5ff6757f",
+        "receipt_sha256": "804a52f5ff94e405cf8ac8137d8b55a96a72dd8b9576896a97469ccc24eb6b65",
+        "official_score": 1,
+        "contract_sha256": "a452816d4bbb459a57319bb1dc55c986c3bf4fe6651e05936c8e9e02f1942fd8",
+        "calls_sha256": "ec6d93eec0fb1d21d14d9d8a8ea43d4bae997ff9397dd3b58f398d2be416dd6e",
+        "independent_downstream_audit_sha256": "9415eaf0343ff0cf99884ef5e57478a5fe476c01eaa4088ae41d9d9a4af928e2"
+      }
     },
     {
       "task_id": 231,
@@ -442,8 +458,8 @@
         "site_map_sha256": "78c6c9498a07db4cd2b0b1ea3e573ad2ab92c4a9275b24c6dca054a641221ced",
         "action_count_per_browser": 9,
         "retrieval_status": "supported",
-        "chromium_official_score": 1.0,
-        "moli_official_score": 1.0
+        "chromium_official_score": 1,
+        "moli_official_score": 1
       },
       "level": "diagnostic_only",
       "official_score": 1,
@@ -461,7 +477,9 @@
       "diagnostic_stage": "affected_task_qualified",
       "canonical_action_count": 8,
       "canonical_prefix_preserved": true,
-      "tail_action_types": ["evaluate"],
+      "tail_action_types": [
+        "evaluate"
+      ],
       "first_differing_action": null
     },
     {

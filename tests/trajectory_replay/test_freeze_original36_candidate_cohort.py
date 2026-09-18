@@ -185,7 +185,12 @@ def test_task404_waits_for_page_load_before_vote_dispatch() -> None:
     candidate = json.loads(path.read_text(encoding="utf-8"))
     _validate_candidate_revision(candidate)
     assert candidate["tool_calls"][7]["selector"] == 'a[href="/f/books/new"]:visible'
-    readiness = candidate["tool_calls"][8]
+    assert candidate["tool_calls"][8] == {
+        "action": "wait",
+        "selector": 'button[aria-label="Sort by: New"]:visible',
+        "timeout": 30000,
+    }
+    readiness = candidate["tool_calls"][9]
     assert readiness["action"] == "evaluate"
     assert "document.readyState !== 'complete'" in readiness["script"]
     assert "target_vote_controller_missing" in readiness["script"]
@@ -246,6 +251,18 @@ def test_vote_trajectory_revisions_bind_the_post_not_button_position(
         _validate_candidate_revision(candidate)
     candidate["tool_calls"][-1]["seconds"] = 2
     candidate["unexpected"] = True
+    with pytest.raises(ValueError, match="trajectory revision is unbound"):
+        _validate_candidate_revision(candidate)
+
+
+@pytest.mark.parametrize("repair", [None, [], {}, {"cause": "", "change": "wait"},
+                                    {"cause": "race", "change": 1}])
+def test_trajectory_revision_rejects_malformed_repair_metadata(repair: object) -> None:
+    path = Path(__file__).resolve().parents[2] / (
+        "evaluation/trajectory-replay/webarena-verified/trajectory-candidates/task-404.json"
+    )
+    candidate = json.loads(path.read_text(encoding="utf-8"))
+    candidate["repair"] = repair
     with pytest.raises(ValueError, match="trajectory revision is unbound"):
         _validate_candidate_revision(candidate)
 

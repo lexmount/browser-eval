@@ -586,6 +586,7 @@ def test_resume_rejects_changed_runtime_binding(tmp_path: Path) -> None:
 def test_resume_rejects_interrupted_physical_execution(tmp_path: Path) -> None:
     runtime = {"resources": {"cpus": 2.0}}
     plan = {
+        "profile": {"execution": {"reset_before_every_task": False}},
         "profile_sha256": "profile",
         "seed_manifest_sha256": "seeds",
         "seed_manifest": {"tasks": [{"task_id": 1, "canonical_candidate_id": "canonical-1"}]},
@@ -635,6 +636,7 @@ def test_resume_reports_missing_task_id_as_invalid_receipt(
 ) -> None:
     runtime = {"resources": {"cpus": 2.0}}
     plan = {
+        "profile": {"execution": {"reset_before_every_task": False}},
         "profile_sha256": "profile",
         "seed_manifest_sha256": "seeds",
         "seed_manifest": {"tasks": [{"task_id": 1, "canonical_candidate_id": "canonical-1"}]},

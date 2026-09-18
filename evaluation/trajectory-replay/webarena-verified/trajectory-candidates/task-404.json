@@ -1,7 +1,7 @@
 {
   "schema": "webarena_qualified_trajectory_revision/1",
   "task_id": 404,
-  "canonical_calls_sha256": "7b751bbe0d5d330c861ffd2a881654d3539399234bfa73481d7ab9ea02150676",
+  "canonical_calls_sha256": "477ba17cd281b03681fb6070402ef31d4a88eceb292a8871cb2645095fe8be14",
   "tool_calls": [
     {
       "action": "navigate",

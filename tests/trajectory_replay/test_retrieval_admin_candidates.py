@@ -30,9 +30,10 @@ def test_candidate_binds_current_read_to_exact_browsertool_calls(task_id: int) -
         "scope": {"source": "current", "pointer": "/scope"},
         "completeness": {"source": "current", "pointer": "/complete"},
     }
-    assert candidate["retrieval_contract"]["projection"] == {
-        "source": "current", "pointer": "/answer"
-    }
+    projection = {"source": "current", "pointer": "/answer"}
+    if task_id == 183:
+        projection = {"distinct_exact_strings": projection}
+    assert candidate["retrieval_contract"]["projection"] == projection
     script = calls[1]["script"]
     assert "fetch(" in script and "same-origin" in script
     assert "redirect:'error'" in script
@@ -54,7 +55,12 @@ def test_candidate_rejects_a_modified_observation_action(task_id: int) -> None:
 @pytest.mark.parametrize("task_id", (41, 77, 94, 110, 127, 183, 184, 193, 198, 288))
 def test_admin_grid_candidates_require_exhaustive_pages(task_id: int) -> None:
     script = json.loads((ROOT / f"task-{task_id}.json").read_text())["tool_calls"][-1]["script"]
-    assert "totalRecords" in script
+    if task_id in (41, 77, 127):
+        assert "gridId+'-total-count'" in script
+        assert "data.total!==total||data.size!==first.size" in script
+        assert "new Set(rows.map(r=>r[identity])).size!==total" in script
+    else:
+        assert "totalRecords" in script
     assert "pages" in script
     assert "Math.ceil(total/size)>100" in script
     assert "rows.length!==total" in script
@@ -64,7 +70,9 @@ def test_admin_grid_candidates_require_exhaustive_pages(task_id: int) -> None:
 @pytest.mark.parametrize("task_id", (50, 117, 188, 231, 320, 334))
 def test_storefront_history_candidates_require_exhaustive_pages(task_id: int) -> None:
     script = json.loads((ROOT / f"task-{task_id}.json").read_text())["tool_calls"][-1]["script"]
-    assert "toolbar-number" in script
+    assert ".toolbar-amount" in script
+    assert "history pagination bounds inconsistent" in script
+    assert "data.total!==total||data.from!==rows.length+1" in script
     assert "Math.ceil(total/pageSize)" in script
     assert "rows.length!==total" in script
     assert "duplicate or incomplete history" in script

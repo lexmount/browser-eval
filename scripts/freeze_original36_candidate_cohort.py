@@ -56,7 +56,19 @@ def _validate_candidate_revision(candidate: dict[str, Any]) -> None:
     if "retrieval_contract" in candidate:
         validate_contract(candidate["retrieval_contract"], candidate["tool_calls"])
     elif (
-        set(candidate) != {"schema", "task_id", "canonical_calls_sha256", "tool_calls"}
+        set(candidate) - {"repair"}
+        != {"schema", "task_id", "canonical_calls_sha256", "tool_calls"}
+        or (
+            "repair" in candidate
+            and (
+                not isinstance(candidate["repair"], dict)
+                or set(candidate["repair"]) != {"cause", "change"}
+                or any(
+                    not isinstance(value, str) or not value.strip()
+                    for value in candidate["repair"].values()
+                )
+            )
+        )
         or candidate["schema"] != "webarena_qualified_trajectory_revision/1"
         or candidate["canonical_calls_sha256"] != _canonical_hash(candidate["tool_calls"])
     ):

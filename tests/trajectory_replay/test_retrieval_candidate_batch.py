@@ -102,7 +102,16 @@ def test_batch_separates_contract_validity_from_official_score():
             assert row["official_score"] is None
             assert row["blocker"]
             continue
-        if row["task_id"] == 108:
+        if row["task_id"] in {196, 204}:
+            assert row["receipt_sha256"] is None
+            assert row["official_score"] is None
+            assert row["independent_downstream_audit_sha256"] is None
+            prior = row["historical_receipt"]
+            assert len(prior["receipt_sha256"]) == 64
+            assert prior["official_score"] == 1.0
+            for field in ("candidate_sha256", "calls_sha256", "contract_sha256"):
+                assert prior[field] != row[field]
+        elif row["task_id"] == 108:
             assert row["receipt_sha256"] is None
             assert row["historical_receipt"]["receipt_sha256"] != row["receipt_sha256"]
             assert row["historical_receipt"]["candidate_sha256"] != row["candidate_sha256"]
@@ -125,7 +134,10 @@ def test_batch_separates_contract_validity_from_official_score():
         assert row["eligible_for_qualification"] is False
         if row["level"] != "diagnostic_only":
             continue
-        if row["task_id"] in {108, 313}:
+        if row["task_id"] in {196, 204}:
+            assert row["diagnostic_stage"] == "revised_input_pending_qualification"
+            assert row["blocker"]
+        elif row["task_id"] in {108, 313}:
             assert row["diagnostic_stage"] == "affected_task_qualified"
             qualification = row["affected_task_qualification"]
             assert qualification["chromium_official_score"] == 1.0

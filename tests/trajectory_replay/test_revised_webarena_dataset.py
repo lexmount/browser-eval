@@ -13,10 +13,11 @@ BASE = ROOT / "evaluation/trajectory-replay/webarena-verified/trajectories.json"
 CORRECTIONS = ROOT / "evaluation/trajectory-replay/webarena-verified/task-corrections.json"
 REVISED = ROOT / "evaluation/trajectory-replay/webarena-verified/trajectories-corrected.json"
 SELECTION = ROOT / "evaluation/trajectory-replay/webarena-verified/selection.json"
+FROZEN_CORRECTIONS = CORRECTIONS.parent / "dataset-67-225-243-corrections.json"
 
 
 def test_revised_dataset_is_complete_bound_and_reproducible() -> None:
-    result = revise(BASE, CORRECTIONS, [67, 225, 243], SELECTION)
+    result = revise(BASE, FROZEN_CORRECTIONS, [67, 225, 243], SELECTION)
     committed = json.loads(REVISED.read_text(encoding="utf-8"))
     original = json.loads(BASE.read_text(encoding="utf-8"))
     assert result == committed
@@ -27,7 +28,7 @@ def test_revised_dataset_is_complete_bound_and_reproducible() -> None:
     )
     assert (
         result["revision"]["correction_catalog_sha256"]
-        == hashlib.sha256(CORRECTIONS.read_bytes()).hexdigest()
+        == hashlib.sha256(FROZEN_CORRECTIONS.read_bytes()).hexdigest()
     )
     changed = {item["task_id"] for item in result["revision"]["changed_tasks"]}
     assert changed == {67, 225, 243}
@@ -51,6 +52,20 @@ def test_revised_dataset_is_complete_bound_and_reproducible() -> None:
             assert "titles contain both Sephora and Brush" in row["task"]["intent"]
             assert row["evaluation_input"] == old_rows[225]["evaluation_input"]
         assert row["verification"]["process_status"] == "pending_requalification"
+
+
+def test_unrelated_catalog_updates_preserve_frozen_task_contracts() -> None:
+    historical = revise(BASE, FROZEN_CORRECTIONS, [67, 225, 243], SELECTION)
+    current = revise(BASE, CORRECTIONS, [67, 225, 243], SELECTION)
+    assert current["revision"]["correction_catalog_sha256"] == hashlib.sha256(
+        CORRECTIONS.read_bytes()
+    ).hexdigest()
+    assert current["revision"]["correction_catalog_sha256"] != historical["revision"][
+        "correction_catalog_sha256"
+    ]
+    current["revision"].pop("correction_catalog_sha256")
+    historical["revision"].pop("correction_catalog_sha256")
+    assert current == historical
 
 
 def test_revised_dataset_rejects_missing_or_repeated_scope() -> None:
