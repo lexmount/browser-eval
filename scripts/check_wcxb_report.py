@@ -202,12 +202,24 @@ def require_guide_interpretation(html: str | BeautifulSoup, summary: dict,
     require('30c4f85b' in repair.get_text(' ', strip=True)
             and '384d1d2a' in repair.get_text(' ', strip=True),
             'Guide fails to separate the measured binary from later source changes')
+    expected_stages = (
+        (('正式版 1.1.7', 'PR 初版 30c4f85b'),
+         ('正式版 1.1.7', 'PR 初版 30c4f85b'),
+         ('PR 初版 30c4f85b', 'PR 当前 384d1d2a'))
+        if lang == 'zh' else
+        (('Release 1.1.7', 'Initial PR 30c4f85b'),
+         ('Release 1.1.7', 'Initial PR 30c4f85b'),
+         ('Initial PR 30c4f85b', 'Current PR 384d1d2a')))
+    expected_scope_tokens = (('1.1.7', '30c4f85b'), ('1.1.7', '30c4f85b'), ('30c4f85b', '384d1d2a'))
+    for case, stages, scope_tokens in zip(repair.select('.repair-case'), expected_stages, expected_scope_tokens):
+        captions = [node.get_text(' ', strip=True) for node in case.select('figcaption span')]
+        scope = case.select_one('.repair-scope')
+        require(scope is not None and all(stage in caption for stage, caption in zip(stages, captions[1:]))
+                and all(token in scope.get_text(' ', strip=True) for token in scope_tokens),
+                'Guide figure does not bind both columns to explicit versions and evidence scope')
     later = repair.select('.repair-case')[2]
-    expected_later = ('实测 PR', '后续源码') if lang == 'zh' else ('Measured PR', 'Later source')
-    captions = [node.get_text(' ', strip=True) for node in later.select('figcaption span')]
-    require(all(label in caption for label, caption in zip(expected_later, captions[1:]))
-            and later.get_text(' ', strip=True).count('␠') >= 2,
-            'Guide later fix is not visibly distinguished from the measured build')
+    require(later.get_text(' ', strip=True).count('␠') >= 2,
+            'Guide later fix no longer shows original spacing')
     require(soup.select_one('#guide-methods table') is not None
             and len(soup.select('#guide-methods tbody tr')) == len(providers),
             'Guide does not diagnose every measured configuration')
@@ -470,6 +482,15 @@ def check(root: Path) -> None:
             pass
         else:
             raise AssertionError(f'A {lang} guide missing a repair image was accepted')
+        guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(), 'html.parser')
+        guide.select('#guide-repair .repair-case')[2].select('figcaption span')[1].string = (
+            '正式版 1.1.7' if lang == 'zh' else 'Release 1.1.7')
+        try:
+            require_guide_interpretation(guide, summary, providers, lang)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f'A {lang} guide mislabeled the initial PR as the release')
     guide = BeautifulSoup((root / 'guide/index.html').read_text(), 'html.parser')
     guide.select_one('#guide-results .comparison-winner').unwrap()
     try:

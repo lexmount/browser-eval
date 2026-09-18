@@ -1253,6 +1253,19 @@
   ],
   "releases": [
     {
+      "id": "2026-09-18-wcxb-moli-repair-figure-provenance",
+      "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
+      "date": "2026-09-18",
+      "title": "标清 Moli 修复图的版本与证据范围",
+      "title_i18n": {"en": "Identify versions and evidence scope in Moli repair figures"},
+      "summary": "三张图分别标出正式版 1.1.7、PR 初版与当前源码，并区分整批实测、可选功能额外对照和场景测试。评测数据未改。",
+      "summary_i18n": {"en": "The three figures identify released 1.1.7, the initial PR and current source, and distinguish cohort results, an extra optional-feature comparison and scenario tests. Measured results are unchanged."},
+      "changes": [
+        ["报告解读", "图中的版本简称容易使源码场景测试看起来像稳定版或 504 页实测结果。", "逐图标明两列的源码版本和证据范围，并在 PR 中展示相同图片。", "分数、分母、耗时和原始响应不变；当前 PR 源码不冒充已完成整批重测。"]
+      ],
+      "changes_i18n": {"en": [["Interpretation", "Short figure labels could make a source-level scenario look like a released or full-cohort result.", "Identify both versions and evidence scope for each figure and embed the same images in the PR.", "Scores, denominators, latency and raw responses are unchanged; current PR source is not presented as a completed cohort rerun."]]}
+    },
+    {
       "id": "2026-09-18-wcxb-moli-repair-visual-guide",
       "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
       "date": "2026-09-18",
