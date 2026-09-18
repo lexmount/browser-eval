@@ -2559,9 +2559,9 @@ def build_webarena_replay_report(
             )
         else:
             core_metrics_note = (
-                f"三种方法均覆盖同一 {task_count} 题，参考答案均已核验。"
+                f"三种方法均覆盖同一 {task_count} 题。验收规则及已声明修正见任务详情，独立复核范围见复核说明。"
                 if zh else
-                f"All three methods cover the same {task_count} tasks with verified references. "
+                f"All three methods cover the same {task_count} tasks. Task details identify acceptance rules and declared corrections; the review page states the independent review scope. "
             )
         core_metrics_note += (
             "提前失败会缩短工作量，因此总耗时和资源不按低者判优；单次动作耗时按实际工具调用统计。"

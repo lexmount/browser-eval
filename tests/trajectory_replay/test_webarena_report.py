@@ -126,6 +126,10 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
     assert "fixes.html" not in (output / "index.html").read_text()
     assert "BrowserTool 与浏览器的组合" in (output / "index.html").read_text()
     assert "BrowserTool–browser combinations" in (output / "en/index.html").read_text()
+    assert "参考答案均已核验" not in (output / "index.html").read_text()
+    assert "with verified references" not in (output / "en/index.html").read_text()
+    assert "独立复核范围见复核说明" in (output / "index.html").read_text()
+    assert "independent review scope" in (output / "en/index.html").read_text()
     for route in ("index.html", "results.html", "dataset.html", "environment.html"):
         assert "历史 90 题" not in (output / route).read_text()
         assert "historical 90-task" not in (output / "en" / route).read_text()
