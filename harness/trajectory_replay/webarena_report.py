@@ -612,6 +612,10 @@ def _public_evidence(
                 "responsibility": review["cause_group"]["responsibility"],
                 "remediation_owner": review["cause_group"]["remediation_owner"],
                 "remediation_status": review["cause_group"]["remediation_status"],
+                **{key: review["cause_group"][key] for key in (
+                    "remediation_owner_zh", "remediation_owner_en",
+                    "remediation_status_zh", "remediation_status_en",
+                ) if key in review["cause_group"]},
                 **({"revision_evidence": review["revision_evidence"]}
                    if review.get("revision_evidence") else {}),
             }
@@ -798,7 +802,7 @@ def _detail_page(
         step_link = f'<a href="#step-{failed_index}">{"跳到失败动作" if zh else "Go to failed action"} #{failed_index}</a>' if failed_index else f'<a href="#step-{trigger_index}">{"查看触发动作" if zh else "Inspect trigger action"} #{trigger_index}</a>' if trigger_index else f'<a href="#trajectory">{"查看已完成动作" if zh else "View completed actions"}</a>'
         action_locator = f'{failed_action} #{failed_index}' if failed_index else ((f'{("触发动作" if zh else "Trigger action")} #{trigger_index}; {("请求未出现" if zh else "request absent")}') if trigger_index else ("所有动作执行后" if zh else "After all actions"))
         expected_network = f'<h3>{"未出现的请求" if zh else "Missing required request"}</h3><pre>{_e(json.dumps(failed["expected_network"], ensure_ascii=False, indent=2))}</pre>' if failed.get("expected_network") else ""
-        failure_panel = f'''<section id="diagnosis"><h2>{"失败定位与处理" if zh else "Failure diagnosis and treatment"}</h2><div class="diagnosis-panel"><div class="diagnosis-facts"><div><span>{"失败环节" if zh else "Failure stage"}</span><strong>{_e(stage)}</strong></div><div><span>{"失败位置" if zh else "Failure location"}</span><strong>{_e(action_locator)}</strong></div><div><span>{"复核分类" if zh else "Reviewed category"}</span><strong>{_e(label)}</strong></div></div><h3>{"程序原始判定" if zh else "Exact programmatic finding"}</h3><pre>{_e(failed["message"])}</pre>{expected_network}<h3>{"复核判断与依据" if zh else "Reviewed cause and basis"}</h3><p>{_e(reason)}</p><p>{"处理方" if zh else "Owner"}: {_e(review.get("remediation_owner") if review else "—")} · {"状态" if zh else "Status"}: {_e(review.get("remediation_status") if review else "—")}</p>{step_link}</div></section>'''
+        failure_panel = f'''<section id="diagnosis"><h2>{"失败定位与处理" if zh else "Failure diagnosis and treatment"}</h2><div class="diagnosis-panel"><div class="diagnosis-facts"><div><span>{"失败环节" if zh else "Failure stage"}</span><strong>{_e(stage)}</strong></div><div><span>{"失败位置" if zh else "Failure location"}</span><strong>{_e(action_locator)}</strong></div><div><span>{"复核分类" if zh else "Reviewed category"}</span><strong>{_e(label)}</strong></div></div><h3>{"程序原始判定" if zh else "Exact programmatic finding"}</h3><pre>{_e(failed["message"])}</pre>{expected_network}<h3>{"复核判断与依据" if zh else "Reviewed cause and basis"}</h3><p>{_e(reason)}</p><p>{"处理方" if zh else "Owner"}: {_e(review.get(f"remediation_owner_{lang}", review.get("remediation_owner")) if review else "—")} · {"状态" if zh else "Status"}: {_e(review.get(f"remediation_status_{lang}", review.get("remediation_status")) if review else "—")}</p>{step_link}</div></section>'''
     facts = [
         (("完成动作", "Actions completed"), f'{attempt["completed_action_count"]}/{attempt["action_count"]}'),
         (("端到端耗时", "End-to-end time"), _format_ms(attempt.get("duration_ms")) if zh else f'{attempt.get("duration_ms", 0) / 1000:.1f} s'),
@@ -1053,7 +1057,7 @@ if(inventory){
       const exact=step?(failedAction?.result||evidence.programmatic_failure?.message||''):evidence.programmatic_failure?.stage==='side_effect_not_observed'?(evidence.programmatic_failure.message+'\n\nExpected network event:\n'+JSON.stringify(evidence.programmatic_failure.expected_network,null,2)):evidence.official_evaluation?JSON.stringify(evidence.official_evaluation,null,2):(evidence.programmatic_failure?.message||'');
       dialog.querySelector('[data-dialog-error]').textContent=exact;
       dialog.querySelector('[data-dialog-cause]').textContent=(zh?evidence.review?.reason_zh:evidence.review?.reason_en)||(zh?'尚无复核判断':'No reviewed cause');
-      dialog.querySelector('[data-dialog-remediation]').textContent=(zh?'处理方：':'Owner: ')+(evidence.review?.remediation_owner||'—')+' · '+(zh?'状态：':'Status: ')+(evidence.review?.remediation_status||'—');
+      dialog.querySelector('[data-dialog-remediation]').textContent=(zh?'处理方：':'Owner: ')+(evidence.review?.[zh?'remediation_owner_zh':'remediation_owner_en']||evidence.review?.remediation_owner||'—')+' · '+(zh?'状态：':'Status: ')+(evidence.review?.[zh?'remediation_status_zh':'remediation_status_en']||evidence.review?.remediation_status||'—');
       dialog.dataset.loaded='true';
     }catch(error){dialog.querySelector('[data-dialog-error]').textContent=(zh?'证据读取失败：':'Evidence loading failed: ')+error.message;dialog.dataset.loaded='error'}
   });

@@ -918,6 +918,10 @@ def test_replay_task_and_result_have_connected_drilldown() -> None:
             "reason_en": "Target did not appear",
             "remediation_owner": "Browser",
             "remediation_status": "open",
+            "remediation_owner_zh": "浏览器实现",
+            "remediation_owner_en": "Browser implementation",
+            "remediation_status_zh": "保留本轮结果",
+            "remediation_status_en": "Results retained",
         },
         "trajectory": [
             {
@@ -940,6 +944,10 @@ def test_replay_task_and_result_have_connected_drilldown() -> None:
     assert "本方法轨迹与实际执行" in detail
     assert 'href="../diagnostic/29.html"' in detail
     assert "目标没有出现" in detail
+    assert "浏览器实现" in detail and "保留本轮结果" in detail
+    english = _detail_page("en", attempt, task, {"label": "Moli"}, evidence, peers)
+    assert "Browser implementation" in english and "Results retained" in english
+    assert "浏览器实现" not in english
     assert 'href="../task/29.html"' in detail
     assert 'href="../evidence-viewer.html?file=data/evidence/moli-29.json"' in detail
 
@@ -1171,6 +1179,8 @@ def test_step_dialog_exposes_secondary_failure_state_without_replacing_error(tmp
     script = (tmp_path / "assets/app.js").read_text()
     assert "actual?.failure_ui_state||actual?.failure_ui_state_error" in script
     assert "observation_error:actual.failure_ui_state_error" in script
+    assert "zh?'remediation_owner_zh':'remediation_owner_en'" in script
+    assert "zh?'remediation_status_zh':'remediation_status_en'" in script
     assert "textContent+='\\n\\n'+label+'\\n'+JSON.stringify(observation,null,2)" in script
     assert "补充诊断，不替代上方原始错误" in script
     assert "supplementary diagnosis, not the original error above" in script
