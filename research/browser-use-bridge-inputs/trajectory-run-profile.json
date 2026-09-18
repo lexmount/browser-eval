@@ -1,0 +1,65 @@
+{
+  "schema": "lex_webarena_trajectory_replay_profile/1",
+  "benchmark": "WebArena-Verified",
+  "benchmark_version": "1.2.3",
+  "task_selection": {
+    "path": "evaluation/browser-use/webarena-verified-pilot.json",
+    "sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+    "task_count": 90
+  },
+  "seed_inventory": {
+    "base_kind": "successful Browser Use executions",
+    "expert_repairs_path": "evaluation/trajectory-replay/webarena-verified/expert-repairs.json",
+    "expert_repairs_sha256": "ea34996acd3f137da912dcc386858c2ab51b86514cacc23502d1448224bbb830",
+    "required_ready_tasks": 90,
+    "canonical_trajectories_per_task": 1
+  },
+  "methods": [
+    {
+      "id": "chromium",
+      "engine": "chromium",
+      "label": "Chromium"
+    },
+    {
+      "id": "moli-1.1.3",
+      "engine": "moli",
+      "label": "Moli 1.1.3"
+    }
+  ],
+  "qualification": {
+    "reference_engine": "chromium",
+    "required_task_count": 90
+  },
+  "runs_per_task": 1,
+  "resources": {
+    "cpus": 2.0,
+    "memory": "2g",
+    "sample_interval_ms": 100
+  },
+  "execution": {
+    "environment_pool_count": 1,
+    "method_parallelism": 1,
+    "task_parallelism": 1,
+    "schedule": "complete one method before starting the next",
+    "reset_before_every_task": true,
+    "teardown_between_methods": true,
+    "trusted_source_site_hosts": [
+      "192.168.5.2",
+      "host.docker.internal"
+    ],
+    "site_stack": "one fixed-port self-hosted WebArena environment"
+  },
+  "scoring": {
+    "authority": "official programmatic evaluator or a hash-bound replay correction",
+    "promotion_gate": "the canonical trajectory passes execution and official evaluation on the frozen reference browser before any measured browser comparison",
+    "model_calls": 0
+  },
+  "publication": {
+    "base_url": "https://artifact-hub.app.lexmount.com",
+    "title": "WebArena-Verified 浏览器轨迹重放评测",
+    "state": "verified",
+    "site_slug": "7dF7uNK5SKIx",
+    "share_url": "https://artifact-hub.app.lexmount.com/v/hkZt38QFBpNIKtThKnqjpnBQk8At19PM",
+    "expected_version": "ver_fcd443ac19fe403f8baa3442262246e1"
+  }
+}

@@ -1,0 +1,315 @@
+{
+  "schema": "lex_webarena_replay_task_corrections/1",
+  "scope": "Browser Trajectory Replay standard-trajectory validation only",
+  "historical_browser_use_scores_immutable": true,
+  "upstream": {
+    "benchmark": "WebArena-Verified",
+    "package_version": "1.2.3",
+    "dataset_sha256": "d65275660814663375028e9017e1f929e3c38321041b125795e2713b52243d30"
+  },
+  "corrections": [
+    {
+      "task_id": 279,
+      "official_revision": 2,
+      "correction_id": "wv-279-reference-title-drift-20260911",
+      "rationale": "The current seeded catalog title contains two closing parentheses; the frozen reference contains one.",
+      "preconditions": [
+        {
+          "path": "/eval/0/expected/retrieved_data/0/names/9",
+          "equals": "Sony WI-C300 Wireless In-Ear Headphones, Red (WIC300/R)"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/0/expected/retrieved_data/0/names/9",
+          "value": "Sony WI-C300 Wireless In-Ear Headphones, Red (WIC300/R))"
+        }
+      ]
+    },
+    {
+      "task_id": 339,
+      "official_revision": 2,
+      "correction_id": "wv-339-issues-route-slash-equivalence-20260911",
+      "rationale": "GitLab's canonical issues collection has no trailing slash, while the upstream regex requires one; navigate-task GET selection also checks the last document before matching the expected route.",
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^__GITLAB__/a11yproject/a11yproject.com/-/issues/.*$"
+        },
+        {
+          "path": "/eval/2/expected/headers/referer",
+          "equals": "__GITLAB__/a11yproject/a11yproject.com/-/issues/?state=opened&label_name%5B%5D=bug"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "__GITLAB__/a11yproject/a11yproject.com/-/issues"
+        },
+        {
+          "op": "replace",
+          "path": "/eval/2/expected/headers",
+          "value": null
+        },
+        {
+          "op": "replace",
+          "path": "/eval/2/expected/post_data",
+          "value": {
+            "$.variables.state": "opened",
+            "$.variables.labelName": "bug"
+          }
+        },
+        {
+          "op": "replace",
+          "path": "/eval/2/last_event_only",
+          "value": false
+        }
+      ],
+      "replay_assertions": [
+        {
+          "kind": "network_event_selection",
+          "policy": "match_expected_url_method_and_query_before_recency",
+          "target": "canonical issues document and filtered issues GraphQL request"
+        }
+      ]
+    },
+    {
+      "task_id": 448,
+      "official_revision": 2,
+      "correction_id": "wv-448-match-profile-save-before-recency-20260915",
+      "rationale": "GitLab emits a successful profile-save POST followed by another profile event. The acceptance contract must match the POST carrying user[website_url] before applying event recency.",
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "__GITLAB__/-/profile"
+        },
+        {
+          "path": "/eval/1/expected/post_data/user[website_url]",
+          "equals": "https://egg.tart.com"
+        },
+        {
+          "path": "/eval/1/last_event_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/last_event_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 475,
+      "official_revision": 2,
+      "correction_id": "wv-475-unchecked-checkbox-is-false-20260911",
+      "rationale": "An unchecked HTML checkbox is omitted from a form submission; omission is the browser-standard representation of false.",
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/post_data/project[initialize_with_readme]",
+          "equals": "0"
+        }
+      ],
+      "operations": [
+        {
+          "op": "remove",
+          "path": "/eval/1/expected/post_data/project[initialize_with_readme]"
+        }
+      ],
+      "replay_assertions": [
+        {
+          "kind": "gitlab_project_state",
+          "project_path": "byteblaze/chatgpt_plugin",
+          "empty_repository": true
+        }
+      ]
+    },
+    {
+      "task_id": 510,
+      "official_revision": 2,
+      "correction_id": "wv-510-freeze-target-and-use-cart-dom-20260912",
+      "rationale": "The prose combines rating and price without an ordering rule, and the cart-totals response body is not available through every browser evidence interface. Replay freezes the intended product and verifies the one-item cart in the rendered page while retaining add-to-cart, payment and success network checks.",
+      "preconditions": [
+        {
+          "path": "/intent",
+          "equals": "Buy the best rating product from \"Home Audio Speaker\" category with at least 5 reviews and the product is least expensive. Choose any available variant."
+        },
+        {
+          "path": "/eval/1/expected/post_data/product",
+          "equals": "75640"
+        },
+        {
+          "path": "/eval/2/expected/response_content/items_qty",
+          "equals": 1
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/intent",
+          "value": "Buy the least expensive product in the Home Audio Speaker category among products with at least 5 reviews. If prices tie, choose the product with the higher rating. Buy Atlantic Technology FS-7.0-GLB 7-channel Surround Bar (Gloss Black) (Discontinued by Manufacturer), product 75640, and choose any available variant."
+        },
+        {
+          "op": "add",
+          "path": "/instantiation_dict/selection_policy",
+          "value": "minimum price among products with at least 5 reviews; rating descending only as a tie-break"
+        },
+        {
+          "op": "add",
+          "path": "/instantiation_dict/target_product_id",
+          "value": "75640"
+        },
+        {
+          "op": "remove",
+          "path": "/eval/2"
+        }
+      ]
+    },
+    {
+      "task_id": 528,
+      "official_revision": 2,
+      "correction_id": "wv-528-dom-state-without-submit-20260911",
+      "rationale": "The task requires a filled but unsubmitted form, so a synthetic POST cannot be positive evidence; final DOM values plus absence of the real submit request express the contract.",
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^http://.*/dummy_bin$"
+        },
+        {
+          "path": "/eval/2/should_not_exist",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "remove",
+          "path": "/eval/1"
+        }
+      ],
+      "replay_assertions": [
+        {
+          "kind": "final_dom_form_state",
+          "page_url": "__SHOPPING__/contact",
+          "form": "#contact-form",
+          "fields": {
+            "input[name='name']": "Emma Lopez",
+            "input[name='email']": "emma.lopez@gmail.com",
+            "textarea[name='comment']": "I need a refund. Order: 000000180. Amount: $12.99. Reason: It broke after three days of use."
+          },
+          "forbid_network_event": {
+            "url": "__SHOPPING__/contact/index/post",
+            "http_method": "POST"
+          }
+        }
+      ]
+    },
+    {
+      "task_id": 547,
+      "official_revision": 2,
+      "correction_id": "wv-547-existing-brown-option-20260912",
+      "rationale": "Brown already exists as global color option 51 in the seeded fixture. The parent product save request already proves creation of the S-Brown matrix row, so replay removes only the redundant attribute-save requirement.",
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "__SHOPPING_ADMIN__/catalog/product_attribute/save/attribute_id/93"
+        }
+      ],
+      "operations": [
+        {
+          "op": "remove",
+          "path": "/eval/1"
+        }
+      ]
+    },
+    {
+      "task_id": 676,
+      "official_revision": 2,
+      "correction_id": "wv-676-match-filter-xhr-20260911",
+      "rationale": "The acceptance event is the MUI grid XHR carrying filters[status]=fraud, not the surrounding sales/order document navigation.",
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^__SHOPPING_ADMIN__/mui/index/render/.*$"
+        },
+        {
+          "path": "/eval/1/last_event_only",
+          "equals": true
+        },
+        {
+          "path": "/eval/1/expected/headers/referer",
+          "equals": "__SHOPPING_ADMIN__/sales/order/"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/last_event_only",
+          "value": false
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/headers",
+          "value": null
+        }
+      ],
+      "replay_assertions": [
+        {
+          "kind": "network_event_selection",
+          "policy": "match_expected_url_method_and_query_before_recency",
+          "target": "mui/index/render XHR with filters[status]=fraud"
+        }
+      ]
+    },
+    {
+      "task_id": 699,
+      "official_revision": 2,
+      "correction_id": "wv-699-browser-form-array-fields-20260912",
+      "rationale": "Magento submits multi-select values as indexed HTML form fields. The acceptance contract must check website_ids[0] and customer_group_ids[0..2] directly; the upstream unindexed keys cannot be produced by this form.",
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/post_data/customer_group_ids",
+          "equals": [
+            1
+          ]
+        },
+        {
+          "path": "/eval/1/post_data_schema",
+          "equals": null
+        }
+      ],
+      "operations": [
+        {
+          "op": "remove",
+          "path": "/eval/1/expected/post_data/website_ids"
+        },
+        {
+          "op": "remove",
+          "path": "/eval/1/expected/post_data/customer_group_ids"
+        },
+        {
+          "op": "add",
+          "path": "/eval/1/expected/post_data/website_ids[0]",
+          "value": "1"
+        },
+        {
+          "op": "add",
+          "path": "/eval/1/expected/post_data/customer_group_ids[0]",
+          "value": "1"
+        },
+        {
+          "op": "add",
+          "path": "/eval/1/expected/post_data/customer_group_ids[1]",
+          "value": "2"
+        },
+        {
+          "op": "add",
+          "path": "/eval/1/expected/post_data/customer_group_ids[2]",
+          "value": "3"
+        }
+      ]
+    }
+  ]
+}

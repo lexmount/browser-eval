@@ -4,7 +4,7 @@
   "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
   "contract_definitions": {
     "trajectories": {"path": "evaluation/trajectory-replay/webarena-verified/trajectories.json", "sha256": "61bb38bce552b5c7eea0e1f5fcca1bc898f55e2e39ee6e72498cff346ca1e4e3"},
-    "corrections": {"path": "evaluation/trajectory-replay/webarena-verified/task-corrections.json", "sha256": "15e1265dd8eb3910f1fb6f789b9370656f3e4beab60254bdde93ca36bc3ca606"}
+    "corrections": {"path": "research/browser-use-bridge-inputs/task-corrections.json", "sha256": "15e1265dd8eb3910f1fb6f789b9370656f3e4beab60254bdde93ca36bc3ca606"}
   },
   "contract_counts": {"official_task_contract": 81, "corrected_replay_contract": 9},
   "source_contract_counts": {
@@ -17,7 +17,7 @@
     "reference_or_acceptance": [279, 475, 510, 528, 547, 699]
   },
   "trajectory_profile": {
-    "path": "evaluation/trajectory-replay/webarena-verified/current-run.json",
+    "path": "research/browser-use-bridge-inputs/trajectory-run-profile.json",
     "sha256": "316f298f548bfb2d87cc10789f11bce84a501e40af0b6e372745bf47ed9577ed"
   },
   "effective_results": {
