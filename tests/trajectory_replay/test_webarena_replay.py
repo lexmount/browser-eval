@@ -9,12 +9,14 @@ from harness.trajectory_replay.webarena_dataset import OBSERVATION_PROTOCOL
 from harness.trajectory_replay.webarena_replay import (
     RECEIPT_SCHEMA,
     _attempt_needs_retry,
+    _capture_failure_ui_state,
     _click_was_dispatched_before_navigation_timeout,
     _embedded_observation_error,
     _execute_replay_call,
     _finalize_method_teardown,
     _origin,
     _rebind_url,
+    _reject_partial_method_resume,
     _run_one,
     _validated_resume,
     run_replay_suite,
@@ -22,6 +24,41 @@ from harness.trajectory_replay.webarena_replay import (
     select_tasks,
     validate_qualification_dataset,
 )
+
+
+def test_method_scoped_site_cohort_rejects_partial_resume() -> None:
+    with pytest.raises(ValueError, match="cannot resume after a partial method"):
+        _reject_partial_method_resume([("moli", 1)], ["moli"], [1, 2])
+    _reject_partial_method_resume([("moli", 1), ("moli", 2)], ["moli"], [1, 2])
+    _reject_partial_method_resume([("chromium", 1), ("chromium", 2)],
+                                  ["chromium", "moli"], [1, 2])
+
+
+def test_failure_ui_observation_bounds_selector_and_excludes_form_values() -> None:
+    class Page:
+        def evaluate(self, script: str, selector: str | None) -> dict[str, object]:
+            assert "getBoundingClientRect" in script
+            assert "getComputedStyle" in script
+            assert "selector?.endsWith(':visible')" in script
+            assert "element.value" not in script
+            return {"selector": selector, "region_controls": []}
+
+    class Service:
+        _page = Page()
+
+        def _submit(self, callback):
+            return callback()
+
+    service = Service()
+    assert _capture_failure_ui_state(service, {"selector": "select[name=region_id]"})[
+        "selector"
+    ] == "select[name=region_id]"
+    assert _capture_failure_ui_state(service, {"selector": "select[name=region_id]:visible"})[
+        "selector"
+    ] == "select[name=region_id]:visible"
+    assert _capture_failure_ui_state(service, {"selector": "x" * 1001})[
+        "selector"
+    ] is None
 
 
 def test_select_tasks_requires_clean_canonical_candidates() -> None:
@@ -362,7 +399,13 @@ def test_compiled_snapshot_ref_click_preserves_dom_click_semantics() -> None:
     assert events[-1] == ("wait", 500)
 
 
-def test_compiled_snapshot_ref_fill_and_select_preserve_dom_semantics() -> None:
+@pytest.mark.parametrize(
+    ("platform", "modifier"),
+    [("Win32", "Control"), ("MacIntel", "Meta"), ("Linux x86_64", "Control")],
+)
+def test_compiled_snapshot_ref_fill_and_select_preserve_dom_semantics(
+    platform: str, modifier: str
+) -> None:
     events = []
 
     class Locator:
@@ -373,10 +416,14 @@ def test_compiled_snapshot_ref_fill_and_select_preserve_dom_semantics() -> None:
 
         def evaluate(self, script, *args):
             events.append(("evaluate", script, args))
+            return platform if "navigator.platform" in script else None
 
     class Keyboard:
-        def type(self, text):
-            events.append(("type", text))
+        def press(self, key):
+            events.append(("press", key))
+
+        def insert_text(self, text):
+            events.append(("insert_text", text))
 
     class Page:
         keyboard = Keyboard()
@@ -415,7 +462,9 @@ def test_compiled_snapshot_ref_fill_and_select_preserve_dom_semantics() -> None:
     )
 
     assert fill_status == select_status == "success"
-    assert ("type", "needle") in events
+    assert events.index(("press", f"{modifier}+A")) < events.index(("press", "Backspace"))
+    assert events.index(("press", "Backspace")) < events.index(("insert_text", "needle"))
+    assert not any(event[0] == "evaluate" and "element.value = ''" in event[1] for event in events)
     assert any(event[0] == "evaluate" and event[2] == ("open",) for event in events)
 
 

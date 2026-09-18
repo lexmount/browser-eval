@@ -16,5 +16,9 @@ and do not revise the published replay scores. A diagnostic score of 1 is not a 
 benchmark result. Task 108 has current-source acceptance without an official evaluator score.
 The additional nine-task batch is blocked: 50, 94, 188, and 231 replace frozen actions; 198
 and 320 preserve the prefix but their offline observation scope remains unqualified; 77, 183,
-and 386 lack an independent current-page observer. Tasks 243 and 313 remain blocked as well.
-No blocked task has a promoted candidate definition here.
+and 386 lack an independent current-page observer. Task 243's former customer-email task was
+replaced with a review-nickname task in the corrected fork; its new candidate is pending
+current-browser qualification. Task 313 has a diagnostic-only current
+browser observation of four declared support pages; its bounded `NOT_FOUND_ERROR` is not
+full-site absence proof or a qualified benchmark result. No blocked task has a promoted
+candidate definition here.

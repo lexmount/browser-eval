@@ -134,8 +134,17 @@ def _execute_replay_call(tool: Any, arguments: dict[str, Any]) -> tuple[str, str
                 locator.evaluate("element => element.click()")
                 page.wait_for_timeout(500)
             elif action == "fill":
-                locator.evaluate("element => { element.focus(); element.value = ''; }")
-                page.keyboard.type(str(public_arguments.get("text", "")))
+                platform = locator.evaluate(
+                    "element => { element.focus(); return navigator.platform; }"
+                )
+                modifier = (
+                    "Meta"
+                    if str(platform).startswith(("Mac", "iPhone", "iPad", "iPod"))
+                    else "Control"
+                )
+                page.keyboard.press(f"{modifier}+A")
+                page.keyboard.press("Backspace")
+                page.keyboard.insert_text(str(public_arguments.get("text", "")))
             else:
                 value = str(public_arguments.get("value", ""))
                 locator.evaluate(
@@ -303,6 +312,7 @@ def _run_one(  # noqa: PLR0913
     retrieval_contract: dict[str, Any] | None = None,
     state_contract: Any = None,
     run_id: str = "",
+    prepare_sites: bool = True,
 ) -> dict[str, Any]:
     task_id = int(task_seed["task_id"])
     candidate = _candidate(task_seed)
@@ -368,7 +378,8 @@ def _run_one(  # noqa: PLR0913
     viewport_evidence: dict[str, Any] = {}
     try:
         prepare_started = time.perf_counter()
-        _prepare_sites(sites)
+        if prepare_sites:
+            _prepare_sites(sites)
         timings["environment_prepare_ms"] = (time.perf_counter() - prepare_started) * 1000
 
         setup_started = time.perf_counter()
@@ -414,6 +425,12 @@ def _run_one(  # noqa: PLR0913
                 }
             records.append(record)
             if result_status != "success" and not dispatched_before_timeout:
+                try:
+                    record["failure_ui_state"] = _capture_failure_ui_state(service, arguments)
+                except Exception as observation_exc:
+                    record["failure_ui_state_error"] = (
+                        f"{type(observation_exc).__name__}: {observation_exc}"
+                    )[:300]
                 raise RuntimeError(f"step {index} failed: {result_text}")
         timings["trajectory_replay_ms"] = (time.perf_counter() - replay_started) * 1000
         _verify_session_viewport(service, viewport_evidence, "after_trajectory")
@@ -685,6 +702,56 @@ def _embedded_observation_error(
     return result_text[len(prefix) :].removesuffix("]").strip()
 
 
+def _capture_failure_ui_state(service: Any, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Retain bounded DOM geometry after a failed action without form values.
+
+    A screenshot cannot distinguish a visible text fallback from a hidden
+    select, and a tool timeout does not preserve the locator's final state.
+    This observation is diagnostic only; it never changes the tool/evaluator
+    verdict or retries the action.
+    """
+
+    selector = arguments.get("selector")
+    if not isinstance(selector, str) or len(selector) > 1000:
+        selector = None
+    return service._submit(
+        lambda: service._page.evaluate(
+            """selector => {
+              const state = element => {
+                const rect = element.getBoundingClientRect();
+                const style = getComputedStyle(element);
+                return {tag: element.tagName.toLowerCase(), id: element.id || null,
+                  name: element.getAttribute('name'), hidden: element.hidden,
+                  disabled: !!element.disabled, display: style.display,
+                  visibility: style.visibility,
+                  rect: [rect.x, rect.y, rect.width, rect.height]};
+              };
+              const nativeSelector = selector?.endsWith(':visible')
+                ? selector.slice(0, -':visible'.length) : selector;
+              const result = {page_origin_path: location.origin + location.pathname,
+                ready_state: document.readyState, selector, native_selector: nativeSelector,
+                selector_count: null,
+                selector_error: null, matched_controls: [], region_controls: []};
+              if (nativeSelector) {
+                try {
+                  const matches = [...document.querySelectorAll(nativeSelector)];
+                  result.selector_count = matches.length;
+                  result.matched_controls = matches.slice(0, 8).map(state);
+                } catch (error) {
+                  result.selector_error = error?.name || 'invalid_selector';
+                }
+              }
+              result.region_controls = [...document.querySelectorAll(
+                'select[name*="region"],input[name*="region"],'
+                + 'select[id*="region"],input[id*="region"]')]
+                .slice(0, 16).map(state);
+              return result;
+            }""",
+            selector,
+        )
+    )
+
+
 def _stop_all_sites() -> None:
     """Stop the fixed-port site stack before another method can acquire it."""
 
@@ -821,6 +888,18 @@ def _finish_physical_execution(entry: dict[str, Any], attempt: dict[str, Any]) -
     )
 
 
+def _reject_partial_method_resume(
+    keys: list[tuple[str, int]], engines: list[str], task_ids: list[int]
+) -> None:
+    for engine in engines:
+        completed_for_method = sum(key[0] == engine for key in keys)
+        if 0 < completed_for_method < len(task_ids):
+            raise ValueError(
+                "a method-scoped site cohort cannot resume after a partial method; "
+                "restart that method from a fresh site preparation in a new output directory"
+            )
+
+
 def _validated_resume(
     receipt_path: Path,
     *,
@@ -926,6 +1005,16 @@ def _validated_resume(
         keys.append(key)
     if len(keys) != len(set(keys)):
         raise ValueError("existing replay receipt contains duplicate method/task attempts")
+    if (plan.get("profile", {}).get("execution", {}).get("reset_before_every_task", True)
+            is False):
+        _reject_partial_method_resume(keys, engines, task_ids)
+        site_preparation = receipt.get("method_site_preparation") or {}
+        for engine in engines:
+            if any(key[0] == engine for key in keys) and not (
+                isinstance(site_preparation.get(engine), dict)
+                and site_preparation[engine].get("status") == "complete"
+            ):
+                raise ValueError("completed method lacks a site preparation receipt")
     method_teardown = receipt.get("method_teardown") or {}
     if set(method_teardown) != set(engines) or any(
         not isinstance(value, bool) for value in method_teardown.values()
@@ -1122,6 +1211,10 @@ def run_replay_suite(  # noqa: PLR0913
         qualification_dataset_sha256=qualification_dataset_sha256,
     )
     completed = {(str(item["engine"]), int(item["task_id"])) for item in attempts}
+    method_site_preparation = {}
+    if receipt_path.is_file():
+        previous = json.loads(receipt_path.read_text(encoding="utf-8"))
+        method_site_preparation = dict(previous.get("method_site_preparation") or {})
     lock_path = _physical_execution_lock_path(_docker_daemon_lock_namespace(docker_info))
     receipt = {
         "schema": RECEIPT_SCHEMA,
@@ -1137,6 +1230,7 @@ def run_replay_suite(  # noqa: PLR0913
         "engines": engines,
         "runtime": runtime,
         "method_teardown": method_teardown,
+        "method_site_preparation": method_site_preparation,
         "sessions": sessions,
         "physical_executions": physical_executions,
         "isolation": {
@@ -1156,6 +1250,9 @@ def run_replay_suite(  # noqa: PLR0913
         _write_receipt(receipt_path, receipt)
         for method in select_methods(plan, engines):
             engine = str(method["engine"])
+            execution = plan["profile"]["execution"]
+            reset_before_every_task = execution["reset_before_every_task"]
+            retry_failed_task = execution.get("retry_failed_task", True)
             pending = [task for task in tasks if (engine, int(task["task_id"])) not in completed]
             if not pending:
                 continue
@@ -1163,7 +1260,21 @@ def run_replay_suite(  # noqa: PLR0913
             container = None
             primary_error: BaseException | None = None
             try:
+                site_preparation_started = time.perf_counter()
+                site_preparation_started_at = round(time.time() * 1000)
                 _stop_all_sites()
+                if not reset_before_every_task:
+                    _prepare_sites(tuple(SITE_PORTS))
+                    method_site_preparation[engine] = {
+                        "status": "complete",
+                        "started_at_unix_ms": site_preparation_started_at,
+                        "completed_at_unix_ms": round(time.time() * 1000),
+                        "duration_ms": round(
+                            (time.perf_counter() - site_preparation_started) * 1000, 3
+                        ),
+                        "sites": [site.value for site in SITE_PORTS],
+                    }
+                    receipt["method_site_preparation"] = method_site_preparation
                 method_teardown[engine] = False
                 receipt["method_teardown"] = method_teardown
                 _write_receipt(receipt_path, receipt)
@@ -1221,11 +1332,12 @@ def run_replay_suite(  # noqa: PLR0913
                             int(task["task_id"])
                         ),
                         run_id=run_id,
+                        prepare_sites=reset_before_every_task,
                     )
                     attempt["browser_session_id"] = session["id"]
                     _finish_physical_execution(physical_entry, attempt)
                     _write_receipt(receipt_path, receipt)
-                    if _attempt_needs_retry(attempt):
+                    if retry_failed_task and _attempt_needs_retry(attempt):
                         # A declared replay gets one clean retry regardless of where the first
                         # physical execution failed. Restarting the browser and rerunning
                         # _run_one also repeats site preparation, so failed page/session state

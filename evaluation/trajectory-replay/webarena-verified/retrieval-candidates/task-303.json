@@ -1,0 +1,17 @@
+{
+  "task_id": 303,
+  "tool_calls": [
+    {"action": "navigate", "url": "http://192.168.5.2:8023/a11yproject/a11yproject.com"},
+    {"action": "navigate", "url": "http://192.168.5.2:8023/a11yproject/a11yproject.com/-/graphs/main/charts?from=2023-01-01&to=2023-12-31"},
+    {"action": "navigate", "url": "http://192.168.5.2:8023/a11yproject/a11yproject.com/-/commits/main?author=Kilian&since=2023-01-01T00%3A00%3A00Z&until=2023-12-31T23%3A59%3A59Z"},
+    {"action": "evaluate", "script": "(async()=>{const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),30000);try{const api=location.origin+'/api/v4',path='a11yproject/a11yproject.com';async function read(url){const r=await fetch(url,{credentials:'same-origin',redirect:'error',signal:ctl.signal,headers:{Accept:'application/json'}});if(r.status!==200||r.redirected||!/^application\\/json\\b/i.test(r.headers.get('content-type')||''))throw Error('GitLab JSON read failed');return {r,body:await r.json()}}const {body:project}=await read(api+'/projects/'+encodeURIComponent(path));if(!Number.isInteger(project.id)||project.path_with_namespace!==path||project.default_branch!=='main')throw Error('wrong current repository');const rows=[],pages=[],size=100;for(let page=1;page<=100;page++){const url=new URL(api+'/projects/'+project.id+'/repository/commits');for(const [k,v] of Object.entries({ref_name:'main',author:'Kilian',since:'2023-01-01T00:00:00Z',until:'2023-12-31T23:59:59Z',per_page:String(size),page:String(page)}))url.searchParams.set(k,v);const {r,body}=await read(url.href);const current=r.headers.get('x-page'),next=r.headers.get('x-next-page'),total=Number(r.headers.get('x-total'));if(current!==String(page)||next===null||!Number.isSafeInteger(total)||total<0||!Array.isArray(body)||body.length>size)throw Error('incomplete commit page');for(const c of body){if(!/^[0-9a-f]{40}$/.test(c.id)||typeof c.author_name!=='string'||!/^kilian(?:\\s|$)/i.test(c.author_name)||typeof c.committed_date!=='string'||c.committed_date.slice(0,4)!=='2023')throw Error('commit identity, author or year ambiguity');rows.push({id:c.id,author_name:c.author_name,committed_date:c.committed_date})}pages.push({page,rows:body.length,total,next});if(next==='')break;if(next!==String(page+1)||page===100)throw Error('commit pagination gap or safety bound')}if(!pages.length||pages.at(-1).next!==''||rows.length!==pages[0].total||new Set(rows.map(x=>x.id)).size!==rows.length||pages.some(p=>p.total!==rows.length))throw Error('incomplete commit population');return {scope:true,complete:true,project:{id:project.id,path_with_namespace:project.path_with_namespace,branch:project.default_branch},range:['2023-01-01T00:00:00Z','2023-12-31T23:59:59Z'],pages,commits:rows,answer:rows.length}}finally{ctl.abort();clearTimeout(timer)}})()"}
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/1",
+    "task_id": 303,
+    "canonical_calls_sha256": "c869299c8fead8e027af8e19f32e72df4da85faba0c4bcff96c3af6454244270",
+    "sources": [{"name": "observation", "step": 4, "action_sha256": "69ec718c01f50fb10bcccfc2018ab2a891a8fdbe52d8c305c7590baf85615d3e", "decode": "json"}],
+    "requirements": {"scope": {"source": "observation", "pointer": "/scope"}, "completeness": {"source": "observation", "pointer": "/complete"}},
+    "projection": {"source": "observation", "pointer": "/answer"}
+  }
+}

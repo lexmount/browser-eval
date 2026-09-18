@@ -313,12 +313,74 @@ def test_not_found_requires_observed_complete_empty_collection_and_correct_scope
         "scope": {"source": "read", "pointer": "/scope"},
     }
     contract["empty_result"] = "NOT_FOUND_ERROR"
-    rows[0]["result"] = json.dumps({"items": [], "complete": complete, "scope": scope})
+    contract["absence_coverage"] = {
+        "source": "read",
+        "pages_pointer": "/pages",
+        "required_paths": ["/contact/"],
+        "detector": "phone_number",
+    }
+    rows[0]["result"] = json.dumps(
+        {
+            "items": [], "complete": complete, "scope": scope,
+            "pages": [{"path": "/contact/", "status": 200,
+                       "text": "Contact our customer service online.", "tel": [], "matches": []}],
+        }
+    )
     result = build(calls, contract, rows)
     assert (result["status"] == "supported") is supported
     if supported:
         assert result["actual_response"]["status"] == "NOT_FOUND_ERROR"
         assert result["actual_response"]["retrieved_data"] is None
+
+
+@pytest.mark.parametrize(
+    "pages",
+    [
+        [],
+        [{"path": "/other/", "status": 200, "text": "Contact", "tel": [], "matches": []}],
+        [{"path": "/contact/", "status": 500, "text": "Contact", "tel": [], "matches": []}],
+        [{
+            "path": "/contact/", "status": 200,
+            "text": "Call +1 555 123 4567", "tel": [], "matches": [],
+        }],
+        [{
+            "path": "/contact/", "status": 200,
+            "text": "Contact", "tel": [{"href": "tel:123"}], "matches": [],
+        }],
+    ],
+)
+def test_self_declared_absence_cannot_hide_missing_or_contradictory_pages(pages):
+    calls, contract, rows = fixture()
+    contract.update(
+        projection={"source": "read", "pointer": "/items"},
+        requirements={
+            "scope": {"source": "read", "pointer": "/scope"},
+            "completeness": {"source": "read", "pointer": "/complete"},
+        },
+        empty_result="NOT_FOUND_ERROR",
+        absence_coverage={
+            "source": "read", "pages_pointer": "/pages",
+            "required_paths": ["/contact/"], "detector": "phone_number",
+        },
+    )
+    rows[0]["result"] = json.dumps(
+        {"items": [], "scope": True, "complete": True, "pages": pages}
+    )
+    assert build(calls, contract, rows)["status"] == "insufficient"
+
+
+def test_self_declared_absence_without_coverage_is_insufficient():
+    calls, contract, rows = fixture()
+    contract.update(
+        projection={"source": "read", "pointer": "/items"},
+        requirements={
+            "scope": {"source": "read", "pointer": "/scope"},
+            "completeness": {"source": "read", "pointer": "/complete"},
+        },
+        empty_result="NOT_FOUND_ERROR",
+    )
+    rows[0]["result"] = '{"items":[],"scope":true,"complete":true}'
+    assert build(calls, contract, rows)["status"] == "insufficient"
 
 
 def test_absence_cannot_reuse_one_boolean_as_both_scope_and_completeness():
@@ -686,10 +748,118 @@ def test_v3_invalid_or_unproven_empty(values):
     assert build(*distinct_fixture(values))["status"] == "insufficient"
 
 
-def test_v3_empty_policy_unchanged():
+def test_v3_empty_result_also_requires_checkable_coverage():
     calls, contract, rows = distinct_fixture([])
     contract["empty_result"] = "NOT_FOUND_ERROR"
-    assert build(calls, contract, rows)["actual_response"]["status"] == "NOT_FOUND_ERROR"
+    assert build(calls, contract, rows)["status"] == "insufficient"
+
+
+def exhaustive_fixture(records, *, field, operator, target, scope, page_size=2):
+    calls, contract, rows = distinct_fixture([])
+    contract["empty_result"] = "NOT_FOUND_ERROR"
+    contract["absence_coverage"] = {
+        "kind": "exhaustive_records/1",
+        "source": "read",
+        "scope_pointer": "/observed_scope",
+        "expected_scope": scope,
+        "records_pointer": "/records",
+        "pages_pointer": "/pages",
+        "match_count_pointer": "/match_count",
+        "page_size": page_size,
+        "id_pointer": "/id",
+        "required_fields": ["/id", field],
+        "predicate": {
+            "field_pointer": field,
+            "type": "integer",
+            "operator": operator,
+            "value": target,
+        },
+    }
+    pages = []
+    for start in range(0, max(len(records), 1), page_size):
+        subset = records[start : start + page_size]
+        pages.append({
+            "page": len(pages) + 1,
+            "rows": len(subset),
+            "total": len(records),
+            "has_next": start + page_size < len(records),
+            "ids": [str(item["id"]) for item in subset],
+        })
+    rows[0]["result"] = json.dumps({
+        "values": [], "scope": True, "complete": True,
+        "observed_scope": scope, "records": records,
+        "pages": pages, "match_count": 0,
+    })
+    return calls, contract, rows
+
+
+@pytest.mark.parametrize(
+    "records,field,operator,target,scope",
+    [
+        ([{"id": 1, "stars": 100}, {"id": 2, "stars": 9}, {"id": 3, "stars": 0}],
+         "/stars", "gt", 100, {"site": "gitlab", "collection": "my-personal-projects"}),
+        ([{"id": 10, "stock": 9}, {"id": 11, "stock": 11}],
+         "/stock", "eq", 10, {"site": "shopping_admin", "collection": "all-products"}),
+        ([], "/stock", "eq", 10, {"site": "shopping_admin", "collection": "all-products"}),
+    ],
+)
+def test_v3_exhaustive_zero_match_uses_current_typed_records(
+    records, field, operator, target, scope
+):
+    result = build(*exhaustive_fixture(
+        records, field=field, operator=operator, target=target, scope=scope
+    ))
+    assert result["status"] == "supported"
+    assert result["actual_response"]["status"] == "NOT_FOUND_ERROR"
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda data: data["records"][0].update(stars=101),
+        lambda data: data.update(observed_scope={"site": "gitlab", "collection": "all-projects"}),
+        lambda data: data["pages"].pop(),
+        lambda data: data["pages"][0].update(has_next=False),
+        lambda data: data["pages"][0].update(total=2),
+        lambda data: data["pages"][0]["ids"].reverse(),
+        lambda data: data["records"][0].pop("stars"),
+        lambda data: data["records"][0].update(stars="100"),
+        lambda data: data["records"][1].update(id=1),
+        lambda data: data.update(match_count=1),
+    ],
+)
+def test_v3_exhaustive_absence_rejects_missing_or_contradictory_proof(mutation):
+    calls, contract, rows = exhaustive_fixture(
+        [{"id": 1, "stars": 100}, {"id": 2, "stars": 9}, {"id": 3, "stars": 0}],
+        field="/stars", operator="gt", target=100,
+        scope={"site": "gitlab", "collection": "my-personal-projects"},
+    )
+    data = json.loads(rows[0]["result"])
+    mutation(data)
+    rows[0]["result"] = json.dumps(data)
+    assert build(calls, contract, rows)["status"] == "insufficient"
+
+
+def test_v3_exhaustive_stock_count_ten_cannot_be_hidden_by_zero_claim():
+    calls, contract, rows = exhaustive_fixture(
+        [{"id": 10, "stock": 9}, {"id": 11, "stock": 10}],
+        field="/stock", operator="eq", target=10,
+        scope={"site": "shopping_admin", "collection": "all-products"},
+    )
+    assert build(calls, contract, rows)["status"] == "insufficient"
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [("page_size", 0), ("page_size", True), ("source", "missing")],
+)
+def test_v3_exhaustive_absence_rejects_invalid_contract(field, value):
+    calls, contract, rows = exhaustive_fixture(
+        [{"id": 1, "stock": 9}], field="/stock", operator="eq", target=10,
+        scope={"site": "shopping_admin", "collection": "all-products"},
+    )
+    contract["absence_coverage"][field] = value
+    assert build(calls, contract, rows)["status"] == "insufficient"
 
 
 @pytest.mark.parametrize(

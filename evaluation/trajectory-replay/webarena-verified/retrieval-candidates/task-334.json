@@ -1,0 +1,40 @@
+{
+  "task_id": 334,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7770/sales/order/history/?limit=50"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async()=>{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);try{\nif(location.origin!==new URL(location.href).origin)throw Error('invalid origin');\nconst read=async address=>{const u=new URL(address,location.origin);\nif(u.origin!==location.origin||u.pathname!=='/sales/order/history/'||\n[...u.searchParams.keys()].some(k=>!['p','limit'].includes(k)))throw Error('out-of-scope order history');\nconst response=await fetch(u.href,{credentials:'same-origin',cache:'no-store',redirect:'error',signal:controller.signal});\nif(!response.ok||response.redirected||!/^text\\/html\\b/i.test(response.headers.get('content-type')||''))throw Error('order history response unavailable');\nreturn {url:response.url,doc:new DOMParser().parseFromString(await response.text(),'text/html')}};\nconst first=await read('/sales/order/history/?limit=50');\nconst collect=(page,index)=>{const doc=page.doc;\nif(doc.querySelector('form#login-form'))throw Error('history requires login');\nconst table=doc.querySelector('table#my-orders-table,table.table-order-items');\nconst body=table?.querySelector('tbody');\nif(!body)throw Error('order table missing');\nconst entries=[...body.querySelectorAll(':scope > tr')].map(tr=>{const cells=[...tr.querySelectorAll(':scope > td')].map(td=>td.textContent.replace(/\\s+/g,' ').trim());\nconst link=[...tr.querySelectorAll('a[href*=\"/sales/order/view/order_id/\"]')];\nif(cells.length<4||link.length!==1)throw Error('invalid order row');\nconst detail=new URL(link[0].getAttribute('href'),page.url);\nif(detail.origin!==location.origin||!/^\\/sales\\/order\\/view\\/order_id\\/\\d+\\/$/.test(detail.pathname))throw Error('invalid order detail link');\nconst num=cells[0],date=cells[1],amount=cells[2],status=cells[3];\nif(!/^\\d+$/.test(num)||!/^\\d{1,2}\\/\\d{1,2}\\/\\d{2,4}$/.test(date)||\n!/^\\$(?:\\d+|\\d{1,3}(?:,\\d{3})+)\\.\\d{2}$/.test(amount)||!status)throw Error('missing order fields');\nconst [month,day,yearText]=date.split('/').map(Number),year=yearText<100?2000+yearText:yearText;\nconst iso=`${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;\nif(new Date(iso+'T00:00:00Z').toISOString().slice(0,10)!==iso)throw Error('invalid order date');\nconst cents=Number(amount.replace(/[$,.]/g,''));if(!Number.isSafeInteger(cents))throw Error('unsafe total');\nreturn {number:num,date:iso,cents,status,detail:detail.href};});\nconst toolbar=(doc.querySelector('.toolbar-number')?.textContent||'').replace(/\\s+/g,' ').trim();\nconst match=toolbar.match(/Items?\\s+(\\d+)(?:\\s*[-–]\\s*(\\d+))?\\s+of\\s+(\\d+)/i);\nif(!match)throw Error('history pagination total missing');\nconst from=Number(match[1]),to=Number(match[2]||match[1]),total=Number(match[3]);\nif(!Number.isSafeInteger(total)||total<1||from!==(index-1)*entries.length+1&&index===1||\nto-from+1!==entries.length)throw Error('history pagination bounds inconsistent');\nreturn {entries,total,from,to};};\nconst initial=collect(first,1),pageSize=initial.entries.length,total=initial.total;\nif(!pageSize||Math.ceil(total/pageSize)>100)throw Error('invalid order page size');\nconst rows=[...initial.entries],pages=[{page:1,from:initial.from,to:initial.to,total}];\nfor(let page=2;page<=Math.ceil(total/pageSize);page++){\nconst data=collect(await read('/sales/order/history/?limit=50&p='+page),page);\nif(data.total!==total||data.from!==rows.length+1||data.entries.length!==Math.min(pageSize,total-rows.length))throw Error('incomplete order history');\nrows.push(...data.entries);pages.push({page,from:data.from,to:data.to,total});}\nif(rows.length!==total||new Set(rows.map(r=>r.number)).size!==total)throw Error('duplicate or incomplete history');\nif(rows.some((r,i)=>i&&rows[i-1].date<r.date))throw Error('history is not newest first');\nconst found=[];for(const order of rows){const u=new URL(order.detail);\nif(u.origin!==location.origin||!/^\\/sales\\/order\\/view\\/order_id\\/\\d+\\/$/.test(u.pathname))throw Error('detail out of scope');\nconst response=await fetch(u.href,{credentials:'same-origin',cache:'no-store',redirect:'error',signal:controller.signal});\nif(!response.ok||response.redirected||!/^text\\/html\\b/i.test(response.headers.get('content-type')||''))throw Error('order detail unavailable');\nconst doc=new DOMParser().parseFromString(await response.text(),'text/html');\nconst names=[...doc.querySelectorAll('.product-item-name,.col.name .product-item-name,.order-details-items .product.name')].map(n=>n.textContent.replace(/\\s+/g,' ').trim());\nif(!names.length)throw Error('order items missing');\nif(names.some(n=>/muffin/i.test(n)&&/cornbread/i.test(n)&&/mix/i.test(n)))found.push({number:order.number,date:order.date,items:names});}\nreturn {scope:true,complete:true,pages,total,matched:found,answer:found[0]?.date??null};\n}finally{controller.abort();clearTimeout(timer)}})()"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/1",
+    "task_id": 334,
+    "canonical_calls_sha256": "c8429505ffd22006e310719469aa965bab5f4f21f67dfba62423f6492f23ddf7",
+    "sources": [
+      {
+        "name": "current",
+        "step": 2,
+        "action_sha256": "03ded42f16f5b40a1d6b3850152358733333737d0c6c0a9afcaefe5ae08780d6",
+        "decode": "json"
+      }
+    ],
+    "requirements": {
+      "scope": {
+        "source": "current",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "current",
+        "pointer": "/complete"
+      }
+    },
+    "projection": {
+      "source": "current",
+      "pointer": "/answer"
+    }
+  }
+}

@@ -122,6 +122,27 @@ def test_plan_binds_all_tasks_and_serial_methods(tmp_path: Path) -> None:
     assert len(plan["profile_sha256"]) == len(plan["seed_manifest_sha256"]) == 64
 
 
+def test_method_scoped_site_reset_requires_explicit_isolation_and_no_retry(
+    tmp_path: Path,
+) -> None:
+    profile_path, seeds = _profile(tmp_path)
+    profile = json.loads(profile_path.read_text(encoding="utf-8"))
+    execution = profile["execution"]
+    execution["reset_before_every_task"] = False
+    _write(profile_path, profile)
+    with pytest.raises(ValueError, match="method-scoped site preparation"):
+        load_replay_plan(profile_path, seeds)
+
+    execution["reset_before_every_method"] = True
+    _write(profile_path, profile)
+    with pytest.raises(ValueError, match="no failed-task retry"):
+        load_replay_plan(profile_path, seeds)
+
+    execution["retry_failed_task"] = False
+    _write(profile_path, profile)
+    assert load_replay_plan(profile_path, seeds)["profile"]["execution"] == execution
+
+
 @pytest.mark.parametrize("supersession", [None, "wrong", "correct"])
 def test_plan_state_opt_in_requires_exact_legacy_supersession(tmp_path, monkeypatch, supersession):
     from types import SimpleNamespace

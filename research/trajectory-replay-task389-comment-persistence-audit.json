@@ -1,0 +1,41 @@
+{
+  "schema": "trajectory_replay_task389_comment_persistence_audit/1",
+  "task_id": 389,
+  "diagnostic_receipt_sha256": "42b41368f281201ede7c574dc656f8b95e330ba7d60bd42d6bb1f9bb394b2c9b",
+  "network_har_sha256": "935a8d28bb1b07311b0f84f7317fda9c22bed0cd5e3227e99aa58fdd053dc3d9",
+  "completion_observation_sha256": "0c624609b1230550c6b1f629908e1bb0913765fdf113b9fd5659c6694c3e890d",
+  "site": "WebArena GitLab",
+  "project_id": 180,
+  "merge_request_iid": 450,
+  "merge_request_database_id": 139245,
+  "note_id": 310828,
+  "author_username": "byteblaze",
+  "note": "Thanks, working on reviews",
+  "same_run_server_sequence": [
+    {
+      "method": "GET",
+      "path": "/primer/design/noteable/merge_request/139245/notes",
+      "status": 200,
+      "matching_note_count": 0,
+      "phase": "before_submission"
+    },
+    {
+      "method": "POST",
+      "path": "/primer/design/notes?target_id=139245&target_type=merge_request",
+      "status": 200,
+      "response_valid": true,
+      "response_note_id": 310828,
+      "phase": "submission"
+    },
+    {
+      "method": "GET",
+      "path": "/primer/design/noteable/merge_request/139245/notes",
+      "status": 200,
+      "matching_note_count": 1,
+      "phase": "after_submission"
+    }
+  ],
+  "reviewed_outcome_zh": "同次 GitLab 服务端读取在提交前没有目标评论，提交后返回唯一一条指定正文、byteblaze 作者、目标合并请求和 #note_310828 永久链接均匹配的评论；独立于页面 DOM 提示，足以证明该次写入已被服务端读回。",
+  "reviewed_outcome_en": "A same-run GitLab server read contained no matching comment before submission and exactly one after it, matching the text, byteblaze author, target merge request, and #note_310828 permalink. This server readback independently confirms the write beyond the DOM completion cue.",
+  "scope_limit": "The GitLab site was later reset; a current database row with the reused numeric note ID is not evidence for or against the earlier run. The historical official verdict remains unchanged."
+}

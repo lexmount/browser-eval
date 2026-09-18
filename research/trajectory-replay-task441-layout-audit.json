@@ -1,0 +1,131 @@
+{
+  "schema": "trajectory_replay_task441_layout_audit/1",
+  "task_id": 441,
+  "historical_result": {
+    "browser": "moli",
+    "version": "1.1.3",
+    "failed_action_index": 2,
+    "selector": "a[href=\"/byteblaze/gimmiethat.space/-/blob/main/index.html\"]:visible",
+    "error_category": "locator_visible_timeout",
+    "trace_sha256": "18a9302171bc011406491f384e05f237ce1e9b52d3ea884db01f50761c0fd754"
+  },
+  "diagnostic_contract": {
+    "site": "WebArena GitLab",
+    "path": "/byteblaze/gimmiethat.space",
+    "viewport_css_pixels": [1280, 900],
+    "action_scope": "frozen navigation followed by read-only DOM geometry observations",
+    "site_reset": false,
+    "site_mutations": 0,
+    "observations_after_navigation_seconds": [0, 2, 6]
+  },
+  "comparisons": [
+    {
+      "browser": "moli",
+      "version": "1.1.3",
+      "execution": "Linux image, --font disabled",
+      "image_sha256": "6519892d79641d565192f555c8269ab9b83c5444d07a73871f51881229c3bcd4",
+      "receipt_sha256": "b5e8487dee0caa7c49602fbf948e9a21827894890414b27153bbf20ca5144ba9",
+      "target_link_count": [1, 1, 1],
+      "target_rect_width_css_pixels": [0, 0, 0],
+      "target_rect_height_css_pixels": [0, 0, 0]
+    },
+    {
+      "browser": "moli",
+      "version": "1.1.6",
+      "execution": "post-tag macOS development build, --font enabled",
+      "binary_sha256": "3a967a1280ffe434e678b79ec24238701cbf708154dbdd490f8b9d78d03032ff",
+      "receipt_sha256": "4a8aba2f029683d3c80a3edb75b1a9e072a66839e35cc099e5c0307eb068f9f3",
+      "target_link_count": [1, 1, 1],
+      "target_rect_width_css_pixels": [78.96875, 78.96875, 78.96875],
+      "target_rect_height_css_pixels": [21, 21, 21]
+    },
+    {
+      "browser": "moli",
+      "version": "1.1.6",
+      "execution": "official macOS release, --font enabled",
+      "binary_sha256": "8d89eebcd9908d1d0e1d3597a35e36fb41d0742604295c4046ccb3d26996caf2",
+      "release_archive_sha256": "00dac52acbace90afc3a2d3e570eaaf9a3ec4aa690a1fa77d6407d774d077379",
+      "receipt_sha256": "0dfab29cf98092f9834b515cad2287412485fb26367e27f9e6250bd6fce475d1",
+      "target_link_count": [1, 1, 1],
+      "target_rect_width_css_pixels": [0, 0, 0],
+      "target_rect_height_css_pixels": [0, 0, 0]
+    },
+    {
+      "browser": "moli",
+      "version": "1.1.6",
+      "execution": "Linux image, --font disabled",
+      "image_sha256": "f8f8601e0df0d6b9bb08df74cb0ef6bba1e2557ea5a8d1c098ecfc4686633d4d",
+      "receipt_sha256": "e1a632f34a545dd8182562a1c6715a2d868760e8d7db1488643152d955289bf5",
+      "target_link_count": [1, 1, 1],
+      "target_rect_width_css_pixels": [0, 0, 0],
+      "target_rect_height_css_pixels": [0, 0, 0]
+    },
+    {
+      "browser": "moli",
+      "version": "1.1.6",
+      "execution": "Linux image, --font enabled",
+      "image_sha256": "f8f8601e0df0d6b9bb08df74cb0ef6bba1e2557ea5a8d1c098ecfc4686633d4d",
+      "receipt_sha256": "987bbafa35a70a18e85540e7a25e5c32e29b2aeb5537c1ecb03c53edd889785b",
+      "target_link_count": [1, 1, 1],
+      "target_rect_width_css_pixels": [0, 0, 0],
+      "target_rect_height_css_pixels": [0, 0, 0]
+    },
+    {
+      "browser": "moli",
+      "version": "1.1.6",
+      "execution": "post-tag macOS development build, --font disabled",
+      "binary_sha256": "3a967a1280ffe434e678b79ec24238701cbf708154dbdd490f8b9d78d03032ff",
+      "receipt_sha256": "a7dd16da7b924d346456072a2e4198e81f60b19df19bf93d6a0d173032d91f29",
+      "target_link_count": [1, 1, 1],
+      "target_rect_width_css_pixels": [78.96875, 78.96875, 78.96875],
+      "target_rect_height_css_pixels": [21, 21, 21]
+    },
+    {
+      "browser": "moli",
+      "version": "1.1.7-fixed-candidate",
+      "execution": "macOS native, --font enabled",
+      "binary_sha256": "af808b3f7bb5dd0604262bba95cecdf06ba18d9547a169c1443bfbb1255b4397",
+      "receipt_sha256": "c7935b408738f46ded4c73dc998a2d8d65b2e4f884a44ddb8ef02b550110977c",
+      "target_link_count": [1, 1, 1],
+      "target_rect_width_css_pixels": [78.96875, 78.96875, 78.96875],
+      "target_rect_height_css_pixels": [21, 21, 21]
+    }
+  ],
+  "reviewed_cause": {
+    "category": "stale_layout_snapshot_after_dom_update",
+    "mechanism_zh": "历史版 Moli 的 DOM 中已有目标链接，但链接及其表格行的布局矩形仍为零面积；同步滚动使相同链接立即获得非零矩形。旧布局快照在动态内容改变后仍被几何读取复用，是与红黑对照及源码相符的故障机制。Playwright 的 :visible 因零矩形无法匹配，第二步点击超时。",
+    "mechanism_en": "The target link is present in historical Moli's DOM, but the link and its table row retain zero-area layout rectangles. A synchronous scroll immediately makes the same link nonzero. Reuse of a stale frozen layout snapshot after dynamic content changes is the failure mechanism supported by the red-black control and source. Playwright's :visible cannot match the zero-area link, so action 2 times out.",
+    "source_change": "Moli commit adde6e4f marks layout input dirty on DOM/style changes and rejects dirty frozen trees for geometry queries; the fixed candidate contains this commit",
+    "build_identity_finding": "The native binary labeled 1.1.6 is a post-tag development build, not the official 1.1.6 release. Both official 1.1.6 macOS and Linux builds return zero-area link geometry; the post-tag and fixed-candidate native builds return nonzero geometry.",
+    "current_candidate_result": "the qualified 17-action candidate completed and received official score 1; it is not an exact replay of the original 16 actions"
+  },
+  "same_page_geometry_evidence": {
+    "linux_1_1_6_before_after_scroll_receipt_sha256": "a436cd493c423dad0c3dc76418e8d14c39389b245bc3564ccdee2f43e070f3a5",
+    "target_rect_before_scroll": [0, 0, 0, 0],
+    "target_rect_immediately_after_scroll_in_same_script": [298.5, 725, 90.1875, 21],
+    "content_visibility_on_target_and_row": "visible"
+  },
+  "generic_red_black_control": {
+    "fixture": "static table followed by an appended row in the same script; measure the new row before scrolling",
+    "fixture_html_sha256": "ae0577a1f4de1808ac16cdc67187cfa808a9f3a37c9dafe8881fdfa18e3e2317",
+    "wrapper_sha256": "380ed03f4ed8c2907007cb13e6058abf4c7378e16602057e80c1c2c2fff50b63",
+    "official_1_1_6": {
+      "binary_sha256": "8d89eebcd9908d1d0e1d3597a35e36fb41d0742604295c4046ccb3d26996caf2",
+      "receipt_sha256": "3746c2284154afbdb02c56ed4ba0cc14c6009819adee0683bbc6c6848fd926e1",
+      "new_link_rect": [0, 0, 0, 0]
+    },
+    "fixed_candidate": {
+      "binary_sha256": "af808b3f7bb5dd0604262bba95cecdf06ba18d9547a169c1443bfbb1255b4397",
+      "receipt_sha256": "46c7df9c147d12e2039084265402767310834f12590e7483b5d8195f97c7b9b2",
+      "new_link_rect": [1, 818, 63.8125, 16]
+    },
+    "source_regression_test": "moli-renderer-v8/src/runtime/page_vm/tests/rendering_update.rs::geometry_batch_refreshes_dirty_tree_on_demand_and_reuses_clean_tree"
+  },
+  "source_location": {
+    "commit": "adde6e4f4f21d5be98c7f58b0a5ca61f78900d75",
+    "dirty_tracking": "moli-renderer-v8/src/native_bridge/context_host/layout_state.rs",
+    "query_guard": "moli-renderer-v8/src/native_bridge/context_host/layout.rs",
+    "input_invalidation": "moli-renderer-v8/src/native_bridge/context_host/host_environment.rs"
+  },
+  "scope_limit": "The probes use the current Rainbond GitLab deployment and do not replace the historical official verdict. The generic red-black control proves the stale-snapshot defect family and the fixed candidate's behavior; it does not isolate commit adde6e4f as the sole causal change in the full GitLab page or prove that all locator failures share this cause."
+}

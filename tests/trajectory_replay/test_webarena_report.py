@@ -10,25 +10,353 @@ from harness.fix_log import load_fix_log
 from harness.trajectory_replay.webarena_report import (
     LEGACY_REPLAY_VALIDITY_INPUTS,
     _assets,
+    build_webarena_replay_report,
     _clean,
     _copy_failure_screenshot,
     _detail_page,
     _historical_replay_validity_notice,
+    _json_sha256,
+    _legacy_retrieval_provenance,
     _load_artifact,
     _measured_validity_identity,
     _metrics_table,
     _outcome_metrics,
+    _planned_actions_digest,
     _public_evidence,
+    _reference_validity_by_task,
+    require_all_reference_validity,
     _shell,
     _successful_distribution_table,
     _task_page,
     _unique_winners,
+    _validated_planned_actions,
+    _verdict_label,
     _write_replay_fix_log,
 )
 from scripts.check_webarena_replay_report import (
+    check as check_report,
+    _check_affected36_comparison,
+    _check_core_comparison,
+    _check_fixed36_output_scope,
+    _check_formal36_output_scope,
+    _check_legacy_retrieval_audit,
+    _check_result_detail_semantics,
     _check_english_localization,
     _semantic_page_inventory,
 )
+from scripts.build_webarena_replay_report import _bound_dataset_path
+
+
+def test_report_build_requires_hash_bound_corrected_dataset(tmp_path: Path) -> None:
+    dataset = tmp_path / "corrected.json"
+    dataset.write_text('{"trajectories": []}', encoding="utf-8")
+    profile = {"dataset": {"path": str(dataset), "sha256": hashlib.sha256(dataset.read_bytes()).hexdigest()}}
+    assert _bound_dataset_path(profile) == dataset
+    with pytest.raises(ValueError, match="changed"):
+        _bound_dataset_path({"dataset": {**profile["dataset"], "sha256": "0" * 64}})
+    with pytest.raises(ValueError, match="requires"):
+        _bound_dataset_path({})
+    link = tmp_path / "link.json"
+    link.symlink_to(dataset)
+    with pytest.raises(ValueError, match="symlinked"):
+        _bound_dataset_path({"dataset": {"path": str(link), "sha256": profile["dataset"]["sha256"]}})
+
+
+def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, monkeypatch) -> None:
+    methods = [
+        {"id": "chromium", "engine": "chromium", "label": "Chromium"},
+        {"id": "moli-old", "engine": "moli", "label": "Moli 1.1.3"},
+        {"id": "moli-fixed", "engine": "moli", "label": "Moli 1.1.7"},
+    ]
+    profile = {"methods": methods, "qualification": {"reference_engine": "chromium"},
+               "execution": {"method_parallelism": 1, "task_parallelism": 1,
+                             "reset_before_every_task": True,
+                             "reset_before_every_method": True,
+                             "teardown_between_methods": True,
+                             "retry_failed_task": False}}
+    actions = [{"action": "snapshot"}]
+    attempts = [
+        {"participant_id": method["id"], "engine": method["engine"],
+         "task_id": 29, "status": "pass", "process_status": "pass",
+         "evaluator_status": "pass", "action_count": 1,
+         "completed_action_count": 1, "duration_ms": 100,
+         "planned_actions": actions, "planned_actions_sha256": _planned_actions_digest(actions),
+         "reference_validity": {"status": "valid"},
+         "resource": {}, "evidence": {}}
+        for method in methods
+    ]
+    data = {"attempts": attempts, "physical_executions": attempts}
+    monkeypatch.setattr(
+        "harness.trajectory_replay.webarena_report.load_validated_failure_review",
+        lambda *args, **kwargs: {"results": data, "by_result": {}},
+    )
+    files = {}
+    for name, value in (
+        ("profile.json", profile),
+        ("dataset.json", {"trajectories": [{"task_id": 29,
+            "task": {"intent": "Find a post", "sites": ["reddit"]},
+            "tool_calls": actions,
+            "source": {"kind": "authoritative_successful_browser_use_execution"},
+            "evaluation_input": {"task_type": "NAVIGATE"}}]}),
+        ("results.json", data),
+        ("review.json", {}),
+    ):
+        path = tmp_path / name
+        path.write_text(json.dumps(value), encoding="utf-8")
+        files[name] = path
+    data["dataset_sha256"] = hashlib.sha256(files["dataset.json"].read_bytes()).hexdigest()
+    frozen_task = json.loads(files["dataset.json"].read_text())["trajectories"][0]
+    contract_sha256 = _json_sha256({
+        "task": frozen_task["task"], "evaluation_input": frozen_task["evaluation_input"],
+    })
+    for attempt in attempts:
+        attempt["task_contract_sha256"] = contract_sha256
+    files["results.json"].write_text(json.dumps(data), encoding="utf-8")
+    output = tmp_path / "report"
+    manifest = build_webarena_replay_report(
+        results_path=files["results.json"], dataset_path=files["dataset.json"],
+        review_path=files["review.json"], profile_path=files["profile.json"],
+        output_dir=output,
+    )
+    assert manifest["participants"] == [item["id"] for item in methods]
+    assert manifest["logical_results"] == 3
+    assert manifest["routes"] == 20
+    assert "36/36" not in (output / "index.html").read_text()
+    assert "fixes.html" not in (output / "index.html").read_text()
+    assert "可核验题通过" not in (output / "index.html").read_text()
+    assert "Passes on verifiable tasks" not in (output / "en/index.html").read_text()
+    assert "逐题重置" in (output / "environment.html").read_text()
+    assert "Colima" not in (output / "environment.html").read_text()
+    assert not (output / "diagnostics.html").exists()
+    assert check_report(output)["html_pages"] == 20
+    data["attempts"] = attempts[:-1]
+    with pytest.raises(ValueError, match="complete participant-task matrix"):
+        build_webarena_replay_report(
+            results_path=files["results.json"], dataset_path=files["dataset.json"],
+            review_path=files["review.json"], profile_path=files["profile.json"],
+            output_dir=output,
+        )
+    assert (output / "index.html").is_file()
+
+
+def test_method_specific_planned_actions_are_hash_bound() -> None:
+    actions = [{"action": "click", "selector": "#submit"}]
+    attempt = {
+        "participant_id": "moli-fixed", "task_id": 29, "action_count": 1,
+        "planned_actions": actions,
+        "planned_actions_sha256": _planned_actions_digest(actions),
+    }
+    assert _validated_planned_actions(attempt) == actions
+    with pytest.raises(ValueError, match="planned actions"):
+        _validated_planned_actions({**attempt, "planned_actions": [{"action": "snapshot"}]})
+    with pytest.raises(ValueError, match="planned actions"):
+        _validated_planned_actions({**attempt, "action_count": 2})
+    with pytest.raises(ValueError, match="planned actions"):
+        _validated_planned_actions({**attempt, "planned_actions_sha256": "0" * 64})
+
+
+def test_reference_validity_must_be_explicit_and_common_to_all_methods() -> None:
+    rows = [
+        {"participant_id": "chromium", "task_id": 243,
+         "reference_validity": {"status": "unverifiable"}},
+        {"participant_id": "moli", "task_id": 243,
+         "reference_validity": {"status": "unverifiable"}},
+    ]
+    assert _reference_validity_by_task(rows) == {243: "unverifiable"}
+    with pytest.raises(ValueError, match="missing"):
+        _reference_validity_by_task([rows[0], {"participant_id": "moli", "task_id": 243}])
+    with pytest.raises(ValueError, match="disagree"):
+        _reference_validity_by_task([rows[0], {**rows[1], "reference_validity": {"status": "valid"}}])
+    assert _verdict_label("fail", "unverified", "zh") == "官方失败；答案不可核验"
+
+
+def test_formal_reference_validity_gate_requires_all_selected_tasks_for_all_methods() -> None:
+    methods = [{"id": name, "engine": "chromium" if name == "chromium" else "moli"}
+               for name in ("chromium", "moli-old", "moli-fixed")]
+    profile = {"methods": methods, "task_selection": {"task_count": 90},
+               "scoring": {"require_all_reference_validity": True}}
+    dataset = {"trajectories": [{"task_id": task_id} for task_id in range(90)]}
+    attempts = [
+        {"participant_id": method["id"], "engine": method["engine"],
+         "task_id": task_id, "reference_validity": {"status": "valid"}}
+        for method in methods for task_id in range(90)
+    ]
+    results = {"attempts": attempts}
+    require_all_reference_validity(profile, results, dataset)
+    attempts[0]["reference_validity"]["status"] = "unverifiable"
+    with pytest.raises(ValueError, match="disagree"):
+        require_all_reference_validity(profile, results, dataset)
+    for method_index in (1, 2):
+        attempts[method_index * 90]["reference_validity"]["status"] = "unverifiable"
+    with pytest.raises(ValueError, match="unverifiable tasks: \\[0\\]"):
+        require_all_reference_validity(profile, results, dataset)
+    diagnostic = {"methods": methods}
+    require_all_reference_validity(diagnostic, results, dataset)
+    attempts.pop()
+    with pytest.raises(ValueError, match="every method-task result"):
+        require_all_reference_validity(profile, results, dataset)
+
+
+def test_core_three_method_comparison_rejects_wrong_score_and_tie_highlight(tmp_path: Path) -> None:
+    participants = ["chromium", "moli-old", "moli-fixed"]
+    results = [
+        {"participant_id": method, "task_id": task, "status": "pass", "semantic_status": "valid"}
+        for method in participants for task in range(2)
+    ]
+    methods = [
+        {"participant_id": method, "label": method,
+         "valid_reference_passed": 2, "valid_reference_total": 2}
+        for method in participants
+    ]
+    row = lambda method, count=2, marker="": (
+        f'<tr><td>{method}</td><td data-metric="core-pass" '
+        f'data-metric-direction="higher" data-sort="{count}">{count}/2{marker}</td>'
+        '<td>100%</td></tr>'
+    )
+    for directory in (tmp_path, tmp_path / "en"):
+        directory.mkdir(exist_ok=True)
+        (directory / "index.html").write_text("".join(row(method) for method in participants))
+    _check_core_comparison(tmp_path, {"methods": methods}, results, participants)
+    (tmp_path / "en/index.html").write_text(
+        row(participants[0], marker='<strong class="winner">Best</strong>')
+        + "".join(row(method) for method in participants[1:])
+    )
+    with pytest.raises(ValueError, match="highlight"):
+        _check_core_comparison(tmp_path, {"methods": methods}, results, participants)
+    (tmp_path / "en/index.html").write_text(
+        row(participants[0], count=1) + "".join(row(method) for method in participants[1:])
+    )
+    with pytest.raises(ValueError, match="core score"):
+        _check_core_comparison(tmp_path, {"methods": methods}, results, participants)
+    (tmp_path / "en/index.html").write_text(
+        row(participants[0]).replace('</tr>',
+                                    '<td data-metric="verifiable-pass">2/2</td></tr>')
+        + "".join(row(method) for method in participants[1:])
+    )
+    with pytest.raises(ValueError, match="one core score"):
+        _check_core_comparison(tmp_path, {"methods": methods}, results, participants)
+
+
+def test_result_detail_gate_rejects_duplicate_summary_and_missing_failure_log() -> None:
+    html = '<div class="verdict-line fail"></div><section id="diagnosis">Exact timeout</section><section id="evidence"></section>'
+    evidence = {"programmatic_failure": {"stage": "browser_tool_execution", "message": "Exact timeout"},
+                "trajectory": [{"index": 1, "result": "Exact timeout"}]}
+    _check_result_detail_semantics(html, evidence, "fail")
+    with pytest.raises(ValueError, match="duplicates or omits"):
+        _check_result_detail_semantics(html + '<div class="verdict-line fail"></div>', evidence, "fail")
+    with pytest.raises(ValueError, match="exact error"):
+        _check_result_detail_semantics(html.replace("Exact timeout", "generic error"), evidence, "fail")
+    with pytest.raises(ValueError, match="evaluation logs"):
+        _check_result_detail_semantics(
+            html, {"programmatic_failure": {"stage": "official_evaluation", "message": "Exact timeout"}}, "fail",
+        )
+
+
+def test_affected36_comparison_rejects_wrong_score_and_tied_highlight(tmp_path: Path) -> None:
+    compare = [
+        {"id": "old", "label": "Old", "passed": 36, "total": 36},
+        {"id": "new", "label": "New", "passed": 36, "total": 36},
+    ]
+    results = [
+        {"participant_id": method, "task_id": task_id, "status": "pass"}
+        for method in ("old", "new") for task_id in range(36)
+    ]
+    row = lambda item, marker="": (f'<tr><td><a href="results.html?participant={item["id"]}&status=">{item["label"]}</a></td>'
+                                    f'<td data-metric="affected36-pass">36/36{marker}</td></tr>')
+    for directory, heading in ((tmp_path, "36 题"), (tmp_path / "en", "36 failures")):
+        directory.mkdir(exist_ok=True)
+        (directory / "index.html").write_text(heading + "".join(row(item) for item in compare))
+    _check_affected36_comparison(tmp_path, compare, results, set(range(36)), ["old", "new"])
+    (tmp_path / "en/index.html").write_text("36 failures" + row(compare[0], '<span class="winner">Best</span>') + row(compare[1]))
+    with pytest.raises(ValueError, match="highlight"):
+        _check_affected36_comparison(tmp_path, compare, results, set(range(36)), ["old", "new"])
+    compare[1]["passed"] = 35
+    with pytest.raises(ValueError, match="denominator or score"):
+        _check_affected36_comparison(tmp_path, compare, results, set(range(36)), ["old", "new"])
+
+
+def test_formal36_report_gate_rejects_missing_detail_wrong_score_and_visual(
+    tmp_path: Path,
+) -> None:
+    rows = [
+        {"task_id": task_id, "status": "pass", "official_score": 1.0,
+         "completed_actions": 2, "action_count": 2,
+         "evidence_sha256": {"evaluation": "a" * 64}}
+        for task_id in range(1, 37)
+    ]
+    asset = tmp_path / "assets/diagnostic/formal-1-before.png"
+    asset.parent.mkdir(parents=True)
+    asset.write_bytes(b"reviewed image")
+    formal = {
+        "status": "complete", "pass_count": 36, "denominator": 36,
+        "reference_unchanged": True, "rows": rows,
+        "visuals": {"1-before": {"asset": "assets/diagnostic/formal-1-before.png",
+                                 "sha256": hashlib.sha256(asset.read_bytes()).hexdigest()}},
+    }
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / "diagnostic-closure.json").write_text(json.dumps({"formal36": formal}))
+    for lang in ("zh", "en"):
+        parent = tmp_path if lang == "zh" else tmp_path / "en"
+        (parent / "diagnostic").mkdir(parents=True)
+        (parent / "diagnostics.html").write_text("36/36；历史 90 题" if lang == "zh" else "36/36; historical 90-task")
+        for row in rows:
+            label = "新版 Moli 受影响题目复测：通过" if lang == "zh" else "New Moli affected-task cohort: passed"
+            (parent / "diagnostic" / f'{row["task_id"]}.html').write_text(
+                f'{label} 2/2 {"a" * 64}'
+            )
+    _check_formal36_output_scope(tmp_path)
+    rows[0]["reference_validity"] = {"status": "unverifiable"}
+    (data / "diagnostic-closure.json").write_text(json.dumps({"formal36": formal}))
+    with pytest.raises(ValueError, match="unverifiable reference"):
+        _check_formal36_output_scope(tmp_path)
+    (tmp_path / "diagnostics.html").write_text("36/36；历史 90 题；不能宣称 36 题均已真实解决")
+    (tmp_path / "en/diagnostics.html").write_text("36/36; historical 90-task; not a claim that all 36 tasks were truly solved")
+    with pytest.raises(ValueError, match="detail is missing"):
+        _check_formal36_output_scope(tmp_path)
+    rows[0].pop("reference_validity")
+    (data / "diagnostic-closure.json").write_text(json.dumps({"formal36": formal}))
+    rows[0]["official_score"] = 0.0
+    (data / "diagnostic-closure.json").write_text(json.dumps({"formal36": formal}))
+    with pytest.raises(ValueError, match="incomplete"):
+        _check_formal36_output_scope(tmp_path)
+    rows[0]["official_score"] = 1.0
+    (data / "diagnostic-closure.json").write_text(json.dumps({"formal36": formal}))
+    (tmp_path / "diagnostic/1.html").write_text("missing")
+    with pytest.raises(ValueError, match="detail is missing"):
+        _check_formal36_output_scope(tmp_path)
+    (tmp_path / "diagnostic/1.html").write_text(f'新版 Moli 受影响题目复测：通过 2/2 {"a" * 64}')
+    asset.write_bytes(b"changed")
+    with pytest.raises(ValueError, match="visual is missing or changed"):
+        _check_formal36_output_scope(tmp_path)
+
+
+def test_fixed36_diagnostic_summary_separates_actual_and_synthetic_answers(
+    tmp_path: Path,
+) -> None:
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / "diagnostic-closure.json").write_text(json.dumps({
+        "fixed36": {
+            "official_rule_pass_tasks": 36,
+            "source_derived_official_pass_tasks": 1,
+        }
+    }))
+    (tmp_path / "diagnostics.html").write_text(
+        "<p>35/36 条轨迹实际输出通过官方规则；另有 1 条用另行生成的现场数据回答</p>"
+    )
+    english = tmp_path / "en/diagnostics.html"
+    english.parent.mkdir()
+    english.write_text(
+        "<p>35/36 actual trajectory outputs passed the official rule; "
+        "1 separate source-derived answer</p>"
+    )
+    _check_fixed36_output_scope(tmp_path)
+    (tmp_path / "diagnostics.html").write_text(
+        "<p>36/36 条通过官方规则；其中 1 条用另行生成的现场数据回答</p>"
+    )
+    with pytest.raises(ValueError, match="blur actual and source-derived"):
+        _check_fixed36_output_scope(tmp_path)
 
 
 def _method(name: str, pass_rate: float, base: float) -> dict:
@@ -37,6 +365,8 @@ def _method(name: str, pass_rate: float, base: float) -> dict:
         "id": name,
         "label": name,
         "passed": int(pass_rate * 90),
+        "valid_reference_passed": int(pass_rate * 88),
+        "valid_reference_total": 88,
         "total": 90,
         "pass_rate": pass_rate,
         "duration": metric,
@@ -58,10 +388,82 @@ def test_core_metrics_are_registry_driven_and_mark_only_unique_winners() -> None
     assert all(name in rendered for name in ("Browser A", "Browser B", "Browser C"))
     # Pass rate/count and per-action latency only; early exits can reduce
     # all-task duration/resources without doing comparable work.
-    assert rendered.count(">Best</span>") == 5
+    assert rendered.count(">Best</span>") == 6
     assert "End-to-end time, all tasks" in rendered
     assert "n=90" in rendered
     assert "median" not in rendered.lower()
+
+
+def test_legacy_retrieval_provenance_binds_every_browser_to_saved_answer(tmp_path) -> None:
+    answer = {"task_type": "RETRIEVE", "status": "SUCCESS", "retrieved_data": ["value"]}
+    seed = {"tasks": [{"task_id": 243, "canonical_candidate_id": "candidate",
+                       "candidates": [{"id": "candidate", "recorded_response": answer}]}]}
+    seed_path = tmp_path / "seeds.json"
+    seed_path.write_text(json.dumps(seed), encoding="utf-8")
+    results = {
+        "source_seed_manifest": str(seed_path),
+        "source_seed_manifest_sha256": hashlib.sha256(seed_path.read_bytes()).hexdigest(),
+        "engines": ["chromium", "moli"],
+        "attempts": [
+            {"task_id": 243, "engine": browser,
+             "evaluation_input_sha256": _json_sha256(answer)}
+            for browser in ("chromium", "moli")
+        ],
+    }
+    dataset = {"trajectories": [
+        {"task_id": 243, "evaluation_input": {"task_type": "RETRIEVE"}}
+    ]}
+    audit = _legacy_retrieval_provenance(results, dataset)
+    assert audit["retrieval_tasks"] == 1
+    assert audit["retrieval_results"] == audit["frozen_answer_matches"] == 2
+    assert {row["browser"] for row in audit["results"]} == {"chromium", "moli"}
+
+    results["attempts"][1]["evaluation_input_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="differs from frozen Agent answer"):
+        _legacy_retrieval_provenance(results, dataset)
+    results["attempts"][1]["evaluation_input_sha256"] = _json_sha256(answer)
+    results["attempts"].pop()
+    with pytest.raises(ValueError, match="full browser-task matrix"):
+        _legacy_retrieval_provenance(results, dataset)
+
+
+def test_legacy_retrieval_provenance_rejects_changed_seed(tmp_path) -> None:
+    seed_path = tmp_path / "seeds.json"
+    seed_path.write_text('{"tasks": []}', encoding="utf-8")
+    results = {"source_seed_manifest": str(seed_path),
+               "source_seed_manifest_sha256": "0" * 64, "engines": [], "attempts": []}
+    with pytest.raises(ValueError, match="hash mismatch"):
+        _legacy_retrieval_provenance(results, {"trajectories": []})
+
+
+def test_legacy_retrieval_release_gate_rejects_missing_or_false_audit(tmp_path) -> None:
+    zh = '<section class="callout historical-validity"></section>' \
+         '<a href="data/legacy-retrieval-provenance.json">audit</a>'
+    en = '<a href="../data/legacy-retrieval-provenance.json">audit</a>'
+    with pytest.raises(ValueError, match="missing"):
+        _check_legacy_retrieval_audit(tmp_path, zh, en)
+    target = tmp_path / "data/legacy-retrieval-provenance.json"
+    target.parent.mkdir()
+    audit = {
+        "schema": "trajectory_replay_legacy_retrieval_provenance/1",
+        "retrieval_tasks": 37, "retrieval_results": 74, "frozen_answer_matches": 74,
+        "results": [
+            {"task_id": task_id, "browser": browser,
+             "source": "frozen_agent_response_not_current_page_observation"}
+            for task_id in range(1, 38)
+            for browser in ("chromium", "moli")
+        ],
+    }
+    target.write_text(json.dumps(audit), encoding="utf-8")
+    _check_legacy_retrieval_audit(tmp_path, zh, en)
+    audit["frozen_answer_matches"] = 73
+    target.write_text(json.dumps(audit), encoding="utf-8")
+    with pytest.raises(ValueError, match="incomplete"):
+        _check_legacy_retrieval_audit(tmp_path, zh, en)
+    audit["frozen_answer_matches"] = 74
+    target.write_text(json.dumps(audit), encoding="utf-8")
+    with pytest.raises(ValueError, match="not linked"):
+        _check_legacy_retrieval_audit(tmp_path, zh, "<p>no audit link</p>")
 
 
 def test_outcome_distributions_keep_failures_missing_and_real_zero() -> None:
@@ -463,12 +865,23 @@ def test_replay_task_and_result_have_connected_drilldown() -> None:
             "completed_actions": 0,
             "action_count": 1,
         },
+        {
+            "engine": "moli",
+            "participant_id": "moli-fixed",
+            "browser": "Moli fixed",
+            "task_id": 29,
+            "status": "pass",
+            "completed_actions": 2,
+            "action_count": 2,
+            "detail_url": "diagnostic/29.html",
+        },
     ]
     task_html = _task_page("zh", task, peers)
     assert 'href="../result/moli-29.html#diagnosis"' in task_html
     assert 'href="../result/chromium-29.html#trajectory"' in task_html
+    assert 'href="../diagnostic/29.html#trajectory"' in task_html
     assert 'href="../en/task/29.html"' in task_html
-    assert "冻结的操作轨迹" in task_html
+    assert "评测集基准轨迹" in task_html
     assert "信息提取" in task_html
 
     attempt = {
@@ -480,6 +893,7 @@ def test_replay_task_and_result_have_connected_drilldown() -> None:
         "action_count": 1,
         "duration_ms": 1200,
         "resource": {"cpu_ms": 100, "memory_mean_bytes": 10_000_000},
+        "planned_actions": task["tool_calls"],
     }
     evidence = {
         "programmatic_failure": {
@@ -510,10 +924,11 @@ def test_replay_task_and_result_have_connected_drilldown() -> None:
     assert 'id="step-1"' in detail
     assert 'href="#step-1"' in detail
     assert 'data-open-step="1"' in detail
-    assert 'data-standard-url="../data/trajectory/29.json"' in detail
+    assert 'data-standard-url="../data/trajectory/moli-29.json"' in detail
     assert 'data-evidence-url="../data/evidence/moli-29.json"' in detail
     assert "Call log: #latest" not in detail  # Full logs load only when a step is opened.
-    assert "标准轨迹与实际执行" in detail
+    assert "本方法轨迹与实际执行" in detail
+    assert 'href="../diagnostic/29.html"' in detail
     assert "目标没有出现" in detail
     assert 'href="../task/29.html"' in detail
     assert 'href="../evidence-viewer.html?file=data/evidence/moli-29.json"' in detail
@@ -536,6 +951,7 @@ def test_unexecuted_qualified_step_stays_visible_and_is_not_called_an_action_err
         "completed_action_count": 0,
         "action_count": 2,
         "duration_ms": 1200,
+        "planned_actions": task["tool_calls"],
     }
     evidence = {
         "programmatic_failure": {
@@ -627,6 +1043,7 @@ def test_fixed_input_pages_scope_qualification_to_measured_identity(lang, legacy
         "completed_action_count": 0,
         "action_count": 0,
         "duration_ms": 0,
+        "planned_actions": [],
     }
     evidence = {
         "programmatic_failure": {"stage": "pass", "step": None, "message": ""},
@@ -688,6 +1105,7 @@ def test_task173_corrected_review_reaches_public_json_and_bilingual_detail(tmp_p
         "completed_action_count": 3,
         "action_count": 4,
         "duration_ms": 1000,
+        "planned_actions": [{"action": "snapshot"}] * 4,
     }
     evidence = _public_evidence(
         attempt, {**item, "cause_group": group, "revision_evidence": revision}, tmp_path
@@ -700,6 +1118,42 @@ def test_task173_corrected_review_reaches_public_json_and_bilingual_detail(tmp_p
     for lang, phrase in (("zh", "共享基准设置干扰"), ("en", "shared benchmark settings")):
         html = _detail_page(lang, attempt, task, {"label": "Moli"}, evidence, [])
         assert phrase in html
+
+
+def test_site_reset_and_readiness_are_available_in_public_result_evidence(
+    tmp_path: Path,
+) -> None:
+    refs = {}
+    for name, value in (
+        ("site_reset", {"task_id": 29, "sites": {"reddit": {"old_pod": "old", "new_pod": "new"}}}),
+        ("readiness", {"site": "reddit", "stable_http_status": 200}),
+    ):
+        path = tmp_path / f"{name}.json"
+        path.write_text(json.dumps(value), encoding="utf-8")
+        refs[name] = {
+            "path": str(path),
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        }
+    attempt = {
+        "engine": "chromium",
+        "participant_id": "chromium",
+        "task_id": 29,
+        "status": "pass",
+        "process_status": "pass",
+        "evaluator_status": "pass",
+        "action_count": 1,
+        "completed_action_count": 1,
+        "duration_ms": 100,
+        "evidence": refs,
+    }
+    public = _public_evidence(attempt, None, tmp_path / "report")
+    assert public["site_reset"]["sites"]["reddit"] == {
+        "old_pod": "old",
+        "new_pod": "new",
+    }
+    assert public["readiness"]["stable_http_status"] == 200
+    stored = json.loads((tmp_path / "report/data/evidence/chromium-29.json").read_text())
+    assert stored["site_reset"] == public["site_reset"]
 
 
 def test_missing_submission_is_located_at_trigger_without_calling_it_a_failed_action(

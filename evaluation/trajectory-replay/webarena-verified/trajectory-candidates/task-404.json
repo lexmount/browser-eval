@@ -1,0 +1,54 @@
+{
+  "schema": "webarena_qualified_trajectory_revision/1",
+  "task_id": 404,
+  "canonical_calls_sha256": "7b751bbe0d5d330c861ffd2a881654d3539399234bfa73481d7ab9ea02150676",
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://webarena-slice-warm-1-195-reddit.dev.lexmount.net"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"/forums\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"/f/books\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "wait",
+      "seconds": 2
+    },
+    {
+      "action": "click",
+      "selector": "button[aria-label=\"Sort by: Hot\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"/f/books/new\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => { if (document.readyState !== 'complete') await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('vote_page_load_timeout')), 15000); window.addEventListener('load', () => { clearTimeout(timer); resolve(); }, {once: true}); }); await new Promise(resolve => setTimeout(resolve, 500)); const form = document.querySelector('article:has(a[href^=\"/f/books/124260/\"]) form[data-controller~=\"vote\"]'); if (!form || !form.querySelector('button[data-action=\"vote#up\"]')) throw new Error('target_vote_controller_missing'); return {ready_state: document.readyState, target_post_id: 124260, vote_controller_declared: true}; })()"
+    },
+    {
+      "action": "click",
+      "selector": "article:has(a[href^=\"/f/books/124260/\"]) form button:has(img[alt=\"up\"]):visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "wait",
+      "seconds": 2
+    }
+  ]
+}

@@ -7,7 +7,7 @@ import json
 import re
 from html import unescape
 from pathlib import Path
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import urlencode, urljoin, urlsplit
 
 import pytest
 from bs4 import BeautifulSoup
@@ -20,6 +20,7 @@ CANDIDATES = (
 )
 TRAJECTORIES = ROOT / "evaluation/trajectory-replay/webarena-verified/trajectories.json"
 REVIEW = ROOT / "evaluation/trajectory-replay/webarena-verified/mutation-completion-review.json"
+SHOPPING_ORIGIN = "http://host.docker.internal:7770"
 
 
 @pytest.fixture(scope="module")
@@ -97,7 +98,10 @@ def test_candidates_bind_frozen_actions_and_official_task_contract(candidates):
         assert "evaluator" in candidate["qualification"]
 
 
-def _observed(candidate: dict, body: str, path: str | None = None) -> bool:
+def _observed(
+    candidate: dict, body: str, path: str | None = None,
+    origin: str = SHOPPING_ORIGIN,
+) -> bool:
     """Exercise the proposed read-only predicates on synthetic response bodies."""
     observer = candidate["observer"]
     kind = observer["kind"]
@@ -189,9 +193,8 @@ def _observed(candidate: dict, body: str, path: str | None = None) -> bool:
                 len(fields) == 1 and unescape(fields[0].decode_contents()) == observer["html_value"]
             )
         if candidate["task_id"] == 465:
-            if (
-                len(soup.select(f'a[href="{observer["require_authenticated_sign_out_href"]}"]'))
-                != 1
+            if not _authenticated_sign_out(
+                soup, observer["require_authenticated_sign_out_path"], origin
             ):
                 return False
             matches = []
@@ -201,10 +204,8 @@ def _observed(candidate: dict, body: str, path: str | None = None) -> bool:
                     for link in item.select("a")
                 )
                 edit = any(
-                    urlsplit(link.get("href", "")).netloc
-                    in ("", "host.docker.internal:7770", "127.0.0.1:7770")
-                    and re.fullmatch(
-                        observer["edit_href_path_pattern"], urlsplit(link.get("href", "")).path
+                    _same_origin_path_matches(
+                        link.get("href", ""), origin, observer["edit_href_path_pattern"]
                     )
                     for link in item.select("a")
                     if link.get_text(" ", strip=True) == "Edit"
@@ -260,6 +261,27 @@ def _normalized(value: str) -> str:
     return value.replace("\r\n", "\n")
 
 
+def _same_origin_path_matches(href: str, origin: str, path_pattern: str) -> bool:
+    url = urlsplit(urljoin(origin + "/", href))
+    return (
+        f"{url.scheme}://{url.netloc}" == origin
+        and re.fullmatch(path_pattern, url.path) is not None
+    )
+
+
+def _authenticated_sign_out(
+    soup: BeautifulSoup, path: str, origin: str = SHOPPING_ORIGIN
+) -> bool:
+    matches = []
+    for link in soup.select("a[href]"):
+        if link.get_text(" ", strip=True) != "Sign Out":
+            continue
+        url = urlsplit(urljoin(origin + "/", link["href"]))
+        if f"{url.scheme}://{url.netloc}" == origin and url.path == path:
+            matches.append(link)
+    return len(matches) == 1
+
+
 def _frozen_fill(candidate: dict) -> str:
     row = next(
         row
@@ -288,10 +310,10 @@ def _order_observed(
     number = numbers[0]
     history = BeautifulSoup(history_html, "html.parser")
     detail = BeautifulSoup(detail_html, "html.parser")
-    sign_out = f'a[href="{observer["require_authenticated_sign_out_href"]}"]'
-    if [node.get_text(" ", strip=True) for node in history.select(sign_out)] != ["Sign Out"] or [
-        node.get_text(" ", strip=True) for node in detail.select(sign_out)
-    ] != ["Sign Out"]:
+    sign_out_path = observer["require_authenticated_sign_out_path"]
+    if not _authenticated_sign_out(history, sign_out_path) or not _authenticated_sign_out(
+        detail, sign_out_path
+    ):
         return False
     rows = [
         row
@@ -488,6 +510,7 @@ def test_order_observer_requires_success_number_history_and_matching_detail(cand
     assert candidate["observer"]["kind"] == "same_origin_get_order_history_detail"
     assert candidate["observer"]["history_path"] == "/sales/order/history/?limit=50"
     assert candidate["observer"]["read_only_get_count"] == 2
+    assert candidate["observer"]["require_same_origin_sign_out_href"] is True
     success = "Thank you for your purchase! Your order number is: 000000190."
     sign_out = '<a href="/customer/account/logout/">Sign Out</a>'
     history = (
@@ -501,6 +524,25 @@ def test_order_observer_requires_success_number_history_and_matching_detail(cand
     )
     path = "/sales/order/view/order_id/190/"
     assert _order_observed(candidate, success, history, detail, path)
+    absolute_sign_out = (
+        '<a href="http://host.docker.internal:7770/customer/account/logout/">Sign Out</a>'
+    )
+    assert _order_observed(
+        candidate, success, history.replace(sign_out, absolute_sign_out),
+        detail.replace(sign_out, absolute_sign_out), path,
+    )
+    foreign_sign_out = '<a href="https://other.example/customer/account/logout/">Sign Out</a>'
+    assert not _order_observed(
+        candidate, success, history.replace(sign_out, foreign_sign_out), detail, path
+    )
+    assert not _order_observed(
+        candidate, success, history, detail.replace(sign_out, foreign_sign_out), path
+    )
+    assert not _order_observed(
+        candidate, success,
+        history.replace("/customer/account/logout/", "/customer/account/login/"),
+        detail, path,
+    )
     assert not _order_observed(candidate, "Thank you for your purchase!", history, detail, path)
     assert not _order_observed(
         candidate, success, history.replace("000000190", "000000191"), detail, path
@@ -550,7 +592,9 @@ def test_order_candidate_does_not_replace_any_of_four_official_events(candidates
 def test_wishlist_observer_binds_product_id_name_and_authenticated_item(candidates):
     candidate = candidates[465]
     assert candidate["observer"]["kind"] == "same_origin_get_html"
+    assert candidate["observer"]["href_origin"] == "response_url_origin"
     assert not candidate["qualification"].startswith("blocked")
+    assert candidate["observer"]["require_same_origin_sign_out_href"] is True
     name = "Tide PODS Spring Meadow Scent HE Turbo Laundry Detergent Pacs, 81 Count"
     item = (
         '<main><form><li><a href="/tide-pods.html">'
@@ -560,6 +604,14 @@ def test_wishlist_observer_binds_product_id_name_and_authenticated_item(candidat
     )
     signed_in = '<header><a href="/customer/account/logout/">Sign Out</a></header>'
     assert _observed(candidate, signed_in + item)
+    assert _observed(candidate, signed_in.replace(
+        '/customer/account/logout/',
+        'http://host.docker.internal:7770/customer/account/logout/') + item)
+    assert not _observed(candidate, signed_in.replace(
+        '/customer/account/logout/',
+        'https://other.example/customer/account/logout/') + item)
+    assert not _observed(candidate, signed_in.replace(
+        '/customer/account/logout/', '/customer/account/login/') + item)
     assert _observed(
         candidate,
         signed_in
@@ -585,6 +637,17 @@ def test_wishlist_observer_binds_product_id_name_and_authenticated_item(candidat
     )
     assert not _observed(candidate, signed_in + separate_items)
     assert not _observed(candidate, signed_in + "<p>1 item</p>")
+    rainbond_origin = "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net"
+    absolute_live_shape = (signed_in + item).replace(
+        'href="/', f'href="{rainbond_origin}/'
+    )
+    assert _observed(candidate, absolute_live_shape, origin=rainbond_origin)
+    assert not _observed(candidate, absolute_live_shape, origin=SHOPPING_ORIGIN)
+    assert not _observed(
+        candidate,
+        absolute_live_shape.replace("product_id/71337/", "product_id/71338/"),
+        origin=rainbond_origin,
+    )
 
 
 @pytest.mark.parametrize(

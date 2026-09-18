@@ -1,0 +1,24 @@
+{
+  "schema": "trajectory_replay_task66_books_audit/1",
+  "task_id": 66,
+  "diagnostic_receipt_sha256": "a2e61fb4d1143065e337e337251cd49984ad6ae98a4a992a83f731654aacb7bb",
+  "trace_sha256": "bfc3399e8c659afa67a462d6ea92bdcb286dbd816a5757200ea3d550c53a41fa",
+  "actual_response_sha256": "5a5822377ce4c415744342210b03d6bdc504b28935a3268ba63f84ec64fd2555",
+  "independent_post_reread_sha256": "79365dd169cd9185b60bc400f8510502085c00d52cf112093d8c39e0a0e793b9",
+  "scope": "The ten posts in the diagnostic run's complete Books Hot top-ten observation; title and body of every post independently reread from the current site with exact normalized match.",
+  "classification": [
+    {"rank": 1, "post_id": 81371, "exactly_one_recommended_book": false, "reason": "Eliot letters released online, not a single-book recommendation."},
+    {"rank": 2, "post_id": 59421, "exactly_one_recommended_book": false, "reason": "Recommends a bookstore marketplace, not a named book."},
+    {"rank": 3, "post_id": 59447, "exactly_one_recommended_book": false, "reason": "Discusses a book-donation project and books in general."},
+    {"rank": 4, "post_id": 103102, "exactly_one_recommended_book": false, "reason": "Discusses an author's 38 children's books."},
+    {"rank": 5, "post_id": 124017, "exactly_one_recommended_book": false, "reason": "Reports on the Misty of Chincoteague ranch, not a reading recommendation."},
+    {"rank": 6, "post_id": 59466, "exactly_one_recommended_book": false, "reason": "Reports on Ukrainian publishers."},
+    {"rank": 7, "post_id": 59478, "exactly_one_recommended_book": false, "reason": "Praises Agatha Christie's novels and multiple detectives without recommending exactly one book."},
+    {"rank": 8, "post_id": 17445, "exactly_one_recommended_book": true, "reason": "Recommends the reading experience of The Hobbit; the Lord of the Rings trilogy is mentioned as a future possibility, not recommended."},
+    {"rank": 9, "post_id": 59396, "exactly_one_recommended_book": true, "reason": "Recommends the free narrated audiobook of A Christmas Carol, one book."},
+    {"rank": 10, "post_id": 103061, "exactly_one_recommended_book": false, "reason": "Discusses used bookstores in general."}
+  ],
+  "reviewed_outcome_zh": "当次完整 Books 热门前十的十篇正文均与事后独立重读相符。逐篇审查只有第 8 篇《The Hobbit》和第 9 篇《A Christmas Carol》在推荐单独一本书；其它帖子谈网站、作家、多本书、出版或书店。Moli 返回的两个帖子标题与此一致。",
+  "reviewed_outcome_en": "All ten post bodies in the diagnostic run's complete Books Hot top ten match later independent rereads. Article-by-article review finds only rank 8 (The Hobbit) and rank 9 (A Christmas Carol) recommend one individual book; the other posts concern a website, author, multiple books, publishing, or bookstores. Moli returned those two titles.",
+  "scope_limit": "The live Hot ranking later changed after another post entered the list. The independent reread corroborates the ten post contents, not the historical rank order; the run-bound browser observation supplies that order. The official historical verdict is unchanged."
+}

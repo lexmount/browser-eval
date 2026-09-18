@@ -1,0 +1,100 @@
+{
+  "schema": "webarena_qualified_cohort_step_roles/1",
+  "site_readiness": [
+    {
+      "site": "reddit",
+      "path": "/f/DIY/119019/how-can-i-bring-an-hdmi-cable-from-my-pc-downstairs-to-my-tv",
+      "max_stable_ms": 5000
+    },
+    {
+      "site": "gitlab",
+      "path": "/primer/design/-/merge_requests/450",
+      "max_stable_ms": 5000
+    }
+  ],
+  "candidate_overrides": [
+    {
+      "task_id": 66,
+      "path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-66-budget.json",
+      "sha256": "8066148fbbc8acd2d30e4488f384b053dbed7988a3605c28e5c6dd5033ded206",
+      "reason": "allow the declared ten sequential post fetches to complete within the BrowserTool action budget"
+    },
+    {
+      "task_id": 108,
+      "path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-108-stabilized.json",
+      "sha256": "b45982774cf2e89f2ae1d6df56024501185efa6a6f420aa6fda731b67ed446af",
+      "action_count": 16,
+      "stabilization_parent_sha256": "aae7171e90cb3f309400fa7c5289ae3e6a13254c8c075b0cf591f6468e81514a",
+      "paired_qualification": {
+        "chromium_receipt_sha256": "0305006ef4c3da5d5fd095e20f8c1fab746379876f3402a094d47681e147ab61",
+        "moli_receipt_sha256": "71c768f715d400af242801af069d35acac043e703763e296589c21d00f147eab"
+      },
+      "reason": "commit both date-filter inputs and await the matching Magento UI provider state before reading the full order grid"
+    },
+    {
+      "task_id": 163,
+      "path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-163.json",
+      "sha256": "785e3827b17ac0cf8ae428cbf1343c5df7ddba5eafb7505a281e11cfab8d5b6d",
+      "reason": "replace local-Docker origin guard with same-origin review endpoint validation"
+    },
+    {
+      "task_id": 243,
+      "path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-243.json",
+      "sha256": "6bbd9124f65221a096d90127483f523076046dc936d24cd680768d48640597f5",
+      "action_count": 9,
+      "reason": "read the nickname on the unique lowest-rated product review from the complete current review population, without inferring a customer email"
+    },
+    {
+      "task_id": 313,
+      "path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-313.json",
+      "sha256": "2ed9685a48cbd674e424df631f5133fdea800b7ada08dc3e60517f080838ad08",
+      "paired_qualification": {
+        "chromium_receipt_sha256": "2ac325728dcf07cb68e6573c7542128cd01d588b819582ff1823066b83e6d82e",
+        "moli_receipt_sha256": "983fc521bffbbf4439d129cfa8078665f33f2c6ef9ff20b6a5a9e7a8c1b19eac"
+      },
+      "reason": "bind the retrieval contract to its source actions, including the same-site HTTP/HTTPS link selector, instead of the older remote absolute-link trace"
+    },
+    {
+      "task_id": 404,
+      "path": "evaluation/trajectory-replay/webarena-verified/trajectory-candidates/task-404.json",
+      "sha256": "33338a5dd27b991e73f1166bc394661f199420631ef7701a390e305ec5e6f93e",
+      "reason": "wait for the newly opened forum page to finish loading its Stimulus vote controller and bind the click to post 124260"
+    },
+    {
+      "task_id": 464,
+      "path": "evaluation/trajectory-replay/webarena-verified/trajectory-candidates/task-464.json",
+      "sha256": "06dc0afaa7d3a2aef1c5e6777520069dc7add2b73e61825ce98692cd5d093746",
+      "reason": "submit the Magento product form through its visible Save control and await the completion message instead of an arbitrary short delay"
+    },
+    {
+      "task_id": 714,
+      "path": "evaluation/trajectory-replay/webarena-verified/trajectory-candidates/task-714.json",
+      "sha256": "fe4386049a47f14c22b67ac3fe285b4daf83750efd12bbec23b0964349352767",
+      "reason": "stabilize the time-sorted page and bind the vote click to post 19459 rather than a page-wide button ordinal"
+    }
+  ],
+  "exceptions": [
+    {
+      "task_id": 464,
+      "trace_index": "before-1",
+      "role": "readiness",
+      "before_action": 1
+    },
+    {
+      "task_id": 464,
+      "trace_index": 8,
+      "role": "diagnostic_post_observer"
+    },
+    {
+      "task_id": 465,
+      "trace_index": "4a",
+      "role": "readiness",
+      "before_action": 5
+    },
+    {
+      "task_id": 465,
+      "trace_index": 9,
+      "role": "diagnostic_post_observer"
+    }
+  ]
+}

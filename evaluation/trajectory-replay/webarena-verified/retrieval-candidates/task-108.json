@@ -52,6 +52,10 @@
       "replay_mode": "snapshot_ref_semantics"
     },
     {
+      "action": "press",
+      "key": "Tab"
+    },
+    {
       "action": "click",
       "selector": "button:visible:has-text(\"Apply Filters\")",
       "replay_mode": "snapshot_ref_semantics"
@@ -71,11 +75,11 @@
   "retrieval_contract": {
     "schema": "lex_replay_current_run_retrieval/1",
     "task_id": 108,
-    "canonical_calls_sha256": "3427704c619e57d680343f31befd35864d22f0927a57d4067a1634bf0b5468fe",
+    "canonical_calls_sha256": "07d6c1098f9409fd61c5315f57ddfac3c6bfa119bcace58e0ac5811e1df67d18",
     "sources": [
       {
         "name": "observation",
-        "step": 15,
+        "step": 16,
         "action_sha256": "eddf9002825bc5b53dc49dd17f874ff3cb486d9def23b24e181c0cfe7f0bf8e7",
         "decode": "json"
       }

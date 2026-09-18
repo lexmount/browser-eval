@@ -1,0 +1,23 @@
+{
+  "task_id": 67,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:9999/f/Books"
+    },
+    {
+      "action": "wait",
+      "seconds": 2
+    },
+    {
+      "action": "evaluate",
+      "script": "(async()=>{const links=[...new Set([...document.querySelectorAll('main article a[href*=\"/f/books/\"]')].map(a=>a.getAttribute('href')).filter(Boolean))].slice(0,10);if(links.length!==10)throw new Error('expected ten hot-post links, found '+links.length);return Promise.all(links.map(async href=>{const response=await fetch(href);if(!response.ok)throw new Error('post fetch failed '+response.status+' '+href);const page=new DOMParser().parseFromString(await response.text(),'text/html');return {href,text:page.querySelector('main article')?.textContent?.replace(/\\s+/g,' ').trim()||null};}));})()"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => {\n  const controller = new AbortController();\n  const timer = setTimeout(() => controller.abort(), 20000);\n  try {\n    const listing = new URL(location.href);\n    if (listing.origin !== location.origin || listing.pathname.toLowerCase().replace(/\\/$/, '') !== '/f/books' || listing.search) throw new Error('wrong Books listing');\n    const hot = [...document.querySelectorAll('button[aria-label]')].some(node => /^sort by:\\s*hot$/i.test(node.getAttribute('aria-label') || ''));\n    if (!hot) throw new Error('Books listing is not sorted by Hot');\n    const articles = [...document.querySelectorAll('main > article')];\n    if (articles.length < 10) throw new Error('fewer than ten hot posts');\n    const normalize = text => String(text ?? '').replace(/\\s+/g, ' ').trim();\n    const entries = articles.slice(0, 10).map((article, index) => {\n      const links = [...article.querySelectorAll('a[href]')].map(a => a.getAttribute('href')).filter(Boolean);\n      const matches = links.map(href => ({href, match: /^\\/f\\/books\\/(\\d+)(?:\\/|$)/i.exec(href)})).filter(row => row.match);\n      const ids = [...new Set(matches.map(row => row.match[1]))];\n      const title = normalize(article.querySelector('header h1')?.textContent);\n      if (ids.length !== 1 || !title) throw new Error('missing or ambiguous listed post identity');\n      return {rank: index + 1, post_id: ids[0], href: matches[0].href, title};\n    });\n    if (new Set(entries.map(row => row.post_id)).size !== 10) throw new Error('duplicate top-ten post');\n    const posts = [];\n    for (const entry of entries) {\n      const url = new URL(entry.href, location.href);\n      if (url.origin !== location.origin || !new RegExp('^/f/books/' + entry.post_id + '(?:/|$)', 'i').test(url.pathname)) throw new Error('out-of-scope post');\n      const response = await fetch(url.href, {credentials:'same-origin',redirect:'error',signal:controller.signal});\n      if (response.status !== 200 || response.redirected || !/^text\\/html\\b/i.test(response.headers.get('content-type') || '')) throw new Error('post detail unavailable');\n      const page = new DOMParser().parseFromString(await response.text(), 'text/html');\n      const article = page.querySelector('main > article');\n      const detailTitle = normalize(article?.querySelector('header h1')?.textContent);\n      const permalinks = [...(article?.querySelectorAll('a[href]') || [])].map(a => a.getAttribute('href')).filter(Boolean);\n      if (!article || detailTitle !== entry.title || !permalinks.some(href => new RegExp('^/f/books/' + entry.post_id + '(?:/|$)', 'i').test(href))) throw new Error('listing/detail identity mismatch');\n      posts.push({...entry, detail_url:response.url, article_text:normalize(article.textContent), description:article.querySelector('.submission__body')?.textContent ?? ''});\n    }\n    return {schema:'books_hot_top_ten_current_observation/1',scope:true,complete:posts.length===10,listing_url:listing.href,sort:'hot',posts};\n  } finally { controller.abort(); clearTimeout(timer); }\n})()"
+    }
+  ],
+  "retrieval_contract": null,
+  "qualification_status": "pending_post_reset_source_review"
+}

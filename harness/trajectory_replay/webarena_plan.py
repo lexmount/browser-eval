@@ -275,10 +275,19 @@ def load_replay_plan(profile_path: str | Path, seed_manifest_path: str | Path) -
         raise ValueError("the fixed-port WebArena stack supports exactly one environment pool")
     if execution.get("method_parallelism") != 1 or execution.get("task_parallelism") != 1:
         raise ValueError("one environment pool requires serial methods and serial tasks")
-    if not execution.get("reset_before_every_task") or not execution.get(
-        "teardown_between_methods"
+    if execution.get("teardown_between_methods") is not True:
+        raise ValueError("formal replay requires method teardown")
+    if "retry_failed_task" in execution and type(execution["retry_failed_task"]) is not bool:
+        raise ValueError("retry_failed_task must be a boolean")
+    if execution.get("reset_before_every_task") is not True and (
+        execution.get("reset_before_every_task") is not False
+        or execution.get("reset_before_every_method") is not True
+        or execution.get("retry_failed_task") is not False
     ):
-        raise ValueError("formal replay requires task resets and method teardown")
+        raise ValueError(
+            "method-scoped site preparation requires an explicit method reset "
+            "and no failed-task retry"
+        )
     trusted_source_site_hosts = {
         str(host) for host in execution.get("trusted_source_site_hosts") or []
     }

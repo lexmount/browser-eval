@@ -54,6 +54,25 @@ def _assert_qualification_claim(row: dict, candidate: dict) -> None:
     raise AssertionError("no production read-only semantics proof for appended observations")
 
 
+def test_task108_stale_receipt_cannot_bind_new_canonical_input() -> None:
+    row = next(row for row in MATRIX["rows"] if row["task_id"] == 108)
+    prior = row["historical_receipt"]
+    assert row["receipt_sha256"] is None
+    assert row["official_score"] is None
+    assert prior["candidate_sha256"] != row["candidate_sha256"]
+    assert prior["calls_sha256"] != row["calls_sha256"]
+    assert prior["contract_sha256"] != row["contract_sha256"]
+    qualified = row["affected_task_qualification"]
+    assert qualified["candidate_sha256"] == row["candidate_sha256"]
+    assert qualified["chromium_receipt_sha256"] != prior["receipt_sha256"]
+    assert qualified["moli_receipt_sha256"] != prior["receipt_sha256"]
+    assert qualified["chromium_receipt_sha256"] != qualified["moli_receipt_sha256"]
+    assert qualified["action_count_per_browser"] == 16
+    assert qualified["chromium_official_score"] == qualified["moli_official_score"] == 1.0
+    with pytest.raises(AssertionError):
+        _candidate({**row, "candidate_sha256": prior["candidate_sha256"]})
+
+
 def test_batch_separates_contract_validity_from_official_score():
     assert MATRIX["score_bearing"] is False
     assert MATRIX["profile_bound"] is False
@@ -83,7 +102,15 @@ def test_batch_separates_contract_validity_from_official_score():
             assert row["official_score"] is None
             assert row["blocker"]
             continue
-        assert len(row["receipt_sha256"]) == 64
+        if row["task_id"] == 108:
+            assert row["receipt_sha256"] is None
+            assert row["historical_receipt"]["receipt_sha256"] != row["receipt_sha256"]
+            assert row["historical_receipt"]["candidate_sha256"] != row["candidate_sha256"]
+            assert row["affected_task_qualification"]["candidate_sha256"] == row["candidate_sha256"]
+            assert len(row["affected_task_qualification"]["chromium_receipt_sha256"]) == 64
+            assert len(row["affected_task_qualification"]["moli_receipt_sha256"]) == 64
+        else:
+            assert len(row["receipt_sha256"]) == 64
         candidate = _candidate(row)
         assert candidate["task_id"] == row["task_id"]
         assert candidate["retrieval_contract"]["task_id"] == row["task_id"]
@@ -98,10 +125,16 @@ def test_batch_separates_contract_validity_from_official_score():
         assert row["eligible_for_qualification"] is False
         if row["level"] != "diagnostic_only":
             continue
-        if row["task_id"] == 108:
-            assert row["diagnostic_stage"] == "acceptance_only"
-            assert row["task_id"] == 108
-            assert row["official_score"] is None
+        if row["task_id"] in {108, 313}:
+            assert row["diagnostic_stage"] == "affected_task_qualified"
+            qualification = row["affected_task_qualification"]
+            assert qualification["chromium_official_score"] == 1.0
+            assert qualification["moli_official_score"] == 1.0
+            assert qualification["candidate_sha256"] == row["candidate_sha256"]
+            if row["task_id"] == 108:
+                assert row["official_score"] is None
+            else:
+                assert row["official_score"] == 1.0
             assert row["blocker"]
         else:
             assert row["diagnostic_stage"] == "official_evaluator"
@@ -169,10 +202,12 @@ def test_reviewed_v3_evidence_digest_is_required(task_id: int):
         validate_contract(changed, candidate["tool_calls"])
 
 
-def test_scope_false_and_retrospective_identity_review_are_not_promoted():
+def test_bounded_absence_and_retrospective_identity_review_are_not_promoted():
     rows = {row["task_id"]: row for row in MATRIX["rows"]}
-    assert rows[313]["level"] == rows[243]["level"] == "blocked"
-    assert "scope=false" in rows[313]["blocker"]
+    assert rows[313]["level"] == "diagnostic_only"
+    assert rows[313]["eligible_for_qualification"] is False
+    assert "full-scope inclusion requires a frozen rerun" in rows[313]["blocker"]
+    assert rows[243]["level"] == "blocked"
     assert "identity" in rows[243]["blocker"]
 
 

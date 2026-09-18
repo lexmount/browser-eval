@@ -128,6 +128,7 @@ class CorrectedReplayContract:
     corrected_task_sha256: str
     rationale: str
     replay_assertions: tuple[Mapping[str, Any], ...]
+    network_alternatives: Mapping[int, tuple[WebArenaVerifiedTask, ...]]
 
 
 def load_corrections(path: str | Path = DEFAULT_CORRECTIONS_PATH) -> CorrectionCatalog:
@@ -155,6 +156,19 @@ def load_corrections(path: str | Path = DEFAULT_CORRECTIONS_PATH) -> CorrectionC
             raise ValueError(f"task {task_id}: official_revision must be positive")
         if not record.get("preconditions") or not record.get("operations"):
             raise ValueError(f"task {task_id}: preconditions and operations are required")
+        if record.get("network_event_alternatives") or record.get("reference_receipt"):
+            regression_ids = record.get("regression_ids")
+            if (
+                not record.get("root_cause")
+                or not isinstance(regression_ids, list)
+                or len(regression_ids) < 2
+                or not all(isinstance(item, str) and item for item in regression_ids)
+                or len(regression_ids) != len(set(regression_ids))
+            ):
+                raise ValueError(
+                    f"task {task_id}: reference or network correction needs root cause "
+                    "and paired regressions"
+                )
         records[task_id] = MappingProxyType(copy.deepcopy(record))
         record_sha256s[task_id] = _digest(record)
     return CorrectionCatalog(
@@ -194,7 +208,96 @@ def apply_correction(
     for operation in record["operations"]:
         _apply_operation(corrected, operation)
 
+    reference = record.get("reference_receipt")
+    if reference is not None:
+        project_root = catalog.source_path.parents[3]
+        reference_path = (project_root / str(reference["path"])).resolve()
+        try:
+            reference_path.relative_to(project_root)
+        except ValueError as exc:
+            raise ValueError(f"task {task.task_id}: reference receipt escapes repository") from exc
+        if reference_path.is_symlink() or not reference_path.is_file():
+            raise ValueError(f"task {task.task_id}: reference receipt missing or symlinked")
+        raw_reference = reference_path.read_bytes()
+        if hashlib.sha256(raw_reference).hexdigest() != reference.get("sha256"):
+            raise ValueError(f"task {task.task_id}: reference receipt changed")
+        observation = json.loads(raw_reference)
+        if observation.get("task_id") != task.task_id:
+            raise ValueError(f"task {task.task_id}: reference receipt task changed")
+        if task.task_id == 225:
+            graphql = observation.get("independent_source") or {}
+            products = graphql.get("title_matched_items") or []
+            check = observation.get("database_cross_check") or {}
+            expected_response = observation.get("expected_response") or {}
+            binding = observation.get("candidate_binding") or {}
+            candidate_path = (project_root / str(binding.get("path") or "")).resolve()
+            try:
+                candidate_path.relative_to(project_root)
+            except ValueError as exc:
+                raise ValueError("task 225: candidate path escapes repository") from exc
+            if (
+                observation.get("schema") != "trajectory_replay_revised_reference/1"
+                or candidate_path.is_symlink()
+                or not candidate_path.is_file()
+                or hashlib.sha256(candidate_path.read_bytes()).hexdigest() != binding.get("sha256")
+                or graphql.get("kind") != "public_storefront_graphql"
+                or graphql.get("total_count") != graphql.get("returned_items")
+                or graphql.get("total_count") != 6
+                or graphql.get("other_sephora_title_items") != 4
+                or len(products) != 2
+                or check.get("catalog_match_count") != len(products)
+                or check.get("review_row_count") != 0
+                or check.get("manufacturer_attribute_rows") != 0
+                or any(
+                    not all(word in item.get("name", "").lower() for word in ("sephora", "brush"))
+                    or item.get("review_count") != 0
+                    or (item.get("reviews") or {}).get("items") != []
+                    or (item.get("reviews") or {}).get("page_info", {}).get("total_pages") != 0
+                    for item in products
+                )
+                or expected_response.get("task_type") != "RETRIEVE"
+                or expected_response.get("status") != "NOT_FOUND_ERROR"
+                or expected_response.get("retrieved_data") is not None
+            ):
+                raise ValueError(f"task {task.task_id}: incomplete independent reference")
+            corrected["eval"][0]["expected"] = copy.deepcopy(expected_response)
+        else:
+            raise ValueError(f"task {task.task_id}: unsupported independent reference")
+
     corrected_task = type(task).model_validate(corrected)
+    network_alternatives: dict[int, list[WebArenaVerifiedTask]] = {}
+    for alternative in record.get("network_event_alternatives") or []:
+        index = alternative.get("evaluator_index")
+        operations = alternative.get("operations")
+        if (
+            not isinstance(index, int)
+            or not 0 <= index < len(corrected["eval"])
+            or corrected["eval"][index]["evaluator"] != "NetworkEventEvaluator"
+            or not isinstance(operations, list)
+            or not operations
+            or not all(
+                operation.get("path")
+                in {
+                    f"/eval/{index}/expected/response_status",
+                    f"/eval/{index}/expected/response_content",
+                }
+                for operation in operations
+            )
+        ):
+            raise ValueError(f"task {task.task_id}: invalid network event alternative")
+        alternative_data = copy.deepcopy(corrected)
+        for operation in operations:
+            _apply_operation(alternative_data, operation)
+        alternative_task = type(task).model_validate(alternative_data)
+        if (
+            alternative_task.eval[index].expected.url != corrected_task.eval[index].expected.url
+            or alternative_task.eval[index].expected.http_method
+            != corrected_task.eval[index].expected.http_method
+            or alternative_task.eval[index].expected.post_data
+            != corrected_task.eval[index].expected.post_data
+        ):
+            raise ValueError(f"task {task.task_id}: network alternative changed the mutation")
+        network_alternatives.setdefault(index, []).append(alternative_task)
     assertions = tuple(
         MappingProxyType(copy.deepcopy(item)) for item in record.get("replay_assertions") or []
     )
@@ -206,6 +309,9 @@ def apply_correction(
         corrected_task_sha256=_digest(corrected_task.model_dump(mode="json")),
         rationale=str(record["rationale"]),
         replay_assertions=assertions,
+        network_alternatives=MappingProxyType(
+            {index: tuple(tasks) for index, tasks in network_alternatives.items()}
+        ),
     )
 
 
@@ -269,27 +375,33 @@ def evaluate_corrected_contract(
         for item in contract.replay_assertions
     )
     evaluator_results = []
-    for config in task.eval:
+    for index, config in enumerate(task.eval):
         evaluator_context = context
         if ordinary_network_filtering and config.evaluator == "NetworkEventEvaluator":
             task_data = task.model_dump(mode="json")
             evaluations = task_data.get("eval") or []
             if not evaluations or not isinstance(evaluations[0].get("expected"), dict):
-                raise ValueError(
-                    "ordinary network filtering requires eval[0].expected"
-                )
+                raise ValueError("ordinary network filtering requires eval[0].expected")
             # webarena-verified 1.2.3 reads the task type used by
             # NetworkEventEvaluator from eval[0].expected, regardless of the
             # network evaluator's own position in the task configuration.
             evaluations[0]["expected"]["task_type"] = "MUTATE"
             filtering_task = type(task).model_validate(task_data)
             evaluator_context = context.model_copy(update={"task": filtering_task})
-        evaluator_results.append(
-            EVALUATOR_REGISTRY[config.evaluator]().evaluate(
-                context=evaluator_context,
-                config=config,
-            )
+        result = EVALUATOR_REGISTRY[config.evaluator]().evaluate(
+            context=evaluator_context,
+            config=config,
         )
+        if float(result.score) != 1.0:
+            for alternative_task in contract.network_alternatives.get(index, ()):
+                alternative_result = EVALUATOR_REGISTRY[config.evaluator]().evaluate(
+                    context=context.model_copy(update={"task": alternative_task}),
+                    config=alternative_task.eval[index],
+                )
+                if float(alternative_result.score) == 1.0:
+                    result = alternative_result
+                    break
+        evaluator_results.append(result)
     return TaskEvalResult.create(
         task_id=task.task_id,
         intent_template_id=task.intent_template_id,

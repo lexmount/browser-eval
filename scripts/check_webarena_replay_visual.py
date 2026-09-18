@@ -110,22 +110,16 @@ def _routes(report: Path) -> list[str]:
         None,
     )
     task_id = next((item.get("task_id") for item in results if item["status"] == "fail"), None)
+    if task_id is None:
+        task_id = next((item.get("task_id") for item in results), None)
     fixed = [
         "index.html",
         "dataset.html",
         "results.html",
         "environment.html",
         "review.html",
-        "fixes.html",
     ]
     routes = [*fixed, *(f"en/{item}" for item in fixed)]
-    fix_id = _first_fix_id(report)
-    if fix_id is not None:
-        routes.extend((f"fix/{fix_id}.html", f"en/fix/{fix_id}.html"))
-    if (report / "diagnostics.html").is_file():
-        routes.extend(("diagnostics.html", "en/diagnostics.html"))
-        for task_id in _diagnostic_samples(report):
-            routes.extend((f"diagnostic/{task_id}.html", f"en/diagnostic/{task_id}.html"))
     if task_id is not None and (report / "task" / f"{task_id}.html").is_file():
         routes.extend((f"task/{task_id}.html", f"en/task/{task_id}.html"))
     if failed_key is not None:
@@ -138,7 +132,11 @@ def _routes(report: Path) -> list[str]:
             )
         )
     if passed_key is not None and (report / "result" / f"{passed_key}.html").is_file():
-        routes.extend((f"result/{passed_key}.html", f"en/result/{passed_key}.html"))
+        routes.extend((
+            f"result/{passed_key}.html", f"en/result/{passed_key}.html",
+            f"evidence-viewer.html?file=data/evidence/{passed_key}.json",
+            f"en/evidence-viewer.html?file=../data/evidence/{passed_key}.json",
+        ))
     return routes
 
 
@@ -173,17 +171,17 @@ def check(report: Path, receipt: Path) -> None:
                         wait_until="domcontentloaded",
                     )
                     route_page.wait_for_function(
-                        "() => document.baseURI.includes('/api/preview/replay/result/')"
+                        "() => document.baseURI.includes('/api/preview/replay~fixture/result/')"
                     )
                     route_page.wait_for_function("() => !!document.documentElement.dataset.theme")
                     route_page.wait_for_function(
                         "() => getComputedStyle(document.body).backgroundColor"
                         " !== 'rgba(0, 0, 0, 0)'"
                     )
-                    assert "/api/preview/replay/result/" in route_page.locator(
+                    assert "/api/preview/replay~fixture/result/" in route_page.locator(
                         ".peer-list a"
                     ).first.evaluate("element => element.href")
-                    assert "/api/preview/replay/evidence-viewer.html" in route_page.locator(
+                    assert "/api/preview/replay~fixture/evidence-viewer.html" in route_page.locator(
                         "#evidence .evidence-actions a"
                     ).first.evaluate("element => element.href")
                     step_button = route_page.locator(
@@ -220,7 +218,7 @@ def check(report: Path, receipt: Path) -> None:
                     route_page.locator("[data-close-step]").click()
                     route_page.locator('nav a[href="../index.html"]').first.click()
                     route_page.wait_for_url(
-                        f"http://127.0.0.1:{server.server_port}/api/preview/replay/index.html"
+                        f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/index.html"
                     )
                     route_page.locator("h1").wait_for()
                     route_page.close()
@@ -260,14 +258,33 @@ def check(report: Path, receipt: Path) -> None:
                         wait_until="domcontentloaded",
                     )
                     fix_page.wait_for_function(
-                        "() => document.baseURI.includes('/api/preview/replay/fix/')"
+                        "() => document.baseURI.includes('/api/preview/replay~fixture/fix/')"
                     )
                     fix_page.locator('nav a[href="../index.html"]').first.click()
                     fix_page.wait_for_url(
-                        f"http://127.0.0.1:{server.server_port}/api/preview/replay/index.html"
+                        f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/index.html"
                     )
                     fix_page.locator("h1").wait_for()
                     fix_page.close()
+                if (report / "diagnostics.html").is_file():
+                    hosted_page = browser.new_page()
+                    hosted_root = (
+                        f"http://127.0.0.1:{server.server_port}"
+                        "/api/preview/replay~fixture/"
+                    )
+                    hosted_page.goto(hosted_root + "index.html", wait_until="domcontentloaded")
+                    hosted_page.locator('a[href="diagnostics.html"]').first.click()
+                    hosted_page.wait_for_url(hosted_root + "diagnostics.html")
+                    hosted_page.locator("h1").wait_for()
+                    assert hosted_page.locator("body").inner_text().count("36/36") >= 1
+                    hosted_page.locator('a[href="diagnostic/243.html"]').first.click()
+                    hosted_page.wait_for_url(hosted_root + "diagnostic/243.html")
+                    hosted_page.locator("h1").wait_for()
+                    hosted_page.locator('a[href="../diagnostics.html"]').first.click()
+                    hosted_page.wait_for_url(hosted_root + "diagnostics.html")
+                    hosted_page.locator('nav a[href="index.html"]').first.click()
+                    hosted_page.wait_for_url(hosted_root + "index.html")
+                    hosted_page.close()
                 drill_page = browser.new_page()
                 drill_page.goto(
                     f"http://127.0.0.1:{server.server_port}/dataset.html",
@@ -284,12 +301,11 @@ def check(report: Path, receipt: Path) -> None:
                     f"http://127.0.0.1:{server.server_port}/results.html?task={drill_task}&status="
                 )
                 drill_page.locator('[data-results-ready="true"]').wait_for(timeout=5_000)
-                participants = json.loads(
-                    (report / "report-manifest.json").read_text(encoding="utf-8")
-                )["participants"]
-                assert drill_page.locator("[data-results] tbody tr:not([hidden])").count() == len(
-                    participants
-                )
+                measured_task_rows = [
+                    row for row in json.loads((report / "data/results.json").read_text(encoding="utf-8"))
+                    if str(row["task_id"]) == drill_task
+                ]
+                assert drill_page.locator("[data-results] tbody tr:not([hidden])").count() == len(measured_task_rows)
                 drill_page.close()
                 for index, route in enumerate(_routes(report)):
                     for width, height in ((1440, 1000), (390, 844)):

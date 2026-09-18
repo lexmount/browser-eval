@@ -1,0 +1,63 @@
+{
+  "schema": "trajectory_replay_task576_suggestion_layout_audit/1",
+  "task_id": 576,
+  "historical_result": {
+    "browser": "moli",
+    "version": "1.1.3",
+    "failed_action_index": 6,
+    "error": "abisubramanya27 suggestion not found",
+    "trace_sha256": "e54402a9bc26c24f926fd9a1c40c9d00790ecc20b84d312317dd4a7e49f8a846",
+    "upstream_actions": "The project navigation, Invite members click, username input event and two-second wait all returned success. Action 6 required a matching button with non-null offsetParent."
+  },
+  "diagnostic_contract": {
+    "site": "WebArena GitLab",
+    "action_scope": "frozen actions 1-5 followed by read-only username, suggestion DOM and geometry observations at 0, 2 and 5 seconds; no suggestion click or invitation",
+    "site_reset": false,
+    "site_data_mutations": 0,
+    "runner_sha256": "a0d41c648953a5d9e0fe4a7a74175a48eb1977dd44ffc62cf3a665f1814b0727"
+  },
+  "same_page_comparison": [
+    {
+      "build": "official macOS Moli 1.1.6",
+      "binary_sha256": "8d89eebcd9908d1d0e1d3597a35e36fb41d0742604295c4046ccb3d26996caf2",
+      "receipt_sha256": "bef5359ec8bc4382a241aea03f475cc8713d3b7447f528caabe7a8745307af57",
+      "lookup_input_value": "abisubramanya27",
+      "matching_suggestion_count_at_0_2_5_seconds": [1, 1, 1],
+      "matching_suggestion_text": "Abishek S  abisubramanya27",
+      "offset_parent_tag_at_0_2_5_seconds": [null, null, null],
+      "suggestion_rect_at_0_2_5_seconds": [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+      "computed_display": "flex",
+      "computed_visibility": "visible",
+      "button_disabled": false,
+      "document_ready_state": "complete"
+    },
+    {
+      "build": "fixed Moli 1.1.7 candidate",
+      "binary_sha256": "af808b3f7bb5dd0604262bba95cecdf06ba18d9547a169c1443bfbb1255b4397",
+      "receipt_sha256": "c71c1039c97dfdd2740d753afc48b20dfc071a2a861aa8c2d44c0e2b6944d2b1",
+      "lookup_input_value": "abisubramanya27",
+      "matching_suggestion_count_at_0_2_5_seconds": [1, 1, 1],
+      "matching_suggestion_text": "Abishek S  abisubramanya27",
+      "offset_parent_tag_at_0_2_5_seconds": ["UL", "UL", "UL"],
+      "suggestion_rect_at_0_2_5_seconds": [[386, 389, 238, 51], [386, 389, 238, 51], [386, 389, 238, 51]],
+      "computed_display": "flex",
+      "computed_visibility": "visible",
+      "button_disabled": false,
+      "document_ready_state": "complete"
+    }
+  ],
+  "reviewed_cause": {
+    "category": "stale_layout_snapshot_after_member_suggestion_update",
+    "code_or_process": "suggestion_present_but_offset_parent_and_box_missing",
+    "mechanism_zh": "历史轨迹第 6 步报“找不到建议”，但错误来自其 offsetParent 非空的筛选条件，不能单凭错误文本推断站点没有返回用户。相同冻结前缀下，两版 Moli 均在 DOM 中得到目标用户建议，输入值一致；官方 1.1.6 的建议按钮及父容器矩形持续五秒为零，offsetParent 为 null，而固定候选的按钮矩形为 238×51，offsetParent 为 UL。按钮未禁用、计算样式可见、页面加载完成。因此此次红黑对照支持动态建议插入后几何布局未更新这一故障机制，而非建议数据缺失；探针没有点击建议或发送邀请。",
+    "mechanism_en": "The historical action 6 reported the suggestion missing, but its selector first required a non-null offsetParent, so the error alone did not prove missing site data. After the same frozen prefix, both Moli builds had the matching user suggestion in the DOM with the same input value. Official 1.1.6 kept the suggestion and parent at zero-area geometry with null offsetParent for five seconds; the fixed candidate gave it a 238×51 rectangle and UL offsetParent. The button was enabled, computed style was visible and the document was complete. This red/black comparison supports stale geometry after dynamic suggestion insertion rather than absent suggestion data. The probe neither selected the suggestion nor sent an invitation."
+  },
+  "source_location": {
+    "commit": "adde6e4f4f21d5be98c7f58b0a5ca61f78900d75",
+    "dirty_tracking": "moli-renderer-v8/src/native_bridge/context_host/layout_state.rs",
+    "geometry_query": "moli-renderer-v8/src/native_bridge/element/geometry/metrics.rs",
+    "refresh_guard": "moli-renderer-v8/src/native_bridge/context_host/layout.rs"
+  },
+  "current_candidate_result": "The revised 14-action candidate completed and received official score 1, but it is not an exact replay of the original 13 actions.",
+  "scope_limit": "The same-page test compares official 1.1.6 with the fixed candidate on the current Rainbond GitLab deployment. It does not prove the historical 1.1.3 DOM state, isolate a single source commit, or verify that the exact original invitation succeeds. Historical official scores remain unchanged."
+}

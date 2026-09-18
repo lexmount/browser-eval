@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
+from pathlib import Path
 
 import pytest
 
@@ -38,7 +40,33 @@ def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
     assert len(catalog.upstream["dataset_sha256"]) == 64
     assert set(catalog.record_sha256s) == set(catalog.records)
     assert len(set(catalog.record_sha256s.values())) == len(catalog.records)
-    assert corrected_task_ids(catalog) == (279, 339, 448, 475, 510, 528, 547, 676, 699)
+    assert corrected_task_ids(catalog) == (225, 279, 339, 448, 475, 510, 528, 547, 676, 699)
+    assert catalog.records[448]["regression_ids"] == [
+        "tr-448-302-success",
+        "tr-448-200-json-success",
+        "tr-448-200-json-failure",
+        "tr-448-wrong-website",
+        "tr-448-canceled-request",
+    ]
+
+
+def test_448_scoring_revision_is_bound_to_correction_and_regressions(catalog) -> None:
+    root = Path(__file__).resolve().parents[2]
+    receipt = json.loads(
+        (root / "research/trajectory-replay-task448-scoring-revision.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    audit = root / "research/trajectory-replay-task448-response-variant-audit.json"
+    assert receipt["task_id"] == 448
+    assert receipt["provider_call_count"] == 0
+    # Historical revision receipts bind the catalog as it existed at release;
+    # later independent corrections must not rewrite that provenance.
+    assert len(receipt["revised_correction_catalog_sha256"]) == 64
+    assert receipt["revised_correction_record_sha256"] == catalog.record_sha256s[448]
+    assert receipt["regression_ids"] == catalog.records[448]["regression_ids"]
+    assert receipt["evidence_audit_sha256"] == hashlib.sha256(audit.read_bytes()).hexdigest()
+    assert receipt["result_revision"]["new_provider_call"] is False
 
 
 def test_apply_is_pure_traceable_and_fails_closed(benchmark, catalog) -> None:
@@ -70,6 +98,67 @@ def test_279_corrects_only_drifted_reference_title(benchmark, catalog) -> None:
     names = _dump_eval(applied, 0)["expected"]["retrieved_data"][0]["names"]
     assert names[9] == "Sony WI-C300 Wireless In-Ear Headphones, Red (WIC300/R))"
     assert len(names) == 12
+
+
+def test_225_corrects_unverifiable_brand_scope_from_independent_catalog(benchmark, catalog) -> None:
+    original = benchmark.get_task(225)
+    corrected = apply_correction(original, catalog)
+    assert "brush from sephora" in original.intent
+    assert "titles contain both Sephora and Brush" in corrected.task.intent
+    receipt = catalog.records[225]["reference_receipt"]
+    reference_path = Path(__file__).resolve().parents[2] / receipt["path"]
+    assert hashlib.sha256(reference_path.read_bytes()).hexdigest() == receipt["sha256"]
+    source = json.loads(reference_path.read_text(encoding="utf-8"))
+    assert corrected.task.eval[0].expected.model_dump(mode="json") == source["expected_response"]
+    assert source["independent_source"]["total_count"] == 6
+    assert len(source["independent_source"]["title_matched_items"]) == 2
+
+
+@pytest.mark.parametrize(
+    ("response", "expected_score"),
+    [
+        ({"task_type": "RETRIEVE", "status": "NOT_FOUND_ERROR", "retrieved_data": None}, 1.0),
+        ({"task_type": "RETRIEVE", "status": "SUCCESS", "retrieved_data": ["Invented"]}, 0.0),
+    ],
+    ids=["tr-225-complete-two-products-no-low-reviews", "tr-225-reject-new-low-review"],
+)
+def test_225_revised_reference_scores_both_directions(
+    tmp_path, benchmark, catalog, response, expected_score
+) -> None:
+    trace = tmp_path / "task-225.har"
+    trace.write_text(
+        json.dumps(
+            {
+                "log": {
+                    "version": "1.2",
+                    "creator": {"name": "control", "version": "1"},
+                    "entries": [
+                        {
+                            "request": {
+                                "method": "GET",
+                                "url": "http://example.test/",
+                                "headers": [],
+                            },
+                            "response": {
+                                "status": 200,
+                                "headers": [],
+                                "cookies": [],
+                                "content": {"mimeType": "text/html", "text": ""},
+                            },
+                        }
+                    ],
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = evaluate_corrected_contract(
+        benchmark,
+        apply_correction(benchmark.get_task(225), catalog),
+        agent_response=response,
+        network_trace=trace,
+    )
+    assert float(result.score) == expected_score
 
 
 def test_339_uses_canonical_issues_route_and_filters_before_recency(benchmark, catalog) -> None:
@@ -111,9 +200,7 @@ def test_448_matches_the_profile_save_event_before_recency(benchmark, catalog) -
     applied = apply_correction(benchmark.get_task(448), catalog)
     evaluator = _dump_eval(applied, 1)
     assert evaluator["expected"]["url"] == "__GITLAB__/-/profile"
-    assert evaluator["expected"]["post_data"] == {
-        "user[website_url]": "https://egg.tart.com"
-    }
+    assert evaluator["expected"]["post_data"] == {"user[website_url]": "https://egg.tart.com"}
     assert evaluator["last_event_only"] is False
 
 
@@ -170,6 +257,73 @@ def test_448_official_evaluator_selects_matching_save_not_later_profile_event(
     assert score(["https%3A%2F%2Fegg.tart.com"]) == (1, 1)
     assert score(["https%3A%2F%2Fegg.tart.com", "https%3A%2F%2Fother.test"]) == (0, 1)
     assert score(["https%3A%2F%2Fother.test"]) == (0, 0)
+
+
+@pytest.mark.parametrize(
+    ("website", "status", "message", "expected_score"),
+    [
+        ("https%3A%2F%2Fegg.tart.com", 302, "", 1),
+        ("https%3A%2F%2Fegg.tart.com", 200, "Profile was successfully updated", 1),
+        ("https%3A%2F%2Fegg.tart.com", 200, "Validation failed", 0),
+        ("https%3A%2F%2Fother.test", 200, "Profile was successfully updated", 0),
+        ("https%3A%2F%2Fegg.tart.com", 0, "Profile was successfully updated", 0),
+    ],
+    ids=[
+        "tr-448-302-success",
+        "tr-448-200-json-success",
+        "tr-448-200-json-failure",
+        "tr-448-wrong-website",
+        "tr-448-canceled-request",
+    ],
+)
+def test_448_accepts_only_explicit_successful_json_profile_update(
+    tmp_path, benchmark, catalog, website, status, message, expected_score
+) -> None:
+    corrected = apply_correction(benchmark.get_task(448), catalog)
+    assert len(corrected.network_alternatives[1]) == 1
+    target = "http://host.docker.internal:8023/-/profile"
+    response = {"task_type": "MUTATE", "status": "SUCCESS", "retrieved_data": None}
+
+    def score(*, website: str, status: int, message: str) -> float:
+        har = tmp_path / "task-448-json.har"
+        har.write_text(
+            json.dumps(
+                {
+                    "log": {
+                        "version": "1.2",
+                        "creator": {"name": "task-448-json-control", "version": "1"},
+                        "entries": [
+                            {
+                                "request": {
+                                    "method": "POST",
+                                    "url": target,
+                                    "headers": [],
+                                    "postData": {
+                                        "mimeType": "application/x-www-form-urlencoded",
+                                        "text": f"user%5Bwebsite_url%5D={website}",
+                                    },
+                                },
+                                "response": {
+                                    "status": status,
+                                    "headers": [],
+                                    "cookies": [],
+                                    "content": {
+                                        "mimeType": "application/json",
+                                        "text": json.dumps({"message": message}),
+                                    },
+                                },
+                            }
+                        ],
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        return evaluate_corrected_contract(
+            benchmark, corrected, agent_response=response, network_trace=har
+        ).score
+
+    assert score(website=website, status=status, message=message) == expected_score
 
 
 def test_510_freezes_selection_order_and_product(benchmark, catalog) -> None:

@@ -3,8 +3,8 @@
   "benchmark": "WebArena-Verified",
   "benchmark_version": "1.2.3",
   "task_selection": {
-    "path": "evaluation/browser-use/webarena-verified-pilot.json",
-    "sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+    "path": "evaluation/trajectory-replay/webarena-verified/selection.json",
+    "sha256": "399e2cba4340c6137bcc85bb37fb27cb1a2b5b4a04168e40399713df062c2d89",
     "task_count": 90
   },
   "seed_inventory": {
@@ -14,16 +14,28 @@
     "required_ready_tasks": 90,
     "canonical_trajectories_per_task": 1
   },
+  "dataset": {
+    "path": "evaluation/trajectory-replay/webarena-verified/trajectories-corrected.json",
+    "sha256": "b65213c05fcf63a5f06c3a37fa6017df203be32ff78b5e0f9b51f68e4d0adcb4"
+  },
   "methods": [
     {
       "id": "chromium",
       "engine": "chromium",
-      "label": "Chromium"
+      "label": "Chromium",
+      "binary_sha256": "d999cf00c6244a84279785c48eb78f97764a8a13ea3a1a7cc5030bf2f4ca481e"
     },
     {
       "id": "moli-1.1.3",
       "engine": "moli",
-      "label": "Moli 1.1.3"
+      "label": "Moli 1.1.3",
+      "binary_sha256": "72051832a3535ee93090c8bbbe57017daea779d1b368deb35dca19944298f775"
+    },
+    {
+      "id": "moli-1.1.7-fixed-af808b3f",
+      "engine": "moli",
+      "label": "Moli 1.1.7 · af808b3f",
+      "binary_sha256": "af808b3f7bb5dd0604262bba95cecdf06ba18d9547a169c1443bfbb1255b4397"
     }
   ],
   "qualification": {
@@ -32,8 +44,9 @@
   },
   "runs_per_task": 1,
   "resources": {
-    "cpus": 2.0,
-    "memory": "2g",
+    "browser_host": "macOS arm64 host",
+    "browser_cpu_limit": null,
+    "browser_memory_limit": null,
     "sample_interval_ms": 100
   },
   "execution": {
@@ -42,24 +55,27 @@
     "task_parallelism": 1,
     "schedule": "complete one method before starting the next",
     "reset_before_every_task": true,
+    "reset_before_every_method": true,
     "teardown_between_methods": true,
+    "retry_failed_task": false,
     "trusted_source_site_hosts": [
       "192.168.5.2",
       "host.docker.internal"
     ],
-    "site_stack": "one fixed-port self-hosted WebArena environment"
+    "site_stack": "one self-hosted Rainbond WebArena app slice, reset before every task"
   },
   "scoring": {
     "authority": "official programmatic evaluator or a hash-bound replay correction",
+    "require_all_reference_validity": true,
     "promotion_gate": "the canonical trajectory passes execution and official evaluation on the frozen reference browser before any measured browser comparison",
     "model_calls": 0
   },
   "publication": {
-    "base_url": "https://artifact-hub.app.lexmount.com",
-    "title": "WebArena-Verified 浏览器轨迹重放评测",
+    "base_url": "https://artifact-site.lexmount.cn",
+    "title": "轨迹回放评测 — WebArena-Verified 90 个用例（Mac）",
     "state": "verified",
-    "site_slug": "7dF7uNK5SKIx",
-    "share_url": "https://artifact-hub.app.lexmount.com/v/hkZt38QFBpNIKtThKnqjpnBQk8At19PM",
-    "expected_version": "ver_fcd443ac19fe403f8baa3442262246e1"
+    "site_slug": "i9tKqJdk62cS",
+    "share_url": "https://artifact-site.lexmount.cn/v/rNhh74k9gKe6CDRAqkABClF5KjbgCp4q",
+    "expected_version": "ver_f71901eb26fe46d08a752cfcec0a889a"
   }
 }

@@ -5,7 +5,8 @@ projections. Version two additionally supports one built-in, deterministic
 reviewed-span projection whose complete ordered annotation is part of the
 contract digest. It never executes annotation-provided code or answer strings.
 Version three adds opt-in exact string-value sets and accurately attributed,
-materialized review evidence. Reviewer declarations are not identity authentication.
+materialized review evidence. Reviewer declarations and matching guest names are
+not identity authentication; identity joins require a source-linked customer ID.
 Unstructured or incomplete observations remain unsupported, not a browser
 failure. Every protocol revision requires fresh qualification.
 """
@@ -124,7 +125,11 @@ def validate_contract(contract: dict[str, Any], calls: list[dict[str, Any]]) -> 
             else {"projection"}
         )
     required = common | version_fields
-    optional = {"requirements", "empty_result"} if schema != PROTOCOL_V2 else {"requirements"}
+    optional = (
+        {"requirements", "empty_result", "absence_coverage"}
+        if schema != PROTOCOL_V2
+        else {"requirements"}
+    )
     if schema == PROTOCOL_V3:
         optional.add("reviewed_scope")
     if not required <= set(contract) or set(contract) - required - optional:
@@ -187,6 +192,198 @@ def validate_contract(contract: dict[str, Any], calls: list[dict[str, Any]]) -> 
             raise ValueError(
                 "absence needs independently observed scope and completeness requirements"
             )
+    if "absence_coverage" in contract:
+        coverage = contract["absence_coverage"]
+        if isinstance(coverage, dict) and coverage.get("kind") == "exhaustive_records/1":
+            _validate_exhaustive_coverage(coverage, names, contract)
+            return
+        if (
+            "empty_result" not in contract
+            or not isinstance(coverage, dict)
+            or set(coverage) != {"source", "pages_pointer", "required_paths", "detector"}
+            or not isinstance(coverage["source"], str)
+            or coverage["source"] not in names
+            or not _valid_pointer_path(coverage["pages_pointer"])
+            or coverage["detector"] != "phone_number"
+        ):
+            raise ValueError("invalid absence coverage contract")
+        paths = coverage["required_paths"]
+        if (
+            not isinstance(paths, list)
+            or not 1 <= len(paths) <= 32
+            or any(not isinstance(path, str) or not path.startswith("/") for path in paths)
+            or len(set(paths)) != len(paths)
+        ):
+            raise ValueError("invalid absence coverage paths")
+
+
+_PHONE_NUMBER = re.compile(r"(?<!\d)\+?\d[\d(). -]{7,}\d(?!\d)")
+
+
+def _validate_exhaustive_coverage(
+    coverage: dict[str, Any], names: set[str], contract: dict[str, Any]
+) -> None:
+    if contract["schema"] != PROTOCOL_V3 or "empty_result" not in contract:
+        raise ValueError("exhaustive absence coverage requires v3 empty-result contract")
+    if set(coverage) != {
+        "kind", "source", "scope_pointer", "expected_scope", "records_pointer",
+        "pages_pointer", "match_count_pointer", "page_size", "id_pointer",
+        "required_fields", "predicate",
+    }:
+        raise ValueError("invalid exhaustive absence coverage fields")
+    if coverage["source"] not in names or any(
+        not _valid_pointer_path(coverage[key])
+        for key in (
+            "scope_pointer", "records_pointer", "pages_pointer",
+            "match_count_pointer", "id_pointer",
+        )
+    ):
+        raise ValueError("invalid exhaustive absence source or pointer")
+    if (
+        not isinstance(coverage["expected_scope"], dict)
+        or not coverage["expected_scope"]
+        or any(not isinstance(key, str) or not key for key in coverage["expected_scope"])
+        or type(coverage["page_size"]) is not int
+        or not 1 <= coverage["page_size"] <= 1000
+    ):
+        raise ValueError("invalid exhaustive absence scope or page size")
+    fields = coverage["required_fields"]
+    if (
+        not isinstance(fields, list)
+        or not fields
+        or len(fields) != len(set(fields))
+        or any(not _valid_pointer_path(field) for field in fields)
+    ):
+        raise ValueError("invalid exhaustive absence required fields")
+    predicate = coverage["predicate"]
+    if not isinstance(predicate, dict) or set(predicate) != {
+        "field_pointer", "type", "operator", "value"
+    } or not _valid_pointer_path(predicate["field_pointer"]):
+        raise ValueError("invalid exhaustive absence predicate")
+    if predicate["field_pointer"] not in fields:
+        raise ValueError("absence predicate field must be required in every record")
+    if predicate["type"] == "integer":
+        valid = (
+            type(predicate["value"]) is int
+            and predicate["operator"] in {"eq", "gt", "gte", "lt", "lte"}
+        )
+    elif predicate["type"] == "string":
+        valid = (
+            type(predicate["value"]) is str
+            and bool(predicate["value"])
+            and predicate["operator"] == "eq"
+        )
+    elif predicate["type"] == "boolean":
+        valid = type(predicate["value"]) is bool and predicate["operator"] == "eq"
+    else:
+        valid = False
+    if not valid:
+        raise ValueError("invalid typed absence predicate")
+
+
+def _verify_exhaustive_coverage(coverage: dict[str, Any], source: Any) -> None:
+    if pointer(source, coverage["scope_pointer"]) != coverage["expected_scope"]:
+        raise ValueError("absence observation is outside the declared source scope")
+    records = pointer(source, coverage["records_pointer"])
+    pages = pointer(source, coverage["pages_pointer"])
+    match_count = pointer(source, coverage["match_count_pointer"])
+    if (
+        not isinstance(records, list)
+        or not isinstance(pages, list)
+        or not pages
+        or type(match_count) is not int
+        or match_count != 0
+    ):
+        raise ValueError("absence records, pagination or match count unavailable")
+    size, total = coverage["page_size"], len(records)
+    expected_pages = max(1, (total + size - 1) // size)
+    if len(pages) != expected_pages:
+        raise ValueError("absence pagination does not cover the declared population")
+    for index, page in enumerate(pages, 1):
+        expected_rows = min(size, max(0, total - (index - 1) * size))
+        expected_ids = [
+            str(pointer(record, coverage["id_pointer"]))
+            for record in records[(index - 1) * size : index * size]
+        ]
+        if (
+            not isinstance(page, dict)
+            or set(page) != {"page", "rows", "total", "has_next", "ids"}
+            or type(page["page"]) is not int
+            or page["page"] != index
+            or type(page["rows"]) is not int
+            or page["rows"] != expected_rows
+            or type(page["total"]) is not int
+            or page["total"] != total
+            or type(page["has_next"]) is not bool
+            or page["has_next"] != (index < expected_pages)
+            or page["ids"] != expected_ids
+        ):
+            raise ValueError("absence pagination is incomplete or contradictory")
+    seen: set[str] = set()
+    predicate = coverage["predicate"]
+    for record in records:
+        if not isinstance(record, dict):
+            raise ValueError("absence population contains a non-record")
+        identity = pointer(record, coverage["id_pointer"])
+        if type(identity) not in {str, int} or not str(identity).strip():
+            raise ValueError("absence record has no stable identity")
+        identity_key = str(identity)
+        if identity_key in seen:
+            raise ValueError("absence population contains duplicate identities")
+        seen.add(identity_key)
+        for field in coverage["required_fields"]:
+            value = pointer(record, field)
+            if value is None or value == "" or value == [] or value == {}:
+                raise ValueError("absence record is missing a required field")
+        value = pointer(record, predicate["field_pointer"])
+        if type(value) is not {"integer": int, "string": str, "boolean": bool}[predicate["type"]]:
+            raise ValueError("absence predicate field has the wrong type")
+        target, operator = predicate["value"], predicate["operator"]
+        if operator == "eq":
+            matched = value == target
+        elif operator == "gt":
+            matched = value > target
+        elif operator == "gte":
+            matched = value >= target
+        elif operator == "lt":
+            matched = value < target
+        else:
+            matched = value <= target
+        if matched:
+            raise ValueError("absence population contains a matching record")
+
+
+def _verify_absence_coverage(contract: dict[str, Any], values: dict[str, Any]) -> None:
+    coverage = contract.get("absence_coverage")
+    if coverage is None:
+        raise ValueError("empty retrieval lacks independently checkable absence coverage")
+    if coverage.get("kind") == "exhaustive_records/1":
+        _verify_exhaustive_coverage(coverage, values[coverage["source"]])
+        return
+    pages = pointer(values[coverage["source"]], coverage["pages_pointer"])
+    if not isinstance(pages, list) or len(pages) != len(coverage["required_paths"]):
+        raise ValueError("absence coverage does not contain every declared page")
+    seen: set[str] = set()
+    for page in pages:
+        if not isinstance(page, dict) or not isinstance(page.get("path"), str):
+            raise ValueError("invalid absence coverage page")
+        path = page["path"]
+        if path in seen or path not in coverage["required_paths"]:
+            raise ValueError("absence coverage contains duplicate or undeclared page")
+        seen.add(path)
+        text = page.get("text")
+        if (
+            type(page.get("status")) is not int
+            or page["status"] != 200
+            or not isinstance(text, str)
+            or not text.strip()
+            or not isinstance(page.get("tel"), list)
+            or not isinstance(page.get("matches"), list)
+            or page["tel"]
+            or page["matches"]
+            or _PHONE_NUMBER.search(text)
+        ):
+            raise ValueError("absence coverage page is incomplete or contains a phone number")
 
 
 def _scope_ref(spec: Any, names: set[str]) -> None:
@@ -236,13 +433,10 @@ def _validate_reviewed_scope_contract(contract: dict[str, Any], names: set[str])
             "result",
             "selected_fields",
             "candidate_fields",
-            "allow_unique_exact_name_inference",
         }:
             raise ValueError("invalid reviewed identity join")
         for key in ("selected", "candidates", "result"):
             _scope_ref(join[key], names)
-        if type(join["allow_unique_exact_name_inference"]) is not bool:
-            raise ValueError("identity inference policy must be explicit")
         for key, fields in (
             ("selected_fields", {"id", "name", "linked_name", "linked_email"}),
             ("candidate_fields", {"id", "name", "email"}),
@@ -364,17 +558,10 @@ def _check_scope_identity_join(spec: dict[str, Any], values: dict[str, Any]) -> 
     if len(set(ids)) != len(ids):
         raise ValueError("reviewed customer IDs are not unique")
     explicit = pointer(selected, fields["id"])
-    if explicit is not None:
-        if type(explicit) not in {str, int}:
-            raise ValueError("invalid explicit customer identity")
-        matches = [c for c in candidates if str(pointer(c, target["id"])) == str(explicit)]
-        basis = "explicit_customer_id"
-    else:
-        name = normalized(pointer(selected, fields["name"]))
-        if not spec["allow_unique_exact_name_inference"] or len(name.split()) < 2:
-            raise ValueError("unpermitted or incomplete name inference")
-        matches = [c for c in candidates if normalized(pointer(c, target["name"])) == name]
-        basis = "unique_exact_name_inference"
+    if type(explicit) not in {str, int} or not str(explicit).strip():
+        raise ValueError("review author has no explicit customer identity")
+    matches = [c for c in candidates if str(pointer(c, target["id"])) == str(explicit)]
+    basis = "explicit_customer_id"
     if len(matches) != 1 or matches[0] != result:
         raise ValueError("reviewed identity is missing, ambiguous or mismatched")
     for key, candidate_key in (("linked_name", "name"), ("linked_email", "email")):
@@ -765,6 +952,8 @@ def build_actual_response(
             for name in ("scope", "completeness")
         ):
             raise ValueError("empty retrieval requires observed complete task scope")
+        if proven_absence:
+            _verify_absence_coverage(contract, values)
         if not proven_absence and (data is None or data == [] or data == {} or data == ""):
             raise ValueError("empty retrieval requires a completeness contract")
         if not proven_absence:

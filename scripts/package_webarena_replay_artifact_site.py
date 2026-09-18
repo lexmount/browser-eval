@@ -9,17 +9,18 @@ import json
 import zipfile
 from pathlib import Path
 
-from harness.trajectory_replay.diagnostic_closure import load_diagnostic_closure
+from harness.trajectory_replay.webarena_report import require_all_reference_validity
 
 if __package__:
+    from scripts.build_webarena_replay_report import _bound_dataset_path
     from scripts.check_webarena_replay_report import check as check_report
     from scripts.check_webarena_replay_visual import check as check_visual
 else:
+    from build_webarena_replay_report import _bound_dataset_path
     from check_webarena_replay_report import check as check_report
     from check_webarena_replay_visual import check as check_visual
 
 PROFILE = Path("evaluation/trajectory-replay/webarena-verified/current-run.json")
-DATASET = Path("evaluation/trajectory-replay/webarena-verified/trajectories.json")
 REVIEW = Path("research/trajectory-replay-failure-review.json")
 ARCHIVE = Path("publish/trajectory-replay-artifact-site.zip")
 ATTESTATION = Path("publish/trajectory-replay-artifact-site.attestation.json")
@@ -67,33 +68,26 @@ def package(
     evidence: Path,
     output: Path,
     visual_receipt: Path,
-    diagnostic_closure: Path | None = None,
 ) -> dict:
     if not evidence.is_file():
         raise ValueError(f"missing replay evidence: {evidence}")
     summary = validate_release(report, visual_receipt)
     report_manifest = json.loads((report / "report-manifest.json").read_text(encoding="utf-8"))
-    closure_sha = report_manifest.get("diagnostic_closure_sha256")
-    if bool(closure_sha) != bool(diagnostic_closure):
-        raise ValueError("diagnostic closure source must match the report manifest")
-    closure_binding = {}
-    if diagnostic_closure is not None:
-        if sha256(diagnostic_closure) != closure_sha:
-            raise ValueError("diagnostic closure changed since report build")
-        public_path = report / "data/diagnostic-closure.json"
-        public_model = json.loads(public_path.read_text(encoding="utf-8"))
-        task_ids = {int(row["task_id"]) for row in public_model["entries"]}
-        rebuilt = load_diagnostic_closure(diagnostic_closure, old_failed_tasks=task_ids)
-        if (
-            json.dumps(rebuilt, ensure_ascii=False, sort_keys=True)
-            != json.dumps(public_model, ensure_ascii=False, sort_keys=True)
-            or rebuilt["source_sha256"] != closure_sha
-        ):
-            raise ValueError("diagnostic closure changed since report build")
-        closure_binding = {
-            "diagnostic_closure": str(diagnostic_closure),
-            "diagnostic_closure_sha256": closure_sha,
-        }
+    profile = json.loads(PROFILE.read_text(encoding="utf-8"))
+    dataset_path = _bound_dataset_path(profile)
+    if (profile.get("scoring") or {}).get("require_all_reference_validity") is True:
+        require_all_reference_validity(
+            profile,
+            json.loads(evidence.read_text(encoding="utf-8")),
+            json.loads(dataset_path.read_text(encoding="utf-8")),
+        )
+    if (
+        report_manifest.get("dataset_sha256") != sha256(dataset_path)
+        or report_manifest.get("results_sha256") != sha256(evidence)
+    ):
+        raise ValueError("report and publication inputs refer to different result or dataset bytes")
+    if report_manifest.get("diagnostic_closure_sha256"):
+        raise ValueError("diagnostic-only appendices cannot enter the three-method release")
     files = sorted(path for path in report.rglob("*") if path.is_file())
     if not files or len(files) > MAX_FILES:
         raise ValueError(f"Artifact Site file count is outside 1..{MAX_FILES}: {len(files)}")
@@ -117,11 +111,10 @@ def package(
         "report_tree_sha256": tree_sha256(report),
         "file_count": len(files),
         "profile_sha256": sha256(PROFILE),
-        "dataset_sha256": sha256(DATASET),
+        "dataset_sha256": sha256(dataset_path),
         "review_sha256": sha256(REVIEW),
         "evidence": str(evidence),
         "evidence_sha256": sha256(evidence),
-        **closure_binding,
         **summary,
     }
     ATTESTATION.write_text(
@@ -137,7 +130,6 @@ def main() -> None:
     parser.add_argument("--evidence", type=Path, required=True)
     parser.add_argument("--output", type=Path, default=ARCHIVE)
     parser.add_argument("--visual-receipt", type=Path, default=VISUAL_RECEIPT)
-    parser.add_argument("--diagnostic-closure", type=Path)
     args = parser.parse_args()
     print(
         json.dumps(
@@ -146,7 +138,6 @@ def main() -> None:
                 args.evidence,
                 args.output,
                 args.visual_receipt,
-                args.diagnostic_closure,
             ),
             ensure_ascii=False,
         )

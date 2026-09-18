@@ -1,0 +1,40 @@
+{
+  "task_id": 110,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7780/admin/sales/order/"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => {\n  const controller = new AbortController();\n  const deadlineTimer = setTimeout(() => controller.abort(), 20000);\n  try {\n  if (location.pathname.replace(/\\/$/, '') !== '/admin/sales/order') throw new Error('wrong grid page');\n  if (typeof requirejs !== 'function' || !requirejs.defined('uiRegistry')) throw new Error('registry not ready');\n  const registry = require('uiRegistry'), providers = [];\n  registry.get(p => {if(p.component === 'Magento_Ui/js/grid/provider' && p.params?.namespace === 'sales_order_grid') providers.push(p);});\n  if(providers.length !== 1) throw new Error('ambiguous provider');\n  const p = providers[0], storage = registry.get(p.storageConfig?.name);\n  const completed = storage?.getRequest(p.params);\n  if(p.firstLoad !== false || p.lastError !== false || p.triggerDataReload || !completed || completed.errorMessage ||\n     !Array.isArray(completed.ids) || completed.totalRecords !== p.data?.totalRecords || completed.ids.length !== p.data?.items?.length)\n    throw new Error('grid response not ready');\n  const meaningful = v => v != null && v !== '' && (typeof v !== 'object' || Object.values(v).some(meaningful));\n  if(p.params.search || Object.entries(p.params.filters || {}).some(([k,v])=>k!=='placeholder'&&meaningful(v))) throw new Error('narrowed grid');\n  if(p.params.sorting?.field !== 'created_at' || p.params.sorting?.direction !== 'desc') throw new Error('purchase date descending required');\n  const endpoint = new URL(p.update_url,location.href);\n  if(endpoint.origin !== location.origin || endpoint.pathname !== '/admin/mui/index/render/') throw new Error('wrong endpoint');\n  const flatten = (v,prefix='') => Object.entries(v).flatMap(([k,x])=>{\n    const key=prefix?`${prefix}[${k}]`:k;\n    return x!==null&&typeof x==='object'?flatten(x,key):[[key,String(x)]];\n  });\n  for(const [k,v] of flatten(p.params)) endpoint.searchParams.set(k,v);\n  const size=p.params.paging?.pageSize;\n  if(!Number.isInteger(size)||size<1||size>1000) throw new Error('invalid page size');\n  let total=null;const rows=[],pages=[];\n  for(let page=1;page<=100;page++) {\n    endpoint.searchParams.set('paging[current]',String(page));\n    const response=await fetch(endpoint.href, {credentials:'same-origin',redirect:'error',signal:controller.signal,headers:{Accept:'application/json'}});\n    if(!response.ok||response.redirected) throw new Error('grid request failed');\n    if(!/^application\\/json(?:\\s*;|\\s*$)/i.test(response.headers.get('content-type')||'')) throw new Error('grid response must be application/json');\n    const data=await response.json();\n    if(data===null||typeof data!=='object'||Array.isArray(data)) throw new Error('grid JSON must be an object');\n    if(!Number.isInteger(data.totalRecords)||data.totalRecords<0||!Array.isArray(data.items)) throw new Error('invalid response');\n    if(total===null)total=data.totalRecords;\n    if(total!==data.totalRecords||Math.ceil(total/size)>100||data.items.length!==Math.min(size,Math.max(0,total-(page-1)*size))) throw new Error('incomplete page');\n    rows.push(...data.items);pages.push({page,rows:data.items.length,total});\n    if(page>=Math.max(1,Math.ceil(total/size)))break;\n  }\n  if(rows.length!==total||new Set(rows.map(r=>String(r.entity_id))).size!==total) throw new Error('incomplete or duplicate identities');\n  for(let i=0;i<rows.length;i++) {\n    const r=rows[i];\n    if(r.entity_id==null||typeof r.status!=='string'||!/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$/.test(r.created_at)||\n       (i && rows[i-1].created_at<r.created_at)) throw new Error('invalid identity/date/order');\n  }\n  const months=['January','February','March','April','May','June','July','August','September','October','November'];\n  const counts=Array(11).fill(0);\n  for(const row of rows){if(row.status!=='complete')continue;\n    const match=row.created_at.match(/^(\\d{4})-(\\d{2})-/);\n    if(!match)throw new Error('invalid order date');\n    if(match[1]==='2022'){const month=Number(match[2]);if(month>=1&&month<=11)counts[month-1]++;}}\n  return {scope:true,complete:true,pages,total,answer:months.map((month,i)=>({month,count:counts[i]}))};\n  } finally { controller.abort(); clearTimeout(deadlineTimer); }\n})()\n"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/1",
+    "task_id": 110,
+    "canonical_calls_sha256": "907cab024b290cdafa9f78566a8bfe76940b5e1acaa6f07632cc20492a900ca0",
+    "sources": [
+      {
+        "name": "current",
+        "step": 2,
+        "action_sha256": "b299d61f446a06911139c70064f5782646a534e4d77547f418a01e905f10a1cd",
+        "decode": "json"
+      }
+    ],
+    "requirements": {
+      "scope": {
+        "source": "current",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "current",
+        "pointer": "/complete"
+      }
+    },
+    "projection": {
+      "source": "current",
+      "pointer": "/answer"
+    }
+  }
+}

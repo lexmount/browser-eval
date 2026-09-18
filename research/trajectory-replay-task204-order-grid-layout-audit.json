@@ -1,0 +1,61 @@
+{
+  "schema": "trajectory_replay_task204_order_grid_layout_audit/1",
+  "task_id": 204,
+  "historical_result": {
+    "browser": "moli",
+    "version": "1.1.3",
+    "failed_action_index": 6,
+    "selector": "a[href=\"http://host.docker.internal:7780/admin/sales/order/view/order_id/230/\"]:visible",
+    "trace_sha256": "dafb26408f96f46db38c3a2bdc267b42f504ca063c5a9b1645058584a8e61f5b",
+    "post_navigation_snapshot": "BrowserTool returned success with an embedded destroyed-execution-context error. This observation failure is separate from the subsequent click timeout."
+  },
+  "matched_historical_image": {
+    "docker_image_id": "sha256:6519892d79641d565192f555c8269ab9b83c5444d07a73871f51881229c3bcd4",
+    "version": "moli 1.1.3",
+    "formal_receipt_image_id_matches": true
+  },
+  "same_version_remote_reproduction": {
+    "site": "Rainbond WebArena Shopping Admin",
+    "site_reset": false,
+    "frozen_actions_completed": 5,
+    "failed_action_index": 6,
+    "receipt_sha256": "b0e9a9c5c2a455460ccc85656b0bb4327ce7b5aaaec6a77470c0dfbb33cbb078",
+    "runner_sha256": "3ed51806d64ac261e992fdc26f2034e1c451daa992f884f3728b2d7504d69025",
+    "last_observed_page_sha256": "5a782353c26dc312e572314c70e5fda91c8c6e839d764ae8072fc076dbb27709",
+    "failure_observation": {
+      "url_path": "/admin/sales/order/",
+      "document_ready_state": "complete",
+      "order_grid_present": true,
+      "matching_order_230_links": 1,
+      "order_230_link_rect": [0, 0, 0, 0],
+      "order_230_parent_rect": [0, 0, 0, 0],
+      "order_230_offset_parent": null,
+      "computed_display": "inline",
+      "computed_visibility": "visible",
+      "matching_clear_all_buttons": 2,
+      "clear_all_rects": [[0, 0, 0, 0], [0, 0, 0, 0]]
+    }
+  },
+  "fixed_candidate_control": {
+    "binary_sha256": "af808b3f7bb5dd0604262bba95cecdf06ba18d9547a169c1443bfbb1255b4397",
+    "exact_original_actions_completed": "7/7",
+    "receipt_sha256": "a319283722b38606cc68852abc31cb32f92791642645483804d7bdc4e56eeee9",
+    "official_evaluation": "not_run_for_exact_original_actions",
+    "revised_candidate": "The revised complete-order-grid and detail retrieval passed the official programmatic rule and was independently checked against source order rows."
+  },
+  "reviewed_cause": {
+    "category": "moli_order_grid_zero_geometry_reproduced",
+    "code_or_process": "rendered_order_grid_dom_has_no_observable_layout_boxes",
+    "mechanism_zh": "历史 Moli 1.1.3 在第 6 步等待订单 230 的可见详情链接超时。用正式评测相同镜像在当前远端站点重放原动作，60 秒后订单网格已在 DOM、页面加载完成，目标链接及父容器仍是零矩形、offsetParent 为 null；同页 Clear all 按钮也为零矩形。固定构建原样完成 7/7 步。这与 #196 是同一订单网格布局几何故障，而非订单链接或订单数据缺失。导航后的快照错误另作观察失败记录，不充当此点击超时的唯一原因。",
+    "mechanism_en": "Historical Moli 1.1.3 timed out at action 6 waiting for order 230's visible detail link. Replaying the original actions on the same image as the formal evaluation against the current remote site, the order grid was in the DOM and the document was complete after 60 seconds, yet the target link and parent still had zero rectangles and null offsetParent; Clear all buttons on the same page were also zero-area. The fixed build completed the original 7/7 actions. This is the same order-grid geometry defect as task 196, not a missing order link or order data. The post-navigation snapshot error is recorded separately rather than treated as the sole click-timeout cause."
+  },
+  "source_location": {
+    "dirty_layout": "moli-renderer-v8/src/native_bridge/context_host/layout_state.rs and layout.rs",
+    "root_relative_units": "moli-renderer-v8/src/style_engine/retained.rs",
+    "generic_regressions": [
+      "moli-renderer-v8/src/runtime/page_vm/tests/rendering_update.rs::geometry_batch_refreshes_dirty_tree_on_demand_and_reuses_clean_tree",
+      "moli-renderer-v8/src/script_vm/tests/dom_xhr/computed_style.rs::root_font_relative_units_follow_each_documents_live_root_style"
+    ]
+  },
+  "scope_limit": "The same formal Moli image reproduces the observable defect and the fixed build completes the original actions, but this site test does not bisect dirty-layout versus root-relative-unit contributions or replace the immutable historical score."
+}

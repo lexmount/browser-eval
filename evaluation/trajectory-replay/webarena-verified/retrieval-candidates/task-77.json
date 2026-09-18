@@ -1,0 +1,40 @@
+{
+  "task_id": 77,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7780/admin/review/product/pending/"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async()=>{const controller=new AbortController(), timer=setTimeout(()=>controller.abort(),30000);try{\nif(location.pathname.replace(/\\/$/,'')!==\"/admin/review/product/pending\")throw Error('wrong current page');\nif(typeof requirejs!=='function'||!requirejs.defined('uiRegistry'))throw Error('Magento registry missing');\nconst registry=require('uiRegistry'),providers=[];\nregistry.get(p=>{if(p.component==='Magento_Ui/js/grid/provider'&&p.params?.namespace&&p.update_url)providers.push(p)});\nif(providers.length!==1)throw Error('ambiguous current grid provider');\nconst p=providers[0],storage=registry.get(p.storageConfig?.name),completed=storage?.getRequest(p.params);\nif(p.firstLoad!==false||p.lastError!==false||p.triggerDataReload||!completed||\ncompleted.errorMessage||!Array.isArray(completed.ids)||completed.totalRecords!==p.data?.totalRecords||\ncompleted.ids.length!==p.data?.items?.length)throw Error('grid not completely loaded');\nconst params=p.params,size=params.paging?.pageSize;\nif(!Number.isInteger(size)||size<1||size>1000)throw Error('invalid page size');\nconst endpoint=new URL(p.update_url,location.href);\nif(endpoint.origin!==location.origin||endpoint.pathname!=='/admin/mui/index/render/')throw Error('wrong grid endpoint');\nconst flatten=(v,prefix='')=>Object.entries(v).flatMap(([k,x])=>{const key=prefix?`${prefix}[${k}]`:k;\nreturn x!==null&&typeof x==='object'?flatten(x,key):[[key,String(x)]]});\nfor(const [k,v] of flatten(params))endpoint.searchParams.set(k,v);\nlet total=null;const rows=[],pages=[];\nfor(let page=1;page<=100;page++){endpoint.searchParams.set('paging[current]',String(page));\nconst response=await fetch(endpoint.href,{credentials:'same-origin',cache:'no-store',redirect:'error',\nsignal:controller.signal,headers:{Accept:'application/json'}});\nif(!response.ok||response.redirected||!/^application\\/json(?:\\s*;|\\s*$)/i.test(response.headers.get('content-type')||''))throw Error('grid fetch failed');\nconst data=await response.json();\nif(!Number.isInteger(data.totalRecords)||data.totalRecords<0||!Array.isArray(data.items))throw Error('invalid grid JSON');\nif(total===null)total=data.totalRecords;\nif(total!==data.totalRecords||Math.ceil(total/size)>100||\ndata.items.length!==Math.min(size,Math.max(0,total-(page-1)*size)))throw Error('incomplete or changed page');\nrows.push(...data.items);pages.push({page,rows:data.items.length,total});\nif(page>=Math.max(1,Math.ceil(total/size)))break;\n}\nif(rows.length!==total||new Set(rows.map(r=>String(r.review_id))).size!==total||\nrows.some(r=>r.review_id===null||r.review_id===undefined))throw Error('incomplete or duplicate grid identities');\nif(!/review|rating/i.test(params.namespace))throw Error('wrong pending review grid');\nreturn {scope:true,complete:true,namespace:params.namespace,pages,total,answer:total};\n}finally{controller.abort();clearTimeout(timer)}})()"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/1",
+    "task_id": 77,
+    "canonical_calls_sha256": "1dd3377b85bb94dcecf8c68e41acb415589ae28ad9180cde2f99cc0eb4953016",
+    "sources": [
+      {
+        "name": "current",
+        "step": 2,
+        "action_sha256": "be5bd5139d8b80bbc719229cc87d06767fa095708780af411aa98d1767c7ad19",
+        "decode": "json"
+      }
+    ],
+    "requirements": {
+      "scope": {
+        "source": "current",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "current",
+        "pointer": "/complete"
+      }
+    },
+    "projection": {
+      "source": "current",
+      "pointer": "/answer"
+    }
+  }
+}

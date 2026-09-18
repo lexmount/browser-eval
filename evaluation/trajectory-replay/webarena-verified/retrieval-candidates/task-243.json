@@ -1,0 +1,72 @@
+{
+  "schema": "webarena_task243_review_nickname_candidate/1",
+  "task_id": 243,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://webarena-slice-warm-1-195-shopping-admin.dev.lexmount.net/admin"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"#\"]:visible:has-text(\"Marketing\")",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "click",
+      "selector": "a[href$=\"/admin/review/product/index/\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "fill",
+      "text": "Circe Hooded Ice Fleece",
+      "selector": "input[name=\"name\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "click",
+      "selector": "button:visible:has-text(\"Search\")",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => {\n  const product = 'Circe Hooded Ice Fleece';\n  const normalize = value => String(value ?? '').replace(/\\s+/g, ' ').trim();\n  const fail = message => { throw new Error(message); };\n  const origin = location.origin;\n  if (!location.pathname.startsWith('/admin/review/product/index/')) fail('not_on_review_grid');\n  const deadline = Date.now() + 90000;\n  async function read(path) {\n    const url = new URL(path, origin);\n    if (url.origin !== origin || Date.now() >= deadline) fail('source_scope_or_deadline');\n    const controller = new AbortController();\n    const timer = setTimeout(() => controller.abort(), Math.max(1, deadline - Date.now()));\n    try {\n      const response = await fetch(url, {credentials: 'same-origin', redirect: 'error', signal: controller.signal});\n      if (!response.ok || response.redirected) fail('source_http_' + response.status);\n      return new DOMParser().parseFromString(await response.text(), 'text/html');\n    } finally { clearTimeout(timer); }\n  }\n  function parseGrid(doc, expectedPage) {\n    const page = Number(doc.querySelector('input[name=\"page\"]')?.value);\n    const size = Number(doc.querySelector('select[name=\"limit\"]')?.value);\n    const count = normalize(doc.body?.textContent).match(/\\b(\\d+)\\s+records found\\b/i);\n    if (page !== expectedPage || !Number.isInteger(size) || size < 1 || !count) fail('review_grid_incomplete');\n    const total = Number(count[1]);\n    const allRows = [...doc.querySelectorAll('input[name=\"reviews\"]')];\n    const rows = allRows.map(input => {\n      const tr = input.closest('tr');\n      const link = tr?.querySelector('a[href*=\"/review/product/edit/id/\"]');\n      const match = /\\/review\\/product\\/edit\\/id\\/(\\d+)\\//.exec(link?.getAttribute('href') || '');\n      if (!match || Number(match[1]) !== Number(input.value)) fail('review_row_id_mismatch');\n      if (![...tr.querySelectorAll('td')].some(td => normalize(td.textContent) === product)) return null;\n      return {id: Number(match[1]), url: link.getAttribute('href')};\n    }).filter(Boolean);\n    return {page, size, total, rowCount: allRows.length, rows};\n  }\n  function parseDetail(doc, id) {\n    const productLink = [...doc.querySelectorAll('a[href*=\"/catalog/product/edit/id/\"]')]\n      .find(a => normalize(a.textContent) === product);\n    const nickname = normalize(doc.querySelector('[name=\"nickname\"]')?.value);\n    const ratings = [...doc.querySelectorAll('input[type=\"radio\"][name^=\"ratings[\"][checked]')]\n      .map(input => Number(/_(\\d+)$/.exec(input.id)?.[1]));\n    if (!productLink || !nickname || ratings.length !== 1 || !Number.isInteger(ratings[0]) ||\n        ratings[0] < 1 || ratings[0] > 5) fail('review_detail_incomplete');\n    return {id, nickname, rating: ratings[0]};\n  }\n  const first = parseGrid(await read('/admin/review/product/index/'), 1);\n  const pages = Math.max(1, Math.ceil(first.total / first.size));\n  if (pages > 100) fail('review_page_resource_limit');\n  const reviewRows = [...first.rows];\n  let observedRows = first.rowCount;\n  for (let page = 2; page <= pages; page++) {\n    const part = parseGrid(await read('/admin/review/product/index/page/' + page + '/'), page);\n    if (part.total !== first.total || part.size !== first.size) fail('review_population_changed');\n    observedRows += part.rowCount;\n    reviewRows.push(...part.rows);\n  }\n  if (observedRows !== first.total || reviewRows.length < 2 ||\n      new Set(reviewRows.map(row => row.id)).size !== reviewRows.length) fail('review_population_incomplete');\n  const reviews = [];\n  for (const row of reviewRows) reviews.push(parseDetail(await read(row.url), row.id));\n  const lowest = Math.min(...reviews.map(row => row.rating));\n  const matches = reviews.filter(row => row.rating === lowest);\n  if (matches.length !== 1) fail('lowest_rating_not_unique');\n  return {scope: true, complete: true, answer: [matches[0].nickname],\n    review_count: reviews.length, lowest_rating: lowest, review_id: matches[0].id};\n})()"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/1",
+    "task_id": 243,
+    "canonical_calls_sha256": "c7152e71effa2b529e31e173b4e4958bef110315c62dd7f350d92c31b71afc7b",
+    "sources": [
+      {
+        "name": "observation",
+        "step": 9,
+        "action_sha256": "3974d5d472b68a65a829c1a5c38897dcbb0c7131fd94ebb232283ef36629e573",
+        "decode": "json"
+      }
+    ],
+    "requirements": {
+      "scope": {
+        "source": "observation",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "observation",
+        "pointer": "/complete"
+      }
+    },
+    "projection": {
+      "source": "observation",
+      "pointer": "/answer"
+    }
+  },
+  "rule": "Read the unique lowest-rated review nickname from the complete current product review population; never infer guest authorship or customer email."
+}

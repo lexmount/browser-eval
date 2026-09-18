@@ -1,0 +1,57 @@
+{
+  "schema": "trajectory_replay_task156_layout_audit/1",
+  "task_id": 156,
+  "historical_result": {
+    "browser": "moli",
+    "version": "1.1.3",
+    "failed_action_index": 4,
+    "selector": ":nth-match(a[href=\"/dashboard/merge_requests?assignee_username=byteblaze\"]:visible, 2)",
+    "error_category": "locator_visible_timeout",
+    "trace_sha256": "e8edd143f0d7c0a0281b1ae769abc09838eb8cf5c3691f408cb08b3ad967bae2"
+  },
+  "diagnostic_contract": {
+    "site": "WebArena GitLab",
+    "action_scope": "frozen actions 1-3 followed by read-only DOM geometry observations",
+    "site_reset": false,
+    "site_data_mutations": 0,
+    "runner_sha256": "1920b00969779a3c7f20f0f11dfe26a0cec1bedc664a3a751445dc4fcf5a2ca6"
+  },
+  "same_page_comparison": [
+    {
+      "browser": "moli",
+      "build": "official macOS 1.1.6 release",
+      "binary_sha256": "8d89eebcd9908d1d0e1d3597a35e36fb41d0742604295c4046ccb3d26996caf2",
+      "receipt_sha256": "110f987481d62f816e943c1932feb18ca63d84b26d134ad221af04e08e9e3467",
+      "matching_link_count": 2,
+      "header_link_rect": [1000.40625, 8, 70.1875, 32],
+      "submenu_link_rect": [0, 0, 0, 0],
+      "submenu_computed_display": "flex",
+      "submenu_computed_visibility": "visible"
+    },
+    {
+      "browser": "moli",
+      "build": "fixed 1.1.7 candidate",
+      "binary_sha256": "af808b3f7bb5dd0604262bba95cecdf06ba18d9547a169c1443bfbb1255b4397",
+      "receipt_sha256": "5c7ce0740db836c4bcb6524213c085370dc31d192c13fa7a286245d270985464",
+      "matching_link_count": 2,
+      "header_link_rect": [1000.40625, 8, 70.1875, 32],
+      "submenu_link_rect": [831.609375, 89, 238, 32],
+      "submenu_computed_display": "flex",
+      "submenu_computed_visibility": "visible"
+    }
+  ],
+  "fixed_candidate_actions": {
+    "frozen_action_count": 5,
+    "completed_action_count": 5,
+    "receipt_sha256": "2cb3a6be110a5e94a23e2fc36cb1d4c0825c012c63f99a4a0f3f2b0de87f4caa",
+    "trace_sha256": "ccc5da5e05d9f0780b55dcb1d2c6656b79b3cb63bdcea9182f98b9fc11b7de0c"
+  },
+  "reviewed_cause": {
+    "category": "stale_layout_snapshot_after_dynamic_menu_update",
+    "mechanism_zh": "菜单快照列出两个同 URL 链接，但官方 Moli 1.1.6 中第二个菜单链接虽计算为可见，其布局矩形仍为零，因而原轨迹的第二个 :visible 实例无法匹配。固定候选在同一动作前缀下给出非零矩形并完成后续动作。该行为与动态 DOM 更新后复用旧布局快照的已证实故障家族相符。",
+    "mechanism_en": "The menu snapshot lists two links with the same URL, but the second submenu link has a zero-area rectangle on official Moli 1.1.6 despite visible computed style. The original trajectory's second :visible instance therefore cannot match. The fixed candidate gives it nonzero geometry after the same action prefix and completes the remaining actions. This is consistent with the established stale-snapshot-after-dynamic-update defect family.",
+    "source_location": "moli-renderer-v8/src/native_bridge/context_host/layout.rs; Moli commit adde6e4f guards geometry queries against dirty frozen layout trees",
+    "remediation_status": "fixed_candidate_observed; formal historical verdict unchanged"
+  },
+  "scope_limit": "This is a read-only same-page geometry comparison using official 1.1.6 and the fixed candidate, not a rerun of the formal 1.1.3 binary or a commit-level bisect. It does not establish the cause of every selector timeout or independently certify the candidate's complete task semantics."
+}

@@ -1,0 +1,34 @@
+{
+  "schema": "lex_replay_task_identity_source_audit/1",
+  "task_id": 243,
+  "source_audit_sha256": "d44a8728faa128dcb6712cf736825d69c5823d7d46ec13d2600f98321894da80",
+  "observation_date_utc": "2026-09-17",
+  "source_scope": "Read-only Magento review, customer and matching-order records in the WebArena Shopping Admin deployment",
+  "review_id": 353,
+  "review_customer_id": null,
+  "exact_name_account_count": 1,
+  "matching_order_count": 0,
+  "verified_author_account_link": false,
+  "rating_vote_audit": {
+    "receipt_sha256": "85e5da7c6ad99aec9beabd52cc74d273ea6e12b3097c711b8e31342dd587c27a",
+    "review_id": 353,
+    "vote_customer_id": null,
+    "review_link_tables_checked": ["rating_option_vote", "review_detail"],
+    "finding": "Both Magento tables containing review_id and customer_id have NULL customer_id for the target guest review."
+  },
+  "reference_provenance": {
+    "raw_dataset_sha256": "7b50386fd69163dbc05d615d834df4c6ed2c35596e97a1b10d17451c02537652",
+    "verified_dataset_sha256": "bbe76f73576dc9a2ef972585211043c3cc4a9017756eedf2d5298948a3a57f7d",
+    "raw_reference_url": "",
+    "raw_string_note": "",
+    "raw_annotation": "hannah.lim@gmail.com",
+    "assessment": "The published expected email is an annotation without a source URL or identity-link explanation; repeating it in a replay is not independent retrieval evidence."
+  },
+  "historical_replay_evaluator_input": {
+    "chromium_and_moli_sha256": "2b3950263ffbcb14d7d22a3ebe738f1500e8bbc1bb37c134e4a894c0ac26fbeb",
+    "source": "frozen canonical candidate recorded_response",
+    "cohort_scope": "The same hash comparison matched all 74 result rows across the 37 retrieval tasks in the retained 90-task cohort."
+  },
+  "conclusion_zh": "最低分评论及其评分投票都没有客户 ID。同名账户唯一，但没有订单或评论字段将该账户与访客评论作者关联；邮箱身份不能由同名推断。",
+  "conclusion_en": "Neither the lowest-rated review nor its rating vote has a customer ID. A single account shares the guest name, but neither review records nor matching orders link it to the author; its email cannot be authenticated by name alone."
+}

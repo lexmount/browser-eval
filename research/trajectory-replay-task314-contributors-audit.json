@@ -1,0 +1,22 @@
+{
+  "schema": "trajectory_replay_retrieval_source_audit/1",
+  "task_id": 314,
+  "independent_source_receipt_sha256": "5909ad604543154a6ac1c5dad989c090933f37c1d6c54afa0f8e53dc7c8b7c6a",
+  "source": "Current GitLab project 180 and complete main-branch contributors API",
+  "project_response_sha256": "11d7336a6e3fc95edeb34390c1f206f252b2728d7553a758ea6d20bdd6fc0fe4",
+  "contributors_response_sha256": "ec18cd9e155f86d4110234079523109d127b88e0aa8a5552fb8c6c89f07ca50a",
+  "project_path": "primer/design",
+  "branch": "main",
+  "contributor_rows": 71,
+  "pagination_complete": true,
+  "top_four": [
+    {"name": "Shawn Allen", "commits": 95},
+    {"name": "Inayaili León", "commits": 77},
+    {"name": "Aurora Pleguezuelo", "commits": 66},
+    {"name": "Joshua Shao", "commits": 54}
+  ],
+  "moli_trace_sha256": "97c2f67cf40c6671dc83e1d84d3da94ef55f73571f15f32dbff951e6e7129ae7",
+  "all_browser_contributor_rows_match_independent_source": true,
+  "conclusion_zh": "固定版 Moli 读取的 71 条贡献者记录与独立当前 API 逐条一致。前三名为 Shawn Allen（95）、Inayaili León（77）、Aurora Pleguezuelo（66）；第四名为 54，排名边界无并列。",
+  "conclusion_en": "All 71 contributor rows read by fixed Moli match the independently fetched current API. The top three are Shawn Allen (95), Inayaili León (77), and Aurora Pleguezuelo (66); fourth place has 54, so the cutoff is unambiguous."
+}

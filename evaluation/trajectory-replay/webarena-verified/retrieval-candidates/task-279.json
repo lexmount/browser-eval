@@ -1,0 +1,50 @@
+{
+  "task_id": 279,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7770/catalogsearch/result/?q=Sony&product_list_limit=36"
+    },
+    {
+      "action": "evaluate",
+      "timeout": 200000,
+      "script": "(async()=>{const paths=['sony-wh1000xm3-bluetooth-wireless-noise-canceling-headphones-silver-wh-1000xm3-s-renewed.html','sony-wh-ch710n-h-wireless-bluetooth-noise-cancelling-headphones.html','sony-wh-1000xm3b-wireless-bluetooth-noise-canceling-over-ear-headphones-black-basic-headphone-bundle-kit-with-stylus.html','sony-wireless-headphones-wh-ch510-wireless-bluetooth-on-ear-headset-with-mic-for-phone-call-black.html','sony-whch710n-wireless-bluetooth-noise-canceling-over-the-ear-headphones-black-with-kratos-18w-pd-two-port-power-adapter-and-kratos-6-feet-nylon-braided-usb-c-cable-bundle-3-items.html','sony-wi-sp500-wireless-in-ear-sports-headphones-white-wisp500-w.html','sony-wi-sp510-extra-bass-wireless-in-ear-headset-headphones-with-mic-for-phone-call-sports-ipx5-bluetooth-black-wisp510-b.html','sony-mdras600bt-active-sports-bluetooth-headset-black.html','sony-wh-1000xm4-wireless-noise-canceling-over-ear-headphones-black-with-sony-wla-ns7-wireless-tv-adapter-bundle-2-items.html','sony-wi-c300-wireless-in-ear-headphones-red-wic300-r.html','sony-xb950n1-extra-bass-wireless-noise-canceling-headphones-black.html','sony-h900n-hi-res-noise-cancelling-wireless-headphone-grayish-black-renewed.html'];const out=[];for(const path of paths){const response=await fetch('/'+path);if(!response.ok)throw new Error(path+': HTTP '+response.status);const doc=new DOMParser().parseFromString(await response.text(),'text/html');const name=doc.querySelector('h1.page-title')?.textContent.trim();const price=doc.querySelector('[data-price-type=finalPrice] .price, .product-info-price .price')?.textContent.trim();const stock=doc.querySelector('.stock')?.textContent.trim();if(!name||!price)throw new Error(path+': product facts missing');out.push({name,price,stock});}return out;})()"
+    },
+    {
+      "action": "evaluate",
+      "timeout": 200000,
+      "script": "(async()=>{\n const ctl=new AbortController(), timer=setTimeout(()=>ctl.abort(),120000);\n try {\n  const root=new URL(location.href), q=root.searchParams.get('q');\n  if(root.origin!==location.origin || !root.pathname.startsWith('/catalogsearch/result') || q!=='Sony') throw Error('wrong Sony search scope');\n  async function read(url){\n   const u=new URL(url);\n   if(u.origin!==location.origin) throw Error('foreign catalog URL');\n   const r=await fetch(u.href,{credentials:'same-origin',redirect:'error',cache:'no-store',signal:ctl.signal});\n   if(r.status!==200||r.redirected||!/^text\\/html\\b/i.test(r.headers.get('content-type')||'')) throw Error('missing catalog HTML');\n   return {url:r.url,doc:new DOMParser().parseFromString(await r.text(),'text/html')};\n  }\n  const money=text=>{\n   if(!/^\\$(?:\\d+|\\d{1,3}(?:,\\d{3})+)\\.\\d{2}$/.test(text||''))throw Error('invalid USD final price');\n   const n=Number(text.replace(/[$,.]/g,''));if(!Number.isSafeInteger(n))throw Error('unsafe price');return n;\n  };\n  const pages=[],listed=[],seen=new Set();let next=root.href,total=null;\n  for(let page=1;page<=100;page++){\n   const {url,doc}=await read(next),u=new URL(url);\n   if(!u.pathname.startsWith('/catalogsearch/result')||u.searchParams.get('q')!=='Sony')throw Error('search scope drift');\n   const items=[...doc.querySelectorAll('.products-grid .product-item')];\n   if(!items.length)throw Error('empty Sony search page');\n   const amount=doc.querySelector('.toolbar-amount')?.textContent||'';\n   const numbers=[...amount.matchAll(/\\d+/g)].map(x=>Number(x[0])),currentTotal=numbers.at(-1);\n   if(!Number.isSafeInteger(currentTotal)||currentTotal<items.length||total!==null&&currentTotal!==total)throw Error('missing or changed Sony result total');\n   total=currentTotal;\n   for(const item of items){\n    const a=item.querySelector('.product-item-link[href]');\n    if(!a)throw Error('missing linked product');\n    const href=new URL(a.getAttribute('href'),url);\n    if(href.origin!==location.origin||!href.pathname.endsWith('.html')||seen.has(href.href))throw Error('duplicate or foreign product');\n    seen.add(href.href);listed.push({url:href.href,listed_name:a.textContent.replace(/\\s+/g,' ').trim()});\n   }\n   const links=[...new Set([...doc.querySelectorAll('a.action.next[href],.pages-item-next a[href]')].map(a=>new URL(a.getAttribute('href'),url).href))];\n   if(links.length>1)throw Error('ambiguous Sony result pagination');\n   next=links[0]||null;pages.push({page,rows:items.length,total,next});\n   if(!next)break;\n   if(page===100)throw Error('Sony search pagination safety bound');\n  }\n  if(listed.length!==total||pages.at(-1).next!==null||pages.reduce((n,p)=>n+p.rows,0)!==total)throw Error('Sony result population incomplete');\n  const details=[];\n  for(const listedItem of listed){\n   const {doc,url}=await read(listedItem.url);\n   if(url!==listedItem.url)throw Error('product URL drift');\n   const name=doc.querySelector('h1.page-title')?.textContent.replace(/\\s+/g,' ').trim();\n   if(name!==listedItem.listed_name)throw Error('product title differs from search listing');\n   const description=doc.querySelector('.product.attribute.description')?.textContent.replace(/\\s+/g,' ').trim()||'';\n   const priceNode=doc.querySelector('[data-price-type=finalPrice] .price, .product-info-price .price');\n   if(!priceNode||!description)throw Error('missing product description or final price');\n   const cents=money(priceNode.textContent.trim()),text=name+' '+description;\n   details.push({url,name,description,cents,sony:/^sony\\b/i.test(name),headphones:/headphone|headset|earphone/i.test(text),bluetooth:/bluetooth/i.test(text)});\n  }\n  const matched=details.filter(x=>x.sony&&x.headphones&&x.bluetooth);\n  if(!matched.length)throw Error('no source-linked Sony Bluetooth headphones');\n  const prices=matched.map(x=>x.cents);\n  return {scope:true,complete:true,query:q,pages,listed,details,matched:matched.map(x=>({url:x.url,name:x.name,cents:x.cents})),answer:{names:matched.map(x=>x.name),min:Math.min(...prices)/100,max:Math.max(...prices)/100}};\n }finally{ctl.abort();clearTimeout(timer)}\n})()"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/1",
+    "task_id": 279,
+    "canonical_calls_sha256": "aac59e3fff6f34b0a7a9966b95e7c18aa6b6665cbe49e18b25fbd0272da93bb6",
+    "sources": [
+      {
+        "name": "observation",
+        "step": 3,
+      "action_sha256": "3a013c7204b4744201a4004f5cabe83623150a616238b8c9b95650ebcc4b58bf",
+        "decode": "json"
+      }
+    ],
+    "requirements": {
+      "scope": {
+        "source": "observation",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "observation",
+        "pointer": "/complete"
+      }
+    },
+    "projection": {
+      "array": [
+        {
+          "source": "observation",
+          "pointer": "/answer"
+        }
+      ]
+    }
+  }
+}

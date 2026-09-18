@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import html
 import json
 import math
 import re
@@ -37,6 +39,120 @@ def _visible_text(html: str) -> str:
     parser = _VisibleTextParser()
     parser.feed(html)
     return " ".join(parser.parts)
+
+
+def _check_legacy_retrieval_audit(
+    root: Path, chinese_home: str, english_home: str
+) -> None:
+    legacy_audit = root / "data/legacy-retrieval-provenance.json"
+    if 'class="callout historical-validity"' in chinese_home:
+        if not legacy_audit.is_file():
+            raise ValueError("historical retrieval provenance audit is missing")
+        audit = json.loads(legacy_audit.read_text(encoding="utf-8"))
+        rows = audit.get("results")
+        if (
+            audit.get("schema") != "trajectory_replay_legacy_retrieval_provenance/1"
+            or not isinstance(rows, list)
+            or audit.get("retrieval_tasks") != 37
+            or audit.get("retrieval_results") != 74
+            or audit.get("frozen_answer_matches") != 74
+            or len(rows) != 74
+            or len({row.get("task_id") for row in rows}) != 37
+            or len({(row.get("browser"), row.get("task_id")) for row in rows}) != len(rows)
+            or any(row.get("source") != "frozen_agent_response_not_current_page_observation"
+                   for row in rows)
+        ):
+            raise ValueError("historical retrieval provenance audit is incomplete")
+        if (
+            'href="data/legacy-retrieval-provenance.json"' not in chinese_home
+            or 'href="../data/legacy-retrieval-provenance.json"' not in english_home
+        ):
+            raise ValueError("historical retrieval provenance is not linked in both languages")
+    elif legacy_audit.exists():
+        raise ValueError("non-legacy report contains a legacy retrieval audit")
+
+
+def _check_fixed36_output_scope(root: Path) -> None:
+    path = root / "data/diagnostic-closure.json"
+    if not path.is_file():
+        return
+    fixed = json.loads(path.read_text(encoding="utf-8")).get("fixed36")
+    if not fixed:
+        return
+    passed = fixed["official_rule_pass_tasks"]
+    source_derived = fixed["source_derived_official_pass_tasks"]
+    actual = passed - source_derived
+    if not 0 <= source_derived <= passed <= 36:
+        raise ValueError("fixed-36 output provenance counts are invalid")
+    chinese = _visible_text((root / "diagnostics.html").read_text(encoding="utf-8"))
+    english = _visible_text((root / "en/diagnostics.html").read_text(encoding="utf-8"))
+    if (
+        f"{actual}/36 条轨迹实际输出通过官方规则" not in chinese
+        or f"另有 {source_derived} 条用另行生成的现场数据回答" not in chinese
+        or f"{actual}/36 actual trajectory outputs passed the official rule" not in english
+        or f"{source_derived} separate source-derived answer" not in english
+    ):
+        raise ValueError("fixed-36 diagnostics blur actual and source-derived answers")
+    task243 = next(
+        (row for row in fixed.get("observations", []) if row.get("task_id") == 243), None
+    )
+    identity = (task243 or {}).get("identity_source_audit") or {}
+    if identity:
+        vote_sha = identity.get("rating_vote_audit_sha256")
+        if not isinstance(vote_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", vote_sha):
+            raise ValueError("task 243 rating-vote identity evidence is missing")
+        zh_detail = (root / "diagnostic/243.html").read_text(encoding="utf-8")
+        en_detail = (root / "en/diagnostic/243.html").read_text(encoding="utf-8")
+        if (
+            "对应评分投票的客户 ID 也为空" not in zh_detail
+            or "the linked rating vote also has a null customer ID" not in en_detail
+            or vote_sha not in zh_detail
+            or vote_sha not in en_detail
+        ):
+            raise ValueError("task 243 guest identity source limit is not visible")
+
+
+def _check_formal36_output_scope(root: Path) -> None:
+    path = root / "data/diagnostic-closure.json"
+    if not path.is_file():
+        return
+    formal = json.loads(path.read_text(encoding="utf-8")).get("formal36")
+    if not formal:
+        return
+    rows = formal.get("rows") or []
+    if (
+        formal.get("status") != "complete"
+        or formal.get("pass_count") != 36
+        or formal.get("denominator") != 36
+        or len(rows) != 36
+        or len({row.get("task_id") for row in rows}) != 36
+        or not formal.get("reference_unchanged")
+        or any(row.get("status") != "pass" or row.get("official_score") != 1.0
+               or row.get("completed_actions") != row.get("action_count") for row in rows)
+    ):
+        raise ValueError("formal original-36 result is incomplete")
+    for lang in ("zh", "en"):
+        parent = root if lang == "zh" else root / "en"
+        overview = _visible_text((parent / "diagnostics.html").read_text(encoding="utf-8"))
+        if "36/36" not in overview or ("90 题" if lang == "zh" else "90-task") not in overview:
+            raise ValueError("formal cohort scope is missing from the reader overview")
+        if any((row.get("reference_validity") or {}).get("status") == "unverifiable" for row in rows):
+            if ("不能宣称 36 题均已真实解决" if lang == "zh" else "not a claim that all 36 tasks were truly solved") not in overview:
+                raise ValueError("unverifiable reference is missing from the reader overview")
+        for row in rows:
+            detail = (parent / "diagnostic" / f'{row["task_id"]}.html').read_text(encoding="utf-8")
+            if (
+                (("新版 Moli 官方规则通过；题意未证实" if lang == "zh" else "New Moli official-rule pass; task answer unverified")
+                 if (row.get("reference_validity") or {}).get("status") == "unverifiable"
+                 else ("新版 Moli 受影响题目复测：通过" if lang == "zh" else "New Moli affected-task cohort: passed")) not in detail
+                or f'{row["completed_actions"]}/{row["action_count"]}' not in detail
+                or row["evidence_sha256"]["evaluation"] not in detail
+            ):
+                raise ValueError(f'task {row["task_id"]} formal result detail is missing')
+    for visual in formal.get("visuals", {}).values():
+        asset = root / visual["asset"]
+        if not asset.is_file() or hashlib.sha256(asset.read_bytes()).hexdigest() != visual["sha256"]:
+            raise ValueError("formal before/after visual is missing or changed")
 
 
 def _check_english_localization(pages: list[Path]) -> None:
@@ -142,6 +258,123 @@ def _check_metric_populations(metrics: dict, results: list[dict], participants: 
                         )
 
 
+def _check_affected36_comparison(root: Path, compare: list[dict], results: list[dict], affected_ids: set[int], participants: list[str]) -> None:
+    if [item.get("id") for item in compare] != participants:
+        raise ValueError("affected-task comparison omits a registered method")
+    for item in compare:
+        matched = [row for row in results if row["participant_id"] == item["id"] and row["task_id"] in affected_ids]
+        if len(matched) != 36 or item.get("total") != 36 or item.get("passed") != sum(row["status"] == "pass" for row in matched):
+            raise ValueError("affected-task comparison uses a wrong denominator or score")
+    maximum = max(item["passed"] for item in compare)
+    winners = [item["id"] for item in compare if item["passed"] == maximum]
+    unique_winner = winners[0] if len(winners) == 1 else None
+    for language_root in (root, root / "en"):
+        home = (language_root / "index.html").read_text(encoding="utf-8")
+        if ("36 题" if language_root == root else "36 failures") not in home:
+            raise ValueError("affected-task method comparison is absent from the home page")
+        for item in compare:
+            match = re.search(
+                rf'<tr><td><a href="results\.html\?participant={re.escape(item["id"])}&status=">{re.escape(item["label"])}</a></td><td data-metric="affected36-pass"[^>]*>(.*?)</td>',
+                home,
+                re.S,
+            )
+            if not match or not match.group(1).startswith(f'{item["passed"]}/36'):
+                raise ValueError("affected-task score or evidence link is missing from the home page")
+            marked = 'class="winner"' in match.group(1)
+            if marked != (item["id"] == unique_winner):
+                raise ValueError("affected-task highlight is missing or assigned to a tie")
+
+
+def _check_core_comparison(root: Path, metrics: dict, results: list[dict], participants: list[str]) -> None:
+    methods = metrics["methods"]
+    if [row["participant_id"] for row in methods] != participants:
+        raise ValueError("core comparison does not follow the method registry")
+    scores = {
+        participant: sum(row["status"] == "pass" for row in results if row["participant_id"] == participant)
+        for participant in participants
+    }
+    maximum = max(scores.values())
+    leaders = [participant for participant in participants if scores[participant] == maximum]
+    winner = leaders[0] if len(leaders) == 1 else None
+    denominator = len(results) // len(participants)
+    validity_by_task: dict[int, str] = {}
+    for result in results:
+        validity = result.get("semantic_status")
+        if validity not in {"valid", "unverified"}:
+            raise ValueError("every result must declare reference validity")
+        task_id = int(result["task_id"])
+        if task_id in validity_by_task and validity_by_task[task_id] != validity:
+            raise ValueError("reference validity differs across methods on one task")
+        validity_by_task[task_id] = validity
+    valid_total = sum(value == "valid" for value in validity_by_task.values())
+    valid_scores = {
+        participant: sum(
+            row["status"] == "pass" and row["semantic_status"] == "valid"
+            for row in results if row["participant_id"] == participant
+        ) for participant in participants
+    }
+    valid_maximum = max(valid_scores.values())
+    valid_leaders = [participant for participant in participants if valid_scores[participant] == valid_maximum]
+    valid_winner = valid_leaders[0] if len(valid_leaders) == 1 else None
+    show_valid_reference = valid_total != denominator
+    for language_root in (root, root / "en"):
+        home = (language_root / "index.html").read_text(encoding="utf-8")
+        if (home.count('data-metric="core-pass"') != len(participants)
+                or home.count('data-metric="verifiable-pass"')
+                != (len(participants) if show_valid_reference else 0)):
+            raise ValueError("home must have one core score per method")
+        for row in methods:
+            participant = row["participant_id"]
+            match = re.search(
+                rf'<tr><td>{re.escape(html.escape(row["label"]))}</td><td data-metric="core-pass" data-metric-direction="higher" data-sort="([0-9]+)">(.*?)</td>',
+                home, re.S,
+            )
+            if not match or int(match.group(1)) != scores[participant] or f'{scores[participant]}/{denominator}' not in match.group(2):
+                raise ValueError("core score differs from measured results")
+            marked = 'class="winner"' in match.group(2)
+            if marked != (participant == winner):
+                raise ValueError("core score highlight disagrees with unique winner or tie")
+            if (
+                row.get("valid_reference_total") != valid_total
+                or row.get("valid_reference_passed") != valid_scores[participant]
+            ):
+                raise ValueError("verifiable-task score differs from measured results")
+            if not show_valid_reference:
+                continue
+            valid_match = re.search(
+                rf'<tr><td>{re.escape(html.escape(row["label"]))}</td>(?:(?!</tr>).)*?<td data-metric="verifiable-pass" data-metric-direction="higher" data-sort="([0-9]+)">(.*?)</td>',
+                home, re.S,
+            )
+            if (
+                not valid_match
+                or int(valid_match.group(1)) != valid_scores[participant]
+                or f'{valid_scores[participant]}/{valid_total}' not in valid_match.group(2)
+            ):
+                raise ValueError("verifiable-task score differs from measured results")
+            if ('class="winner"' in valid_match.group(2)) != (participant == valid_winner):
+                raise ValueError("verifiable-task highlight disagrees with unique winner or tie")
+
+
+def _check_result_detail_semantics(text: str, evidence: dict, status: str) -> None:
+    if text.count('class="verdict-line ') != 1 or text.count('id="evidence"') != 1:
+        raise ValueError("result detail duplicates or omits its summary/evidence section")
+    if status == "pass":
+        if 'id="diagnosis"' in text:
+            raise ValueError("successful result duplicates a failure summary")
+        return
+    failure = evidence.get("programmatic_failure") or {}
+    if (
+        text.count('id="diagnosis"') != 1
+        or not str(failure.get("message") or "").strip()
+        or html.escape(str(failure["message"]), quote=True) not in text
+        or (failure.get("stage") in {"official_evaluation", "side_effect_not_observed"}
+            and not evidence.get("official_evaluation"))
+        or (failure.get("stage") == "browser_tool_execution"
+            and not evidence.get("trajectory"))
+    ):
+        raise ValueError("failure detail lacks exact error or evaluation logs")
+
+
 def check(report_dir: Path) -> dict[str, int]:
     root = report_dir.resolve()
     manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
@@ -168,6 +401,9 @@ def check(report_dir: Path) -> dict[str, int]:
         or participant_count < 1
         or len(participants) != participant_count
         or len(set(participants)) != participant_count
+        or participant_count != 3
+        or "historical_participants" in manifest
+        or "affected_task_participants" in manifest
         or manifest["logical_results"] != expected_results
         or len(results) != expected_results
     ):
@@ -177,13 +413,37 @@ def check(report_dir: Path) -> dict[str, int]:
     task_ids = {int(item["task_id"]) for item in results}
     result_keys = {(str(item["participant_id"]), int(item["task_id"])) for item in results}
     expected_keys = {(participant, task_id) for participant in participants for task_id in task_ids}
-    if len(task_ids) != task_count or result_keys != expected_keys:
+    if len(task_ids) != task_count or result_keys != expected_keys or len(result_keys) != len(results):
         raise ValueError(
             "report results do not match the manifest-declared participant-task matrix"
         )
-    _check_metric_populations(
-        json.loads((root / "data/metrics.json").read_text(encoding="utf-8")), results, participants
-    )
+    for task_id in task_ids:
+        contract_hashes = {
+            row.get("task_contract_sha256")
+            for row in results if row["task_id"] == task_id
+        }
+        if len(contract_hashes) != 1 or not re.fullmatch(r"[0-9a-f]{64}", str(next(iter(contract_hashes)))):
+            raise ValueError(f"task {task_id} mixes result contract versions")
+    metrics = json.loads((root / "data/metrics.json").read_text(encoding="utf-8"))
+    _check_metric_populations(metrics, results, participants)
+    _check_core_comparison(root, metrics, results, participants)
+    if manifest.get("formal_reference_validity") is True:
+        if task_count != 90 or manifest.get("site_reset_between_tasks") is not True:
+            raise ValueError("formal report requires the complete reset-isolated 90-task cohort")
+        for language_root in (root, root / "en"):
+            environment = (language_root / "environment.html").read_text(encoding="utf-8")
+            if "Rainbond" not in environment or "Colima" in environment:
+                raise ValueError("formal environment page does not describe the measured deployment")
+        for participant in participants:
+            for task_id in task_ids:
+                evidence_path = root / "data/evidence" / f"{participant}-{task_id}.json"
+                evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+                if not isinstance(evidence.get("site_reset"), dict) or evidence.get("readiness") is None:
+                    raise ValueError(f"formal result lacks task reset or readiness evidence: {participant}-{task_id}")
+    if metrics.get("affected36_methods"):
+        raise ValueError("report must not contain a diagnostic-only comparison")
+    if any((root / route).exists() for route in ("diagnostics.html", "fixes.html", "data/diagnostic-closure.json")):
+        raise ValueError("three-method report contains a separate diagnostic appendix")
     failures = [item for item in results if item["status"] != "pass"]
     if manifest["failed_results"] != len(failures) or manifest["reviewed_failures"] != len(
         failures
@@ -210,24 +470,51 @@ def check(report_dir: Path) -> dict[str, int]:
             raise ValueError(f"qualified trajectory is invalid for task {task_id}")
         for participant in participants:
             key = f"{participant}-{task_id}"
+            planned_path = root / "data/trajectory" / f"{key}.json"
+            if not planned_path.is_file():
+                raise ValueError(f"method-specific trajectory is missing: {key}")
+            planned = json.loads(planned_path.read_text(encoding="utf-8"))
+            planned_count = len(planned.get("tool_calls") or [])
+            planned_digest = hashlib.sha256(
+                json.dumps(planned.get("tool_calls") or [], ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            ).hexdigest()
+            matching = next(item for item in results if item["participant_id"] == participant and item["task_id"] == task_id)
+            if (
+                planned.get("participant_id") != participant
+                or planned.get("task_id") != task_id
+                or planned_count != matching["action_count"]
+                or planned.get("planned_actions_sha256") != planned_digest
+            ):
+                raise ValueError(f"method-specific trajectory binding is invalid: {key}")
+            evidence_path = root / "data/evidence" / f"{key}.json"
+            if not evidence_path.is_file():
+                raise ValueError(f"method-specific result evidence is missing: {key}")
+            evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+            if (
+                (evidence.get("result") or {}).get("planned_actions_sha256") != planned_digest
+                or (evidence.get("result") or {}).get("task_contract_sha256") != matching.get("task_contract_sha256")
+                or (evidence.get("result") or {}).get("status") != matching["status"]
+                or (evidence.get("reference_validity") or {}).get("status")
+                != ("valid" if matching["semantic_status"] == "valid" else "unverifiable")
+            ):
+                raise ValueError(f"method-specific result evidence changed: {key}")
             for language_root in (root, root / "en"):
                 page = language_root / "result" / f"{key}.html"
                 text = page.read_text(encoding="utf-8")
                 relative_root = "../" if language_root == root else "../../"
                 if (
-                    text.count('class="aligned-step ') != action_count
-                    or f'data-standard-url="{relative_root}data/trajectory/{task_id}.json"'
+                    text.count('class="aligned-step ') != planned_count
+                    or f'data-standard-url="{relative_root}data/trajectory/{key}.json"'
                     not in text
                     or f'data-evidence-url="{relative_root}data/evidence/{key}.json"' not in text
                     or 'id="step-dialog"' not in text
                 ):
                     raise ValueError(f"result detail lacks aligned step evidence: {page}")
+                _check_result_detail_semantics(text, evidence, matching["status"])
     core_names = (
         "index.html",
         "dataset.html",
         "results.html",
-        "fixes.html",
-        "diagnostics.html",
         "environment.html",
         "review.html",
         "evidence-viewer.html",
@@ -290,6 +577,14 @@ def check(report_dir: Path) -> dict[str, int]:
                 target = target / "index.html"
             if not target.is_file() or (target != root and root not in target.parents):
                 raise ValueError(f"broken or escaping local link in {page}: {raw}")
+
+    _check_legacy_retrieval_audit(
+        root,
+        (root / "index.html").read_text(encoding="utf-8"),
+        (root / "en/index.html").read_text(encoding="utf-8"),
+    )
+    _check_fixed36_output_scope(root)
+    _check_formal36_output_scope(root)
 
     distributable = "\n".join(
         path.read_text(encoding="utf-8", errors="ignore")

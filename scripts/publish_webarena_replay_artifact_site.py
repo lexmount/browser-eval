@@ -17,12 +17,16 @@ from pathlib import Path
 from urllib.error import HTTPError
 
 from harness.web_fetch.artifact_auth import load_token
+from harness.trajectory_replay.webarena_report import require_all_reference_validity
+if __package__:
+    from scripts.build_webarena_replay_report import _bound_dataset_path
+else:
+    from build_webarena_replay_report import _bound_dataset_path
 
 ARCHIVE = Path("publish/trajectory-replay-artifact-site.zip")
 ATTESTATION = Path("publish/trajectory-replay-artifact-site.attestation.json")
 RECEIPT = Path("publish/trajectory-replay-artifact-site-receipt.json")
 PROFILE = Path("evaluation/trajectory-replay/webarena-verified/current-run.json")
-DATASET = Path("evaluation/trajectory-replay/webarena-verified/trajectories.json")
 REVIEW = Path("research/trajectory-replay-failure-review.json")
 BINDING_JOURNAL = Path("publish/trajectory-replay-artifact-site-binding-pending.json")
 OPERATION_JOURNAL = Path("publish/trajectory-replay-artifact-site-operation-pending.json")
@@ -146,31 +150,34 @@ def validate_package() -> dict:
     attestation = json.loads(ATTESTATION.read_text(encoding="utf-8"))
     report = Path(str(attestation.get("report") or ""))
     evidence = Path(str(attestation.get("evidence") or ""))
+    profile = json.loads(PROFILE.read_text(encoding="utf-8"))
+    dataset_path = _bound_dataset_path(profile)
+    if (profile.get("scoring") or {}).get("require_all_reference_validity") is True:
+        require_all_reference_validity(
+            profile,
+            json.loads(evidence.read_text(encoding="utf-8")),
+            json.loads(dataset_path.read_text(encoding="utf-8")),
+        )
     checks = {
         "schema": attestation.get("schema") == "lex_webarena_replay_publication_attestation/1",
         "archive": sha256(ARCHIVE) == attestation.get("archive_sha256"),
         "report": report.is_dir() and tree_sha256(report) == attestation.get("report_tree_sha256"),
         "profile": sha256(PROFILE) == attestation.get("profile_sha256"),
-        "dataset": sha256(DATASET) == attestation.get("dataset_sha256"),
+        "dataset": sha256(dataset_path) == attestation.get("dataset_sha256"),
         "review": sha256(REVIEW) == attestation.get("review_sha256"),
         "evidence": evidence.is_file() and sha256(evidence) == attestation.get("evidence_sha256"),
     }
     report_manifest = report / "report-manifest.json"
-    if report_manifest.is_file():
-        built = json.loads(report_manifest.read_text(encoding="utf-8"))
-        built_closure_sha = built.get("diagnostic_closure_sha256")
-    else:
-        built_closure_sha = None
-    source_closure_sha = attestation.get("diagnostic_closure_sha256")
-    checks["diagnostic_closure_binding"] = built_closure_sha == source_closure_sha
-    if source_closure_sha:
-        closure = Path(str(attestation.get("diagnostic_closure") or ""))
-        checks["diagnostic_closure"] = (
-            closure.is_file()
-            and not closure.is_symlink()
-            and not any(parent.is_symlink() for parent in closure.parents)
-            and sha256(closure) == source_closure_sha
+    built = json.loads(report_manifest.read_text(encoding="utf-8")) if report_manifest.is_file() else {}
+    checks["report_dataset"] = built.get("dataset_sha256") == attestation.get("dataset_sha256")
+    checks["report_evidence"] = built.get("results_sha256") == attestation.get("evidence_sha256")
+    checks["no_diagnostic_closure"] = not any(
+        value for value in (
+            built.get("diagnostic_closure_sha256"),
+            attestation.get("diagnostic_closure_sha256"),
+            attestation.get("diagnostic_closure"),
         )
+    )
     failed = [name for name, valid in checks.items() if not valid]
     if failed:
         raise ValueError("publication package is stale: " + ", ".join(failed))

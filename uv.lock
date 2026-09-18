@@ -365,7 +365,7 @@ requires-dist = [
     { name = "requests", marker = "extra == 'reference-audit'", specifier = ">=2.32,<3" },
     { name = "ruff", marker = "extra == 'test'", specifier = ">=0.9,<1" },
     { name = "tiktoken", marker = "extra == 'browser-use-eval'", specifier = ">=0.7,<1" },
-    { name = "webarena-verified", marker = "extra == 'browser-use-eval'", specifier = "==1.2.3" },
+    { name = "webarena-verified", marker = "extra == 'browser-use-eval'", git = "https://github.com/lexmount/webarena-verified.git?rev=112cb4ed2303a4ce3f93cc1264cb5b8bf7b78145" },
 ]
 provides-extras = ["headless-eval", "reference-audit", "webmainbench-eval", "browser-use-eval", "test", "oss-eval"]
 
@@ -4419,8 +4419,8 @@ wheels = [
 
 [[package]]
 name = "webarena-verified"
-version = "1.2.3"
-source = { registry = "https://pypi.org/simple" }
+version = "1.2.3.post1.dev2"
+source = { git = "https://github.com/lexmount/webarena-verified.git?rev=112cb4ed2303a4ce3f93cc1264cb5b8bf7b78145#112cb4ed2303a4ce3f93cc1264cb5b8bf7b78145" }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "compact-json" },
@@ -4439,10 +4439,6 @@ dependencies = [
     { name = "usaddress" },
     { name = "usaddress-scourgify" },
     { name = "word2number" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/29/94/f6188ad5de7d299368c55aa0e57fb0ae07dbfc5065f56fab7b58cc800f93/webarena_verified-1.2.3.tar.gz", hash = "sha256:668ff976ec000f60592ca14e3d935df48facb0482bc81d3c077258cb2f139869", size = 303911, upload-time = "2026-02-07T22:56:07.048Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d0/d6/f69571f12c96f7ae74335a0e48e165ed2bcedd981808e3fe3f64c70ac396/webarena_verified-1.2.3-py3-none-any.whl", hash = "sha256:91a0297a096a343a13ff5e0ebc35c39b3d926b27c4d5a8a57c833681acbc6b7a", size = 349324, upload-time = "2026-02-07T22:56:05.058Z" },
 ]
 
 [[package]]

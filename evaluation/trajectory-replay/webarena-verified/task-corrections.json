@@ -9,6 +9,52 @@
   },
   "corrections": [
     {
+      "task_id": 225,
+      "official_revision": 2,
+      "correction_id": "wv-225-explicit-title-scope-20260918",
+      "rationale": "Magento has no populated manufacturer attribute for this catalog. The source-complete storefront query identifies the relevant two products by titles containing Sephora and Brush, and both have no reviews.",
+      "root_cause": "The upstream manufacturer wording has no structured source field, while the historical trajectory inspected only two products without proving membership. A broad text search also has unstable pagination. The corrected intent states the observable title rule and the reference is rederived from complete GraphQL and database evidence.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task225-revised-reference.json",
+        "sha256": "0e6f2a1a0e9d85a6f8c6f9a03832253d97be4934159be502b8786e8ae96a567a"
+      },
+      "regression_ids": [
+        "tr-225-complete-two-products-no-low-reviews",
+        "tr-225-reject-incomplete-product-scope",
+        "tr-225-reject-new-low-review"
+      ],
+      "preconditions": [
+        {
+          "path": "/intent",
+          "equals": "Return the titles for reviews with 3 stars or below for brush from sephora"
+        },
+        {
+          "path": "/eval/0/expected/status",
+          "equals": "NOT_FOUND_ERROR"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/intent",
+          "value": "Return the titles of reviews rated 3 stars or below for products whose titles contain both Sephora and Brush. If none exist, report not found."
+        },
+        {
+          "op": "replace",
+          "path": "/intent_template",
+          "value": "Return the titles of reviews rated 3 stars or below for products whose titles contain both {{brand_text}} and {{product_text}}. If none exist, report not found."
+        },
+        {
+          "op": "replace",
+          "path": "/instantiation_dict",
+          "value": {
+            "brand_text": "Sephora",
+            "product_text": "Brush"
+          }
+        }
+      ]
+    },
+    {
       "task_id": 279,
       "official_revision": 2,
       "correction_id": "wv-279-reference-title-drift-20260911",
@@ -78,8 +124,16 @@
     {
       "task_id": 448,
       "official_revision": 2,
-      "correction_id": "wv-448-match-profile-save-before-recency-20260915",
-      "rationale": "GitLab emits a successful profile-save POST followed by another profile event. The acceptance contract must match the POST carrying user[website_url] before applying event recency.",
+      "correction_id": "wv-448-profile-save-success-variants-20260918",
+      "rationale": "GitLab can persist this profile form through either a 302 redirect or a 200 JSON success response. Match the submitted website URL before event recency and require an explicit success response for either form.",
+      "root_cause": "A single expected HTTP 302 falsely rejects a successful 200 JSON profile update when the redirect request is canceled; an unqualified 200 would also admit validation errors.",
+      "regression_ids": [
+        "tr-448-302-success",
+        "tr-448-200-json-success",
+        "tr-448-200-json-failure",
+        "tr-448-wrong-website",
+        "tr-448-canceled-request"
+      ],
       "preconditions": [
         {
           "path": "/eval/1/expected/url",
@@ -88,6 +142,10 @@
         {
           "path": "/eval/1/expected/post_data/user[website_url]",
           "equals": "https://egg.tart.com"
+        },
+        {
+          "path": "/eval/1/expected/response_status",
+          "equals": 302
         },
         {
           "path": "/eval/1/last_event_only",
@@ -99,6 +157,25 @@
           "op": "replace",
           "path": "/eval/1/last_event_only",
           "value": false
+        }
+      ],
+      "network_event_alternatives": [
+        {
+          "evaluator_index": 1,
+          "operations": [
+            {
+              "op": "replace",
+              "path": "/eval/1/expected/response_status",
+              "value": 200
+            },
+            {
+              "op": "replace",
+              "path": "/eval/1/expected/response_content",
+              "value": {
+                "message": "Profile was successfully updated"
+              }
+            }
+          ]
         }
       ]
     },

@@ -1,0 +1,661 @@
+{
+  "schema": "lex_webarena_verified_pilot/1",
+  "metadata": {
+    "benchmark": "WebArena-Verified",
+    "benchmark_version": "1.2.3",
+    "difficulty_definition": "estimated minimum visible UI operations after authentication: easy 1-4, medium 5-7, hard 8+",
+    "selection_policy": "The pre-registered 90-task pilot selection, with task 243 using the independently verifiable nickname contract from the pinned WebArena-Verified fork; identical task IDs for all three methods.",
+    "tier_counts": {
+      "easy": 15,
+      "medium": 30,
+      "hard": 45
+    },
+    "site_counts": {
+      "shopping": 23,
+      "shopping_admin": 23,
+      "reddit": 22,
+      "gitlab": 22
+    },
+    "task_type_counts": {
+      "RETRIEVE": 37,
+      "NAVIGATE": 13,
+      "MUTATE": 40
+    },
+    "excluded_sites": {
+      "wikipedia": "requires a large external ZIM data mount and has not completed the local execution qualification gate",
+      "map": "requires multiple external map datasets and persistent volumes and has not completed the local execution qualification gate"
+    }
+  },
+  "tasks": [
+    {
+      "task_id": 44,
+      "tier": "easy",
+      "estimated_min_steps": 2,
+      "official_hard": true,
+      "rationale": "打开一个需要登录的 GitLab 目标页"
+    },
+    {
+      "task_id": 41,
+      "tier": "easy",
+      "estimated_min_steps": 3,
+      "official_hard": false,
+      "rationale": "打开一份报表并读取第一个条目"
+    },
+    {
+      "task_id": 77,
+      "tier": "easy",
+      "estimated_min_steps": 3,
+      "official_hard": false,
+      "rationale": "打开评论列表并读取一种状态的数量"
+    },
+    {
+      "task_id": 94,
+      "tier": "easy",
+      "estimated_min_steps": 4,
+      "official_hard": false,
+      "rationale": "搜索一张发票并读取总金额"
+    },
+    {
+      "task_id": 404,
+      "tier": "easy",
+      "estimated_min_steps": 4,
+      "official_hard": false,
+      "rationale": "进入一个论坛、选择最新帖子并点赞"
+    },
+    {
+      "task_id": 313,
+      "tier": "easy",
+      "estimated_min_steps": 2,
+      "official_hard": false,
+      "rationale": "从商城页面直接读取客服号码"
+    },
+    {
+      "task_id": 274,
+      "tier": "easy",
+      "estimated_min_steps": 3,
+      "official_hard": false,
+      "rationale": "提交一个商品关键词并停留在搜索结果页"
+    },
+    {
+      "task_id": 260,
+      "tier": "easy",
+      "estimated_min_steps": 2,
+      "official_hard": false,
+      "rationale": "从商城导航进入指定品类页"
+    },
+    {
+      "task_id": 386,
+      "tier": "easy",
+      "estimated_min_steps": 4,
+      "official_hard": false,
+      "rationale": "搜索一个明确商品并读取评分"
+    },
+    {
+      "task_id": 374,
+      "tier": "easy",
+      "estimated_min_steps": 3,
+      "official_hard": false,
+      "rationale": "在后台导航到指定主题设置页"
+    },
+    {
+      "task_id": 157,
+      "tier": "easy",
+      "estimated_min_steps": 3,
+      "official_hard": true,
+      "rationale": "在后台打开全部客户详情视图"
+    },
+    {
+      "task_id": 595,
+      "tier": "easy",
+      "estimated_min_steps": 4,
+      "official_hard": false,
+      "rationale": "从指定论坛热门帖子页完成订阅"
+    },
+    {
+      "task_id": 645,
+      "tier": "easy",
+      "estimated_min_steps": 4,
+      "official_hard": true,
+      "rationale": "在已知论坛发布只有标题的新帖子"
+    },
+    {
+      "task_id": 156,
+      "tier": "easy",
+      "estimated_min_steps": 2,
+      "official_hard": true,
+      "rationale": "打开分配给当前用户的合并请求页"
+    },
+    {
+      "task_id": 258,
+      "tier": "easy",
+      "estimated_min_steps": 2,
+      "official_hard": false,
+      "rationale": "打开 GitLab 公共项目列表"
+    },
+    {
+      "task_id": 45,
+      "tier": "medium",
+      "estimated_min_steps": 5,
+      "official_hard": false,
+      "rationale": "进入项目议题列表并应用排序和状态筛选"
+    },
+    {
+      "task_id": 118,
+      "tier": "medium",
+      "estimated_min_steps": 5,
+      "official_hard": false,
+      "rationale": "把需求转成商品查询并打开匹配详情页"
+    },
+    {
+      "task_id": 117,
+      "tier": "medium",
+      "estimated_min_steps": 6,
+      "official_hard": false,
+      "rationale": "进入订单历史，经翻页或排序后读取最早日期"
+    },
+    {
+      "task_id": 132,
+      "tier": "medium",
+      "estimated_min_steps": 6,
+      "official_hard": false,
+      "rationale": "找到项目贡献者活动页并限定一个日期"
+    },
+    {
+      "task_id": 168,
+      "tier": "medium",
+      "estimated_min_steps": 5,
+      "official_hard": false,
+      "rationale": "打开个人项目并检查星标与项目标识"
+    },
+    {
+      "task_id": 173,
+      "tier": "medium",
+      "estimated_min_steps": 6,
+      "official_hard": false,
+      "rationale": "按标题和更新时间筛选个人议题，再读取状态"
+    },
+    {
+      "task_id": 183,
+      "tier": "medium",
+      "estimated_min_steps": 6,
+      "official_hard": false,
+      "rationale": "按库存量筛选后台表格并收集 SKU"
+    },
+    {
+      "task_id": 188,
+      "tier": "medium",
+      "estimated_min_steps": 6,
+      "official_hard": false,
+      "rationale": "按状态筛选订单，打开最新一单并读取总额"
+    },
+    {
+      "task_id": 198,
+      "tier": "medium",
+      "estimated_min_steps": 6,
+      "official_hard": false,
+      "rationale": "筛选并排序订单，再打开最新的匹配客户"
+    },
+    {
+      "task_id": 399,
+      "tier": "medium",
+      "estimated_min_steps": 5,
+      "official_hard": true,
+      "rationale": "打开个人资料设置，修改简介并保存"
+    },
+    {
+      "task_id": 225,
+      "tier": "medium",
+      "estimated_min_steps": 5,
+      "official_hard": false,
+      "rationale": "定位商品评论并提取低评分评论标题"
+    },
+    {
+      "task_id": 231,
+      "tier": "medium",
+      "estimated_min_steps": 5,
+      "official_hard": false,
+      "rationale": "筛选订单状态并读取最近订单号"
+    },
+    {
+      "task_id": 298,
+      "tier": "medium",
+      "estimated_min_steps": 6,
+      "official_hard": false,
+      "rationale": "筛选最近已完成订单并打开详情页"
+    },
+    {
+      "task_id": 465,
+      "tier": "medium",
+      "estimated_min_steps": 6,
+      "official_hard": false,
+      "rationale": "搜索明确商品并加入愿望清单"
+    },
+    {
+      "task_id": 279,
+      "tier": "medium",
+      "estimated_min_steps": 7,
+      "official_hard": false,
+      "rationale": "筛选品牌商品并汇总名称与价格区间"
+    },
+    {
+      "task_id": 284,
+      "tier": "medium",
+      "estimated_min_steps": 7,
+      "official_hard": true,
+      "rationale": "按容量和价格比较商品并打开目标详情页"
+    },
+    {
+      "task_id": 288,
+      "tier": "medium",
+      "estimated_min_steps": 7,
+      "official_hard": false,
+      "rationale": "从取消订单历史中定位客户并读取邮箱"
+    },
+    {
+      "task_id": 243,
+      "tier": "medium",
+      "estimated_min_steps": 6,
+      "official_hard": false,
+      "rationale": "定位商品唯一最低分评论并读取评论昵称"
+    },
+    {
+      "task_id": 676,
+      "tier": "medium",
+      "estimated_min_steps": 5,
+      "official_hard": false,
+      "rationale": "按欺诈状态筛选后台订单列表"
+    },
+    {
+      "task_id": 470,
+      "tier": "medium",
+      "estimated_min_steps": 6,
+      "official_hard": false,
+      "rationale": "搜索指定订单并执行取消"
+    },
+    {
+      "task_id": 605,
+      "tier": "medium",
+      "estimated_min_steps": 7,
+      "official_hard": false,
+      "rationale": "选择相关论坛并发布一个问题"
+    },
+    {
+      "task_id": 620,
+      "tier": "medium",
+      "estimated_min_steps": 6,
+      "official_hard": false,
+      "rationale": "在关系论坛填写标题和正文并发帖"
+    },
+    {
+      "task_id": 625,
+      "tier": "medium",
+      "estimated_min_steps": 7,
+      "official_hard": true,
+      "rationale": "为讨论主题选择相关论坛并发帖"
+    },
+    {
+      "task_id": 630,
+      "tier": "medium",
+      "estimated_min_steps": 6,
+      "official_hard": false,
+      "rationale": "在已知论坛按给定标题和正文发帖"
+    },
+    {
+      "task_id": 714,
+      "tier": "medium",
+      "estimated_min_steps": 5,
+      "official_hard": false,
+      "rationale": "进入论坛历史榜并踩排名第一的帖子"
+    },
+    {
+      "task_id": 475,
+      "tier": "medium",
+      "estimated_min_steps": 6,
+      "official_hard": false,
+      "rationale": "创建一个命名明确的空仓库"
+    },
+    {
+      "task_id": 339,
+      "tier": "medium",
+      "estimated_min_steps": 6,
+      "official_hard": false,
+      "rationale": "在当前项目打开并筛选带缺陷标签的议题"
+    },
+    {
+      "task_id": 418,
+      "tier": "medium",
+      "estimated_min_steps": 5,
+      "official_hard": true,
+      "rationale": "打开个人设置并更新 GitLab 状态"
+    },
+    {
+      "task_id": 389,
+      "tier": "medium",
+      "estimated_min_steps": 6,
+      "official_hard": false,
+      "rationale": "定位指定合并请求并发表评论"
+    },
+    {
+      "task_id": 448,
+      "tier": "medium",
+      "estimated_min_steps": 5,
+      "official_hard": false,
+      "rationale": "打开个人资料并修改主页网址"
+    },
+    {
+      "task_id": 28,
+      "tier": "hard",
+      "estimated_min_steps": 10,
+      "official_hard": true,
+      "rationale": "找到最新论坛帖子，并按作者和票数条件检查多条评论"
+    },
+    {
+      "task_id": 50,
+      "tier": "hard",
+      "estimated_min_steps": 9,
+      "official_hard": true,
+      "rationale": "检查一整年的分页订单并汇总数量和支出"
+    },
+    {
+      "task_id": 66,
+      "tier": "hard",
+      "estimated_min_steps": 12,
+      "official_hard": true,
+      "rationale": "检查十个排序帖子，并根据描述归类推荐内容"
+    },
+    {
+      "task_id": 108,
+      "tier": "hard",
+      "estimated_min_steps": 10,
+      "official_hard": true,
+      "rationale": "应用日期和状态条件，并汇总五个月度数量"
+    },
+    {
+      "task_id": 110,
+      "tier": "hard",
+      "estimated_min_steps": 12,
+      "official_hard": true,
+      "rationale": "应用日期和状态条件，并汇总十一个月度数量"
+    },
+    {
+      "task_id": 124,
+      "tier": "hard",
+      "estimated_min_steps": 9,
+      "official_hard": true,
+      "rationale": "搜索商品、检查结果页并计算价格区间"
+    },
+    {
+      "task_id": 127,
+      "tier": "hard",
+      "estimated_min_steps": 9,
+      "official_hard": true,
+      "rationale": "结合搜索词排名与独立的商品可用性检查"
+    },
+    {
+      "task_id": 184,
+      "tier": "hard",
+      "estimated_min_steps": 9,
+      "official_hard": true,
+      "rationale": "筛选库存、检查变体并返回成对商品字段"
+    },
+    {
+      "task_id": 193,
+      "tier": "hard",
+      "estimated_min_steps": 8,
+      "official_hard": true,
+      "rationale": "排序已完成订单、检查两份详情并合计付款"
+    },
+    {
+      "task_id": 196,
+      "tier": "hard",
+      "estimated_min_steps": 12,
+      "official_hard": true,
+      "rationale": "检查两组各四笔订单，并计算付款差额"
+    },
+    {
+      "task_id": 204,
+      "tier": "hard",
+      "estimated_min_steps": 9,
+      "official_hard": true,
+      "rationale": "找到最新完成订单，并规范化、排序多个行项目"
+    },
+    {
+      "task_id": 506,
+      "tier": "hard",
+      "estimated_min_steps": 12,
+      "official_hard": false,
+      "rationale": "清空购物车，按预算和评分筛选品类，选择商品并结账"
+    },
+    {
+      "task_id": 441,
+      "tier": "hard",
+      "estimated_min_steps": 11,
+      "official_hard": true,
+      "rationale": "定位项目文件、修改标题、提交到默认分支并验证"
+    },
+    {
+      "task_id": 163,
+      "tier": "hard",
+      "estimated_min_steps": 8,
+      "official_hard": true,
+      "rationale": "遍历商品评论并收集全部低评分标题"
+    },
+    {
+      "task_id": 320,
+      "tier": "hard",
+      "estimated_min_steps": 10,
+      "official_hard": true,
+      "rationale": "筛选指定月份的取消订单并汇总含运费退款"
+    },
+    {
+      "task_id": 334,
+      "tier": "hard",
+      "estimated_min_steps": 8,
+      "official_hard": false,
+      "rationale": "在历史订单中跨条目定位描述匹配商品的最近日期"
+    },
+    {
+      "task_id": 528,
+      "tier": "hard",
+      "estimated_min_steps": 12,
+      "official_hard": true,
+      "rationale": "从订单历史提取订单号和金额，再填写但不提交退款表单"
+    },
+    {
+      "task_id": 571,
+      "tier": "hard",
+      "estimated_min_steps": 8,
+      "official_hard": true,
+      "rationale": "进入账户地址簿并完整更新邮寄地址"
+    },
+    {
+      "task_id": 585,
+      "tier": "hard",
+      "estimated_min_steps": 10,
+      "official_hard": true,
+      "rationale": "从购买历史定位商品并提交指定评分和评论"
+    },
+    {
+      "task_id": 510,
+      "tier": "hard",
+      "estimated_min_steps": 12,
+      "official_hard": false,
+      "rationale": "按品类、评论数、评分和价格比较商品并完成结账"
+    },
+    {
+      "task_id": 464,
+      "tier": "hard",
+      "estimated_min_steps": 10,
+      "official_hard": false,
+      "rationale": "统计商品高评分评论后更新商品描述"
+    },
+    {
+      "task_id": 547,
+      "tier": "hard",
+      "estimated_min_steps": 10,
+      "official_hard": false,
+      "rationale": "编辑可配置商品并为指定尺码增加颜色选项"
+    },
+    {
+      "task_id": 694,
+      "tier": "hard",
+      "estimated_min_steps": 12,
+      "official_hard": true,
+      "rationale": "按属性集、库存、尺码、颜色和价格创建商品"
+    },
+    {
+      "task_id": 699,
+      "tier": "hard",
+      "estimated_min_steps": 10,
+      "official_hard": false,
+      "rationale": "创建面向注册客户的全站折扣价格规则"
+    },
+    {
+      "task_id": 771,
+      "tier": "hard",
+      "estimated_min_steps": 10,
+      "official_hard": true,
+      "rationale": "筛选全部高评分待审评论并逐项批准"
+    },
+    {
+      "task_id": 67,
+      "tier": "hard",
+      "estimated_min_steps": 12,
+      "official_hard": true,
+      "rationale": "检查十个热门帖子并精确提取单书推荐标题"
+    },
+    {
+      "task_id": 580,
+      "tier": "hard",
+      "estimated_min_steps": 12,
+      "official_hard": true,
+      "rationale": "创建论坛并配置名称、标题、描述和侧栏"
+    },
+    {
+      "task_id": 610,
+      "tier": "hard",
+      "estimated_min_steps": 10,
+      "official_hard": true,
+      "rationale": "发布书评后继续定位新帖子并追加评论"
+    },
+    {
+      "task_id": 615,
+      "tier": "hard",
+      "estimated_min_steps": 10,
+      "official_hard": true,
+      "rationale": "从来源帖子提取图片地址并转载到另一个论坛"
+    },
+    {
+      "task_id": 640,
+      "tier": "hard",
+      "estimated_min_steps": 8,
+      "official_hard": true,
+      "rationale": "在指定论坛创建包含日期信息的活动通知"
+    },
+    {
+      "task_id": 719,
+      "tier": "hard",
+      "estimated_min_steps": 10,
+      "official_hard": false,
+      "rationale": "筛选指定用户在论坛的全部投稿并逐项点赞"
+    },
+    {
+      "task_id": 725,
+      "tier": "hard",
+      "estimated_min_steps": 10,
+      "official_hard": false,
+      "rationale": "筛选指定用户在论坛的全部投稿并逐项点踩"
+    },
+    {
+      "task_id": 731,
+      "tier": "hard",
+      "estimated_min_steps": 8,
+      "official_hard": false,
+      "rationale": "定位自己的指定帖子并在正文末尾追加一行"
+    },
+    {
+      "task_id": 29,
+      "tier": "hard",
+      "estimated_min_steps": 12,
+      "official_hard": true,
+      "rationale": "定位最新帖子并按作者和票数条件统计评论"
+    },
+    {
+      "task_id": 635,
+      "tier": "hard",
+      "estimated_min_steps": 8,
+      "official_hard": false,
+      "rationale": "判断最合适论坛并发布包含预算的推荐请求"
+    },
+    {
+      "task_id": 600,
+      "tier": "hard",
+      "estimated_min_steps": 8,
+      "official_hard": false,
+      "rationale": "自主选择最可能获得回答的论坛并发布问题"
+    },
+    {
+      "task_id": 349,
+      "tier": "hard",
+      "estimated_min_steps": 8,
+      "official_hard": true,
+      "rationale": "进入仓库成员设置并列出其他可访问用户"
+    },
+    {
+      "task_id": 784,
+      "tier": "hard",
+      "estimated_min_steps": 8,
+      "official_hard": false,
+      "rationale": "定位仓库分支贡献者并读取提交最多者邮箱"
+    },
+    {
+      "task_id": 303,
+      "tier": "hard",
+      "estimated_min_steps": 10,
+      "official_hard": true,
+      "rationale": "按年度范围检查提交历史并汇总指定用户次数"
+    },
+    {
+      "task_id": 314,
+      "tier": "hard",
+      "estimated_min_steps": 9,
+      "official_hard": false,
+      "rationale": "对仓库贡献者排序并提取前三名完整姓名"
+    },
+    {
+      "task_id": 658,
+      "tier": "hard",
+      "estimated_min_steps": 12,
+      "official_hard": true,
+      "rationale": "创建议题并配置受理人和远期截止日期"
+    },
+    {
+      "task_id": 666,
+      "tier": "hard",
+      "estimated_min_steps": 12,
+      "official_hard": false,
+      "rationale": "选择源分支和目标分支创建合并请求并指定审核人"
+    },
+    {
+      "task_id": 590,
+      "tier": "hard",
+      "estimated_min_steps": 10,
+      "official_hard": true,
+      "rationale": "在项目中创建并配置起止日期里程碑"
+    },
+    {
+      "task_id": 576,
+      "tier": "hard",
+      "estimated_min_steps": 10,
+      "official_hard": true,
+      "rationale": "定位仓库并以指定角色添加两名成员"
+    },
+    {
+      "task_id": 415,
+      "tier": "hard",
+      "estimated_min_steps": 9,
+      "official_hard": true,
+      "rationale": "定位合并请求、检查最后评论作者并条件化回复"
+    }
+  ]
+}

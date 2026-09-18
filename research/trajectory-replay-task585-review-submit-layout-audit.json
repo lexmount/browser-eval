@@ -1,0 +1,61 @@
+{
+  "schema": "trajectory_replay_task585_review_submit_layout_audit/1",
+  "task_id": 585,
+  "historical_result": {
+    "browser": "moli",
+    "version": "1.1.3",
+    "failed_action_index": 9,
+    "selector": "button:visible:has-text(\"Submit Review\")",
+    "trace_sha256": "b3e3dbf0b55a0d99d5c8bf58bc65c525a6dc7047acb3bd589ae95cb605144970",
+    "upstream_actions": "The rating click and three form fills returned success before the submit-button click timed out."
+  },
+  "diagnostic_contract": {
+    "site": "WebArena Shopping",
+    "action_scope": "frozen actions 1-8, then read-only form values and submit-button geometry at 0, 2 and 5 seconds; no Submit Review click or review creation",
+    "site_reset": false,
+    "site_data_mutations": 0,
+    "runner_sha256": "028dc55c6a52cc05d91e6196529b609a56bf5314448ae4c8a96773f933a75909"
+  },
+  "same_page_comparison": [
+    {
+      "build": "official macOS Moli 1.1.6",
+      "binary_sha256": "8d89eebcd9908d1d0e1d3597a35e36fb41d0742604295c4046ccb3d26996caf2",
+      "receipt_sha256": "47091b18e0949d8aa4bc5e1a7c786695c23425a5889bc8c1962ecde2a99e6d40",
+      "form_state": {"five_star_checked": true, "nickname": "Emma Lopez", "title": "Good purchase", "detail": "I like it"},
+      "button_count": [1, 1, 1],
+      "button_rect_at_0_2_5_seconds": [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+      "parent_rect_at_0_2_5_seconds": [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+      "button_disabled": false,
+      "computed_display": "block",
+      "computed_visibility": "visible",
+      "document_ready_state": "complete"
+    },
+    {
+      "build": "fixed Moli 1.1.7 candidate",
+      "binary_sha256": "af808b3f7bb5dd0604262bba95cecdf06ba18d9547a169c1443bfbb1255b4397",
+      "receipt_sha256": "b66dd8fc4843e561b85e8b4651d5f7d6d1b4b81d1afb10f23b3b84e8f862a4ac",
+      "form_state": {"five_star_checked": true, "nickname": "Emma Lopez", "title": "Good purchase", "detail": "I like it"},
+      "button_count": [1, 1, 1],
+      "button_rect_at_0_2_5_seconds": [[169, 486, 134.953125, 32], [169, 486, 134.953125, 32], [169, 486, 134.953125, 32]],
+      "parent_rect_at_0_2_5_seconds": [[169, 486, 139.953125, 32], [169, 486, 139.953125, 32], [169, 486, 139.953125, 32]],
+      "button_disabled": false,
+      "computed_display": "block",
+      "computed_visibility": "visible",
+      "document_ready_state": "complete"
+    }
+  ],
+  "reviewed_cause": {
+    "category": "stale_layout_snapshot_after_review_form_input",
+    "code_or_process": "submit_button_present_but_layout_box_missing",
+    "mechanism_zh": "历史轨迹的星级点击和三项填写均报告成功，但第 9 步等待可见的 Submit Review 按钮超时。同一冻结前缀下，两版页面均实际选中 5 星，并具有完全相同的昵称、标题和正文；官方 Moli 1.1.6 的按钮存在、未禁用、样式可见、页面加载完成，按钮及父容器矩形却持续五秒为零，固定候选中按钮约为 135×32。故失败不是表单内容未填或站点拒绝提交，而是表单交互后的布局几何没有供可见性筛选使用；提交动作未在本次探针中执行。",
+    "mechanism_en": "The historical rating click and three fills reported success, but step 9 timed out waiting for a visible Submit Review button. After the same frozen prefix, both builds actually had five stars selected and identical nickname, title and body values. In official Moli 1.1.6 the enabled button existed with visible computed style on a complete page, yet button and parent rectangles stayed zero for five seconds; the fixed candidate gave the button an approximately 135×32 rectangle. The failure was not unfilled form content or a site rejection. Geometry after form interaction was unavailable to visibility matching. This probe did not submit the review."
+  },
+  "subsequent_submission_validation": {
+    "receipt_sha256": "47fc444d8f9bc335082027cb8e897ef6a621a4096a2165b97810ca3c84016e53",
+    "persistence_audit": "research/trajectory-replay-task585-persistence-audit.json",
+    "pre_state_sha256": "545267c69ee9bce894cdd4f81103bd3270bd5f0b59a1787f0e9fe88f913a175d",
+    "post_state_sha256": "001b137552d17ae5f574d6e0dae8e406a34ecc937a6672bbdcf7f0471f39ba88",
+    "finding": "A separate controlled fixed-build replay submitted the review and observed one exact pending five-star row in same-site before/after database records."
+  },
+  "scope_limit": "The 1.1.6-versus-fixed prefix probe isolates button geometry before submission; a separate fixed-build run proves the review persisted. Neither estimates intermittent failure rate or isolates a single source commit. Historical official scores remain unchanged."
+}

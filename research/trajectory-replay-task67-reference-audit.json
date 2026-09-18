@@ -1,0 +1,148 @@
+{
+  "schema": "trajectory_replay_task_reference_audit/1",
+  "task_id": 67,
+  "source_observation_window_utc": ["2026-09-18T06:42:50Z", "2026-09-18T06:44:22Z"],
+  "source": {
+    "base_url": "http://webarena-slice-warm-1-195-reddit.dev.lexmount.net",
+    "listing_path": "/f/books",
+    "listing_sha256": "29d858a6d242668bc9c2afe370426625fd6f6bafd8c4a3f3c48cd8eab231c5ed",
+    "capture_method": "Read-only HTTP GET; parse main > article in visible Hot order, then each same-origin post detail and .submission__body.textContent; hash original HTML bytes and UTF-8 body text separately.",
+    "sort_observed": "Hot",
+    "reset_receipt": null,
+    "status": "contaminated_shared_site_not_frozen_reference",
+    "current_first_three_ids": ["4", "3", "124260"],
+    "current_first_three_explanation": "The live listing begins with three newer posts, including two dated 2026-09-18. The ten posts below currently occupy listing positions 4-13; they must not be called the current top ten or frozen as the baseline before reset and readiness verification."
+  },
+  "reference_under_review": {
+    "task_intent": "Among the top 10 hottest posts in the Books forum, get the book titles, exactly as they appear in the post description, from those that recommend exactly one book.",
+    "official_frozen_response": ["The Hobbit", "A Christmas Carol"],
+    "semantic_rule": "A positive recommendation of exactly one identifiable book, with its returned title occurring verbatim in the post body (.submission__body), not solely in the post title or a linked article.",
+    "candidate_corrected_response_if_same_ten_are_restored_after_reset": ["The Hobbit"],
+    "decision_status": "pending_post_reset_top_ten_verification"
+  },
+  "reviewed_posts": [
+    {
+      "expected_baseline_rank_if_reset_restores_order": 1,
+      "current_live_rank": 4,
+      "post_id": "81371",
+      "path": "/f/books/81371/the-letters-of-t-s-eliot-to-emily-hale-that-were-kept-sealed",
+      "html_sha256": "5bf6926a0924f236247b5069b17fce5e0280320dd2b31e42c8352aa7eea60d8f",
+      "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "body_length": 0,
+      "recommendation_count": 0,
+      "title_spans_in_description": [],
+      "reason": "No post body; title concerns released correspondence, not a book recommendation."
+    },
+    {
+      "expected_baseline_rank_if_reset_restores_order": 2,
+      "current_live_rank": 5,
+      "post_id": "59421",
+      "path": "/f/books/59421/friendly-reminder-bookshop-org-exists",
+      "html_sha256": "aaa9386fc8243c181903d0d21c7fc5d8c87e79767173db8af0522f68f52f501d",
+      "body_sha256": "52bec4be727b86dc39742550830f6cbd54fe07be3712afd55e113a5e65040498",
+      "body_length": 366,
+      "recommendation_count": 0,
+      "title_spans_in_description": [],
+      "reason": "Recommends using bookshop.org to support local stores, not one named book."
+    },
+    {
+      "expected_baseline_rank_if_reset_restores_order": 3,
+      "current_live_rank": 6,
+      "post_id": "59447",
+      "path": "/f/books/59447/appalachian-prison-book-project-seeks-notebook-donations-the",
+      "html_sha256": "164124efb20db0fd31fa58c29099dbcf55a0579c913eed903e1502b0d07923a3",
+      "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "body_length": 0,
+      "recommendation_count": 0,
+      "title_spans_in_description": [],
+      "reason": "No post body; title concerns a notebook donation project."
+    },
+    {
+      "expected_baseline_rank_if_reset_restores_order": 4,
+      "current_live_rank": 7,
+      "post_id": "103102",
+      "path": "/f/books/103102/after-two-decades-and-38-children-s-books-lin-oliver",
+      "html_sha256": "8db4fa686b326f13bf2ac6c3eef97ec1a84186b416657e588797a95a46fc97fe",
+      "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "body_length": 0,
+      "recommendation_count": 0,
+      "title_spans_in_description": [],
+      "reason": "No post body; title describes a collaboration covering 38 books rather than recommending one."
+    },
+    {
+      "expected_baseline_rank_if_reset_restores_order": 5,
+      "current_live_rank": 8,
+      "post_id": "124017",
+      "path": "/f/books/124017/museum-issues-appeal-to-save-famed-misty-of-chincoteague",
+      "html_sha256": "c3070da2d9f14fd05a505b5878a0481b38bef1b43bd7d7adba882fc0e67e1ef4",
+      "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "body_length": 0,
+      "recommendation_count": 0,
+      "title_spans_in_description": [],
+      "reason": "No post body; the book title in the headline names a ranch in a preservation story, not a reading recommendation."
+    },
+    {
+      "expected_baseline_rank_if_reset_restores_order": 6,
+      "current_live_rank": 9,
+      "post_id": "59466",
+      "path": "/f/books/59466/how-ukrainian-publishers-are-fighting-to-survive",
+      "html_sha256": "5339fbea6291a7727e48f1fc0575055efc4934ac58943e4552c12075f5a4abdf",
+      "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "body_length": 0,
+      "recommendation_count": 0,
+      "title_spans_in_description": [],
+      "reason": "No post body; title concerns publishing-industry news."
+    },
+    {
+      "expected_baseline_rank_if_reset_restores_order": 7,
+      "current_live_rank": 10,
+      "post_id": "59478",
+      "path": "/f/books/59478/the-simple-greatness-of-agatha-christie",
+      "html_sha256": "c498759ba36e6e14084a18cb2382f9c1f4b41e5fa737cb0d72f04de6d1f73488",
+      "body_sha256": "0db99ff84c30b0aeb6e68ffc6b44f755c5fbb5034521c8c4161f9dafb63a4fd9",
+      "body_length": 3776,
+      "recommendation_count": 0,
+      "title_spans_in_description": [],
+      "reason": "General appreciation and critique of Agatha Christie's novels and technique; no positive recommendation of one named book."
+    },
+    {
+      "expected_baseline_rank_if_reset_restores_order": 8,
+      "current_live_rank": 11,
+      "post_id": "17445",
+      "path": "/f/books/17445/i-just-finished-reading-the-hobbit-to-my-6-year-old-daughter",
+      "html_sha256": "1e1b8bf1f467aaa7ee5bc05159c36f25bddccda3561e572f9648a06baebfba81",
+      "body_sha256": "dfb76690d41dd958ed684323806162013eea0477b0bb0dcb03fc4ec09fc32cd5",
+      "body_length": 1637,
+      "recommendation_count": 1,
+      "title_spans_in_description": [{"title": "The Hobbit", "start": 463, "end": 473}],
+      "reason": "Describes reading and enjoying The Hobbit with the author's child. The Lord of the Rings trilogy is mentioned only as a tentative future possibility with reservations, not recommended as another book."
+    },
+    {
+      "expected_baseline_rank_if_reset_restores_order": 9,
+      "current_live_rank": 12,
+      "post_id": "59396",
+      "path": "/f/books/59396/apple-books-has-a-free-audiobook-of-a-christmas-carol",
+      "html_sha256": "c2bcc37e698973853a6d87dd53b4251547e8837b388843857e7c9ad0ac4c56f4",
+      "body_sha256": "73491f046369eeff4976b10a2fafbe183c36ea874867f7c63a441a96b70a625b",
+      "body_length": 342,
+      "recommendation_count": 1,
+      "title_spans_in_description": [],
+      "title_only_name": "A Christmas Carol",
+      "reason": "Positively discusses one book and its audiobook, but the body calls it only 'the book' or 'the audiobook'. The exact book title appears in the post title, not in the description from which the task requests exact text."
+    },
+    {
+      "expected_baseline_rank_if_reset_restores_order": 10,
+      "current_live_rank": 13,
+      "post_id": "103061",
+      "path": "/f/books/103061/what-is-it-that-makes-used-bookstores-so-wonderful",
+      "html_sha256": "3d7c6fedb697ecaa739100818f25662bc2724d381e2b224478020b79721505bc",
+      "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "body_length": 0,
+      "recommendation_count": 0,
+      "title_spans_in_description": [],
+      "reason": "No post body; title appreciates used bookstores rather than one named book."
+    }
+  ],
+  "root_cause": "The official response includes a book name that is absent from the requested post-description source. The current shared site additionally has newer Hot posts ahead of the historical ten, so the current listing cannot certify baseline membership without reset.",
+  "recommended_correction": "After a bound reset/readiness receipt, verify that these are again the first ten Hot posts and rehash the current bodies. If they are, correct the task-67 reference to the singleton title present in a qualifying description, with paired positive and negative scorer regressions. Do not infer the returned title from post headers unless the task wording and acceptance contract are explicitly revised for every method."
+}

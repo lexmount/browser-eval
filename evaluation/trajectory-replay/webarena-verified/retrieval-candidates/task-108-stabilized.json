@@ -1,0 +1,119 @@
+{
+  "task_id": 108,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://192.168.5.2:7780/admin"
+    },
+    {
+      "action": "click",
+      "selector": ":nth-match(a[href=\"#\"]:visible, 1)",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"http://host.docker.internal:7780/admin/sales/order/\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "wait",
+      "timeout": 2000
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "click",
+      "selector": "button:visible:has-text(\"Filters\")",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "fill",
+      "text": "01/01/2023",
+      "selector": "input[name=\"created_at[from]\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "fill",
+      "text": "05/31/2023",
+      "selector": "input[name=\"created_at[to]\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "select",
+      "value": "complete",
+      "selector": "select[name=\"status\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => { const names=['created_at[from]','created_at[to]']; const expected=['01/01/2023','05/31/2023']; for(let i=0;i<names.length;i++){ const input=document.querySelector('input[name=\"'+names[i]+'\"]'); if(!input||input.value!==expected[i]) throw new Error('date_filter_input_missing_or_changed'); input.dispatchEvent(new Event('input',{bubbles:true})); input.dispatchEvent(new Event('change',{bubbles:true})); input.blur(); } await new Promise(resolve=>setTimeout(resolve,300)); return {date_inputs_committed:true}; })()"
+    },
+    {
+      "action": "click",
+      "selector": "button:visible:has-text(\"Apply Filters\")",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "wait",
+      "timeout": 2000
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => { const expected={'filters[status]':'complete','filters[created_at][from]':'1/01/2023','filters[created_at][to]':'5/31/2023'}; const normalize=value=>String(value).replace(/\\b0(?=\\d)/g,''); const flatten=(value,prefix)=>Object.entries(value).flatMap(([key,item])=>{const name=prefix?prefix+'['+key+']':key;return item!==null&&typeof item==='object'?flatten(item,name):[[name,String(item)]];}); const deadline=Date.now()+15000; while(Date.now()<deadline){ const providers=[]; require('uiRegistry').get(component=>{if(component.component==='Magento_Ui/js/grid/provider'&&component.params?.namespace==='sales_order_grid') providers.push(component);}); if(providers.length===1){const provider=providers[0], flat=Object.fromEntries(flatten(provider.params,'')); const actual=Object.fromEntries(Object.entries(flat).filter(([key])=>key.startsWith('filters[')&&key!=='filters[placeholder]')); if(Object.keys(actual).length===3&&Object.entries(expected).every(([key,value])=>normalize(actual[key])===normalize(value))&&Number.isInteger(provider.data?.totalRecords)&&Array.isArray(provider.data?.items)) return {grid_filters_ready:true,filters:actual,total:provider.data.totalRecords};} await new Promise(resolve=>setTimeout(resolve,250));} throw new Error('applied_order_grid_filters_not_ready'); })()"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => {\nconst cfg={\"namespace\": \"sales_order_grid\", \"filters\": {\"filters[status]\": \"complete\", \"filters[created_at][from]\": \"1/01/2023\", \"filters[created_at][to]\": \"5/31/2023\"}, \"fields\": [\"created_at\", \"status\"]};\n// cfg is frozen task configuration, never an expected answer.\nconst providers=[];\nrequire('uiRegistry').get(c=>{if(c.component==='Magento_Ui/js/grid/provider'&&c.params?.namespace===cfg.namespace) providers.push(c);});\nif(providers.length!==1) throw new Error('unique current UI grid provider unavailable');\nconst provider=providers[0];\nconst endpoint=new URL(provider.update_url,location.href);\nif(endpoint.origin!==location.origin||endpoint.pathname!=='/admin/mui/index/render/') throw new Error('unexpected current grid endpoint');\nconst flatten=(value,prefix)=>Object.entries(value).flatMap(([key,item])=>{const name=prefix?prefix+'['+key+']':key;return item!==null&&typeof item==='object'?flatten(item,name):[[name,String(item)]];});\nfor(const [key,value] of flatten(provider.params,'')) endpoint.searchParams.set(key,value);\n// Magento grid render requires AJAX mode even for read-only pagination.\nendpoint.searchParams.set('isAjax','true');\nconst actualFilters=Object.fromEntries([...endpoint.searchParams].filter(([k])=>k.startsWith('filters[')&&k!=='filters[placeholder]'));\nconst normalize=v=>String(v).replace(/\\b0(?=\\d)/g,'');\nconst scope=Object.keys(actualFilters).length===Object.keys(cfg.filters).length && Object.entries(cfg.filters).every(([k,v])=>normalize(actualFilters[k])===normalize(v));\nif(!scope) throw new Error('last UI grid request has wrong filters');\nconst pageSize=Number(endpoint.searchParams.get('paging[pageSize]'));\nif(!Number.isInteger(pageSize)||pageSize<1||pageSize>1000) throw new Error('UI page size unavailable');\nlet total=null;\nconst rows=[],pages=[];\nfor(let page=1;page<=100;page++) {\n  endpoint.searchParams.set('paging[current]',String(page));\n  let data;\n  if(page===Number(provider.params.paging.current)) data=provider.data;\n  else {\n    const response=await fetch(endpoint.href,{credentials:'same-origin'});\n    if(!response.ok||response.redirected) throw new Error('grid request failed or redirected');\n    data=await response.json();\n  }\n  if(!Number.isInteger(data.totalRecords)||data.totalRecords<0||!Array.isArray(data.items)) throw new Error('grid total or rows unavailable');\n  if(total===null) total=data.totalRecords;\n  if(total!==data.totalRecords||Math.ceil(total/pageSize)>100) throw new Error('unstable or oversized grid');\n  const expectedCount=Math.min(pageSize,Math.max(0,total-(page-1)*pageSize));\n  if(data.items.length!==expectedCount) throw new Error('partial or ignored grid page');\n  for(const row of data.items) {\n    if(row.entity_id==null||cfg.fields.some(k=>row[k]==null)) throw new Error('required grid field unavailable');\n    rows.push(Object.fromEntries(['entity_id',...cfg.fields].map(k=>[k,row[k]])));\n  }\n  pages.push({page,total: data.totalRecords,count:data.items.length});\n  if(page>=Math.max(1,Math.ceil(total/pageSize))) break;\n}\nconst complete=rows.length===total && new Set(rows.map(r=>String(r.entity_id))).size===rows.length;\nif(!complete) throw new Error('grid enumeration not complete or unique');\nconst monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];\nconst counts=Array(5).fill(0);\nfor(const row of rows) {\n  const match=String(row.created_at).match(/^2023-(0[1-5])-\\d{2}(?: |T)/);\n  if(row.status!=='complete'||!match) throw new Error('returned order violates requested range/status');\n  counts[Number(match[1])-1]++;\n}\nreturn {scope,complete,pages,filters:actualFilters,rows,answer:counts.map((count,i)=>({month:monthNames[i],count}))};\n\n})()"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/1",
+    "task_id": 108,
+    "canonical_calls_sha256": "0e2f8a8377798335f4425f604001574c66a22bda6305e9ab9ace85ac13bd4c74",
+    "sources": [
+      {
+        "name": "observation",
+        "step": 16,
+        "action_sha256": "59dda026d602b35368edf628f0abe85f7e2855a2145ece54e356b1dac503755d",
+        "decode": "json"
+      }
+    ],
+    "requirements": {
+      "scope": {
+        "source": "observation",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "observation",
+        "pointer": "/complete"
+      }
+    },
+    "projection": {
+      "map": {
+        "input": {
+          "source": "observation",
+          "pointer": "/answer"
+        },
+        "projection": {
+          "object": {
+            "month": {
+              "source": "$item",
+              "pointer": "/month"
+            },
+            "count": {
+              "source": "$item",
+              "pointer": "/count"
+            }
+          }
+        }
+      }
+    }
+  }
+}

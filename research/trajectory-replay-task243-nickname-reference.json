@@ -1,0 +1,29 @@
+{
+  "schema": "trajectory_replay_independent_reference/1",
+  "task_id": 243,
+  "source_trajectory_sha256": "e9194b40320003bdfbc11157f88f234a8b40cc9dde91365696de96238920988f",
+  "fork_commit": "112cb4ed2303a4ce3f93cc1264cb5b8bf7b78145",
+  "root_cause": "The original guest review has no customer ID or email, so its author cannot be linked to the annotated customer account. The revised task asks only for the review nickname, which is stored on the review itself.",
+  "regression_ids": [
+    "tr-243-accept-review-nickname",
+    "tr-243-reject-old-email-annotation"
+  ],
+  "source": {
+    "kind": "read_only_magento_database_observation",
+    "observed_at_utc": "2026-09-18",
+    "rainbond_app_id": 195,
+    "product_id": 1210,
+    "product_name": "Circe Hooded Ice Fleece",
+    "review_population": [
+      {"review_id": 352, "rating": 4},
+      {"review_id": 353, "rating": 1, "nickname": "Hannah Lim", "customer_id": null}
+    ],
+    "lowest_rating_review_count": 1
+  },
+  "expected_response": {
+    "task_type": "RETRIEVE",
+    "status": "SUCCESS",
+    "retrieved_data": ["Hannah Lim"],
+    "error_details": null
+  }
+}

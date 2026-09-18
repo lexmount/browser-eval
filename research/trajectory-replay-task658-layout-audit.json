@@ -1,0 +1,55 @@
+{
+  "schema": "trajectory_replay_task658_layout_audit/1",
+  "task_id": 658,
+  "historical_result": {
+    "browser": "moli",
+    "version": "1.1.3",
+    "failed_action_index": 6,
+    "selector": "input[name=\"issue[title]\"]:visible",
+    "trace_sha256": "29c4bf97fadf77e9377c2fcc709d93eb8f8cad207e50ee50777b022f18a66b34",
+    "preceding_snapshot_error": "Step 3 returned a destroyed-execution-context snapshot error despite tool-wrapper success; step 5 returned a complete New Issue snapshot before the step-6 fill timeout."
+  },
+  "diagnostic_contract": {
+    "site": "WebArena GitLab",
+    "action_scope": "frozen actions 1-5, then read-only input geometry; a separate diagnostic scroll and frozen step-6 fill without issue submission",
+    "viewport_css_pixels": [1280, 900],
+    "site_reset": false,
+    "site_data_mutations": 0,
+    "form_value_changed_only_in_diagnostic_browser": true,
+    "historical_binary_image_sha256": "6519892d79641d565192f555c8269ab9b83c5444d07a73871f51881229c3bcd4"
+  },
+  "historical_binary_observation": {
+    "read_only_receipt_sha256": "88050857ba3f266d05e5b88f4582c0fe065a59ecc7ea94bc22b4f9860b003842",
+    "scroll_receipt_sha256": "8c2fb215e36fd7a1db97c9f3bc9cafa8591fd78736ae608250058c715afadaa5",
+    "scroll_fill_receipt_sha256": "11ef0edf47799824b27cdf369e9b9efedd7744f79ba0654b47146349daf3daf1",
+    "input_in_dom": true,
+    "computed_display": "block",
+    "computed_visibility": "visible",
+    "disabled": false,
+    "document_ready_state": "complete",
+    "input_rect_width_after_0_2_5_seconds": [0, 0, 0],
+    "rect_immediately_after_scroll": [272, 17, 977, 34],
+    "frozen_step6_fill_after_scroll": "success",
+    "filled_value": "401 bad gateway"
+  },
+  "later_build_comparison": [
+    {
+      "build": "official macOS Moli 1.1.6",
+      "binary_sha256": "8d89eebcd9908d1d0e1d3597a35e36fb41d0742604295c4046ccb3d26996caf2",
+      "receipt_sha256": "43029072f89fa17886ecd05894303e271a8d1e03e831abcc07a3beae9cedb8f4",
+      "input_rect_at_page_complete": [272, 201, 977, 34]
+    },
+    {
+      "build": "fixed Moli 1.1.7 candidate",
+      "binary_sha256": "af808b3f7bb5dd0604262bba95cecdf06ba18d9547a169c1443bfbb1255b4397",
+      "receipt_sha256": "cebfdeee556278e7c9e81a73c93429dc4c452f8d44b1f840312a8bc1322b4e24",
+      "input_rect_at_page_complete": [272, 201, 977, 34]
+    }
+  ],
+  "reviewed_cause": {
+    "category": "stale_layout_snapshot_on_historical_issue_form",
+    "mechanism_zh": "历史 1.1.3 在新建 Issue 页已加载完成时，标题输入框存在、未禁用且样式可见，但布局矩形持续为零，导致原轨迹第 6 步的 :visible 填写超时。同版本同页仅滚动一次就使矩形同步变为 977×34，随后原封不动的第 6 步填写成功并读回预期值。故障在页面布局几何刷新路径，而非输入框缺失或第 3 步快照错误；官方 1.1.6 和固定候选在页面加载完成时均直接给出非零矩形。",
+    "mechanism_en": "On the historical 1.1.3 New Issue page after load completion, the title input existed, was enabled and had visible computed style, but retained a zero-area rectangle, causing the original step-6 :visible fill to time out. In the same build and page, one scroll synchronously changed the rectangle to 977×34; the unchanged frozen step-6 fill then succeeded and read back the expected value. The defect lies in geometry refresh, not a missing input or the step-3 snapshot error. Official 1.1.6 and the fixed candidate gave the input nonzero geometry after load completion."
+  },
+  "scope_limit": "The historical Moli 1.1.3 image was tested against the current Rainbond site, not the original local deployment. The exact source commit between 1.1.3 and 1.1.6 was not isolated. The scroll-and-fill probe did not submit an issue or replace the historical official verdict."
+}

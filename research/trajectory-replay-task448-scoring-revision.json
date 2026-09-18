@@ -1,0 +1,37 @@
+{
+  "schema": "trajectory_replay_scoring_revision/1",
+  "revision_id": "tr-448-profile-success-response-variants-20260918",
+  "task_id": 448,
+  "root_cause": "The network rule required HTTP 302 even when the same GitLab profile mutation completed through an HTTP 200 JSON success response. A generic HTTP 200 is not accepted because validation errors may also return 200.",
+  "evidence_audit_sha256": "f20db16c6f9c5a877d306295a5f53cebae73a546765d213a8c7b80203c99a90b",
+  "predecessor_correction_catalog_sha256": "15e1265dd8eb3910f1fb6f789b9370656f3e4beab60254bdde93ca36bc3ca606",
+  "predecessor_correction_record_sha256": "a1390db7fae99adeb3e3d7bb55159e09eee2bf31f063f501bdd4ee902772e510",
+  "revised_correction_catalog_sha256": "df6817cc9d1c511b99a1794cfca3d85e229765e5c0ccfc6e4acd91e0f2c81342",
+  "revised_correction_record_sha256": "c46ddd0f232ca87e8ebe08cde4ea2fe7a0fe89bca578927072b5f4da21414fc1",
+  "regression_ids": [
+    "tr-448-302-success",
+    "tr-448-200-json-success",
+    "tr-448-200-json-failure",
+    "tr-448-wrong-website",
+    "tr-448-canceled-request"
+  ],
+  "provider_call_count": 0,
+  "result_revision": {
+    "cohort_receipt_sha256": "4b7cdf1ff5f2e2575df7ef0beae9be038512fd3ce02d6561d5f237bde00daa92",
+    "task_id": 448,
+    "old_evaluation_sha256": "83347802d58fde6dcc7460ab3e0870ba082c1513d06683fa524fb2141514d1ab",
+    "network_har_sha256": "363a95203d16a0f13d8be384ef955a7ae0474e50a19076d99c791ef6ffcfa6ac",
+    "new_canonical_evaluation_sha256": "7617a2dcc2b5978f64f279d31fb87af2bb9cbbc219bb022198bc6f5334e6b851",
+    "old_score": 0,
+    "corrected_score": 1,
+    "changed_field": "NetworkEventEvaluator accepts the same POST and website value with either a 302 redirect or a 200 JSON body whose message is exactly Profile was successfully updated",
+    "new_provider_call": false
+  },
+  "control_cohort": {
+    "cohort": "first_clean",
+    "task_448_score_before": 1,
+    "task_448_score_after": 1,
+    "new_canonical_evaluation_sha256": "4d7d1ed51d34b68489d88d0287d0ca8123c04a14c6b7e93f7381d7c8225a94ee"
+  },
+  "scope_limit": "This is a diagnostic scoring revision of the unchanged 35-task candidate cohort, not a certified release score or a substitute for qualifying the candidate inputs. Historical published scores are unchanged."
+}

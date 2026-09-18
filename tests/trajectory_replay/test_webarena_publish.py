@@ -408,18 +408,20 @@ def test_package_binds_report_evidence_and_release_gate(monkeypatch, tmp_path: P
     report = tmp_path / "report"
     report.mkdir()
     (report / "index.html").write_text("<html><head></head></html>", encoding="utf-8")
-    (report / "report-manifest.json").write_text("{}", encoding="utf-8")
     evidence = tmp_path / "effective-results.json"
     evidence.write_text("{}", encoding="utf-8")
     profile = tmp_path / "profile.json"
     dataset = tmp_path / "dataset.json"
     review = tmp_path / "review.json"
-    for path in (profile, dataset, review):
-        path.write_text("{}", encoding="utf-8")
+    dataset.write_text("{}", encoding="utf-8")
+    profile.write_text(json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}), encoding="utf-8")
+    review.write_text("{}", encoding="utf-8")
+    (report / "report-manifest.json").write_text(json.dumps({
+        "dataset_sha256": _sha256(dataset), "results_sha256": _sha256(evidence),
+    }), encoding="utf-8")
     output = tmp_path / "report.zip"
     attestation = tmp_path / "attestation.json"
     monkeypatch.setattr(packager, "PROFILE", profile)
-    monkeypatch.setattr(packager, "DATASET", dataset)
     monkeypatch.setattr(packager, "REVIEW", review)
     monkeypatch.setattr(packager, "ATTESTATION", attestation)
     monkeypatch.setattr(
@@ -433,91 +435,95 @@ def test_package_binds_report_evidence_and_release_gate(monkeypatch, tmp_path: P
     assert result["archive_sha256"] == _sha256(output)
     assert result["evidence_sha256"] == _sha256(evidence)
     assert result["file_count"] == 2
+    profile.write_text(json.dumps({
+        "dataset": {"path": str(dataset), "sha256": _sha256(dataset)},
+        "scoring": {"require_all_reference_validity": True},
+    }), encoding="utf-8")
+    with pytest.raises(ValueError, match="three methods and the declared task set"):
+        packager.package(report, evidence, output, tmp_path / "visual.json")
 
 
-def test_package_requires_current_hash_bound_diagnostic_closure(
+def test_package_rejects_diagnostic_appendix_and_mixed_dataset(
     monkeypatch, tmp_path: Path
 ) -> None:
     report = tmp_path / "report"
-    (report / "data").mkdir(parents=True)
-    closure = tmp_path / "closure.json"
-    closure.write_text('{"source":"first"}', encoding="utf-8")
-    public_model = {"source_sha256": _sha256(closure), "entries": [{"task_id": 1}]}
-    (report / "data/diagnostic-closure.json").write_text(
-        json.dumps(public_model), encoding="utf-8"
-    )
-    (report / "report-manifest.json").write_text(
-        json.dumps({"diagnostic_closure_sha256": _sha256(closure)}), encoding="utf-8"
-    )
+    report.mkdir()
     evidence = tmp_path / "evidence.json"
     evidence.write_text("{}", encoding="utf-8")
-    for name in ("PROFILE", "DATASET", "REVIEW"):
-        source = tmp_path / f"{name.lower()}.json"
-        source.write_text("{}", encoding="utf-8")
-        monkeypatch.setattr(packager, name, source)
+    dataset = tmp_path / "corrected.json"
+    dataset.write_text("{}", encoding="utf-8")
+    profile = tmp_path / "profile.json"
+    profile.write_text(json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}))
+    review = tmp_path / "review.json"
+    review.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(packager, "PROFILE", profile)
+    monkeypatch.setattr(packager, "REVIEW", review)
     monkeypatch.setattr(packager, "ATTESTATION", tmp_path / "attestation.json")
     monkeypatch.setattr(packager, "validate_release", lambda *_args: {})
-    monkeypatch.setattr(
-        packager, "load_diagnostic_closure", lambda source, *, old_failed_tasks: public_model
-    )
-    with pytest.raises(ValueError, match="source must match"):
+    manifest = {"dataset_sha256": _sha256(dataset), "results_sha256": _sha256(evidence),
+                "diagnostic_closure_sha256": "a" * 64}
+    (report / "report-manifest.json").write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match="diagnostic-only"):
         packager.package(report, evidence, tmp_path / "report.zip", tmp_path / "visual.json")
-    receipt = packager.package(
-        report, evidence, tmp_path / "report.zip", tmp_path / "visual.json", closure
-    )
-    assert receipt["diagnostic_closure_sha256"] == _sha256(closure)
-    closure.write_text('{"source":"changed"}', encoding="utf-8")
-    with pytest.raises(ValueError, match="changed since report build"):
-        packager.package(
-            report, evidence, tmp_path / "report.zip", tmp_path / "visual.json", closure
-        )
+    manifest.pop("diagnostic_closure_sha256")
+    manifest["dataset_sha256"] = "0" * 64
+    (report / "report-manifest.json").write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match="different result or dataset"):
+        packager.package(report, evidence, tmp_path / "report.zip", tmp_path / "visual.json")
 
 
-def test_publication_rejects_stale_diagnostic_source(monkeypatch, tmp_path: Path) -> None:
+def test_publication_rejects_diagnostic_appendix_and_stale_corrected_dataset(monkeypatch, tmp_path: Path) -> None:
     report = tmp_path / "report"
     report.mkdir()
-    closure = tmp_path / "closure.json"
-    closure.write_text("{}", encoding="utf-8")
-    (report / "report-manifest.json").write_text(
-        json.dumps({"diagnostic_closure_sha256": _sha256(closure)}), encoding="utf-8"
-    )
     archive = tmp_path / "report.zip"
     archive.write_bytes(b"package")
-    sources = {}
-    for name in ("PROFILE", "DATASET", "REVIEW"):
-        source = tmp_path / f"{name.lower()}.json"
-        source.write_text("{}", encoding="utf-8")
-        sources[name] = source
-        monkeypatch.setattr(publisher, name, source)
+    dataset = tmp_path / "corrected.json"
+    dataset.write_text("{}", encoding="utf-8")
+    profile = tmp_path / "profile.json"
+    profile.write_text(json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}))
+    review = tmp_path / "review.json"
+    review.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(publisher, "PROFILE", profile)
+    monkeypatch.setattr(publisher, "REVIEW", review)
     evidence = tmp_path / "evidence.json"
     evidence.write_text("{}", encoding="utf-8")
+    (report / "report-manifest.json").write_text(json.dumps({
+        "dataset_sha256": _sha256(dataset), "results_sha256": _sha256(evidence),
+    }))
     attestation = {
         "schema": "lex_webarena_replay_publication_attestation/1",
         "archive_sha256": _sha256(archive),
         "report": str(report),
         "report_tree_sha256": publisher.tree_sha256(report),
-        "profile_sha256": _sha256(sources["PROFILE"]),
-        "dataset_sha256": _sha256(sources["DATASET"]),
-        "review_sha256": _sha256(sources["REVIEW"]),
+        "profile_sha256": _sha256(profile),
+        "dataset_sha256": _sha256(dataset),
+        "review_sha256": _sha256(review),
         "evidence": str(evidence),
         "evidence_sha256": _sha256(evidence),
-        "diagnostic_closure": str(closure),
-        "diagnostic_closure_sha256": _sha256(closure),
     }
     attestation_path = tmp_path / "attestation.json"
     attestation_path.write_text(json.dumps(attestation), encoding="utf-8")
     monkeypatch.setattr(publisher, "ARCHIVE", archive)
     monkeypatch.setattr(publisher, "ATTESTATION", attestation_path)
     monkeypatch.setattr(publisher, "BINDING_JOURNAL", tmp_path / "pending.json")
-    assert publisher.validate_package()["diagnostic_closure_sha256"] == _sha256(closure)
-    linked_parent = tmp_path / "linked-parent"
-    linked_parent.symlink_to(tmp_path, target_is_directory=True)
-    attestation["diagnostic_closure"] = str(linked_parent / closure.name)
+    assert publisher.validate_package()["dataset_sha256"] == _sha256(dataset)
+    profile.write_text(json.dumps({
+        "dataset": {"path": str(dataset), "sha256": _sha256(dataset)},
+        "scoring": {"require_all_reference_validity": True},
+    }), encoding="utf-8")
+    attestation["profile_sha256"] = _sha256(profile)
     attestation_path.write_text(json.dumps(attestation), encoding="utf-8")
-    with pytest.raises(ValueError, match="diagnostic_closure"):
+    with pytest.raises(ValueError, match="three methods and the declared task set"):
         publisher.validate_package()
-    attestation["diagnostic_closure"] = str(closure)
+    profile.write_text(json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}))
+    attestation["profile_sha256"] = _sha256(profile)
     attestation_path.write_text(json.dumps(attestation), encoding="utf-8")
-    closure.write_text('{"changed":true}', encoding="utf-8")
-    with pytest.raises(ValueError, match="diagnostic_closure"):
+    attestation["diagnostic_closure_sha256"] = "a" * 64
+    attestation_path.write_text(json.dumps(attestation), encoding="utf-8")
+    with pytest.raises(ValueError, match="no_diagnostic_closure"):
+        publisher.validate_package()
+    attestation.pop("diagnostic_closure_sha256")
+    attestation_path.write_text(json.dumps(attestation), encoding="utf-8")
+    dataset.write_text('{"changed":true}', encoding="utf-8")
+    with pytest.raises(ValueError, match="dataset"):
         publisher.validate_package()

@@ -1,0 +1,34 @@
+{
+  "schema": "trajectory_replay_moli_source_regression/1",
+  "source_repository": "moli",
+  "base_commit": "b7ba9d47d1bfaf7c8d8530be52c5775cf5ceeada",
+  "fix_commit": "3ddaacc6b63bbe1acb2590bbb0ac09867fe77ded",
+  "changed_files": [
+    "moli-layout/src/inline.rs",
+    "moli-layout/tests/phase5_output_contract.rs"
+  ],
+  "patch_sha256": "91e86c7b1ce10ad090d63cf7acf65e57134681c340db26a171d940457ea7278e",
+  "defect": "Parley retains a collapsed CSS space at a wrapped line end for shaping, but that advance leaked into inline geometry and could create a horizontal scrollbar.",
+  "regression": {
+    "test": "scrollbar_feedback_rebreaks_the_reused_inline_layout_at_its_final_width",
+    "control": "The unmodified base commit was tested with the new regression test only, using a fixed web font.",
+    "before": {
+      "status": "failed",
+      "observed_client_size": {"width": 85, "height": 25},
+      "expected_client_size": {"width": 85, "height": 40},
+      "interpretation": "The extra horizontal scrollbar consumed 15 px of client height."
+    },
+    "after": {"status": "passed"}
+  },
+  "preservation_control": {
+    "test": "inline_scroll_overflow_keeps_unbreakable_text_and_nbsp",
+    "status": "passed",
+    "meaning": "Genuine unbreakable and non-breaking-space overflow still produces a horizontal scrollbar."
+  },
+  "verification": {
+    "layout_nextest": "288 passed, 0 skipped",
+    "workspace_nextest_no_incremental": "18277 passed, 14 skipped",
+    "cargo_fmt_check": "passed",
+    "workspace_clippy_no_incremental": "passed with -D warnings"
+  }
+}

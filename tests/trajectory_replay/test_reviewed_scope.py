@@ -20,7 +20,7 @@ def ref(path):
 
 def materialize(contract, rows, decision="accept"):
     reviewer = {"kind": "agent", "identity": "synthetic scope reviewer"}
-    scope = "Complete synthetic reviews and customer table; unique-name inference disclosed"
+    scope = "Complete synthetic reviews and customer table; explicit customer ID link"
     review = {
         "reviewer": reviewer,
         "scope": scope,
@@ -85,7 +85,7 @@ def fixture():
                 "id": 11,
                 "text": "Poor quality, would not recommend",
                 "nickname": "Alex Doe",
-                "customer_id": None,
+                "customer_id": 1,
                 "linked_name": None,
                 "linked_email": None,
             },
@@ -144,7 +144,6 @@ def fixture():
                         "linked_email": "/linked_email",
                     },
                     "candidate_fields": {"id": "/id", "name": "/name", "email": "/email"},
-                    "allow_unique_exact_name_inference": True,
                 }
             ],
         },
@@ -179,12 +178,12 @@ def assert_insufficient(result):
     assert result["reason"]
 
 
-def test_reviewed_scope_projects_current_email_without_changing_false_scope():
+def test_reviewed_scope_projects_explicitly_linked_email_without_changing_false_scope():
     calls, contract, rows = fixture()
     result = build(calls, contract, rows)
     assert result["status"] == "supported"
     assert result["actual_response"]["retrieved_data"] == ["alex@example.test"]
-    assert result["reviewed_scope"]["identity_bases"] == ["unique_exact_name_inference"]
+    assert result["reviewed_scope"]["identity_bases"] == ["explicit_customer_id"]
     assert json.loads(rows[0]["result"])["scope"] is False
 
 
@@ -193,10 +192,10 @@ def test_reviewed_scope_projects_current_email_without_changing_false_scope():
     [
         (False, True, "insufficient"),
         (True, False, "insufficient"),
-        (True, True, "supported"),
+        (True, True, "insufficient"),
     ],
 )
-def test_reviewed_scope_cannot_turn_partial_empty_observation_into_not_found(
+def test_reviewed_scope_cannot_replace_checkable_absence_coverage(
     scope, complete, expected
 ):
     calls, contract, rows = fixture()
@@ -208,11 +207,7 @@ def test_reviewed_scope_cannot_turn_partial_empty_observation_into_not_found(
     materialize(contract, rows)
     result = build(calls, contract, rows)
     assert result["status"] == expected
-    if expected == "supported":
-        assert result["actual_response"]["status"] == "NOT_FOUND_ERROR"
-        assert result["actual_response"]["retrieved_data"] is None
-    else:
-        assert result["actual_response"] is None
+    assert result["actual_response"] is None
 
 
 @pytest.mark.parametrize("kind", ["missing", "null", "zero", "string_false"])
@@ -240,9 +235,8 @@ def test_reviewed_scope_only_replaces_explicit_false(kind):
         lambda v: v["reviews"][1].update(id=11),
         lambda v: v["reviews"][1].update(text=""),
         lambda v: v["customers"][1].update(id=1),
-        lambda v: v["customers"][1].update(name="Alex Doe"),
-        lambda v: v["reviews"][0].update(nickname="Missing Person"),
-        lambda v: v["reviews"][0].update(nickname="customer"),
+        lambda v: v["reviews"][0].update(customer_id=None),
+        lambda v: v["reviews"][0].update(customer_id=99),
         lambda v: v["reviews"][0].update(customer_id=1, linked_email="other@example.test"),
         lambda v: v["reviews"][0].update(customer_id=1, linked_name="Wrong Name"),
     ],
@@ -330,9 +324,16 @@ def test_fully_rehashed_wrong_current_digest_still_rejected():
     assert_insufficient(build(calls, contract, rows))
 
 
-def test_review_cannot_enable_undeclared_name_inference():
+def test_unique_guest_name_cannot_prove_review_author_identity():
     calls, contract, rows = fixture()
-    contract["reviewed_scope"]["identity_joins"][0]["allow_unique_exact_name_inference"] = False
+    mutate(rows, lambda v: v["reviews"][0].update(customer_id=None))
+    materialize(contract, rows)
+    assert_insufficient(build(calls, contract, rows))
+
+
+def test_identity_contract_rejects_name_inference_policy():
+    calls, contract, rows = fixture()
+    contract["reviewed_scope"]["identity_joins"][0]["allow_unique_exact_name_inference"] = True
     materialize(contract, rows)
     assert_insufficient(build(calls, contract, rows))
 

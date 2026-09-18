@@ -1,0 +1,37 @@
+{
+  "schema": "webarena_qualified_trajectory_revision/1",
+  "task_id": 464,
+  "canonical_calls_sha256": "582dec5936d0e10a0752a2c4e2af0f164074fab5780cfce6151bc12c26d7ee78",
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://webarena-slice-warm-1-195-shopping-admin.dev.lexmount.net/admin/catalog/product/edit/id/1796/"
+    },
+    {
+      "action": "wait",
+      "seconds": 1
+    },
+    {
+      "action": "evaluate",
+      "script": "const title=document.querySelector('[data-index=\"content\"] > .fieldset-wrapper-title'); if(!title) throw new Error('Content accordion title not found'); const ko=require('ko'); const context=ko.contextFor(title); const viewModel=context&&context.$data; if(!viewModel||typeof viewModel.toggleOpened!=='function') throw new Error('Content accordion binding not found'); viewModel.toggleOpened(); return typeof viewModel.opened==='function'?viewModel.opened():true;"
+    },
+    {
+      "action": "wait",
+      "seconds": 3
+    },
+    {
+      "action": "evaluate",
+      "script": "const fields=[...document.querySelectorAll('textarea')].filter(el=>el.name==='short_description'||el.name==='product[short_description]'); if(fields.length!==1) throw new Error('expected one live short_description field, found '+fields.length); const field=fields[0]; const value='<p>1 customer(s) love it!</p>'; field.value=value; field.dispatchEvent(new Event('input',{bubbles:true})); field.dispatchEvent(new Event('change',{bubbles:true})); const form=require('uiRegistry').get('product_form.product_form'); const source=form?.source; if(!source||typeof source.set!=='function') throw new Error('Magento product data source not found'); source.set('data.product.short_description',value); if(source.get('data.product.short_description')!==value) throw new Error('product data source did not accept value'); return {name:field.name,value,component:source.name};"
+    },
+    {
+      "action": "click",
+      "selector": "button:has-text(\"Save\"):not(:has-text(\"Save options\")):visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "wait",
+      "selector": "div.message-success:visible",
+      "timeout": 30000
+    }
+  ]
+}

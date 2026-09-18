@@ -158,17 +158,29 @@
     {
       "task_id": 465,
       "action_count": 8,
+      "pre_action_readiness": {
+        "kind": "amd_deferred_ready",
+        "before_original_action": 5,
+        "module": "Magento_Customer/js/customer-data",
+        "deferred_method": "getInitCustomerData",
+        "timeout_ms": 15000
+      },
       "observer": {
         "kind": "same_origin_get_html",
         "path": "/wishlist/index/index/wishlist_id/5/",
-        "within": "main form li",
-        "require_authenticated_sign_out_href": "/customer/account/logout/",
+        "href_origin": "response_url_origin",
+        "within": "li",
+        "require_authenticated_sign_out_path": "/customer/account/logout/",
+        "require_same_origin_sign_out_href": true,
         "product_name": "Tide PODS Spring Meadow Scent HE Turbo Laundry Detergent Pacs, 81 Count",
         "edit_href_path_pattern": "^/wishlist/index/configure/id/[0-9]+/product_id/71337/?$",
         "require_same_origin_edit_href": true,
         "require_product_name_and_edit_link_in_same_item": true,
         "require_exactly_one_matching_item": true
       },
+      "observer_compiler": "same_origin_authenticated_item_html/1",
+      "observer_timeout_ms": 20000,
+      "expected_completion": "persisted_wishlist_item_observed",
       "observer_basis": {
         "historical_chromium_trace_sha256": "a5ea0a4d6b365ce221dafed1098c0748695c9bde39b1946de47928df36434938",
         "historical_chromium_har_sha256": "20db92ae2d20944e60e20bf860345b1c3ee8a13d31ac8d2a7edec5cf172a47e5",
@@ -192,7 +204,8 @@
         "order_number_pattern": "Your order number is:\\s*([0-9]+)",
         "require_unique_order_number": true,
         "history_path": "/sales/order/history/?limit=50",
-        "require_authenticated_sign_out_href": "/customer/account/logout/",
+        "require_authenticated_sign_out_path": "/customer/account/logout/",
+        "require_same_origin_sign_out_href": true,
         "history_detail_href_path_pattern": "^/sales/order/view/order_id/[0-9]+/$",
         "require_same_origin_detail_href": true,
         "require_exactly_one_history_row_for_order_number": true,
@@ -337,6 +350,14 @@
     {
       "task_id": 464,
       "action_count": 7,
+      "pre_action_readiness": {
+        "kind": "same_origin_magento_product_type",
+        "before_original_action": 1,
+        "path": "/admin/catalog/product/edit/id/1796/",
+        "product_id": 1796,
+        "expected_type": "configurable",
+        "timeout_ms": 15000
+      },
       "observer": {
         "kind": "same_origin_get_html",
         "path": "/admin/catalog/product/edit/id/1796/",
