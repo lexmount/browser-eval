@@ -1253,6 +1253,19 @@
   ],
   "releases": [
     {
+      "id": "2026-09-18-wcxb-moli-repair-visual-guide",
+      "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
+      "date": "2026-09-18",
+      "title": "用图和源码样本说明 Moli 的内容修复",
+      "title_i18n": {"en": "Explain the Moli fixes with diagrams and source examples"},
+      "summary": "报告解读逐项展示代码块粘连、商品说明误删和多加空格，并在图下对照真实 HTML、转换结果与源码处理规则。评测数据未改。",
+      "summary_i18n": {"en": "The interpretation shows joined code blocks, deleted product descriptions and an added space, pairing each image with actual HTML, output and source-level handling. Results are unchanged."},
+      "changes": [
+        ["报告解读", "原有三栏代码片段和长段解释不易看出原文、错误和修复的关系。", "每个问题用一张图及真实 HTML、输出和源码规则展示差异；标明整批实测与后续测试的边界。", "分数、分母、耗时、评测响应和审查范围不变；读者可从图旁链接核对完整证据。"]
+      ],
+      "changes_i18n": {"en": [["Interpretation", "The former three-column excerpts and long explanations obscured the relation between source, error and fix.", "One image per issue is paired with real HTML, output and source rules; the measured cohort remains distinct from later source tests.", "Scores, denominators, latency, responses and review scope are unchanged; adjacent links open the full evidence."]]}
+    },
+    {
       "id": "2026-09-18-wcxb-moli-repair-explanation",
       "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
       "date": "2026-09-18",

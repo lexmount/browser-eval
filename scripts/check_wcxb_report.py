@@ -178,9 +178,21 @@ def require_guide_interpretation(html: str | BeautifulSoup, summary: dict,
     require(all(token in specimen.get_text(' ', strip=True) for token in ('name', 'string', 'namestring')),
             'Guide specimen no longer demonstrates the actual boundary error')
     repair = soup.select_one('#guide-repair')
-    require(repair is not None and len(repair.select('.repair-case')) == 3
-            and all(len(case.select('.repair-step')) == 3 for case in repair.select('.repair-case')),
-            'Guide repair diagrams omit an input, defect or repaired output')
+    images = ('code-block.png', 'description.png', 'spacing.png')
+    require(repair is not None and len(repair.select('.repair-case')) == len(images),
+            'Guide must explain each Moli repair in its own figure')
+    for case, image in zip(repair.select('.repair-case'), images):
+        graphic = case.select_one('figure img')
+        require(graphic is not None and graphic.get('src') == f'assets/wcxb-repair/{image}'
+                and len(graphic.get('alt', '')) >= 30
+                and len(case.select('figcaption span')) == 3
+                and len(case.select('.repair-samples > div')) == 3
+                and case.select_one('.repair-mechanism a[href*="github.com/lexmount/moli/blob/"]'),
+                f'Guide repair figure {image} lacks its image, code samples or source explanation')
+    require('tsfunction identity(arg: number)' in repair.select('.repair-case')[0].get_text(' ', strip=True)
+            and '<details' in repair.select('.repair-case')[1].select_one('.repair-samples').get_text(' ', strip=True)
+            and '<code>git </code><code>status</code>' in repair.select('.repair-case')[2].select_one('.repair-samples').get_text(' ', strip=True),
+            'Guide images are not backed by source-level examples')
     require(all(repair.select_one(f'a[href$="cases/{case}.html#{provider}"]')
                 for case, provider in (('5412', 'moli'), ('5412', 'moli-pr643'), ('4017', 'moli'))),
             'Guide repair explanation lacks measured case evidence')
@@ -191,9 +203,10 @@ def require_guide_interpretation(html: str | BeautifulSoup, summary: dict,
             and '384d1d2a' in repair.get_text(' ', strip=True),
             'Guide fails to separate the measured binary from later source changes')
     later = repair.select('.repair-case')[2]
-    expected_later = ('实测 PR 构建', '后续源码') if lang == 'zh' else ('Measured PR build', 'Later source')
-    require([step.get_text(' ', strip=True) for step in later.select('.repair-step b')][1:] == list(expected_later)
-            and later.get_text(' ', strip=True).count('␠') >= 3,
+    expected_later = ('实测 PR', '后续源码') if lang == 'zh' else ('Measured PR', 'Later source')
+    captions = [node.get_text(' ', strip=True) for node in later.select('figcaption span')]
+    require(all(label in caption for label, caption in zip(expected_later, captions[1:]))
+            and later.get_text(' ', strip=True).count('␠') >= 2,
             'Guide later fix is not visibly distinguished from the measured build')
     require(soup.select_one('#guide-methods table') is not None
             and len(soup.select('#guide-methods tbody tr')) == len(providers),
@@ -313,6 +326,10 @@ def check(root: Path) -> None:
             if route == 'guide/index.html':
                 guide = BeautifulSoup(html, 'html.parser')
                 require_guide_interpretation(guide, summary, providers, lang)
+                for image in ('code-block.png', 'description.png', 'spacing.png'):
+                    asset = root / 'assets/wcxb-repair' / image
+                    require(asset.is_file() and asset.read_bytes()[:8] == b'\x89PNG\r\n\x1a\n',
+                            f'Repair graphic missing or invalid: {image}')
                 headings = {node.get_text(' ', strip=True) for node in guide.select('h2')}
                 require(('Obscura 为什么分数更高' if lang == 'zh' else 'Why Obscura scores higher') in headings,
                         'Obscura content analysis is missing')
@@ -445,6 +462,14 @@ def check(root: Path) -> None:
             pass
         else:
             raise AssertionError(f'A {lang} guide missing a repair diagram was accepted')
+        guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(), 'html.parser')
+        guide.select_one('#guide-repair figure img').decompose()
+        try:
+            require_guide_interpretation(guide, summary, providers, lang)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f'A {lang} guide missing a repair image was accepted')
     guide = BeautifulSoup((root / 'guide/index.html').read_text(), 'html.parser')
     guide.select_one('#guide-results .comparison-winner').unwrap()
     try:

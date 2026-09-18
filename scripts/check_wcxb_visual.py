@@ -70,6 +70,19 @@ def check(root: Path, browser_binary: str) -> None:
                                         raise ValueError(f'Horizontal page overflow: {lang} {route} {width} {dark}')
                                     if errors:
                                         raise ValueError(f'Browser error: {lang} {route}: {errors}')
+                                    if route == 'guide/index.html':
+                                        cards = page.locator('#guide-repair .repair-case')
+                                        if cards.count() != 3:
+                                            raise ValueError('Guide lost a repair example')
+                                        for card in cards.all():
+                                            image = card.locator('figure img')
+                                            image.scroll_into_view_if_needed()
+                                            try:
+                                                image.evaluate('(node) => node.decode()', timeout=15000)
+                                            except Exception as error:
+                                                raise ValueError(f'Guide repair image did not render: {image.get_attribute("src")}') from error
+                                            if card.locator('.repair-samples pre').count() != 3:
+                                                raise ValueError('Guide repair image lacks visible source examples')
                                     if route == 'index.html' and not dark:
                                         if page.locator('#wcxb-core .comparison-winner').count() < 4:
                                             raise ValueError('Core comparison is missing column winners')
