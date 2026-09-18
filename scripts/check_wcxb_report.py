@@ -436,14 +436,15 @@ def check(root: Path) -> None:
         pass
     else:
         raise AssertionError('A guide with broken worked evidence was accepted')
-    guide = BeautifulSoup((root / 'guide/index.html').read_text(), 'html.parser')
-    guide.select_one('#guide-repair .repair-case').decompose()
-    try:
-        require_guide_interpretation(guide, summary, providers, 'zh')
-    except (ValueError, AssertionError):
-        pass
-    else:
-        raise AssertionError('A guide missing a repair diagram was accepted')
+    for lang, prefix in (('zh', ''), ('en', 'en/')):
+        guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(), 'html.parser')
+        guide.select_one('#guide-repair .repair-case').decompose()
+        try:
+            require_guide_interpretation(guide, summary, providers, lang)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f'A {lang} guide missing a repair diagram was accepted')
     guide = BeautifulSoup((root / 'guide/index.html').read_text(), 'html.parser')
     guide.select_one('#guide-results .comparison-winner').unwrap()
     try:
