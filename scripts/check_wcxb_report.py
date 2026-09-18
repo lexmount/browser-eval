@@ -135,11 +135,26 @@ def require_home_interpretation(html: str | BeautifulSoup, summary: dict,
             'Home timing context does not link to the analysis')
     change = changes[0]
     change_text = change.get_text(' ', strip=True)
-    require(len(change_text) <= (190 if lang == 'zh' else 370),
+    require(len(change_text) <= (330 if lang == 'zh' else 700),
             'Home Moli change summary is too long; move detail to the interpretation page')
     require(len(change.select('p')) == 2 and change.select_one('a[href$="cases/5458.html"]')
             and change.select_one('a[href$="guide/index.html"]'),
             'Home Moli change summary lacks concise evidence links')
+    required_change = (('5412、5413', '5411、5458', '逐页 F1 的平均', '内联 HTML 标签名')
+                       if lang == 'zh' else
+                       ('5412 and 5413', '5411 and 5458', 'page-level F1 values',
+                        'inline HTML tag names'))
+    require(all(marker in change_text for marker in required_change),
+            'Home Moli change summary does not explain recall/F1 divergence')
+    precision_delta = ((summary['providers']['moli-pr643']['quality_precision']
+                        - summary['providers']['moli']['quality_precision']) * 100)
+    recall_delta = ((summary['providers']['moli-pr643']['quality_recall']
+                     - summary['providers']['moli']['quality_recall']) * 100)
+    f1_delta = ((summary['providers']['moli-pr643']['quality_f1']
+                 - summary['providers']['moli']['quality_f1']) * 100)
+    require(all(f'{value:+.4f}' in change_text
+                for value in (precision_delta, recall_delta, f1_delta)),
+            'Home Moli change summary disagrees with aggregate deltas')
     require(not any(f'{summary["providers"][provider]["quality_f1"] * 100:.4f}%'
                     in change_text for provider in ('moli', 'moli-pr643')),
             'Home Moli change summary repeats exact table values')
