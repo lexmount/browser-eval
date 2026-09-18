@@ -150,7 +150,7 @@ def require_guide_interpretation(html: str | BeautifulSoup, summary: dict,
                                  providers: list[str], lang: str) -> BeautifulSoup:
     """A guide must work as a standalone explanation, with traceable examples."""
     soup = BeautifulSoup(html, 'html.parser') if isinstance(html, str) else html
-    anchors = ('guide-results', 'guide-score', 'guide-cases', 'guide-methods',
+    anchors = ('guide-results', 'guide-score', 'guide-cases', 'guide-repair', 'guide-methods',
                'guide-timing', 'guide-conclusion')
     toc = soup.select_one('nav.essay-toc')
     require(toc is not None and all(soup.select_one(f'#{anchor}') is not None
@@ -177,6 +177,24 @@ def require_guide_interpretation(html: str | BeautifulSoup, summary: dict,
             'Guide lacks a source/reference/output worked example')
     require(all(token in specimen.get_text(' ', strip=True) for token in ('name', 'string', 'namestring')),
             'Guide specimen no longer demonstrates the actual boundary error')
+    repair = soup.select_one('#guide-repair')
+    require(repair is not None and len(repair.select('.repair-case')) == 3
+            and all(len(case.select('.repair-step')) == 3 for case in repair.select('.repair-case')),
+            'Guide repair diagrams omit an input, defect or repaired output')
+    require(all(repair.select_one(f'a[href$="cases/{case}.html#{provider}"]')
+                for case, provider in (('5412', 'moli'), ('5412', 'moli-pr643'), ('4017', 'moli'))),
+            'Guide repair explanation lacks measured case evidence')
+    require(all(repair.select_one(f'a[href*="/384d1d2a/"][href$="moli-html2md/{test}"]')
+                for test in ('tests/regressions.rs', 'tests/inline_boundaries.rs')),
+            'Guide later source fixes lack scenario-test evidence')
+    require('30c4f85b' in repair.get_text(' ', strip=True)
+            and '384d1d2a' in repair.get_text(' ', strip=True),
+            'Guide fails to separate the measured binary from later source changes')
+    later = repair.select('.repair-case')[2]
+    expected_later = ('实测 PR 构建', '后续源码') if lang == 'zh' else ('Measured PR build', 'Later source')
+    require([step.get_text(' ', strip=True) for step in later.select('.repair-step b')][1:] == list(expected_later)
+            and later.get_text(' ', strip=True).count('␠') >= 3,
+            'Guide later fix is not visibly distinguished from the measured build')
     require(soup.select_one('#guide-methods table') is not None
             and len(soup.select('#guide-methods tbody tr')) == len(providers),
             'Guide does not diagnose every measured configuration')
@@ -418,6 +436,14 @@ def check(root: Path) -> None:
         pass
     else:
         raise AssertionError('A guide with broken worked evidence was accepted')
+    guide = BeautifulSoup((root / 'guide/index.html').read_text(), 'html.parser')
+    guide.select_one('#guide-repair .repair-case').decompose()
+    try:
+        require_guide_interpretation(guide, summary, providers, 'zh')
+    except (ValueError, AssertionError):
+        pass
+    else:
+        raise AssertionError('A guide missing a repair diagram was accepted')
     guide = BeautifulSoup((root / 'guide/index.html').read_text(), 'html.parser')
     guide.select_one('#guide-results .comparison-winner').unwrap()
     try:
