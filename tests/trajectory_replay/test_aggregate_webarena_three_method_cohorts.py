@@ -37,7 +37,7 @@ def _reset_receipt(method_id: str) -> dict:
         "method_id": method_id,
         "task_id": None,
         "site_map_sha256": "d" * 64,
-        "reset_scope": "once_before_three_method_cohort",
+        "reset_scope": "once_before_method_cohort",
         "site_reset_between_tasks": False,
         "completed_at_unix": 1.0,
         "sites": sites,

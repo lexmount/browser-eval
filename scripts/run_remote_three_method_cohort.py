@@ -48,7 +48,7 @@ from scripts.run_remote_candidate_cohort_diagnostic import (  # noqa: E402
 
 ROOT = REPOSITORY_ROOT
 TASK_SELECTION = ROOT / "evaluation/trajectory-replay/webarena-verified/selection.json"
-RESET_SCOPE = "once_before_three_method_cohort"
+RESET_SCOPE = "once_before_method_cohort"
 SOURCE_HOSTS = {"127.0.0.1", "192.168.5.2", "host.docker.internal"}
 METHOD_ID = re.compile(r"[a-z0-9][a-z0-9._-]{1,79}\Z")
 

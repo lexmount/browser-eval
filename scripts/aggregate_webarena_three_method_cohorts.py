@@ -14,7 +14,7 @@ from typing import Any
 
 from harness.trajectory_replay.remote_runtime import validate_remote_cohort_reset_receipt
 
-RESET_SCOPE = "once_before_three_method_cohort"
+RESET_SCOPE = "once_before_method_cohort"
 
 EVIDENCE_FILES = {
     "trace": "trace.json",

@@ -37,7 +37,7 @@ def main() -> None:
         source,
         site_map_sha256=file_sha256(args.site_map),
         app_id=args.app_id,
-        reset_scope="once_before_three_method_cohort",
+        reset_scope="once_before_method_cohort",
         site_reset_between_tasks=False,
     )
     completed = receipt.get("completed_at_unix")
