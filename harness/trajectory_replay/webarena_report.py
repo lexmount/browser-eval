@@ -283,6 +283,33 @@ def _load_artifact(ref: dict[str, Any] | None) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _corrected_acceptance_by_task(attempts: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:
+    """Expose corrected evaluator expectations without replacing the frozen dataset."""
+    corrected: dict[int, dict[str, Any]] = {}
+    for attempt in attempts:
+        evaluation = _load_artifact((attempt.get("evidence") or {}).get("evaluation"))
+        if not evaluation or not evaluation.get("contract_correction_id"):
+            continue
+        task_id = int(attempt["task_id"])
+        if evaluation.get("task_id") != task_id:
+            raise ValueError("corrected evaluation belongs to another task")
+        row = {
+            "correction_id": evaluation["contract_correction_id"],
+            "corrected_task_sha256": evaluation.get("corrected_task_sha256"),
+            "evaluators": [
+                {"evaluator": item["evaluator_name"], "expected": item["expected"]}
+                for item in evaluation.get("evaluators_results") or []
+                if item.get("expected") is not None
+            ],
+        }
+        if not row["corrected_task_sha256"] or not row["evaluators"]:
+            raise ValueError(f"task {task_id}: corrected evaluation lacks acceptance evidence")
+        if task_id in corrected and corrected[task_id] != row:
+            raise ValueError(f"task {task_id}: corrected acceptance differs across methods")
+        corrected[task_id] = row
+    return corrected
+
+
 def _format_ms(value: float | None) -> str:
     return "—" if value is None else f"{value / 1000:.1f} 秒"
 
@@ -807,6 +834,7 @@ def _detail_page(
 def _task_page(
     lang: str, task: dict[str, Any], peers: list[dict[str, Any]], validity_notice: str = "",
     reference_validity: dict[str, Any] | None = None,
+    corrected_acceptance: dict[str, Any] | None = None,
 ) -> str:
     zh = lang == "zh"
     task_id = int(task["task_id"])
@@ -832,6 +860,18 @@ def _task_page(
             f'<td><details><summary>{"查看完整参数" if zh else "Full arguments"}</summary><pre>{_e(json.dumps(_clean(call), ensure_ascii=False, indent=2))}</pre></details></td></tr>'
         )
     contract = task.get("evaluation_input") or {}
+    correction_panel = ""
+    if corrected_acceptance:
+        correction_panel = (
+            '<section data-corrected-acceptance><h2>'
+            + ("本轮实际验收依据" if zh else "Acceptance used in this comparison")
+            + '</h2><p>'
+            + ("以下为保存的评分器证据中的修正验收字段，已按评分器规则标准化；下方保留历史数据集输入供对照。"
+               if zh else "These corrected acceptance fields come from the saved evaluator evidence, normalized by the evaluator. The historical dataset input is retained below for comparison.")
+            + '</p><pre>'
+            + _e(json.dumps(_clean(corrected_acceptance), ensure_ascii=False, indent=2))
+            + '</pre></section>'
+        )
     contract_type = str(contract.get("task_type") or "")
     contract_summary = ({"RETRIEVE": "信息提取", "NAVIGATE": "页面导航", "MUTATE": "页面操作"}.get(contract_type, contract_type) if zh else contract_type) or "—"
     validity_panel = (
@@ -841,10 +881,11 @@ def _task_page(
     )
     body = f'''<section class="detail-hero"><p class="eyebrow">WebArena-Verified · #{task_id}</p><h1>{"任务定义与标准轨迹" if zh else "Task contract and fixed trajectory"}</h1><p class="task-intent">{_e(task["task"]["intent"])}</p><div class="detail-links"><a href="../dataset.html">{"返回评测集" if zh else "Back to dataset"}</a><a href="../results.html">{"筛选实测结果" if zh else "Explore measured results"}</a></div></section>
         {validity_panel}
+        {correction_panel}
         <section class="compact-section"><div class="fact-strip"><div><span>{"站点" if zh else "Sites"}</span><strong>{_e(", ".join(task["task"].get("sites") or []))}</strong></div><div><span>{"轨迹来源" if zh else "Trajectory source"}</span><strong>{source_label}</strong></div><div><span>{"计划动作" if zh else "Planned actions"}</span><strong>{len(task.get("tool_calls") or [])}</strong></div><div><span>{"任务类型" if zh else "Task type"}</span><strong>{contract_summary}</strong></div></div></section>
     <section><h2>{"同题所有方法结果" if zh else "All method outcomes on this task"}</h2><div class="table-scroll"><table class="task-peer-table"><thead><tr><th>{"方法" if zh else "Method"}</th><th>{"结果" if zh else "Verdict"}</th><th>{"完成动作" if zh else "Completed actions"}</th><th>{"证据" if zh else "Evidence"}</th></tr></thead><tbody>{peer_rows}</tbody></table></div></section>
     <section><h2>{"评测集基准轨迹" if zh else "Dataset reference path"}</h2><p>{"这里保留评测集的基准动作；各方法实际采用的冻结输入及执行结果见对应结果页。" if zh else "This is the dataset reference path. Each method's frozen input and actual execution appear on its result page."}</p><div class="table-scroll"><table class="planned-table"><thead><tr><th>#</th><th>{"动作" if zh else "Action"}</th><th>{"目标" if zh else "Target"}</th><th>{"参数" if zh else "Arguments"}</th></tr></thead><tbody>{''.join(planned_rows)}</tbody></table></div></section>
-    <section><h2>{"验收输入" if zh else "Evaluation input"}</h2><p>{"供官方 evaluator 判分；不是 Agent 提示词，也不是唯一正确路径。" if zh else "Used by the official evaluator, not an Agent prompt or the only correct path."}</p><details><summary>{"查看答案与验收字段" if zh else "Inspect answer and acceptance fields"}</summary><pre>{_e(json.dumps(_clean(contract), ensure_ascii=False, indent=2))}</pre></details></section>'''
+    <section><h2>{("历史数据集验收输入" if zh else "Historical dataset evaluation input") if corrected_acceptance else ("验收输入" if zh else "Evaluation input")}</h2><p>{("修正前保留的字段；本轮实际评分采用上方列出的修正依据。" if zh else "Retained fields before correction; this comparison uses the corrected acceptance above.") if corrected_acceptance else ("供官方 evaluator 判分；不是 Agent 提示词，也不是唯一正确路径。" if zh else "Used by the official evaluator, not an Agent prompt or the only correct path.")}</p><details><summary>{"查看答案与验收字段" if zh else "Inspect answer and acceptance fields"}</summary><pre>{_e(json.dumps(_clean(contract), ensure_ascii=False, indent=2))}</pre></details></section>'''
     title = f"任务 #{task_id} · 评测集" if zh else f"Task #{task_id} · Dataset"
     return _shell(lang, "dataset", title, validity_notice + body, depth=1, current_route=f"task/{task_id}.html")
 
@@ -2278,6 +2319,7 @@ def build_webarena_replay_report(
     _assets(output)
     if legacy_provenance is not None:
         _write_json(output / "data/legacy-retrieval-provenance.json", legacy_provenance)
+    corrected_acceptance = _corrected_acceptance_by_task(attempts)
     for task_id, task in tasks.items():
         _write_json(output / "data/trajectory" / f"{task_id}.json", {
             "task_id": task_id,
@@ -2413,7 +2455,7 @@ def build_webarena_replay_report(
             target = output / ("task" if lang == "zh" else "en/task") / f"{task_id}.html"
             target.parent.mkdir(parents=True, exist_ok=True)
             matching_attempt = next(item for item in attempts if int(item["task_id"]) == task_id)
-            target.write_text(_task_page(lang, task, rows_by_task[task_id], _historical_replay_validity_notice(**validity_identity, lang=lang), matching_attempt["reference_validity"]), encoding="utf-8")
+            target.write_text(_task_page(lang, task, rows_by_task[task_id], _historical_replay_validity_notice(**validity_identity, lang=lang), matching_attempt["reference_validity"], corrected_acceptance.get(task_id)), encoding="utf-8")
 
     _write_json(output / "data/results.json", public_rows)
     _write_json(output / "data/metrics.json", {
