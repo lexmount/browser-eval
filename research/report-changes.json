@@ -1253,6 +1253,19 @@
   ],
   "releases": [
     {
+      "id": "2026-09-18-wcxb-moli-repair-explanation",
+      "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
+      "date": "2026-09-18",
+      "title": "补充 Moli 修复的输入与输出对照",
+      "title_i18n": {"en": "Explain Moli repairs with input and output evidence"},
+      "summary": "报告解读新增代码块、商品说明和相邻代码的可视对照，区分 504 页实测构建与其后的源码回归测试。评测结果、分母和耗时未改变。",
+      "summary_i18n": {"en": "The interpretation now illustrates code blocks, product descriptions and adjacent code with input/output evidence. It separates the measured 504-page build from later source regression tests. Scores, denominators and latency are unchanged."},
+      "changes": [
+        ["报告解读", "修复缘由和源码行为分散在逐页结果与 PR 中。", "在解读页展示冻结输入、原输出、修复输出及可核查证据；明确后续源码修改不属于已测二进制。", "读者可以核对代码边界与正文保留的必要性；504 页成绩和耗时保持原值。"]
+      ],
+      "changes_i18n": {"en": [["Interpretation", "The repair rationale and converter behavior were scattered across result pages and the PR.", "Show frozen input, released output, repaired output and inspection links together; identify later source changes outside the measured binary.", "Readers can verify why code boundaries and body text must be preserved; the 504-page scores and timing remain unchanged."]]}
+    },
+    {
       "id": "2026-09-18-wcxb-frozen-html-reader-clarification",
       "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
       "date": "2026-09-18",
