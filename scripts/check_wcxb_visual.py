@@ -106,7 +106,7 @@ def check(root: Path, browser_binary: str) -> None:
                                             raise ValueError('Results filter does not expose the qualified matrix')
                                         page.locator('#q').fill(case_id)
                                         if page.locator('#count').inner_text() != str(provider_count):
-                                            raise ValueError('Same-case search does not expose five results')
+                                            raise ValueError(f'Same-case search does not expose {provider_count} results')
                                         page.locator('#compare-baseline').select_option(providers[0])
                                         page.locator(f'[name="compare-provider"][value="{providers[1]}"]').check()
                                         if page.locator('#comparison-rows tr').count() != qualified_count:
@@ -126,7 +126,7 @@ def check(root: Path, browser_binary: str) -> None:
                                             raise ValueError('Escape did not close the diagnosis dialog')
                                         if not trigger.evaluate('(node) => document.activeElement === node'):
                                             raise ValueError('Diagnosis focus did not return to its trigger')
-                                        if lang == 'zh' and width == 1365:
+                                        if width in (390, 1365):
                                             page.locator('tr[data-provider] a:visible').first.click()
                                             if f'cases/{case_id}.html' not in page.url:
                                                 raise ValueError('Nested result link does not open the case')
