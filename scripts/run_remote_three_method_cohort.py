@@ -258,7 +258,7 @@ def _reset_method(args: argparse.Namespace, manifest: dict) -> str:
         validated.get("method_id") != args.method_id
         or validated.get("task_id") is not None
         or validated.get("completed_at_unix") is None
-        or float(validated["completed_at_unix"]) < started_at
+        or not started_at - 1800 <= float(validated["completed_at_unix"]) <= time.time()
     ):
         raise ValueError("cohort reset receipt is stale or belongs to another method")
     return file_sha256(receipt_path)
