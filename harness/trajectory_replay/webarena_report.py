@@ -906,7 +906,7 @@ html{scroll-padding-top:88px}a{color:var(--accent)}button,summary{cursor:pointer
 .detail-links,.evidence-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
 .detail-links a,.evidence-actions a,.dialog-body .evidence-actions a{display:inline-flex;align-items:center;min-height:42px;padding:9px 13px;border:1px solid var(--line);background:var(--panel);border-radius:9px;text-decoration:none;font-weight:700}
 .detail-links a:hover,.evidence-actions a:hover{border-color:var(--accent);background:var(--wash)}
-.peer-list{display:flex;gap:12px;overflow:auto;padding:3px 1px}.peer{display:flex;flex-direction:column;gap:3px;min-width:170px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--panel);text-decoration:none;color:var(--ink)}
+.peer-list{display:flex;flex-wrap:wrap;gap:12px;padding:3px 1px}.peer{display:flex;flex:1 1 170px;flex-direction:column;gap:3px;min-width:170px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--panel);text-decoration:none;color:var(--ink)}
 .peer strong{color:var(--good)}.peer.fail strong{color:var(--bad)}.peer[aria-current=page]{border:2px solid var(--accent);background:var(--wash)}
 .verdict-line{display:flex;align-items:center;gap:14px;padding:15px 18px;border-radius:12px;background:color-mix(in srgb,var(--good) 8%,var(--panel));border-left:5px solid var(--good)}
 .verdict-line.fail{background:color-mix(in srgb,var(--bad) 9%,var(--panel));border-color:var(--bad)}.verdict-line strong{font-size:25px;color:var(--good)}.verdict-line.fail strong{color:var(--bad)}
@@ -2681,19 +2681,58 @@ def build_webarena_replay_report(
         environment_body = f'''<section class="hero"><h1>{"环境与评测流程" if zh else "Environment and evaluation flow"}</h1><p>{"192.168.5.2 是 Colima 虚拟机中的宿主网关：浏览器容器通过它访问运行在同一台 Mac 虚拟化环境里的 WebArena 站点。它不是公网测试网站。" if zh else "192.168.5.2 is the host gateway inside the Colima VM. Browser containers use it to reach the WebArena sites running in the same Mac virtualization environment; it is not a public test website."}</p></section><section><h2>{"执行拓扑" if zh else "Execution topology"}</h2>{fallback}{topology}</section><section><h2>{"隔离规则" if zh else "Isolation rules"}</h2><div class="summary-grid"><article><strong>1</strong><p>{"一套固定端口站点环境，因此只允许一个方法运行。" if zh else "One fixed-port site stack permits only one running method."}</p></article><article><strong>{task_count}</strong><p>{"每方法完成全部任务，方法开始前恢复站点；任务间不重置，失败题不单独重试。" if zh else "Each method completes all tasks after one site reset; there is no per-task reset or isolated retry of failed tasks."}</p></article><article><strong>0</strong><p>{"没有 Agent 决策和模型请求；输入是冻结的 BrowserTool 动作。" if zh else "No Agent decisions or model calls; inputs are frozen BrowserTool actions."}</p></article></div></section><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';const node=document.querySelector('.mermaid');try{{mermaid.initialize({{startOnLoad:false,theme:document.documentElement.dataset.theme==='dark'?'dark':'neutral'}});const rendered=await mermaid.render('replay-topology',node.textContent);node.innerHTML=rendered.svg;node.hidden=false;document.querySelector('[data-topology-fallback]').hidden=true}}catch(error){{node.hidden=true}}</script>'''
         environment_body = environment_body.replace("环境与评测流程", "环境与方法").replace("Environment and evaluation flow", "Environment and method")
         if "Rainbond" in str((profile.get("execution") or {}).get("site_stack") or ""):
-            reset_flow = (
-                "冻结题序与方法 → 每个方法开始前恢复 Rainbond 站点基线 → "
-                "连续重放 90 题（仅重建浏览器会话）→ 官方验收与证据归档"
+            diagram_script = environment_body[environment_body.index('<script type="module">'):]
+            remote_labels = (
+                ("冻结输入", "组前恢复站点", "新建浏览器会话", "顺序重放", "官方验收", "保存证据")
                 if zh else
-                "Freeze task order and methods → restore the Rainbond site baseline before "
-                "each method → replay 90 tasks continuously (fresh browser context only) → "
-                "official evaluation and evidence archive"
+                ("Freeze inputs", "Restore sites", "Fresh browser context", "Sequential replay", "Official evaluation", "Retain evidence")
             )
+            remote_fallback = '<div class="flow-fallback" data-topology-fallback>' + ''.join(
+                f'<div class="flow-node"><strong>{i}</strong>{_e(label)}</div>'
+                + ('<div class="flow-arrow" aria-hidden="true">→</div>' if i < len(remote_labels) else '')
+                for i, label in enumerate(remote_labels, 1)
+            ) + '</div>'
+            remote_diagram = f'''<pre class="mermaid" hidden>flowchart TD
+  A["{remote_labels[0]}"] --> B["{remote_labels[1]}"]
+  B --> C["{remote_labels[2]}"]
+  C --> D["{remote_labels[3]}"]
+  D --> S["Rainbond WebArena"]
+  S --> E["{remote_labels[4]}"]
+  E --> F["{remote_labels[5]}"]
+  F -->|{"下一题，不重置站点" if zh else "next task, no site reset"}| C
+</pre>'''
+            reset_rows = []
+            for participant, method in methods.items():
+                entry = next((
+                    (key, value) for key, value in public_evidence.items()
+                    if key[0] == participant and value.get("site_reset")
+                ), None)
+                if entry is None:
+                    continue
+                key, value = entry
+                evidence_file = ("" if zh else "../") + f"data/evidence/{key[0]}-{key[1]}.json"
+                receipt_link = f'evidence-viewer.html?file={evidence_file}'
+                for site, identity in sorted(value["site_reset"].get("sites", {}).items()):
+                    reset_rows.append(
+                        f'<tr><td>{_e(method["label"])}</td><td>{_e(site)}</td>'
+                        f'<td><code>sha256:{_e(identity.get("image_digest") or "—")}</code></td>'
+                        f'<td><a href="{_e(receipt_link)}">{"恢复与就绪证据" if zh else "Reset and readiness evidence"}</a></td></tr>'
+                    )
+            reset_table = (
+                f'<section><h2>{"站点镜像与恢复证据" if zh else "Site images and reset evidence"}</h2>'
+                '<div class="table-scroll"><table><thead><tr>'
+                + ''.join(f'<th>{label}</th>' for label in (
+                    ("方法", "站点", "镜像标识", "证据") if zh else
+                    ("Method", "Site", "Image identity", "Evidence")
+                )) + '</tr></thead><tbody>' + ''.join(reset_rows) + '</tbody></table></div></section>'
+            ) if reset_rows else ''
             environment_body = (
                 f'<section class="hero"><h1>{"环境与方法" if zh else "Environment and method"}</h1>'
                 f'<p>{"三种浏览器使用同一套站点映射、题序和验收规则；每个方法开始前恢复站点基线，任务之间不重置站点。" if zh else "All three browsers use the same site map, task order and acceptance rules. The site baseline is restored before each method, not between tasks."}</p></section>'
-                f'<section><h2>{"执行流程" if zh else "Execution flow"}</h2><p class="callout">{_e(reset_flow)}</p>'
+                f'<section><h2>{"执行流程" if zh else "Execution flow"}</h2>{remote_fallback}{remote_diagram}'
                 f'<p>{"每个方法的基线恢复记录绑定 Pod 更换、镜像摘要和站点就绪；逐题记录轨迹、网络和评分证据。方法串行执行，失败题不单独重试。" if zh else "Each method-level baseline receipt binds Pod replacement, image digest and site readiness. Per-task traces, network captures and scores remain separate. Methods run serially; failed tasks are not retried."}</p></section>'
+                + f'<p>{"浏览器运行于 macOS arm64 主机，通过网络访问 Rainbond 自托管站点。CowAgent 仅提供 BrowserTool 操作层，不进行 Agent 决策或模型调用。" if zh else "Browsers run on a macOS arm64 host and access self-hosted Rainbond sites over the network. CowAgent supplies only the BrowserTool action layer, without Agent decisions or model calls."}</p>'
+                + reset_table + diagram_script
             )
         (root / "environment.html").write_text(_shell(lang, "environment", "环境与方法" if zh else "Environment and method", environment_body, current_route="environment.html"), encoding="utf-8")
 

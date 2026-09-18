@@ -1,185 +1,464 @@
 {
   "schema": "lex_webarena_trajectory_replay_failure_review/1",
-  "benchmark": "WebArena-Verified 1.2.3 · Browser Trajectory Replay",
+  "benchmark": "WebArena-Verified",
   "bindings": {
-    "effective_results_sha256": "abaaa0e90aced74a831093f2d6d7c3371639acb984b3a2c057f3cc39632ea935"
-  },
-  "review_protocol": {
-    "unit": "one final logical result per browser and task",
-    "method": "compare the fixed trajectory, BrowserTool result, ordered trace, network evidence, official evaluator output, and the passing reference-browser execution",
-    "score_effect": "none; the official replay verdict remains unchanged",
-    "rule": "the programmatic failure location and reviewed root cause are separate fields"
+    "effective_results_sha256": "52f132cdd999e9c93b32332b8e037890dbfc7e90c44afef7ffcc7398b39ef72b"
   },
   "coverage": {
-    "failed_results": 36,
-    "verified_results": 36
+    "failed_results": 35,
+    "verified_results": 35
   },
-  "review_revisions": [
+  "review_protocol": {
+    "unit": "one final logical result per method and task",
+    "method": "Failure-only review of fixed actions, tool output, DOM diagnostics, screenshots, HAR, evaluator output and source changes; no new browser calls.",
+    "reviewed_results": 35,
+    "total_results": 270,
+    "accepted_unreviewed_passes": 235,
+    "independent_full_answer_review": false,
+    "score_effect": "none; original verdicts remain unchanged",
+    "rule": "Separate programmatic failure, observed mechanism and source attribution."
+  },
+  "historical_reviews": [
     {
-      "id": "task-173-shared-viewport-20260916",
-      "scope": [{"engine": "moli", "task_id": 173}],
-      "predecessor_review_sha256": "a4a2b4909ceea617b2889b5b9c9d557f4553d8ac254c44dc15179eed37cb499e",
-      "score_effect": "none; historical official verdicts and measured evidence are unchanged",
-      "superseded_review": {
-        "cause_code": "moli_navigation_readiness_race",
-        "responsibility": "browser",
-        "reason_zh": "前一步快照已报告导航导致执行上下文销毁，Moli 随后仍未恢复到可点击 Search 的稳定文档；Chromium 同轨迹通过。",
-        "reason_en": "The preceding snapshot reported execution-context destruction during navigation, and Moli did not recover to a stable document with an actionable Search link; Chromium passes the same trajectory."
-      },
-      "evidence_bindings": {
-        "effective_results_sha256": "abaaa0e90aced74a831093f2d6d7c3371639acb984b3a2c057f3cc39632ea935",
-        "native_diagnostic_trace_sha256": "913402034ea86e11bc361a359023a28685a30697a63cd42f993b20715c838e5e",
-        "native_diagnostic_har_sha256": "9130b7c5f695081e5e3e1057dde0229b6a5b753e73aee7443f111bf10c49342e",
-        "native_diagnostic_last_observed_page_sha256": "e7babdf313bedee4609e2db49e0701054407c524990adb9373f5bda01030dd16"
-      },
-      "historical_trace_observations": {
-        "task_id": 173,
-        "physical_attempt": 1,
-        "snapshot_zip_entry": "trace.trace",
-        "selector": "a[href=\"/search\"]",
-        "ancestor_class": "nav-item d-none d-sm-inline-block d-lg-none",
-        "media_query": "@media (min-width: 992px)",
-        "css_rule": ".d-lg-none{display:none !important}",
-        "artifacts": [
-          {"run":"gpt-5.6-sol-90","engine":"chromium","viewport":{"width":780,"height":437},"artifact_sha256":"07ecf278a32f0f936780bebee6033915aba3daeafde23a512b9970b66cec4522"},
-          {"run":"gpt-5.6-sol-90","engine":"moli","viewport":{"width":1920,"height":1080},"artifact_sha256":"7d064c3b43ecf912c4c7a219a7be416c4a0190f5baa2196edf1c069684acb554"},
-          {"run":"gpt-6-astra-90","engine":"chromium","viewport":{"width":780,"height":437},"artifact_sha256":"85b58806ca0e162c336757952e983b1d2398ecfd065c6e4b59257aa12738fb30"},
-          {"run":"gpt-6-astra-90","engine":"moli","viewport":{"width":1920,"height":1080},"artifact_sha256":"d2e8ad206b8200a9efcec34ce457ff130b7bbdce895007cf5f73a0060073403f"}
-        ],
-        "css_resources": [
-          {"engine":"chromium","zip_entry":"resources/87b0656b7cf9aa468bea0d2a0ecaafce17eee8f0.css","sha256":"5e549119b3452a53a382c10911a1444bee6ab5b74e4b4bfc67e6891fe1376ca3"},
-          {"engine":"moli","zip_entry":"resources/1b3ec9f8a35f94dbd2620aa29fabb5734592be53.css","sha256":"180834c76ec47def7637ca8cd524372e8e0d58dbc70366906c77838e32b97edf"}
-        ]
-      },
-      "evidence_scope": "Existing historical trace metadata and a non-promotable native Task 173 diagnostic; no additional result review or score replacement. The last observed page is not asserted to be an exact error-time screenshot."
+      "path": "research/trajectory-replay-reviews/20260917-original-36.json",
+      "results_sha256": "abaaa0e90aced74a831093f2d6d7c3371639acb984b3a2c057f3cc39632ea935"
     }
   ],
   "cause_groups": [
     {
-      "code": "shared_viewport_configuration",
-      "label_zh": "共享视口设置不一致",
-      "label_en": "Shared viewport configuration mismatch",
-      "responsibility": "benchmark",
-      "remediation_owner": "Benchmark harness and CowAgent CDP configuration",
-      "remediation_status": "fixed_pending_full_scope_requalification_and_rerun",
+      "code": "zero_area_target_geometry",
+      "label_zh": "目标元素布局面积为零",
+      "label_en": "Zero-area target geometry",
+      "responsibility": "browser",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "passed_in_pr_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "发布版失败保留；PR 修复版本轮通过",
+      "remediation_status_en": "Released failure retained; PR build passed this cohort",
       "results": [
-        {"engine":"moli","task_id":173,"review_revision":"task-173-shared-viewport-20260916","reason_zh":"历史设置未统一视口：Chromium 宽度为 780，Moli 为 1920。Search 链接祖先含 d-lg-none，网页 CSS 在宽度达到 992 时隐藏该入口；桌面页面显示完整搜索框。因此后续 a[href=\"/search\"]:visible 超时属于共享基准设置干扰，不能据此归因于 Moli 导航恢复。前一步快照的执行上下文销毁仍是独立记录的导航观测错误，不证明后续链接因导航而不可见。旧浏览器责任归因已被本修订替代；官方失败分数不变，须统一视口后重新资格验证完整轨迹集并全范围重跑。","reason_en":"Historical viewport settings differed: Chromium was 780 pixels wide and Moli 1920. The Search link has a d-lg-none ancestor, which site CSS hides at widths of 992 or more; the desktop page shows the full search field. The later a[href=\"/search\"]:visible timeout is therefore affected by shared benchmark settings and does not establish a Moli navigation-recovery defect. The preceding snapshot's destroyed execution context remains a separate navigation observation error; it does not establish why the later link was hidden. This revision supersedes the previous browser attribution without changing the official failure score. Requalify the full trajectory set and rerun the full scope at a common viewport."}
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 29,
+          "trace_sha256": "b642e3b41a84cfc5d00a2364b9a90ccf8496f58f8ec2712ee6689c5380048c26",
+          "reason_zh": "失败时目标元素存在，CSS 未将其隐藏，但记录的边界矩形为零；因此带 :visible 的定位器无法匹配，等待 60 秒后超时。该记录定位到布局/可见性输出，不单凭它认定某个源码提交是原因。 失败记录：第 7 步，动作 click。 目标：a[href=\"/f/DIY/new\"]:visible。",
+          "reason_en": "Recorded target controls exist with visible CSS but all-zero bounding rectangles; the visible locator times out. Recorded failure: step 7, action click. Target: a[href=\"/f/DIY/new\"]:visible."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 374,
+          "trace_sha256": "ab26125dc9f4957f8949ca75121f9843b090271c9bef2fe360fdcae1fef3e022",
+          "reason_zh": "失败时目标元素存在，CSS 未将其隐藏，但记录的边界矩形为零；因此带 :visible 的定位器无法匹配，等待 60 秒后超时。该记录定位到布局/可见性输出，不单凭它认定某个源码提交是原因。 失败记录：第 8 步，动作 click。 目标：a:is([href=\"https://webarena-slice-warm-1-195-shopping-admin.dev.lexmount.net/admin/admin/system_design_theme/edit/id/1/\"],[href=\"http://webarena-slice-warm-1-195-shopping-admin.dev.lexmount.net/admin/admin/system_design_theme/edit/id/1/\"]):visible。",
+          "reason_en": "Recorded target controls exist with visible CSS but all-zero bounding rectangles; the visible locator times out. Recorded failure: step 8, action click. Target: a:is([href=\"https://webarena-slice-warm-1-195-shopping-admin.dev.lexmount.net/admin/admin/system_design_theme/edit/id/1/\"],[href=\"http://webarena-slice-warm-1-195-shopping-admin.dev.lexmount.net/admin/admin/system_design_theme/edit/id/1/\"]):visible."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 389,
+          "trace_sha256": "a58caacccb0f677cfef1572a2d2d3a8746a0d810fe805f97ac7cc7f1a515439e",
+          "reason_zh": "失败时目标元素存在，CSS 未将其隐藏，但记录的边界矩形为零；因此带 :visible 的定位器无法匹配，等待 60 秒后超时。该记录定位到布局/可见性输出，不单凭它认定某个源码提交是原因。 失败记录：第 4 步，动作 click。 目标：a[href=\"/primer/design/-/merge_requests/450\"]:visible。",
+          "reason_en": "Recorded target controls exist with visible CSS but all-zero bounding rectangles; the visible locator times out. Recorded failure: step 4, action click. Target: a[href=\"/primer/design/-/merge_requests/450\"]:visible."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 399,
+          "trace_sha256": "77cdbd933cefdff0856f11533bc78bdab4a245f29e557f0366d96108c3bd51a4",
+          "reason_zh": "失败时目标元素存在，CSS 未将其隐藏，但记录的边界矩形为零；因此带 :visible 的定位器无法匹配，等待 60 秒后超时。该记录定位到布局/可见性输出，不单凭它认定某个源码提交是原因。 失败记录：第 4 步，动作 click。 目标：a[href=\"/user/MarvelsGrantMan136\"]:visible。",
+          "reason_en": "Recorded target controls exist with visible CSS but all-zero bounding rectangles; the visible locator times out. Recorded failure: step 4, action click. Target: a[href=\"/user/MarvelsGrantMan136\"]:visible."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 415,
+          "trace_sha256": "d389687ecfb8acc6794af03ed4894c898cdd2a872dba8866204e7451740698d3",
+          "reason_zh": "失败时目标元素存在，CSS 未将其隐藏，但记录的边界矩形为零；因此带 :visible 的定位器无法匹配，等待 60 秒后超时。该记录定位到布局/可见性输出，不单凭它认定某个源码提交是原因。 失败记录：第 3 步，动作 fill。 目标：textarea[name=\"note[note]\"]:visible。",
+          "reason_en": "Recorded target controls exist with visible CSS but all-zero bounding rectangles; the visible locator times out. Recorded failure: step 3, action fill. Target: textarea[name=\"note[note]\"]:visible."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 441,
+          "trace_sha256": "40ad8aa539068da9b50c1e64025523d4c8cd71fe996b05596fc588d9b55580e6",
+          "reason_zh": "失败时目标元素存在，CSS 未将其隐藏，但记录的边界矩形为零；因此带 :visible 的定位器无法匹配，等待 60 秒后超时。该记录定位到布局/可见性输出，不单凭它认定某个源码提交是原因。 失败记录：第 2 步，动作 click。 目标：a[href=\"/byteblaze/gimmiethat.space/-/blob/main/index.html\"]:visible。",
+          "reason_en": "Recorded target controls exist with visible CSS but all-zero bounding rectangles; the visible locator times out. Recorded failure: step 2, action click. Target: a[href=\"/byteblaze/gimmiethat.space/-/blob/main/index.html\"]:visible."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 448,
+          "trace_sha256": "4192ace1b949134aac021fd1fa37fb3d7325746751763d3369ebe0ccde0e27cf",
+          "reason_zh": "失败时目标元素存在，CSS 未将其隐藏，但记录的边界矩形为零；因此带 :visible 的定位器无法匹配，等待 60 秒后超时。该记录定位到布局/可见性输出，不单凭它认定某个源码提交是原因。 失败记录：第 4 步，动作 click。 目标：a[href=\"/-/profile\"]:visible。",
+          "reason_en": "Recorded target controls exist with visible CSS but all-zero bounding rectangles; the visible locator times out. Recorded failure: step 4, action click. Target: a[href=\"/-/profile\"]:visible."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 590,
+          "trace_sha256": "72bc27c36f14a0527c8e35bd6980580197f3907ff7af89894e11b9e13313c2e8",
+          "reason_zh": "失败时目标元素存在，CSS 未将其隐藏，但记录的边界矩形为零；因此带 :visible 的定位器无法匹配，等待 60 秒后超时。该记录定位到布局/可见性输出，不单凭它认定某个源码提交是原因。 失败记录：第 7 步，动作 fill。 目标：input[name=\"milestone[title]\"]:visible。",
+          "reason_en": "Recorded target controls exist with visible CSS but all-zero bounding rectangles; the visible locator times out. Recorded failure: step 7, action fill. Target: input[name=\"milestone[title]\"]:visible."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 658,
+          "trace_sha256": "d22f308d02b1fefd94589568aa2c593c40074922344c63141f4477ec64d20480",
+          "reason_zh": "失败时目标元素存在，CSS 未将其隐藏，但记录的边界矩形为零；因此带 :visible 的定位器无法匹配，等待 60 秒后超时。该记录定位到布局/可见性输出，不单凭它认定某个源码提交是原因。 失败记录：第 6 步，动作 fill。 目标：input[name=\"issue[title]\"]:visible。",
+          "reason_en": "Recorded target controls exist with visible CSS but all-zero bounding rectangles; the visible locator times out. Recorded failure: step 6, action fill. Target: input[name=\"issue[title]\"]:visible."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 666,
+          "trace_sha256": "168e8182855bdef5b268d5c0d7c8f41e32fb233671ec1a0550552983a1778901",
+          "reason_zh": "失败时目标元素存在，CSS 未将其隐藏，但记录的边界矩形为零；因此带 :visible 的定位器无法匹配，等待 60 秒后超时。该记录定位到布局/可见性输出，不单凭它认定某个源码提交是原因。 失败记录：第 4 步，动作 click。 目标：a[href=\"/primer/design/-/merge_requests/new\"]:visible。",
+          "reason_en": "Recorded target controls exist with visible CSS but all-zero bounding rectangles; the visible locator times out. Recorded failure: step 4, action click. Target: a[href=\"/primer/design/-/merge_requests/new\"]:visible."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 714,
+          "trace_sha256": "b78ea1497a9a90d775a7eaff4513e3a0294a67d969be3c8cecef3ac6c3e24765",
+          "reason_zh": "失败时目标元素存在，CSS 未将其隐藏，但记录的边界矩形为零；因此带 :visible 的定位器无法匹配，等待 60 秒后超时。该记录定位到布局/可见性输出，不单凭它认定某个源码提交是原因。 失败记录：第 7 步，动作 click。 目标：a[href=\"/f/gadgets/top?t=day\"]:visible。",
+          "reason_en": "Recorded target controls exist with visible CSS but all-zero bounding rectangles; the visible locator times out. Recorded failure: step 7, action click. Target: a[href=\"/f/gadgets/top?t=day\"]:visible."
+        }
       ]
     },
     {
-      "code": "moli_snapshot_actionability_mismatch",
-      "label_zh": "快照与可操作节点不一致",
-      "label_en": "Snapshot/actionability mismatch",
+      "code": "zero_width_forum_link",
+      "label_zh": "版块链接宽度为零",
+      "label_en": "Zero-width forum links",
       "responsibility": "browser",
-      "remediation_owner": "Moli BrowserTool adapter",
-      "remediation_status": "open",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "passed_in_pr_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "发布版失败保留；PR 修复版本轮通过",
+      "remediation_status_en": "Released failure retained; PR build passed this cohort",
       "results": [
-        {"engine":"moli","task_id":29,"reason_zh":"Moli 快照已经列出 DIY 新帖链接，但紧接着对同一 href 的点击等待 60 秒仍找不到可操作节点；同一固定轨迹在 Chromium 通过。","reason_en":"Moli's snapshot listed the DIY new-post link, but the immediately following click on the same href could not resolve an actionable node within 60 seconds; the fixed trajectory passes in Chromium."},
-        {"engine":"moli","task_id":66,"reason_zh":"Moli 快照已经列出 Books 版块链接，但随后点击同一 href 超时；同一固定轨迹在 Chromium 通过。","reason_en":"Moli's snapshot listed the Books forum link, but the following click on the same href timed out; the fixed trajectory passes in Chromium."},
-        {"engine":"moli","task_id":404,"reason_zh":"Moli 快照已经列出 Books 版块链接，但随后点击同一 href 超时；同一固定轨迹在 Chromium 通过。","reason_en":"Moli's snapshot listed the Books forum link, but the following click on the same href timed out; the fixed trajectory passes in Chromium."},
-        {"engine":"moli","task_id":595,"reason_zh":"Moli 快照已经列出 Space 版块链接，但随后点击同一 href 超时；同一固定轨迹在 Chromium 通过。","reason_en":"Moli's snapshot listed the Space forum link, but the following click on the same href timed out; the fixed trajectory passes in Chromium."},
-        {"engine":"moli","task_id":620,"reason_zh":"Moli 快照已经列出 relationship_advice 版块链接，但随后点击同一 href 超时；同一固定轨迹在 Chromium 通过。","reason_en":"Moli's snapshot listed the relationship_advice forum link, but the following click on the same href timed out; the fixed trajectory passes in Chromium."},
-        {"engine":"moli","task_id":640,"reason_zh":"Moli 快照已经列出 Books 版块链接，但随后点击同一 href 超时；同一固定轨迹在 Chromium 通过。","reason_en":"Moli's snapshot listed the Books forum link, but the following click on the same href timed out; the fixed trajectory passes in Chromium."},
-        {"engine":"moli","task_id":645,"reason_zh":"Moli 快照已经列出 Books 版块链接，但随后点击同一 href 超时；同一固定轨迹在 Chromium 通过。","reason_en":"Moli's snapshot listed the Books forum link, but the following click on the same href timed out; the fixed trajectory passes in Chromium."},
-        {"engine":"moli","task_id":714,"reason_zh":"Moli 快照已经列出 Gadgets 当日热门链接，但随后点击同一 href 超时；同一固定轨迹在 Chromium 通过。","reason_en":"Moli's snapshot listed the Gadgets daily-top link, but the following click on the same href timed out; the fixed trajectory passes in Chromium."}
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 66,
+          "trace_sha256": "7993dcd9b4fffebf60206c73b77b32c6159a8fc1293899b2ee73d0081078cb28",
+          "reason_zh": "版块链接存在且 CSS 可见，实测高度为 73、宽度为零，导致 :visible 无法匹配。原因不只是链接位于视口下方；零宽度才是记录中直接阻止匹配的条件。 失败记录：第 4 步，动作 click。 目标：a[href=\"/f/books\"]:visible。",
+          "reason_en": "Forum links exist with height 73 and width zero; this is not explained solely by scrolling outside the viewport. Recorded failure: step 4, action click. Target: a[href=\"/f/books\"]:visible."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 404,
+          "trace_sha256": "b35b26a8d7d29fe3ccf648804cdbb1be6a4466819c6b34f3b881206bb612bc8f",
+          "reason_zh": "版块链接存在且 CSS 可见，实测高度为 73、宽度为零，导致 :visible 无法匹配。原因不只是链接位于视口下方；零宽度才是记录中直接阻止匹配的条件。 失败记录：第 4 步，动作 click。 目标：a[href=\"/f/books\"]:visible。",
+          "reason_en": "Forum links exist with height 73 and width zero; this is not explained solely by scrolling outside the viewport. Recorded failure: step 4, action click. Target: a[href=\"/f/books\"]:visible."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 595,
+          "trace_sha256": "65bb07f0dce347444857ab494d720699b0d67b6391853e241fd4239496998f0d",
+          "reason_zh": "版块链接存在且 CSS 可见，实测高度为 73、宽度为零，导致 :visible 无法匹配。原因不只是链接位于视口下方；零宽度才是记录中直接阻止匹配的条件。 失败记录：第 4 步，动作 click。 目标：a[href=\"/f/space\"]:visible。",
+          "reason_en": "Forum links exist with height 73 and width zero; this is not explained solely by scrolling outside the viewport. Recorded failure: step 4, action click. Target: a[href=\"/f/space\"]:visible."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 620,
+          "trace_sha256": "ef2843b18472912c066f3efea810448493e27d84eba79c263e269f5c2a2b0cdb",
+          "reason_zh": "版块链接存在且 CSS 可见，实测高度为 73、宽度为零，导致 :visible 无法匹配。原因不只是链接位于视口下方；零宽度才是记录中直接阻止匹配的条件。 失败记录：第 4 步，动作 click。 目标：a[href=\"/f/relationship_advice\"]:visible。",
+          "reason_en": "Forum links exist with height 73 and width zero; this is not explained solely by scrolling outside the viewport. Recorded failure: step 4, action click. Target: a[href=\"/f/relationship_advice\"]:visible."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 640,
+          "trace_sha256": "b969999868c904b2adb1bf75d6a56c8b6b22cdfd49041e49ce689eecacc07dda",
+          "reason_zh": "版块链接存在且 CSS 可见，实测高度为 73、宽度为零，导致 :visible 无法匹配。原因不只是链接位于视口下方；零宽度才是记录中直接阻止匹配的条件。 失败记录：第 4 步，动作 click。 目标：a[href=\"/f/books\"]:visible。",
+          "reason_en": "Forum links exist with height 73 and width zero; this is not explained solely by scrolling outside the viewport. Recorded failure: step 4, action click. Target: a[href=\"/f/books\"]:visible."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 645,
+          "trace_sha256": "d0d57bbd3f766845a844a015c1285ebfddab7600800854243df77baaa52c4a04",
+          "reason_zh": "版块链接存在且 CSS 可见，实测高度为 73、宽度为零，导致 :visible 无法匹配。原因不只是链接位于视口下方；零宽度才是记录中直接阻止匹配的条件。 失败记录：第 4 步，动作 click。 目标：a[href=\"/f/books\"]:visible。",
+          "reason_en": "Forum links exist with height 73 and width zero; this is not explained solely by scrolling outside the viewport. Recorded failure: step 4, action click. Target: a[href=\"/f/books\"]:visible."
+        }
       ]
     },
     {
-      "code": "moli_visible_target_state_divergence",
-      "label_zh": "目标控件未进入可见可操作状态",
-      "label_en": "Target control did not become actionable",
-      "responsibility": "browser",
-      "remediation_owner": "Moli rendering and BrowserTool integration",
-      "remediation_status": "open",
+      "code": "visible_locator_timeout_without_geometry",
+      "label_zh": "可见元素定位超时",
+      "label_en": "Visible-target lookup timeout",
+      "responsibility": "browser_tool_boundary",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "passed_in_pr_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "发布版失败保留；PR 修复版本轮通过",
+      "remediation_status_en": "Released failure retained; PR build passed this cohort",
       "results": [
-        {"engine":"moli","task_id":108,"reason_zh":"固定轨迹到达筛选步骤后，Moli 未暴露可见的 Filters 按钮，点击超时；Chromium 同轨迹通过。","reason_en":"At the filter step, Moli did not expose an actionable visible Filters button and the click timed out; Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":156,"reason_zh":"Moli 未暴露固定轨迹所需的 Assigned merge requests 链接实例，点击超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the Assigned merge-requests link instance required by the fixed trajectory; Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":163,"reason_zh":"Moli 未暴露评论列表第二页链接，点击超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the review-list page-two link and the click timed out; Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":243,"reason_zh":"Moli 在菜单导航后未暴露 Customers 链接，点击超时；Chromium 同轨迹通过。","reason_en":"After menu navigation, Moli did not expose the Customers link and the click timed out; Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":374,"reason_zh":"Moli 未暴露 Magento Blank 主题的编辑链接，点击超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the Magento Blank theme edit link and the click timed out; Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":399,"reason_zh":"Moli 未暴露目标论坛用户的个人页链接，点击超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the target forum user's profile link and the click timed out; Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":415,"reason_zh":"Moli 未暴露可见的评论文本框，填入动作超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose an actionable visible comment textarea and the fill timed out; Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":418,"reason_zh":"Moli 未暴露 Set status 按钮，点击超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the Set status button and the click timed out; Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":441,"reason_zh":"Moli 未暴露目标仓库的 index.html 文件链接，点击超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the target repository's index.html link and the click timed out; Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":448,"reason_zh":"Moli 未暴露 GitLab 个人资料入口，点击超时；重试仍在同一步失败，而 Chromium 同轨迹通过。","reason_en":"Moli did not expose the GitLab profile entry; the retry failed at the same step while Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":506,"reason_zh":"Moli 在结账流程中未暴露下一步按钮，点击超时；Chromium 同轨迹完成并通过验收。","reason_en":"Moli did not expose the Next button during checkout and the click timed out; Chromium completes and passes the same trajectory."},
-        {"engine":"moli","task_id":571,"reason_zh":"Moli 未暴露可见的州/省下拉框，选择动作超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose an actionable visible region selector and the selection timed out; Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":585,"reason_zh":"Moli 未暴露 Submit Review 按钮，点击超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the Submit Review button and the click timed out; Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":590,"reason_zh":"Moli 未暴露里程碑标题输入框，填入动作超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the milestone-title input and the fill timed out; Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":658,"reason_zh":"Moli 未暴露议题标题输入框，填入动作超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the issue-title input and the fill timed out; Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":731,"reason_zh":"Moli 未暴露目标论坛帖的编辑链接，点击超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the target forum post's edit link and the click timed out; Chromium passes the same trajectory."}
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 108,
+          "trace_sha256": "87aba4d46d17a201e786179d935f96d28f140e8ae41aa6c97e54e05ae4f7a5a5",
+          "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 7 步，动作 click。 目标：button:visible:has-text(\"Filters\")。",
+          "reason_en": "The actual locator times out. The later diagnostic SyntaxError comes from passing Playwright-only selector syntax to native DOM querySelector and does not cause the preceding action failure. Recorded failure: step 7, action click. Target: button:visible:has-text(\"Filters\")."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 156,
+          "trace_sha256": "3116971dcaba7f676120a2393207fff1ab2102c08a53c7f67d9dcf64fd9d6d93",
+          "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 4 步，动作 click。 目标：:nth-match(a[href=\"/dashboard/merge_requests?assignee_username=byteblaze\"]:visible, 2)。",
+          "reason_en": "The actual locator times out. The later diagnostic SyntaxError comes from passing Playwright-only selector syntax to native DOM querySelector and does not cause the preceding action failure. Recorded failure: step 4, action click. Target: :nth-match(a[href=\"/dashboard/merge_requests?assignee_username=byteblaze\"]:visible, 2)."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 163,
+          "trace_sha256": "39724bce8126e46213ea32268be26644b188a124a665f21da84c4e61813fbfc5",
+          "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 5 步，动作 click。 目标：:nth-match(a:is([href=\"http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/review/product/listAjax/id/38805/?p=2\"],[href=\"https://webarena-slice-warm-1-195-shopping.dev.lexmount.net/review/product/listAjax/id/38805/?p=2\"]):visible, 1)。",
+          "reason_en": "The actual locator times out. The later diagnostic SyntaxError comes from passing Playwright-only selector syntax to native DOM querySelector and does not cause the preceding action failure. Recorded failure: step 5, action click. Target: :nth-match(a:is([href=\"http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/review/product/listAjax/id/38805/?p=2\"],[href=\"https://webarena-slice-warm-1-195-shopping.dev.lexmount.net/review/product/listAjax/id/38805/?p=2\"]):visible, 1)."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 196,
+          "trace_sha256": "67725c9eca5cf5c971750d267807c538bcda09d3431ad0045a0a3423d6054e44",
+          "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 9 步，动作 click。 目标：button:visible:has-text(\"Filters\")。",
+          "reason_en": "The actual locator times out. The later diagnostic SyntaxError comes from passing Playwright-only selector syntax to native DOM querySelector and does not cause the preceding action failure. Recorded failure: step 9, action click. Target: button:visible:has-text(\"Filters\")."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 314,
+          "trace_sha256": "1d8aa56ceeb5939c9a508f3a4ea9f79a439bb9064c8a966dfb00eec4b41a092f",
+          "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 2 步，动作 click。 目标：:nth-match(a[href=\"/primer/design\"]:visible, 2)。",
+          "reason_en": "The actual locator times out. The later diagnostic SyntaxError comes from passing Playwright-only selector syntax to native DOM querySelector and does not cause the preceding action failure. Recorded failure: step 2, action click. Target: :nth-match(a[href=\"/primer/design\"]:visible, 2)."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 349,
+          "trace_sha256": "d65f8d12240321c190d5f0815cb74e60a6b182b4d2286a96984239e40e25959d",
+          "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 2 步，动作 click。 目标：:nth-match(a[href=\"/byteblaze/gimmiethat.space\"]:visible, 2)。",
+          "reason_en": "The actual locator times out. The later diagnostic SyntaxError comes from passing Playwright-only selector syntax to native DOM querySelector and does not cause the preceding action failure. Recorded failure: step 2, action click. Target: :nth-match(a[href=\"/byteblaze/gimmiethat.space\"]:visible, 2)."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 418,
+          "trace_sha256": "aa4bc39d40db37208337cbd3ce6d461f55e5db99c42cbe14a3288aafc4cb78fd",
+          "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 4 步，动作 click。 目标：button:visible:has-text(\"Set status\")。",
+          "reason_en": "The actual locator times out. The later diagnostic SyntaxError comes from passing Playwright-only selector syntax to native DOM querySelector and does not cause the preceding action failure. Recorded failure: step 4, action click. Target: button:visible:has-text(\"Set status\")."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 585,
+          "trace_sha256": "25c6cd1c0ce92c29fe92dc8dc765c1ba3f0d902d7c425f59ae17dc06190fc969",
+          "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 9 步，动作 click。 目标：button:visible:has-text(\"Submit Review\")。",
+          "reason_en": "The actual locator times out. The later diagnostic SyntaxError comes from passing Playwright-only selector syntax to native DOM querySelector and does not cause the preceding action failure. Recorded failure: step 9, action click. Target: button:visible:has-text(\"Submit Review\")."
+        }
       ]
     },
     {
-      "code": "moli_navigation_readiness_race",
-      "label_zh": "导航切换与后续动作竞态",
-      "label_en": "Navigation/readiness race",
-      "responsibility": "browser",
-      "remediation_owner": "Moli navigation lifecycle",
-      "remediation_status": "open",
+      "code": "fetch_transport_timeout",
+      "label_zh": "正文请求传输超时",
+      "label_en": "Post-body fetch timeout",
+      "responsibility": "browser_network_boundary",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "passed_in_pr_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "发布版失败保留；PR 修复版本轮通过",
+      "remediation_status_en": "Released failure retained; PR build passed this cohort",
       "results": [
-        {"engine":"moli","task_id":196,"reason_zh":"前一步发生导航切换后，Moli 未在下一动作前恢复 Clear all 控件，点击超时；Chromium 同轨迹通过。","reason_en":"After the preceding navigation transition, Moli did not restore the Clear all control before the next action and the click timed out; Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":204,"reason_zh":"前一步导航尚未形成稳定文档，Moli 未暴露目标订单链接，点击超时；Chromium 同轨迹通过。","reason_en":"The preceding navigation did not settle into a stable document in Moli, so the target order link never became actionable; Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":313,"reason_zh":"Moli 在按键动作执行时仍处于文档导航切换，CDP 返回 Navigation is changing the document；Chromium 同轨迹通过。","reason_en":"Moli was still changing documents when the keypress was dispatched, and CDP returned 'Navigation is changing the document'; Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":389,"reason_zh":"前一步快照遭遇导航上下文销毁，Moli 未恢复目标 merge request 链接，点击超时；Chromium 同轨迹通过。","reason_en":"The preceding snapshot lost its execution context to navigation, and Moli did not recover the target merge-request link; Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":666,"reason_zh":"前一步快照遭遇导航上下文销毁，Moli 未恢复新建 merge request 链接，点击超时；Chromium 同轨迹通过。","reason_en":"The preceding snapshot lost its execution context to navigation, and Moli did not recover the new merge-request link; Chromium passes the same trajectory."}
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 67,
+          "trace_sha256": "05bdc925741b85e7261f526517f5ff5dc83e901ec74aade2d5d5dec425028bb9",
+          "reason_zh": "第 3 步读取帖子正文时，网络请求约 10 秒未收到数据并返回 curl 28。轨迹未进入答案评测，失败不是参考答案被拒绝。该实测时长不等于 Moli 所有 HTTP 请求的默认超时。 失败记录：第 3 步，动作 evaluate。",
+          "reason_en": "The post-body fetch reaches curl timeout 28 after about 10 seconds; answer evaluation is not reached. Recorded failure: step 3, action evaluate."
+        }
       ]
     },
     {
-      "code": "moli_dom_cardinality_difference",
-      "label_zh": "可见节点数量与参考浏览器不同",
-      "label_en": "Visible-node cardinality differs",
+      "code": "input_navigation_lifecycle",
+      "label_zh": "按键与导航生命周期冲突",
+      "label_en": "Keyboard/navigation lifecycle conflict",
       "responsibility": "browser",
-      "remediation_owner": "Moli DOM projection",
-      "remediation_status": "open",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "passed_in_pr_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "发布版失败保留；PR 修复版本轮通过",
+      "remediation_status_en": "Released failure retained; PR build passed this cohort",
       "results": [
-        {"engine":"moli","task_id":314,"reason_zh":"固定轨迹要求第二个可见的 /primer/design 链接；Moli 只暴露不足两个匹配节点，Chromium 同轨迹通过。","reason_en":"The trajectory selects the second visible /primer/design link; Moli exposes fewer than two matching nodes while Chromium passes the same trajectory."},
-        {"engine":"moli","task_id":349,"reason_zh":"固定轨迹要求第二个可见的目标项目链接；Moli 只暴露不足两个匹配节点，Chromium 同轨迹通过。","reason_en":"The trajectory selects the second visible target-project link; Moli exposes fewer than two matching nodes while Chromium passes the same trajectory."}
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 274,
+          "trace_sha256": "6423c2ee6529d28232a07a79c460f302081a76ee06fe09d748677e47f11ed5b8",
+          "reason_zh": "Enter 的 Input.dispatchKeyEvent 返回 Navigation is changing the document，BrowserTool 将该次按键操作判为失败并终止轨迹。应区分导航已触发与协议调用完整成功，不能把这个错误描述成找不到按钮。 失败记录：第 3 步，动作 press。 源码：moli-protocol/src/domains/input.rs，start_pending_input_command。一次 Enter 包含 keydown 和 keyup。keydown 可以先启动换页，旧版随后用通用文档访问门禁拒绝同一次按键的 keyup，返回 Navigation is changing the document。修复允许导航期间的终止 keyup 发送给仍挂载的旧页面，其余按键仍受原门禁约束。",
+          "reason_en": "Input.dispatchKeyEvent rejects Enter because navigation is changing the document. Recorded failure: step 3, action press. Source: moli-protocol/src/domains/input.rs, start_pending_input_command. An Enter press contains keydown and keyup. Keydown may initiate document replacement; the old general document-access gate then rejects the matching keyup with Navigation is changing the document. The fix delivers terminal keyup to the still-attached outgoing page while retaining the normal gate for other events."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 386,
+          "trace_sha256": "d66dac78eabd99b3ec36a2ba431f02aaddd25ef1844b361434951125d492e1e8",
+          "reason_zh": "Enter 的 Input.dispatchKeyEvent 返回 Navigation is changing the document，BrowserTool 将该次按键操作判为失败并终止轨迹。应区分导航已触发与协议调用完整成功，不能把这个错误描述成找不到按钮。 失败记录：第 3 步，动作 press。 源码：moli-protocol/src/domains/input.rs，start_pending_input_command。一次 Enter 包含 keydown 和 keyup。keydown 可以先启动换页，旧版随后用通用文档访问门禁拒绝同一次按键的 keyup，返回 Navigation is changing the document。修复允许导航期间的终止 keyup 发送给仍挂载的旧页面，其余按键仍受原门禁约束。",
+          "reason_en": "Input.dispatchKeyEvent rejects Enter because navigation is changing the document. Recorded failure: step 3, action press. Source: moli-protocol/src/domains/input.rs, start_pending_input_command. An Enter press contains keydown and keyup. Keydown may initiate document replacement; the old general document-access gate then rejects the matching keyup with Navigation is changing the document. The fix delivers terminal keyup to the still-attached outgoing page while retaining the normal gate for other events."
+        }
       ]
     },
     {
-      "code": "moli_dynamic_suggestion_missing",
-      "label_zh": "动态候选未生成",
-      "label_en": "Dynamic suggestion missing",
-      "responsibility": "browser",
-      "remediation_owner": "Moli page event integration",
-      "remediation_status": "open",
+      "code": "recorded_referer_mismatch",
+      "label_zh": "网络记录缺少验收所需 Referer",
+      "label_en": "Recorded Referer does not meet acceptance",
+      "responsibility": "browser_network_evidence_boundary",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "passed_in_pr_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "发布版失败保留；PR 修复版本轮通过",
+      "remediation_status_en": "Released failure retained; PR build passed this cohort",
       "results": [
-        {"engine":"moli","task_id":576,"reason_zh":"输入用户名前缀后，Moli 页面没有生成 abisubramanya27 候选，固定选择脚本因候选不存在而失败；Chromium 同轨迹通过。","reason_en":"After entering the username prefix, Moli did not generate the abisubramanya27 suggestion, so the fixed selection script failed; Chromium passes the same trajectory."}
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 339,
+          "trace_sha256": "f3ccc4539bffdbabf59afa3b31db56beb31d59946bda50e25f916c9d843d747f",
+          "reason_zh": "轨迹动作完成，相关请求也获得 HTTP 200，但网络记录缺少评测规则要求的 Referer，所以没有请求满足全部条件。不是完全没有发出请求。现有 HAR 不能区分真实请求头缺失和协议记录遗漏；官方失败成绩保持不变。 源码：moli-protocol/src/domains/network/output_queue.rs，append_missing_subresource_request_extra_info。已有 Cookie 元数据导致旧版提前返回，遗漏传输层实际请求头；PR 去掉该提前返回，回归测试 staged_cookie_report_does_not_suppress_observed_transport_headers 覆盖此条件。本轮 PR 的三个 GraphQL 请求均记录正确 Referer。",
+          "reason_en": "Expected requests exist, but captured headers omit the Referer required by the evaluator. Preserve the official score; HAR alone does not distinguish a wire-header omission from protocol recording loss. Source: append_missing_subresource_request_extra_info in moli-protocol/src/domains/network/output_queue.rs returned early for existing cookie metadata, suppressing observed transport headers. The PR removes the return, with regression staged_cookie_report_does_not_suppress_observed_transport_headers. All three PR GraphQL requests record the expected Referer."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 676,
+          "trace_sha256": "c5f288ab1ed9f43695ca5ce43c2c9a8943c1ba852f740d098d8bae236dc8ef30",
+          "reason_zh": "轨迹动作完成，相关请求也获得 HTTP 200，但网络记录缺少评测规则要求的 Referer，所以没有请求满足全部条件。不是完全没有发出请求。现有 HAR 不能区分真实请求头缺失和协议记录遗漏；官方失败成绩保持不变。",
+          "reason_en": "Expected requests exist, but captured headers omit the Referer required by the evaluator. Preserve the official score; HAR alone does not distinguish a wire-header omission from protocol recording loss."
+        }
       ]
     },
     {
-      "code": "moli_async_side_effect_lost",
-      "label_zh": "异步保存副作用未发生",
-      "label_en": "Asynchronous save side effect was lost",
-      "responsibility": "browser",
-      "remediation_owner": "Moli script and lifecycle integration",
-      "remediation_status": "open",
+      "code": "cart_add_effect_absent",
+      "label_zh": "加入购物车没有产生预期结果",
+      "label_en": "Add-to-cart effect absent",
+      "responsibility": "browser_interaction_boundary",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "passed_in_pr_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "发布版失败保留；PR 修复版本轮通过",
+      "remediation_status_en": "Released failure retained; PR build passed this cohort",
       "results": [
-        {"engine":"moli","task_id":464,"reason_zh":"七个 BrowserTool 动作均返回成功，但由 setTimeout 调度的 Magento 保存没有出现在 Moli 网络记录中，官方验收因此找不到目标 POST；Chromium 同轨迹产生该请求并通过。","reason_en":"All seven BrowserTool actions returned success, but the Magento save scheduled through setTimeout never appeared in Moli's network record, so the evaluator found no target POST; Chromium emits it and passes."}
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 506,
+          "trace_sha256": "70b8df9a4a60873b349d455e695629a2a1292c28eaf8c3813bd8e0de2555f04d",
+          "reason_zh": "第 6 步加入购物车点击返回成功，但记录中没有 cart/add 请求，随后购物车为空，第 10 步检查失败。点击返回成功不等于站点已经完成加购；第 6 步是最后一个应触发加购的动作，不应改写成工具调用失败。 失败记录：第 10 步，动作 evaluate。",
+          "reason_en": "Add to Cart reports success but no cart/add request is recorded; subsequent cart inspection is empty. Recorded failure: step 10, action evaluate."
+        }
       ]
     },
     {
-      "code": "moli_ambiguous_link_activation",
-      "label_zh": "同一链接选择器激活了不同目标",
-      "label_en": "Same link selector activated a different target",
-      "responsibility": "browser",
-      "remediation_owner": "Moli DOM ordering and click dispatch",
-      "remediation_status": "open",
+      "code": "configuration_wizard_readiness_predicate",
+      "label_zh": "商品配置向导未满足就绪检查",
+      "label_en": "Product wizard readiness check failed",
+      "responsibility": "browser_site_readiness_boundary",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "passed_in_pr_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "发布版失败保留；PR 修复版本轮通过",
+      "remediation_status_en": "Released failure retained; PR build passed this cohort",
       "results": [
-        {"engine":"moli","task_id":465,"reason_zh":"固定轨迹点击第三个可见 href=# 链接；Chromium 进入心愿单并产生验收所需请求，Moli 留在搜索页且没有心愿单 POST，说明可见节点顺序或点击分派不同。","reason_en":"The trajectory clicks the third visible href=# link. Chromium opens the wishlist and emits the required request, while Moli remains on the search page with no wishlist POST, showing different visible-node ordering or click dispatch."}
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 547,
+          "trace_sha256": "18e68bcb9ccf45fc0b2d8a9bea1299ba4c5615489e6a14f18289d5bcd6e5ca85",
+          "reason_zh": "第 5 步在 30 秒内未同时满足配置向导、组件状态和 Next 事件绑定检查。截图已显示选中的 Size、Color 和 Next 按钮，不能据报错认定属性不存在；轨迹没有记录具体哪一项检查未满足。 失败记录：第 5 步，动作 evaluate。",
+          "reason_en": "Configuration step readiness conjunction times out while the screenshot shows selected Size and Color; the exact failed conjunct was not recorded. Recorded failure: step 5, action evaluate."
+        }
       ]
     },
     {
-      "code": "moli_json_document_dom_shape",
-      "label_zh": "JSON 文档 DOM 结构不同",
-      "label_en": "JSON-document DOM shape differs",
-      "responsibility": "browser",
-      "remediation_owner": "Moli document rendering",
-      "remediation_status": "open",
+      "code": "suggestion_dom_selection",
+      "label_zh": "用户建议项未被 DOM 条件选中",
+      "label_en": "User suggestion not selected by DOM predicate",
+      "responsibility": "browser_site_readiness_boundary",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "passed_in_pr_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "发布版失败保留；PR 修复版本轮通过",
+      "remediation_status_en": "Released failure retained; PR build passed this cohort",
       "results": [
-        {"engine":"moli","task_id":784,"reason_zh":"Moli 已以 200 打开 API 且快照含完整 JSON 文本，但页面没有 Chromium 提供的 pre 包装节点，后续 get_text(pre) 超时。","reason_en":"Moli opened the API with status 200 and its snapshot contains the JSON text, but the document lacks Chromium's pre wrapper, so get_text(pre) timed out."}
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 576,
+          "trace_sha256": "c77ddb569c726356766f9fe17973743ba982d769420528ac8b174e8d5182700f",
+          "reason_zh": "用户查询返回 HTTP 200 和正确的 abisubramanya27，截图也显示该建议项，但固定等待两秒后的按钮查找未找到 offsetParent 非空且文本匹配的元素。不是用户不存在；现有记录不足以区分几何属性行为与建议项渲染时序。 失败记录：第 6 步，动作 evaluate。",
+          "reason_en": "Search returns the exact user and the screenshot shows the suggestion, but the button/offsetParent predicate finds no eligible target. Recorded failure: step 6, action evaluate."
+        }
+      ]
+    },
+    {
+      "code": "implicit_search_submission_absent",
+      "label_zh": "Enter 未产生搜索提交",
+      "label_en": "Enter did not produce search submission",
+      "responsibility": "browser",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "passed_in_pr_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "发布版失败保留；PR 修复版本轮通过",
+      "remediation_status_en": "Released failure retained; PR build passed this cohort",
+      "results": [
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 731,
+          "trace_sha256": "acb6a7892f41a0c6631c352ab546706f9c0c862280a22a685a61d21653048a16",
+          "reason_zh": "第 3 步 Enter 返回成功，但 HAR 中没有搜索请求，两次后续快照和最终截图均停留首页，输入框保留查询文字。第 7 步编辑链接超时是未发生搜索跳转的后果，而非最初原因。 失败记录：第 7 步，动作 click。 目标：a[href=\"/f/MachineLearning/1/-/edit\"]:visible。",
+          "reason_en": "Enter reports success but no search request is recorded and the page stays at home; the later edit-link timeout is downstream. Recorded failure: step 7, action click. Target: a[href=\"/f/MachineLearning/1/-/edit\"]:visible."
+        }
+      ]
+    },
+    {
+      "code": "json_document_dom_contract",
+      "label_zh": "JSON 页面缺少预期文本节点",
+      "label_en": "JSON document lacks expected text container",
+      "responsibility": "browser",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "passed_in_pr_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "发布版失败保留；PR 修复版本轮通过",
+      "remediation_status_en": "Released failure retained; PR build passed this cohort",
+      "results": [
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 784,
+          "trace_sha256": "2edd42aca9e48dbd925a4551186efc938e71f8f5471e0b4da70cfbe415116c28",
+          "reason_zh": "贡献者 API 返回 HTTP 200 和有效 JSON 数组，但文档中没有文本提取动作要求的 pre 元素，读取等待 5 秒后失败。截图将 JSON 显示为普通换行文字，问题在文档呈现与提取接口的配合，不是服务器没有返回数据。 失败记录：第 6 步，动作 get_text。 目标：pre。 源码：moli-parser/src/session.rs，HtmlParserSession::initialize_text_document。旧版缺少 JSON/纯文本导航的专用文档构造路径。修复创建浏览器自有的 pre 外壳，再切换为纯文本 tokenizer，使返回内容保留为字面文本；JSON 默认 UTF-8，并关闭 HTML/XML 声明嗅探。对应发布版第 784 题的 pre 缺失和截图乱码。",
+          "reason_en": "The contributors API returns valid JSON with HTTP 200; the rendered document lacks the pre element expected by the text extraction action. Recorded failure: step 6, action get_text. Target: pre. Source: moli-parser/src/session.rs, HtmlParserSession::initialize_text_document. The fix introduces a dedicated JSON/plain-text navigation document: create a browser-owned pre shell, then switch the tokenizer to plaintext so response bytes remain literal. JSON defaults to UTF-8 and bypasses HTML/XML declaration sniffing. This addresses the missing pre and mojibake observed in released task 784."
+        }
       ]
     }
-  ]
+  ],
+  "review_revisions": []
 }

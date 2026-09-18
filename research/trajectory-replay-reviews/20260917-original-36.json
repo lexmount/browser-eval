@@ -1,0 +1,185 @@
+{
+  "schema": "lex_webarena_trajectory_replay_failure_review/1",
+  "benchmark": "WebArena-Verified 1.2.3 · Browser Trajectory Replay",
+  "bindings": {
+    "effective_results_sha256": "abaaa0e90aced74a831093f2d6d7c3371639acb984b3a2c057f3cc39632ea935"
+  },
+  "review_protocol": {
+    "unit": "one final logical result per browser and task",
+    "method": "compare the fixed trajectory, BrowserTool result, ordered trace, network evidence, official evaluator output, and the passing reference-browser execution",
+    "score_effect": "none; the official replay verdict remains unchanged",
+    "rule": "the programmatic failure location and reviewed root cause are separate fields"
+  },
+  "coverage": {
+    "failed_results": 36,
+    "verified_results": 36
+  },
+  "review_revisions": [
+    {
+      "id": "task-173-shared-viewport-20260916",
+      "scope": [{"engine": "moli", "task_id": 173}],
+      "predecessor_review_sha256": "a4a2b4909ceea617b2889b5b9c9d557f4553d8ac254c44dc15179eed37cb499e",
+      "score_effect": "none; historical official verdicts and measured evidence are unchanged",
+      "superseded_review": {
+        "cause_code": "moli_navigation_readiness_race",
+        "responsibility": "browser",
+        "reason_zh": "前一步快照已报告导航导致执行上下文销毁，Moli 随后仍未恢复到可点击 Search 的稳定文档；Chromium 同轨迹通过。",
+        "reason_en": "The preceding snapshot reported execution-context destruction during navigation, and Moli did not recover to a stable document with an actionable Search link; Chromium passes the same trajectory."
+      },
+      "evidence_bindings": {
+        "effective_results_sha256": "abaaa0e90aced74a831093f2d6d7c3371639acb984b3a2c057f3cc39632ea935",
+        "native_diagnostic_trace_sha256": "913402034ea86e11bc361a359023a28685a30697a63cd42f993b20715c838e5e",
+        "native_diagnostic_har_sha256": "9130b7c5f695081e5e3e1057dde0229b6a5b753e73aee7443f111bf10c49342e",
+        "native_diagnostic_last_observed_page_sha256": "e7babdf313bedee4609e2db49e0701054407c524990adb9373f5bda01030dd16"
+      },
+      "historical_trace_observations": {
+        "task_id": 173,
+        "physical_attempt": 1,
+        "snapshot_zip_entry": "trace.trace",
+        "selector": "a[href=\"/search\"]",
+        "ancestor_class": "nav-item d-none d-sm-inline-block d-lg-none",
+        "media_query": "@media (min-width: 992px)",
+        "css_rule": ".d-lg-none{display:none !important}",
+        "artifacts": [
+          {"run":"gpt-5.6-sol-90","engine":"chromium","viewport":{"width":780,"height":437},"artifact_sha256":"07ecf278a32f0f936780bebee6033915aba3daeafde23a512b9970b66cec4522"},
+          {"run":"gpt-5.6-sol-90","engine":"moli","viewport":{"width":1920,"height":1080},"artifact_sha256":"7d064c3b43ecf912c4c7a219a7be416c4a0190f5baa2196edf1c069684acb554"},
+          {"run":"gpt-6-astra-90","engine":"chromium","viewport":{"width":780,"height":437},"artifact_sha256":"85b58806ca0e162c336757952e983b1d2398ecfd065c6e4b59257aa12738fb30"},
+          {"run":"gpt-6-astra-90","engine":"moli","viewport":{"width":1920,"height":1080},"artifact_sha256":"d2e8ad206b8200a9efcec34ce457ff130b7bbdce895007cf5f73a0060073403f"}
+        ],
+        "css_resources": [
+          {"engine":"chromium","zip_entry":"resources/87b0656b7cf9aa468bea0d2a0ecaafce17eee8f0.css","sha256":"5e549119b3452a53a382c10911a1444bee6ab5b74e4b4bfc67e6891fe1376ca3"},
+          {"engine":"moli","zip_entry":"resources/1b3ec9f8a35f94dbd2620aa29fabb5734592be53.css","sha256":"180834c76ec47def7637ca8cd524372e8e0d58dbc70366906c77838e32b97edf"}
+        ]
+      },
+      "evidence_scope": "Existing historical trace metadata and a non-promotable native Task 173 diagnostic; no additional result review or score replacement. The last observed page is not asserted to be an exact error-time screenshot."
+    }
+  ],
+  "cause_groups": [
+    {
+      "code": "shared_viewport_configuration",
+      "label_zh": "共享视口设置不一致",
+      "label_en": "Shared viewport configuration mismatch",
+      "responsibility": "benchmark",
+      "remediation_owner": "Benchmark harness and CowAgent CDP configuration",
+      "remediation_status": "fixed_pending_full_scope_requalification_and_rerun",
+      "results": [
+        {"engine":"moli","task_id":173,"review_revision":"task-173-shared-viewport-20260916","reason_zh":"历史设置未统一视口：Chromium 宽度为 780，Moli 为 1920。Search 链接祖先含 d-lg-none，网页 CSS 在宽度达到 992 时隐藏该入口；桌面页面显示完整搜索框。因此后续 a[href=\"/search\"]:visible 超时属于共享基准设置干扰，不能据此归因于 Moli 导航恢复。前一步快照的执行上下文销毁仍是独立记录的导航观测错误，不证明后续链接因导航而不可见。旧浏览器责任归因已被本修订替代；官方失败分数不变，须统一视口后重新资格验证完整轨迹集并全范围重跑。","reason_en":"Historical viewport settings differed: Chromium was 780 pixels wide and Moli 1920. The Search link has a d-lg-none ancestor, which site CSS hides at widths of 992 or more; the desktop page shows the full search field. The later a[href=\"/search\"]:visible timeout is therefore affected by shared benchmark settings and does not establish a Moli navigation-recovery defect. The preceding snapshot's destroyed execution context remains a separate navigation observation error; it does not establish why the later link was hidden. This revision supersedes the previous browser attribution without changing the official failure score. Requalify the full trajectory set and rerun the full scope at a common viewport."}
+      ]
+    },
+    {
+      "code": "moli_snapshot_actionability_mismatch",
+      "label_zh": "快照与可操作节点不一致",
+      "label_en": "Snapshot/actionability mismatch",
+      "responsibility": "browser",
+      "remediation_owner": "Moli BrowserTool adapter",
+      "remediation_status": "open",
+      "results": [
+        {"engine":"moli","task_id":29,"reason_zh":"Moli 快照已经列出 DIY 新帖链接，但紧接着对同一 href 的点击等待 60 秒仍找不到可操作节点；同一固定轨迹在 Chromium 通过。","reason_en":"Moli's snapshot listed the DIY new-post link, but the immediately following click on the same href could not resolve an actionable node within 60 seconds; the fixed trajectory passes in Chromium."},
+        {"engine":"moli","task_id":66,"reason_zh":"Moli 快照已经列出 Books 版块链接，但随后点击同一 href 超时；同一固定轨迹在 Chromium 通过。","reason_en":"Moli's snapshot listed the Books forum link, but the following click on the same href timed out; the fixed trajectory passes in Chromium."},
+        {"engine":"moli","task_id":404,"reason_zh":"Moli 快照已经列出 Books 版块链接，但随后点击同一 href 超时；同一固定轨迹在 Chromium 通过。","reason_en":"Moli's snapshot listed the Books forum link, but the following click on the same href timed out; the fixed trajectory passes in Chromium."},
+        {"engine":"moli","task_id":595,"reason_zh":"Moli 快照已经列出 Space 版块链接，但随后点击同一 href 超时；同一固定轨迹在 Chromium 通过。","reason_en":"Moli's snapshot listed the Space forum link, but the following click on the same href timed out; the fixed trajectory passes in Chromium."},
+        {"engine":"moli","task_id":620,"reason_zh":"Moli 快照已经列出 relationship_advice 版块链接，但随后点击同一 href 超时；同一固定轨迹在 Chromium 通过。","reason_en":"Moli's snapshot listed the relationship_advice forum link, but the following click on the same href timed out; the fixed trajectory passes in Chromium."},
+        {"engine":"moli","task_id":640,"reason_zh":"Moli 快照已经列出 Books 版块链接，但随后点击同一 href 超时；同一固定轨迹在 Chromium 通过。","reason_en":"Moli's snapshot listed the Books forum link, but the following click on the same href timed out; the fixed trajectory passes in Chromium."},
+        {"engine":"moli","task_id":645,"reason_zh":"Moli 快照已经列出 Books 版块链接，但随后点击同一 href 超时；同一固定轨迹在 Chromium 通过。","reason_en":"Moli's snapshot listed the Books forum link, but the following click on the same href timed out; the fixed trajectory passes in Chromium."},
+        {"engine":"moli","task_id":714,"reason_zh":"Moli 快照已经列出 Gadgets 当日热门链接，但随后点击同一 href 超时；同一固定轨迹在 Chromium 通过。","reason_en":"Moli's snapshot listed the Gadgets daily-top link, but the following click on the same href timed out; the fixed trajectory passes in Chromium."}
+      ]
+    },
+    {
+      "code": "moli_visible_target_state_divergence",
+      "label_zh": "目标控件未进入可见可操作状态",
+      "label_en": "Target control did not become actionable",
+      "responsibility": "browser",
+      "remediation_owner": "Moli rendering and BrowserTool integration",
+      "remediation_status": "open",
+      "results": [
+        {"engine":"moli","task_id":108,"reason_zh":"固定轨迹到达筛选步骤后，Moli 未暴露可见的 Filters 按钮，点击超时；Chromium 同轨迹通过。","reason_en":"At the filter step, Moli did not expose an actionable visible Filters button and the click timed out; Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":156,"reason_zh":"Moli 未暴露固定轨迹所需的 Assigned merge requests 链接实例，点击超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the Assigned merge-requests link instance required by the fixed trajectory; Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":163,"reason_zh":"Moli 未暴露评论列表第二页链接，点击超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the review-list page-two link and the click timed out; Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":243,"reason_zh":"Moli 在菜单导航后未暴露 Customers 链接，点击超时；Chromium 同轨迹通过。","reason_en":"After menu navigation, Moli did not expose the Customers link and the click timed out; Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":374,"reason_zh":"Moli 未暴露 Magento Blank 主题的编辑链接，点击超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the Magento Blank theme edit link and the click timed out; Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":399,"reason_zh":"Moli 未暴露目标论坛用户的个人页链接，点击超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the target forum user's profile link and the click timed out; Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":415,"reason_zh":"Moli 未暴露可见的评论文本框，填入动作超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose an actionable visible comment textarea and the fill timed out; Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":418,"reason_zh":"Moli 未暴露 Set status 按钮，点击超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the Set status button and the click timed out; Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":441,"reason_zh":"Moli 未暴露目标仓库的 index.html 文件链接，点击超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the target repository's index.html link and the click timed out; Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":448,"reason_zh":"Moli 未暴露 GitLab 个人资料入口，点击超时；重试仍在同一步失败，而 Chromium 同轨迹通过。","reason_en":"Moli did not expose the GitLab profile entry; the retry failed at the same step while Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":506,"reason_zh":"Moli 在结账流程中未暴露下一步按钮，点击超时；Chromium 同轨迹完成并通过验收。","reason_en":"Moli did not expose the Next button during checkout and the click timed out; Chromium completes and passes the same trajectory."},
+        {"engine":"moli","task_id":571,"reason_zh":"Moli 未暴露可见的州/省下拉框，选择动作超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose an actionable visible region selector and the selection timed out; Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":585,"reason_zh":"Moli 未暴露 Submit Review 按钮，点击超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the Submit Review button and the click timed out; Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":590,"reason_zh":"Moli 未暴露里程碑标题输入框，填入动作超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the milestone-title input and the fill timed out; Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":658,"reason_zh":"Moli 未暴露议题标题输入框，填入动作超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the issue-title input and the fill timed out; Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":731,"reason_zh":"Moli 未暴露目标论坛帖的编辑链接，点击超时；Chromium 同轨迹通过。","reason_en":"Moli did not expose the target forum post's edit link and the click timed out; Chromium passes the same trajectory."}
+      ]
+    },
+    {
+      "code": "moli_navigation_readiness_race",
+      "label_zh": "导航切换与后续动作竞态",
+      "label_en": "Navigation/readiness race",
+      "responsibility": "browser",
+      "remediation_owner": "Moli navigation lifecycle",
+      "remediation_status": "open",
+      "results": [
+        {"engine":"moli","task_id":196,"reason_zh":"前一步发生导航切换后，Moli 未在下一动作前恢复 Clear all 控件，点击超时；Chromium 同轨迹通过。","reason_en":"After the preceding navigation transition, Moli did not restore the Clear all control before the next action and the click timed out; Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":204,"reason_zh":"前一步导航尚未形成稳定文档，Moli 未暴露目标订单链接，点击超时；Chromium 同轨迹通过。","reason_en":"The preceding navigation did not settle into a stable document in Moli, so the target order link never became actionable; Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":313,"reason_zh":"Moli 在按键动作执行时仍处于文档导航切换，CDP 返回 Navigation is changing the document；Chromium 同轨迹通过。","reason_en":"Moli was still changing documents when the keypress was dispatched, and CDP returned 'Navigation is changing the document'; Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":389,"reason_zh":"前一步快照遭遇导航上下文销毁，Moli 未恢复目标 merge request 链接，点击超时；Chromium 同轨迹通过。","reason_en":"The preceding snapshot lost its execution context to navigation, and Moli did not recover the target merge-request link; Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":666,"reason_zh":"前一步快照遭遇导航上下文销毁，Moli 未恢复新建 merge request 链接，点击超时；Chromium 同轨迹通过。","reason_en":"The preceding snapshot lost its execution context to navigation, and Moli did not recover the new merge-request link; Chromium passes the same trajectory."}
+      ]
+    },
+    {
+      "code": "moli_dom_cardinality_difference",
+      "label_zh": "可见节点数量与参考浏览器不同",
+      "label_en": "Visible-node cardinality differs",
+      "responsibility": "browser",
+      "remediation_owner": "Moli DOM projection",
+      "remediation_status": "open",
+      "results": [
+        {"engine":"moli","task_id":314,"reason_zh":"固定轨迹要求第二个可见的 /primer/design 链接；Moli 只暴露不足两个匹配节点，Chromium 同轨迹通过。","reason_en":"The trajectory selects the second visible /primer/design link; Moli exposes fewer than two matching nodes while Chromium passes the same trajectory."},
+        {"engine":"moli","task_id":349,"reason_zh":"固定轨迹要求第二个可见的目标项目链接；Moli 只暴露不足两个匹配节点，Chromium 同轨迹通过。","reason_en":"The trajectory selects the second visible target-project link; Moli exposes fewer than two matching nodes while Chromium passes the same trajectory."}
+      ]
+    },
+    {
+      "code": "moli_dynamic_suggestion_missing",
+      "label_zh": "动态候选未生成",
+      "label_en": "Dynamic suggestion missing",
+      "responsibility": "browser",
+      "remediation_owner": "Moli page event integration",
+      "remediation_status": "open",
+      "results": [
+        {"engine":"moli","task_id":576,"reason_zh":"输入用户名前缀后，Moli 页面没有生成 abisubramanya27 候选，固定选择脚本因候选不存在而失败；Chromium 同轨迹通过。","reason_en":"After entering the username prefix, Moli did not generate the abisubramanya27 suggestion, so the fixed selection script failed; Chromium passes the same trajectory."}
+      ]
+    },
+    {
+      "code": "moli_async_side_effect_lost",
+      "label_zh": "异步保存副作用未发生",
+      "label_en": "Asynchronous save side effect was lost",
+      "responsibility": "browser",
+      "remediation_owner": "Moli script and lifecycle integration",
+      "remediation_status": "open",
+      "results": [
+        {"engine":"moli","task_id":464,"reason_zh":"七个 BrowserTool 动作均返回成功，但由 setTimeout 调度的 Magento 保存没有出现在 Moli 网络记录中，官方验收因此找不到目标 POST；Chromium 同轨迹产生该请求并通过。","reason_en":"All seven BrowserTool actions returned success, but the Magento save scheduled through setTimeout never appeared in Moli's network record, so the evaluator found no target POST; Chromium emits it and passes."}
+      ]
+    },
+    {
+      "code": "moli_ambiguous_link_activation",
+      "label_zh": "同一链接选择器激活了不同目标",
+      "label_en": "Same link selector activated a different target",
+      "responsibility": "browser",
+      "remediation_owner": "Moli DOM ordering and click dispatch",
+      "remediation_status": "open",
+      "results": [
+        {"engine":"moli","task_id":465,"reason_zh":"固定轨迹点击第三个可见 href=# 链接；Chromium 进入心愿单并产生验收所需请求，Moli 留在搜索页且没有心愿单 POST，说明可见节点顺序或点击分派不同。","reason_en":"The trajectory clicks the third visible href=# link. Chromium opens the wishlist and emits the required request, while Moli remains on the search page with no wishlist POST, showing different visible-node ordering or click dispatch."}
+      ]
+    },
+    {
+      "code": "moli_json_document_dom_shape",
+      "label_zh": "JSON 文档 DOM 结构不同",
+      "label_en": "JSON-document DOM shape differs",
+      "responsibility": "browser",
+      "remediation_owner": "Moli document rendering",
+      "remediation_status": "open",
+      "results": [
+        {"engine":"moli","task_id":784,"reason_zh":"Moli 已以 200 打开 API 且快照含完整 JSON 文本，但页面没有 Chromium 提供的 pre 包装节点，后续 get_text(pre) 超时。","reason_en":"Moli opened the API with status 200 and its snapshot contains the JSON text, but the document lacks Chromium's pre wrapper, so get_text(pre) timed out."}
+      ]
+    }
+  ]
+}

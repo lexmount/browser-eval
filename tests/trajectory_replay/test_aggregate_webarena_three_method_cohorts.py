@@ -225,6 +225,13 @@ def test_aggregate_has_exact_three_method_selected_task_matrix(tmp_path: Path) -
     inputs = _fixture(tmp_path)
     result = aggregate(**inputs)
     assert len(result["attempts"]) == len(result["physical_executions"]) == 270
+    from harness.trajectory_replay.participants import bind_participant, participant_registry
+    registry = participant_registry([
+        {"id": row["participant_id"], "engine": row["engine"]}
+        for row in result["attempts"][::90]
+    ])
+    for row in result["physical_executions"]:
+        assert bind_participant(row, registry)["engine"] == registry[row["participant_id"]]["engine"]
     assert {row["participant_id"] for row in result["attempts"]} == {
         "chromium",
         "moli-old",

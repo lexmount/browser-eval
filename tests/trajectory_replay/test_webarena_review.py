@@ -45,8 +45,8 @@ def test_programmatic_failure_keeps_location_separate_from_root_cause() -> None:
     }
 
 
-def test_current_task173_review_supersedes_browser_attribution_with_bound_evidence() -> None:
-    review = json.loads(Path("research/trajectory-replay-failure-review.json").read_text())
+def test_historical_task173_review_supersedes_browser_attribution_with_bound_evidence() -> None:
+    review = json.loads(Path("research/trajectory-replay-reviews/20260917-original-36.json").read_text())
     matches = [
         (group, row)
         for group in review["cause_groups"]

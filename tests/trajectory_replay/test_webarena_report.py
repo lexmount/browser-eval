@@ -137,6 +137,10 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
     assert "Passes on verifiable tasks" not in (output / "en/index.html").read_text()
     assert "每个方法开始前恢复站点基线" in (output / "environment.html").read_text()
     assert "Colima" not in (output / "environment.html").read_text()
+    for route in ("environment.html", "en/environment.html"):
+        environment = (output / route).read_text()
+        assert 'data-topology-fallback' in environment and 'class="mermaid"' in environment
+        assert 'Rainbond WebArena' in environment
     assert not (output / "diagnostics.html").exists()
     assert check_report(output)["html_pages"] == 20
     data["attempts"] = attempts[:-1]
@@ -1103,7 +1107,7 @@ def test_report_authored_copy_does_not_claim_unconditional_current_qualification
 
 
 def test_task173_corrected_review_reaches_public_json_and_bilingual_detail(tmp_path: Path) -> None:
-    review = json.loads(Path("research/trajectory-replay-failure-review.json").read_text())
+    review = json.loads(Path("research/trajectory-replay-reviews/20260917-original-36.json").read_text())
     group, item = next(
         (group, item)
         for group in review["cause_groups"]

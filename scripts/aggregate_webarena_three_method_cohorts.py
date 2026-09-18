@@ -377,6 +377,7 @@ def aggregate(
         "physical_executions": [
             {
                 "participant_id": row["participant_id"],
+                "engine": row["engine"],
                 "task_id": row["task_id"],
                 "evidence": {"trace": row["evidence"]["trace"]},
             }
