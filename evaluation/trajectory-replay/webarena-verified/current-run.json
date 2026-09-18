@@ -32,10 +32,10 @@
       "binary_sha256": "72051832a3535ee93090c8bbbe57017daea779d1b368deb35dca19944298f775"
     },
     {
-      "id": "moli-1.1.7-fixed-af808b3f",
+      "id": "moli-1.1.8-main-a179ae6e",
       "engine": "moli",
-      "label": "Moli 1.1.7 · af808b3f",
-      "binary_sha256": "af808b3f7bb5dd0604262bba95cecdf06ba18d9547a169c1443bfbb1255b4397"
+      "label": "Moli 1.1.8 · main+a179ae6e",
+      "binary_sha256": "0122069f8a77e708ecf8636ea074952ef30c8d4856378149cde8cde1810bdbf8"
     }
   ],
   "qualification": {
@@ -72,10 +72,6 @@
   },
   "publication": {
     "base_url": "https://artifact-site.lexmount.cn",
-    "title": "轨迹回放评测 — WebArena-Verified 90 个用例（Mac）",
-    "state": "verified",
-    "site_slug": "i9tKqJdk62cS",
-    "share_url": "https://artifact-site.lexmount.cn/v/rNhh74k9gKe6CDRAqkABClF5KjbgCp4q",
-    "expected_version": "ver_f71901eb26fe46d08a752cfcec0a889a"
+    "title": "浏览器轨迹重放：Chromium、Moli 1.1.3 与 Moli main（90 题）"
   }
 }
