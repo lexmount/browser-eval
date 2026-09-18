@@ -4,7 +4,9 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import shutil
 import sys
+import tempfile
 from collections import Counter
 from bs4 import BeautifulSoup
 from html.parser import HTMLParser
@@ -122,16 +124,13 @@ def require_home_interpretation(html: str | BeautifulSoup, summary: dict,
     release = summary['providers']['moli']['mean_latency_ms']
     candidate = summary['providers']['moli-pr643']['mean_latency_ms']
     required = (f'{release:,.0f} ms', f'{candidate:,.0f} ms',
-                f'{paired_latency["release"]["mean_ms"]:.1f} ms',
-                f'{paired_latency["pr"]["mean_ms"]:.1f} ms',
                 f'{paired_latency["paired_delta_mean_ms"]:+.1f} ms')
     context_text = context.get_text(' ', strip=True)
     require(all(value in context_text for value in required),
             'Home timing context disagrees with measured evidence')
-    require(('不同时间' if lang == 'zh' else 'different times') in context_text
-            and ('64 页' if lang == 'zh' else '64 pages') in context_text
-            and ('128 次' if lang == 'zh' else '128 calls') in context_text,
-            'Home timing context does not distinguish the measured populations')
+    require(('交叉顺序' if lang == 'zh' else 'balanced same-window') in context_text
+            and ('504 页' if lang == 'zh' else '504 pages') in context_text,
+            'Home timing context does not identify the corrected population')
     require(context.select_one('a[href$="guide/index.html"]') is not None,
             'Home timing context does not link to the analysis')
     change = changes[0]
@@ -181,8 +180,9 @@ def require_guide_interpretation(html: str | BeautifulSoup, summary: dict,
     require(soup.select_one('#guide-methods table') is not None
             and len(soup.select('#guide-methods tbody tr')) == len(providers),
             'Guide does not diagnose every measured configuration')
-    require(soup.select_one('#guide-timing a[href="research/wcxb-paired-latency.json"]') is not None,
-            'Guide timing is missing paired evidence')
+    require(soup.select_one('#guide-timing a[href="research/wcxb-full-paired-latency/calls.jsonl"]') is not None
+            and soup.select_one('#guide-timing a[href="research/wcxb-full-paired-latency/certification.json"]') is not None,
+            'Guide timing is missing full-scope certified paired evidence')
     require(len(soup.select_one('#guide-conclusion').get_text(' ', strip=True)) > 200,
             'Guide conclusion lacks a substantive finding')
     return soup
@@ -228,8 +228,19 @@ def check(root: Path) -> None:
     released = next(r for r in certificate['providers'] if r['provider'] == 'moli')
     require(released['identity'].get('binary_sha256') == profile['release_binary_sha256'],
             'WCXB released Moli binary differs from the current report profile')
-    from harness.web_fetch.wcxb_latency import load_paired_latency
-    _, paired_latency = load_paired_latency(root / 'research/wcxb-paired-latency.json', profile, case_ids)
+    from harness.web_fetch.wcxb_latency import load_full_paired_latency, summarize_full_paired_latency
+    _, selected_latency = load_full_paired_latency(root / 'research/wcxb-full-paired-latency', profile, case_ids)
+    paired_latency = summarize_full_paired_latency(selected_latency, case_ids)
+    for provider, method in (('moli', 'release'), ('moli-pr643', 'pr')):
+        values = sorted(selected_latency[case_id, method]['elapsed_ms'] for case_id in case_ids)
+        position = (len(values) - 1) * .95
+        low = int(position)
+        p95 = values[low] + (values[min(low + 1, len(values) - 1)] - values[low]) * (position - low)
+        measured = summary['providers'][provider]
+        require(abs(measured['mean_latency_ms'] - paired_latency[method]['mean_ms']) < .01
+                and abs(measured['p50_latency_ms'] - paired_latency[method]['p50_ms']) < .01
+                and abs(measured['p95_latency_ms'] - p95) < .01,
+                'WCXB Moli timing summary differs from certified full paired evidence')
     evidence_hashes = json.loads((root / 'evidence-manifest.json').read_text())
     require(set(evidence_hashes) == case_ids, 'WCXB evidence inventory differs')
     by_case = {}
@@ -287,9 +298,9 @@ def check(root: Path) -> None:
                 headings = {node.get_text(' ', strip=True) for node in guide.select('h2')}
                 require(('Obscura 为什么分数更高' if lang == 'zh' else 'Why Obscura scores higher') in headings,
                         'Obscura content analysis is missing')
-                require(('Moli 两版的耗时差异' if lang == 'zh' else 'Why the Moli builds have different latency') in headings,
+                require(('Moli 两版耗时如何纠正' if lang == 'zh' else 'How the Moli latency was corrected') in headings,
                         'Paired Moli latency analysis is missing')
-                require(guide.select_one('a[href="research/wcxb-paired-latency.json"]') is not None,
+                require(guide.select_one('a[href="research/wcxb-full-paired-latency/calls.jsonl"]') is not None,
                         'Paired latency evidence link is missing')
                 require(guide.select_one('a[href$="cases/4461.html#obscura"]') is not None,
                         'Obscura boundary counterexample is missing')
@@ -415,6 +426,29 @@ def check(root: Path) -> None:
         pass
     else:
         raise AssertionError('A home page without adjacent timing context was accepted')
+    with tempfile.TemporaryDirectory(prefix='wcxb-latency-negative-') as directory:
+        invalid = Path(directory)
+        evidence = root / 'research/wcxb-full-paired-latency'
+        shutil.copy2(evidence / 'receipt.json', invalid / 'receipt.json')
+        shutil.copy2(evidence / 'calls.jsonl', invalid / 'calls.jsonl')
+        calls = (invalid / 'calls.jsonl').read_bytes()
+        (invalid / 'calls.jsonl').write_bytes(calls.rsplit(b'\n', 2)[0] + b'\n')
+        try:
+            load_full_paired_latency(invalid, profile, case_ids)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('An incomplete paired latency cohort was accepted')
+        (invalid / 'calls.jsonl').write_bytes(calls)
+        receipt = json.loads((invalid / 'receipt.json').read_text())
+        receipt['binary_sha256']['pr'] = '0' * 64
+        (invalid / 'receipt.json').write_text(json.dumps(receipt))
+        try:
+            load_full_paired_latency(invalid, profile, case_ids)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('A wrong paired binary identity was accepted')
     require((root / 'assets/style.css').is_file() and (root / 'assets/report.js').is_file(), 'WCXB report assets missing')
     require(len([path for path in root.rglob('*') if path.is_file()]) < 2000, 'WCXB report tree unexpectedly large')
     print(f'PASS: WCXB {len(case_ids)}-case, {len(providers)}-method, bilingual evidence and route inventory')

@@ -8,7 +8,7 @@ from scripts.score_wcxb_results import classify, official_evaluator, percentile
 from scripts.select_wcxb_sample import choose, full_test_exclusions, validate_manifest
 from scripts.run_webmainbench_benchmark import PROVIDERS, WCXB_PROVIDERS
 from harness.web_fetch.report import format_wcxb_conditional_latency
-from harness.web_fetch.wcxb_latency import load_paired_latency
+from harness.web_fetch.wcxb_latency import load_full_paired_latency, summarize_full_paired_latency
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -89,41 +89,48 @@ class WCXBContractTests(unittest.TestCase):
         self.assertAlmostEqual(percentile([10, 20, 30], .95), 29)
 
     def test_paired_latency_requires_complete_hash_bound_calls(self):
-        cases = {str(i) for i in range(64)}
-        rows = [{'case': case, 'round': round_number, 'method': method,
-                 'elapsed_ms': 10 if method == 'release' else 12,
-                 'exit': 0, 'output_sha256': 'a' * 64}
-                for case in sorted(cases) for round_number in (0, 1)
-                for method in ('release', 'pr')]
-        payload = {'kind': 'diagnostic_paired_crossover', 'rounds': 2,
-                   'case_count': 64, 'source_sha256': 'source',
-                   'binary_sha256': {'release': 'release', 'pr': 'candidate'},
-                   'results': rows}
-        profile = {'source_dataset_sha256': 'source',
-                   'release_binary_sha256': 'release',
-                   'candidate_binary_sha256': 'candidate'}
+        cases = {str(i) for i in range(4)}
+        rows = []
+        for round_number in (0, 1):
+            for index, case in enumerate(sorted(cases)):
+                first = 'release' if (index + round_number) % 2 == 0 else 'pr'
+                for order, method in enumerate((first, 'pr' if first == 'release' else 'release'), 1):
+                    rows.append({'case': case, 'round': round_number, 'method': method,
+                                 'order': order, 'elapsed_ms': 10 if method == 'release' else 12,
+                                 'ok': True, 'error_type': None, 'output_sha256': 'a' * 64})
+        profile = {'source_dataset_sha256': 'source', 'sample_manifest_sha256': 'manifest',
+                   'release_binary_sha256': 'release', 'candidate_binary_sha256': 'candidate'}
         with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder) / 'paired.json'
-            def write(value):
-                raw = json.dumps(value).encode()
-                path.write_bytes(raw)
-                profile['latency_diagnostic_sha256'] = hashlib.sha256(raw).hexdigest()
-            write(payload)
-            _, metrics = load_paired_latency(path, profile, cases)
-            self.assertEqual(metrics['paired_delta_p50_ms'], 2)
-            write({**payload, 'results': rows[:-1]})
+            root = Path(folder)
+
+            def write(calls, binary='candidate'):
+                raw = b''.join((json.dumps(row) + '\n').encode() for row in calls)
+                (root / 'calls.jsonl').write_bytes(raw)
+                receipt = {'kind': 'wcxb_full_paired_latency', 'case_count': len(cases),
+                           'rounds': 2, 'selection': 'final round, all cases',
+                           'call_count': len(cases) * 4, 'source_sha256': 'source',
+                           'manifest_sha256': 'manifest',
+                           'binary_sha256': {'release': 'release', 'pr': binary},
+                           'calls_sha256': hashlib.sha256(raw).hexdigest(),
+                           'host_load_1m_checks': [1.0] * 50, 'quiet_host_load_limit': 4.0}
+                receipt_raw = json.dumps(receipt).encode()
+                (root / 'receipt.json').write_bytes(receipt_raw)
+                profile['latency_correction_receipt_sha256'] = hashlib.sha256(receipt_raw).hexdigest()
+
+            write(rows)
+            _, selected = load_full_paired_latency(root, profile, cases)
+            self.assertEqual(summarize_full_paired_latency(selected, cases)['paired_delta_p50_ms'], 2)
+            write(rows[:-1])
             with self.assertRaisesRegex(ValueError, 'inventory is incomplete'):
-                load_paired_latency(path, profile, cases)
-            write(payload)
-            profile['candidate_binary_sha256'] = 'different'
+                load_full_paired_latency(root, profile, cases)
+            write(rows, binary='different')
             with self.assertRaisesRegex(ValueError, 'protocol or identity differs'):
-                load_paired_latency(path, profile, cases)
-            profile['candidate_binary_sha256'] = 'candidate'
+                load_full_paired_latency(root, profile, cases)
             changed = [dict(row) for row in rows]
             changed[-1]['output_sha256'] = 'b' * 64
-            write({**payload, 'results': changed})
+            write(changed)
             with self.assertRaisesRegex(ValueError, 'output changed between rounds'):
-                load_paired_latency(path, profile, cases)
+                load_full_paired_latency(root, profile, cases)
 
 
 if __name__ == '__main__':

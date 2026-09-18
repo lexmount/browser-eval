@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.run_webmainbench_benchmark import WCXB_PROVIDERS, load_wcxb_source
 from scripts.select_wcxb_sample import validate_manifest
 from harness.web_fetch.safety import contained_path
+from harness.web_fetch.wcxb_latency import load_full_paired_latency
 
 
 def digest(path: Path) -> str:
@@ -106,6 +107,27 @@ def main() -> None:
                                                for gt in ground_truth.values() for s in gt['without']),
     }
     by_id = {r["track_id"]: r for r in records}
+    correction_root = args.evidence_root / 'latency-correction'
+    correction = None
+    if bool(profile.get('latency_correction_receipt_sha256')) != correction_root.exists():
+        raise ValueError('WCXB current profile and full-scope latency correction differ')
+    if correction_root.exists():
+        correction_receipt, correction = load_full_paired_latency(correction_root, profile, set(by_id))
+        if digest(correction_root / 'receipt.json') != profile['latency_correction_receipt_sha256']:
+            raise ValueError('WCXB corrected timing receipt differs from current profile')
+        correction_certificate = json.loads((correction_root / 'certification.json').read_text())
+        if (correction_certificate.get('kind') != 'certified_wcxb_paired_latency'
+                or correction_certificate.get('complete') is not True
+                or correction_certificate.get('case_count') != case_count
+                or correction_certificate.get('physical_call_count') != case_count * 4
+                or correction_certificate.get('selected_round') != 1
+                or correction_certificate.get('source_sha256_before') != source_hash
+                or correction_certificate.get('source_sha256_after') != source_hash
+                or correction_certificate.get('sample_sha256_before') != sample_hash
+                or correction_certificate.get('sample_sha256_after') != sample_hash
+                or correction_certificate.get('calls_sha256') != correction_receipt['calls_sha256']
+                or correction_certificate.get('receipt_sha256') != digest(correction_root / 'receipt.json')):
+            raise ValueError('WCXB paired latency certification differs from corrected evidence')
     output = args.evidence_root / "wcxb-scores.jsonl"
     summary_path = args.evidence_root / "wcxb-score-summary.json"
     if output.exists() or summary_path.exists():
@@ -136,6 +158,11 @@ def main() -> None:
                         or abs(sum(x['elapsed_ms'] for x in calls) - logical['total_elapsed_ms']) > .02
                         or calls[-1]['output_sha256'] != logical['output_sha256']):
                     raise ValueError('WCXB retry or latency binding failed: ' + logical['attempt_id'])
+                if correction is not None and provider in ('moli', 'moli-pr643'):
+                    method = 'release' if provider == 'moli' else 'pr'
+                    measured = correction[logical['track_id'], method]
+                    if measured['output_sha256'] != logical['output_sha256']:
+                        raise ValueError('WCXB corrected timing output differs from certified content: ' + logical['attempt_id'])
                 retry_details[logical['track_id']] = []
                 for call in calls[:-1]:
                     if call.get('physical_artifact_path'):
@@ -188,10 +215,13 @@ def main() -> None:
                                    ("with_rate", with_rate), ("without_rate", without_rate)):
                     totals[key] += value
                 totals["delivered"] += bool(row["ok"] and predicted.strip())
-                totals["latency_ms"] += row["total_elapsed_ms"]
-                latencies.append(row["total_elapsed_ms"])
+                corrected_elapsed = (correction[case_id, 'release' if provider == 'moli' else 'pr']['elapsed_ms']
+                                     if correction is not None and provider in ('moli', 'moli-pr643')
+                                     else row['total_elapsed_ms'])
+                totals["latency_ms"] += corrected_elapsed
+                latencies.append(corrected_elapsed)
                 if row["ok"] and predicted.strip():
-                    successful_latencies.append(row["total_elapsed_ms"])
+                    successful_latencies.append(corrected_elapsed)
                 if reference.strip():
                     totals["nonempty_reference_count"] += 1
                     totals["nonempty_reference_f1"] += f1
@@ -202,7 +232,9 @@ def main() -> None:
                     "ok": row["ok"], "status_code": row.get("status_code"), "error_type": row["error_type"],
                     "error_message": public_error(row["error_message"]), "output_sha256": row["output_sha256"],
                     "input_html_sha256": row["input_html_sha256"], "reference_sha256": row["reference_sha256"],
-                    "output_chars": row["output_chars"], "total_elapsed_ms": row["total_elapsed_ms"],
+                    "output_chars": row["output_chars"], "total_elapsed_ms": corrected_elapsed,
+                    "prior_total_elapsed_ms": row['total_elapsed_ms'] if correction is not None and provider in ('moli', 'moli-pr643') else None,
+                    "latency_source": 'paired_final_round' if correction is not None and provider in ('moli', 'moli-pr643') else 'certified_call',
                     "delivered": bool(row["ok"] and predicted.strip()),
                     "physical_attempt_count": row["physical_attempt_count"],
                     "retry_failures": retry_details[case_id],

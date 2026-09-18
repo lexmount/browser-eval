@@ -106,6 +106,9 @@ def main(argv: list[str] | None = None) -> None:
     if (argv or sys.argv[1:])[:1] == ["wcxb"]:
         run_wcxb((argv or sys.argv[1:])[1:])
         return
+    if (argv or sys.argv[1:])[:1] == ["wcxb-latency"]:
+        certify_wcxb_latency((argv or sys.argv[1:])[1:])
+        return
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", type=Path, default=ROOT / "evaluation/dataset.json")
     parser.add_argument("--output", type=Path, required=True)
@@ -308,6 +311,45 @@ def run_wcxb(argv: list[str]) -> None:
     (args.output_root / "certification.json").write_text(
         json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print("Certified WCXB cohort:", args.output_root)
+
+
+def certify_wcxb_latency(argv: list[str]) -> None:
+    """Bind the complete paired timing calls to frozen inputs and binaries."""
+    parser = argparse.ArgumentParser(description='Certify a complete WCXB paired latency cohort')
+    parser.add_argument('--dataset', type=Path, required=True)
+    parser.add_argument('--sample-manifest', type=Path, required=True)
+    parser.add_argument('--evidence-root', type=Path, required=True)
+    args = parser.parse_args(argv)
+    sys.path.insert(0, str(ROOT))
+    from harness.web_fetch.wcxb_latency import load_full_paired_latency
+    from scripts.run_webmainbench_benchmark import load_wcxb_source
+    from scripts.select_wcxb_sample import validate_manifest
+
+    certificate_path = args.evidence_root / 'certification.json'
+    if certificate_path.exists():
+        parser.error('paired latency cohort is already certified')
+    profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
+    records, source_before = load_wcxb_source(args.dataset)
+    manifest_bytes = args.sample_manifest.read_bytes()
+    selected, _ = validate_manifest(records, source_before, json.loads(manifest_bytes))
+    receipt, rows = load_full_paired_latency(args.evidence_root, profile,
+                                             {row['track_id'] for row in selected})
+    _, source_after = load_wcxb_source(args.dataset)
+    if (source_before != source_after or source_before != receipt['source_sha256']
+            or hashlib.sha256(manifest_bytes).hexdigest() != receipt['manifest_sha256']
+            or hashlib.sha256(args.sample_manifest.read_bytes()).hexdigest() != receipt['manifest_sha256']
+            or len(rows) != len(selected) * 2):
+        raise ValueError('WCXB paired latency input or declared scope changed')
+    certificate = {'schema_version': 1, 'kind': 'certified_wcxb_paired_latency',
+                   'source_sha256_before': source_before, 'source_sha256_after': source_after,
+                   'sample_sha256_before': receipt['manifest_sha256'],
+                   'sample_sha256_after': receipt['manifest_sha256'],
+                   'receipt_sha256': hashlib.sha256((args.evidence_root / 'receipt.json').read_bytes()).hexdigest(),
+                   'calls_sha256': receipt['calls_sha256'],
+                   'case_count': len(selected), 'physical_call_count': receipt['call_count'],
+                   'selected_round': 1, 'complete': True}
+    certificate_path.write_text(json.dumps(certificate, indent=2) + '\n')
+    print('Certified WCXB paired latency cohort:', args.evidence_root)
 
 
 if __name__ == "__main__":
