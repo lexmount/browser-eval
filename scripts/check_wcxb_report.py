@@ -190,8 +190,13 @@ def require_guide_interpretation(html: str | BeautifulSoup, summary: dict,
                 'Guide figure does not compare the tagged release with current PR')
     require('tsfunction identity(arg: number)' in repair.select('.repair-case')[0].get_text(' ', strip=True)
             and '<details' in repair.select('.repair-case')[1].select_one('.repair-samples').get_text(' ', strip=True)
-            and 'namestring' in repair.select('.repair-case')[2].get_text(' ', strip=True),
+            and 'namestring' in repair.select('.repair-case')[2].get_text(' ', strip=True)
+            and 'gap-2' in repair.select('.repair-case')[2].get_text(' ', strip=True),
             'Guide figures lack source-backed examples')
+    guide_text = soup.get_text(' ', strip=True)
+    require(('98.45%' in guide_text and '100%' in guide_text
+             and ('CSS' in guide_text or 'css' in guide_text)),
+            'Guide omits the measured adjacent-code score change or CSS-spacing limit')
     require(all(repair.select_one(f'a[href$="cases/{case}.html#{provider}"]')
                 for case, provider in (('5412', 'moli'), ('5412', 'moli-pr643'),
                                        ('5458', 'moli'), ('5458', 'moli-pr643'), ('4017', 'moli'))),
@@ -487,6 +492,15 @@ def check(root: Path) -> None:
             pass
         else:
             raise AssertionError(f'A {lang} guide mislabeled the tagged release')
+        guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(), 'html.parser')
+        for node in guide.find_all(string=lambda value: value and 'gap-2' in value):
+            node.replace_with(node.replace('gap-2', ''))
+        try:
+            require_guide_interpretation(guide, summary, providers, lang)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f'A {lang} guide missing the CSS-spacing limit was accepted')
     guide = BeautifulSoup((root / 'guide/index.html').read_text(), 'html.parser')
     guide.select_one('#guide-results .comparison-winner').unwrap()
     try:

@@ -1253,6 +1253,17 @@
   ],
   "releases": [
     {
+      "id": "2026-09-18-wcxb-adjacent-code-scope-correction",
+      "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
+      "date": "2026-09-18",
+      "title": "纠正相邻代码修复的含义与评分解释",
+      "title_i18n": {"en": "Correct the adjacent-code repair scope and score explanation"},
+      "summary": "5458 页的当前 PR 输出保留两个 code 节点，但不会还原由 CSS gap-2 产生的视觉间距。人工参考本身是分开的 name string；该页 F1 下降是因为评分器把内联 HTML 的 code 标签名称也计入输出词数。评测结果未改。",
+      "summary_i18n": {"en": "The current PR output on page 5458 preserves two code nodes without reconstructing the visual gap supplied by CSS gap-2. The human reference already contains separate name and string tokens; F1 falls because the scorer also counts inline-HTML code tag names as output words. Measured results are unchanged."},
+      "changes": [["报告解读", "此前把节点边界保真写成了完整的可读间距修复，并错误解释了该页降分。", "展示实际 Markdown 与渲染语义，区分 DOM 节点边界、CSS 布局和原始源码分词。", "5458 页参考召回率由 98.45% 升至 100%；额外的 code 标签词使精确率与 F1 下降。504 页成绩、分母、耗时和原始响应保持不变。"]],
+      "changes_i18n": {"en": [["Interpretation", "The earlier copy overstated node-boundary preservation as a complete readable-spacing repair and misattributed the page-level score drop.", "Show the actual Markdown and rendered semantics while separating DOM boundaries, CSS layout and raw-source tokenization.", "Reference recall on page 5458 rises from 98.45% to 100%; extra code-tag words lower precision and F1. The 504-page scores, denominator, latency and raw responses are unchanged."]]}
+    },
+    {
       "id": "2026-09-18-wcxb-moli-118-current-pr-comparison",
       "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
       "date": "2026-09-18",

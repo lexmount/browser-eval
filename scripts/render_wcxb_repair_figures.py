@@ -31,10 +31,10 @@ FIGURES = {
     ),
     'adjacent-code': (
         '5458 · 相邻代码值',
-        ('冻结 HTML', '&lt;code&gt;name&lt;/code&gt;\n&lt;code&gt;string&lt;/code&gt;'),
-        ('Moli v1.1.8 · 稳定版实测', '`namestring`'),
-        ('Moli PR #643 · 384d1d2a 实测', '&lt;code&gt;name&lt;/code&gt;`string`'),
-        '中、右两列均来自同一批 504 页评测的 5458 页完整响应。',
+        ('冻结 HTML', '&lt;div class="flex items-center gap-2 not-prose"&gt;\n  &lt;code class="font-bold text-primary"&gt;name&lt;/code&gt;\n  &lt;code class="font-semibold text-xs bg-white/5 px-1.5 py-1 rounded-md"&gt;string&lt;/code&gt;\n&lt;/div&gt;'),
+        ('Moli v1.1.8 · 稳定版实测', 'Markdown: `namestring`\n\n渲染 DOM: &lt;code&gt;namestring&lt;/code&gt;'),
+        ('Moli PR #643 · 384d1d2a 实测', 'Markdown: &lt;code&gt;name&lt;/code&gt;`string`\n\n渲染 DOM: &lt;code&gt;name&lt;/code&gt;&lt;code&gt;string&lt;/code&gt;'),
+        '中、右两列均来自同一批 504 页评测。右列保留两个 code 节点；可见间距由 CSS gap-2 产生，不在 Markdown 源码中。',
     ),
 }
 
@@ -46,6 +46,9 @@ def panel(label: str, content: str, kind: str) -> str:
 
 def document(name: str) -> str:
     title, source, release, candidate, scope = FIGURES[name]
+    pre_style = ('font-size:25px;line-height:1.5;min-height:230px'
+                 if name == 'adjacent-code'
+                 else 'font-size:29px;line-height:1.55;min-height:192px')
     return f'''<!doctype html><html lang="zh"><meta charset="utf-8"><style>
 *{{box-sizing:border-box}}body{{margin:0;background:#fff;color:#1d2c42;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans CJK SC",sans-serif}}
 #figure{{width:2048px;padding:60px 64px 50px;background:#fff}}
@@ -53,7 +56,7 @@ h1{{font-size:40px;margin:0 0 34px}}.grid{{display:grid;grid-template-columns:1f
 .panel{{min-width:0;min-height:360px;padding:30px;border:3px solid #b8c8dc;border-radius:20px;background:#f4f8fc}}
 .release{{border-color:#e38b86;background:#fff5f3}}.candidate{{border-color:#78c59d;background:#f2fff7}}
 .label{{font-size:28px;font-weight:750;line-height:1.35;min-height:82px}}
-pre{{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:29px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;margin:25px 0 0;padding:24px;border-radius:12px;background:#fff;border:1px solid #cfdae8;min-height:192px}}
+pre{{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;{pre_style};white-space:pre-wrap;overflow-wrap:anywhere;margin:25px 0 0;padding:24px;border-radius:12px;background:#fff;border:1px solid #cfdae8}}
 .scope{{font-size:25px;color:#42546a;margin:28px 0 0}}
 </style><div id="figure"><h1>{escape(title)}</h1><div class="grid">{panel(source[0], source[1], 'source')}{panel(release[0], release[1], 'release')}{panel(candidate[0], candidate[1], 'candidate')}</div><p class="scope">{escape(scope)}</p></div></html>'''
 

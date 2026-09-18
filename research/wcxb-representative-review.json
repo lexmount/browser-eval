@@ -197,7 +197,7 @@
     {
       "case_id": "5458",
       "finding": "adjacent_code_boundary",
-      "reason": "The frozen HTML has adjacent code elements with distinct name and string labels. Released Moli 1.1.8 joins them as namestring; current PR #643 preserves both code nodes. This is a converter content-boundary defect independent of the scorer.",
+      "reason": "The frozen HTML has adjacent code elements with distinct name and string labels. Released Moli 1.1.8 joins them as namestring; current PR #643 preserves both DOM nodes with an inline-HTML fallback. The original visible gap comes from CSS gap-2, so this layout-independent conversion preserves structure but does not claim to reproduce that visual spacing. Raw-source scoring counts each HTML tag name as a word: reference recall rises from 98.45% to 100%, while the added code tokens lower precision and F1.",
       "source_html_sha256": "eb80481ae411cae7b7d999372ace01664dd71819eb4ccb23cf1fd43d9760b305",
       "reference_sha256": "a86c77d3ef4ec260cc16ad1a497f4ed9c5dba7ae914568437550b27c0d973e1a",
       "outputs": {
