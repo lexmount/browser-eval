@@ -557,6 +557,25 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
         for row in rows if row['provider'] in ('moli', 'moli-pr643')
     ):
         raise ValueError('WCXB reported Moli latency differs from the selected paired round')
+    optional_root = source / 'optional-ui-4017'
+    optional_receipt = optional_root / 'receipt.json'
+    if (not optional_receipt.is_file() or optional_receipt.is_symlink()
+            or hashlib.sha256(optional_receipt.read_bytes()).hexdigest()
+            != profile.get('optional_ui_receipt_sha256')):
+        raise ValueError('WCXB optional UI-stripping evidence is missing or differs from profile')
+    optional = json.loads(optional_receipt.read_text())
+    if (optional.get('case_id') != '4017' or optional.get('source_sha256') != corpus_hash
+            or optional.get('builds', {}).get('release', {}).get('binary_sha256') != profile['release_binary_sha256']
+            or optional.get('builds', {}).get('candidate', {}).get('binary_sha256') != profile['candidate_binary_sha256']
+            or optional['builds']['release']['description_present']
+            or not optional['builds']['candidate']['description_present']):
+        raise ValueError('WCXB optional UI-stripping comparison does not bind both builds')
+    for name in ('release', 'candidate'):
+        for ext, key in (('md', 'output_sha256'), ('stderr', 'stderr_sha256')):
+            artifact = optional_root / f'{name}.{ext}'
+            if (not artifact.is_file() or artifact.is_symlink()
+                    or hashlib.sha256(artifact.read_bytes()).hexdigest() != optional['builds'][name][key]):
+                raise ValueError('WCXB optional UI-stripping artifact changed: ' + artifact.name)
     if len(rows) != len(records) * len(WCXB_PROVIDERS) or {(r['provider'], r['case_id']) for r in rows} != {(p,c) for p in WCXB_PROVIDERS for c in case_ids}:
         raise ValueError('WCXB score matrix is incomplete')
     if output.exists() and not (output / '.generated-report').is_file():
@@ -571,6 +590,9 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
         (staging / 'research/wcxb-full-paired-latency').mkdir()
         for name in ('receipt.json', 'certification.json', 'calls.jsonl'):
             shutil.copy2(correction_root / name, staging / 'research/wcxb-full-paired-latency' / name)
+        (staging / 'research/wcxb-optional-ui-4017').mkdir()
+        for name in ('receipt.json', 'release.md', 'candidate.md', 'release.stderr', 'candidate.stderr'):
+            shutil.copy2(optional_root / name, staging / 'research/wcxb-optional-ui-4017' / name)
         shutil.copy2(Path(__file__).resolve().parents[2] / 'research/report-changes.json',
                      staging / 'research/report-changes.json')
         shutil.copy2(Path(__file__).resolve().parents[2] / 'research/provider-adoption.json',

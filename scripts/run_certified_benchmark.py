@@ -225,6 +225,8 @@ def run_wcxb(argv: list[str]) -> None:
     parser.add_argument("--env-file", type=Path, default=ROOT / ".env")
     parser.add_argument("--reuse-certified-root", type=Path,
                         help="Reuse unchanged, hash-bound methods from a prior complete cohort")
+    parser.add_argument("--replace-providers", default="",
+                        help="Comma-separated methods to rerun from the prior certified cohort")
     args = parser.parse_args(argv)
     sys.path.insert(0, str(ROOT))
     from scripts.run_webmainbench_benchmark import WCXB_PROVIDERS, load_wcxb_source
@@ -244,6 +246,11 @@ def run_wcxb(argv: list[str]) -> None:
     selected, _ = validate_manifest(source_records, before, manifest)
     expected_ids = {row['track_id'] for row in selected}
     sample_before = hashlib.sha256(args.sample_manifest.read_bytes()).hexdigest()
+    replace = set(filter(None, args.replace_providers.split(',')))
+    if replace and not args.reuse_certified_root:
+        parser.error('--replace-providers requires --reuse-certified-root')
+    if not replace <= set(WCXB_PROVIDERS):
+        parser.error('Unknown WCXB replacement provider')
     old_runs = []
     if args.reuse_certified_root:
         prior = args.reuse_certified_root.resolve()
@@ -254,7 +261,7 @@ def run_wcxb(argv: list[str]) -> None:
         old_names = [item['provider'] for item in old_runs]
         if (not old_certificate.get('complete') or not old_names
                 or old_names != list(WCXB_PROVIDERS[:len(old_names)])
-                or len(old_names) >= len(WCXB_PROVIDERS)
+                or (len(old_names) >= len(WCXB_PROVIDERS) and not replace)
                 or old_certificate['source_sha256_before'] != before
                 or old_certificate['source_sha256_after'] != before
                 or old_certificate['sample_sha256_before'] != sample_before
@@ -274,23 +281,31 @@ def run_wcxb(argv: list[str]) -> None:
                     or execution['selection_manifest']['sha256'] != sample_before
                     or len(rows) != len(selected) or {row['track_id'] for row in rows} != expected_ids):
                 raise ValueError("WCXB reusable provider is incomplete: " + provider)
-            if (provider == 'moli-pr643'
-                    and item['identity'].get('binary_sha256') != profile['candidate_binary_sha256']):
-                raise ValueError('WCXB reused candidate binary differs from the pinned PR build')
+            if provider not in replace:
+                expected_binary = {'moli': profile['release_binary_sha256'],
+                                   'moli-pr643': profile['candidate_binary_sha256']}.get(provider)
+                if expected_binary and item['identity'].get('binary_sha256') != expected_binary:
+                    raise ValueError('WCXB reused binary differs from the pinned build: ' + provider)
+    if replace - {item['provider'] for item in old_runs}:
+        parser.error('Replacement method is absent from the prior certified cohort')
     args.output_root.mkdir(parents=True)
-    runs = list(old_runs)
-    for item in old_runs:
-        provider = item['provider']
-        shutil.copytree(args.reuse_certified_root / provider, args.output_root / provider, symlinks=False)
-    for provider in WCXB_PROVIDERS[len(old_runs):]:
+    runs = []
+    reusable = {item['provider']: item for item in old_runs if item['provider'] not in replace}
+    for provider in WCXB_PROVIDERS:
+        if provider in reusable:
+            shutil.copytree(args.reuse_certified_root / provider, args.output_root / provider, symlinks=False)
+            runs.append(reusable[provider])
+            continue
         output = args.output_root / provider
         run([sys.executable, "scripts/run_webmainbench_benchmark.py", "--benchmark", "wcxb",
              "--dataset", str(args.dataset), "--provider", provider,
              "--output", str(output), "--env-file", str(args.env_file),
              "--case-ids-file", str(args.sample_manifest)])
         execution = json.loads((output / "execution.json").read_text(encoding="utf-8"))
-        if provider == 'moli-pr643' and execution['implementation_identity'].get('binary_sha256') != profile['candidate_binary_sha256']:
-            raise ValueError('WCXB candidate binary differs from the pinned PR build')
+        expected_binary = {'moli': profile['release_binary_sha256'],
+                           'moli-pr643': profile['candidate_binary_sha256']}.get(provider)
+        if expected_binary and execution['implementation_identity'].get('binary_sha256') != expected_binary:
+            raise ValueError('WCXB binary differs from the pinned build: ' + provider)
         if (execution["case_count"] != len(selected) or execution["source_dataset_sha256"] != before
                 or execution["selection_manifest"]["sha256"] != sample_before):
             raise ValueError("Incomplete or drifted WCXB provider cohort: " + provider)
@@ -308,7 +323,7 @@ def run_wcxb(argv: list[str]) -> None:
                "source_sha256_before": before, "source_sha256_after": after,
                "sample_sha256_before": sample_before, "sample_sha256_after": sample_after,
                "providers": runs, "complete": True,
-               "reused_provider_count": len(old_runs)}
+               "reused_provider_count": len(reusable)}
     (args.output_root / "certification.json").write_text(
         json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print("Certified WCXB cohort:", args.output_root)

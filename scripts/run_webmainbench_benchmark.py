@@ -295,7 +295,10 @@ def run(args: argparse.Namespace) -> None:
         records = [r for r in records if r["track_id"] in selected]
         selection_binding = {"sha256": sha256_bytes(sample_bytes), "case_count": len(records),
                              "scope": sample.get('scope'), "seed": sample.get('seed')}
-        expected_versions = {"lightpanda": "0.4.1", "obscura": "0.2.2", "moli": "1.1.7", "moli-pr643": "1.1.7", "chromium": "153.0.8010.47"}
+        wcxb_versions = json.loads((ROOT / 'evaluation/wcxb/current-report.json').read_text())['versions']
+        expected_versions = {"lightpanda": "0.4.1", "obscura": "0.2.2",
+                             "moli": wcxb_versions['moli'], "moli-pr643": "1.1.7",
+                             "chromium": "153.0.8010.47"}
         dataset_id = sample['dataset_id']
     else:
         records = load_source(args.dataset, selected)

@@ -197,7 +197,7 @@
     {
       "case_id": "5458",
       "finding": "adjacent_code_boundary",
-      "reason": "The frozen HTML has adjacent code elements with distinct name and string labels. Moli joins them as namestring, while Chromium retains separate code spans. This is a converter content-boundary defect independent of the scorer.",
+      "reason": "The frozen HTML has adjacent code elements with distinct name and string labels. Released Moli 1.1.8 joins them as namestring; current PR #643 preserves both code nodes. This is a converter content-boundary defect independent of the scorer.",
       "source_html_sha256": "eb80481ae411cae7b7d999372ace01664dd71819eb4ccb23cf1fd43d9760b305",
       "reference_sha256": "a86c77d3ef4ec260cc16ad1a497f4ed9c5dba7ae914568437550b27c0d973e1a",
       "outputs": {
@@ -222,7 +222,7 @@
           "attempt_id": "chromium__5458__r001"
         },
         "moli-pr643": {
-          "sha256": "93c4ecc06472f3a4753b7fa04bb5f25b5800c926e653436e4752054d3bd34de8",
+          "sha256": "eddbb202a2dd097d24b54c81e3748806c85de44c14f47dfd3460a8484cd9bab1",
           "attempt_id": "moli-pr643__5458__r001"
         }
       }

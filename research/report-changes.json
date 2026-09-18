@@ -1253,6 +1253,17 @@
   ],
   "releases": [
     {
+      "id": "2026-09-18-wcxb-moli-118-current-pr-comparison",
+      "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
+      "date": "2026-09-18",
+      "title": "更新 Moli 稳定版与当前修复版对照",
+      "title_i18n": {"en": "Compare the current Moli release and PR build"},
+      "summary": "使用 Moli 1.1.8 正式发布文件与 PR #643 当前源码分别实测同一批 504 页。三张修复图现在统一展示冻结输入、1.1.8 输出和当前 PR 输出；可选界面清理另行标注。",
+      "summary_i18n": {"en": "The official Moli 1.1.8 binary and current PR #643 source were measured on the same 504 pages. All three repair figures compare frozen input, 1.1.8 output and current PR output; optional UI stripping is identified separately."},
+      "changes": [["结果与报告解读", "此前使用旧版与早期 PR 的混合证据，版本含义不清。", "重新认证两款 Moli 二进制的完整 504 页结果，并用同窗口交叉测量更新耗时；说明两页因结构保真而降分。", "两版均有 504/504 个非空响应，平均 F1 分别为 52.5510% 和 52.5492%；最终轮平均耗时分别为 150.5 ms 和 151.9 ms。"]],
+      "changes_i18n": {"en": [["Results and interpretation", "Earlier figures mixed an older release with an earlier PR source, making version identity unclear.", "Certified full 504-page results for both Moli binaries and refreshed latency using a same-window crossover; explained two pages whose score falls while code structure improves.", "Both builds return nonempty content on 504/504 pages; mean F1 is 52.5510% and 52.5492%, and final-round mean latency is 150.5 ms and 151.9 ms."]]}
+    },
+    {
       "id": "2026-09-18-wcxb-moli-repair-figure-provenance",
       "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
       "date": "2026-09-18",
