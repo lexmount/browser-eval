@@ -8,6 +8,7 @@ from scripts.score_wcxb_results import classify, official_evaluator, percentile
 from scripts.select_wcxb_sample import choose, full_test_exclusions, validate_manifest
 from scripts.run_webmainbench_benchmark import PROVIDERS, WCXB_PROVIDERS
 from harness.web_fetch.report import format_wcxb_conditional_latency
+from harness.web_fetch.wcxb_latency import load_paired_latency
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,6 +87,43 @@ class WCXBContractTests(unittest.TestCase):
     def test_latency_percentiles_include_all_calls(self):
         self.assertEqual(percentile([10, 20, 30], .5), 20)
         self.assertAlmostEqual(percentile([10, 20, 30], .95), 29)
+
+    def test_paired_latency_requires_complete_hash_bound_calls(self):
+        cases = {str(i) for i in range(64)}
+        rows = [{'case': case, 'round': round_number, 'method': method,
+                 'elapsed_ms': 10 if method == 'release' else 12,
+                 'exit': 0, 'output_sha256': 'a' * 64}
+                for case in sorted(cases) for round_number in (0, 1)
+                for method in ('release', 'pr')]
+        payload = {'kind': 'diagnostic_paired_crossover', 'rounds': 2,
+                   'case_count': 64, 'source_sha256': 'source',
+                   'binary_sha256': {'release': 'release', 'pr': 'candidate'},
+                   'results': rows}
+        profile = {'source_dataset_sha256': 'source',
+                   'release_binary_sha256': 'release',
+                   'candidate_binary_sha256': 'candidate'}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'paired.json'
+            def write(value):
+                raw = json.dumps(value).encode()
+                path.write_bytes(raw)
+                profile['latency_diagnostic_sha256'] = hashlib.sha256(raw).hexdigest()
+            write(payload)
+            _, metrics = load_paired_latency(path, profile, cases)
+            self.assertEqual(metrics['paired_delta_p50_ms'], 2)
+            write({**payload, 'results': rows[:-1]})
+            with self.assertRaisesRegex(ValueError, 'inventory is incomplete'):
+                load_paired_latency(path, profile, cases)
+            write(payload)
+            profile['candidate_binary_sha256'] = 'different'
+            with self.assertRaisesRegex(ValueError, 'protocol or identity differs'):
+                load_paired_latency(path, profile, cases)
+            profile['candidate_binary_sha256'] = 'candidate'
+            changed = [dict(row) for row in rows]
+            changed[-1]['output_sha256'] = 'b' * 64
+            write({**payload, 'results': changed})
+            with self.assertRaisesRegex(ValueError, 'output changed between rounds'):
+                load_paired_latency(path, profile, cases)
 
 
 if __name__ == '__main__':

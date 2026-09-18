@@ -1514,6 +1514,18 @@
   ],
   "releases": [
     {
+      "id": "2026-09-18-wcxb-obscura-and-paired-latency",
+      "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
+      "date": "2026-09-18",
+      "title": "补充 Obscura 内容边界与 Moli 同窗耗时证据",
+      "summary": "报告解读增加 Obscura 与 Moli 的同页精确率、召回率、输出长度及词边界对照；另给出 64 页两轮交替测速，区分跨批次均值与同窗版本差。正式 504 页分数、分母和原始耗时不变。",
+      "changes": [
+        ["Obscura 分数", "原解读只列少数链接案例", "增加全部 504 页的同页统计与 4461 页价格标签拼接证据", "典型审查扩至 11 页、54 条输出；不以更高 F1 推定内容保真"],
+        ["Moli 耗时", "两个正式批次分时执行，均值差无法单独归因", "公开 64 页、每版 128 次的交替诊断及二进制哈希", "正式耗时保持原值；同窗差值只用于解释版本额外成本"],
+        ["证据绑定", "诊断批次可能与当前报告二进制混用", "构建与发布检查验证正式版、PR 版及测速证据哈希", "分数和分母无变化"]
+      ]
+    },
+    {
       "id": "2026-09-17-wcxb-expanded-representative-review",
       "comparison_kinds": [
         "wcxb_frozen_html_to_markdown"

@@ -10,6 +10,7 @@ from .safety import contained_path, safe_identifier, validate_report_ids
 from .reference_lifecycle import require_verified_reference_checks
 from .reliability import assess_reliability
 from .storage import require_selection_history,data_home
+from .wcxb_latency import load_paired_latency
 from .scoring import SCORING_SOURCE_SHA256
 from .webmainbench_diagnostics import validate_teds_revision_if_present
 from .artifacts import (
@@ -504,8 +505,16 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
         raise ValueError('WCXB official evaluator differs from the certified profile')
     if [x['provider'] for x in certificate['providers']] != list(WCXB_PROVIDERS) or profile['providers'] != list(WCXB_PROVIDERS):
         raise ValueError('WCXB participant registry differs from the certificate')
+    candidate = next(x for x in certificate['providers'] if x['provider'] == 'moli-pr643')
+    if candidate['identity'].get('binary_sha256') != profile['candidate_binary_sha256']:
+        raise ValueError('WCXB candidate binary differs from the current report profile')
+    released = next(x for x in certificate['providers'] if x['provider'] == 'moli')
+    if released['identity'].get('binary_sha256') != profile['release_binary_sha256']:
+        raise ValueError('WCXB released Moli binary differs from the current report profile')
     rows = [json.loads(line) for line in (source / 'wcxb-scores.jsonl').read_text().splitlines() if line]
     case_ids = {r['track_id'] for r in records}
+    diagnostic_path = data_home() / 'evidence/current/wcxb-pr643-paired-latency.json'
+    load_paired_latency(diagnostic_path, profile, case_ids)
     if len(rows) != len(records) * len(WCXB_PROVIDERS) or {(r['provider'], r['case_id']) for r in rows} != {(p,c) for p in WCXB_PROVIDERS for c in case_ids}:
         raise ValueError('WCXB score matrix is incomplete')
     if output.exists() and not (output / '.generated-report').is_file():
@@ -517,6 +526,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             shutil.copy2(source / name, staging / name)
         shutil.copy2(sample_path, staging / 'sample-manifest.json')
         (staging / 'research').mkdir()
+        shutil.copy2(diagnostic_path, staging / 'research/wcxb-paired-latency.json')
         shutil.copy2(Path(__file__).resolve().parents[2] / 'research/report-changes.json',
                      staging / 'research/report-changes.json')
         shutil.copy2(Path(__file__).resolve().parents[2] / 'research/provider-adoption.json',

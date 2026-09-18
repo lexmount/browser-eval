@@ -139,6 +139,14 @@ def check(root: Path) -> None:
     require(summary['benchmark'] == sample['dataset_id'] == certificate['benchmark'], 'WCXB certified dataset identity differs')
     require({(r['provider'], r['case_id']) for r in scores} == {(p, c) for p in providers for c in case_ids}, 'WCXB method-case matrix differs')
     require([r['provider'] for r in certificate['providers']] == providers, 'WCXB certificate participants differ')
+    candidate = next(r for r in certificate['providers'] if r['provider'] == 'moli-pr643')
+    require(candidate['identity'].get('binary_sha256') == profile['candidate_binary_sha256'],
+            'WCXB candidate binary differs from the current report profile')
+    released = next(r for r in certificate['providers'] if r['provider'] == 'moli')
+    require(released['identity'].get('binary_sha256') == profile['release_binary_sha256'],
+            'WCXB released Moli binary differs from the current report profile')
+    from harness.web_fetch.wcxb_latency import load_paired_latency
+    load_paired_latency(root / 'research/wcxb-paired-latency.json', profile, case_ids)
     evidence_hashes = json.loads((root / 'evidence-manifest.json').read_text())
     require(set(evidence_hashes) == case_ids, 'WCXB evidence inventory differs')
     by_case = {}
@@ -190,6 +198,17 @@ def check(root: Path) -> None:
                 require('id="diagnosis"' in html and 'value="issues"' in html, 'Result diagnosis filter missing')
                 require_analysis_controls(html, len(qualified) * len(providers))
                 require(all(f'data-case="{case}"' not in html for case in excluded), 'Invalid references entered result inventory')
+            if route == 'guide/index.html':
+                guide = BeautifulSoup(html, 'html.parser')
+                headings = {node.get_text(' ', strip=True) for node in guide.select('h2')}
+                require(('Obscura 为什么分数更高' if lang == 'zh' else 'Why Obscura scores higher') in headings,
+                        'Obscura content analysis is missing')
+                require(('Moli 两版的耗时差异' if lang == 'zh' else 'Why the Moli builds have different latency') in headings,
+                        'Paired Moli latency analysis is missing')
+                require(guide.select_one('a[href="research/wcxb-paired-latency.json"]') is not None,
+                        'Paired latency evidence link is missing')
+                require(guide.select_one('a[href$="cases/4461.html#obscura"]') is not None,
+                        'Obscura boundary counterexample is missing')
             if route in ('index.html', 'datasets/index.html'):
                 check_presentation(html)
                 if route == 'index.html':

@@ -270,6 +270,9 @@ def run_wcxb(argv: list[str]) -> None:
                     or execution['selection_manifest']['sha256'] != sample_before
                     or len(rows) != len(selected) or {row['track_id'] for row in rows} != expected_ids):
                 raise ValueError("WCXB reusable provider is incomplete: " + provider)
+            if (provider == 'moli-pr643'
+                    and item['identity'].get('binary_sha256') != profile['candidate_binary_sha256']):
+                raise ValueError('WCXB reused candidate binary differs from the pinned PR build')
     args.output_root.mkdir(parents=True)
     runs = list(old_runs)
     for item in old_runs:

@@ -2,10 +2,10 @@
   "schema_version": 1,
   "scope": "targeted_representative_anomaly_review",
   "protocol": "Targeted representative anomaly review of frozen HTML, human reference, full measured outputs, official token scores and cross-method contrasts. Reviewed method-case pairs are hash-bound below; other pairs were not individually reviewed.",
-  "case_count": 10,
-  "result_count": 52,
+  "case_count": 11,
+  "result_count": 54,
   "total_results": 3024,
-  "unreviewed_results": 2972,
+  "unreviewed_results": 2970,
   "reviewer_class": "manual_cross_layer_analysis",
   "cases": [
     {
@@ -286,6 +286,23 @@
         "moli-pr643": {
           "sha256": "b3b3e43ca546d39930d692896e600cb39cfd664b208736e922394963c321b843",
           "attempt_id": "moli-pr643__5412__r001"
+        }
+      }
+    },
+    {
+      "case_id": "4461",
+      "finding": "higher_f1_with_broken_text_boundary",
+      "reason": "Obscura scores higher F1 than Moli on this product collection, but joins adjacent price and membership-label elements as $149.95VIP. The frozen HTML contains separate elements and the human reference separates these words. Its shorter output and higher raw precision do not make this boundary loss desirable.",
+      "source_html_sha256": "eecce6d48a86521c555d9895673847034613e1c5c31d0723ccb0096c52cb96ca",
+      "reference_sha256": "04d00c947dd0b9131d7116eb06f97bbe1af04f321190a1c8e9cca40a9228bf13",
+      "outputs": {
+        "moli": {
+          "sha256": "0ce8cb8196d51f598627c9458741bdab72db5486ff3bd9ca979422a7499da9c0",
+          "attempt_id": "moli__4461__r001"
+        },
+        "obscura": {
+          "sha256": "b407686ecc5e1670bb2cfe0a593be5f4837288df3425580a426ba8efa7b8e6e7",
+          "attempt_id": "obscura__4461__r001"
         }
       }
     },
