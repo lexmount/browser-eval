@@ -124,6 +124,11 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
     assert manifest["routes"] == 20
     assert "36/36" not in (output / "index.html").read_text()
     assert "fixes.html" not in (output / "index.html").read_text()
+    assert "BrowserTool 与浏览器的组合" in (output / "index.html").read_text()
+    assert "BrowserTool–browser combinations" in (output / "en/index.html").read_text()
+    for route in ("index.html", "results.html", "dataset.html", "environment.html"):
+        assert "历史 90 题" not in (output / route).read_text()
+        assert "historical 90-task" not in (output / "en" / route).read_text()
     assert "可核验题通过" not in (output / "index.html").read_text()
     assert "Passes on verifiable tasks" not in (output / "en/index.html").read_text()
     assert "每个方法开始前恢复站点基线" in (output / "environment.html").read_text()
