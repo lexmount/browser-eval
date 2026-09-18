@@ -4,19 +4,19 @@
   "benchmark_version": "1.2.3",
   "task_selection": {
     "path": "evaluation/trajectory-replay/webarena-verified/selection.json",
-    "sha256": "399e2cba4340c6137bcc85bb37fb27cb1a2b5b4a04168e40399713df062c2d89",
+    "sha256": "06d8d999164c7c2de6cb21d15ec12f5260bfc2a58ca81b098a8c7779d4d2d91a",
     "task_count": 90
   },
   "seed_inventory": {
     "base_kind": "successful Browser Use executions",
     "expert_repairs_path": "evaluation/trajectory-replay/webarena-verified/expert-repairs.json",
-    "expert_repairs_sha256": "ea34996acd3f137da912dcc386858c2ab51b86514cacc23502d1448224bbb830",
+    "expert_repairs_sha256": "4eb4692ff8aefc39d3c7345e21f819fd9248a9b6ebe2e70c1a4c878a2d911a02",
     "required_ready_tasks": 90,
     "canonical_trajectories_per_task": 1
   },
   "dataset": {
     "path": "evaluation/trajectory-replay/webarena-verified/trajectories-corrected.json",
-    "sha256": "b65213c05fcf63a5f06c3a37fa6017df203be32ff78b5e0f9b51f68e4d0adcb4"
+    "sha256": "624a0ea83c6e4c3533714e961656d7e4159189a9e4941017b06a5299e4dc31d5"
   },
   "methods": [
     {
@@ -54,7 +54,7 @@
     "method_parallelism": 1,
     "task_parallelism": 1,
     "schedule": "complete one method before starting the next",
-    "reset_before_every_task": true,
+    "reset_before_every_task": false,
     "reset_before_every_method": true,
     "teardown_between_methods": true,
     "retry_failed_task": false,
@@ -62,7 +62,7 @@
       "192.168.5.2",
       "host.docker.internal"
     ],
-    "site_stack": "one self-hosted Rainbond WebArena app slice, reset before every task"
+    "site_stack": "one self-hosted Rainbond WebArena app slice, restored once before each browser method"
   },
   "scoring": {
     "authority": "official programmatic evaluator or a hash-bound replay correction",

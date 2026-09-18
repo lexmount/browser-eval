@@ -40,7 +40,7 @@ def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
     assert len(catalog.upstream["dataset_sha256"]) == 64
     assert set(catalog.record_sha256s) == set(catalog.records)
     assert len(set(catalog.record_sha256s.values())) == len(catalog.records)
-    assert corrected_task_ids(catalog) == (225, 279, 339, 448, 475, 510, 528, 547, 676, 699)
+    assert corrected_task_ids(catalog) == (225, 279, 448, 510, 528, 547, 699)
     assert catalog.records[448]["regression_ids"] == [
         "tr-448-302-success",
         "tr-448-200-json-success",
@@ -161,17 +161,11 @@ def test_225_revised_reference_scores_both_directions(
     assert float(result.score) == expected_score
 
 
-def test_339_uses_canonical_issues_route_and_filters_before_recency(benchmark, catalog) -> None:
-    applied = apply_correction(benchmark.get_task(339), catalog)
-    assert _dump_eval(applied, 1)["expected"]["url"] == (
-        "__GITLAB__/a11yproject/a11yproject.com/-/issues"
-    )
-    assert applied.replay_assertions[0]["policy"].startswith("match_expected_url")
-    assert _dump_eval(applied, 2)["last_event_only"] is False
-    assert _dump_eval(applied, 2)["expected"]["post_data"] == {
-        "$.variables.state": "opened",
-        "$.variables.labelName": "bug",
-    }
+def test_339_uses_upstream_issues_route_contract(benchmark, catalog) -> None:
+    assert 339 not in catalog.records
+    task = benchmark.get_task(339)
+    assert task.revision == 3
+    assert task.eval[1].expected.url.endswith("/-/issues/?$")
 
 
 def test_agent_response_normalization_removes_unsupported_null_metadata() -> None:
@@ -189,11 +183,11 @@ def test_agent_response_normalization_removes_unsupported_null_metadata() -> Non
     }
 
 
-def test_475_treats_omitted_checkbox_as_false_and_checks_empty_repo(benchmark, catalog) -> None:
-    applied = apply_correction(benchmark.get_task(475), catalog)
-    post_data = _dump_eval(applied, 1)["expected"]["post_data"]
-    assert "project[initialize_with_readme]" not in post_data
-    assert applied.replay_assertions[0]["empty_repository"] is True
+def test_475_upstream_accepts_unchecked_checkbox_forms(benchmark, catalog) -> None:
+    assert 475 not in catalog.records
+    task = benchmark.get_task(475)
+    assert task.revision == 3
+    assert task.eval[1].expected.post_data["project[initialize_with_readme]"] == (None, "0")
 
 
 def test_448_matches_the_profile_save_event_before_recency(benchmark, catalog) -> None:
@@ -362,12 +356,12 @@ def test_547_removes_redundant_attribute_save_but_keeps_variation_save(benchmark
     assert applied.replay_assertions == ()
 
 
-def test_676_selects_matching_filter_xhr_instead_of_main_navigation(benchmark, catalog) -> None:
-    applied = apply_correction(benchmark.get_task(676), catalog)
-    evaluator = _dump_eval(applied, 1)
-    assert evaluator["last_event_only"] is False
-    assert evaluator["expected"]["query_params"]["filters[status]"] == ["fraud"]
-    assert applied.replay_assertions[0]["policy"].startswith("match_expected_url")
+def test_676_uses_upstream_filter_xhr_contract(benchmark, catalog) -> None:
+    assert 676 not in catalog.records
+    task = benchmark.get_task(676)
+    assert task.revision == 3
+    assert task.eval[1].expected.query_params["filters[status]"] == ("fraud",)
+    assert task.eval[1].navigation_only is False
 
 
 def test_699_checks_browser_form_array_fields_and_all_registered_customer_groups(

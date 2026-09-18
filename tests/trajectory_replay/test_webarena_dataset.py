@@ -68,14 +68,14 @@ def _json_sha256(value: object) -> str:
 
 
 def test_stale_correction_binding_is_task_local() -> None:
-    correction = _effective_correction_bindings()[339]
+    correction = _effective_correction_bindings()[448]
     current = {
         "contract_correction_id": correction[0],
         "contract_correction_source_sha256": correction[1],
         "corrected_task_sha256": correction[2],
     }
-    assert _has_stale_correction_binding(current, 339) is False
-    assert _has_stale_correction_binding({**current, "corrected_task_sha256": "old"}, 339)
+    assert _has_stale_correction_binding(current, 448) is False
+    assert _has_stale_correction_binding({**current, "corrected_task_sha256": "old"}, 448)
     assert _has_stale_correction_binding({}, 44) is False
 
 
@@ -587,8 +587,8 @@ def test_promotion_rejects_incomplete_method_task_matrix(tmp_path: Path) -> None
 
 
 def test_promotion_supports_hash_bound_expert_repair(tmp_path: Path) -> None:
-    correction = _effective_correction_bindings()[339]
-    profile, selection_sha256, repair_sha256 = _profile(tmp_path, [339])
+    correction = _effective_correction_bindings()[448]
+    profile, selection_sha256, repair_sha256 = _profile(tmp_path, [448])
     seeds = _write(
         tmp_path / "seeds.json",
         {
@@ -597,12 +597,12 @@ def test_promotion_supports_hash_bound_expert_repair(tmp_path: Path) -> None:
             "expert_repairs": {"repair_spec_sha256": repair_sha256},
             "tasks": [
                 {
-                    "task_id": 339,
-                    "canonical_candidate_id": "expert-339",
+                    "task_id": 448,
+                    "canonical_candidate_id": "expert-448",
                     "replay_status": "ready",
                     "candidates": [
                         {
-                            "id": "expert-339",
+                            "id": "expert-448",
                             "candidate_kind": "expert_repair",
                             "action_count": 1,
                             "tool_calls": [{"action": "navigate", "url": "http://host"}],
@@ -624,12 +624,12 @@ def test_promotion_supports_hash_bound_expert_repair(tmp_path: Path) -> None:
         _receipt(
             seeds,
             profile,
-            task_ids=[339],
-            run_id="run-339",
+            task_ids=[448],
+            run_id="run-448",
             attempts=[
                 {
-                    "task_id": 339,
-                    "source_candidate_id": "expert-339",
+                    "task_id": 448,
+                    "source_candidate_id": "expert-448",
                     "engine": engine,
                     "process_status": "pass",
                     "evaluator_status": "pass",

@@ -21,7 +21,7 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, retrieval: bool
     site_map = tmp_path / "sites.json"
     site_map.write_text("{}", encoding="utf-8")
     reset_hook = tmp_path / "reset_hook.py"
-    reset_hook.write_text("# frozen task reset hook\n", encoding="utf-8")
+    reset_hook.write_text("# frozen method reset hook\n", encoding="utf-8")
     cowagent = tmp_path / "cowagent"
     tool_dir = cowagent / "agent/tools/browser"
     tool_dir.mkdir(parents=True)
@@ -80,7 +80,7 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, retrieval: bool
         "site_map_sha256": file_sha256(site_map),
         "run_count": 1,
         "retry_count": 0,
-        "site_reset_between_tasks": True,
+        "site_reset_between_tasks": False,
         "task_ids": ids,
         "tasks": rows,
     }
@@ -95,7 +95,7 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, retrieval: bool
         cowagent=cowagent,
         output=tmp_path / "output",
         app_id=17,
-        task_reset_hook=reset_hook,
+        cohort_reset_hook=reset_hook,
     )
 
     def save() -> None:

@@ -14,7 +14,7 @@ from typing import Any
 
 from harness.trajectory_replay.remote_runtime import validate_remote_cohort_reset_receipt
 
-RESET_SCOPE = "before_each_three_method_task"
+RESET_SCOPE = "once_before_three_method_cohort"
 
 EVIDENCE_FILES = {
     "trace": "trace.json",
@@ -24,7 +24,6 @@ EVIDENCE_FILES = {
     "acceptance": "acceptance.json",
     "evaluation": "evaluation.json",
     "failure_screenshot": "failure.png",
-    "site_reset": "site-reset.json",
 }
 
 
@@ -133,8 +132,8 @@ def _cohort(
         or receipt.get("run_count") != 1
         or manifest.get("retry_count") != 0
         or receipt.get("retry_count") != 0
-        or manifest.get("site_reset_between_tasks") is not True
-        or receipt.get("site_reset_between_tasks") is not True
+        or manifest.get("site_reset_between_tasks") is not False
+        or receipt.get("site_reset_between_tasks") is not False
         or receipt.get("browser_context_per_task") != "fresh"
         or type(receipt.get("app_id")) is not int
         or receipt["app_id"] < 1
@@ -149,7 +148,7 @@ def _cohort(
         or frozen.get("browser_binary") != binary_sha256
         or frozen.get("site_map") != receipt["site_map_sha256"]
         or frozen.get("task_selection") != manifest.get("selection_sha256")
-        or frozen.get("task_reset_hook") != receipt.get("task_reset_hook_sha256")
+        or frozen.get("cohort_reset_hook") != receipt.get("cohort_reset_hook_sha256")
     ):
         raise ValueError(f"{method_id}: reference freeze is incomplete")
     manifest_rows = manifest.get("tasks")
@@ -169,6 +168,25 @@ def _cohort(
     cohort_root = receipt_path.parent
     if cohort_root.is_symlink():
         raise ValueError(f"{method_id}: symlinked cohort root")
+    reset_path = cohort_root / "site-reset.json"
+    reset_sha256 = _sha(reset_path)
+    if reset_sha256 != receipt.get("cohort_reset_sha256"):
+        raise ValueError(f"{method_id}: cohort reset hash changed")
+    reset = validate_remote_cohort_reset_receipt(
+        reset_path,
+        site_map_sha256=receipt["site_map_sha256"],
+        app_id=receipt["app_id"],
+        reset_scope=RESET_SCOPE,
+        site_reset_between_tasks=False,
+        required_readiness_probes=manifest.get("site_readiness"),
+    )
+    if (
+        reset.get("method_id") != method_id
+        or reset.get("task_id") is not None
+        or type(reset.get("completed_at_unix")) not in {int, float}
+        or reset["completed_at_unix"] <= 0
+    ):
+        raise ValueError(f"{method_id}: site reset belongs to another method")
     attempts = []
     for task_id, plan, row in zip(task_ids, manifest_rows, result_rows, strict=True):
         contract_sha256 = _digest(
@@ -198,7 +216,7 @@ def _cohort(
             or not isinstance(row.get("error"), str)
         ):
             raise ValueError(f"{method_id}/{task_id}: execution differs from frozen task/actions")
-        required = {"trace", "readiness", "site_reset"}
+        required = {"trace", "readiness"}
         if not row["error"]:
             required |= {"network_har", "actual_response"}
             if plan.get("retrieval_contract") is not None:
@@ -216,21 +234,7 @@ def _cohort(
             if _sha(path) != expected:
                 raise ValueError(f"{method_id}/{task_id}: {kind} hash changed")
             evidence[kind] = {"path": str(path.resolve()), "sha256": expected}
-        reset = validate_remote_cohort_reset_receipt(
-            directory / "site-reset.json",
-            site_map_sha256=receipt["site_map_sha256"],
-            app_id=receipt["app_id"],
-            reset_scope=RESET_SCOPE,
-            site_reset_between_tasks=True,
-            required_readiness_probes=manifest.get("site_readiness"),
-        )
-        if (
-            reset.get("method_id") != method_id
-            or reset.get("task_id") != task_id
-            or type(reset.get("completed_at_unix")) not in {int, float}
-            or reset["completed_at_unix"] <= 0
-        ):
-            raise ValueError(f"{method_id}/{task_id}: site reset belongs to a different task")
+        evidence["site_reset"] = {"path": str(reset_path.resolve()), "sha256": reset_sha256}
         trace = json.loads((directory / "trace.json").read_text(encoding="utf-8"))
         if (
             not isinstance(trace, list)
@@ -324,7 +328,7 @@ def aggregate(
         for k, v in {
             "method_parallelism": 1,
             "task_parallelism": 1,
-            "reset_before_every_task": True,
+            "reset_before_every_task": False,
             "reset_before_every_method": True,
             "teardown_between_methods": True,
             "retry_failed_task": False,
@@ -349,11 +353,11 @@ def aggregate(
             selection_sha256=selection_sha256,
         )
         common_site_map = site_map_sha256
+        reset_sha = cohort_rows[0]["evidence"]["site_reset"]["sha256"]
+        if reset_sha in reset_receipts:
+            raise ValueError("browser methods reused a site reset receipt")
+        reset_receipts.add(reset_sha)
         for row in cohort_rows:
-            reset_sha = row["evidence"]["site_reset"]["sha256"]
-            if reset_sha in reset_receipts:
-                raise ValueError("method-tasks reused a site reset receipt")
-            reset_receipts.add(reset_sha)
             row["reference_validity"] = validity[row["task_id"]]
         attempts.extend(cohort_rows)
     if len(attempts) != 3 * len(task_ids):

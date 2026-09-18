@@ -16,7 +16,7 @@ SELECTION = ROOT / "evaluation/trajectory-replay/webarena-verified/selection.jso
 
 
 def test_revised_dataset_is_complete_bound_and_reproducible() -> None:
-    result = revise(BASE, CORRECTIONS, [225, 243], SELECTION)
+    result = revise(BASE, CORRECTIONS, [67, 225, 243], SELECTION)
     committed = json.loads(REVISED.read_text(encoding="utf-8"))
     original = json.loads(BASE.read_text(encoding="utf-8"))
     assert result == committed
@@ -30,13 +30,17 @@ def test_revised_dataset_is_complete_bound_and_reproducible() -> None:
         == hashlib.sha256(CORRECTIONS.read_bytes()).hexdigest()
     )
     changed = {item["task_id"] for item in result["revision"]["changed_tasks"]}
-    assert changed == {225, 243}
+    assert changed == {67, 225, 243}
     old_rows = {item["task_id"]: item for item in original["trajectories"]}
     for row in result["trajectories"]:
         if row["task_id"] not in changed:
             assert row == old_rows[row["task_id"]]
             continue
-        if row["task_id"] == 243:
+        if row["task_id"] == 67:
+            assert row["evaluation_input"]["retrieved_data"] == ["The Hobbit"]
+            assert len(row["tool_calls"]) == 4
+            assert row["source"]["kind"] == "corrected_retrieval_candidate_pending_requalification"
+        elif row["task_id"] == 243:
             assert "nickname on the unique lowest-rated review" in row["task"]["intent"]
             assert row["evaluation_input"]["retrieved_data"] == ["Hannah Lim"]
             assert row["evaluation_input"] != old_rows[243]["evaluation_input"]

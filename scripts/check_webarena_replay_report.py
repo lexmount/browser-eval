@@ -428,8 +428,8 @@ def check(report_dir: Path) -> dict[str, int]:
     _check_metric_populations(metrics, results, participants)
     _check_core_comparison(root, metrics, results, participants)
     if manifest.get("formal_reference_validity") is True:
-        if task_count != 90 or manifest.get("site_reset_between_tasks") is not True:
-            raise ValueError("formal report requires the complete reset-isolated 90-task cohort")
+        if task_count != 90 or manifest.get("site_reset_between_tasks") is not False:
+            raise ValueError("formal report requires the complete method-reset 90-task cohort")
         for language_root in (root, root / "en"):
             environment = (language_root / "environment.html").read_text(encoding="utf-8")
             if "Rainbond" not in environment or "Colima" in environment:
@@ -439,7 +439,7 @@ def check(report_dir: Path) -> dict[str, int]:
                 evidence_path = root / "data/evidence" / f"{participant}-{task_id}.json"
                 evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
                 if not isinstance(evidence.get("site_reset"), dict) or evidence.get("readiness") is None:
-                    raise ValueError(f"formal result lacks task reset or readiness evidence: {participant}-{task_id}")
+                    raise ValueError(f"formal result lacks method reset or task readiness evidence: {participant}-{task_id}")
     if metrics.get("affected36_methods"):
         raise ValueError("report must not contain a diagnostic-only comparison")
     if any((root / route).exists() for route in ("diagnostics.html", "fixes.html", "data/diagnostic-closure.json")):

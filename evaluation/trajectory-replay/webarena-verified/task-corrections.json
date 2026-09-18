@@ -74,54 +74,6 @@
       ]
     },
     {
-      "task_id": 339,
-      "official_revision": 2,
-      "correction_id": "wv-339-issues-route-slash-equivalence-20260911",
-      "rationale": "GitLab's canonical issues collection has no trailing slash, while the upstream regex requires one; navigate-task GET selection also checks the last document before matching the expected route.",
-      "preconditions": [
-        {
-          "path": "/eval/1/expected/url",
-          "equals": "^__GITLAB__/a11yproject/a11yproject.com/-/issues/.*$"
-        },
-        {
-          "path": "/eval/2/expected/headers/referer",
-          "equals": "__GITLAB__/a11yproject/a11yproject.com/-/issues/?state=opened&label_name%5B%5D=bug"
-        }
-      ],
-      "operations": [
-        {
-          "op": "replace",
-          "path": "/eval/1/expected/url",
-          "value": "__GITLAB__/a11yproject/a11yproject.com/-/issues"
-        },
-        {
-          "op": "replace",
-          "path": "/eval/2/expected/headers",
-          "value": null
-        },
-        {
-          "op": "replace",
-          "path": "/eval/2/expected/post_data",
-          "value": {
-            "$.variables.state": "opened",
-            "$.variables.labelName": "bug"
-          }
-        },
-        {
-          "op": "replace",
-          "path": "/eval/2/last_event_only",
-          "value": false
-        }
-      ],
-      "replay_assertions": [
-        {
-          "kind": "network_event_selection",
-          "policy": "match_expected_url_method_and_query_before_recency",
-          "target": "canonical issues document and filtered issues GraphQL request"
-        }
-      ]
-    },
-    {
       "task_id": 448,
       "official_revision": 2,
       "correction_id": "wv-448-profile-save-success-variants-20260918",
@@ -176,31 +128,6 @@
               }
             }
           ]
-        }
-      ]
-    },
-    {
-      "task_id": 475,
-      "official_revision": 2,
-      "correction_id": "wv-475-unchecked-checkbox-is-false-20260911",
-      "rationale": "An unchecked HTML checkbox is omitted from a form submission; omission is the browser-standard representation of false.",
-      "preconditions": [
-        {
-          "path": "/eval/1/expected/post_data/project[initialize_with_readme]",
-          "equals": "0"
-        }
-      ],
-      "operations": [
-        {
-          "op": "remove",
-          "path": "/eval/1/expected/post_data/project[initialize_with_readme]"
-        }
-      ],
-      "replay_assertions": [
-        {
-          "kind": "gitlab_project_state",
-          "project_path": "byteblaze/chatgpt_plugin",
-          "empty_repository": true
         }
       ]
     },
@@ -302,55 +229,14 @@
       ]
     },
     {
-      "task_id": 676,
-      "official_revision": 2,
-      "correction_id": "wv-676-match-filter-xhr-20260911",
-      "rationale": "The acceptance event is the MUI grid XHR carrying filters[status]=fraud, not the surrounding sales/order document navigation.",
-      "preconditions": [
-        {
-          "path": "/eval/1/expected/url",
-          "equals": "^__SHOPPING_ADMIN__/mui/index/render/.*$"
-        },
-        {
-          "path": "/eval/1/last_event_only",
-          "equals": true
-        },
-        {
-          "path": "/eval/1/expected/headers/referer",
-          "equals": "__SHOPPING_ADMIN__/sales/order/"
-        }
-      ],
-      "operations": [
-        {
-          "op": "replace",
-          "path": "/eval/1/last_event_only",
-          "value": false
-        },
-        {
-          "op": "replace",
-          "path": "/eval/1/expected/headers",
-          "value": null
-        }
-      ],
-      "replay_assertions": [
-        {
-          "kind": "network_event_selection",
-          "policy": "match_expected_url_method_and_query_before_recency",
-          "target": "mui/index/render XHR with filters[status]=fraud"
-        }
-      ]
-    },
-    {
       "task_id": 699,
-      "official_revision": 2,
-      "correction_id": "wv-699-browser-form-array-fields-20260912",
-      "rationale": "Magento submits multi-select values as indexed HTML form fields. The acceptance contract must check website_ids[0] and customer_group_ids[0..2] directly; the upstream unindexed keys cannot be produced by this form.",
+      "official_revision": 3,
+      "correction_id": "wv-699-all-customer-groups-20260918",
+      "rationale": "The visible Magento price rule selects all registered customer groups. The current upstream form contract verifies only the first indexed group, so require the other two indexed fields as well.",
       "preconditions": [
         {
-          "path": "/eval/1/expected/post_data/customer_group_ids",
-          "equals": [
-            1
-          ]
+          "path": "/eval/1/expected/post_data/customer_group_ids[0]",
+          "equals": "1"
         },
         {
           "path": "/eval/1/post_data_schema",
@@ -358,24 +244,6 @@
         }
       ],
       "operations": [
-        {
-          "op": "remove",
-          "path": "/eval/1/expected/post_data/website_ids"
-        },
-        {
-          "op": "remove",
-          "path": "/eval/1/expected/post_data/customer_group_ids"
-        },
-        {
-          "op": "add",
-          "path": "/eval/1/expected/post_data/website_ids[0]",
-          "value": "1"
-        },
-        {
-          "op": "add",
-          "path": "/eval/1/expected/post_data/customer_group_ids[0]",
-          "value": "1"
-        },
         {
           "op": "add",
           "path": "/eval/1/expected/post_data/customer_group_ids[1]",

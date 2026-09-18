@@ -2,23 +2,24 @@
   "schema": "trajectory_replay_task_reference_audit/1",
   "task_id": 67,
   "source_observation_window_utc": ["2026-09-18T06:42:50Z", "2026-09-18T06:44:22Z"],
+  "post_reset_recheck_utc": "2026-09-18T08:06:22Z",
   "source": {
     "base_url": "http://webarena-slice-warm-1-195-reddit.dev.lexmount.net",
     "listing_path": "/f/books",
     "listing_sha256": "29d858a6d242668bc9c2afe370426625fd6f6bafd8c4a3f3c48cd8eab231c5ed",
     "capture_method": "Read-only HTTP GET; parse main > article in visible Hot order, then each same-origin post detail and .submission__body.textContent; hash original HTML bytes and UTF-8 body text separately.",
     "sort_observed": "Hot",
-    "reset_receipt": null,
-    "status": "contaminated_shared_site_not_frozen_reference",
-    "current_first_three_ids": ["4", "3", "124260"],
-    "current_first_three_explanation": "The live listing begins with three newer posts, including two dated 2026-09-18. The ten posts below currently occupy listing positions 4-13; they must not be called the current top ten or frozen as the baseline before reset and readiness verification."
+    "reset_receipt": "Rainbond Reddit component b16105269f77423db4e38135aa2acab1 restarted in app 195; pod changed from 64d4874874-qn59c to 6cd8bc75b7-zj5cg; /f/Books returned HTTP 200.",
+    "status": "restored_baseline_verified",
+    "current_top_ten_ids": ["81371", "59421", "59447", "103102", "124017", "59466", "59478", "17445", "59396", "103061"],
+    "current_top_ten_explanation": "After the Reddit component restart, the visible Hot listing again showed the original ten posts in the same order. All ten detail bodies were fetched again; the relevant title/body distinction was unchanged."
   },
   "reference_under_review": {
     "task_intent": "Among the top 10 hottest posts in the Books forum, get the book titles, exactly as they appear in the post description, from those that recommend exactly one book.",
     "official_frozen_response": ["The Hobbit", "A Christmas Carol"],
     "semantic_rule": "A positive recommendation of exactly one identifiable book, with its returned title occurring verbatim in the post body (.submission__body), not solely in the post title or a linked article.",
-    "candidate_corrected_response_if_same_ten_are_restored_after_reset": ["The Hobbit"],
-    "decision_status": "pending_post_reset_top_ten_verification"
+    "corrected_response": ["The Hobbit"],
+    "decision_status": "confirmed_after_baseline_restoration"
   },
   "reviewed_posts": [
     {
@@ -143,6 +144,6 @@
       "reason": "No post body; title appreciates used bookstores rather than one named book."
     }
   ],
-  "root_cause": "The official response includes a book name that is absent from the requested post-description source. The current shared site additionally has newer Hot posts ahead of the historical ten, so the current listing cannot certify baseline membership without reset.",
-  "recommended_correction": "After a bound reset/readiness receipt, verify that these are again the first ten Hot posts and rehash the current bodies. If they are, correct the task-67 reference to the singleton title present in a qualifying description, with paired positive and negative scorer regressions. Do not infer the returned title from post headers unless the task wording and acceptance contract are explicitly revised for every method."
+  "root_cause": "The official response includes a book name that is absent from the requested post-description source. Earlier shared-site mutations also displaced the baseline Hot top ten; after restoring the Reddit component, the baseline membership and source-body distinction were confirmed.",
+  "correction": "Use only The Hobbit for task 67 and the matching single book/author object for task 68. Run read-only task 67 before Reddit mutation tasks in the selected cohort. Keep post headers separate from requested description evidence."
 }

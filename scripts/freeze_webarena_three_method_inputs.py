@@ -176,7 +176,7 @@ def freeze(
         "site_readiness": affected.get("site_readiness") or [],
         "run_count": 1,
         "retry_count": 0,
-        "site_reset_between_tasks": True,
+        "site_reset_between_tasks": False,
     }
 
 

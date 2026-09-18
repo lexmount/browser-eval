@@ -3,7 +3,7 @@
   "benchmark": "WebArena-Verified",
   "benchmark_version": "1.2.3",
   "official_data_checksum": "d65275660814663375028e9017e1f929e3c38321041b125795e2713b52243d30",
-  "selection_sha256": "399e2cba4340c6137bcc85bb37fb27cb1a2b5b4a04168e40399713df062c2d89",
+  "selection_sha256": "06d8d999164c7c2de6cb21d15ec12f5260bfc2a58ca81b098a8c7779d4d2d91a",
   "semantics": {
     "trajectory_is_one_verified_feasible_path": true,
     "trajectory_is_the_only_correct_path": false,
@@ -319,6 +319,72 @@
         "model_calls": 0,
         "receipt_run_ids": [
           "ab8cbb4dd809"
+        ]
+      }
+    },
+    {
+      "id": "webarena-verified-67-trajectory-1",
+      "task_id": 67,
+      "task": {
+        "intent": "Among the top 10 hottest posts in the \"Books\" forum, get the book titles, exactly as they appear in the post description, from those that recommend exactly one book.",
+        "intent_template_id": 17,
+        "revision": 2,
+        "sites": [
+          "reddit"
+        ],
+        "start_urls": [
+          "__REDDIT__"
+        ],
+        "intent_template": "Among the top {{number}} hottest posts in the \"{{forum}}\" forum, get {{description}} from those that {{filter_criterion}}.{{retrieved_data_format_spec}}",
+        "instantiation_dict": {
+          "number": 10,
+          "description": "the book titles, exactly as they appear in the post description,",
+          "forum": "Books",
+          "filter_criterion": "recommend exactly one book",
+          "retrieved_data_format_spec": ""
+        }
+      },
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "http://host.docker.internal:9999/f/Books"
+        },
+        {
+          "action": "wait",
+          "seconds": 2
+        },
+        {
+          "action": "evaluate",
+          "script": "(async()=>{const links=[...new Set([...document.querySelectorAll('main article a[href*=\"/f/books/\"]')].map(a=>a.getAttribute('href')).filter(Boolean))].slice(0,10);if(links.length!==10)throw new Error('expected ten hot-post links, found '+links.length);return Promise.all(links.map(async href=>{const response=await fetch(href);if(!response.ok)throw new Error('post fetch failed '+response.status+' '+href);const page=new DOMParser().parseFromString(await response.text(),'text/html');return {href,text:page.querySelector('main article')?.textContent?.replace(/\\s+/g,' ').trim()||null};}));})()"
+        },
+        {
+          "action": "evaluate",
+          "script": "(async () => {\n  const controller = new AbortController();\n  const timer = setTimeout(() => controller.abort(), 20000);\n  try {\n    const listing = new URL(location.href);\n    if (listing.origin !== location.origin || listing.pathname.toLowerCase().replace(/\\/$/, '') !== '/f/books' || listing.search) throw new Error('wrong Books listing');\n    const hot = [...document.querySelectorAll('button[aria-label]')].some(node => /^sort by:\\s*hot$/i.test(node.getAttribute('aria-label') || ''));\n    if (!hot) throw new Error('Books listing is not sorted by Hot');\n    const articles = [...document.querySelectorAll('main > article')];\n    if (articles.length < 10) throw new Error('fewer than ten hot posts');\n    const normalize = text => String(text ?? '').replace(/\\s+/g, ' ').trim();\n    const entries = articles.slice(0, 10).map((article, index) => {\n      const links = [...article.querySelectorAll('a[href]')].map(a => a.getAttribute('href')).filter(Boolean);\n      const matches = links.map(href => ({href, match: /^\\/f\\/books\\/(\\d+)(?:\\/|$)/i.exec(href)})).filter(row => row.match);\n      const ids = [...new Set(matches.map(row => row.match[1]))];\n      const title = normalize(article.querySelector('header h1')?.textContent);\n      if (ids.length !== 1 || !title) throw new Error('missing or ambiguous listed post identity');\n      return {rank: index + 1, post_id: ids[0], href: matches[0].href, title};\n    });\n    if (new Set(entries.map(row => row.post_id)).size !== 10) throw new Error('duplicate top-ten post');\n    const posts = [];\n    for (const entry of entries) {\n      const url = new URL(entry.href, location.href);\n      if (url.origin !== location.origin || !new RegExp('^/f/books/' + entry.post_id + '(?:/|$)', 'i').test(url.pathname)) throw new Error('out-of-scope post');\n      const response = await fetch(url.href, {credentials:'same-origin',redirect:'error',signal:controller.signal});\n      if (response.status !== 200 || response.redirected || !/^text\\/html\\b/i.test(response.headers.get('content-type') || '')) throw new Error('post detail unavailable');\n      const page = new DOMParser().parseFromString(await response.text(), 'text/html');\n      const article = page.querySelector('main > article');\n      const detailTitle = normalize(article?.querySelector('header h1')?.textContent);\n      const permalinks = [...(article?.querySelectorAll('a[href]') || [])].map(a => a.getAttribute('href')).filter(Boolean);\n      if (!article || detailTitle !== entry.title || !permalinks.some(href => new RegExp('^/f/books/' + entry.post_id + '(?:/|$)', 'i').test(href))) throw new Error('listing/detail identity mismatch');\n      posts.push({...entry, detail_url:response.url, article_text:normalize(article.textContent), description:article.querySelector('.submission__body')?.textContent ?? ''});\n    }\n    return {schema:'books_hot_top_ten_current_observation/1',scope:true,complete:posts.length===10,listing_url:listing.href,sort:'hot',posts};\n  } finally { controller.abort(); clearTimeout(timer); }\n})()"
+        }
+      ],
+      "evaluation_input": {
+        "task_type": "RETRIEVE",
+        "status": "SUCCESS",
+        "retrieved_data": [
+          "The Hobbit"
+        ],
+        "error_details": null
+      },
+      "source": {
+        "kind": "corrected_retrieval_candidate_pending_requalification",
+        "path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-67.json",
+        "sha256": "226387a18cc3ec45c6ae1945c6e3f87472879a8a889b468c53f75ea651540c0c"
+      },
+      "verification": {
+        "browsers": [],
+        "process_status": "pending_requalification",
+        "evaluator_status": "pending_requalification",
+        "contract": {
+          "kind": "corrected_task_contract"
+        },
+        "model_calls": 0,
+        "prior_receipt_run_ids": [
+          "2904cf117286"
         ]
       }
     },
@@ -5905,71 +5971,6 @@
       }
     },
     {
-      "id": "webarena-verified-67-trajectory-1",
-      "task_id": 67,
-      "task": {
-        "intent": "Among the top 10 hottest posts in the \"Books\" forum, get the book titles, exactly as they appear in the post description, from those that recommend exactly one book.",
-        "intent_template_id": 17,
-        "revision": 2,
-        "sites": [
-          "reddit"
-        ],
-        "start_urls": [
-          "__REDDIT__"
-        ]
-      },
-      "tool_calls": [
-        {
-          "action": "navigate",
-          "url": "http://host.docker.internal:9999/f/Books"
-        },
-        {
-          "action": "wait",
-          "seconds": 2
-        },
-        {
-          "action": "evaluate",
-          "script": "(async()=>{const links=[...new Set([...document.querySelectorAll('main article a[href*=\"/f/books/\"]')].map(a=>a.getAttribute('href')).filter(Boolean))].slice(0,10);if(links.length!==10)throw new Error('expected ten hot-post links, found '+links.length);return Promise.all(links.map(async href=>{const response=await fetch(href);if(!response.ok)throw new Error('post fetch failed '+response.status+' '+href);const page=new DOMParser().parseFromString(await response.text(),'text/html');return {href,text:page.querySelector('main article')?.textContent?.replace(/\\s+/g,' ').trim()||null};}));})()"
-        }
-      ],
-      "evaluation_input": {
-        "task_type": "RETRIEVE",
-        "status": "SUCCESS",
-        "retrieved_data": [
-          "The Hobbit",
-          "A Christmas Carol"
-        ],
-        "error_details": null
-      },
-      "source": {
-        "kind": "expert_repair_spec",
-        "candidate_id": "expert__task-67__books-hot-v2",
-        "repair_spec_sha256": "ea34996acd3f137da912dcc386858c2ab51b86514cacc23502d1448224bbb830",
-        "details": {
-          "kind": "reviewed_task_contract_and_existing_browser_evidence",
-          "task_revision": 2
-        },
-        "repair_basis": {
-          "root_cause": "The selected autonomous trajectory clicked into the Books forum and immediately issued a second navigation while the click navigation was still in flight. Both browsers therefore interrupted the explicit navigation.",
-          "strategy": "Open the Books hot-post listing directly, then read the first ten unique post documents from that stable listing without overlapping document navigations."
-        }
-      },
-      "verification": {
-        "browsers": [
-          "chromium"
-        ],
-        "process_status": "pass",
-        "evaluator_status": "pass",
-        "contract": {
-          "kind": "official_task_contract"
-        },
-        "model_calls": 0,
-        "receipt_run_ids": [
-          "2904cf117286"
-        ]
-      }
-    },
-    {
       "id": "webarena-verified-580-trajectory-1",
       "task_id": 580,
       "task": {
@@ -7729,8 +7730,16 @@
   "revision": {
     "schema": "webarena_replay_dataset_revision/1",
     "base_dataset_sha256": "61bb38bce552b5c7eea0e1f5fcca1bc898f55e2e39ee6e72498cff346ca1e4e3",
-    "correction_catalog_sha256": "42d2f4982a7b44ced6d7166c189638ec2139ecdab750b1e426c30df1596a7b57",
+    "correction_catalog_sha256": "25619b9e0345c49a79e579a88d7f81280870119e4ab4e8d72bd0a415b9de60b0",
     "changed_tasks": [
+      {
+        "task_id": 67,
+        "correction_id": "fork-67-books-description-only",
+        "correction_record_sha256": "7057e6eb5cfd9c49d23d1984b9fce96e8ea13f68a4698dba5cef0eb70739bef2",
+        "original_task_sha256": "03dbaee9f03fac5aa766b36b1004236ff9ebea9d5544816c7e3108817db2a98e",
+        "corrected_task_sha256": "2d92caf6476a5fb9370aef62da974343e3b1bd10993cf08dbcdbffa1a114aacf",
+        "task_contract_sha256": "32d581ee7901a5647b53304aa147a5e74f98b1f7a7d1d7259444fb38c4a31408"
+      },
       {
         "task_id": 225,
         "correction_id": "wv-225-explicit-title-scope-20260918",

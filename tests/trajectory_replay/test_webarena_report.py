@@ -70,10 +70,11 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
     ]
     profile = {"methods": methods, "qualification": {"reference_engine": "chromium"},
                "execution": {"method_parallelism": 1, "task_parallelism": 1,
-                             "reset_before_every_task": True,
-                             "reset_before_every_method": True,
-                             "teardown_between_methods": True,
-                             "retry_failed_task": False}}
+                             "reset_before_every_task": False,
+                                 "reset_before_every_method": True,
+                                 "teardown_between_methods": True,
+                                 "retry_failed_task": False,
+                                 "site_stack": "self-hosted Rainbond WebArena app"}}
     actions = [{"action": "snapshot"}]
     attempts = [
         {"participant_id": method["id"], "engine": method["engine"],
@@ -125,7 +126,7 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
     assert "fixes.html" not in (output / "index.html").read_text()
     assert "可核验题通过" not in (output / "index.html").read_text()
     assert "Passes on verifiable tasks" not in (output / "en/index.html").read_text()
-    assert "逐题重置" in (output / "environment.html").read_text()
+    assert "每个方法开始前恢复站点基线" in (output / "environment.html").read_text()
     assert "Colima" not in (output / "environment.html").read_text()
     assert not (output / "diagnostics.html").exists()
     assert check_report(output)["html_pages"] == 20

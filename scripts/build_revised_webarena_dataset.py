@@ -57,7 +57,7 @@ def revise(
         base["counts"]["verified_tasks"] = len(selected_ids)
         base["counts"]["verified_trajectories"] = len(selected_ids)
     catalog = load_corrections(corrections_path)
-    if not set(task_ids) - {243} <= set(catalog.records):
+    if not set(task_ids) - {67, 243} <= set(catalog.records):
         raise ValueError("missing reviewed correction")
     benchmark = _configure_benchmark()
     records = []
@@ -65,7 +65,46 @@ def revise(
         row = rows[task_id]
         original = benchmark.get_task(task_id)
         original_data = original.model_dump(mode="json")
-        if task_id == 243:
+        if task_id == 67:
+            candidate_relpath = (
+                Path("evaluation/trajectory-replay/webarena-verified")
+                / "retrieval-candidates/task-67.json"
+            )
+            candidate_path = Path(__file__).resolve().parents[1] / candidate_relpath
+            candidate = json.loads(candidate_path.read_text(encoding="utf-8"))
+            candidate_calls = candidate.get("tool_calls")
+            candidate_contract = candidate.get("retrieval_contract")
+            if candidate.get("task_id") != 67 or not isinstance(candidate_calls, list):
+                raise ValueError("task 67: corrected source reader is missing")
+            validate_contract(candidate_contract, candidate_calls)
+            audit_path = (
+                Path(__file__).resolve().parents[1]
+                / "research/trajectory-replay-task67-reference-audit.json"
+            )
+            audit = json.loads(audit_path.read_text(encoding="utf-8"))
+            if (
+                audit.get("task_id") != 67
+                or audit.get("reference_under_review", {}).get("decision_status")
+                != "confirmed_after_baseline_restoration"
+                or audit["reference_under_review"]["corrected_response"]
+                != original_data["eval"][0]["expected"]["retrieved_data"]
+                or original_data["revision"] != 2
+            ):
+                raise ValueError("task 67: fork reference differs from reviewed source")
+            corrected_data = original_data
+            correction_id = "fork-67-books-description-only"
+            correction_sha256 = _sha256(audit_path)
+            old_sha256 = hashlib.sha256(
+                _canonical({"task": row["task"], "evaluation_input": row["evaluation_input"]})
+            ).hexdigest()
+            new_sha256 = hashlib.sha256(_canonical(corrected_data)).hexdigest()
+            row["tool_calls"] = candidate_calls
+            row["source"] = {
+                "kind": "corrected_retrieval_candidate_pending_requalification",
+                "path": candidate_relpath.as_posix(),
+                "sha256": _sha256(candidate_path),
+            }
+        elif task_id == 243:
             candidate_relpath = (
                 Path("evaluation/trajectory-replay/webarena-verified")
                 / "retrieval-candidates/task-243.json"

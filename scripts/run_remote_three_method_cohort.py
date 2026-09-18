@@ -1,8 +1,9 @@
 """Run one frozen selected-task WebArena replay method on the remote deployment.
 
 Each method has its own immutable manifest, browser binary and evidence directory.
-The four mutable sites require a verified reset before every task. A fresh
-BrowserTool context is created for each task. Certification means that every
+The four mutable sites are restored once before each browser method. A fresh
+BrowserTool context is created for each task, without resetting site data between
+tasks. Certification means that every
 declared call and its evidence is complete; it does not mean the calls pass.
 """
 
@@ -47,7 +48,7 @@ from scripts.run_remote_candidate_cohort_diagnostic import (  # noqa: E402
 
 ROOT = REPOSITORY_ROOT
 TASK_SELECTION = ROOT / "evaluation/trajectory-replay/webarena-verified/selection.json"
-RESET_SCOPE = "before_each_three_method_task"
+RESET_SCOPE = "once_before_three_method_cohort"
 SOURCE_HOSTS = {"127.0.0.1", "192.168.5.2", "host.docker.internal"}
 METHOD_ID = re.compile(r"[a-z0-9][a-z0-9._-]{1,79}\Z")
 
@@ -74,7 +75,7 @@ def _preflight(args: argparse.Namespace) -> tuple[dict, dict, object, dict[int, 
         ("dataset", args.dataset),
         ("browser binary", args.binary),
         ("site map", args.site_map),
-        ("task reset hook", args.task_reset_hook),
+        ("cohort reset hook", args.cohort_reset_hook),
     ):
         _checked_file(path, label)
     if args.output.exists():
@@ -94,7 +95,7 @@ def _preflight(args: argparse.Namespace) -> tuple[dict, dict, object, dict[int, 
         or manifest.get("site_map_sha256") != file_sha256(args.site_map)
         or manifest.get("run_count") != 1
         or manifest.get("retry_count") != 0
-        or manifest.get("site_reset_between_tasks") is not True
+        or manifest.get("site_reset_between_tasks") is not False
         or manifest.get("promotable") is not True
     ):
         raise ValueError("frozen method, binary, site map or run policy changed")
@@ -168,7 +169,7 @@ def _reference_hashes(args: argparse.Namespace) -> dict[str, str]:
         "manifest": args.manifest,
         "browser_binary": args.binary,
         "site_map": args.site_map,
-        "task_reset_hook": args.task_reset_hook,
+        "cohort_reset_hook": args.cohort_reset_hook,
         "cowagent_browser_tool": args.cowagent / "agent/tools/browser/browser_tool.py",
         "cowagent_browser_service": args.cowagent / "agent/tools/browser/browser_service.py",
         "task_selection": TASK_SELECTION,
@@ -197,7 +198,6 @@ def _certificate(
         len(rows) == len(ids)
         and [row["task_id"] for row in rows] == ids
         and len({row["task_id"] for row in rows}) == len(ids)
-        and len({row["evidence_sha256"]["site_reset"] for row in rows}) == len(ids)
         and all(
             row["executed_actions_sha256"] == task["bound_calls_sha256"]
             for row, task in zip(rows, manifest["tasks"], strict=True)
@@ -212,7 +212,7 @@ def _verify_complete_evidence(output: Path, rows: list[dict], tasks: dict[int, d
     for row in rows:
         task_id = row["task_id"]
         names = set(row["evidence_sha256"])
-        if not {"trace", "readiness", "site_reset"} <= names:
+        if not {"trace", "readiness"} <= names:
             raise ValueError(f"task {task_id}: action/readiness evidence is incomplete")
         if row.get("error"):
             continue
@@ -225,21 +225,17 @@ def _verify_complete_evidence(output: Path, rows: list[dict], tasks: dict[int, d
             raise ValueError(f"task {task_id}: evaluator/current-run evidence is incomplete")
 
 
-def _reset_task(args: argparse.Namespace, manifest: dict, task_id: int) -> str:
-    """Execute the frozen in-place reset hook and bind its fresh receipt."""
+def _reset_method(args: argparse.Namespace, manifest: dict) -> str:
+    """Restore the site baseline once for this method's complete ordered cohort."""
 
-    task_dir = args.output / f"task-{task_id}"
-    task_dir.mkdir(mode=0o700, exist_ok=False)
-    receipt_path = task_dir / "site-reset.json"
+    receipt_path = args.output / "site-reset.json"
     started_at = time.time()
     subprocess.run(
         [
             sys.executable,
-            str(args.task_reset_hook),
+            str(args.cohort_reset_hook),
             "--method-id",
             args.method_id,
-            "--task-id",
-            str(task_id),
             "--app-id",
             str(args.app_id),
             "--site-map",
@@ -255,16 +251,16 @@ def _reset_task(args: argparse.Namespace, manifest: dict, task_id: int) -> str:
         site_map_sha256=manifest["site_map_sha256"],
         app_id=args.app_id,
         reset_scope=RESET_SCOPE,
-        site_reset_between_tasks=True,
+        site_reset_between_tasks=False,
         required_readiness_probes=manifest.get("site_readiness"),
     )
     if (
-        validated.get("task_id") != task_id
-        or validated.get("method_id") != args.method_id
+        validated.get("method_id") != args.method_id
+        or validated.get("task_id") is not None
         or validated.get("completed_at_unix") is None
         or float(validated["completed_at_unix"]) < started_at
     ):
-        raise ValueError(f"task {task_id}: reset receipt is stale or belongs to another task")
+        raise ValueError("cohort reset receipt is stale or belongs to another method")
     return file_sha256(receipt_path)
 
 
@@ -279,14 +275,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cowagent", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--app-id", type=int, required=True)
-    parser.add_argument("--task-reset-hook", type=Path, required=True)
+    parser.add_argument("--cohort-reset-hook", type=Path, required=True)
     args = parser.parse_args(argv)
     manifest, sites, benchmark, tasks = _preflight(args)
-    before = _reference_hashes(args)
     if str(args.cowagent) not in sys.path:
         sys.path.insert(0, str(args.cowagent))
     os.umask(0o077)
     args.output.mkdir(parents=True, mode=0o700)
+    reset_sha256 = _reset_method(args, manifest)
+    # The cohort's reference boundary starts after its one site restoration.
+    # Comparing pre-reset bytes with post-run bytes would reject a valid reset.
+    before = _reference_hashes(args)
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]
@@ -321,7 +320,6 @@ def main(argv: list[str] | None = None) -> int:
         try:
             _wait_cdp(endpoint, process)
             for task_id in manifest["task_ids"]:
-                reset_sha256 = _reset_task(args, manifest, task_id)
                 result = _run_task(
                     task_id=task_id,
                     row=tasks[task_id],
@@ -334,7 +332,6 @@ def main(argv: list[str] | None = None) -> int:
                     catalog=catalog,
                     candidate_override_path=candidate_paths.get(task_id),
                 )
-                result["evidence_sha256"]["site_reset"] = reset_sha256
                 results.append(result)
                 _write(args.output / "progress.json", results)
                 print(
@@ -369,14 +366,15 @@ def main(argv: list[str] | None = None) -> int:
         "certification_independent_of_pass_rate": True,
         "run_count": 1,
         "retry_count": 0,
-        "site_reset_between_tasks": True,
+        "site_reset_between_tasks": False,
         "app_id": args.app_id,
         "browser_context_per_task": "fresh",
         "manifest_sha256": file_sha256(args.manifest),
         "dataset_sha256": file_sha256(args.dataset),
         "browser_binary_sha256": file_sha256(args.binary),
         "site_map_sha256": file_sha256(args.site_map),
-        "task_reset_hook_sha256": file_sha256(args.task_reset_hook),
+        "cohort_reset_hook_sha256": file_sha256(args.cohort_reset_hook),
+        "cohort_reset_sha256": reset_sha256,
         "reference_sha256_before": before,
         "reference_sha256_after": after,
         "declared_task_ids": manifest["task_ids"],

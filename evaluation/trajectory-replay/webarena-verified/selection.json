@@ -56,6 +56,13 @@
       "rationale": "搜索一张发票并读取总金额"
     },
     {
+      "task_id": 67,
+      "tier": "hard",
+      "estimated_min_steps": 12,
+      "official_hard": true,
+      "rationale": "检查十个热门帖子并精确提取单书推荐标题"
+    },
+    {
       "task_id": 404,
       "tier": "easy",
       "estimated_min_steps": 4,
@@ -516,13 +523,6 @@
       "estimated_min_steps": 10,
       "official_hard": true,
       "rationale": "筛选全部高评分待审评论并逐项批准"
-    },
-    {
-      "task_id": 67,
-      "tier": "hard",
-      "estimated_min_steps": 12,
-      "official_hard": true,
-      "rationale": "检查十个热门帖子并精确提取单书推荐标题"
     },
     {
       "task_id": 580,
