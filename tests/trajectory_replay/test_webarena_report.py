@@ -1246,3 +1246,12 @@ def test_missing_submission_is_located_at_trigger_without_calling_it_a_failed_ac
     assert finding["trigger_step"] == 2
     assert finding["message"].endswith("Required POST was not observed")
     assert finding["expected_network"][0]["http_method"] == "POST"
+    attempt["planned_actions"] = [step["arguments"] for step in trace]
+    task = {"task_id": 464, "task": {"intent": "Save product", "sites": ["shopping_admin"]},
+            "tool_calls": attempt["planned_actions"]}
+    zh = _detail_page("zh", attempt, task, {"label": "Moli"}, public, [])
+    en = _detail_page("en", attempt, task, {"label": "Moli"}, public, [])
+    assert "网络验收条件未满足" in zh and "要求匹配的网络条件" in zh
+    assert "提交请求未出现" not in zh and "未出现的请求" not in zh
+    assert "Network acceptance not satisfied" in en and "Required network match" in en
+    assert "request absent" not in en and "Missing required request" not in en
