@@ -86,6 +86,10 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
             else sorted(required_resource_fields)
         )
         raise ValueError(f"resource_population missing required field(s): {', '.join(missing)}")
+    for field in sorted(required_resource_fields):
+        value = resource[field]
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            raise ValueError(f"resource_population field {field} must be a positive integer")
     text = {
         "zh": {
             "title": f"{total_cases} 题成功率与资源消耗",
@@ -191,7 +195,7 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
         fields = [f'{int(float(row["passed_cases"]))}/{total_cases} ({float(row["success_rate_pct"]):.1f}%)']
         for metric in metrics:
             _, key, change_key, unit = specs[metric]
-            fields.append(f'{row[key]:.2f} {unit} ({float(row[change_key]):+.2f}%)')
+            fields.append(f'{float(row[key]):.2f} {unit} ({float(row[change_key]):+.2f}%)')
         y = legend_y + index * 30
         parts.append(f'<circle cx="55" cy="{y-5}" r="8" fill="{color}"/>')
         parts.append(f'<text x="55" y="{y-1}" text-anchor="middle" style="font-size:10px;font-weight:750;fill:#fff">{index+1}</text>')

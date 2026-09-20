@@ -154,6 +154,30 @@ class MoliVersionResourceChartTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "resource_population missing required field.*chart_tasks"):
             self.render()
 
+    def test_resource_population_values_must_be_positive_integers(self):
+        for value in ("557", 557.0, 0, True):
+            with self.subTest(value=value):
+                self.data["resource_population"]["total_tasks"] = value
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "resource_population field total_tasks must be a positive integer",
+                ):
+                    self.render()
+        self.data["resource_population"]["total_tasks"] = 557
+
+    def test_numeric_string_metric_values_render_after_validation(self):
+        self.data["configurations"][0]["pss_mib"] = "77.216796875"
+        self.data["configurations"][0]["cpu_ms"] = "21.406698564593302"
+        svg = self.render()
+        self.assertIn("77.22 MiB (+0.00%)", svg)
+        self.assertIn("21.41 ms (+0.00%)", svg)
+
+    def test_chinese_cpu_only_panel_has_cpu_labels_and_no_pss(self):
+        svg = self.render(("cpu",), "zh")
+        self.assertIn("单次执行平均 CPU 时间（ms）", svg)
+        self.assertIn("21.66 ms (+1.16%)", svg)
+        self.assertNotIn("PSS", svg)
+
     def test_empty_configuration_list_has_clear_error(self):
         self.data["configurations"] = []
         with self.assertRaisesRegex(ValueError, "configurations must contain at least one row"):
