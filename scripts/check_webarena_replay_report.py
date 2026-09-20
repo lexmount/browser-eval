@@ -13,6 +13,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
+from bs4 import BeautifulSoup
+
 from harness.trajectory_replay.webarena_report import LOCAL_PATH_RE
 
 
@@ -375,6 +377,51 @@ def _check_result_detail_semantics(text: str, evidence: dict, status: str) -> No
         raise ValueError("failure detail lacks exact error or evaluation logs")
 
 
+def _check_failure_matrix(page: str, results: list[dict], participants: list[str]) -> None:
+    """Recompute cells independently; also verify each count's filter target."""
+    from collections import Counter
+    from urllib.parse import parse_qs
+
+    soup = BeautifulSoup(page, "html.parser")
+    matrix = soup.select_one("[data-failure-matrix]")
+    if matrix is None:
+        raise ValueError("failure category matrix is missing")
+    method_rows = matrix.select("tbody tr[data-method]")
+    if [row["data-method"] for row in method_rows] != participants:
+        raise ValueError("failure matrix participant inventory differs")
+    counts = Counter((row["participant_id"], row.get("cause_code") or "unreviewed")
+                     for row in results if row["status"] != "pass")
+    categories = {code for _, code in counts}
+    headers = matrix.select("thead [data-category]")
+    if len(headers) != len(categories) or {cell["data-category"] for cell in headers} != categories:
+        raise ValueError("failure matrix category inventory differs")
+    for row in method_rows:
+        method = row["data-method"]
+        population = [item for item in results if item["participant_id"] == method]
+        failed = sum(item["status"] != "pass" for item in population)
+        total = row.select_one("[data-failure-total]")
+        if total is None or total.text != f"{failed} / {len(population)}" or int(total["data-failure-total"]) != failed:
+            raise ValueError("failure matrix denominator differs")
+        cells = row.select("td[data-category]")
+        if len(cells) != len(categories) or {cell["data-category"] for cell in cells} != categories:
+            raise ValueError("failure matrix cells are missing or duplicated")
+        for cell in cells:
+            code = cell["data-category"]
+            count = counts[method, code]
+            if cell.get("data-count") != str(count) or cell.get_text(strip=True) != str(count):
+                raise ValueError("failure matrix count differs from evidence")
+            if not count or code == "unreviewed":
+                continue
+            link = cell.select_one("a[href]")
+            url = urlsplit(link["href"]) if link else None
+            source = next(item for item in population if item.get("cause_code") == code)
+            expected = {"participant": [method], "status": ["fail"], "cause": [source["cause_zh"]]}
+            if url is None or url.path != "results.html" or url.fragment != "result-inventory" or parse_qs(url.query) != expected:
+                raise ValueError("failure matrix drilldown target differs")
+            if soup.select_one('#result-inventory') is None:
+                raise ValueError("failure matrix inventory anchor is missing")
+
+
 def check(report_dir: Path) -> dict[str, int]:
     root = report_dir.resolve()
     manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
@@ -427,6 +474,8 @@ def check(report_dir: Path) -> dict[str, int]:
     metrics = json.loads((root / "data/metrics.json").read_text(encoding="utf-8"))
     _check_metric_populations(metrics, results, participants)
     _check_core_comparison(root, metrics, results, participants)
+    for route in ("results.html", "en/results.html"):
+        _check_failure_matrix((root / route).read_text(encoding="utf-8"), results, participants)
     if manifest.get("formal_reference_validity") is True:
         if task_count != 90 or manifest.get("site_reset_between_tasks") is not False:
             raise ValueError("formal report requires the complete method-reset 90-task cohort")
