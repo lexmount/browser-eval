@@ -1,14 +1,34 @@
 {
   "schema": "moli_report_profile/1",
-  "functional_population": {"cases": 372, "attempts_per_case": 3, "rule": "all_three_attempts_pass"},
-  "resource_population": {"tasks": 557, "attempts_per_task": 5, "chart_tasks": 209, "chart_calls": 1045},
-  "method_ids": ["114_off", "118_off", "118_on", "119_off", "119_on", "119_official_on"],
-  "macos_method_ids": ["119_off", "119_on", "119_official_on"],
+  "functional_population": {
+    "cases": 372,
+    "attempts_per_case": 3,
+    "rule": "all_three_attempts_pass"
+  },
+  "resource_population": {
+    "tasks": 557,
+    "attempts_per_task": 5,
+    "chart_tasks": 209,
+    "chart_calls": 1045
+  },
+  "method_ids": [
+    "114_off",
+    "118_off",
+    "118_on",
+    "119_off",
+    "119_on",
+    "119_official_on"
+  ],
+  "macos_method_ids": [
+    "119_off",
+    "119_on",
+    "119_official_on"
+  ],
   "publication": {
     "base_url": "https://artifact-site.lexmount.cn",
     "slug": "gdwtSGOel0va",
     "kind": "folder",
-    "expected_version": "ver_96cd695de0d54d72bc5e7bfe09ac3ba6",
+    "expected_version": "ver_4d7cfe448a8e4ac98287607dc6a2266a",
     "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t"
   }
 }

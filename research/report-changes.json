@@ -1253,6 +1253,68 @@
   ],
   "releases": [
     {
+      "id": "2026-09-21-moli-119-fixed-layout-comparison",
+      "comparison_kinds": [
+        "moli_historical_failure_retest",
+        "moli_process_tree_resource_profile"
+      ],
+      "date": "2026-09-21",
+      "title": "加入 Moli 1.1.9 固定布局与官方版本对照",
+      "summary": "新增修复版 1.1.9 关闭布局、开启布局及官方 1.1.9 开启布局：372 题分别通过 1、360、255 题。三个方法各完成独立的 557 题 × 5 次资源实验；macOS RSS 与历史 Linux PSS 分开展示，图表和表格给出带正负号的资源变化。",
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "gdwtSGOel0va",
+        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
+        "version": "ver_4d7cfe448a8e4ac98287607dc6a2266a"
+      },
+      "changes": [
+        [
+          "固定布局功能对照",
+          "每个方法需要同一布局状态下的完整三次执行。",
+          "每题三次全部通过才算通过；修复版开启布局比官方版新增通过 105 题，无退步。新增同题结果筛选及三种方法的逐次证据。",
+          "保留历史 1.1.4 / 1.1.8 结果；两个任务合同修正后的 18 次复测均失败，历史通过数不变。"
+        ],
+        [
+          "独立资源实验",
+          "功能通过率与资源采样使用不同任务群体。",
+          "每个方法各采样 2,785 次；同时展示全部 557 题统计和预先冻结的 209 题、1,045 次图表样本，macOS 百分比以官方 1.1.9 开启布局为基准。",
+          "修复版为 debug 构建，官方版为发布资产；资源差异同时包含代码和构建配置差异。"
+        ],
+        [
+          "图表与证据",
+          "报告需要可复现图表及可读的手机端证据。",
+          "保留按 PSS、RSS、CPU 选择面板的代码绘图；完成 112 个页面状态及 6 条证据交互验收，部署的 26 个文件逐一核对。",
+          "分享链接保持不变。功能校验覆盖 372 题、7,830 条历史及当前调用和 41,292 个证据文件。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Add Moli 1.1.9 fixed-layout and official-release comparisons",
+          "summary": "Added patched 1.1.9 with layout off and on, and official 1.1.9 with layout on: 1, 360 and 255 passes out of 372 cases. Each method completes a separate 557-task × 5-call resource experiment. macOS RSS and historical Linux PSS remain separate, with signed resource changes in tables and code-generated charts.",
+          "changes": [
+            [
+              "Fixed-layout functional comparison",
+              "Each method requires three complete attempts under the same layout setting.",
+              "A case passes only when all three attempts pass. Patched layout on gains 105 cases over official layout on and loses none. Same-case filters and individual attempt evidence cover all three methods.",
+              "Historical 1.1.4 / 1.1.8 results remain; all 18 calls after correcting two task contracts fail, leaving historical pass counts unchanged."
+            ],
+            [
+              "Separate resource experiments",
+              "Compatibility and resource sampling use different task populations.",
+              "Each method has 2,785 sampled calls. Tables show all 557 tasks and the pre-frozen 209-task / 1,045-call chart population. macOS percentage changes use official 1.1.9 layout on as the baseline.",
+              "The patched binary is a debug build; the official binary is a release asset. Resource differences include both code and build-configuration differences."
+            ],
+            [
+              "Charts and evidence",
+              "Charts must be reproducible and evidence readable on narrow screens.",
+              "Code-generated charts support PSS, RSS and CPU panels. Verification covers 112 page states and six evidence flows; all 26 deployed files match the submitted package.",
+              "The share link is unchanged. Functional validation covers 372 cases, 7,830 historical and current calls, and 41,292 evidence files."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "2026-09-20-moli-version-layout-resource-summary",
       "comparison_kinds": [
         "moli_historical_failure_retest",
