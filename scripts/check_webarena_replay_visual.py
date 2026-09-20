@@ -13,6 +13,8 @@ import shutil
 import threading
 from pathlib import Path
 
+from harness.trajectory_replay.report_languages import language_roots, report_languages
+
 from playwright.sync_api import sync_playwright
 
 
@@ -152,6 +154,8 @@ def _routes(report: Path) -> list[str]:
             f"evidence-viewer.html?file=data/evidence/{passed_key}.json",
             f"en/evidence-viewer.html?file=../data/evidence/{passed_key}.json",
         ))
+    if "en" not in report_languages(report):
+        routes = [route for route in routes if not route.startswith("en/")]
     return routes
 
 
@@ -236,8 +240,14 @@ def check(report: Path, receipt: Path) -> None:
                         f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/index.html"
                     )
                     route_page.locator("h1").wait_for()
+                    if "en" not in report_languages(report):
+                        route_page.locator("a.language").click()
+                        route_page.locator("[data-english-not-generated]").wait_for()
+                        assert "英文报告未生成" in route_page.locator("h1").inner_text()
+                        route_page.locator('a[href="../index.html"]').click()
+                        route_page.locator("a.language").wait_for()
                     route_page.close()
-                    for language in ("zh", "en"):
+                    for language in report_languages(report):
                         modal_page = browser.new_page(viewport={"width": 390, "height": 844})
                         prefix = "" if language == "zh" else "en/"
                         modal_page.goto(

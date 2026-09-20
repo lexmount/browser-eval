@@ -12,6 +12,8 @@ import math
 import re
 from html.parser import HTMLParser
 from pathlib import Path
+
+from harness.trajectory_replay.report_languages import language_roots, report_languages
 from urllib.parse import unquote, urlsplit
 
 from bs4 import BeautifulSoup
@@ -35,7 +37,7 @@ def _text_without_verified_embedded_images(text: str, image_digests: set[str]) -
 
 def _check_interpretation(root: Path) -> None:
     sections = []
-    for language_root in (root, root / "en"):
+    for language_root in language_roots(root):
         integrated = BeautifulSoup((language_root / "interpretation.html").read_text(), "html.parser")
         offline = BeautifulSoup((language_root / "article.html").read_text(), "html.parser")
         article = integrated.select_one("article.interpretation")
@@ -51,7 +53,7 @@ def _check_interpretation(root: Path) -> None:
         if not integrated.select('a[href="article.html"][download]'):
             raise ValueError("article download is missing")
         sections.append([section["id"] for section in article.select("section[id]")])
-    if sections[0] != sections[1]:
+    if any(section != sections[0] for section in sections[1:]):
         raise ValueError("localized article sections differ")
 
 
@@ -170,7 +172,7 @@ def _check_formal36_output_scope(root: Path) -> None:
                or row.get("completed_actions") != row.get("action_count") for row in rows)
     ):
         raise ValueError("formal original-36 result is incomplete")
-    for lang in ("zh", "en"):
+    for lang in report_languages(root):
         parent = root if lang == "zh" else root / "en"
         overview = _visible_text((parent / "diagnostics.html").read_text(encoding="utf-8"))
         if "36/36" not in overview or ("90 题" if lang == "zh" else "90-task") not in overview:
@@ -221,7 +223,7 @@ def _semantic_page_inventory(
 ) -> tuple[list[Path], list[Path], list[Path]]:
     core = [
         *(root / name for name in core_names),
-        *(root / "en" / name for name in core_names),
+        *(root / "en" / name for name in core_names if "en" in report_languages(root)),
     ]
     chinese_details = [
         *(root / "fix").glob("*.html"),
@@ -307,7 +309,7 @@ def _check_affected36_comparison(root: Path, compare: list[dict], results: list[
     maximum = max(item["passed"] for item in compare)
     winners = [item["id"] for item in compare if item["passed"] == maximum]
     unique_winner = winners[0] if len(winners) == 1 else None
-    for language_root in (root, root / "en"):
+    for language_root in language_roots(root):
         home = (language_root / "index.html").read_text(encoding="utf-8")
         if ("36 题" if language_root == root else "36 failures") not in home:
             raise ValueError("affected-task method comparison is absent from the home page")
@@ -356,7 +358,7 @@ def _check_core_comparison(root: Path, metrics: dict, results: list[dict], parti
     valid_leaders = [participant for participant in participants if valid_scores[participant] == valid_maximum]
     valid_winner = valid_leaders[0] if len(valid_leaders) == 1 else None
     show_valid_reference = valid_total != denominator
-    for language_root in (root, root / "en"):
+    for language_root in language_roots(root):
         home = (language_root / "index.html").read_text(encoding="utf-8")
         if (home.count('data-metric="core-pass"') != len(participants)
                 or home.count('data-metric="verifiable-pass"')
@@ -462,6 +464,15 @@ def _check_failure_matrix(page: str, results: list[dict], participants: list[str
 def check(report_dir: Path) -> dict[str, int]:
     root = report_dir.resolve()
     manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
+    if report_languages(root) == ("zh",):
+        english_files = {path.relative_to(root / "en").as_posix() for path in (root / "en").rglob("*") if path.is_file()}
+        if english_files != {"index.html"} or manifest.get("english_status") != "not_generated":
+            raise ValueError("Chinese-only report contains stale English output")
+        notice = (root / "en/index.html").read_text(encoding="utf-8")
+        if 'data-english-not-generated' not in notice or '英文报告未生成' not in notice or 'href="../index.html"' not in notice:
+            raise ValueError("English not-generated notice or return link is missing")
+        if list((root / "assets/interpretation").glob("*-en.png")):
+            raise ValueError("Chinese-only report contains unused English illustrations")
     results = json.loads((root / "data/results.json").read_text(encoding="utf-8"))
     required_manifest_fields = (
         "task_count",
@@ -511,12 +522,12 @@ def check(report_dir: Path) -> dict[str, int]:
     metrics = json.loads((root / "data/metrics.json").read_text(encoding="utf-8"))
     _check_metric_populations(metrics, results, participants)
     _check_core_comparison(root, metrics, results, participants)
-    for route in ("results.html", "en/results.html"):
-        _check_failure_matrix((root / route).read_text(encoding="utf-8"), results, participants)
+    for language_root in language_roots(root):
+        _check_failure_matrix((language_root / "results.html").read_text(encoding="utf-8"), results, participants)
     if manifest.get("formal_reference_validity") is True:
         if task_count != 90 or manifest.get("site_reset_between_tasks") is not False:
             raise ValueError("formal report requires the complete method-reset 90-task cohort")
-        for language_root in (root, root / "en"):
+        for language_root in language_roots(root):
             environment = (language_root / "environment.html").read_text(encoding="utf-8")
             if "Rainbond" not in environment or "Colima" in environment:
                 raise ValueError("formal environment page does not describe the measured deployment")
@@ -535,16 +546,16 @@ def check(report_dir: Path) -> dict[str, int]:
         failures
     ):
         raise ValueError("report must contain a review for every final failure")
-    if any(not item["reason_zh"] or not item["reason_en"] for item in failures):
-        raise ValueError("every failed result needs a bilingual reviewed cause")
+    if any(not item[f"reason_{lang}"] for item in failures for lang in report_languages(root)):
+        raise ValueError("every failed result needs a reviewed cause in each generated language")
 
     zh_details = {path.name for path in (root / "result").glob("*.html")}
     en_details = {path.name for path in (root / "en/result").glob("*.html")}
-    if zh_details != en_details or len(zh_details) != expected_results:
+    if ("en" in report_languages(root) and zh_details != en_details) or len(zh_details) != expected_results:
         raise ValueError("Chinese and English result routes must match one-to-one")
     zh_tasks = {path.name for path in (root / "task").glob("*.html")}
     en_tasks = {path.name for path in (root / "en/task").glob("*.html")}
-    if zh_tasks != en_tasks or zh_tasks != {f"{task_id}.html" for task_id in task_ids}:
+    if ("en" in report_languages(root) and zh_tasks != en_tasks) or zh_tasks != {f"{task_id}.html" for task_id in task_ids}:
         raise ValueError("every task needs matching Chinese and English contract routes")
     for task_id in task_ids:
         frozen_path = root / "data/trajectory" / f"{task_id}.json"
@@ -584,7 +595,7 @@ def check(report_dir: Path) -> dict[str, int]:
                 != ("valid" if matching["semantic_status"] == "valid" else "unverifiable")
             ):
                 raise ValueError(f"method-specific result evidence changed: {key}")
-            for language_root in (root, root / "en"):
+            for language_root in language_roots(root):
                 page = language_root / "result" / f"{key}.html"
                 text = page.read_text(encoding="utf-8")
                 relative_root = "../" if language_root == root else "../../"
@@ -689,7 +700,7 @@ def check(report_dir: Path) -> dict[str, int]:
     results_html = (root / "results.html").read_text(encoding="utf-8")
     if '<option value="fail">' not in results_html or 'id="diagnosis-dialog"' not in results_html:
         raise ValueError("result inventory must default to failure and open a diagnosis dialog")
-    for language_root in (root, root / "en"):
+    for language_root in language_roots(root):
         dataset_html = (language_root / "dataset.html").read_text(encoding="utf-8")
         filters = set(re.findall(r'data-dataset-filter="([^\"]+)"', dataset_html))
         if filters != {"q", "site", "type", "source"}:
@@ -722,7 +733,7 @@ def check(report_dir: Path) -> dict[str, int]:
         or "Promise.all([standard(),evidence()])" not in js
     ):
         raise ValueError("step dialog must load qualified and actual evidence on demand")
-    for page in (root / "results.html", root / "en/results.html"):
+    for page in (parent / "results.html" for parent in language_roots(root)):
         rendered = page.read_text(encoding="utf-8")
         baseline = re.search(r"<select data-matrix-baseline>(.*?)</select>", rendered, re.S)
         if baseline is None:

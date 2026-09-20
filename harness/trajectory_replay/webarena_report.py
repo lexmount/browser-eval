@@ -2379,7 +2379,9 @@ def build_webarena_replay_report(
     output_dir: str | Path,
     diagnostic_closure_path: str | Path | None = None,
     interpretation_path: str | Path | None = None,
+    include_english: bool = False,
 ) -> dict[str, Any]:
+    languages = ("zh", "en") if include_english else ("zh",)
     profile_source = Path(profile_path)
     profile = json.loads(profile_source.read_text(encoding="utf-8"))
     methods = participant_registry(profile["methods"])
@@ -2572,14 +2574,14 @@ def build_webarena_replay_report(
     for attempt in attempts:
         key = (str(attempt["participant_id"]), int(attempt["task_id"]))
         row = next(item for item in rows_by_task[key[1]] if item["participant_id"] == key[0])
-        for lang in ("zh", "en"):
+        for lang in languages:
             target = output / ("result" if lang == "zh" else "en/result") / f"{row['key']}.html"
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(
                 _detail_page(lang, attempt, tasks[key[1]], methods[key[0]], public_evidence[key], rows_by_task[key[1]], _historical_replay_validity_notice(**validity_identity, lang=lang)), encoding="utf-8"
             )
     for task_id, task in tasks.items():
-        for lang in ("zh", "en"):
+        for lang in languages:
             target = output / ("task" if lang == "zh" else "en/task") / f"{task_id}.html"
             target.parent.mkdir(parents=True, exist_ok=True)
             matching_attempt = next(item for item in attempts if int(item["task_id"]) == task_id)
@@ -2616,7 +2618,7 @@ def build_webarena_replay_report(
     unverifiable_ids = sorted(task_id for task_id, status in task_validity.items() if status == "unverifiable")
     valid_reference_count = len(tasks) - len(unverifiable_ids)
 
-    for lang in ("zh", "en"):
+    for lang in languages:
         zh = lang == "zh"
         root = output if zh else output / "en"
         root.mkdir(exist_ok=True)
@@ -2908,7 +2910,7 @@ def build_webarena_replay_report(
         article = json.loads(source.read_text())
         for section in article["sections"]:
             if section.get("figure"):
-                for lang in ("zh", "en"):
+                for lang in languages:
                     filename = f'{section["figure"]}-{lang}.png'
                     if Path(filename).name != filename:
                         raise ValueError("invalid article image name")
@@ -2928,7 +2930,7 @@ def build_webarena_replay_report(
         css_path = output / "assets/report.css"
         css = css_path.read_text() + article_css
         css_path.write_text(css, encoding="utf-8")
-        for lang in ("zh", "en"):
+        for lang in languages:
             language_root = output if lang == "zh" else output / "en"
             arguments = dict(source=source, contract_audit=source.parent / "trajectory-replay-contract-audit.json",
                              results_sha256=_sha256(results_source), methods=methods, rows=public_rows,
@@ -2947,8 +2949,39 @@ def build_webarena_replay_report(
             label = "报告解读：失败机制、修复与评测边界" if lang == "zh" else "Interpretation: failure mechanisms, repairs and evaluation limits"
             home.write_text(home.read_text().replace("<main>", f'<main><p><a href="interpretation.html">{label}</a></p>', 1), encoding="utf-8")
 
+    if not include_english:
+        for page in output.rglob("*.html"):
+            if page.name == "article.html":
+                continue
+            prefix = "../" * (len(page.relative_to(output).parts) - 1)
+            content = page.read_text(encoding="utf-8")
+            content = re.sub(
+                r'(<a class="language" href=")[^"]+(">)',
+                lambda match: match[1] + prefix + "en/index.html" + match[2],
+                content,
+            )
+            page.write_text(content, encoding="utf-8")
+        english_root = output / "en"
+        english_root.mkdir()
+        (english_root / "index.html").write_text(
+            '<!doctype html><html lang="zh"><head><meta charset="utf-8">'
+            '<meta name="viewport" content="width=device-width, initial-scale=1">'
+            '<script>(function(){const p=location.pathname.split("/");'
+            'const i=p.indexOf("preview");if(i<1||p[i-1]!=="api")return;'
+            'const b=document.querySelector("base")||document.createElement("base");'
+            'b.href=location.origin+location.pathname;'
+            'if(!b.isConnected)document.head.prepend(b);})();</script>'
+            '<title>英文报告未生成</title></head><body>'
+            '<main data-english-not-generated><h1>英文报告未生成</h1>'
+            '<p>English report has not been generated.</p>'
+            '<p>当前报告仅提供中文版。英文版需单独生成。</p>'
+            '<a href="../index.html">返回中文报告</a></main></body></html>',
+            encoding="utf-8",
+        )
     manifest = {
         "schema": "lex_webarena_trajectory_replay_report/1",
+        "languages": list(languages),
+        "english_status": "generated" if include_english else "not_generated",
         "results_sha256": _sha256(Path(results_path)),
         "dataset_sha256": _sha256(Path(dataset_path)),
         "review_sha256": _sha256(Path(review_path)),
@@ -2964,7 +2997,7 @@ def build_webarena_replay_report(
         "site_reset_between_tasks": (profile.get("execution") or {}).get(
             "reset_before_every_task"
         ) is True,
-        "routes": 12 + 2 * len(attempts) + 2 * len(tasks) + (4 if interpretation_path else 0),
+        "routes": len(list(output.rglob("*.html"))),
         "interpretation": interpretation_path is not None,
     }
     _write_json(output / "report-manifest.json", manifest)

@@ -11,6 +11,8 @@ Read the repository's `AGENTS.md` first. Project rules override this general ski
 
 ## Working contract
 
+Repository reports default to Chinese-only output and checks. English generation (including translated illustrations) requires an explicit manual request. Bind generated languages in the report manifest; English navigation opens a not-generated notice when absent. Do not publish stale English pages. Run English-specific validation only for an explicitly generated English edition, retaining full parity checks when both editions exist.
+
 1. Establish the decision being supported, the measured unit, cohort, versions, execution location, freshness policy, and intended deliverable. Inspect the actual dataset, runner, outputs, scorer, prior review evidence, and current report. Do not infer them from screenshots or prose.
 2. Freeze a machine-readable evaluation contract before expensive calls. It must identify the exact cases and methods, run count, timeout, concurrency policy, input and output contract, scoring provenance, reference state, and publication target when one exists. For source-dependent tasks, fail closed: verify and freeze references immediately before calls, verify the same declared scope afterward, and certify the cohort only when both checks pass. Partial or uncertified cohorts remain diagnostic evidence and cannot enter a release.
 3. Let each method use its strongest documented route to produce the required output. Equalize the task, inputs, output contract, call budget, and scoring. Do not require identical internals. Record material asymmetries such as local versus remote execution, cold versus warm start, bundled conversion, network transit, account tier, and billable time.

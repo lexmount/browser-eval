@@ -1,5 +1,11 @@
 # Report and release
 
+## Language generation
+
+All tracks generate and validate Chinese by default. English requires an explicit manual trigger; do not automatically translate prose, generate English illustrations, render English routes or run English-specific checks. A manifest records which languages were generated. When English is absent, retain only a clear not-generated notice with a return link, and test that control. Remove stale English output and unused translated assets from the new bundle while preserving source translations. Parity and English localization checks apply when the English edition is explicitly generated; Chinese-only releases retain all Chinese evidence, semantics, links and visual gates.
+
+For the current trajectory report, `make trajectory-replay-report EVIDENCE=/absolute/path/results.json` builds Chinese only. Explicit `ENGLISH=1` (or the build script's `--include-english`) enables English. Report, visual and packaging checks use the generated manifest, so they do not regenerate an absent edition.
+
 ## Reader-facing structure
 
 Organize around reader questions, not storage tables. A useful report usually makes these answers easy to find:

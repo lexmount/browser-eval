@@ -117,7 +117,7 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
     manifest = build_webarena_replay_report(
         results_path=files["results.json"], dataset_path=files["dataset.json"],
         review_path=files["review.json"], profile_path=files["profile.json"],
-        output_dir=output,
+        output_dir=output, include_english=True,
     )
     assert manifest["participants"] == [item["id"] for item in methods]
     assert manifest["logical_results"] == 3
@@ -143,6 +143,23 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
         assert 'Rainbond WebArena' in environment
     assert not (output / "diagnostics.html").exists()
     assert check_report(output)["html_pages"] == 20
+    manifest = build_webarena_replay_report(
+        results_path=files["results.json"], dataset_path=files["dataset.json"],
+        review_path=files["review.json"], profile_path=files["profile.json"],
+        output_dir=output,
+    )
+    assert manifest["languages"] == ["zh"]
+    assert manifest["english_status"] == "not_generated"
+    assert manifest["routes"] == 11
+    assert '英文报告未生成' in (output / "en/index.html").read_text()
+    assert not (output / "en/results.html").exists()
+    assert 'class="language" href="../en/index.html"' in (output / "result/chromium-29.html").read_text()
+    assert check_report(output)["html_pages"] == 11
+    stale = output / "en/results.html"
+    stale.write_text("stale English report")
+    with pytest.raises(ValueError, match="stale English"):
+        check_report(output)
+    stale.unlink()
     data["attempts"] = attempts[:-1]
     with pytest.raises(ValueError, match="complete participant-task matrix"):
         build_webarena_replay_report(

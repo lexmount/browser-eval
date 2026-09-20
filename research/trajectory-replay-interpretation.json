@@ -32,6 +32,30 @@
       "caption": {"zh": "布局机制示意。行内元素的分段矩形遗漏、变化后的布局未重新计算，都会让可见性筛选丢掉目标；非零矩形本身不保证元素可点击。题目实测尺寸见正文与逐题证据。", "en": "Layout mechanism illustration. Missing continuation bounds and stale layout can both remove targets from visibility filtering. A nonzero rectangle alone does not establish clickability. Measured task dimensions appear in the text and per-task evidence."}
     },
     {
+      "id": "scrollbar-feedback",
+      "title": {"zh": "滚动条改变宽度，旧布局不能继续复用", "en": "A scrollbar changes the width that layout must use"},
+      "figure": "scrollbar-feedback",
+      "caption": {"zh": "滚动条反馈与行尾空格的机制示意。局部滚动条影响其子树和祖先路径；视口滚动条改变全局布局约束。只有按 CSS 规则折叠的行尾普通空格被排除，保留空白与不换行空格仍参与几何计算。", "en": "Scrollbar feedback and trailing-space geometry. A local scrollbar affects its subtree and ancestor path; a viewport scrollbar changes global layout constraints. Only ordinary trailing spaces collapsed by CSS are excluded. Preserved whitespace and nonbreaking spaces still contribute to geometry."},
+      "paragraphs": [
+        {"zh": "垂直滚动条占据一部分宽度，文字必须在更窄的区域重新换行。原缓存失效路径只处理变化的容器和祖先，后代仍可能沿用旧宽度算出的矩形。taffy_tree.rs 将局部滚动条的更新扩展到整个子树，并保留无关分支的缓存；视口滚动条变化则使整棵布局树重新计算。只重算父容器，会留下父子几何不一致。", "en": "A vertical scrollbar consumes width, so text must wrap again in a narrower area. The old invalidation path covered the changed container and its ancestors, leaving descendants able to reuse geometry computed at the old width. In taffy_tree.rs, local scrollbar feedback invalidates the entire affected subtree while preserving unrelated cached branches. Viewport scrollbar changes invalidate the whole layout tree. Recomputing the parent alone can leave parent and child geometry inconsistent."},
+        {"zh": "重新换行后还有一个独立问题：排字库保留行尾空格的推进距离，几何投影若原样计入，就会制造并不存在的水平溢出。inline.rs 排除已折叠的行尾普通空格，同时保留长单词、预格式化空白和 NBSP 的真实宽度。否则，多出来的水平滚动条又会吃掉高度，继续改变后续布局。", "en": "Rewrapping exposes a separate issue: the shaping library retains hanging space advances at line ends. Counting those advances in projected geometry creates false horizontal overflow. inline.rs excludes collapsed ordinary trailing spaces while retaining genuine widths from long words, preserved whitespace and NBSP. A spurious horizontal scrollbar would otherwise consume height and feed another change back into layout."},
+        {"zh": "普通文字和不可换行长词必须分别验证。当前 PR 的既有用例带有长词，正确结果本来就需要水平滚动条；审查补回了不带长词的独立对照。仅关闭行尾空格修正，普通文字对照便从 85×40 变成 85×25，断言失败；恢复代码后通过。这个反例检验了测试能否抓住退化，没有把源码测试尺寸当成正式题目的测量值。", "en": "Ordinary text and unbreakable words need separate controls. The existing PR fixture contains a long word and legitimately requires horizontal scrolling. Review restored an independent ordinary-text control. Disabling only the trailing-space correction changes that control from 85×40 to 85×25 and makes its assertion fail; restoring the code passes. This negative control tests sensitivity to regression, not dimensions measured in the benchmark tasks."}
+      ],
+      "specimen": {
+        "headers": [{"zh": "受控输入", "en": "Controlled input"}, {"zh": "客户端宽×高", "en": "Client width × height"}, {"zh": "水平滚动条", "en": "Horizontal scrollbar"}],
+        "rows": [
+          [{"zh": "普通单词，关闭行尾空格修正", "en": "Ordinary words, trailing-space fix disabled"}, "85 × 25 px", {"zh": "错误出现", "en": "Spurious"}],
+          [{"zh": "相同普通单词，恢复修正", "en": "Same ordinary words, fix restored"}, "85 × 40 px", {"zh": "无", "en": "Absent"}],
+          [{"zh": "加入不可换行长词，保留修正", "en": "Add an unbreakable long word, fix retained"}, "85 × 25 px", {"zh": "保留真实溢出", "en": "Genuine overflow retained"}]
+        ],
+        "caption": {"zh": "同一布局测试框架中的正反对照。关闭修正是人为变异，不是对 1.1.8 二进制的重新测量；新增对照也不改变冻结 PR 的 90 题结果。", "en": "Positive and negative controls in the same layout fixture. Disabling the fix is a deliberate mutation, not a new measurement of the 1.1.8 binary. The added control does not change the frozen PR's 90-task results."}
+      },
+      "sources": [
+        {"label": {"zh": "滚动条反馈与缓存失效", "en": "Scrollbar feedback and cache invalidation"}, "url": "https://github.com/lexmount/moli/blob/39d75b6983122942c43277b8a66bac3dcc0f7d77/moli-layout/src/taffy_tree.rs"},
+        {"label": {"zh": "布局输出回归测试", "en": "Layout-output regressions"}, "url": "https://github.com/lexmount/moli/blob/39d75b6983122942c43277b8a66bac3dcc0f7d77/moli-layout/tests/phase5_output_contract.rs"}
+      ]
+    },
+    {
       "id": "implicit-submit",
       "title": {"zh": "Enter 已按下，搜索却没有提交", "en": "Enter was pressed, but the search was never submitted"},
       "paragraphs": [
@@ -114,6 +138,85 @@
       ],
       "figure": "redirect-recording",
       "caption": {"zh": "机制示意，不是实测截图。POST/GET 差异由独立 HTTP 服务器日志与同次 CDP 事件对照确认。", "en": "Mechanism illustration, not a screenshot. The POST/GET discrepancy is confirmed by comparing independent HTTP server logs with CDP events from the same probe."}
+    },
+    {
+      "id": "durable-response-body",
+      "title": {"zh": "页面已经跳转，证据不应提前消失", "en": "Navigation can outlive the response evidence"},
+      "figure": "durable-response-body",
+      "caption": {"zh": "正文保留机制示意。跳转后的读取仅面向原本有读取权限、并启用了保留的会话；正文仍受容量和条目数限制，不保证永久可用。", "en": "Response-retention mechanism. Post-navigation access requires both an existing visibility claim and explicit retention. Byte and entry limits still apply; retention is not permanent storage."},
+      "paragraphs": [
+        {"zh": "网络事件里出现 HTTP 200，不代表评测器已经拿到了响应正文。采集器可能先收到请求完成事件，稍后才调用 Network.getResponseBody；两步之间如果页面跳转，原实现会清空正文存储。事件还在，供验收检查的内容却已经消失。", "en": "An HTTP 200 event does not mean the evaluator already has the response body. A recorder can receive the completion event and call Network.getResponseBody later. If navigation occurs between those steps, the previous implementation clears the body store. The event survives, but the content needed for acceptance is gone."},
+        {"zh": "PR 在 Network.enable 中实现显式保留选项，跳转时留下有授权归属的非待完成记录。普通会话仍按原规则清理，另一个后来启用保留的会话不会自动获得旧正文；关闭或断开会话也会撤销它的权限。共享存储采用各会话预算中最严格的限制，不为每个客户端复制一份预算。", "en": "The PR implements explicit retention through Network.enable and preserves nonpending records with eligible ownership across navigation. Ordinary sessions still lose access, and a different session cannot acquire an old body merely by enabling retention later. Disabling or detaching a session revokes its claims. The shared store uses the strictest participating budget rather than multiplying storage by the number of clients."},
+        {"zh": "这项能力也有明确容量边界：总正文最多 20,000,000 字节、单条最多 2,000,000 字节，会话可以要求更小的预算；空正文和失败元数据也计入 4,096 条的上限。超过预算会淘汰正文，不能把“保留”理解成无限缓存。专项测试验证了跨导航读取、越权拒绝和淘汰规则；35 个失败的逐题证据尚未把某一题单独归因到这一机制。", "en": "Payload storage is capped at 20,000,000 bytes overall and 2,000,000 bytes per entry, with smaller session budgets allowed. Empty bodies and failure metadata also count toward a 4,096-entry cap. Budget pressure evicts payloads; retention is not an unlimited cache. Dedicated regressions cover navigation, access rejection and eviction. The per-task evidence for the 35 failures does not isolate a task caused by this mechanism."}
+      ],
+      "specimen": {
+        "headers": [{"zh": "专项测试条件", "en": "Regression condition"}, {"zh": "断言结果", "en": "Asserted outcome"}],
+        "rows": [
+          [{"zh": "相同响应，跳转前已有权限且启用保留", "en": "Same response, existing visibility and retention enabled before navigation"}, {"zh": "可读取 retained", "en": "Body retained is readable"}],
+          [{"zh": "相同响应，普通会话随页面跳转", "en": "Same response, ordinary session after navigation"}, "No resource with given identifier found"],
+          [{"zh": "总预算 5 字节、单条 3 字节，依次写入 aaa 和 bbb", "en": "5-byte total and 3-byte entry budgets; insert aaa then bbb"}, {"zh": "aaa 被淘汰，正文占用 3 字节", "en": "aaa evicted; payload storage uses 3 bytes"}],
+          [{"zh": "同一预算下写入 xxxx", "en": "Insert xxxx under the same budget"}, {"zh": "超过单条预算，不可读取正文", "en": "Over the entry budget; body unavailable"}]
+        ],
+        "caption": {"zh": "受控源码回归断言。小预算是测试输入，不是正式 90 题的配置；这里没有重新计算任务分数。", "en": "Controlled source-regression assertions. The small budgets are test inputs, not the 90-task configuration. No task score is recomputed here."}
+      },
+      "sources": [
+        {"label": {"zh": "会话权限与有界存储", "en": "Session claims and bounded storage"}, "url": "https://github.com/lexmount/moli/blob/39d75b6983122942c43277b8a66bac3dcc0f7d77/moli-protocol/src/domains/network/agent.rs"},
+        {"label": {"zh": "启用参数验证", "en": "Enable-parameter validation"}, "url": "https://github.com/lexmount/moli/blob/39d75b6983122942c43277b8a66bac3dcc0f7d77/moli-protocol/src/domains/network/settings.rs"},
+        {"label": {"zh": "跨导航读取回归测试", "en": "Post-navigation retrieval regressions"}, "url": "https://github.com/lexmount/moli/blob/39d75b6983122942c43277b8a66bac3dcc0f7d77/moli-protocol/src/domains/network/tests/response_body.rs"}
+      ]
+    },
+    {
+      "id": "stop-loading",
+      "title": {"zh": "停止加载，不能把正在显示的页面一起丢掉", "en": "Stopping a load must preserve the displayed document"},
+      "figure": "stop-loading",
+      "caption": {"zh": "显式停止加载的机制示意。“提交”在这里指浏览器把新文档安装为当前页面，不是提交表单；迟到回调仍须核对原文档和令牌身份。", "en": "Explicit-stop mechanism. Commit here means installing the new document as the current page, not submitting a form. Late callbacks still require the original document and token identities."},
+      "paragraphs": [
+        {"zh": "Page.stopLoading 横跨网络、解析器和页面生命周期。原停止路径会通知已装载页面结束生命周期，却没有取消普通、未被拦截的导航传输。另一个问题是取消后若清空所有加载令牌，已经排队的样式完成回调会找不到自己的令牌，触发“必须释放对应加载绑定”的断言。仅让停止命令返回成功，无法证明这些工作已经结束。", "en": "Page.stopLoading crosses networking, parsing and page lifecycle. The old stop path notified the loaded page but did not cancel an ordinary, unpaused navigation transfer. Clearing all load tokens on cancellation also left queued stylesheet completions without their tokens, violating the assertion that a current event must release its exact load binding. A successful stop-command reply alone does not establish that this work has ended."},
+        {"zh": "修复将当前导航的取消句柄一路传到正文流和解析器，同时区分显式停止与普通解析器退出。新文档还没接管页面时，取消保留原页面并记录 ERR_ABORTED；已开始显示新文档时，保留解析完成的前缀，停止读取和解析尾部。普通解析器退出则不应误取消仍在进行的浏览器正文采集。", "en": "The repair carries the current navigation's cancellation handle through the body stream and parser, distinguishing explicit stop from ordinary parser retirement. Before the new document takes over, cancellation retains the previous page and records ERR_ABORTED. After commit, the parsed prefix remains visible while further reading and parsing stop. Ordinary parser retirement must not accidentally cancel ongoing browser-owned response capture."},
+        {"zh": "加载令牌也从“立即删掉”改成“取消阻塞，保留身份”：第一个匹配的迟到回调正常收尾，重复或错误归属的回调被拒绝，不重新触发 load，也不结算新页面的加载状态。专项测试用故意不发送剩余正文的本地服务器，确认停止确实关闭传输，并验证保留的页面仍能执行定时器、下一次导航仍可完成。这组源码修复同样不直接对应一项已隔离的 35 题得分增益。", "en": "Load tokens stop blocking without losing their identity. The first matching late callback settles normally; duplicates and wrong owners are rejected without reopening load or settling a replacement document. Dedicated tests use a local server that deliberately withholds the remaining body, establishing that stop closes the transfer. They also verify that the retained page can run timers and the next navigation can complete. These source repairs likewise have no isolated contribution assigned to the 35-task score gain."}
+      ],
+      "specimen": {
+        "headers": [{"zh": "专项测试输入", "en": "Regression input"}, {"zh": "断言结果", "en": "Asserted outcome"}],
+        "rows": [
+          [{"zh": "已解析 committed prefix，尾部尚未收到，显式停止", "en": "committed prefix parsed, tail still absent, then explicit stop"}, "committed prefix|false|complete"],
+          [{"zh": "停止后在同一页面执行定时器", "en": "Run a timer in the same page after stop"}, "still live"],
+          [{"zh": "第一次完成已取消的样式令牌", "en": "First completion of a canceled style token"}, "CancelledAfterStop"],
+          [{"zh": "再次完成同一令牌", "en": "Complete the same token again"}, "NotOwned"]
+        ],
+        "caption": {"zh": "第一行依次表示前缀文字、尾部元素是否存在、document.readyState。complete 是停止后的就绪状态，不代表服务器正文已完整接收。", "en": "The first row contains prefix text, whether the tail element exists, and document.readyState. complete is the post-stop readiness state, not proof that the full server body arrived."}
+      },
+      "sources": [
+        {"label": {"zh": "停止命令与传输取消", "en": "Stop command and transfer cancellation"}, "url": "https://github.com/lexmount/moli/blob/39d75b6983122942c43277b8a66bac3dcc0f7d77/moli-protocol/src/domains/page/termination.rs"},
+        {"label": {"zh": "加载令牌状态机", "en": "Load-token state machine"}, "url": "https://github.com/lexmount/moli/blob/39d75b6983122942c43277b8a66bac3dcc0f7d77/moli-renderer-v8/src/frame_owner_model/load_event_gate.rs"},
+        {"label": {"zh": "页面与传输回归测试", "en": "Document and transfer regressions"}, "url": "https://github.com/lexmount/moli/blob/39d75b6983122942c43277b8a66bac3dcc0f7d77/moli-protocol/src/domains/page/tests/navigation.rs"},
+        {"label": {"zh": "解析前缀与定时器测试", "en": "Parsed-prefix and timer tests"}, "url": "https://github.com/lexmount/moli/blob/39d75b6983122942c43277b8a66bac3dcc0f7d77/moli-renderer-v8/src/runtime/tests/open_streaming.rs"}
+      ]
+    },
+    {
+      "id": "webdriver-click",
+      "title": {"zh": "同叫点击，走的事件路径却不同", "en": "Two clicks can take different event paths"},
+      "figure": "webdriver-click",
+      "caption": {"zh": "WebDriver 普通元素点击的机制示意。指针输入由自动化驱动，图中的焦点更新是按下阶段的默认行为，受事件取消和控件状态约束；option 和文件输入另有处理规则。", "en": "Mechanism of a WebDriver click on an ordinary element. Automation drives the pointer sequence; focus is a default action during the press phase, subject to cancellation and control state. Options and file inputs have separate rules."},
+      "paragraphs": [
+        {"zh": "WebDriver 的元素点击接口原来直接调用 element.click()。这种脚本点击可以激活按钮，却不会补出指针按下、松开和默认聚焦的完整过程。依赖 mousedown 或焦点变化的页面因此会表现不同。PR 将普通元素点击接到共享输入路径：先把目标滚入视口，检查中心是否被遮挡，再移动、按下和松开指针。遮挡时返回 element click intercepted，不能穿透上层元素。", "en": "The WebDriver element-click endpoint previously called element.click() directly. A script click can activate a button without producing the pointer press, release and default focus behavior. Pages that depend on mousedown or focus changes can therefore behave differently. The PR routes ordinary-element clicks through shared input: scroll the target into view, check whether its center is obscured, then move, press and release the pointer. An overlay produces element click intercepted rather than a click through the covering element."},
+        {"zh": "子页面内的目标还需要把坐标换算到顶层视口。若按下事件已经触发导航，剩余输入必须保留原页面归属，不能在新页面同一位置再点一次。专项测试分别覆盖偏移 iframe、按下时导航、取消聚焦、禁用按钮和遮挡；通过 execute/sync 执行的 JavaScript .click() 仍保留脚本点击语义。", "en": "Targets inside frames also need coordinates mapped into the top-level viewport. If the press starts navigation, the remaining input must retain its original page identity rather than click the replacement page at the same position. Regressions cover offset iframes, navigation during the press, canceled focus, disabled buttons and overlays. JavaScript .click() through execute/sync retains script-click semantics."},
+        {"zh": "这项修复属于 WebDriver Classic 接口。本轮 BrowserTool 轨迹使用另一条协议入口，不能把 WebDriver 接口修复直接记为 35 题中的得分增益。它说明 PR 的修复范围大于这份失败题清单。", "en": "This repair belongs to the WebDriver Classic interface. The BrowserTool trajectories use a different protocol entry point, so this adapter repair cannot be assigned a score gain among the 35 failures. The PR covers more than the benchmark's failure inventory."}
+      ],
+      "specimen": {
+        "headers": [{"zh": "源码回归输入", "en": "Source-regression input"}, {"zh": "观察与断言", "en": "Observation and assertion"}],
+        "rows": [
+          [{"zh": "普通按钮的 WebDriver 点击", "en": "WebDriver click on an ordinary button"}, "pointerdown:true → mousedown:true → focus:true → mouseup:true → click:true"],
+          [{"zh": "execute/sync 中调用 .click()", "en": "Call .click() through execute/sync"}, {"zh": "click 的 isTrusted=false，焦点留在原控件", "en": "click has isTrusted=false; focus stays on the original control"}],
+          [{"zh": "目标中心被覆盖", "en": "Target center is covered"}, "element click intercepted"],
+          [{"zh": "mousedown 触发页面替换", "en": "mousedown replaces the page"}, {"zh": "新页面点击数为 0；后续独立点击仍有效", "en": "Replacement-page click count is 0; a later independent click still works"}]
+        ],
+        "caption": {"zh": "首行是测试监听的事件子集，true 表示 isTrusted，不代表真人操作。各行是受控源码回归，不是新增评测任务。", "en": "The first row is the subset of events observed by the fixture. true means isTrusted, not human operation. These are controlled source regressions, not additional benchmark tasks."}
+      },
+      "sources": [
+        {"label": {"zh": "点击预检与输入命令", "en": "Click preflight and input commands"}, "url": "https://github.com/lexmount/moli/blob/39d75b6983122942c43277b8a66bac3dcc0f7d77/moli-protocol-webdriver-classic/src/commands/elements.rs"},
+        {"label": {"zh": "协议映射回归测试", "en": "Protocol-mapping regressions"}, "url": "https://github.com/lexmount/moli/blob/39d75b6983122942c43277b8a66bac3dcc0f7d77/moli-protocol-webdriver-classic/src/tests.rs"},
+        {"label": {"zh": "真实协议请求的事件、焦点和导航测试", "en": "Events, focus and navigation through protocol requests"}, "url": "https://github.com/lexmount/moli/blob/39d75b6983122942c43277b8a66bac3dcc0f7d77/moli-protocol-server/src/protocol_server/tests/classic.rs#L11140"}
+      ]
     },
     {
       "id": "form-named-lookup",

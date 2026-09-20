@@ -67,7 +67,7 @@ browser-use-release-check: browser-use-report-check
 
 trajectory-replay-report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/build_webarena_replay_report.py --results "$(EVIDENCE)" $(if $(DIAGNOSTIC_CLOSURE),--diagnostic-closure "$(DIAGNOSTIC_CLOSURE)",)
+	$(PY) scripts/build_webarena_replay_report.py --results "$(EVIDENCE)" $(if $(filter 1,$(ENGLISH)),--include-english,) $(if $(DIAGNOSTIC_CLOSURE),--diagnostic-closure "$(DIAGNOSTIC_CLOSURE)",)
 
 trajectory-replay-report-check: runtime-check
 	$(PY) scripts/check_webarena_replay_report.py reports/trajectory-replay

@@ -32,6 +32,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--results", required=True)
     parser.add_argument("--output", default="reports/trajectory-replay")
+    parser.add_argument("--include-english", action="store_true", help="Explicitly generate the English report and its assets")
     args = parser.parse_args()
     profile = json.loads(PROFILE.read_text(encoding="utf-8"))
     dataset_path = _bound_dataset_path(profile)
@@ -41,6 +42,7 @@ def main() -> None:
         review_path="research/trajectory-replay-failure-review.json",
         profile_path=PROFILE,
         output_dir=args.output,
+        include_english=args.include_english,
         interpretation_path="research/trajectory-replay-interpretation.json",
     )
     print(json.dumps(manifest, ensure_ascii=False))
