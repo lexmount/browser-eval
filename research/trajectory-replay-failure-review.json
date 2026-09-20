@@ -236,22 +236,6 @@
         {
           "participant_id": "moli-1.1.8",
           "engine": "moli",
-          "task_id": 314,
-          "trace_sha256": "1d8aa56ceeb5939c9a508f3a4ea9f79a439bb9064c8a966dfb00eec4b41a092f",
-          "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 2 步，动作 click。 目标：:nth-match(a[href=\"/primer/design\"]:visible, 2)。",
-          "reason_en": "The actual locator times out. The later diagnostic SyntaxError comes from passing Playwright-only selector syntax to native DOM querySelector and does not cause the preceding action failure. Recorded failure: step 2, action click. Target: :nth-match(a[href=\"/primer/design\"]:visible, 2)."
-        },
-        {
-          "participant_id": "moli-1.1.8",
-          "engine": "moli",
-          "task_id": 349,
-          "trace_sha256": "d65f8d12240321c190d5f0815cb74e60a6b182b4d2286a96984239e40e25959d",
-          "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 2 步，动作 click。 目标：:nth-match(a[href=\"/byteblaze/gimmiethat.space\"]:visible, 2)。",
-          "reason_en": "The actual locator times out. The later diagnostic SyntaxError comes from passing Playwright-only selector syntax to native DOM querySelector and does not cause the preceding action failure. Recorded failure: step 2, action click. Target: :nth-match(a[href=\"/byteblaze/gimmiethat.space\"]:visible, 2)."
-        },
-        {
-          "participant_id": "moli-1.1.8",
-          "engine": "moli",
           "task_id": 418,
           "trace_sha256": "aa4bc39d40db37208337cbd3ce6d461f55e5db99c42cbe14a3288aafc4cb78fd",
           "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 4 步，动作 click。 目标：button:visible:has-text(\"Set status\")。",
@@ -264,6 +248,44 @@
           "trace_sha256": "25c6cd1c0ce92c29fe92dc8dc765c1ba3f0d902d7c425f59ae17dc06190fc969",
           "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 9 步，动作 click。 目标：button:visible:has-text(\"Submit Review\")。",
           "reason_en": "The actual locator times out. The later diagnostic SyntaxError comes from passing Playwright-only selector syntax to native DOM querySelector and does not cause the preceding action failure. Recorded failure: step 9, action click. Target: button:visible:has-text(\"Submit Review\")."
+        }
+      ]
+    },
+    {
+      "code": "zero_width_candidate_changes_visible_ordinal",
+      "label_zh": "零宽链接改变可见元素序号",
+      "label_en": "Zero-width link changes the visible ordinal",
+      "responsibility": "browser",
+      "remediation_owner": "Moli layout geometry",
+      "remediation_owner_zh": "Moli 布局几何",
+      "remediation_owner_en": "Moli layout geometry",
+      "remediation_status": "passed_in_pr_comparison",
+      "remediation_status_zh": "发布版失败保留；PR 修复版本轮通过",
+      "remediation_status_en": "Released failure retained; PR build passed this cohort",
+      "results": [
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 314,
+          "trace_sha256": "1d8aa56ceeb5939c9a508f3a4ea9f79a439bb9064c8a966dfb00eec4b41a092f",
+          "reason_zh": "第 2 步寻找第二个可见的 /primer/design 链接。只读实测发现两个同址链接均存在，第二个文字链接尺寸正常；发布版却把第一个头像链接算成零宽，过滤后只剩一个可见候选，第二个可见候选因此不存在。PR 版第一个链接为 64×48。独立行内链接嵌套块元素实验也复现零宽到非零宽的差异。原始诊断另有选择器语法错误，已修复诊断采集，但它不是点击超时的原因。",
+          "reason_en": "Step 2 requests the second visible /primer/design link. A read-only probe finds both links and normal text-link geometry, but the release gives the first avatar link zero width. Visibility filtering leaves only one candidate, so the second visible candidate does not exist. The PR build measures the first link as 64×48. An independent inline-link/block-content fixture reproduces the zero-to-nonzero width change. The original diagnostic selector error was separate and has been repaired; it did not cause the click timeout.",
+          "supplemental_diagnostic": {
+            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-314-readonly-geometry.json",
+            "sha256": "43511ee1c3a0cde0b63faf27d07ba7311c94b1ab3218cdb37a56f4c048dd490f"
+          }
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 349,
+          "trace_sha256": "d65f8d12240321c190d5f0815cb74e60a6b182b4d2286a96984239e40e25959d",
+          "reason_zh": "第 2 步寻找第二个可见的 /byteblaze/gimmiethat.space 链接。只读实测确认第一个头像链接在发布版中宽度为零，在 PR 版中为 64×48；第二个文字链接在两版中均有正常尺寸。零宽候选被过滤后，原选择器要求的第二个可见链接不存在。这个差异与独立行内链接嵌套块元素实验一致。原始诊断的 SyntaxError 发生在点击超时之后，不是点击失败原因。",
+          "reason_en": "Step 2 requests the second visible /byteblaze/gimmiethat.space link. The read-only probe measures the first avatar link at zero width in the release and 64×48 in the PR build; the second text link has normal geometry in both. Filtering out the zero-width candidate leaves no second visible link. This agrees with the independent inline-link/block-content fixture. The original diagnostic SyntaxError followed the click timeout and did not cause it.",
+          "supplemental_diagnostic": {
+            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-349-readonly-geometry.json",
+            "sha256": "9fbf55b3fa56440e452f72b58b9ec0c43c729953e7420f811640d38191846b59"
+          }
         }
       ]
     },
@@ -373,9 +395,9 @@
     },
     {
       "code": "configuration_wizard_readiness_predicate",
-      "label_zh": "商品配置向导未满足就绪检查",
-      "label_en": "Product wizard readiness check failed",
-      "responsibility": "browser_site_readiness_boundary",
+      "label_zh": "配置向导的几何状态未更新",
+      "label_en": "Stale configuration wizard geometry",
+      "responsibility": "browser",
       "remediation_owner": "Moli browser and BrowserTool integration",
       "remediation_status": "passed_in_pr_comparison",
       "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
@@ -388,16 +410,20 @@
           "engine": "moli",
           "task_id": 547,
           "trace_sha256": "18e68bcb9ccf45fc0b2d8a9bea1299ba4c5615489e6a14f18289d5bcd6e5ca85",
-          "reason_zh": "第 5 步在 30 秒内未同时满足配置向导、组件状态和 Next 事件绑定检查。截图已显示选中的 Size、Color 和 Next 按钮，不能据报错认定属性不存在；轨迹没有记录具体哪一项检查未满足。 失败记录：第 5 步，动作 evaluate。",
-          "reason_en": "Configuration step readiness conjunction times out while the screenshot shows selected Size and Color; the exact failed conjunct was not recorded. Recorded failure: step 5, action evaluate."
+          "reason_zh": "原始第 5 步把几何可见性、组件初始化、选项和事件绑定合并检查。补充只读实测逐项拆开后，组件已初始化、Color／Size 正确、向导关联与 Next 点击处理器均正常；发布版对话框和 Next 却返回零矩形，5 秒后仍不变，PR 版返回正常尺寸。失败条件是 getClientRects().length 为零，归入布局状态未更新。诊断额外等待 Edit Configurations 出现后才打开窗口，不点击 Next、不保存；原始成绩保留。",
+          "reason_en": "The original step 5 combines geometry, component initialization, selected attributes and event binding. A supplemental read-only probe separates these checks: initialization, Color/Size selection, wizard ownership and the Next click handler are all ready, but the release returns zero rectangles for the dialog and Next button even after another five seconds; the PR build returns normal dimensions. The failed predicate is getClientRects().length > 0, locating stale layout geometry. This diagnostic additionally waits for Edit Configurations to appear before opening the dialog, never clicks Next or saves, and preserves the original score.",
+          "supplemental_diagnostic": {
+            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-547-readonly-geometry.json",
+            "sha256": "8226b45f11913c73686a34d0a3604fd5db4f5bdf9f333f90bd68d038e8f17e24"
+          }
         }
       ]
     },
     {
       "code": "suggestion_dom_selection",
-      "label_zh": "用户建议项未被 DOM 条件选中",
-      "label_en": "User suggestion not selected by DOM predicate",
-      "responsibility": "browser_site_readiness_boundary",
+      "label_zh": "用户建议项的几何状态未更新",
+      "label_en": "Stale suggestion geometry",
+      "responsibility": "browser",
       "remediation_owner": "Moli browser and BrowserTool integration",
       "remediation_status": "passed_in_pr_comparison",
       "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
@@ -410,8 +436,12 @@
           "engine": "moli",
           "task_id": 576,
           "trace_sha256": "c77ddb569c726356766f9fe17973743ba982d769420528ac8b174e8d5182700f",
-          "reason_zh": "用户查询返回 HTTP 200 和正确的 abisubramanya27，截图也显示该建议项，但固定等待两秒后的按钮查找未找到 offsetParent 非空且文本匹配的元素。不是用户不存在；现有记录不足以区分几何属性行为与建议项渲染时序。 失败记录：第 6 步，动作 evaluate。",
-          "reason_en": "Search returns the exact user and the screenshot shows the suggestion, but the button/offsetParent predicate finds no eligible target. Recorded failure: step 6, action evaluate."
+          "reason_zh": "第 6 步用 offsetParent 筛选建议项，误把已显示的用户按钮排除。补充只读实测确认：发布版仍返回零面积和空 offsetParent，多等 5 秒不变；PR 版返回正常几何值。下方表格保留两版实测。独立 CSS 更新实验也复现了旧布局树被复用；修复在 context_host/layout.rs 拒绝脏缓存，并在 layout_state.rs 标记布局输入变化。原始分数不变。",
+          "reason_en": "Step 6 filters suggestions by offsetParent and excludes the displayed user button. A read-only probe confirms zero-area geometry and a null offsetParent in the release, unchanged after another five seconds, versus normal geometry in the PR build. The table below retains both observations. An isolated CSS-update probe also reproduces reuse of a stale layout tree. The fix rejects dirty cached trees in context_host/layout.rs and marks changed inputs in layout_state.rs. The original score is unchanged.",
+          "supplemental_diagnostic": {
+            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-576-readonly-geometry.json",
+            "sha256": "975b5fa872f2c9281705dcce1f55aa8efd55ff295bbc34e3093d0934f10a6d7b"
+          }
         }
       ]
     },

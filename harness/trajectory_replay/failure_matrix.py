@@ -9,7 +9,10 @@ from urllib.parse import urlencode
 FAMILIES = (
     ("geometry", "布局与可见性", "Layout and visibility", (
         "zero_area_target_geometry", "zero_width_forum_link",
+        "zero_width_candidate_changes_visible_ordinal",
         "visible_locator_timeout_without_geometry",
+        "suggestion_dom_selection",
+        "configuration_wizard_readiness_predicate",
     )),
     ("interaction", "输入与动作效果", "Input and action effects", (
         "input_navigation_lifecycle", "cart_add_effect_absent",
@@ -17,9 +20,6 @@ FAMILIES = (
     )),
     ("network", "网络传输与记录", "Network transport and recording", (
         "fetch_transport_timeout", "recorded_referer_mismatch",
-    )),
-    ("script", "页面脚本与就绪条件", "Page scripts and readiness", (
-        "configuration_wizard_readiness_predicate", "suggestion_dom_selection",
     )),
     ("document", "文档表示", "Document representation", (
         "json_document_dom_contract",

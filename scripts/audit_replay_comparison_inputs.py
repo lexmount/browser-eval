@@ -8,10 +8,33 @@ fairness certificate. Measured output belongs outside the repository.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 from pathlib import Path
 from typing import Any
+
+
+def validate_contract_annotations(annotations: dict, audit: dict, bindings: dict) -> None:
+    """Require an exact, bilingual inventory of selected contract changes."""
+    if annotations.get("schema") != "lex_replay_contract_audit/1":
+        raise ValueError("unknown contract audit schema")
+    if annotations.get("bindings") != bindings:
+        raise ValueError("contract audit bindings differ from inspected inputs")
+    fork = {row["task_id"] for row in audit["fork"]["dataset_changes"] if row["selected"]}
+    local = {row["task_id"] for row in audit["local_contract_edits"]}
+    rows = annotations.get("task_contract_changes", [])
+    ids = [row["task_id"] for row in rows]
+    if len(ids) != len(set(ids)) or set(ids) != fork | local:
+        raise ValueError("contract audit must cover exactly the selected changed tasks")
+    for row in rows:
+        task = row["task_id"]
+        layer = "fork_and_local" if task in fork & local else "fork" if task in fork else "local"
+        if row.get("layer") != layer:
+            raise ValueError("contract audit change layer differs")
+        for key in ("kind", "before_zh", "after_zh", "before_en", "after_en"):
+            if not isinstance(row.get(key), str) or not row[key].strip():
+                raise ValueError("contract audit requires bilingual explanations")
 
 
 def audit_dataset_changes(before: list[dict], after: list[dict], selected: set[int]) -> list[dict]:
@@ -98,6 +121,7 @@ def main() -> None:
     parser.add_argument("--fork-repository", type=Path)
     parser.add_argument("--upstream-ref")
     parser.add_argument("--fork-ref")
+    parser.add_argument("--annotations", type=Path)
     args = parser.parse_args()
     def read(path: Path) -> dict:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -117,6 +141,22 @@ def main() -> None:
         selected = {row["task_id"] for row in results["attempts"]}
         audit["fork"] = {"upstream_commit": commits[0], "fork_commit": commits[1],
                          "dataset_changes": audit_dataset_changes(*datasets, selected)}
+    if args.annotations:
+        if not all(fork_args):
+            parser.error("annotation validation requires the fork inventory")
+        profile = read(args.profile)
+        dataset_path = Path(profile["dataset"]["path"])
+        bindings = {
+            "results_sha256": hashlib.sha256(args.results.read_bytes()).hexdigest(),
+            "dataset_sha256": hashlib.sha256(dataset_path.read_bytes()).hexdigest(),
+            "corrections_sha256": hashlib.sha256(args.corrections.read_bytes()).hexdigest(),
+            "upstream_commit": commits[0], "fork_commit": commits[1],
+        }
+        if bindings["dataset_sha256"] != profile["dataset"]["sha256"] or results["dataset_sha256"] != bindings["dataset_sha256"]:
+            raise ValueError("comparison dataset binding differs")
+        annotations = read(args.annotations)
+        validate_contract_annotations(annotations, audit, bindings)
+        audit["contract_annotations"] = annotations
     print(json.dumps(audit, ensure_ascii=False, indent=2))
 
 

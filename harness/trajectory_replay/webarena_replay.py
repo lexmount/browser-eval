@@ -702,6 +702,44 @@ def _embedded_observation_error(
     return result_text[len(prefix) :].removesuffix("]").strip()
 
 
+def _diagnostic_locator(selector: str) -> str:
+    """Expand visibility/ordinal filters without confusing CSS with locators.
+
+    Diagnostic candidates intentionally include hidden/zero-area elements.
+    The original action and its locator remain unchanged.
+    """
+    output = []
+    quote = None
+    index = 0
+    while index < len(selector):
+        char = selector[index]
+        if char == "\\" and index + 1 < len(selector):
+            output.append(selector[index:index + 2])
+            index += 2
+            continue
+        if quote:
+            if char == quote:
+                quote = None
+        elif char in ("'", '"'):
+            quote = char
+        elif selector.startswith(":visible", index) and (
+            index + 8 == len(selector) or not (selector[index + 8].isalnum() or selector[index + 8] in "_-\\")
+        ):
+            index += 8
+            continue
+        output.append(char)
+        index += 1
+    diagnostic = "".join(output)
+    # :nth-match(...:visible, 2) can fail because an earlier sibling is
+    # zero-area. Keeping the ordinal would hide that missing first match.
+    if diagnostic.startswith(":nth-match(") and diagnostic.endswith(")"):
+        inner = diagnostic[len(":nth-match("):-1]
+        candidate, separator, ordinal = inner.rpartition(",")
+        if separator and ordinal.strip().isdigit():
+            diagnostic = candidate.strip()
+    return diagnostic
+
+
 def _capture_failure_ui_state(service: Any, arguments: dict[str, Any]) -> dict[str, Any]:
     """Retain bounded DOM geometry after a failed action without form values.
 
@@ -714,8 +752,8 @@ def _capture_failure_ui_state(service: Any, arguments: dict[str, Any]) -> dict[s
     selector = arguments.get("selector")
     if not isinstance(selector, str) or len(selector) > 1000:
         selector = None
-    return service._submit(
-        lambda: service._page.evaluate(
+    def observe() -> dict[str, Any]:
+        result = service._page.evaluate(
             """selector => {
               const state = element => {
                 const rect = element.getBoundingClientRect();
@@ -726,21 +764,10 @@ def _capture_failure_ui_state(service: Any, arguments: dict[str, Any]) -> dict[s
                   visibility: style.visibility,
                   rect: [rect.x, rect.y, rect.width, rect.height]};
               };
-              const nativeSelector = selector?.endsWith(':visible')
-                ? selector.slice(0, -':visible'.length) : selector;
               const result = {page_origin_path: location.origin + location.pathname,
-                ready_state: document.readyState, selector, native_selector: nativeSelector,
+                ready_state: document.readyState, selector, native_selector: null,
                 selector_count: null,
                 selector_error: null, matched_controls: [], region_controls: []};
-              if (nativeSelector) {
-                try {
-                  const matches = [...document.querySelectorAll(nativeSelector)];
-                  result.selector_count = matches.length;
-                  result.matched_controls = matches.slice(0, 8).map(state);
-                } catch (error) {
-                  result.selector_error = error?.name || 'invalid_selector';
-                }
-              }
               result.region_controls = [...document.querySelectorAll(
                 'select[name*="region"],input[name*="region"],'
                 + 'select[id*="region"],input[id*="region"]')]
@@ -749,7 +776,29 @@ def _capture_failure_ui_state(service: Any, arguments: dict[str, Any]) -> dict[s
             }""",
             selector,
         )
-    )
+        if selector:
+            diagnostic = _diagnostic_locator(selector)
+            result["diagnostic_selector"] = diagnostic
+            result["selector_engine"] = "playwright"
+            result["candidate_scope"] = "visibility_and_outer_ordinal_filters_removed"
+            try:
+                observed = service._page.locator(diagnostic).evaluate_all(
+                    """elements => ({selector_count: elements.length,
+                      matched_controls: elements.slice(0,8).map(element => {
+                        const r=element.getBoundingClientRect(),s=getComputedStyle(element);
+                        return {tag:element.tagName.toLowerCase(),id:element.id||null,
+                          name:element.getAttribute('name'),hidden:element.hidden,
+                          disabled:!!element.disabled,display:s.display,visibility:s.visibility,
+                          rect:[r.x,r.y,r.width,r.height],client_rect_count:element.getClientRects().length,
+                          has_offset_parent:element.offsetParent!==null};
+                      })})"""
+                )
+                result.update(observed)
+            except Exception as exc:
+                result["selector_error"] = type(exc).__name__
+        return result
+
+    return service._submit(observe)
 
 
 def _stop_all_sites() -> None:

@@ -284,6 +284,58 @@ def _load_artifact(ref: dict[str, Any] | None) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _supplemental_diagnostic(review: dict[str, Any] | None, task_id: int) -> Any:
+    ref = (review or {}).get("supplemental_diagnostic")
+    if not ref:
+        return None
+    diagnostic = _load_artifact(ref)
+    if (diagnostic.get("schema") != "lex_replay_supplemental_diagnostic/1"
+            or diagnostic.get("task_id") != task_id
+            or diagnostic.get("scope") != "read_only_prefix_on_current_site_not_a_replacement_score"
+            or diagnostic.get("mutations_submitted") is not False):
+        raise ValueError("supplemental diagnostic scope or task differs")
+    return diagnostic
+
+
+def _supplemental_diagnostic_html(diagnostic: dict | None, lang: str) -> str:
+    if not diagnostic:
+        return ""
+    zh = lang == "zh"
+    rows = []
+    component_rows = []
+    for method in diagnostic["observations"]:
+        label = {"release": "Moli 1.1.8", "pr": "Moli · PR 640"}.get(method["method"], method["method"])
+        for sample in method["observations"]:
+            for component in sample["state"].get("components", []):
+                values = (label, f'{sample["delay"]} s', component["initialized"],
+                          ", ".join(component["labels"]), component["wizardMatches"],
+                          component["stepMatches"], component["selectedMatches"], component["handlerCount"])
+                component_rows.append("<tr>" + "".join(f"<td>{_e(value)}</td>" for value in values) + "</tr>")
+            for control in sample["state"].get("buttons", []) + sample["state"].get("dialogs", []):
+                rect = " × ".join(str(value) for value in control["rect"])
+                values = (label, f'{sample["delay"]} s', control["text"],
+                          f'{control["display"]} / {control["visibility"]}', rect,
+                          control["rectCount"], "non-null" if control["offsetParent"] else "null")
+                rows.append("<tr>" + "".join(f"<td>{_e(value)}</td>" for value in values) + "</tr>")
+    headers = ("方法", "追加等待", "目标文本", "display / visibility", "宽 × 高（px）", "矩形数", "offsetParent") if zh else (
+        "Method", "Additional wait", "Target text", "display / visibility", "Width × height (px)", "Client rects", "offsetParent")
+    title = "补充实测：同页目标的几何状态" if zh else "Supplemental probe: target geometry on the same page"
+    scope = ("仅打开界面或搜索，没有提交表单或发送邀请。这里记录的是后续只读诊断；原始失败轨迹与成绩保持不变。" if zh else
+             "The probe only opened the interface or searched; no form or invitation was submitted. These later read-only observations do not replace the original trace or score.")
+    components = ""
+    if component_rows:
+        component_headers = ("方法", "追加等待", "组件已初始化", "属性选项", "向导匹配", "步骤匹配", "选择匹配", "事件处理器数") if zh else (
+            "Method", "Additional wait", "Component initialized", "Attribute options", "Wizard matches", "Step matches", "Selection matches", "Event handlers")
+        components = ('<div class="table-scroll"><table data-component-readiness><thead><tr>'
+                      + "".join(f"<th>{_e(header)}</th>" for header in component_headers)
+                      + '</tr></thead><tbody>' + "".join(component_rows) + '</tbody></table></div>')
+    return (f'<section data-supplemental-diagnostic><details><summary>{title}</summary><p>{scope}</p>'
+            + components +
+            '<div class="table-scroll"><table><thead><tr>'
+            + "".join(f"<th>{_e(header)}</th>" for header in headers)
+            + '</tr></thead><tbody>' + "".join(rows) + '</tbody></table></div></details></section>')
+
+
 def _corrected_acceptance_by_task(attempts: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:
     """Expose corrected evaluator expectations without replacing the frozen dataset."""
     corrected: dict[int, dict[str, Any]] = {}
@@ -628,6 +680,7 @@ def _public_evidence(
         "site_reset": site_reset,
         "readiness": readiness,
         "reference_validity": attempt.get("reference_validity"),
+        "supplemental_diagnostic": _supplemental_diagnostic(review, int(attempt["task_id"])),
         "screenshot": screenshot,
     }
     _write_json(output / "data/evidence" / f"{key}.json", public)
@@ -804,6 +857,7 @@ def _detail_page(
         action_locator = f'{failed_action} #{failed_index}' if failed_index else ((f'{("触发动作" if zh else "Trigger action")} #{trigger_index}; {("请求未满足验收条件" if zh else "request does not meet acceptance")}') if trigger_index else ("所有动作执行后" if zh else "After all actions"))
         expected_network = f'<h3>{"要求匹配的网络条件" if zh else "Required network match"}</h3><pre>{_e(json.dumps(failed["expected_network"], ensure_ascii=False, indent=2))}</pre>' if failed.get("expected_network") else ""
         failure_panel = f'''<section id="diagnosis"><h2>{"失败定位与处理" if zh else "Failure diagnosis and treatment"}</h2><div class="diagnosis-panel"><div class="diagnosis-facts"><div><span>{"失败环节" if zh else "Failure stage"}</span><strong>{_e(stage)}</strong></div><div><span>{"失败位置" if zh else "Failure location"}</span><strong>{_e(action_locator)}</strong></div><div><span>{"复核分类" if zh else "Reviewed category"}</span><strong>{_e(label)}</strong></div></div><h3>{"程序原始判定" if zh else "Exact programmatic finding"}</h3><pre>{_e(failed["message"])}</pre>{expected_network}<h3>{"复核判断与依据" if zh else "Reviewed cause and basis"}</h3><p>{_e(reason)}</p><p>{"处理方" if zh else "Owner"}: {_e(review.get(f"remediation_owner_{lang}", review.get("remediation_owner")) if review else "—")} · {"状态" if zh else "Status"}: {_e(review.get(f"remediation_status_{lang}", review.get("remediation_status")) if review else "—")}</p>{step_link}</div></section>'''
+    failure_panel += _supplemental_diagnostic_html(evidence.get("supplemental_diagnostic"), lang)
     facts = [
         (("完成动作", "Actions completed"), f'{attempt["completed_action_count"]}/{attempt["action_count"]}'),
         (("端到端耗时", "End-to-end time"), _format_ms(attempt.get("duration_ms")) if zh else f'{attempt.get("duration_ms", 0) / 1000:.1f} s'),

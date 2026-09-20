@@ -86,6 +86,20 @@ def load_validated_failure_review(
             ).strip():
                 raise ValueError(f"failure review reason is incomplete: {key}")
             reviewed[key] = {**bind_participant(item, registry), "cause_group": group}
+            if item.get("supplemental_diagnostic"):
+                ref = item["supplemental_diagnostic"]
+                source = Path(ref["path"])
+                if (not source.is_absolute() or not source.is_file()
+                        or any(part.is_symlink() for part in (source, *source.parents))
+                        or _sha256(source) != ref.get("sha256")):
+                    raise ValueError("supplemental diagnostic evidence is missing or changed")
+                diagnostic = json.loads(source.read_text(encoding="utf-8"))
+                if (diagnostic.get("task_id") != key[1]
+                        or diagnostic.get("cohort_results_sha256") != review["bindings"]["effective_results_sha256"]):
+                    raise ValueError("supplemental diagnostic is not bound to the reviewed cohort")
+                binaries = {attempt.get("binary_sha256") for attempt in attempts if int(attempt["task_id"]) == key[1]}
+                if not set(diagnostic.get("binary_sha256", {}).values()).issubset(binaries):
+                    raise ValueError("supplemental diagnostic browser identity differs")
             if item.get("review_revision"):
                 revision = revisions.get(item["review_revision"])
                 if (

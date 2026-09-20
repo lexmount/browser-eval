@@ -39,9 +39,17 @@ def test_failure_ui_observation_bounds_selector_and_excludes_form_values() -> No
         def evaluate(self, script: str, selector: str | None) -> dict[str, object]:
             assert "getBoundingClientRect" in script
             assert "getComputedStyle" in script
-            assert "selector?.endsWith(':visible')" in script
+            assert "document.querySelectorAll(nativeSelector)" not in script
             assert "element.value" not in script
             return {"selector": selector, "region_controls": []}
+
+        def locator(self, selector):
+            class Locator:
+                def evaluate_all(self, script):
+                    assert "element.value" not in script
+                    assert "getBoundingClientRect" in script
+                    return {"selector_count": 1, "matched_controls": []}
+            return Locator()
 
     class Service:
         _page = Page()
