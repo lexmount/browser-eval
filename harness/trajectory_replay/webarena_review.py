@@ -98,7 +98,13 @@ def load_validated_failure_review(
                         or diagnostic.get("cohort_results_sha256") != review["bindings"]["effective_results_sha256"]):
                     raise ValueError("supplemental diagnostic is not bound to the reviewed cohort")
                 binaries = {attempt.get("binary_sha256") for attempt in attempts if int(attempt["task_id"]) == key[1]}
-                if not set(diagnostic.get("binary_sha256", {}).values()).issubset(binaries):
+                identities = diagnostic.get("binary_sha256")
+                observations = diagnostic.get("observations")
+                if (not isinstance(identities, dict) or not identities
+                        or not isinstance(observations, list) or not observations
+                        or {row.get("method") for row in observations} != set(identities)
+                        or any(not isinstance(value, str) or len(value) != 64 for value in identities.values())
+                        or not set(identities.values()).issubset(binaries)):
                     raise ValueError("supplemental diagnostic browser identity differs")
             if item.get("review_revision"):
                 revision = revisions.get(item["review_revision"])

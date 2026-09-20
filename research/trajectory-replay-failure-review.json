@@ -10,7 +10,7 @@
   },
   "review_protocol": {
     "unit": "one final logical result per method and task",
-    "method": "Failure-only review of fixed actions, tool output, DOM diagnostics, screenshots, HAR, evaluator output and source changes; no new browser calls.",
+    "method": "Failure-only review of frozen actions, tool output, DOM diagnostics, screenshots, HAR, evaluator output and source changes. Separately bound read-only browser probes supplement diagnosis without replacing measured scores.",
     "reviewed_results": 35,
     "total_results": 270,
     "accepted_unreviewed_passes": 235,
@@ -124,6 +124,66 @@
           "trace_sha256": "b78ea1497a9a90d775a7eaff4513e3a0294a67d969be3c8cecef3ac6c3e24765",
           "reason_zh": "失败时目标元素存在，CSS 未将其隐藏，但记录的边界矩形为零；因此带 :visible 的定位器无法匹配，等待 60 秒后超时。该记录定位到布局/可见性输出，不单凭它认定某个源码提交是原因。 失败记录：第 7 步，动作 click。 目标：a[href=\"/f/gadgets/top?t=day\"]:visible。",
           "reason_en": "Recorded target controls exist with visible CSS but all-zero bounding rectangles; the visible locator times out. Recorded failure: step 7, action click. Target: a[href=\"/f/gadgets/top?t=day\"]:visible."
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 108,
+          "trace_sha256": "87aba4d46d17a201e786179d935f96d28f140e8ae41aa6c97e54e05ae4f7a5a5",
+          "reason_zh": "原运行在带 :visible 的定位器上超时。补充实测直接进入订单页，没有复现完整历史前缀：1.1.8 中三个 Filters 候选均为零面积；PR 版本第一个为 100.703125 × 33。零面积解释了可见性筛选为何拒绝目标；这定位到布局输出差异，尚不能单独归因于某个源码提交。补充实测使用当前站点与冻结浏览器，不点击最终目标、不提交表单，不替代原成绩。",
+          "reason_en": "The historical run times out on a :visible locator. The supplemental probe navigates directly to the orders page rather than reproducing the complete historical prefix: in 1.1.8, all three Filters candidates have zero area; the first PR candidate measures 100.703125 × 33. Zero area explains rejection by the visibility filter and identifies a layout-output difference, but does not isolate an individual source commit. The probe uses the current site and frozen binaries, does not click the final target or submit a form, and does not replace the original score.",
+          "supplemental_diagnostic": {
+            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-108-readonly-geometry.json",
+            "sha256": "87172a29ebc5eeb6c0112f2077c0ac8965f25d3299deb0b016e4e37d9980408d"
+          }
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 163,
+          "trace_sha256": "39724bce8126e46213ea32268be26644b188a124a665f21da84c4e61813fbfc5",
+          "reason_zh": "原运行在带 :visible 的定位器上超时。补充实测执行到失败点击之前，额外等待 10 秒：1.1.8 中四个评论分页候选均为零面积；PR 版本两个候选分别为 14.84375 × 32 和 36 × 34。零面积解释了可见性筛选为何拒绝目标；这定位到布局输出差异，尚不能单独归因于某个源码提交。补充实测使用当前站点与冻结浏览器，不点击最终目标、不提交表单，不替代原成绩。",
+          "reason_en": "The historical run times out on a :visible locator. The supplemental probe executes the prefix before the failed click and waits an additional 10 seconds: in 1.1.8, all four review-pagination candidates have zero area; two PR candidates measure 14.84375 × 32 and 36 × 34. Zero area explains rejection by the visibility filter and identifies a layout-output difference, but does not isolate an individual source commit. The probe uses the current site and frozen binaries, does not click the final target or submit a form, and does not replace the original score.",
+          "supplemental_diagnostic": {
+            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-163-readonly-geometry.json",
+            "sha256": "ce19d39e07ddc90c3d4872fbe8cb7a2a29a9f1bd1124986fb9a9c075db579b49"
+          }
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 196,
+          "trace_sha256": "67725c9eca5cf5c971750d267807c538bcda09d3431ad0045a0a3423d6054e44",
+          "reason_zh": "原运行在带 :visible 的定位器上超时。补充实测直接进入订单页，没有复现完整历史前缀：1.1.8 中三个 Filters 候选均为零面积；PR 版本第一个为 100.703125 × 33。零面积解释了可见性筛选为何拒绝目标；这定位到布局输出差异，尚不能单独归因于某个源码提交。补充实测使用当前站点与冻结浏览器，不点击最终目标、不提交表单，不替代原成绩。",
+          "reason_en": "The historical run times out on a :visible locator. The supplemental probe navigates directly to the orders page rather than reproducing the complete historical prefix: in 1.1.8, all three Filters candidates have zero area; the first PR candidate measures 100.703125 × 33. Zero area explains rejection by the visibility filter and identifies a layout-output difference, but does not isolate an individual source commit. The probe uses the current site and frozen binaries, does not click the final target or submit a form, and does not replace the original score.",
+          "supplemental_diagnostic": {
+            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-196-readonly-geometry.json",
+            "sha256": "98adb44e54e3dbac9b27d44987d9a1f6b904909622783b6ba760f5b1c8fda635"
+          }
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 585,
+          "trace_sha256": "25c6cd1c0ce92c29fe92dc8dc765c1ba3f0d902d7c425f59ae17dc06190fc969",
+          "reason_zh": "原运行在带 :visible 的定位器上超时。补充实测执行到失败点击之前，额外等待 10 秒：1.1.8 中Submit Review 按钮为零面积；PR 版本为 134.953125 × 32。零面积解释了可见性筛选为何拒绝目标；这定位到布局输出差异，尚不能单独归因于某个源码提交。补充实测使用当前站点与冻结浏览器，不点击最终目标、不提交表单，不替代原成绩。",
+          "reason_en": "The historical run times out on a :visible locator. The supplemental probe executes the prefix before the failed click and waits an additional 10 seconds: in 1.1.8, Submit Review has zero area; the PR button measures 134.953125 × 32. Zero area explains rejection by the visibility filter and identifies a layout-output difference, but does not isolate an individual source commit. The probe uses the current site and frozen binaries, does not click the final target or submit a form, and does not replace the original score.",
+          "supplemental_diagnostic": {
+            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-585-readonly-geometry.json",
+            "sha256": "15cb080ca2c82dfa612607e22a4544a8b9669a67875b482b8057d06916230797"
+          }
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 156,
+          "trace_sha256": "3116971dcaba7f676120a2393207fff1ab2102c08a53c7f67d9dcf64fd9d6d93",
+          "reason_zh": "原轨迹先点击页眉链接展开下拉菜单，再选择同一 href 的第二个可见链接。按此前缀补充实测并等待 10 秒：两版的页眉链接均为 70.203125 × 32；1.1.8 的菜单内链接为 0 × 0，PR 版本为 238 × 32。因此 1.1.8 的 :visible 筛选只剩一个候选，第二个匹配无法成立。直接导航到目标页不能复现展开菜单状态，不能作为此故障的对照。该实测定位到展开菜单后的布局输出，尚未单独隔离具体源码提交；未点击最终链接、未修改站点数据，原成绩不变。",
+          "reason_en": "The trajectory first clicks the header link to open its dropdown, then selects the second visible link with the same href. A supplemental probe reproduces that prefix and waits 10 seconds: both header links measure 70.203125 × 32, but the menu link measures 0 × 0 in 1.1.8 and 238 × 32 in the PR build. The released build therefore retains only one visible candidate and cannot match the second. Direct navigation to the destination does not reproduce the open-menu state and is not a valid control for this failure. This identifies layout output after menu expansion, not an isolated source commit. The final link is not clicked, site data is not changed, and the original score is retained.",
+          "supplemental_diagnostic": {
+            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-156-readonly-prefix-geometry.json",
+            "sha256": "a1e8875daa0c2564172266762d39301abe14fb42810daa533404b6ea9e40889b"
+          }
         }
       ]
     },
@@ -204,50 +264,10 @@
         {
           "participant_id": "moli-1.1.8",
           "engine": "moli",
-          "task_id": 108,
-          "trace_sha256": "87aba4d46d17a201e786179d935f96d28f140e8ae41aa6c97e54e05ae4f7a5a5",
-          "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 7 步，动作 click。 目标：button:visible:has-text(\"Filters\")。",
-          "reason_en": "The actual locator times out. The later diagnostic SyntaxError comes from passing Playwright-only selector syntax to native DOM querySelector and does not cause the preceding action failure. Recorded failure: step 7, action click. Target: button:visible:has-text(\"Filters\")."
-        },
-        {
-          "participant_id": "moli-1.1.8",
-          "engine": "moli",
-          "task_id": 156,
-          "trace_sha256": "3116971dcaba7f676120a2393207fff1ab2102c08a53c7f67d9dcf64fd9d6d93",
-          "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 4 步，动作 click。 目标：:nth-match(a[href=\"/dashboard/merge_requests?assignee_username=byteblaze\"]:visible, 2)。",
-          "reason_en": "The actual locator times out. The later diagnostic SyntaxError comes from passing Playwright-only selector syntax to native DOM querySelector and does not cause the preceding action failure. Recorded failure: step 4, action click. Target: :nth-match(a[href=\"/dashboard/merge_requests?assignee_username=byteblaze\"]:visible, 2)."
-        },
-        {
-          "participant_id": "moli-1.1.8",
-          "engine": "moli",
-          "task_id": 163,
-          "trace_sha256": "39724bce8126e46213ea32268be26644b188a124a665f21da84c4e61813fbfc5",
-          "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 5 步，动作 click。 目标：:nth-match(a:is([href=\"http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/review/product/listAjax/id/38805/?p=2\"],[href=\"https://webarena-slice-warm-1-195-shopping.dev.lexmount.net/review/product/listAjax/id/38805/?p=2\"]):visible, 1)。",
-          "reason_en": "The actual locator times out. The later diagnostic SyntaxError comes from passing Playwright-only selector syntax to native DOM querySelector and does not cause the preceding action failure. Recorded failure: step 5, action click. Target: :nth-match(a:is([href=\"http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/review/product/listAjax/id/38805/?p=2\"],[href=\"https://webarena-slice-warm-1-195-shopping.dev.lexmount.net/review/product/listAjax/id/38805/?p=2\"]):visible, 1)."
-        },
-        {
-          "participant_id": "moli-1.1.8",
-          "engine": "moli",
-          "task_id": 196,
-          "trace_sha256": "67725c9eca5cf5c971750d267807c538bcda09d3431ad0045a0a3423d6054e44",
-          "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 9 步，动作 click。 目标：button:visible:has-text(\"Filters\")。",
-          "reason_en": "The actual locator times out. The later diagnostic SyntaxError comes from passing Playwright-only selector syntax to native DOM querySelector and does not cause the preceding action failure. Recorded failure: step 9, action click. Target: button:visible:has-text(\"Filters\")."
-        },
-        {
-          "participant_id": "moli-1.1.8",
-          "engine": "moli",
           "task_id": 418,
           "trace_sha256": "aa4bc39d40db37208337cbd3ce6d461f55e5db99c42cbe14a3288aafc4cb78fd",
           "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 4 步，动作 click。 目标：button:visible:has-text(\"Set status\")。",
           "reason_en": "The actual locator times out. The later diagnostic SyntaxError comes from passing Playwright-only selector syntax to native DOM querySelector and does not cause the preceding action failure. Recorded failure: step 4, action click. Target: button:visible:has-text(\"Set status\")."
-        },
-        {
-          "participant_id": "moli-1.1.8",
-          "engine": "moli",
-          "task_id": 585,
-          "trace_sha256": "25c6cd1c0ce92c29fe92dc8dc765c1ba3f0d902d7c425f59ae17dc06190fc969",
-          "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 9 步，动作 click。 目标：button:visible:has-text(\"Submit Review\")。",
-          "reason_en": "The actual locator times out. The later diagnostic SyntaxError comes from passing Playwright-only selector syntax to native DOM querySelector and does not cause the preceding action failure. Recorded failure: step 9, action click. Target: button:visible:has-text(\"Submit Review\")."
         }
       ]
     },

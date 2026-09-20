@@ -114,6 +114,43 @@ def test_review_requires_exact_hash_bound_failure_coverage(tmp_path: Path) -> No
     loaded = load_validated_failure_review(results, review)
     assert set(loaded["by_result"]) == {("moli", 1)}
 
+    # An empty identity map used to pass the subset test. A diagnostic must
+    # bind every observed method to a measured binary, including negative
+    # controls where one browser's identity is absent or changed.
+    result_payload = json.loads(results.read_text())
+    result_payload["attempts"][1]["binary_sha256"] = "a" * 64
+    _write(results, result_payload)
+    payload = json.loads(review.read_text())
+    payload["bindings"]["effective_results_sha256"] = hashlib.sha256(results.read_bytes()).hexdigest()
+    diagnostic = {
+        "task_id": 1,
+        "cohort_results_sha256": payload["bindings"]["effective_results_sha256"],
+        "binary_sha256": {"release": "a" * 64},
+        "observations": [{"method": "release"}],
+    }
+    evidence = tmp_path / "diagnostic.json"
+    for identities, valid in [
+        ({"release": "a" * 64}, True),
+        ({}, False),
+        ({"release": "b" * 64}, False),
+        ({"other": "a" * 64}, False),
+        ({"release": "a" * 64, "unobserved": "a" * 64}, False),
+    ]:
+        diagnostic["binary_sha256"] = identities
+        _write(evidence, diagnostic)
+        payload["cause_groups"][0]["results"][0]["supplemental_diagnostic"] = {
+            "path": str(evidence.resolve()),
+            "sha256": hashlib.sha256(evidence.read_bytes()).hexdigest(),
+        }
+        _write(review, payload)
+        if valid:
+            load_validated_failure_review(results, review)
+        else:
+            with pytest.raises(ValueError, match="browser identity differs"):
+                load_validated_failure_review(results, review)
+    del payload["cause_groups"][0]["results"][0]["supplemental_diagnostic"]
+    _write(review, payload)
+
     payload = json.loads(review.read_text(encoding="utf-8"))
     payload["cause_groups"][0]["results"][0]["task_id"] = 2
     review.write_text(json.dumps(payload), encoding="utf-8")
