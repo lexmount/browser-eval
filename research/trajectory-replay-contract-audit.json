@@ -84,9 +84,10 @@
       "layer": "local",
       "kind": "task_scope_change",
       "before_zh": "依据评论数量、价格和评分寻找音箱并购买；购物车 totals 响应检查 items_qty=1 和商品名，没有检查金额。",
-      "after_zh": "写明目标商品 75640、直接导航，删除 totals 响应规则，改由轨迹检查单个商品行与名称。购买流程仍验收，但题目直接给出商品答案，商品发现能力被移除。",
+      "after_zh": "冻结版本写明目标商品 75640、直接导航，删除 totals 响应规则，只检查单个商品行与名称，移除了商品发现能力，也漏掉数量检查。反例证实同一行买两件仍通过。后续修订恢复原数量规则；保存的三个方法证据重新评分均通过，未新增浏览器调用。",
       "before_en": "Find and buy a speaker using review count, price and rating. The cart-totals response check requires items_qty=1 and a product name, not a monetary total.",
-      "after_en": "Name product 75640, navigate directly and remove the totals response rule, using a single product-row and name check in the trajectory. Purchase checks remain, but naming the answer removes product discovery from the task."
+      "after_en": "The frozen version names product 75640, navigates directly and replaces the totals rule with a single-row/name check. This removes product discovery and drops quantity validation: a two-unit row passes a counterexample. A later revision restores the original quantity rule; all three saved method results remain accepted without new browser calls.",
+      "revision_receipt": "research/trajectory-replay-task510-quantity-revision.json"
     },
     {
       "task_id": 528,
@@ -102,9 +103,9 @@
       "layer": "local",
       "kind": "required_event_removal",
       "before_zh": "要求保存全局 Brown 属性，并保存商品的 S-Brown 变体。",
-      "after_zh": "因站点已有 Brown 选项 51，删除全局属性保存要求，保留父商品保存验收。事件要求减少，须区分已有选项复用与创建新属性。",
+      "after_zh": "因站点已有 Brown 选项 51，删除全局属性保存要求，保留父商品保存验收。六组生产评测器控制确认：复用 Brown 并新增 S-Brown 行通过；错误尺码、颜色、商品名、非新增行或缺少属性均拒绝。此任务复用已有颜色，不再考查创建全局属性。",
       "before_en": "Require saving the global Brown attribute and the product's S-Brown variant.",
-      "after_en": "Remove the global attribute-save requirement because Brown option 51 already exists; retain the parent-product save evaluator. Fewer events are required, and reuse of an option differs from creating a new attribute."
+      "after_en": "Remove the global attribute-save requirement because Brown option 51 already exists; retain parent-product save acceptance. Six production-evaluator controls accept reuse with a new S-Brown row and reject wrong size, color or product name, a non-new row and missing attributes. This reuses a color rather than testing creation of a global attribute."
     },
     {
       "task_id": 676,

@@ -146,8 +146,10 @@
     {
       "task_id": 510,
       "official_revision": 2,
-      "correction_id": "wv-510-freeze-target-and-use-cart-dom-20260912",
-      "rationale": "The prose combines rating and price without an ordering rule, and the cart-totals response body is not available through every browser evidence interface. Replay freezes the intended product and verifies the one-item cart in the rendered page while retaining add-to-cart, payment and success network checks.",
+      "correction_id": "wv-510-restore-cart-quantity-contract-20260920",
+      "rationale": "Retain the declared product-selection revision but restore the upstream cart-totals check for quantity and name. A single DOM product row does not prove a single unit; all three frozen task-510 HARs contain the totals response required for zero-call rescoring.",
+      "root_cause": "Removing the totals evaluator dropped items_qty=1. The replacement trajectory checked only the number of product rows, so one row containing two units was accepted.",
+      "regression_ids": ["tr-510-quantity-one", "tr-510-reject-quantity-two", "tr-510-reject-missing-totals", "tr-510-reject-wrong-product"],
       "preconditions": [
         {
           "path": "/intent",
@@ -177,10 +179,6 @@
           "op": "add",
           "path": "/instantiation_dict/target_product_id",
           "value": "75640"
-        },
-        {
-          "op": "remove",
-          "path": "/eval/2"
         }
       ]
     },

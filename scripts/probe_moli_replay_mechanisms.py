@@ -19,6 +19,7 @@ from types import SimpleNamespace
 from playwright.sync_api import sync_playwright
 
 from harness.trajectory_replay.webarena_replay import _execute_replay_call
+from harness.browser_use.har import CdpHarRecorder
 
 
 class Fixture(BaseHTTPRequestHandler):
@@ -28,7 +29,9 @@ class Fixture(BaseHTTPRequestHandler):
         pass
 
     def do_GET(self):
-        self.requests.append({"method": "GET", "path": self.path, "body": ""})
+        self.requests.append({"method": "GET", "path": self.path, "body": "",
+                              "referer": self.headers.get('Referer'),
+                              "cookie": self.headers.get('Cookie')})
         if self.path == '/data.json':
             content_type = 'application/json'
             body = '{"message":"中文 café <b>literal</b>"}'
@@ -42,6 +45,9 @@ class Fixture(BaseHTTPRequestHandler):
             content_type = 'text/html; charset=utf-8'
             body = '''<!doctype html><button id="action" disabled>Act</button>
             <script>window.clicks=0;document.querySelector('button').addEventListener('click',()=>window.clicks++)</script>'''
+        elif self.path.startswith('/header-data'):
+            content_type = 'application/json'
+            body = '{"ok":true}'
         elif self.path == '/geometry':
             content_type = 'text/html; charset=utf-8'
             body = '''<!doctype html><style id="rules">html,body{margin:0;padding:0}#root{width:200px;height:120px}#split{display:inline}#one{display:flex;width:50px;height:20px}#two{display:block;width:80px;height:30px}#hidden{display:none}</style><div id="root"><a id="split"><div id="one"></div><div id="two"></div></a></div><button id="hidden">Suggestion</button>'''
@@ -141,8 +147,34 @@ def probe(binary, origin, output):
                       const after={button:rect(b),rectCount:b.getClientRects().length,offsetParent:b.offsetParent!==null};
                       return {before,after};
                     }''')
+                    recorder = CdpHarRecorder()
+                    recorder.start(context)
+                    wire_start = len(Fixture.requests)
+                    page.goto(origin + '/header-page', wait_until='load', timeout=10000)
+                    for cookie in (False, True):
+                        if cookie:
+                            page.evaluate("document.cookie='fixture=synthetic;path=/'")
+                        for api in ('fetch', 'xhr'):
+                            target = f'/header-data?api={api}&cookie={int(cookie)}'
+                            page.evaluate('''async ({api,target}) => {
+                              if(api==='fetch') return await (await fetch(target)).text();
+                              return await new Promise((resolve,reject)=>{
+                                const x=new XMLHttpRequest();x.open('GET',target);
+                                x.onload=()=>resolve(x.responseText);x.onerror=()=>reject(new Error('XHR failed'));x.send();
+                              });
+                            }''', {'api': api, 'target': target})
+                    har_path = output / (binary.parent.name + '-headers.har')
+                    recorder.stop(context, har_path)
+                    entries = json.loads(har_path.read_text())['log']['entries']
+                    header_recording = {
+                        'wire': [entry for entry in Fixture.requests[wire_start:] if entry['path'].startswith('/header-data')],
+                        'har': [{'url': entry['request']['url'], 'status': entry['response']['status'],
+                                 'headers': entry['request']['headers']}
+                                for entry in entries if '/header-data' in entry['request']['url']],
+                        'recorder_errors': recorder.errors,
+                    }
                     browser.close()
-                return {'binary':str(binary), 'redirect':redirect, 'fetch_redirect':fetch_redirect, 'implicit_submit':form, 'press_error':press_error, 'disabled_control':disabled_control, 'json_document':document,'geometry':geometry}
+                return {'binary':str(binary), 'redirect':redirect, 'fetch_redirect':fetch_redirect, 'implicit_submit':form, 'press_error':press_error, 'disabled_control':disabled_control, 'json_document':document,'geometry':geometry, 'header_recording': header_recording}
             finally:
                 if process.poll() is None:
                     process.terminate()

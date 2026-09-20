@@ -359,7 +359,7 @@
       "code": "recorded_referer_mismatch",
       "label_zh": "网络记录缺少验收所需 Referer",
       "label_en": "Recorded Referer does not meet acceptance",
-      "responsibility": "browser_network_evidence_boundary",
+      "responsibility": "browser",
       "remediation_owner": "Moli browser and BrowserTool integration",
       "remediation_status": "passed_in_pr_comparison",
       "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
@@ -372,16 +372,24 @@
           "engine": "moli",
           "task_id": 339,
           "trace_sha256": "f3ccc4539bffdbabf59afa3b31db56beb31d59946bda50e25f916c9d843d747f",
-          "reason_zh": "轨迹动作完成，相关请求也获得 HTTP 200，但网络记录缺少评测规则要求的 Referer，所以没有请求满足全部条件。不是完全没有发出请求。现有 HAR 不能区分真实请求头缺失和协议记录遗漏；官方失败成绩保持不变。 源码：moli-protocol/src/domains/network/output_queue.rs，append_missing_subresource_request_extra_info。已有 Cookie 元数据导致旧版提前返回，遗漏传输层实际请求头；PR 去掉该提前返回，回归测试 staged_cookie_report_does_not_suppress_observed_transport_headers 覆盖此条件。本轮 PR 的三个 GraphQL 请求均记录正确 Referer。",
-          "reason_en": "Expected requests exist, but captured headers omit the Referer required by the evaluator. Preserve the official score; HAR alone does not distinguish a wire-header omission from protocol recording loss. Source: append_missing_subresource_request_extra_info in moli-protocol/src/domains/network/output_queue.rs returned early for existing cookie metadata, suppressing observed transport headers. The PR removes the return, with regression staged_cookie_report_does_not_suppress_observed_transport_headers. All three PR GraphQL requests record the expected Referer."
+          "reason_zh": "相关 GraphQL 请求已返回 HTTP 200，验收失败因为记录缺少 Referer。独立本地 HTTP 实验对照服务器收到的头和正式 HAR 采集器：两版的 fetch/XHR 都实际发送 Referer；1.1.8 仅在带 Cookie 的两种组合中丢失记录，无 Cookie 对照正常，冻结 PR 四种组合均正常。源码 moli-protocol/src/domains/network/output_queue.rs 的 append_missing_subresource_request_extra_info 遇到已有 Cookie 元数据便提前返回，遗漏传输层请求头；PR 去掉该返回，并有 staged_cookie_report_does_not_suppress_observed_transport_headers 回归测试。本轮 PR 三个相关 GraphQL 请求也均记录正确 Referer。原失败成绩不变。",
+          "reason_en": "Relevant GraphQL requests return HTTP 200, but acceptance fails because their records omit Referer. An isolated HTTP fixture compares server-observed headers with the production HAR recorder: both builds send Referer for fetch and XHR; 1.1.8 loses it only in the two cookie-bearing combinations, while its no-cookie controls and all four frozen-PR combinations record it correctly. In moli-protocol/src/domains/network/output_queue.rs, append_missing_subresource_request_extra_info returns early for existing cookie metadata, suppressing transport headers. The PR removes this return and adds staged_cookie_report_does_not_suppress_observed_transport_headers. Its three relevant cohort GraphQL requests also record Referer. The original failure score is unchanged.",
+          "supplemental_diagnostic": {
+            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-339-header-recording.json",
+            "sha256": "9ecba7340315bcb903d62f386e43ce0a5a20bb8ae3adf479093e37323a08592b"
+          }
         },
         {
           "participant_id": "moli-1.1.8",
           "engine": "moli",
           "task_id": 676,
           "trace_sha256": "c5f288ab1ed9f43695ca5ce43c2c9a8943c1ba852f740d098d8bae236dc8ef30",
-          "reason_zh": "轨迹动作完成，相关请求也获得 HTTP 200，但网络记录缺少评测规则要求的 Referer，所以没有请求满足全部条件。不是完全没有发出请求。现有 HAR 不能区分真实请求头缺失和协议记录遗漏；官方失败成绩保持不变。",
-          "reason_en": "Expected requests exist, but captured headers omit the Referer required by the evaluator. Preserve the official score; HAR alone does not distinguish a wire-header omission from protocol recording loss."
+          "reason_zh": "订单筛选 XHR 已带 fraud 参数并返回 HTTP 200；三个 sales_order_grid 请求都记录了 Cookie，却都遗漏 Referer。独立本地实验复现同一组合：1.1.8 的带 Cookie XHR 在服务器端有 Referer、HAR 中没有，无 Cookie 对照正常；冻结 PR 均正确。根因是 moli-protocol/src/domains/network/output_queue.rs 的 append_missing_subresource_request_extra_info 在已有 Cookie 元数据时提前返回，阻止实际请求头进入协议事件。PR 删除这一分支，本轮三个订单请求的 Referer 也均正确。原站点请求未重新执行，原失败成绩保持不变。",
+          "reason_en": "The order-filter XHR carries the fraud parameter and returns HTTP 200. All three sales_order_grid records contain Cookie but omit Referer. An isolated fixture reproduces this combination: 1.1.8 sends Referer on a cookie-bearing XHR but omits it from HAR; the no-cookie control and frozen PR are correct. The cause is the early return for existing cookie metadata in append_missing_subresource_request_extra_info, moli-protocol/src/domains/network/output_queue.rs, which suppresses observed headers in protocol events. The PR removes that branch, and all three cohort order requests record Referer correctly. No original site request was rerun; the historical failure score remains unchanged.",
+          "supplemental_diagnostic": {
+            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-676-header-recording.json",
+            "sha256": "9344dfbe06253811bdd6596a12b7bb67157ee3ce0d9eeba04d382390ab4a3cc9"
+          }
         }
       ]
     },

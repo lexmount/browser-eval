@@ -292,7 +292,10 @@ def _supplemental_diagnostic(review: dict[str, Any] | None, task_id: int) -> Any
     diagnostic = _load_artifact(ref)
     if (diagnostic.get("schema") != "lex_replay_supplemental_diagnostic/1"
             or diagnostic.get("task_id") != task_id
-            or diagnostic.get("scope") != "read_only_prefix_on_current_site_not_a_replacement_score"
+            or diagnostic.get("scope") not in {
+                "read_only_prefix_on_current_site_not_a_replacement_score",
+                "isolated_local_http_fixture_not_a_replacement_score",
+            }
             or diagnostic.get("mutations_submitted") is not False):
         raise ValueError("supplemental diagnostic scope or task differs")
     return diagnostic
@@ -306,9 +309,16 @@ def _supplemental_diagnostic_html(diagnostic: dict | None, lang: str) -> str:
     component_rows = []
     readiness_rows = []
     network_rows = []
+    header_rows = []
     for method in diagnostic["observations"]:
         label = {"release": "Moli 1.1.8", "pr": "Moli · PR 640"}.get(method["method"], method["method"])
         for sample in method["observations"]:
+            for request in sample["state"].get("headerRecording", []):
+                cookie_label = ("有" if request["cookie_present"] else "无") if zh else ("Yes" if request["cookie_present"] else "No")
+                missing = "缺失" if zh else "Missing"
+                values = (label, request["api"], cookie_label, request["status"],
+                          request["wire_referer_path"] or missing, request["har_referer_path"] or missing)
+                header_rows.append("<tr>" + "".join(f"<td>{_e(value)}</td>" for value in values) + "</tr>")
             for request in sample["state"].get("httpReads", []):
                 values = (label, request["path"], request.get("status", "—"),
                           request.get("bytes", "—"), request.get("error", ""))
@@ -335,11 +345,19 @@ def _supplemental_diagnostic_html(diagnostic: dict | None, lang: str) -> str:
     headers = ("方法", "追加等待", "目标文本", "display / visibility", "宽 × 高（px）", "矩形数", "offsetParent") if zh else (
         "Method", "Additional wait", "Target text", "display / visibility", "Width × height (px)", "Client rects", "offsetParent")
     title = "补充实测：目标状态对照" if zh else "Supplemental probe: target-state comparison"
+    if header_rows:
+        title = "补充实测：请求发送与记录对照" if zh else "Supplemental probe: sent and recorded headers"
     scope = ("仅打开界面或搜索，没有提交表单或发送邀请。这里记录的是后续只读诊断；原始失败轨迹与成绩保持不变。" if zh else
              "The probe only opened the interface or searched; no form or invitation was submitted. These later read-only observations do not replace the original trace or score.")
+    if diagnostic.get("scope") == "isolated_local_http_fixture_not_a_replacement_score":
+        scope = ("独立本地 HTTP 实验，没有访问评测站点；使用冻结浏览器和正式 HAR 采集器。此处验证机制，不替换原始轨迹或成绩。" if zh else
+                 "An isolated local HTTP fixture, without accessing benchmark sites, uses the frozen browsers and production HAR recorder. It tests a mechanism and does not replace original trajectories or scores.")
     scope_note = (diagnostic.get("scope_note") or {}).get(lang)
     if scope_note:
         scope += " " + str(scope_note)
+    if header_rows:
+        scope += (" 横向滚动可对照服务器收到的头与 HAR 记录。" if zh else
+                  " Scroll horizontally to compare server-observed headers with HAR records.")
     components = ""
     if component_rows:
         component_headers = ("方法", "追加等待", "组件已初始化", "属性选项", "向导匹配", "步骤匹配", "选择匹配", "事件处理器数") if zh else (
@@ -364,8 +382,15 @@ def _supplemental_diagnostic_html(diagnostic: dict | None, lang: str) -> str:
         network_table = ('<div class="table-scroll"><table data-http-read-comparison><thead><tr>'
                          + "".join(f"<th>{_e(header)}</th>" for header in network_headers)
                          + '</tr></thead><tbody>' + "".join(network_rows) + '</tbody></table></div>')
+    header_table = ""
+    if header_rows:
+        header_headers = ("方法", "请求接口", "携带 Cookie", "HTTP 状态", "服务器收到的 Referer 路径", "HAR 中的 Referer 路径") if zh else (
+            "Method", "Request API", "Cookie present", "HTTP status", "Referer path received by server", "Referer path in HAR")
+        header_table = ('<div class="table-scroll"><table data-header-recording-comparison><thead><tr>'
+                        + "".join(f"<th>{_e(header)}</th>" for header in header_headers)
+                        + '</tr></thead><tbody>' + "".join(header_rows) + '</tbody></table></div>')
     return (f'<section data-supplemental-diagnostic><details><summary>{title}</summary><p>{_e(scope)}</p>'
-            + components + readiness_table + geometry_table + network_table + '</details></section>')
+            + components + readiness_table + geometry_table + network_table + header_table + '</details></section>')
 
 
 def _corrected_acceptance_by_task(attempts: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:

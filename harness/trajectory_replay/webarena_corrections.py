@@ -156,7 +156,8 @@ def load_corrections(path: str | Path = DEFAULT_CORRECTIONS_PATH) -> CorrectionC
             raise ValueError(f"task {task_id}: official_revision must be positive")
         if not record.get("preconditions") or not record.get("operations"):
             raise ValueError(f"task {task_id}: preconditions and operations are required")
-        if record.get("network_event_alternatives") or record.get("reference_receipt"):
+        if (record.get("network_event_alternatives") or record.get("reference_receipt")
+                or record.get("root_cause") or record.get("regression_ids")):
             regression_ids = record.get("regression_ids")
             if (
                 not record.get("root_cause")

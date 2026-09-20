@@ -102,7 +102,8 @@ def test_final_event_revision_binds_current_and_historical_catalogs(catalog):
     predecessor = load_corrections(root / receipt["predecessor_catalog_path"])
     assert receipt["predecessor_correction_catalog_sha256"] == predecessor.source_sha256
     assert receipt["predecessor_correction_record_sha256"] == predecessor.record_sha256s[448]
-    assert receipt["revised_correction_catalog_sha256"] == catalog.source_sha256
+    revised = load_corrections(root / receipt["revised_catalog_path"])
+    assert receipt["revised_correction_catalog_sha256"] == revised.source_sha256
     assert receipt["revised_correction_record_sha256"] == catalog.record_sha256s[448]
     assert receipt["regression_ids"] == catalog.records[448]["regression_ids"]
     assert receipt["provider_call_count"] == 0
@@ -114,7 +115,7 @@ def test_archived_catalog_reproduces_all_unchanged_task_contracts(benchmark, cat
     for task_id in corrected_task_ids(archived):
         previous = apply_correction(benchmark.get_task(task_id), archived)
         current = apply_correction(benchmark.get_task(task_id), catalog)
-        if task_id == 448:
+        if task_id in {448, 510}:
             assert previous.corrected_task_sha256 != current.corrected_task_sha256
         else:
             assert previous.corrected_task_sha256 == current.corrected_task_sha256
@@ -414,11 +415,8 @@ def test_510_freezes_selection_order_and_product(benchmark, catalog) -> None:
     assert "If prices tie" in applied.task.intent
     assert applied.task.instantiation_dict["target_product_id"] == "75640"
     assert _dump_eval(applied, 1)["expected"]["post_data"]["product"] == "75640"
-    assert len(applied.task.eval) == 4
-    assert all(
-        (item.get("expected", {}).get("response_content") or {}).get("items_qty") is None
-        for item in applied.task.model_dump(mode="json")["eval"]
-    )
+    assert len(applied.task.eval) == 5
+    assert _dump_eval(applied, 2)["expected"]["response_content"]["items_qty"] == 1
 
 
 def test_528_uses_final_dom_state_and_forbids_real_submission(benchmark, catalog) -> None:

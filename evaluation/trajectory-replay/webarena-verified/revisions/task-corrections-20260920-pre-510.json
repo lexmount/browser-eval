@@ -1,0 +1,272 @@
+{
+  "schema": "lex_webarena_replay_task_corrections/1",
+  "scope": "Browser Trajectory Replay standard-trajectory validation only",
+  "historical_browser_use_scores_immutable": true,
+  "upstream": {
+    "benchmark": "WebArena-Verified",
+    "package_version": "1.2.3",
+    "dataset_sha256": "d65275660814663375028e9017e1f929e3c38321041b125795e2713b52243d30"
+  },
+  "corrections": [
+    {
+      "task_id": 225,
+      "official_revision": 2,
+      "correction_id": "wv-225-explicit-title-scope-20260918",
+      "rationale": "Magento has no populated manufacturer attribute for this catalog. The source-complete storefront query identifies the relevant two products by titles containing Sephora and Brush, and both have no reviews.",
+      "root_cause": "The upstream manufacturer wording has no structured source field, while the historical trajectory inspected only two products without proving membership. A broad text search also has unstable pagination. The corrected intent states the observable title rule and the reference is rederived from complete GraphQL and database evidence.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task225-revised-reference.json",
+        "sha256": "0e6f2a1a0e9d85a6f8c6f9a03832253d97be4934159be502b8786e8ae96a567a"
+      },
+      "regression_ids": [
+        "tr-225-complete-two-products-no-low-reviews",
+        "tr-225-reject-incomplete-product-scope",
+        "tr-225-reject-new-low-review"
+      ],
+      "preconditions": [
+        {
+          "path": "/intent",
+          "equals": "Return the titles for reviews with 3 stars or below for brush from sephora"
+        },
+        {
+          "path": "/eval/0/expected/status",
+          "equals": "NOT_FOUND_ERROR"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/intent",
+          "value": "Return the titles of reviews rated 3 stars or below for products whose titles contain both Sephora and Brush. If none exist, report not found."
+        },
+        {
+          "op": "replace",
+          "path": "/intent_template",
+          "value": "Return the titles of reviews rated 3 stars or below for products whose titles contain both {{brand_text}} and {{product_text}}. If none exist, report not found."
+        },
+        {
+          "op": "replace",
+          "path": "/instantiation_dict",
+          "value": {
+            "brand_text": "Sephora",
+            "product_text": "Brush"
+          }
+        }
+      ]
+    },
+    {
+      "task_id": 279,
+      "official_revision": 2,
+      "correction_id": "wv-279-complete-bluetooth-catalog-20260918",
+      "rationale": "The reference omitted the seeded Sony WI-1000XM2 because its storefront description lacks the word Bluetooth, although the exact model has Bluetooth capability. This is separate from the current observer duplicate-product exception.",
+      "preconditions": [
+        {
+          "path": "/eval/0/expected/retrieved_data/0/names/9",
+          "equals": "Sony WI-C300 Wireless In-Ear Headphones, Red (WIC300/R)"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/0/expected/retrieved_data/0/names/9",
+          "value": "Sony WI-C300 Wireless In-Ear Headphones, Red (WIC300/R))"
+        }
+      ],
+      "root_cause": "The reference omitted the seeded Sony WI-1000XM2 because its storefront description lacks the word Bluetooth, although the exact model has Bluetooth capability. This is separate from the current observer duplicate-product exception.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task279-revised-reference.json",
+        "sha256": "c6064850ebb16044bd3ba945333686d378575822c4563e08564343e52fe54b85"
+      },
+      "regression_ids": [
+        "tr-279-complete-thirteen-products",
+        "tr-279-reject-omitted-product",
+        "tr-279-reject-wired-product"
+      ]
+    },
+    {
+      "task_id": 448,
+      "official_revision": 2,
+      "correction_id": "wv-448-final-profile-save-success-variants-20260920",
+      "rationale": "Evaluate the last POST to the profile endpoint, then require the intended website and either a 302 redirect or an explicit 200 JSON success response. An earlier correct save cannot excuse a later incorrect save.",
+      "root_cause": "Disabling last_event_only made any earlier matching save sufficient, even when a later successful save replaced the website with a wrong value. Select the final endpoint/method event before checking its value; preserve the two valid response representations.",
+      "regression_ids": [
+        "tr-448-302-success",
+        "tr-448-200-json-success",
+        "tr-448-200-json-failure",
+        "tr-448-wrong-website",
+        "tr-448-canceled-request",
+        "tr-448-reject-correct-then-wrong",
+        "tr-448-accept-wrong-then-correct"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "__GITLAB__/-/profile"
+        },
+        {
+          "path": "/eval/1/expected/post_data/user[website_url]",
+          "equals": "https://egg.tart.com"
+        },
+        {
+          "path": "/eval/1/expected/response_status",
+          "equals": 302
+        },
+        {
+          "path": "/eval/1/last_event_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/last_event_only",
+          "value": true
+        }
+      ],
+      "network_event_alternatives": [
+        {
+          "evaluator_index": 1,
+          "operations": [
+            {
+              "op": "replace",
+              "path": "/eval/1/expected/response_status",
+              "value": 200
+            },
+            {
+              "op": "replace",
+              "path": "/eval/1/expected/response_content",
+              "value": {
+                "message": "Profile was successfully updated"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "task_id": 510,
+      "official_revision": 2,
+      "correction_id": "wv-510-freeze-target-and-use-cart-dom-20260912",
+      "rationale": "The prose combines rating and price without an ordering rule, and the cart-totals response body is not available through every browser evidence interface. Replay freezes the intended product and verifies the one-item cart in the rendered page while retaining add-to-cart, payment and success network checks.",
+      "preconditions": [
+        {
+          "path": "/intent",
+          "equals": "Buy the best rating product from \"Home Audio Speaker\" category with at least 5 reviews and the product is least expensive. Choose any available variant."
+        },
+        {
+          "path": "/eval/1/expected/post_data/product",
+          "equals": "75640"
+        },
+        {
+          "path": "/eval/2/expected/response_content/items_qty",
+          "equals": 1
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/intent",
+          "value": "Buy the least expensive product in the Home Audio Speaker category among products with at least 5 reviews. If prices tie, choose the product with the higher rating. Buy Atlantic Technology FS-7.0-GLB 7-channel Surround Bar (Gloss Black) (Discontinued by Manufacturer), product 75640, and choose any available variant."
+        },
+        {
+          "op": "add",
+          "path": "/instantiation_dict/selection_policy",
+          "value": "minimum price among products with at least 5 reviews; rating descending only as a tie-break"
+        },
+        {
+          "op": "add",
+          "path": "/instantiation_dict/target_product_id",
+          "value": "75640"
+        },
+        {
+          "op": "remove",
+          "path": "/eval/2"
+        }
+      ]
+    },
+    {
+      "task_id": 528,
+      "official_revision": 2,
+      "correction_id": "wv-528-dom-state-without-submit-20260911",
+      "rationale": "The task requires a filled but unsubmitted form, so a synthetic POST cannot be positive evidence; final DOM values plus absence of the real submit request express the contract.",
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^http://.*/dummy_bin$"
+        },
+        {
+          "path": "/eval/2/should_not_exist",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "remove",
+          "path": "/eval/1"
+        }
+      ],
+      "replay_assertions": [
+        {
+          "kind": "final_dom_form_state",
+          "page_url": "__SHOPPING__/contact",
+          "form": "#contact-form",
+          "fields": {
+            "input[name='name']": "Emma Lopez",
+            "input[name='email']": "emma.lopez@gmail.com",
+            "textarea[name='comment']": "I need a refund. Order: 000000180. Amount: $12.99. Reason: It broke after three days of use."
+          },
+          "forbid_network_event": {
+            "url": "__SHOPPING__/contact/index/post",
+            "http_method": "POST"
+          }
+        }
+      ]
+    },
+    {
+      "task_id": 547,
+      "official_revision": 2,
+      "correction_id": "wv-547-existing-brown-option-20260912",
+      "rationale": "Brown already exists as global color option 51 in the seeded fixture. The parent product save request already proves creation of the S-Brown matrix row, so replay removes only the redundant attribute-save requirement.",
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "__SHOPPING_ADMIN__/catalog/product_attribute/save/attribute_id/93"
+        }
+      ],
+      "operations": [
+        {
+          "op": "remove",
+          "path": "/eval/1"
+        }
+      ]
+    },
+    {
+      "task_id": 699,
+      "official_revision": 3,
+      "correction_id": "wv-699-all-customer-groups-20260918",
+      "rationale": "The visible Magento price rule selects all registered customer groups. The current upstream form contract verifies only the first indexed group, so require the other two indexed fields as well.",
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/post_data/customer_group_ids[0]",
+          "equals": "1"
+        },
+        {
+          "path": "/eval/1/post_data_schema",
+          "equals": null
+        }
+      ],
+      "operations": [
+        {
+          "op": "add",
+          "path": "/eval/1/expected/post_data/customer_group_ids[1]",
+          "value": "2"
+        },
+        {
+          "op": "add",
+          "path": "/eval/1/expected/post_data/customer_group_ids[2]",
+          "value": "3"
+        }
+      ]
+    }
+  ]
+}

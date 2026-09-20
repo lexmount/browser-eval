@@ -88,11 +88,21 @@
       "title": {"zh": "请求已经发出，验收记录却缺了请求头", "en": "A request was sent, but its recorded headers were incomplete"},
       "paragraphs": [
         {"zh": "第 339 题的相关请求获得 HTTP 200，评测器却找不到符合条件的事件，因为记录里少了 Referer。这个请求头说明请求来自哪个页面，也是本题匹配目标请求的条件之一。只看 HAR，容易把“没记录”误读成“没发送”。", "en": "Relevant requests in task 339 receive HTTP 200, yet the evaluator cannot find a matching event because the record lacks Referer. This header identifies the referring page and is one of the task's request-matching conditions. HAR alone makes it easy to confuse an unrecorded header with an unsent one."},
-        {"zh": "源码中的 append_missing_subresource_request_extra_info 发现已有 Cookie 元数据便提前返回，传输层实际请求头因此没有合并进事件。PR 移除这个提前返回，回归测试覆盖“已有 Cookie 元数据仍必须保留实际请求头”；本轮 PR 的三个相关 GraphQL 请求也都记录了 Referer。第 676 题同样在 Referer 条件上失败，但仅凭相似的验收报错，还不能把这条源码归因自动套过去。", "en": "In append_missing_subresource_request_extra_info, existing cookie metadata triggers an early return, preventing observed transport headers from being merged into the event. The PR removes that return. A regression test checks that cookie metadata does not suppress observed headers, and all three relevant GraphQL requests in the PR cohort record Referer. Task 676 also fails a Referer condition, but a similar evaluator error alone does not establish the same source-level cause."},
+        {"zh": "源码中的 append_missing_subresource_request_extra_info 发现已有 Cookie 元数据便提前返回，传输层实际请求头因此没有合并进事件。PR 移除这个返回，并增加相应回归测试。独立 HTTP 实验验证了这个条件：两版浏览器发出的 fetch 和 XHR 都有 Referer，旧版仅在有 Cookie 时丢失记录，无 Cookie 对照正常；冻结 PR 的四种组合都正确。第 676 题的三个订单筛选请求正好都是有 Cookie、无 Referer 的记录，本轮 PR 的对应记录均正确。这个实验把服务器实际收到什么，与浏览器报告了什么分开检查。", "en": "In append_missing_subresource_request_extra_info, existing cookie metadata triggers an early return, preventing observed transport headers from being merged into the event. The PR removes that return and adds a regression test. An isolated HTTP fixture verifies the condition: both builds send Referer on fetch and XHR, but the release loses it from the record when a cookie is present; its no-cookie controls and all four frozen-PR combinations record it correctly. Task 676's three order-filter records have exactly this cookie-present, Referer-missing pattern, while the PR cohort records them correctly. The fixture distinguishes what the server receives from what the browser reports."},
         {"zh": "第 67 题属于另一条路径：并发读取十篇帖子时，一个请求在约 10 秒后超时，Promise.all 随即拒绝，答案评测尚未开始。当前站点上对同样十个地址的只读复查，两版合计 20 个请求全部返回 HTTP 200 和非空正文。历史记录没有连接阶段计时，不能据此把当时的网络或站点延迟归成 PR 已修复的浏览器缺陷。", "en": "Task 67 follows a different path: one of ten concurrent post reads times out after about 10 seconds, causing Promise.all to reject before answer evaluation. In a read-only check of the same ten URLs on the current site, all 20 requests across the two builds return HTTP 200 and nonempty bodies. The historical record lacks connection-phase timings, so the old network or site delay cannot be credited as a browser defect repaired by the PR."}
       ],
       "figure": "network-header-recording",
-      "caption": {"zh": "请求头记录合并的机制示意，图中地址和 Cookie 是示例。第 339 题的源码与回归测试支持这条机制；它不替代第 67、676 题各自的证据。", "en": "Mechanism illustration of header-record merging; addresses and cookies are examples. Source and regression evidence support this mechanism for task 339, not a blanket diagnosis of tasks 67 and 676."}
+      "caption": {"zh": "请求头记录合并的机制示意，图中地址和 Cookie 是示例。第 339、676 题属于这条记录缺陷；第 67 题的请求超时另行诊断。", "en": "Mechanism illustration of header-record merging; addresses and cookies are examples. Tasks 339 and 676 involve this recording defect; task 67's transport timeout is a separate diagnosis."},
+      "specimen": {
+        "headers": [{"zh": "独立 HTTP 实验", "en": "Isolated HTTP fixture"}, {"zh": "服务器收到 Referer", "en": "Referer received by server"}, {"zh": "HAR 保留 Referer", "en": "Referer retained in HAR"}],
+        "rows": [
+          [{"zh": "1.1.8，无 Cookie", "en": "1.1.8, no cookie"}, "2 / 2", "2 / 2"],
+          [{"zh": "1.1.8，有 Cookie", "en": "1.1.8, with cookie"}, "2 / 2", "0 / 2"],
+          [{"zh": "PR 640，无 Cookie", "en": "PR 640, no cookie"}, "2 / 2", "2 / 2"],
+          [{"zh": "PR 640，有 Cookie", "en": "PR 640, with cookie"}, "2 / 2", "2 / 2"]
+        ],
+        "caption": {"zh": "每行各含一次 fetch 和一次 XHR；使用冻结二进制与正式 HAR 采集器，总计八个 HTTP 200 响应。只改变合成 Cookie 条件，没有访问评测站点或重新评分。", "en": "Each row contains one fetch and one XHR, using the frozen binaries and production HAR recorder: eight HTTP 200 responses in total. Only the synthetic cookie condition changes; no benchmark site is accessed or task rescored."}
+      }
     },
     {
       "id": "recording-and-scoring",

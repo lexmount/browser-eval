@@ -121,3 +121,23 @@ def test_http_read_table_does_not_invent_geometry_or_latency_ranking():
     assert not soup.select("post")
     assert "/f/books/1/<post>" in soup.get_text()
     assert "42" in soup.get_text()
+
+
+def test_local_header_fixture_is_not_labeled_as_a_site_replay(tmp_path):
+    data = _diagnostic()
+    data["scope"] = "isolated_local_http_fixture_not_a_replacement_score"
+    data["observations"] = [{"method": "release", "observations": [{"state": {"headerRecording": [
+        {"api": "xhr", "cookie_present": True, "status": 200,
+         "wire_referer_path": "/header-page", "har_referer_path": None},
+    ]}}]}]
+    path = tmp_path / "headers.json"
+    path.write_text(json.dumps(data))
+    ref = {"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+    assert _supplemental_diagnostic({"supplemental_diagnostic": ref}, 576) == data
+    for lang in ("zh", "en"):
+        page = BeautifulSoup(_supplemental_diagnostic_html(data, lang), "html.parser")
+        assert page.select_one("table[data-header-recording-comparison]")
+        assert len(page.select("table")) == 1
+        assert page.select("td")[-1].text == ("缺失" if lang == "zh" else "Missing")
+        assert "only opened the interface" not in page.text
+        assert "仅打开界面" not in page.text
