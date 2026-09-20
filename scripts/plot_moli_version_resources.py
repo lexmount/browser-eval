@@ -142,7 +142,10 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
     legend_step = min(420, (width - 110) / len(rows))
     for row in rows:
         color = COLORS[row["id"]]
-        row_label = row["label"] if language == "zh" else row["label_en"]
+        label_key = "label" if len(metrics) == 2 else "short_label"
+        if language == "en":
+            label_key += "_en"
+        row_label = row[label_key]
         legend_text = f'{row_label}: {row["passed_cases"]}/372 ({row["success_rate_pct"]:.1f}%)'
         parts.append(f'<circle cx="{cursor}" cy="{legend_y}" r="7" fill="{color}"/>')
         parts.append(f'<text class="legend" x="{cursor+13}" y="{legend_y+5}">{html.escape(legend_text)}</text>')

@@ -81,10 +81,19 @@ class MoliVersionResourceChartTests(unittest.TestCase):
     def test_pss_only_omits_cpu_content(self):
         svg = self.render(("pss",), "en")
         self.assertIn("Median peak process-tree PSS (MiB)", svg)
-        for label in ("Moli 1.1.4 · layout off", "Moli 1.1.8 · layout off", "Moli 1.1.8 · layout on"):
+        for label in ("1.1.4 off", "1.1.8 off", "1.1.8 on"):
             self.assertIn(label, svg)
+        self.assertNotIn("Moli 1.1.8 · layout on:", svg)
         self.assertNotIn("CPU", svg)
         self.assertNotIn("21.41 ms", svg)
+
+    def test_cpu_only_omits_pss_content_and_keeps_all_legend_entries(self):
+        svg = self.render(("cpu",), "en")
+        self.assertIn("Mean CPU time per execution (ms)", svg)
+        for label in ("1.1.4 off", "1.1.8 off", "1.1.8 on"):
+            self.assertIn(label, svg)
+        self.assertNotIn("PSS", svg)
+        self.assertNotIn("77.22 MiB", svg)
 
     def test_english_dual_panel_contains_both_resources_and_changes(self):
         svg = self.render(language="en")
