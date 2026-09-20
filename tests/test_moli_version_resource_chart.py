@@ -25,6 +25,7 @@ class MoliVersionResourceChartTests(unittest.TestCase):
                     "short_label": "1.1.4 关闭",
                     "short_label_en": "1.1.4 off",
                     "passed_cases": 0,
+                    "total_cases": 372,
                     "success_rate_pct": 0,
                     "pss_mib": 77.216796875,
                     "pss_change_pct": 0,
@@ -38,6 +39,7 @@ class MoliVersionResourceChartTests(unittest.TestCase):
                     "short_label": "1.1.8 关闭",
                     "short_label_en": "1.1.8 off",
                     "passed_cases": 1,
+                    "total_cases": 372,
                     "success_rate_pct": 0.2688172043010753,
                     "pss_mib": 77.1015625,
                     "pss_change_pct": -0.1492348551916045,
@@ -51,6 +53,7 @@ class MoliVersionResourceChartTests(unittest.TestCase):
                     "short_label": "1.1.8 开启",
                     "short_label_en": "1.1.8 on",
                     "passed_cases": 255,
+                    "total_cases": 372,
                     "success_rate_pct": 68.54838709677419,
                     "pss_mib": 80.537109375,
                     "pss_change_pct": 4.299987352978363,
@@ -114,13 +117,31 @@ class MoliVersionResourceChartTests(unittest.TestCase):
         self.data["configurations"][2]["success_rate_pct"] = 95
         svg = self.render()
         self.assertIn(">100%</text>", svg)
-        point = re.search(r'<circle cx="[^"]+" cy="([^"]+)" r="10" fill="#7652c7"', svg)
+        point = re.search(r'<circle cx="[^"]+" cy="([^"]+)" r="12" fill="#7652c7"', svg)
         self.assertIsNotNone(point)
         self.assertGreaterEqual(float(point.group(1)), 145)
 
-    def test_unknown_configuration_id_has_clear_error(self):
-        self.data["configurations"][0]["id"] = "future_config"
-        with self.assertRaisesRegex(ValueError, "unknown configuration id.*future_config"):
+    def test_future_configuration_is_rendered_without_code_changes(self):
+        future = dict(self.data["configurations"][2])
+        future.update({
+            "id": "pr640_try_layout",
+            "label": "Moli PR #640 · 失败后尝试 layout",
+            "label_en": "Moli PR #640 · try layout after failure",
+            "short_label": "PR #640 尝试布局",
+            "short_label_en": "PR #640 try layout",
+            "passed_cases": 300,
+            "success_rate_pct": 300 / 372 * 100,
+            "color": "#2775c9",
+        })
+        self.data["configurations"].append(future)
+        svg = self.render()
+        self.assertIn("4 种配置", svg)
+        self.assertIn("Moli PR #640 · 失败后尝试 layout", svg)
+        self.assertIn("300/372 (80.6%)", svg)
+
+    def test_mismatched_denominators_have_clear_error(self):
+        self.data["configurations"][0]["total_cases"] = 371
+        with self.assertRaisesRegex(ValueError, "same positive total_cases"):
             self.render()
 
     def test_missing_resource_population_field_has_clear_error(self):

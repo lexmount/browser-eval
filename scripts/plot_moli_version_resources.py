@@ -1,4 +1,4 @@
-"""Render the three-configuration compatibility/resource summary as SVG.
+"""Render a compatibility/resource summary for any number of configurations.
 
 The two resource axes intentionally use separate panels because MiB and CPU
 milliseconds are different units.  Both panels share the 372-case success-rate
@@ -13,11 +13,7 @@ import math
 from pathlib import Path
 
 
-COLORS = {
-    "114_off": "#239b68",
-    "118_off": "#d1841e",
-    "118_on": "#7652c7",
-}
+COLORS = ("#239b68", "#d1841e", "#7652c7", "#2775c9", "#c54f79", "#4c8793")
 
 
 def _scale(value: float, lower: float, upper: float, start: float, end: float) -> float:
@@ -34,7 +30,7 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
     rows = data.get("configurations")
     if not isinstance(rows, list) or not rows:
         raise ValueError("configurations must contain at least one row")
-    required_row_fields = {"id", "passed_cases", "success_rate_pct"}
+    required_row_fields = {"id", "passed_cases", "total_cases", "success_rate_pct"}
     required_row_fields.update(
         {"label", "short_label"} if language == "zh" else {"label_en", "short_label_en"}
     )
@@ -52,9 +48,10 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
         )
         if missing:
             raise ValueError(f"configuration row {index} missing required field(s): {', '.join(missing)}")
-    unknown_ids = sorted({str(row.get("id")) for row in rows} - COLORS.keys())
-    if unknown_ids:
-        raise ValueError(f"unknown configuration id(s): {', '.join(unknown_ids)}")
+    totals = {int(row["total_cases"]) for row in rows}
+    if len(totals) != 1 or next(iter(totals)) <= 0:
+        raise ValueError("all configurations must use the same positive total_cases")
+    total_cases = next(iter(totals))
     resource = data.get("resource_population")
     required_resource_fields = {"chart_calls", "chart_tasks"}
     if not isinstance(resource, dict) or not required_resource_fields.issubset(resource):
@@ -66,18 +63,18 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
         raise ValueError(f"resource_population missing required field(s): {', '.join(missing)}")
     text = {
         "zh": {
-            "title": "372 题成功率与资源消耗",
+            "title": f"{total_cases} 题成功率与资源消耗",
             "subtitle": f"资源实验：557 题 × 5 次；图中使用预先冻结的 {resource['chart_calls']:,} 次 / {resource['chart_tasks']} 题样本；越靠左资源消耗越低",
-            "y": "372 题通过率（每题 3 次全部通过）",
+            "y": f"{total_cases} 题通过率（每题 3 次全部通过）",
             "pss": "峰值进程树 PSS 中位数（MiB）",
             "cpu": "单次执行平均 CPU 时间（ms）",
             "off": "关闭",
             "on": "开启",
         },
         "en": {
-            "title": "Success on 372 cases vs. resource use",
+            "title": f"Success on {total_cases} cases vs. resource use",
             "subtitle": f"Resource experiment: 557 tasks × 5; plotted population: {resource['chart_calls']:,} pre-frozen calls / {resource['chart_tasks']} tasks; farther left is lower",
-            "y": "Success rate on 372 cases (all 3 attempts pass)",
+            "y": f"Success rate on {total_cases} cases (all 3 attempts pass)",
             "pss": "Median peak process-tree PSS (MiB)",
             "cpu": "Mean CPU time per execution (ms)",
             "off": "off",
@@ -85,8 +82,8 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
         },
     }[language]
     width = 1420 if len(metrics) == 2 else 820
-    height = 780
-    left, right, top, bottom = 105, 55, 145, 150
+    height = 700 + 30 * len(rows)
+    left, right, top, bottom = 105, 55, 145, 115 + 30 * len(rows)
     gap = 90
     panel_width = (width - left - right - gap * (len(metrics) - 1)) / len(metrics)
     chart_bottom = height - bottom
@@ -97,9 +94,9 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
         "en": " and ".join(text[metric] for metric in metrics),
     }[language]
     description = (
-        f"三种配置在 372 题通过率与{described_metrics}上的对比。"
+        f"{len(rows)} 种配置在 {total_cases} 题通过率与{described_metrics}上的对比。"
         if language == "zh"
-        else f"Three configurations compared by success rate on 372 cases and {described_metrics}."
+        else f"{len(rows)} configurations compared by success rate on {total_cases} cases and {described_metrics}."
     )
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-labelledby="title desc">',
@@ -119,10 +116,9 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
         "pss": (text["pss"], "pss_mib", "pss_change_pct", "MiB"),
         "cpu": (text["cpu"], "cpu_ms", "cpu_change_pct", "ms"),
     }
-    label_offsets = {
-        "114_off": (14, -44, "start"),
-        "118_off": (-14, -14, "end"),
-        "118_on": (14, -18, "start"),
+    row_colors = {
+        row["id"]: str(row.get("color") or COLORS[index % len(COLORS)])
+        for index, row in enumerate(rows)
     }
     for panel, metric in enumerate(metrics):
         title, key, change_key, unit = specs[metric]
@@ -141,39 +137,40 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
             x = _scale(value, low, high, x0, x1)
             parts.append(f'<line class="grid" x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{chart_bottom}"/>')
             parts.append(f'<text class="tick muted" x="{x:.1f}" y="{chart_bottom+25}" text-anchor="middle">{value:.1f}</text>')
+        plotted: list[tuple[float, float]] = []
+        offsets = ((0, 0), (-18, -18), (18, 18), (-18, 18), (18, -18), (0, -24), (0, 24))
         for row in rows:
-            x = _scale(float(row[key]), low, high, x0, x1)
-            y = _scale(float(row["success_rate_pct"]), 0, y_max, chart_bottom, top)
-            color = COLORS[row["id"]]
-            parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="10" fill="{color}" stroke="#fff" stroke-width="3"/>')
-            dx, dy, anchor = label_offsets[row["id"]]
-            short_label = row["short_label"] if language == "zh" else row["short_label_en"]
-            change = float(row[change_key])
-            label = f'{short_label} · {row[key]:.2f} {unit} ({change:+.2f}%)'
-            parts.append(f'<text class="point-label" x="{x+dx:.1f}" y="{y+dy:.1f}" text-anchor="{anchor}" fill="{color}">{html.escape(label)}</text>')
-    method_note = (
-        "1.1.4：仅复测 1.1.8 关闭布局唯一通过的候选题；3 次均失败，其余 371 题沿用共同失败关系。"
-        if language == "zh"
-        else "1.1.4: the sole case passed by layout-off 1.1.8 was retested 3 times and failed; the other 371 retain the shared-failure relation."
-    )
-    parts.append(f'<text class="tick muted" x="55" y="{height-78}">{html.escape(method_note)}</text>')
-    legend_y = height - 42
-    cursor = 55
-    if len(metrics) == 1:
-        reserved_label_width = 220
-        legend_step = (width - 110 - reserved_label_width) / max(1, len(rows) - 1)
-    else:
-        legend_step = 420
-    for row in rows:
-        color = COLORS[row["id"]]
+            exact_x = _scale(float(row[key]), low, high, x0, x1)
+            exact_y = _scale(float(row["success_rate_pct"]), 0, y_max, chart_bottom, top)
+            x, y = exact_x, exact_y
+            for dx, dy in offsets:
+                candidate = (exact_x + dx, exact_y + dy)
+                if all(math.hypot(candidate[0] - px, candidate[1] - py) >= 27 for px, py in plotted):
+                    x, y = candidate
+                    break
+            plotted.append((x, y))
+            color = row_colors[row["id"]]
+            number = rows.index(row) + 1
+            if (x, y) != (exact_x, exact_y):
+                parts.append(f'<line x1="{exact_x:.1f}" y1="{exact_y:.1f}" x2="{x:.1f}" y2="{y:.1f}" stroke="{color}" stroke-width="1.5"/>')
+                parts.append(f'<circle cx="{exact_x:.1f}" cy="{exact_y:.1f}" r="3" fill="{color}"/>')
+            parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="12" fill="{color}" stroke="#fff" stroke-width="3"/>')
+            parts.append(f'<text x="{x:.1f}" y="{y+5:.1f}" text-anchor="middle" style="font-size:12px;font-weight:750;fill:#fff">{number}</text>')
+    legend_y = chart_bottom + 82
+    for index, row in enumerate(rows):
+        color = row_colors[row["id"]]
         label_key = "label" if len(metrics) == 2 else "short_label"
         if language == "en":
             label_key += "_en"
         row_label = row[label_key]
-        legend_text = f'{row_label}: {row["passed_cases"]}/372 ({row["success_rate_pct"]:.1f}%)'
-        parts.append(f'<circle cx="{cursor}" cy="{legend_y}" r="7" fill="{color}"/>')
-        parts.append(f'<text class="legend" x="{cursor+13}" y="{legend_y+5}">{html.escape(legend_text)}</text>')
-        cursor += legend_step
+        fields = [f'{row["passed_cases"]}/{total_cases} ({row["success_rate_pct"]:.1f}%)']
+        for metric in metrics:
+            _, key, change_key, unit = specs[metric]
+            fields.append(f'{row[key]:.2f} {unit} ({float(row[change_key]):+.2f}%)')
+        y = legend_y + index * 30
+        parts.append(f'<circle cx="55" cy="{y-5}" r="8" fill="{color}"/>')
+        parts.append(f'<text x="55" y="{y-1}" text-anchor="middle" style="font-size:10px;font-weight:750;fill:#fff">{index+1}</text>')
+        parts.append(f'<text class="legend" x="72" y="{y}">{html.escape(row_label + ": " + " · ".join(fields))}</text>')
     parts.append('</svg>')
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text("\n".join(parts) + "\n")
