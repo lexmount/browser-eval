@@ -63,6 +63,12 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
                 raise ValueError(f"configuration row {index} field {field} must be numeric") from exc
             if not math.isfinite(number):
                 raise ValueError(f"configuration row {index} field {field} must be finite")
+    ids = [str(row["id"]) for row in rows]
+    if len(set(ids)) != len(ids):
+        raise ValueError("configuration ids must be unique")
+    for field in ("passed_cases", "total_cases"):
+        if any(not float(row[field]).is_integer() for row in rows):
+            raise ValueError(f"all configurations must use an integer {field}")
     totals = {float(row["total_cases"]) for row in rows}
     if any(not total.is_integer() for total in totals):
         raise ValueError("all configurations must use an integer total_cases")
@@ -70,7 +76,9 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
         raise ValueError("all configurations must use the same positive total_cases")
     total_cases = int(next(iter(totals)))
     resource = data.get("resource_population")
-    required_resource_fields = {"chart_calls", "chart_tasks"}
+    required_resource_fields = {
+        "chart_calls", "chart_tasks", "total_tasks", "calls_per_task"
+    }
     if not isinstance(resource, dict) or not required_resource_fields.issubset(resource):
         missing = (
             sorted(required_resource_fields - set(resource or {}))
@@ -81,7 +89,7 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
     text = {
         "zh": {
             "title": f"{total_cases} 题成功率与资源消耗",
-            "subtitle": f"资源实验：557 题 × 5 次；图中使用预先冻结的 {resource['chart_calls']:,} 次 / {resource['chart_tasks']} 题样本；越靠左资源消耗越低",
+            "subtitle": f"资源实验：{resource['total_tasks']} 题 × {resource['calls_per_task']} 次；图中使用预先冻结的 {resource['chart_calls']:,} 次 / {resource['chart_tasks']} 题样本；越靠左资源消耗越低",
             "y": f"{total_cases} 题通过率（每题 3 次全部通过）",
             "pss": "峰值进程树 PSS 中位数（MiB）",
             "cpu": "单次执行平均 CPU 时间（ms）",
@@ -90,7 +98,7 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
         },
         "en": {
             "title": f"Success on {total_cases} cases vs. resource use",
-            "subtitle": f"Resource experiment: 557 tasks × 5; plotted population: {resource['chart_calls']:,} pre-frozen calls / {resource['chart_tasks']} tasks; farther left is lower",
+            "subtitle": f"Resource experiment: {resource['total_tasks']} tasks × {resource['calls_per_task']}; plotted population: {resource['chart_calls']:,} pre-frozen calls / {resource['chart_tasks']} tasks; farther left is lower",
             "y": f"Success rate on {total_cases} cases (all 3 attempts pass)",
             "pss": "Median peak process-tree PSS (MiB)",
             "cpu": "Mean CPU time per execution (ms)",
@@ -180,7 +188,7 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
         if language == "en":
             label_key += "_en"
         row_label = row[label_key]
-        fields = [f'{row["passed_cases"]}/{total_cases} ({row["success_rate_pct"]:.1f}%)']
+        fields = [f'{int(float(row["passed_cases"]))}/{total_cases} ({float(row["success_rate_pct"]):.1f}%)']
         for metric in metrics:
             _, key, change_key, unit = specs[metric]
             fields.append(f'{row[key]:.2f} {unit} ({float(row[change_key]):+.2f}%)')

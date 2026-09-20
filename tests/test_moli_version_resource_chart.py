@@ -16,7 +16,12 @@ SPEC.loader.exec_module(MODULE)
 class MoliVersionResourceChartTests(unittest.TestCase):
     def setUp(self):
         self.data = {
-            "resource_population": {"chart_calls": 1045, "chart_tasks": 209},
+            "resource_population": {
+                "chart_calls": 1045,
+                "chart_tasks": 209,
+                "total_tasks": 557,
+                "calls_per_task": 5,
+            },
             "configurations": [
                 {
                     "id": "114_off",
@@ -168,6 +173,16 @@ class MoliVersionResourceChartTests(unittest.TestCase):
         for row in self.data["configurations"]:
             row["total_cases"] = "372.5"
         with self.assertRaisesRegex(ValueError, "integer total_cases"):
+            self.render()
+
+    def test_duplicate_configuration_ids_have_clear_error(self):
+        self.data["configurations"][1]["id"] = "114_off"
+        with self.assertRaisesRegex(ValueError, "configuration ids must be unique"):
+            self.render()
+
+    def test_fractional_passed_cases_have_clear_error(self):
+        self.data["configurations"][0]["passed_cases"] = 0.5
+        with self.assertRaisesRegex(ValueError, "integer passed_cases"):
             self.render()
 
     def test_nonfinite_metric_has_clear_error(self):
