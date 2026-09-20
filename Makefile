@@ -39,7 +39,7 @@ ci: naming-check test fixture-smoke
 
 report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/build_report.py --evidence "$(EVIDENCE)" --output reports/webfetch
+	$(PY) scripts/build_report.py --evidence "$(EVIDENCE)" --output reports/webfetch $(if $(filter 1,$(ENGLISH)),--include-english,)
 
 report-check: runtime-check
 	$(PY) scripts/check_report.py reports/webfetch
@@ -100,7 +100,7 @@ resource-image:
 
 public-benchmark-report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path/to/reviewed-public-benchmark-evidence is required' >&2; exit 2)
-	$(PY) scripts/build_report.py --evidence "$(EVIDENCE)" --output reports/webfetch-public-benchmarks
+	$(PY) scripts/build_report.py --evidence "$(EVIDENCE)" --output reports/webfetch-public-benchmarks $(if $(filter 1,$(ENGLISH)),--include-english,)
 	$(PY) scripts/check_report.py reports/webfetch-public-benchmarks
 	$(PY) scripts/check_report_links.py reports/webfetch-public-benchmarks
 

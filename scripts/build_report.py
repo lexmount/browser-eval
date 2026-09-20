@@ -16,6 +16,8 @@ if __name__ == '__main__':
     parser.add_argument('--evidence',type=Path)
     parser.add_argument('--public-benchmark-research',type=Path)
     parser.add_argument('--output',type=Path)
+    parser.add_argument('--include-english',action='store_true',
+                        help='also generate the English report; Chinese-only is the default')
     args=parser.parse_args()
     if args.public_benchmark_research:
         if args.evidence:
@@ -23,11 +25,13 @@ if __name__ == '__main__':
         if args.output is None and json.loads((ROOT/'evaluation/current-report.json').read_text()).get('comparison_kind')=='webmainbench_frozen_html_to_markdown':
             parser.error('The independent public-benchmark report now contains reviewed measurements; a research-only draft requires an explicit separate --output')
         output=args.output or ROOT/'reports/webfetch-public-benchmarks'
-        print(build_public_benchmark_research(args.public_benchmark_research,output))
+        print(build_public_benchmark_research(
+            args.public_benchmark_research,output,include_english=args.include_english))
         raise SystemExit(0)
     evidence=require_evidence(args.evidence or current_evidence_dir())
     profile=json.loads((ROOT/'evaluation/current-report.json').read_text())
     if profile.get('comparison_kind')!='webmainbench_frozen_html_to_markdown':
         require_canonical_inputs(evidence,ROOT/'evaluation')
     require_current_report_profile(evidence,ROOT/'evaluation/current-report.json')
-    print(build_report(evidence,args.output or ROOT/'reports/webfetch'))
+    print(build_report(evidence,args.output or ROOT/'reports/webfetch',
+                       include_english=args.include_english))
