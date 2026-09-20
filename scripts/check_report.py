@@ -68,7 +68,12 @@ class PageShape(HTMLParser):
  def handle_data(self,text):
   if not self.skip:self.numbers.extend(re.findall(r'\d+(?:[.,]\d+)*(?:%|\b)',text))
 
-root=Path(sys.argv[1]).resolve();d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
+root=Path(sys.argv[1]).resolve()
+if (root/'sample-manifest.json').is_file() and (root/'certification.json').is_file():
+ from scripts.check_wcxb_report import check
+ check(root)
+ raise SystemExit(0)
+d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
 check_language_contract(root)
 has_english='en' in generated_languages(root)
 repository=Path(__file__).resolve().parents[1]
@@ -82,6 +87,8 @@ inventory=json.loads((Path(__file__).resolve().parents[1]/'configs/evaluation-in
 if d.get('comparison',{}).get('kind') in {'headless_html','headless_markdown'}:
  headless=json.loads((Path(__file__).resolve().parents[1]/'configs/providers.headless.json').read_text())
  profile=json.loads((Path(__file__).resolve().parents[1]/'evaluation/current-report.json').read_text())
+ if profile.get('comparison_kind') not in {'headless_html','headless_markdown'}:
+  raise ValueError('Legacy headless report cannot be checked against a different current report profile')
  current_providers=profile['providers']
  assert set(current_providers)<=set(headless['providers']),'Current report references an unknown provider configuration'
  inventory={track:{**group,'providers':current_providers} for track,group in inventory.items()}

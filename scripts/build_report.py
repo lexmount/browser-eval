@@ -3,7 +3,7 @@ import argparse,json,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from harness.web_fetch.report_build import build_report, build_public_benchmark_research
+from harness.web_fetch.report_build import build_report, build_public_benchmark_research, build_wcxb_report
 from harness.web_fetch.storage import (
     current_evidence_dir,
     require_canonical_inputs,
@@ -18,6 +18,9 @@ if __name__ == '__main__':
     parser.add_argument('--output',type=Path)
     parser.add_argument('--include-english',action='store_true',
                         help='also generate the English report; Chinese-only is the default')
+    parser.add_argument('--wcxb-source',type=Path)
+    parser.add_argument('--wcxb-sample',type=Path)
+    parser.add_argument('--wcxb',action='store_true',help='Build the independently bound WCXB report')
     args=parser.parse_args()
     if args.public_benchmark_research:
         if args.evidence:
@@ -28,10 +31,20 @@ if __name__ == '__main__':
         print(build_public_benchmark_research(
             args.public_benchmark_research,output,include_english=args.include_english))
         raise SystemExit(0)
+    profile_path=ROOT/('evaluation/wcxb/current-report.json' if args.wcxb else 'evaluation/current-report.json')
+    profile=json.loads(profile_path.read_text())
+    if args.wcxb and profile.get('comparison_kind')!='wcxb_frozen_html_to_markdown':
+        parser.error('The WCXB profile does not describe the WCXB matrix')
+    if profile.get('comparison_kind')=='wcxb_frozen_html_to_markdown':
+        if not args.evidence:
+            parser.error('--evidence is required for the certified WCXB cohort')
+        corpus=args.wcxb_source or Path.home()/'.browser-eval/public-benchmarks/wcxb'
+        sample=args.wcxb_sample or ROOT/profile['sample_manifest']
+        print(build_wcxb_report(args.evidence,corpus,sample,profile,args.output or ROOT/'reports/wcxb'))
+        raise SystemExit(0)
     evidence=require_evidence(args.evidence or current_evidence_dir())
-    profile=json.loads((ROOT/'evaluation/current-report.json').read_text())
     if profile.get('comparison_kind')!='webmainbench_frozen_html_to_markdown':
         require_canonical_inputs(evidence,ROOT/'evaluation')
-    require_current_report_profile(evidence,ROOT/'evaluation/current-report.json')
+    require_current_report_profile(evidence,profile_path)
     print(build_report(evidence,args.output or ROOT/'reports/webfetch',
                        include_english=args.include_english))

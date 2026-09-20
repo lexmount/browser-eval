@@ -58,8 +58,10 @@ def _legacy_retrieval_provenance(
 ) -> dict[str, Any]:
     """Prove whether retained retrieval verdicts used saved Agent answers."""
     source = Path(results["source_seed_manifest"])
-    if source.is_symlink() or not source.is_file():
-        raise ValueError("legacy replay seed manifest is missing or is a symlink")
+    if (not source.is_absolute()
+            or any(part.is_symlink() for part in (source, *source.parents))
+            or not source.is_file()):
+        raise ValueError("legacy replay seed manifest must be an absolute file without symlinks")
     if _sha256(source) != results.get("source_seed_manifest_sha256"):
         raise ValueError("legacy replay seed manifest hash mismatch")
     seeds = json.loads(source.read_text(encoding="utf-8"))

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import os
@@ -34,6 +35,7 @@ from harness.web_fetch.runner import classify_exception
 DATASET_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
 SCORER_COMMIT = "9d991bdc00c57b57521499494d96be85c31317ba"
 PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "moli-1.1.7", "chromium")
+WCXB_PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "chromium", "moli-pr643")
 EXPECTED_VERSIONS = {"obscura": "0.2.2", "moli": "1.1.5", "moli-1.1.7": "1.1.7"}
 CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"
 
@@ -79,6 +81,39 @@ def load_source(path: Path, selected_ids: set[str] | None = None) -> list[dict]:
         if missing:
             raise ValueError("Unknown track IDs: " + ", ".join(sorted(missing)))
     return records
+
+
+def load_wcxb_source(root: Path, split: str = "test") -> tuple[list[dict], str]:
+    """Bind every frozen input and annotation byte before provider calls."""
+    directory = root / split
+    html_dir = directory / "html"
+    gt_dir = directory / "ground-truth"
+    records = []
+    inventory = hashlib.sha256()
+    for gt_path in sorted(gt_dir.glob("*.json")):
+        html_path = html_dir / f"{gt_path.stem}.html.gz"
+        if not html_path.is_file() or gt_path.is_symlink() or html_path.is_symlink():
+            raise ValueError(f"Missing or linked WCXB input: {gt_path.stem}")
+        gt_bytes, html_bytes = gt_path.read_bytes(), html_path.read_bytes()
+        for path, payload in ((gt_path, gt_bytes), (html_path, html_bytes)):
+            inventory.update(str(path.relative_to(root)).encode() + b"\0")
+            inventory.update(hashlib.sha256(payload).digest())
+        data = json.loads(gt_bytes)
+        content = gzip.decompress(html_bytes).decode("utf-8", errors="replace")
+        page_type = data.get("_internal", {}).get("page_type", {}).get("primary", "article")
+        if page_type == "category":
+            page_type = "collection"
+        records.append({
+            "track_id": gt_path.stem,
+            "url": data["url"],
+            "html": content,
+            "groundtruth_content": data["ground_truth"].get("main_content") or "",
+            "meta": {"page_type": page_type, "split": split},
+        })
+    expected = 511 if split == "test" else 1497
+    if len(records) != expected or len({r["track_id"] for r in records}) != expected:
+        raise ValueError(f"Expected {expected} distinct WCXB {split} inputs, found {len(records)}")
+    return records, inventory.hexdigest()
 
 
 def load_selected_ids(path: Path) -> tuple[set[str], dict]:
@@ -188,8 +223,8 @@ def provider_version(identity: dict) -> str | None:
     return None
 
 
-def check_identity(name: str, identity: dict) -> None:
-    expected = EXPECTED_VERSIONS.get(name)
+def check_identity(name: str, identity: dict, expected_versions: dict | None = None) -> None:
+    expected = (expected_versions or EXPECTED_VERSIONS).get(name)
     if expected and provider_version(identity) != expected:
         raise ValueError(
             f"{name}: expected version {expected}, got {identity.get('reported_version') or 'unavailable'}"
@@ -244,9 +279,29 @@ def run(args: argparse.Namespace) -> None:
         raise ValueError("Output exists; measured evidence is immutable")
     selected = None
     selection_binding = None
-    if args.case_ids_file:
+    if args.case_ids_file and args.benchmark == "webmainbench":
         selected, selection_binding = load_selected_ids(args.case_ids_file)
-    records = load_source(args.dataset, selected)
+    if args.benchmark == "wcxb":
+        if args.provider not in WCXB_PROVIDERS:
+            raise ValueError("WCXB provider is not in the current method contract: " + args.provider)
+        records, source_digest = load_wcxb_source(args.dataset)
+        if not args.case_ids_file:
+            raise ValueError("WCXB requires a frozen stratified sample manifest")
+        sample_bytes = args.case_ids_file.read_bytes()
+        sample = json.loads(sample_bytes)
+        from scripts.select_wcxb_sample import validate_manifest
+        expected, distribution = validate_manifest(records, source_digest, sample)
+        selected = {r["track_id"] for r in expected}
+        records = [r for r in records if r["track_id"] in selected]
+        selection_binding = {"sha256": sha256_bytes(sample_bytes), "case_count": len(records),
+                             "scope": sample.get('scope'), "seed": sample.get('seed')}
+        expected_versions = {"lightpanda": "0.4.1", "obscura": "0.2.2", "moli": "1.1.7", "moli-pr643": "1.1.7", "chromium": "153.0.8010.47"}
+        dataset_id = sample['dataset_id']
+    else:
+        records = load_source(args.dataset, selected)
+        source_digest = DATASET_SHA256
+        expected_versions = EXPECTED_VERSIONS
+        dataset_id = "webmainbench-545"
     if args.limit:
         records = records[: args.limit]
     if not records:
@@ -263,7 +318,7 @@ def run(args: argparse.Namespace) -> None:
     if missing := provider.validate():
         raise ValueError(args.provider + ": " + ", ".join(missing))
     before = provider.implementation_identity()
-    check_identity(args.provider, before)
+    check_identity(args.provider, before, expected_versions)
 
     args.output.mkdir(parents=True)
     artifact_root = args.output / "artifacts" / args.provider
@@ -271,9 +326,9 @@ def run(args: argparse.Namespace) -> None:
     physical_path = args.output / "physical-attempts.jsonl"
     result_path = args.output / "results.jsonl"
     source_manifest = {
-        "dataset_id": "webmainbench-545",
-        "source_sha256": DATASET_SHA256,
-        "official_scorer_commit": SCORER_COMMIT,
+        "dataset_id": dataset_id,
+        "source_sha256": source_digest,
+        "official_scorer_commit": SCORER_COMMIT if args.benchmark == "webmainbench" else None,
         "case_count": len(records),
         "case_ids": [record["track_id"] for record in records],
         "selection_manifest": selection_binding,
@@ -288,7 +343,7 @@ def run(args: argparse.Namespace) -> None:
     write_json(args.output / "dataset.json", source_manifest)
 
     started_at = iso_now()
-    run_id = "wmb-" + uuid.uuid4().hex[:20]
+    run_id = ("wcxb-" if args.benchmark == "wcxb" else "wmb-") + uuid.uuid4().hex[:20]
     cloudflare = None
     if args.provider == "kitesurf":
         cloudflare = CloudflareMarkdownProvider(args.provider, {
@@ -321,6 +376,8 @@ def run(args: argparse.Namespace) -> None:
                 response = fetch_record(provider, cloudflare, record, target_url, args.timeout)
                 elapsed_ms = round((time.monotonic() - clock) * 1000, 2)
                 total_elapsed += elapsed_ms
+                physical_artifact = artifact_root / f'{record["track_id"]}-p{retry + 1:02d}.txt'
+                physical_artifact.write_text(response.content, encoding='utf-8')
                 attempt = {
                     "attempt_id": f"{args.provider}__{record['track_id']}__p{retry + 1:02d}",
                     "run_id": run_id,
@@ -340,6 +397,7 @@ def run(args: argparse.Namespace) -> None:
                     "reference_sha256": sha256_bytes(reference),
                     "output_sha256": sha256_bytes(response.content.encode("utf-8")),
                     "output_chars": len(response.content),
+                    "physical_artifact_path": str(physical_artifact.relative_to(args.output)),
                 }
                 physical.write(json.dumps(attempt, ensure_ascii=False) + "\n")
                 physical.flush()
@@ -376,7 +434,7 @@ def run(args: argparse.Namespace) -> None:
         "max_failure_retries": args.max_failure_retries,
         "implementation_identity": before,
         "environment": {"python": platform.python_version(), "platform": platform.platform()},
-        "source_dataset_sha256": DATASET_SHA256,
+        "source_dataset_sha256": source_digest,
         "selection_manifest": selection_binding,
         "runner_sha256": sha256_bytes(Path(__file__).read_bytes()),
         "network_isolation_probe": network_isolation_probe,
@@ -388,7 +446,8 @@ def run(args: argparse.Namespace) -> None:
 def main() -> None:
     data_home = Path(os.environ.get("BROWSER_EVAL_DATA_HOME", Path.home() / ".browser-eval"))
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--provider", choices=PROVIDERS, required=True)
+    parser.add_argument("--provider", choices=sorted(set(PROVIDERS + WCXB_PROVIDERS)), required=True)
+    parser.add_argument("--benchmark", choices=("webmainbench", "wcxb"), default="webmainbench")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--dataset", type=Path, default=data_home / "public-benchmarks/webmainbench-545/WebMainBench_545.jsonl")
     parser.add_argument("--config", type=Path, default=ROOT / "configs/providers.headless.json")
@@ -398,6 +457,10 @@ def main() -> None:
     parser.add_argument("--timeout", type=float, default=45.0)
     parser.add_argument("--max-failure-retries", type=int, choices=(0, 1), default=1)
     args = parser.parse_args()
+    if args.benchmark == 'wcxb' and args.provider not in WCXB_PROVIDERS:
+        parser.error(f'--provider {args.provider} is not in the WCXB method matrix')
+    if args.benchmark == 'webmainbench' and args.provider not in PROVIDERS:
+        parser.error(f'--provider {args.provider} is not in the WebMainBench matrix')
     run(args)
 
 

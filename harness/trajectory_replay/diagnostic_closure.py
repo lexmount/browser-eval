@@ -1511,6 +1511,14 @@ def _audit_category_requires_binding(category: str | None) -> bool:
     return category not in {None, "unresolved"}
 
 
+def _bound_cause_audit(spec: dict[str, Any], row: dict[str, Any]) -> tuple[str, Any]:
+    tail_length = len(spec["evidence_receipts"]) + 2
+    evidence = row.get("additional_evidence", [])
+    if len(evidence) < tail_length or evidence[-tail_length].get("path") != spec["audit"]:
+        raise ValueError("cause audit lacks its declared evidence binding")
+    return _bound_json(evidence[-tail_length])
+
+
 def _load_fixed36_index(
     index: dict[str, Any], source_sha: str, *, old_failed_tasks: set[int]
 ) -> dict[str, Any]:
@@ -1551,6 +1559,7 @@ def _load_fixed36_index(
     if len(rows) != 36 or {row.get("task_id") for row in rows} != old_failed_tasks:
         raise ValueError("fixed-binary diagnostics require every original failed task once")
     cause_audit_specs = {}
+    cause_audit_values = {}
     cause_audit_categories = set()
     if index.get("cause_audits") is not None:
         _, cause_manifest = _bound_json(index["cause_audits"])
@@ -1563,8 +1572,10 @@ def _load_fixed36_index(
             set(cause_audit_specs) - old_failed_tasks
         ):
             raise ValueError("fixed-binary cause audit task scope differs")
-        for spec in cause_audit_specs.values():
-            audit = json.loads(Path(spec["audit"]).read_text(encoding="utf-8"))
+        rows_by_id = {row["task_id"]: row for row in rows}
+        for task_id, spec in cause_audit_specs.items():
+            cause_audit_values[task_id] = _bound_cause_audit(spec, rows_by_id[task_id])
+            _, audit = cause_audit_values[task_id]
             category = audit.get("reviewed_cause", {}).get("category")
             if _audit_category_requires_binding(category):
                 cause_audit_categories.add(category)
@@ -1719,10 +1730,7 @@ def _load_fixed36_index(
             raise ValueError(f"task {task_id} lacks cause classification")
         if task_id in cause_audit_specs:
             spec = cause_audit_specs[task_id]
-            audit_sha, audit = _bound_json({
-                "path": spec["audit"],
-                "sha256": row["additional_evidence"][-(len(spec["evidence_receipts"]) + 2)]["sha256"],
-            })
+            audit_sha, audit = cause_audit_values[task_id]
             evidence_tail = row["additional_evidence"][-(len(spec["evidence_receipts"]) + 2):]
             if (
                 audit.get("task_id") != task_id

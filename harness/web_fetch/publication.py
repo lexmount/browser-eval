@@ -63,7 +63,7 @@ def put_file(request, path, data):
             time.sleep(delay)
 
 
-def upload_large_archive(request, archive, slug=None, expected=None, title='Web Fetch 评测'):
+def upload_large_archive(request, archive, slug=None, expected=None, title='Web Fetch 评测', *, max_workers=1):
     """Upload unpacked bytes to staging and commit the full tree once."""
     if slug and not expected:
         raise ValueError('An existing site requires an exported version baseline')
@@ -94,10 +94,29 @@ def upload_large_archive(request, archive, slug=None, expected=None, title='Web 
         _, raw = request('/api/uploads' + query, json.dumps(payload).encode(), 'application/json')
         session = json.loads(raw)['versionId']
         endpoint = '/api/uploads/' + quote(session, safe='')
-        for index, info in enumerate(files, 1):
-            put_file(request, endpoint + '/files/' + quote(info.filename, safe='/'),
-                     bundle.read(info))
-            print(f'Uploaded {index}/{len(files)} files', flush=True)
+        # The current service may choose the first uploaded HTML as the
+        # version entry. Stage the root page before concurrent file uploads.
+        entry = next(info for info in files if info.filename == 'index.html')
+        put_file(request, endpoint + '/files/index.html', bundle.read(entry))
+        remaining = [info for info in files if info.filename != 'index.html']
+        if max_workers > 1:
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+            with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                pending = {
+                    pool.submit(put_file, request,
+                                endpoint + '/files/' + quote(info.filename, safe='/'),
+                                bundle.read(info)): info.filename
+                    for info in remaining
+                }
+                for index, future in enumerate(as_completed(pending), 2):
+                    future.result()
+                    if index % 100 == 0 or index == len(files):
+                        print(f'Uploaded {index}/{len(files)} files', flush=True)
+        else:
+            for index, info in enumerate(remaining, 2):
+                put_file(request, endpoint + '/files/' + quote(info.filename, safe='/'),
+                         bundle.read(info))
+                print(f'Uploaded {index}/{len(files)} files', flush=True)
         # The manual only guarantees atomic expected_version enforcement on
         # /versions and /edit. Also recheck before chunk commit; this read is
         # explicitly not claimed to be an atomic server-side lock.

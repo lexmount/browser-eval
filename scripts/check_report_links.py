@@ -30,7 +30,7 @@ class Links(HTMLParser):
         elif tag=='option' and self.current_filter:
             self.filter_options[self.current_filter].add(attrs_by_name.get('value') or '')
         for key, value in attrs:
-            if key in {"href", "src"} and value:
+            if key in {"href", "src", "data-src"} and value:
                 self.values.append(value)
             if key == "id" and value:
                 self.ids.add(value)
@@ -53,7 +53,7 @@ def check(root: Path) -> None:
 
     for page in pages:
         parser = parse_page(page)
-        base_dir = page.parent
+        base_dir = root if (root / 'sample-manifest.json').is_file() else page.parent
         if parser.base_href:
             parsed_base = urlsplit(parser.base_href)
             if not parsed_base.scheme:

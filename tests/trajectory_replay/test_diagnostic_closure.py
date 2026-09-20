@@ -28,6 +28,7 @@ from harness.trajectory_replay.diagnostic_closure import (
     _validate_task313_catalog_counterexample,
     _validate_task313_store_support_audit,
     _verified_digest,
+    _bound_cause_audit,
     load_diagnostic_closure,
 )
 from harness.trajectory_replay.webarena_report import (
@@ -35,6 +36,41 @@ from harness.trajectory_replay.webarena_report import (
     _latest_moli_task_section,
     _write_diagnostic_closure,
 )
+
+
+@pytest.mark.parametrize("kind", ["valid", "changed", "relative", "file_link", "parent_link", "wrong_file", "missing_binding"])
+def test_cause_audit_is_verified_before_its_category_is_used(tmp_path, monkeypatch, kind):
+    root = tmp_path.resolve()
+    folder = root / "evidence"
+    folder.mkdir()
+    audit = folder / "audit.json"
+    audit.write_text('{"reviewed_cause": {"category": "browser"}}')
+    digest = hashlib.sha256(audit.read_bytes()).hexdigest()
+    selected = audit
+    if kind == "changed":
+        audit.write_text('{"reviewed_cause": {"category": "benchmark"}}')
+    elif kind == "relative":
+        monkeypatch.chdir(root)
+        selected = Path("evidence/audit.json")
+    elif kind == "file_link":
+        selected = root / "linked.json"
+        selected.symlink_to(audit)
+    elif kind == "parent_link":
+        (root / "linked").symlink_to(folder, target_is_directory=True)
+        selected = root / "linked/audit.json"
+    spec = {"audit": str(selected), "evidence_receipts": []}
+    evidence = [{"path": str(selected), "sha256": digest}, {"path": "trace"}]
+    if kind == "wrong_file":
+        spec["audit"] = str(folder / "other.json")
+    elif kind == "missing_binding":
+        evidence = []
+    if kind == "valid":
+        observed_digest, value = _bound_cause_audit(spec, {"additional_evidence": evidence})
+        assert observed_digest == digest
+        assert value["reviewed_cause"]["category"] == "browser"
+    else:
+        with pytest.raises(ValueError, match="binding|absolute|symlink|hash mismatch"):
+            _bound_cause_audit(spec, {"additional_evidence": evidence})
 
 
 def test_bounded_unresolved_audit_does_not_require_audit_for_all_unresolved_tasks() -> None:

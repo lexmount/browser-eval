@@ -37,7 +37,7 @@
     }
   },
   "moli_failure_review": {
-    "path": "research/trajectory-replay-failure-review.json",
+    "path": "research/trajectory-replay-reviews/20260917-original-36.json",
     "sha256": "c2e07ab3637a3e0112a6cc93a1471b0c7a4f7cae8dc4c8099fd3430e7c58f237",
     "failed_results": 36,
     "verified_results": 36,

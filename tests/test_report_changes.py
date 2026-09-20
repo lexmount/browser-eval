@@ -32,7 +32,8 @@ class ReportChangesTests(unittest.TestCase):
         data = json.loads((ROOT / 'research/report-changes.json').read_text(encoding='utf-8'))
         releases = [row for row in data['releases']
                     if 'webmainbench_frozen_html_to_markdown' not in row.get('comparison_kinds', [])
-                    and 'public_benchmark_research' not in row.get('comparison_kinds', [])]
+                    and 'public_benchmark_research' not in row.get('comparison_kinds', [])
+                    and 'wcxb_frozen_html_to_markdown' not in row.get('comparison_kinds', [])]
         self.assertEqual(len(releases), 20)
         for row in releases:
             english = row['i18n']['en']

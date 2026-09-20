@@ -37,7 +37,7 @@
   },
   "trajectory_replay_bridge": {
     "source_path": "research/browser-use-trajectory-replay-bridge.json",
-    "source_sha256": "6898450b05673395935b428fa065ecd7b14b7ff2d3b5117c03c3fab9a2886165"
+    "source_sha256": "731c04735e6b58d271d4ed5d43514300060c3ecfca0f54d7bc826c1300dd2ac5"
   },
   "publication": {
     "base_url": "https://artifact-hub.app.lexmount.com",

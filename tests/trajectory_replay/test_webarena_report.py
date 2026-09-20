@@ -467,6 +467,33 @@ def test_legacy_retrieval_provenance_rejects_changed_seed(tmp_path) -> None:
         _legacy_retrieval_provenance(results, {"trajectories": []})
 
 
+@pytest.mark.parametrize("path_kind", ["absolute", "relative", "file_link", "parent_link"])
+def test_legacy_seed_requires_direct_absolute_evidence(tmp_path, monkeypatch, path_kind):
+    root = tmp_path.resolve()
+    directory = root / "evidence"
+    directory.mkdir()
+    source = directory / "seed.json"
+    source.write_text('{"tasks": []}')
+    selected = source
+    if path_kind == "relative":
+        monkeypatch.chdir(root)
+        selected = Path("evidence/seed.json")
+    elif path_kind == "file_link":
+        selected = root / "seed-link.json"
+        selected.symlink_to(source)
+    elif path_kind == "parent_link":
+        (root / "linked").symlink_to(directory, target_is_directory=True)
+        selected = root / "linked/seed.json"
+    results = {"source_seed_manifest": str(selected),
+               "source_seed_manifest_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+               "engines": [], "attempts": []}
+    if path_kind == "absolute":
+        assert _legacy_retrieval_provenance(results, {"trajectories": []})["retrieval_results"] == 0
+    else:
+        with pytest.raises(ValueError, match="absolute|symlink"):
+            _legacy_retrieval_provenance(results, {"trajectories": []})
+
+
 def test_legacy_retrieval_release_gate_rejects_missing_or_false_audit(tmp_path) -> None:
     zh = '<section class="callout historical-validity"></section>' \
          '<a href="data/legacy-retrieval-provenance.json">audit</a>'

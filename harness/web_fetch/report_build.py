@@ -4,13 +4,14 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
-from .report import generate, generate_public_benchmark_research, generate_webmainbench, succeeded, measured, failure_category, TRACKS
+from .report import generate, generate_public_benchmark_research, generate_webmainbench, generate_wcxb, succeeded, measured, failure_category, TRACKS
 from .report_changes import webmainbench_history
 from .failure_diagnosis import diagnose
-from .safety import contained_path, validate_report_ids
+from .safety import contained_path, safe_identifier, validate_report_ids
 from .reference_lifecycle import require_verified_reference_checks
 from .reliability import assess_reliability
 from .storage import require_selection_history,data_home
+from .wcxb_latency import load_full_paired_latency
 from .scoring import SCORING_SOURCE_SHA256
 from .webmainbench_diagnostics import validate_teds_revision_if_present
 from .webmainbench_latency_correction import prior_results_path
@@ -496,4 +497,193 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
     finally:
         if staging.exists():
             shutil.rmtree(staging)
+    return output / 'index.html'
+
+
+def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: dict, output: Path) -> Path:
+    """Build the one current report from a fully certified WCXB matrix."""
+    from scripts.run_webmainbench_benchmark import WCXB_PROVIDERS, load_wcxb_source
+    from scripts.select_wcxb_sample import validate_manifest
+    source, output = source.resolve(), output.resolve()
+    certificate = json.loads((source / 'certification.json').read_text())
+    summary = json.loads((source / 'wcxb-score-summary.json').read_text())
+    records, corpus_hash = load_wcxb_source(corpus)
+    sample_bytes = sample_path.read_bytes()
+    sample_hash = hashlib.sha256(sample_bytes).hexdigest()
+    sample = json.loads(sample_bytes)
+    selected, distribution = validate_manifest(records, corpus_hash, sample)
+    if (sample_hash != profile['sample_manifest_sha256']
+            or sample_hash != certificate.get('sample_sha256_before')
+            or sample_hash != certificate.get('sample_sha256_after')
+            or sample.get('size') != profile['case_count']):
+        raise ValueError('WCXB stratified sample binding failed')
+    records = selected
+    for record in records:
+        safe_identifier(record['track_id'])
+    if (not certificate.get('complete') or corpus_hash != certificate['source_sha256_before']
+            or corpus_hash != certificate['source_sha256_after']
+            or corpus_hash != summary['source_sha256']
+            or corpus_hash != profile['source_dataset_sha256']):
+        raise ValueError('WCXB source, certificate, summary and profile disagree')
+    evaluator_hash = hashlib.sha256(contained_path(corpus, 'evaluate.py').read_bytes()).hexdigest()
+    if evaluator_hash != profile['official_evaluator_sha256'] or summary.get('official_evaluator_sha256') != evaluator_hash:
+        raise ValueError('WCXB official evaluator differs from the certified profile')
+    if [x['provider'] for x in certificate['providers']] != list(WCXB_PROVIDERS) or profile['providers'] != list(WCXB_PROVIDERS):
+        raise ValueError('WCXB participant registry differs from the certificate')
+    candidate = next(x for x in certificate['providers'] if x['provider'] == 'moli-pr643')
+    if candidate['identity'].get('binary_sha256') != profile['candidate_binary_sha256']:
+        raise ValueError('WCXB candidate binary differs from the current report profile')
+    released = next(x for x in certificate['providers'] if x['provider'] == 'moli')
+    if released['identity'].get('binary_sha256') != profile['release_binary_sha256']:
+        raise ValueError('WCXB released Moli binary differs from the current report profile')
+    rows = [json.loads(line) for line in (source / 'wcxb-scores.jsonl').read_text().splitlines() if line]
+    case_ids = {r['track_id'] for r in records}
+    correction_root = source / 'latency-correction'
+    correction_receipt = correction_root / 'receipt.json'
+    if (not correction_receipt.is_file()
+            or hashlib.sha256(correction_receipt.read_bytes()).hexdigest()
+            != profile.get('latency_correction_receipt_sha256')):
+        raise ValueError('WCXB full-scope latency correction is missing or differs from profile')
+    _, corrected_calls = load_full_paired_latency(correction_root, profile, case_ids)
+    correction_certificate = json.loads((correction_root / 'certification.json').read_text())
+    if (correction_certificate.get('kind') != 'certified_wcxb_paired_latency'
+            or correction_certificate.get('complete') is not True
+            or correction_certificate.get('receipt_sha256')
+            != hashlib.sha256(correction_receipt.read_bytes()).hexdigest()):
+        raise ValueError('WCXB corrected timing is not certified')
+    if any(
+        abs(row['total_elapsed_ms'] - corrected_calls[row['case_id'],
+            'release' if row['provider'] == 'moli' else 'pr']['elapsed_ms']) > .01
+        for row in rows if row['provider'] in ('moli', 'moli-pr643')
+    ):
+        raise ValueError('WCXB reported Moli latency differs from the selected paired round')
+    if len(rows) != len(records) * len(WCXB_PROVIDERS) or {(r['provider'], r['case_id']) for r in rows} != {(p,c) for p in WCXB_PROVIDERS for c in case_ids}:
+        raise ValueError('WCXB score matrix is incomplete')
+    if output.exists() and not (output / '.generated-report').is_file():
+        raise ValueError('Refusing to replace an unmarked report')
+    output.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix='.wcxb-report-build-', dir=output.parent))
+    try:
+        for name in ('certification.json', 'wcxb-score-summary.json', 'wcxb-scores.jsonl'):
+            shutil.copy2(source / name, staging / name)
+        shutil.copy2(sample_path, staging / 'sample-manifest.json')
+        (staging / 'research').mkdir()
+        (staging / 'research/wcxb-full-paired-latency').mkdir()
+        for name in ('receipt.json', 'certification.json', 'calls.jsonl'):
+            shutil.copy2(correction_root / name, staging / 'research/wcxb-full-paired-latency' / name)
+        shutil.copy2(Path(__file__).resolve().parents[2] / 'research/report-changes.json',
+                     staging / 'research/report-changes.json')
+        shutil.copy2(Path(__file__).resolve().parents[2] / 'research/provider-adoption.json',
+                     staging / 'research/provider-adoption.json')
+        review_source = Path(__file__).resolve().parents[2] / 'research/wcxb-representative-review.json'
+        if review_source.is_file():
+            shutil.copy2(review_source, staging / 'research/wcxb-representative-review.json')
+        (staging / 'references').mkdir()
+        (staging / 'inputs').mkdir()
+        for case in records:
+            (staging / 'references' / f'{case["track_id"]}.txt').write_text(case['groundtruth_content'], encoding='utf-8')
+            (staging / 'inputs' / f'{case["track_id"]}.txt').write_text(case['html'], encoding='utf-8')
+        identities = {}
+        for batch in certificate['providers']:
+            provider = batch['provider']
+            run_dir = source / provider
+            results_file = run_dir / 'results.jsonl'
+            if hashlib.sha256(results_file.read_bytes()).hexdigest() != batch['results_sha256']:
+                raise ValueError('WCXB results changed: ' + provider)
+            if hashlib.sha256((run_dir / 'physical-attempts.jsonl').read_bytes()).hexdigest() != summary['providers'][provider]['physical_attempts_sha256']:
+                raise ValueError('WCXB physical attempts changed: ' + provider)
+            manifest = json.loads((run_dir / 'execution.json').read_text())
+            if manifest['run_id'] != batch['run_id'] or manifest['source_dataset_sha256'] != corpus_hash:
+                raise ValueError('WCXB run identity changed: ' + provider)
+            identities[provider] = manifest['implementation_identity']
+            raw_rows = [json.loads(line) for line in results_file.read_text().splitlines() if line]
+            if len(raw_rows) != len(records):
+                raise ValueError('WCXB provider results incomplete: ' + provider)
+            for row in raw_rows:
+                artifact = contained_path(run_dir, row['artifact_path'])
+                if artifact.is_symlink() or hashlib.sha256(artifact.read_bytes()).hexdigest() != row['output_sha256']:
+                    raise ValueError('WCXB output changed: ' + row['attempt_id'])
+                target = staging / 'artifacts' / provider / f'{row["track_id"]}.txt'
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(artifact, target)
+            for scored in (r for r in rows if r['provider'] == provider):
+                for retry in scored.get('retry_failures', []):
+                    artifact = contained_path(source, retry['artifact_path'])
+                    if artifact.is_symlink() or hashlib.sha256(artifact.read_bytes()).hexdigest() != retry['output_sha256']:
+                        raise ValueError('WCXB retained retry artifact changed: ' + scored['attempt_id'])
+                    target = contained_path(staging, retry['artifact_path'])
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(artifact, target)
+        ground_truth = {}
+        for record in records:
+            gt_path = contained_path(corpus / 'test' / 'ground-truth', f'{record["track_id"]}.json')
+            gt = json.loads(gt_path.read_text())['ground_truth']
+            ground_truth[record['track_id']] = {
+                'main_content': record['groundtruth_content'],
+                'page_type': record['meta']['page_type'],
+                'with': gt.get('with') or [], 'without': gt.get('without') or [],
+            }
+        generate_wcxb(staging, rows, summary, ground_truth, identities, profile)
+        evidence_root = staging / 'evidence'
+        evidence_root.mkdir()
+        evidence_hashes = {}
+        rows_by_case = {}
+        for row in rows:
+            rows_by_case.setdefault(row['case_id'], {})[row['provider']] = row
+        for record in records:
+            case_id = record['track_id']
+            outputs = {}
+            retries = {}
+            for provider in WCXB_PROVIDERS:
+                outputs[provider] = (staging / 'artifacts' / provider / f'{case_id}.txt').read_text(encoding='utf-8')
+                retries[provider] = [
+                    {**retry, 'output': contained_path(staging, retry['artifact_path']).read_text(encoding='utf-8')}
+                    for retry in rows_by_case[case_id][provider].get('retry_failures', [])
+                ]
+            payload = {
+                'schema_version': 1, 'case_id': case_id,
+                'source_html': record['html'], 'reference': record['groundtruth_content'],
+                'outputs': outputs, 'retry_failures': retries,
+            }
+            target = evidence_root / f'{case_id}.json'
+            target.write_text(json.dumps(payload, ensure_ascii=False), encoding='utf-8')
+            evidence_hashes[case_id] = hashlib.sha256(target.read_bytes()).hexdigest()
+        review_file = staging / 'research/wcxb-representative-review.json'
+        if review_file.is_file():
+            review = json.loads(review_file.read_text())
+            if (review.get('scope') != 'targeted_representative_anomaly_review'
+                    or review.get('total_results') != len(rows)
+                    or review.get('result_count') != sum(len(case['outputs']) for case in review['cases'])
+                    or review.get('unreviewed_results') != len(rows) - review['result_count']):
+                raise ValueError('WCXB representative review scope differs from measured matrix')
+            for case_review in review['cases']:
+                case_id = case_review['case_id']
+                if case_id not in rows_by_case or not set(case_review['outputs']) <= set(WCXB_PROVIDERS):
+                    raise ValueError('WCXB review case or method inventory differs')
+                evidence = json.loads((evidence_root / f'{case_id}.json').read_text())
+                if (hashlib.sha256(evidence['source_html'].encode()).hexdigest() != case_review['source_html_sha256']
+                        or hashlib.sha256(evidence['reference'].encode()).hexdigest() != case_review['reference_sha256']):
+                    raise ValueError('WCXB reviewed input or reference changed: ' + case_id)
+                for provider in case_review['outputs']:
+                    bound = case_review['outputs'][provider]
+                    if (bound['sha256'] != rows_by_case[case_id][provider]['output_sha256']
+                            or bound['attempt_id'] != rows_by_case[case_id][provider]['attempt_id']):
+                        raise ValueError('WCXB reviewed result changed: ' + case_id + '/' + provider)
+        (staging / 'evidence-manifest.json').write_text(json.dumps(evidence_hashes, sort_keys=True, indent=2) + '\n')
+        for folder in ('artifacts', 'references', 'inputs'):
+            shutil.rmtree(staging / folder, ignore_errors=True)
+        (staging / '.generated-report').write_text('generated\n')
+        if output.exists():
+            backup = Path(tempfile.mkdtemp(prefix='.wcxb-report-old-', dir=output.parent)) / 'report'
+            output.rename(backup)
+            try: staging.rename(output)
+            except BaseException:
+                backup.rename(output)
+                raise
+            shutil.rmtree(backup.parent)
+        else:
+            staging.rename(output)
+    except BaseException:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
     return output / 'index.html'
