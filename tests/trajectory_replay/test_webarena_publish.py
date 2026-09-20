@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -291,6 +292,59 @@ def test_multipart_archive_is_stable_for_operation_replay(monkeypatch, tmp_path:
     monkeypatch.setattr(publisher, "ARCHIVE", archive)
 
     assert publisher.multipart_archive("Replay") == publisher.multipart_archive("Replay")
+
+
+def test_large_replay_bundle_uses_staged_file_upload(monkeypatch, tmp_path: Path) -> None:
+    archive = tmp_path / "package.zip"
+    with zipfile.ZipFile(archive, "w") as bundle:
+        bundle.writestr("index.html", "<title>Replay</title>")
+        bundle.writestr("assets/figure.png", b"figure-bytes")
+    monkeypatch.setattr(publisher, "ARCHIVE", archive)
+    calls = []
+
+    def fake_request(_base, path, data=None, _content_type=None, **kwargs):
+        calls.append((path, data, kwargs))
+        if path == "/api/sites/site-1":
+            payload = {"site": {"currentVersionId": "ver_old"}}
+        elif path.startswith("/api/uploads?"):
+            payload = {"versionId": "ver_upload"}
+        elif path.endswith("/commit?expected_version=ver_old"):
+            payload = {"slug": "site-1", "versionId": "ver_new"}
+        else:
+            payload = {"ok": True}
+        return 200, json.dumps(payload).encode(), {}
+
+    monkeypatch.setattr(publisher, "request", fake_request)
+    identity = publisher.operation_identity(
+        base="https://app.example",
+        title="Replay",
+        kind="version",
+        slug="site-1",
+        expected_version="ver_old",
+    )
+
+    result = json.loads(
+        publisher.staged_archive_upload(
+            "https://app.example",
+            title="Replay",
+            slug="site-1",
+            expected_version="ver_old",
+            identity=identity,
+        )
+    )
+
+    assert result["versionId"] == "ver_new"
+    puts = [call for call in calls if call[2].get("method") == "PUT"]
+    assert [call[0] for call in puts] == [
+        "/api/uploads/ver_upload/files/index.html",
+        "/api/uploads/ver_upload/files/assets/figure.png",
+    ]
+    assert puts[1][1] == b"figure-bytes"
+    start = next(call for call in calls if call[0].startswith("/api/uploads?"))
+    commit = next(call for call in calls if "/commit" in call[0])
+    assert json.loads(start[1]) == {"slug": "site-1"}
+    assert start[2]["extra_headers"]["Idempotency-Key"].startswith("trajectory-staged-")
+    assert commit[2]["extra_headers"]["Idempotency-Key"].startswith("trajectory-staged-")
 
 
 def test_pending_receipt_rejects_mismatched_operation_before_remote_write(

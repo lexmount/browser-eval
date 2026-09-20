@@ -26,7 +26,7 @@ ARCHIVE = Path("publish/trajectory-replay-artifact-site.zip")
 ATTESTATION = Path("publish/trajectory-replay-artifact-site.attestation.json")
 VISUAL_RECEIPT = Path("publish/trajectory-replay-visual-qa.json")
 MAX_FILES = 2_000
-MAX_ARCHIVE_BYTES = 24 * 1024 * 1024
+MAX_ARCHIVE_BYTES = 300_000_000
 SKIP_PARTS = {".git", "node_modules", "__MACOSX"}
 
 
@@ -101,7 +101,7 @@ def package(
                 raise ValueError(f"dot-leading publication path is unsupported: {relative}")
             archive.write(path, relative.as_posix())
     if output.stat().st_size > MAX_ARCHIVE_BYTES:
-        raise ValueError("publication package exceeds Artifact Site one-shot upload limit")
+        raise ValueError("publication package exceeds Artifact Site staged-upload limit")
     attestation = {
         "schema": "lex_webarena_replay_publication_attestation/1",
         "archive": str(output),

@@ -63,7 +63,7 @@ def put_file(request, path, data):
             time.sleep(delay)
 
 
-def upload_large_archive(request, archive, slug=None, expected=None):
+def upload_large_archive(request, archive, slug=None, expected=None, title='Web Fetch 评测'):
     """Upload unpacked bytes to staging and commit the full tree once."""
     if slug and not expected:
         raise ValueError('An existing site requires an exported version baseline')
@@ -71,7 +71,10 @@ def upload_large_archive(request, archive, slug=None, expected=None):
     def check_baseline():
         if slug:
             _, raw = request('/api/sites/' + quote(slug, safe=''))
-            if json.loads(raw)['version']['id'] != expected:
+            site = json.loads(raw)
+            nested = site.get('site') if isinstance(site.get('site'), dict) else site
+            observed = nested.get('currentVersionId') or (nested.get('version') or {}).get('id')
+            if observed != expected:
                 raise RuntimeError('Remote version changed; export and reconcile before publishing')
 
     check_baseline()
@@ -87,7 +90,7 @@ def upload_large_archive(request, archive, slug=None, expected=None):
                     or str(PurePosixPath(name)) != name):
                 raise ValueError('Unsafe bundle path: ' + name)
         query = '?expected_version=' + quote(expected, safe='') if expected else ''
-        payload = {'slug': slug} if slug else {'title': 'Web Fetch 评测'}
+        payload = {'slug': slug} if slug else {'title': title}
         _, raw = request('/api/uploads' + query, json.dumps(payload).encode(), 'application/json')
         session = json.loads(raw)['versionId']
         endpoint = '/api/uploads/' + quote(session, safe='')

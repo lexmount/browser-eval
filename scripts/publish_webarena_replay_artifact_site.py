@@ -13,10 +13,12 @@ import urllib.parse
 import urllib.request
 import uuid
 import zipfile
+from io import BytesIO
 from pathlib import Path
 from urllib.error import HTTPError
 
 from harness.web_fetch.artifact_auth import load_token
+from harness.web_fetch.publication import upload_large_archive
 from harness.trajectory_replay.webarena_report import require_all_reference_validity
 if __package__:
     from scripts.build_webarena_replay_report import _bound_dataset_path
@@ -34,6 +36,7 @@ PUBLIC_REPORT_MARKERS = (
     "<title>浏览器轨迹重放</title>",
     "<title>Browser Trajectory Replay</title>",
 )
+STAGED_UPLOAD_THRESHOLD = 23 * 1024 * 1024
 
 
 def sha256(path: Path) -> str:
@@ -208,6 +211,53 @@ def multipart_archive(title: str) -> tuple[bytes, str]:
     )
     parts.append(f"--{boundary}--\r\n".encode())
     return b"".join(parts), "multipart/form-data; boundary=" + boundary
+
+
+def staged_archive_upload(
+    base: str,
+    *,
+    title: str,
+    slug: str | None,
+    expected_version: str | None,
+    identity: dict,
+) -> bytes:
+    """Upload a large archive as validated files and activate it in one commit."""
+
+    def staged_request(path, data=None, content_type=None, *, method=None):
+        headers = None
+        if data is not None and method is None and (
+            path.startswith("/api/uploads?") or "/commit" in path
+        ):
+            seed = json.dumps(identity, sort_keys=True, separators=(",", ":")) + "|" + path
+            headers = {
+                "Idempotency-Key": "trajectory-staged-"
+                + hashlib.sha256(seed.encode()).hexdigest()
+            }
+        status, raw, response_headers = request(
+            base,
+            path,
+            data,
+            content_type,
+            method=method,
+            extra_headers=headers,
+        )
+        if not 200 <= status < 300:
+            raise HTTPError(
+                base + path,
+                status,
+                raw.decode("utf-8", errors="replace")[:500],
+                response_headers,
+                BytesIO(raw),
+            )
+        return status, raw
+
+    return upload_large_archive(
+        staged_request,
+        ARCHIVE,
+        slug,
+        expected_version,
+        title=title,
+    )
 
 
 def current_version(site: dict) -> str:
@@ -405,7 +455,10 @@ def main(*, create: bool) -> None:
     profile, base, bound_slug, expected_version = publication_target(require_bound=False)
     publication = profile["publication"]
     title = str(publication.get("title") or "Browser Trajectory Replay")
-    payload, content_type = multipart_archive(title)
+    large_archive = ARCHIVE.stat().st_size > STAGED_UPLOAD_THRESHOLD
+    payload = content_type = None
+    if not large_archive:
+        payload, content_type = multipart_archive(title)
     if bound_slug or expected_version:
         if create:
             raise ValueError("replay report is already bound; update it without --create")
@@ -429,15 +482,25 @@ def main(*, create: bool) -> None:
             # remote version is byte-identical to the current package.
             verify_export(base, slug)
         else:
-            query = urllib.parse.urlencode({"expected_version": expected_version})
-            status, raw = idempotent_upload(
-                base,
-                f"/api/sites/{urllib.parse.quote(slug)}/versions?{query}",
-                payload,
-                content_type,
-                upload_identity,
-                allow_create=True,
-            )
+            if large_archive:
+                raw = staged_archive_upload(
+                    base,
+                    title=title,
+                    slug=slug,
+                    expected_version=expected_version,
+                    identity=upload_identity,
+                )
+                status = 200
+            else:
+                query = urllib.parse.urlencode({"expected_version": expected_version})
+                status, raw = idempotent_upload(
+                    base,
+                    f"/api/sites/{urllib.parse.quote(slug)}/versions?{query}",
+                    payload,
+                    content_type,
+                    upload_identity,
+                    allow_create=True,
+                )
             response_json(status, raw, operation="site version upload")
     else:
         upload_identity = operation_identity(base=base, title=title, kind="create")
@@ -447,14 +510,24 @@ def main(*, create: bool) -> None:
                 pending_operation(upload_identity, allow_create=False)
             verify_export(base, slug)
         else:
-            status, raw = idempotent_upload(
-                base,
-                "/api/sites",
-                payload,
-                content_type,
-                upload_identity,
-                allow_create=create,
-            )
+            if large_archive:
+                raw = staged_archive_upload(
+                    base,
+                    title=title,
+                    slug=None,
+                    expected_version=None,
+                    identity=upload_identity,
+                )
+                status = 200
+            else:
+                status, raw = idempotent_upload(
+                    base,
+                    "/api/sites",
+                    payload,
+                    content_type,
+                    upload_identity,
+                    allow_create=create,
+                )
             created = response_json(status, raw, operation="site creation")
             slug = str(created.get("slug") or "")
             if not slug:
