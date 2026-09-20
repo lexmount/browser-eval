@@ -32,6 +32,8 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
     if language not in {"zh", "en"}:
         raise ValueError("language must be zh or en")
     rows = data["configurations"]
+    if not rows:
+        raise ValueError("configurations must contain at least one row")
     unknown_ids = sorted({str(row.get("id")) for row in rows} - COLORS.keys())
     if unknown_ids:
         raise ValueError(f"unknown configuration id(s): {', '.join(unknown_ids)}")
@@ -139,7 +141,11 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
     parts.append(f'<text class="tick muted" x="55" y="{height-78}">{html.escape(method_note)}</text>')
     legend_y = height - 42
     cursor = 55
-    legend_step = min(420, (width - 110) / len(rows))
+    if len(metrics) == 1:
+        reserved_label_width = 220
+        legend_step = (width - 110 - reserved_label_width) / max(1, len(rows) - 1)
+    else:
+        legend_step = 420
     for row in rows:
         color = COLORS[row["id"]]
         label_key = "label" if len(metrics) == 2 else "short_label"

@@ -95,6 +95,12 @@ class MoliVersionResourceChartTests(unittest.TestCase):
         self.assertNotIn("PSS", svg)
         self.assertNotIn("77.22 MiB", svg)
 
+    def test_chinese_single_metric_keeps_all_short_legend_entries(self):
+        svg = self.render(("pss",), "zh")
+        for label in ("1.1.4 关闭", "1.1.8 关闭", "1.1.8 开启"):
+            self.assertIn(label, svg)
+        self.assertNotIn("Moli 1.1.8 · 开启 layout:", svg)
+
     def test_english_dual_panel_contains_both_resources_and_changes(self):
         svg = self.render(language="en")
         self.assertIn("Median peak process-tree PSS (MiB)", svg)
@@ -118,6 +124,11 @@ class MoliVersionResourceChartTests(unittest.TestCase):
     def test_missing_resource_population_field_has_clear_error(self):
         del self.data["resource_population"]["chart_tasks"]
         with self.assertRaisesRegex(ValueError, "resource_population missing required field.*chart_tasks"):
+            self.render()
+
+    def test_empty_configuration_list_has_clear_error(self):
+        self.data["configurations"] = []
+        with self.assertRaisesRegex(ValueError, "configurations must contain at least one row"):
             self.render()
 
 
