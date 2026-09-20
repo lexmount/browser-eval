@@ -40,7 +40,9 @@ def build(tmp_path, specimen=None, sources=None):
 def test_article_views_share_content_and_escape_source(tmp_path):
     build(tmp_path)
     _check_interpretation(tmp_path)
-    assert not BeautifulSoup((tmp_path / "article.html").read_text(), "html.parser").select("script")
+    offline = (tmp_path / "article.html").read_text()
+    assert offline.count("data:image/png;base64,") == 1
+    assert not BeautifulSoup(offline, "html.parser").select("script")
 
 
 def test_sources_are_localized_and_preserved_in_offline_article(tmp_path):

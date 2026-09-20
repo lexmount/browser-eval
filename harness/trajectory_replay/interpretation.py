@@ -60,10 +60,14 @@ def render_interpretation(*, source: Path, contract_audit: Path, results_sha256:
                    if standalone else image_prefix + filename)
             figure_link = "下载原尺寸图" if lang == "zh" else "Download full-size diagram"
             scroll_label = "机制图，可横向滚动查看" if lang == "zh" else "Mechanism diagram, scroll horizontally to read"
+            download_href = (
+                f'{str(report_url).rstrip("/")}/assets/interpretation/{filename}'
+                if standalone else src
+            )
+            download = f' <a href="{e(download_href)}" download="{e(filename)}">{figure_link}</a>'
             body.append(f'<figure><div class="diagram-scroll" tabindex="0" role="region" aria-label="{scroll_label}">'
                         f'<img src="{e(src)}" alt="{e(section["title"][lang])}"></div>'
-                        f'<figcaption>{e(section["caption"][lang])} '
-                        f'<a href="{e(src)}" download="{e(filename)}">{figure_link}</a></figcaption></figure>')
+                        f'<figcaption>{e(section["caption"][lang])}{download}</figcaption></figure>')
         body.extend(f'<p>{e(paragraph[lang])}</p>' for paragraph in section["paragraphs"])
         if specimen := section.get("specimen"):
             headers = specimen["headers"]
