@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import pytest
 from pathlib import Path
 
 _SCRIPT = Path(__file__).parents[2] / "scripts/check_webarena_replay_visual.py"
@@ -12,10 +13,27 @@ _first_failed_key = _MODULE._first_failed_key
 _first_fix_id = _MODULE._first_fix_id
 
 
+def test_header_contrast_rejects_light_panel_with_dark_theme_ink():
+    contrast = _MODULE._contrast_ratio
+    assert contrast("rgb(238, 245, 251)", "rgb(238, 243, 248)") < 1.1
+    assert contrast("rgb(238, 245, 251)", "rgb(23, 43, 58)") > 4.5
+    assert contrast("rgb(0, 0, 0)", "rgb(255, 255, 255)") == 21
+    with pytest.raises(ValueError):
+        contrast("rgb(0, 0, 0)", "rgba(0, 0, 0, 0)")
+
+
 def _write_results(tmp_path, results):
     data = tmp_path / "data"
     data.mkdir()
     (data / "results.json").write_text(json.dumps(results), encoding="utf-8")
+    (tmp_path / "report-manifest.json").write_text(json.dumps({"interpretation": False}))
+
+
+def test_routes_include_integrated_and_offline_article_in_both_languages(tmp_path):
+    _write_results(tmp_path, [{"key": "chromium-1", "status": "pass"}])
+    (tmp_path / "report-manifest.json").write_text(json.dumps({"interpretation": True}))
+    routes = _routes(tmp_path)
+    assert {"interpretation.html", "article.html", "en/interpretation.html", "en/article.html"} <= set(routes)
 
 
 def test_routes_include_failure_detail_and_evidence(tmp_path) -> None:

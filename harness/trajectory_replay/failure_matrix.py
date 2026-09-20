@@ -27,7 +27,7 @@ FAMILIES = (
 )
 
 
-def failure_category_matrix(methods: dict, rows: list[dict], lang: str) -> str:
+def failure_category_matrix(methods: dict, rows: list[dict], lang: str, *, embedded: bool = False) -> str:
     """Count each failed method-task once, including unreviewed failures."""
     zh = lang == "zh"
     labels = {}
@@ -97,10 +97,12 @@ def failure_category_matrix(methods: dict, rows: list[dict], lang: str) -> str:
         if zh else
         "The denominator is all tasks for each method. Each failure belongs to one subtype. Scroll horizontally for all categories and select a count to inspect its cases; fault ownership and root-cause evidence are in each diagnosis."
     )
+    tag = "div" if embedded else "section"
+    heading = "" if embedded else f"<h2>{title}</h2>"
     return (
-        f'<section data-failure-matrix><h2>{title}</h2><p>{note}</p>'
+        f'<{tag} data-failure-matrix>{heading}<p>{note}</p>'
         f'<div class="table-scroll failure-category-matrix" tabindex="0" role="region" aria-label="{title}"><table><thead><tr>'
         f'<th scope="col" rowspan="2">{"方法" if zh else "Method"}</th>'
         f'<th scope="col" rowspan="2">{"失败 / 任务" if zh else "Failures / tasks"}</th>'
-        f'{groups}</tr><tr>{headers}</tr></thead><tbody>{"".join(body)}</tbody></table></div></section>'
+        f'{groups}</tr><tr>{headers}</tr></thead><tbody>{"".join(body)}</tbody></table></div></{tag}>'
     )

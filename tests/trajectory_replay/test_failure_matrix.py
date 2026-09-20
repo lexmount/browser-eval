@@ -12,6 +12,16 @@ def _row(method, task, code="", status="fail"):
                 cause_en=code + " English" if code else "")
 
 
+def test_article_embedding_keeps_matrix_without_a_duplicate_section_heading():
+    methods = {"one": {"label": "One"}}
+    rows = [_row("one", 1, "zero_area_target_geometry")]
+    regular = BeautifulSoup(failure_category_matrix(methods, rows, "en"), "html.parser")
+    embedded = BeautifulSoup(failure_category_matrix(methods, rows, "en", embedded=True), "html.parser")
+    assert embedded.select_one("[data-failure-matrix]").name == "div"
+    assert not embedded.select("h2, section")
+    assert str(embedded.select_one("table")) == str(regular.select_one("table"))
+
+
 @pytest.mark.parametrize("lang", ["zh", "en"])
 def test_matrix_counts_disjoint_families_and_links_to_existing_filters(lang):
     methods = {"baseline": {"label": "Baseline"}, "candidate": {"label": "Candidate"}}

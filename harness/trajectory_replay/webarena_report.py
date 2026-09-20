@@ -2891,9 +2891,13 @@ def build_webarena_replay_report(
         article_css = (
             ".interpretation{max-width:1100px;margin:auto}.interpretation p{max-width:78ch;line-height:1.85}"
             ".interpretation h1{font-size:clamp(30px,4vw,54px)}"
-            ".interpretation figure img{width:100%;height:auto}"
-            "@media(prefers-color-scheme:dark){html:not([data-theme]){--bg:#0c1520;--panel:#121f2d;--ink:#eef5fb;--muted:#9db0c2;--line:#2b4054;--accent:#62a8ff;--wash:#142d49}}"
-            "@media print{.interpretation{max-width:none}.interpretation details{display:block}.table-scroll{overflow:visible}table{min-width:0;font-size:9pt}figure{break-inside:avoid}}"
+            ".interpretation figure{margin:24px 0}.interpretation figure img{width:100%;height:auto;display:block}"
+            ".interpretation .diagram-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px}"
+            ".interpretation .diagram-scroll img{min-width:900px}"
+            ".interpretation figcaption{margin-top:8px;color:var(--muted)}"
+            ".interpretation .article-specimen table{min-width:560px}"
+            "@media(prefers-color-scheme:dark){html:not([data-theme]){--bg:#0c1520;--panel:#121f2d;--panel2:#172b3a;--ink:#eef5fb;--muted:#9db0c2;--line:#2b4054;--accent:#62a8ff;--wash:#142d49;--shadow:none}}"
+            "@media print{.interpretation{max-width:none}.interpretation details{display:block}.table-scroll{overflow:visible}table{min-width:0;font-size:9pt}figure{break-inside:avoid}.interpretation .diagram-scroll{overflow:visible}.interpretation .diagram-scroll img,.interpretation .article-specimen table{min-width:0}}"
         )
         css_path = output / "assets/report.css"
         css = css_path.read_text() + article_css

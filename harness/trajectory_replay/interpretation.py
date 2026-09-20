@@ -39,7 +39,7 @@ def render_interpretation(*, source: Path, contract_audit: Path, results_sha256:
                 table_rows.append([method["label"], sum(row["status"] == "pass" for row in selected), len(selected)])
             body.append(_table(headers, table_rows))
         elif section.get("data") == "failure_matrix":
-            body.append(failure_category_matrix(methods, rows, lang))
+            body.append(failure_category_matrix(methods, rows, lang, embedded=True))
         elif section.get("data") == "contract_changes":
             headers = ("题目", "原合同", "改动及影响") if lang == "zh" else ("Task", "Original contract", "Change and effect")
             body.append(_table(headers, [
@@ -58,10 +58,30 @@ def render_interpretation(*, source: Path, contract_audit: Path, results_sha256:
             src = ("data:image/png;base64," + base64.b64encode(image.read_bytes()).decode()
                    if standalone else image_prefix + filename)
             figure_link = "下载原尺寸图" if lang == "zh" else "Download full-size diagram"
-            body.append(f'<figure><img src="{e(src)}" alt="{e(section["title"][lang])}">'
+            scroll_label = "机制图，可横向滚动查看" if lang == "zh" else "Mechanism diagram, scroll horizontally to read"
+            body.append(f'<figure><div class="diagram-scroll" tabindex="0" role="region" aria-label="{scroll_label}">'
+                        f'<img src="{e(src)}" alt="{e(section["title"][lang])}"></div>'
                         f'<figcaption>{e(section["caption"][lang])} '
                         f'<a href="{e(src)}" download="{e(filename)}">{figure_link}</a></figcaption></figure>')
         body.extend(f'<p>{e(paragraph[lang])}</p>' for paragraph in section["paragraphs"])
+        if specimen := section.get("specimen"):
+            headers = specimen["headers"]
+            values = specimen["rows"]
+            if not headers or not values or any(len(row) != len(headers) for row in values):
+                raise ValueError("article specimen requires a nonempty rectangular table")
+            def localized(value):
+                if isinstance(value, dict):
+                    if set(value) != {"zh", "en"}:
+                        raise ValueError("article specimen requires both languages")
+                    return value[lang]
+                if not isinstance(value, (str, int, float)):
+                    raise ValueError("unsupported article specimen value")
+                return value
+            caption = localized(specimen["caption"])
+            body.append('<figure class="article-specimen">'
+                        + _table([localized(value) for value in headers],
+                                 [[localized(value) for value in row] for row in values])
+                        + f'<figcaption>{e(caption)}</figcaption></figure>')
         body.append("</section>")
     body.append("</article>")
     result = "".join(body)

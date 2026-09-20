@@ -8,11 +8,24 @@ import hashlib
 import http.server
 import json
 import os
+import re
 import shutil
 import threading
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
+
+
+def _contrast_ratio(foreground: str, background: str) -> float:
+    def luminance(css: str) -> float:
+        if not re.fullmatch(r"rgb\(\d+,\s*\d+,\s*\d+\)", css):
+            raise ValueError(f"expected opaque computed RGB color: {css}")
+        channels = [int(channel) / 255 for channel in re.findall(r"\d+", css)]
+        linear = [value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+                  for value in channels]
+        return sum(value * weight for value, weight in zip(linear, (0.2126, 0.7152, 0.0722)))
+    values = sorted((luminance(foreground), luminance(background)))
+    return (values[1] + 0.05) / (values[0] + 0.05)
 
 
 def _tree_sha256(root: Path) -> str:
@@ -406,10 +419,16 @@ return node && node.textContent.trim().startsWith('{');
                                     timeout=5_000
                                 )
                                 page.locator(".dialog-head button").click()
-                            page.evaluate(
-                                "value => document.documentElement.dataset.theme=value",
-                                theme,
-                            )
+                            if route.endswith("article.html"):
+                                # Script-free exports follow the OS preference, not
+                                # the dashboard's JavaScript theme attribute.
+                                page.emulate_media(color_scheme=theme)
+                                page.evaluate("delete document.documentElement.dataset.theme")
+                            else:
+                                page.evaluate(
+                                    "value => document.documentElement.dataset.theme=value",
+                                    theme,
+                                )
                             result = page.evaluate(
                                 """() => {
 const root=document.documentElement;
@@ -452,6 +471,13 @@ return {
                                 **result,
                             }
                             states.append(state)
+                            if route.endswith(("article.html", "interpretation.html")):
+                                colors = page.locator(".interpretation th").evaluate_all(
+                                    "nodes=>nodes.map(e=>{const s=getComputedStyle(e);return [s.color,s.backgroundColor]})"
+                                )
+                                state["low_contrast_headers"] = [
+                                    pair for pair in colors if _contrast_ratio(*pair) < 4.5
+                                ]
                             if any(
                                 (
                                     result["overflow"] > 2,
@@ -460,6 +486,7 @@ return {
                                     result["viewerError"],
                                     result["topologyMissing"],
                                     result["rawMermaid"],
+                                    state.get("low_contrast_headers"),
                                 )
                             ):
                                 failures.append(state)

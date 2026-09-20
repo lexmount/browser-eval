@@ -9,7 +9,7 @@ from harness.trajectory_replay.interpretation import render_interpretation, stan
 from scripts.check_webarena_replay_report import _check_interpretation, _text_without_verified_embedded_images
 
 
-def build(tmp_path):
+def build(tmp_path, specimen=None):
     payload = b"\x89PNG\r\n\x1a\nsynthetic-test"
     for lang in ("zh", "en"):
         (tmp_path / f"example-{lang}.png").write_bytes(payload)
@@ -18,6 +18,8 @@ def build(tmp_path):
                "sections": [{"id": "mechanism", "title": {"zh": "机制", "en": "Mechanism"},
                              "paragraphs": [{"zh": "<script>原文</script>", "en": "<script>Evidence</script>"}],
                              "figure": "example", "caption": {"zh": "示意", "en": "Illustration"}}]}
+    if specimen is not None:
+        article["sections"][0]["specimen"] = specimen
     source, audit = tmp_path / "article.json", tmp_path / "audit.json"
     source.write_text(json.dumps(article))
     audit.write_text(json.dumps({"bindings": {"results_sha256": "cohort"}}))
@@ -37,6 +39,28 @@ def test_article_views_share_content_and_escape_source(tmp_path):
     build(tmp_path)
     _check_interpretation(tmp_path)
     assert not BeautifulSoup((tmp_path / "article.html").read_text(), "html.parser").select("script")
+
+
+def test_specimen_preserves_values_and_localizes_explanations(tmp_path):
+    build(tmp_path, {"headers": [{"zh": "事件", "en": "Event"}, "Moli"],
+                     "rows": [[{"zh": "<b>提交</b>", "en": "<b>Submit</b>"}, 1]],
+                     "caption": {"zh": "独立实验", "en": "Isolated fixture"}})
+    _check_interpretation(tmp_path)
+    for prefix, label in (("", "事件"), ("en/", "Event")):
+        page = BeautifulSoup((tmp_path / f"{prefix}article.html").read_text(), "html.parser")
+        assert page.select_one(".article-specimen th").text == label
+        assert page.select(".article-specimen td")[-1].text == "1"
+        assert not page.select(".article-specimen b")
+        assert page.select_one(".diagram-scroll")["tabindex"] == "0"
+
+
+@pytest.mark.parametrize("specimen", [
+    {"headers": ["A", "B"], "rows": [[1]], "caption": {"zh": "说明", "en": "Scope"}},
+    {"headers": [{"zh": "缺少英文"}], "rows": [[1]], "caption": {"zh": "说明", "en": "Scope"}},
+])
+def test_specimen_rejects_ragged_or_unlocalized_content(tmp_path, specimen):
+    with pytest.raises(ValueError):
+        build(tmp_path, specimen)
 
 
 @pytest.mark.parametrize("mutation", ["script", "missing_image", "drift", "no_download", "localization"])
