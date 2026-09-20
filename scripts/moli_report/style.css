@@ -220,6 +220,7 @@ main {
 .section-intro {
   color: var(--muted);
   margin: 0.35rem 0 1rem;
+  overflow-wrap: anywhere;
 }
 .grid {
   display: grid;

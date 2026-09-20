@@ -1306,8 +1306,8 @@ async function fixedCasePage(id) {
     hero(c.title, id) +
     section(zh ? "结果摘要" : "Result summary", "", summary) +
     section(
-      zh ? "本轮任务合同" : "Task contract for this comparison",
-      esc(c.task_definition.description),
+      zh ? "本轮任务要求" : "Task requirements for this comparison",
+      c.task_definition.description,
       `<details><summary>${esc(zh ? "查看冻结任务定义" : "Inspect frozen task definition")}</summary><p>SHA-256: <code>${esc(c.task_sha256)}</code></p><pre>${esc(JSON.stringify(c.task_definition, null, 2))}</pre></details>`,
     ) +
     details +
