@@ -472,6 +472,8 @@ def check(
         "index.html": {"中文"},
     }.items():
         page = report_dir / "en" / relative
+        if page not in rendered_pages:
+            continue
         visible = re.sub(r"\s+", " ", _visible_text(rendered_pages[page]))
         for token in allowed:
             visible = visible.replace(token, "")

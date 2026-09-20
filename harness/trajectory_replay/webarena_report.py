@@ -2950,6 +2950,22 @@ def build_webarena_replay_report(
             home.write_text(home.read_text().replace("<main>", f'<main><p><a href="interpretation.html">{label}</a></p>', 1), encoding="utf-8")
 
     if not include_english:
+        # Remove authored translations only; raw task and execution evidence is immutable.
+        for evidence_path in (output / "data/evidence").glob("*.json"):
+            document = json.loads(evidence_path.read_text(encoding="utf-8"))
+            review = document.get("review")
+            if isinstance(review, dict):
+                document["review"] = {
+                    key: value for key, value in review.items()
+                    if not (key.endswith("_en") and key[:-3] + "_zh" in review)
+                }
+            _write_json(evidence_path, document)
+        result_path = output / "data/results.json"
+        rows = json.loads(result_path.read_text(encoding="utf-8"))
+        _write_json(result_path, [
+            {key: value for key, value in row.items() if key not in {"cause_en", "reason_en"}}
+            for row in rows
+        ])
         for page in output.rglob("*.html"):
             if page.name == "article.html":
                 continue

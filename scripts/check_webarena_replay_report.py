@@ -587,6 +587,11 @@ def check(report_dir: Path) -> dict[str, int]:
             if not evidence_path.is_file():
                 raise ValueError(f"method-specific result evidence is missing: {key}")
             evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+            if report_languages(root) == ("zh",) and any(
+                key.endswith("_en") and key[:-3] + "_zh" in (evidence.get("review") or {})
+                for key in (evidence.get("review") or {})
+            ):
+                raise ValueError("Chinese-only evidence contains unused English review prose")
             if (
                 (evidence.get("result") or {}).get("planned_actions_sha256") != planned_digest
                 or (evidence.get("result") or {}).get("task_contract_sha256") != matching.get("task_contract_sha256")
