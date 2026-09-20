@@ -1,7 +1,8 @@
 import importlib.util
-from pathlib import Path
+import re
 import tempfile
 import unittest
+from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -80,8 +81,30 @@ class MoliVersionResourceChartTests(unittest.TestCase):
     def test_pss_only_omits_cpu_content(self):
         svg = self.render(("pss",), "en")
         self.assertIn("Median peak process-tree PSS (MiB)", svg)
+        for label in ("Moli 1.1.4 · layout off", "Moli 1.1.8 · layout off", "Moli 1.1.8 · layout on"):
+            self.assertIn(label, svg)
         self.assertNotIn("CPU", svg)
         self.assertNotIn("21.41 ms", svg)
+
+    def test_english_dual_panel_contains_both_resources_and_changes(self):
+        svg = self.render(language="en")
+        self.assertIn("Median peak process-tree PSS (MiB)", svg)
+        self.assertIn("Mean CPU time per execution (ms)", svg)
+        self.assertIn("80.54 MiB (+4.30%)", svg)
+        self.assertIn("21.66 ms (+1.16%)", svg)
+
+    def test_y_axis_expands_to_include_rates_above_eighty_percent(self):
+        self.data["configurations"][2]["success_rate_pct"] = 95
+        svg = self.render()
+        self.assertIn(">100%</text>", svg)
+        point = re.search(r'<circle cx="[^"]+" cy="([^"]+)" r="10" fill="#7652c7"', svg)
+        self.assertIsNotNone(point)
+        self.assertGreaterEqual(float(point.group(1)), 145)
+
+    def test_unknown_configuration_id_has_clear_error(self):
+        self.data["configurations"][0]["id"] = "future_config"
+        with self.assertRaisesRegex(ValueError, "unknown configuration id.*future_config"):
+            self.render()
 
 
 if __name__ == "__main__":

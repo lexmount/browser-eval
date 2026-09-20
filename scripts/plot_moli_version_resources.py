@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import math
 from pathlib import Path
 
 
@@ -31,6 +32,9 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
     if language not in {"zh", "en"}:
         raise ValueError("language must be zh or en")
     rows = data["configurations"]
+    unknown_ids = sorted({str(row.get("id")) for row in rows} - COLORS.keys())
+    if unknown_ids:
+        raise ValueError(f"unknown configuration id(s): {', '.join(unknown_ids)}")
     resource = data["resource_population"]
     text = {
         "zh": {
@@ -58,7 +62,8 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
     gap = 90
     panel_width = (width - left - right - gap * (len(metrics) - 1)) / len(metrics)
     chart_bottom = height - bottom
-    chart_height = chart_bottom - top
+    max_success_rate = max(float(row["success_rate_pct"]) for row in rows)
+    y_max = max(20, math.ceil(max_success_rate / 20) * 20)
     described_metrics = {
         "zh": "、".join(text[metric] for metric in metrics),
         "en": " and ".join(text[metric] for metric in metrics),
@@ -77,14 +82,19 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
         f'<text class="title" x="55" y="48">{html.escape(text["title"])}</text>',
         f'<text class="subtitle muted" x="55" y="78">{html.escape(text["subtitle"])}</text>',
     ]
-    for tick in range(0, 81, 20):
-        y = _scale(tick, 0, 80, chart_bottom, top)
+    for tick in range(0, y_max + 1, 20):
+        y = _scale(tick, 0, y_max, chart_bottom, top)
         parts.append(f'<line class="grid" x1="{left}" y1="{y:.1f}" x2="{width-right}" y2="{y:.1f}"/>')
         parts.append(f'<text class="tick muted" x="{left-16}" y="{y+5:.1f}" text-anchor="end">{tick}%</text>')
     parts.append(f'<text class="label" transform="translate(28 {(top+chart_bottom)/2:.1f}) rotate(-90)" text-anchor="middle">{html.escape(text["y"])}</text>')
     specs = {
         "pss": (text["pss"], "pss_mib", "pss_change_pct", "MiB"),
         "cpu": (text["cpu"], "cpu_ms", "cpu_change_pct", "ms"),
+    }
+    label_offsets = {
+        "114_off": (14, -44, "start"),
+        "118_off": (-14, -14, "end"),
+        "118_on": (14, -18, "start"),
     }
     for panel, metric in enumerate(metrics):
         title, key, change_key, unit = specs[metric]
@@ -103,14 +113,9 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
             x = _scale(value, low, high, x0, x1)
             parts.append(f'<line class="grid" x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{chart_bottom}"/>')
             parts.append(f'<text class="tick muted" x="{x:.1f}" y="{chart_bottom+25}" text-anchor="middle">{value:.1f}</text>')
-        label_offsets = {
-            "114_off": (14, -44, "start"),
-            "118_off": (-14, -14, "end"),
-            "118_on": (14, -18, "start"),
-        }
         for row in rows:
             x = _scale(float(row[key]), low, high, x0, x1)
-            y = _scale(float(row["success_rate_pct"]), 0, 80, chart_bottom, top)
+            y = _scale(float(row["success_rate_pct"]), 0, y_max, chart_bottom, top)
             color = COLORS[row["id"]]
             parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="10" fill="{color}" stroke="#fff" stroke-width="3"/>')
             dx, dy, anchor = label_offsets[row["id"]]
@@ -126,13 +131,14 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
     parts.append(f'<text class="tick muted" x="55" y="{height-78}">{html.escape(method_note)}</text>')
     legend_y = height - 42
     cursor = 55
+    legend_step = min(420, (width - 110) / len(rows))
     for row in rows:
         color = COLORS[row["id"]]
         row_label = row["label"] if language == "zh" else row["label_en"]
         legend_text = f'{row_label}: {row["passed_cases"]}/372 ({row["success_rate_pct"]:.1f}%)'
         parts.append(f'<circle cx="{cursor}" cy="{legend_y}" r="7" fill="{color}"/>')
         parts.append(f'<text class="legend" x="{cursor+13}" y="{legend_y+5}">{html.escape(legend_text)}</text>')
-        cursor += 420
+        cursor += legend_step
     parts.append('</svg>')
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text("\n".join(parts) + "\n")
