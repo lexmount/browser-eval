@@ -159,6 +159,22 @@ class MoliVersionResourceChartTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "configuration row 0 missing required field.*pss_change_pct"):
             self.render()
 
+    def test_color_rejects_svg_attribute_injection(self):
+        self.data["configurations"][0]["color"] = '#fff\" onload=\"alert(1)'
+        with self.assertRaisesRegex(ValueError, "color must be a six-digit hex color"):
+            self.render()
+
+    def test_fractional_total_cases_has_clear_error(self):
+        for row in self.data["configurations"]:
+            row["total_cases"] = "372.5"
+        with self.assertRaisesRegex(ValueError, "integer total_cases"):
+            self.render()
+
+    def test_nonfinite_metric_has_clear_error(self):
+        self.data["configurations"][0]["pss_mib"] = float("nan")
+        with self.assertRaisesRegex(ValueError, "field pss_mib must be finite"):
+            self.render()
+
 
 if __name__ == "__main__":
     unittest.main()

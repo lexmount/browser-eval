@@ -11,9 +11,11 @@ import html
 import json
 import math
 from pathlib import Path
+import re
 
 
 COLORS = ("#239b68", "#d1841e", "#7652c7", "#2775c9", "#c54f79", "#4c8793")
+COLOR_RE = re.compile(r"#[0-9a-fA-F]{6}")
 
 
 def _scale(value: float, lower: float, upper: float, start: float, end: float) -> float:
@@ -48,10 +50,25 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
         )
         if missing:
             raise ValueError(f"configuration row {index} missing required field(s): {', '.join(missing)}")
-    totals = {int(row["total_cases"]) for row in rows}
+        color = row.get("color")
+        if color is not None and (not isinstance(color, str) or COLOR_RE.fullmatch(color) is None):
+            raise ValueError(f"configuration row {index} color must be a six-digit hex color")
+        numeric_fields = {"passed_cases", "total_cases", "success_rate_pct"}
+        for metric in metrics:
+            numeric_fields.update(metric_fields[metric])
+        for field in sorted(numeric_fields):
+            try:
+                number = float(row[field])
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"configuration row {index} field {field} must be numeric") from exc
+            if not math.isfinite(number):
+                raise ValueError(f"configuration row {index} field {field} must be finite")
+    totals = {float(row["total_cases"]) for row in rows}
+    if any(not total.is_integer() for total in totals):
+        raise ValueError("all configurations must use an integer total_cases")
     if len(totals) != 1 or next(iter(totals)) <= 0:
         raise ValueError("all configurations must use the same positive total_cases")
-    total_cases = next(iter(totals))
+    total_cases = int(next(iter(totals)))
     resource = data.get("resource_population")
     required_resource_fields = {"chart_calls", "chart_tasks"}
     if not isinstance(resource, dict) or not required_resource_fields.issubset(resource):
@@ -139,7 +156,7 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
             parts.append(f'<text class="tick muted" x="{x:.1f}" y="{chart_bottom+25}" text-anchor="middle">{value:.1f}</text>')
         plotted: list[tuple[float, float]] = []
         offsets = ((0, 0), (-18, -18), (18, 18), (-18, 18), (18, -18), (0, -24), (0, 24))
-        for row in rows:
+        for row_index, row in enumerate(rows, 1):
             exact_x = _scale(float(row[key]), low, high, x0, x1)
             exact_y = _scale(float(row["success_rate_pct"]), 0, y_max, chart_bottom, top)
             x, y = exact_x, exact_y
@@ -150,7 +167,7 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
                     break
             plotted.append((x, y))
             color = row_colors[row["id"]]
-            number = rows.index(row) + 1
+            number = row_index
             if (x, y) != (exact_x, exact_y):
                 parts.append(f'<line x1="{exact_x:.1f}" y1="{exact_y:.1f}" x2="{x:.1f}" y2="{y:.1f}" stroke="{color}" stroke-width="1.5"/>')
                 parts.append(f'<circle cx="{exact_x:.1f}" cy="{exact_y:.1f}" r="3" fill="{color}"/>')
