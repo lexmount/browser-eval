@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="{{lang}}" data-base="{{base}}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Moli 1.1.8 · Layout modes</title>
+    <link rel="stylesheet" href="{{base}}style.css" />
+    <script defer src="{{base}}mermaid.min.js"></script>
+    <script defer src="{{base}}app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="#page=home"
+          ><span class="brand-glyph">M</span
+          ><span>Moli <small>/ Layout modes</small></span></a
+        ><button
+          id="menu-toggle"
+          class="menu-toggle"
+          type="button"
+          aria-controls="site-nav"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <nav id="site-nav" aria-label="Report navigation"></nav>
+        <div class="actions">
+          <a id="language" href="{{base}}en/index.html#page=home">EN</a
+          ><button id="theme" type="button" aria-label="Toggle theme">◐</button>
+        </div>
+      </div>
+    </header>
+    <main id="main" tabindex="-1">
+      <div class="loading">Loading report…</div>
+    </main>
+    <footer class="footer">
+      <span>Moli 1.1.8 · paired layout comparison</span
+      ><a href="#page=method">Method &amp; evidence</a>
+    </footer>
+    <dialog id="evidence-dialog" aria-labelledby="evidence-title">
+      <div class="dialog-head">
+        <h2 id="evidence-title">Evidence</h2>
+        <button id="dialog-close" type="button" aria-label="Close">✕</button>
+      </div>
+      <div id="evidence-body"></div>
+    </dialog>
+  </body>
+</html>
