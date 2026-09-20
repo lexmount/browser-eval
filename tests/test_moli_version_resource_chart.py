@@ -4,7 +4,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "plot_moli_version_resources.py"
 SPEC = importlib.util.spec_from_file_location("plot_moli_version_resources", SCRIPT)
@@ -108,6 +107,10 @@ class MoliVersionResourceChartTests(unittest.TestCase):
                 self.assertIn("80.54 MiB (+4.30%)", svg)
                 self.assertIn("21.66 ms (+1.16%)", svg)
 
+    def test_duplicate_metric_selection_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "duplicates"):
+            self.render(("pss", "pss"))
+
     def test_cpu_only_omits_pss_content_and_keeps_all_legend_entries(self):
         svg = self.render(("cpu",), "en")
         self.assertIn("Mean CPU time per execution (ms)", svg)
@@ -142,16 +145,18 @@ class MoliVersionResourceChartTests(unittest.TestCase):
 
     def test_future_configuration_is_rendered_without_code_changes(self):
         future = dict(self.data["configurations"][2])
-        future.update({
-            "id": "pr640_try_layout",
-            "label": "Moli PR #640 · 失败后尝试 layout",
-            "label_en": "Moli PR #640 · try layout after failure",
-            "short_label": "PR #640 尝试布局",
-            "short_label_en": "PR #640 try layout",
-            "passed_cases": 300,
-            "success_rate_pct": 300 / 372 * 100,
-            "color": "#2775c9",
-        })
+        future.update(
+            {
+                "id": "pr640_try_layout",
+                "label": "Moli PR #640 · 失败后尝试 layout",
+                "label_en": "Moli PR #640 · try layout after failure",
+                "short_label": "PR #640 尝试布局",
+                "short_label_en": "PR #640 try layout",
+                "passed_cases": 300,
+                "success_rate_pct": 300 / 372 * 100,
+                "color": "#2775c9",
+            }
+        )
         self.data["configurations"].append(future)
         svg = self.render()
         self.assertIn("4 种配置", svg)
@@ -165,7 +170,9 @@ class MoliVersionResourceChartTests(unittest.TestCase):
 
     def test_missing_resource_population_field_has_clear_error(self):
         del self.data["resource_population"]["chart_tasks"]
-        with self.assertRaisesRegex(ValueError, "resource_population missing required field.*chart_tasks"):
+        with self.assertRaisesRegex(
+            ValueError, "resource_population missing required field.*chart_tasks"
+        ):
             self.render()
 
     def test_resource_population_values_must_be_positive_integers(self):
@@ -199,11 +206,13 @@ class MoliVersionResourceChartTests(unittest.TestCase):
 
     def test_missing_configuration_field_has_clear_error(self):
         del self.data["configurations"][0]["pss_change_pct"]
-        with self.assertRaisesRegex(ValueError, "configuration row 0 missing required field.*pss_change_pct"):
+        with self.assertRaisesRegex(
+            ValueError, "configuration row 0 missing required field.*pss_change_pct"
+        ):
             self.render()
 
     def test_color_rejects_svg_attribute_injection(self):
-        self.data["configurations"][0]["color"] = '#fff\" onload=\"alert(1)'
+        self.data["configurations"][0]["color"] = '#fff" onload="alert(1)'
         with self.assertRaisesRegex(ValueError, "color must be a six-digit hex color"):
             self.render()
 

@@ -752,6 +752,7 @@ for method_id, summary_path in args.fixed_summary:
         assert len(case["attempts"]) == 3 and {a["attempt"] for a in case["attempts"]} == {1, 2, 3}
         assert case["passes"] == sum(a["status"] == "pass" for a in case["attempts"])
     source_runs = {}
+    source_tasks = {}
     for binding in candidate["sources"]:
         run_id = binding["run_id"]
         assert re.fullmatch(r"[A-Za-z0-9_-]+", run_id)
@@ -766,7 +767,24 @@ for method_id, summary_path in args.fixed_summary:
         )
         assert sha(source_result.read_bytes()) == binding["results_sha256"]
         source_runs[run_id] = run_root
+        for task in json.loads((run_root / "run_manifest.json").read_text())["resolved_tasks"]:
+            if task["task_id"] in source_tasks:
+                assert source_tasks[task["task_id"]]["sha256"] == task["sha256"]
+            source_tasks[task["task_id"]] = task
     for case in candidate["cases"]:
+        task = source_tasks[case["task_id"]]
+        bench_root = ROOT / "work/lexbench-layout-policy-v3"
+        task_path = bench_root / task["path"]
+        assert (
+            task_path.resolve().is_relative_to(bench_root.resolve()) and not task_path.is_symlink()
+        )
+        task_bytes = task_path.read_bytes()
+        assert sha(task_bytes) == task["sha256"] == case["task_sha256"]
+        case_detail = fixed_case_data[case["task_id"]]
+        if "task_sha256" in case_detail:
+            assert case_detail["task_sha256"] == task["sha256"]
+        case_detail["task_sha256"] = task["sha256"]
+        case_detail["task_definition"] = json.loads(clean(task_bytes.decode()))
         detail = []
         for attempt in case["attempts"]:
             run_root = source_runs[attempt["source_run_id"]]

@@ -1129,7 +1129,7 @@ function methodPage() {
       "",
     ) +
     section(
-      zh ? "实验流程" : "Protocol flow",
+      zh ? "1.1.8 历史实验流程" : "Historical 1.1.8 protocol",
       "",
       `<div class="protocol-diagram"><pre class="mermaid">flowchart TB
 A["${zh ? `冻结 ${M.task_count} 题、版本与种子` : `Freeze ${M.task_count} tasks, versions and seed`}"] --> B["${zh ? "无采样：先无布局，再开布局" : "Unprofiled: layout off, then on"}"]
@@ -1305,11 +1305,16 @@ async function fixedCasePage(id) {
     `<div class="breadcrumb"><a href="${link("analysis")}">${esc(T.nav.analysis)}</a> / <code>${esc(id)}</code></div>` +
     hero(c.title, id) +
     section(zh ? "结果摘要" : "Result summary", "", summary) +
+    section(
+      zh ? "本轮任务合同" : "Task contract for this comparison",
+      esc(c.task_definition.description),
+      `<details><summary>${esc(zh ? "查看冻结任务定义" : "Inspect frozen task definition")}</summary><p>SHA-256: <code>${esc(c.task_sha256)}</code></p><pre>${esc(JSON.stringify(c.task_definition, null, 2))}</pre></details>`,
+    ) +
     details +
     section(
       zh ? "任务与历史结果" : "Task and historical results",
       "",
-      `<a href="${link("task/" + id)}">${esc(zh ? "查看任务定义与 1.1.8 对照" : "View task definition and 1.1.8 comparison")}</a>`,
+      `<a href="${link("task/" + id)}">${esc(zh ? "查看 1.1.8 原始任务记录与对照" : "View the original 1.1.8 task record and comparison")}</a>`,
     )
   );
 }
@@ -1329,7 +1334,7 @@ function analysisPage() {
     hero(T.nav.analysis, T.analysisIntro) +
     fixedComparisonSection() +
     section(
-      zh ? "用例通过关系" : "Case outcomes",
+      zh ? "1.1.8 用例通过关系" : "Moli 1.1.8 case outcomes",
       casePopulation(),
       `<div class="grid two">${[
         ["gain", p.off_fail_on_pass],
@@ -1545,7 +1550,7 @@ function guidePage() {
     functionalMethodSummary() +
     fixedComparisonSection() +
     section(
-      zh ? "完成任务的变化" : "Changes in completion",
+      zh ? "1.1.8 完成任务的变化" : "Moli 1.1.8 changes in completion",
       "",
       `<div class="notice">${esc(zh ? `按同一组 ${M.task_count} 个用例比较：开启布局新增通过 ${p.off_fail_on_pass} 个用例，${p.off_pass_on_fail} 个用例由通过变为失败。` : `Across the same ${M.task_count} cases, layout gained ${p.off_fail_on_pass} passed cases and lost ${p.off_pass_on_fail}.`)}</div>`,
     ) +
@@ -1553,7 +1558,7 @@ function guidePage() {
     candidateResourceSection() +
     costSection() +
     section(
-      zh ? "资源分项对照" : "Resource comparison",
+      zh ? "1.1.8 资源分项对照" : "Moli 1.1.8 resource comparison",
       zh
         ? "全部调用与独立冷启动样本分开统计。每项绿色标记只表示本列原始数值更低。"
         : "All calls and the separate cold-start sample are distinct populations. Green marks only the lower raw value in each metric.",
