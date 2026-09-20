@@ -1253,6 +1253,62 @@
   ],
   "releases": [
     {
+      "id": "2026-09-20-moli-version-layout-resource-summary",
+      "comparison_kinds": [
+        "moli_historical_failure_retest",
+        "moli_process_tree_resource_profile"
+      ],
+      "date": "2026-09-20",
+      "title": "增加 Moli 1.1.4 / 1.1.8 成功率与资源汇总",
+      "summary": "首页新增三种配置的 372 题成功率、峰值 PSS 和 CPU 时间汇总。成功率与资源实验分别标明分母；表格和图中都给出相对 1.1.4 关闭布局的带正负号变化，代码生成的双面板图共用成功率纵轴，并允许省略 CPU 面板。",
+      "i18n": {
+        "en": {
+          "title": "Add Moli 1.1.4 / 1.1.8 success and resource summary",
+          "summary": "The report home page now compares success on 372 cases, peak PSS, and CPU time for three configurations. Compatibility and resource experiments state separate populations; the table and chart show signed changes relative to Moli 1.1.4 layout off. The code-generated dual-panel chart shares one success-rate axis and can omit the CPU panel.",
+          "changes": [
+            [
+              "Version comparison",
+              "The previous report directly covered only Moli 1.1.8 with layout off and on across all 372 cases.",
+              "Layout-off Moli 1.1.8 passes one case. That sole candidate is rerun three times with layout-off Moli 1.1.4 and fails all three; the other 371 retain the shared-failure relation, and the home page compares all three configurations.",
+              "The success rate describes only the 372 historical Moli 0.1.1 failures and is not extrapolated to the full 1,928-case suite."
+            ],
+            [
+              "Resource comparison",
+              "The compatibility and resource experiments use different task counts and sampling rules, so a single execution cannot be treated as one shared denominator.",
+              "The report separately presents a 557-task × 5-call resource experiment and compares median peak PSS and mean CPU time on the 1,045 task-attempt population frozen before execution.",
+              "Resource values compare versions and layout settings in the same environment; CPU sampling can miss short-lived child processes."
+            ],
+            [
+              "Summary chart",
+              "A single horizontal axis cannot express MiB and milliseconds.",
+              "Two horizontal panels share the 372-case success-rate axis. Each point shows the absolute value and percentage change from Moli 1.1.4, and the plotting script supports PSS, CPU, or both.",
+              "The chart is generated from frozen data by code, with separate Chinese and English output; it is not a generated image."
+            ]
+          ]
+        }
+      },
+      "changes": [
+        [
+          "版本对照",
+          "原报告只完整展示 Moli 1.1.8 关闭与开启布局的 372 题结果。",
+          "1.1.8 关闭布局只通过 1 题；对该唯一候选题用 Moli 1.1.4 关闭布局复测三次，均失败，其余 371 题沿用共同失败关系，并在首页统一比较三个方法。",
+          "通过率仍只描述 Moli 0.1.1 的 372 个历史失败用例，不外推为 1,928 题全量成绩。"
+        ],
+        [
+          "资源对照",
+          "成功率实验和资源实验的任务数与采样规则不同，无法把单次执行直接当成同一分母。",
+          "独立展示 557 题 × 5 次资源实验，并用运行前冻结的 1,045 个任务-执行样本比较峰值 PSS 中位数和平均 CPU 时间。",
+          "资源值用于同环境版本与布局对照；CPU 采样存在短生命周期子进程遗漏风险。"
+        ],
+        [
+          "汇总图",
+          "单一横轴不能同时表达 MiB 与毫秒。",
+          "使用两个水平面板，共用 372 题成功率纵轴；数据点同时标出绝对值和相对 1.1.4 的变化百分比，绘图脚本支持 PSS、CPU 或两者。",
+          "图由冻结数据和代码生成，中文与英文分别输出，不使用生成式图片。"
+        ]
+      ]
+    },
+    {
       "id": "2026-09-18-wcxb-frozen-html-reader-clarification",
       "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
       "date": "2026-09-18",
