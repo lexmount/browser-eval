@@ -41,6 +41,7 @@ def main() -> None:
         review_path="research/trajectory-replay-failure-review.json",
         profile_path=PROFILE,
         output_dir=args.output,
+        interpretation_path="research/trajectory-replay-interpretation.json",
     )
     print(json.dumps(manifest, ensure_ascii=False))
 

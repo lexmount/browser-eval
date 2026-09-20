@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import html
 import json
@@ -16,6 +17,42 @@ from urllib.parse import unquote, urlsplit
 from bs4 import BeautifulSoup
 
 from harness.trajectory_replay.webarena_report import LOCAL_PATH_RE
+
+
+def _text_without_verified_embedded_images(text: str, image_digests: set[str]) -> str:
+    """Binary bytes already shipped as PNGs are not textual credential fields."""
+    def replace(match):
+        try:
+            payload = base64.b64decode(match.group(1), validate=True)
+        except ValueError as exc:
+            raise ValueError("invalid embedded article image") from exc
+        if (not payload.startswith(b"\x89PNG\r\n\x1a\n")
+                or hashlib.sha256(payload).hexdigest() not in image_digests):
+            raise ValueError("embedded article image differs from a shipped PNG")
+        return 'data-verified-image="embedded-png"'
+    return re.sub(r'(?:src|href)="data:image/png;base64,([^"]+)"', replace, text)
+
+
+def _check_interpretation(root: Path) -> None:
+    sections = []
+    for language_root in (root, root / "en"):
+        integrated = BeautifulSoup((language_root / "interpretation.html").read_text(), "html.parser")
+        offline = BeautifulSoup((language_root / "article.html").read_text(), "html.parser")
+        article = integrated.select_one("article.interpretation")
+        standalone = offline.select_one("article.interpretation")
+        if article is None or standalone is None or article.get_text() != standalone.get_text():
+            raise ValueError("integrated and standalone article content differs")
+        if offline.select("script, link[rel=stylesheet]"):
+            raise ValueError("standalone article must be script-free and self-contained")
+        if not article.select("figure img") or not all(
+            image.get("src", "").startswith("data:image/png;base64,") for image in standalone.select("img")
+        ):
+            raise ValueError("article needs illustrations embedded in its offline view")
+        if not integrated.select('a[href="article.html"][download]'):
+            raise ValueError("article download is missing")
+        sections.append([section["id"] for section in article.select("section[id]")])
+    if sections[0] != sections[1]:
+        raise ValueError("localized article sections differ")
 
 
 class _VisibleTextParser(HTMLParser):
@@ -568,6 +605,9 @@ def check(report_dir: Path) -> dict[str, int]:
         "review.html",
         "evidence-viewer.html",
     )
+    if manifest.get("interpretation"):
+        _check_interpretation(root)
+        core_names += ("interpretation.html", "article.html")
     core, chinese_details, english_details = _semantic_page_inventory(root, core_names)
     forbidden = (
         "用户提示词",
@@ -635,8 +675,9 @@ def check(report_dir: Path) -> dict[str, int]:
     _check_fixed36_output_scope(root)
     _check_formal36_output_scope(root)
 
+    image_digests = {hashlib.sha256(path.read_bytes()).hexdigest() for path in (root / "assets").rglob("*.png")}
     distributable = "\n".join(
-        path.read_text(encoding="utf-8", errors="ignore")
+        _text_without_verified_embedded_images(path.read_text(encoding="utf-8", errors="ignore"), image_digests)
         for path in root.rglob("*")
         if path.is_file() and path.suffix in {".html", ".json", ".js", ".css"}
     )

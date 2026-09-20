@@ -119,6 +119,8 @@ def _routes(report: Path) -> list[str]:
         "environment.html",
         "review.html",
     ]
+    if json.loads((report / "report-manifest.json").read_text()).get("interpretation"):
+        fixed.extend(("interpretation.html", "article.html"))
     routes = [*fixed, *(f"en/{item}" for item in fixed)]
     if task_id is not None and (report / "task" / f"{task_id}.html").is_file():
         routes.extend((f"task/{task_id}.html", f"en/task/{task_id}.html"))

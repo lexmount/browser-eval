@@ -1,0 +1,61 @@
+{
+  "schema": "lex_replay_interpretation/1",
+  "results_sha256": "52f132cdd999e9c93b32332b8e037890dbfc7e90c44afef7ffcc7398b39ef72b",
+  "title": {
+    "zh": "从 35 次失败，到浏览器与评测器的交界处",
+    "en": "Tracing 35 failures across the browser–evaluator boundary"
+  },
+  "intro": {
+    "zh": "同一条操作轨迹可以在页面上完成任务，却在网络验收时失败；一条过宽的验收规则，也可能让尚有缺陷的浏览器获得满分。这里比较的是同一批 90 条固定轨迹在三个浏览器版本上的执行结果，并沿着页面状态、浏览器事件和评分规则追查差异。",
+    "en": "A trajectory can complete a task on the page yet fail network acceptance. An overly permissive acceptance rule can also give full marks to a browser that still has defects. This comparison follows the same 90 fixed trajectories across three browser builds, tracing differences through page state, browser events and scoring rules."
+  },
+  "sections": [
+    {
+      "id": "measured-outcomes",
+      "title": {"zh": "满分属于这套轨迹和这版规则", "en": "Full marks belong to this trajectory set and scoring revision"},
+      "paragraphs": [
+        {"zh": "Browser Use 让 Agent 根据页面决定下一步，模型选错目标或遗漏步骤都会影响成绩。轨迹重放则提前固定 BrowserTool 动作，不再让 Agent 决策。本轮没有模型调用；每个方法按题号顺序完成全部 90 题，开始前重置一次站点，题间不重置，也不对失败题单独重试。", "en": "In Browser Use, an Agent decides what to do next from the page; choosing the wrong target or omitting a step can change the score. Trajectory replay freezes BrowserTool actions in advance. This cohort makes no model calls. Each method runs all 90 tasks in task-ID order after one site reset, without per-task resets or isolated failure retries."},
+        {"zh": "下面保留原始评分结果。三种方法执行的动作和验收合同逐题相同，但这还不等于一套无偏的能力测试：轨迹来自成功的 Browser Use 执行及人工修订，入选前还要求 Chromium 重放通过。因此，Chromium 的满分建立在已经用它校验过的输入上，不是对未知任务成功率的独立估计。", "en": "The table preserves the original scores. All three methods receive identical actions and acceptance contracts for each task, but equal inputs do not establish an unbiased capability test. Trajectories come from successful Browser Use runs and reviewed repairs, and admission requires a passing Chromium replay. Chromium's full score therefore uses inputs already qualified on Chromium; it is not an independent estimate on unseen tasks."}
+      ],
+      "data": "outcomes"
+    },
+    {
+      "id": "failure-families",
+      "title": {"zh": "35 次失败，不等于 35 个独立浏览器缺陷", "en": "35 failures are not 35 independent browser defects"},
+      "paragraphs": [
+        {"zh": "多个任务会撞上同一个底层问题。按失败机制分组，布局与可见性占 27 题，输入与动作效果占 4 题，网络传输与记录占 3 题，文档表示占 1 题。分组包含仍需进一步区分责任的边界问题，不能直接当成浏览器缺陷数量。下面的数字可以打开对应题目。", "en": "Several tasks can hit the same underlying defect. The diagnostic families contain 27 layout-and-visibility failures, four input-and-action-effect failures, three network-transport-and-recording failures, and one document-representation failure. These families include boundary cases whose ownership still needs to be distinguished; they are not counts of proven browser defects. Each count below opens the corresponding tasks."},
+        {"zh": "第 314、349 题说明了为什么仅看超时日志不够。页面有两个同址链接，文字链接尺寸正常；旧版却把前面的头像链接算成零宽度。定位器先过滤不可见元素，再取第二个，结果只剩一个候选，等待多久也找不到“第二个可见链接”。修复版把头像链接算成 64×48，两题才走通。", "en": "Tasks 314 and 349 show why a timeout log is not enough. Each page has two links to the same destination, and the text link has normal dimensions. The release gives the preceding avatar link zero width. The locator filters invisible elements before choosing the second match, leaving only one candidate: no amount of waiting can produce a second visible link. The PR build measures the avatar link at 64×48 and completes both tasks."},
+        {"zh": "第 547、576 题是另一种几何状态问题。只读实测中，界面和组件已经就绪，旧版仍返回零矩形或空 offsetParent，额外等待 5 秒不变。独立 CSS 更新实验也复现了旧布局树被复用。修复要让几何查询重新计算变化后的布局，而不只是延长等待。", "en": "Tasks 547 and 576 expose another geometry problem. In read-only probes, the interface and components are ready, but the release still returns zero rectangles or a null offsetParent after five additional seconds. An isolated CSS-update fixture also reproduces reuse of the old layout tree. The repair must recalculate changed layout for geometry queries, rather than merely wait longer."}
+      ],
+      "data": "failure_matrix"
+    },
+    {
+      "id": "default-actions-and-documents",
+      "title": {"zh": "工具返回成功之后，还发生了什么", "en": "What happens after a tool reports success"},
+      "paragraphs": [
+        {"zh": "第 731 题按下 Enter，却没有产生搜索提交。本地最小表单把网络和站点因素移除：相同输入下，旧版提交事件计数为 0，PR 版为 1。问题在按键的默认动作，不在搜索答案。第 274、386 题则涉及按键期间发生导航后的生命周期处理，不能与“没有提交”混为一类。", "en": "Task 731 presses Enter without submitting the search. A minimal local form removes the site and network as factors: under the same input, the release records zero submit events and the PR build records one. The defect is in the key's default action, not the search answer. Tasks 274 and 386 instead involve lifecycle handling when navigation occurs during keyboard input; they are a different mechanism."},
+        {"zh": "第 784 题还暴露了文档解析差异。同一份 application/json 响应含有 UTF-8 中文和字面量 <b> 标签，旧版出现乱码，并把标签当成 HTML；PR 版保留原始文本。这不是单纯为了迎合 Chromium 的 pre 节点而改选择器，独立响应已经能复现编码和解析错误。", "en": "Task 784 exposes a document-parsing difference. The same application/json response contains UTF-8 Chinese text and literal <b> markup. The release produces mojibake and parses the markup as HTML; the PR build retains the literal text. This is not merely a selector change to imitate Chromium's pre element: an independent response reproduces the encoding and parsing defects."}
+      ]
+    },
+    {
+      "id": "recording-and-scoring",
+      "title": {"zh": "一个评分漏洞，掩盖了尚未修好的记录错误", "en": "A scoring loophole concealed a remaining recording defect"},
+      "paragraphs": [
+        {"zh": "第 448 题要求保存个人网址。原修订为了兼容 302 跳转和 200 JSON 成功响应，取消了“只检查最后事件”。这样一来，先保存正确网址、再保存错误网址也会通过。正反例证实，这不是展示问题，而是验收放宽。", "en": "Task 448 requires saving a profile website. An earlier correction admitted both a 302 redirect and a successful 200 JSON response, but also disabled last-event selection. A correct save followed by a wrong save could therefore pass. Paired controls demonstrate weakened acceptance, not a presentation issue."},
+        {"zh": "恢复最后事件检查后，原 Chromium 证据仍通过，PR 证据却失败。继续检查发现，它并没有把网址改错：网络记录把重定向后的 GET 写成了带旧请求体的 POST。独立本地服务器实际收到 POST → 302 → GET，而冻结 PR 二进制的 fetch 事件记录成 POST → POST。", "en": "Restoring last-event selection leaves Chromium's saved evidence passing but rejects the PR trace. The website value was not wrong: the network record labels the redirected GET as a POST carrying the old body. An independent local server receives POST → 302 → GET, while the frozen PR binary records the fetch sequence as POST → POST."},
+        {"zh": "错误落在 backlog.rs 的子资源重定向事件生成：每一跳沿用初始请求的方法和请求体。普通页面导航走另一条实现，在同一 PR 二进制中记录正确。这也说明“PR 版 90/90”只描述当时的验收结果，不能证明所有浏览器机制都正确。原成绩保留，评分修订和新增浏览器缺陷分别记录。", "en": "The defect is in backlog.rs, where subresource redirect events reuse the initial method and body at each hop. Main-document navigation uses another implementation and is recorded correctly in the same PR binary. Thus the PR build's 90/90 describes acceptance under the historical rules; it does not establish correctness of every browser mechanism. Historical scores, the scoring revision and the newly reproduced browser defect remain distinct records."}
+      ],
+      "figure": "redirect-recording",
+      "caption": {"zh": "机制示意，不是实测截图。POST/GET 差异由独立 HTTP 服务器日志与同次 CDP 事件对照确认。", "en": "Mechanism illustration, not a screenshot. The POST/GET discrepancy is confirmed by comparing independent HTTP server logs with CDP events from the same probe."}
+    },
+    {
+      "id": "changed-contracts",
+      "title": {"zh": "相同输入，也可能是一套改过的考题", "en": "Identical inputs can still be revised tasks"},
+      "paragraphs": [
+        {"zh": "本次源码审查找到 12 道入选题的合同改动，来自 WebArena-Verified fork 和本地修订。改动并非全都不合理：禁止提交的题不该同时要求提交请求，未勾选字段也可能有两种等价编码。但把邮箱题换成昵称题，或直接给出应当寻找的商品，会改变考查能力，必须与验收纠错分开。", "en": "Source review identifies contract changes in 12 selected tasks, across the WebArena-Verified fork and local corrections. Not all changes are invalid: a no-submit task should not also require a submission event, and an unchecked field can have equivalent encodings. But replacing email retrieval with nickname retrieval, or naming the product the task asks the browser to discover, changes the capability being tested and must be distinguished from evaluator repair."},
+        {"zh": "版本对比也有混合因素：发布版到本轮 PR 构建采用的 main 之间有 14 个上游提交。因此，从 55/90 到 90/90 的全部差额不能直接记在 PR 640 的单独贡献上。源码映射、最小复现和逐题证据用于区分哪些机制确实得到修复，哪些只是通过了当前轨迹。", "en": "The version comparison also has a confounder: 14 upstream commits separate the release from the main revision used by the PR build. The entire increase from 55/90 to 90/90 therefore cannot be attributed to PR 640 alone. Source mapping, minimal reproductions and per-task evidence distinguish repaired mechanisms from outcomes that merely pass the current trajectory."}
+      ],
+      "data": "contract_changes"
+    }
+  ]
+}

@@ -15,6 +15,7 @@ from typing import Any
 
 from harness.trajectory_replay.diagnostic_closure import _verified_digest, load_diagnostic_closure
 from harness.trajectory_replay.failure_matrix import failure_category_matrix
+from harness.trajectory_replay.interpretation import render_interpretation, standalone_document
 from harness.trajectory_replay.participants import (
     bind_participant,
     participant_registry,
@@ -2317,6 +2318,7 @@ def build_webarena_replay_report(
     profile_path: str | Path,
     output_dir: str | Path,
     diagnostic_closure_path: str | Path | None = None,
+    interpretation_path: str | Path | None = None,
 ) -> dict[str, Any]:
     profile_source = Path(profile_path)
     profile = json.loads(profile_source.read_text(encoding="utf-8"))
@@ -2838,6 +2840,48 @@ def build_webarena_replay_report(
         viewer_body = f'<section class="hero"><h1>{"证据查看器" if zh else "Evidence viewer"}</h1><p>{"按结果、动作、程序判定和复核原因查看完整净化证据；原始 JSON 仍可下载。" if zh else "Inspect full sanitized evidence by outcome, action, programmatic finding, and review. The raw JSON remains downloadable."}</p></section><section class="viewer"><div class="viewer-tabs" role="tablist">{tab_buttons}</div><h2 data-evidence-heading></h2><div class="evidence-actions"><a data-evidence-raw href="#">{"下载净化 JSON" if zh else "Download sanitized JSON"}</a><a data-evidence-image hidden></a></div><pre data-evidence-viewer></pre></section>'
         (root / "evidence-viewer.html").write_text(_shell(lang, "results", "证据查看器" if zh else "Evidence viewer", validity_notice + viewer_body, current_route="evidence-viewer.html"), encoding="utf-8")
 
+    if interpretation_path is not None:
+        source = Path(interpretation_path)
+        illustrations = source.parent / "trajectory-replay-illustrations"
+        asset_dir = output / "assets/interpretation"
+        asset_dir.mkdir(parents=True, exist_ok=True)
+        article = json.loads(source.read_text())
+        for section in article["sections"]:
+            if section.get("figure"):
+                for lang in ("zh", "en"):
+                    filename = f'{section["figure"]}-{lang}.png'
+                    if Path(filename).name != filename:
+                        raise ValueError("invalid article image name")
+                    shutil.copyfile(illustrations / filename, asset_dir / filename)
+        article_css = (
+            ".interpretation{max-width:1100px;margin:auto}.interpretation p{max-width:78ch;line-height:1.85}"
+            ".interpretation h1{font-size:clamp(30px,4vw,54px)}"
+            ".interpretation figure img{width:100%;height:auto}"
+            "@media(prefers-color-scheme:dark){html:not([data-theme]){--bg:#0c1520;--panel:#121f2d;--ink:#eef5fb;--muted:#9db0c2;--line:#2b4054;--accent:#62a8ff;--wash:#142d49}}"
+            "@media print{.interpretation{max-width:none}.interpretation details{display:block}.table-scroll{overflow:visible}table{min-width:0;font-size:9pt}figure{break-inside:avoid}}"
+        )
+        css_path = output / "assets/report.css"
+        css = css_path.read_text() + article_css
+        css_path.write_text(css, encoding="utf-8")
+        for lang in ("zh", "en"):
+            language_root = output if lang == "zh" else output / "en"
+            arguments = dict(source=source, contract_audit=source.parent / "trajectory-replay-contract-audit.json",
+                             results_sha256=_sha256(results_source), methods=methods, rows=public_rows,
+                             lang=lang, image_dir=illustrations,
+                             image_prefix=("assets/" if lang == "zh" else "../assets/") + "interpretation/")
+            title, body = render_interpretation(**arguments)
+            download = "下载独立阅读版" if lang == "zh" else "Download standalone article"
+            body = f'<p><a href="article.html" download>{download}</a></p>' + body
+            (language_root / "interpretation.html").write_text(
+                _shell(lang, "interpretation", title, body, current_route="interpretation.html"), encoding="utf-8")
+            report_url = profile["publication"]["share_url"] + ("/en" if lang == "en" else "")
+            title, offline = render_interpretation(**arguments, standalone=True, report_url=report_url)
+            (language_root / "article.html").write_text(
+                standalone_document(title, offline, lang, css), encoding="utf-8")
+            home = language_root / "index.html"
+            label = "报告解读：失败机制、修复与评测边界" if lang == "zh" else "Interpretation: failure mechanisms, repairs and evaluation limits"
+            home.write_text(home.read_text().replace("<main>", f'<main><p><a href="interpretation.html">{label}</a></p>', 1), encoding="utf-8")
+
     manifest = {
         "schema": "lex_webarena_trajectory_replay_report/1",
         "results_sha256": _sha256(Path(results_path)),
@@ -2855,7 +2899,8 @@ def build_webarena_replay_report(
         "site_reset_between_tasks": (profile.get("execution") or {}).get(
             "reset_before_every_task"
         ) is True,
-        "routes": 12 + 2 * len(attempts) + 2 * len(tasks),
+        "routes": 12 + 2 * len(attempts) + 2 * len(tasks) + (4 if interpretation_path else 0),
+        "interpretation": interpretation_path is not None,
     }
     _write_json(output / "report-manifest.json", manifest)
     return manifest
