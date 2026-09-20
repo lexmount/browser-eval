@@ -1259,12 +1259,12 @@
         "moli_process_tree_resource_profile"
       ],
       "date": "2026-09-20",
-      "title": "增加 Moli 1.1.4 / 1.1.8 成功率与资源汇总",
-      "summary": "首页新增三种配置的 372 题成功率、峰值 PSS 和 CPU 时间汇总。成功率与资源实验分别标明分母；表格和图中都给出相对 1.1.4 关闭布局的带正负号变化，代码生成的双面板图共用成功率纵轴，并允许省略 CPU 面板。",
+      "title": "增加 Moli 1.1.4 / 1.1.8 / 1.1.9 成功率与资源汇总",
+      "summary": "首页比较四种方法在 372 个历史失败用例上的恢复结果，并展示三种固定配置的 Linux PSS/CPU 对照。Moli 1.1.9 先关闭布局，失败题再开启布局，仅以完整通过的重跑替换原结果；其 macOS RSS/CPU 资源实验单列物理重跑成本，不与 Linux PSS 混算百分比。",
       "i18n": {
         "en": {
-          "title": "Add Moli 1.1.4 / 1.1.8 success and resource summary",
-          "summary": "The report home page now compares success on 372 cases, peak PSS, and CPU time for three configurations. Compatibility and resource experiments state separate populations; the table and chart show signed changes relative to Moli 1.1.4 layout off. The code-generated dual-panel chart shares one success-rate axis and can omit the CPU panel.",
+        "title": "Add Moli 1.1.4 / 1.1.8 / 1.1.9 success and resource summary",
+        "summary": "The report home page compares four methods on the 372 historical failures and retains the Linux PSS/CPU comparison for three fixed configurations. Moli 1.1.9 starts with layout off and reruns failed cases with layout on, replacing an initial result only after a complete successful retry. Its macOS RSS/CPU experiment reports retry execution cost separately and is not combined with Linux PSS percentages.",
           "changes": [
             [
               "Version comparison",
@@ -1278,12 +1278,18 @@
               "The report separately presents a 557-task × 5-call resource experiment and compares median peak PSS and mean CPU time on the 1,045 task-attempt population frozen before execution.",
               "Resource values compare versions and layout settings in the same environment; CPU sampling can miss short-lived child processes."
             ],
-            [
-              "Summary chart",
+          [
+            "Summary chart",
               "A single horizontal axis cannot express MiB and milliseconds.",
               "Two horizontal panels share the 372-case success-rate axis. Each point shows the absolute value and percentage change from Moli 1.1.4, and the plotting script supports PSS, CPU, or both.",
-              "The chart is generated from frozen data by code, with separate Chinese and English output; it is not a generated image."
-            ]
+            "The chart is generated from frozen data by code, with separate Chinese and English output; it is not a generated image."
+          ],
+          [
+            "Moli 1.1.9 try-layout method",
+            "The earlier comparison had no method that changed layout only after a case failed.",
+            "Moli 1.1.9 runs every case three times with layout off, reruns each non-passing case three times with layout on, and replaces the initial case result only when all three retry attempts pass. A separate 557-task resource pair retains one final logical result per task-attempt and reports extra retry calls as physical cost.",
+            "The macOS experiment reports process-tree RSS rather than PSS. Its values are shown separately from the Linux PSS chart and receive no cross-platform percentage delta."
+          ]
           ]
         }
       },
@@ -1300,12 +1306,18 @@
           "独立展示 557 题 × 5 次资源实验，并用运行前冻结的 1,045 个任务-执行样本比较峰值 PSS 中位数和平均 CPU 时间。",
           "资源值用于同环境版本与布局对照；CPU 采样存在短生命周期子进程遗漏风险。"
         ],
-        [
-          "汇总图",
+      [
+        "汇总图",
           "单一横轴不能同时表达 MiB 与毫秒。",
           "使用两个水平面板，共用 372 题成功率纵轴；数据点同时标出绝对值和相对 1.1.4 的变化百分比，绘图脚本支持 PSS、CPU 或两者。",
-          "图由冻结数据和代码生成，中文与英文分别输出，不使用生成式图片。"
-        ]
+        "图由冻结数据和代码生成，中文与英文分别输出，不使用生成式图片。"
+      ],
+      [
+        "Moli 1.1.9 尝试布局方法",
+        "此前对照中没有只在用例失败后切换布局的方法。",
+        "Moli 1.1.9 先对每题关闭布局运行三次，再对未通过题开启布局运行三次；仅当重跑三次全部通过时替换初跑结果。独立的 557 题资源实验每个任务-次数保留一个最终逻辑结果，并把额外重跑作为物理成本单列。",
+        "macOS 实验报告进程树 RSS，不是 PSS；该结果与 Linux PSS 图分开展示，不计算跨平台百分比变化。"
+      ]
       ]
     },
     {
