@@ -30,6 +30,12 @@ def test_response_json_keeps_http_failure_details() -> None:
             raise AssertionError("invalid response must fail")
 
 
+def test_staged_file_put_has_longer_socket_timeout() -> None:
+    assert publisher.request_timeout("PUT") == 1_200
+    assert publisher.request_timeout("POST") == 240
+    assert publisher.request_timeout(None) == 240
+
+
 def test_public_share_must_be_same_origin_and_token_route() -> None:
     base = "https://artifact-hub.app.lexmount.com"
     assert publisher.public_share_path(base, base + "/v/token") == "/v/token"

@@ -137,13 +137,18 @@ def request(
         headers.update(extra_headers)
     req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
     try:
-        with urllib.request.urlopen(req, timeout=240) as response:
+        with urllib.request.urlopen(req, timeout=request_timeout(method)) as response:
             return response.status, response.read(), dict(response.headers.items())
     except HTTPError as error:
         try:
             return error.code, error.read(), dict(error.headers.items())
         finally:
             error.close()
+
+
+def request_timeout(method: str | None) -> int:
+    """Allow a staged file PUT to finish on slower upstream connections."""
+    return 1_200 if method == "PUT" else 240
 
 
 def validate_package() -> dict:
