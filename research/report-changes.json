@@ -1260,11 +1260,11 @@
       ],
       "date": "2026-09-20",
       "title": "增加 Moli 1.1.4 / 1.1.8 / 1.1.9 成功率与资源汇总",
-      "summary": "首页比较四种方法在 372 个历史失败用例上的恢复结果，并展示三种固定配置的 Linux PSS/CPU 对照。Moli 1.1.9 先关闭布局，失败题再开启布局，仅以完整通过的重跑替换原结果；其 macOS RSS/CPU 资源实验单列物理重跑成本，不与 Linux PSS 混算百分比。",
+      "summary": "首页比较四种方法在 372 个历史失败用例上的恢复结果，并展示三种固定配置的 Linux PSS/CPU 对照。Moli 1.1.9 先关闭布局，失败题再开启布局，仅以完整通过的重跑替换原结果；其 macOS RSS/CPU 资源实验把初跑与重跑折算为每个逻辑调用的有效成本，并单列物理重跑，不与 Linux PSS 混算百分比。",
       "i18n": {
         "en": {
         "title": "Add Moli 1.1.4 / 1.1.8 / 1.1.9 success and resource summary",
-        "summary": "The report home page compares four methods on the 372 historical failures and retains the Linux PSS/CPU comparison for three fixed configurations. Moli 1.1.9 starts with layout off and reruns failed cases with layout on, replacing an initial result only after a complete successful retry. Its macOS RSS/CPU experiment reports retry execution cost separately and is not combined with Linux PSS percentages.",
+        "summary": "The report home page compares four methods on the 372 historical failures and retains the Linux PSS/CPU comparison for three fixed configurations. Moli 1.1.9 starts with layout off and reruns failed cases with layout on, replacing an initial result only after a complete successful retry. Its macOS RSS/CPU experiment folds initial and retry work into an effective per-logical-call cost, reports physical retries separately, and is not combined with Linux PSS percentages.",
           "changes": [
             [
               "Version comparison",
@@ -1287,7 +1287,7 @@
           [
             "Moli 1.1.9 try-layout method",
             "The earlier comparison had no method that changed layout only after a case failed.",
-            "Moli 1.1.9 runs every case three times with layout off, reruns each non-passing case three times with layout on, and replaces the initial case result only when all three retry attempts pass. A separate 557-task resource pair retains one final logical result per task-attempt and reports extra retry calls as physical cost.",
+            "Moli 1.1.9 runs every case three times with layout off, reruns each non-passing case three times with layout on, and replaces the initial case result only when all three retry attempts pass. A separate 557-task resource pair sums initial and retry CPU per task-attempt, takes the larger physical-call peak RSS, and reports extra retry calls as physical cost.",
             "The macOS experiment reports process-tree RSS rather than PSS. Its values are shown separately from the Linux PSS chart and receive no cross-platform percentage delta."
           ]
           ]
@@ -1315,7 +1315,7 @@
       [
         "Moli 1.1.9 尝试布局方法",
         "此前对照中没有只在用例失败后切换布局的方法。",
-        "Moli 1.1.9 先对每题关闭布局运行三次，再对未通过题开启布局运行三次；仅当重跑三次全部通过时替换初跑结果。独立的 557 题资源实验每个任务-次数保留一个最终逻辑结果，并把额外重跑作为物理成本单列。",
+        "Moli 1.1.9 先对每题关闭布局运行三次，再对未通过题开启布局运行三次；仅当重跑三次全部通过时替换初跑结果。独立的 557 题资源实验按任务-次数累加初跑与重跑 CPU、取两次物理调用中较大的峰值 RSS，并把额外重跑作为物理成本单列。",
         "macOS 实验报告进程树 RSS，不是 PSS；该结果与 Linux PSS 图分开展示，不计算跨平台百分比变化。"
       ]
       ]
