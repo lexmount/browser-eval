@@ -304,9 +304,21 @@ def _supplemental_diagnostic_html(diagnostic: dict | None, lang: str) -> str:
     zh = lang == "zh"
     rows = []
     component_rows = []
+    readiness_rows = []
+    network_rows = []
     for method in diagnostic["observations"]:
         label = {"release": "Moli 1.1.8", "pr": "Moli · PR 640"}.get(method["method"], method["method"])
         for sample in method["observations"]:
+            for request in sample["state"].get("httpReads", []):
+                values = (label, request["path"], request.get("status", "—"),
+                          request.get("bytes", "—"), request.get("error", ""))
+                network_rows.append("<tr>" + "".join(f"<td>{_e(value)}</td>" for value in values) + "</tr>")
+            readiness = sample["state"].get("readiness")
+            if readiness:
+                values = (label, f'{sample["delay"]} s', readiness["target"],
+                          readiness["disabled"], readiness["pendingModules"],
+                          readiness["formValidationReady"])
+                readiness_rows.append("<tr>" + "".join(f"<td>{_e(value)}</td>" for value in values) + "</tr>")
             for component in sample["state"].get("components", []):
                 values = (label, f'{sample["delay"]} s', component["initialized"],
                           ", ".join(component["labels"]), component["wizardMatches"],
@@ -314,15 +326,20 @@ def _supplemental_diagnostic_html(diagnostic: dict | None, lang: str) -> str:
                 component_rows.append("<tr>" + "".join(f"<td>{_e(value)}</td>" for value in values) + "</tr>")
             for control in sample["state"].get("buttons", []) + sample["state"].get("dialogs", []):
                 rect = " × ".join(str(value) for value in control["rect"])
+                offset_parent = control.get("offsetParent")
                 values = (label, f'{sample["delay"]} s', control["text"],
-                          f'{control["display"]} / {control["visibility"]}', rect,
-                          control["rectCount"], "non-null" if control["offsetParent"] else "null")
+                          f'{control.get("display") or "—"} / {control.get("visibility") or "—"}', rect,
+                          control["rectCount"] if control.get("rectCount") is not None else "—",
+                          "—" if offset_parent is None else "non-null" if offset_parent else "null")
                 rows.append("<tr>" + "".join(f"<td>{_e(value)}</td>" for value in values) + "</tr>")
     headers = ("方法", "追加等待", "目标文本", "display / visibility", "宽 × 高（px）", "矩形数", "offsetParent") if zh else (
         "Method", "Additional wait", "Target text", "display / visibility", "Width × height (px)", "Client rects", "offsetParent")
-    title = "补充实测：同页目标的几何状态" if zh else "Supplemental probe: target geometry on the same page"
+    title = "补充实测：目标状态对照" if zh else "Supplemental probe: target-state comparison"
     scope = ("仅打开界面或搜索，没有提交表单或发送邀请。这里记录的是后续只读诊断；原始失败轨迹与成绩保持不变。" if zh else
              "The probe only opened the interface or searched; no form or invitation was submitted. These later read-only observations do not replace the original trace or score.")
+    scope_note = (diagnostic.get("scope_note") or {}).get(lang)
+    if scope_note:
+        scope += " " + str(scope_note)
     components = ""
     if component_rows:
         component_headers = ("方法", "追加等待", "组件已初始化", "属性选项", "向导匹配", "步骤匹配", "选择匹配", "事件处理器数") if zh else (
@@ -330,11 +347,25 @@ def _supplemental_diagnostic_html(diagnostic: dict | None, lang: str) -> str:
         components = ('<div class="table-scroll"><table data-component-readiness><thead><tr>'
                       + "".join(f"<th>{_e(header)}</th>" for header in component_headers)
                       + '</tr></thead><tbody>' + "".join(component_rows) + '</tbody></table></div>')
-    return (f'<section data-supplemental-diagnostic><details><summary>{title}</summary><p>{scope}</p>'
-            + components +
-            '<div class="table-scroll"><table><thead><tr>'
-            + "".join(f"<th>{_e(header)}</th>" for header in headers)
-            + '</tr></thead><tbody>' + "".join(rows) + '</tbody></table></div></details></section>')
+    readiness_table = ""
+    if readiness_rows:
+        readiness_headers = ("方法", "DOM 就绪后等待", "目标", "仍禁用", "待初始化模块", "表单校验已绑定") if zh else (
+            "Method", "Wait after DOM ready", "Target", "Disabled", "Pending modules", "Form validation bound")
+        readiness_table = ('<div class="table-scroll"><table data-readiness-comparison><thead><tr>'
+                           + "".join(f"<th>{_e(header)}</th>" for header in readiness_headers)
+                           + '</tr></thead><tbody>' + "".join(readiness_rows) + '</tbody></table></div>')
+    geometry_table = (('<div class="table-scroll"><table><thead><tr>'
+                       + "".join(f"<th>{_e(header)}</th>" for header in headers)
+                       + '</tr></thead><tbody>' + "".join(rows) + '</tbody></table></div>') if rows else "")
+    network_table = ""
+    if network_rows:
+        network_headers = ("方法", "帖子路径", "HTTP 状态", "正文 UTF-8 字节数", "错误") if zh else (
+            "Method", "Post path", "HTTP status", "Body UTF-8 bytes", "Error")
+        network_table = ('<div class="table-scroll"><table data-http-read-comparison><thead><tr>'
+                         + "".join(f"<th>{_e(header)}</th>" for header in network_headers)
+                         + '</tr></thead><tbody>' + "".join(network_rows) + '</tbody></table></div>')
+    return (f'<section data-supplemental-diagnostic><details><summary>{title}</summary><p>{_e(scope)}</p>'
+            + components + readiness_table + geometry_table + network_table + '</details></section>')
 
 
 def _corrected_acceptance_by_task(attempts: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:
@@ -1147,6 +1178,10 @@ if(stepDialog){
       stepDialog.querySelector('[data-step-planned]').textContent=JSON.stringify(planned,null,2);
       stepDialog.querySelector('[data-step-actual]').textContent=actual?JSON.stringify(actual.arguments||{},null,2):(zh?'未执行':'Not executed');
       stepDialog.querySelector('[data-step-result]').textContent=actual?(actual.result||''):(zh?'该步没有工具调用或返回。':'No tool call or response for this step.');
+      if(actual?.action_diagnostics){
+        const label=zh?'动作派发时的控件状态（不改变工具返回或任务成绩）':'Control state at dispatch (does not change tool status or task score)';
+        stepDialog.querySelector('[data-step-result]').textContent+='\n\n'+label+'\n'+JSON.stringify(actual.action_diagnostics,null,2);
+      }
       if(actual?.failure_ui_state||actual?.failure_ui_state_error){
         const observation=actual.failure_ui_state||{observation_error:actual.failure_ui_state_error};
         const label=zh?'失败后观测的页面状态（补充诊断，不替代上方原始错误）':'Page state observed after failure (supplementary diagnosis, not the original error above)';

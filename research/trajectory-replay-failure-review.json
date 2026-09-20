@@ -184,6 +184,18 @@
             "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-156-readonly-prefix-geometry.json",
             "sha256": "a1e8875daa0c2564172266762d39301abe14fb42810daa533404b6ea9e40889b"
           }
+        },
+        {
+          "participant_id": "moli-1.1.8",
+          "engine": "moli",
+          "task_id": 418,
+          "trace_sha256": "aa4bc39d40db37208337cbd3ce6d461f55e5db99c42cbe14a3288aafc4cb78fd",
+          "reason_zh": "原运行在展开用户菜单后，快照已经列出 Set status，但 :visible 定位器仍超时。补充实测按此前缀展开菜单，两版祖先节点都有 dropdown show；旧版菜单内按钮为 0 × 0，PR 版为 238 × 32。当前账号已有 Busy 状态，按钮改称 Edit status，因此补充数据证明的是菜单布局差异，不能把当前文案变化倒推为原失败原因。源代码修复在 context_host/layout.rs 的精确几何查询中拒绝复用已过期的布局树。实测没有点击状态按钮，原成绩不变。",
+          "reason_en": "The historical snapshot lists Set status after the user menu opens, but its :visible locator times out. A supplemental prefix probe finds dropdown show on the menu ancestor in both builds; the release menu button measures 0 × 0 and the PR button 238 × 32. The current account is already Busy and now labels the button Edit status, so this proves a menu-layout difference rather than making the current label the historical cause. The source repair in context_host/layout.rs rejects stale layout trees for exact geometry queries. The status button is not clicked and the original score is unchanged.",
+          "supplemental_diagnostic": {
+            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-418-supplemental-state.json",
+            "sha256": "59519f2d48fce3c01689ef897f18979494737383f5c3ffdea5b288ef8692ed99"
+          }
         }
       ]
     },
@@ -250,28 +262,6 @@
       ]
     },
     {
-      "code": "visible_locator_timeout_without_geometry",
-      "label_zh": "可见元素定位超时",
-      "label_en": "Visible-target lookup timeout",
-      "responsibility": "browser_tool_boundary",
-      "remediation_owner": "Moli browser and BrowserTool integration",
-      "remediation_status": "passed_in_pr_comparison",
-      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
-      "remediation_owner_en": "Moli browser and BrowserTool integration",
-      "remediation_status_zh": "发布版失败保留；PR 修复版本轮通过",
-      "remediation_status_en": "Released failure retained; PR build passed this cohort",
-      "results": [
-        {
-          "participant_id": "moli-1.1.8",
-          "engine": "moli",
-          "task_id": 418,
-          "trace_sha256": "aa4bc39d40db37208337cbd3ce6d461f55e5db99c42cbe14a3288aafc4cb78fd",
-          "reason_zh": "BrowserTool 的可见元素定位等待 60 秒后超时。后续诊断又把 :nth-match 或 :has-text 等 Playwright 语法交给原生 DOM 查询，产生 SyntaxError；这个诊断错误发生在操作失败之后，不能当作原始失败原因，且没有提供可用于确认目标尺寸的数据。 失败记录：第 4 步，动作 click。 目标：button:visible:has-text(\"Set status\")。",
-          "reason_en": "The actual locator times out. The later diagnostic SyntaxError comes from passing Playwright-only selector syntax to native DOM querySelector and does not cause the preceding action failure. Recorded failure: step 4, action click. Target: button:visible:has-text(\"Set status\")."
-        }
-      ]
-    },
-    {
       "code": "zero_width_candidate_changes_visible_ordinal",
       "label_zh": "零宽链接改变可见元素序号",
       "label_en": "Zero-width link changes the visible ordinal",
@@ -315,19 +305,23 @@
       "label_en": "Post-body fetch timeout",
       "responsibility": "browser_network_boundary",
       "remediation_owner": "Moli browser and BrowserTool integration",
-      "remediation_status": "passed_in_pr_comparison",
+      "remediation_status": "not_reproduced_in_readonly_probe",
       "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
       "remediation_owner_en": "Moli browser and BrowserTool integration",
-      "remediation_status_zh": "发布版失败保留；PR 修复版本轮通过",
-      "remediation_status_en": "Released failure retained; PR build passed this cohort",
+      "remediation_status_zh": "后续读取正常；未归因于特定补丁",
+      "remediation_status_en": "Later reads succeed; not attributed to a specific patch",
       "results": [
         {
           "participant_id": "moli-1.1.8",
           "engine": "moli",
           "task_id": 67,
           "trace_sha256": "05bdc925741b85e7261f526517f5ff5dc83e901ec74aade2d5d5dec425028bb9",
-          "reason_zh": "第 3 步读取帖子正文时，网络请求约 10 秒未收到数据并返回 curl 28。轨迹未进入答案评测，失败不是参考答案被拒绝。该实测时长不等于 Moli 所有 HTTP 请求的默认超时。 失败记录：第 3 步，动作 evaluate。",
-          "reason_en": "The post-body fetch reaches curl timeout 28 after about 10 seconds; answer evaluation is not reached. Recorded failure: step 3, action evaluate."
+          "reason_zh": "第 3 步 Promise.all 同时读取十篇帖子，其中一个请求 active=10008ms、queued=0ms、收到 0 字节后返回 curl 28；首个异常使整步退出，未进入答案评测。源码中 HTTP 请求总超时默认 30 秒，浏览器子资源连接超时默认 10 秒，不能把错误中的 10 秒误写为所有 HTTP 请求的总预算。使用冻结两版浏览器对同十个 URL 各做一次后续并发读取，20 个请求均为 200 且正文非空，旧版也能完成。故原成绩是一次真实传输超时，但不能计作已证明的 PR 浏览器修复。原日志没有 DNS、建连、首字节分段计时，不能进一步区分当时的网络与服务端因素；补充表展示的是当前读取对照，不替代历史失败。",
+          "reason_en": "Step 3 uses Promise.all for ten post reads. One request fails with curl 28 after active=10008ms, queued=0ms and zero bytes received; fail-fast exits the action before answer evaluation. Source defaults are a 30-second overall HTTP timeout and a 10-second browser-subresource connect timeout, so the observed 10 seconds is not the overall budget of every HTTP request. One later concurrent read of the same URLs with each frozen build produces 20 HTTP-200 nonempty bodies; the release can complete too. The historical outcome is a real transport timeout, not a proven PR browser repair. The original log lacks DNS, connection and first-byte timings, preventing separation of the contemporaneous network and server factors. The supplemental table is a current read comparison, not a replacement score.",
+          "supplemental_diagnostic": {
+            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-67-supplemental-reads.json",
+            "sha256": "ed2fecc04a799d5989f0941bbbebc2a4598857ebe7b118e7c7cfcf5140103dd7"
+          }
         }
       ]
     },
@@ -392,24 +386,28 @@
       ]
     },
     {
-      "code": "cart_add_effect_absent",
-      "label_zh": "加入购物车没有产生预期结果",
-      "label_en": "Add-to-cart effect absent",
-      "responsibility": "browser_interaction_boundary",
-      "remediation_owner": "Moli browser and BrowserTool integration",
-      "remediation_status": "passed_in_pr_comparison",
-      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
-      "remediation_owner_en": "Moli browser and BrowserTool integration",
-      "remediation_status_zh": "发布版失败保留；PR 修复版本轮通过",
-      "remediation_status_en": "Released failure retained; PR build passed this cohort",
+      "code": "disabled_control_readiness_race",
+      "label_zh": "禁用控件的就绪竞态",
+      "label_en": "Disabled-control readiness race",
+      "responsibility": "benchmark_browser_boundary",
+      "remediation_owner": "Shared replay trajectory and qualification",
+      "remediation_status": "readiness_correction_requires_new_qualification",
+      "remediation_owner_zh": "共享轨迹与资格验证",
+      "remediation_owner_en": "Shared trajectory and qualification",
+      "remediation_status_zh": "原成绩保留；需显式就绪条件和新资格验证",
+      "remediation_status_en": "Original score retained; explicit readiness and new qualification required",
       "results": [
         {
           "participant_id": "moli-1.1.8",
           "engine": "moli",
           "task_id": 506,
           "trace_sha256": "70b8df9a4a60873b349d455e695629a2a1292c28eaf8c3813bd8e0de2555f04d",
-          "reason_zh": "第 6 步加入购物车点击返回成功，但记录中没有 cart/add 请求，随后购物车为空，第 10 步检查失败。点击返回成功不等于站点已经完成加购；第 6 步是最后一个应触发加购的动作，不应改写成工具调用失败。 失败记录：第 10 步，动作 evaluate。",
-          "reason_en": "Add to Cart reports success but no cart/add request is recorded; subsequent cart inspection is empty. Recorded failure: step 10, action evaluate."
+          "reason_zh": "第 5 步快照明确标记 Add to Cart 为 disabled；第 6 步随即执行 element.click()，没有等待 enabled，也不校验点击效果。该调用返回成功，但没有 cart/add 请求，第 10 步购物车仍为空。Magento 的 catalogAddToCart._create 在绑定提交处理器后才解除禁用。只读实测中，发布版在 DOMContentLoaded 后第 2 秒样本已启用，PR 版在第 5 秒样本才启用，且均无脚本错误或请求失败。两版均能初始化，先后顺序也会变化：这是已证实的轨迹就绪条件缺口，不能据一次 PR 通过宣称浏览器修复。原记录没有点击瞬间的 disabled 值，故不伪称已回溯证明该瞬间状态；第 6 步仍保持工具成功，第 10 步仍保持原失败。修正需要在共享轨迹中显式等待可操作条件，再按新轨迹资格验证。",
+          "reason_en": "Step 5 explicitly snapshots Add to Cart as disabled. Step 6 immediately calls element.click(), without waiting for enabled state or checking its effect. The call succeeds but emits no cart/add request; step 10 finds an empty cart. Magento catalogAddToCart._create enables the button only after binding submission. A read-only probe finds the release enabled at the 2-second sample after DOMContentLoaded and the PR build at the 5-second sample, with no script errors or failed requests in either. Both can initialize, and readiness order varies: this establishes a missing trajectory precondition, not a demonstrated browser repair from one PR pass. The historical trace lacks the disabled value at the exact click, so it does not prove that instant retrospectively. Step 6 remains tool success and step 10 remains the original failure. A shared explicit readiness condition requires new trajectory qualification.",
+          "supplemental_diagnostic": {
+            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-506-supplemental-state.json",
+            "sha256": "e73ba0bc8328dd16af748a038d8858a903551963a7f5cac75a630b0ba69c95f7"
+          }
         }
       ]
     },

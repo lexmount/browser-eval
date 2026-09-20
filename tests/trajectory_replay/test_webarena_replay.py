@@ -360,7 +360,9 @@ def test_completed_click_is_not_replayed_when_only_navigation_wait_times_out() -
     )
 
 
-def test_compiled_snapshot_ref_click_preserves_dom_click_semantics() -> None:
+@pytest.mark.parametrize("collect_diagnostics", [False, True])
+@pytest.mark.parametrize("disabled", [False, True])
+def test_compiled_snapshot_ref_click_preserves_dom_click_semantics(collect_diagnostics, disabled) -> None:
     events = []
 
     class Locator:
@@ -371,6 +373,8 @@ def test_compiled_snapshot_ref_click_preserves_dom_click_semantics() -> None:
 
         def evaluate(self, script, *args):
             events.append(("evaluate", script, args))
+            return {"connected": True, "disabled": disabled,
+                    "effectivelyDisabled": disabled, "ariaDisabled": None}
 
     class Page:
         def locator(self, selector):
@@ -393,6 +397,7 @@ def test_compiled_snapshot_ref_click_preserves_dom_click_semantics() -> None:
         def execute(self, _arguments):
             raise AssertionError("compiled ref call must not use Playwright actionability click")
 
+    diagnostics = {} if collect_diagnostics else None
     status, _result = _execute_replay_call(
         Tool(),
         {
@@ -400,11 +405,18 @@ def test_compiled_snapshot_ref_click_preserves_dom_click_semantics() -> None:
             "selector": "a[href='/next']:visible",
             "replay_mode": "snapshot_ref_semantics",
         },
+        diagnostics=diagnostics,
     )
 
     assert status == "success"
     assert events[0] == ("locator", "a[href='/next']:visible")
     assert events[-1] == ("wait", 500)
+    evaluations = [event for event in events if event[0] == "evaluate"]
+    assert len(evaluations) == 1
+    assert "element.click()" in evaluations[0][1]
+    if collect_diagnostics:
+        assert diagnostics["click_dispatch_state"]["disabled"] is disabled
+        assert evaluations[0][1].index("disabled:") < evaluations[0][1].index("element.click()")
 
 
 @pytest.mark.parametrize(

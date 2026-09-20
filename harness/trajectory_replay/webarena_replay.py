@@ -103,7 +103,9 @@ def _click_was_dispatched_before_navigation_timeout(
     )
 
 
-def _execute_replay_call(tool: Any, arguments: dict[str, Any]) -> tuple[str, str]:
+def _execute_replay_call(
+    tool: Any, arguments: dict[str, Any], *, diagnostics: dict[str, Any] | None = None,
+) -> tuple[str, str]:
     """Execute one call without changing the semantics of a compiled snapshot ref."""
 
     replay_mode = arguments.get("replay_mode")
@@ -131,7 +133,23 @@ def _execute_replay_call(tool: Any, arguments: dict[str, Any]) -> tuple[str, str
             page = service._page
             locator = page.locator(selector).first
             if action == "click":
-                locator.evaluate("element => element.click()")
+                if diagnostics is None:
+                    locator.evaluate("element => element.click()")
+                else:
+                    # Observe and dispatch in one JS turn: a separate probe can
+                    # race widget initialization. Do not add actionability waits
+                    # or reinterpret a successful DOM call as a successful task.
+                    state = locator.evaluate("""element => {
+                        const state = {
+                            connected: element.isConnected,
+                            disabled: Boolean(element.disabled),
+                            effectivelyDisabled: element.matches(':disabled'),
+                            ariaDisabled: element.getAttribute('aria-disabled')
+                        };
+                        element.click();
+                        return state;
+                    }""")
+                    diagnostics["click_dispatch_state"] = state
                 page.wait_for_timeout(500)
             elif action == "fill":
                 platform = locator.evaluate(
@@ -402,7 +420,8 @@ def _run_one(  # noqa: PLR0913
         replay_started = time.perf_counter()
         for index, arguments in enumerate(calls, start=1):
             call_started = time.perf_counter()
-            result_status, result_text = _execute_replay_call(tool, arguments)
+            diagnostics: dict[str, Any] = {}
+            result_status, result_text = _execute_replay_call(tool, arguments, diagnostics=diagnostics)
             dispatched_before_timeout = _click_was_dispatched_before_navigation_timeout(
                 arguments, result_status, result_text
             )
@@ -414,6 +433,8 @@ def _run_one(  # noqa: PLR0913
                 "duration_ms": round((time.perf_counter() - call_started) * 1000, 3),
                 "result": result_text,
             }
+            if diagnostics:
+                record["action_diagnostics"] = diagnostics
             observation_error = _embedded_observation_error(arguments, result_status, result_text)
             if observation_error is not None:
                 record["observation_status"] = "error"

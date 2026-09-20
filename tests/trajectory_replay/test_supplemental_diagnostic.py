@@ -78,3 +78,46 @@ def test_wizard_probe_displays_readiness_conjuncts_and_dialog_geometry():
         assert "Color, <Size>" in soup.get_text()
         assert not soup.select("size")
         assert "Create Product Configurations" in soup.get_text()
+
+
+def test_readiness_has_its_own_population_and_no_empty_geometry_table():
+    diagnostic = {
+        "scope_note": {"zh": "当前匿名页面 <不是原成绩>", "en": "Current anonymous page <not original score>"},
+        "observations": [{"method": "release", "observations": [{"delay": 2, "state": {
+            "readiness": {"target": "Add to Cart", "disabled": False,
+                          "pendingModules": 83, "formValidationReady": True},
+        }}]}],
+    }
+    for lang in ("zh", "en"):
+        html = _supplemental_diagnostic_html(diagnostic, lang)
+        soup = BeautifulSoup(html, "html.parser")
+        assert len(soup.select("table")) == 1
+        assert soup.select_one("table[data-readiness-comparison]")
+        assert diagnostic["scope_note"][lang] in soup.get_text()
+        assert "&lt;" in html
+        assert "83" in soup.get_text()
+
+
+def test_missing_geometry_fields_are_not_presented_as_observed_null():
+    diagnostic = {"observations": [{"method": "pr", "observations": [{"delay": 10, "state": {
+        "buttons": [{"text": "Edit status", "rect": [238, 32], "display": None,
+                     "visibility": None, "rectCount": None, "offsetParent": None}],
+    }}]}]}
+    soup = BeautifulSoup(_supplemental_diagnostic_html(diagnostic, "en"), "html.parser")
+    cells = [cell.get_text() for cell in soup.select("tbody td")]
+    assert cells[-1] == "—"
+    assert cells[-2] == "—"
+    assert "238 × 32" in cells
+    assert "null" not in cells
+
+
+def test_http_read_table_does_not_invent_geometry_or_latency_ranking():
+    diagnostic = {"observations": [{"method": "release", "observations": [{"delay": 2, "state": {
+        "httpReads": [{"path": "/f/books/1/<post>", "status": 200, "bytes": 42}],
+    }}]}]}
+    soup = BeautifulSoup(_supplemental_diagnostic_html(diagnostic, "en"), "html.parser")
+    assert len(soup.select("table")) == 1
+    assert soup.select_one("table[data-http-read-comparison]")
+    assert not soup.select("post")
+    assert "/f/books/1/<post>" in soup.get_text()
+    assert "42" in soup.get_text()

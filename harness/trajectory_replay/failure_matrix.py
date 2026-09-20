@@ -15,7 +15,7 @@ FAMILIES = (
         "configuration_wizard_readiness_predicate",
     )),
     ("interaction", "输入与动作效果", "Input and action effects", (
-        "input_navigation_lifecycle", "cart_add_effect_absent",
+        "input_navigation_lifecycle", "disabled_control_readiness_race",
         "implicit_search_submission_absent",
     )),
     ("network", "网络传输与记录", "Network transport and recording", (

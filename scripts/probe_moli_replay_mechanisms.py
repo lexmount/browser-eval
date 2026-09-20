@@ -15,7 +15,10 @@ import time
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from types import SimpleNamespace
 from playwright.sync_api import sync_playwright
+
+from harness.trajectory_replay.webarena_replay import _execute_replay_call
 
 
 class Fixture(BaseHTTPRequestHandler):
@@ -35,6 +38,10 @@ class Fixture(BaseHTTPRequestHandler):
         elif self.path == '/redirect-final':
             content_type = 'text/html; charset=utf-8'
             body = '<!doctype html><p>Saved</p>'
+        elif self.path == '/disabled-control':
+            content_type = 'text/html; charset=utf-8'
+            body = '''<!doctype html><button id="action" disabled>Act</button>
+            <script>window.clicks=0;document.querySelector('button').addEventListener('click',()=>window.clicks++)</script>'''
         elif self.path == '/geometry':
             content_type = 'text/html; charset=utf-8'
             body = '''<!doctype html><style id="rules">html,body{margin:0;padding:0}#root{width:200px;height:120px}#split{display:inline}#one{display:flex;width:50px;height:20px}#two{display:block;width:80px;height:30px}#hidden{display:none}</style><div id="root"><a id="split"><div id="one"></div><div id="two"></div></a></div><button id="hidden">Suggestion</button>'''
@@ -108,6 +115,21 @@ def probe(binary, origin, output):
                     except Exception as exc:
                         press_error = str(exc)
                     form = page.evaluate('({submits:window.submits,value:document.querySelector("#q").value})')
+                    page.goto(origin + '/disabled-control', wait_until='load', timeout=10000)
+                    service = SimpleNamespace(_page=page, _submit=lambda callback: callback())
+                    tool = SimpleNamespace(_get_service=lambda: service)
+                    disabled_control = []
+                    for enabled in (False, True):
+                        if enabled:
+                            page.evaluate("document.querySelector('#action').disabled = false")
+                        diagnostics = {}
+                        status, result = _execute_replay_call(tool, {
+                            'action': 'click', 'selector': '#action',
+                            'replay_mode': 'snapshot_ref_semantics',
+                        }, diagnostics=diagnostics)
+                        disabled_control.append({'enabled': enabled, 'status': status,
+                                                 'result': result, 'diagnostics': diagnostics,
+                                                 'click_events': page.evaluate('window.clicks')})
                     page.goto(origin + '/data.json', wait_until='load', timeout=10000)
                     document = page.evaluate('({text:document.body.innerText,pre:!!document.querySelector("pre"),bold:!!document.querySelector("b"),charset:document.characterSet})')
                     page.goto(origin + '/geometry', wait_until='load', timeout=10000)
@@ -120,7 +142,7 @@ def probe(binary, origin, output):
                       return {before,after};
                     }''')
                     browser.close()
-                return {'binary':str(binary), 'redirect':redirect, 'fetch_redirect':fetch_redirect, 'implicit_submit':form, 'press_error':press_error, 'json_document':document,'geometry':geometry}
+                return {'binary':str(binary), 'redirect':redirect, 'fetch_redirect':fetch_redirect, 'implicit_submit':form, 'press_error':press_error, 'disabled_control':disabled_control, 'json_document':document,'geometry':geometry}
             finally:
                 if process.poll() is None:
                     process.terminate()

@@ -429,7 +429,8 @@ def _run_task(
                     if ready_status != "success":
                         raise RuntimeError(f"readiness before step {index} failed: {ready_result}")
             call_started = time.perf_counter()
-            result_status, result = _execute_replay_call(tool, action)
+            diagnostics = {}
+            result_status, result = _execute_replay_call(tool, action, diagnostics=diagnostics)
             dispatched = _click_was_dispatched_before_navigation_timeout(
                 action, result_status, result
             )
@@ -441,6 +442,7 @@ def _run_task(
                     "tool_status": result_status,
                     "duration_ms": round((time.perf_counter() - call_started) * 1000, 3),
                     "result": result,
+                    **({"action_diagnostics": diagnostics} if diagnostics else {}),
                     **(
                         {"recovery": "click_dispatched_navigation_wait_timeout"}
                         if dispatched
