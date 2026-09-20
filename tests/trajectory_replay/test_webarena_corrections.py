@@ -47,11 +47,14 @@ def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
         "tr-448-200-json-failure",
         "tr-448-wrong-website",
         "tr-448-canceled-request",
+        "tr-448-reject-correct-then-wrong",
+        "tr-448-accept-wrong-then-correct",
     ]
 
 
 def test_448_scoring_revision_is_bound_to_correction_and_regressions(catalog) -> None:
     root = Path(__file__).resolve().parents[2]
+    catalog = load_corrections(root / "evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json")
     receipt = json.loads(
         (root / "research/trajectory-replay-task448-scoring-revision.json").read_text(
             encoding="utf-8"
@@ -91,6 +94,31 @@ def test_apply_is_pure_traceable_and_fails_closed(benchmark, catalog) -> None:
     changed["eval"][0]["expected"]["retrieved_data"][0]["names"][9] = "upstream changed"
     with pytest.raises(ValueError, match="precondition failed"):
         apply_correction(type(task).model_validate(changed), catalog)
+
+
+def test_final_event_revision_binds_current_and_historical_catalogs(catalog):
+    root = Path(__file__).resolve().parents[2]
+    receipt = json.loads((root / "research/trajectory-replay-task448-final-event-revision.json").read_text())
+    predecessor = load_corrections(root / receipt["predecessor_catalog_path"])
+    assert receipt["predecessor_correction_catalog_sha256"] == predecessor.source_sha256
+    assert receipt["predecessor_correction_record_sha256"] == predecessor.record_sha256s[448]
+    assert receipt["revised_correction_catalog_sha256"] == catalog.source_sha256
+    assert receipt["revised_correction_record_sha256"] == catalog.record_sha256s[448]
+    assert receipt["regression_ids"] == catalog.records[448]["regression_ids"]
+    assert receipt["provider_call_count"] == 0
+
+
+def test_archived_catalog_reproduces_all_unchanged_task_contracts(benchmark, catalog):
+    archived = load_corrections(
+        Path("evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json"))
+    for task_id in corrected_task_ids(archived):
+        previous = apply_correction(benchmark.get_task(task_id), archived)
+        current = apply_correction(benchmark.get_task(task_id), catalog)
+        if task_id == 448:
+            assert previous.corrected_task_sha256 != current.corrected_task_sha256
+        else:
+            assert previous.corrected_task_sha256 == current.corrected_task_sha256
+
 
 
 def test_279_corrects_title_and_omitted_bluetooth_model(benchmark, catalog) -> None:
@@ -240,18 +268,27 @@ def test_475_upstream_accepts_unchecked_checkbox_forms(benchmark, catalog) -> No
     assert task.eval[1].expected.post_data["project[initialize_with_readme]"] == (None, "0")
 
 
-def test_448_matches_the_profile_save_event_before_recency(benchmark, catalog) -> None:
+def test_448_checks_latest_profile_save_before_expected_value(benchmark, catalog) -> None:
     applied = apply_correction(benchmark.get_task(448), catalog)
     evaluator = _dump_eval(applied, 1)
     assert evaluator["expected"]["url"] == "__GITLAB__/-/profile"
     assert evaluator["expected"]["post_data"] == {"user[website_url]": "https://egg.tart.com"}
-    assert evaluator["last_event_only"] is False
+    assert evaluator["last_event_only"] is True
 
 
-def test_448_official_evaluator_selects_matching_save_not_later_profile_event(
-    tmp_path, benchmark, catalog
+@pytest.mark.parametrize("values,expected", [
+    (["https%3A%2F%2Fegg.tart.com"], (1, 1, 1)),
+    (["https%3A%2F%2Fegg.tart.com", "https%3A%2F%2Fother.test"], (0, 1, 0)),
+    (["https%3A%2F%2Fother.test", "https%3A%2F%2Fegg.tart.com"], (1, 1, 1)),
+    (["https%3A%2F%2Fother.test"], (0, 0, 0)),
+], ids=["single-correct-save", "tr-448-reject-correct-then-wrong",
+        "tr-448-accept-wrong-then-correct", "single-wrong-save"])
+def test_448_official_evaluator_rejects_overwritten_correct_save(
+    tmp_path, benchmark, catalog, values, expected
 ) -> None:
     corrected = apply_correction(benchmark.get_task(448), catalog)
+    predecessor = apply_correction(benchmark.get_task(448), load_corrections(
+        Path("evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json")))
     target = "http://host.docker.internal:8023/-/profile"
 
     def entry(value: str) -> dict:
@@ -276,7 +313,7 @@ def test_448_official_evaluator_selects_matching_save_not_later_profile_event(
 
     response = {"task_type": "MUTATE", "status": "SUCCESS", "retrieved_data": None}
 
-    def score(values: list[str]) -> tuple[float, float]:
+    def score(values: list[str]) -> tuple[float, float, float]:
         har = tmp_path / "task-448.har"
         har.write_text(
             json.dumps(
@@ -296,11 +333,12 @@ def test_448_official_evaluator_selects_matching_save_not_later_profile_event(
         fixed = evaluate_corrected_contract(
             benchmark, corrected, agent_response=response, network_trace=har
         ).score
-        return original, fixed
+        historical = evaluate_corrected_contract(
+            benchmark, predecessor, agent_response=response, network_trace=har
+        ).score
+        return original, historical, fixed
 
-    assert score(["https%3A%2F%2Fegg.tart.com"]) == (1, 1)
-    assert score(["https%3A%2F%2Fegg.tart.com", "https%3A%2F%2Fother.test"]) == (0, 1)
-    assert score(["https%3A%2F%2Fother.test"]) == (0, 0)
+    assert score(values) == expected
 
 
 @pytest.mark.parametrize(

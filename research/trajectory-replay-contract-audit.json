@@ -65,7 +65,10 @@
       "after_zh": "接受 302 或含明确成功消息的 200，并取消仅检查最后事件。反例已证实：先保存正确网址、后保存错误网址仍会通过。当前两个通过结果的实际保存网址均正确，未触发该漏洞。",
       "before_en": "Check the last profile save and its 302 response.",
       "after_en": "Accept 302 or a 200 carrying an explicit success message, and disable last-event-only selection. A counterexample confirms acceptance of a correct save followed by a wrong save. Both currently passing traces save only the correct website and do not exercise this hole.",
-      "counterexample_test": "tests/trajectory_replay/test_webarena_corrections.py::test_448_official_evaluator_selects_matching_save_not_later_profile_event"
+      "counterexample_test": "tests/trajectory_replay/test_webarena_corrections.py::test_448_official_evaluator_rejects_overwritten_correct_save",
+      "revision_receipt": "research/trajectory-replay-task448-final-event-revision.json",
+      "revision_zh": "新规则恢复最后事件检查。原 Chromium 证据仍通过，PR 证据则因重定向后的 GET 被记录成带旧请求体的 POST 而失败；本地 HTTP 实测已确认该记录缺陷。历史成绩未改写。",
+      "revision_en": "The new rule restores last-event selection. Chromium's saved evidence still passes; the PR evidence fails because a redirected GET is recorded as a POST with the old body. A local HTTP probe confirms this recording defect. Historical scores remain unchanged."
     },
     {
       "task_id": 475,

@@ -210,7 +210,10 @@ def apply_correction(
 
     reference = record.get("reference_receipt")
     if reference is not None:
-        project_root = catalog.source_path.parents[3]
+        # Receipt paths are repository-relative, including for catalogs retained
+        # in a deeper revisions directory. Their location must not move the
+        # reference root or make archived corrections irreproducible.
+        project_root = Path(__file__).resolve().parents[2]
         reference_path = (project_root / str(reference["path"])).resolve()
         try:
             reference_path.relative_to(project_root)

@@ -19,13 +19,22 @@ from playwright.sync_api import sync_playwright
 
 
 class Fixture(BaseHTTPRequestHandler):
+    requests = []
+
     def log_message(self, *args):
         pass
 
     def do_GET(self):
+        self.requests.append({"method": "GET", "path": self.path, "body": ""})
         if self.path == '/data.json':
             content_type = 'application/json'
             body = '{"message":"中文 café <b>literal</b>"}'
+        elif self.path == '/redirect-form':
+            content_type = 'text/html; charset=utf-8'
+            body = '<!doctype html><form method="post" action="/redirect-save"><input name="value" value="probe"><button>Save</button></form>'
+        elif self.path == '/redirect-final':
+            content_type = 'text/html; charset=utf-8'
+            body = '<!doctype html><p>Saved</p>'
         elif self.path == '/geometry':
             content_type = 'text/html; charset=utf-8'
             body = '''<!doctype html><style id="rules">html,body{margin:0;padding:0}#root{width:200px;height:120px}#split{display:inline}#one{display:flex;width:50px;height:20px}#two{display:block;width:80px;height:30px}#hidden{display:none}</style><div id="root"><a id="split"><div id="one"></div><div id="two"></div></a></div><button id="hidden">Suggestion</button>'''
@@ -39,6 +48,14 @@ class Fixture(BaseHTTPRequestHandler):
         self.send_header('Content-Length', str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
+
+    def do_POST(self):
+        body = self.rfile.read(int(self.headers.get('Content-Length', 0))).decode()
+        self.requests.append({"method": "POST", "path": self.path, "body": body})
+        self.send_response(302)
+        self.send_header('Location', '/redirect-final')
+        self.send_header('Content-Length', '0')
+        self.end_headers()
 
 
 def probe(binary, origin, output):
@@ -63,6 +80,26 @@ def probe(binary, origin, output):
                     browser = pw.chromium.connect_over_cdp(endpoint, timeout=15000)
                     context = browser.contexts[0] if browser.contexts else browser.new_context()
                     page = context.new_page()
+                    session = context.new_cdp_session(page)
+                    events = []
+                    session.on('Network.requestWillBeSent', lambda event: events.append({
+                        'requestId': event['requestId'], 'method': event['request']['method'],
+                        'url': event['request']['url'], 'body': event['request'].get('postData'),
+                        'redirect_status': (event.get('redirectResponse') or {}).get('status'),
+                    }))
+                    session.send('Network.enable')
+                    wire_start = len(Fixture.requests)
+                    page.goto(origin + '/redirect-form', wait_until='load', timeout=10000)
+                    page.evaluate("document.querySelector('form').requestSubmit()")
+                    page.wait_for_url(origin + '/redirect-final', timeout=10000)
+                    page.wait_for_timeout(300)
+                    redirect = {'wire': Fixture.requests[wire_start:], 'cdp': list(events)}
+                    events.clear()
+                    wire_start = len(Fixture.requests)
+                    page.evaluate("async () => {const r = await fetch('/redirect-save', {method:'POST', body:'value=probe'}); return await r.text()}")
+                    page.wait_for_timeout(300)
+                    fetch_redirect = {'wire': Fixture.requests[wire_start:], 'cdp': list(events)}
+                    session.detach()
                     page.goto(origin + '/form', wait_until='load', timeout=10000)
                     page.locator('#q').fill('query')
                     press_error = None
@@ -83,7 +120,7 @@ def probe(binary, origin, output):
                       return {before,after};
                     }''')
                     browser.close()
-                return {'binary':str(binary), 'implicit_submit':form, 'press_error':press_error, 'json_document':document,'geometry':geometry}
+                return {'binary':str(binary), 'redirect':redirect, 'fetch_redirect':fetch_redirect, 'implicit_submit':form, 'press_error':press_error, 'json_document':document,'geometry':geometry}
             finally:
                 if process.poll() is None:
                     process.terminate()
@@ -119,4 +156,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
