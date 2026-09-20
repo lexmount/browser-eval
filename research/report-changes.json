@@ -1253,6 +1253,17 @@
   ],
   "releases": [
     {
+      "id": "2026-09-20-wcxb-measured-mode-labels",
+      "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
+      "date": "2026-09-20",
+      "title": "明确可选清理模式与实测版本",
+      "title_i18n": {"en": "Clarify optional stripping and measured revisions"},
+      "summary": "商品说明案例的两列图注明确标注可选 UI 清理。PR 对照继续指向实测提交 384d1d2a，不随后续代码提交自动变为新测量。",
+      "summary_i18n": {"en": "Both output captions for the product-description case identify optional UI stripping. PR comparisons remain bound to measured commit 384d1d2a; subsequent commits do not become new measurements."},
+      "changes": [["图注与版本说明", "可选清理案例与常规调用共用图注，版本措辞未明确冻结测量范围。", "两列分别标注可选 UI 清理，将当前 PR 改为实测 PR。", "504 页分数、耗时、响应与二进制绑定均不变。"]],
+      "changes_i18n": {"en": [["Captions and revision scope", "Optional stripping shared captions with ordinary calls, and revision wording did not make the frozen scope explicit.", "Label both outputs with optional UI stripping and refer to the measured PR revision.", "Scores, latency, responses and binary bindings for all 504 pages remain unchanged."]]}
+    },
+    {
       "id": "2026-09-18-wcxb-adjacent-code-scope-correction",
       "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
       "date": "2026-09-18",

@@ -203,6 +203,10 @@ def require_guide_interpretation(html: str | BeautifulSoup, summary: dict,
         scope = case.select_one('.repair-scope')
         require('1.1.8' in captions[1] and '384d1d2a' in captions[2] and scope is not None,
                 'Guide figure does not compare the tagged release with current PR')
+        if image == 'description.png':
+            mode = '可选 UI 清理' if lang == 'zh' else 'optional UI stripping'
+            require(all(mode in caption for caption in captions[1:]),
+                    'Optional stripping captions omit the measured mode')
     require('tsfunction identity(arg: number)' in repair.select('.repair-case')[0].get_text(' ', strip=True)
             and '<details' in repair.select('.repair-case')[1].select_one('.repair-samples').get_text(' ', strip=True)
             and 'namestring' in repair.select('.repair-case')[2].get_text(' ', strip=True)
@@ -465,6 +469,16 @@ def check(root: Path) -> None:
         pass
     else:
         raise AssertionError('A duplicate result summary was accepted')
+    for lang, prefix in (('zh', ''), ('en', 'en/')):
+        guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(), 'html.parser')
+        captions = guide.select('#guide-repair .repair-case')[1].select('figcaption span')
+        captions[1].string = 'Moli 1.1.8'
+        try:
+            require_guide_interpretation(guide, summary, providers, lang)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f'A {lang} optional-feature caption without its mode was accepted')
     guide = BeautifulSoup((root / 'guide/index.html').read_text(), 'html.parser')
     guide.select_one('#guide-results tbody tr').decompose()
     try:

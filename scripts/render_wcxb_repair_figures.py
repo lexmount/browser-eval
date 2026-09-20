@@ -2,6 +2,8 @@
 
 This is a presentation helper. Measured responses and source snippets must be
 checked against the certified cohort before changing the examples below.
+This local asset regeneration helper uses Google Chrome installed on macOS;
+CI consumes the committed PNG assets and does not run this helper.
 """
 from __future__ import annotations
 
