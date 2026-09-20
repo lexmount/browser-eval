@@ -4,6 +4,7 @@ import base64
 import html
 import json
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from harness.trajectory_replay.failure_matrix import failure_category_matrix
 
@@ -82,6 +83,18 @@ def render_interpretation(*, source: Path, contract_audit: Path, results_sha256:
                         + _table([localized(value) for value in headers],
                                  [[localized(value) for value in row] for row in values])
                         + f'<figcaption>{e(caption)}</figcaption></figure>')
+        if sources := section.get("sources"):
+            links = []
+            for citation in sources:
+                target = urlsplit(citation["url"])
+                if (target.scheme != "https" or not target.hostname
+                        or target.username or target.password):
+                    raise ValueError("article source requires a public HTTPS URL")
+                if set(citation["label"]) != {"zh", "en"}:
+                    raise ValueError("article source requires both languages")
+                links.append(f'<a href="{e(citation["url"])}">{e(citation["label"][lang])}</a>')
+            label = "源码与测试" if lang == "zh" else "Source and tests"
+            body.append(f'<p class="article-sources">{label}: ' + " · ".join(links) + '</p>')
         body.append("</section>")
     body.append("</article>")
     result = "".join(body)

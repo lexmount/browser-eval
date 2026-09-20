@@ -2915,6 +2915,7 @@ def build_webarena_replay_report(
                     shutil.copyfile(illustrations / filename, asset_dir / filename)
         article_css = (
             ".interpretation{max-width:1100px;margin:auto}.interpretation p{max-width:78ch;line-height:1.85}"
+            ".interpretation p,.interpretation figcaption{overflow-wrap:anywhere}"
             ".interpretation h1{font-size:clamp(30px,4vw,54px)}"
             ".interpretation figure{margin:24px 0}.interpretation figure img{width:100%;height:auto;display:block}"
             ".interpretation .diagram-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px}"

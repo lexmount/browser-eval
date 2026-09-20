@@ -116,6 +116,31 @@
       "caption": {"zh": "机制示意，不是实测截图。POST/GET 差异由独立 HTTP 服务器日志与同次 CDP 事件对照确认。", "en": "Mechanism illustration, not a screenshot. The POST/GET discrepancy is confirmed by comparing independent HTTP server logs with CDP events from the same probe."}
     },
     {
+      "id": "form-named-lookup",
+      "sources": [
+        {"label": {"zh": "表单查找实现", "en": "Form lookup implementation"}, "url": "https://github.com/lexmount/moli/blob/39d75b6983122942c43277b8a66bac3dcc0f7d77/moli-renderer-v8/src/native_bridge/element/forms/form_element.rs"},
+        {"label": {"zh": "实时名称索引", "en": "Live name index"}, "url": "https://github.com/lexmount/moli/blob/39d75b6983122942c43277b8a66bac3dcc0f7d77/moli-dom/src/native/host/document.rs"},
+        {"label": {"zh": "计数器及语义回归测试", "en": "Counter and semantic regressions"}, "url": "https://github.com/lexmount/moli/blob/39d75b6983122942c43277b8a66bac3dcc0f7d77/moli-renderer-v8/src/script_vm/tests/dom_xhr/forms/named_lookup.rs"}
+      ],
+      "title": {"zh": "查一个不存在的属性，也可能扫描整张表单", "en": "A missing property can trigger a full form scan"},
+      "figure": "form-named-lookup",
+      "caption": {"zh": "表单名称查找机制示意。图中 absentKey 没有当前候选，也没有历史名称记录；一般情况下，索引未命中后仍须检查历史名称，索引命中也仍须检查控件归属。", "en": "Form named-lookup illustration. The example absentKey has neither a current candidate nor a past-name entry. In general, an index miss still requires the past-name check, and an index hit still requires checking control ownership."},
+      "paragraphs": [
+        {"zh": "PR 640 还修复了失败次数矩阵之外的实现问题。JavaScript 可以通过 form.email 直接取得名为 email 的控件，这要求浏览器在普通对象属性之外处理表单的动态名称。旧实现用 get_own_property_names 判断对象自身属性，触发了虚拟控件枚举；名称匹配又可能遍历控件。页面反复探测不存在的属性时，返回值一直是 undefined，却重复支付查找成本。", "en": "PR 640 also changes mechanisms outside the failure-count matrix. JavaScript can access a control named email through form.email, so a browser must handle dynamic form names alongside ordinary object properties. The old implementation checks own properties with get_own_property_names, invoking virtual control enumeration; named matching can then traverse controls. Repeated probes for an absent property keep returning undefined while repeating the lookup work."},
+        {"zh": "form_element.rs 把自身属性检查改为不枚举虚拟属性的 has_real_named_property，并通过 document.rs 的实时 id/name 索引先排除不可能的候选。命中后仍检查表单归属，未命中也不缓存最终答案：控件改名、移动或自定义元素升级，都可能改变下一次查找结果。普通属性查询也不应偷偷执行 getter。", "en": "In form_element.rs, has_real_named_property replaces virtual enumeration for the own-property check. A live id/name index in document.rs rules out impossible candidates before traversal. Hits still undergo form-ownership checks, and misses are not cached as final answers: renaming, moving a control or upgrading a custom element can change the next lookup. Ordinary property queries must also avoid invoking getters."},
+        {"zh": "专项计数器测试构造 32 张表单，每张重复 8 次读取、in 查询和属性描述符查询，共 768 次缺失属性探测；要求控件遍历和名称枚举计数都为 0。正对照再读取真实控件，并显式枚举属性，确认计数器确实能记录工作量。这个断言检查算法路径，没有给出整站提速比例，也没有证明某一道历史失败由它单独修复。另有一项脱离页面的文档及节点迁移兼容性测试仍标为忽略，不能算作已通过。", "en": "The counter regression creates 32 forms and repeats a read, an in query and a property-descriptor query eight times per form: 768 absent-property probes. It requires zero control traversals and zero named enumerations. Positive controls then read a real control and explicitly enumerate properties to establish that the counters observe actual work. This assertion tests the algorithmic path; it gives neither a whole-site speedup nor proof that this change alone repaired a historical failure. A separate detached-document and adopted-wrapper compatibility test remains ignored and is not a passing result."}
+      ],
+      "specimen": {
+        "headers": [{"zh": "源码回归断言", "en": "Source regression assertion"}, {"zh": "控件遍历计数", "en": "Control traversal count"}, {"zh": "名称枚举计数", "en": "Named enumeration count"}],
+        "rows": [
+          [{"zh": "768 次缺失属性探测", "en": "768 absent-property probes"}, "0", "0"],
+          [{"zh": "读取实际存在的 present 控件", "en": "Read the existing present control"}, "> 0", "0"],
+          [{"zh": "显式调用 Object.getOwnPropertyNames", "en": "Explicit Object.getOwnPropertyNames call"}, {"zh": "该断言未约束", "en": "Not constrained by this assertion"}, "> 0"]
+        ],
+        "caption": {"zh": "对应冻结 PR 源码中的 form_named_lookup_misses_do_not_enumerate_or_traverse_controls。数值是专项测试的断言，不是 90 题运行中的性能采样。", "en": "From form_named_lookup_misses_do_not_enumerate_or_traverse_controls in the frozen PR source. Values are regression assertions, not performance samples from the 90-task cohort."}
+      }
+    },
+    {
       "id": "changed-contracts",
       "title": {"zh": "相同输入，也可能是一套改过的考题", "en": "Identical inputs can still be revised tasks"},
       "paragraphs": [

@@ -9,7 +9,7 @@ from harness.trajectory_replay.interpretation import render_interpretation, stan
 from scripts.check_webarena_replay_report import _check_interpretation, _text_without_verified_embedded_images
 
 
-def build(tmp_path, specimen=None):
+def build(tmp_path, specimen=None, sources=None):
     payload = b"\x89PNG\r\n\x1a\nsynthetic-test"
     for lang in ("zh", "en"):
         (tmp_path / f"example-{lang}.png").write_bytes(payload)
@@ -20,6 +20,8 @@ def build(tmp_path, specimen=None):
                              "figure": "example", "caption": {"zh": "示意", "en": "Illustration"}}]}
     if specimen is not None:
         article["sections"][0]["specimen"] = specimen
+    if sources is not None:
+        article["sections"][0]["sources"] = sources
     source, audit = tmp_path / "article.json", tmp_path / "audit.json"
     source.write_text(json.dumps(article))
     audit.write_text(json.dumps({"bindings": {"results_sha256": "cohort"}}))
@@ -39,6 +41,30 @@ def test_article_views_share_content_and_escape_source(tmp_path):
     build(tmp_path)
     _check_interpretation(tmp_path)
     assert not BeautifulSoup((tmp_path / "article.html").read_text(), "html.parser").select("script")
+
+
+def test_sources_are_localized_and_preserved_in_offline_article(tmp_path):
+    build(tmp_path, sources=[{"url": "https://example.test/source?x=1&y=2",
+                              "label": {"zh": "<b>源码</b>", "en": "<b>Source</b>"}}])
+    _check_interpretation(tmp_path)
+    for prefix, label in (("", "<b>源码</b>"), ("en/", "<b>Source</b>")):
+        page = BeautifulSoup((tmp_path / f"{prefix}article.html").read_text(), "html.parser")
+        link = page.select_one(".article-sources a")
+        assert link.text == label
+        assert link["href"] == "https://example.test/source?x=1&y=2"
+        assert not link.select("b")
+
+
+@pytest.mark.parametrize("url", ["javascript:alert(1)", "file:///private/source", "https:///missing",
+                                  "https://user:secret@example.test/source"])
+def test_article_rejects_unsafe_source_links(tmp_path, url):
+    with pytest.raises(ValueError, match="HTTPS"):
+        build(tmp_path, sources=[{"url": url, "label": {"zh": "源码", "en": "Source"}}])
+
+
+def test_article_rejects_unlocalized_source_links(tmp_path):
+    with pytest.raises(ValueError, match="both languages"):
+        build(tmp_path, sources=[{"url": "https://example.test/source", "label": {"zh": "源码"}}])
 
 
 def test_specimen_preserves_values_and_localizes_explanations(tmp_path):
