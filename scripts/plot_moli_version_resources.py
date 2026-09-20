@@ -31,9 +31,27 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
         raise ValueError("metrics must contain pss and/or cpu")
     if language not in {"zh", "en"}:
         raise ValueError("language must be zh or en")
-    rows = data["configurations"]
-    if not rows:
+    rows = data.get("configurations")
+    if not isinstance(rows, list) or not rows:
         raise ValueError("configurations must contain at least one row")
+    required_row_fields = {"id", "passed_cases", "success_rate_pct"}
+    required_row_fields.update(
+        {"label", "short_label"} if language == "zh" else {"label_en", "short_label_en"}
+    )
+    metric_fields = {
+        "pss": {"pss_mib", "pss_change_pct"},
+        "cpu": {"cpu_ms", "cpu_change_pct"},
+    }
+    for metric in metrics:
+        required_row_fields.update(metric_fields[metric])
+    for index, row in enumerate(rows):
+        missing = (
+            sorted(required_row_fields - set(row))
+            if isinstance(row, dict)
+            else sorted(required_row_fields)
+        )
+        if missing:
+            raise ValueError(f"configuration row {index} missing required field(s): {', '.join(missing)}")
     unknown_ids = sorted({str(row.get("id")) for row in rows} - COLORS.keys())
     if unknown_ids:
         raise ValueError(f"unknown configuration id(s): {', '.join(unknown_ids)}")
