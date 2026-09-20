@@ -9,6 +9,7 @@ import json
 import os
 import shutil
 from pathlib import Path
+from harness.report_languages import generated_languages
 
 from playwright.sync_api import sync_playwright
 
@@ -69,7 +70,10 @@ def _route_classes(report: Path) -> list[Path]:
                 if failed_route not in dynamic:
                     dynamic.append(failed_route)
     chinese = [report / name for name in (*fixed, *dynamic)]
-    routes = chinese + [report / "en" / page.relative_to(report) for page in chinese]
+    routes = chinese + (
+        [report / "en" / page.relative_to(report) for page in chinese]
+        if "en" in generated_languages(report) else [report / "en/index.html"]
+    )
     missing = [path for path in routes if not path.is_file()]
     if missing:
         raise ValueError(f"visual QA route is missing: {missing[0]}")

@@ -47,6 +47,7 @@ from .publication import (
     trajectory_label,
 )
 from .report_i18n import localize_html, write_english_report
+from harness.report_languages import write_language_contract
 from .selection import PilotSelection, load_pilot, validate_against_official
 
 ENGINE_LABELS = {"chromium": "Chromium", "moli": "Moli 1.1.3"}
@@ -2906,7 +2907,7 @@ def _write_fix_log(stage: Path, model: dict[str, Any], *, english: bool = False)
         _write_json(stage / "data/fix-log.json", {**model, "artifacts": list(artifacts.values())})
 
 
-def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_path: Path) -> Path:
+def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_path: Path, include_english: bool = False) -> Path:
     profile = _read_json(Path("evaluation/browser-use/current-report.json"))
     fix_log = _load_fix_log(profile)
     _configure_engine_labels(profile)
@@ -4026,8 +4027,10 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             },
         )
         _write_fix_log(stage, fix_log)
-        write_english_report(stage)
-        _write_fix_log(stage, fix_log, english=True)
+        if include_english:
+            write_english_report(stage)
+            _write_fix_log(stage, fix_log, english=True)
+        write_language_contract(stage, include_english=include_english)
         (stage / ".generated-report").write_text("browser-use-report/2\n", encoding="utf-8")
         backup: Path | None = None
         if output.exists():
@@ -4063,8 +4066,9 @@ def main() -> None:
         type=Path,
         default=Path("evaluation/browser-use/webarena-verified-pilot.json"),
     )
+    parser.add_argument("--include-english", action="store_true")
     args = parser.parse_args()
-    print(build_report(evidence=args.evidence, output=args.output, selection_path=args.selection))
+    print(build_report(evidence=args.evidence, output=args.output, selection_path=args.selection, include_english=args.include_english))
 
 
 if __name__ == "__main__":

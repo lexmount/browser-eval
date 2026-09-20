@@ -48,7 +48,7 @@ report-check: runtime-check
 
 browser-use-report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE="/absolute/path [/absolute/path...]" is required' >&2; exit 2)
-	$(PY) scripts/build_browser_use_report.py $(foreach path,$(EVIDENCE),--evidence "$(path)") --output reports/browser-use
+	$(PY) scripts/build_browser_use_report.py $(foreach path,$(EVIDENCE),--evidence "$(path)") --output reports/browser-use $(if $(filter 1,$(ENGLISH)),--include-english,)
 
 browser-use-review: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)

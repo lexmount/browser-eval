@@ -1133,7 +1133,9 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
     assert 'id="evidence-viewer-content"' in viewer
     assert "execution-evidence[.]json" in viewer
     assert "fetch(new URL(source,document.baseURI)" in viewer
-    assert (output / "en/evidence-viewer.html").is_file()
+    assert not (output / "en/evidence-viewer.html").exists()
+    assert "英文报告未生成" in (output / "en/index.html").read_text()
+    assert json.loads((output / "report-languages.json").read_text())["languages"] == ["zh"]
     public_results = [
         json.loads(line)
         for line in (output / "data/results.jsonl").read_text(encoding="utf-8").splitlines()
