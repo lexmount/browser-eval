@@ -35,7 +35,15 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
     unknown_ids = sorted({str(row.get("id")) for row in rows} - COLORS.keys())
     if unknown_ids:
         raise ValueError(f"unknown configuration id(s): {', '.join(unknown_ids)}")
-    resource = data["resource_population"]
+    resource = data.get("resource_population")
+    required_resource_fields = {"chart_calls", "chart_tasks"}
+    if not isinstance(resource, dict) or not required_resource_fields.issubset(resource):
+        missing = (
+            sorted(required_resource_fields - set(resource or {}))
+            if isinstance(resource, dict)
+            else sorted(required_resource_fields)
+        )
+        raise ValueError(f"resource_population missing required field(s): {', '.join(missing)}")
     text = {
         "zh": {
             "title": "372 题成功率与资源消耗",

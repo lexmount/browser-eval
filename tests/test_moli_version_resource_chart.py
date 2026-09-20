@@ -106,6 +106,11 @@ class MoliVersionResourceChartTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unknown configuration id.*future_config"):
             self.render()
 
+    def test_missing_resource_population_field_has_clear_error(self):
+        del self.data["resource_population"]["chart_tasks"]
+        with self.assertRaisesRegex(ValueError, "resource_population missing required field.*chart_tasks"):
+            self.render()
+
 
 if __name__ == "__main__":
     unittest.main()
