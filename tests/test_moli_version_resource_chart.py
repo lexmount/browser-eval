@@ -113,6 +113,7 @@ class MoliVersionResourceChartTests(unittest.TestCase):
 
     def test_english_dual_panel_contains_both_resources_and_changes(self):
         svg = self.render(language="en")
+        self.assertIn("Resource experiment: 557 tasks × 5 calls", svg)
         self.assertIn("Median peak process-tree PSS (MiB)", svg)
         self.assertIn("Mean CPU time per execution (ms)", svg)
         self.assertIn("80.54 MiB (+4.30%)", svg)

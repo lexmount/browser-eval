@@ -70,8 +70,6 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
         if any(not float(row[field]).is_integer() for row in rows):
             raise ValueError(f"all configurations must use an integer {field}")
     totals = {float(row["total_cases"]) for row in rows}
-    if any(not total.is_integer() for total in totals):
-        raise ValueError("all configurations must use an integer total_cases")
     if len(totals) != 1 or next(iter(totals)) <= 0:
         raise ValueError("all configurations must use the same positive total_cases")
     total_cases = int(next(iter(totals)))
@@ -102,7 +100,7 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
         },
         "en": {
             "title": f"Success on {total_cases} cases vs. resource use",
-            "subtitle": f"Resource experiment: {resource['total_tasks']} tasks × {resource['calls_per_task']}; plotted population: {resource['chart_calls']:,} pre-frozen calls / {resource['chart_tasks']} tasks; farther left is lower",
+            "subtitle": f"Resource experiment: {resource['total_tasks']} tasks × {resource['calls_per_task']} calls; plotted population: {resource['chart_calls']:,} pre-frozen calls / {resource['chart_tasks']} tasks; farther left is lower",
             "y": f"Success rate on {total_cases} cases (all 3 attempts pass)",
             "pss": "Median peak process-tree PSS (MiB)",
             "cpu": "Mean CPU time per execution (ms)",
