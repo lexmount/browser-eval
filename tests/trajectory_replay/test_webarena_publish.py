@@ -499,7 +499,7 @@ def test_package_binds_report_evidence_and_release_gate(monkeypatch, tmp_path: P
         "dataset": {"path": str(dataset), "sha256": _sha256(dataset)},
         "scoring": {"require_all_reference_validity": True},
     }), encoding="utf-8")
-    with pytest.raises(ValueError, match="three methods and the declared task set"):
+    with pytest.raises(ValueError, match="registered methods and the declared task set"):
         packager.package(report, evidence, output, tmp_path / "visual.json")
 
 
@@ -573,7 +573,7 @@ def test_publication_rejects_diagnostic_appendix_and_stale_corrected_dataset(mon
     }), encoding="utf-8")
     attestation["profile_sha256"] = _sha256(profile)
     attestation_path.write_text(json.dumps(attestation), encoding="utf-8")
-    with pytest.raises(ValueError, match="three methods and the declared task set"):
+    with pytest.raises(ValueError, match="registered methods and the declared task set"):
         publisher.validate_package()
     profile.write_text(json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}))
     attestation["profile_sha256"] = _sha256(profile)

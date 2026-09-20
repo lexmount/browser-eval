@@ -1,9 +1,9 @@
 {
   "schema": "lex_replay_contract_audit/1",
   "bindings": {
-    "results_sha256": "52f132cdd999e9c93b32332b8e037890dbfc7e90c44afef7ffcc7398b39ef72b",
+    "results_sha256": "51d37408cc1731374c48cfb51dfd381f6b7f9927882ab7330645f6dab9635e05",
     "dataset_sha256": "624a0ea83c6e4c3533714e961656d7e4159189a9e4941017b06a5299e4dc31d5",
-    "corrections_sha256": "cea0c6d7e67f41ce3913cb16f6f88b3df97e8c888f3ed5a86ad85625b104106b",
+    "corrections_sha256": "e764f4b2828fa97d98cecc8752b31329871e612be1fff13878410d41e8414f9b",
     "upstream_commit": "6473f72db5dcefc97b5725b59e734504edc28a21",
     "fork_commit": "7d060ec92b611d66b48d667acb9d92c35cfbdbda"
   },
@@ -62,9 +62,9 @@
       "layer": "local",
       "kind": "acceptance_weakening",
       "before_zh": "检查最后一次资料保存及 302 响应。",
-      "after_zh": "接受 302 或含明确成功消息的 200，并取消仅检查最后事件。反例已证实：先保存正确网址、后保存错误网址仍会通过。当前两个通过结果的实际保存网址均正确，未触发该漏洞。",
+      "after_zh": "接受 302 或含明确成功消息的 200，并取消仅检查最后事件。反例已证实：先保存正确网址、后保存错误网址仍会通过。当前两个通过结果的实际保存网址均正确，未触发该漏洞。 本次追加的两组 1.1.9 方法已采用后续修正规则；原三组仍展示历史成绩。",
       "before_en": "Check the last profile save and its 302 response.",
-      "after_en": "Accept 302 or a 200 carrying an explicit success message, and disable last-event-only selection. A counterexample confirms acceptance of a correct save followed by a wrong save. Both currently passing traces save only the correct website and do not exercise this hole.",
+      "after_en": "Accept 302 or a 200 carrying an explicit success message, and disable last-event-only selection. A counterexample confirms acceptance of a correct save followed by a wrong save. Both currently passing traces save only the correct website and do not exercise this hole. Both appended 1.1.9 methods use the later corrected rule; the original three retain historical scores.",
       "counterexample_test": "tests/trajectory_replay/test_webarena_corrections.py::test_448_official_evaluator_rejects_overwritten_correct_save",
       "revision_receipt": "research/trajectory-replay-task448-final-event-revision.json",
       "revision_zh": "新规则恢复最后事件检查。原 Chromium 证据仍通过，PR 证据则因重定向后的 GET 被记录成带旧请求体的 POST 而失败；本地 HTTP 实测已确认该记录缺陷。历史成绩未改写。",
@@ -84,9 +84,9 @@
       "layer": "local",
       "kind": "task_scope_change",
       "before_zh": "依据评论数量、价格和评分寻找音箱并购买；购物车 totals 响应检查 items_qty=1 和商品名，没有检查金额。",
-      "after_zh": "冻结版本写明目标商品 75640、直接导航，删除 totals 响应规则，只检查单个商品行与名称，移除了商品发现能力，也漏掉数量检查。反例证实同一行买两件仍通过。后续修订恢复原数量规则；保存的三个方法证据重新评分均通过，未新增浏览器调用。",
+      "after_zh": "冻结版本写明目标商品 75640、直接导航，删除 totals 响应规则，只检查单个商品行与名称，移除了商品发现能力，也漏掉数量检查。反例证实同一行买两件仍通过。后续修订恢复原数量规则；保存的三个方法证据重新评分均通过，未新增浏览器调用。 本次追加的两组 1.1.9 方法已采用后续修正规则；原三组仍展示历史成绩。",
       "before_en": "Find and buy a speaker using review count, price and rating. The cart-totals response check requires items_qty=1 and a product name, not a monetary total.",
-      "after_en": "The frozen version names product 75640, navigates directly and replaces the totals rule with a single-row/name check. This removes product discovery and drops quantity validation: a two-unit row passes a counterexample. A later revision restores the original quantity rule; all three saved method results remain accepted without new browser calls.",
+      "after_en": "The frozen version names product 75640, navigates directly and replaces the totals rule with a single-row/name check. This removes product discovery and drops quantity validation: a two-unit row passes a counterexample. A later revision restores the original quantity rule; all three saved method results remain accepted without new browser calls. Both appended 1.1.9 methods use the later corrected rule; the original three retain historical scores.",
       "revision_receipt": "research/trajectory-replay-task510-quantity-revision.json"
     },
     {

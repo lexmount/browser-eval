@@ -1,4 +1,4 @@
-"""Bind three certified WebArena replay cohorts into one shared-task result matrix.
+"""Bind registered certified WebArena replay cohorts into one shared-task result matrix.
 
 The input cohorts and reference-validity audit are immutable evidence, not a
 source of inferred passes. This command only writes a new aggregate file.
@@ -317,15 +317,15 @@ def aggregate(
         raise ValueError("profile task selection changed")
     if (
         not isinstance(methods, list)
-        or len(methods) != 3
-        or len({m.get("id") for m in methods if isinstance(m, dict)}) != 3
+        or len(methods) < 2
+        or len({m.get("id") for m in methods if isinstance(m, dict)}) != len(methods)
         or set(cohort_inputs) != {m["id"] for m in methods}
         or not isinstance(rows, list)
         or len(rows) != len(task_ids)
         or any(not isinstance(r, dict) or type(r.get("task_id")) is not int for r in rows)
         or sorted(r["task_id"] for r in rows) != task_ids
     ):
-        raise ValueError("three methods and the same corrected task selection are required")
+        raise ValueError("complete registered methods and the same corrected task selection are required")
     execution = profile.get("execution") or {}
     if any(
         (execution.get(k) is not v)
@@ -364,7 +364,7 @@ def aggregate(
         for row in cohort_rows:
             row["reference_validity"] = validity[row["task_id"]]
         attempts.extend(cohort_rows)
-    if len(attempts) != 3 * len(task_ids):
+    if len(attempts) != len(methods) * len(task_ids):
         raise ValueError("aggregate requires every method-task result")
     return {
         "schema": "webarena_three_method_results/1",
@@ -403,17 +403,17 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--reference-validity", type=Path, required=True)
     parser.add_argument(
-        "--manifest", action="append", required=True, help="METHOD_ID=PATH; exactly three"
+        "--manifest", action="append", required=True, help="METHOD_ID=PATH; one per registered method"
     )
     parser.add_argument(
-        "--receipt", action="append", required=True, help="METHOD_ID=PATH; exactly three"
+        "--receipt", action="append", required=True, help="METHOD_ID=PATH; one per registered method"
     )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     manifests = _method_paths(args.manifest, "manifest")
     receipts = _method_paths(args.receipt, "receipt")
-    if set(manifests) != set(receipts) or len(manifests) != 3:
-        raise ValueError("exactly three manifest/receipt pairs are required")
+    if set(manifests) != set(receipts):
+        raise ValueError("matching manifest/receipt pairs are required")
     result = aggregate(
         profile_path=args.profile,
         selection_path=args.selection,

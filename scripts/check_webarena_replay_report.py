@@ -464,6 +464,12 @@ def _check_failure_matrix(page: str, results: list[dict], participants: list[str
 def check(report_dir: Path) -> dict[str, int]:
     root = report_dir.resolve()
     manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
+    for lang, note in (manifest.get("measurement_notes") or {}).items():
+        language_root = root if lang == "zh" else root / lang
+        for name in ("index.html", "environment.html"):
+            page = BeautifulSoup((language_root / name).read_text(), "html.parser")
+            if not note or note not in page.get_text():
+                raise ValueError("declared measurement context is absent from the report")
     if report_languages(root) == ("zh",):
         english_files = {path.relative_to(root / "en").as_posix() for path in (root / "en").rglob("*") if path.is_file()}
         if english_files != {"index.html"} or manifest.get("english_status") != "not_generated":
@@ -493,10 +499,9 @@ def check(report_dir: Path) -> dict[str, int]:
     expected_results = task_count * participant_count
     if (
         task_count < 1
-        or participant_count < 1
+        or participant_count < 2
         or len(participants) != participant_count
         or len(set(participants)) != participant_count
-        or participant_count != 3
         or "historical_participants" in manifest
         or "affected_task_participants" in manifest
         or manifest["logical_results"] != expected_results

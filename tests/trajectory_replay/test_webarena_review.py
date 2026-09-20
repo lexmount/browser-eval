@@ -45,6 +45,54 @@ def test_programmatic_failure_keeps_location_separate_from_root_cause() -> None:
     }
 
 
+@pytest.mark.parametrize("tamper", ["row", "digest", "symlink", "new-result"])
+def test_append_methods_keeps_old_diagnostics_bound_to_unchanged_results(tmp_path: Path, tamper) -> None:
+    old_row = {"participant_id": "moli", "engine": "moli", "task_id": 1,
+               "status": "fail", "binary_sha256": "a" * 64, "duration_ms": 10}
+    prior = _write(tmp_path / "prior.json", {"attempts": [old_row]})
+    digest = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+    diagnostic = _write(tmp_path / "diagnostic.json", {
+        "task_id": 1, "cohort_results_sha256": digest(prior),
+        "binary_sha256": {"release": "a" * 64}, "observations": [{"method": "release"}],
+    })
+    results = _write(tmp_path / "results.json", {
+        "engines": ["moli", "chromium"],
+        "attempts": [old_row, {"engine": "chromium", "task_id": 1, "status": "pass"}],
+    })
+    payload = {
+        "schema": "lex_webarena_trajectory_replay_failure_review/1",
+        "bindings": {"effective_results_sha256": digest(results)},
+        "inherited_result_cohorts": [{"path": str(prior), "sha256": digest(prior)}],
+        "coverage": {"failed_results": 1, "verified_results": 1},
+        "cause_groups": [{"code": "browser", "label_zh": "浏览器差异", "label_en": "Browser difference",
+                          "responsibility": "browser", "remediation_owner": "browser", "remediation_status": "open",
+                          "results": [{"participant_id": "moli", "engine": "moli", "task_id": 1,
+                                       "reason_zh": "目标不存在。", "reason_en": "Target missing.",
+                                       "supplemental_diagnostic": {"path": str(diagnostic), "sha256": digest(diagnostic)}}]}],
+    }
+    review = _write(tmp_path / "review.json", payload)
+    assert set(load_validated_failure_review(results, review)["by_result"]) == {("moli", 1)}
+    changed = json.loads(results.read_text())
+    if tamper == "row":
+        changed["attempts"][0]["duration_ms"] = 11
+    elif tamper == "digest":
+        payload["inherited_result_cohorts"][0]["sha256"] = "0" * 64
+    elif tamper == "symlink":
+        link = tmp_path / "prior-link.json"
+        link.symlink_to(prior)
+        payload["inherited_result_cohorts"][0]["path"] = str(link)
+    else:
+        changed["attempts"][1]["status"] = "fail"
+        source_review = payload["cause_groups"][0]["results"][0]
+        payload["cause_groups"][0]["results"].append({**source_review, "participant_id": "chromium", "engine": "chromium"})
+        payload["coverage"] = {"failed_results": 2, "verified_results": 2}
+    _write(results, changed)
+    payload["bindings"]["effective_results_sha256"] = digest(results)
+    _write(review, payload)
+    with pytest.raises(ValueError, match="inherited.*changed|not bound to the reviewed cohort"):
+        load_validated_failure_review(results, review)
+
+
 def test_historical_task173_review_supersedes_browser_attribution_with_bound_evidence() -> None:
     review = json.loads(Path("research/trajectory-replay-reviews/20260917-original-36.json").read_text())
     matches = [

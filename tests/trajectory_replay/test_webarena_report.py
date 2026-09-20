@@ -62,13 +62,17 @@ def test_report_build_requires_hash_bound_corrected_dataset(tmp_path: Path) -> N
         _bound_dataset_path({"dataset": {"path": str(link), "sha256": profile["dataset"]["sha256"]}})
 
 
-def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, monkeypatch) -> None:
+@pytest.mark.parametrize("extra_methods", [0, 2])
+def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, monkeypatch, extra_methods) -> None:
     methods = [
         {"id": "chromium", "engine": "chromium", "label": "Chromium"},
         {"id": "moli-old", "engine": "moli", "label": "Moli 1.1.3"},
         {"id": "moli-fixed", "engine": "moli", "label": "Moli 1.1.7"},
     ]
+    methods.extend({"id": f"moli-new-{i}", "engine": "moli", "label": f"Moli new {i}"}
+                   for i in range(extra_methods))
     profile = {"methods": methods, "qualification": {"reference_engine": "chromium"},
+               "measurement_notes": {"zh": "分批追加的耗时不用于推断源码提速。", "en": "Separate batches do not establish code-induced speedup."},
                "execution": {"method_parallelism": 1, "task_parallelism": 1,
                              "reset_before_every_task": False,
                                  "reset_before_every_method": True,
@@ -120,8 +124,8 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
         output_dir=output, include_english=True,
     )
     assert manifest["participants"] == [item["id"] for item in methods]
-    assert manifest["logical_results"] == 3
-    assert manifest["routes"] == 20
+    assert manifest["logical_results"] == len(methods)
+    assert manifest["routes"] == 20 + 2 * extra_methods
     assert "36/36" not in (output / "index.html").read_text()
     assert "fixes.html" not in (output / "index.html").read_text()
     assert "BrowserTool 与浏览器的组合" in (output / "index.html").read_text()
@@ -130,6 +134,9 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
     assert "with verified references" not in (output / "en/index.html").read_text()
     assert "独立复核范围见复核说明" in (output / "index.html").read_text()
     assert "independent review scope" in (output / "en/index.html").read_text()
+    for lang, prefix in (("zh", ""), ("en", "en/")):
+        for name in ("index.html", "environment.html"):
+            assert profile["measurement_notes"][lang] in (output / (prefix + name)).read_text()
     for route in ("index.html", "results.html", "dataset.html", "environment.html"):
         assert "历史 90 题" not in (output / route).read_text()
         assert "historical 90-task" not in (output / "en" / route).read_text()
@@ -142,7 +149,13 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
         assert 'data-topology-fallback' in environment and 'class="mermaid"' in environment
         assert 'Rainbond WebArena' in environment
     assert not (output / "diagnostics.html").exists()
-    assert check_report(output)["html_pages"] == 20
+    assert check_report(output)["html_pages"] == 20 + 2 * extra_methods
+    home = output / "index.html"
+    original_home = home.read_text()
+    home.write_text(original_home.replace(profile["measurement_notes"]["zh"], ""))
+    with pytest.raises(ValueError, match="measurement context"):
+        check_report(output)
+    home.write_text(original_home)
     manifest = build_webarena_replay_report(
         results_path=files["results.json"], dataset_path=files["dataset.json"],
         review_path=files["review.json"], profile_path=files["profile.json"],
@@ -150,11 +163,11 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
     )
     assert manifest["languages"] == ["zh"]
     assert manifest["english_status"] == "not_generated"
-    assert manifest["routes"] == 11
+    assert manifest["routes"] == 11 + extra_methods
     assert '英文报告未生成' in (output / "en/index.html").read_text()
     assert not (output / "en/results.html").exists()
     assert 'class="language" href="../en/index.html"' in (output / "result/chromium-29.html").read_text()
-    assert check_report(output)["html_pages"] == 11
+    assert check_report(output)["html_pages"] == 11 + extra_methods
     stale = output / "en/results.html"
     stale.write_text("stale English report")
     with pytest.raises(ValueError, match="stale English"):
@@ -201,9 +214,11 @@ def test_reference_validity_must_be_explicit_and_common_to_all_methods() -> None
     assert _verdict_label("fail", "unverified", "zh") == "官方失败；答案不可核验"
 
 
-def test_formal_reference_validity_gate_requires_all_selected_tasks_for_all_methods() -> None:
+@pytest.mark.parametrize("extra_methods", [0, 2])
+def test_formal_reference_validity_gate_requires_all_selected_tasks_for_all_methods(extra_methods) -> None:
     methods = [{"id": name, "engine": "chromium" if name == "chromium" else "moli"}
                for name in ("chromium", "moli-old", "moli-fixed")]
+    methods.extend({"id": f"moli-new-{i}", "engine": "moli"} for i in range(extra_methods))
     profile = {"methods": methods, "task_selection": {"task_count": 90},
                "scoring": {"require_all_reference_validity": True}}
     dataset = {"trajectories": [{"task_id": task_id} for task_id in range(90)]}
@@ -217,7 +232,7 @@ def test_formal_reference_validity_gate_requires_all_selected_tasks_for_all_meth
     attempts[0]["reference_validity"]["status"] = "unverifiable"
     with pytest.raises(ValueError, match="disagree"):
         require_all_reference_validity(profile, results, dataset)
-    for method_index in (1, 2):
+    for method_index in range(1, len(methods)):
         attempts[method_index * 90]["reference_validity"]["status"] = "unverifiable"
     with pytest.raises(ValueError, match="unverifiable tasks: \\[0\\]"):
         require_all_reference_validity(profile, results, dataset)

@@ -58,6 +58,23 @@ def load_validated_failure_review(
         raise ValueError("failure review is not bound to the effective result bytes")
 
     attempts = [bind_participant(row, registry) for row in results.get("attempts") or []]
+    current_rows = {(row["participant_id"], int(row["task_id"])): row for row in attempts}
+    cohort_keys = {review["bindings"]["effective_results_sha256"]: set(current_rows)}
+    for ref in review.get("inherited_result_cohorts") or []:
+        source = Path(ref.get("path") or "")
+        if (not source.is_absolute() or not source.is_file()
+                or any(part.is_symlink() for part in (source, *source.parents))
+                or _sha256(source) != ref.get("sha256")):
+            raise ValueError("inherited result cohort evidence is missing or changed")
+        prior = json.loads(source.read_text(encoding="utf-8"))
+        prior_rows = [bind_participant(row, registry) for row in prior.get("attempts") or []]
+        keys = {(row["participant_id"], int(row["task_id"])) for row in prior_rows}
+        if (not keys or len(keys) != len(prior_rows)
+                or prior.get("dataset_sha256") != results.get("dataset_sha256")
+                or any(current_rows.get((row["participant_id"], int(row["task_id"]))) != row
+                       for row in prior_rows)):
+            raise ValueError("inherited result cohort rows changed or are absent")
+        cohort_keys[ref["sha256"]] = keys
     failed = {
         (item["participant_id"], int(item["task_id"]))
         for item in attempts
@@ -95,7 +112,7 @@ def load_validated_failure_review(
                     raise ValueError("supplemental diagnostic evidence is missing or changed")
                 diagnostic = json.loads(source.read_text(encoding="utf-8"))
                 if (diagnostic.get("task_id") != key[1]
-                        or diagnostic.get("cohort_results_sha256") != review["bindings"]["effective_results_sha256"]):
+                        or key not in cohort_keys.get(diagnostic.get("cohort_results_sha256"), set())):
                     raise ValueError("supplemental diagnostic is not bound to the reviewed cohort")
                 binaries = {attempt.get("binary_sha256") for attempt in attempts if int(attempt["task_id"]) == key[1]}
                 identities = diagnostic.get("binary_sha256")
@@ -114,8 +131,9 @@ def load_validated_failure_review(
                         (resolve_participant_id(row, registry), int(row["task_id"]))
                         for row in revision.get("scope", [])
                     }
-                    or revision.get("evidence_bindings", {}).get("effective_results_sha256")
-                    != review["bindings"]["effective_results_sha256"]
+                    or key not in cohort_keys.get(
+                        revision.get("evidence_bindings", {}).get("effective_results_sha256"), set()
+                    )
                 ):
                     raise ValueError(f"failure review revision is not evidence-bound: {key}")
                 reviewed[key]["revision_evidence"] = revision

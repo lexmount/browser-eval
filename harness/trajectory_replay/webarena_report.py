@@ -214,17 +214,17 @@ def require_all_reference_validity(
     task_ids = [row.get("task_id") for row in task_rows if isinstance(row, dict)]
     declared_count = (profile.get("task_selection") or {}).get("task_count")
     if (
-        len(method_rows) != 3
+        len(method_rows) < 2
         or not task_ids
         or len(task_ids) != declared_count
         or len(set(task_ids)) != len(task_ids)
     ):
-        raise ValueError("formal reference-validity gate requires three methods and the declared task set")
+        raise ValueError("formal reference-validity gate requires registered methods and the declared task set")
     methods = participant_registry(method_rows)
     attempts = [bind_participant(row, methods) for row in results.get("attempts") or []]
     expected = {(method_id, task_id) for method_id in methods for task_id in task_ids}
     actual = {(row["participant_id"], row.get("task_id")) for row in attempts}
-    if len(attempts) != 3 * len(task_ids) or actual != expected:
+    if len(attempts) != len(methods) * len(task_ids) or actual != expected:
         raise ValueError("formal reference-validity gate requires every method-task result")
     validity = _reference_validity_by_task(attempts)
     unavailable = sorted(task_id for task_id, status in validity.items() if status != "valid")
@@ -395,9 +395,13 @@ def _supplemental_diagnostic_html(diagnostic: dict | None, lang: str) -> str:
             + components + readiness_table + geometry_table + network_table + header_table + '</details></section>')
 
 
-def _corrected_acceptance_by_task(attempts: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:
+def _corrected_acceptance_by_task(
+    attempts: list[dict[str, Any]], *, declared_revisions: dict | None = None,
+) -> dict[int, dict[str, Any]]:
     """Expose corrected evaluator expectations without replacing the frozen dataset."""
     corrected: dict[int, dict[str, Any]] = {}
+    declarations = {int(key): value for key, value in (declared_revisions or {}).items()}
+    versions: dict[int, list[dict]] = {}
     for attempt in attempts:
         evaluation = _load_artifact((attempt.get("evidence") or {}).get("evaluation"))
         if not evaluation or not evaluation.get("contract_correction_id"):
@@ -416,9 +420,24 @@ def _corrected_acceptance_by_task(attempts: list[dict[str, Any]]) -> dict[int, d
         }
         if not row["corrected_task_sha256"] or not row["evaluators"]:
             raise ValueError(f"task {task_id}: corrected evaluation lacks acceptance evidence")
+        if task_id in declarations:
+            method = attempt["participant_id"]
+            identity = {key: row[key] for key in ("correction_id", "corrected_task_sha256")}
+            if declarations[task_id].get(method) != identity:
+                raise ValueError(f"task {task_id}: declared acceptance revision differs for {method}")
+            groups = versions.setdefault(task_id, [])
+            group = next((item for item in groups if {key: item[key] for key in row} == row), None)
+            if group is None:
+                groups.append({**row, "methods": [method]})
+            else:
+                group["methods"].append(method)
+            continue
         if task_id in corrected and corrected[task_id] != row:
             raise ValueError(f"task {task_id}: corrected acceptance differs across methods")
         corrected[task_id] = row
+    if set(declarations) != set(versions):
+        raise ValueError("declared acceptance revisions lack evaluator evidence")
+    corrected.update({task: {"versions": rows} for task, rows in versions.items()})
     return corrected
 
 
@@ -637,7 +656,7 @@ def _successful_distribution_table(methods: list[dict[str, Any]], lang: str) -> 
         rows.append("<tr>" + "".join(f"<td>{cell}</td>" for cell in cells) + "</tr>")
     headers = ["指标" if zh else "Metric"] + [
         f'{method["label"]} · n={method["passed"]}/{method["total"]}' for method in methods]
-    return '<div class="table-scroll"><table><thead><tr>' + ''.join(f'<th>{_e(h)}</th>' for h in headers) + '</tr></thead><tbody>' + ''.join(rows) + '</tbody></table></div>'
+    return '<div class="table-scroll successful-distributions"><table><thead><tr>' + ''.join(f'<th>{_e(h)}</th>' for h in headers) + '</tr></thead><tbody>' + ''.join(rows) + '</tbody></table></div>'
 
 
 def _copy_failure_screenshot(attempt: dict[str, Any], output: Path, key: str) -> str | None:
@@ -1049,6 +1068,7 @@ body{background:linear-gradient(180deg,var(--wash) 0,transparent 240px),var(--bg
 .dataset-browser{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:var(--shadow)}.dataset-browser h2{margin-bottom:4px}.dataset-browser>p{margin:0;color:var(--muted)}.dataset-controls{display:grid;grid-template-columns:minmax(220px,2fr) repeat(3,minmax(145px,1fr));gap:12px;margin:22px 0 10px}.dataset-controls label{display:grid;gap:5px;color:var(--muted);font-size:13px;font-weight:700}.dataset-controls input,.dataset-controls select{width:100%;padding:10px 12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;font:inherit}.dataset-count{color:var(--accent);font-weight:700;margin:10px 0}.dataset-table{height:590px}.dataset-table table{min-width:950px}.dataset-table td,.dataset-table th{vertical-align:middle;white-space:normal;overflow-wrap:normal}.dataset-table td:nth-child(2){min-width:190px}.dataset-table td:nth-child(3){min-width:330px;max-width:460px}.intent-preview{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.45}.dataset-table td:last-child{white-space:nowrap}.dataset-table a{font-weight:700}.dataset-actions{display:flex;gap:10px;flex-wrap:wrap}.dataset-actions a{white-space:nowrap}.dataset-table tbody tr:hover{background:var(--wash)}.dataset-empty{color:var(--muted);padding:20px 0}
 .mermaid svg{min-width:850px;height:auto!important}.flow-fallback{font-size:14px}.flow-node{min-width:170px}
 .review-table table{min-width:1120px}.review-table td:first-child{min-width:145px;font-weight:700}.review-table td:nth-child(n+2){min-width:230px;max-width:320px}.review-table td{overflow-wrap:anywhere}
+.successful-distributions table{min-width:1100px}.successful-distributions th:first-child,.successful-distributions td:first-child{min-width:140px;white-space:nowrap}.successful-distributions th:not(:first-child),.successful-distributions td:not(:first-child){min-width:170px}
 .trajectory-columns,.aligned-step{display:grid;grid-template-columns:48px minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
 .trajectory-columns{padding:0 18px 10px;color:var(--muted);font-size:13px}.aligned-step{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px 18px}
 .aligned-step.failed-step{border:2px solid var(--bad);background:color-mix(in srgb,var(--bad) 5%,var(--panel))}.aligned-standard,.aligned-actual{min-width:0;display:grid;gap:7px}.aligned-standard{border-right:1px solid var(--line);padding-right:12px}.aligned-step code{color:var(--muted);font:13px/1.45 ui-monospace,SFMono-Regular,monospace;overflow-wrap:anywhere}.aligned-step button{justify-self:start;border:0;background:transparent;color:var(--accent);font:inherit;font-weight:700;padding:4px 0;text-align:left}.aligned-actual-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.aligned-actual-head span:last-child{margin-left:auto;color:var(--muted)}.aligned-actual p{margin:0;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.status-muted{color:var(--muted)}
@@ -2387,8 +2407,8 @@ def build_webarena_replay_report(
     profile_source = Path(profile_path)
     profile = json.loads(profile_source.read_text(encoding="utf-8"))
     methods = participant_registry(profile["methods"])
-    if len(methods) != 3 or profile.get("affected_task_methods"):
-        raise ValueError("current report requires exactly three complete registered methods")
+    if len(methods) < 2 or profile.get("affected_task_methods"):
+        raise ValueError("current report requires complete registered methods")
     execution = profile.get("execution") or {}
     if (
         execution.get("method_parallelism") != 1
@@ -2450,7 +2470,9 @@ def build_webarena_replay_report(
     _assets(output)
     if legacy_provenance is not None:
         _write_json(output / "data/legacy-retrieval-provenance.json", legacy_provenance)
-    corrected_acceptance = _corrected_acceptance_by_task(attempts)
+    corrected_acceptance = _corrected_acceptance_by_task(
+        attempts, declared_revisions=profile.get("acceptance_revisions"),
+    )
     for task_id, task in tasks.items():
         _write_json(output / "data/trajectory" / f"{task_id}.json", {
             "task_id": task_id,
@@ -2685,15 +2707,15 @@ def build_webarena_replay_report(
         ) or "—"
         if unverifiable_ids:
             core_metrics_note = (
-                f"三种方法均覆盖同一 {task_count} 题。官方通过按 {task_count} 题计；可核验题通过只计参考答案可由站点证据核验的 {valid_reference_count} 题。不可核验题：{unverifiable_links}。"
+                f"所有方法均覆盖同一 {task_count} 题。官方通过按 {task_count} 题计；可核验题通过只计参考答案可由站点证据核验的 {valid_reference_count} 题。不可核验题：{unverifiable_links}。"
                 if zh else
-                f"All three methods cover the same {task_count} tasks. Official passes use all {task_count}; verifiable-task passes use the {valid_reference_count} tasks whose answers are supported by site evidence. Unverifiable tasks: {unverifiable_links}. "
+                f"All methods cover the same {task_count} tasks. Official passes use all {task_count}; verifiable-task passes use the {valid_reference_count} tasks whose answers are supported by site evidence. Unverifiable tasks: {unverifiable_links}. "
             )
         else:
             core_metrics_note = (
-                f"三种方法均覆盖同一 {task_count} 题。验收规则及已声明修正见任务详情，独立复核范围见复核说明。"
+                f"所有方法均覆盖同一 {task_count} 题。验收规则及已声明修正见任务详情，独立复核范围见复核说明。"
                 if zh else
-                f"All three methods cover the same {task_count} tasks. Task details identify acceptance rules and declared corrections; the review page states the independent review scope. "
+                f"All methods cover the same {task_count} tasks. Task details identify acceptance rules and declared corrections; the review page states the independent review scope. "
             )
         core_metrics_note += (
             "提前失败会缩短工作量，因此总耗时和资源不按低者判优；单次动作耗时按实际工具调用统计。"
@@ -2703,7 +2725,10 @@ def build_webarena_replay_report(
         core_metrics_table = _metrics_table(
             method_rows, lang, show_valid_reference=bool(unverifiable_ids)
         )
-        summary_body = f'''<section class="hero"><p class="eyebrow">{eyebrow}</p><h1>{"浏览器轨迹重放评测" if zh else "Browser Trajectory Replay"}</h1><p>{f"三种浏览器配置分别完成同一 {task_count} 题的冻结轨迹重放。CowAgent 只提供共同的 BrowserTool 操作层，Agent 不规划动作，模型不参与；因此结果比较的是 BrowserTool 与浏览器的组合，不能单独归因于浏览器内核。方法版本、轨迹与站点准备见环境说明。" if zh else f"Three browser configurations replay frozen paths for the same {task_count} tasks. CowAgent supplies only the shared BrowserTool action layer: no Agent plans actions and no model is called. Results compare the BrowserTool–browser combinations, not browser engines in isolation. Environment documents versions, paths and site preparation."}</p><div class="detail-links"><a href="results.html">{"逐题查看结果与报错" if zh else "Explore outcomes and exact errors"}</a><a href="dataset.html">{"查看任务与标准轨迹" if zh else "Task contracts and fixed trajectories"}</a></div></section>
+        measurement_note = (profile.get("measurement_notes") or {}).get(lang)
+        if measurement_note:
+            core_metrics_note += " " + _e(measurement_note)
+        summary_body = f'''<section class="hero"><p class="eyebrow">{eyebrow}</p><h1>{"浏览器轨迹重放评测" if zh else "Browser Trajectory Replay"}</h1><p>{f"所有浏览器配置分别完成同一 {task_count} 题的冻结轨迹重放。CowAgent 只提供共同的 BrowserTool 操作层，Agent 不规划动作，模型不参与；因此结果比较的是 BrowserTool 与浏览器的组合，不能单独归因于浏览器内核。方法版本、轨迹与站点准备见环境说明。" if zh else f"All browser configurations replay frozen paths for the same {task_count} tasks. CowAgent supplies only the shared BrowserTool action layer: no Agent plans actions and no model is called. Results compare the BrowserTool–browser combinations, not browser engines in isolation. Environment documents versions, paths and site preparation."}</p><div class="detail-links"><a href="results.html">{"逐题查看结果与报错" if zh else "Explore outcomes and exact errors"}</a><a href="dataset.html">{"查看任务与标准轨迹" if zh else "Task contracts and fixed trajectories"}</a></div></section>
         {validity_notice}
         {f'<p class="evidence-actions"><a href="{"" if zh else "../"}data/legacy-retrieval-provenance.json">{"查看 74 条历史取数验收输入的逐条哈希" if zh else "Inspect hashes for all 74 historical retrieval inputs"}</a></p>' if legacy_provenance is not None else ''}
         <section><h2>{"核心指标" if zh else "Core metrics"}</h2><p class="callout">{core_metrics_note}</p>{core_metrics_table}</section>
@@ -2777,7 +2802,7 @@ def build_webarena_replay_report(
         matrix_sites = "".join(f'<option value="{_e(site)}">{_e(site)}</option>' for site in sorted({(task["task"].get("sites") or [""])[0] for task in tasks.values()}))
         matrix_baselines = "".join(f'<option value="{_e(engine)}">{_e(item["label"])}</option>' for engine, item in comparison_methods.items())
         matrix_checks = "".join(f'<label class="compare-chip"><input type="checkbox" data-matrix-method value="{_e(engine)}" checked>{_e(item["label"])}</label>' for engine, item in comparison_methods.items())
-        result_matrix = f'<section class="method-comparison"><div class="comparison-heading"><div><h2>{"同题方法对比" if zh else "Same-task method comparison"}</h2><p>{"按官方通过和失败分组展示三种方法；点开任一结果查看该方法的轨迹与执行证据。" if zh else "All three methods are grouped by official pass and fail. Open any outcome for its method-specific path and execution evidence."}</p></div><span class="comparison-count" data-matrix-count></span></div><div class="comparison-controls"><label>{"基准方法" if zh else "Baseline method"}<select data-matrix-baseline>{matrix_baselines}</select></label><label>{"成败关系" if zh else "Outcome relation"}<select data-matrix-relation><option value="different">{"所选方法有分歧" if zh else "Selected methods disagree"}</option><option value="baseline-pass-others-fail">{"基准通过，其余失败" if zh else "Baseline passes; others fail"}</option><option value="baseline-fail-others-pass">{"基准失败，其余通过" if zh else "Baseline fails; others pass"}</option><option value="all-pass">{"所选全部通过" if zh else "All selected pass"}</option><option value="all-fail">{"所选全部失败" if zh else "All selected fail"}</option><option value="exact-pass">{"仅所选方法通过" if zh else "Only selected methods pass"}</option><option value="">{"全部任务" if zh else "All tasks"}</option></select></label><label>{"站点" if zh else "Site"}<select data-matrix-site><option value="">{"全部" if zh else "All"}</option>{matrix_sites}</select></label></div><fieldset class="comparison-methods"><legend>{"参与比较的方法（至少选一个）" if zh else "Comparison methods (select at least one)"}</legend><div class="method-checks">{matrix_checks}</div></fieldset><div class="table-scroll matrix-table" data-task-matrix><table><thead><tr><th>{"任务" if zh else "Task"}</th><th>{"站点" if zh else "Site"}</th><th>{"官方通过" if zh else "Official pass"}</th><th>{"失败" if zh else "Fail"}</th></tr></thead><tbody>{"".join(result_matrix_rows)}</tbody></table></div></section>'
+        result_matrix = f'<section class="method-comparison"><div class="comparison-heading"><div><h2>{"同题方法对比" if zh else "Same-task method comparison"}</h2><p>{"按官方通过和失败分组展示所有方法；点开任一结果查看该方法的轨迹与执行证据。" if zh else "All methods are grouped by official pass and fail. Open any outcome for its method-specific path and execution evidence."}</p></div><span class="comparison-count" data-matrix-count></span></div><div class="comparison-controls"><label>{"基准方法" if zh else "Baseline method"}<select data-matrix-baseline>{matrix_baselines}</select></label><label>{"成败关系" if zh else "Outcome relation"}<select data-matrix-relation><option value="different">{"所选方法有分歧" if zh else "Selected methods disagree"}</option><option value="baseline-pass-others-fail">{"基准通过，其余失败" if zh else "Baseline passes; others fail"}</option><option value="baseline-fail-others-pass">{"基准失败，其余通过" if zh else "Baseline fails; others pass"}</option><option value="all-pass">{"所选全部通过" if zh else "All selected pass"}</option><option value="all-fail">{"所选全部失败" if zh else "All selected fail"}</option><option value="exact-pass">{"仅所选方法通过" if zh else "Only selected methods pass"}</option><option value="">{"全部任务" if zh else "All tasks"}</option></select></label><label>{"站点" if zh else "Site"}<select data-matrix-site><option value="">{"全部" if zh else "All"}</option>{matrix_sites}</select></label></div><fieldset class="comparison-methods"><legend>{"参与比较的方法（至少选一个）" if zh else "Comparison methods (select at least one)"}</legend><div class="method-checks">{matrix_checks}</div></fieldset><div class="table-scroll matrix-table" data-task-matrix><table><thead><tr><th>{"任务" if zh else "Task"}</th><th>{"站点" if zh else "Site"}</th><th>{"官方通过" if zh else "Official pass"}</th><th>{"失败" if zh else "Fail"}</th></tr></thead><tbody>{"".join(result_matrix_rows)}</tbody></table></div></section>'
         results_body = f'''<section class="hero"><p class="eyebrow">{len(public_rows)} {"条逻辑结果" if zh else "logical outcomes"}</p><h1>{"结果与失败诊断" if zh else "Results and failure diagnosis"}</h1><p>{"同题对比支持选择基准和多个方法；下方筛选表默认只显示失败，点击“诊断”查看原始判定、复核原因与执行证据。" if zh else "Choose a baseline and multiple methods for same-task comparison. The inventory starts with failures; open Diagnose for the exact finding, reviewed cause, and execution evidence."}</p></section><section class="compact-section">{result_matrix}</section><section><div class="filters"><label>{"搜索" if zh else "Search"}<input data-filter="q" placeholder="{"任务编号、站点或错误" if zh else "Task, site, or error"}"></label><label>{"方法" if zh else "Method"}<select data-filter="participant"><option value="">{"全部" if zh else "All"}</option>{browser_options}</select></label><label>{"结果" if zh else "Verdict"}<select data-filter="status"><option value="fail">{"失败" if zh else "Fail"}</option><option value="pass">{"通过" if zh else "Pass"}</option><option value="">{"全部" if zh else "All"}</option></select></label><label>{"站点" if zh else "Site"}<select data-filter="site"><option value="">{"全部" if zh else "All"}</option>{site_options}</select></label><label>{"失败环节" if zh else "Failure stage"}<select data-filter="stage"><option value="">{"全部" if zh else "All"}</option>{stage_options}</select></label><label>{"复核分类" if zh else "Reviewed category"}<select data-filter="cause"><option value="">{"全部" if zh else "All"}</option>{cause_options}</select></label></div><p class="result-count" data-result-count></p><div class="table-scroll inventory" data-results><table><thead><tr><th>{"任务" if zh else "Task"}</th><th>{"方法" if zh else "Method"}</th><th>{"站点" if zh else "Site"}</th><th>{"判定" if zh else "Verdict"}</th><th>{"动作" if zh else "Actions"}</th><th>{"失败环节" if zh else "Failure stage"}</th><th>{"复核分类" if zh else "Reviewed category"}</th><th>{"详情" if zh else "Detail"}</th></tr></thead><tbody>{''.join(result_rows)}</tbody></table></div></section><dialog id="diagnosis-dialog"><div class="dialog-head"><strong data-dialog-title></strong><button type="button" aria-label="{"关闭" if zh else "Close"}">×</button></div><div class="dialog-body"><div class="diagnosis-facts"><div><span>{"失败环节" if zh else "Failure stage"}</span><strong data-dialog-stage></strong></div><div><span>{"动作定位" if zh else "Action locator"}</span><strong data-dialog-step></strong></div><div><span>{"复核分类" if zh else "Reviewed category"}</span><strong data-dialog-category></strong></div></div><h3>{"程序判定与验收规则" if zh else "Programmatic finding and evaluator rule"}</h3><pre data-dialog-error></pre><h3>{"复核原因与处理" if zh else "Reviewed cause and treatment"}</h3><p data-dialog-cause></p><p data-dialog-remediation></p><div class="evidence-actions"><a data-dialog-step-link>{"打开对应动作" if zh else "Open the relevant action"}</a><a data-dialog-link>{"打开完整详情" if zh else "Open full detail"}</a></div></div></dialog>'''
         results_body = results_body.replace(
             '<section class="compact-section">',
@@ -2856,12 +2881,14 @@ def build_webarena_replay_report(
             ) if reset_rows else ''
             environment_body = (
                 f'<section class="hero"><h1>{"环境与方法" if zh else "Environment and method"}</h1>'
-                f'<p>{"三种浏览器使用同一套站点映射、题序和验收规则；每个方法开始前恢复站点基线，任务之间不重置站点。" if zh else "All three browsers use the same site map, task order and acceptance rules. The site baseline is restored before each method, not between tasks."}</p></section>'
+                f'<p>{"所有浏览器使用同一套站点映射和题序；验收规则版本见下方说明及任务详情。每个方法开始前恢复站点基线，任务之间不重置站点。" if zh else "All browsers use the same site map and task order; acceptance revisions are identified below and on task pages. The site baseline is restored before each method, not between tasks."}</p></section>'
                 f'<section><h2>{"执行流程" if zh else "Execution flow"}</h2>{remote_fallback}{remote_diagram}'
                 f'<p>{"每个方法的基线恢复记录绑定 Pod 更换、镜像摘要和站点就绪；逐题记录轨迹、网络和评分证据。方法串行执行，失败题不单独重试。" if zh else "Each method-level baseline receipt binds Pod replacement, image digest and site readiness. Per-task traces, network captures and scores remain separate. Methods run serially; failed tasks are not retried."}</p></section>'
                 + f'<p>{"浏览器运行于 macOS arm64 主机，通过网络访问 Rainbond 自托管站点。CowAgent 仅提供 BrowserTool 操作层，不进行 Agent 决策或模型调用。" if zh else "Browsers run on a macOS arm64 host and access self-hosted Rainbond sites over the network. CowAgent supplies only the BrowserTool action layer, without Agent decisions or model calls."}</p>'
                 + reset_table + diagram_script
             )
+        if measurement_note:
+            environment_body += f'<p class="callout">{_e(measurement_note)}</p>'
         (root / "environment.html").write_text(_shell(lang, "environment", "环境与方法" if zh else "Environment and method", environment_body, current_route="environment.html"), encoding="utf-8")
 
         review_rows = (
@@ -2886,9 +2913,9 @@ def build_webarena_replay_report(
         )
         review_headers = ("轮次", "范围", "发现", "纠正", "未完成") if zh else ("Round", "Scope", "Finding", "Correction", "Open")
         review_status = (
-            f"已收录 {task_count} 个任务、三种方法各一次结果；最终失败 {reviewed_failure_count}/{reviewed_failure_count} 条已完成证据绑定复核。"
+            f"已收录 {task_count} 个任务、所有方法各一次结果；最终失败 {reviewed_failure_count}/{reviewed_failure_count} 条已完成证据绑定复核。"
             if zh else
-            f"The report contains {task_count} tasks with one result per each of three methods; {reviewed_failure_count}/{reviewed_failure_count} final failures received evidence-bound review."
+            f"The report contains {task_count} tasks with one result per each registered method; {reviewed_failure_count}/{reviewed_failure_count} final failures received evidence-bound review."
         )
         if unverifiable_ids:
             review_status += (
@@ -3017,6 +3044,8 @@ def build_webarena_replay_report(
         ) is True,
         "routes": len(list(output.rglob("*.html"))),
         "interpretation": interpretation_path is not None,
+        "measurement_notes": {lang: profile["measurement_notes"][lang] for lang in languages}
+        if profile.get("measurement_notes") else {},
     }
     _write_json(output / "report-manifest.json", manifest)
     return manifest

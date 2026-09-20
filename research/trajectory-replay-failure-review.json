@@ -2,18 +2,18 @@
   "schema": "lex_webarena_trajectory_replay_failure_review/1",
   "benchmark": "WebArena-Verified",
   "bindings": {
-    "effective_results_sha256": "52f132cdd999e9c93b32332b8e037890dbfc7e90c44afef7ffcc7398b39ef72b"
+    "effective_results_sha256": "51d37408cc1731374c48cfb51dfd381f6b7f9927882ab7330645f6dab9635e05"
   },
   "coverage": {
-    "failed_results": 35,
-    "verified_results": 35
+    "failed_results": 69,
+    "verified_results": 69
   },
   "review_protocol": {
     "unit": "one final logical result per method and task",
     "method": "Failure-only review of frozen actions, tool output, DOM diagnostics, screenshots, HAR, evaluator output and source changes. Separately bound read-only browser probes supplement diagnosis without replacing measured scores.",
-    "reviewed_results": 35,
-    "total_results": 270,
-    "accepted_unreviewed_passes": 235,
+    "reviewed_results": 69,
+    "total_results": 450,
+    "accepted_unreviewed_passes": 381,
     "independent_full_answer_review": false,
     "score_effect": "none; original verdicts remain unchanged",
     "rule": "Separate programmatic failure, observed mechanism and source attribution."
@@ -22,6 +22,10 @@
     {
       "path": "research/trajectory-replay-reviews/20260917-original-36.json",
       "results_sha256": "abaaa0e90aced74a831093f2d6d7c3371639acb984b3a2c057f3cc39632ea935"
+    },
+    {
+      "path": "research/trajectory-replay-reviews/20260920-three-method.json",
+      "results_sha256": "52f132cdd999e9c93b32332b8e037890dbfc7e90c44afef7ffcc7398b39ef72b"
     }
   ],
   "cause_groups": [
@@ -514,7 +518,419 @@
           "reason_en": "The contributors API returns valid JSON with HTTP 200; the rendered document lacks the pre element expected by the text extraction action. Recorded failure: step 6, action get_text. Target: pre. Source: moli-parser/src/session.rs, HtmlParserSession::initialize_text_document. The fix introduces a dedicated JSON/plain-text navigation document: create a browser-owned pre shell, then switch the tokenizer to plaintext so response bytes remain literal. JSON defaults to UTF-8 and bypasses HTML/XML declaration sniffing. This addresses the missing pre and mojibake observed in released task 784."
         }
       ]
+    },
+    {
+      "code": "zero_area_target_geometry",
+      "label_zh": "目标元素布局面积为零",
+      "label_en": "Zero-area target geometry",
+      "responsibility": "browser",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "see_same_task_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "原始失败保留；同题 PR 构建结果见方法对比",
+      "remediation_status_en": "Original failure retained; inspect PR outcomes in the same-task comparison",
+      "results": [
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 29,
+          "trace_sha256": "935f6a194e0eda680c6d4f618382a9ef61b6da99175736400ed09519308dcde0",
+          "reason_zh": "本次第 7 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 0 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 7 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 0 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 108,
+          "trace_sha256": "c10d6aec1629b43eafa0bb03cb2492aa25e2ba7ebad463990305fc1b1f796bc0",
+          "reason_zh": "本次第 7 步在可见性定位器上超时。去除可见性及外层序号过滤后有 3 个候选，现场矩形宽高为 0 × 0、0 × 0、0 × 0 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 7 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 3 candidates with measured width × height 0 × 0、0 × 0、0 × 0 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 156,
+          "trace_sha256": "5c55cb833b82fc6ffb3d4f9e3f86c2e15059cff6b1ff9a697edb849fd3e0751f",
+          "reason_zh": "本次第 4 步在可见性定位器上超时。去除可见性及外层序号过滤后有 2 个候选，现场矩形宽高为 70.203125 × 32、0 × 0 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 4 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 2 candidates with measured width × height 70.203125 × 32、0 × 0 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 163,
+          "trace_sha256": "36ba3816753434c6922155b1bdb2c32c0d6c72d6c1dbadfe086c8d1cfd30b925",
+          "reason_zh": "本次第 5 步在可见性定位器上超时。去除可见性及外层序号过滤后有 4 个候选，现场矩形宽高为 0 × 0、0 × 0、0 × 0、0 × 0 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 5 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 4 candidates with measured width × height 0 × 0、0 × 0、0 × 0、0 × 0 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 196,
+          "trace_sha256": "4fadb97f00542a151be03a995c6e7793c2d4d40683860aa935c1bd864ca519cf",
+          "reason_zh": "本次第 9 步在可见性定位器上超时。去除可见性及外层序号过滤后有 3 个候选，现场矩形宽高为 0 × 0、0 × 0、0 × 0 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 9 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 3 candidates with measured width × height 0 × 0、0 × 0、0 × 0 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 374,
+          "trace_sha256": "134cee50e0420c5bc57832bc76e8c711df7c165443b35d0430e617b1386fe764",
+          "reason_zh": "本次第 8 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 0 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 8 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 0 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 389,
+          "trace_sha256": "771ff388f6bc78fafd70685358b9bb02e801661b7547001062c01dd1e4f1fb99",
+          "reason_zh": "本次第 4 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 0 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 4 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 0 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 399,
+          "trace_sha256": "5899d9bb67b12fbdbabbe72a380731300818eb7e56f191105905c1c0071fa857",
+          "reason_zh": "本次第 4 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 0 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 4 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 0 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 415,
+          "trace_sha256": "94bdb9988e3293e3a5333ae411d6ee7afcae3779493a03ed4479bed7e15c1ec3",
+          "reason_zh": "本次第 3 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 0 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 3 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 0 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 418,
+          "trace_sha256": "fbe10f07e4f52d3980ca9532af3e6a2d2e75643c3377ae6e750253e82c65ed5b",
+          "reason_zh": "本次第 4 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 0 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 4 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 0 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 441,
+          "trace_sha256": "ae3723a8d5a9c9ecc622d07ad35ede4a1161625f6a5548808827af8d681013dc",
+          "reason_zh": "本次第 2 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 0 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 2 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 0 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 448,
+          "trace_sha256": "422ec5a6d8db8c20be9475aa6cee4424e204081b27c4941d413c5fc78ad4ae4c",
+          "reason_zh": "本次第 4 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 0 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 4 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 0 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 506,
+          "trace_sha256": "d4ff956d9a5f3786b4f963e28322565251fd6d7abb2e8a254c049bf6b5769cbb",
+          "reason_zh": "本次第 14 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 0 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。 与 1.1.8 的历史失败不同，本次 Add to Cart 点击时未禁用，后续购物车记录已有目标商品；失败发生在结账页 Next 按钮，不能沿用禁用按钮竞态解释。",
+          "reason_en": "Step 14 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 0 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit. Unlike the historical 1.1.8 failure, Add to Cart is enabled at dispatch and the following cart observation contains the target product. This failure occurs at checkout Next, not at a disabled cart control."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 585,
+          "trace_sha256": "83c12e946aa53a8e030344d85ebcf1e186e98ec1568861d55c6c65807afbe998",
+          "reason_zh": "本次第 9 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 0 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 9 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 0 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 590,
+          "trace_sha256": "4ee7690530ce14c8b18647a735d900597a79f95216a1b8bcd7749a6dc52df740",
+          "reason_zh": "本次第 7 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 0 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 7 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 0 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 658,
+          "trace_sha256": "62cb776c513efeca65be68a9c49514822ddc441826059f14b88eab21cc07e3bc",
+          "reason_zh": "本次第 6 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 0 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 6 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 0 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 666,
+          "trace_sha256": "6480bd7720752958d674fbf8e388d781b8a33bb32b25147980e3db7813cf9a3b",
+          "reason_zh": "本次第 4 步在可见性定位器上超时。去除可见性及外层序号过滤后有 3 个候选，现场矩形宽高为 0 × 0、0 × 0、0 × 0 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 4 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 3 candidates with measured width × height 0 × 0、0 × 0、0 × 0 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 714,
+          "trace_sha256": "6ab914a8d0aec78ab4b9f64738f3de30cda5cf8da36fb329214c8ccf6bede901",
+          "reason_zh": "本次第 7 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 0 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 7 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 0 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        }
+      ]
+    },
+    {
+      "code": "zero_width_forum_link",
+      "label_zh": "版块链接宽度为零",
+      "label_en": "Zero-width forum links",
+      "responsibility": "browser",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "see_same_task_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "原始失败保留；同题 PR 构建结果见方法对比",
+      "remediation_status_en": "Original failure retained; inspect PR outcomes in the same-task comparison",
+      "results": [
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 66,
+          "trace_sha256": "6849a24f06b7304760cacaf5cf222a145f24330554eaf03282cabfcef67e81f0",
+          "reason_zh": "本次第 4 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 73 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 4 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 73 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 404,
+          "trace_sha256": "d836eb1c90e6e3b8ccf8a9ac8142179ae694fcf6cb9ec18f0ae7e8cd87915000",
+          "reason_zh": "本次第 4 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 73 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 4 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 73 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 595,
+          "trace_sha256": "ed700b6ab9ebeff49fbe62292b6e4b9db0e0647be60cf0ec43bca2c4dce30095",
+          "reason_zh": "本次第 4 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 73 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 4 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 73 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 620,
+          "trace_sha256": "b58d8bdfe575a41ba2145b557f3f4a2c91c7b580c52a0372fbfe051fd192fd86",
+          "reason_zh": "本次第 4 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 73 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 4 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 73 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 640,
+          "trace_sha256": "82157aa7ddc511036e05f6c03d898cb23527034a1a647741c459c7686300328c",
+          "reason_zh": "本次第 4 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 73 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 4 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 73 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 645,
+          "trace_sha256": "c28f0a3f1c74337508c7e5d3f4a9e4297a35da010288cc72e16a473054504255",
+          "reason_zh": "本次第 4 步在可见性定位器上超时。去除可见性及外层序号过滤后有 1 个候选，现场矩形宽高为 0 × 73 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 4 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 1 candidates with measured width × height 0 × 73 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        }
+      ]
+    },
+    {
+      "code": "zero_width_candidate_changes_visible_ordinal",
+      "label_zh": "零宽链接改变可见元素序号",
+      "label_en": "Zero-width link changes the visible ordinal",
+      "responsibility": "browser",
+      "remediation_owner": "Moli layout geometry",
+      "remediation_owner_zh": "Moli 布局几何",
+      "remediation_owner_en": "Moli layout geometry",
+      "remediation_status": "see_same_task_comparison",
+      "remediation_status_zh": "原始失败保留；同题 PR 构建结果见方法对比",
+      "remediation_status_en": "Original failure retained; inspect PR outcomes in the same-task comparison",
+      "results": [
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 314,
+          "trace_sha256": "0985c611b59d52854ecca4fc0b3c311e62135c0968eaf64539ae55e9cd777f6e",
+          "reason_zh": "本次第 2 步在可见性定位器上超时。去除可见性及外层序号过滤后有 2 个候选，现场矩形宽高为 0 × 65、87.2265625 × 17 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 2 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 2 candidates with measured width × height 0 × 65、87.2265625 × 17 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 349,
+          "trace_sha256": "efad58cb564c403efcdd437a33a2c404d206c1805b175a4338e7d627f92118ae",
+          "reason_zh": "本次第 2 步在可见性定位器上超时。去除可见性及外层序号过滤后有 2 个候选，现场矩形宽高为 0 × 65、177.6591796875 × 17 px。零面积候选被 :visible 排除，导致原定位器无法匹配；页面记录为加载完成。这里定位到实际几何输出，不据此单独归因于某个源码提交。",
+          "reason_en": "Step 2 times out on the visibility-filtered locator. Removing visibility and outer-ordinal filters reveals 2 candidates with measured width × height 0 × 65、177.6591796875 × 17 px. Zero-area candidates are excluded by :visible, preventing the recorded selector from matching. The document is complete. This locates the observed geometry output, not an isolated source commit."
+        }
+      ]
+    },
+    {
+      "code": "input_navigation_lifecycle",
+      "label_zh": "按键与导航生命周期冲突",
+      "label_en": "Keyboard/navigation lifecycle conflict",
+      "responsibility": "browser",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "see_same_task_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "原始失败保留；同题 PR 构建结果见方法对比",
+      "remediation_status_en": "Original failure retained; inspect PR outcomes in the same-task comparison",
+      "results": [
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 274,
+          "trace_sha256": "684c25dde178b73d4b7f3e4d42e0635ff841713ef61cf221311b6355acf71b09",
+          "reason_zh": "本次第 3 步按下 Enter 后，Input.dispatchKeyEvent 被页面导航访问保护拒绝，报错 Navigation is changing the document。1.1.9 的 input.rs 在解析按键类型前统一检查页面可访问性；PR 将导航期间仍挂接页面的收尾 keyup 与其他输入区分处理。这是键盘操作与导航生命周期冲突，不是定位器找不到目标。",
+          "reason_en": "After Enter at step 3, Input.dispatchKeyEvent is rejected by the navigation access guard with Navigation is changing the document. The 1.1.9 input.rs checks document accessibility before parsing the key type; the PR distinguishes terminal keyup on an attached outgoing page from other input. This is an input/navigation lifecycle conflict, not a missing locator."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 465,
+          "trace_sha256": "70127438f6b6b8bdd759e13242a25f7cc97f6e2a354baed5d1cc02782606a9e0",
+          "reason_zh": "本次第 3 步按下 Enter 后，Input.dispatchKeyEvent 被页面导航访问保护拒绝，报错 Navigation is changing the document。1.1.9 的 input.rs 在解析按键类型前统一检查页面可访问性；PR 将导航期间仍挂接页面的收尾 keyup 与其他输入区分处理。这是键盘操作与导航生命周期冲突，不是定位器找不到目标。",
+          "reason_en": "After Enter at step 3, Input.dispatchKeyEvent is rejected by the navigation access guard with Navigation is changing the document. The 1.1.9 input.rs checks document accessibility before parsing the key type; the PR distinguishes terminal keyup on an attached outgoing page from other input. This is an input/navigation lifecycle conflict, not a missing locator."
+        }
+      ]
+    },
+    {
+      "code": "recorded_referer_mismatch",
+      "label_zh": "网络记录缺少验收所需 Referer",
+      "label_en": "Recorded Referer does not meet acceptance",
+      "responsibility": "browser",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "see_same_task_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "原始失败保留；同题 PR 构建结果见方法对比",
+      "remediation_status_en": "Original failure retained; inspect PR outcomes in the same-task comparison",
+      "results": [
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 339,
+          "trace_sha256": "2bc3244cb41e9852fed74cb3ef146ca2cbf5c9e87e7fefb4e3345276fb097d47",
+          "reason_zh": "本次全部 BrowserTool 动作完成，目标网络请求已返回 200，但 HAR 请求头缺少评分规则要求的 Referer，NetworkEventEvaluator 因找不到满足全部条件的事件而拒绝。请求并非没有发出；此结论针对保留的网络记录，不把 HAR 缺失直接等同于服务端未收到该请求头。",
+          "reason_en": "All BrowserTool actions complete and the target request returns 200, but its HAR request headers lack the required Referer. NetworkEventEvaluator rejects the event because not all conditions match. The request was sent; absence from HAR does not alone prove absence on the wire."
+        },
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 676,
+          "trace_sha256": "aafb24b81ea37200680db154a543b88e666ba874ad130068438a8800e130770f",
+          "reason_zh": "本次全部 BrowserTool 动作完成，目标网络请求已返回 200，但 HAR 请求头缺少评分规则要求的 Referer，NetworkEventEvaluator 因找不到满足全部条件的事件而拒绝。请求并非没有发出；此结论针对保留的网络记录，不把 HAR 缺失直接等同于服务端未收到该请求头。",
+          "reason_en": "All BrowserTool actions complete and the target request returns 200, but its HAR request headers lack the required Referer. NetworkEventEvaluator rejects the event because not all conditions match. The request was sent; absence from HAR does not alone prove absence on the wire."
+        }
+      ]
+    },
+    {
+      "code": "configuration_wizard_readiness_predicate",
+      "label_zh": "配置向导的几何状态未更新",
+      "label_en": "Stale configuration wizard geometry",
+      "responsibility": "browser",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "see_same_task_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "原始失败保留；同题 PR 构建结果见方法对比",
+      "remediation_status_en": "Original failure retained; inspect PR outcomes in the same-task comparison",
+      "results": [
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 547,
+          "trace_sha256": "50f284197f81f809ca93f8077dd88c3a62e5103990012d16ada9caf8cb98a877",
+          "reason_zh": "本次第 5 步的组合就绪条件失败。整组结束后的只读前缀诊断确认：组件初始化为 true，Color/Size 选项正确，向导关联和 Next 点击处理器正常；对话框及 Next 却返回零矩形和空 getClientRects，额外等 5 秒仍不变。失败被定位到几何可见性条件。诊断额外等待 Edit Configurations 出现才打开窗口，没有点击 Next 或保存，不替代本次成绩。",
+          "reason_en": "Step 5 fails its combined readiness predicate. A read-only prefix probe after the cohort confirms initialization, Color/Size, wizard ownership and the Next handler, while the dialog and Next retain zero rectangles and empty getClientRects after five extra seconds. Geometry visibility is the failing condition. The probe additionally waits for Edit Configurations before opening it; it never clicks Next or saves and does not replace the score.",
+          "supplemental_diagnostic": {
+            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/five-method-extension-20260920/diagnostics/tag119-task-547-diagnostic-v2.json",
+            "sha256": "d1f2920d4c9aa4d6a18608f21b721ae06118fac42d4b12abc7004172dfc248ab"
+          }
+        }
+      ]
+    },
+    {
+      "code": "suggestion_dom_selection",
+      "label_zh": "用户建议项的几何状态未更新",
+      "label_en": "Stale suggestion geometry",
+      "responsibility": "browser",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "see_same_task_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "原始失败保留；同题 PR 构建结果见方法对比",
+      "remediation_status_en": "Original failure retained; inspect PR outcomes in the same-task comparison",
+      "results": [
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 576,
+          "trace_sha256": "98ab0a0f4e0b49ab50a45a291e173abe6f4de8a17f3f12d6321364c8d5023d5d",
+          "reason_zh": "本次第 6 步用 offsetParent 筛选用户建议项后报不存在。整组结束后的只读前缀诊断找到目标 Abishek S / abisubramanya27 按钮：未禁用、display 为 flex、visibility 为 visible，却返回零矩形及空 offsetParent，额外等 5 秒不变。目标数据已经到达，过滤失败来自几何状态；诊断没有选择用户或提交邀请，原成绩保留。",
+          "reason_en": "Step 6 reports no suggestion after filtering by offsetParent. A read-only prefix probe after the cohort finds the expected Abishek S / abisubramanya27 button: enabled, display flex and visibility visible, but zero rectangles and null offsetParent even after five extra seconds. The data has arrived; geometry causes exclusion. No user is selected or invited, and the original score is retained.",
+          "supplemental_diagnostic": {
+            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/five-method-extension-20260920/diagnostics/tag119-task-576-diagnostic-v2.json",
+            "sha256": "c9ef9a0e229e11a1acb935c849b457696418b31bee613af05db1ef53f36b47bc"
+          }
+        }
+      ]
+    },
+    {
+      "code": "implicit_search_submission_absent",
+      "label_zh": "Enter 未产生搜索提交",
+      "label_en": "Enter did not produce search submission",
+      "responsibility": "browser",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "see_same_task_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "原始失败保留；同题 PR 构建结果见方法对比",
+      "remediation_status_en": "Original failure retained; inspect PR outcomes in the same-task comparison",
+      "results": [
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 731,
+          "trace_sha256": "8e1a53bd731fbb76231aa25c04e1fc7cd5127464e0d37d8e96334ddcad13c1e9",
+          "reason_zh": "第 3 步 Enter 返回成功，但本次 HAR 没有搜索请求，后续页面仍停在论坛首页。第 7 步寻找编辑链接时目标数量为零并超时。缺失的效果是 Enter 对搜索表单的默认提交，而末尾的链接错误只是后续表现；不能把工具返回成功当成已经完成搜索。",
+          "reason_en": "Enter succeeds at step 3, but this HAR contains no search request and the page remains at the forum home. Step 7 then times out with zero edit-link candidates. The missing effect is implicit search-form submission; the final locator error is downstream. Tool-call success does not establish completed search."
+        }
+      ]
+    },
+    {
+      "code": "json_document_dom_contract",
+      "label_zh": "JSON 页面缺少预期文本节点",
+      "label_en": "JSON document lacks expected text container",
+      "responsibility": "browser",
+      "remediation_owner": "Moli browser and BrowserTool integration",
+      "remediation_status": "see_same_task_comparison",
+      "remediation_owner_zh": "Moli 浏览器与 BrowserTool 集成",
+      "remediation_owner_en": "Moli browser and BrowserTool integration",
+      "remediation_status_zh": "原始失败保留；同题 PR 构建结果见方法对比",
+      "remediation_status_en": "Original failure retained; inspect PR outcomes in the same-task comparison",
+      "results": [
+        {
+          "participant_id": "moli-1.1.9",
+          "engine": "moli",
+          "task_id": 784,
+          "trace_sha256": "4c78271dcb44f4df555bfb662994035b5ef93c41224e47789224a32ff1f01fe1",
+          "reason_zh": "轨迹已经到达贡献者 JSON 接口，第 6 步按冻结提取约定读取 pre 时超时；失败现场确认 pre 数量为零。问题在 JSON 顶层文档与文本提取所需 DOM 容器的接口契约，不是没有访问到接口。该记录不额外断言本次内容发生乱码。",
+          "reason_en": "The trajectory reaches the contributors JSON endpoint, but step 6 times out reading pre under the frozen extraction contract; the failure probe confirms zero pre elements. The issue is the top-level JSON document container expected by extraction, not failure to reach the endpoint. This record makes no additional claim of mojibake in this execution."
+        }
+      ]
     }
   ],
-  "review_revisions": []
+  "review_revisions": [],
+  "inherited_result_cohorts": [
+    {
+      "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/three-method-full-20260918/three-method-results-20260919-v2.json",
+      "sha256": "52f132cdd999e9c93b32332b8e037890dbfc7e90c44afef7ffcc7398b39ef72b"
+    }
+  ]
 }

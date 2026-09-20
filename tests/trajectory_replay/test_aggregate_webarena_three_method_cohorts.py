@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.aggregate_webarena_three_method_cohorts import _digest, _sha, aggregate
+from scripts.aggregate_webarena_three_method_cohorts import _digest, _sha, aggregate, main
 
 
 def _write(path: Path, value: object) -> Path:
@@ -44,7 +44,7 @@ def _reset_receipt(method_id: str) -> dict:
     }
 
 
-def _fixture(root: Path, *, reverse_inventory: bool = False) -> dict:
+def _fixture(root: Path, *, reverse_inventory: bool = False, method_names=None) -> dict:
     ids = list(range(1, 91))
     inventory_ids = list(reversed(ids)) if reverse_inventory else ids
     selection = _write(
@@ -65,7 +65,7 @@ def _fixture(root: Path, *, reverse_inventory: bool = False) -> dict:
     dataset_by_id = {row["task_id"]: row for row in dataset_rows}
     methods = [
         {"id": name, "engine": "chromium" if name == "chromium" else "moli"}
-        for name in ("chromium", "moli-old", "moli-fixed")
+        for name in (method_names or ("chromium", "moli-old", "moli-fixed"))
     ]
     profile = _write(
         root / "profile.json",
@@ -175,7 +175,7 @@ def _fixture(root: Path, *, reverse_inventory: bool = False) -> dict:
                 "site_reset_between_tasks": False,
             },
         )
-        reset_sha = {"chromium": "e" * 64, "moli-old": "f" * 64, "moli-fixed": "0" * 64}[name]
+        reset_sha = _digest({"reset_hook": name})
         reference_hashes = {
             "manifest": _sha(manifest),
             "frozen_trajectories": _sha(dataset),
@@ -243,6 +243,20 @@ def test_aggregate_has_exact_three_method_selected_task_matrix(tmp_path: Path) -
     )
 
 
+def test_add_two_methods_preserves_existing_results(tmp_path: Path) -> None:
+    original = ("chromium", "moli-old", "moli-fixed")
+    old_inputs = _fixture(tmp_path / "old", method_names=original)
+    before = aggregate(**old_inputs)
+    inputs = _fixture(tmp_path / "expanded", method_names=(*original, "moli-tag", "moli-latest"))
+    inputs["cohort_inputs"].update(old_inputs["cohort_inputs"])
+    after = aggregate(**inputs)
+    assert len(after["attempts"]) == len(after["physical_executions"]) == 450
+    assert [row for row in after["attempts"] if row["participant_id"] in original] == before["attempts"]
+    inputs["cohort_inputs"].pop("moli-latest")
+    with pytest.raises(ValueError):
+        aggregate(**inputs)
+
+
 def test_rejects_incomplete_old_cohort(tmp_path: Path) -> None:
     inputs = _fixture(tmp_path)
     receipt = inputs["cohort_inputs"]["moli-fixed"][1]
@@ -251,6 +265,23 @@ def test_rejects_incomplete_old_cohort(tmp_path: Path) -> None:
     _write(receipt, data)
     with pytest.raises(ValueError, match="exactly one execution"):
         aggregate(**inputs)
+
+
+def test_cli_accepts_complete_five_method_matrix_without_overwriting(tmp_path: Path) -> None:
+    inputs = _fixture(tmp_path, method_names=("chromium", "moli-old", "moli-fixed", "moli-tag", "moli-latest"))
+    output = tmp_path / "combined.json"
+    args = ["--output", str(output)]
+    for field, flag in (("profile_path", "--profile"), ("selection_path", "--selection"),
+                        ("dataset_path", "--dataset"), ("validity_path", "--reference-validity")):
+        args.extend([flag, str(inputs[field])])
+    for method, (manifest, receipt) in inputs["cohort_inputs"].items():
+        args.extend(["--manifest", f"{method}={manifest}", "--receipt", f"{method}={receipt}"])
+    main(args)
+    before = output.read_bytes()
+    assert len(json.loads(before)["attempts"]) == 450
+    with pytest.raises(ValueError, match="append-only"):
+        main(args)
+    assert output.read_bytes() == before
 
 
 def test_sampling_inventory_order_does_not_override_numeric_execution(tmp_path: Path) -> None:

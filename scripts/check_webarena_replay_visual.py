@@ -453,6 +453,11 @@ for(const element of document.querySelectorAll(layoutSelector)){
   }
 }
 const tiny=[];
+for(const element of document.querySelectorAll('.successful-distributions td:first-child')){
+  if(element.getClientRects().length && element.getBoundingClientRect().width < 140){
+    clipped.push('successful-distributions metric label');
+  }
+}
 for(const element of document.querySelectorAll('main p,main td,main th,main a,main button')){
   if(element.getClientRects().length &&
      parseFloat(getComputedStyle(element).fontSize) < 12){

@@ -4,7 +4,7 @@
 Each trajectory is one verified feasible BrowserTool path, not the task's only correct path.
 
 `current-run.json` is the run authority for the next formal replay. It freezes the same 90-task
-selection used by the current Browser Use evaluation, the three registered browser methods, resource
+selection used by the current Browser Use evaluation, the registered browser methods, resource
 limits, and the isolation schedule. The private ready-to-run seed manifest must contain exactly one
 canonical candidate for each of those 90 tasks. The current inventory is assembled from 60 clean
 autonomous successes and 30 reviewed repairs; successful executions from different methods are
@@ -48,10 +48,19 @@ candidate evidence, not additional tasks.
 
 Freeze each method's exact 90-task inputs with `scripts/freeze_webarena_three_method_inputs.py`,
 run each complete method cohort with `scripts/run_remote_three_method_cohort.py`, and bind the
-three certified cohorts with `scripts/aggregate_webarena_three_method_cohorts.py`. Each method
+certified cohorts with `scripts/aggregate_webarena_three_method_cohorts.py`. Each method
 receives one site reset before its first task. The runner rejects a changed binary, task set,
 action sequence, or reset policy. Diagnostic subsets never enter the formal matrix. Never edit a
 verdict or verification claim by hand.
 
-The report presents one same-protocol, three-browser comparison. Diagnostic-only cohorts cannot
+The report presents every registered method with its recorded protocol. Diagnostic-only cohorts cannot
 enter its score-bearing matrix or add a separate result appendix.
+
+Adding a browser version appends a method and its complete cohort; existing results remain
+unchanged. Historical failure diagnostics may retain their original cohort binding through
+`inherited_result_cohorts` in the review record. Each inherited cohort must be hash-bound, use
+the same dataset, and have every logical result preserved exactly in the expanded matrix.
+When appended cohorts use a corrected evaluator, declare the exact method-specific correction ID
+and corrected task hash under `acceptance_revisions`. The task page retains both acceptance
+versions, and measurement notes identify the affected task IDs. Identical frozen trajectory
+hashes do not prove identical evaluator revisions. Historical verdicts are not rewritten.
