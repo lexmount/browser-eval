@@ -1254,6 +1254,7 @@
   "releases": [
     {
       "id": "2026-09-21-moli-119-fixed-layout-comparison",
+      "date_timezone": "Asia/Shanghai",
       "comparison_kinds": [
         "moli_historical_failure_retest",
         "moli_process_tree_resource_profile"
@@ -1316,6 +1317,12 @@
     },
     {
       "id": "2026-09-20-moli-version-layout-resource-summary",
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "gdwtSGOel0va",
+        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
+        "version": "ver_96cd695de0d54d72bc5e7bfe09ac3ba6"
+      },
       "comparison_kinds": [
         "moli_historical_failure_retest",
         "moli_process_tree_resource_profile"
