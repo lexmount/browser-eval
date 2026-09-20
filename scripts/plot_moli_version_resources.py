@@ -25,8 +25,8 @@ def _scale(value: float, lower: float, upper: float, start: float, end: float) -
 
 
 def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "cpu"), language: str = "zh") -> None:
-    if not metrics or any(metric not in {"pss", "cpu"} for metric in metrics):
-        raise ValueError("metrics must contain pss and/or cpu")
+    if not metrics or len(metrics) > 2 or any(metric not in {"pss", "rss", "cpu"} for metric in metrics):
+        raise ValueError("metrics must contain one or two of pss, rss and cpu")
     if language not in {"zh", "en"}:
         raise ValueError("language must be zh or en")
     rows = data.get("configurations")
@@ -38,6 +38,7 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
     )
     metric_fields = {
         "pss": {"pss_mib", "pss_change_pct"},
+        "rss": {"rss_mib", "rss_change_pct"},
         "cpu": {"cpu_ms", "cpu_change_pct"},
     }
     for metric in metrics:
@@ -94,6 +95,7 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
             "subtitle": f"资源实验：{resource['total_tasks']} 题 × {resource['calls_per_task']} 次；图中使用预先冻结的 {resource['chart_calls']:,} 次 / {resource['chart_tasks']} 题样本；越靠左资源消耗越低",
             "y": f"{total_cases} 题通过率（每题 3 次全部通过）",
             "pss": "峰值进程树 PSS 中位数（MiB）",
+            "rss": "峰值进程树 RSS 中位数（MiB）",
             "cpu": "单次执行平均 CPU 时间（ms）",
             "off": "关闭",
             "on": "开启",
@@ -103,6 +105,7 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
             "subtitle": f"Resource experiment: {resource['total_tasks']} tasks × {resource['calls_per_task']} calls; plotted population: {resource['chart_calls']:,} pre-frozen calls / {resource['chart_tasks']} tasks; farther left is lower",
             "y": f"Success rate on {total_cases} cases (all 3 attempts pass)",
             "pss": "Median peak process-tree PSS (MiB)",
+            "rss": "Median peak process-tree RSS (MiB)",
             "cpu": "Mean CPU time per execution (ms)",
             "off": "off",
             "on": "on",
@@ -141,6 +144,7 @@ def render_chart(data: dict, output: Path, metrics: tuple[str, ...] = ("pss", "c
     parts.append(f'<text class="label" transform="translate(28 {(top+chart_bottom)/2:.1f}) rotate(-90)" text-anchor="middle">{html.escape(text["y"])}</text>')
     specs = {
         "pss": (text["pss"], "pss_mib", "pss_change_pct", "MiB"),
+        "rss": (text["rss"], "rss_mib", "rss_change_pct", "MiB"),
         "cpu": (text["cpu"], "cpu_ms", "cpu_change_pct", "ms"),
     }
     row_colors = {

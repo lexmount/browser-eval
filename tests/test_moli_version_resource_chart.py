@@ -95,6 +95,19 @@ class MoliVersionResourceChartTests(unittest.TestCase):
         self.assertNotIn("CPU", svg)
         self.assertNotIn("21.41 ms", svg)
 
+    def test_macos_rss_cpu_chart_does_not_label_memory_as_pss(self):
+        for row in self.data["configurations"]:
+            row["rss_mib"] = row.pop("pss_mib")
+            row["rss_change_pct"] = row.pop("pss_change_pct")
+        for language in ("zh", "en"):
+            with self.subTest(language=language):
+                svg = self.render(("rss", "cpu"), language)
+                self.assertIn("RSS", svg)
+                self.assertIn("CPU", svg)
+                self.assertNotIn("PSS", svg)
+                self.assertIn("80.54 MiB (+4.30%)", svg)
+                self.assertIn("21.66 ms (+1.16%)", svg)
+
     def test_cpu_only_omits_pss_content_and_keeps_all_legend_entries(self):
         svg = self.render(("cpu",), "en")
         self.assertIn("Mean CPU time per execution (ms)", svg)
