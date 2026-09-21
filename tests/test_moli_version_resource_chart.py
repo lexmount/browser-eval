@@ -255,11 +255,11 @@ class MoliVersionResourceChartTests(unittest.TestCase):
         future = dict(self.data["configurations"][2])
         future.update(
             {
-                "id": "pr640_try_layout",
-                "label": "Moli PR #640 · 失败后尝试 layout",
-                "label_en": "Moli PR #640 · try layout after failure",
-                "short_label": "PR #640 尝试布局",
-                "short_label_en": "PR #640 try layout",
+                "id": "120_on",
+                "label": "Moli 1.2.0 · 开启 layout",
+                "label_en": "Moli 1.2.0 · layout on",
+                "short_label": "1.2.0 开启布局",
+                "short_label_en": "1.2.0 layout on",
                 "passed_cases": 300,
                 "success_rate_pct": 300 / 372 * 100,
                 "color": "#2775c9",
@@ -268,7 +268,7 @@ class MoliVersionResourceChartTests(unittest.TestCase):
         self.data["configurations"].append(future)
         svg = self.render()
         self.assertIn("4 种配置", svg)
-        self.assertIn("Moli PR #640 · 失败后尝试 layout", svg)
+        self.assertIn("Moli 1.2.0 · 开启 layout", svg)
         self.assertIn("300/372 (80.6%)", svg)
 
     def test_mismatched_denominators_have_clear_error(self):
