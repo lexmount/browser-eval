@@ -56,6 +56,15 @@ report_profile = json.loads(
     ).read_text()
 )
 resource_builds = report_profile.get("resource_builds", {})
+# The report profile names the experiment; the chart schema names plotted calls.
+# Convert once at this boundary instead of passing the profile to render_chart.
+resource_scope = report_profile["resource_population"]
+chart_population = {
+    "total_tasks": resource_scope["tasks"],
+    "calls_per_task": resource_scope["attempts_per_task"],
+    "chart_tasks": resource_scope["chart_tasks"],
+    "chart_calls": resource_scope["chart_calls"],
+}
 SRC = args.source.resolve()
 OUT = args.output.resolve()
 FUNCTIONAL_CORRECTION = args.functional_correction.resolve()
@@ -679,10 +688,7 @@ version_comparison = {
     "resource_population": {
         "experiment_cases": 557,
         "attempts_per_case": 5,
-        "total_tasks": 557,
-        "calls_per_task": 5,
-        "chart_calls": resource_comparison["resource_populations"][population]["calls"],
-        "chart_tasks": resource_comparison["resource_populations"][population]["tasks"],
+        **chart_population,
         "selection": population,
         "sample_interval_ms": 250,
     },
@@ -1005,12 +1011,7 @@ if macos_resource:
     macos_comparison = {
         "baseline": mac_baseline["id"],
         "configurations": mac_rows,
-        "resource_population": {
-            "chart_calls": 1045,
-            "chart_tasks": 209,
-            "total_tasks": 557,
-            "calls_per_task": 5,
-        },
+        "resource_population": dict(chart_population),
     }
 linux_resource_profiles = None
 linux_comparison = None

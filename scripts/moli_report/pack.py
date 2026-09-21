@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import argparse
-import gzip
 import hashlib
 import json
 import mimetypes
 import shutil
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from harness.reporting.packs import write_packs  # noqa: E402
 
 
 def package(source: Path, destination: Path, pack_limit: int = 8 * 1024 * 1024) -> dict:
@@ -59,34 +62,26 @@ def package(source: Path, destination: Path, pack_limit: int = 8 * 1024 * 1024) 
         else:
             shutil.copy2(source / name, target)
     shutil.copy2(Path(__file__).with_name("bundle-loader.js"), destination / "bundle-loader.js")
-    index, payload, catalog = 0, bytearray(), {}
+    metadata = {}
 
-    def flush():
-        nonlocal index, payload
-        if not payload:
-            return
-        (destination / f"evidence-{index:02d}.bin.gz").write_bytes(
-            gzip.compress(bytes(payload), compresslevel=6, mtime=0)
-        )
-        index += 1
-        payload = bytearray()
+    def evidence():
+        for path in files:
+            name = path.relative_to(source).as_posix()
+            if name in physical:
+                continue
+            data = path.read_bytes()
+            metadata[name] = {
+                "sha256": hashlib.sha256(data).hexdigest(),
+                "mime": mimetypes.guess_type(name)[0] or "application/octet-stream",
+            }
+            yield name, data
 
-    for path in files:
-        name = path.relative_to(source).as_posix()
-        if name in physical:
-            continue
-        data = path.read_bytes()
-        if payload and len(payload) + len(data) > pack_limit:
-            flush()
-        catalog[name] = {
-            "pack": f"evidence-{index:02d}.bin.gz",
-            "offset": len(payload),
-            "size": len(data),
-            "sha256": hashlib.sha256(data).hexdigest(),
-            "mime": mimetypes.guess_type(name)[0] or "application/octet-stream",
-        }
-        payload.extend(data)
-    flush()
+    catalog, index = write_packs(
+        evidence(), destination, limit=pack_limit,
+        pattern="evidence-{index:02d}.bin.gz", compresslevel=6,
+    )
+    for name, entry in catalog.items():
+        entry.update(metadata[name])
     (destination / "bundle-manifest.json").write_text(
         json.dumps({"files": catalog}, separators=(",", ":")) + "\n"
     )

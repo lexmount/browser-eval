@@ -32,3 +32,9 @@ For full release verification, serve the build with a static HTTP server and run
 Publish only after the complete requested method matrix and release checks pass, using the existing bound Artifact Site target and its freshly read remote version. Preserve binary identity, raw trials and previous report versions.
 
 Package the validated tree with `uv run --frozen python scripts/moli_report/pack.py --source /tmp/moli-report-release --output /tmp/moli-report-package`. The packer retains both English entry paths and checks bytes through the bundle manifest; it refuses symlinks, hidden paths, and existing destinations. Run the browser release check against this packaged directory before uploading: serve the package at `MOLI_REPORT_ORIGIN`, while `MOLI_REPORT_SITE` points to the validated unpacked tree that supplies the reference model. The browser checks include the complete resource matrix and frozen measurement-script evidence in both languages.
+
+## Shared implementation boundary
+
+Moli and Web Fetch publishers use `harness/reporting/packs.py` for deterministic gzip packing and byte offsets. Their adapters retain different entry points and catalogs: Moli serves case evidence through fetch, while Web Fetch packs virtual HTML routes and applies its own privacy projection. The shared packer accepts ordered bytes and neither selects evidence nor changes it. Round-trip tests cover both filename/compression formats, binary and Unicode content, empty files and pack boundaries; publisher tests verify their public catalogs independently.
+
+Moli's scorer bindings, 372-case matrix and source manifests remain in this adapter because they are specific to this benchmark. The renderer is not a second Web Fetch scorer. Common code is extracted where both reports actually use the same operation, rather than introducing a generic renderer with benchmark-specific branches.
