@@ -14,7 +14,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 from harness.trajectory_replay.report_languages import language_roots, report_languages
-from urllib.parse import unquote, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
 
 from bs4 import BeautifulSoup
 
@@ -52,6 +52,37 @@ def _check_interpretation(root: Path) -> None:
             raise ValueError("article needs illustrations embedded in its offline view")
         if not integrated.select('a[href="article.html"][download]'):
             raise ValueError("article download is missing")
+        online_links = article.select('[data-failure-matrix] a')
+        offline_links = standalone.select('[data-failure-matrix] a')
+        if len(online_links) != len(offline_links):
+            raise ValueError("standalone article failure links differ")
+        for source, destination in zip(online_links, offline_links, strict=True):
+            original, target = urlsplit(source["href"]), urlsplit(destination["href"])
+            query = parse_qs(target.query)
+            filters_match = all(
+                query.get(key) == value for key, value in parse_qs(original.query).items()
+            )
+            missing_share = (
+                target.path.startswith("/api/preview/") and not query.get("__artifact_share")
+            )
+            if (target.scheme != "https" or not target.path.endswith("/results.html")
+                    or target.path.startswith("/v/") or target.fragment != original.fragment
+                    or not filters_match or missing_share):
+                raise ValueError(
+                    "standalone article failure link loses route, filters or share access"
+                )
+        for path in language_root.rglob("*.html"):
+            if path.relative_to(language_root).parts[0] == "en":
+                continue
+            page = BeautifulSoup(path.read_text(), "html.parser")
+            if page.select_one("header.top nav") is None:
+                continue
+            links = page.select("header.top nav a[data-report-interpretation]")
+            expected = (language_root / "interpretation.html").resolve()
+            if len(links) != 1 or (path.parent / links[0].get("href", "")).resolve() != expected:
+                raise ValueError("interpretation navigation is missing or broken")
+            if (links[0].get("aria-current") == "page") != (path.name == "interpretation.html"):
+                raise ValueError("interpretation navigation has wrong current page")
         sections.append([section["id"] for section in article.select("section[id]")])
     if any(section != sections[0] for section in sections[1:]):
         raise ValueError("localized article sections differ")

@@ -1,15 +1,39 @@
 import base64
 import hashlib
 import json
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from bs4 import BeautifulSoup
 
 from harness.trajectory_replay.interpretation import render_interpretation, standalone_document
+from harness.trajectory_replay.webarena_report import _add_interpretation_navigation, _shell
 from scripts.check_webarena_replay_report import _check_interpretation, _text_without_verified_embedded_images
 
 
-def build(tmp_path, specimen=None, sources=None):
+def test_interpretation_is_reachable_from_summary_and_nested_evidence(tmp_path):
+    for lang in ("zh", "en"):
+        root = tmp_path if lang == "zh" else tmp_path / "en"
+        for route in ("index.html", "interpretation.html", "result/example.html"):
+            path = root / route
+            path.parent.mkdir(parents=True, exist_ok=True)
+            active = "interpretation" if route == "interpretation.html" else "results"
+            path.write_text(_shell(lang, active, "Title", "<p>Evidence</p>",
+                                   depth=route.count("/"), current_route=route))
+        _add_interpretation_navigation(root, lang)
+        for route in ("index.html", "interpretation.html", "result/example.html"):
+            path = root / route
+            page = BeautifulSoup(path.read_text(), "html.parser")
+            links = page.select('header nav a[data-report-interpretation]')
+            assert len(links) == 1
+            target = (root / "interpretation.html").resolve()
+            assert (path.parent / links[0]["href"]).resolve() == target
+            assert (links[0].get("aria-current") == "page") == (route == "interpretation.html")
+            assert links[0].text == ("报告解读" if lang == "zh" else "Interpretation")
+
+
+def build(tmp_path, specimen=None, sources=None, *,
+          report_url="https://example.test/report", failures=False):
     payload = b"\x89PNG\r\n\x1a\nsynthetic-test"
     for lang in ("zh", "en"):
         (tmp_path / f"example-{lang}.png").write_bytes(payload)
@@ -22,27 +46,93 @@ def build(tmp_path, specimen=None, sources=None):
         article["sections"][0]["specimen"] = specimen
     if sources is not None:
         article["sections"][0]["sources"] = sources
+    if failures:
+        article["sections"][0]["data"] = "failure_matrix"
     source, audit = tmp_path / "article.json", tmp_path / "audit.json"
     source.write_text(json.dumps(article))
     audit.write_text(json.dumps({"bindings": {"results_sha256": "cohort"}}))
     for lang in ("zh", "en"):
-        args = dict(source=source, contract_audit=audit, results_sha256="cohort", methods={},
-                    rows=[], lang=lang, image_dir=tmp_path, image_prefix="assets/")
+        args = dict(source=source, contract_audit=audit, results_sha256="cohort",
+                    methods={"browser": {"label": "浏览器"}} if failures else {},
+                    rows=[{"participant_id": "browser", "task_id": 1, "status": "fail",
+                           "cause_code": "recorded_referer_mismatch",
+                           "cause_zh": "请求头记录", "cause_en": "Headers"}] if failures else [],
+                    lang=lang, image_dir=tmp_path, image_prefix="assets/")
         title, body = render_interpretation(**args)
         root = tmp_path if lang == "zh" else tmp_path / "en"
         root.mkdir(exist_ok=True)
         (root / "interpretation.html").write_text('<a href="article.html" download>Download</a>' + body)
-        _, offline = render_interpretation(**args, standalone=True, report_url="https://example.test/report")
+        _, offline = render_interpretation(**args, standalone=True, report_url=report_url)
         (root / "article.html").write_text(standalone_document(title, offline, lang, ""))
     return payload
+
+
+def test_downloaded_article_links_keep_share_access_and_failure_filters(tmp_path):
+    url = "https://example.test/api/preview/site/interpretation.html?__artifact_share=public-share"
+    build(tmp_path, report_url=url, failures=True)
+    page = BeautifulSoup((tmp_path / "article.html").read_text(), "html.parser")
+    link = page.select_one("[data-category] a")
+    target = urlsplit(link["href"])
+    assert target.path == "/api/preview/site/results.html"
+    assert parse_qs(target.query) == {
+        "__artifact_share": ["public-share"], "participant": ["browser"],
+        "status": ["fail"], "cause": ["请求头记录"],
+    }
+    assert target.fragment == "result-inventory"
+    image = urlsplit(page.select_one("figure a[download]")["href"])
+    assert image.path == "/api/preview/site/assets/example-zh.png"
+    assert parse_qs(image.query) == {"__artifact_share": ["public-share"]}
+    _check_interpretation(tmp_path)
+
+
+@pytest.mark.parametrize("mutation", ["share", "filter", "route"])
+def test_release_rejects_broken_downloaded_failure_links(tmp_path, mutation):
+    url = "https://example.test/api/preview/site/interpretation.html?__artifact_share=public-share"
+    build(tmp_path, report_url=url, failures=True)
+    path = tmp_path / "article.html"
+    page = BeautifulSoup(path.read_text(), "html.parser")
+    link = page.select_one("[data-category] a")
+    if mutation == "share":
+        link["href"] = link["href"].replace("__artifact_share=public-share&", "")
+    elif mutation == "filter":
+        link["href"] = link["href"].replace("status=fail", "status=pass")
+    else:
+        link["href"] = link["href"].replace("/api/preview/site/", "/v/public-share/")
+    path.write_text(str(page))
+    with pytest.raises(ValueError, match="standalone article failure link"):
+        _check_interpretation(tmp_path)
 
 
 def test_article_views_share_content_and_escape_source(tmp_path):
     build(tmp_path)
     _check_interpretation(tmp_path)
     offline = (tmp_path / "article.html").read_text()
+    assert "<head>" in offline and "</head><body>" in offline
     assert offline.count("data:image/png;base64,") == 1
     assert not BeautifulSoup(offline, "html.parser").select("script")
+
+
+@pytest.mark.parametrize("mutation", ["missing", "wrong_depth", "duplicate", "wrong_current"])
+def test_release_rejects_inaccessible_interpretation_navigation(tmp_path, mutation):
+    build(tmp_path)
+    path = tmp_path / "result/example.html"
+    path.parent.mkdir()
+    path.write_text(_shell("zh", "results", "结果", "<p>证据</p>", depth=1))
+    _add_interpretation_navigation(tmp_path, "zh")
+    _check_interpretation(tmp_path)
+    page = BeautifulSoup(path.read_text(), "html.parser")
+    link = page.select_one("a[data-report-interpretation]")
+    if mutation == "missing":
+        link.decompose()
+    elif mutation == "wrong_depth":
+        link["href"] = "interpretation.html"
+    elif mutation == "duplicate":
+        page.select_one("nav").append(BeautifulSoup(str(link), "html.parser"))
+    else:
+        link["aria-current"] = "page"
+    path.write_text(str(page))
+    with pytest.raises(ValueError, match="interpretation navigation"):
+        _check_interpretation(tmp_path)
 
 
 def test_sources_are_localized_and_preserved_in_offline_article(tmp_path):

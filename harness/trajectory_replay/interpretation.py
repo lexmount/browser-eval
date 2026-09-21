@@ -3,10 +3,18 @@
 import base64
 import html
 import json
+import re
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
 from harness.trajectory_replay.failure_matrix import failure_category_matrix
+
+
+def _report_page_url(report_url: str, relative: str) -> str:
+    base = urlsplit(report_url)
+    target = urlsplit(urljoin(report_url, relative))
+    query = urlencode(parse_qsl(base.query) + parse_qsl(target.query))
+    return urlunsplit((target.scheme, target.netloc, target.path, query, target.fragment))
 
 
 def render_interpretation(*, source: Path, contract_audit: Path, results_sha256: str,
@@ -61,7 +69,7 @@ def render_interpretation(*, source: Path, contract_audit: Path, results_sha256:
             figure_link = "下载原尺寸图" if lang == "zh" else "Download full-size diagram"
             scroll_label = "机制图，可横向滚动查看" if lang == "zh" else "Mechanism diagram, scroll horizontally to read"
             download_href = (
-                f'{str(report_url).rstrip("/")}/assets/interpretation/{filename}'
+                _report_page_url(report_url, image_prefix + filename)
                 if standalone else src
             )
             download = f' <a href="{e(download_href)}" download="{e(filename)}">{figure_link}</a>'
@@ -106,7 +114,10 @@ def render_interpretation(*, source: Path, contract_audit: Path, results_sha256:
         if not report_url.startswith("https://"):
             raise ValueError("offline article requires the bound HTTPS report URL")
         # Only the registry-generated matrix creates links in this renderer.
-        result = result.replace('href="results.html', f'href="{e(report_url.rstrip("/"))}/results.html')
+        def absolute_result_link(match):
+            target = _report_page_url(report_url, html.unescape(match[1]))
+            return f'href="{e(target)}"'
+        result = re.sub(r'href="(results\.html[^"]*)"', absolute_result_link, result)
     return title, result
 
 
@@ -120,6 +131,7 @@ def _table(headers, rows):
 
 
 def standalone_document(title: str, body: str, lang: str, css: str) -> str:
-    return (f'<!doctype html><html lang="{lang}"><meta charset="utf-8">'
+    return (f'<!doctype html><html lang="{lang}"><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
-            f'<title>{html.escape(title)}</title><style>{css}</style><main>{body}</main></html>')
+            f'<title>{html.escape(title)}</title><style>{css}</style></head>'
+            f'<body><main>{body}</main></body></html>')

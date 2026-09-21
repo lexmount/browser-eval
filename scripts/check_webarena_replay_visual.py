@@ -235,7 +235,15 @@ def check(report: Path, receipt: Path) -> None:
                     assert route_page.locator("[data-step-actual]").inner_text()
                     assert route_page.locator("[data-step-result]").inner_text()
                     route_page.locator("[data-close-step]").click()
-                    route_page.locator('nav a[href="../index.html"]').first.click()
+                    if (report / "interpretation.html").is_file():
+                        route_page.locator("nav a[data-report-interpretation]").click()
+                        route_page.wait_for_url(
+                            f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/interpretation.html"
+                        )
+                        route_page.locator("article.interpretation h1").wait_for()
+                        article_nav = route_page.locator("nav a[data-report-interpretation]")
+                        assert article_nav.get_attribute("aria-current") == "page"
+                    route_page.locator('nav a[href$="index.html"]').first.click()
                     route_page.wait_for_url(
                         f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/index.html"
                     )

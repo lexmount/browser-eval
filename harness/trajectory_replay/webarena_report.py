@@ -12,6 +12,7 @@ import statistics
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlencode, urlsplit
 
 from harness.trajectory_replay.diagnostic_closure import _verified_digest, load_diagnostic_closure
 from harness.trajectory_replay.failure_matrix import failure_category_matrix
@@ -483,6 +484,20 @@ def _unique_winners(
     best = (max if higher else min)(value for _, value in numeric)
     winners = {name for name, value in numeric if value == best}
     return winners if len(winners) == 1 else set()
+
+
+def _add_interpretation_navigation(language_root: Path, lang: str) -> None:
+    """Expose the optional article only after its page has been generated."""
+    label = "报告解读" if lang == "zh" else "Interpretation"
+    for page in language_root.rglob("*.html"):
+        route = page.relative_to(language_root)
+        if route.parts[0] == "en" or page.name == "article.html":
+            continue
+        prefix = "../" * (len(route.parts) - 1)
+        current = ' aria-current="page"' if route.as_posix() == "interpretation.html" else ""
+        link = f'<a data-report-interpretation href="{prefix}interpretation.html"{current}>{label}</a>'
+        content = page.read_text(encoding="utf-8")
+        page.write_text(content.replace("<nav>", "<nav>" + link, 1), encoding="utf-8")
 
 
 def _nav(lang: str, active: str, *, depth: int, current_route: str = "index.html") -> str:
@@ -2970,13 +2985,22 @@ def build_webarena_replay_report(
             body = f'<p><a href="article.html" download>{download}</a></p>' + body
             (language_root / "interpretation.html").write_text(
                 _shell(lang, "interpretation", title, body, current_route="interpretation.html"), encoding="utf-8")
-            report_url = profile["publication"]["share_url"] + ("/en" if lang == "en" else "")
+            publication = profile["publication"]
+            share = urlsplit(publication["share_url"])
+            if not share.path.startswith("/v/") or not share.path.removeprefix("/v/"):
+                raise ValueError("standalone article requires the bound report share")
+            report_url = (
+                publication["base_url"].rstrip("/") + "/api/preview/" + publication["site_slug"]
+                + ("/en" if lang == "en" else "") + "/interpretation.html?"
+                + urlencode({"__artifact_share": share.path.removeprefix("/v/")})
+            )
             title, offline = render_interpretation(**arguments, standalone=True, report_url=report_url)
             (language_root / "article.html").write_text(
                 standalone_document(title, offline, lang, css), encoding="utf-8")
             home = language_root / "index.html"
             label = "报告解读：失败机制、修复与评测边界" if lang == "zh" else "Interpretation: failure mechanisms, repairs and evaluation limits"
             home.write_text(home.read_text().replace("<main>", f'<main><p><a href="interpretation.html">{label}</a></p>', 1), encoding="utf-8")
+            _add_interpretation_navigation(language_root, lang)
 
     if not include_english:
         # Remove authored translations only; raw task and execution evidence is immutable.
