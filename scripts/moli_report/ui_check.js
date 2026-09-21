@@ -285,6 +285,25 @@ async function run() {
           await page.close();
         }
     let page = await browser.newPage();
+    // Tokenized preview hosts inject a root base URL even on English entries.
+    for (const entry of ["/en.html", "/en/index.html"]) {
+      await page.goto(origin + entry + "#page=home");
+      await ready(page);
+      await page.evaluate((url) => {
+        const base = document.createElement("base");
+        base.href = url + "/";
+        document.head.prepend(base);
+      }, origin);
+      for (const route of ["guide", "method", "home"]) {
+        await page.locator(`nav a[href="#page=${route}"]`).click();
+        await page.locator(`main[data-route="${route}"] h1`).waitFor();
+        if (
+          (await page.locator("html").getAttribute("lang")) !== "en" ||
+          new URL(page.url()).pathname !== entry
+        )
+          throw Error("preview navigation changed the language entry");
+      }
+    }
     await page.goto(origin + "/#page=home");
     await ready(page);
     await caseMetric(page);

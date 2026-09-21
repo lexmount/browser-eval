@@ -1619,4 +1619,24 @@ document.getElementById("menu-toggle").addEventListener("click", (e) => {
   e.currentTarget.setAttribute("aria-expanded", String(open));
 });
 window.addEventListener("hashchange", render);
+// Preview hosts may inject a base URL pointing at the Chinese entry.
+// Keep report routes in the current document, including its language.
+document.addEventListener("click", (event) => {
+  const anchor = event.target.closest("a[href]");
+  const href = anchor?.getAttribute("href");
+  if (
+    !href?.startsWith("#page=") ||
+    event.defaultPrevented ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey ||
+    anchor.target ||
+    anchor.hasAttribute("download")
+  )
+    return;
+  event.preventDefault();
+  window.location.hash = href;
+});
 render();
