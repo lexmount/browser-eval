@@ -1253,6 +1253,57 @@
   ],
   "releases": [
     {
+      "id": "2026-09-21-moli-seven-linux-release-resources",
+      "date": "2026-09-21",
+      "date_timezone": "Asia/Shanghai",
+      "comparison_kinds": [
+        "moli_historical_failure_retest",
+        "moli_process_tree_resource_profile"
+      ],
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "gdwtSGOel0va",
+        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
+        "version": "ver_460f324bc0c04d53a866517db54edd13"
+      },
+      "title": "七种 Moli 配置统一采用 Linux Release 资源口径",
+      "summary": "四组 1.1.9 Release 资源结果与前三组对齐，统一使用 Mac 主机上 Docker Linux 的进程树 PSS 和 CPU。修复版开启 layout 为 80.83 MiB、21.48 ms，相对 1.1.4 为 +4.68%、+0.36%；372 题功能结果保持不变。",
+      "changes": [
+        [
+          "资源比较",
+          "不同平台内存指标与构建模式不能直接比较。",
+          "四组各测量 557 题 × 5 次，并通过官方 profiler-off 校准；七组以 1.1.4 关闭 layout 为共同基线。",
+          "汇总图使用预先冻结的 209 题 / 1,045 次，完整表保留 557 题；准确率未重测。"
+        ],
+        [
+          "图表与证据",
+          "汇总需要同时清晰展示变化和具体值。",
+          "点旁显示方法及成功率、资源变化；✦ 标识开启 layout，图例集中列出具体值。公开逐次测量与构建身份。",
+          "保留原分享链接，功能构建与资源构建分别绑定。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Align all seven Moli resource configurations to Linux Release measurements",
+          "summary": "Four 1.1.9 Release resource configurations now align with the original three using process-tree PSS and CPU in Docker Linux on the Mac host. Patched layout on measures 80.83 MiB and 21.48 ms, +4.68% and +0.36% relative to 1.1.4. Existing 372-task functional results are unchanged.",
+          "changes": [
+            [
+              "Resource comparison",
+              "Different memory metrics and build profiles do not form a direct comparison.",
+              "Measure 557 tasks × 5 calls for each of four configurations with the official profiler-off calibration. Use 1.1.4 layout off as the common baseline for all seven.",
+              "The chart retains the predeclared 209-task / 1,045-call population; full tables retain 557 tasks. Accuracy was not rerun."
+            ],
+            [
+              "Chart and evidence",
+              "Readers need both changes and exact values.",
+              "Point labels show method and success/resource changes; ✦ identifies layout on. Legends list exact values. Publish individual measurements and build identities.",
+              "The existing share link is retained. Functional and resource builds are identified separately."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "2026-09-21-moli-seven-method-release-resource-calibration",
       "date": "2026-09-21",
       "date_timezone": "Asia/Shanghai",

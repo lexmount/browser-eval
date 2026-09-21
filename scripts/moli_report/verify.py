@@ -15,6 +15,7 @@ import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from moli_report.resource_evidence import validate_matrix  # noqa: E402
+from moli_report.summarize_linux_resource_profiles import validate_summary  # noqa: E402
 from plot_moli_version_resources import combine_comparisons, render_chart  # noqa: E402
 
 parser = argparse.ArgumentParser()
@@ -45,6 +46,17 @@ def fail(message):
 def validate(model, site, check_files=True):
     if model.get("schema") != "moli_layout_report/2":
         fail("schema")
+    if any(
+        model.get(key) for key in ("linux_resource_profiles", "macos_resource", "official_resource")
+    ):
+        if not isinstance(model.get("resource_builds"), dict):
+            fail("resource_builds missing")
+    if model.get("macos_resource") or model.get("official_resource"):
+        for key in ("macos_resource", "official_resource"):
+            if not isinstance(model.get(key), dict) or not isinstance(
+                model[key].get("summary"), dict
+            ):
+                fail(f"{key} summary missing")
     count = model.get("task_count")
     calls_per_mode = model.get("attempts_per_mode")
     if not isinstance(count, int) or count != 372 or calls_per_mode != count * 3:
@@ -148,7 +160,9 @@ def validate(model, site, check_files=True):
     functional_methods = model.get("functional_methods") or []
     combined = model.get("combined_comparison")
     if combined != combine_comparisons(
-        functional_methods, comparison, model.get("macos_comparison")
+        functional_methods,
+        comparison,
+        model.get("linux_comparison") or model.get("macos_comparison"),
     ):
         fail("combined chart registry, baseline or measurement mismatch")
     if json.loads((site / "data/combined-comparison.json").read_text()) != combined:
@@ -260,6 +274,77 @@ def validate(model, site, check_files=True):
                             or target.stat().st_size != evidence["bytes"]
                         ):
                             fail("fixed log integrity")
+    if model.get("linux_comparison") and not model.get("linux_resource_profiles"):
+        fail("Linux resource evidence is required")
+    if model.get("linux_resource_profiles"):
+        profiles = model["linux_resource_profiles"]
+
+        def resource_document(info):
+            path = site / info["url"]
+            if (
+                not path.resolve().is_relative_to(site.resolve())
+                or path.is_symlink()
+                or not path.is_file()
+                or digest(path) != info["sha256"]
+                or path.stat().st_size != info["bytes"]
+            ):
+                fail("Linux resource evidence integrity")
+            return json.loads(path.read_text())
+
+        summary = resource_document(profiles["evidence"])
+        validate_summary(summary, model["resource_builds"])
+        if (
+            summary["protocol"]["reference_protocol_sha256"]
+            != comparison["bindings"]["resource_protocol_sha256"]
+            or summary["protocol"]["task_ids"] != summary["population"]["task_ids"]
+            or summary["protocol"]["chart_keys"] != summary["population"]["chart_keys"]
+            or summary["protocol"]["orchestrator_sha256"]
+            != profiles["receipt"]["orchestrator_sha256"]
+        ):
+            fail("Linux resource protocol or comparison population binding")
+        if (
+            profiles["configurations"] != summary["configurations"]
+            or profiles["receipt"] != summary["receipt"]
+        ):
+            fail("Linux resource summary binding")
+        script = site / "reproduction/run_linux_resource_profiles.py"
+        if script.is_symlink() or digest(script) != profiles["receipt"]["orchestrator_sha256"]:
+            fail("Linux resource script binding")
+        original = resource_document(model["resource_metrics_source"])
+        metrics = model["resource_metrics"]
+        if list(metrics) != [m["id"] for m in functional_methods]:
+            fail("unified resource method registry")
+        for method, scopes in metrics.items():
+            if set(scopes) != {"all_predeclared_calls", "frozen_historical_common_pass_calls"}:
+                fail("unified resource population coverage")
+            for scope, values in scopes.items():
+                expected = (
+                    summary["configurations"][method]["metrics"][scope]
+                    if method in summary["configurations"]
+                    else original["memory"][method][scope]
+                )
+                for metric in ("pss_peak_mib", "cpu_time_ms"):
+                    for stat in ("n", "mean", "p50", "p95"):
+                        key = "median" if stat == "p50" and "median" in expected[metric] else stat
+                        if not near(values[metric][stat], expected[metric][key]):
+                            fail("unified resource table differs from measurements")
+        rows = model["linux_comparison"]["configurations"]
+        if [r["id"] for r in rows] != list(model["resource_builds"]):
+            fail("Linux resource chart registry")
+        for row in rows:
+            candidate = candidates[row["id"]]
+            measured = summary["configurations"][row["id"]]
+            values = measured["metrics"]["frozen_historical_common_pass_calls"]
+            if (
+                row["platform"] != "Linux"
+                or row["memory_kind"] != "PSS"
+                or row["passed_cases"] != candidate["outcomes"]["passed_cases"]
+                or row["functional_binary_sha256"] != candidate["binary"]["moli_sha256"]
+                or row["resource_binary_sha256"] != measured["build"]["sha256"]
+                or not near(row["pss_mib"], values["pss_peak_mib"]["p50"])
+                or not near(row["cpu_ms"], values["cpu_time_ms"]["mean"])
+            ):
+                fail("Linux resource chart values or build identity")
     for resource_key in ("macos_resource", "official_resource"):
         resource = model.get(resource_key)
         if not resource:
@@ -396,6 +481,8 @@ def validate(model, site, check_files=True):
     if model.get("macos_resource"):
         if not chart or {r["id"] for r in chart["configurations"]} != set(candidates):
             fail("macOS chart registry")
+        if chart.get("baseline") not in {r["id"] for r in chart["configurations"]}:
+            fail("macOS chart baseline not in configurations")
         baseline = next(r for r in chart["configurations"] if r["id"] == chart["baseline"])
         for row in chart["configurations"]:
             resource = (
@@ -728,11 +815,12 @@ if args.release:
     if [row["id"] for row in model["functional_methods"]] != profile["method_ids"]:
         fail("release requires the complete bound functional method matrix")
     if (
-        not model.get("macos_comparison")
-        or [row["id"] for row in model["macos_comparison"]["configurations"]]
-        != profile["macos_method_ids"]
+        not model.get("linux_comparison")
+        or [row["id"] for row in model["linux_comparison"]["configurations"]]
+        != profile["resource_method_ids"]
+        or not model.get("linux_resource_profiles")
     ):
-        fail("release requires all bound macOS resource configurations")
+        fail("release requires all bound Linux resource configurations")
 validate(model, SITE)
 # Semantic negative controls must fail through the same validator.
 negative_controls = 0
@@ -774,9 +862,27 @@ rejected(lambda m: m["combined_comparison"]["configurations"][-1].update(cpu_cha
 rejected(lambda m: m["functional_contract_correction"].update(calls=17))
 rejected(lambda m: m["functional_contract_correction"].update(success_rates_changed=True))
 if model.get("resource_matrix"):
+    rejected(lambda m: m.pop("resource_builds"))
+    rejected(lambda m: m["official_resource"].pop("summary"))
+    rejected(lambda m: m["macos_comparison"].update(baseline="absent"))
     rejected(lambda m: m.pop("resource_matrix"))
     rejected(lambda m: m["resource_matrix"]["receipt"].update(physical_calls=11139))
     rejected(lambda m: m["resource_builds"]["119_on"].update(sha256="0" * 64))
+if model.get("linux_resource_profiles"):
+    rejected(lambda m: m.pop("resource_builds"))
+    rejected(lambda m: m.pop("linux_resource_profiles"))
+    rejected(lambda m: m["resource_builds"]["119_on"].update(sha256="0" * 64))
+    rejected(lambda m: m["resource_metrics"].pop("114_off"))
+    rejected(
+        lambda m: m["resource_metrics"]["119_on"]["all_predeclared_calls"]["pss_peak_mib"].update(
+            mean=0
+        )
+    )
+    rejected(
+        lambda m: m["linux_resource_profiles"]["configurations"]["119_on"]["calibration"].update(
+            acceptable=False
+        )
+    )
 if model.get("fixed_candidates"):
     rejected(
         lambda m: m["functional_methods"][-1].update(

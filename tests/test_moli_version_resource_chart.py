@@ -14,6 +14,37 @@ SPEC.loader.exec_module(MODULE)
 
 
 class MoliVersionResourceChartTests(unittest.TestCase):
+    def test_linux_release_results_use_one_baseline_and_keep_point_labels(self):
+        historical = {**self.data, "baseline": "114_off"}
+        row = {
+            **self.data["configurations"][0],
+            "id": "119_on",
+            "label": "Moli 1.1.9 修复版 · 开启 layout",
+            "label_en": "Moli 1.1.9 patched · Layout on",
+            "platform": "Linux",
+            "memory_kind": "PSS",
+            "pss_mib": self.data["configurations"][0]["pss_mib"] * 1.1,
+            "cpu_ms": self.data["configurations"][0]["cpu_ms"] * 0.8,
+            "passed_cases": 360,
+        }
+        methods = [
+            {**item, "final_passed_cases": item["passed_cases"]}
+            for item in historical["configurations"] + [row]
+        ]
+        combined = MODULE.combine_comparisons(methods, historical, {"configurations": [row]})
+        self.assertAlmostEqual(combined["configurations"][-1]["memory_change_pct"], 10)
+        self.assertAlmostEqual(combined["configurations"][-1]["cpu_change_pct"], -20)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "linux.svg"
+            MODULE.render_chart(combined, output, ("memory", "cpu"))
+            chart = output.read_text()
+            self.assertEqual(chart.count("data-point-label="), 8)
+            self.assertIn("pp / +10.00%", chart)
+            self.assertIn("pp / -20.00%", chart)
+            self.assertIn("1.1.9 修复版 ✦", chart)
+            self.assertNotIn("RSS", chart)
+            self.assertNotIn("不同执行环境", chart)
+
     def test_chart_marks_retained_success_from_a_different_resource_build(self):
         row = self.data["configurations"][1]
         row.update(functional_binary_sha256="a" * 64, resource_binary_sha256="b" * 64)
@@ -72,7 +103,10 @@ class MoliVersionResourceChartTests(unittest.TestCase):
                 self.assertIn("macOS RSS", text)
                 self.assertIn("360/372", text)
                 self.assertIn("+96.77", text)
-                self.assertIn("(—)", text)
+                self.assertIn("pp / —", text)
+                self.assertEqual(text.count("data-point-label="), 14)
+                self.assertIn("1.1.8 ✦", text)
+                self.assertNotIn("MiB (+", text)
                 self.assertEqual(text.count('<path d="M '), 8)
             for metric in ("memory", "cpu"):
                 MODULE.render_chart(combined, output, (metric,), "en")

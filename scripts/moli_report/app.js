@@ -298,7 +298,7 @@ function functionalMethodSummary() {
               peers.filter((r) => r[key] === minimum).length === 1;
             let unit =
               metric === "memory" ? resource.memory_kind + " MiB" : "ms";
-            return `<td class="num ${winner ? "winner" : ""}" data-combined-metric="${metric}" data-platform="${resource.platform}" data-value="${resource[key]}">${fmt(resource[key], 2)} ${unit}<div class="subtle">${delta === null ? esc(zh ? "跨平台 · 不计算变化" : "Cross-platform · no delta") : signed(delta, 2)}</div></td>`;
+            return `<td class="num ${winner ? "winner" : ""}" data-combined-metric="${metric}" data-platform="${resource.platform}" data-value="${resource[key]}">${fmt(resource[key], 2)} ${unit}<div class="subtle">${delta === null ? esc(zh ? "—" : "—") : signed(delta, 2)}</div></td>`;
           })
           .join("")
       : "";
@@ -316,15 +316,19 @@ function functionalMethodSummary() {
     let evidence = row.evidence
       ? `<div class="method-evidence"><button data-evidence="${esc(row.evidence.url)}" data-sha="${esc(row.evidence.sha256)}" data-title="${esc(zh ? "固定布局功能证据" : "Fixed-layout functional evidence")}">${esc(zh ? "查看逐题证据" : "Inspect case evidence")}</button></div>`
       : "";
-    return `<tr data-functional-method="${esc(row.id)}"><td><strong><span class="method-number">${index + 1}</span> ${esc(zh ? row.label : row.label_en)}</strong>${resource ? `<div class="subtle">${esc(resource.platform)}${row.id === "114_off" ? (zh ? " · 基线" : " · baseline") : ""}</div>` : ""}${evidence}</td><td>${esc(policy)}</td><td>${esc(scope)}</td><td class="num ${unique && row.final_passed_cases === max ? "winner" : ""}" data-functional-final="${row.final_passed_cases}">${fmt(row.final_passed_cases)}/${total} (${fmt((row.final_passed_cases / total) * 100, 1)}%)</td><td class="num">${signed(((row.final_passed_cases - rows[0].final_passed_cases) / total) * 100, 2, zh ? " 个百分点" : " pp")}</td><td class="num">${fmt(row.physical_calls || (row.id === "114_off" ? 3 : total * 3))}</td>${resourceCells}</tr>`;
+    return `<tr data-functional-method="${esc(row.id)}"><td><strong><span class="method-number">${index + 1}</span> ${esc(zh ? row.label : row.label_en)}</strong>${resource ? `<div class="subtle">${esc(resource.platform === "Linux" ? "Docker · Linux" : "macOS")}${row.id === "114_off" ? (zh ? " · 基线" : " · baseline") : ""}</div>` : ""}${evidence}</td><td>${esc(policy)}</td><td>${esc(scope)}</td><td class="num ${unique && row.final_passed_cases === max ? "winner" : ""}" data-functional-final="${row.final_passed_cases}">${fmt(row.final_passed_cases)}/${total} (${fmt((row.final_passed_cases / total) * 100, 1)}%)</td><td class="num">${signed(((row.final_passed_cases - rows[0].final_passed_cases) / total) * 100, 2, zh ? " 个百分点" : " pp")}</td><td class="num">${fmt(row.physical_calls || (row.id === "114_off" ? 3 : total * 3))}</td>${resourceCells}</tr>`;
   });
   return section(
     zh
       ? `${rows.length} 种固定配置的成功率`
       : `Success rates for ${rows.length} fixed configurations`,
-    zh
-      ? `同一 ${total} 题分母，每题三次全部通过才算成功。开启和关闭 layout 分别统计各自的实际结果；资源使用独立的 557 题实验。变化以 1.1.4 关闭 layout 为基准；资源列为图中的 209 题样本。PSS 与 RSS 不直接比较，绿色标识同平台内唯一最低资源值。`
-      : `The same ${total}-case denominator is used; all three attempts must pass. Layout on and off use their own observed results. Resources come from a separate 557-task experiment. Changes are relative to 1.1.4 layout off; resource columns use the plotted 209-task sample. PSS and RSS are not directly comparable. Green marks the unique resource minimum within each platform.`,
+    M.resource_metrics
+      ? zh
+        ? `${total} 题，每题 3/3 通过才算成功；资源列使用固定 209 题样本，统一为 Linux 进程树 PSS 与 CPU 时间。基线：1.1.4 关闭 layout；绿色为唯一最优值。`
+        : `${total} cases; all 3 attempts must pass. Resources use the fixed 209-task sample and Linux process-tree PSS and CPU time. Baseline: 1.1.4 layout off; green marks each unique optimum.`
+      : zh
+        ? `${total} 题，每题 3/3 通过才算成功；资源列使用固定 209 题样本。基线：1.1.4 关闭 layout。— 表示执行环境不同，不计算资源涨幅；绿色为同环境唯一最优值。`
+        : `${total} cases; all 3 attempts must pass. Resources use the fixed 209-task sample. Baseline: 1.1.4 layout off. — denotes incompatible execution environments; green marks the unique optimum within each environment.`,
     table(
       [
         zh ? "方法" : "Method",
@@ -349,7 +353,22 @@ function functionalMethodSummary() {
 }
 function combinedSummaryChart() {
   const chart = `moli-all-success-resources-${zh ? "zh" : "en"}.svg`;
-  return `<figure class="summary-chart" data-combined-chart><img src="${base}assets/${chart}" alt="${esc(zh ? `${M.functional_methods.length} 种固定配置的成功率与资源，顺序与总表一致，以 1.1.4 关闭布局为基线` : `${M.functional_methods.length} fixed configurations, aligned with the summary table; baseline: 1.1.4 layout off`)}"><figcaption>${esc(zh ? "成功率：372 个所选用例，每题 3 次全部通过；资源：独立的 557 题 × 5 次实验，图中使用预先冻结的 209 题、1,045 次样本。成功率变化以 1.1.4 为基线；内存和 CPU 仅在同一平台内计算相对基线的变化。" : "Success: 372 selected cases, all three attempts must pass. Resources: a separate 557-task × 5-call experiment; the plot uses the pre-frozen 209-task / 1,045-call sample. Success changes use 1.1.4 as baseline; memory and CPU changes are calculated only within the baseline platform.")}</figcaption></figure>`;
+  return `<figure class="summary-chart" data-combined-chart><img src="${base}assets/${chart}" alt="${esc(zh ? `${M.functional_methods.length} 种固定配置的成功率与资源，顺序与总表一致，以 1.1.4 关闭布局为基线` : `${M.functional_methods.length} fixed configurations, aligned with the summary table; baseline: 1.1.4 layout off`)}"></figure>`;
+}
+function resourceBuildNote() {
+  const measurement = M.linux_resource_profiles
+    ? zh
+      ? "资源均使用 Linux ARM64 release 构建，统一测量 PSS 与 CPU。"
+      : "Resources use Linux ARM64 release builds with consistent PSS and CPU measurements. "
+    : zh
+      ? "资源均为 release 构建；macOS RSS 与 Linux PSS 分开比较。"
+      : "Resources use release builds; macOS RSS and Linux PSS are compared separately. ";
+  return (
+    measurement +
+    (zh
+      ? "修复版成功率来自 87c87e95，资源来自 f315ff26；构建身份见评测方法。"
+      : "Patched success uses 87c87e95 and resources use f315ff26; see the method page for build identities.")
+  );
 }
 function macosResourceMethods() {
   let result = [];
@@ -371,6 +390,7 @@ function macosResourceMethods() {
   return result;
 }
 function candidateResourceSection() {
+  if (M.resource_metrics) return unifiedResourceSection();
   let methods = macosResourceMethods();
   if (!methods.length) return "";
   let baseline = methods.find((x) => x.id === M.macos_comparison.baseline),
@@ -456,6 +476,111 @@ function candidateResourceSection() {
     intro,
     tables.join("") +
       `<p>${esc(zh ? "四组均使用 release 构建，共享同一主机，各自保留独立浏览器进程和采样。任务调用按配置轮换、串行执行，只统计当前配置的进程树。CPU 为用户态与内核态时间之和。" : "All four release configurations share one host and retain separate browser processes and samplers. Task calls run serially in rotating order; each measurement covers only its own process tree. CPU is user plus system time.")}</p><div class="panel">${evidence}</div>`,
+  );
+}
+function unifiedResourceSection() {
+  const methods = M.functional_methods;
+  const specs = [
+    ["pss_peak_mib", "mean", zh ? "峰值 PSS 均值" : "Peak PSS mean", "MiB"],
+    ["pss_peak_mib", "p50", zh ? "峰值 PSS P50" : "Peak PSS P50", "MiB"],
+    ["pss_peak_mib", "p95", zh ? "峰值 PSS P95" : "Peak PSS P95", "MiB"],
+    ["cpu_time_ms", "mean", zh ? "CPU 均值" : "CPU mean", "ms"],
+    ["cpu_time_ms", "p50", zh ? "CPU P50" : "CPU P50", "ms"],
+    ["cpu_time_ms", "p95", zh ? "CPU P95" : "CPU P95", "ms"],
+  ];
+  let content = [
+    ["all_predeclared_calls", zh ? "557 题全部调用" : "All calls on 557 tasks"],
+    [
+      "frozen_historical_common_pass_calls",
+      zh ? "图表样本：209 题" : "Chart sample: 209 tasks",
+    ],
+  ]
+    .map(([scope, title]) => {
+      const metric = (id, name, stat) =>
+        M.resource_metrics[id][scope][name][stat];
+      const winners = (name, stat) => {
+        const minimum = Math.min(
+          ...methods.map((m) => metric(m.id, name, stat)),
+        );
+        return methods.filter((m) => metric(m.id, name, stat) === minimum);
+      };
+      const winnerName = (name, stat) => {
+        const found = winners(name, stat);
+        return found.length === 1
+          ? zh
+            ? found[0].label
+            : found[0].label_en
+          : zh
+            ? "并列"
+            : "Tie";
+      };
+      const baseline = M.resource_metrics["114_off"][scope];
+      const rows = methods.map((method) => {
+        const values = M.resource_metrics[method.id][scope];
+        const cells = specs
+          .map(([name, stat, label, unit]) => {
+            const best = winners(name, stat);
+            const winner = best.length === 1 && best[0].id === method.id;
+            return `<td class="num ${winner ? "winner" : ""}" data-resource-metric="${name}-${stat}" data-population="${scope}" data-value="${values[name][stat]}">${fmt(values[name][stat], 2)} ${unit}</td>`;
+          })
+          .join("");
+        return `<tr data-resource-method="${esc(method.id)}"><td><strong>${esc(zh ? method.label : method.label_en)}</strong></td><td class="num">${fmt(values.pss_peak_mib.n)}</td>${cells}<td class="num">${signed((values.pss_peak_mib.p50 / baseline.pss_peak_mib.p50 - 1) * 100, 2)}</td><td class="num">${signed((values.cpu_time_ms.mean / baseline.cpu_time_ms.mean - 1) * 100, 2)}</td></tr>`;
+      });
+      return (
+        `<h3>${esc(title)}</h3><p>${esc(zh ? `峰值 PSS P50 最低：${winnerName("pss_peak_mib", "p50")}；单次 CPU 均值最低：${winnerName("cpu_time_ms", "mean")}。资源消耗与通过率分别比较。` : `Lowest peak PSS P50: ${winnerName("pss_peak_mib", "p50")}; lowest mean CPU per call: ${winnerName("cpu_time_ms", "mean")}. Resource consumption and success are compared separately.`)}</p>` +
+        table(
+          [
+            zh ? "方法" : "Method",
+            zh ? "调用数" : "Calls",
+            ...specs.map((s) => s[2]),
+            zh ? "PSS P50 变化" : "PSS P50 change",
+            zh ? "CPU 均值变化" : "Mean CPU change",
+          ],
+          rows,
+          "unified-resource-table",
+        )
+      );
+    })
+    .join("");
+  content += `<p>${[
+    [
+      M.resource_metrics_source,
+      zh ? "1.1.4 / 1.1.8 资源证据" : "1.1.4 / 1.1.8 resource evidence",
+    ],
+    [
+      M.linux_resource_profiles.evidence,
+      zh ? "1.1.9 测量与校准证据" : "1.1.9 measurements and calibration",
+    ],
+  ]
+    .map(
+      ([evidence, label]) =>
+        `<button data-evidence="${esc(evidence.url)}" data-sha="${esc(evidence.sha256)}" data-title="${esc(label)}">${esc(label)}</button>`,
+    )
+    .join(" ")}</p>`;
+  return section(
+    zh ? "七种配置的资源统计" : "Resource statistics for seven configurations",
+    zh
+      ? "各指标使用同一批成功与失败调用；P50 为中位数，P95 为第 95 百分位。全部变化以 1.1.4 关闭 layout 为基准。"
+      : "All metrics include the same passing and failing calls. P50 is the median and P95 the 95th percentile. Every change uses 1.1.4 with layout off as its baseline.",
+    content,
+  );
+}
+function unifiedResourceMethodology() {
+  const paragraphs = zh
+    ? [
+        "资源测试独立使用 557 题，每题执行五次，每种配置共 2,785 次调用。图和总表使用事先固定的 209 题、1,045 次调用；完整资源表另列全部 557 题。每个统计范围都保留成功与失败调用。",
+        "七种配置都在 Mac 主机上的 Docker Linux 环境中测量，使用 Linux ARM64 release 二进制和同一资源采集方法。PSS 通过 /proc/PID/smaps_rollup 采集并按进程树求和，CPU 为该进程树的用户态与内核态 CPU 时间之和。250 ms 采集间隔，jobs=1，各配置串行执行。",
+        "官方流程先执行 profiler-off 校准，再执行 profiler-on 测量；报告资源值来自后者，校准用于检查采集器影响。P50 是中位数，P95 是第 95 百分位。全部资源变化以 1.1.4 关闭 layout 为基线，表示对应样本统计值的差异。官网 71 MiB 不参与这七组计算。",
+      ]
+    : [
+        "Resources use a separate 557-task experiment with five attempts per task, or 2,785 calls per configuration. The chart and overview table use 1,045 calls on 209 tasks fixed before execution; the detailed resource tables also show all 557 tasks. Each scope retains passing and failing calls.",
+        "All seven configurations are measured in Docker Linux on the Mac host, using Linux ARM64 release binaries and the same resource collection method. PSS is read from /proc/PID/smaps_rollup and summed over the process tree; CPU is the tree's user plus system CPU time. Sampling uses a 250 ms interval and jobs=1, with configurations executed serially.",
+        "The official procedure runs profiler-off calibration followed by profiler-on measurement. Reported resources come from the latter; calibration checks observer effect. P50 is the median and P95 the 95th percentile. Every resource change uses 1.1.4 with layout off as the baseline and describes the corresponding sample statistic. The website's 71 MiB value is excluded from these seven configurations.",
+      ];
+  return section(
+    zh ? "资源测量与可比范围" : "Resource measurement and comparability",
+    "",
+    paragraphs.map((p) => `<p>${esc(p)}</p>`).join(""),
   );
 }
 function resourceGroups() {
@@ -613,11 +738,11 @@ function home() {
     ) +
     functionalMethodSummary() +
     combinedSummaryChart() +
-    `<details class="resource-disclosure"><summary>${esc(zh ? "查看完整资源统计与测量范围" : "Inspect resource statistics and measurement scope")}</summary>${candidateResourceSection()}<p>${esc(zh ? "Linux PSS 与 CPU 数值见总表。全部资源统计包含成功与失败调用；图表样本在运行前固定。" : "Linux PSS and CPU values appear in the summary table. Resource statistics include successful and failed calls; the chart sample is fixed before execution.")}</p><a href="${base}data/version-comparison.json">${esc(zh ? "下载 Linux 资源数据" : "Download Linux resource data")}</a></details>` +
+    `<details class="resource-disclosure"><summary>${esc(zh ? "查看完整资源统计与测量范围" : "Inspect resource statistics and measurement scope")}</summary>${candidateResourceSection()}</details>` +
     section(
       zh ? "如何查看结果" : "Explore the results",
       "",
-      `<p>${esc(zh ? "资源均为 release 构建；macOS RSS 与 Linux PSS 分开比较。修复版成功率来自 87c87e95，资源来自 f315ff26，构建身份见评测方法。" : "Resources use release builds; macOS RSS and Linux PSS are compared separately. Patched success uses 87c87e95 and resources use f315ff26; see the method page for build identities.")}</p><a href="${link("analysis")}">${esc(zh ? "比较新增通过与仍然失败的用例" : "Compare gained passes and remaining failures")}</a> · <a href="${link("guide")}">${esc(T.nav.guide)}</a> · <a href="${link("reproduce")}">${esc(T.nav.reproduce)}</a>`,
+      `<p>${esc(resourceBuildNote())}</p><a href="${link("analysis")}">${esc(zh ? "比较新增通过与仍然失败的用例" : "Compare gained passes and remaining failures")}</a> · <a href="${link("guide")}">${esc(T.nav.guide)}</a> · <a href="${link("reproduce")}">${esc(T.nav.reproduce)}</a>`,
     )
   );
 }
@@ -978,10 +1103,77 @@ F --> G</pre></div>`,
       "",
       `<p>${esc(zh ? "372 题选自 Moli 0.1.1 在 1,928 题中未达到三次全部通过的全部用例，覆盖 15 类驱动。Chrome 结果不影响入选。其余 1,556 题不在评测范围内，这里的通过率不代表完整 1,928 题的通过率。" : "The 372 cases are all cases from the 1,928-case suite that Moli 0.1.1 did not pass in all three attempts, spanning 15 driver types. Chrome outcomes do not affect selection. The other 1,556 cases are outside this evaluation, so these rates do not describe the full suite.")}</p><a href="${link("dataset")}">${esc(T.nav.dataset)}</a>`,
     ) +
+    (M.linux_resource_profiles
+      ? unifiedResourceMethodology()
+      : section(
+          zh ? "资源测量与可比范围" : "Resource measurement and comparability",
+          "",
+          `<p>${esc(zh ? "资源实验单独执行 557 题，每题五次，每种配置共 2,785 次调用。图和总表使用运行前固定的 209 题、1,045 次样本；完整资源表另列全部 557 题。P50 是中位数，P95 是第 95 百分位。" : "Resources use a separate 557-task experiment with five calls per task, or 2,785 calls per configuration. The chart and overview table use 1,045 calls on 209 tasks fixed before execution; detailed resource tables also show all 557 tasks. P50 is the median and P95 the 95th percentile.")}</p><p>${esc(zh ? "1.1.4 / 1.1.8 在 Mac 发起的 Docker Linux 容器中执行，使用 Linux ARM64 二进制并采集 PSS；1.1.9 在 macOS 原生执行，使用 Mach-O ARM64 二进制并采集 RSS。七组均为本次系列的复测数据，非官网 71 MiB 数据；同一宿主机不等于相同执行环境。CPU 为进程树用户态与内核态时间之和。跨平台的内存和 CPU 不计算相对 1.1.4 的百分比变化；同平台百分比是样本数值对照。四组 macOS 资源配置均为 release 构建，使用同一冻结调用矩阵，逐次轮换顺序并串行执行。" : "Moli 1.1.4 / 1.1.8 run in Docker Linux containers launched from the Mac, using Linux ARM64 binaries and PSS sampling. Moli 1.1.9 runs natively on macOS with Mach-O ARM64 binaries and RSS sampling. All seven configurations are reruns in this series, not the website’s 71 MiB result. Sharing a host does not imply an identical execution environment. CPU is process-tree user plus system time. Cross-platform memory and CPU changes relative to 1.1.4 are not calculated; same-platform percentages describe the measured sample. All four macOS resource configurations use release builds and one frozen call matrix, executed serially with rotating order.")}</p>`,
+        )) +
     section(
-      zh ? "资源测量与可比范围" : "Resource measurement and comparability",
-      "",
-      `<p>${esc(zh ? "资源实验单独执行 557 题，每题五次，每种配置共 2,785 次调用。图和总表使用运行前固定的 209 题、1,045 次样本；完整资源表另列全部 557 题。P50 是中位数，P95 是第 95 百分位。" : "Resources use a separate 557-task experiment with five calls per task, or 2,785 calls per configuration. The chart and overview table use 1,045 calls on 209 tasks fixed before execution; detailed resource tables also show all 557 tasks. P50 is the median and P95 the 95th percentile.")}</p><p>${esc(zh ? "1.1.4 / 1.1.8 的资源来自 Linux PSS；1.1.9 来自 macOS RSS。CPU 为进程树用户态与内核态时间之和。跨平台的内存和 CPU 不计算相对 1.1.4 的百分比变化；同平台百分比是样本数值对照。四组 macOS 资源配置均为 release 构建，使用同一冻结调用矩阵，逐次轮换顺序并串行执行。" : "Moli 1.1.4 / 1.1.8 resources use Linux PSS; 1.1.9 uses macOS RSS. CPU is process-tree user plus system time. Cross-platform memory and CPU changes relative to 1.1.4 are not calculated; same-platform percentages describe the measured sample. All four macOS resource configurations use release builds and one frozen call matrix, executed serially with rotating order.")}</p>`,
+      zh ? "RSS 与 PSS：指标口径" : "RSS and PSS: memory definitions",
+      zh
+        ? "两者均以 MiB 展示，但共享内存的计数方式不同，不能互换或按固定比例换算。"
+        : "Both use MiB, but account for shared memory differently and cannot be interchanged or converted by a fixed ratio.",
+      table(
+        [zh ? "对比项" : "Property", "RSS", "PSS"],
+        [
+          [
+            zh ? "统计内容" : "What is counted",
+            zh
+              ? "进程当前驻留物理内存中的页"
+              : "Pages currently resident in physical memory for the process",
+            zh
+              ? "私有驻留页，加上按共享进程数分摊的共享驻留页"
+              : "Private resident pages plus a proportional share of shared resident pages",
+          ],
+          [
+            zh ? "共享页" : "Shared pages",
+            zh
+              ? "每个映射进程都计入；进程树求和会重复计入共享页"
+              : "Counted for each mapping process; process-tree sums can count shared pages multiple times",
+            zh
+              ? "按共享份额计入，减少进程间重复计算"
+              : "Counted proportionally, reducing double counting across processes",
+          ],
+          [
+            zh ? "示例" : "Example",
+            zh
+              ? "20 MiB 私有页＋与另一进程共享的 10 MiB：RSS＝30 MiB"
+              : "20 MiB private plus 10 MiB shared equally with one other process: RSS = 30 MiB",
+            zh
+              ? "同例：PSS＝20＋10÷2＝25 MiB"
+              : "Same example: PSS = 20 + 10 / 2 = 25 MiB",
+          ],
+          [
+            zh ? "本报告采集" : "Collection in this report",
+            M.linux_resource_profiles
+              ? zh
+                ? "本报告资源对比统一使用 PSS"
+                : "This report consistently compares PSS"
+              : zh
+                ? "macOS：ps 的 rss 字段，按进程树求和"
+                : "macOS: ps rss field, summed over the process tree",
+            zh
+              ? "Linux：/proc/PID/smaps_rollup 的 Pss 字段，按进程树求和"
+              : "Linux: Pss in /proc/PID/smaps_rollup, summed over the process tree",
+          ],
+          [
+            zh ? "比较条件" : "Comparison conditions",
+            zh
+              ? "相同执行环境、采样与任务范围；CPU 时间也须采用一致条件"
+              : "Matching execution environment, sampling and task scope; CPU comparisons also require consistent conditions",
+            zh
+              ? "相同条件，且保持共享进程环境一致；PSS 不等于 RSS"
+              : "Matching conditions and shared-process environment; PSS is not RSS",
+          ],
+        ].map(
+          (cells) =>
+            `<tr>${cells.map((cell) => `<td>${esc(cell)}</td>`).join("")}</tr>`,
+        ),
+        "memory-definition-table",
+      ) +
+        `<p class="subtle"><a href="https://docs.kernel.org/filesystems/proc.html">${esc(zh ? "Linux 内核：RSS 与 PSS 定义" : "Linux kernel: RSS and PSS definitions")}</a> · <a href="https://developer.apple.com/library/archive/documentation/Performance/Conceptual/ManagingMemory/Articles/VMPages.html">${esc(zh ? "Apple：驻留内存与共享映射" : "Apple: resident memory and shared mappings")}</a></p>`,
     ) +
     section(
       zh ? "执行与证据" : "Execution and evidence",
@@ -1007,7 +1199,7 @@ function costSection() {
   return section(
     zh ? "耗时下降来自哪些任务" : "Where the time reduction came from",
     zh
-      ? `以下三题贡献净耗时变化的 ${share}%。正值表示开启布局后耗时下降；负值表示增加。CPU 差值来自资源采样轮，耗时差值来自无采样轮。`
+      ? `以下三题贡献净耗时变化的 ${share}%。正值表示开启布局后耗时下降；负值表示增加。CPU 差值来自开启资源采集的调用，耗时差值来自关闭资源采集的调用。`
       : `These three tasks account for ${share}% of the net duration change. Positive differences mean lower duration with layout; negative values mean higher duration. CPU differences use profiled calls and duration differences use unprofiled calls.`,
     table(
       [
@@ -1206,6 +1398,30 @@ function analysisPage() {
   );
 }
 function candidateResourceQuality() {
+  if (M.linux_resource_profiles) {
+    const rows = M.functional_methods
+      .filter((m) => M.linux_resource_profiles.configurations[m.id])
+      .map((method) => {
+        const config = M.linux_resource_profiles.configurations[method.id];
+        return `<tr><td>${esc(zh ? method.label : method.label_en)}</td><td>${fmt(config.metrics.all_predeclared_calls.pss_peak_mib.n)}/2,785</td><td>${fmt(config.metrics.all_predeclared_calls.cpu_time_ms.n)}/2,785</td><td>${esc(config.calibration.acceptable ? (zh ? "通过" : "Pass") : zh ? "失败" : "Fail")}</td><td>${esc(Object.values(config.host).every((h) => !h.polluted) ? (zh ? "通过" : "Pass") : zh ? "失败" : "Fail")}</td></tr>`;
+      });
+    return section(
+      zh ? "1.1.9 资源测量质量" : "1.1.9 resource measurement quality",
+      zh
+        ? "按官方流程执行 profiler-off 校准和 profiler-on 测量；核验完整题目范围、构建身份、PSS/CPU 覆盖、采集器影响和宿主机负载。"
+        : "The official procedure pairs profiler-off calibration with profiler-on measurement and checks task coverage, build identity, PSS/CPU availability, observer effect and host load.",
+      table(
+        [
+          zh ? "配置" : "Configuration",
+          zh ? "PSS 覆盖" : "PSS coverage",
+          zh ? "CPU 覆盖" : "CPU coverage",
+          zh ? "采集器校准" : "Profiler calibration",
+          zh ? "宿主机检查" : "Host check",
+        ],
+        rows,
+      ),
+    );
+  }
   let methods = macosResourceMethods();
   if (!methods.length) return "";
   let rows = methods.map((item) => {
@@ -1306,6 +1522,34 @@ function guidePage() {
   );
 }
 function candidateReproductionSection() {
+  if (M.linux_resource_profiles) {
+    const profiles = M.linux_resource_profiles;
+    const rows = M.functional_methods
+      .filter((m) => profiles.configurations[m.id])
+      .map((method) => {
+        const build = profiles.configurations[method.id].build;
+        const run = profiles.receipt.results[`${method.id}:engine`];
+        return `<tr><td>${esc(zh ? method.label : method.label_en)}</td><td><code>${esc(run.run_id)}</code></td><td>${fmt(run.rows)}/2,785</td><td><code>${esc(build.sha256)}</code></td></tr>`;
+      });
+    return section(
+      zh
+        ? "1.1.9 Linux release 资源复现"
+        : "Reproduce 1.1.9 Linux release resources",
+      zh
+        ? "Mac 主机上的固定 Docker Linux 镜像；557 题、每题五次、jobs=1，250 ms PSS 采集间隔。测量前冻结任务、依赖和二进制哈希；各配置独立容器、串行执行。"
+        : "A fixed Docker Linux image on the Mac host; 557 tasks, five attempts each, jobs=1 and a 250 ms PSS interval. Tasks, dependencies and binary hashes are frozen before execution. Configurations run serially in independent containers.",
+      table(
+        [
+          zh ? "配置" : "Configuration",
+          zh ? "测量 ID" : "Measurement ID",
+          zh ? "调用数" : "Calls",
+          zh ? "资源二进制 SHA-256" : "Resource binary SHA-256",
+        ],
+        rows,
+      ) +
+        `<p><button data-evidence="reproduction/run_linux_resource_profiles.py" data-sha="${esc(profiles.receipt.orchestrator_sha256)}" data-title="${esc(zh ? "资源测量脚本" : "Resource measurement script")}">${esc(zh ? "查看资源测量脚本" : "Inspect the resource measurement script")}</button></p>`,
+    );
+  }
   let methods = macosResourceMethods();
   if (!methods.length) return "";
   let rows = methods.map((item) => {

@@ -19,6 +19,12 @@ BENCH_ROOT = pathlib.Path(
 sys.path.insert(0, str(BENCH_ROOT))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from moli_report.resource_evidence import load_matrix  # noqa: E402
+from moli_report.summarize_linux_resource_profiles import (  # noqa: E402
+    summarize as summarize_linux_profiles,
+)
+from moli_report.summarize_linux_resource_profiles import (  # noqa: E402
+    validate_summary as validate_linux_summary,
+)
 from plot_moli_version_resources import combine_comparisons, render_chart  # noqa: E402
 from runner.resources import duration_calibration  # noqa: E402
 
@@ -42,6 +48,7 @@ parser.add_argument(
 parser.add_argument("--macos-resource-summary", type=pathlib.Path)
 parser.add_argument("--official-resource-summary", type=pathlib.Path)
 parser.add_argument("--resource-matrix", type=pathlib.Path)
+parser.add_argument("--linux-resource-profiles", type=pathlib.Path)
 args = parser.parse_args()
 report_profile = json.loads(
     (
@@ -1005,8 +1012,82 @@ if macos_resource:
             "calls_per_task": 5,
         },
     }
-combined_comparison = combine_comparisons(functional_methods, version_comparison, macos_comparison)
+linux_resource_profiles = None
+linux_comparison = None
+resource_metrics = None
+resource_metrics_source = None
+if args.linux_resource_profiles:
+    assert not macos_resource and not official_resource, "use one current resource cohort"
+    linux_summary = summarize_linux_profiles(args.linux_resource_profiles)
+    validate_linux_summary(linux_summary, resource_builds)
+    public_bytes = (clean(json.dumps(linux_summary, ensure_ascii=False, indent=2)) + "\n").encode()
+    url = "data/candidates/linux-resource-profiles.json"
+    public_candidate_files[url] = public_bytes
+    linux_public_summary = json.loads(public_bytes)
+    linux_resource_profiles = {
+        "configurations": linux_public_summary["configurations"],
+        "receipt": linux_public_summary["receipt"],
+        "evidence": {"url": url, "sha256": sha(public_bytes), "bytes": len(public_bytes)},
+    }
+    public_candidate_files["reproduction/run_linux_resource_profiles.py"] = (
+        args.linux_resource_profiles / "orchestrator.py"
+    ).read_bytes()
+    original_bytes = (clean(json.dumps(resource_comparison, indent=2)) + "\n").encode()
+    original_url = "data/candidates/version-resource-measurements.json"
+    public_candidate_files[original_url] = original_bytes
+    resource_metrics_source = {
+        "url": original_url,
+        "sha256": sha(original_bytes),
+        "bytes": len(original_bytes),
+    }
+    resource_metrics = {}
+    for method in functional_methods:
+        method_id = method["id"]
+        if method_id in linux_summary["configurations"]:
+            resource_metrics[method_id] = linux_summary["configurations"][method_id]["metrics"]
+        else:
+            resource_metrics[method_id] = {
+                scope: {
+                    metric: {**stat, "p50": stat["median"], "sum": stat["mean"] * stat["n"]}
+                    for metric, stat in resource_comparison["memory"][method_id][scope].items()
+                    if metric in {"pss_peak_mib", "cpu_time_ms"}
+                }
+                for scope in ("all_predeclared_calls", "frozen_historical_common_pass_calls")
+            }
+    linux_rows = []
+    for method in functional_methods:
+        method_id = method["id"]
+        if method_id not in linux_summary["configurations"]:
+            continue
+        config = linux_summary["configurations"][method_id]
+        metric = config["metrics"]["frozen_historical_common_pass_calls"]
+        linux_rows.append(
+            {
+                "id": method_id,
+                "label": method["label"],
+                "label_en": method["label_en"],
+                "short_label": method["label"].removeprefix("Moli "),
+                "short_label_en": method["label_en"].removeprefix("Moli "),
+                "functional_binary_sha256": method["moli_sha256"],
+                "resource_binary_sha256": config["build"]["sha256"],
+                "passed_cases": method["final_passed_cases"],
+                "total_cases": 372,
+                "success_rate_pct": method["final_passed_cases"] / 372 * 100,
+                "pss_mib": metric["pss_peak_mib"]["p50"],
+                "cpu_ms": metric["cpu_time_ms"]["mean"],
+                "platform": "Linux",
+                "memory_kind": "PSS",
+            }
+        )
+    linux_comparison = {"configurations": linux_rows}
+combined_comparison = combine_comparisons(
+    functional_methods, version_comparison, linux_comparison or macos_comparison
+)
 public = {
+    "linux_resource_profiles": linux_resource_profiles,
+    "linux_comparison": linux_comparison,
+    "resource_metrics": resource_metrics,
+    "resource_metrics_source": resource_metrics_source,
     "combined_comparison": combined_comparison,
     "fixed_case_outcomes": [
         {

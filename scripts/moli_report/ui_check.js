@@ -19,6 +19,9 @@ const fs = require("fs");
 const model = JSON.parse(
   fs.readFileSync(path.join(site, "data/model.json"), "utf8"),
 );
+const expectedMetricGroups =
+  new Set(model.combined_comparison.configurations.map((row) => row.platform))
+    .size * 2;
 const successId = model.cases.find(
   (c) => c.on_passes === model.protocol.k_runs,
 ).id;
@@ -128,10 +131,16 @@ async function fixedMetrics(page) {
       }
       return groups;
     });
-  if (Object.keys(groups).length !== 12) throw Error("macOS metric coverage");
+  if (Object.keys(groups).length !== 12)
+    throw Error("resource metric coverage");
   for (let cells of Object.values(groups)) {
-    if (cells.length !== fixedIds.length)
-      throw Error("macOS participant coverage");
+    if (
+      cells.length !==
+      (model.resource_metrics
+        ? model.functional_methods.length
+        : fixedIds.length)
+    )
+      throw Error("resource participant coverage");
     let min = Math.min(...cells.map((x) => x.value)),
       unique = cells.filter((x) => x.value === min).length === 1;
     for (let cell of cells)
@@ -196,12 +205,16 @@ async function run() {
             if (route === "method") {
               await page.locator(".mermaid svg").waitFor({ timeout: 10000 });
             }
-            if (["home", "guide"].includes(route) && model.macos_resource)
+            if (
+              ["home", "guide"].includes(route) &&
+              (model.macos_resource || model.linux_resource_profiles)
+            )
               await fixedMetrics(page);
             if (route === "home") {
               await caseMetric(page);
               let n = await metrics(page);
-              if (n !== 4) throw Error("missing grouped resource metrics");
+              if (n !== expectedMetricGroups)
+                throw Error("missing grouped resource metrics");
               let chart = page.locator(".summary-chart img");
               if (
                 (await chart.count()) !== 1 ||
@@ -324,7 +337,7 @@ async function run() {
     await page.reload();
     await ready(page);
     let baseline = await metrics(page);
-    if (baseline !== 4) throw Error("metric coverage");
+    if (baseline !== expectedMetricGroups) throw Error("metric coverage");
     let cell = page.locator(".winner[data-combined-metric]").first();
     await cell.evaluate((el) => el.classList.remove("winner"));
     let wrongRejected = false;
@@ -356,7 +369,7 @@ async function run() {
     if (!shiftedRejected) throw Error("wrong-highlight negative control");
     await page.reload();
     await ready(page);
-    let tied = page.locator("[data-combined-metric]").first();
+    let tied = page.locator(".winner[data-combined-metric]").first();
     await tied.evaluate((el) => {
       let other = [...document.querySelectorAll("[data-combined-metric]")].find(
         (x) =>
@@ -523,11 +536,18 @@ async function run() {
       )
         throw Error("fixed case explorer coverage");
     }
-    if (model.resource_matrix) {
+    const resourceEvidence =
+      model.linux_resource_profiles || model.resource_matrix;
+    if (resourceEvidence) {
       for (const entry of urls) {
         for (const [route, target] of [
-          ["guide", model.resource_matrix.evidence.url],
-          ["reproduce", "reproduction/run_resource_matrix.py"],
+          ["guide", resourceEvidence.evidence.url],
+          [
+            "reproduce",
+            model.linux_resource_profiles
+              ? "reproduction/run_linux_resource_profiles.py"
+              : "reproduction/run_resource_matrix.py",
+          ],
         ]) {
           await page.goto(entry + "#page=" + route);
           await ready(page);
@@ -547,8 +567,9 @@ async function run() {
           if (route === "guide") {
             const matrix = JSON.parse(raw);
             if (
+              !model.linux_resource_profiles &&
               matrix.calls.length !==
-              model.resource_matrix.receipt.physical_calls
+                model.resource_matrix.receipt.physical_calls
             )
               throw Error("resource matrix call coverage");
             for (const id of Object.keys(model.resource_builds))
@@ -570,7 +591,7 @@ async function run() {
         route_theme_viewport_checks: checked,
         negative_controls: 6,
         evidence_flows:
-          (fixedPass && fixedFail ? 6 : 4) + (model.resource_matrix ? 4 : 0),
+          (fixedPass && fixedFail ? 6 : 4) + (resourceEvidence ? 4 : 0),
         result: "pass",
       }),
     );

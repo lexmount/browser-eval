@@ -186,6 +186,58 @@ for (const lang of ["zh", "en"]) {
   );
 }
 
+const linuxModel = {
+  ...sevenModel,
+  resource_metrics_source: {
+    url: "data/earlier-versions.json",
+    sha256: "b".repeat(64),
+  },
+  resource_metrics: Object.fromEntries(
+    sevenIds.map((id, i) => [
+      id,
+      Object.fromEntries(
+        [
+          ["all_predeclared_calls", 2785],
+          ["frozen_historical_common_pass_calls", 1045],
+        ].map(([scope, n]) => [
+          scope,
+          { pss_peak_mib: stat(n, 100 + i * 10), cpu_time_ms: stat(n, 50 - i) },
+        ]),
+      ),
+    ]),
+  ),
+  linux_resource_profiles: {
+    evidence: { url: "data/linux.json", sha256: "a".repeat(64) },
+  },
+};
+for (const lang of ["zh", "en"]) {
+  const html = render(linuxModel, lang, "candidateResourceSection()");
+  resourceHighlights(html);
+  assert.deepEqual(
+    [...html.matchAll(/data-resource-method="([^"]+)"/g)].map((m) => m[1]),
+    [...sevenIds, ...sevenIds],
+  );
+  assert.ok(html.includes("+60.00%"));
+  assert.ok(html.includes("-12.00%"));
+  assert.ok(!html.includes("RSS"));
+  assert.ok(html.includes("PSS"));
+  assert.throws(() => resourceHighlights(html.replace("num winner", "num")));
+  assert.throws(() =>
+    resourceHighlights(
+      html.replace(
+        'class="num " data-resource-metric',
+        'class="num winner" data-resource-metric',
+      ),
+    ),
+  );
+  const summary = render(linuxModel, lang, "functionalMethodSummary()");
+  assert.ok(
+    !summary.includes(
+      lang === "zh" ? "执行环境不同" : "incompatible execution",
+    ),
+  );
+}
+
 if (site) {
   const measured = JSON.parse(
     fs.readFileSync(path.join(site, "data/model.json"), "utf8"),
@@ -205,7 +257,7 @@ if (site) {
       );
       assert.ok(!html.includes("undefined"));
     }
-    if (measured.macos_resource) {
+    if (measured.macos_resource || measured.linux_resource_profiles) {
       for (let page of ["home()", "guidePage()"]) {
         const html = render(measured, lang, page);
         resourceHighlights(html);

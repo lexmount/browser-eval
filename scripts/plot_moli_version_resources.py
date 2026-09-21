@@ -18,11 +18,18 @@ COLORS = ("#239b68", "#d1841e", "#7652c7", "#2775c9", "#c54f79", "#4c8793", "#9a
 COLOR_RE = re.compile(r"#[0-9a-fA-F]{6}")
 
 
-def combine_comparisons(methods: list[dict], historical: dict, macos: dict | None) -> dict:
+def combine_comparisons(methods: list[dict], historical: dict, current: dict | None) -> dict:
     """Keep registry order and baseline while separating unlike resource measurements."""
     sources = {row["id"]: (row, "Linux", "PSS") for row in historical["configurations"]}
     sources.update(
-        {row["id"]: (row, "macOS", "RSS") for row in (macos or {}).get("configurations", [])}
+        {
+            row["id"]: (
+                row,
+                row.get("platform", "macOS"),
+                row.get("memory_kind", "RSS"),
+            )
+            for row in (current or {}).get("configurations", [])
+        }
     )
     baseline = sources[historical["baseline"]][0]
     rows = []
@@ -37,10 +44,16 @@ def combine_comparisons(methods: list[dict], historical: dict, macos: dict | Non
             platform=platform,
             memory_kind=memory_kind,
             memory_mib=source[f"{memory_kind.lower()}_mib"],
-            memory_change_pct=source["pss_change_pct"] if platform == "Linux" else None,
-            cpu_change_pct=source["cpu_change_pct"] if platform == "Linux" else None,
+            memory_change_pct=(source["pss_mib"] / baseline["pss_mib"] - 1) * 100
+            if platform == "Linux" and memory_kind == "PSS"
+            else None,
+            cpu_change_pct=(source["cpu_ms"] / baseline["cpu_ms"] - 1) * 100
+            if platform == "Linux"
+            else None,
             color=COLORS[index % len(COLORS)],
         )
+        if memory_kind == "PSS":
+            row["pss_change_pct"] = row["memory_change_pct"]
         row["success_change_pp"] = row["success_rate_pct"] - baseline["success_rate_pct"]
         rows.append(row)
     return {
@@ -171,14 +184,17 @@ def render_chart(
             "on": "on",
         },
     }[language]
-    if "memory" in metrics:
+    mixed = len({(row.get("platform"), row.get("memory_kind")) for row in rows}) > 1
+    labelled = all("success_change_pp" in row for row in rows)
+    if "memory" in metrics and not mixed:
+        text["memory"] = text[rows[0].get("memory_kind", "PSS").lower()]
+    if "memory" in metrics and mixed:
         text["subtitle"] = (
             text["subtitle"]
             .replace("越靠左资源消耗越低", "不同平台资源分别解释")
             .replace("farther left is lower", "platform-specific resources")
         )
     width = 1420 if len(metrics) == 2 else 820
-    mixed = any(row.get("platform") for row in rows)
     separate_builds = {
         row["id"]
         for row in rows
@@ -186,7 +202,7 @@ def render_chart(
         and row.get("resource_binary_sha256")
         and row["functional_binary_sha256"] != row["resource_binary_sha256"]
     }
-    note_height = (48 if mixed else 0) + (24 if separate_builds else 0)
+    note_height = (24 if labelled else 0) + (24 if mixed else 0) + (24 if separate_builds else 0)
     height = 700 + 30 * len(rows) + note_height
     left, right, top, bottom = 105, 55, 145, 115 + 30 * len(rows)
     gap = 90
@@ -274,19 +290,21 @@ def render_chart(
                 f'text-anchor="middle">{value:.1f}</text>'
             )
         plotted: list[tuple[float, float]] = []
+        for row in rows:
+            px = _scale(float(row[key]), low, high, x0, x1)
+            py = _scale(float(row["success_rate_pct"]), 0, y_max, chart_bottom, top)
+            for dx, dy in offsets:
+                candidate = (px + dx, py + dy)
+                if all(math.hypot(candidate[0] - x, candidate[1] - y) >= 27 for x, y in plotted):
+                    break
+            plotted.append(candidate)
         markers = []
+        annotations = []
+        label_boxes = []
         for row_index, row in enumerate(rows, 1):
             exact_x = _scale(float(row[key]), low, high, x0, x1)
             exact_y = _scale(float(row["success_rate_pct"]), 0, y_max, chart_bottom, top)
-            x, y = exact_x, exact_y
-            for dx, dy in offsets:
-                candidate = (exact_x + dx, exact_y + dy)
-                if all(
-                    math.hypot(candidate[0] - px, candidate[1] - py) >= 27 for px, py in plotted
-                ):
-                    x, y = candidate
-                    break
-            plotted.append((x, y))
+            x, y = plotted[row_index - 1]
             color = row_colors[row["id"]]
             number = row_index
             if (x, y) != (exact_x, exact_y):
@@ -308,6 +326,51 @@ def render_chart(
                 f'<text x="{x:.1f}" y="{y + 5:.1f}" text-anchor="middle" '
                 f'style="font-size:12px;font-weight:750;fill:#fff">{number}</text>'
             )
+            if labelled:
+                name = (
+                    row["label" if language == "zh" else "label_en"]
+                    .removeprefix("Moli ")
+                    .split(" · ")[0]
+                )
+                if row["id"].endswith("_on"):
+                    name += " ✦"
+                if row["id"] in separate_builds:
+                    name += " †"
+                delta = row[change_key]
+                change = "—" if delta is None else f"{float(delta):+.2f}%"
+                detail = f"{row['success_change_pp']:+.2f} pp / {change}"
+                box_w, box_h = 182, 46
+                # Place readable labels near the true data point, avoiding previous labels.
+                candidates = []
+                for dy in (-58, -112, -166, 22, 76, 130):
+                    for dx in (-box_w / 2, 18, -box_w - 18):
+                        bx = min(max(exact_x + dx, x0 + 4), x1 - box_w - 4)
+                        by = min(max(exact_y + dy, top + 6), chart_bottom - box_h - 6)
+                        overlap = sum(
+                            max(0, min(bx + box_w + 8, px + pw) - max(bx - 8, px))
+                            * max(0, min(by + box_h + 8, py + ph) - max(by - 8, py))
+                            for px, py, pw, ph in label_boxes
+                            + [(x - 20, y - 20, 40, 40) for x, y in plotted]
+                        )
+                        distance = math.hypot(bx + box_w / 2 - exact_x, by + box_h / 2 - exact_y)
+                        candidates.append((overlap * 1000 + distance, bx, by))
+                _, bx, by = min(candidates)
+                label_boxes.append((bx, by, box_w, box_h))
+                anchor_x = min(max(exact_x, bx), bx + box_w)
+                anchor_y = min(max(exact_y, by), by + box_h)
+                annotations.append(
+                    f'<g data-point-label="{html.escape(str(row["id"]), quote=True)}" '
+                    f'data-panel="{metric}">'
+                    f'<line x1="{exact_x:.1f}" y1="{exact_y:.1f}" x2="{anchor_x:.1f}" '
+                    f'y2="{anchor_y:.1f}" stroke="{color}" stroke-width="1"/>'
+                    f'<rect x="{bx:.1f}" y="{by:.1f}" width="{box_w}" height="{box_h}" '
+                    'rx="5" fill="#fff" fill-opacity="0.94"/>'
+                    f'<text x="{bx + 7:.1f}" y="{by + 18:.1f}" class="point-label">'
+                    f"{html.escape(name)}</text>"
+                    f'<text x="{bx + 7:.1f}" y="{by + 36:.1f}" style="font-size:12px" '
+                    f'class="muted">{html.escape(detail)}</text></g>'
+                )
+        parts.extend(annotations)
         parts.extend(markers)
     legend_y = chart_bottom + 82
     for index, row in enumerate(rows):
@@ -316,22 +379,28 @@ def render_chart(
         if language == "en":
             label_key += "_en"
         row_label = row[label_key]
+        if labelled:
+            row_label = row_label.removeprefix("Moli ").split(" · ")[0]
+            if row["id"].endswith("_on"):
+                row_label += " ✦"
         if row["id"] in separate_builds:
             row_label += " †"
         fields = [
             f"{int(float(row['passed_cases']))}/{total_cases} "
             f"({float(row['success_rate_pct']):.1f}%)"
         ]
-        if mixed:
-            fields.append(
-                f"{row['success_change_pp']:+.2f} " + ("百分点" if language == "zh" else "pp")
-            )
         for metric in metrics:
             _, key, change_key, unit = specs[metric]
             change = row[change_key]
             delta = f"{float(change):+.2f}%" if change is not None else "—"
-            prefix = f"{row['platform']} {row['memory_kind']} " if metric == "memory" else ""
-            fields.append(f"{prefix}{float(row[key]):.2f} {unit} ({delta})")
+            prefix = (
+                f"{row['platform']} {row['memory_kind']} "
+                if mixed and metric == "memory"
+                else ""
+            )
+            fields.append(
+                f"{prefix}{float(row[key]):.2f} {unit}" + ("" if labelled else f" ({delta})")
+            )
         y = legend_y + index * 30
         parts.append(f'<circle cx="55" cy="{y - 5}" r="8" fill="{color}"/>')
         parts.append(
@@ -343,19 +412,24 @@ def render_chart(
             f"{html.escape(row_label + ': ' + ' · '.join(fields))}</text>"
         )
     notes = []
-    if mixed:
+    if labelled:
         notes = (
             [
-                "基线：1.1.4 关闭 layout；成功率变化用百分点表示。圆形：Linux；菱形：macOS。",
-                "PSS 与 RSS、不同平台 CPU 不直接比较；跨平台资源变化不计算（—）。",
+                "点旁：方法名；通过率变化（pp）/ 资源变化（%）。"
+                "✦ 开启 layout；其余关闭。基线：1.1.4 关闭。",
             ]
             if language == "zh"
             else [
-                "Baseline: 1.1.4 layout off; success changes in pp. "
-                "Circles: Linux; diamonds: macOS.",
-                "PSS vs. RSS and cross-platform CPU are not directly comparable; "
-                "resource changes: —.",
+                "Labels: method; success change (pp) / resource change (%). "
+                "✦ Layout on; otherwise off. Baseline: 1.1.4 off.",
             ]
+        )
+    if mixed:
+        notes.append(
+            "圆形：Docker Linux（PSS）；菱形：原生 macOS（RSS）。不同执行环境不计算资源涨幅（—）。"
+            if language == "zh"
+            else "Circles: Docker Linux (PSS); diamonds: native macOS (RSS). "
+            "Resource changes across environments: —."
         )
     if separate_builds:
         notes.append(
