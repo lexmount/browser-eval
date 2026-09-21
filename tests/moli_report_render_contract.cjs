@@ -139,11 +139,27 @@ if (site) {
     fs.readFileSync(path.join(site, "data/model.json"), "utf8"),
   );
   for (let lang of ["zh", "en"]) {
+    for (let page of ["home()", "guidePage()", "methodPage()", "reviewPage()"]) {
+      const html = render(measured, lang, page);
+      const prose = html.replace(/<[^>]+>/g, " ");
+      assert.ok(!/历史|补测|Historical|historical|Corrected-contract/.test(prose), page);
+      assert.ok(!html.includes("undefined"));
+    }
     if (measured.macos_resource) {
       for (let page of ["home()", "guidePage()"]) {
         const html = render(measured, lang, page);
         resourceHighlights(html);
-        assert.ok(html.includes("moli-macos-success-resources-"));
+        assert.ok(html.includes("moli-all-success-resources-"));
+        assert.equal((html.match(/data-combined-chart/g) || []).length, 1);
+        assert.equal(
+          (html.match(/data-functional-method=/g) || []).length,
+          measured.functional_methods.length,
+        );
+        if (page === "home()") {
+          assert.ok(!html.includes("version-summary-table"));
+          assert.ok(!html.includes("core-table"));
+          assert.ok(html.includes('class="resource-disclosure"'));
+        }
       }
     }
     for (let relation of render(measured, lang, "fixedRelations()"))

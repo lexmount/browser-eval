@@ -18,7 +18,7 @@ BENCH_ROOT = pathlib.Path(
 )
 sys.path.insert(0, str(BENCH_ROOT))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-from plot_moli_version_resources import render_chart  # noqa: E402
+from plot_moli_version_resources import combine_comparisons, render_chart  # noqa: E402
 from runner.resources import duration_calibration  # noqa: E402
 
 RUNS = ROOT / "runs/moli-1.1.8-failures-linux"
@@ -723,6 +723,9 @@ functional_methods = [
         "extra_physical_calls": 0,
     },
 ]
+for method in functional_methods:
+    method["moli_sha256"] = version_protocol["configs"][method["id"]]["sha256"]
+    method["physical_calls"] = 3 if method["id"] == "114_off" else 1116
 fixed_candidates = {}
 fixed_case_data = {c["id"]: {"id": c["id"], "title": c["title"], "methods": {}} for c in cases}
 public_candidate_files = {}
@@ -964,7 +967,9 @@ if macos_resource:
             "calls_per_task": 5,
         },
     }
+combined_comparison = combine_comparisons(functional_methods, version_comparison, macos_comparison)
 public = {
+    "combined_comparison": combined_comparison,
     "fixed_case_outcomes": [
         {
             "id": c["id"],
@@ -1075,6 +1080,16 @@ for relative, data in public_candidate_files.items():
     json.dumps(version_comparison, ensure_ascii=False, indent=2) + "\n"
 )
 (OUT / "assets").mkdir()
+(OUT / "data/combined-comparison.json").write_text(
+    json.dumps(combined_comparison, ensure_ascii=False, indent=2) + "\n"
+)
+for language in ("zh", "en"):
+    render_chart(
+        combined_comparison,
+        OUT / f"assets/moli-all-success-resources-{language}.svg",
+        ("memory", "cpu"),
+        language,
+    )
 if macos_comparison:
     for language in ("zh", "en"):
         render_chart(

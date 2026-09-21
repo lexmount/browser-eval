@@ -10,7 +10,11 @@ import re
 import shutil
 import statistics
 import subprocess
+import sys
 import tempfile
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+from plot_moli_version_resources import combine_comparisons, render_chart  # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -141,6 +145,20 @@ def validate(model, site, check_files=True):
         if not near(row["cpu_change_pct"], (row["cpu_ms"] / baseline["cpu_ms"] - 1) * 100):
             fail("version CPU change")
     functional_methods = model.get("functional_methods") or []
+    combined = model.get("combined_comparison")
+    if combined != combine_comparisons(
+        functional_methods, comparison, model.get("macos_comparison")
+    ):
+        fail("combined chart registry, baseline or measurement mismatch")
+    if json.loads((site / "data/combined-comparison.json").read_text()) != combined:
+        fail("combined chart data target")
+    with tempfile.TemporaryDirectory() as directory:
+        for language in ("zh", "en"):
+            expected = pathlib.Path(directory) / f"{language}.svg"
+            render_chart(combined, expected, ("memory", "cpu"), language)
+            actual = site / f"assets/moli-all-success-resources-{language}.svg"
+            if not actual.is_file() or actual.read_bytes() != expected.read_bytes():
+                fail("combined chart does not match measured registry")
     candidates = model.get("fixed_candidates") or {}
     expected_ids = ["114_off", "118_off", "118_on"] + list(candidates)
     if [row.get("id") for row in functional_methods] != expected_ids:
@@ -701,6 +719,9 @@ rejected(lambda m: m["cases"][0].update(off_fail_details=["wrong error"]))
 rejected(lambda m: m["task_cost"][0].update(off_duration_ms=0))
 rejected(lambda m: m["version_comparison"]["configurations"][1].update(pss_change_pct=99))
 rejected(lambda m: m["version_comparison"]["configurations"][2].update(success_rate_pct=0))
+rejected(lambda m: m["combined_comparison"].update(baseline="119_official_on"))
+rejected(lambda m: m["combined_comparison"]["configurations"].reverse())
+rejected(lambda m: m["combined_comparison"]["configurations"][-1].update(cpu_change_pct=0))
 rejected(lambda m: m["functional_contract_correction"].update(calls=17))
 rejected(lambda m: m["functional_contract_correction"].update(success_rates_changed=True))
 if model.get("fixed_candidates"):

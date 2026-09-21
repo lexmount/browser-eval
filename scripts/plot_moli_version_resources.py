@@ -18,6 +18,38 @@ COLORS = ("#239b68", "#d1841e", "#7652c7", "#2775c9", "#c54f79", "#4c8793")
 COLOR_RE = re.compile(r"#[0-9a-fA-F]{6}")
 
 
+def combine_comparisons(methods: list[dict], historical: dict, macos: dict | None) -> dict:
+    """Keep registry order and baseline while separating unlike resource measurements."""
+    sources = {row["id"]: (row, "Linux", "PSS") for row in historical["configurations"]}
+    sources.update(
+        {row["id"]: (row, "macOS", "RSS") for row in (macos or {}).get("configurations", [])}
+    )
+    baseline = sources[historical["baseline"]][0]
+    rows = []
+    for index, method in enumerate(methods):
+        source, platform, memory_kind = sources[method["id"]]
+        row = dict(source)
+        row.update(
+            label=method["label"],
+            label_en=method["label_en"],
+            passed_cases=method["final_passed_cases"],
+            success_rate_pct=method["final_passed_cases"] / source["total_cases"] * 100,
+            platform=platform,
+            memory_kind=memory_kind,
+            memory_mib=source[f"{memory_kind.lower()}_mib"],
+            memory_change_pct=source["pss_change_pct"] if platform == "Linux" else None,
+            cpu_change_pct=source["cpu_change_pct"] if platform == "Linux" else None,
+            color=COLORS[index % len(COLORS)],
+        )
+        row["success_change_pp"] = row["success_rate_pct"] - baseline["success_rate_pct"]
+        rows.append(row)
+    return {
+        "baseline": historical["baseline"],
+        "configurations": rows,
+        "resource_population": historical["resource_population"],
+    }
+
+
 def _scale(value: float, lower: float, upper: float, start: float, end: float) -> float:
     if upper == lower:
         return (start + end) / 2
@@ -30,9 +62,9 @@ def render_chart(
     if (
         not metrics
         or len(metrics) > 2
-        or any(metric not in {"pss", "rss", "cpu"} for metric in metrics)
+        or any(metric not in {"pss", "rss", "memory", "cpu"} for metric in metrics)
     ):
-        raise ValueError("metrics must contain one or two of pss, rss and cpu")
+        raise ValueError("metrics must contain one or two of pss, rss, memory and cpu")
     if len(set(metrics)) != len(metrics):
         raise ValueError("metrics must not contain duplicates")
     if language not in {"zh", "en"}:
@@ -48,6 +80,7 @@ def render_chart(
         "pss": {"pss_mib", "pss_change_pct"},
         "rss": {"rss_mib", "rss_change_pct"},
         "cpu": {"cpu_ms", "cpu_change_pct"},
+        "memory": {"memory_mib", "memory_change_pct"},
     }
     for metric in metrics:
         required_row_fields.update(metric_fields[metric])
@@ -68,6 +101,12 @@ def render_chart(
         for metric in metrics:
             numeric_fields.update(metric_fields[metric])
         for field in sorted(numeric_fields):
+            if (
+                row.get("platform") == "macOS"
+                and field.endswith("_change_pct")
+                and row[field] is None
+            ):
+                continue
             try:
                 number = float(row[field])
             except (TypeError, ValueError) as exc:
@@ -110,6 +149,7 @@ def render_chart(
             "y": f"{total_cases} 题通过率（每题 3 次全部通过）",
             "pss": "峰值进程树 PSS 中位数（MiB）",
             "rss": "峰值进程树 RSS 中位数（MiB）",
+            "memory": "峰值内存中位数（MiB；Linux PSS / macOS RSS）",
             "cpu": "单次执行平均 CPU 时间（ms）",
             "off": "关闭",
             "on": "开启",
@@ -125,17 +165,25 @@ def render_chart(
             "y": f"Success rate on {total_cases} cases (all 3 attempts pass)",
             "pss": "Median peak process-tree PSS (MiB)",
             "rss": "Median peak process-tree RSS (MiB)",
+            "memory": "Median peak memory (MiB; Linux PSS / macOS RSS)",
             "cpu": "Mean CPU time per execution (ms)",
             "off": "off",
             "on": "on",
         },
     }[language]
+    if "memory" in metrics:
+        text["subtitle"] = (
+            text["subtitle"]
+            .replace("越靠左资源消耗越低", "不同平台资源分别解释")
+            .replace("farther left is lower", "platform-specific resources")
+        )
     width = 1420 if len(metrics) == 2 else 820
-    height = 700 + 30 * len(rows)
+    mixed = any(row.get("platform") for row in rows)
+    height = 700 + 30 * len(rows) + (48 if mixed else 0)
     left, right, top, bottom = 105, 55, 145, 115 + 30 * len(rows)
     gap = 90
     panel_width = (width - left - right - gap * (len(metrics) - 1)) / len(metrics)
-    chart_bottom = height - bottom
+    chart_bottom = height - bottom - (48 if mixed else 0)
     max_success_rate = max(float(row["success_rate_pct"]) for row in rows)
     y_max = max(20, math.ceil(max_success_rate / 20) * 20)
     described_metrics = {
@@ -158,10 +206,10 @@ def render_chart(
         '<rect width="100%" height="100%" fill="#ffffff"/>',
         '<style>text{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",'
         '"Noto Sans SC",sans-serif;fill:#17212f}.muted{fill:#657386}'
-        '.grid{stroke:#dfe5eb;stroke-width:1}.axis{stroke:#8b98a6;stroke-width:1.2}'
-        '.label{font-size:17px}.tick{font-size:14px}'
-        '.point-label{font-size:15px;font-weight:650}.title{font-size:29px;font-weight:760}'
-        '.subtitle{font-size:16px}.legend{font-size:14px}</style>',
+        ".grid{stroke:#dfe5eb;stroke-width:1}.axis{stroke:#8b98a6;stroke-width:1.2}"
+        ".label{font-size:17px}.tick{font-size:14px}"
+        ".point-label{font-size:15px;font-weight:650}.title{font-size:29px;font-weight:760}"
+        ".subtitle{font-size:16px}.legend{font-size:14px}</style>",
         f'<text class="title" x="55" y="48">{html.escape(text["title"])}</text>',
         f'<text class="subtitle muted" x="55" y="78">{html.escape(text["subtitle"])}</text>',
     ]
@@ -182,12 +230,13 @@ def render_chart(
         "pss": (text["pss"], "pss_mib", "pss_change_pct", "MiB"),
         "rss": (text["rss"], "rss_mib", "rss_change_pct", "MiB"),
         "cpu": (text["cpu"], "cpu_ms", "cpu_change_pct", "ms"),
+        "memory": (text["memory"], "memory_mib", "memory_change_pct", "MiB"),
     }
     row_colors = {
         row["id"]: str(row.get("color") or COLORS[index % len(COLORS)])
         for index, row in enumerate(rows)
     }
-    offsets = ((0, 0), (-18, -18), (18, 18), (-18, 18), (18, -18), (0, -24), (0, 24))
+    offsets = ((0, 0), (-24, -24), (24, 24), (-24, 24), (24, -24), (0, -32), (0, 32))
     for panel, metric in enumerate(metrics):
         title, key, change_key, unit = specs[metric]
         x0 = left + panel * (panel_width + gap)
@@ -217,6 +266,7 @@ def render_chart(
                 f'text-anchor="middle">{value:.1f}</text>'
             )
         plotted: list[tuple[float, float]] = []
+        markers = []
         for row_index, row in enumerate(rows, 1):
             exact_x = _scale(float(row[key]), low, high, x0, x1)
             exact_y = _scale(float(row["success_rate_pct"]), 0, y_max, chart_bottom, top)
@@ -239,14 +289,18 @@ def render_chart(
                 parts.append(
                     f'<circle cx="{exact_x:.1f}" cy="{exact_y:.1f}" r="3" fill="{color}"/>'
                 )
-            parts.append(
-                f'<circle cx="{x:.1f}" cy="{y:.1f}" r="12" fill="{color}" '
-                'stroke="#fff" stroke-width="3"/>'
+            shape = (
+                f'<path d="M {x:.1f} {y - 15:.1f} L {x + 15:.1f} {y:.1f} '
+                f'L {x:.1f} {y + 15:.1f} L {x - 15:.1f} {y:.1f} Z" '
+                if mixed and row["platform"] == "macOS"
+                else f'<circle cx="{x:.1f}" cy="{y:.1f}" r="12" '
             )
-            parts.append(
+            markers.append(shape + f'fill="{color}" stroke="#fff" stroke-width="3"/>')
+            markers.append(
                 f'<text x="{x:.1f}" y="{y + 5:.1f}" text-anchor="middle" '
                 f'style="font-size:12px;font-weight:750;fill:#fff">{number}</text>'
             )
+        parts.extend(markers)
     legend_y = chart_bottom + 82
     for index, row in enumerate(rows):
         color = row_colors[row["id"]]
@@ -258,9 +312,16 @@ def render_chart(
             f"{int(float(row['passed_cases']))}/{total_cases} "
             f"({float(row['success_rate_pct']):.1f}%)"
         ]
+        if mixed:
+            fields.append(
+                f"{row['success_change_pp']:+.2f} " + ("百分点" if language == "zh" else "pp")
+            )
         for metric in metrics:
             _, key, change_key, unit = specs[metric]
-            fields.append(f"{float(row[key]):.2f} {unit} ({float(row[change_key]):+.2f}%)")
+            change = row[change_key]
+            delta = f"{float(change):+.2f}%" if change is not None else "—"
+            prefix = f"{row['platform']} {row['memory_kind']} " if metric == "memory" else ""
+            fields.append(f"{prefix}{float(row[key]):.2f} {unit} ({delta})")
         y = legend_y + index * 30
         parts.append(f'<circle cx="55" cy="{y - 5}" r="8" fill="{color}"/>')
         parts.append(
@@ -269,8 +330,27 @@ def render_chart(
         )
         parts.append(
             f'<text class="legend" x="72" y="{y}">'
-            f'{html.escape(row_label + ": " + " · ".join(fields))}</text>'
+            f"{html.escape(row_label + ': ' + ' · '.join(fields))}</text>"
         )
+    if mixed:
+        notes = (
+            [
+                "基线：1.1.4 关闭 layout；成功率变化用百分点表示。圆形：Linux；菱形：macOS。",
+                "PSS 与 RSS、不同平台 CPU 不直接比较；跨平台资源变化不计算（—）。",
+            ]
+            if language == "zh"
+            else [
+                "Baseline: 1.1.4 layout off; success changes in pp. "
+                "Circles: Linux; diamonds: macOS.",
+                "PSS vs. RSS and cross-platform CPU are not directly comparable; "
+                "resource changes: —.",
+            ]
+        )
+        for i, note in enumerate(notes):
+            parts.append(
+                f'<text class="legend muted" x="55" y="{height - 42 + i * 22}">'
+                f"{html.escape(note)}</text>"
+            )
     parts.append("</svg>")
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text("\n".join(parts) + "\n")

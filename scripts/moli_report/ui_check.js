@@ -61,88 +61,58 @@ for (const id of new Set([fixedPass, fixedFail].filter(Boolean)))
   routes.push("fixed/" + id);
 async function metrics(page) {
   return page.evaluate(() => {
-    let groups = new Map();
-    for (let cell of document.querySelectorAll("[data-metric]")) {
-      let key = cell.getAttribute("data-metric"),
-        list = groups.get(key) || [];
-      list.push(cell);
-      groups.set(key, list);
+    const groups = new Map();
+    for (const cell of document.querySelectorAll("[data-combined-metric]")) {
+      const key = cell.dataset.combinedMetric + ":" + cell.dataset.platform;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(cell);
     }
-    for (let [key, cells] of groups) {
-      if (cells.length !== 2) throw Error("metric pair " + key);
-      let values = cells.map((c) => Number(c.dataset.sort));
-      if (values.some((v) => !Number.isFinite(v)))
-        throw Error("numeric value " + key);
-      let direction = cells[0].dataset.metricDirection;
-      let expected =
-        values[0] === values[1]
-          ? -1
-          : direction === "max"
-            ? values[0] > values[1]
-              ? 0
-              : 1
-            : values[0] < values[1]
-              ? 0
-              : 1;
-      let marked = cells
-        .map((c, i) => (c.classList.contains("winner") ? i : -1))
-        .filter((i) => i >= 0);
-      if (expected < 0 && marked.length)
-        throw Error("tied metric highlighted " + key);
-      if (expected >= 0 && (marked.length !== 1 || marked[0] !== expected))
-        throw Error("wrong or missing highlight " + key);
+    for (const [key, cells] of groups) {
+      const values = cells.map((c) => Number(c.dataset.value));
+      const min = Math.min(...values);
+      const unique = values.filter((v) => v === min).length === 1;
+      for (const cell of cells)
+        if (
+          cell.classList.contains("winner") !==
+          (unique && Number(cell.dataset.value) === min)
+        )
+          throw Error("resource highlight " + key);
     }
     return groups.size;
   });
 }
 async function caseMetric(page) {
-  let cells = await page
-    .locator(".core-table tbody tr")
-    .first()
-    .locator("[data-metric]")
-    .evaluateAll((xs) =>
-      xs.map((x) => ({ value: Number(x.dataset.sort), text: x.textContent })),
+  const cells = await page
+    .locator("[data-functional-method]")
+    .evaluateAll((rows) =>
+      rows.map((row) => ({
+        id: row.dataset.functionalMethod,
+        value: Number(
+          row.querySelector("[data-functional-final]").dataset.functionalFinal,
+        ),
+        text: row.querySelector("[data-functional-final]").textContent,
+        winner: row
+          .querySelector("[data-functional-final]")
+          .classList.contains("winner"),
+      })),
     );
+  const max = Math.max(
+    ...model.functional_methods.map((m) => m.final_passed_cases),
+  );
+  const unique =
+    model.functional_methods.filter((m) => m.final_passed_cases === max)
+      .length === 1;
   if (
-    cells.length !== 2 ||
+    cells.length !== model.functional_methods.length ||
     cells.some(
       (c, i) =>
-        c.value !== model.case_outcomes[i ? "on" : "off"] ||
-        !c.text.includes("/" + model.task_count + " "),
+        c.id !== model.functional_methods[i].id ||
+        c.value !== model.functional_methods[i].final_passed_cases ||
+        !c.text.includes("/" + model.task_count + " ") ||
+        c.winner !== (unique && c.value === max),
     )
   )
-    throw Error("primary metric must count cases");
-}
-async function versionMetrics(page) {
-  let groups = await page
-    .locator("[data-version-metric]")
-    .evaluateAll((cells) => {
-      let out = {};
-      for (let cell of cells) {
-        let key = cell.dataset.versionMetric;
-        (out[key] ??= []).push({
-          value: Number(cell.dataset.value),
-          direction: cell.dataset.direction,
-          winner: cell.classList.contains("winner"),
-        });
-      }
-      return out;
-    });
-  for (let [key, cells] of Object.entries(groups)) {
-    if (cells.length !== 3) throw Error("version metric cardinality " + key);
-    let values = cells.map((cell) => cell.value),
-      target =
-        cells[0].direction === "max"
-          ? Math.max(...values)
-          : Math.min(...values),
-      unique = values.filter((value) => value === target).length === 1,
-      winners = cells.filter((cell) => cell.winner);
-    if (unique && (winners.length !== 1 || winners[0].value !== target))
-      throw Error("version metric highlight " + key);
-    if (!unique && winners.length)
-      throw Error("tied version metric highlighted " + key);
-  }
-  return Object.keys(groups).length;
+    throw Error("functional registry or verdict mismatch");
 }
 async function fixedMetrics(page) {
   let groups = await page
@@ -231,18 +201,10 @@ async function run() {
             if (route === "home") {
               await caseMetric(page);
               let n = await metrics(page);
-              if (n < 8) throw Error("missing comparison metrics");
-              if ((await versionMetrics(page)) !== 3)
-                throw Error("missing version summary metrics");
-              if (
-                (await page
-                  .locator(".version-summary-table tbody tr")
-                  .count()) !== 3
-              )
-                throw Error("version summary rows");
+              if (n !== 4) throw Error("missing grouped resource metrics");
               let chart = page.locator(".summary-chart img");
               if (
-                (await chart.count()) !== (model.macos_resource ? 2 : 1) ||
+                (await chart.count()) !== 1 ||
                 !(await chart.evaluateAll((imgs) =>
                   imgs.every((img) => img.complete && img.naturalWidth > 0),
                 ))
@@ -327,10 +289,10 @@ async function run() {
     await ready(page);
     await caseMetric(page);
     await page
-      .locator(".core-table [data-metric]")
+      .locator("[data-functional-final]")
       .first()
       .evaluate((el) => {
-        el.dataset.sort = "580";
+        el.dataset.functionalFinal = "580";
         el.textContent = "580/750";
       });
     let caseRejected = false;
@@ -343,8 +305,8 @@ async function run() {
     await page.reload();
     await ready(page);
     let baseline = await metrics(page);
-    if (baseline < 8) throw Error("metric coverage");
-    let cell = page.locator(".winner[data-metric]").first();
+    if (baseline !== 4) throw Error("metric coverage");
+    let cell = page.locator(".winner[data-combined-metric]").first();
     await cell.evaluate((el) => el.classList.remove("winner"));
     let wrongRejected = false;
     try {
@@ -356,9 +318,12 @@ async function run() {
     await page.reload();
     await ready(page);
     await page.evaluate(() => {
-      let old = document.querySelector(".winner[data-metric]");
-      let other = [...document.querySelectorAll("[data-metric]")].find(
-        (x) => x !== old && x.dataset.metric === old.dataset.metric,
+      let old = document.querySelector(".winner[data-combined-metric]");
+      let other = [...document.querySelectorAll("[data-combined-metric]")].find(
+        (x) =>
+          x !== old &&
+          x.dataset.combinedMetric === old.dataset.combinedMetric &&
+          x.dataset.platform === old.dataset.platform,
       );
       old.classList.remove("winner");
       other.classList.add("winner");
@@ -372,12 +337,15 @@ async function run() {
     if (!shiftedRejected) throw Error("wrong-highlight negative control");
     await page.reload();
     await ready(page);
-    let tied = page.locator("[data-metric]").first();
+    let tied = page.locator("[data-combined-metric]").first();
     await tied.evaluate((el) => {
-      let other = [...document.querySelectorAll("[data-metric]")].find(
-        (x) => x !== el && x.dataset.metric === el.dataset.metric,
+      let other = [...document.querySelectorAll("[data-combined-metric]")].find(
+        (x) =>
+          x !== el &&
+          x.dataset.combinedMetric === el.dataset.combinedMetric &&
+          x.dataset.platform === el.dataset.platform,
       );
-      other.dataset.sort = el.dataset.sort;
+      other.dataset.value = el.dataset.value;
     });
     let tieRejected = false;
     try {
@@ -388,12 +356,12 @@ async function run() {
     if (!tieRejected) throw Error("tie-highlight negative control");
     await page.reload();
     await ready(page);
-    await versionMetrics(page);
-    let versionWinner = page.locator(".winner[data-version-metric]").first();
+    await caseMetric(page);
+    let versionWinner = page.locator(".winner[data-functional-final]").first();
     await versionWinner.evaluate((el) => el.classList.remove("winner"));
     let versionRejected = false;
     try {
-      await versionMetrics(page);
+      await caseMetric(page);
     } catch {
       versionRejected = true;
     }

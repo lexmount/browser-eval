@@ -1,4 +1,5 @@
 import importlib.util
+import math
 import re
 import tempfile
 import unittest
@@ -13,6 +14,51 @@ SPEC.loader.exec_module(MODULE)
 
 
 class MoliVersionResourceChartTests(unittest.TestCase):
+    def test_near_identical_methods_keep_both_numbered_markers_visible(self):
+        self.data["configurations"][1]["pss_mib"] = self.data["configurations"][0]["pss_mib"]
+        self.data["configurations"][1]["success_rate_pct"] = 0.01
+        svg = self.render(("pss",))
+        points = re.findall(r'<circle cx="([^"]+)" cy="([^"]+)" r="12"', svg)
+        self.assertEqual(len(points), 3)
+        a, b = [(float(x), float(y)) for x, y in points[:2]]
+        self.assertGreaterEqual(math.dist(a, b), 27)
+        self.assertIn('stroke-width="1.5"', svg)
+
+    def test_combined_chart_keeps_registry_order_and_baseline_without_cross_platform_deltas(self):
+        historical = {**self.data, "baseline": "114_off"}
+        mac = {"configurations": []}
+        for i, passed in enumerate((1, 360, 255)):
+            row = dict(self.data["configurations"][0])
+            row.update(
+                id=f"mac_{i}",
+                passed_cases=passed,
+                rss_mib=100 + i,
+                label=f"mac {i}",
+                label_en=f"mac {i}",
+            )
+            mac["configurations"].append(row)
+        sources = historical["configurations"] + mac["configurations"]
+        methods = [{**r, "final_passed_cases": r["passed_cases"]} for r in sources]
+        combined = MODULE.combine_comparisons(methods, historical, mac)
+        self.assertEqual(combined["baseline"], "114_off")
+        self.assertEqual([r["id"] for r in combined["configurations"]], [r["id"] for r in methods])
+        for row in combined["configurations"][3:]:
+            self.assertIsNone(row["memory_change_pct"])
+            self.assertIsNone(row["cpu_change_pct"])
+            self.assertEqual(row["memory_kind"], "RSS")
+        self.assertAlmostEqual(combined["configurations"][4]["success_change_pp"], 360 / 372 * 100)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "all.svg"
+            for language in ("zh", "en"):
+                MODULE.render_chart(combined, output, ("memory", "cpu"), language)
+                text = output.read_text()
+                self.assertIn("Linux PSS", text)
+                self.assertIn("macOS RSS", text)
+                self.assertIn("360/372", text)
+                self.assertIn("+96.77", text)
+                self.assertIn("(—)", text)
+                self.assertEqual(text.count('<path d="M '), 6)
+
     def setUp(self):
         self.data = {
             "resource_population": {
