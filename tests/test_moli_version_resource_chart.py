@@ -58,6 +58,13 @@ class MoliVersionResourceChartTests(unittest.TestCase):
                 self.assertIn("+96.77", text)
                 self.assertIn("(—)", text)
                 self.assertEqual(text.count('<path d="M '), 6)
+            for metric in ("memory", "cpu"):
+                MODULE.render_chart(combined, output, (metric,), "en")
+                text = output.read_text()
+                self.assertIn("360/372", text)
+                self.assertEqual(text.count('<path d="M '), 3)
+                self.assertIn("MiB" if metric == "memory" else "ms", text)
+                self.assertNotIn("21.41 ms" if metric == "memory" else "77.22 MiB", text)
 
     def setUp(self):
         self.data = {
@@ -152,6 +159,11 @@ class MoliVersionResourceChartTests(unittest.TestCase):
                 self.assertNotIn("PSS", svg)
                 self.assertIn("80.54 MiB (+4.30%)", svg)
                 self.assertIn("21.66 ms (+1.16%)", svg)
+                memory_only = self.render(("rss",), language)
+                self.assertIn("RSS", memory_only)
+                self.assertIn("80.54 MiB (+4.30%)", memory_only)
+                self.assertNotIn("PSS", memory_only)
+                self.assertNotIn("CPU", memory_only)
 
     def test_duplicate_metric_selection_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "duplicates"):

@@ -1253,6 +1253,57 @@
   ],
   "releases": [
     {
+      "id": "2026-09-21-moli-six-configuration-report",
+      "date": "2026-09-21",
+      "date_timezone": "Asia/Shanghai",
+      "comparison_kinds": [
+        "moli_historical_failure_retest",
+        "moli_process_tree_resource_profile"
+      ],
+      "title": "统一六配置图表与正式报告结构",
+      "summary": "六种固定配置按同一顺序呈现在总表和一张汇总图中，以 1.1.4 关闭布局为成功率基线。首页保留核心结果和可展开的资源明细；方法、解读与证据页面统一描述完整评测。通过率与资源测量值不变。",
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "gdwtSGOel0va",
+        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
+        "version": "ver_faf65d03d9394f83be59555df833bd65"
+      },
+      "changes": [
+        [
+          "六配置图表",
+          "分开的版本图与六配置总表不对应。",
+          "图表使用同一配置注册表、顺序和编号，统一显示成功率、内存与 CPU；重叠标记用引线区分。",
+          "成功率变化用百分点；Linux PSS 与 macOS RSS 分别标注，跨平台资源变化不计算。"
+        ],
+        [
+          "报告结构",
+          "首页存在重复汇总，解释分散在版本分块中。",
+          "总览、方法、解读和证据页面按读者问题组织；移除过程性叙述，资源明细可展开。",
+          "结果和分母不变。1.1.4 的直接验证与继承范围保留在方法和覆盖说明中。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Unify the six-configuration chart and reader-facing report",
+          "summary": "The same six fixed configurations appear in registry order in one summary table and chart, using 1.1.4 layout off as the success baseline. The home page keeps core results and expandable resources; method, interpretation and evidence pages describe the complete evaluation. Success and resource measurements are unchanged.",
+          "changes": [
+            [
+              "Six-configuration chart",
+              "Separate version charts did not align with the six-method table.",
+              "Use the same registry, order and numbering for success, memory and CPU; leader lines separate overlapping markers.",
+              "Success changes use percentage points. Linux PSS and macOS RSS stay explicitly labeled; cross-platform resource changes are not calculated."
+            ],
+            [
+              "Report structure",
+              "The home page repeated summaries and split interpretation into version additions.",
+              "Organize overview, method, interpretation and evidence by reader questions, remove execution narration and make resources expandable.",
+              "Results and denominators are unchanged. The method and coverage sections retain 1.1.4 direct and inherited evidence scope."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "2026-09-21-moli-119-fixed-layout-comparison",
       "date_timezone": "Asia/Shanghai",
       "comparison_kinds": [
