@@ -134,15 +134,75 @@ console.log(
   "PASS: bilingual fixed methods, gains/losses, resource extrema, ties, percentages and negative controls",
 );
 
+// Adding layout-off 1.1.9 must preserve registry order everywhere and retain
+// both release resource configurations alongside the patched configurations.
+const sevenIds = [
+  "114_off",
+  "118_off",
+  "118_on",
+  "119_official_off",
+  "119_official_on",
+  "119_off",
+  "119_on",
+];
+const sevenModel = {
+  ...model,
+  functional_methods: sevenIds.map((id) => ({
+    ...(methods.find((row) => row.id === id) || methods[0]),
+    id,
+    label: id,
+    label_en: id,
+    policy: id.endsWith("_off") ? "fixed_off" : "fixed_on",
+  })),
+  official_resource: resource(
+    { off: config(90, 9), on: config(120, 15) },
+    "official_release",
+  ),
+};
+for (const lang of ["zh", "en"]) {
+  const ids = Array.from(
+    render(sevenModel, lang, "macosResourceMethods().map(row => row.id)"),
+  );
+  assert.deepEqual(ids, sevenIds.slice(3));
+  const html = render(sevenModel, lang, "functionalMethodSummary()");
+  assert.deepEqual(
+    [...html.matchAll(/data-functional-method="([^"]+)"/g)].map(
+      (match) => match[1],
+    ),
+    sevenIds,
+  );
+  const resources = render(sevenModel, lang, "candidateResourceSection()");
+  resourceHighlights(resources);
+  assert.ok(resources.includes("+11.11%")); // patched off vs. release off
+  assert.ok(
+    resources.includes(
+      lang === "zh" ? "相同 layout 设置" : "same layout setting",
+    ),
+  );
+  assert.ok(
+    render(sevenModel, lang, "combinedSummaryChart()").includes(
+      lang === "zh" ? "7 种固定配置" : "7 fixed configurations",
+    ),
+  );
+}
+
 if (site) {
   const measured = JSON.parse(
     fs.readFileSync(path.join(site, "data/model.json"), "utf8"),
   );
   for (let lang of ["zh", "en"]) {
-    for (let page of ["home()", "guidePage()", "methodPage()", "reviewPage()"]) {
+    for (let page of [
+      "home()",
+      "guidePage()",
+      "methodPage()",
+      "reviewPage()",
+    ]) {
       const html = render(measured, lang, page);
       const prose = html.replace(/<[^>]+>/g, " ");
-      assert.ok(!/历史|补测|Historical|historical|Corrected-contract/.test(prose), page);
+      assert.ok(
+        !/历史|补测|Historical|historical|Corrected-contract/.test(prose),
+        page,
+      );
       assert.ok(!html.includes("undefined"));
     }
     if (measured.macos_resource) {

@@ -13,13 +13,19 @@ uv run --frozen python scripts/moli_report/build.py \
   --output /tmp/moli-report-release \
   --fixed-summary 119_off /path/to/patched-off-summary.json \
   --fixed-summary 119_on /path/to/patched-on-summary.json \
+  --fixed-summary 119_official_off /path/to/official-off-summary.json \
   --fixed-summary 119_official_on /path/to/official-on-summary.json \
   --macos-resource-summary /path/to/patched-resource-summary.json \
-  --official-resource-summary /path/to/official-resource-summary.json
+  --official-resource-summary /path/to/official-resource-summary.json \
+  --resource-matrix /path/to/certified-resource-matrix
 uv run --frozen python scripts/moli_report/verify.py --site /tmp/moli-report-release --release
 ```
 
 Choose a new output directory for each build; the builder does not delete existing output. `--vendor-dir` selects the retained Mermaid distribution and license. Their hashes are checked before copying. The default location is the original report asset directory under the data home; no vendored executable or measured output is committed here.
+
+The four macOS resource configurations are release builds bound by `resource_builds` in `evaluation/moli/current-report.json`. Their functional evidence binds its own binary identity: the patched functional results and resource measurements use different builds. Do not relabel retained functional outcomes as a new build's measured accuracy.
+
+`run_resource_matrix.py --protocol /path/to/frozen-protocol.json --output /path/to/new-evidence-directory` executes the unchanged Lexbench driver and sampler. Freeze the 557 task definitions, fixtures, runner files, four binary hashes, five attempts, sampling interval and selected round before execution. It grants one call globally at a time, rotates method order for each task attempt, and retains the complete physical-call sequence. Summarize each pair of layouts with the Lexbench resource summarizer. The report builder requires the protocol, physical calls and completion receipt, checks all 11,140 calls against saved result rows, and rejects partial or unrelated summaries. Keep these files outside Git.
 
 The static verifier checks score/evidence bindings, resource populations and percentages, fixed-case log links, charts, bilingual rendering, unique resource extrema and negative controls. It invokes the same JavaScript rendering checks used by `tests/test_moli_report_render_contract.py`.
 
@@ -27,4 +33,4 @@ For full release verification, serve the build with a static HTTP server and run
 
 Publish only after the complete requested method matrix and release checks pass, using the existing bound Artifact Site target and its freshly read remote version. Preserve binary identity, raw trials and previous report versions.
 
-Package the validated tree with `uv run --frozen python scripts/moli_report/pack.py --source /tmp/moli-report-release --output /tmp/moli-report-package`. The packer retains both English entry paths and checks bytes through the bundle manifest; it refuses symlinks, hidden paths, and existing destinations. Run the browser release check against this packaged directory before uploading.
+Package the validated tree with `uv run --frozen python scripts/moli_report/pack.py --source /tmp/moli-report-release --output /tmp/moli-report-package`. The packer retains both English entry paths and checks bytes through the bundle manifest; it refuses symlinks, hidden paths, and existing destinations. Run the browser release check against this packaged directory before uploading: serve the package at `MOLI_REPORT_ORIGIN`, while `MOLI_REPORT_SITE` points to the validated unpacked tree that supplies the reference model. The browser checks include the complete resource matrix and frozen measurement-script evidence in both languages.

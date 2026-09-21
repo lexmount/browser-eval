@@ -523,12 +523,54 @@ async function run() {
       )
         throw Error("fixed case explorer coverage");
     }
+    if (model.resource_matrix) {
+      for (const entry of urls) {
+        for (const [route, target] of [
+          ["guide", model.resource_matrix.evidence.url],
+          ["reproduce", "reproduction/run_resource_matrix.py"],
+        ]) {
+          await page.goto(entry + "#page=" + route);
+          await ready(page);
+          const button = page.locator(`[data-evidence="${target}"]`);
+          const expected = await button.getAttribute("data-sha");
+          await button.click();
+          const evidence = page.locator("dialog[open] #evidence-text");
+          await evidence.waitFor();
+          const raw = await evidence.textContent();
+          if (
+            require("node:crypto")
+              .createHash("sha256")
+              .update(raw)
+              .digest("hex") !== expected
+          )
+            throw Error("resource evidence payload hash mismatch");
+          if (route === "guide") {
+            const matrix = JSON.parse(raw);
+            if (
+              matrix.calls.length !==
+              model.resource_matrix.receipt.physical_calls
+            )
+              throw Error("resource matrix call coverage");
+            for (const id of Object.keys(model.resource_builds))
+              if (matrix.measurements[id].length !== 2785)
+                throw Error("resource measurement coverage");
+          }
+          await page.keyboard.press("Escape");
+          if (
+            (await page.locator("dialog[open]").count()) ||
+            !(await button.evaluate((el) => document.activeElement === el))
+          )
+            throw Error("resource evidence keyboard/focus flow");
+        }
+      }
+    }
     await page.close();
     console.log(
       JSON.stringify({
         route_theme_viewport_checks: checked,
         negative_controls: 6,
-        evidence_flows: fixedPass && fixedFail ? 6 : 4,
+        evidence_flows:
+          (fixedPass && fixedFail ? 6 : 4) + (model.resource_matrix ? 4 : 0),
         result: "pass",
       }),
     );

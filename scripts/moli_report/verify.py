@@ -14,6 +14,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+from moli_report.resource_evidence import validate_matrix  # noqa: E402
 from plot_moli_version_resources import combine_comparisons, render_chart  # noqa: E402
 
 parser = argparse.ArgumentParser()
@@ -169,7 +170,7 @@ def validate(model, site, check_files=True):
     ] != [(0, 1, 371), (1, 372, 0), (255, 372, 0)]:
         fail("fixed functional methods")
     for method_id, candidate in candidates.items():
-        if method_id not in {"119_off", "119_on", "119_official_on"}:
+        if method_id not in {"119_off", "119_on", "119_official_off", "119_official_on"}:
             fail("unknown fixed method")
         info = candidate.get("evidence") or {}
         path = site / info.get("url", "")
@@ -185,7 +186,7 @@ def validate(model, site, check_files=True):
         summary = json.loads(path.read_text())
         if summary.get("schema") != "lexbench_moli_fixed_layout_summary/1":
             fail("fixed summary schema")
-        layout = "off" if method_id == "119_off" else "on"
+        layout = "off" if method_id.endswith("_off") else "on"
         if summary.get("layout") != layout:
             fail("fixed layout identity")
         for field in ("population", "outcomes", "binary", "sources"):
@@ -297,7 +298,11 @@ def validate(model, site, check_files=True):
             or quality.get("publishable") is not True
         ):
             fail("resource quality")
-        layouts = ["on"] if official else ["off", "on"]
+        layouts = [
+            layout
+            for layout in ("off", "on")
+            if (f"119_official_{layout}" if official else f"119_{layout}") in candidates
+        ]
         method = summary.get("method") or {}
         if (
             method.get("configurations") != [f"layout_{x}" for x in layouts]
@@ -311,11 +316,10 @@ def validate(model, site, check_files=True):
         if set(configs) != set(layouts):
             fail("resource configurations")
         for layout, config in configs.items():
-            method_id = "119_official_on" if official else f"119_{layout}"
-            if (
-                summary["candidate"]["binary_sha256"]
-                != candidates[method_id]["binary"]["moli_sha256"]
-            ):
+            method_id = f"119_official_{layout}" if official else f"119_{layout}"
+            if summary["candidate"]["binary_sha256"] != model.get("resource_builds", {}).get(
+                method_id, {}
+            ).get("sha256"):
                 fail("resource binary")
             if (
                 config.get("layout") != layout
@@ -338,7 +342,7 @@ def validate(model, site, check_files=True):
                         fail("metric finite values")
                     if not near(stats["sum"], stats["mean"] * n):
                         fail("metric mean/sum agreement")
-        if not official:
+        if set(configs) == {"off", "on"}:
             for name in ("all_predeclared_calls", "frozen_historical_common_pass_calls"):
                 change_values = summary["comparisons"][name]
                 for metric, stat, key in [
@@ -352,6 +356,42 @@ def validate(model, site, check_files=True):
                     ) * 100
                     if not near(change_values[key], expected):
                         fail("resource percentage change")
+    if model.get("macos_resource") or model.get("official_resource"):
+        matrix = model.get("resource_matrix") or {}
+        info = matrix.get("evidence") or {}
+        relative = pathlib.PurePosixPath(info.get("url", ""))
+        if (
+            relative.is_absolute()
+            or ".." in relative.parts
+            or not str(relative).startswith("data/candidates/")
+        ):
+            fail("unsafe resource matrix evidence")
+        path = site / relative
+        if (
+            path.is_symlink()
+            or not path.is_file()
+            or digest(path) != info.get("sha256")
+            or path.stat().st_size != info.get("bytes")
+        ):
+            fail("resource matrix evidence integrity")
+        bundle = json.loads(path.read_text())
+        if bundle["receipt"] != matrix.get("receipt"):
+            fail("resource matrix receipt identity")
+        source = site / "reproduction/run_resource_matrix.py"
+        if (
+            source.is_symlink()
+            or not source.is_file()
+            or digest(source) != bundle["receipt"]["orchestrator_sha256"]
+        ):
+            fail("resource orchestrator source identity")
+        validate_matrix(
+            bundle,
+            model["resource_builds"],
+            {
+                "official": model["official_resource"]["summary"],
+                "patched": model["macos_resource"]["summary"],
+            },
+        )
     chart = model.get("macos_comparison")
     if model.get("macos_resource"):
         if not chart or {r["id"] for r in chart["configurations"]} != set(candidates):
@@ -360,10 +400,17 @@ def validate(model, site, check_files=True):
         for row in chart["configurations"]:
             resource = (
                 model["official_resource"]
-                if row["id"] == "119_official_on"
+                if row["id"].startswith("119_official_")
                 else model["macos_resource"]
             )
-            layout = "off" if row["id"] == "119_off" else "on"
+            layout = "off" if row["id"].endswith("_off") else "on"
+            if (
+                row.get("functional_binary_sha256")
+                != candidates[row["id"]]["binary"]["moli_sha256"]
+                or row.get("resource_binary_sha256")
+                != resource["summary"]["candidate"]["binary_sha256"]
+            ):
+                fail("chart functional/resource build identity")
             metrics = resource["summary"]["configurations"][layout]["metrics"][
                 "frozen_historical_common_pass_calls"
             ]
@@ -676,6 +723,8 @@ if args.release:
         pathlib.Path(__file__).resolve().parents[2] / "evaluation/moli/current-report.json"
     )
     profile = json.loads(profile_path.read_text())
+    if model.get("resource_builds") != profile.get("resource_builds"):
+        fail("release resource binaries differ from the bound identities")
     if [row["id"] for row in model["functional_methods"]] != profile["method_ids"]:
         fail("release requires the complete bound functional method matrix")
     if (
@@ -724,6 +773,10 @@ rejected(lambda m: m["combined_comparison"]["configurations"].reverse())
 rejected(lambda m: m["combined_comparison"]["configurations"][-1].update(cpu_change_pct=0))
 rejected(lambda m: m["functional_contract_correction"].update(calls=17))
 rejected(lambda m: m["functional_contract_correction"].update(success_rates_changed=True))
+if model.get("resource_matrix"):
+    rejected(lambda m: m.pop("resource_matrix"))
+    rejected(lambda m: m["resource_matrix"]["receipt"].update(physical_calls=11139))
+    rejected(lambda m: m["resource_builds"]["119_on"].update(sha256="0" * 64))
 if model.get("fixed_candidates"):
     rejected(
         lambda m: m["functional_methods"][-1].update(

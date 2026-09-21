@@ -68,7 +68,7 @@ const D = {
     observed: "观测到的采样最大值",
     filterFail: "涉及失败或变化",
     methodIntro:
-      "题目与验收预先冻结，两种浏览器配置只相差是否启用 --layout。默认模式使用低成本模拟几何；--layout 启用按需真实布局，并非持续绘制。可选图片等资源抓取由另一开关控制，未改变。1.1.9 的每个固定配置各测一轮资源，557 题各五次；372 题成功率另测，每题三次。",
+      "题目与验收预先冻结，同一构建的两种布局配置只相差是否启用 --layout。默认模式使用低成本模拟几何；--layout 启用按需真实布局，并非持续绘制。可选图片等资源抓取由另一开关控制，未改变。1.1.9 的每个固定配置各测一轮资源，557 题各五次；372 题成功率另测，每题三次。",
     analysisIntro: "按相同任务与执行次数配对。成功变化和资源代价分开解读。",
     guideIntro:
       "从 Agent 使用者角度，先看能否完成，再看失败等待和完成任务的资源。",
@@ -143,7 +143,7 @@ const D = {
     observed: "Observed sampled maximum",
     filterFail: "Failures or changes",
     methodIntro:
-      "Task contracts were frozen in advance. The browser configurations differ only in Moli's --layout flag. The default uses low-cost mock geometry; --layout enables real geometry on demand rather than continuous painting. Optional image and media fetching is a separate control and was unchanged. Each fixed 1.1.9 configuration has one 557-task resource run with five calls per task. Success is measured separately on 372 cases with three calls per task.",
+      "Task contracts were frozen in advance. Within each build, the two layout configurations differ only in Moli's --layout flag. The default uses low-cost mock geometry; --layout enables real geometry on demand rather than continuous painting. Optional image and media fetching is a separate control and was unchanged. Each fixed 1.1.9 configuration has one 557-task resource run with five calls per task. Success is measured separately on 372 cases with three calls per task.",
     analysisIntro:
       "Pair the same task and attempt. Outcome changes and resource costs are interpreted separately.",
     guideIntro:
@@ -246,8 +246,8 @@ const datasetIntro = () =>
     : `All 372 cases selected from Moli 0.1.1 failures are included across 15 driver types, without selection based on current outcomes.`;
 const reproduceIntro = () =>
   zh
-    ? `所选用例测试和独立的 557 题资源实验均为诊断实验，不计入完整 1,928 题正式分数。1.1.8 直接覆盖 372 题；1.1.4 使用唯一差异候选题验证。三种固定配置使用 Moli 1.1.4 / 1.1.8 Linux aarch64 发行版；1.1.9 修复版使用固定的 macOS arm64 debug 二进制，官方版使用发布资产；每个版本的功能与资源实验绑定同一 SHA-256。`
-    : `The selected-case evaluation and separate 557-task resource experiment are diagnostic and excluded from the formal 1,928-case score. Moli 1.1.8 directly covers all 372 cases; Moli 1.1.4 uses the sole differential candidate. The three fixed configurations use Moli 1.1.4 / 1.1.8 Linux aarch64 releases. Patched Moli 1.1.9 uses the frozen macOS arm64 debug binary; official 1.1.9 uses the release asset. Functional and resource runs are bound to the same binary hash for each build.`;
+    ? `所选用例测试和独立的 557 题资源实验均为诊断实验，不计入完整 1,928 题正式分数。1.1.8 直接覆盖 372 题；1.1.4 使用唯一差异候选题验证。三种固定配置使用 Moli 1.1.4 / 1.1.8 Linux aarch64 发行版；1.1.9 的资源实验均使用 macOS arm64 release 构建。修复版成功率沿用 87c87e95 构建，资源使用 f315ff26 release；两类实验分别绑定二进制 SHA-256。`
+    : `The selected-case evaluation and separate 557-task resource experiment are diagnostic and excluded from the formal 1,928-case score. Moli 1.1.8 directly covers all 372 cases; Moli 1.1.4 uses the sole differential candidate. The three fixed configurations use Moli 1.1.4 / 1.1.8 Linux aarch64 releases. All 1.1.9 resource configurations use macOS arm64 release builds. Patched functional outcomes retain build 87c87e95; resources use release build f315ff26. The two experiments bind their binary hashes separately.`;
 const ms = (v) =>
   v === null || v === undefined
     ? "—"
@@ -349,27 +349,24 @@ function functionalMethodSummary() {
 }
 function combinedSummaryChart() {
   const chart = `moli-all-success-resources-${zh ? "zh" : "en"}.svg`;
-  return `<figure class="summary-chart" data-combined-chart><img src="${base}assets/${chart}" alt="${esc(zh ? "六种固定配置的成功率与资源，顺序与总表一致，以 1.1.4 关闭布局为基线" : "Six fixed configurations, aligned with the summary table; baseline: 1.1.4 layout off")}"><figcaption>${esc(zh ? "成功率：372 个所选用例，每题 3 次全部通过；资源：独立的 557 题 × 5 次实验，图中使用预先冻结的 209 题、1,045 次样本。成功率变化以 1.1.4 为基线；内存和 CPU 仅在同一平台内计算相对基线的变化。" : "Success: 372 selected cases, all three attempts must pass. Resources: a separate 557-task × 5-call experiment; the plot uses the pre-frozen 209-task / 1,045-call sample. Success changes use 1.1.4 as baseline; memory and CPU changes are calculated only within the baseline platform.")}</figcaption></figure>`;
+  return `<figure class="summary-chart" data-combined-chart><img src="${base}assets/${chart}" alt="${esc(zh ? `${M.functional_methods.length} 种固定配置的成功率与资源，顺序与总表一致，以 1.1.4 关闭布局为基线` : `${M.functional_methods.length} fixed configurations, aligned with the summary table; baseline: 1.1.4 layout off`)}"><figcaption>${esc(zh ? "成功率：372 个所选用例，每题 3 次全部通过；资源：独立的 557 题 × 5 次实验，图中使用预先冻结的 209 题、1,045 次样本。成功率变化以 1.1.4 为基线；内存和 CPU 仅在同一平台内计算相对基线的变化。" : "Success: 372 selected cases, all three attempts must pass. Resources: a separate 557-task × 5-call experiment; the plot uses the pre-frozen 209-task / 1,045-call sample. Success changes use 1.1.4 as baseline; memory and CPU changes are calculated only within the baseline platform.")}</figcaption></figure>`;
 }
 function macosResourceMethods() {
   let result = [];
-  for (let [key, layouts] of [
-    ["macos_resource", ["off", "on"]],
-    ["official_resource", ["on"]],
-  ]) {
+  for (let method of M.functional_methods) {
+    if (!method.id.startsWith("119_")) continue;
+    const key = method.id.startsWith("119_official_")
+      ? "official_resource"
+      : "macos_resource";
+    const layout = method.policy === "fixed_off" ? "off" : "on";
     let resource = M[key];
-    if (!resource) continue;
-    for (let layout of layouts) {
-      let id =
-          key === "official_resource" ? "119_official_on" : `119_${layout}`,
-        method = M.functional_methods.find((row) => row.id === id);
-      result.push({
-        id,
-        label: zh ? method.label : method.label_en,
-        config: resource.summary.configurations[layout],
-        resource,
-      });
-    }
+    if (!resource?.summary.configurations[layout]) continue;
+    result.push({
+      id: method.id,
+      label: zh ? method.label : method.label_en,
+      config: resource.summary.configurations[layout],
+      resource,
+    });
   }
   return result;
 }
@@ -411,8 +408,13 @@ function candidateResourceSection() {
       return winners.length === 1 ? winners[0].label : zh ? "并列" : "Tie";
     };
     let rows = methods.map((item) => {
+      const reference =
+        methods.find(
+          (x) =>
+            x.id === `119_official_${item.id.endsWith("_off") ? "off" : "on"}`,
+        ) || baseline;
       let m = item.config.metrics[scope],
-        b = baseline.config.metrics[scope];
+        b = reference.config.metrics[scope];
       return `<tr data-macos-method="${esc(item.id)}"><td><strong>${esc(item.label)}</strong></td><td class="num">${fmt(calls)}</td>${specs.map(([metric, stat, label, unit]) => `<td class="num ${unique(metric, stat, m[metric][stat]) ? "winner" : ""}" data-resource-metric="${metric}-${stat}" data-population="${scope}" data-value="${m[metric][stat]}">${fmt(m[metric][stat], 2)} ${unit}</td>`).join("")}<td class="num">${signed((m.rss_peak_mib.p50 / b.rss_peak_mib.p50 - 1) * 100, 2)}</td><td class="num">${signed((m.cpu_time_ms.mean / b.cpu_time_ms.mean - 1) * 100, 2)}</td></tr>`;
     });
     return (
@@ -430,21 +432,30 @@ function candidateResourceSection() {
       )
     );
   });
+  const referenceLabel = methods.some((x) => x.id === "119_official_off")
+    ? zh
+      ? "相同 layout 设置的 Moli 1.1.9"
+      : "Moli 1.1.9 with the same layout setting"
+    : baseline.label;
   let intro = zh
-    ? `资源实验与 372 题成功率测试分开：每个配置固定 layout，557 题各执行 5 次。P50 是中位数，P95 是第 95 百分位；每组统计包含同一批成功与失败调用。变化基准：${baseline.label}。macOS 测量进程树 RSS；Linux PSS 另表展示。`
-    : `Resources are measured separately from success on 372 cases: each configuration fixes layout and runs 557 tasks five times. P50 is the median and P95 the 95th percentile; every metric in a scope includes the same passing and failing calls. Change baseline: ${baseline.label}. macOS measures process-tree RSS; Linux PSS is shown separately.`;
+    ? `资源实验与 372 题成功率测试分开：每个配置固定 layout，557 题各执行 5 次。P50 是中位数，P95 是第 95 百分位；每组统计包含同一批成功与失败调用。变化基准：${referenceLabel}。macOS 测量进程树 RSS；Linux PSS 另表展示。`
+    : `Resources are measured separately from success on 372 cases: each configuration fixes layout and runs 557 tasks five times. P50 is the median and P95 the 95th percentile; every metric in a scope includes the same passing and failing calls. Change baseline: ${referenceLabel}. macOS measures process-tree RSS; Linux PSS is shown separately.`;
   let evidence = methods
     .filter((x, i, a) => a.findIndex((y) => y.resource === x.resource) === i)
     .map(
       (x) =>
-        `<button data-evidence="${esc(x.resource.evidence.url)}" data-sha="${esc(x.resource.evidence.sha256)}" data-title="${esc(x.label)}">${esc(x.resource.summary.candidate.profile === "debug" ? (zh ? "修复版资源证据" : "Patched resource evidence") : zh ? "官方版资源证据" : "Official resource evidence")}</button>`,
+        `<button data-evidence="${esc(x.resource.evidence.url)}" data-sha="${esc(x.resource.evidence.sha256)}" data-title="${esc(x.label)}">${esc(!x.id.startsWith("119_official_") ? (zh ? "修复版资源证据" : "Patched resource evidence") : zh ? "1.1.9 资源证据" : "1.1.9 resource evidence")}</button>`,
     )
     .join(" ");
+  if (M.resource_matrix) {
+    const item = M.resource_matrix.evidence;
+    evidence += ` <button data-evidence="${esc(item.url)}" data-sha="${esc(item.sha256)}" data-title="${esc(zh ? "资源对照调用矩阵" : "Matched resource call matrix")}">${esc(zh ? "串行对照与构建证据" : "Serial comparison and build evidence")}</button>`;
+  }
   return section(
     zh ? "Moli 1.1.9 资源统计" : "Moli 1.1.9 resource statistics",
     intro,
     tables.join("") +
-      `<p>${esc(zh ? "修复版使用 debug 构建，官方版使用发布资产。两者资源差异同时包含代码与构建配置差异。CPU 指进程树用户态与内核态时间之和。" : "The patched binary is a debug build; the official build uses the release asset. Their resource differences include both code and build configuration. CPU is the sum of process-tree user and system time.")}</p><div class="panel">${evidence}</div>`,
+      `<p>${esc(zh ? "四组均使用 release 构建，共享同一主机，各自保留独立浏览器进程和采样。任务调用按配置轮换、串行执行，只统计当前配置的进程树。CPU 为用户态与内核态时间之和。" : "All four release configurations share one host and retain separate browser processes and samplers. Task calls run serially in rotating order; each measurement covers only its own process tree. CPU is user plus system time.")}</p><div class="panel">${evidence}</div>`,
   );
 }
 function resourceGroups() {
@@ -606,7 +617,7 @@ function home() {
     section(
       zh ? "如何查看结果" : "Explore the results",
       "",
-      `<p>${esc(zh ? "修复版为 debug 构建，官方版为发布资产。macOS 与 Linux 的资源数值分别解释，不能把跨平台差异归因于代码修复。" : "The patched binary is a debug build; the official binary is a release asset. Interpret macOS and Linux resources separately; cross-platform differences cannot be attributed to the code changes.")}</p><a href="${link("analysis")}">${esc(zh ? "比较新增通过与仍然失败的用例" : "Compare gained passes and remaining failures")}</a> · <a href="${link("guide")}">${esc(T.nav.guide)}</a> · <a href="${link("reproduce")}">${esc(T.nav.reproduce)}</a>`,
+      `<p>${esc(zh ? "资源均为 release 构建；macOS RSS 与 Linux PSS 分开比较。修复版成功率来自 87c87e95，资源来自 f315ff26，构建身份见评测方法。" : "Resources use release builds; macOS RSS and Linux PSS are compared separately. Patched success uses 87c87e95 and resources use f315ff26; see the method page for build identities.")}</p><a href="${link("analysis")}">${esc(zh ? "比较新增通过与仍然失败的用例" : "Compare gained passes and remaining failures")}</a> · <a href="${link("guide")}">${esc(T.nav.guide)}</a> · <a href="${link("reproduce")}">${esc(T.nav.reproduce)}</a>`,
     )
   );
 }
@@ -954,13 +965,13 @@ B --> C["${zh ? "功能：372 题，每题 3 次" : "Functional: 372 cases, thre
 B --> D["${zh ? "资源：557 题，每题 5 次" : "Resources: 557 tasks, five calls each"}"]
 C --> E["${zh ? "三次全部通过才算通过" : "A case passes only when all three attempts pass"}"]
 D --> F["${zh ? "全部调用统计与固定 209 题图表样本" : "All-call statistics and fixed 209-task chart sample"}"]
-E --> G["${zh ? "六配置总表与总图" : "Six-configuration table and chart"}"]
+E --> G["${zh ? "配置总表与总图" : "Configuration table and chart"}"]
 F --> G</pre></div>`,
     ) +
     section(
       zh ? "功能评分与基线" : "Functional scoring and baseline",
       "",
-      `<p>${esc(zh ? "六种配置共用 372 题分母。每题三次执行全部通过运行与验收检查，才记为一个通过用例。1.1.8 的两种布局、修复版 1.1.9 的两种布局和官方 1.1.9 开启布局均覆盖全部 372 题。" : "All six configurations use the same 372-case denominator. A case passes only when execution and acceptance checks pass in all three attempts. Both 1.1.8 layouts, both patched 1.1.9 layouts and official 1.1.9 layout on directly cover all 372 cases.")}</p><p>${esc(zh ? "1.1.4 关闭布局为基线：对 1.1.8 关闭布局唯一通过的候选题实测三次，均失败；其余 371 题沿用共同失败关系。因此表中的 0/372 包含 1 题直接验证和 371 题继承结果，并非对 1.1.4 的完整重测。基线通过率为 0%，通过率变化用百分点表示。" : "Layout-off 1.1.4 is the baseline: the sole candidate passed by layout-off 1.1.8 failed all three direct checks; the other 371 retain the shared-failure relation. Its 0/372 consists of one directly checked case and 371 inherited outcomes, not a complete 1.1.4 rerun. Because baseline success is zero, success changes are expressed in percentage points.")}</p>`,
+      `<p>${esc(zh ? "所有配置共用 372 题分母。每题三次执行全部通过运行与验收检查，才记为一个通过用例。1.1.8 的两种布局、修复版 1.1.9 的两种布局和 1.1.9 的两种布局均覆盖全部 372 题。" : "All configurations use the same 372-case denominator. A case passes only when execution and acceptance checks pass in all three attempts. Both 1.1.8 layouts, both patched 1.1.9 layouts and both 1.1.9 layouts directly cover all 372 cases.")}</p><p>${esc(zh ? "1.1.4 关闭布局为基线：对 1.1.8 关闭布局唯一通过的候选题实测三次，均失败；其余 371 题沿用共同失败关系。因此表中的 0/372 包含 1 题直接验证和 371 题继承结果，并非对 1.1.4 的完整重测。基线通过率为 0%，通过率变化用百分点表示。" : "Layout-off 1.1.4 is the baseline: the sole candidate passed by layout-off 1.1.8 failed all three direct checks; the other 371 retain the shared-failure relation. Its 0/372 consists of one directly checked case and 371 inherited outcomes, not a complete 1.1.4 rerun. Because baseline success is zero, success changes are expressed in percentage points.")}</p>`,
     ) +
     section(
       zh ? "任务来源与适用范围" : "Task selection and scope",
@@ -970,12 +981,12 @@ F --> G</pre></div>`,
     section(
       zh ? "资源测量与可比范围" : "Resource measurement and comparability",
       "",
-      `<p>${esc(zh ? "资源实验单独执行 557 题，每题五次，每种配置共 2,785 次调用。图和总表使用运行前固定的 209 题、1,045 次样本；完整资源表另列全部 557 题。P50 是中位数，P95 是第 95 百分位。" : "Resources use a separate 557-task experiment with five calls per task, or 2,785 calls per configuration. The chart and overview table use 1,045 calls on 209 tasks fixed before execution; detailed resource tables also show all 557 tasks. P50 is the median and P95 the 95th percentile.")}</p><p>${esc(zh ? "1.1.4 / 1.1.8 的资源来自 Linux PSS；1.1.9 来自 macOS RSS。CPU 为进程树用户态与内核态时间之和。跨平台的内存和 CPU 不计算相对 1.1.4 的百分比变化；同平台百分比是样本数值对照。修复版为 debug 构建，官方版为发布资产。" : "Moli 1.1.4 / 1.1.8 resources use Linux PSS; 1.1.9 uses macOS RSS. CPU is process-tree user plus system time. Cross-platform memory and CPU changes relative to 1.1.4 are not calculated; same-platform percentages describe the measured sample. The patched binary is a debug build and the official binary is a release asset.")}</p>`,
+      `<p>${esc(zh ? "资源实验单独执行 557 题，每题五次，每种配置共 2,785 次调用。图和总表使用运行前固定的 209 题、1,045 次样本；完整资源表另列全部 557 题。P50 是中位数，P95 是第 95 百分位。" : "Resources use a separate 557-task experiment with five calls per task, or 2,785 calls per configuration. The chart and overview table use 1,045 calls on 209 tasks fixed before execution; detailed resource tables also show all 557 tasks. P50 is the median and P95 the 95th percentile.")}</p><p>${esc(zh ? "1.1.4 / 1.1.8 的资源来自 Linux PSS；1.1.9 来自 macOS RSS。CPU 为进程树用户态与内核态时间之和。跨平台的内存和 CPU 不计算相对 1.1.4 的百分比变化；同平台百分比是样本数值对照。四组 macOS 资源配置均为 release 构建，使用同一冻结调用矩阵，逐次轮换顺序并串行执行。" : "Moli 1.1.4 / 1.1.8 resources use Linux PSS; 1.1.9 uses macOS RSS. CPU is process-tree user plus system time. Cross-platform memory and CPU changes relative to 1.1.4 are not calculated; same-platform percentages describe the measured sample. All four macOS resource configurations use release builds and one frozen call matrix, executed serially with rotating order.")}</p>`,
     ) +
     section(
       zh ? "执行与证据" : "Execution and evidence",
       "",
-      `<p>${esc(zh ? "使用冻结脚本和单工作进程执行。每个版本的功能与资源调用绑定同一二进制哈希；任务定义、程序判定、标准输出与错误日志可从逐题详情检查。未进行独立人工逐次复核。" : "Frozen scripts run with one worker. Functional and resource calls for each build bind the same binary hash. Task definitions, program verdicts, stdout and error logs are available in task details. No independent per-call human review was performed.")}</p><a href="${link("reproduce")}">${esc(T.nav.reproduce)}</a>`,
+      `<p>${esc(zh ? "资源实验全局同时只执行一次任务调用。修复版功能结果来自 87c87e95 debug 构建，资源来自 f315ff26 release 构建；成功率仅适用于对应的功能构建。任务定义、程序判定、标准输出与错误日志可从逐题详情检查。未进行独立人工逐次复核。" : "The resource experiment executes one task call globally at a time. Patched functional outcomes use the 87c87e95 debug build; resources use the f315ff26 release build. Success applies to the functional build only. Task definitions, program verdicts, stdout and error logs are available in task details. No independent per-call human review was performed.")}</p><a href="${link("reproduce")}">${esc(T.nav.reproduce)}</a>`,
     )
   );
 }
@@ -1026,9 +1037,12 @@ function fixedRelations() {
       [
         "119_official_on",
         "119_on",
-        zh
-          ? "同为开启 layout：修复版与官方版"
-          : "Layout on: patched vs. official",
+        zh ? "同为开启 layout：修复版与 1.1.9" : "Layout on: patched vs. 1.1.9",
+      ],
+      [
+        "119_official_off",
+        "119_official_on",
+        zh ? "1.1.9：开启 layout 的变化" : "1.1.9: enabling layout",
       ],
     ];
   return pairs
@@ -1053,8 +1067,8 @@ function fixedComparisonSection() {
   return section(
     zh ? "布局变化与版本变化" : "Layout changes and version changes",
     zh
-      ? "同一修复版的开关对照用于判断布局变化；固定开启 layout 的官方版与修复版对照用于定位版本间变化。下表保留新增通过和退步，不能只看净增加。"
-      : "Compare layout off/on within the patched build to measure layout changes. Compare the official and patched builds with layout on to locate version differences. Gains and losses are both retained.",
+      ? "同一修复版的开关对照用于判断布局变化；固定开启 layout 的 1.1.9 与修复版对照用于定位版本间变化。下表保留新增通过和退步，不能只看净增加。"
+      : "Compare layout off/on within the patched build to measure layout changes. Compare 1.1.9 and patched 1.1.9 with layout on to locate version differences. Gains and losses are both retained.",
     table(
       [
         zh ? "对照" : "Comparison",
@@ -1266,8 +1280,8 @@ function guidePage() {
     hero(
       T.nav.guide,
       zh
-        ? `修复版开启布局通过 ${patched.final_passed_cases}/${M.task_count} 题，官方版开启布局通过 ${official.final_passed_cases}/${M.task_count} 题。`
-        : `Patched layout on passes ${patched.final_passed_cases}/${M.task_count} cases; official layout on passes ${official.final_passed_cases}/${M.task_count}.`,
+        ? `修复版开启布局通过 ${patched.final_passed_cases}/${M.task_count} 题，1.1.9 开启布局通过 ${official.final_passed_cases}/${M.task_count} 题。`
+        : `Patched layout on passes ${patched.final_passed_cases}/${M.task_count} cases; 1.1.9 layout on passes ${official.final_passed_cases}/${M.task_count}.`,
     ) +
     functionalMethodSummary() +
     combinedSummaryChart() +
@@ -1280,13 +1294,13 @@ function guidePage() {
     section(
       zh ? "如何理解一个通过结果" : "What a passed case means",
       "",
-      `<p>${esc(zh ? "每个任务定义固定操作和验收条件。单次工具返回成功不足以判为用例通过；每次执行必须满足评分器检查，而且三次执行全部通过。" : "Each task defines fixed actions and acceptance conditions. A successful tool response alone is insufficient: the evaluator must accept every execution, and all three attempts must pass.")}</p>${example ? `<p><code>${esc(example.id)}</code> · ${esc(zh ? `官方开启布局 ${example.passes["119_official_on"]}/3，修复版开启布局 ${example.passes["119_on"]}/3。` : `Official layout on: ${example.passes["119_official_on"]}/3; patched layout on: ${example.passes["119_on"]}/3.`)} <a href="${link("fixed/" + example.id)}">${esc(zh ? "检查任务要求、实际输出和评分证据" : "Inspect requirements, actual output and evaluator evidence")}</a></p>` : ""}`,
+      `<p>${esc(zh ? "每个任务定义固定操作和验收条件。单次工具返回成功不足以判为用例通过；每次执行必须满足评分器检查，而且三次执行全部通过。" : "Each task defines fixed actions and acceptance conditions. A successful tool response alone is insufficient: the evaluator must accept every execution, and all three attempts must pass.")}</p>${example ? `<p><code>${esc(example.id)}</code> · ${esc(zh ? `1.1.9 开启布局 ${example.passes["119_official_on"]}/3，修复版开启布局 ${example.passes["119_on"]}/3。` : `1.1.9 layout on: ${example.passes["119_official_on"]}/3; patched layout on: ${example.passes["119_on"]}/3.`)} <a href="${link("fixed/" + example.id)}">${esc(zh ? "检查任务要求、实际输出和评分证据" : "Inspect requirements, actual output and evaluator evidence")}</a></p>` : ""}`,
     ) +
     candidateResourceSection() +
     section(
       zh ? "结论与适用范围" : "Conclusions and scope",
       "",
-      `<p>${esc(zh ? "固定开启布局显著扩大了修复版在这组任务上的通过范围；在相同开启布局设置下，修复版比官方版通过更多任务。资源消耗与任务成功分别判断：修复版 debug 构建的 CPU 和 RSS 更高，不能把这一差异单独归因于代码修复。1.1.4 的验证范围及任务选择条件见评测方法。" : "Fixed layout on substantially expands the patched build's passing coverage on this cohort. Under layout on, the patched build passes more tasks than the official build. Evaluate resources separately from success: the patched debug build uses more CPU and RSS, and that difference cannot be attributed solely to code changes. The method page defines task selection and 1.1.4 coverage.")}</p><a href="${link("method")}">${esc(T.nav.method)}</a>`,
+      `<p>${esc(zh ? "固定开启布局显著扩大了修复版在这组任务上的通过范围；在相同开启布局设置下，修复版比 1.1.9 通过更多任务。资源比较采用 release 构建的同环境测量；修复版功能与资源来自不同构建，两类结论分别适用于对应构建。1.1.4 的验证范围及任务选择条件见评测方法。" : "Fixed layout on substantially expands the patched build's passing coverage on this cohort. Under layout on, the patched build passes more tasks than Moli 1.1.9. The resource comparison uses release builds measured in the same environment. Patched functional and resource results come from different builds, and each conclusion applies to its corresponding build. The method page defines task selection and 1.1.4 coverage.")}</p><a href="${link("method")}">${esc(T.nav.method)}</a>`,
     ) +
     `<details class="resource-disclosure"><summary>${esc(zh ? "1.1.8 的补充资源指标" : "Additional 1.1.8 resource metrics")}</summary>${resourceGroups()}${successfulDuration()}</details>`
   );
@@ -1312,7 +1326,10 @@ function candidateReproductionSection() {
         zh ? "二进制 SHA-256" : "Binary SHA-256",
       ],
       rows,
-    ),
+    ) +
+      (M.resource_matrix
+        ? `<p><button data-evidence="reproduction/run_resource_matrix.py" data-sha="${esc(M.resource_matrix.receipt.orchestrator_sha256)}" data-title="${esc(zh ? "资源测量脚本" : "Resource measurement script")}">${esc(zh ? "查看本次资源测量使用的脚本" : "Inspect the script used for these resource measurements")}</button></p>`
+        : ""),
   );
 }
 function reproducePage() {

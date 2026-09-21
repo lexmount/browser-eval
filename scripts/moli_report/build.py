@@ -18,6 +18,7 @@ BENCH_ROOT = pathlib.Path(
 )
 sys.path.insert(0, str(BENCH_ROOT))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+from moli_report.resource_evidence import load_matrix  # noqa: E402
 from plot_moli_version_resources import combine_comparisons, render_chart  # noqa: E402
 from runner.resources import duration_calibration  # noqa: E402
 
@@ -40,7 +41,14 @@ parser.add_argument(
 )
 parser.add_argument("--macos-resource-summary", type=pathlib.Path)
 parser.add_argument("--official-resource-summary", type=pathlib.Path)
+parser.add_argument("--resource-matrix", type=pathlib.Path)
 args = parser.parse_args()
+report_profile = json.loads(
+    (
+        pathlib.Path(__file__).resolve().parents[2] / "evaluation/moli/current-report.json"
+    ).read_text()
+)
+resource_builds = report_profile.get("resource_builds", {})
 SRC = args.source.resolve()
 OUT = args.output.resolve()
 FUNCTIONAL_CORRECTION = args.functional_correction.resolve()
@@ -730,12 +738,17 @@ fixed_candidates = {}
 fixed_case_data = {c["id"]: {"id": c["id"], "title": c["title"], "methods": {}} for c in cases}
 public_candidate_files = {}
 labels = {
+    "119_official_off": ("Moli 1.1.9 · 关闭 layout", "Moli 1.1.9 · layout off", "off"),
+    "119_official_on": ("Moli 1.1.9 · 开启 layout", "Moli 1.1.9 · layout on", "on"),
     "119_off": ("Moli 1.1.9 修复版 · 关闭 layout", "Moli 1.1.9 patched · layout off", "off"),
     "119_on": ("Moli 1.1.9 修复版 · 开启 layout", "Moli 1.1.9 patched · layout on", "on"),
-    "119_official_on": ("Moli 1.1.9 官方版 · 开启 layout", "Moli 1.1.9 official · layout on", "on"),
 }
 functional_task_ids_sha256 = sha("".join(task_id + "\n" for task_id in sorted(selected)).encode())
-for method_id, summary_path in args.fixed_summary:
+assert len(dict(args.fixed_summary)) == len(args.fixed_summary)
+assert set(dict(args.fixed_summary)).issubset(labels)
+for method_id, summary_path in sorted(
+    args.fixed_summary, key=lambda item: list(labels).index(item[0])
+):
     assert method_id in labels and method_id not in fixed_candidates
     source_bytes = pathlib.Path(summary_path).read_bytes()
     candidate = json.loads(source_bytes)
@@ -848,7 +861,11 @@ for resource_path, is_official in [
         continue
     resource = json.loads(resource_path.read_text())
     assert resource["schema"] == "lexbench_moli_macos_fixed_resource_summary/1"
-    expected_layouts = ["layout_on"] if is_official else ["layout_off", "layout_on"]
+    expected_layouts = [
+        f"layout_{layout}"
+        for layout in ("off", "on")
+        if (f"119_official_{layout}" if is_official else f"119_{layout}") in fixed_candidates
+    ]
     assert (
         resource["method"]["configurations"] == expected_layouts
         and resource["method"]["layout_retry"] is False
@@ -867,11 +884,8 @@ for resource_path, is_official in [
         and resource["quality"]["publishable"] is True
     )
     for layout, config in resource["configurations"].items():
-        method_id = "119_official_on" if is_official else f"119_{layout}"
-        assert (
-            resource["candidate"]["binary_sha256"]
-            == fixed_candidates[method_id]["binary"]["moli_sha256"]
-        )
+        method_id = f"119_official_{layout}" if is_official else f"119_{layout}"
+        assert resource["candidate"]["binary_sha256"] == resource_builds[method_id]["sha256"]
         for population_name, n in [
             ("all_predeclared_calls", 2785),
             ("frozen_historical_common_pass_calls", 1045),
@@ -896,6 +910,27 @@ for resource_path, is_official in [
         official_resource = entry
     else:
         macos_resource = entry
+resource_matrix = None
+if macos_resource or official_resource:
+    assert args.resource_matrix is not None, "a complete matched resource receipt is required"
+    bundle = load_matrix(
+        args.resource_matrix,
+        resource_builds,
+        {
+            "patched": macos_resource["summary"],
+            "official": official_resource["summary"],
+        },
+    )
+    public_bytes = (clean(json.dumps(bundle, ensure_ascii=False, indent=2)) + "\n").encode()
+    url = "data/candidates/resource-matrix.json"
+    public_candidate_files[url] = public_bytes
+    resource_matrix = {
+        "evidence": {"url": url, "sha256": sha(public_bytes), "bytes": len(public_bytes)},
+        "receipt": bundle["receipt"],
+    }
+    public_candidate_files["reproduction/run_resource_matrix.py"] = (
+        args.resource_matrix / "orchestrator.py"
+    ).read_bytes()
 functional_correction = json.loads((FUNCTIONAL_CORRECTION / "receipt.json").read_text())
 assert functional_correction["schema"] == "moli_functional_contract_correction/1"
 assert functional_correction["effect"]["report_success_rates_changed"] is False
@@ -929,11 +964,12 @@ macos_comparison = None
 if macos_resource:
     mac_rows = []
     for method_id, resource, layout in [
+        ("119_official_off", official_resource, "off"),
+        ("119_official_on", official_resource, "on"),
         ("119_off", macos_resource, "off"),
         ("119_on", macos_resource, "on"),
-        ("119_official_on", official_resource, "on"),
     ]:
-        if resource is None:
+        if resource is None or method_id not in fixed_candidates:
             continue
         metric = resource["summary"]["configurations"][layout]["metrics"][
             "frozen_historical_common_pass_calls"
@@ -946,6 +982,8 @@ if macos_resource:
                 "label_en": method["label_en"],
                 "short_label": method["label"].replace("Moli ", ""),
                 "short_label_en": method["label_en"].replace("Moli ", ""),
+                "functional_binary_sha256": method["moli_sha256"],
+                "resource_binary_sha256": resource["summary"]["candidate"]["binary_sha256"],
                 "passed_cases": method["final_passed_cases"],
                 "total_cases": 372,
                 "success_rate_pct": method["final_passed_cases"] / 372 * 100,
@@ -983,6 +1021,8 @@ public = {
     "fixed_candidates": fixed_candidates,
     "macos_resource": macos_resource,
     "official_resource": official_resource,
+    "resource_builds": resource_builds,
+    "resource_matrix": resource_matrix,
     "case_outcomes": case_outcomes,
     "schema": "moli_layout_report/2",
     "functional_contract_correction": functional_correction_public,
@@ -1128,7 +1168,7 @@ for name, digest in {
     asset = args.vendor_dir / name
     assert not asset.is_symlink() and sha(asset.read_bytes()) == digest
     shutil.copy2(asset, OUT / name)
-(OUT / "reproduction").mkdir()
+(OUT / "reproduction").mkdir(exist_ok=True)
 (OUT / "reproduction/cohort.json").write_text(clean(args.cohort.read_text()))
 shutil.copy2(SRC / "run.py", OUT / "reproduction/run.py")
 shutil.copy2(

@@ -1253,6 +1253,69 @@
   ],
   "releases": [
     {
+      "id": "2026-09-21-moli-seven-method-release-resource-calibration",
+      "date": "2026-09-21",
+      "date_timezone": "Asia/Shanghai",
+      "comparison_kinds": [
+        "moli_historical_failure_retest",
+        "moli_process_tree_resource_profile"
+      ],
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "gdwtSGOel0va",
+        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
+        "version": "ver_2f4844c0550241b78f7c80d8614bca87"
+      },
+      "title": "发布七种 Moli 配置与 Release 资源对照",
+      "summary": "七种配置统一展示 372 题成功率。1.1.9 与修复版的四组 Release 资源数据覆盖每组 557 题 × 5 次；修复版相对同布局 1.1.9 的峰值 RSS 中位数变化为 +0.54% / +2.69%，平均 CPU 时间变化为 −1.62% / −0.82%。",
+      "changes": [
+        [
+          "配置与成绩",
+          "比较需要统一配置顺序，并区分功能构建和资源构建。",
+          "表格与图按版本及布局排序，共七种配置；保留已有功能结果，增加已经完成的 1.1.9 关闭布局结果 1/372。",
+          "修复版准确率对应 87c87e95 构建，资源对应 f315ff26 Release；不将已有准确率归为新构建的实测。"
+        ],
+        [
+          "资源口径",
+          "Debug 与 Release、Linux PSS 与 macOS RSS 不可混用为直接涨幅。",
+          "四组 Release 在同一主机按任务轮换顺序、串行调用，每组 2,785 次；全量表使用 557 题，汇总图使用预先冻结的 209 题。",
+          "资源百分比以相同布局的 1.1.9 Release 为参照；PSS 与 RSS 分开标注，不计算跨平台变化。"
+        ],
+        [
+          "公开证据",
+          "资源汇总需要能够回溯并独立重算。",
+          "公开完整调用顺序、逐次资源值、二进制哈希、冻结协议和实际执行脚本；缺失、部分或不一致的资源证据阻止发布。",
+          "站点保留原链接；成功与失败详情均可打开原始证据，并通过键盘关闭后返回。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Publish seven Moli configurations and Release resource comparisons",
+          "summary": "Seven configurations share the 372-task success comparison. Four Release resource configurations cover 557 tasks × 5 calls each. Relative to matching-layout Moli 1.1.9, the patched build changes median peak RSS by +0.54% / +2.69% and mean CPU time by −1.62% / −0.82%.",
+          "changes": [
+            [
+              "Configurations and scores",
+              "Comparisons require consistent ordering and distinct functional and resource build identities.",
+              "Tables and charts list seven configurations by version and layout. Existing functional results are retained, with the completed 1.1.9 layout-off result of 1/372 added.",
+              "Patched success results belong to build 87c87e95; resources belong to f315ff26 Release. Existing accuracy is not attributed to a new-build measurement."
+            ],
+            [
+              "Resource scope",
+              "Debug and Release builds, or Linux PSS and macOS RSS, cannot supply directly comparable growth percentages.",
+              "Four Release configurations run serially on one host with task-level rotating order, 2,785 calls each. Full tables cover 557 tasks; the summary chart uses the 209 tasks frozen before execution.",
+              "Resource percentages use matching-layout Moli 1.1.9 Release as the reference. PSS and RSS are labeled separately without cross-platform percentage changes."
+            ],
+            [
+              "Public evidence",
+              "Resource aggregates must be traceable and independently reproducible.",
+              "Publish complete call order, per-call measurements, binary hashes, frozen protocol and the exact executed script. Missing, partial or inconsistent resource evidence blocks release.",
+              "The share link is unchanged. Success and failure details expose raw evidence with keyboard dismissal and return navigation."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "2026-09-21-moli-six-configuration-report",
       "date": "2026-09-21",
       "date_timezone": "Asia/Shanghai",
@@ -1368,6 +1431,7 @@
     },
     {
       "id": "2026-09-20-moli-version-layout-resource-summary",
+      "date_timezone": "Asia/Shanghai",
       "publication": {
         "service": "Artifact Site",
         "site_slug": "gdwtSGOel0va",

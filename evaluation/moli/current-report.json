@@ -15,20 +15,48 @@
     "114_off",
     "118_off",
     "118_on",
+    "119_official_off",
+    "119_official_on",
     "119_off",
-    "119_on",
-    "119_official_on"
+    "119_on"
   ],
   "macos_method_ids": [
+    "119_official_off",
+    "119_official_on",
     "119_off",
-    "119_on",
-    "119_official_on"
+    "119_on"
   ],
   "publication": {
     "base_url": "https://artifact-site.lexmount.cn",
     "slug": "gdwtSGOel0va",
     "kind": "folder",
-    "expected_version": "ver_297e78e469d84077a0e95c813b34df91",
+    "expected_version": "ver_2f4844c0550241b78f7c80d8614bca87",
     "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t"
+  },
+  "resource_builds": {
+    "119_official_off": {
+      "sha256": "79699e50476118a7a5d1a36775f52d4106801fd5bc803727fd317501faa840cd",
+      "source_commit": "47512623315aa9b57edc2ef721a033b6b8d91063",
+      "profile": "official_release",
+      "target": "aarch64-apple-darwin"
+    },
+    "119_official_on": {
+      "sha256": "79699e50476118a7a5d1a36775f52d4106801fd5bc803727fd317501faa840cd",
+      "source_commit": "47512623315aa9b57edc2ef721a033b6b8d91063",
+      "profile": "official_release",
+      "target": "aarch64-apple-darwin"
+    },
+    "119_off": {
+      "sha256": "9b3f3dd6e550a71cddfb93ec3490317b0dfa5db407ebc2d5fb0a9748f58dd226",
+      "source_commit": "f315ff26ed6222603d382b8f7a4648157da3ebf9",
+      "profile": "release",
+      "target": "aarch64-apple-darwin"
+    },
+    "119_on": {
+      "sha256": "9b3f3dd6e550a71cddfb93ec3490317b0dfa5db407ebc2d5fb0a9748f58dd226",
+      "source_commit": "f315ff26ed6222603d382b8f7a4648157da3ebf9",
+      "profile": "release",
+      "target": "aarch64-apple-darwin"
+    }
   }
 }

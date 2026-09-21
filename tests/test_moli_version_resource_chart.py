@@ -14,6 +14,21 @@ SPEC.loader.exec_module(MODULE)
 
 
 class MoliVersionResourceChartTests(unittest.TestCase):
+    def test_chart_marks_retained_success_from_a_different_resource_build(self):
+        row = self.data["configurations"][1]
+        row.update(functional_binary_sha256="a" * 64, resource_binary_sha256="b" * 64)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "builds.svg"
+            for language in ("zh", "en"):
+                for metrics in (("pss",), ("pss", "cpu")):
+                    MODULE.render_chart(self.data, output, metrics, language)
+                    rendered = output.read_text()
+                    self.assertIn(" †:", rendered)
+                    self.assertIn("不同构建" if language == "zh" else "different builds", rendered)
+            row["resource_binary_sha256"] = row["functional_binary_sha256"]
+            MODULE.render_chart(self.data, output)
+            self.assertNotIn("†", output.read_text())
+
     def test_near_identical_methods_keep_both_numbered_markers_visible(self):
         self.data["configurations"][1]["pss_mib"] = self.data["configurations"][0]["pss_mib"]
         self.data["configurations"][1]["success_rate_pct"] = 0.01
@@ -27,7 +42,7 @@ class MoliVersionResourceChartTests(unittest.TestCase):
     def test_combined_chart_keeps_registry_order_and_baseline_without_cross_platform_deltas(self):
         historical = {**self.data, "baseline": "114_off"}
         mac = {"configurations": []}
-        for i, passed in enumerate((1, 360, 255)):
+        for i, passed in enumerate((1, 360, 255, 1)):
             row = dict(self.data["configurations"][0])
             row.update(
                 id=f"mac_{i}",
@@ -41,6 +56,7 @@ class MoliVersionResourceChartTests(unittest.TestCase):
         methods = [{**r, "final_passed_cases": r["passed_cases"]} for r in sources]
         combined = MODULE.combine_comparisons(methods, historical, mac)
         self.assertEqual(combined["baseline"], "114_off")
+        self.assertEqual(len({r["color"] for r in combined["configurations"]}), 7)
         self.assertEqual([r["id"] for r in combined["configurations"]], [r["id"] for r in methods])
         for row in combined["configurations"][3:]:
             self.assertIsNone(row["memory_change_pct"])
@@ -57,12 +73,12 @@ class MoliVersionResourceChartTests(unittest.TestCase):
                 self.assertIn("360/372", text)
                 self.assertIn("+96.77", text)
                 self.assertIn("(—)", text)
-                self.assertEqual(text.count('<path d="M '), 6)
+                self.assertEqual(text.count('<path d="M '), 8)
             for metric in ("memory", "cpu"):
                 MODULE.render_chart(combined, output, (metric,), "en")
                 text = output.read_text()
                 self.assertIn("360/372", text)
-                self.assertEqual(text.count('<path d="M '), 3)
+                self.assertEqual(text.count('<path d="M '), 4)
                 self.assertIn("MiB" if metric == "memory" else "ms", text)
                 self.assertNotIn("21.41 ms" if metric == "memory" else "77.22 MiB", text)
 

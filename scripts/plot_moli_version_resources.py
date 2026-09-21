@@ -14,7 +14,7 @@ import math
 import re
 from pathlib import Path
 
-COLORS = ("#239b68", "#d1841e", "#7652c7", "#2775c9", "#c54f79", "#4c8793")
+COLORS = ("#239b68", "#d1841e", "#7652c7", "#2775c9", "#c54f79", "#4c8793", "#9a653c")
 COLOR_RE = re.compile(r"#[0-9a-fA-F]{6}")
 
 
@@ -179,11 +179,19 @@ def render_chart(
         )
     width = 1420 if len(metrics) == 2 else 820
     mixed = any(row.get("platform") for row in rows)
-    height = 700 + 30 * len(rows) + (48 if mixed else 0)
+    separate_builds = {
+        row["id"]
+        for row in rows
+        if row.get("functional_binary_sha256")
+        and row.get("resource_binary_sha256")
+        and row["functional_binary_sha256"] != row["resource_binary_sha256"]
+    }
+    note_height = (48 if mixed else 0) + (24 if separate_builds else 0)
+    height = 700 + 30 * len(rows) + note_height
     left, right, top, bottom = 105, 55, 145, 115 + 30 * len(rows)
     gap = 90
     panel_width = (width - left - right - gap * (len(metrics) - 1)) / len(metrics)
-    chart_bottom = height - bottom - (48 if mixed else 0)
+    chart_bottom = height - bottom - note_height
     max_success_rate = max(float(row["success_rate_pct"]) for row in rows)
     y_max = max(20, math.ceil(max_success_rate / 20) * 20)
     described_metrics = {
@@ -308,6 +316,8 @@ def render_chart(
         if language == "en":
             label_key += "_en"
         row_label = row[label_key]
+        if row["id"] in separate_builds:
+            row_label += " †"
         fields = [
             f"{int(float(row['passed_cases']))}/{total_cases} "
             f"({float(row['success_rate_pct']):.1f}%)"
@@ -332,6 +342,7 @@ def render_chart(
             f'<text class="legend" x="72" y="{y}">'
             f"{html.escape(row_label + ': ' + ' · '.join(fields))}</text>"
         )
+    notes = []
     if mixed:
         notes = (
             [
@@ -346,11 +357,18 @@ def render_chart(
                 "resource changes: —.",
             ]
         )
-        for i, note in enumerate(notes):
-            parts.append(
-                f'<text class="legend muted" x="55" y="{height - 42 + i * 22}">'
-                f"{html.escape(note)}</text>"
-            )
+    if separate_builds:
+        notes.append(
+            "† 功能与资源使用不同构建；成功率仅适用于功能构建，身份见报告。"
+            if language == "zh"
+            else "† Success and resources use different builds; "
+            "success applies to the functional build only."
+        )
+    for i, note in enumerate(notes):
+        parts.append(
+            f'<text class="legend muted" x="55" y="{height - 20 - (len(notes) - 1 - i) * 22}">'
+            f"{html.escape(note)}</text>"
+        )
     parts.append("</svg>")
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text("\n".join(parts) + "\n")
