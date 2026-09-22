@@ -149,7 +149,12 @@
       "correction_id": "wv-510-restore-cart-quantity-contract-20260920",
       "rationale": "Retain the declared product-selection revision but restore the upstream cart-totals check for quantity and name. A single DOM product row does not prove a single unit; all three frozen task-510 HARs contain the totals response required for zero-call rescoring.",
       "root_cause": "Removing the totals evaluator dropped items_qty=1. The replacement trajectory checked only the number of product rows, so one row containing two units was accepted.",
-      "regression_ids": ["tr-510-quantity-one", "tr-510-reject-quantity-two", "tr-510-reject-missing-totals", "tr-510-reject-wrong-product"],
+      "regression_ids": [
+        "tr-510-quantity-one",
+        "tr-510-reject-quantity-two",
+        "tr-510-reject-missing-totals",
+        "tr-510-reject-wrong-product"
+      ],
       "preconditions": [
         {
           "path": "/intent",
@@ -263,6 +268,265 @@
           "op": "add",
           "path": "/eval/1/expected/post_data/customer_group_ids[2]",
           "value": "3"
+        }
+      ]
+    },
+    {
+      "task_id": 737,
+      "official_revision": 2,
+      "correction_id": "wv-737-osrm-route-event-contract-20260923",
+      "rationale": "Evaluate the OSRM route request emitted after the directions-page navigation and match its coordinates to the task’s stated origin-to-destination direction.",
+      "root_cause": "The upstream contract both limits a route-XHR assertion to the HTML navigation event and stores destination coordinates before origin coordinates, so a correct route cannot pass.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task737-route-order-reference.json",
+        "sha256": "dcf7b4b49c3c46125c99560f68b5f923d276422a541cd61f362176a0efe897e1"
+      },
+      "regression_ids": [
+        "tr-737-accept-origin-to-destination",
+        "tr-737-reject-reversed-route"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^.*/route/v1/.*/-75.1718916,39.9011873;-79.9427192,40.4441897.*$"
+        },
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "^.*/route/v1/.*/-79.9427192,40.4441897;-75.1718916,39.9011873.*$"
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 738,
+      "official_revision": 2,
+      "correction_id": "wv-738-osrm-route-event-contract-20260923",
+      "rationale": "Evaluate the OSRM route request emitted after the directions-page navigation and match its coordinates to the task’s stated origin-to-destination direction.",
+      "root_cause": "The upstream contract both limits a route-XHR assertion to the HTML navigation event and stores destination coordinates before origin coordinates, so a correct route cannot pass.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task738-route-order-reference.json",
+        "sha256": "38e50f75224867c81786d26f2bdd9e6680004548bd0ac055e06a66e3202da41f"
+      },
+      "regression_ids": [
+        "tr-738-accept-origin-to-destination",
+        "tr-738-reject-reversed-route"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^.*/route/v1/.*/-75.1712951,39.9042046;-79.9427192,40.4441897.*$"
+        },
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "^.*/route/v1/.*/-79.9427192,40.4441897;-75.1712951,39.9042046.*$"
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 739,
+      "official_revision": 2,
+      "correction_id": "wv-739-osrm-route-event-contract-20260923",
+      "rationale": "Evaluate the OSRM route request emitted after the directions-page navigation and match its coordinates to the task’s stated origin-to-destination direction.",
+      "root_cause": "The upstream contract both limits a route-XHR assertion to the HTML navigation event and stores destination coordinates before origin coordinates, so a correct route cannot pass.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task739-route-order-reference.json",
+        "sha256": "81d21683672c859b463cda1e96e716075f7d8bd73ce3bbcbb3535d0199bbe5a7"
+      },
+      "regression_ids": [
+        "tr-739-accept-origin-to-destination",
+        "tr-739-reject-reversed-route"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^.*/route/v1/.*/-73.9265212,40.8295828;-79.9427192,40.4441897.*$"
+        },
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "^.*/route/v1/.*/-79.9427192,40.4441897;-73.9265212,40.8295828.*$"
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 740,
+      "official_revision": 2,
+      "correction_id": "wv-740-osrm-route-event-contract-20260923",
+      "rationale": "Evaluate the OSRM route request emitted after the directions-page navigation and match its coordinates to the task’s stated origin-to-destination direction.",
+      "root_cause": "The upstream contract both limits a route-XHR assertion to the HTML navigation event and stores destination coordinates before origin coordinates, so a correct route cannot pass.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task740-route-order-reference.json",
+        "sha256": "720ab5c7bda7c7d2930a0b0471a4e64a043eb5a0ed9da1c38b059d6f3cac679b"
+      },
+      "regression_ids": [
+        "tr-740-accept-origin-to-destination",
+        "tr-740-reject-reversed-route"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^.*/route/v1/.*/-73.9935443,40.7505085;-79.9427192,40.4441897.*$"
+        },
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "^.*/route/v1/.*/-79.9427192,40.4441897;-73.9935443,40.7505085.*$"
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 741,
+      "official_revision": 2,
+      "correction_id": "wv-741-osrm-route-event-contract-20260923",
+      "rationale": "Evaluate the OSRM route request emitted after the directions-page navigation and match its coordinates to the task’s stated origin-to-destination direction.",
+      "root_cause": "The upstream contract both limits a route-XHR assertion to the HTML navigation event and stores destination coordinates before origin coordinates, so a correct route cannot pass.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task741-route-order-reference.json",
+        "sha256": "10d684767651c6f405db297a7364ae90efe83d404dde3f11a25d36585860fc3f"
+      },
+      "regression_ids": [
+        "tr-741-accept-origin-to-destination",
+        "tr-741-reject-reversed-route"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^.*/route/v1/.*/-71.0621475,42.3662922;-79.9427192,40.4441897.*$"
+        },
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "^.*/route/v1/.*/-79.9427192,40.4441897;-71.0621475,42.3662922.*$"
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 759,
+      "official_revision": 2,
+      "correction_id": "wv-759-osrm-route-event-contract-20260923",
+      "rationale": "Evaluate the OSRM route request emitted after the directions-page navigation and match its coordinates to the task’s stated origin-to-destination direction.",
+      "root_cause": "The upstream contract both limits a route-XHR assertion to the HTML navigation event and stores destination coordinates before origin coordinates, so a correct route cannot pass.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task759-route-order-reference.json",
+        "sha256": "61365f77b06c8b56d578ce200dcedb27689c42d335cafcf8f69b8517a3c7e7d9"
+      },
+      "regression_ids": [
+        "tr-759-accept-origin-to-destination",
+        "tr-759-reject-reversed-route"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^.*/route/v1/.*/-71.060511,42.3554334;-1.4869496,55.0252998.*$"
+        },
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "^.*/route/v1/.*/-1.4869496,55.0252998;-71.060511,42.3554334.*$"
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 760,
+      "official_revision": 2,
+      "correction_id": "wv-760-osrm-route-event-contract-20260923",
+      "rationale": "Evaluate the OSRM route request emitted after the directions-page navigation and match its coordinates to the task’s stated origin-to-destination direction.",
+      "root_cause": "The upstream contract both limits a route-XHR assertion to the HTML navigation event and stores destination coordinates before origin coordinates, so a correct route cannot pass.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task760-route-order-reference.json",
+        "sha256": "cac48bce5612957b6530ae9b6dc14890e8962773efd91bc2b62f40521b07bd61"
+      },
+      "regression_ids": [
+        "tr-760-accept-origin-to-destination",
+        "tr-760-reject-reversed-route"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^.*/route/v1/.*/-75.4716115,40.6022552;-74.4041622,40.0757384.*$"
+        },
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "^.*/route/v1/.*/-74.4041622,40.0757384;-75.4716115,40.6022552.*$"
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
         }
       ]
     }

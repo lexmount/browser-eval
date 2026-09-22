@@ -11,6 +11,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -265,6 +266,34 @@ def apply_correction(
             ):
                 raise ValueError(f"task {task.task_id}: incomplete independent reference")
             corrected["eval"][0]["expected"] = copy.deepcopy(expected_response)
+        elif observation.get("schema") == "trajectory_replay_route_event_reference/1":
+            corrected_url = corrected["eval"][1]["expected"]["url"]
+            coordinate_match = re.search(
+                r"-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?;"
+                r"-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?",
+                corrected_url,
+            )
+            if (
+                observation.get("task_intent") != original.get("intent")
+                or observation.get("official_expected_url")
+                != original["eval"][1]["expected"]["url"]
+                or observation.get("corrected_expected_url") != corrected_url
+                or observation.get("official_navigation_only")
+                != original["eval"][1]["navigation_only"]
+                or observation.get("corrected_navigation_only")
+                != corrected["eval"][1]["navigation_only"]
+                or observation.get("observed_event_sequence")
+                != [
+                    "GET /directions (HTML navigation)",
+                    "GET /osrm/routed-car/route/v1/driving/{origin};{destination} "
+                    "(route XHR, HTTP 200)",
+                ]
+                or coordinate_match is None
+                or coordinate_match.group(0)
+                not in str(observation.get("observed_correct_direction_request") or "")
+                or len(str(observation.get("observed_har_sha256") or "")) != 64
+            ):
+                raise ValueError(f"task {task.task_id}: incomplete route-order reference")
         elif observation.get("derivation", {}).get("kind") == "qualified_catalog_price_range/1":
             source = observation.get("independent_source") or {}
             products = source.get("qualified_products") or []

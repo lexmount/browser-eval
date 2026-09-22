@@ -41,10 +41,12 @@ from harness.trajectory_replay.webarena_replay import (
 NETWORK_SETTLE_MS = 2_000
 
 
-def _finalize_network_recorder(service, recorder, har_path: Path) -> None:
+def _finalize_network_recorder(
+    service, recorder, har_path: Path, *, settle_ms: int = NETWORK_SETTLE_MS
+) -> None:
     """Let dispatched background requests finish before freezing their statuses."""
 
-    service._submit(lambda: service._page.wait_for_timeout(NETWORK_SETTLE_MS))
+    service._submit(lambda: service._page.wait_for_timeout(settle_ms))
     service._submit(lambda: recorder.stop(service._context, har_path))
 
 
@@ -279,7 +281,11 @@ def _run_task(
             assertions = _evaluate_assertions(service, correction)
         else:
             assertions = []
-        _finalize_network_recorder(service, recorder, har_path)
+        settle_ms = max(
+            [NETWORK_SETTLE_MS]
+            + [int(action.get("network_settle_ms", 0)) for action in row["actions"]]
+        )
+        _finalize_network_recorder(service, recorder, har_path, settle_ms=settle_ms)
         recorder_started = False
         hashes["network_har"] = file_sha256(har_path)
         if portable_task is not None:

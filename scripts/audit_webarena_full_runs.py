@@ -56,6 +56,7 @@ def build_ledger(
     initial_queue_path: Path,
     inherited_results_path: Path,
     sweep_dirs: list[Path],
+    rescore_dirs: list[Path] | None = None,
 ) -> dict:
     scope = json.loads(scope_path.read_text(encoding="utf-8"))
     queue = json.loads(initial_queue_path.read_text(encoding="utf-8"))
@@ -129,6 +130,45 @@ def build_ledger(
                     "evidence_sha256": row["evidence_sha256"],
                 }
             )
+    rescore_sha256 = []
+    for directory in rescore_dirs or []:
+        manifest_path = directory / "rescoring.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if manifest.get("schema") != "lex_webarena_verified_offline_rescore/1":
+            raise ValueError("offline rescore schema changed")
+        for row in manifest.get("rows") or []:
+            task_id = row["task_id"]
+            state = states[task_id]
+            source = row.get("source_evidence_sha256") or {}
+            if not any(
+                attempt["evidence_sha256"] == source
+                for attempt in state["physical_attempts"]
+            ):
+                raise ValueError(f"task {task_id} offline rescore source is not a recorded attempt")
+            evaluation_path = directory / f"task-{task_id}" / "evaluation.json"
+            if (
+                evaluation_path.is_symlink()
+                or not evaluation_path.is_file()
+                or _hash(evaluation_path) != row.get("evaluation_sha256")
+            ):
+                raise ValueError(f"task {task_id} offline rescore evaluation changed")
+            evaluation = json.loads(evaluation_path.read_text(encoding="utf-8"))
+            if (
+                float(evaluation.get("score") or 0) != 1
+                or not evaluation.get("contract_correction_id")
+                or not evaluation.get("corrected_task_sha256")
+            ):
+                raise ValueError(f"task {task_id} offline rescore is not a corrected pass")
+            if state["status"] == "pass":
+                raise ValueError(f"task {task_id} rescored after its first pass")
+            state["status"] = "pass"
+            state["pass_source"] = "offline_rescore"
+            state["offline_rescore"] = {
+                "source_evidence_sha256": source,
+                "evaluation_sha256": row["evaluation_sha256"],
+                "contract_correction_id": evaluation["contract_correction_id"],
+            }
+        rescore_sha256.append(_hash(manifest_path))
     return {
         "schema": "lex_webarena_verified_full_ledger/1",
         "scope_sha256": _hash(scope_path),
@@ -137,6 +177,7 @@ def build_ledger(
         "sweep_progress_sha256": [
             _hash(directory / "progress.jsonl") for directory in sweep_dirs
         ],
+        "offline_rescore_sha256": rescore_sha256,
         "counts": {
             "total": len(ids),
             "pass": sum(row["status"] == "pass" for row in states),
@@ -153,11 +194,16 @@ def main() -> None:
     parser.add_argument("--initial-queue", type=Path, required=True)
     parser.add_argument("--inherited-results", type=Path, required=True)
     parser.add_argument("--sweep", type=Path, action="append", required=True)
+    parser.add_argument("--offline-rescore", type=Path, action="append", default=[])
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--require-all-pass", action="store_true")
     args = parser.parse_args()
     result = build_ledger(
-        args.scope, args.initial_queue, args.inherited_results, args.sweep
+        args.scope,
+        args.initial_queue,
+        args.inherited_results,
+        args.sweep,
+        args.offline_rescore,
     )
     if args.require_all_pass and result["counts"]["unresolved"]:
         raise ValueError("full Chromium split still has unresolved cases")

@@ -3,11 +3,14 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import pytest
+from webarena_verified.types.task import WebArenaSite
 
 from harness.browser_use.runner import _configure_benchmark
+from harness.trajectory_replay.remote_runtime import remote_benchmark
 from harness.trajectory_replay.webarena_corrections import (
     CorrectedReplayContract,
     apply_correction,
@@ -28,8 +31,114 @@ def catalog():
     return load_corrections()
 
 
+@pytest.fixture(scope="module")
+def route_benchmark():
+    return remote_benchmark(
+        {
+            WebArenaSite.SHOPPING: "http://shop.test",
+            WebArenaSite.SHOPPING_ADMIN: "http://admin.test",
+            WebArenaSite.REDDIT: "http://reddit.test",
+            WebArenaSite.GITLAB: "http://git.test",
+            WebArenaSite.MAP: "http://map.test",
+            WebArenaSite.WIKIPEDIA: "http://wiki.test",
+        }
+    )
+
+
 def _dump_eval(contract: CorrectedReplayContract, index: int) -> dict:
     return contract.task.eval[index].model_dump(mode="json")
+
+
+def _route_har(path: Path, url: str) -> Path:
+    path.write_text(
+        json.dumps(
+            {
+                "log": {
+                    "version": "1.2",
+                    "creator": {"name": "route-order-control", "version": "1"},
+                    "entries": [
+                        {
+                            "request": {
+                                "method": "GET",
+                                "url": "http://map.test/directions",
+                                "headers": [
+                                    {"name": "accept", "value": "text/html"},
+                                    {"name": "sec-fetch-dest", "value": "document"},
+                                    {"name": "sec-fetch-mode", "value": "navigate"},
+                                    {"name": "sec-fetch-user", "value": "?1"},
+                                ],
+                            },
+                            "response": {
+                                "status": 200,
+                                "headers": [],
+                                "cookies": [],
+                                "content": {"mimeType": "text/html", "text": ""},
+                            },
+                        },
+                        {
+                            "request": {
+                                "method": "GET",
+                                "url": url,
+                                "headers": [
+                                    {
+                                        "name": "Cookie",
+                                        "value": "_osm_directions_engine=fossgis_osrm_car",
+                                    }
+                                ],
+                            },
+                            "response": {
+                                "status": 200,
+                                "headers": [],
+                                "cookies": [],
+                                "content": {"mimeType": "application/json", "text": "{}"},
+                            },
+                        }
+                    ],
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+@pytest.mark.parametrize("task_id", [737, 738, 739, 740, 741, 759, 760])
+def test_osrm_route_order_corrections_accept_intent_direction_and_reject_reverse(
+    tmp_path, route_benchmark, catalog, task_id
+) -> None:
+    original = route_benchmark.get_task(task_id)
+    original_url = original.eval[1].model_dump(mode="json")["expected"]["url"]
+    match = re.search(
+        r"(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?);"
+        r"(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)",
+        original_url,
+    )
+    assert match is not None
+    destination_lon, destination_lat, origin_lon, origin_lat = match.groups()
+    intent_direction = (
+        f"http://map.test/osrm/routed-car/route/v1/driving/"
+        f"{origin_lon},{origin_lat};{destination_lon},{destination_lat}?steps=true"
+    )
+    reversed_direction = (
+        f"http://map.test/osrm/routed-car/route/v1/driving/"
+        f"{destination_lon},{destination_lat};{origin_lon},{origin_lat}?steps=true"
+    )
+    contract = apply_correction(original, catalog)
+    response = {"task_type": "navigate", "status": "SUCCESS", "retrieved_data": None}
+    positive = evaluate_corrected_contract(
+        route_benchmark,
+        contract,
+        agent_response=response,
+        network_trace=_route_har(tmp_path / "positive.har", intent_direction),
+    )
+    negative = evaluate_corrected_contract(
+        route_benchmark,
+        contract,
+        agent_response=response,
+        network_trace=_route_har(tmp_path / "negative.har", reversed_direction),
+    )
+    assert float(positive.score) == 1.0
+    assert float(negative.score) == 0.0
 
 
 def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
@@ -40,7 +149,22 @@ def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
     assert len(catalog.upstream["dataset_sha256"]) == 64
     assert set(catalog.record_sha256s) == set(catalog.records)
     assert len(set(catalog.record_sha256s.values())) == len(catalog.records)
-    assert corrected_task_ids(catalog) == (225, 279, 448, 510, 528, 547, 699)
+    assert corrected_task_ids(catalog) == (
+        225,
+        279,
+        448,
+        510,
+        528,
+        547,
+        699,
+        737,
+        738,
+        739,
+        740,
+        741,
+        759,
+        760,
+    )
     assert catalog.records[448]["regression_ids"] == [
         "tr-448-302-success",
         "tr-448-200-json-success",
@@ -54,7 +178,10 @@ def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
 
 def test_448_scoring_revision_is_bound_to_correction_and_regressions(catalog) -> None:
     root = Path(__file__).resolve().parents[2]
-    catalog = load_corrections(root / "evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json")
+    catalog = load_corrections(
+        root
+        / "evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json"
+    )
     receipt = json.loads(
         (root / "research/trajectory-replay-task448-scoring-revision.json").read_text(
             encoding="utf-8"
@@ -98,7 +225,9 @@ def test_apply_is_pure_traceable_and_fails_closed(benchmark, catalog) -> None:
 
 def test_final_event_revision_binds_current_and_historical_catalogs(catalog):
     root = Path(__file__).resolve().parents[2]
-    receipt = json.loads((root / "research/trajectory-replay-task448-final-event-revision.json").read_text())
+    receipt = json.loads(
+        (root / "research/trajectory-replay-task448-final-event-revision.json").read_text()
+    )
     predecessor = load_corrections(root / receipt["predecessor_catalog_path"])
     assert receipt["predecessor_correction_catalog_sha256"] == predecessor.source_sha256
     assert receipt["predecessor_correction_record_sha256"] == predecessor.record_sha256s[448]
