@@ -1,6 +1,8 @@
 {
   "schema_version": 1,
   "report_assets": {
+    "content/wcxb-repair-zh.fragment": "b2533e55598c28a153d2286ee3c3b1a23ca100db1702a0a657cc49548aa0fad6",
+    "content/wcxb-repair-en.fragment": "f41560e6ec2b1d2e15b2bfb3af588ee41ec623a5ff6e24c080e2051ff012c479",
     "assets/wcxb-repair/adjacent-code.png": "fdcf8020a8e79dda7fdc5039f9d9a6a3c3cf7dee10914993ca528fa60422bfab",
     "assets/wcxb-repair/code-block.png": "67cc6b592f793b0079187042d4f347d8302253082eb9f1e42788bafe149597f2",
     "assets/wcxb-repair/description.png": "efc0a24c2c37941c25a5bf1886067cd0a96f6da535b880cc8b64ffbacc461834",
