@@ -38,6 +38,15 @@ from harness.trajectory_replay.webarena_replay import (
     _json_sha256,
 )
 
+NETWORK_SETTLE_MS = 2_000
+
+
+def _finalize_network_recorder(service, recorder, har_path: Path) -> None:
+    """Let dispatched background requests finish before freezing their statuses."""
+
+    service._submit(lambda: service._page.wait_for_timeout(NETWORK_SETTLE_MS))
+    service._submit(lambda: recorder.stop(service._context, har_path))
+
 
 def _write(path: Path, value: object) -> str:
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -270,8 +279,7 @@ def _run_task(
             assertions = _evaluate_assertions(service, correction)
         else:
             assertions = []
-        service._submit(lambda: service._page.wait_for_timeout(500))
-        service._submit(lambda: recorder.stop(service._context, har_path))
+        _finalize_network_recorder(service, recorder, har_path)
         recorder_started = False
         hashes["network_har"] = file_sha256(har_path)
         if portable_task is not None:
