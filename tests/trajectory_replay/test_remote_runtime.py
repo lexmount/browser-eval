@@ -197,6 +197,52 @@ def test_remote_benchmark_derenders_urls_inside_markdown(
     assert float(result.score) == expected_score, result.model_dump_json(indent=2)
 
 
+@pytest.mark.parametrize(
+    ("gitlab_origin", "expected_score"),
+    [("http://gitlab.example", 1.0), ("http://wrong.example", 0.0)],
+    ids=["string-deployment-url", "string-wrong-origin"],
+)
+def test_remote_benchmark_derenders_url_valued_form_strings(
+    tmp_path, gitlab_origin, expected_score
+):
+    benchmark = remote_benchmark(load_remote_sites(_site_map(tmp_path)))
+    task = benchmark.get_task(684)
+    post_data = dict(task.eval[1].expected.post_data)
+    post_data["submission[url]"] = post_data["submission[url]"].replace(
+        "__GITLAB__", gitlab_origin
+    )
+    trace = tmp_path / f"task-684-{expected_score}.har"
+    trace.write_text(
+        json.dumps(
+            {
+                "log": {
+                    "entries": [
+                        {
+                            "request": {
+                                "method": "POST",
+                                "url": "http://reddit.example/submit/LifeProTips",
+                                "headers": [],
+                                "postData": {
+                                    "mimeType": "application/x-www-form-urlencoded",
+                                    "text": urlencode(post_data),
+                                },
+                            },
+                            "response": {"status": 302, "headers": [], "content": {}},
+                        }
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = benchmark.evaluate_task(
+        task_id=684,
+        agent_response={"task_type": "MUTATE", "status": "SUCCESS", "retrieved_data": None},
+        network_trace=trace,
+    )
+    assert float(result.score) == expected_score, result.model_dump_json(indent=2)
+
+
 def test_remote_reset_requires_pod_replacement_and_readiness(tmp_path):
     site_path = _site_map(tmp_path)
     receipt_path = tmp_path / "reset.json"
