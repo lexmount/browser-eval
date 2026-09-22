@@ -1,10 +1,26 @@
 # WebArena-Verified verified trajectories
 
-`trajectories.json` is the compact, versioned trajectory portion of the benchmark dataset.
-Each trajectory is one verified feasible BrowserTool path, not the task's only correct path.
+`current-run.json.dataset.path` and its SHA-256 identify the authoritative trajectory
+input for a formal build; currently this is `trajectories-corrected.json`.
+`trajectories.json` is the retained predecessor used by qualification and correction
+provenance. It is not a second current dataset. Each trajectory is one verified feasible
+BrowserTool path, not the task's only correct path.
+
+WebArena task definitions and shared evaluator fixes belong in the
+`lexmount/webarena-verified` fork. BrowserTool actions, selector compilation, local
+qualification and method comparisons belong here: the upstream task dataset does not
+define those browser-tool trajectories. Historical correction catalogs in `revisions/`
+are immutable inputs bound by retained cohorts, not copies of report output; removing
+them must not make historical contracts impossible to resolve.
+
+Authored report content and illustrations live outside Git. The report command takes
+`--content` (default `$BROWSER_EVAL_DATA_HOME/report-assets/trajectory-replay`, with the
+data home defaulting to `~/.browser-eval`). `research/trajectory-replay-content.json`
+binds every consumed file. The prior Git revision retains migration recovery copies;
+published report versions and physical execution evidence remain unchanged.
 
 `current-run.json` is the run authority for the next formal replay. It freezes the same 90-task
-selection used by the current Browser Use evaluation, the two registered browser methods, resource
+selection used by the current Browser Use evaluation, the registered browser methods, resource
 limits, and the isolation schedule. The private ready-to-run seed manifest must contain exactly one
 canonical candidate for each of those 90 tasks. The current inventory is assembled from 60 clean
 autonomous successes and 30 reviewed repairs; successful executions from different methods are
@@ -34,23 +50,33 @@ candidate evidence, not additional tasks.
   `BROWSER_EVAL_DATA_HOME`; this directory stores deterministic actions and provenance hashes.
 - The current self-hosted WebArena deployment has one fixed-port site stack, so a formal suite owns
   the physical environment exclusively. It runs every task for one browser before starting the next
-  browser, restores the official fixture before every task, and tears down both the browser and site
-  containers between browsers. Parallel methods are valid only after separate site stacks also have
-  separate containers, data stores, ports, gateways, and lock namespaces; multiple browser
+  browser, restores the site stack once before each browser method, and tears down the browser and site
+  containers between methods. It does not reset the site between tasks. Parallel methods are valid
+  only after separate site stacks also have separate containers, data stores, ports, gateways, and
+  lock namespaces; multiple browser
   containers against one site stack are not independent environments.
-- Formal execution requires clean browser-eval and CowAgent checkouts and binds their commits, the
-  resolved browser and site image identities, and the frozen CPU, memory, and sampling limits into
-  the resumable receipt. A resume with different runtime identity is rejected. Browser storage,
-  cache, cookies, permissions, service workers, and IndexedDB are cleared before every task; failed
-  teardown aborts the suite. Any pre-action context recovery writes a new physical-evidence
-  directory instead of overwriting the first one.
+- Formal execution binds each method to frozen actions, a browser-binary hash, the site map, and a
+  method-scoped site reset receipt. A fresh BrowserTool context is created for each task; browser
+  storage does not carry between tasks, while site data is not reset between tasks. Every physical
+  execution and its evidence is retained separately.
 - More than one trajectory may be retained for a task when paths are materially different and
   independently satisfy the same promotion gate.
 
-Run the frozen suite with `scripts/run_webarena_trajectory_replay.py`. Diagnostic subsets are
-explicitly non-promotable. `--qualification-engine chromium` runs the complete frozen task set on
-the reference browser and is the only scope that may promote the standard trajectory dataset.
-After all 90 qualify, promote that receipt with `scripts/promote_webarena_trajectories.py`, then run
-the measured method matrix with `--qualified-dataset` and no scope option. The runner rejects formal
-execution when that dataset is missing, incomplete, or differs from the frozen profile, seeds, or
-canonical actions. Never edit a verdict or verification claim by hand.
+Freeze each method's exact 90-task inputs with `scripts/freeze_webarena_three_method_inputs.py`,
+run each complete method cohort with `scripts/run_remote_three_method_cohort.py`, and bind the
+certified cohorts with `scripts/aggregate_webarena_three_method_cohorts.py`. Each method
+receives one site reset before its first task. The runner rejects a changed binary, task set,
+action sequence, or reset policy. Diagnostic subsets never enter the formal matrix. Never edit a
+verdict or verification claim by hand.
+
+The report presents every registered method with its recorded protocol. Diagnostic-only cohorts cannot
+enter its score-bearing matrix or add a separate result appendix.
+
+Adding a browser version appends a method and its complete cohort; existing results remain
+unchanged. Historical failure diagnostics may retain their original cohort binding through
+`inherited_result_cohorts` in the review record. Each inherited cohort must be hash-bound, use
+the same dataset, and have every logical result preserved exactly in the expanded matrix.
+When appended cohorts use a corrected evaluator, declare the exact method-specific correction ID
+and corrected task hash under `acceptance_revisions`. The task page retains both acceptance
+versions, and measurement notes identify the affected task IDs. Identical frozen trajectory
+hashes do not prove identical evaluator revisions. Historical verdicts are not rewritten.

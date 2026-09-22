@@ -1,6 +1,7 @@
 import json
 import multiprocessing
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from webarena_verified.types.task import WebArenaSite
@@ -12,6 +13,8 @@ from harness.browser_use.runner import (
     QEMU_X86_64_HOST_PATH,
     SITE_AUTH_HEADERS,
     _allow_official_container_hostname,
+    _bootstrap_postmill_session,
+    _browser_tool_config,
     _configure_benchmark,
     _container_host_gateway,
     _docker_daemon_lock_namespace,
@@ -23,16 +26,105 @@ from harness.browser_use.runner import (
     _max_steps_response,
     _physical_execution_lock,
     _physical_execution_lock_path,
+    _prepare_browser_viewport,
     _run_attempt,
     _scheduled_tasks,
     _site_container_manager,
     _site_runtime_compatibility,
     _user_prompt,
+    _verify_session_viewport,
     _wait_application_ready,
     _wait_container_healthy,
     _wait_magento_dependencies_ready,
 )
 from harness.browser_use.selection import load_pilot
+
+
+def test_browser_config_requests_owned_context_and_supported_viewport_keys() -> None:
+    config = _browser_tool_config("http://localhost:9222")
+    assert config["cdp_isolated_context"] is True
+    assert (config["viewport_width"], config["viewport_height"]) == (1280, 900)
+    assert "viewport" not in config
+
+
+def _viewport_service(width=1280, height=900):
+    class Page:
+        def evaluate(self, _expression):
+            return {"width": width, "height": height, "device_scale_factor": 1}
+
+        def close(self):
+            context.pages.remove(self)
+
+    class Context:
+        pages = []
+
+        def new_page(self):
+            page = Page()
+            self.pages.append(page)
+            return page
+
+    context = Context()
+    primary = context.new_page()
+    return SimpleNamespace(
+        _context=context, _page=primary, _owns_cdp_context=True,
+        _browser=SimpleNamespace(contexts=[object(), context]), _submit=lambda callback: callback(),
+    )
+
+
+def test_viewport_receipt_measures_primary_and_new_page_before_navigation() -> None:
+    service = _viewport_service()
+    evidence = _prepare_browser_viewport(service)
+    assert evidence["verified"] is True
+    assert evidence["requested"] == {"width": 1280, "height": 900}
+    assert [row["phase"] for row in evidence["observations"]] == [
+        "primary_before_navigation", "new_page_before_navigation"
+    ]
+    assert evidence["retained_external_context_count"] == 1
+    assert service._context.pages == [service._page]
+    _verify_session_viewport(service, evidence, "after_login")
+    assert evidence["observations"][-1]["phase"] == "after_login"
+
+
+@pytest.mark.parametrize("width,height", [(780, 437), (1920, 1080), (1280, 720)])
+def test_viewport_readback_rejects_unapplied_configuration(width, height) -> None:
+    with pytest.raises(RuntimeError, match="viewport mismatch"):
+        _prepare_browser_viewport(_viewport_service(width, height))
+
+
+def test_viewport_setup_requires_cowagent_owned_context_support() -> None:
+    service = _viewport_service()
+    service._owns_cdp_context = False
+    with pytest.raises(RuntimeError, match="owned CDP context contract"):
+        _prepare_browser_viewport(service)
+
+
+def test_viewport_drift_invalidates_previously_verified_receipt() -> None:
+    service = _viewport_service()
+    evidence = _prepare_browser_viewport(service)
+    service._page.evaluate = lambda _expression: {"width": 1920, "height": 1080}
+    with pytest.raises(RuntimeError, match="viewport mismatch"):
+        _verify_session_viewport(service, evidence, "after_agent")
+    assert evidence["verified"] is False
+
+
+def test_viewport_readback_error_invalidates_receipt() -> None:
+    service = _viewport_service()
+    evidence = _prepare_browser_viewport(service)
+    def unavailable(_expression):
+        raise RuntimeError("Execution context destroyed")
+    service._page.evaluate = unavailable
+    with pytest.raises(RuntimeError, match="Execution context destroyed"):
+        _verify_session_viewport(service, evidence, "after_agent")
+    assert evidence["verified"] is False
+
+
+def test_viewport_verification_requires_a_live_page() -> None:
+    service = _viewport_service()
+    evidence = _prepare_browser_viewport(service)
+    service._context.pages.clear()
+    with pytest.raises(RuntimeError, match="without a live page"):
+        _verify_session_viewport(service, evidence, "after_agent")
+    assert evidence["verified"] is False
 
 
 def _hold_physical_execution_lock(lock_path, acquired, release) -> None:
@@ -158,6 +250,100 @@ def test_login_context_closes_old_tabs_and_opens_official_start_url() -> None:
     assert readiness_retries == 0
     assert stale.closed is True
     assert primary.url == "http://official.test/start"
+
+
+@pytest.mark.parametrize(
+    "status,cookie,accepted",
+    [(200, True, True), (302, True, False), (401, False, False), (200, False, False)],
+)
+def test_postmill_bootstrap_is_one_non_redirecting_cookie_request(status, cookie, accepted) -> None:
+    calls = []
+    response = SimpleNamespace(status=status, dispose=lambda: calls.append("dispose"))
+
+    def get(url, **kwargs):
+        calls.append((url, kwargs))
+        return response
+
+    context = SimpleNamespace(
+        request=SimpleNamespace(get=get),
+        cookies=lambda url: [{"name": "PHPSESSID", "value": "fixture-session"}] if cookie else [],
+    )
+    if accepted:
+        _bootstrap_postmill_session(context, "http://127.0.0.1:9999")
+    else:
+        with pytest.raises(RuntimeError, match="Postmill session bootstrap"):
+            _bootstrap_postmill_session(context, "http://127.0.0.1:9999")
+    assert len(calls) == 2
+    assert calls[0][0] == "http://127.0.0.1:9999"
+    assert set(calls[0][1]["headers"]) == {"X-Postmill-Auto-Login"}
+    assert calls[0][1]["max_redirects"] == 0
+    assert calls[0][1]["max_retries"] == 0
+    assert calls[1] == "dispose"
+
+
+@pytest.mark.parametrize("include_shopping", [False, True])
+@pytest.mark.parametrize("identity_valid", [False, True])
+def test_postmill_login_keeps_auth_out_of_browser_requests_and_checks_identity(
+    monkeypatch, include_shopping, identity_valid,
+) -> None:
+    from harness.browser_use import runner
+
+    events = []
+
+    class Page:
+        def close(self): pass
+        def set_default_timeout(self, value): pass
+        def set_default_navigation_timeout(self, value): pass
+        def goto(self, url, **kwargs): events.append(("goto", url))
+        def evaluate(self, script): pass
+        def reload(self, **kwargs): events.append(("reload",))
+        def wait_for_timeout(self, value): pass
+        def locator(self, selector):
+            return SimpleNamespace(first=SimpleNamespace(wait_for=lambda: None))
+        def get_by_role(self, role, **kwargs):
+            events.append(("identity", role, kwargs))
+            def verify():
+                if not identity_valid:
+                    raise RuntimeError("expected authenticated identity is absent")
+                events.append(("identity_verified",))
+            return SimpleNamespace(wait_for=verify)
+
+    primary = Page()
+    context = SimpleNamespace(
+        pages=[primary],
+        clear_cookies=lambda: None,
+        set_extra_http_headers=lambda headers: events.append(("headers", headers)),
+        new_page=Page,
+    )
+    service = SimpleNamespace(_context=context, _page=primary, _submit=lambda f: f())
+    benchmark = SimpleNamespace(config=SimpleNamespace(get_environment=lambda site: SimpleNamespace(active_url="http://fixture.test")))
+    monkeypatch.setattr(
+        runner, "_bootstrap_postmill_session",
+        lambda ctx, url: events.append(("bootstrap", ctx is context, url)),
+    )
+    sites = (WebArenaSite.REDDIT,)
+    if include_shopping:
+        sites += (WebArenaSite.SHOPPING,)
+    if identity_valid:
+        _login_context(service, sites, benchmark, ["http://fixture.test/start"])
+    else:
+        with pytest.raises(RuntimeError, match="expected authenticated identity"):
+            _login_context(service, sites, benchmark, ["http://fixture.test/start"])
+    assert events[0][0] == "headers"
+    assert set(events[0][1]) == (
+        {SITE_AUTH_HEADERS[WebArenaSite.SHOPPING]} if include_shopping else set()
+    )
+    assert events[1] == ("bootstrap", True, "http://fixture.test")
+    assert events[2] == ("goto", "http://fixture.test")
+    assert events[4] == (
+        "identity", "button",
+        {"name": runner.SITE_CREDENTIALS[WebArenaSite.REDDIT]["username"], "exact": True},
+    )
+    if identity_valid:
+        assert events[5] == ("identity_verified",)
+        assert events[-1] == ("goto", "http://fixture.test/start")
+    else:
+        assert ("goto", "http://fixture.test/start") not in events
 
 
 def test_login_context_recovers_one_transient_unloaded_context(monkeypatch) -> None:

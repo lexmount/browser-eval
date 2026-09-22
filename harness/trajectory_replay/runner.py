@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import platform
 import threading
 import time
@@ -33,7 +34,9 @@ from .suite import BrowserTask, load_suite, validate_ground_truth_evidence
 
 ENGINE_IMAGES = {
     "chromium": "lex-browser-use-eval-chromium:local",
-    "moli": "lex-browser-use-eval-moli:local",
+    # A diagnostic may point only Moli at a separately tagged, hash-recorded image.
+    # The formal current profile continues to use the pinned local tag by default.
+    "moli": os.environ.get("BROWSER_EVAL_MOLI_IMAGE", "lex-browser-use-eval-moli:local"),
 }
 ENGINE_PORTS = {"chromium": 9223, "moli": 9222}
 ENCODING = tiktoken.get_encoding("o200k_base")

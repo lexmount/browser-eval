@@ -40,7 +40,7 @@ def copy_methodology_assets(output, assets=None):
             shutil.copy2(source, target)
 
 
-def build_public_benchmark_research(source: Path, output: Path) -> Path:
+def build_public_benchmark_research(source: Path, output: Path, *, include_english: bool = False) -> Path:
     """Build the research-only companion without measured evidence."""
     source, output = source.resolve(), output.resolve()
     marker = '.generated-report'
@@ -64,7 +64,7 @@ def build_public_benchmark_research(source: Path, output: Path) -> Path:
     output.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix='.research-report-build-', dir=output.parent))
     try:
-        generate_public_benchmark_research(staging, research)
+        generate_public_benchmark_research(staging, research, include_english=include_english)
         if sample is not None:
             shutil.copy2(sample_path, staging / 'sample-manifest.json')
         (staging / marker).write_text('generated\n', encoding='utf-8')
@@ -82,7 +82,7 @@ def build_public_benchmark_research(source: Path, output: Path) -> Path:
     return output / 'index.html'
 
 
-def build_report(source: Path, output: Path) -> Path:
+def build_report(source: Path, output: Path, *, include_english: bool = False) -> Path:
     source, output = source.resolve(), output.resolve()
     if source == output or output in source.parents:
         raise ValueError('Report output must not contain its evidence source')
@@ -91,7 +91,7 @@ def build_report(source: Path, output: Path) -> Path:
         raise ValueError(f'Refusing to replace an unmarked directory: {output}')
     dataset_probe = json.loads(contained_path(source, 'dataset.json').read_text())
     if dataset_probe.get('comparison', {}).get('kind') == 'webmainbench_frozen_html_to_markdown':
-        return build_webmainbench_report(source, output)
+        return build_webmainbench_report(source, output, include_english=include_english)
     require_selection_history(source)
     dataset = json.loads(contained_path(source,'dataset.json').read_text())
     records = [json.loads(line) for line in contained_path(source,'results.jsonl').read_text().splitlines()]
@@ -303,7 +303,7 @@ def build_report(source: Path, output: Path) -> Path:
         if (source/'file-rerun-selection.json').is_file():
             shutil.copy2(source/'file-rerun-selection.json', staging/'file-rerun-selection.json')
             shutil.copytree(source/'history/file-baseline', staging/'history/file-baseline')
-        generate(staging,dataset,records,manifests)
+        generate(staging,dataset,records,manifests,include_english=include_english)
         (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         # Replace only an explicitly marked generated directory; never merge stale pages.
         if output.exists():
@@ -394,7 +394,7 @@ def validate_webmainbench_anomaly_review(receipt: dict, source: Path,
         raise ValueError('Diagnostic review must not mutate score-bearing evidence')
 
 
-def build_webmainbench_report(source: Path, output: Path) -> Path:
+def build_webmainbench_report(source: Path, output: Path, *, include_english: bool = False) -> Path:
     """Build the current public-benchmark report without legacy task predicates."""
     dataset = json.loads(contained_path(source, 'dataset.json').read_text())
     records = [json.loads(line) for line in contained_path(source, 'results.jsonl').read_text().splitlines() if line.strip()]
@@ -482,7 +482,7 @@ def build_webmainbench_report(source: Path, output: Path) -> Path:
         if latency_diagnostic is not None:
             (staging / 'latency-diagnostic.json').write_text(
                 json.dumps(latency_diagnostic, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-        generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption, fixture_correction, teds_revision, anomaly_review, latency_diagnostic)
+        generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption, fixture_correction, teds_revision, anomaly_review, latency_diagnostic, include_english=include_english)
         (staging / '.generated-report').write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         if output.exists():
             backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'

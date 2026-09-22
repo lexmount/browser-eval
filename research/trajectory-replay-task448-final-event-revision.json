@@ -1,0 +1,31 @@
+{
+  "schema": "trajectory_replay_scoring_revision/1",
+  "revision_id": "tr-448-final-profile-save-20260920",
+  "task_id": 448,
+  "root_cause": "An any-matching-event rule accepted a correct profile save even after a later wrong save. Restore last-event selection before comparing the website value and retain the existing 302 or explicit 200 JSON success alternatives.",
+  "predecessor_catalog_path": "evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json",
+  "predecessor_correction_catalog_sha256": "cea0c6d7e67f41ce3913cb16f6f88b3df97e8c888f3ed5a86ad85625b104106b",
+  "predecessor_correction_record_sha256": "c46ddd0f232ca87e8ebe08cde4ea2fe7a0fe89bca578927072b5f4da21414fc1",
+  "revised_correction_catalog_sha256": "f77d148498e50710fdb7b1205dcb7770d2e746d6856112cb8bfa173989333a9e",
+  "revised_catalog_path": "evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260920-pre-510.json",
+  "revised_correction_record_sha256": "069e98e53f9349026876a7789f8f393fae74c9bb02a3b1e0251cdaeeed9222ee",
+  "regression_ids": [
+    "tr-448-302-success",
+    "tr-448-200-json-success",
+    "tr-448-200-json-failure",
+    "tr-448-wrong-website",
+    "tr-448-canceled-request",
+    "tr-448-reject-correct-then-wrong",
+    "tr-448-accept-wrong-then-correct"
+  ],
+  "provider_call_count": 0,
+  "historical_scores_immutable": true,
+  "effect": "The frozen Chromium trace remains accepted. The PR trace is rejected by the revised rule because its final redirected GET is recorded as a POST with the original body. The Moli 1.1.8 execution failed before evaluation and remains an execution failure. This correction does not rewrite the frozen comparison.",
+  "new_browser_defect": {
+    "source": "moli-protocol/src/domains/network/backlog.rs",
+    "function": "emit_staged_subresource_response_started",
+    "mechanism": "Each redirected request reuses request.method() and request.request_body() from the initial request rather than the redirected hop. A local HTTP fixture observes POST then GET while the frozen PR binary emits POST then POST for fetch redirects. Main-document redirects use another implementation and report GET correctly.",
+    "independent_probe_sha256": "19e1d4034066f111bfb646b5389a3198a0d0e67eaa3056fae6368ecf3b7d6e91",
+    "status": "reproduced_in_frozen_pr_binary"
+  }
+}

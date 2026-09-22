@@ -1,0 +1,129 @@
+{
+  "schema": "lex_replay_contract_audit/1",
+  "bindings": {
+    "results_sha256": "51d37408cc1731374c48cfb51dfd381f6b7f9927882ab7330645f6dab9635e05",
+    "dataset_sha256": "624a0ea83c6e4c3533714e961656d7e4159189a9e4941017b06a5299e4dc31d5",
+    "corrections_sha256": "e764f4b2828fa97d98cecc8752b31329871e612be1fff13878410d41e8414f9b",
+    "upstream_commit": "6473f72db5dcefc97b5725b59e734504edc28a21",
+    "fork_commit": "7d060ec92b611d66b48d667acb9d92c35cfbdbda"
+  },
+  "sources": [
+    "https://github.com/lexmount/webarena-verified/pull/1",
+    "https://github.com/lexmount/webarena-verified/pull/2"
+  ],
+  "task_contract_changes": [
+    {
+      "task_id": 67,
+      "layer": "fork",
+      "kind": "reference_change",
+      "before_zh": "从 Books 版块前十热帖的帖子说明中提取书名，原答案包含 A Christmas Carol 与 The Hobbit。",
+      "after_zh": "删除 A Christmas Carol，保留 The Hobbit；题意未改，revision 未随答案更新。",
+      "before_en": "Extract book titles from the descriptions of the ten hottest Books posts; the original reference includes A Christmas Carol and The Hobbit.",
+      "after_en": "A Christmas Carol is removed; The Hobbit remains. The intent and revision number are unchanged."
+    },
+    {
+      "task_id": 225,
+      "layer": "local",
+      "kind": "task_scope_change",
+      "before_zh": "查找 brush from sephora 的低分评论，原预期为未找到；原题没有明确写 manufacturer 字段。",
+      "after_zh": "把 from sephora 明确为商品标题包含 Sephora 和 Brush；这改变了歧义题的解释，不应称为原题唯一含义。",
+      "before_en": "Find low-rated reviews for brush from sephora, originally expecting not found; the intent does not explicitly name a manufacturer field.",
+      "after_en": "Interpret ‘from Sephora’ as matching Sephora and Brush in product titles. The original wording does not specify a manufacturer field; this revision resolves an ambiguous product scope rather than only correcting answer formatting."
+    },
+    {
+      "task_id": 243,
+      "layer": "fork",
+      "kind": "task_replacement",
+      "before_zh": "查找评论者的邮箱。",
+      "after_zh": "改查评论者昵称，参考答案为 Hannah Lim。这是替换任务，不是原邮箱题通过。",
+      "before_en": "Find a reviewer's email address.",
+      "after_en": "Find the reviewer's nickname, with Hannah Lim as the reference. This replaces the task rather than solving the original email question."
+    },
+    {
+      "task_id": 279,
+      "layer": "local",
+      "kind": "reference_change",
+      "before_zh": "耳机答案列表漏列符合条件的 Sony Bluetooth 商品。",
+      "after_zh": "独立来源复核后补齐，参考集合为 13 项；改变的是答案覆盖范围。",
+      "before_en": "The headphone reference omits a qualifying Sony Bluetooth product.",
+      "after_en": "Independent source review expands the reference to 13 items; reference coverage changes."
+    },
+    {
+      "task_id": 339,
+      "layer": "fork",
+      "kind": "event_matching_change",
+      "before_zh": "列表网址的匹配方式不能准确区分列表与详情页。",
+      "after_zh": "使用允许末尾斜杠的列表网址规则并排除详情页；GraphQL 条件保留。",
+      "before_en": "URL matching does not reliably distinguish the list from a detail page.",
+      "after_en": "A list-only pattern allows an optional trailing slash and excludes detail pages; the GraphQL checks remain."
+    },
+    {
+      "task_id": 448,
+      "layer": "local",
+      "kind": "acceptance_weakening",
+      "before_zh": "检查最后一次资料保存及 302 响应。",
+      "after_zh": "接受 302 或含明确成功消息的 200，并取消仅检查最后事件。反例已证实：先保存正确网址、后保存错误网址仍会通过。当前两个通过结果的实际保存网址均正确，未触发该漏洞。 本次追加的两组 1.1.9 方法已采用后续修正规则；原三组仍展示历史成绩。",
+      "before_en": "Check the last profile save and its 302 response.",
+      "after_en": "Accept 302 or a 200 carrying an explicit success message, and disable last-event-only selection. A counterexample confirms acceptance of a correct save followed by a wrong save. Both currently passing traces save only the correct website and do not exercise this hole. Both appended 1.1.9 methods use the later corrected rule; the original three retain historical scores.",
+      "counterexample_test": "tests/trajectory_replay/test_webarena_corrections.py::test_448_official_evaluator_rejects_overwritten_correct_save",
+      "revision_receipt": "research/trajectory-replay-task448-final-event-revision.json",
+      "revision_zh": "新规则恢复最后事件检查。原 Chromium 证据仍通过，PR 证据则因重定向后的 GET 被记录成带旧请求体的 POST 而失败；本地 HTTP 实测已确认该记录缺陷。历史成绩未改写。",
+      "revision_en": "The new rule restores last-event selection. Chromium's saved evidence still passes; the PR evidence fails because a redirected GET is recorded as a POST with the old body. A local HTTP probe confirms this recording defect. Historical scores remain unchanged."
+    },
+    {
+      "task_id": 475,
+      "layer": "fork",
+      "kind": "equivalent_form_acceptance",
+      "before_zh": "未勾选 README 的表单值只按缺失值验收。",
+      "after_zh": "接受缺失或字符串 0，仍拒绝 1；处理同一未勾选状态的两种编码。",
+      "before_en": "An unchecked README option is accepted only as an absent field.",
+      "after_en": "Accept an absent field or string 0 while rejecting 1, covering two encodings of the unchecked state."
+    },
+    {
+      "task_id": 510,
+      "layer": "local",
+      "kind": "task_scope_change",
+      "before_zh": "依据评论数量、价格和评分寻找音箱并购买；购物车 totals 响应检查 items_qty=1 和商品名，没有检查金额。",
+      "after_zh": "冻结版本写明目标商品 75640、直接导航，删除 totals 响应规则，只检查单个商品行与名称，移除了商品发现能力，也漏掉数量检查。反例证实同一行买两件仍通过。后续修订恢复原数量规则；保存的三个方法证据重新评分均通过，未新增浏览器调用。 本次追加的两组 1.1.9 方法已采用后续修正规则；原三组仍展示历史成绩。",
+      "before_en": "Find and buy a speaker using review count, price and rating. The cart-totals response check requires items_qty=1 and a product name, not a monetary total.",
+      "after_en": "The frozen version names product 75640, navigates directly and replaces the totals rule with a single-row/name check. This removes product discovery and drops quantity validation: a two-unit row passes a counterexample. A later revision restores the original quantity rule; all three saved method results remain accepted without new browser calls. Both appended 1.1.9 methods use the later corrected rule; the original three retain historical scores.",
+      "revision_receipt": "research/trajectory-replay-task510-quantity-revision.json"
+    },
+    {
+      "task_id": 528,
+      "layer": "local",
+      "kind": "contradictory_rule_removal",
+      "before_zh": "题目要求填写但不提交，验收却同时要求一次提交请求。",
+      "after_zh": "删除正向提交要求，保留原有禁止 POST 的规则，并检查最终表单字段。禁止提交的验收没有被删除。",
+      "before_en": "The task says to fill without submitting, but a positive evaluator also requires submission.",
+      "after_en": "Remove the positive submission requirement, retain the original forbidden-POST rule and inspect final form fields. The prohibition on submission remains."
+    },
+    {
+      "task_id": 547,
+      "layer": "local",
+      "kind": "required_event_removal",
+      "before_zh": "要求保存全局 Brown 属性，并保存商品的 S-Brown 变体。",
+      "after_zh": "因站点已有 Brown 选项 51，删除全局属性保存要求，保留父商品保存验收。六组生产评测器控制确认：复用 Brown 并新增 S-Brown 行通过；错误尺码、颜色、商品名、非新增行或缺少属性均拒绝。此任务复用已有颜色，不再考查创建全局属性。",
+      "before_en": "Require saving the global Brown attribute and the product's S-Brown variant.",
+      "after_en": "Remove the global attribute-save requirement because Brown option 51 already exists; retain parent-product save acceptance. Six production-evaluator controls accept reuse with a new S-Brown row and reject wrong size, color or product name, a non-new row and missing attributes. This reuses a color rather than testing creation of a global attribute."
+    },
+    {
+      "task_id": 676,
+      "layer": "fork",
+      "kind": "event_matching_change",
+      "before_zh": "订单筛选只检查导航事件。",
+      "after_zh": "允许订单网格 XHR，限定 sales_order_grid 命名空间并保留最后事件要求。",
+      "before_en": "Order filtering considers navigation events only.",
+      "after_en": "Allow grid XHR, restrict it to the sales_order_grid namespace and retain last-event selection."
+    },
+    {
+      "task_id": 699,
+      "layer": "fork_and_local",
+      "kind": "field_representation_and_coverage",
+      "before_zh": "表单预期使用与 Magento 实际请求不一致的索引表示，客户组条件不完整。",
+      "after_zh": "按实际扁平索引字段匹配；本地修订还要求客户组 2、3，增加验收约束。",
+      "before_en": "Expected indexed fields differ from Magento's request representation and omit customer groups.",
+      "after_en": "Match the flattened indexed fields; the local revision additionally requires customer groups 2 and 3, tightening acceptance."
+    }
+  ]
+}

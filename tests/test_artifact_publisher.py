@@ -74,7 +74,7 @@ class ArtifactPublisherTests(unittest.TestCase):
         self.calls.append((path, data, kwargs))
         if path == '/api/sites/current':
             result = {'version': {'id': next(self.versions)}}
-        elif path.startswith('/api/uploads?'):
+        elif path.split('?', 1)[0] == '/api/uploads':
             result = {'versionId': 'ver_upload'}
         else:
             result = {'slug': 'current', 'versionId': 'ver_new'}
@@ -101,6 +101,14 @@ class ArtifactPublisherTests(unittest.TestCase):
             '/api/uploads/ver_upload/files/packs/output.gz',
         })
         self.assertEqual(self.calls[-1][0], '/api/uploads/ver_upload/commit?expected_version=ver_old')
+
+    def test_new_site_keeps_its_title_with_parallel_upload(self):
+        upload_large_archive(self.request, self.archive, title='轨迹重放', max_workers=2)
+        self.assertEqual(json.loads(self.calls[0][1]), {'title': '轨迹重放'})
+        puts = [call for call in self.calls if call[2].get('method') == 'PUT']
+        self.assertEqual(puts[0][0], '/api/uploads/ver_upload/files/index.html')
+        self.assertEqual(len(puts), 2)
+        self.assertEqual(self.calls[-1][0], '/api/uploads/ver_upload/commit')
 
     def test_changed_remote_never_commits(self):
         self.versions = iter(['ver_old', 'ver_someone_else'])

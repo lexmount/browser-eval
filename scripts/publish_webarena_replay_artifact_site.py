@@ -7,27 +7,36 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import tempfile
 import urllib.parse
 import urllib.request
 import uuid
 import zipfile
+from io import BytesIO
 from pathlib import Path
 from urllib.error import HTTPError
 
 from harness.web_fetch.artifact_auth import load_token
+from harness.web_fetch.publication import upload_large_archive
+from harness.trajectory_replay.webarena_report import require_all_reference_validity
+if __package__:
+    from scripts.build_webarena_replay_report import _bound_dataset_path
+else:
+    from build_webarena_replay_report import _bound_dataset_path
 
 ARCHIVE = Path("publish/trajectory-replay-artifact-site.zip")
 ATTESTATION = Path("publish/trajectory-replay-artifact-site.attestation.json")
 RECEIPT = Path("publish/trajectory-replay-artifact-site-receipt.json")
 PROFILE = Path("evaluation/trajectory-replay/webarena-verified/current-run.json")
-DATASET = Path("evaluation/trajectory-replay/webarena-verified/trajectories.json")
 REVIEW = Path("research/trajectory-replay-failure-review.json")
 BINDING_JOURNAL = Path("publish/trajectory-replay-artifact-site-binding-pending.json")
+OPERATION_JOURNAL = Path("publish/trajectory-replay-artifact-site-operation-pending.json")
 PUBLIC_REPORT_MARKERS = (
     "<title>浏览器轨迹重放</title>",
     "<title>Browser Trajectory Replay</title>",
 )
+STAGED_UPLOAD_THRESHOLD = 23 * 1024 * 1024
 
 
 def sha256(path: Path) -> str:
@@ -117,21 +126,29 @@ def request(
     *,
     method: str | None = None,
     authenticated: bool = True,
+    extra_headers: dict[str, str] | None = None,
 ) -> tuple[int, bytes, dict[str, str]]:
     headers = {"User-Agent": "Trajectory-Replay-Artifact-Site-Publisher/1.0"}
     if authenticated:
         headers["Authorization"] = "Bearer " + load_token(base_url=base)
     if content_type:
         headers["Content-Type"] = content_type
+    if extra_headers:
+        headers.update(extra_headers)
     req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
     try:
-        with urllib.request.urlopen(req, timeout=240) as response:
+        with urllib.request.urlopen(req, timeout=request_timeout(method)) as response:
             return response.status, response.read(), dict(response.headers.items())
     except HTTPError as error:
         try:
             return error.code, error.read(), dict(error.headers.items())
         finally:
             error.close()
+
+
+def request_timeout(method: str | None) -> int:
+    """Allow a staged file PUT to finish on slower upstream connections."""
+    return 1_200 if method == "PUT" else 240
 
 
 def validate_package() -> dict:
@@ -141,15 +158,34 @@ def validate_package() -> dict:
     attestation = json.loads(ATTESTATION.read_text(encoding="utf-8"))
     report = Path(str(attestation.get("report") or ""))
     evidence = Path(str(attestation.get("evidence") or ""))
+    profile = json.loads(PROFILE.read_text(encoding="utf-8"))
+    dataset_path = _bound_dataset_path(profile)
+    if (profile.get("scoring") or {}).get("require_all_reference_validity") is True:
+        require_all_reference_validity(
+            profile,
+            json.loads(evidence.read_text(encoding="utf-8")),
+            json.loads(dataset_path.read_text(encoding="utf-8")),
+        )
     checks = {
         "schema": attestation.get("schema") == "lex_webarena_replay_publication_attestation/1",
         "archive": sha256(ARCHIVE) == attestation.get("archive_sha256"),
         "report": report.is_dir() and tree_sha256(report) == attestation.get("report_tree_sha256"),
         "profile": sha256(PROFILE) == attestation.get("profile_sha256"),
-        "dataset": sha256(DATASET) == attestation.get("dataset_sha256"),
+        "dataset": sha256(dataset_path) == attestation.get("dataset_sha256"),
         "review": sha256(REVIEW) == attestation.get("review_sha256"),
         "evidence": evidence.is_file() and sha256(evidence) == attestation.get("evidence_sha256"),
     }
+    report_manifest = report / "report-manifest.json"
+    built = json.loads(report_manifest.read_text(encoding="utf-8")) if report_manifest.is_file() else {}
+    checks["report_dataset"] = built.get("dataset_sha256") == attestation.get("dataset_sha256")
+    checks["report_evidence"] = built.get("results_sha256") == attestation.get("evidence_sha256")
+    checks["no_diagnostic_closure"] = not any(
+        value for value in (
+            built.get("diagnostic_closure_sha256"),
+            attestation.get("diagnostic_closure_sha256"),
+            attestation.get("diagnostic_closure"),
+        )
+    )
     failed = [name for name, valid in checks.items() if not valid]
     if failed:
         raise ValueError("publication package is stale: " + ", ".join(failed))
@@ -157,7 +193,11 @@ def validate_package() -> dict:
 
 
 def multipart_archive(title: str) -> tuple[bytes, str]:
-    boundary = "----trajectoryreplay" + uuid.uuid4().hex
+    identity = hashlib.sha256()
+    identity.update(title.encode())
+    identity.update(b"\0")
+    identity.update(sha256(ARCHIVE).encode())
+    boundary = "----trajectoryreplay" + identity.hexdigest()[:32]
     parts = []
     for key, value in (("mode", "zip"), ("title", title)):
         parts.append(
@@ -178,6 +218,53 @@ def multipart_archive(title: str) -> tuple[bytes, str]:
     return b"".join(parts), "multipart/form-data; boundary=" + boundary
 
 
+def staged_archive_upload(
+    base: str,
+    *,
+    title: str,
+    slug: str | None,
+    expected_version: str | None,
+    identity: dict,
+) -> bytes:
+    """Upload a large archive as validated files and activate it in one commit."""
+
+    def staged_request(path, data=None, content_type=None, *, method=None):
+        headers = None
+        if data is not None and method is None and (
+            path.startswith("/api/uploads?") or "/commit" in path
+        ):
+            seed = json.dumps(identity, sort_keys=True, separators=(",", ":")) + "|" + path
+            headers = {
+                "Idempotency-Key": "trajectory-staged-"
+                + hashlib.sha256(seed.encode()).hexdigest()
+            }
+        status, raw, response_headers = request(
+            base,
+            path,
+            data,
+            content_type,
+            method=method,
+            extra_headers=headers,
+        )
+        if not 200 <= status < 300:
+            raise HTTPError(
+                base + path,
+                status,
+                raw.decode("utf-8", errors="replace")[:500],
+                response_headers,
+                BytesIO(raw),
+            )
+        return status, raw
+
+    return upload_large_archive(
+        staged_request,
+        ARCHIVE,
+        slug,
+        expected_version,
+        title=title,
+    )
+
+
 def current_version(site: dict) -> str:
     nested = site.get("site") if isinstance(site.get("site"), dict) else site
     version = str(nested.get("currentVersionId") or (nested.get("version") or {}).get("id") or "")
@@ -186,7 +273,7 @@ def current_version(site: dict) -> str:
     return version
 
 
-def public_share_path(base: str, share_url: str) -> str:
+def public_share_context(base: str, share_url: str) -> tuple[str, str]:
     target = urllib.parse.urlsplit(share_url)
     authority = urllib.parse.urlsplit(base)
     if (
@@ -197,7 +284,104 @@ def public_share_path(base: str, share_url: str) -> str:
         or target.fragment
     ):
         raise ValueError("current replay profile has no valid same-origin public share URL")
-    return target.path
+    token = target.path.removeprefix("/v/")
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", token):
+        raise ValueError("current replay profile has no valid public share token")
+    return target.path, token
+
+
+def public_share_path(base: str, share_url: str) -> str:
+    return public_share_context(base, share_url)[0]
+
+
+def operation_identity(
+    *,
+    base: str,
+    title: str,
+    kind: str,
+    slug: str = "",
+    expected_version: str = "",
+) -> dict:
+    return {
+        "schema": "lex_webarena_replay_artifact_operation/1",
+        "base_url": base,
+        "archive_sha256": sha256(ARCHIVE),
+        "title": title,
+        "kind": kind,
+        "slug": slug,
+        "expected_version": expected_version,
+    }
+
+
+def pending_operation(identity: dict, *, allow_create: bool) -> tuple[dict, bool]:
+    if OPERATION_JOURNAL.is_file():
+        pending = json.loads(OPERATION_JOURNAL.read_text(encoding="utf-8"))
+        key = pending.pop("key", None)
+        if (
+            pending != identity
+            or not isinstance(key, str)
+            or not re.fullmatch(r"[A-Za-z0-9._:-]{8,128}", key)
+        ):
+            raise ValueError("pending Artifact Site operation differs from this release")
+        pending["key"] = key
+        return pending, True
+    if not allow_create:
+        raise ValueError("no bound site or matching pending creation operation")
+    pending = dict(identity)
+    pending["key"] = "trajectory-replay-" + uuid.uuid4().hex
+    atomic_write(OPERATION_JOURNAL, json_bytes(pending))
+    return pending, False
+
+
+def completed_operation(base: str, key: str) -> tuple[int, bytes] | None:
+    status, raw, _ = request(base, f"/api/operations/{urllib.parse.quote(key)}")
+    if status == 404:
+        return None
+    operation = response_json(status, raw, operation="operation recovery")
+    state = operation.get("status")
+    if state == "running":
+        raise RuntimeError("Artifact Site operation is still running; retry this command later")
+    if state == "retryable":
+        return None
+    if state != "completed":
+        raise RuntimeError("Artifact Site operation returned an unknown recovery status")
+    result = operation.get("result")
+    http_status = operation.get("httpStatus")
+    if not isinstance(result, dict) or not isinstance(http_status, int):
+        raise RuntimeError("completed Artifact Site operation omitted its result")
+    return http_status, json.dumps(result, ensure_ascii=False).encode()
+
+
+def idempotent_upload(
+    base: str,
+    path: str,
+    payload: bytes,
+    content_type: str,
+    identity: dict,
+    *,
+    allow_create: bool,
+) -> tuple[int, bytes]:
+    pending, resumed = pending_operation(identity, allow_create=allow_create)
+    key = pending["key"]
+    if resumed:
+        recovered = completed_operation(base, key)
+        if recovered is not None:
+            return recovered
+    status, raw, _ = request(
+        base,
+        path,
+        payload,
+        content_type,
+        extra_headers={"Idempotency-Key": key},
+    )
+    return status, raw
+
+
+def clear_pending_operation(identity: dict) -> None:
+    if not OPERATION_JOURNAL.exists():
+        return
+    pending_operation(identity, allow_create=False)
+    OPERATION_JOURNAL.unlink(missing_ok=True)
 
 
 def preview_has_report_marker(body: bytes) -> bool:
@@ -251,8 +435,7 @@ def save_receipt(value: dict) -> None:
     safe = {
         key: item for key, item in value.items() if key not in {"editToken", "claimToken", "token"}
     }
-    RECEIPT.parent.mkdir(parents=True, exist_ok=True)
-    RECEIPT.write_text(json.dumps(safe, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    atomic_write(RECEIPT, json_bytes(safe))
     os.chmod(RECEIPT, 0o600)
 
 
@@ -277,7 +460,10 @@ def main(*, create: bool) -> None:
     profile, base, bound_slug, expected_version = publication_target(require_bound=False)
     publication = profile["publication"]
     title = str(publication.get("title") or "Browser Trajectory Replay")
-    payload, content_type = multipart_archive(title)
+    large_archive = ARCHIVE.stat().st_size > STAGED_UPLOAD_THRESHOLD
+    payload = content_type = None
+    if not large_archive:
+        payload, content_type = multipart_archive(title)
     if bound_slug or expected_version:
         if create:
             raise ValueError("replay report is already bound; update it without --create")
@@ -285,6 +471,13 @@ def main(*, create: bool) -> None:
             raise ValueError("current replay profile has no complete Artifact Site binding")
         slug = bound_slug
         share_url = str(publication.get("share_url") or "")
+        upload_identity = operation_identity(
+            base=base,
+            title=title,
+            kind="version",
+            slug=slug,
+            expected_version=expected_version,
+        )
         status, raw, _ = request(base, f"/api/sites/{urllib.parse.quote(slug)}")
         before = response_json(status, raw, operation="site lookup")
         remote_version = current_version(before)
@@ -294,22 +487,52 @@ def main(*, create: bool) -> None:
             # remote version is byte-identical to the current package.
             verify_export(base, slug)
         else:
-            query = urllib.parse.urlencode({"expected_version": expected_version})
-            status, raw, _ = request(
-                base,
-                f"/api/sites/{urllib.parse.quote(slug)}/versions?{query}",
-                payload,
-                content_type,
-            )
+            if large_archive:
+                raw = staged_archive_upload(
+                    base,
+                    title=title,
+                    slug=slug,
+                    expected_version=expected_version,
+                    identity=upload_identity,
+                )
+                status = 200
+            else:
+                query = urllib.parse.urlencode({"expected_version": expected_version})
+                status, raw = idempotent_upload(
+                    base,
+                    f"/api/sites/{urllib.parse.quote(slug)}/versions?{query}",
+                    payload,
+                    content_type,
+                    upload_identity,
+                    allow_create=True,
+                )
             response_json(status, raw, operation="site version upload")
     else:
+        upload_identity = operation_identity(base=base, title=title, kind="create")
         slug = pending_created_site(base)
         if slug:
+            if OPERATION_JOURNAL.exists():
+                pending_operation(upload_identity, allow_create=False)
             verify_export(base, slug)
-        elif not create:
-            raise ValueError("no bound site or matching pending creation receipt")
         else:
-            status, raw, _ = request(base, "/api/sites", payload, content_type)
+            if large_archive:
+                raw = staged_archive_upload(
+                    base,
+                    title=title,
+                    slug=None,
+                    expected_version=None,
+                    identity=upload_identity,
+                )
+                status = 200
+            else:
+                status, raw = idempotent_upload(
+                    base,
+                    "/api/sites",
+                    payload,
+                    content_type,
+                    upload_identity,
+                    allow_create=create,
+                )
             created = response_json(status, raw, operation="site creation")
             slug = str(created.get("slug") or "")
             if not slug:
@@ -337,9 +560,10 @@ def main(*, create: bool) -> None:
     metadata = response_json(status, raw, operation="site lookup after upload")
     version = current_version(metadata)
     verify_export(base, slug)
+    share_path, share_token = public_share_context(base, share_url)
     public_status, public_body, _ = request(
         base,
-        public_share_path(base, share_url),
+        share_path,
         authenticated=False,
     )
     if public_status != 200:
@@ -348,9 +572,11 @@ def main(*, create: bool) -> None:
         base,
         f"/api/preview/{urllib.parse.quote(slug)}",
         authenticated=False,
+        extra_headers={"X-Artifact-Share": share_token},
     )
     if preview_status != 200 or not preview_has_report_marker(preview_body):
         raise RuntimeError("deployed preview is unavailable or missing report marker")
+    clear_pending_operation(upload_identity)
     bind_publication(profile, slug=slug, share_url=share_url, version=version)
     save_receipt(
         {

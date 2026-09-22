@@ -1,0 +1,80 @@
+{
+  "task_id": 313,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://192.168.5.2:7770"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"http://host.docker.internal:7770/contact/\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "fill",
+      "text": "customer service phone number",
+      "selector": "input[name=\"q\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "press",
+      "key": "Enter"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "wait",
+      "timeout": 1000
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => {\n  const paths = ['/', '/contact/', '/privacy-policy-cookie-restriction-mode', '/enable-cookies'];\n  const controller = new AbortController();\n  const timer = setTimeout(() => controller.abort(), 20000);\n  try {\n    const pages = [];\n    for (const path of paths) {\n      const url = new URL(path, location.origin);\n      const response = await fetch(url.href, {\n        credentials: 'same-origin', redirect: 'error', cache: 'no-store',\n        signal: controller.signal\n      });\n      if (response.status !== 200 || !/^text\\/html\\b/i.test(response.headers.get('content-type') || '') ||\n          new URL(response.url).origin !== location.origin)\n        throw new Error('support page request failed: ' + path);\n      const doc = new DOMParser().parseFromString(await response.text(), 'text/html');\n      for (const node of doc.querySelectorAll('script,style,noscript,template')) node.remove();\n      const text = (doc.body?.textContent || '').replace(/\\s+/g, ' ').trim();\n      if (!text) throw new Error('support page has no body text: ' + path);\n      const tel = [...doc.querySelectorAll('a[href^=\"tel:\"]')]\n        .map(node => ({href: node.getAttribute('href'), text: node.textContent.trim()}));\n      const matches = [...text.matchAll(/(?<!\\d)\\+?\\d[\\d(). -]{7,}\\d(?!\\d)/g)]\n        .map(match => match[0].trim());\n      pages.push({path, status: response.status, title: doc.title, text, tel, matches});\n    }\n    const items = [...new Set(pages.flatMap(page => [\n      ...page.tel.map(node => node.href.replace(/^tel:/i, '').trim()),\n      ...page.matches\n    ]).filter(Boolean))];\n    return {scope: pages.length === paths.length, complete: pages.every(page => page.status === 200),\n      items, pages, interpretation: 'Published store support surfaces only; no product-vendor phone is a store customer-service phone.'};\n  } finally {\n    clearTimeout(timer);\n    controller.abort();\n  }\n})()"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/1",
+    "task_id": 313,
+    "canonical_calls_sha256": "e476c757200b709df685f32fa2d423c4c5fb505a0f1c12b3eef85a4d0b928ed7",
+    "sources": [
+      {
+        "name": "support",
+        "step": 9,
+        "action_sha256": "33e750ad681d5a8f6ef9682aedf8c42374a2bb885a9842058a444e7ca6f908c4",
+        "decode": "json"
+      }
+    ],
+    "requirements": {
+      "scope": {
+        "source": "support",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "support",
+        "pointer": "/complete"
+      }
+    },
+    "projection": {
+      "source": "support",
+      "pointer": "/items"
+    },
+    "empty_result": "NOT_FOUND_ERROR",
+    "absence_coverage": {
+      "source": "support",
+      "pages_pointer": "/pages",
+      "required_paths": [
+        "/",
+        "/contact/",
+        "/privacy-policy-cookie-restriction-mode",
+        "/enable-cookies"
+      ],
+      "detector": "phone_number"
+    }
+  }
+}

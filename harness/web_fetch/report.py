@@ -680,7 +680,7 @@ def _research_write(out,path,title,body,english=False):
  page=f'<!doctype html><html lang="{"en" if english else "zh-CN"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}{nav}{language}<button class="theme-toggle" onclick="theme()">{"Theme" if english else "切换主题"}</button></nav></header><main><div class="wrap reliability" role="status"><strong>{status}</strong></div>{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
  target=contained_path(out,local_path);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
 
-def generate_public_benchmark_research(out:Path,research:dict):
+def generate_public_benchmark_research(out:Path,research:dict,*,include_english:bool=False):
  """Render the research-only public benchmark report with no measured-result paths."""
  if research.get('status')!='research_only' or research.get('measured_results')!=0:
   raise ValueError('Public benchmark research must explicitly contain zero measured results')
@@ -695,7 +695,7 @@ def generate_public_benchmark_research(out:Path,research:dict):
   json.dumps({'schema_version':2,'releases':release_history},ensure_ascii=False,indent=2)+'\n',
   encoding='utf-8')
  direct=research['direct_benchmarks'];adjacent=research['adjacent_browser_benchmarks']
- for english in (False,True):
+ for english in ((False,True) if include_english else (False,)):
   def h(zh,en):return en if english else zh
   def field(row,key):return row.get(key) if english else row.get(key+'_zh',row.get(key))
   def research_table(headers,rows,**kwargs):return table(headers,rows,index_header=h('序号','No.'),**kwargs)
@@ -801,6 +801,8 @@ def generate_public_benchmark_research(out:Path,research:dict):
   accounts+=section(h('实测阶段','Measurement phase'),f'<p>{h("届时按方法单独列出官方安装入口、版本和所需环境变量名，不公开值。","The measured edition will list official installation sources, versions and required environment-variable names per method, never their values.")}</p>')
   _research_write(out,'accounts/index.html',h('账号与安装','Accounts and setup'),accounts,english)
  (out/'research.json').write_text(json.dumps(research,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+ from harness.report_languages import write_language_contract
+ write_language_contract(out,include_english=include_english)
  return out/'index.html'
 
 def succeeded(r,c):
@@ -1326,7 +1328,7 @@ def attempt_row(r,c,base='../'):
  values+=cell(f'<code class="tiny break">{esc(r.get("run_id") or execution_id(r))}</code>')
  return case_attrs(r,c),values
 
-def generate(out:Path,dataset:dict,records:list,manifests:list):
+def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False):
  global _RELIABILITY_BANNER
  from .reliability import assess_reliability
  reliability=assess_reliability(dataset,records)
@@ -1648,8 +1650,11 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  write_support(out,records,manifests)
  from .report_changes import render_changes
  render_changes(out,cases,records,dataset)
- from .report_i18n import write_english_report
- write_english_report(out)
+ if include_english:
+  from .report_i18n import write_english_report
+  write_english_report(out)
+ from harness.report_languages import write_language_contract
+ write_language_contract(out,include_english=include_english)
  return out/'index.html'
 
 
@@ -2365,7 +2370,7 @@ def _wmb_result_detail(r,c,output,reference,labels,metric_labels,failure_notes,c
  return '<div data-report-detail="failed">'+body+''.join(dialogs)+'</div>' if failed else '<div data-report-detail="success">'+body+''.join(dialogs)+'</div>'
 
 
-def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,manifests:list,review:dict|None=None,research:dict|None=None,corrections:dict|None=None,adoption_data:dict|None=None,fixture_correction:dict|None=None,teds_revision:tuple|None=None,anomaly_review:dict|None=None,latency_diagnostic:dict|None=None):
+def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,manifests:list,review:dict|None=None,research:dict|None=None,corrections:dict|None=None,adoption_data:dict|None=None,fixture_correction:dict|None=None,teds_revision:tuple|None=None,anomaly_review:dict|None=None,latency_diagnostic:dict|None=None,*,include_english:bool=False):
  """Render the current WebMainBench report with the established report shell."""
  from .report_changes import render_webmainbench_history, webmainbench_history, ROOT
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
@@ -2420,7 +2425,7 @@ def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,mani
     values+=_wmb_timing_cell(latency_values,name,key)
    rows.append(('',values))
   return rows
- for english in (False,True):
+ for english in ((False,True) if include_english else (False,)):
   h=lambda zh,en:en if english else zh
   corrected_label=h('修正后复算','recomputed after correction')
   corrected_suffix=(f' ({corrected_label})' if english else f'（{corrected_label}）')
@@ -2715,3 +2720,5 @@ flowchart LR
    reference_text=contained_path(out,'references/'+case_id+'.md').read_text(encoding='utf-8')
    attempt_body=_wmb_result_detail(r,c,output_text,reference_text,labels,metric_labels,failure_notes,corrected,english)
    _wmb_write(out,'attempts/'+attempt_id+'.html',labels[r['provider']]+' · '+case_id,attempt_body,english)
+ from harness.report_languages import write_language_contract
+ write_language_contract(out,include_english=include_english)

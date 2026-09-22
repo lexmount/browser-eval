@@ -115,6 +115,22 @@ def _selector_for_ref(nodes: list[dict[str, Any]], ref: int, *, context: str) ->
     matches = [node for node in nodes if _same_selector_population(target, node)]
     if len(matches) == 1:
         return base
+    # Shared hrefs often identify unrelated menu entries. Keep the original
+    # element (not its text-bearing child), but prefer its complete label when
+    # that label uniquely narrows the snapshot population. Playwright has-text
+    # normalizes whitespace and matches case-insensitive substrings; use the
+    # same conservative population check rather than assuming exact matching.
+    text = " ".join(str(target.get("text") or "").split())
+    labels = [" ".join(str(node.get("text") or "").split()) for node in matches]
+    if (
+        target["attributes"].get("href")
+        and text
+        and not any(label.endswith(("...", "…")) for label in labels)
+        and sum(text.lower() in label.lower() for label in labels) == 1
+    ):
+        return f"{base}:has-text({_quoted(text)})"
+    # Missing, truncated or ambiguous labels retain the precise original ref's
+    # ordinal. Do not silently replace it with the first matching text node.
     occurrence = next(index for index, node in enumerate(matches, start=1) if node is target)
     return f":nth-match({base}, {occurrence})"
 

@@ -1,0 +1,19 @@
+{
+  "schema": "webarena_original36_diagnostic_variant/1",
+  "promotable": false,
+  "overrides": [
+    {
+      "task_id": 108,
+      "kind": "retrieval_candidate",
+      "path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-108-ajax-proposal.json",
+      "sha256": "aae7171e90cb3f309400fa7c5289ae3e6a13254c8c075b0cf591f6468e81514a"
+    },
+    {
+      "task_id": 464,
+      "kind": "omit_trailing_diagnostic_observer",
+      "original_action_count": 8,
+      "trailing_action_sha256": "b4075840ad089ef703a88aa60ee799a3e5d876bd371358e168dee370ca7b89e7",
+      "action_count_after": 7
+    }
+  ]
+}

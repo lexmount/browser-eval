@@ -16,6 +16,7 @@ from harness.web_fetch.safety import contained_path
 from harness.web_fetch.webmainbench_evidence import retry_chain_matches
 from harness.web_fetch.webmainbench_latency_correction import prior_results_path, validate_latency_correction
 from harness.web_fetch.report_changes import ROOT, webmainbench_history
+from harness.report_languages import check_language_contract, generated_languages
 
 
 PROVIDERS = {"kitesurf", "lightpanda", "obscura", "moli", "moli-1.1.7", "chromium"}
@@ -39,11 +40,11 @@ def close(left: float, right: float) -> bool:
 def check_teds_warnings(root: Path, impossible_teds: int) -> None:
     if not impossible_teds:
         return
-    for prefix, label, count, warning in (
-        ('', 'overall（待校验）', f'{impossible_teds} 条 TEDS 记录', '评分有效性尚未通过'),
-        ('en/', 'overall (under review)', f'{impossible_teds} TEDS records',
-         'score validity did not'),
-    ):
+    variants = [('', 'overall（待校验）', f'{impossible_teds} 条 TEDS 记录', '评分有效性尚未通过')]
+    if 'en' in generated_languages(root):
+        variants.append(('en/', 'overall (under review)', f'{impossible_teds} TEDS records',
+                         'score validity did not'))
+    for prefix, label, count, warning in variants:
         home = BeautifulSoup((root / prefix / 'index.html').read_text(encoding='utf-8'), 'html.parser')
         review = BeautifulSoup((root / prefix / 'review/index.html').read_text(encoding='utf-8'), 'html.parser')
         if (label not in home.get_text(' ', strip=True)
@@ -53,6 +54,9 @@ def check_teds_warnings(root: Path, impossible_teds: int) -> None:
 
 
 def check_report(root: Path, dataset: dict | None = None, records: list[dict] | None = None) -> None:
+    check_language_contract(root)
+    language_pairs = (('', 'zh'), ('en/', 'en')) if 'en' in generated_languages(root) else (('', 'zh'),)
+    prefixes = tuple(prefix for prefix, _ in language_pairs)
     dataset = dataset or json.loads((root / "dataset.json").read_text(encoding="utf-8"))
     records = records or read_jsonl(root / "results.jsonl")
     latency_correction = validate_latency_correction(root)
@@ -75,7 +79,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
     bundled_history = json.loads((root / 'report-changes.json').read_text(encoding='utf-8'))
     if bundled_history.get('releases') != source_history:
         raise ValueError('Bundled WebMainBench release history differs from the reviewed source')
-    for prefix, language in (('', 'zh'), ('en/', 'en')):
+    for prefix, language in language_pairs:
         changes = BeautifulSoup((root / prefix / 'changes/index.html').read_text(encoding='utf-8'), 'html.parser')
         ids = [node.get('data-release-id') for node in changes.select('[data-release-id]')]
         if ids != [row['id'] for row in source_history]:
@@ -147,7 +151,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         artifact = contained_path(root, row["artifact_path"])
         if digest(artifact) != row["output_sha256"]:
             raise ValueError("WebMainBench output artifact hash mismatch: " + row["attempt_id"])
-        for prefix in ("", "en/"):
+        for prefix in prefixes:
             detail = root / prefix / "attempts" / f'{row["attempt_id"]}.html'
             if detail.is_file():
                 detail_soup=check_presentation(detail.read_text())
@@ -236,7 +240,8 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         raise ValueError("WebMainBench category slices must use one bounded, filterable table")
     expected_guide_sections = {"overall", "scope", "content", "tables", "version-differences", "delivery", "decision"}
     guides = {}
-    for prefix, language in (("", "Chinese"), ("en/", "English")):
+    for prefix, language in tuple((prefix, 'English' if code == 'en' else 'Chinese')
+                                  for prefix, code in language_pairs):
         guide = BeautifulSoup((root / prefix / "guide/index.html").read_text(encoding="utf-8"), "html.parser")
         guides[prefix] = guide
         if {section.get("id") for section in guide.select(".wmb-editorial section[id]")} != expected_guide_sections:
@@ -273,7 +278,10 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
             or dataset_page.select_one('[data-wmb-distribution-filter]') is None):
         raise ValueError("Dataset axis distributions must use one filterable table")
     home_page = BeautifulSoup((root / "index.html").read_text(encoding="utf-8"), "html.parser")
-    for prefix, mean_label in (("", "均值耗时 ↕"), ("en/", "Mean latency ↕")):
+    timing_variants = [('', '均值耗时 ↕')]
+    if 'en' in generated_languages(root):
+        timing_variants.append(('en/', 'Mean latency ↕'))
+    for prefix, mean_label in timing_variants:
         localized_home = BeautifulSoup((root / prefix / "index.html").read_text(encoding="utf-8"), "html.parser")
         check_presentation(localized_home)
         check_presentation((root / prefix / "guide/index.html").read_text())
@@ -425,7 +433,7 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
             or "function wmbSliceFilters()" not in JS):
         raise ValueError("WebMainBench table width, bounded slice layout or filter logic is missing")
     for case_id in cases:
-        for prefix in ("", "en/"):
+        for prefix in prefixes:
             case_page = BeautifulSoup((root / prefix / "datasets" / f"{case_id}.html").read_text(encoding="utf-8"), "html.parser")
             hrefs = {link.get("href", "") for link in case_page.select("a[href]")}
             preview = case_page.select_one('#frozen-input iframe.wmb-html-preview')
@@ -438,12 +446,12 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
                 raise ValueError("WebMainBench case detail lacks independent reference or frozen input: " + case_id)
     for route in ("datasets/index.html", "analysis/index.html"):
         localized = [BeautifulSoup((root / prefix / route).read_text(encoding="utf-8"), "html.parser")
-                     for prefix in ("", "en/")]
+                     for prefix in prefixes]
         for selector in ("[data-wmb-filter]", "[data-wmb-slice-filter]"):
             inputs = [[(control.get("data-wmb-filter") or control.get("id"),
                         tuple(option.get("value") for option in control.select("option")))
                        for control in page.select(selector)] for page in localized]
-            if inputs[0] != inputs[1]:
+            if len(inputs) == 2 and inputs[0] != inputs[1]:
                 raise ValueError("WebMainBench bilingual filter fields or values differ: " + route)
     for provider in PROVIDERS:
         method_page = BeautifulSoup((root / "providers" / f'{provider}.html').read_text(encoding="utf-8"),"html.parser")

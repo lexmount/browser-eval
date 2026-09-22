@@ -1,0 +1,28 @@
+{
+  "schema": "trajectory_replay_task448_response_variant_audit/1",
+  "task_id": 448,
+  "site": "WebArena GitLab",
+  "profile_path": "/-/profile",
+  "expected_website_url": "https://egg.tart.com",
+  "first_clean_cohort_network_har_sha256": "d160cbf633d9eaea36b9eb472ee99ec0a3cb262303eb38aac916f49136cf1b8b",
+  "second_clean_cohort_receipt_sha256": "4b7cdf1ff5f2e2575df7ef0beae9be038512fd3ce02d6561d5f237bde00daa92",
+  "second_clean_cohort_network_har_sha256": "363a95203d16a0f13d8be384ef955a7ae0474e50a19076d99c791ef6ffcfa6ac",
+  "second_clean_cohort_evaluation_sha256": "83347802d58fde6dcc7460ab3e0870ba082c1513d06683fa524fb2141514d1ab",
+  "observations": [
+    {
+      "cohort": "first_clean",
+      "score": 1,
+      "same_path_post_response_statuses": [302, 200, 200]
+    },
+    {
+      "cohort": "second_clean",
+      "score": 0,
+      "same_path_post_response_statuses": [0, 200],
+      "successful_json_response": {"message": "Profile was successfully updated"},
+      "same_run_database_website_url": "https://egg.tart.com"
+    }
+  ],
+  "shared_cause": "The profile form can complete through a successful 200 JSON response as well as a 302 redirect. The current network evaluator expects only 302, so a completed mutation without that redirect is rejected.",
+  "correction_boundary": "An alternative must match the same POST route and submitted website URL and require the exact successful JSON message. A generic 200 response or request dispatch alone is insufficient.",
+  "verdict_policy": "Keep the second cohort's original score of zero. Any corrected score must be a separately bound scoring revision using the unchanged HAR and paired positive/negative controls."
+}

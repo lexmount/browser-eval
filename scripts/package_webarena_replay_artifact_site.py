@@ -9,21 +9,24 @@ import json
 import zipfile
 from pathlib import Path
 
+from harness.trajectory_replay.webarena_report import require_all_reference_validity
+
 if __package__:
+    from scripts.build_webarena_replay_report import _bound_dataset_path
     from scripts.check_webarena_replay_report import check as check_report
     from scripts.check_webarena_replay_visual import check as check_visual
 else:
+    from build_webarena_replay_report import _bound_dataset_path
     from check_webarena_replay_report import check as check_report
     from check_webarena_replay_visual import check as check_visual
 
 PROFILE = Path("evaluation/trajectory-replay/webarena-verified/current-run.json")
-DATASET = Path("evaluation/trajectory-replay/webarena-verified/trajectories.json")
 REVIEW = Path("research/trajectory-replay-failure-review.json")
 ARCHIVE = Path("publish/trajectory-replay-artifact-site.zip")
 ATTESTATION = Path("publish/trajectory-replay-artifact-site.attestation.json")
 VISUAL_RECEIPT = Path("publish/trajectory-replay-visual-qa.json")
 MAX_FILES = 2_000
-MAX_ARCHIVE_BYTES = 24 * 1024 * 1024
+MAX_ARCHIVE_BYTES = 300_000_000
 SKIP_PARTS = {".git", "node_modules", "__MACOSX"}
 
 
@@ -60,10 +63,31 @@ def validate_release(report: Path, visual_receipt: Path) -> dict[str, int]:
     return summary
 
 
-def package(report: Path, evidence: Path, output: Path, visual_receipt: Path) -> dict:
+def package(
+    report: Path,
+    evidence: Path,
+    output: Path,
+    visual_receipt: Path,
+) -> dict:
     if not evidence.is_file():
         raise ValueError(f"missing replay evidence: {evidence}")
     summary = validate_release(report, visual_receipt)
+    report_manifest = json.loads((report / "report-manifest.json").read_text(encoding="utf-8"))
+    profile = json.loads(PROFILE.read_text(encoding="utf-8"))
+    dataset_path = _bound_dataset_path(profile)
+    if (profile.get("scoring") or {}).get("require_all_reference_validity") is True:
+        require_all_reference_validity(
+            profile,
+            json.loads(evidence.read_text(encoding="utf-8")),
+            json.loads(dataset_path.read_text(encoding="utf-8")),
+        )
+    if (
+        report_manifest.get("dataset_sha256") != sha256(dataset_path)
+        or report_manifest.get("results_sha256") != sha256(evidence)
+    ):
+        raise ValueError("report and publication inputs refer to different result or dataset bytes")
+    if report_manifest.get("diagnostic_closure_sha256"):
+        raise ValueError("diagnostic-only appendices cannot enter the three-method release")
     files = sorted(path for path in report.rglob("*") if path.is_file())
     if not files or len(files) > MAX_FILES:
         raise ValueError(f"Artifact Site file count is outside 1..{MAX_FILES}: {len(files)}")
@@ -77,7 +101,7 @@ def package(report: Path, evidence: Path, output: Path, visual_receipt: Path) ->
                 raise ValueError(f"dot-leading publication path is unsupported: {relative}")
             archive.write(path, relative.as_posix())
     if output.stat().st_size > MAX_ARCHIVE_BYTES:
-        raise ValueError("publication package exceeds Artifact Site one-shot upload limit")
+        raise ValueError("publication package exceeds Artifact Site staged-upload limit")
     attestation = {
         "schema": "lex_webarena_replay_publication_attestation/1",
         "archive": str(output),
@@ -87,7 +111,7 @@ def package(report: Path, evidence: Path, output: Path, visual_receipt: Path) ->
         "report_tree_sha256": tree_sha256(report),
         "file_count": len(files),
         "profile_sha256": sha256(PROFILE),
-        "dataset_sha256": sha256(DATASET),
+        "dataset_sha256": sha256(dataset_path),
         "review_sha256": sha256(REVIEW),
         "evidence": str(evidence),
         "evidence_sha256": sha256(evidence),
@@ -109,7 +133,12 @@ def main() -> None:
     args = parser.parse_args()
     print(
         json.dumps(
-            package(args.report, args.evidence, args.output, args.visual_receipt),
+            package(
+                args.report,
+                args.evidence,
+                args.output,
+                args.visual_receipt,
+            ),
             ensure_ascii=False,
         )
     )

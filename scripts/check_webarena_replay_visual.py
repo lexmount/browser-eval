@@ -8,11 +8,26 @@ import hashlib
 import http.server
 import json
 import os
+import re
 import shutil
 import threading
 from pathlib import Path
 
+from harness.trajectory_replay.report_languages import language_roots, report_languages
+
 from playwright.sync_api import sync_playwright
+
+
+def _contrast_ratio(foreground: str, background: str) -> float:
+    def luminance(css: str) -> float:
+        if not re.fullmatch(r"rgb\(\d+,\s*\d+,\s*\d+\)", css):
+            raise ValueError(f"expected opaque computed RGB color: {css}")
+        channels = [int(channel) / 255 for channel in re.findall(r"\d+", css)]
+        linear = [value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+                  for value in channels]
+        return sum(value * weight for value, weight in zip(linear, (0.2126, 0.7152, 0.0722)))
+    values = sorted((luminance(foreground), luminance(background)))
+    return (values[1] + 0.05) / (values[0] + 0.05)
 
 
 def _tree_sha256(root: Path) -> str:
@@ -70,6 +85,38 @@ def _first_failed_key(report: Path) -> str | None:
     return next((item["key"] for item in results if item["status"] == "fail"), None)
 
 
+def _first_fix_id(report: Path) -> str | None:
+    fix_log = report / "data/fix-log.json"
+    if not fix_log.is_file():
+        return None
+    records = json.loads(fix_log.read_text(encoding="utf-8")).get("records") or []
+    return next(
+        (
+            str(record["id"])
+            for record in records
+            if record.get("id")
+            and (report / "fix" / f"{record['id']}.html").is_file()
+            and (report / "en/fix" / f"{record['id']}.html").is_file()
+        ),
+        None,
+    )
+
+
+def _diagnostic_samples(report: Path) -> list[int]:
+    source = report / "data/diagnostic-closure.json"
+    if not source.is_file():
+        return []
+    entries = json.loads(source.read_text(encoding="utf-8")).get("entries") or []
+    samples = []
+    for generation in ("current_b96", "inherited_mixed_build"):
+        entry = next((row for row in entries if row.get("generation") == generation), None)
+        if entry:
+            task_id = int(entry["task_id"])
+            if (report / "diagnostic" / f"{task_id}.html").is_file():
+                samples.append(task_id)
+    return samples
+
+
 def _routes(report: Path) -> list[str]:
     results = json.loads((report / "data/results.json").read_text(encoding="utf-8"))
     failed_key = _first_failed_key(report)
@@ -78,6 +125,8 @@ def _routes(report: Path) -> list[str]:
         None,
     )
     task_id = next((item.get("task_id") for item in results if item["status"] == "fail"), None)
+    if task_id is None:
+        task_id = next((item.get("task_id") for item in results), None)
     fixed = [
         "index.html",
         "dataset.html",
@@ -85,6 +134,8 @@ def _routes(report: Path) -> list[str]:
         "environment.html",
         "review.html",
     ]
+    if json.loads((report / "report-manifest.json").read_text()).get("interpretation"):
+        fixed.extend(("interpretation.html", "article.html"))
     routes = [*fixed, *(f"en/{item}" for item in fixed)]
     if task_id is not None and (report / "task" / f"{task_id}.html").is_file():
         routes.extend((f"task/{task_id}.html", f"en/task/{task_id}.html"))
@@ -98,7 +149,13 @@ def _routes(report: Path) -> list[str]:
             )
         )
     if passed_key is not None and (report / "result" / f"{passed_key}.html").is_file():
-        routes.extend((f"result/{passed_key}.html", f"en/result/{passed_key}.html"))
+        routes.extend((
+            f"result/{passed_key}.html", f"en/result/{passed_key}.html",
+            f"evidence-viewer.html?file=data/evidence/{passed_key}.json",
+            f"en/evidence-viewer.html?file=../data/evidence/{passed_key}.json",
+        ))
+    if "en" not in report_languages(report):
+        routes = [route for route in routes if not route.startswith("en/")]
     return routes
 
 
@@ -133,17 +190,17 @@ def check(report: Path, receipt: Path) -> None:
                         wait_until="domcontentloaded",
                     )
                     route_page.wait_for_function(
-                        "() => document.baseURI.includes('/api/preview/replay/result/')"
+                        "() => document.baseURI.includes('/api/preview/replay~fixture/result/')"
                     )
                     route_page.wait_for_function("() => !!document.documentElement.dataset.theme")
                     route_page.wait_for_function(
                         "() => getComputedStyle(document.body).backgroundColor"
                         " !== 'rgba(0, 0, 0, 0)'"
                     )
-                    assert "/api/preview/replay/result/" in route_page.locator(
+                    assert "/api/preview/replay~fixture/result/" in route_page.locator(
                         ".peer-list a"
                     ).first.evaluate("element => element.href")
-                    assert "/api/preview/replay/evidence-viewer.html" in route_page.locator(
+                    assert "/api/preview/replay~fixture/evidence-viewer.html" in route_page.locator(
                         "#evidence .evidence-actions a"
                     ).first.evaluate("element => element.href")
                     step_button = route_page.locator(
@@ -155,30 +212,50 @@ def check(report: Path, receipt: Path) -> None:
                         ).first
                     step_button.click()
                     try:
-                        route_page.locator('#step-dialog[open]').wait_for(timeout=5_000)
+                        route_page.locator("#step-dialog[open]").wait_for(timeout=5_000)
                     except Exception as exc:
                         state = route_page.evaluate(
                             """() => ({dialog:document.querySelector('#step-dialog')?.open,
-                            button:document.querySelector('.aligned-step button[data-open-step]')?.outerHTML,
-                            fields:['title','status','planned','actual','result','error'].map(key=>[key,!!document.querySelector('#step-dialog [data-step-'+key+']')]),
+                            button:document.querySelector(
+                              '.aligned-step button[data-open-step]')?.outerHTML,
+                            fields:['title','status','planned','actual','result','error']
+                              .map(key=>[key,!!document.querySelector(
+                                '#step-dialog [data-step-'+key+']')]),
                             script:[...document.scripts].map(item=>item.src),
                             theme:document.documentElement.dataset.theme})"""
                         )
-                        raise ValueError(f"step dialog did not open: {state}; errors: {page_errors}") from exc
+                        raise ValueError(
+                            f"step dialog did not open: {state}; errors: {page_errors}"
+                        ) from exc
                     route_page.wait_for_function(
-                        "() => document.querySelector('[data-step-planned]')?.textContent.includes('action')",
+                        "() => document.querySelector('[data-step-planned]')"
+                        "?.textContent.includes('action')",
                         timeout=5_000,
                     )
-                    assert route_page.locator('[data-step-actual]').inner_text()
-                    assert route_page.locator('[data-step-result]').inner_text()
-                    route_page.locator('[data-close-step]').click()
-                    route_page.locator('nav a[href="../index.html"]').first.click()
+                    assert route_page.locator("[data-step-actual]").inner_text()
+                    assert route_page.locator("[data-step-result]").inner_text()
+                    route_page.locator("[data-close-step]").click()
+                    if (report / "interpretation.html").is_file():
+                        route_page.locator("nav a[data-report-interpretation]").click()
+                        route_page.wait_for_url(
+                            f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/interpretation.html"
+                        )
+                        route_page.locator("article.interpretation h1").wait_for()
+                        article_nav = route_page.locator("nav a[data-report-interpretation]")
+                        assert article_nav.get_attribute("aria-current") == "page"
+                    route_page.locator('nav a[href$="index.html"]').first.click()
                     route_page.wait_for_url(
-                        f"http://127.0.0.1:{server.server_port}/api/preview/replay/index.html"
+                        f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/index.html"
                     )
                     route_page.locator("h1").wait_for()
+                    if "en" not in report_languages(report):
+                        route_page.locator("a.language").click()
+                        route_page.locator("[data-english-not-generated]").wait_for()
+                        assert "英文报告未生成" in route_page.locator("h1").inner_text()
+                        route_page.locator('a[href="../index.html"]').click()
+                        route_page.locator("a.language").wait_for()
                     route_page.close()
-                    for language in ("zh", "en"):
+                    for language in report_languages(report):
                         modal_page = browser.new_page(viewport={"width": 390, "height": 844})
                         prefix = "" if language == "zh" else "en/"
                         modal_page.goto(
@@ -194,7 +271,8 @@ def check(report: Path, receipt: Path) -> None:
                             ).first
                         modal_step.click()
                         modal_page.wait_for_function(
-                            "() => document.querySelector('[data-step-planned]')?.textContent.includes('action')",
+                            "() => document.querySelector('[data-step-planned]')"
+                            "?.textContent.includes('action')",
                             timeout=5_000,
                         )
                         dialog_box = modal_page.locator("#step-dialog").bounding_box()
@@ -205,26 +283,62 @@ def check(report: Path, receipt: Path) -> None:
                             path=str(screenshot_dir / f"step-dialog-{language}.png")
                         )
                         modal_page.close()
+                fix_id = _first_fix_id(report)
+                if fix_id is not None:
+                    fix_page = browser.new_page()
+                    fix_page.goto(
+                        f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/fix/{fix_id}.html",
+                        wait_until="domcontentloaded",
+                    )
+                    fix_page.wait_for_function(
+                        "() => document.baseURI.includes('/api/preview/replay~fixture/fix/')"
+                    )
+                    fix_page.locator('nav a[href="../index.html"]').first.click()
+                    fix_page.wait_for_url(
+                        f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/index.html"
+                    )
+                    fix_page.locator("h1").wait_for()
+                    fix_page.close()
+                if (report / "diagnostics.html").is_file():
+                    hosted_page = browser.new_page()
+                    hosted_root = (
+                        f"http://127.0.0.1:{server.server_port}"
+                        "/api/preview/replay~fixture/"
+                    )
+                    hosted_page.goto(hosted_root + "index.html", wait_until="domcontentloaded")
+                    hosted_page.locator('a[href="diagnostics.html"]').first.click()
+                    hosted_page.wait_for_url(hosted_root + "diagnostics.html")
+                    hosted_page.locator("h1").wait_for()
+                    assert hosted_page.locator("body").inner_text().count("36/36") >= 1
+                    hosted_page.locator('a[href="diagnostic/243.html"]').first.click()
+                    hosted_page.wait_for_url(hosted_root + "diagnostic/243.html")
+                    hosted_page.locator("h1").wait_for()
+                    hosted_page.locator('a[href="../diagnostics.html"]').first.click()
+                    hosted_page.wait_for_url(hosted_root + "diagnostics.html")
+                    hosted_page.locator('nav a[href="index.html"]').first.click()
+                    hosted_page.wait_for_url(hosted_root + "index.html")
+                    hosted_page.close()
                 drill_page = browser.new_page()
                 drill_page.goto(
                     f"http://127.0.0.1:{server.server_port}/dataset.html",
                     wait_until="domcontentloaded",
                 )
-                drill_task = drill_page.locator("[data-dataset-table] tbody tr").first.get_attribute(
-                    "data-task"
-                )
+                drill_task = drill_page.locator(
+                    "[data-dataset-table] tbody tr"
+                ).first.get_attribute("data-task")
                 assert drill_task
-                drill_page.locator("[data-dataset-table] tbody tr .dataset-actions a").nth(1).click()
+                drill_page.locator("[data-dataset-table] tbody tr .dataset-actions a").nth(
+                    1
+                ).click()
                 drill_page.wait_for_url(
                     f"http://127.0.0.1:{server.server_port}/results.html?task={drill_task}&status="
                 )
                 drill_page.locator('[data-results-ready="true"]').wait_for(timeout=5_000)
-                participants = json.loads(
-                    (report / "report-manifest.json").read_text(encoding="utf-8")
-                )["participants"]
-                assert drill_page.locator("[data-results] tbody tr:not([hidden])").count() == len(
-                    participants
-                )
+                measured_task_rows = [
+                    row for row in json.loads((report / "data/results.json").read_text(encoding="utf-8"))
+                    if str(row["task_id"]) == drill_task
+                ]
+                assert drill_page.locator("[data-results] tbody tr:not([hidden])").count() == len(measured_task_rows)
                 drill_page.close()
                 for index, route in enumerate(_routes(report)):
                     for width, height in ((1440, 1000), (390, 844)):
@@ -243,18 +357,59 @@ return node && node.textContent.trim().startsWith('{');
                                     timeout=5_000,
                                 )
                             if route.endswith("dataset.html"):
-                                page.wait_for_function("() => document.querySelector('[data-dataset-count]')?.textContent.includes('/')", timeout=5_000)
-                                page.locator('[data-dataset-filter="type"]').select_option("RETRIEVE")
-                                page.wait_for_function("() => [...document.querySelectorAll('[data-dataset-table] tbody tr:not([hidden])')].every(row => row.dataset.type === 'RETRIEVE')")
-                                visible_rows = page.locator('[data-dataset-table] tbody tr:not([hidden])')
+                                page.wait_for_function(
+                                    "() => document.querySelector('[data-dataset-count]')"
+                                    "?.textContent.includes('/')",
+                                    timeout=5_000,
+                                )
+                                page.locator('[data-dataset-filter="type"]').select_option(
+                                    "RETRIEVE"
+                                )
+                                page.wait_for_function(
+                                    "() => [...document.querySelectorAll("
+                                    "'[data-dataset-table] tbody tr:not([hidden])')]"
+                                    ".every(row => row.dataset.type === 'RETRIEVE')"
+                                )
+                                visible_rows = page.locator(
+                                    "[data-dataset-table] tbody tr:not([hidden])"
+                                )
                                 assert visible_rows.count() > 0
                                 task_id = visible_rows.first.get_attribute("data-task")
                                 assert task_id
                                 page.locator('[data-dataset-filter="q"]').fill(task_id)
-                                assert page.locator(f'[data-dataset-table] tbody tr:not([hidden])[data-task="{task_id}"]').count() == 1
-                                assert f"task={task_id}&status=" in page.locator(f'[data-dataset-table] tbody tr[data-task="{task_id}"] .dataset-actions a').last.get_attribute('href')
+                                assert (
+                                    page.locator(
+                                        "[data-dataset-table] tbody tr:not([hidden])"
+                                        f'[data-task="{task_id}"]'
+                                    ).count()
+                                    == 1
+                                )
+                                assert f"task={task_id}&status=" in page.locator(
+                                    "[data-dataset-table] tbody "
+                                    f'tr[data-task="{task_id}"] .dataset-actions a'
+                                ).last.get_attribute("href")
                                 page.locator('[data-dataset-filter="q"]').fill("")
                                 page.locator('[data-dataset-filter="type"]').select_option("")
+                            if route.endswith("diagnostics.html"):
+                                page.wait_for_function(
+                                    "() => document.querySelector('[data-closure-count]')"
+                                    "?.textContent.includes('/')",
+                                    timeout=5_000,
+                                )
+                                page.locator("[data-closure-group]").select_option("current_b96")
+                                assert (
+                                    page.locator(
+                                        'tr[data-group="current_b96"]:not([hidden])'
+                                    ).count()
+                                    > 0
+                                )
+                                assert (
+                                    page.locator(
+                                        'tr[data-group="inherited_mixed_build"]:not([hidden])'
+                                    ).count()
+                                    == 0
+                                )
+                                page.locator("[data-closure-group]").select_option("")
                             if route.endswith("results.html"):
                                 page.wait_for_function(
                                     "() => document.querySelector('[data-matrix-count]')"
@@ -282,10 +437,16 @@ return node && node.textContent.trim().startsWith('{');
                                     timeout=5_000
                                 )
                                 page.locator(".dialog-head button").click()
-                            page.evaluate(
-                                "value => document.documentElement.dataset.theme=value",
-                                theme,
-                            )
+                            if route.endswith("article.html"):
+                                # Script-free exports follow the OS preference, not
+                                # the dashboard's JavaScript theme attribute.
+                                page.emulate_media(color_scheme=theme)
+                                page.evaluate("delete document.documentElement.dataset.theme")
+                            else:
+                                page.evaluate(
+                                    "value => document.documentElement.dataset.theme=value",
+                                    theme,
+                                )
                             result = page.evaluate(
                                 """() => {
 const root=document.documentElement;
@@ -300,6 +461,11 @@ for(const element of document.querySelectorAll(layoutSelector)){
   }
 }
 const tiny=[];
+for(const element of document.querySelectorAll('.successful-distributions td:first-child')){
+  if(element.getClientRects().length && element.getBoundingClientRect().width < 140){
+    clipped.push('successful-distributions metric label');
+  }
+}
 for(const element of document.querySelectorAll('main p,main td,main th,main a,main button')){
   if(element.getClientRects().length &&
      parseFloat(getComputedStyle(element).fontSize) < 12){
@@ -328,6 +494,13 @@ return {
                                 **result,
                             }
                             states.append(state)
+                            if route.endswith(("article.html", "interpretation.html")):
+                                colors = page.locator(".interpretation th").evaluate_all(
+                                    "nodes=>nodes.map(e=>{const s=getComputedStyle(e);return [s.color,s.backgroundColor]})"
+                                )
+                                state["low_contrast_headers"] = [
+                                    pair for pair in colors if _contrast_ratio(*pair) < 4.5
+                                ]
                             if any(
                                 (
                                     result["overflow"] > 2,
@@ -336,6 +509,7 @@ return {
                                     result["viewerError"],
                                     result["topologyMissing"],
                                     result["rawMermaid"],
+                                    state.get("low_contrast_headers"),
                                 )
                             ):
                                 failures.append(state)
@@ -347,6 +521,8 @@ return {
                                     "environment.html",
                                 }
                                 or route.startswith(("result/", "task/"))
+                                or route.endswith("diagnostics.html")
+                                or route.startswith("diagnostic/")
                             ):
                                 shot = screenshot_dir / f"{index}-{width}.png"
                                 page.screenshot(path=str(shot), full_page=True)

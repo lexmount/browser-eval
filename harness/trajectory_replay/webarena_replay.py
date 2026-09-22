@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 import sys
 import time
 import traceback
@@ -18,6 +19,8 @@ from harness.browser_use.har import CdpHarRecorder
 from harness.browser_use.runner import (
     SITE_PORTS,
     _allow_official_container_hostname,
+    _browser_session_contract,
+    _browser_tool_config,
     _cdp_metadata,
     _configure_benchmark,
     _container_host_gateway,
@@ -26,10 +29,12 @@ from harness.browser_use.runner import (
     _login_context,
     _physical_execution_lock,
     _physical_execution_lock_path,
+    _prepare_browser_viewport,
     _prepare_sites,
     _require_clean_git_checkout,
     _resource_summary,
     _site_container_manager,
+    _verify_session_viewport,
 )
 from harness.trajectory_replay.metrics import DockerStatsResources, ResourceSampler
 from harness.trajectory_replay.runner import (
@@ -98,7 +103,9 @@ def _click_was_dispatched_before_navigation_timeout(
     )
 
 
-def _execute_replay_call(tool: Any, arguments: dict[str, Any]) -> tuple[str, str]:
+def _execute_replay_call(
+    tool: Any, arguments: dict[str, Any], *, diagnostics: dict[str, Any] | None = None,
+) -> tuple[str, str]:
     """Execute one call without changing the semantics of a compiled snapshot ref."""
 
     replay_mode = arguments.get("replay_mode")
@@ -121,15 +128,41 @@ def _execute_replay_call(tool: Any, arguments: dict[str, Any]) -> tuple[str, str
     service = tool._get_service()
 
     try:
+
         def execute() -> None:
             page = service._page
             locator = page.locator(selector).first
             if action == "click":
-                locator.evaluate("element => element.click()")
+                if diagnostics is None:
+                    locator.evaluate("element => element.click()")
+                else:
+                    # Observe and dispatch in one JS turn: a separate probe can
+                    # race widget initialization. Do not add actionability waits
+                    # or reinterpret a successful DOM call as a successful task.
+                    state = locator.evaluate("""element => {
+                        const state = {
+                            connected: element.isConnected,
+                            disabled: Boolean(element.disabled),
+                            effectivelyDisabled: element.matches(':disabled'),
+                            ariaDisabled: element.getAttribute('aria-disabled')
+                        };
+                        element.click();
+                        return state;
+                    }""")
+                    diagnostics["click_dispatch_state"] = state
                 page.wait_for_timeout(500)
             elif action == "fill":
-                locator.evaluate("element => { element.focus(); element.value = ''; }")
-                page.keyboard.type(str(public_arguments.get("text", "")))
+                platform = locator.evaluate(
+                    "element => { element.focus(); return navigator.platform; }"
+                )
+                modifier = (
+                    "Meta"
+                    if str(platform).startswith(("Mac", "iPhone", "iPad", "iPod"))
+                    else "Control"
+                )
+                page.keyboard.press(f"{modifier}+A")
+                page.keyboard.press("Backspace")
+                page.keyboard.insert_text(str(public_arguments.get("text", "")))
             else:
                 value = str(public_arguments.get("value", ""))
                 locator.evaluate(
@@ -178,11 +211,17 @@ def select_methods(plan: dict[str, Any], engines: list[str]) -> list[dict[str, A
 def validate_qualification_dataset(plan: dict[str, Any], path: str | Path) -> str:
     """Bind a formal comparison to the complete pre-qualified trajectory set."""
 
+    from .retrieval_acceptance import digest, require_current_retrieval
+    from .webarena_dataset import OBSERVATION_PROTOCOL
+
+    require_current_retrieval(plan)
     dataset_path = Path(path).expanduser().resolve()
     dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
     if dataset.get("schema") != "lex_webarena_verified_trajectory_dataset/1":
         raise ValueError("formal replay requires the current qualified trajectory dataset")
     provenance = dataset.get("provenance") or {}
+    if provenance.get("observation_protocol") != OBSERVATION_PROTOCOL:
+        raise ValueError("qualified dataset needs fresh valid-observation qualification")
     if provenance.get("seed_manifest_sha256") != plan["seed_manifest_sha256"]:
         raise ValueError("qualified trajectories differ from the frozen replay seeds")
     if provenance.get("profile_sha256") != plan["profile_sha256"]:
@@ -194,18 +233,34 @@ def validate_qualification_dataset(plan: dict[str, Any], path: str | Path) -> st
     by_task = {int(item["task_id"]): item for item in trajectories}
     if len(by_task) != len(trajectories) or set(by_task) != set(plan["task_ids"]):
         raise ValueError("qualified trajectories do not cover the frozen task set")
-    seed_tasks = {
-        int(item["task_id"]): item for item in plan["seed_manifest"].get("tasks") or []
-    }
+    seed_tasks = {int(item["task_id"]): item for item in plan["seed_manifest"].get("tasks") or []}
     for task_id, trajectory in by_task.items():
+        if (
+            task_id in plan.get("state_contracts", {})
+            and trajectory.get("verification", {}).get("state_contract_sha256")
+            != plan["state_contracts"][task_id].definition_sha256
+        ):
+            raise ValueError("legacy qualification does not prove observed form state")
         if trajectory.get("tool_calls") != _candidate(seed_tasks[task_id]).get("tool_calls"):
             raise ValueError(f"qualified trajectory differs from task {task_id} canonical input")
+        if task_id in plan.get("retrieval_task_ids", []):
+            verification = trajectory.get("verification", {})
+            actual_protocol = verification.get(
+                "retrieval_protocol",
+                (provenance.get("retrieval_protocols") or {}).get(
+                    str(task_id), provenance.get("retrieval_protocol")
+                ),
+            )
+            if actual_protocol != plan["retrieval_contracts"][task_id][
+                "schema"
+            ] or verification.get("retrieval_contract_sha256") != digest(
+                plan["retrieval_contracts"][task_id]
+            ):
+                raise ValueError("legacy qualification does not prove current-run retrieval")
     return _sha256(dataset_path)
 
 
-def _rebind_url(
-    value: str, site_access_host: str, trusted_source_site_hosts: set[str]
-) -> str:
+def _rebind_url(value: str, site_access_host: str, trusted_source_site_hosts: set[str]) -> str:
     parsed = urlsplit(value)
     if (
         parsed.scheme not in {"http", "https"}
@@ -227,9 +282,7 @@ def _rebind_calls(
     for call in calls:
         item = dict(call)
         if isinstance(item.get("url"), str):
-            item["url"] = _rebind_url(
-                item["url"], site_access_host, trusted_source_site_hosts
-            )
+            item["url"] = _rebind_url(item["url"], site_access_host, trusted_source_site_hosts)
         rebound.append(item)
     return rebound
 
@@ -274,6 +327,10 @@ def _run_one(  # noqa: PLR0913
     sample_interval_ms: int,
     physical_execution: int,
     trusted_source_site_hosts: set[str],
+    retrieval_contract: dict[str, Any] | None = None,
+    state_contract: Any = None,
+    run_id: str = "",
+    prepare_sites: bool = True,
 ) -> dict[str, Any]:
     task_id = int(task_seed["task_id"])
     candidate = _candidate(task_seed)
@@ -284,12 +341,25 @@ def _run_one(  # noqa: PLR0913
         if task_id in correction_catalog.records
         else None
     )
+    if state_contract is not None:
+        from harness.webarena_state import require_supersession
+
+        if corrected_contract is not None:
+            require_supersession(
+                state_contract,
+                corrected_contract.correction_id,
+                corrected_contract.correction_source_sha256,
+            )
+        if (
+            benchmark.config.render_url(state_contract.definition["page_url"], official_task.sites)
+            != state_contract.page_url
+        ):
+            raise ValueError("state contract runtime site differs from frozen profile")
+        corrected_contract = None
     sites = tuple(official_task.sites)
     start_urls = list(benchmark.config.render_url(list(official_task.start_urls), list(sites)))
     site_access_host = _container_host_gateway(container)
-    calls = _rebind_calls(
-        candidate["tool_calls"], site_access_host, trusted_source_site_hosts
-    )
+    calls = _rebind_calls(candidate["tool_calls"], site_access_host, trusted_source_site_hosts)
     source_site_hosts = replay_site_hosts(candidate["tool_calls"])
     attempt_dir = output_dir / engine / str(task_id) / f"physical-{physical_execution}"
     attempt_dir.mkdir(parents=True, exist_ok=True)
@@ -302,14 +372,7 @@ def _run_one(  # noqa: PLR0913
         sys.path.insert(0, str(cowagent_repo))
     from agent.tools.browser.browser_tool import BrowserTool  # noqa: PLC0415
 
-    tool = BrowserTool(
-        config={
-            "cdp_endpoint": endpoint,
-            "headless": True,
-            "viewport": {"width": 1280, "height": 900},
-            "startup_timeout": 90,
-        }
-    )
+    tool = BrowserTool(config=_browser_tool_config(endpoint))
     _allow_official_container_hostname(tool)
     resources = DockerStatsResources(container)
     sampler = ResourceSampler(resources, interval_ms=sample_interval_ms)
@@ -317,26 +380,36 @@ def _run_one(  # noqa: PLR0913
     resource_started = None
     recorder = CdpHarRecorder()
     records: list[dict[str, Any]] = []
+    from .retrieval_acceptance import PROTOCOL, build_actual_response
+
+    attempt_id = uuid.uuid4().hex
+    actual_response = None
+    retrieval_acceptance = None
     timings: dict[str, float] = {}
     process_status = "fail"
     evaluator_status = "not_run"
     replay_assertions: tuple[dict[str, Any], ...] = ()
+    state_observation = None
     error = ""
     started = time.perf_counter()
     sampler_started = False
+    viewport_evidence: dict[str, Any] = {}
     try:
         prepare_started = time.perf_counter()
-        _prepare_sites(sites)
+        if prepare_sites:
+            _prepare_sites(sites)
         timings["environment_prepare_ms"] = (time.perf_counter() - prepare_started) * 1000
 
         setup_started = time.perf_counter()
         service = tool._get_service()
         service._submit(lambda: None)
+        viewport_evidence = _prepare_browser_viewport(service)
         origins = {
             _origin(benchmark.config.get_environment(site).active_url) for site in SITE_PORTS
         }
         _clear_browser_state(service, origins)
-        readiness_retries = _login_context(service, sites, benchmark, start_urls)
+        readiness_retries = _login_context(service, sites, benchmark, start_urls, viewport_evidence)
+        _verify_session_viewport(service, viewport_evidence, "after_login")
         service._submit(lambda: recorder.start(service._context))
         timings["browser_session_setup_ms"] = (time.perf_counter() - setup_started) * 1000
 
@@ -347,7 +420,8 @@ def _run_one(  # noqa: PLR0913
         replay_started = time.perf_counter()
         for index, arguments in enumerate(calls, start=1):
             call_started = time.perf_counter()
-            result_status, result_text = _execute_replay_call(tool, arguments)
+            diagnostics: dict[str, Any] = {}
+            result_status, result_text = _execute_replay_call(tool, arguments, diagnostics=diagnostics)
             dispatched_before_timeout = _click_was_dispatched_before_navigation_timeout(
                 arguments, result_status, result_text
             )
@@ -359,6 +433,8 @@ def _run_one(  # noqa: PLR0913
                 "duration_ms": round((time.perf_counter() - call_started) * 1000, 3),
                 "result": result_text,
             }
+            if diagnostics:
+                record["action_diagnostics"] = diagnostics
             observation_error = _embedded_observation_error(arguments, result_status, result_text)
             if observation_error is not None:
                 record["observation_status"] = "error"
@@ -370,9 +446,26 @@ def _run_one(  # noqa: PLR0913
                 }
             records.append(record)
             if result_status != "success" and not dispatched_before_timeout:
+                try:
+                    record["failure_ui_state"] = _capture_failure_ui_state(service, arguments)
+                except Exception as observation_exc:
+                    record["failure_ui_state_error"] = (
+                        f"{type(observation_exc).__name__}: {observation_exc}"
+                    )[:300]
                 raise RuntimeError(f"step {index} failed: {result_text}")
         timings["trajectory_replay_ms"] = (time.perf_counter() - replay_started) * 1000
+        _verify_session_viewport(service, viewport_evidence, "after_trajectory")
         process_status = "pass"
+
+        if state_contract is not None:
+            from harness.webarena_state import capture_service_form
+
+            state_observation = capture_service_form(
+                service, state_contract, run_id=run_id, attempt_id=attempt_id, engine=engine
+            )
+            (attempt_dir / "final_state.json").write_text(
+                json.dumps(state_observation, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
 
         if corrected_contract is not None and corrected_contract.replay_assertions:
             selectors = {
@@ -408,21 +501,68 @@ def _run_one(  # noqa: PLR0913
         timings["evidence_finalize_ms"] = (time.perf_counter() - finalize_started) * 1000
 
         evaluation_started = time.perf_counter()
-        evaluation_result = (
-            evaluate_corrected_contract(
-                benchmark,
-                corrected_contract,
-                agent_response=candidate["recorded_response"],
-                network_trace=har_path,
-            )
-            if corrected_contract is not None
-            else benchmark.evaluate_task(
+        is_retrieval = official_task.is_retrieve_task
+        if is_retrieval:
+            retrieval_acceptance = build_actual_response(
+                contract=retrieval_contract,
                 task_id=task_id,
-                agent_response=candidate["recorded_response"],
-                network_trace=har_path,
+                calls=candidate["tool_calls"],
+                records=records,
+                run_id=run_id or output_dir.name,
+                attempt_id=attempt_id,
             )
+            (attempt_dir / "retrieval_acceptance.json").write_text(
+                json.dumps(retrieval_acceptance, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            actual_response = retrieval_acceptance["actual_response"]
+        else:
+            actual_response = candidate["recorded_response"]
+        if actual_response is not None:
+            (attempt_dir / "actual_response.json").write_text(
+                json.dumps(actual_response, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+        evaluation_result = (
+            (
+                evaluate_corrected_contract(
+                    benchmark,
+                    corrected_contract,
+                    agent_response=actual_response,
+                    network_trace=har_path,
+                )
+                if corrected_contract is not None
+                else benchmark.evaluate_task(
+                    task_id=task_id,
+                    agent_response=actual_response,
+                    network_trace=har_path,
+                )
+            )
+            if actual_response is not None and state_contract is None
+            else None
         )
-        evaluation = evaluation_result.model_dump(mode="json")
+        evaluation = (
+            evaluation_result.model_dump(mode="json")
+            if evaluation_result is not None
+            else {
+                "task_id": task_id,
+                "status": "unsupported",
+                "score": None,
+                "reason": "Current-run retrieval evidence is not sufficient for evaluation",
+                "evaluators_results": [],
+            }
+        )
+        if state_contract is not None:
+            from harness.webarena_state import evaluate_task as evaluate_state_task
+
+            evaluation = evaluate_state_task(
+                benchmark,
+                state_contract,
+                agent_response=actual_response,
+                network_trace=har_path,
+                observation=state_observation,
+                run_id=run_id,
+                attempt_id=attempt_id,
+                engine=engine,
+            )
         if corrected_contract is not None:
             evaluation["replay_contract_correction"] = {
                 "correction_id": corrected_contract.correction_id,
@@ -434,7 +574,9 @@ def _run_one(  # noqa: PLR0913
             evaluation["replay_assertions"] = list(replay_assertions)
         timings["evaluation_ms"] = (time.perf_counter() - evaluation_started) * 1000
         evaluator_status = (
-            "pass"
+            "unsupported"
+            if evaluation.get("status") == "unsupported"
+            else "pass"
             if float(evaluation.get("score") or 0) == 1
             and all(item.get("status") == "pass" for item in replay_assertions)
             else "fail"
@@ -477,6 +619,12 @@ def _run_one(  # noqa: PLR0913
     trace_path.write_text(json.dumps(records, ensure_ascii=False, indent=2), encoding="utf-8")
     return {
         "schema": "lex_webarena_trajectory_replay_attempt/1",
+        "run_id": run_id or output_dir.name,
+        "attempt_id": attempt_id,
+        "retrieval_protocol": (
+            retrieval_contract["schema"] if retrieval_contract is not None else PROTOCOL
+        ),
+        "retrieval_acceptance": retrieval_acceptance,
         "engine": engine,
         "task_id": task_id,
         "physical_execution": physical_execution,
@@ -488,7 +636,9 @@ def _run_one(  # noqa: PLR0913
         "replay_calls_binding_sha256": replay_calls_binding_sha256(
             calls, allowed_hosts={site_access_host}
         ),
-        "evaluation_input_sha256": _json_sha256(candidate["recorded_response"]),
+        "evaluation_input_sha256": _json_sha256(actual_response)
+        if actual_response is not None
+        else None,
         "source_model": (candidate.get("method") or {}).get("model"),
         "source_engine": (candidate.get("method") or {}).get("engine"),
         "source_kind": (candidate.get("source") or {}).get("kind", "browser_use_execution"),
@@ -497,6 +647,11 @@ def _run_one(  # noqa: PLR0913
         "process_status": process_status,
         "evaluator_status": evaluator_status,
         "replay_assertions": list(replay_assertions),
+        **(
+            {"state_contract_sha256": state_contract.definition_sha256}
+            if state_contract is not None
+            else {}
+        ),
         "contract_correction_id": (
             corrected_contract.correction_id if corrected_contract is not None else None
         ),
@@ -506,10 +661,15 @@ def _run_one(  # noqa: PLR0913
         "corrected_task_sha256": (
             corrected_contract.corrected_task_sha256 if corrected_contract is not None else None
         ),
-        "status": "pass" if process_status == evaluator_status == "pass" else "fail",
+        "status": "unsupported"
+        if evaluator_status == "unsupported"
+        else "pass"
+        if process_status == evaluator_status == "pass"
+        else "fail",
         "duration_ms": round(duration_ms, 3),
         "timings": {key: round(value, 3) for key, value in timings.items()},
         "browser_session_readiness_retries": readiness_retries,
+        "viewport": viewport_evidence,
         "resource": (
             _resource_summary(resources, sampler, before, after, resource_duration_ms)
             if before is not None and after is not None and sampler.samples
@@ -519,6 +679,13 @@ def _run_one(  # noqa: PLR0913
         "cleanup_errors": cleanup_errors,
         "evidence": {
             "trace": _evidence_file(trace_path),
+            **(
+                {"final_state": _evidence_file(attempt_dir / "final_state.json")}
+                if state_contract is not None
+                else {}
+            ),
+            "retrieval_acceptance": _evidence_file(attempt_dir / "retrieval_acceptance.json"),
+            "actual_response": _evidence_file(attempt_dir / "actual_response.json"),
             "network_har": _evidence_file(har_path),
             "evaluation": _evidence_file(evaluation_path),
             "failure_screenshot": _evidence_file(screenshot_path),
@@ -534,7 +701,7 @@ def _run_one(  # noqa: PLR0913
 
 def _attempt_needs_retry(attempt: dict[str, Any]) -> bool:
     """Give every failed logical replay exactly one clean physical retry."""
-    return attempt.get("status") != "pass"
+    return attempt.get("status") not in {"pass", "unsupported"}
 
 
 def _embedded_observation_error(
@@ -554,6 +721,105 @@ def _embedded_observation_error(
     if not result_text.startswith(prefix):
         return None
     return result_text[len(prefix) :].removesuffix("]").strip()
+
+
+def _diagnostic_locator(selector: str) -> str:
+    """Expand visibility/ordinal filters without confusing CSS with locators.
+
+    Diagnostic candidates intentionally include hidden/zero-area elements.
+    The original action and its locator remain unchanged.
+    """
+    output = []
+    quote = None
+    index = 0
+    while index < len(selector):
+        char = selector[index]
+        if char == "\\" and index + 1 < len(selector):
+            output.append(selector[index:index + 2])
+            index += 2
+            continue
+        if quote:
+            if char == quote:
+                quote = None
+        elif char in ("'", '"'):
+            quote = char
+        elif selector.startswith(":visible", index) and (
+            index + 8 == len(selector) or not (selector[index + 8].isalnum() or selector[index + 8] in "_-\\")
+        ):
+            index += 8
+            continue
+        output.append(char)
+        index += 1
+    diagnostic = "".join(output)
+    # :nth-match(...:visible, 2) can fail because an earlier sibling is
+    # zero-area. Keeping the ordinal would hide that missing first match.
+    if diagnostic.startswith(":nth-match(") and diagnostic.endswith(")"):
+        inner = diagnostic[len(":nth-match("):-1]
+        candidate, separator, ordinal = inner.rpartition(",")
+        if separator and ordinal.strip().isdigit():
+            diagnostic = candidate.strip()
+    return diagnostic
+
+
+def _capture_failure_ui_state(service: Any, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Retain bounded DOM geometry after a failed action without form values.
+
+    A screenshot cannot distinguish a visible text fallback from a hidden
+    select, and a tool timeout does not preserve the locator's final state.
+    This observation is diagnostic only; it never changes the tool/evaluator
+    verdict or retries the action.
+    """
+
+    selector = arguments.get("selector")
+    if not isinstance(selector, str) or len(selector) > 1000:
+        selector = None
+    def observe() -> dict[str, Any]:
+        result = service._page.evaluate(
+            """selector => {
+              const state = element => {
+                const rect = element.getBoundingClientRect();
+                const style = getComputedStyle(element);
+                return {tag: element.tagName.toLowerCase(), id: element.id || null,
+                  name: element.getAttribute('name'), hidden: element.hidden,
+                  disabled: !!element.disabled, display: style.display,
+                  visibility: style.visibility,
+                  rect: [rect.x, rect.y, rect.width, rect.height]};
+              };
+              const result = {page_origin_path: location.origin + location.pathname,
+                ready_state: document.readyState, selector, native_selector: null,
+                selector_count: null,
+                selector_error: null, matched_controls: [], region_controls: []};
+              result.region_controls = [...document.querySelectorAll(
+                'select[name*="region"],input[name*="region"],'
+                + 'select[id*="region"],input[id*="region"]')]
+                .slice(0, 16).map(state);
+              return result;
+            }""",
+            selector,
+        )
+        if selector:
+            diagnostic = _diagnostic_locator(selector)
+            result["diagnostic_selector"] = diagnostic
+            result["selector_engine"] = "playwright"
+            result["candidate_scope"] = "visibility_and_outer_ordinal_filters_removed"
+            try:
+                observed = service._page.locator(diagnostic).evaluate_all(
+                    """elements => ({selector_count: elements.length,
+                      matched_controls: elements.slice(0,8).map(element => {
+                        const r=element.getBoundingClientRect(),s=getComputedStyle(element);
+                        return {tag:element.tagName.toLowerCase(),id:element.id||null,
+                          name:element.getAttribute('name'),hidden:element.hidden,
+                          disabled:!!element.disabled,display:s.display,visibility:s.visibility,
+                          rect:[r.x,r.y,r.width,r.height],client_rect_count:element.getClientRects().length,
+                          has_offset_parent:element.offsetParent!==null};
+                      })})"""
+                )
+                result.update(observed)
+            except Exception as exc:
+                result["selector_error"] = type(exc).__name__
+        return result
+
+    return service._submit(observe)
 
 
 def _stop_all_sites() -> None:
@@ -692,6 +958,18 @@ def _finish_physical_execution(entry: dict[str, Any], attempt: dict[str, Any]) -
     )
 
 
+def _reject_partial_method_resume(
+    keys: list[tuple[str, int]], engines: list[str], task_ids: list[int]
+) -> None:
+    for engine in engines:
+        completed_for_method = sum(key[0] == engine for key in keys)
+        if 0 < completed_for_method < len(task_ids):
+            raise ValueError(
+                "a method-scoped site cohort cannot resume after a partial method; "
+                "restart that method from a fresh site preparation in a new output directory"
+            )
+
+
 def _validated_resume(
     receipt_path: Path,
     *,
@@ -740,13 +1018,53 @@ def _validated_resume(
         try:
             return int(value)
         except (TypeError, ValueError) as exc:
-            raise ValueError(
-                f"existing replay receipt {record} has invalid {field}"
-            ) from exc
+            raise ValueError(f"existing replay receipt {record} has invalid {field}") from exc
 
+    from harness.webarena_state import validate_attempt_identities
+
+    validate_attempt_identities(attempts, set(plan.get("state_contracts", {})))
     keys = []
     for item in attempts:
         task_id = required_receipt_int(item, "task_id", "attempt")
+        if task_id in plan.get("state_contracts", {}):
+            from harness.webarena_state import verify_attempt as verify_state_attempt
+
+            if item.get("status") == "pass" and not (
+                item.get("process_status") == item.get("evaluator_status") == "pass"
+            ):
+                raise ValueError("claimed state pass contradicts process or evaluator status")
+            if item.get("run_id") != receipt.get("run_id"):
+                raise ValueError("cross-run form-state attempt cannot resume")
+            if item.get("process_status") == "pass" and item.get("status") != "unsupported":
+                verify_state_attempt(item, plan["state_contracts"][task_id])
+        if task_id in plan.get("retrieval_task_ids", []):
+            from .retrieval_acceptance import verify_attempt
+
+            if item.get("status") == "pass" and not (
+                item.get("process_status") == item.get("evaluator_status") == "pass"
+            ):
+                raise ValueError("claimed retrieval pass contradicts process or evaluator status")
+            contract = plan.get("retrieval_contracts", {}).get(task_id)
+            if contract is None:
+                raise ValueError("resumed retrieval requires a frozen observation contract")
+            if item.get("retrieval_protocol") != contract["schema"] or item.get(
+                "run_id"
+            ) != receipt.get("run_id"):
+                raise ValueError("legacy or cross-run retrieval attempt cannot resume a new cohort")
+            if item.get("process_status") == "pass" and item.get("status") != "unsupported":
+                source = next(
+                    task
+                    for task in plan["seed_manifest"]["tasks"]
+                    if int(task["task_id"]) == task_id
+                )
+                verify_attempt(
+                    item,
+                    contract,
+                    _candidate(source)["tool_calls"],
+                    expected_data_checksum=str(
+                        plan["seed_manifest"].get("source", {}).get("official_data_checksum") or ""
+                    ),
+                )
         if item.get("schema") != "lex_webarena_trajectory_replay_attempt/1":
             raise ValueError("existing replay receipt contains an invalid attempt schema")
         key = (str(item.get("engine")), task_id)
@@ -757,6 +1075,15 @@ def _validated_resume(
         keys.append(key)
     if len(keys) != len(set(keys)):
         raise ValueError("existing replay receipt contains duplicate method/task attempts")
+    if plan["profile"]["execution"]["reset_before_every_task"] is False:
+        _reject_partial_method_resume(keys, engines, task_ids)
+        site_preparation = receipt.get("method_site_preparation") or {}
+        for engine in engines:
+            if any(key[0] == engine for key in keys) and not (
+                isinstance(site_preparation.get(engine), dict)
+                and site_preparation[engine].get("status") == "complete"
+            ):
+                raise ValueError("completed method lacks a site preparation receipt")
     method_teardown = receipt.get("method_teardown") or {}
     if set(method_teardown) != set(engines) or any(
         not isinstance(value, bool) for value in method_teardown.values()
@@ -789,18 +1116,14 @@ def _validated_resume(
                 "existing replay receipt contains a physical execution outside the plan"
             )
         physical_by_logical.setdefault(key, []).append(item)
-    attempts_by_key = {
-        (str(item["engine"]), int(item["task_id"])): item for item in attempts
-    }
+    attempts_by_key = {(str(item["engine"]), int(item["task_id"])): item for item in attempts}
     if set(physical_by_logical) != set(attempts_by_key):
         raise ValueError("existing replay receipt has an unbound physical execution")
     for key, attempt in attempts_by_key.items():
         physical = physical_by_logical[key]
-        if (
-            len(physical) != int(attempt.get("physical_execution_count") or 1)
-            or max(int(item["physical_execution"]) for item in physical)
-            != int(attempt["physical_execution"])
-        ):
+        if len(physical) != int(attempt.get("physical_execution_count") or 1) or max(
+            int(item["physical_execution"]) for item in physical
+        ) != int(attempt["physical_execution"]):
             raise ValueError("existing replay receipt has inconsistent physical execution history")
     sessions = list(receipt.get("sessions") or [])
     session_ids = [str(session.get("id") or "") for session in sessions]
@@ -883,12 +1206,14 @@ def run_replay_suite(  # noqa: PLR0913
     else:
         scope = "formal" if diagnostic_task_ids is None else "diagnostic"
     qualification_dataset_sha256 = None
+    if scope != "diagnostic":
+        from .retrieval_acceptance import require_current_retrieval
+
+        require_current_retrieval(plan)
     if scope in {"formal", "formal_correction_shard"}:
         if qualified_dataset_path is None:
             raise ValueError("formal replay requires a complete qualified trajectory dataset")
-        qualification_dataset_sha256 = validate_qualification_dataset(
-            plan, qualified_dataset_path
-        )
+        qualification_dataset_sha256 = validate_qualification_dataset(plan, qualified_dataset_path)
     elif qualified_dataset_path is not None:
         raise ValueError("a qualified trajectory dataset is only accepted for formal replay")
     resources = plan["profile"].get("resources") or {}
@@ -905,7 +1230,20 @@ def run_replay_suite(  # noqa: PLR0913
         raise ValueError("cowagent_repo does not contain BrowserTool")
 
     repo_root = Path(__file__).resolve().parents[2]
-    browser_eval_commit = _require_clean_git_checkout(repo_root)
+    # Formal evidence must be reproducible from a clean checkout.  A diagnostic
+    # is explicitly non-promotable and may be run while investigating an
+    # uncommitted candidate fix; retain the exact base commit instead of
+    # rejecting that workflow as if it were formal evidence.
+    browser_eval_commit = (
+        _require_clean_git_checkout(repo_root)
+        if scope != "diagnostic"
+        else subprocess.run(
+            ["git", "-C", str(repo_root), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    )
     cowagent_commit = _require_clean_git_checkout(cowagent)
     client = docker.from_env()
     docker_info = client.info()
@@ -923,6 +1261,7 @@ def run_replay_suite(  # noqa: PLR0913
     runtime = {
         "browser_eval_commit": browser_eval_commit,
         "cowagent_commit": cowagent_commit,
+        "browser_session_contract": _browser_session_contract(),
         "resources": {
             "cpus": cpus,
             "memory": memory,
@@ -941,9 +1280,11 @@ def run_replay_suite(  # noqa: PLR0913
         qualification_dataset_sha256=qualification_dataset_sha256,
     )
     completed = {(str(item["engine"]), int(item["task_id"])) for item in attempts}
-    lock_path = _physical_execution_lock_path(
-        _docker_daemon_lock_namespace(docker_info)
-    )
+    method_site_preparation = {}
+    if receipt_path.is_file():
+        previous = json.loads(receipt_path.read_text(encoding="utf-8"))
+        method_site_preparation = dict(previous.get("method_site_preparation") or {})
+    lock_path = _physical_execution_lock_path(_docker_daemon_lock_namespace(docker_info))
     receipt = {
         "schema": RECEIPT_SCHEMA,
         "run_id": run_id,
@@ -958,6 +1299,7 @@ def run_replay_suite(  # noqa: PLR0913
         "engines": engines,
         "runtime": runtime,
         "method_teardown": method_teardown,
+        "method_site_preparation": method_site_preparation,
         "sessions": sessions,
         "physical_executions": physical_executions,
         "isolation": {
@@ -977,6 +1319,9 @@ def run_replay_suite(  # noqa: PLR0913
         _write_receipt(receipt_path, receipt)
         for method in select_methods(plan, engines):
             engine = str(method["engine"])
+            execution = plan["profile"]["execution"]
+            reset_before_every_task = execution["reset_before_every_task"]
+            retry_failed_task = execution.get("retry_failed_task", True)
             pending = [task for task in tasks if (engine, int(task["task_id"])) not in completed]
             if not pending:
                 continue
@@ -984,7 +1329,21 @@ def run_replay_suite(  # noqa: PLR0913
             container = None
             primary_error: BaseException | None = None
             try:
+                site_preparation_started = time.perf_counter()
+                site_preparation_started_at = round(time.time() * 1000)
                 _stop_all_sites()
+                if not reset_before_every_task:
+                    _prepare_sites(tuple(SITE_PORTS))
+                    method_site_preparation[engine] = {
+                        "status": "complete",
+                        "started_at_unix_ms": site_preparation_started_at,
+                        "completed_at_unix_ms": round(time.time() * 1000),
+                        "duration_ms": round(
+                            (time.perf_counter() - site_preparation_started) * 1000, 3
+                        ),
+                        "sites": [site.value for site in SITE_PORTS],
+                    }
+                    receipt["method_site_preparation"] = method_site_preparation
                 method_teardown[engine] = False
                 receipt["method_teardown"] = method_teardown
                 _write_receipt(receipt_path, receipt)
@@ -1037,11 +1396,17 @@ def run_replay_suite(  # noqa: PLR0913
                         sample_interval_ms=sample_interval_ms,
                         physical_execution=physical_execution,
                         trusted_source_site_hosts=plan["trusted_source_site_hosts"],
+                        state_contract=plan.get("state_contracts", {}).get(int(task["task_id"])),
+                        retrieval_contract=plan.get("retrieval_contracts", {}).get(
+                            int(task["task_id"])
+                        ),
+                        run_id=run_id,
+                        prepare_sites=reset_before_every_task,
                     )
                     attempt["browser_session_id"] = session["id"]
                     _finish_physical_execution(physical_entry, attempt)
                     _write_receipt(receipt_path, receipt)
-                    if _attempt_needs_retry(attempt):
+                    if retry_failed_task and _attempt_needs_retry(attempt):
                         # A declared replay gets one clean retry regardless of where the first
                         # physical execution failed. Restarting the browser and rerunning
                         # _run_one also repeats site preparation, so failed page/session state
@@ -1082,13 +1447,19 @@ def run_replay_suite(  # noqa: PLR0913
                             sample_interval_ms=sample_interval_ms,
                             physical_execution=physical_execution + 1,
                             trusted_source_site_hosts=plan["trusted_source_site_hosts"],
+                            state_contract=plan.get("state_contracts", {}).get(
+                                int(task["task_id"])
+                            ),
+                            retrieval_contract=plan.get("retrieval_contracts", {}).get(
+                                int(task["task_id"])
+                            ),
+                            run_id=run_id,
                         )
                         attempt["browser_session_id"] = session["id"]
                         attempt["prior_attempts"] = [prior_attempt]
                         attempt["physical_execution_count"] = 2
                         attempt["duration_ms"] = round(
-                            float(prior_attempt["duration_ms"])
-                            + float(attempt["duration_ms"]),
+                            float(prior_attempt["duration_ms"]) + float(attempt["duration_ms"]),
                             3,
                         )
                         _finish_physical_execution(retry_entry, attempt)

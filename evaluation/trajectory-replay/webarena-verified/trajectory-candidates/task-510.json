@@ -1,0 +1,92 @@
+{
+  "task_id": 510,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7770/checkout/cart/"
+    },
+    {
+      "action": "wait",
+      "seconds": 3
+    },
+    {
+      "action": "evaluate",
+      "script": "(() => { const quantities=[...document.querySelectorAll('input[name^=\"cart[\"][name$=\"[qty]\"]')]; if(!quantities.length) return 'cart already empty'; for(const field of quantities) field.value='0'; const form=quantities[0].form; if(!form || !/checkout\\/cart\\/updatePost\\/?$/.test(form.action)) throw new Error('cart update form missing'); form.submit(); return `submitted removal of ${quantities.length} cart item(s)`; })()"
+    },
+    {
+      "action": "wait",
+      "seconds": 4
+    },
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7770/atlantic-technology-fs-7-0-glb-7-channel-surround-bar-gloss-black-discontinued-by-manufacturer.html"
+    },
+    {
+      "action": "wait",
+      "seconds": 3
+    },
+    {
+      "action": "click",
+      "selector": "#product-addtocart-button"
+    },
+    {
+      "action": "wait",
+      "seconds": 2
+    },
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7770/checkout/cart/"
+    },
+    {
+      "action": "wait",
+      "seconds": 3
+    },
+    {
+      "action": "evaluate",
+      "script": "(() => { const rows=[...document.querySelectorAll('#shopping-cart-table tbody.cart.item')]; if(rows.length!==1) throw new Error(`expected one cart item, found ${rows.length}`); const name=(rows[0].querySelector('.product-item-name')?.textContent||rows[0].textContent||'').replace(/\\s+/g,' ').trim(); if(!name.includes('Atlantic Technology FS-7.0-GLB 7-channel Surround Bar')) throw new Error(`wrong cart item: ${name}`); const fields=[...rows[0].querySelectorAll('input[name^=\"cart[\"][name$=\"[qty]\"]')]; if(fields.length!==1) throw new Error('expected one cart quantity field, found '+fields.length); const raw=fields[0].value; const quantity=Number(raw); if(!raw.trim()||quantity!==1) throw new Error('expected cart quantity 1, found '+raw); return {name,quantity}; })()"
+    },
+    {
+      "action": "click",
+      "selector": "button[data-role='proceed-to-checkout']"
+    },
+    {
+      "action": "wait",
+      "seconds": 6
+    },
+    {
+      "action": "evaluate",
+      "script": "(() => { const shipping=document.querySelector('input[type=radio][name=ko_unique_1]') || document.querySelector('input[type=radio][value=flatrate_flatrate]'); if(shipping && !shipping.checked) shipping.click(); const next=document.querySelector('button[data-role=opc-continue]'); if(!next) throw new Error('shipping continue button missing'); next.click(); return true; })()"
+    },
+    {
+      "action": "wait",
+      "seconds": 6
+    },
+    {
+      "action": "evaluate",
+      "script": "(() => { const radio=document.querySelector('input[type=radio][value=checkmo]'); if(!radio) throw new Error('checkmo payment method missing'); if(!radio.checked) radio.click(); return true; })()"
+    },
+    {
+      "action": "wait",
+      "seconds": 3
+    },
+    {
+      "action": "evaluate",
+      "script": "(() => { const place=[...document.querySelectorAll('button')].find(e=>e.textContent.trim()==='Place Order' && !e.disabled); if(!place) throw new Error('place order button missing'); place.click(); return true; })()"
+    },
+    {
+      "action": "wait",
+      "seconds": 8
+    },
+    {
+      "action": "get_text",
+      "selector": ".checkout-success"
+    }
+  ],
+  "repair": {
+    "cause": "A single cart row can contain multiple units. The frozen DOM assertion checked row count and product name but not quantity after the totals evaluator was removed.",
+    "change": "Preserve the original task-510 trajectory and add a fail-closed quantity=1 check to its pre-checkout cart assertion. This candidate is not a new measured score.",
+    "predecessor_dataset_sha256": "624a0ea83c6e4c3533714e961656d7e4159189a9e4941017b06a5299e4dc31d5",
+    "changed_step": 11,
+    "qualification": "Local DOM counterexamples required; full site qualification pending. The frozen cohort is unchanged."
+  }
+}

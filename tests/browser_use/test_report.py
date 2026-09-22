@@ -31,6 +31,583 @@ from scripts.check_browser_use_report import (
 )
 
 
+def _fix_log_fixture(tmp_path: Path) -> tuple[dict, dict]:
+    from PIL import Image
+
+    localized = {"zh": "测试用例中的证据说明", "en": "Evidence description in a test fixture"}
+    image_path = tmp_path / "capture.png"
+    Image.new("RGB", (4, 4), "white").save(image_path)
+    artifacts = [
+        {
+            "id": "capture",
+            "path": str(image_path),
+            "kind": "image",
+            "public_safe": True,
+            "sha256": report_module._sha256(image_path),
+            "provenance": {
+                "capture_method": "test fixture",
+                "run_id": "fixture-run",
+                "observation": "last_observed_page",
+                "timing_note": localized,
+            },
+        }
+    ]
+    record = {
+        "id": "fixture-fix",
+        "scope": "diagnostic",
+        "input_sha256": "1" * 64,
+        **{
+            key: localized for key in ("title", "symptom", "root_cause", "principle", "limitations")
+        },
+        "code_paths": [{"repository": "example", "path": "src/runtime.rs", "symbol": "layout"}],
+        "tests": [{"command": "fixture-test --exact", "result": "1 passed", "receipt": "test"}],
+    }
+    for side in ("before", "after"):
+        run = {
+            "method": "fixture-browser",
+            "version": side,
+            "source_base": "abcdef1",
+            "source_diff_sha256": "2" * 64,
+            "binary_sha256": "3" * 64,
+            "run_id": side,
+        }
+        receipt = {
+            "schema": "lex_browser_use_fix_comparison_receipt/1",
+            **run,
+            "input_sha256": record["input_sha256"],
+            "measurements": {"width": 4},
+        }
+        path = tmp_path / f"{side}.json"
+        path.write_text(json.dumps(receipt))
+        artifacts.append(
+            {
+                "id": side,
+                "path": str(path),
+                "kind": "receipt",
+                "public_safe": True,
+                "sha256": report_module._sha256(path),
+            }
+        )
+        record[side] = {**run, "receipt": side, "image": "capture", "observation": localized}
+    test_path = tmp_path / "test.json"
+    test_path.write_text(
+        json.dumps(
+            {
+                "schema": "lex_browser_use_fix_test_receipt/1",
+                "command": "fixture-test --exact",
+                "result": "1 passed",
+            }
+        )
+    )
+    artifacts.append(
+        {
+            "id": "test",
+            "path": str(test_path),
+            "kind": "receipt",
+            "public_safe": True,
+            "sha256": report_module._sha256(test_path),
+        }
+    )
+    model = {"schema": "lex_browser_use_fix_log/1", "records": [record], "artifacts": artifacts}
+    source = tmp_path / "fix-log.json"
+    source.write_text(json.dumps(model))
+    return {
+        "fix_log": {"source_path": str(source), "source_sha256": report_module._sha256(source)}
+    }, model
+
+
+def _persist_fix_log(profile: dict, model: dict) -> None:
+    source = Path(profile["fix_log"]["source_path"])
+    source.write_text(json.dumps(model))
+    profile["fix_log"]["source_sha256"] = report_module._sha256(source)
+
+
+def _revise_trajectory_comparison(profile: dict, model: dict) -> None:
+    record = model["records"][0]
+    record.pop("input_sha256")
+    record["comparison_basis"] = {
+        "kind": "same_task_contract",
+        "task_contract_sha256": "4" * 64,
+    }
+    for index, side in enumerate(("before", "after"), 5):
+        run = record[side]
+        run.update(
+            input_sha256=str(index) * 64,
+            trajectory_sha256=str(index + 2) * 64,
+            action_count=index + 3,
+        )
+        artifact = next(item for item in model["artifacts"] if item["id"] == run["receipt"])
+        path = Path(artifact["path"])
+        receipt = json.loads(path.read_text())
+        receipt.update(
+            task_contract_sha256=record["comparison_basis"]["task_contract_sha256"],
+            input_sha256=run["input_sha256"],
+            trajectory_sha256=run["trajectory_sha256"],
+            action_count=run["action_count"],
+        )
+        path.write_text(json.dumps(receipt))
+        artifact["sha256"] = report_module._sha256(path)
+    _persist_fix_log(profile, model)
+
+
+def _add_formal_certification(profile: dict, model: dict) -> None:
+    record = model["records"][0]
+    record["scope"] = "formal"
+    record["certification"] = "certification"
+    comparison_receipts = {
+        side: next(
+            item["sha256"] for item in model["artifacts"] if item["id"] == record[side]["receipt"]
+        )
+        for side in ("before", "after")
+    }
+    receipt = {
+        "schema": "lex_browser_use_fix_certification_receipt/1",
+        "status": "certified",
+        "scope": "fixture formal comparison",
+        "comparison_receipts_sha256": comparison_receipts,
+    }
+    basis = record.get("comparison_basis", {"kind": "identical_inputs"})
+    if basis["kind"] == "identical_inputs":
+        receipt["input_sha256"] = record["input_sha256"]
+    else:
+        receipt["task_contract_sha256"] = basis["task_contract_sha256"]
+    path = Path(profile["fix_log"]["source_path"]).parent / "certification.json"
+    path.write_text(json.dumps(receipt))
+    model["artifacts"].append(
+        {
+            "id": "certification",
+            "path": str(path),
+            "kind": "receipt",
+            "public_safe": True,
+            "sha256": report_module._sha256(path),
+        }
+    )
+    _persist_fix_log(profile, model)
+
+
+def test_fix_log_renders_one_bilingual_model_and_hash_bound_real_artifact_links(
+    tmp_path: Path,
+) -> None:
+    profile, _ = _fix_log_fixture(tmp_path)
+    model = report_module._load_fix_log(profile)
+    stage = tmp_path / "report"
+    (stage / "data").mkdir(parents=True)
+    report_module._write_fix_log(stage, model)
+    report_module._write_fix_log(stage, model, english=True)
+    chinese = (stage / "fixes/fixture-fix.html").read_text()
+    english = (stage / "en/fixes/fixture-fix.html").read_text()
+    assert "测试用例中的证据说明" in chinese
+    assert "Evidence description in a test fixture" in english
+    assert "测试用例中的证据说明" not in english
+    assert "最后观测页面" in chinese and "Last observed page" in english
+    assert "前后截图字节相同" in chinese and "byte-identical" in english
+    assert "fixture-test --exact" in chinese and "fixture-test --exact" in english
+    assert "src/runtime.rs" in english
+    assert 'href="fixes/fixture-fix.html"' in (stage / "fixes/index.html").read_text()
+    assert 'href="en/fixes/fixture-fix.html"' in (stage / "en/fixes/index.html").read_text()
+    public = json.loads((stage / "data/fix-log.json").read_text())
+    assert str(tmp_path) not in json.dumps(public)
+    for artifact in public["artifacts"]:
+        assert report_module._sha256(stage / artifact["href"]) == artifact["sha256"]
+
+
+def test_fix_log_renders_revised_trajectory_without_claiming_shared_input(tmp_path: Path) -> None:
+    profile, model = _fix_log_fixture(tmp_path)
+    _revise_trajectory_comparison(profile, model)
+    loaded = report_module._load_fix_log(profile)
+    stage = tmp_path / "report"
+    (stage / "data").mkdir(parents=True)
+    report_module._write_fix_log(stage, loaded)
+    report_module._write_fix_log(stage, loaded, english=True)
+
+    chinese = (stage / "fixes/fixture-fix.html").read_text()
+    english = (stage / "en/fixes/fixture-fix.html").read_text()
+    assert "验收合同相同，轨迹已修订" in chinese
+    assert "共同输入 SHA-256" not in chinese
+    assert "输入 SHA-256" in chinese and "轨迹 SHA-256" in chinese and "动作数" in chinese
+    assert "The acceptance contract is unchanged; the trajectory was revised" in english
+    assert "Shared input SHA-256" not in english
+    assert "Input SHA-256" in english and "Trajectory SHA-256" in english
+    assert ">8<" in chinese and ">9<" in chinese
+
+
+@pytest.mark.parametrize(
+    "basis,mutation",
+    [
+        ("identical_inputs", "different_identical_input"),
+        ("same_task_contract", "missing_basis_contract"),
+        ("same_task_contract", "missing_contract_binding"),
+        ("same_task_contract", "receipt_trajectory_mismatch"),
+    ],
+)
+def test_fix_log_rejects_misrepresented_comparison_basis(
+    tmp_path: Path, basis: str, mutation: str
+) -> None:
+    profile, model = _fix_log_fixture(tmp_path)
+    if basis == "same_task_contract":
+        _revise_trajectory_comparison(profile, model)
+    record = model["records"][0]
+    run = record["after"]
+    artifact = next(item for item in model["artifacts"] if item["id"] == run["receipt"])
+    path = Path(artifact["path"])
+    receipt = json.loads(path.read_text())
+    if mutation == "different_identical_input":
+        run["input_sha256"] = "9" * 64
+        receipt["input_sha256"] = "9" * 64
+    elif mutation == "missing_basis_contract":
+        record["comparison_basis"].pop("task_contract_sha256")
+    elif mutation == "missing_contract_binding":
+        receipt.pop("task_contract_sha256")
+    else:
+        receipt["trajectory_sha256"] = "9" * 64
+    path.write_text(json.dumps(receipt))
+    artifact["sha256"] = report_module._sha256(path)
+    _persist_fix_log(profile, model)
+
+    expected = {
+        "different_identical_input": "identical-input comparisons use the shared record input",
+        "missing_basis_contract": "same-task comparison requires one task contract binding",
+    }.get(mutation, "claims do not match")
+    with pytest.raises(ValueError, match=expected):
+        report_module._load_fix_log(profile)
+
+
+@pytest.mark.parametrize("basis", ["identical_inputs", "same_task_contract"])
+def test_formal_fix_certification_binds_both_comparison_receipts(
+    tmp_path: Path, basis: str
+) -> None:
+    profile, model = _fix_log_fixture(tmp_path)
+    if basis == "same_task_contract":
+        _revise_trajectory_comparison(profile, model)
+    _add_formal_certification(profile, model)
+
+    loaded = report_module._load_fix_log(profile)
+
+    assert loaded["records"][0]["scope"] == "formal"
+
+
+def test_formal_fix_rejects_borrowed_certification_after_trajectory_changes(
+    tmp_path: Path,
+) -> None:
+    profile, model = _fix_log_fixture(tmp_path)
+    _revise_trajectory_comparison(profile, model)
+    _add_formal_certification(profile, model)
+    report_module._load_fix_log(profile)
+
+    record = model["records"][0]
+    run = record["after"]
+    run.update(
+        run_id="after-requalified",
+        input_sha256="9" * 64,
+        trajectory_sha256="a" * 64,
+        action_count=10,
+    )
+    artifact = next(item for item in model["artifacts"] if item["id"] == run["receipt"])
+    path = Path(artifact["path"])
+    receipt = json.loads(path.read_text())
+    receipt.update(
+        run_id=run["run_id"],
+        input_sha256=run["input_sha256"],
+        trajectory_sha256=run["trajectory_sha256"],
+        action_count=run["action_count"],
+    )
+    path.write_text(json.dumps(receipt))
+    artifact["sha256"] = report_module._sha256(path)
+    _persist_fix_log(profile, model)
+
+    with pytest.raises(ValueError, match="formal fix evidence requires a matching"):
+        report_module._load_fix_log(profile)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        "hash",
+        "missing_language",
+        "test_claim",
+        "raw_har",
+        "exact_frame",
+        "symlink",
+        "root_path",
+        "unsafe",
+        "comparison_claim",
+        "credential",
+        "formal",
+        "missing_artifact",
+    ],
+)
+def test_fix_log_rejects_unbound_or_misrepresented_evidence(tmp_path: Path, change: str) -> None:
+    profile, model = _fix_log_fixture(tmp_path)
+    if change == "hash":
+        model["artifacts"][0]["sha256"] = "0" * 64
+    elif change == "missing_language":
+        model["records"][0]["title"] = {"zh": "缺少英文"}
+    elif change == "test_claim":
+        model["records"][0]["tests"][0]["result"] = "999 passed"
+    elif change == "raw_har":
+        artifact = model["artifacts"][1]
+        path = Path(artifact["path"])
+        path.write_text(json.dumps({"log": {"entries": []}}))
+        artifact["sha256"] = report_module._sha256(path)
+    elif change == "exact_frame":
+        model["artifacts"][0]["provenance"]["observation"] = "exact_error_frame"
+    elif change == "symlink":
+        link = tmp_path / "linked.png"
+        link.symlink_to(model["artifacts"][0]["path"])
+        model["artifacts"][0]["path"] = str(link)
+    elif change == "root_path":
+        model["records"][0]["title"]["zh"] = "本地文件 /root/work/evidence.json"
+    elif change == "unsafe":
+        model["artifacts"][0]["public_safe"] = False
+    elif change == "comparison_claim":
+        model["records"][0]["after"]["binary_sha256"] = "9" * 64
+    elif change == "credential":
+        artifact = model["artifacts"][1]
+        path = Path(artifact["path"])
+        receipt = json.loads(path.read_text())
+        receipt["measurements"] = {"authorization": "fixture-secret"}
+        path.write_text(json.dumps(receipt))
+        artifact["sha256"] = report_module._sha256(path)
+    elif change == "formal":
+        model["records"][0]["scope"] = "formal"
+        model["records"][0]["certification"] = "test"
+    elif change == "missing_artifact":
+        model["records"][0]["after"]["receipt"] = "absent"
+    source = Path(profile["fix_log"]["source_path"])
+    source.write_text(json.dumps(model))
+    profile["fix_log"]["source_sha256"] = report_module._sha256(source)
+    with pytest.raises(ValueError):
+        report_module._load_fix_log(profile)
+
+
+def test_fix_log_empty_state_does_not_invent_measurements(tmp_path: Path) -> None:
+    (tmp_path / "data").mkdir()
+    model = report_module._load_fix_log({})
+    report_module._write_fix_log(tmp_path, model)
+    report_module._write_fix_log(tmp_path, model, english=True)
+    assert "暂无已绑定验证证据" in (tmp_path / "fixes/index.html").read_text()
+    assert (
+        "No fix records with bound validation evidence"
+        in (tmp_path / "en/fixes/index.html").read_text()
+    )
+
+
+def test_fix_log_rejects_source_under_symlinked_parent(tmp_path: Path) -> None:
+    profile, _ = _fix_log_fixture(tmp_path)
+    linked_parent = tmp_path / "linked-parent"
+    linked_parent.symlink_to(tmp_path, target_is_directory=True)
+    source = Path(profile["fix_log"]["source_path"])
+    profile["fix_log"]["source_path"] = str(linked_parent / source.name)
+    with pytest.raises(ValueError, match="not hash-bound"):
+        report_module._load_fix_log(profile)
+
+
+@pytest.mark.parametrize("explicit", [True, False])
+def test_fix_log_missing_source_diff_is_explicit_and_binary_bound(
+    tmp_path: Path, explicit: bool
+) -> None:
+    profile, model = _fix_log_fixture(tmp_path)
+    run = model["records"][0]["before"]
+    run["source_diff_sha256"] = None
+    artifact = next(item for item in model["artifacts"] if item["id"] == run["receipt"])
+    path = Path(artifact["path"])
+    receipt = json.loads(path.read_text())
+    receipt["source_diff_sha256"] = None
+    if explicit:
+        run["source_diff_status"] = receipt["source_diff_status"] = "not_recorded"
+    path.write_text(json.dumps(receipt))
+    artifact["sha256"] = report_module._sha256(path)
+    source = Path(profile["fix_log"]["source_path"])
+    source.write_text(json.dumps(model))
+    profile["fix_log"]["source_sha256"] = report_module._sha256(source)
+    if explicit:
+        loaded = report_module._load_fix_log(profile)
+        assert loaded["records"][0]["before"]["binary_sha256"] == "3" * 64
+    else:
+        with pytest.raises(ValueError, match="not_recorded"):
+            report_module._load_fix_log(profile)
+
+
+def test_cross_track_control_localizes_mechanism_evidence_and_keeps_links() -> None:
+    bridge = json.loads(Path("research/browser-use-trajectory-replay-bridge.json").read_text())
+    report_module._validate_replay_contract_definitions(bridge)
+    attempts = [
+        {"model": model, "engine": engine, "task_id": task_id, "score": 0}
+        for model in report_module.MODEL_LABELS
+        for engine in report_module.ENGINE_LABELS
+        for tasks in bridge["original_contract_task_groups"].values()
+        for task_id in tasks
+    ]
+    chinese = report_module._trajectory_replay_control(bridge, attempts)
+    english = localize_html(chinese, PurePosixPath("analysis/index.html"))
+    assert "第 9 个决策" in chinese
+    assert "第 40 个决策" in chinese
+    assert "decision 9" in english
+    assert "Decision 40" in english
+    assert "reasoning_effort=low" in chinese and "reasoning_effort=low" in english
+    assert "81 条保留官方原合同，9 条使用修订合同" in chinese
+    assert "81 retain the original official contract and 9 use revised contracts" in english
+    assert "同一官方 evaluator" not in chinese
+    assert "same official evaluator" not in english
+    assert "<td>59</td><td>1</td>" in chinese and "<td>22</td><td>8</td>" in chinese
+    assert "notification_area" in english and "Referer" in english
+    assert "0/81" in english and "0/59" in english and "0/22" in english
+    assert "post-hoc diagnostic" in english
+    assert "固定动作、预录回答与绑定合同的重放验收结果" in chinese
+    assert (
+        "Replay acceptance for fixed actions, prerecorded responses, and bound contracts" in english
+    )
+    assert "recorded_response" in chinese and "recorded_response" in english
+    assert "不证明当前浏览器读到了所需数据" in chinese
+    assert "does not prove that the current browser read the required data" in english
+    assert "也不证明 Agent 在本次运行中计算出了答案" in chinese
+    assert "or that the Agent computed the answer during this run" in english
+    assert "要求网络事件的合同仍会检查本次 HAR" in chinese
+    assert "Contracts requiring network events still check the current HAR" in english
+    assert "给定可行路径后的执行能力" not in chinese
+    assert "measures execution after a viable path is given" not in english
+    assert "新发现的视口设置缺陷要求重新核对这一归因" in chinese
+    assert "viewport configuration defect requires that attribution to be reassessed" in english
+    assert "Task 173" in english and "widths of 992 or more" in english
+    assert "37 道检索题均只使用回答验收" in chinese
+    assert "All 37 retrieval tasks" in english
+    assert "the other 53 tasks cannot replace the original 90 as a new ranking" in english
+    for result_id in ("gpt-6-astra-chromium-124", "gpt-5.6-sol-moli-510"):
+        assert f"results/{result_id}.html#trajectory" in chinese
+        assert f"results/{result_id}.html#trajectory" in english
+    assert not any("\u4e00" <= char <= "\u9fff" for char in english)
+
+
+def test_original_contract_diagnostic_keeps_fixed_tasks_with_discordant_outcomes(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(report_module, "MODEL_LABELS", {"model-a": "Model A"})
+    monkeypatch.setattr(report_module, "ENGINE_LABELS", {"moli": "Moli", "chromium": "Chromium"})
+    monkeypatch.setattr(report_module, "BASELINE_ENGINE", "chromium")
+    bridge = {
+        "original_contract_task_groups": {
+            "authoritative_successful_browser_use_execution": [1],
+            "expert_repair_spec": [2],
+        }
+    }
+    attempts = [
+        {"model": "model-a", "engine": engine, "task_id": task_id, "score": score}
+        for engine, scores in (("chromium", (1, 0, 1)), ("moli", (0, 1, 0)))
+        for task_id, score in enumerate(scores, start=1)
+    ]
+    assert report_module._replay_original_contract_rows(bridge, attempts) == [
+        ["Model A × Chromium", "1/2", "1/1", "0/1"],
+        ["Model A × Moli", "1/2", "0/1", "1/1"],
+    ]
+    with pytest.raises(ValueError, match="authoritative logical"):
+        report_module._replay_original_contract_rows(bridge, [*attempts, attempts[0]])
+    with pytest.raises(ValueError, match="missing registered"):
+        report_module._replay_original_contract_rows(bridge, attempts[1:])
+
+
+def test_replay_contract_counts_match_hash_bound_qualified_definitions() -> None:
+    bridge = json.loads(Path("research/browser-use-trajectory-replay-bridge.json").read_text())
+    report_module._validate_replay_contract_definitions(bridge)
+    bridge["contract_counts"]["official_task_contract"] = 90
+    with pytest.raises(ValueError, match="counts differ"):
+        report_module._validate_replay_contract_definitions(bridge)
+
+
+def test_replay_contract_definitions_reject_unbound_source() -> None:
+    bridge = json.loads(Path("research/browser-use-trajectory-replay-bridge.json").read_text())
+    bridge["contract_definitions"]["corrections"]["sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="not hash-bound"):
+        report_module._validate_replay_contract_definitions(bridge)
+
+
+def test_replay_contract_definitions_reject_wrong_model_browser_origins() -> None:
+    bridge = json.loads(Path("research/browser-use-trajectory-replay-bridge.json").read_text())
+    origins = bridge["chromium_trajectory_provenance"]["successful_browser_use_execution_by_origin"]
+    origins["gpt-5.6-sol_chromium"] -= 1
+    origins["gpt-5.6-sol_moli"] += 1
+    with pytest.raises(ValueError, match="model-browser origins"):
+        report_module._validate_replay_contract_definitions(bridge)
+
+
+@pytest.mark.parametrize("target", ["bridge", "moli_failure_review", "trajectory_profile"])
+def test_replay_bridge_rejects_symlink_bindings(tmp_path: Path, target: str) -> None:
+    source = Path("research/browser-use-trajectory-replay-bridge.json")
+    bridge = json.loads(source.read_text())
+    link = tmp_path / "linked.json"
+    if target == "bridge":
+        link.symlink_to(source.resolve())
+        source = link
+    else:
+        link.symlink_to(Path(bridge[target]["path"]).resolve())
+        bridge[target]["path"] = str(link)
+        source = tmp_path / "bridge.json"
+        source.write_text(json.dumps(bridge))
+    profile = {
+        "trajectory_replay_bridge": {
+            "source_path": str(source),
+            "source_sha256": report_module._sha256(source),
+        }
+    }
+    with pytest.raises(ValueError, match="trajectory replay"):
+        report_module._load_trajectory_replay_bridge(
+            profile, selection_sha256=bridge["selection_sha256"]
+        )
+
+
+@pytest.mark.parametrize(
+    "counts", [{"browser": 35, "benchmark": 1}, {"browser": 36}, {"browser": 34, "benchmark": 2}]
+)
+def test_replay_bridge_responsibilities_match_bound_review(tmp_path: Path, counts: dict) -> None:
+    bridge = json.loads(Path("research/browser-use-trajectory-replay-bridge.json").read_text())
+    bridge["moli_failure_review"]["responsibility_counts"] = counts
+    source = tmp_path / "bridge.json"
+    source.write_text(json.dumps(bridge))
+    profile = {
+        "trajectory_replay_bridge": {
+            "source_path": str(source),
+            "source_sha256": report_module._sha256(source),
+        }
+    }
+    if counts == {"browser": 35, "benchmark": 1}:
+        loaded = report_module._load_trajectory_replay_bridge(
+            profile, selection_sha256=bridge["selection_sha256"]
+        )
+        assert loaded["moli_failure_review"]["responsibility_counts"] == counts
+    else:
+        with pytest.raises(ValueError, match="responsibility counts"):
+            report_module._load_trajectory_replay_bridge(
+                profile, selection_sha256=bridge["selection_sha256"]
+            )
+
+
+def test_replay_bridge_checks_trajectory_profile_hash(tmp_path: Path) -> None:
+    bridge = json.loads(Path("research/browser-use-trajectory-replay-bridge.json").read_text())
+    bridge["trajectory_profile"]["sha256"] = "0" * 64
+    source = tmp_path / "bridge.json"
+    source.write_text(json.dumps(bridge))
+    profile = {
+        "trajectory_replay_bridge": {
+            "source_path": str(source),
+            "source_sha256": report_module._sha256(source),
+        }
+    }
+    with pytest.raises(ValueError, match="profile.*hash-bound"):
+        report_module._load_trajectory_replay_bridge(
+            profile, selection_sha256=bridge["selection_sha256"]
+        )
+
+
+def test_replay_bridge_accepts_current_bound_profile() -> None:
+    profile = json.loads(Path("evaluation/browser-use/current-report.json").read_text())
+    bridge = report_module._load_trajectory_replay_bridge(
+        profile, selection_sha256=profile["selection_sha256"]
+    )
+    assert bridge["contract_counts"] == {
+        "official_task_contract": 81,
+        "corrected_replay_contract": 9,
+    }
+
+
 def test_best_marks_only_one_visibly_distinct_winner() -> None:
     assert _best({"a": 1, "b": 1, "c": 2}, higher=False) == set()
     assert _best({"a": 1, "b": 2, "c": 3}, higher=False) == {"a"}
@@ -388,6 +965,7 @@ def _use_single_model_profile(monkeypatch) -> None:
                 **value,
                 "models": ["gpt-5.6-sol"],
                 "model_labels": {"gpt-5.6-sol": "GPT-5.6 Sol"},
+                "trajectory_replay_bridge": {},
             }
         return value
 
@@ -511,10 +1089,10 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
         "BrowserTool 动作延迟",
         "action-card-grid",
         "同题全配置对比",
-            "browser-comparison",
-            'id="configuration-matrix"',
-            "完整 90 题结果入口",
-            "全部配置 · 单次调用墙钟时间",
+        "browser-comparison",
+        'id="configuration-matrix"',
+        "完整 90 题结果入口",
+        "全部配置 · 单次调用墙钟时间",
     ):
         assert expected in analysis
     assert analysis.index("同题全配置对比") < analysis.index("BrowserTool 动作延迟")
@@ -555,7 +1133,9 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
     assert 'id="evidence-viewer-content"' in viewer
     assert "execution-evidence[.]json" in viewer
     assert "fetch(new URL(source,document.baseURI)" in viewer
-    assert (output / "en/evidence-viewer.html").is_file()
+    assert not (output / "en/evidence-viewer.html").exists()
+    assert "英文报告未生成" in (output / "en/index.html").read_text()
+    assert json.loads((output / "report-languages.json").read_text())["languages"] == ["zh"]
     public_results = [
         json.loads(line)
         for line in (output / "data/results.jsonl").read_text(encoding="utf-8").splitlines()
@@ -607,13 +1187,9 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
     assert not list(output.rglob("*.svg"))
 
 
-def test_common_success_resources_use_final_logical_results(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_common_success_resources_use_final_logical_results(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(report_module, "MODEL_LABELS", {"a": "A", "b": "B"})
-    monkeypatch.setattr(
-        report_module, "ENGINE_LABELS", {"chromium": "Chromium", "moli": "Moli"}
-    )
+    monkeypatch.setattr(report_module, "ENGINE_LABELS", {"chromium": "Chromium", "moli": "Moli"})
 
     def execution(task_id: int, model: str, engine: str, attempt: int, score: int) -> dict:
         events = tmp_path / f"{task_id}-{model}-{engine}-{attempt}.json"
@@ -662,9 +1238,7 @@ def test_common_success_resources_use_final_logical_results(
 
 def test_summary_winners_are_scoped_to_all_configurations(monkeypatch) -> None:
     monkeypatch.setattr(report_module, "MODEL_LABELS", {"a": "A", "b": "B"})
-    monkeypatch.setattr(
-        report_module, "ENGINE_LABELS", {"chromium": "Chromium", "moli": "Moli"}
-    )
+    monkeypatch.setattr(report_module, "ENGINE_LABELS", {"chromium": "Chromium", "moli": "Moli"})
 
     def metrics(passed: int) -> dict:
         return {
@@ -705,19 +1279,13 @@ def test_summary_winners_are_scoped_to_all_configurations(monkeypatch) -> None:
 
 def test_unknown_failure_scope_is_rejected() -> None:
     with pytest.raises(ValueError, match="unknown failure-cause scope"):
-        _failure_scope_counts(
-            {"result": {"subcategory": {"code": "new_unregistered_scope"}}}
-        )
+        _failure_scope_counts({"result": {"subcategory": {"code": "new_unregistered_scope"}}})
 
 
 def test_unknown_failed_evaluator_combination_is_rejected() -> None:
     with pytest.raises(ValueError, match="unknown failed evaluator combination"):
         _automatic_failure_type(
-            {
-                "evaluators_results": [
-                    {"evaluator_name": "NewEvaluator", "score": 0}
-                ]
-            }
+            {"evaluators_results": [{"evaluator_name": "NewEvaluator", "score": 0}]}
         )
 
 
@@ -789,11 +1357,22 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch)
     assert "90 题 Browser Use 完整结果" in home_text
     assert "90 题核心指标" in home_text
     assert "首次成功与重试恢复" not in home_text
+    assert "Chromium 780×437/493、Moli 1920×1080" in home_text
+    assert "不是统一视口下的资源效率结论" in home_text
+    assert "共同成功子集也保留了历史视口差异" in home_text
+    english_home = localize_html(home_text, PurePosixPath("index.html"))
+    assert "not resource efficiency at a common viewport" in english_home
+    assert "common-success subset also retains the historical viewport differences" in english_home
     methodology_text = (output / "methodology/index.html").read_text(encoding="utf-8")
     assert "webarena-autonomous-evaluation-flow.png" in methodology_text
     assert "ContainerManager.start(reset=True)" in methodology_text
     assert "192.168.5.2" in methodology_text
     assert "不含点击序列" in methodology_text
+    assert "计划与实际对照" in methodology_text
+    assert "不能视为浏览器是唯一变量的实验" in methodology_text
+    assert "只替换浏览器</td>" not in methodology_text
+    english_methodology = localize_html(methodology_text, PurePosixPath("methodology/index.html"))
+    assert "the browser was not the only experimental variable" in english_methodology
     for name in (
         "changes/index.html",
         "datasets/index.html",

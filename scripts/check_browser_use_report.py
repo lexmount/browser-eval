@@ -11,6 +11,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 from PIL import Image
+from harness.report_languages import generated_languages, check_language_contract
 
 
 class _VisibleTextParser(HTMLParser):
@@ -78,7 +79,7 @@ def _check_reader_facing_ux(
         term = next((term for term in FORBIDDEN_READER_TERMS if term in text), None)
         if term:
             raise ValueError(f"formal report contains unexplained internal term {term}: {page}")
-    for homepage in (report_dir / "index.html", report_dir / "en/index.html"):
+    for homepage in (report_dir / "index.html", *( [report_dir / "en/index.html"] if "en" in generated_languages(report_dir) else [])):
         text = rendered_pages[homepage]
         if not re.search(r'<table\b[^>]*\bid=["\']home-core-metrics["\']', text, flags=re.I):
             raise ValueError(f"report home page is missing the core metrics table: {homepage}")
@@ -361,8 +362,10 @@ def check(
         report_dir / "results" / f"{_attempt_id(row)}.html" for row in logical_rows
     )
     chinese_pages = (*pages, *task_pages, *result_pages)
+    check_language_contract(report_dir)
     english_pages = tuple(
         report_dir / "en" / page.relative_to(report_dir) for page in chinese_pages
+        if "en" in generated_languages(report_dir)
     )
     data_files = tuple(
         report_dir / "data" / name
@@ -469,6 +472,8 @@ def check(
         "index.html": {"中文"},
     }.items():
         page = report_dir / "en" / relative
+        if page not in rendered_pages:
+            continue
         visible = re.sub(r"\s+", " ", _visible_text(rendered_pages[page]))
         for token in allowed:
             visible = visible.replace(token, "")
@@ -578,7 +583,8 @@ def check(
         raise ValueError("every result page must expose result, evaluator, trajectory and logs")
     evidence_viewer = report_dir / "evidence-viewer.html"
     english_evidence_viewer = report_dir / "en/evidence-viewer.html"
-    if any(path not in rendered_pages for path in (evidence_viewer, english_evidence_viewer)):
+    viewers = (evidence_viewer, english_evidence_viewer) if english_pages else (evidence_viewer,)
+    if any(path not in rendered_pages for path in viewers):
         raise ValueError("report is missing the shared HTML execution-evidence viewer")
     for marker in (
         'id="evidence-viewer-content"',

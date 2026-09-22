@@ -8,6 +8,9 @@ dependencies = []
 [project.scripts]
 browser-harness-eval = "harness.web_fetch.cli:main"
 
+[tool.uv.sources]
+webarena-verified = { git = "https://github.com/lexmount/webarena-verified.git", rev = "7d060ec92b611d66b48d667acb9d92c35cfbdbda" }
+
 [project.optional-dependencies]
 headless-eval = [
   "docker>=7,<8",

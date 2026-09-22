@@ -15,11 +15,12 @@ import zipfile
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
 from io import BytesIO
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from PIL import Image
 
+from harness.fix_log import load_fix_log
 from harness.web_fetch.report_style import STYLE as SHARED_STYLE
 
 from .failure_cause_review import (
@@ -45,7 +46,8 @@ from .publication import (
     trajectory,
     trajectory_label,
 )
-from .report_i18n import write_english_report
+from .report_i18n import localize_html, write_english_report
+from harness.report_languages import write_language_contract
 from .selection import PilotSelection, load_pilot, validate_against_official
 
 ENGINE_LABELS = {"chromium": "Chromium", "moli": "Moli 1.1.3"}
@@ -1407,6 +1409,7 @@ NAV = [
     ("methodology/", "评测方法", "methodology"),
     ("analysis/", "结果分析", "analysis"),
     ("review/", "核验记录", "review"),
+    ("fixes/", "修复日志", "fixes"),
     ("adoption/", "被测浏览器", "adoption"),
     ("reproduce/", "环境与复现", "reproduce"),
     ("changes/", "变更记录", "changes"),
@@ -1444,7 +1447,7 @@ def _evidence_viewer_page() -> str:
         'const output=document.getElementById("evidence-viewer-content");'
         'const raw=document.getElementById("evidence-raw-link");'
         'const source=new URLSearchParams(location.search).get("src")||"";'
-        r"const valid=/^artifacts\/[a-z0-9._-]+\/executions\/[0-9]+\/execution-evidence[.]json$/i.test(source);"
+        r"const valid=/^artifacts\/[a-z0-9._-]+\/executions\/[0-9]+\/execution-evidence[.]json$/i.test(source)||['data/trajectory-replay-bridge.json','data/trajectory-replay-failure-review.json'].includes(source);"
         'const english=document.documentElement.lang==="en";'
         'if(!valid){status.textContent=english?"Invalid evidence path.":"证据路径无效。";return;}'
         "raw.href=source;raw.hidden=false;"
@@ -2095,6 +2098,243 @@ def _failure_scope_figure(verified_causes: dict[str, dict[str, Any]]) -> str:
     return f'<div class="cause-bars" aria-label="{sum(count for _, count, _ in rows)} 个失败结果的复核原因分布">' + bars + "</div>"
 
 
+def _validate_replay_contract_definitions(bridge: dict[str, Any]) -> None:
+    definitions = {}
+    for name in ("trajectories", "corrections"):
+        binding = (bridge.get("contract_definitions") or {}).get(name) or {}
+        path = Path(str(binding.get("path") or ""))
+        if path.is_symlink() or not path.is_file() or _sha256(path) != binding.get("sha256"):
+            raise ValueError("trajectory replay contract definitions are not hash-bound")
+        definitions[name] = _read_json(path)
+    dataset = definitions["trajectories"]
+    if dataset.get("selection_sha256") != bridge.get("selection_sha256"):
+        raise ValueError("trajectory replay contract definitions use a different selection")
+    rows = dataset["trajectories"]
+    if len({row["task_id"] for row in rows}) != len(rows):
+        raise ValueError("duplicate trajectory task in contract definitions")
+    counts: Counter[str] = Counter()
+    cross: dict[str, Counter[str]] = {}
+    origins: Counter[str] = Counter()
+    corrected = set()
+    for row in rows:
+        kind = row["verification"]["contract"]["kind"]
+        counts[kind] += 1
+        cross.setdefault(row["source"]["kind"], Counter())[kind] += 1
+        if row["source"]["kind"] == "authoritative_successful_browser_use_execution":
+            origins[f'{row["source"]["model"]}_{row["source"]["browser"]}'] += 1
+        if kind == "corrected_replay_contract":
+            corrected.add(row["task_id"])
+    categories: dict[str, list[int]] = {
+        "event_selection": [], "event_selection_and_expected": [], "reference_or_acceptance": []
+    }
+    corrections = definitions["corrections"]["corrections"]
+    if {row["task_id"] for row in corrections} != corrected:
+        raise ValueError("trajectory replay correction scope differs from qualified definitions")
+    for row in corrections:
+        operations = row["operations"]
+        selection = any(op["path"].endswith("/last_event_only") for op in operations)
+        other = any(not op["path"].endswith("/last_event_only") for op in operations)
+        category = "event_selection_and_expected" if selection and other else (
+            "event_selection" if selection else "reference_or_acceptance"
+        )
+        categories[category].append(row["task_id"])
+    categories = {key: sorted(value) for key, value in categories.items()}
+    if (dict(counts) != bridge.get("contract_counts")
+        or {key: dict(value) for key, value in cross.items()} != bridge.get("source_contract_counts")
+        or categories != bridge.get("correction_categories")
+        or len(rows) != bridge["effective_results"]["chromium"]["tasks"]):
+        raise ValueError("trajectory replay contract counts differ from qualified definitions")
+    if dict(origins) != bridge["chromium_trajectory_provenance"]["successful_browser_use_execution_by_origin"]:
+        raise ValueError("trajectory replay model-browser origins differ from qualified definitions")
+    bridge["original_contract_task_groups"] = {
+        source: sorted(row["task_id"] for row in rows
+                       if row["source"]["kind"] == source
+                       and row["verification"]["contract"]["kind"] == "official_task_contract")
+        for source in cross
+    }
+
+
+def _load_trajectory_replay_bridge(
+    profile: dict[str, Any], *, selection_sha256: str
+) -> dict[str, Any] | None:
+    """Load the hash-bound cross-track control without treating it as an Agent score."""
+
+    config = profile.get("trajectory_replay_bridge") or {}
+    if not config:
+        return None
+    source = Path(str(config.get("source_path") or ""))
+    expected_hash = str(config.get("source_sha256") or "")
+    if source.is_symlink() or not source.is_file() or _sha256(source) != expected_hash:
+        raise ValueError("trajectory replay bridge is missing or is not hash-bound by the profile")
+    bridge = _read_json(source)
+    if bridge.get("schema") != "lex_browser_use_trajectory_replay_bridge/1":
+        raise ValueError("unsupported trajectory replay bridge schema")
+    if bridge.get("selection_sha256") != selection_sha256:
+        raise ValueError("trajectory replay bridge uses a different task selection")
+    trajectory_profile = bridge.get("trajectory_profile") or {}
+    trajectory_profile_path = Path(str(trajectory_profile.get("path") or ""))
+    if (
+        trajectory_profile_path.is_symlink()
+        or not trajectory_profile_path.is_file()
+        or _sha256(trajectory_profile_path) != trajectory_profile.get("sha256")
+    ):
+        raise ValueError("trajectory replay profile is missing or is not hash-bound")
+    _validate_replay_contract_definitions(bridge)
+    result = bridge.get("effective_results") or {}
+    chromium = result.get("chromium") or {}
+    moli = result.get("moli") or {}
+    provenance = bridge.get("chromium_trajectory_provenance") or {}
+    if (
+        int(result.get("logical_results") or 0) != 180
+        or int(chromium.get("tasks") or 0) != 90
+        or int(chromium.get("passes") or 0) != 90
+        or int(moli.get("tasks") or 0) != 90
+        or int(moli.get("passes") or 0) != 54
+        or int(provenance.get("expert_repair_spec") or 0) != 30
+        or int(provenance.get("successful_browser_use_execution") or 0) != 60
+    ):
+        raise ValueError("trajectory replay bridge has an invalid current control cardinality")
+    review = bridge.get("moli_failure_review") or {}
+    review_path = Path(str(review.get("path") or ""))
+    if (
+        review_path.is_symlink()
+        or not review_path.is_file()
+        or _sha256(review_path) != review.get("sha256")
+        or int(review.get("failed_results") or 0) != 36
+        or int(review.get("verified_results") or 0) != 36
+    ):
+        raise ValueError("trajectory replay browser-failure review is missing or inconsistent")
+    review_data = _read_json(review_path)
+    responsibilities: Counter[str] = Counter()
+    reviewed_keys: set[tuple[str, int]] = set()
+    for group in review_data.get("cause_groups") or []:
+        for item in group.get("results") or []:
+            key = (str(item.get("engine") or ""), int(item["task_id"]))
+            if key in reviewed_keys or key[0] != "moli":
+                raise ValueError("trajectory replay responsibility inventory is inconsistent")
+            reviewed_keys.add(key)
+            responsibilities[str(group.get("responsibility") or "")] += 1
+    if (
+        len(reviewed_keys) != review["verified_results"]
+        or review_data.get("coverage") != {
+            "failed_results": review["failed_results"], "verified_results": len(reviewed_keys)
+        }
+        or (review_data.get("bindings") or {}).get("effective_results_sha256")
+        != result.get("sha256")
+        or dict(responsibilities) != review.get("responsibility_counts")
+    ):
+        raise ValueError("trajectory replay responsibility counts differ from the bound review")
+    return bridge
+
+
+def _replay_original_contract_rows(
+    bridge: dict[str, Any], attempts: list[dict[str, Any]]
+) -> list[list[str]]:
+    groups = bridge["original_contract_task_groups"]
+    historical = set(groups["authoritative_successful_browser_use_execution"])
+    expert = set(groups["expert_repair_spec"])
+    populations = (historical | expert, historical, expert)
+    indexed = {(row["model"], row["engine"], int(row["task_id"])): row for row in attempts}
+    if len(indexed) != len(attempts):
+        raise ValueError("replay diagnostic requires authoritative logical results")
+    rows = []
+    engines = [BASELINE_ENGINE, *(engine for engine in ENGINE_LABELS if engine != BASELINE_ENGINE)]
+    for model in MODEL_LABELS:
+        for engine in engines:
+            cells = [f"{MODEL_LABELS[model]} × {ENGINE_LABELS[engine]}"]
+            for population in populations:
+                keys = [(model, engine, task_id) for task_id in population]
+                if any(key not in indexed for key in keys):
+                    raise ValueError("replay diagnostic is missing registered configuration results")
+                passes = sum(float(indexed[key].get("score") or 0) == 1 for key in keys)
+                cells.append(f"{passes}/{len(population)}")
+            rows.append(cells)
+    return rows
+
+
+def _trajectory_replay_control(
+    bridge: dict[str, Any] | None, attempts: list[dict[str, Any]] | None = None
+) -> str:
+    if bridge is None:
+        return ""
+    result = bridge["effective_results"]
+    provenance = bridge["chromium_trajectory_provenance"]
+    origins = provenance["successful_browser_use_execution_by_origin"]
+    diagnostic = ""
+    if attempts is not None:
+        diagnostic_rows = "".join(
+            "<tr>" + "".join(f"<td>{_e(cell)}</td>" for cell in row) + "</tr>"
+            for row in _replay_original_contract_rows(bridge, attempts)
+        )
+        diagnostic = (
+            '<h3>保留原合同的任务仍有自主执行失败</h3>'
+            '<p>下表固定排除修订合同任务，按轨迹来源统计自主执行的官方通过数。'
+            '这是事后诊断，主报告分母仍为 90；历史成功路径经过筛选，不能把此表当成新的能力排名。</p>'
+            '<div class="table-scroll"><table><thead><tr><th>配置</th><th>全部原合同任务</th>'
+            '<th>历史成功路径来源</th><th>专家修复路径来源</th></tr></thead><tbody>'
+            + diagnostic_rows + '</tbody></table></div>'
+        )
+    contract_rows = "".join(
+        f'<tr><td>{label}</td><td>{counts["official_task_contract"]}</td><td>{counts["corrected_replay_contract"]}</td></tr>'
+        for source, label in (("authoritative_successful_browser_use_execution", "历史成功轨迹"), ("expert_repair_spec", "专家修复轨迹"))
+        for counts in [bridge["source_contract_counts"][source]]
+    )
+    correction_rows = "".join(
+        f'<tr><td>{label}</td><td>{", ".join(map(str, bridge["correction_categories"][key]))}</td><td>{description}</td></tr>'
+        for key, label, description in (
+            ("event_selection", "仅修改事件选择", "按匹配条件选择保存请求，避免随后请求覆盖。"),
+            ("event_selection_and_expected", "事件选择与预期字段修改", "修订路由、请求字段或 Referer 条件，并匹配所需异步请求。"),
+            ("reference_or_acceptance", "参考答案或验收要求修改", "涉及商品名、表单字段、商品选择规则、未提交表单状态及冗余保存要求。"),
+        )
+    )
+    return (
+        '<section id="trajectory-replay-control"><h2>固定轨迹控制：它验证浏览器执行，不测自主规划</h2>'
+        '<p><strong>Chromium 的 90/90 不是 CowAgent 的 90/90。</strong>轨迹重放把既定 BrowserTool 调用交给浏览器，模型调用数为 0；'
+        'Chromium 的 90/90 表示这 90 组固定动作、预录回答与绑定验收合同通过了重放验收，其中部分合同经过修订。它不让 Agent 在当次运行中观察、检索、比较、选择或决定何时结束。</p>'
+        '<p>验收使用轨迹预录回答（recorded_response）与本次网络记录（HAR）。对于检索问答题，通过不证明当前浏览器读到了所需数据，也不证明 Agent 在本次运行中计算出了答案；要求网络事件的合同仍会检查本次 HAR 是否包含对应请求。</p>'
+        '<p>90 题中的 37 道检索题均只使用回答验收，不要求网络事件：36 题沿用原合同，Task 279 使用修订合同。这 37 题的本轮读数与答案尚未验证；原评分保留，其余 53 题也不能替代原 90 题成为新的排名。</p>'
+        '<div class="answer-strip"><article><b>Chromium：90/90</b><p>固定动作、预录回答与绑定合同的重放验收结果。</p></article>'
+        f'<article><b>Moli：{result["moli"]["passes"]}/{result["moli"]["tasks"]}</b><p>同一固定路径仍有 36 条失败，不能把浏览器差异归零。</p></article>'
+        f'<article><b>路径来源：{provenance["expert_repair_spec"]} + {provenance["successful_browser_use_execution"]}</b><p>30 条专家修复路径，加 60 条历史成功的 Browser Use 路径。</p></article></div>'
+        '<p>后 60 条在进入重放集之前已经按“成功”条件筛选，其中 '
+        f'{origins["gpt-5.6-sol_chromium"]} 条来自 Sol × Chromium、{origins["gpt-5.6-sol_moli"]} 条来自 Sol × Moli、'
+        f'{origins["gpt-6-astra_chromium"]} 条来自 Astra × Chromium。'
+        '因此固定轨迹成绩受给定路径、预录回答和验收合同共同约束，不能作为 Agent 决策能力、模型能力或完整 90 题自主通过率的反事实估计。</p>'
+        '<h3>轨迹来源与验收合同</h3>'
+        f'<p>90 条轨迹中，{bridge["contract_counts"]["official_task_contract"]} 条保留官方原合同，{bridge["contract_counts"]["corrected_replay_contract"]} 条使用修订合同。专家修复轨迹不一定修改验收；历史成功轨迹也可能修订验收。合同差异与路径来源需同时考虑。</p>'
+        '<div class="table-scroll"><table><thead><tr><th>轨迹来源</th><th>官方原合同</th><th>修订合同</th></tr></thead><tbody>'
+        + contract_rows + '</tbody></table></div>'
+        '<div class="table-scroll"><table><thead><tr><th>修订类别</th><th>任务</th><th>验收差异</th></tr></thead><tbody>'
+        + correction_rows + '</tbody></table></div>'
+        + diagnostic +
+        '<p>历史复核曾将 Moli 的 36 个固定轨迹失败归为浏览器责任；新发现的视口设置缺陷要求重新核对这一归因。'
+        '历史 Browser Use 的 Chromium 实际宽度为 780，Moli 为 1920；Task 173 的搜索链接在宽度达到 992 时由网页 CSS 隐藏。'
+        '该任务的失败不能单凭可见性超时归因于浏览器。历史分数保留，统一视口后的比较须重新冻结完整任务范围与轨迹资格。</p>'
+        '<p class="source-note">数据绑定：<a href="evidence-viewer.html?src=data/trajectory-replay-bridge.json">跨轨迹控制摘要</a>；'
+        '<a href="evidence-viewer.html?src=data/trajectory-replay-failure-review.json">36 个 Moli 固定轨迹失败的逐题复核</a>。</p>'
+        '<h3>从失败结果追到决策与运行设置</h3>'
+        '<p><a href="results/gpt-5.6-sol-chromium-676.html#verification">Task 676 · Sol × Chromium · 验收证据</a>：'
+        '官方合同要求带 filters[status]=fraud 的订单列表 XHR。HAR 已记录该请求、200 状态和正确 Referer；'
+        '<a href="results/gpt-5.6-sol-chromium-676.html#trajectory">操作轨迹</a>显示 Suspected Fraud 已生效。'
+        'NetworkEventEvaluator._filter_events_by_criteria 却对 NAVIGATE + GET 只保留最后的文档导航，遗漏 XHR；'
+        '默认 last_event_only 又可能在同路径请求中选中后来的 notification_area。两个模型的 Chromium 结果都受此影响。'
+        '<a href="results/gpt-5.6-sol-moli-676.html#verification">Moli 的同题证据</a>还缺少 XHR Referer。'
+        '重放修订既改变事件选择，也移除了 Referer 条件；后者并非 Chromium 这次误判的原因。四个配置的原始失败分数保持不变。</p>'
+        '<p><a href="results/gpt-6-astra-chromium-124.html#trajectory">Task 124 · Astra × Chromium</a>：'
+        'Agent 在第 9 个决策就结束，未耗尽 40 步。轨迹把 wireless earphone 查询扩大成 earphone，'
+        '工具结果仍显示 Items 1 to 12 of 24 total，最终却提交 min=0.01、max=287.64。'
+        '失败发生在候选资格与检索完整性判断；轨迹中有可读结果，不能用浏览器不可操作或步骤不足解释。'
+        '当前运行器依赖模型执行提示中的完成自检，没有独立验证候选全集。提示要求自检并不等于已经完成自检。</p>'
+        '<p><a href="results/gpt-5.6-sol-moli-510.html#trajectory">Task 510 · Sol × Moli</a>：'
+        '第 40 个决策仍在调用工具，最终回答承认尚未结账。'
+        'harness/browser_use/runner.py 的 _exhausted_agent_steps 检测这一状态，并通过 _max_steps_response 标记未完成。'
+        '这证明预算上限中断了流程，但所选 Hiquphon Tweeters 本身也不符合官方目标；增加预算能否完成正确购买仍需对照实验。</p>'
+        '<p>两模型均使用 reasoning_effort=low 和 40 步上限。'
+        'harness/browser_use/model.py 限定 low，runner.py 在创建适配器时也传入 low。'
+        '现有分数只反映这套 Agent、工具与推理设置；尚无固定观察输入、仅改变推理档位的实验，不能把分数接近解释为模型能力相同。</p></section>'
+    )
+
+
 def _automatic_failure_counts(attempts: list[dict[str, Any]]) -> Counter[str]:
     counts = Counter()
     for row in attempts:
@@ -2150,6 +2390,7 @@ def _article_body(
     review: dict[str, Any],
     cohort_commits: dict[str, str],
     automatic_failure_counts: Counter[str],
+    trajectory_replay_bridge: dict[str, Any] | None,
 ) -> str:
     total_task_count = len(tasks)
     excluded = _external_interference_task_ids(verified_causes)
@@ -2232,7 +2473,8 @@ def _article_body(
         '<section><h2>按同题比较浏览器</h2><p>浏览器对比必须留在同一模型层内。汇总数会隐藏互换的成败任务；下表给出同题对照。</p>'
         + _table(["模型", "浏览器 A", "浏览器 B", "同题数", "两边都通过", "A 通过、B 失败", "A 失败、B 通过", "两边都失败"], comparison_rows, caption=f"每行只比较同一模型下的 {task_count} 个配对任务。")
         + f'<p>两个模型层合计有 {discordant} 个单边通过，可用于定位兼容性问题；样本量和方向都不支持总体优劣判断。<a href="analysis/#same-task">查看 {task_count} 题的四配置矩阵 →</a></p></section>'
-        '<section id="failure-findings"><h2>程序判分落点与复核根因</h2><p>程序判分先说明哪类规则未通过；人工复核再沿最终回答、evaluator 断言、HAR 和 Agent 轨迹追到直接原因。这两个层次需要分开。</p><h3>程序判分落点</h3>'
+        + _trajectory_replay_control(trajectory_replay_bridge, attempts)
+        + '<section id="failure-findings"><h2>程序判分落点与复核根因</h2><p>程序判分先说明哪类规则未通过；人工复核再沿最终回答、evaluator 断言、HAR 和 Agent 轨迹追到直接原因。这两个层次需要分开。</p><h3>程序判分落点</h3>'
         + _automatic_failure_figure(automatic_failure_counts)
         + '<p class="source-note">“网络副作用未通过”只描述程序判分位置。它可能源于 Agent 没有提交，也可能源于 evaluator、站点或 HAR 采集问题。</p><h3>复核根因</h3>'
         + _failure_scope_figure(verified_causes)
@@ -2245,6 +2487,7 @@ def _article_body(
         + f'{reviewed_attempts}/{recorded_attempts} 个证据包由程序核对文件存在性、哈希、JSON 可读性、回答 / 分数 / 状态一致性和运行身份。</p></article><article><span>2</span><b>官方程序验收</b><p>每题按最终回答和必要网络副作用判分；没有 LLM judge。</p></article><article><span>3</span><b>失败根因复核</b><p>{len(verified_causes)}/{raw_failed_result_count} 个原始最终失败结果逐条阅读错误、断言、最终回答、HAR 和 Agent 轨迹，归类并给出处理边界。</p></article></div>'
         + '<p class="callout"><strong>审查分为完整性检查和失败根因复核。</strong> 前者确认“证据包与 evaluator 记录一致”；后者检查 evaluator 语义，并识别出 Task 699 等问题。已通过结果没有再做独立语义盲审，其判定依据仍是官方 evaluator。<a href="review/">查看核验记录 →</a></p></section>'
         f'<section><h2>完整 {task_count} 题的速度与浏览器资源</h2><p>均值、P50、P95 都在四种完整配置中统一比较。CPU、内存和网络只计浏览器容器，不含 CowAgent 或模型服务；模型会改变动作数量和页面停留时间，因此这里比较整套配置，不能单独归因于浏览器内核。</p>'
+        + '<p class="source-note">历史轨迹记录的视口为 Chromium 780×437/493、Moli 1920×1080。视口差异会影响渲染、CPU 和内存；以下数值与最低值标记仅描述各自实际运行条件，不是统一视口下的资源效率结论。正式效率比较须统一设置后完整重跑。</p>'
         + _resource_comparison_table(summary)
         + '<p class="source-note"><span class="winner-mark" aria-hidden="true">优</span> 每项只标记四种配置中数值唯一最低者。CPU 时间与网络总量累计逻辑结果使用的全部执行；内存来自 Browser Use 执行阶段的浏览器容器采样。</p></section>'
         '<section><h2>共同成功任务的性能与资源</h2><p>下表限定为四种配置最终都通过的 '
@@ -2252,7 +2495,7 @@ def _article_body(
         + ' 题，并以每题最终逻辑结果包含的全部物理执行计算 P50；这样不会把快速失败误当成性能优势。</p>'
         + _table(["模型", "浏览器", "Agent 链路 P50", "BrowserTool P50", "Tokens P50", "峰值内存 P50", "CPU 时间 P50"], resource_rows, table_id="home-resource-table", classes="core-comparison-table")
         + _resource_summary_cards((common_count, resource_rows))
-        + '<p class="source-note">Agent 链路还包含模型推理和页面等待，因此不能解读为纯内核性能。</p></section>'
+        + '<p class="source-note">共同成功子集也保留了历史视口差异，不能据此得出统一视口下的资源效率结论。Agent 链路还包含模型推理和页面等待，因此不能解读为纯内核性能。</p></section>'
         f'<section><h2>工程结论</h2><p>完整 {task_count} 题官方结果是本报告的主口径；{clean_task_count} 题事后诊断子集只用于分离已知外部干扰，不改写成绩。</p><p>Moli 的内存占用明显更低，但 HAR 完整性、工具耗时和部分任务兼容性还需修复；Chromium 在本轮 Sol 层多通过 3 题，Astra 层通过数相同，但当前每种配置只有一个正式样本，不能外推成总体优势。</p><div class="essay-note"><h3>下一轮验证</h3><p>先修复可控的合同、evaluator、站点和共享状态问题，再按同一协议完整重跑 90 题四种配置；历史官方分数在新证据批次出现前保持不变。</p></div></section></article>'
     )
 
@@ -2564,11 +2807,115 @@ def _review_history(rounds: list[dict[str, Any]]) -> str:
     return "".join(cards)
 
 
-def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_path: Path) -> Path:
+def _load_fix_log(profile: dict[str, Any]) -> dict[str, Any]:
+    """Load the shared fix-log model with Browser Use publication sanitization."""
+
+    return load_fix_log(profile, sanitize_value=sanitize)
+
+
+
+def _write_fix_log(stage: Path, model: dict[str, Any], *, english: bool = False) -> None:
+    """Render both views from one manifest; screenshots never imply pixel change."""
+    lang = "en" if english else "zh"
+    def pick(zh: str, en: str) -> str:
+        return en if english else zh
+    folder = stage / ("en/fixes" if english else "fixes")
+    folder.mkdir(parents=True, exist_ok=True)
+    artifacts = {}
+    for item in model["artifacts"]:
+        suffix = ".json" if item["kind"] == "receipt" else item["extension"]
+        relative = f'artifacts/fixes/{item["sha256"]}{suffix}'
+        destination = stage / relative
+        if not english:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(item["path"], destination)
+            if _sha256(destination) != item["sha256"]:
+                raise ValueError("fix artifact changed during materialization")
+        artifacts[item["id"]] = {**{k: v for k, v in item.items() if k != "path"}, "href": relative}
+
+    def link(identifier: str, label: str) -> str:
+        return f'<a href="{_e(artifacts[identifier]["href"])}">{_e(label)}</a>'
+
+    def save(name: str, title: str, body: str) -> None:
+        page = _page(title=title, active="fixes", body=body, depth=1)
+        if english:
+            page = localize_html(page, PurePosixPath(f"fixes/{name}"))
+        (folder / name).write_text(page, encoding="utf-8")
+
+    title = pick("修复日志", "Fix log")
+    intro = pick("修复证据与历史成绩分开：本页记录根因、修改原理和验证边界，不替换官方结果。",
+                 "Fix evidence is separate from historical scores: root causes, changes, and validation limits do not replace official results.")
+    rows = []
+    for record in model["records"]:
+        scope = pick("诊断验证", "Diagnostic validation") if record["scope"] == "diagnostic" else pick("正式范围验证", "Formal-scope validation")
+        rows.append([Safe(f'<a href="fixes/{record["id"]}.html">{_e(record["title"][lang])}</a>'), scope])
+        body = _hero("Fix evidence", record["title"][lang], scope)
+        for key, zh, en in (("symptom", "问题表现", "Symptom"), ("root_cause", "代码与流程根因", "Code and process root cause"), ("principle", "修复原理", "Fix principle")):
+            body += _section(pick(zh, en), f'<p>{_e(record[key][lang])}</p>')
+        body += _section(pick("代码位置", "Code locations"), "".join(
+            f'<p><code>{_e(code["repository"])} · {_e(code["path"])} · {_e(code["symbol"])}</code></p>' for code in record["code_paths"]
+        ))
+        basis = record["comparison_basis"]
+        if basis["kind"] == "identical_inputs":
+            comparison = (
+                f'<p>{pick("共同输入 SHA-256", "Shared input SHA-256")}: '
+                f'<code>{record["input_sha256"]}</code></p>'
+            )
+        else:
+            comparison = (
+                f'<p class="callout">{pick("验收合同相同，轨迹已修订。", "The acceptance contract is unchanged; the trajectory was revised.")}</p>'
+                f'<p>{pick("验收合同 SHA-256", "Task contract SHA-256")}: '
+                f'<code>{basis["task_contract_sha256"]}</code></p>'
+                + _table(
+                    [pick("绑定项", "Binding"), pick("修复前", "Before"), pick("修复后", "After")],
+                    [
+                        [pick("输入 SHA-256", "Input SHA-256"), Safe(f'<code>{record["before"]["input_sha256"]}</code>'), Safe(f'<code>{record["after"]["input_sha256"]}</code>')],
+                        [pick("轨迹 SHA-256", "Trajectory SHA-256"), Safe(f'<code>{record["before"]["trajectory_sha256"]}</code>'), Safe(f'<code>{record["after"]["trajectory_sha256"]}</code>')],
+                        [pick("动作数", "Action count"), record["before"]["action_count"], record["after"]["action_count"]],
+                    ],
+                )
+            )
+        body += _section(pick("前后对照", "Before and after"), comparison)
+        for side, zh, en in (("before", "修复前", "Before"), ("after", "修复后", "After")):
+            run = record[side]
+            content = f'<p>{_e(run["observation"][lang])}</p><pre>{_e(json.dumps({key: run[key] for key in ("method", "version", "source_base", "source_diff_sha256", "binary_sha256", "run_id")}, indent=2))}</pre>'
+            if run.get("source_diff_sha256") is None:
+                content += f'<p>{pick("该次构建未记录源码差异哈希；只能按已绑定二进制确认身份，不能追认当前源码就是当时构建输入。", "This build did not record a source-diff hash. Identity is bound only to the recorded binary; the current source cannot retrospectively establish its build inputs.")}</p>'
+            content += link(run["receipt"], pick("对照凭据 JSON", "Comparison receipt JSON"))
+            if run.get("image"):
+                artifact = artifacts[run["image"]]
+                provenance = artifact["provenance"]
+                label = pick("最后观测页面", "Last observed page") if provenance["observation"] == "last_observed_page" else pick("精确错误时刻画面", "Exact error-time frame")
+                content += f'<figure><a href="{artifact["href"]}"><img loading="lazy" style="max-width:100%;height:auto" src="{artifact["href"]}" alt="{_e(label)}"></a><figcaption>{_e(label)} · {_e(provenance["timing_note"][lang])}</figcaption></figure>'
+            else:
+                content += f'<p>{pick("此观测没有公开截图。", "No public screenshot is available for this observation.")}</p>'
+            body += _section(pick(zh, en), content)
+        if record["before"].get("image") and record["after"].get("image") and artifacts[record["before"]["image"]]["sha256"] == artifacts[record["after"]["image"]]["sha256"]:
+            body += f'<p class="callout">{pick("前后截图字节相同，不能作为像素变化证据；状态或几何差异以对照凭据为准。", "The before/after screenshots are byte-identical and do not demonstrate a pixel change; consult the comparison receipts for state or geometry differences.")}</p>'
+        body += _section(pick("验证测试", "Validation tests"), "".join(
+            f'<pre>{_e(test["command"])}</pre><p>{_e(test["result"])} · {link(test["receipt"], pick("测试凭据 JSON", "Test receipt JSON"))}</p>' for test in record["tests"]
+        ))
+        body += _section(pick("验证边界", "Validation limits"), f'<p>{_e(record["limitations"][lang])}</p><p>{intro}</p>')
+        if record.get("pr_url"):
+            body += f'<p><a href="{_e(record["pr_url"])}">{pick("代码变更 PR", "Change PR")}</a></p>'
+        body += f'<p><a href="fixes/">{title}</a> · <a href="data/fix-log.json">{pick("结构化证据索引", "Structured evidence index")}</a></p>'
+        save(f'{record["id"]}.html', record["title"][lang], body)
+    body = _hero("Fix evidence", title, intro)
+    body += _table([pick("修复项", "Fix"), pick("验证范围", "Validation scope")], rows) if rows else f'<p>{pick("暂无已绑定验证证据的修复记录。", "No fix records with bound validation evidence are available.")}</p>'
+    save("index.html", title, body)
+    if not english:
+        _write_json(stage / "data/fix-log.json", {**model, "artifacts": list(artifacts.values())})
+
+
+def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_path: Path, include_english: bool = False) -> Path:
     profile = _read_json(Path("evaluation/browser-use/current-report.json"))
+    fix_log = _load_fix_log(profile)
     _configure_engine_labels(profile)
     _configure_models(profile)
     selection = load_pilot(selection_path)
+    trajectory_replay_bridge = _load_trajectory_replay_bridge(
+        profile, selection_sha256=selection.sha256
+    )
     bundles = _load_evidence_bundles(evidence)
     source_attempts = [row for bundle in bundles for row in bundle["source_attempts"]]
     manifest, config = bundles[0]["manifest"], bundles[0]["config"]
@@ -2717,6 +3064,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             review,
             cohort_commits,
             automatic_failure_counts,
+            trajectory_replay_bridge,
         )
         home = f'<section class="section"><div class="wrap">{article}</div></section>'
         (stage / "index.html").write_text(
@@ -2902,7 +3250,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 ["项目", "规则"],
                 [
                     ["Agent / 模型", f"CowAgent；{model}；模型推理强度为低"],
-                    ["唯一变量", "同题、同数据、同模型、同提示和资源上限，只替换浏览器"],
+                    ["计划与实际对照", "计划固定任务、数据、模型、提示和资源上限，仅替换浏览器；历史执行的视口实际不一致，不能视为浏览器是唯一变量的实验"],
                     ["结果口径", "每题×浏览器一个最终逻辑结果；二元通过率；逐题配对"],
                     [
                         "执行上限",
@@ -3231,7 +3579,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     ],
                     [
                         "资源与上限",
-                        f"相同 CPU、内存、viewport 与最多 {max_agent_steps} 步",
+                        f"相同 CPU、内存与最多 {max_agent_steps} 步；历史视口未统一",
                         "控制运行预算",
                     ],
                 ],
@@ -3508,6 +3856,12 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 "results": verified_causes,
             },
         )
+        if trajectory_replay_bridge is not None:
+            _write_json(stage / "data/trajectory-replay-bridge.json", trajectory_replay_bridge)
+            _write_json(
+                stage / "data/trajectory-replay-failure-review.json",
+                _read_json(Path(str((trajectory_replay_bridge.get("moli_failure_review") or {}).get("path") or ""))),
+            )
         _write_json(
             stage / "data/evidence-index.json",
             {
@@ -3672,7 +4026,11 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 ],
             },
         )
-        write_english_report(stage)
+        _write_fix_log(stage, fix_log)
+        if include_english:
+            write_english_report(stage)
+            _write_fix_log(stage, fix_log, english=True)
+        write_language_contract(stage, include_english=include_english)
         (stage / ".generated-report").write_text("browser-use-report/2\n", encoding="utf-8")
         backup: Path | None = None
         if output.exists():
@@ -3708,8 +4066,9 @@ def main() -> None:
         type=Path,
         default=Path("evaluation/browser-use/webarena-verified-pilot.json"),
     )
+    parser.add_argument("--include-english", action="store_true")
     args = parser.parse_args()
-    print(build_report(evidence=args.evidence, output=args.output, selection_path=args.selection))
+    print(build_report(evidence=args.evidence, output=args.output, selection_path=args.selection, include_english=args.include_english))
 
 
 if __name__ == "__main__":

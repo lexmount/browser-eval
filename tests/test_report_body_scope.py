@@ -255,6 +255,9 @@ class ReportBodyScopeTests(unittest.TestCase):
             out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True);artifact.write_text('output')
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
                 generate(out,{'cases':[c]},[r],[])
+            self.assertEqual(json.loads((out/'report-languages.json').read_text())['languages'],['zh'])
+            self.assertIn('英文报告未生成',(out/'en/index.html').read_text())
+            self.assertFalse((out/'en/attempts').exists())
             detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
             for phrase in ['任务结果','列表任务：通过','— / — / —','全文指标无完整参考','标准答案与验收规则','有效条目数 / 声明最少数量','3 / 3']:
                 self.assertIn(phrase,detail)
@@ -309,7 +312,7 @@ class ReportBodyScopeTests(unittest.TestCase):
             out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True)
             artifact.write_text('')
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
-                generate(out,{'cases':[c]},[r],[])
+                generate(out,{'cases':[c]},[r],[],include_english=True)
             detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
             english=(out/'en/attempts'/f"{r['attempt_id']}.html").read_text()
             for phrase in ['data-call-log-open="call-log-dialog"','<dialog class="call-log-dialog"',
@@ -429,7 +432,7 @@ class ReportBodyScopeTests(unittest.TestCase):
                 artifact.write_text('\n'.join(r['metrics']['resource_candidate_urls']))
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), \
                     patch('harness.web_fetch.report.write_support'):
-                generate(out,{'cases':cases},records,[])
+                generate(out,{'cases':cases},records,[],include_english=True)
             for (identifier, matched, recall, precision, extra, _, zh_detail, en_reason),r in zip(scenarios,records):
                 zh=(out/'attempts'/f'{r["attempt_id"]}.html').read_text()
                 en=(out/'en/attempts'/f'{r["attempt_id"]}.html').read_text()
@@ -621,7 +624,8 @@ class ReportBodyScopeTests(unittest.TestCase):
             artifact=source/r['artifact_path'];artifact.parent.mkdir(parents=True);artifact.write_bytes(b'output')
             private_path=source/r['provider_metadata']['raw_response_path']
             private_path.parent.mkdir(parents=True);private_path.write_bytes(private)
-            def inspect_generate(staging,*args):
+            def inspect_generate(staging,*args,**kwargs):
+                self.assertFalse(kwargs['include_english'])
                 for name in ['annotation','validation','scoring']:
                     expected=(assets/f'{name}.png').read_bytes()
                     self.assertTrue(expected.startswith(b'\x89PNG\r\n\x1a\n'))

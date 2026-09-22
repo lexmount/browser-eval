@@ -31,8 +31,7 @@
         "task_type": "RETRIEVE",
         "status": "SUCCESS",
         "retrieved_data": [
-          "The Hobbit",
-          "A Christmas Carol"
+          "The Hobbit"
         ],
         "error_details": null
       }

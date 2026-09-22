@@ -1,0 +1,109 @@
+{
+  "task_id": 771,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://192.168.5.2:7780/admin"
+    },
+    {
+      "action": "click",
+      "selector": ":nth-match(a[href=\"#\"]:visible, 4)",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"http://host.docker.internal:7780/admin/review/product/pending/\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"http://host.docker.internal:7780/admin/review/product/edit/id/353/\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "evaluate",
+      "script": "(() => { const f=document.querySelector('form'); return {checked:[...document.querySelectorAll('input[type=radio]')].map(x=>({name:x.name,value:x.value,checked:x.checked,outer:x.outerHTML})), ratings:[...document.querySelectorAll('[class*=rating]')].map(x=>({tag:x.tagName,cls:x.className,text:x.innerText,html:x.innerHTML.slice(0,500)}))}; })()"
+    },
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7780/admin/review/product/edit/id/352/"
+    },
+    {
+      "action": "evaluate",
+      "script": "(()=>({rating:[...document.querySelectorAll('input[name^=\"ratings\"]')].find(x=>x.checked)?.id,status:document.querySelector('[name=status_id]')?.value}))()"
+    },
+    {
+      "action": "select",
+      "value": "1",
+      "selector": "select[name=\"status_id\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "click",
+      "selector": "button:visible:has-text(\"Save Review\")",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "wait",
+      "selector": "#reviewGrid_table:visible",
+      "timeout": 30000
+    },
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7780/admin/review/product/edit/id/351/"
+    },
+    {
+      "action": "evaluate",
+      "script": "(()=>[...document.querySelectorAll('input[name^=\"ratings\"]')].find(x=>x.checked)?.id)()"
+    },
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7780/admin/review/product/edit/id/349/"
+    },
+    {
+      "action": "evaluate",
+      "script": "(()=>[...document.querySelectorAll('input[name^=\"ratings\"]')].find(x=>x.checked)?.id)()"
+    },
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7780/admin/review/product/edit/id/347/"
+    },
+    {
+      "action": "evaluate",
+      "script": "(()=>[...document.querySelectorAll('input[name^=\"ratings\"]')].find(x=>x.checked)?.id)()"
+    },
+    {
+      "action": "select",
+      "value": "1",
+      "selector": "select[name=\"status_id\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "click",
+      "selector": "button:visible:has-text(\"Save Review\")",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "wait",
+      "selector": "#reviewGrid_table:visible",
+      "timeout": 30000
+    },
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7780/admin/review/product/pending/"
+    }
+  ],
+  "repair": {
+    "cause": "An explicit navigation 500ms after Save Review canceled the pending save response, leaving HTTP status 0.",
+    "change": "Await the destination review grid after each save before issuing another navigation."
+  }
+}

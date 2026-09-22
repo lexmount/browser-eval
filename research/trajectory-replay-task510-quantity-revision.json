@@ -1,0 +1,53 @@
+{
+  "schema": "trajectory_replay_scoring_revision/1",
+  "revision_id": "tr-510-restore-cart-quantity-20260920",
+  "task_id": 510,
+  "root_cause": "Removing the totals evaluator dropped items_qty=1. The replacement trajectory checked only the number of product rows, so one row containing two units was accepted.",
+  "predecessor_catalog_path": "evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260920-pre-510.json",
+  "predecessor_correction_catalog_sha256": "f77d148498e50710fdb7b1205dcb7770d2e746d6856112cb8bfa173989333a9e",
+  "predecessor_correction_record_sha256": "5a141413e71ad077c19515596b7b4a904fac427bdaa43de656a8f978aab7839e",
+  "revised_correction_catalog_sha256": "e764f4b2828fa97d98cecc8752b31329871e612be1fff13878410d41e8414f9b",
+  "revised_correction_record_sha256": "5b57108f9589f43d9ce5db9869793c77012413e0f93985d39d3124959e14759c",
+  "regression_ids": [
+    "tr-510-quantity-one",
+    "tr-510-reject-quantity-two",
+    "tr-510-reject-missing-totals",
+    "tr-510-reject-wrong-product"
+  ],
+  "production_evaluator_controls": {
+    "valid_single_unit": {
+      "before": 1,
+      "after": 1
+    },
+    "invalid_two_units": {
+      "before": 1,
+      "after": 0
+    },
+    "missing_totals_after": 0,
+    "wrong_product_after": 0
+  },
+  "provider_call_count": 0,
+  "historical_scores_immutable": true,
+  "rescoring_scope": {
+    "task_id": 510,
+    "methods": [
+      "chromium",
+      "moli-1.1.8",
+      "moli-1.1.8-pr-39d75b69"
+    ],
+    "saved_attempts": 3,
+    "changed_verdicts": 0,
+    "cohort_results_sha256": "52f132cdd999e9c93b32332b8e037890dbfc7e90c44afef7ffcc7398b39ef72b",
+    "evidence_sha256": "6752368d28eebf06aec22232786f01984c422e4428bc62f9b3af3238e9eacf0d"
+  },
+  "effect": "Restores the upstream totals-response quantity and product-name rule. All three saved task-510 results remain accepted without browser calls. Historical cohort definitions and scores are unchanged. The explicit product-selection task revision remains a disclosed scope change.",
+  "trajectory_candidate": {
+    "path": "evaluation/trajectory-replay/webarena-verified/trajectory-candidates/task-510.json",
+    "sha256": "71e761d4931214002be74ac2adf6ffb10968f9140bd6b46cea8c5e35dde67dd2",
+    "changed_step": 11,
+    "local_dom_controls": 9,
+    "invalid_cases_rejected": 8,
+    "diagnostic_sha256": "5205689bbb5a280c05f1ed1e19cb2e4e5f22584fad1058c08f04add66b4bd5c5",
+    "status": "local_counterexamples_passed_not_promoted_or_site_qualified"
+  }
+}

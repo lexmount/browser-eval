@@ -39,7 +39,7 @@ ci: naming-check test fixture-smoke
 
 report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/build_report.py --evidence "$(EVIDENCE)" --output reports/webfetch
+	$(PY) scripts/build_report.py --evidence "$(EVIDENCE)" --output reports/webfetch $(if $(filter 1,$(ENGLISH)),--include-english,)
 
 report-check: runtime-check
 	$(PY) scripts/check_report.py reports/webfetch
@@ -54,7 +54,7 @@ wcxb-release-check: runtime-check
 
 browser-use-report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE="/absolute/path [/absolute/path...]" is required' >&2; exit 2)
-	$(PY) scripts/build_browser_use_report.py $(foreach path,$(EVIDENCE),--evidence "$(path)") --output reports/browser-use
+	$(PY) scripts/build_browser_use_report.py $(foreach path,$(EVIDENCE),--evidence "$(path)") --output reports/browser-use $(if $(filter 1,$(ENGLISH)),--include-english,)
 
 browser-use-review: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
@@ -73,7 +73,7 @@ browser-use-release-check: browser-use-report-check
 
 trajectory-replay-report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/build_webarena_replay_report.py --results "$(EVIDENCE)"
+	$(PY) scripts/build_webarena_replay_report.py --results "$(EVIDENCE)" $(if $(filter 1,$(ENGLISH)),--include-english,)
 
 trajectory-replay-report-check: runtime-check
 	$(PY) scripts/check_webarena_replay_report.py reports/trajectory-replay
@@ -106,7 +106,7 @@ resource-image:
 
 public-benchmark-report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path/to/reviewed-public-benchmark-evidence is required' >&2; exit 2)
-	$(PY) scripts/build_report.py --evidence "$(EVIDENCE)" --output reports/webfetch-public-benchmarks
+	$(PY) scripts/build_report.py --evidence "$(EVIDENCE)" --output reports/webfetch-public-benchmarks $(if $(filter 1,$(ENGLISH)),--include-english,)
 	$(PY) scripts/check_report.py reports/webfetch-public-benchmarks
 	$(PY) scripts/check_report_links.py reports/webfetch-public-benchmarks
 

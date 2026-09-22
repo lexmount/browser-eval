@@ -346,6 +346,29 @@
   ],
   "browser_use_releases": [
     {
+      "id": "2026-09-16-cross-track-contract-boundaries",
+      "date": "2026-09-16",
+      "title": "明确自主执行与轨迹重放的比较边界",
+      "summary": "补充重放轨迹来源及验收合同差异：90 条轨迹中，60 条来自历史成功执行，30 条经过专家修复；81 条保留原验收合同，9 条使用修订合同。逐题证据区分 Agent 决策、步数耗尽、评测器事件选择和浏览器执行问题。",
+      "attempts_sha256_by_model": {
+        "gpt-5.6-sol": "73146500152db62d79f84b63c85a14027c005a6320c19bce7426651f167466bd",
+        "gpt-6-astra": "0659d227cf6d29fbfaf64d39f8e77a56bec73c87f7f6e1f2ac23ea13fd9b667c"
+      },
+      "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+      "changes": [
+        ["跨报告比较", "相同任务编号并不保证相同验收条件；已验证轨迹也不等于自主决策。", "列出轨迹来源与合同修订范围，并绑定冻结定义的校验和。", "重放 90/90 表示给定合格轨迹与对应合同下的执行结果，不能作为仅移除 Agent 的同条件对照。"],
+        ["失败机制", "聚合成功率不能区分决策错误、预算限制与错误验收。", "增加 Task 124、510、676 的轨迹和验收证据入口，解释具体失败机制及归因限制。", "官方分数、90 题分母及原始耗时均保持不变；没有用诊断结果替换历史测量。"]
+      ],
+      "i18n": {"en": {
+        "title": "Clarify autonomous-execution and trajectory-replay comparison limits",
+        "summary": "Added trajectory provenance and acceptance-contract differences: 60 of 90 trajectories come from successful historical executions and 30 were expert-repaired; 81 retain the original contract and nine use revised contracts. Per-task evidence distinguishes Agent decisions, budget exhaustion, evaluator event selection, and browser execution.",
+        "changes": [
+          ["Cross-report comparison", "Matching task IDs do not guarantee matching acceptance conditions, and executing a qualified trajectory is not autonomous planning.", "List trajectory provenance and contract revisions, bound to checksums of the frozen definitions.", "Replay's 90/90 describes execution under qualified trajectories and their contracts, not an otherwise identical experiment with only the Agent removed."],
+          ["Failure mechanisms", "Aggregate pass rates do not separate decision errors, budget limits, and incorrect acceptance checks.", "Add links to trajectory and evaluation evidence for tasks 124, 510, and 676, with concrete mechanisms and attribution limits.", "Official scores, the 90-task denominator, and original timings remain unchanged. Diagnostic findings do not replace historical measurements."]
+        ]
+      }}
+    },
+    {
       "id": "2026-09-14-restore-complete-90-task-results",
       "date": "2026-09-14",
       "title": "恢复完整 90 题正式结果并修正报告下钻",

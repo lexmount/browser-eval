@@ -131,7 +131,7 @@ class OpenAIResponsesModel:
         self.session = session or requests.Session()
         self.last_response: dict[str, Any] | None = None
         self._previous_response_id: str | None = None
-        self._seen_message_count = 0
+        self._seen_messages: tuple[str, ...] = ()
         self.usage: dict[str, int] = {}
         self.request_count = 0
         self.request_attempt_count = 0
@@ -141,7 +141,7 @@ class OpenAIResponsesModel:
         """Start a fresh Responses conversation for the next benchmark attempt."""
         self.last_response = None
         self._previous_response_id = None
-        self._seen_message_count = 0
+        self._seen_messages = ()
         self.usage = {}
         self.request_count = 0
         self.request_attempt_count = 0
@@ -184,13 +184,36 @@ class OpenAIResponsesModel:
 
     def call_stream(self, request: Any) -> Iterable[dict[str, Any]]:
         messages = list(request.messages or [])
-        if self._previous_response_id:
-            new_messages = messages[self._seen_message_count :]
+        # CowAgent can compact or rewrite history in place. Keep an immutable
+        # content snapshot: a message count cannot establish a shared prefix.
+        message_snapshot = tuple(
+            json.dumps(message, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+            for message in messages
+        )
+        continues_history = bool(self._previous_response_id) and (
+            message_snapshot[: len(self._seen_messages)] == self._seen_messages
+        )
+        if continues_history:
+            new_messages = messages[len(self._seen_messages) :]
             input_items = cow_messages_to_responses(
                 [message for message in new_messages if message.get("role") != "assistant"]
             )
         else:
             input_items = cow_messages_to_responses(messages)
+            # A replay has no server-side calls to satisfy orphan outputs. Reject
+            # malformed compaction locally instead of losing observations or
+            # attaching them to the conversation that was explicitly replaced.
+            pending_calls: set[str] = set()
+            for item in input_items:
+                if item.get("type") == "function_call":
+                    pending_calls.add(item["call_id"])
+                elif item.get("type") == "function_call_output":
+                    call_id = item["call_id"]
+                    if not call_id or call_id not in pending_calls:
+                        raise ValueError(
+                            f"tool output {call_id!r} has no matching preceding call in history"
+                        )
+                    pending_calls.remove(call_id)
         payload: dict[str, Any] = {
             "model": self.model,
             "instructions": str(getattr(request, "system", "") or ""),
@@ -198,7 +221,7 @@ class OpenAIResponsesModel:
             "reasoning": {"effort": self.reasoning_effort},
             "tools": cow_tools_to_responses(request.tools),
         }
-        if self._previous_response_id:
+        if continues_history:
             payload["previous_response_id"] = self._previous_response_id
         if getattr(request, "max_tokens", None):
             payload["max_output_tokens"] = int(request.max_tokens)
@@ -215,9 +238,7 @@ class OpenAIResponsesModel:
             )
             response.raise_for_status()
         except requests.RequestException as exc:
-            self.transport_errors.append(
-                {"type": type(exc).__name__, "message": str(exc)[:500]}
-            )
+            self.transport_errors.append({"type": type(exc).__name__, "message": str(exc)[:500]})
             raise
         self.last_response = response.json()
         response_id = self.last_response.get("id")
@@ -236,7 +257,7 @@ class OpenAIResponsesModel:
         ):
             self.usage[key] = self.usage.get(key, 0) + int(value or 0)
         self._previous_response_id = response_id
-        self._seen_message_count = len(messages)
+        self._seen_messages = message_snapshot
         yield response_to_chat_chunk(self.last_response)
 
 

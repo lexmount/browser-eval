@@ -1,0 +1,40 @@
+{
+  "task_id": 127,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7780/admin/search/term/report/"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async()=>{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);try{\nconst gridId=\"searchReportGrid\",identity=\"query_id\";\nif(location.pathname.replace(/\\/$/,'')!==\"/admin/search/term/report\")throw Error('wrong legacy grid page');\nconst number=(text)=>{const s=String(text??'').trim();if(!/^\\d+$/.test(s)||!Number.isSafeInteger(Number(s)))throw Error('invalid grid integer');return Number(s)};\nconst collect=(doc,index)=>{\n const root=doc.getElementById(gridId),table=doc.getElementById(gridId+'_table');\n if(!root||!table||!root.contains(table))throw Error('legacy grid missing');\n const total=number(doc.getElementById(gridId+'-total-count')?.textContent);\n const current=number(root.querySelector('input[name=\"page\"]')?.value),size=number(root.querySelector('select[name=\"limit\"]')?.value);\n if(current!==index||size<1||size>1000||Math.ceil(total/size)>100)throw Error('legacy pagination invalid');\n const active=[...table.querySelectorAll('thead input[name],thead select[name]')].filter(n=>!(n.type==='hidden'&&/\\[locale\\]$/.test(n.name))&&n.value!==''&&!(['store_id','massaction'].includes(n.name)&&n.value==='0')&&!(n.name==='visible_in'&&n.value==='1'));\n if(active.length)throw Error('filtered legacy grid');\n const rows=[...table.querySelectorAll('tbody > tr')].filter(tr=>!tr.querySelector('td.empty')).map(tr=>{\n   const fields=identity==='review_id'?['review_id']:['query_id','query_text','num_results','popularity'];\n   return Object.fromEntries(fields.map(field=>{const cells=tr.querySelectorAll('td.col-'+field);if(cells.length!==1)throw Error('legacy field missing or ambiguous');return [field,cells[0].textContent.replace(/\\s+/g,' ').trim()]}));\n });\n if(rows.length!==Math.min(size,Math.max(0,total-(index-1)*size)))throw Error('incomplete legacy page');\n for(const row of rows)number(row[identity]);\n return {rows,total,size};\n};\nconst first=collect(document,1),total=first.total,rows=[...first.rows],pages=[{page:1,rows:first.rows.length,total}],params={namespace:gridId};\nfor(let page=2;page<=Math.ceil(total/first.size);page++){\n const url=new URL(location.href);url.searchParams.set('page',String(page));url.searchParams.set('limit',String(first.size));\n const response=await fetch(url.href,{credentials:'same-origin',redirect:'error',signal:controller.signal});\n if(!response.ok||response.redirected||!/^text\\/html\\b/i.test(response.headers.get('content-type')||''))throw Error('legacy page fetch failed');\n const data=collect(new DOMParser().parseFromString(await response.text(),'text/html'),page);\n if(data.total!==total||data.size!==first.size)throw Error('legacy grid changed');\n rows.push(...data.rows);pages.push({page,rows:data.rows.length,total});\n}\nif(rows.length!==total||new Set(rows.map(r=>r[identity])).size!==total)throw Error('incomplete or duplicate legacy identities');\nconst field=(r,names)=>{const found=names.filter(k=>Object.hasOwn(r,k));if(found.length!==1)throw Error('ambiguous search field');return r[found[0]]};\nconst mapped=rows.map(r=>({term:String(field(r,['search_query','query_text'])).trim(),hits:Number(field(r,['popularity','uses'])),results:Number(field(r,['num_results','results']))}));\nif(mapped.some(r=>!r.term||!Number.isSafeInteger(r.hits)||r.hits<0||!Number.isSafeInteger(r.results)||r.results<0))throw Error('invalid search terms');\nconst eligible=mapped.filter(r=>r.results>0).sort((a,b)=>b.hits-a.hits||a.term.localeCompare(b.term));\nif(eligible.length<3||eligible[3]?.hits===eligible[2].hits)throw Error('top three incomplete or tied');\nreturn {scope:true,complete:true,namespace:params.namespace,pages,total,\nanswer:eligible.slice(0,3).map(r=>r.term)};\n}finally{controller.abort();clearTimeout(timer)}})()"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/1",
+    "task_id": 127,
+    "canonical_calls_sha256": "c2da0bcabdcad6f7da14a23c46bd40072a26c86270397fbb28c2cab32fa2e1c8",
+    "sources": [
+      {
+        "name": "current",
+        "step": 2,
+        "action_sha256": "e098c2bcdea2de399ce97c411f6ade585b775c643acccf251bb6cb399a410670",
+        "decode": "json"
+      }
+    ],
+    "requirements": {
+      "scope": {
+        "source": "current",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "current",
+        "pointer": "/complete"
+      }
+    },
+    "projection": {
+      "source": "current",
+      "pointer": "/answer"
+    }
+  }
+}

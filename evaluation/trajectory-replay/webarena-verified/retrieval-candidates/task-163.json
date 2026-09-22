@@ -1,0 +1,149 @@
+{
+  "task_id": 163,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://127.0.0.1:7770/ostent-16gb-memory-card-stick-storage-for-sony-ps-vita-psv1000-2000-pch-z081-z161-z321-z641.html"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => {\n  const started = Date.now();\n  const timeoutMs = 15000;\n  while (Date.now() - started < timeoutMs) {\n    const jq = window.jQuery;\n    const root = document.querySelector('.product.data.items');\n    const title = document.querySelector('#tab-label-reviews');\n    if (typeof jq === 'function' && root && title &&\n        typeof jq.fn.tabs === 'function' && typeof jq.fn.collapsible === 'function') {\n      const tabs = jq(root).tabs('instance');\n      const collapsible = jq(title).collapsible('instance');\n      if (tabs && tabs.widgetFullName === 'mage-tabs' &&\n          collapsible && collapsible.widgetFullName === 'mage-collapsible' &&\n          collapsible.options.disabled !== true) {\n        return {ready:true, waitedMs:Date.now()-started,\n          tabs:tabs.widgetFullName, collapsible:collapsible.widgetFullName};\n      }\n    }\n    await new Promise(resolve => setTimeout(resolve, 25));\n  }\n  throw new Error('Magento Reviews widgets not ready within 15000ms');\n})()\n"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"#reviews\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "click",
+      "selector": ":nth-match(a[href=\"http://host.docker.internal:7770/review/product/listAjax/id/38805/?p=2\"]:visible, 1)",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async (expectedPath) => {\n  const controller = new AbortController();\n  const deadlineTimer = setTimeout(() => controller.abort(), 20000);\n  try {\n  const one = (root, selector) => {\n    const nodes = [...root.querySelectorAll(selector)];\n    if (nodes.length !== 1) throw Error(`Expected one ${selector}, found ${nodes.length}`);\n    return nodes[0];\n  };\n  const natural = text => {\n    if (!/^(0|[1-9][0-9]*)$/.test(text)) throw Error('Invalid natural number');\n    const value = Number(text);\n    if (!Number.isSafeInteger(value)) throw Error('Unsafe number');\n    return value;\n  };\n  const initial = new URL(location.href);\n  if (initial.pathname !== expectedPath || initial.search) throw Error('Wrong current product');\n  const productId = one(document, '#product_addtocart_form input[name=\"product\"]').value;\n  if (!/^[1-9][0-9]*$/.test(productId)) throw Error('Invalid product identity');\n  const countSelector = '.product-reviews-summary [itemprop=\"reviewCount\"]';\n  const total = natural(one(document, countSelector).textContent.trim());\n  // Read configuration from the response layer where Magento publishes it.\n  // mage/apply/scripts consumes and removes these nodes before widget readiness.\n  const productResponse = await fetch(initial.href, {credentials:'same-origin',cache:'no-store',redirect:'error',signal:controller.signal});\n  if (productResponse.status !== 200 || productResponse.redirected || productResponse.url !== initial.href ||\n      !/^text\\/html\\b/i.test(productResponse.headers.get('content-type') || ''))\n    throw Error('Current product HTML response identity mismatch');\n  const productHTML = await productResponse.text();\n  const productDoc = new DOMParser().parseFromString(productHTML, 'text/html');\n  if (one(productDoc, '#product_addtocart_form input[name=\"product\"]').value !== productId ||\n      natural(one(productDoc, countSelector).textContent.trim()) !== total)\n    throw Error('Current product HTML identity or review total differs from rendered product');\n  const configs = [...productDoc.querySelectorAll('script[type=\"text/x-magento-init\"]')]\n    .map(node => JSON.parse(node.textContent))\n    .flatMap(config => Object.values(config))\n    .map(config => config['Magento_Review/js/process-reviews']).filter(Boolean);\n  if (configs.length !== 1) throw Error(`Expected one initial-HTML review endpoint, found ${configs.length}`);\n  // The review endpoint must belong to the page's active shopping origin.\n  const siteURL = (value, base) => {\n    const configured = new URL(value, base);\n    if (configured.username || configured.password || configured.hash ||\n        configured.origin !== initial.origin) throw Error('Foreign shopping origin');\n    return {configured, requested: configured};\n  };\n  const endpointBinding = siteURL(configs[0].productReviewUrl, initial);\n  const endpoint = endpointBinding.requested;\n  if (endpoint.origin !== initial.origin || endpoint.username || endpoint.password ||\n      endpoint.hash || endpoint.search ||\n      endpoint.pathname !== `/review/product/listAjax/id/${productId}/`)\n    throw Error('Review endpoint is not bound to current product');\n  const pageUrl = value => {\n    const {requested: url} = siteURL(value, endpoint);\n    if (url.origin !== endpoint.origin || url.pathname !== endpoint.pathname ||\n        url.username || url.password || url.hash) throw Error('Foreign review page');\n    const pairs = [...url.searchParams];\n    if (pairs.length > 1 || pairs.some(([key, value]) => key !== 'p' || !/^[1-9][0-9]*$/.test(value)))\n      throw Error('Unexpected review query');\n    return {url, page: natural(url.searchParams.get('p') || '1')};\n  };\n  const rows = [], seen = new Set(), pages = [];\n  let next = endpoint.href, expectedPage = 1;\n  while (next) {\n    if (pages.length >= 100) throw Error('Review pagination exceeds bounded scope');\n    const {url, page} = pageUrl(next);\n    if (page !== expectedPage) throw Error('Nonsequential review pagination');\n    const response = await fetch(url.href, {credentials: 'same-origin', redirect: 'error', signal:controller.signal});\n    if (!response.ok || response.redirected || response.url !== url.href)\n      throw Error('Review response identity mismatch');\n    const html = await response.text();\n    const doc = new DOMParser().parseFromString(html, 'text/html');\n    const items = [...doc.querySelectorAll('.review-items > .review-item')];\n    if (!items.length && total !== 0) throw Error('Missing review rows');\n    for (const item of items) {\n      const title = one(item, '.review-title').textContent.trim();\n      const rating = one(item, '.review-ratings .rating-result');\n      const match = /^review_([1-9][0-9]*)_vote_([1-9][0-9]*)$/.exec(rating.id);\n      if (!match || seen.has(match[1]) || !title) throw Error('Missing or duplicate review identity');\n      if (one(rating, '[itemprop=\"bestRating\"]').getAttribute('content') !== '100' ||\n          one(rating, '[itemprop=\"worstRating\"]').getAttribute('content') !== '1')\n        throw Error('Unsupported review rating scale');\n      const display = one(rating, '[itemprop=\"ratingValue\"]').textContent.trim();\n      if (!/^(20|40|60|80|100)%$/.test(display) || rating.title !== display)\n        throw Error('Inconsistent individual review rating');\n      seen.add(match[1]);\n      rows.push({review_id: match[1], title, stars: Number(display.slice(0, -1)) / 20});\n    }\n    const current = [...doc.querySelectorAll('.review-toolbar .item.current strong.page')]\n      .map(node => natural(one(node, 'span:not(.label)').textContent.trim()));\n    if (current.some(value => value !== page) || (!current.length && page !== 1))\n      throw Error('Review current-page marker mismatch');\n    const links = [...new Set([...doc.querySelectorAll('.review-toolbar .pages-item-next a[href]')]\n      .map(node => pageUrl(node.getAttribute('href')).url.href))];\n    if (links.length > 1) throw Error('Inconsistent next-page links');\n    pages.push({url: url.href, page, count: items.length});\n    next = links[0] || null;\n    expectedPage++;\n    if (rows.length > total) throw Error('Review count exceeds product total');\n  }\n  if (rows.length !== total || location.href !== initial.href ||\n      one(document, '#product_addtocart_form input[name=\"product\"]').value !== productId ||\n      natural(one(document, countSelector).textContent.trim()) !== total)\n    throw Error('Incomplete or changed product review scope');\n  return JSON.stringify({product_id: productId, product_path: expectedPath,\n    scope: true, complete: true, total, pages, rows,\n    product_source: {configured:initial.href, requested:productResponse.url, product_id:productId, total},\n    review_endpoint: {configured:endpointBinding.configured.href, requested:endpoint.href},\n    answer: rows.filter(row => row.stars <= 2).map(row => row.title)});\n  } finally { clearTimeout(deadlineTimer); }\n})(\"/ostent-16gb-memory-card-stick-storage-for-sony-ps-vita-psv1000-2000-pch-z081-z161-z321-z641.html\")"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/3",
+    "task_id": 163,
+    "canonical_calls_sha256": "ca81826179ccce875f9d18637d6e67949b0c5a7cbaaf31c706371eb50fb28b59",
+    "sources": [
+      {
+        "name": "reviews",
+        "step": 7,
+        "action_sha256": "d54ef91ac88f66a7d5535be3d1c360a182a555232cffbb319e2c5913fddbfb6e",
+        "decode": "json"
+      }
+    ],
+    "projection": {
+      "distinct_exact_strings": {
+        "source": "reviews",
+        "pointer": "/answer"
+      }
+    },
+    "requirements": {
+      "scope": {
+        "source": "reviews",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "reviews",
+        "pointer": "/complete"
+      }
+    },
+    "empty_result": "NOT_FOUND_ERROR",
+    "review_evidence": {
+      "schema": "lex_replay_review_evidence/1",
+      "reviewer": {
+        "kind": "agent",
+        "identity": "Codex task-163 remote-origin contract audit"
+      },
+      "scope": "template 136 review-title value set; exact strings, not review-record multiplicity",
+      "task_id": 163,
+      "sources_sha256": "3c597797f498bffe12ad9e7597f757580fdc7b08737a8383b5f04a77f3189152",
+      "projection_sha256": "4b9726268258709613df0398ac930362ea2f5c9d0bf73c69fc186489d58600f8",
+      "source_review": {
+        "reviewer": {
+          "kind": "agent",
+          "identity": "Codex task-163 remote-origin contract audit"
+        },
+        "scope": "template 136 review-title value set; exact strings, not review-record multiplicity",
+        "task_id": 163,
+        "sources_sha256": "3c597797f498bffe12ad9e7597f757580fdc7b08737a8383b5f04a77f3189152",
+        "projection_sha256": "4b9726268258709613df0398ac930362ea2f5c9d0bf73c69fc186489d58600f8",
+        "decision": "Carry forward the reviewed exact-title value-set interpretation after replacing only the deployment-specific origin guard.",
+        "rationale": "The observation still verifies the same product ID, complete review pagination, rating scale and title projection. Its endpoint now must be the page's active origin rather than an enumerated local Docker host and port.",
+        "predecessor_artifacts": [
+          {
+            "utf8": "{\n  \"reviewer\": {\n    \"kind\": \"agent\",\n    \"identity\": \"retrieval_pair_runner agent, parent-authorized contract revision\"\n  },\n  \"scope\": \"template 136 review-title value set; exact strings, not review-record multiplicity\",\n  \"task_id\": 163,\n  \"sources_sha256\": \"fefa3a82138b0758b6e2e69ec65201e66ff03eb679b40ee79167a436e2993aa6\",\n  \"projection_sha256\": \"4b9726268258709613df0398ac930362ea2f5c9d0bf73c69fc186489d58600f8\",\n  \"decision\": \"Preserve raw source identities; apply explicitly scoped downstream interpretation only.\",\n  \"rationale\": \"Verified revision 2 expects title values, but array schema does not specify multiplicity. Explicit reviewed value-set declaration resolves this ambiguity without changing ordinary arrays or official comparator.\"\n}",
+            "sha256": "8e5429f1fa3fdaefb2311ab0d103063b25e1064b3f974fd76f10f9e6e3584f45",
+            "content": {
+              "reviewer": {
+                "kind": "agent",
+                "identity": "retrieval_pair_runner agent, parent-authorized contract revision"
+              },
+              "scope": "template 136 review-title value set; exact strings, not review-record multiplicity",
+              "task_id": 163,
+              "sources_sha256": "fefa3a82138b0758b6e2e69ec65201e66ff03eb679b40ee79167a436e2993aa6",
+              "projection_sha256": "4b9726268258709613df0398ac930362ea2f5c9d0bf73c69fc186489d58600f8",
+              "decision": "Preserve raw source identities; apply explicitly scoped downstream interpretation only.",
+              "rationale": "Verified revision 2 expects title values, but array schema does not specify multiplicity. Explicit reviewed value-set declaration resolves this ambiguity without changing ordinary arrays or official comparator."
+            }
+          }
+        ]
+      },
+      "source_review_sha256": "fa2ddebd9d7e8c0b19865a75a4074c2f28008828ff3caf3ea791327a4c01e1c9",
+      "source_review_artifact": {
+        "utf8": "{\n  \"reviewer\": {\n    \"kind\": \"agent\",\n    \"identity\": \"Codex task-163 remote-origin contract audit\"\n  },\n  \"scope\": \"template 136 review-title value set; exact strings, not review-record multiplicity\",\n  \"task_id\": 163,\n  \"sources_sha256\": \"3c597797f498bffe12ad9e7597f757580fdc7b08737a8383b5f04a77f3189152\",\n  \"projection_sha256\": \"4b9726268258709613df0398ac930362ea2f5c9d0bf73c69fc186489d58600f8\",\n  \"decision\": \"Carry forward the reviewed exact-title value-set interpretation after replacing only the deployment-specific origin guard.\",\n  \"rationale\": \"The observation still verifies the same product ID, complete review pagination, rating scale and title projection. Its endpoint now must be the page's active origin rather than an enumerated local Docker host and port.\",\n  \"predecessor_artifacts\": [\n    {\n      \"utf8\": \"{\\n  \\\"reviewer\\\": {\\n    \\\"kind\\\": \\\"agent\\\",\\n    \\\"identity\\\": \\\"retrieval_pair_runner agent, parent-authorized contract revision\\\"\\n  },\\n  \\\"scope\\\": \\\"template 136 review-title value set; exact strings, not review-record multiplicity\\\",\\n  \\\"task_id\\\": 163,\\n  \\\"sources_sha256\\\": \\\"fefa3a82138b0758b6e2e69ec65201e66ff03eb679b40ee79167a436e2993aa6\\\",\\n  \\\"projection_sha256\\\": \\\"4b9726268258709613df0398ac930362ea2f5c9d0bf73c69fc186489d58600f8\\\",\\n  \\\"decision\\\": \\\"Preserve raw source identities; apply explicitly scoped downstream interpretation only.\\\",\\n  \\\"rationale\\\": \\\"Verified revision 2 expects title values, but array schema does not specify multiplicity. Explicit reviewed value-set declaration resolves this ambiguity without changing ordinary arrays or official comparator.\\\"\\n}\",\n      \"sha256\": \"8e5429f1fa3fdaefb2311ab0d103063b25e1064b3f974fd76f10f9e6e3584f45\",\n      \"content\": {\n        \"reviewer\": {\n          \"kind\": \"agent\",\n          \"identity\": \"retrieval_pair_runner agent, parent-authorized contract revision\"\n        },\n        \"scope\": \"template 136 review-title value set; exact strings, not review-record multiplicity\",\n        \"task_id\": 163,\n        \"sources_sha256\": \"fefa3a82138b0758b6e2e69ec65201e66ff03eb679b40ee79167a436e2993aa6\",\n        \"projection_sha256\": \"4b9726268258709613df0398ac930362ea2f5c9d0bf73c69fc186489d58600f8\",\n        \"decision\": \"Preserve raw source identities; apply explicitly scoped downstream interpretation only.\",\n        \"rationale\": \"Verified revision 2 expects title values, but array schema does not specify multiplicity. Explicit reviewed value-set declaration resolves this ambiguity without changing ordinary arrays or official comparator.\"\n      }\n    }\n  ]\n}",
+        "sha256": "dcf68ab1ab400c99b48735cbfd3cf903062eb25320c8b2c9a311909275aeb2b5",
+        "content": {
+          "reviewer": {
+            "kind": "agent",
+            "identity": "Codex task-163 remote-origin contract audit"
+          },
+          "scope": "template 136 review-title value set; exact strings, not review-record multiplicity",
+          "task_id": 163,
+          "sources_sha256": "3c597797f498bffe12ad9e7597f757580fdc7b08737a8383b5f04a77f3189152",
+          "projection_sha256": "4b9726268258709613df0398ac930362ea2f5c9d0bf73c69fc186489d58600f8",
+          "decision": "Carry forward the reviewed exact-title value-set interpretation after replacing only the deployment-specific origin guard.",
+          "rationale": "The observation still verifies the same product ID, complete review pagination, rating scale and title projection. Its endpoint now must be the page's active origin rather than an enumerated local Docker host and port.",
+          "predecessor_artifacts": [
+            {
+              "utf8": "{\n  \"reviewer\": {\n    \"kind\": \"agent\",\n    \"identity\": \"retrieval_pair_runner agent, parent-authorized contract revision\"\n  },\n  \"scope\": \"template 136 review-title value set; exact strings, not review-record multiplicity\",\n  \"task_id\": 163,\n  \"sources_sha256\": \"fefa3a82138b0758b6e2e69ec65201e66ff03eb679b40ee79167a436e2993aa6\",\n  \"projection_sha256\": \"4b9726268258709613df0398ac930362ea2f5c9d0bf73c69fc186489d58600f8\",\n  \"decision\": \"Preserve raw source identities; apply explicitly scoped downstream interpretation only.\",\n  \"rationale\": \"Verified revision 2 expects title values, but array schema does not specify multiplicity. Explicit reviewed value-set declaration resolves this ambiguity without changing ordinary arrays or official comparator.\"\n}",
+              "sha256": "8e5429f1fa3fdaefb2311ab0d103063b25e1064b3f974fd76f10f9e6e3584f45",
+              "content": {
+                "reviewer": {
+                  "kind": "agent",
+                  "identity": "retrieval_pair_runner agent, parent-authorized contract revision"
+                },
+                "scope": "template 136 review-title value set; exact strings, not review-record multiplicity",
+                "task_id": 163,
+                "sources_sha256": "fefa3a82138b0758b6e2e69ec65201e66ff03eb679b40ee79167a436e2993aa6",
+                "projection_sha256": "4b9726268258709613df0398ac930362ea2f5c9d0bf73c69fc186489d58600f8",
+                "decision": "Preserve raw source identities; apply explicitly scoped downstream interpretation only.",
+                "rationale": "Verified revision 2 expects title values, but array schema does not specify multiplicity. Explicit reviewed value-set declaration resolves this ambiguity without changing ordinary arrays or official comparator."
+              }
+            }
+          ]
+        }
+      }
+    },
+    "semantic_reference": {
+      "kind": "reviewed_value_set",
+      "browser_semantic_inference": false,
+      "reviewer": {
+        "kind": "agent",
+        "identity": "Codex task-163 remote-origin contract audit"
+      },
+      "scope": "template 136 review-title value set; exact strings, not review-record multiplicity",
+      "evidence_sha256": "d2ecfb903b2ba64d6a4ff2364885fcb0d739b543ffc646c11c0b42e7711a05b4"
+    }
+  }
+}

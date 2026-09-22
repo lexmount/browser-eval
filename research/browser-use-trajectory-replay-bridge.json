@@ -1,0 +1,46 @@
+{
+  "schema": "lex_browser_use_trajectory_replay_bridge/1",
+  "benchmark": "WebArena-Verified 1.2.3",
+  "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+  "contract_definitions": {
+    "trajectories": {"path": "evaluation/trajectory-replay/webarena-verified/trajectories.json", "sha256": "61bb38bce552b5c7eea0e1f5fcca1bc898f55e2e39ee6e72498cff346ca1e4e3"},
+    "corrections": {"path": "research/browser-use-bridge-inputs/task-corrections.json", "sha256": "15e1265dd8eb3910f1fb6f789b9370656f3e4beab60254bdde93ca36bc3ca606"}
+  },
+  "contract_counts": {"official_task_contract": 81, "corrected_replay_contract": 9},
+  "source_contract_counts": {
+    "authoritative_successful_browser_use_execution": {"official_task_contract": 59, "corrected_replay_contract": 1},
+    "expert_repair_spec": {"official_task_contract": 22, "corrected_replay_contract": 8}
+  },
+  "correction_categories": {
+    "event_selection": [448],
+    "event_selection_and_expected": [339, 676],
+    "reference_or_acceptance": [279, 475, 510, 528, 547, 699]
+  },
+  "trajectory_profile": {
+    "path": "research/browser-use-bridge-inputs/trajectory-run-profile.json",
+    "sha256": "316f298f548bfb2d87cc10789f11bce84a501e40af0b6e372745bf47ed9577ed"
+  },
+  "effective_results": {
+    "run_id": "effective-1fa16f3963a8",
+    "sha256": "abaaa0e90aced74a831093f2d6d7c3371639acb984b3a2c057f3cc39632ea935",
+    "logical_results": 180,
+    "chromium": {"tasks": 90, "passes": 90},
+    "moli": {"tasks": 90, "passes": 54}
+  },
+  "chromium_trajectory_provenance": {
+    "expert_repair_spec": 30,
+    "successful_browser_use_execution": 60,
+    "successful_browser_use_execution_by_origin": {
+      "gpt-5.6-sol_chromium": 56,
+      "gpt-5.6-sol_moli": 3,
+      "gpt-6-astra_chromium": 1
+    }
+  },
+  "moli_failure_review": {
+    "path": "research/trajectory-replay-reviews/20260917-original-36.json",
+    "sha256": "c2e07ab3637a3e0112a6cc93a1471b0c7a4f7cae8dc4c8099fd3430e7c58f237",
+    "failed_results": 36,
+    "verified_results": 36,
+    "responsibility_counts": {"browser": 35, "benchmark": 1}
+  }
+}

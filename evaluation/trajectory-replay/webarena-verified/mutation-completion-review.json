@@ -1,0 +1,27 @@
+{
+  "schema": "webarena_mutation_completion_review/1",
+  "task_id": 441,
+  "evidence_class": "old non-promotable Moli diagnostic request, not a latest-source result",
+  "old_receipt_sha256": "e31f8b38ad2bdc8268d6823618eb3fadb6fe8ee1cee38f5f9abf26ba539b9839",
+  "old_network_har_sha256": "e1940a859f9bbe2dcc5fb801f011403ce91e71493544edd115368b3b1cc93aa8",
+  "old_moli_binary_sha256": "fa7779c6d01184a4dba950ba40c1f0794a64242b54aef27c8d3444c0c0de60f2",
+  "old_receipt_evaluator_status": "not_run",
+  "request_content_observation": {
+    "doctype_count": 2,
+    "head_end_count": 2,
+    "title_count": 2,
+    "target_title_present": true,
+    "single_document_predicate": false
+  },
+  "offline_official_evaluator_check": {
+    "package": "webarena-verified",
+    "version": "1.2.3",
+    "response_input": "frozen task 441 MUTATE/SUCCESS response, not a new agent call",
+    "network_input": "old hash-bound HAR request",
+    "score": 1.0,
+    "status": "success",
+    "interpretation": "The official network-content regular expression accepts a request containing the target title inside duplicated HTML. It does not establish that the committed file is one valid document."
+  },
+  "qualification_effect": "none; a latest-source run needs a fresh read-only main-branch file observation and its own official evaluator result",
+  "published_score_effect": "none"
+}

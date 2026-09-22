@@ -1,0 +1,72 @@
+{
+  "task_id": 29,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://192.168.5.2:9999"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"/forums\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "navigate",
+      "url": "http://192.168.5.2:9999/f/DIY"
+    },
+    {
+      "action": "click",
+      "selector": "button[aria-label=\"Sort by: Hot\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"/f/DIY/new\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => {\n  function decide(observed) {\n    const fail = message => { throw new Error(message); };\n    const list = new URL(observed.listing.url);\n    if (list.origin !== observed.origin || list.pathname !== '/f/DIY/new' || list.search ||\n        observed.listing.status !== 200 || !observed.listing.newActive || observed.listing.sticky)\n      fail('unproven newest DIY first post');\n    const post = observed.listing.first;\n    const postURL = new URL(post.url);\n    if (postURL.origin !== observed.origin || !/^\\/f\\/DIY\\/\\d+\\/[^/]+$/.test(postURL.pathname) ||\n        postURL.search || postURL.hash || !post.title || !post.username ||\n        new URL(post.author).origin !== observed.origin ||\n        !/^\\/user\\/[^/]+$/.test(new URL(post.author).pathname)) fail('missing first post identity');\n    const seen = new Set(), pages = observed.pages;\n    if (!pages.length) fail('missing comment pages');\n    const total = pages[0].total;\n    if (!Number.isSafeInteger(total) || total < 0) fail('missing server comment count');\n    let count = 0;\n    for (let i = 0; i < pages.length; i++) {\n      const page = pages[i], url = new URL(page.url);\n      if (url.origin !== observed.origin || url.pathname !== postURL.pathname || page.status !== 200 ||\n          page.postURL !== post.url || page.title !== post.title || page.author !== post.author ||\n          page.total !== total) fail('comment page identity or count drift');\n      if (Boolean(page.next) !== (i + 1 < pages.length) ||\n          (page.next && page.next !== pages[i + 1].url)) fail('incomplete comment pagination');\n      for (const comment of page.comments) {\n        if (!/^comment_\\d+$/.test(comment.id) || seen.has(comment.id)) fail('duplicate comment');\n        seen.add(comment.id);\n        if (!comment.author || new URL(comment.author).origin !== observed.origin ||\n            !/^\\/user\\/[^/]+$/.test(new URL(comment.author).pathname) ||\n            !Number.isSafeInteger(comment.score)) fail('missing comment author or net score');\n        if (comment.author !== post.author && comment.score < 0) count++;\n      }\n    }\n    if (seen.size !== total) fail('visible unique comment count is incomplete');\n    return {scope:true, completeness:true,\n      answer:{username:post.username, post_title:post.title, count}, observed};\n  }\n  const norm = text => text.replace(/\\s+/g, ' ').trim();\n  const one = (node, selector) => {\n    const nodes = [...node.querySelectorAll(selector)];\n    if (nodes.length !== 1) throw new Error('expected one ' + selector);\n    return nodes[0];\n  };\n  const absolute = (href, base) => new URL(href, base).href;\n  const read = async url => {\n    const target = new URL(url);\n    if (target.origin !== location.origin || !target.pathname.startsWith('/f/DIY/'))\n      throw new Error('out-of-scope read');\n    const response = await fetch(url, {credentials:'same-origin',cache:'no-store',redirect:'error'});\n    if (response.status !== 200 || !/^text\\/html\\b/i.test(response.headers.get('content-type') || ''))\n      throw new Error('missing HTML 200');\n    return {url:response.url,status:response.status,\n      doc:new DOMParser().parseFromString(await response.text(),'text/html')};\n  };\n  const integer = value => {\n    if (!/^-?\\d+$/.test(value || '')) throw new Error('missing integer');\n    const n = Number(value); if (!Number.isSafeInteger(n)) throw new Error('unsafe integer');\n    return n;\n  };\n  // Discover newest from the actual current UI, not a recorded post or answer.\n  const newest = [...document.querySelectorAll('a[href]')].find(a =>\n    new URL(a.getAttribute('href'),location.href).pathname === '/f/DIY/new');\n  const listingURL = location.pathname === '/f/DIY/new' && !location.search ? location.href :\n    newest ? absolute(newest.getAttribute('href'),location.href) : null;\n  if (!listingURL) throw new Error('missing current DIY newest navigation');\n  const listing = await read(listingURL);\n  const articles = [...listing.doc.querySelectorAll('main article.submission')];\n  if (!articles.length) throw new Error('empty newest listing');\n  const first = articles[0];\n  const author = one(first,'.submission__info a[href^=\"/user/\"]');\n  const commentLink = one(first,'.submission__nav a[href^=\"/f/DIY/\"]');\n  const observed = {origin:location.origin,listing:{url:listing.url,status:listing.status,\n    newActive:!!listing.doc.querySelector('a.menu-item--active[href=\"/f/DIY/new\"]'),\n    sticky:articles.some(a => a.classList.contains('submission--sticky')),\n    first:{url:absolute(commentLink.getAttribute('href'),listing.url),\n      title:norm(one(first,'.submission__title').textContent), username:norm(author.textContent),\n      author:absolute(author.getAttribute('href'),listing.url)}},pages:[]};\n  let address = observed.listing.first.url;\n  const visited = new Set();\n  while (address) {\n    if (visited.has(address) || visited.size >= 100) throw new Error('pagination loop or bound');\n    visited.add(address);\n    const page = await read(address), doc = page.doc;\n    const post = one(doc,'main article.submission');\n    const who = one(post,'.submission__info a[href^=\"/user/\"]');\n    const canonical = absolute(one(doc,'link[rel=\"canonical\"]').getAttribute('href'),page.url);\n    const counter = one(doc,'.js-update-comment-count[data-comment-count][data-submission-id]');\n    if (new URL(canonical).pathname.split('/')[3] !== counter.getAttribute('data-submission-id'))\n      throw new Error('counter belongs to another submission');\n    const nextLinks = [...doc.querySelectorAll('link[rel=\"next\"], nav.pagination a[rel=\"next\"]')];\n    const nextURLs = [...new Set(nextLinks.map(a => absolute(a.getAttribute('href'),page.url)))];\n    if (nextURLs.length > 1) throw new Error('ambiguous next page');\n    if ([...doc.querySelectorAll('article.comment')].some(n => !n.classList.contains('comment--visibility-visible')))\n      throw new Error('deleted or moderated comment identity is unavailable');\n    const comments = [...doc.querySelectorAll('article.comment--visibility-visible')].map(comment => {\n      // Descendant selectors must never borrow a nested reply's author/score.\n      const own = selector => [...comment.querySelectorAll(selector)].filter(n => n.closest('article.comment') === comment);\n      const users = own('.comment__info a[href^=\"/user/\"]');\n      const votes = own('form[data-vote-route-value=\"comment_vote\"][data-vote-score-value]');\n      if (users.length !== 1 || votes.length !== 1 ||\n          comment.id !== 'comment_' + votes[0].getAttribute('data-vote-id-value'))\n        throw new Error('missing own comment identity');\n      return {id:comment.id,author:absolute(users[0].getAttribute('href'),page.url),\n        score:integer(votes[0].getAttribute('data-vote-score-value'))};\n    });\n    observed.pages.push({url:page.url,status:page.status,postURL:canonical,\n      title:norm(one(post,'.submission__title').textContent),author:absolute(who.getAttribute('href'),page.url),\n      total:integer(counter.getAttribute('data-comment-count')),next:nextURLs[0] || null,comments});\n    address = nextURLs[0] || null;\n  }\n  return decide(observed);\n})()\n"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/1",
+    "task_id": 29,
+    "canonical_calls_sha256": "4de8202bcc49843884cdab163b4d2e3cdf3a679fb23f1756a0bdf2c093558488",
+    "sources": [
+      {
+        "name": "current",
+        "step": 9,
+        "action_sha256": "3dfdae8a3c59197c42e9b5ff6300c2a6baf96638b623a1431ccb289d407f30a6",
+        "decode": "json"
+      }
+    ],
+    "projection": {
+      "array": [
+        {
+          "source": "current",
+          "pointer": "/answer"
+        }
+      ]
+    },
+    "requirements": {
+      "scope": {
+        "source": "current",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "current",
+        "pointer": "/completeness"
+      }
+    }
+  }
+}

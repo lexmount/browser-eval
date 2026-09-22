@@ -1,0 +1,52 @@
+{
+  "task_id": 173,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://192.168.5.2:8023"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"/dashboard/issues?assignee_username=byteblaze\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => {\n  const controller = new AbortController();\n  const deadlineTimer = setTimeout(() => controller.abort(), 20000);\n  try {\n  // DECISION_START: identical pure logic is exercised by offline controls.\n  function decide(observed) {\n    const fail = reason => { throw new Error(reason); };\n    const owner = new URL(observed.issuesNavigation, observed.origin).searchParams.get('assignee_username');\n    if (!owner || new URL(observed.issuesNavigation, observed.origin).origin !== observed.origin || new URL(observed.issuesNavigation, observed.origin).pathname !== '/dashboard/issues') fail('missing current-user Issues navigation');\n    if (!observed.pages.length) fail('missing pages');\n    const count = observed.pages[0].total;\n    if (!Number.isSafeInteger(count) || count < 0) fail('invalid All counter');\n    const rows = [], identities = new Set();\n    for (let i = 0; i < observed.pages.length; i++) {\n      const page = observed.pages[i];\n      for (const address of [page.url, page.allHref]) {\n        const url = new URL(address, observed.origin);\n        if (url.origin !== observed.origin || url.pathname !== '/dashboard/issues' ||\n            url.searchParams.get('assignee_username') !== owner || url.searchParams.has('author_username') ||\n            url.searchParams.get('state') !== 'all' || url.searchParams.get('search') !== 'better' ||\n            url.searchParams.get('sort') !== 'updated_desc') fail('wrong issue scope');\n      }\n      if (page.status !== 200 || page.total !== count || page.owner !== owner) fail('response or scope drift');\n      if (Number(new URL(page.url).searchParams.get('page') || 1) !== i + 1) fail('missing page');\n      if (Boolean(page.next) !== (i + 1 < observed.pages.length)) fail('incomplete pagination');\n      if (page.next && new URL(page.next, observed.origin).href !== observed.pages[i + 1].url) fail('pagination chain mismatch');\n      for (const row of page.rows) {\n        const url = new URL(row.href, observed.origin);\n        if (url.origin !== observed.origin || !/\\/-\\/issues\\/\\d+$/.test(url.pathname) || url.search || url.hash || identities.has(url.href)) fail('invalid or duplicate issue');\n        if (!row.title || !row.assignees.includes(owner) || !/^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d(?:\\.\\d+)?Z$/.test(row.updatedAt) || !Number.isFinite(Date.parse(row.updatedAt))) fail('missing row identity, ownership or updated time');\n        identities.add(url.href); rows.push({...row, href:url.href});\n      }\n    }\n    if (rows.length !== count) fail('All count differs from complete unique rows');\n    const matches = rows.filter(row => row.title.toLowerCase().includes('better')).sort((a,b) => Date.parse(b.updatedAt)-Date.parse(a.updatedAt));\n    if (!matches.length) fail('no title match; absence is not false');\n    if (matches[1] && Date.parse(matches[0].updatedAt) === Date.parse(matches[1].updatedAt)) fail('latest updated identity ambiguous');\n    const selected = matches[0];\n    if (!observed.detail) return selected;\n    const detail = observed.detail;\n    if (detail.status !== 200 || detail.url !== selected.href || detail.title !== selected.title || !['Open','Closed'].includes(detail.state)) fail('detail identity or explicit state mismatch');\n    return {scope:true, completeness:true, answer:detail.state === 'Closed', selected,\n      observed:{issuesNavigation:observed.issuesNavigation,pages:observed.pages,detail}};\n  }\n  // DECISION_END\n  const normalize = value => value.replace(/\\s+/g,' ').trim();\n  const one = (doc, selector) => {\n    const nodes = [...doc.querySelectorAll(selector)];\n    if (nodes.length !== 1) throw new Error('expected one ' + selector);\n    return nodes[0];\n  };\n  const navigation = one(document,'a[aria-label=\"Issues\"]');\n  const start = new URL(navigation.getAttribute('href'),location.href);\n  if (start.origin !== location.origin || start.pathname !== '/dashboard/issues' || !start.searchParams.get('assignee_username')) throw new Error('not authenticated Issues navigation');\n  const observed = {origin:location.origin,issuesNavigation:start.href,pages:[]};\n  start.searchParams.set('state','all');start.searchParams.set('search','better');start.searchParams.set('sort','updated_desc');start.searchParams.delete('page');\n  const read = async url => {\n    const target = new URL(url,location.href);\n    if (target.origin !== location.origin || !(target.pathname === '/dashboard/issues' || /\\/-\\/issues\\/\\d+$/.test(target.pathname))) throw new Error('out-of-scope read URL');\n    const response = await fetch(url,{credentials:'same-origin',cache:'no-store',redirect:'error',signal:controller.signal});\n    if (response.status !== 200 || !/^text\\/html\\b/i.test(response.headers.get('content-type') || '')) throw new Error('not an HTML 200 observation');\n    return {url:response.url,status:response.status,doc:new DOMParser().parseFromString(await response.text(),'text/html')};\n  };\n  let address = start.href;\n  const visited = new Set();\n  while (address) {\n    if (visited.has(address) || visited.size >= 100) throw new Error('pagination loop or bound exceeded');\n    visited.add(address);\n    const page = await read(address), doc = page.doc;\n    const all = one(doc,'a#state-all');\n    const countMatch = normalize(all.textContent).match(/^All\\s*([\\d,]+)$/);\n    if (!countMatch) throw new Error('missing All counter');\n    const currentNav = new URL(one(doc,'a[aria-label=\"Issues\"]').getAttribute('href'),page.url);\n    const nextNodes = [...doc.querySelectorAll('a')].filter(a => normalize(a.textContent)==='Next' && a.getAttribute('href') && a.getAttribute('href') !== '#');\n    if (nextNodes.length > 1) throw new Error('ambiguous next page');\n    const next = nextNodes.length ? new URL(nextNodes[0].getAttribute('href'),page.url).href : null;\n    const rows = [...doc.querySelectorAll('li.issue')].map(row => {\n      const title = one(row,'.issue-title-text a');\n      const times = [...row.querySelectorAll('time[datetime]')].filter(t => /^updated\\b/i.test(normalize(t.parentElement.textContent)) && t.parentElement.querySelectorAll('time').length === 1);\n      if (times.length !== 1) throw new Error('missing explicit updated time');\n      const assignees = [...row.querySelectorAll('a[data-qa-selector=\"assignee_link\"]')].map(a => new URL(a.getAttribute('href'),page.url).pathname.slice(1));\n      return {href:new URL(title.getAttribute('href'),page.url).href,title:normalize(title.textContent),updatedAt:times[0].getAttribute('datetime'),assignees,\n        evidence:{title:title.outerHTML,updated:times[0].parentElement.outerHTML}};\n    });\n    observed.pages.push({url:page.url,status:page.status,owner:currentNav.searchParams.get('assignee_username'),allHref:new URL(all.getAttribute('href'),page.url).href,total:Number(countMatch[1].replaceAll(',','')),rows,next});\n    address = next;\n  }\n  const selected = decide(observed);\n  const detail = await read(selected.href);\n  const badges = [...detail.doc.querySelectorAll('.issuable-status-badge')].filter(b => !b.classList.contains('hidden') && !b.hasAttribute('hidden') && !/display\\s*:\\s*none/.test(b.getAttribute('style') || ''));\n  if (badges.length !== 1) throw new Error('missing or ambiguous explicit issue state');\n  observed.detail = {url:detail.url,status:detail.status,title:normalize(one(detail.doc,'h1.title').textContent),state:normalize(badges[0].textContent),evidence:badges[0].outerHTML};\n  return decide(observed);\n  } finally { clearTimeout(deadlineTimer); }\n})()\n"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/1",
+    "task_id": 173,
+    "canonical_calls_sha256": "9f278b55f0847c5a26970ea6cdcfdee81a8c4791986585abcde26344089c3dd5",
+    "sources": [
+      {
+        "name": "current",
+        "step": 4,
+        "action_sha256": "e40c0656b121fffdfd115bebd2af975e5f3bd0d4b2085305474f8e7cc43cb93a",
+        "decode": "json"
+      }
+    ],
+    "projection": {
+      "array": [
+        {
+          "source": "current",
+          "pointer": "/answer"
+        }
+      ]
+    },
+    "requirements": {
+      "scope": {
+        "source": "current",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "current",
+        "pointer": "/completeness"
+      }
+    }
+  }
+}

@@ -16,6 +16,8 @@ if __name__ == '__main__':
     parser.add_argument('--evidence',type=Path)
     parser.add_argument('--public-benchmark-research',type=Path)
     parser.add_argument('--output',type=Path)
+    parser.add_argument('--include-english',action='store_true',
+                        help='also generate the English report; Chinese-only is the default')
     parser.add_argument('--wcxb-source',type=Path)
     parser.add_argument('--wcxb-sample',type=Path)
     parser.add_argument('--wcxb',action='store_true',help='Build the independently bound WCXB report')
@@ -26,7 +28,8 @@ if __name__ == '__main__':
         if args.output is None and json.loads((ROOT/'evaluation/current-report.json').read_text()).get('comparison_kind')=='webmainbench_frozen_html_to_markdown':
             parser.error('The independent public-benchmark report now contains reviewed measurements; a research-only draft requires an explicit separate --output')
         output=args.output or ROOT/'reports/webfetch-public-benchmarks'
-        print(build_public_benchmark_research(args.public_benchmark_research,output))
+        print(build_public_benchmark_research(
+            args.public_benchmark_research,output,include_english=args.include_english))
         raise SystemExit(0)
     profile_path=ROOT/('evaluation/wcxb/current-report.json' if args.wcxb else 'evaluation/current-report.json')
     profile=json.loads(profile_path.read_text())
@@ -43,4 +46,5 @@ if __name__ == '__main__':
     if profile.get('comparison_kind')!='webmainbench_frozen_html_to_markdown':
         require_canonical_inputs(evidence,ROOT/'evaluation')
     require_current_report_profile(evidence,profile_path)
-    print(build_report(evidence,args.output or ROOT/'reports/webfetch'))
+    print(build_report(evidence,args.output or ROOT/'reports/webfetch',
+                       include_english=args.include_english))

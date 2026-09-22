@@ -1,0 +1,76 @@
+{
+  "task_id": 196,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://192.168.5.2:7780/admin"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async()=>{const deadline=Date.now()+15000;while(Date.now()<deadline){const nav=document.querySelector('nav.admin__menu');if(nav&&typeof jQuery==='function'&&typeof jQuery.fn.globalNavigation==='function'&&jQuery(nav).globalNavigation('instance'))return {ready:true,widget:'mage.globalNavigation'};await new Promise(r=>setTimeout(r,50));}throw new Error('globalNavigation instance not ready within15s');})()"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"#\"]:visible:has-text(\"Sales\")",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"http://host.docker.internal:7780/admin/sales/order/\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => {\n  const timeoutMs = 60000;\n  const deadline = Date.now() + timeoutMs;\n  const sleep = () => new Promise(resolve => setTimeout(resolve, 50));\n  const meaningful = value => {\n    if (value === null || value === undefined || value === '') return false;\n    if (typeof value === 'object') return Object.values(value).some(meaningful);\n    return true;\n  };\n  const activeFilters = params => Object.entries(params.filters || {})\n    .filter(([key, value]) => key !== 'placeholder' && meaningful(value));\n  const visible = node => node.isConnected && node.getClientRects().length > 0 &&\n    !['hidden', 'collapse'].includes(getComputedStyle(node).visibility) &&\n    getComputedStyle(node).display !== 'none';\n  const observe = () => {\n    if (typeof requirejs !== 'function' || typeof requirejs.defined !== 'function' ||\n        !requirejs.defined('uiRegistry')) return null;\n    const providers = [];\n    require('uiRegistry').get(component => {\n      if (component.component === 'Magento_Ui/js/grid/provider' &&\n          component.params?.namespace === 'sales_order_grid') providers.push(component);\n    });\n    if (providers.length !== 1) return null;\n    const provider = providers[0];\n    if (provider.firstLoad !== false || provider.lastError !== false || provider.triggerDataReload) return null;\n    const storage = require('uiRegistry').get(provider.storageConfig?.name);\n    if (!storage || typeof storage.getRequest !== 'function') return null;\n    const completed = storage.getRequest(provider.params);\n    if (!completed || completed.errorMessage || !Array.isArray(completed.ids)) return null;\n    const rawCount=provider.data?.totalRecords;\n    const count=/^\\d+$/.test(String(rawCount))?Number(rawCount):NaN;\n    const items = provider.data?.items;\n    if (!Number.isInteger(count) || count < 0 || !Array.isArray(items) ||\n        (count > 0 && items.length === 0)) return null;\n    if ((!/^\\d+$/.test(String(completed.totalRecords))||Number(completed.totalRecords)!==count) || completed.ids.length !== items.length) return null;\n    return {provider, count, active: activeFilters(provider.params),\n      buttons: [...document.querySelectorAll('button')]\n        .filter(node => visible(node) && node.textContent.trim() === 'Clear all')};\n  };\n  let initial;\n  while (Date.now() < deadline) {\n    initial = observe();\n    if (initial) break;\n    await sleep();\n  }\n  if (!initial) throw new Error('Order grid never provided complete initial filter state');\n  if (!initial.active.length) {\n    if (initial.buttons.length) throw new Error('Filter state and visible clear control disagree');\n    return {operation: 'already-clear', namespace: 'sales_order_grid', activeFilterCount: 0};\n  }\n  if (initial.buttons.length !== 1) throw new Error('Active filters lack one visible clear control');\n  initial.buttons[0].click();\n  while (Date.now() < deadline) {\n    const current = observe();\n    if (current && !current.active.length && !current.buttons.length)\n      return {operation: 'cleared', namespace: 'sales_order_grid', activeFilterCount: 0};\n    await sleep();\n  }\n  throw new Error('Filter clear did not reach an empty applied state');\n})()\n"
+    },
+    {
+      "action": "wait",
+      "timeout": 1500
+    },
+    {
+      "action": "click",
+      "selector": "button:visible:has-text(\"Filters\")",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => {\n  const controller = new AbortController();\n  const deadlineTimer = setTimeout(() => controller.abort(), 60000);\n  try {\n  if (location.pathname.replace(/\\/$/, '') !== '/admin/sales/order') throw new Error('wrong grid page');\nconst readyDeadline=Date.now()+30000;\nlet p=null;\nwhile(Date.now()<readyDeadline){\n if(typeof requirejs==='function'&&requirejs.defined('uiRegistry')){\n  const registry=require('uiRegistry'),providers=[];\n  registry.get(item=>{if(item.component==='Magento_Ui/js/grid/provider'&&item.params?.namespace==='sales_order_grid'&&item.update_url)providers.push(item)});\n  if(providers.length>1)throw Error('ambiguous current grid provider');\n  const candidate=providers[0];\n  if(candidate){\n   if(candidate.lastError===true)throw Error('grid load failed');\n   const completed=registry.get(candidate.storageConfig?.name)?.getRequest(candidate.params);\n   if(completed?.errorMessage)throw Error('grid request failed: '+completed.errorMessage);\n   if(candidate.firstLoad===false&&candidate.lastError===false&&!candidate.triggerDataReload&&completed&&\n    Array.isArray(completed.ids)&&/^\\d+$/.test(String(completed.totalRecords))&&\n    /^\\d+$/.test(String(candidate.data?.totalRecords))&&Number.isSafeInteger(Number(completed.totalRecords))&&\n    Number(completed.totalRecords)===Number(candidate.data?.totalRecords)&&\n    completed.ids.length===candidate.data?.items?.length){p=candidate;break;}\n  }\n }\n await new Promise(resolve=>setTimeout(resolve,100));\n}\nif(!p)throw Error('grid not completely loaded within 30000ms');\nconst registry=require('uiRegistry');\n  const params={...p.params,search:'',filters:{placeholder:true},sorting:{field:'entity_id',direction:'asc'},paging:{current:1,pageSize:200}};\n  const endpoint = new URL(p.update_url,location.href);\n  if(endpoint.origin !== location.origin || endpoint.pathname !== '/admin/mui/index/render/') throw new Error('wrong endpoint');\n  const flatten = (v,prefix='') => Object.entries(v).flatMap(([k,x])=>{\n    const key=prefix?`${prefix}[${k}]`:k;\n    return x!==null&&typeof x==='object'?flatten(x,key):[[key,String(x)]];\n  });\n  for(const [k,v] of flatten(params)) endpoint.searchParams.set(k,v);\n  const size=params.paging.pageSize;\n  if(!Number.isInteger(size)||size<1||size>1000) throw new Error('invalid page size');\n  let total=null;const rows=[],pages=[];\n  for(let page=1;page<=100;page++) {\n    endpoint.searchParams.set('paging[current]',String(page));\n    const response=await fetch(endpoint.href, {credentials:'same-origin',redirect:'error',signal:controller.signal,headers:{Accept:'application/json'}});\n    if(!response.ok||response.redirected) throw new Error('grid request failed');\n    if(!/^application\\/json(?:\\s*;|\\s*$)/i.test(response.headers.get('content-type')||'')) throw new Error('grid response must be application/json');\n    const data=await response.json();\n    if(data===null||typeof data!=='object'||Array.isArray(data)) throw new Error('grid JSON must be an object');\n    if(typeof data.totalRecords==='string'&&/^\\d+$/.test(data.totalRecords))data.totalRecords=Number(data.totalRecords);\n    if(!Number.isInteger(data.totalRecords)||data.totalRecords<0||!Array.isArray(data.items)) throw new Error('invalid response');\n    if(total===null)total=data.totalRecords;\n    if(total!==data.totalRecords||Math.ceil(total/size)>100||data.items.length!==Math.min(size,Math.max(0,total-(page-1)*size))) throw new Error('incomplete page');\n    rows.push(...data.items);pages.push({page,rows:data.items.length,total});\n    if(page>=Math.max(1,Math.ceil(total/size)))break;\n  }\n  if(rows.length!==total||new Set(rows.map(r=>String(r.entity_id))).size!==total) throw new Error('incomplete or duplicate identities');\n  rows.sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))||Number(b.entity_id)-Number(a.entity_id));\n  for(let i=0;i<rows.length;i++) {\n    const r=rows[i];\n    if(r.entity_id==null||typeof r.status!=='string'||!/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$/.test(r.created_at)||\n       (i && rows[i-1].created_at<r.created_at)) throw new Error('invalid identity/date/order');\n  }\n  const select=status=>{\n    const filtered=rows.filter(r=>r.status===status);\n    if(filtered.length<4)throw new Error('fewer than four matching orders');\n    if(filtered[4]?.created_at===filtered[3].created_at)throw new Error('ambiguous fourth-order timestamp tie');\n    return filtered.slice(0,4).map(r=>{\n      if(r.order_currency_code!=='USD'||typeof r.grand_total!=='string'||!/^\\$(?:\\d+|\\d{1,3}(?:,\\d{3})+)\\.\\d{2}$/.test(r.grand_total))throw new Error('unsupported or missing purchased amount/currency');\n      const cents=Number(r.grand_total.replace(/[$,.]/g,''));\n      if(!Number.isSafeInteger(cents))throw new Error('unsafe amount');\n      return {entity_id:String(r.entity_id),created_at:r.created_at,status:r.status,currency:r.order_currency_code,cents};\n    });\n  };\n  const canceled=select('canceled'),complete=select('complete');\n  const sum=rs=>rs.reduce((n,r)=>n+r.cents,0);\n  const canceled_cents=sum(canceled),complete_cents=sum(complete);\n  if(!Number.isSafeInteger(canceled_cents)||!Number.isSafeInteger(complete_cents))throw new Error('unsafe total');\n  return {scope:true,complete:true,pages,total,selected:{canceled,complete},canceled_cents,complete_cents,\n    interpretation:'latest by purchase date; purchased grand totals; canceled minus complete',answer:[(canceled_cents-complete_cents)/100]};\n  } finally { controller.abort(); clearTimeout(deadlineTimer); }\n})()\n"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/1",
+    "task_id": 196,
+    "canonical_calls_sha256": "a0413e6b6e28d2f540e4db75ea42337f671cdf65a284f95ede14573d579905ff",
+    "sources": [
+      {
+        "name": "orders",
+        "step": 11,
+        "action_sha256": "e532f06554a020e5efad68cfb596c522ee837f64e767036a1e920ac230cd0693",
+        "decode": "json"
+      }
+    ],
+    "requirements": {
+      "scope": {
+        "source": "orders",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "orders",
+        "pointer": "/complete"
+      }
+    },
+    "projection": {
+      "source": "orders",
+      "pointer": "/answer"
+    }
+  }
+}

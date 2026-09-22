@@ -1,0 +1,266 @@
+{
+  "schema": "lex_replay_recompiled_retrieval_seed_calls/1",
+  "ready_90_sha256": "fd756fa1801d1daa704f851979e29d618e0eebacecc77c6fda5c121bb736f86f",
+  "task_count": 37,
+  "rows": [
+    {
+      "task_id": 28,
+      "canonical_candidate_id": "expert__task-28__latest-worcester-post",
+      "canonical_calls_sha256": "3d64afd95dd8ec26dcbea654df8f82f8a178bdca70a0fbb35d29ddb11161a740",
+      "intent_sha256": "001e46991c833c9b1bbeb7ceb764c4bb185f8b3129bfd7ce7df40ceceb6daac8",
+      "canonical_action_count": 5
+    },
+    {
+      "task_id": 29,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-29",
+      "canonical_calls_sha256": "49f4ca63a40b295c6ad566153530514a091c9a2e575abea6858f6223edd0cabe",
+      "intent_sha256": "3db3a1ce0087e7924c000225ab9c1278ef04b3747f13ae63beb986d496795795",
+      "canonical_action_count": 8
+    },
+    {
+      "task_id": 41,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-41",
+      "canonical_calls_sha256": "c89e6b139fbeb9c53f4ad3116d595adcdddd7f5a035ebc77c38c51ca3b3d1530",
+      "intent_sha256": "c707527241fa29e2f0a2a5590b7e26b55f4d1c5680e12c34c1aa1f6a95211af5",
+      "canonical_action_count": 1
+    },
+    {
+      "task_id": 50,
+      "canonical_candidate_id": "expert__task-50__annual-complete-orders",
+      "canonical_calls_sha256": "b2cd211239d1d6b6c2ba180f35eeecfe8383a796abcac495e365be3ce4080a3f",
+      "intent_sha256": "9827622d68dc3914a6002a7df25c74a6eaf6509d9b25ee59bc47f15a6728d13a",
+      "canonical_action_count": 5
+    },
+    {
+      "task_id": 66,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-66",
+      "canonical_calls_sha256": "5f6735f1058724eec0a2b9ff001e18cb137135fdf47237efebfbf6af7682eee9",
+      "intent_sha256": "253c889b8a843266be76fa90a7eb32ba2355c83f6e768dcfb7ec71e11d1df6b2",
+      "canonical_action_count": 9
+    },
+    {
+      "task_id": 67,
+      "canonical_candidate_id": "expert__task-67__books-hot-v2",
+      "canonical_calls_sha256": "1ca584eacde3c4b3df0fae77015b7b67ddd91e5fe673d8df86f30fbf134f8d91",
+      "intent_sha256": "bbded4eaa64bf95dc5ce13983651afd3a5e4c50448038f424b110ffe30982268",
+      "canonical_action_count": 3
+    },
+    {
+      "task_id": 77,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-77",
+      "canonical_calls_sha256": "12581dfb1d8e7eb8e8eb6f16c0d54fc006c1fcfe337a99c8a23a9a7913d23633",
+      "intent_sha256": "c58e624f93d0b19890e14b14c81fb95b2120c860b75381b4a0083fccfdeb8ea7",
+      "canonical_action_count": 5
+    },
+    {
+      "task_id": 94,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-94",
+      "canonical_calls_sha256": "0c6a0d744f3e8f4d9b5d87f4dbe3a68caef47a969847d541976344cfe60925d9",
+      "intent_sha256": "c70b55f52a6c4f4be4985026202c21419d893e133ccb91d7a04e621d95925112",
+      "canonical_action_count": 7
+    },
+    {
+      "task_id": 108,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-108",
+      "canonical_calls_sha256": "e19497a8b775e0d55adbb9bbc2e1cbfb5815e58dd3df56c39c3a482be1e7d561",
+      "intent_sha256": "2a3337dd851523f621e25a91fc77f5d5641d60cdd6268154880a6d7be40ebdb9",
+      "canonical_action_count": 14
+    },
+    {
+      "task_id": 110,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-110",
+      "canonical_calls_sha256": "9f8f882f416805aadeadf204a2f389a441a60d5c6983cb44a074e75c92b43e09",
+      "intent_sha256": "5e3dbd1e03d5c4f5d2f1fd492204b400ecc0952f18efa5c27ac3d1e10aa72db5",
+      "canonical_action_count": 14
+    },
+    {
+      "task_id": 117,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-117",
+      "canonical_calls_sha256": "68fdaf692f3f2a4b4f031c66f17be06d76d051530057552b3db26e7e969ab32e",
+      "intent_sha256": "675d0f1ffc001588f9d0c49c7872668fa701484bfd5a909f464a949739f3b4f8",
+      "canonical_action_count": 7
+    },
+    {
+      "task_id": 124,
+      "canonical_candidate_id": "expert-repair-a__task-124",
+      "canonical_calls_sha256": "b49b388278fbca7a306d8e7cbb9b77d0bd1d1c33055849afcb0e2b52ec283c26",
+      "intent_sha256": "7db62690f0b1b9cc41c8597934cf25183185e011e7d06b40af23176d4aa455a4",
+      "canonical_action_count": 4
+    },
+    {
+      "task_id": 127,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-127",
+      "canonical_calls_sha256": "54f6ffe55389bfc77448b96060e18779d27dadf8d2a80cf38b45a132eda0825c",
+      "intent_sha256": "4c8012dc00488c00bb97e07f97976d3209030bff942c499dedbc044f20d8ba32",
+      "canonical_action_count": 8
+    },
+    {
+      "task_id": 132,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-132",
+      "canonical_calls_sha256": "e9dbfca24c176b8284d39972a85d947aa340eecc25cc827efc739822dfde01d6",
+      "intent_sha256": "df1989bf3a8754b870fd2298b19c63b8d2b50f261c1e48d7844f9e0cf9a95bc0",
+      "canonical_action_count": 2
+    },
+    {
+      "task_id": 163,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-163",
+      "canonical_calls_sha256": "97ea26eae2ae20621b4c64fb0c4923f4234ea2ee01f44a37a0bb185fa1b44a29",
+      "intent_sha256": "d9ff84a6324844e40aaa88a08713fa2a3dc30f57346ee43842f7b8802efcb705",
+      "canonical_action_count": 5
+    },
+    {
+      "task_id": 168,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-168",
+      "canonical_calls_sha256": "1b831f87eb5f6bf380909e733daa091823a00aae1b6bb75ee7fdaa4e98c99689",
+      "intent_sha256": "566d3609bc7025fb9e0f74e29293fcc2527e3ddb943324314f8a7b54e7852dec",
+      "canonical_action_count": 2
+    },
+    {
+      "task_id": 173,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-173",
+      "canonical_calls_sha256": "82051decd9ba5e3edc5b29845f23e7d30fb696fb079915df35a5990a9d667809",
+      "intent_sha256": "7d982bcf9dc1de2a2ef073bc424741a44d88b7063f6c9dbc25c8a9095b9bf063",
+      "canonical_action_count": 8
+    },
+    {
+      "task_id": 183,
+      "canonical_candidate_id": "expert__task-183__quantity-ten",
+      "canonical_calls_sha256": "35950dde0d474d233f1656853e850d3e27093e0cbf8359aa99d27c105c823fd8",
+      "intent_sha256": "99c9c7d13ca2b4167c1fb84d5e2a685857843d1bcca8ea38b61d210c9c1de57b",
+      "canonical_action_count": 7
+    },
+    {
+      "task_id": 184,
+      "canonical_candidate_id": "expert__task-184__zero-simple-products",
+      "canonical_calls_sha256": "53f41746ccdf338e4db4c0b11f935a8e8911652c1c10d09530b7e9fdcfc21579",
+      "intent_sha256": "40110c86c139cc638d34eb51d3f9be5d24d94d26281ba1aa13b4430b07423ce8",
+      "canonical_action_count": 7
+    },
+    {
+      "task_id": 188,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-188",
+      "canonical_calls_sha256": "504cb09218b406ff19a0586cbe57742e3ac6e4b41383ea68e7082f61a15bec8b",
+      "intent_sha256": "65405e7f310934ad878e6a736075dd3e66718841df2bab76b36a3c4b6be50dba",
+      "canonical_action_count": 7
+    },
+    {
+      "task_id": 193,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-193",
+      "canonical_calls_sha256": "ce490a51db011dfa14b2001db12ceb8debe2b1c896f563068353abef6679e12e",
+      "intent_sha256": "7d5446703a3e187583bda80e23b1d9f5f7da77b35abdba622ac20c8c0eea3815",
+      "canonical_action_count": 5
+    },
+    {
+      "task_id": 196,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-196",
+      "canonical_calls_sha256": "e0801082043fd71f8a86ec0636c62023ede890a7ae6e4b21fe4c3bb3a53fa158",
+      "intent_sha256": "a831964838291a142eec1243a9460ab0e20bd1b2bc13bd44332f3ce70b62605b",
+      "canonical_action_count": 9
+    },
+    {
+      "task_id": 198,
+      "canonical_candidate_id": "expert__task-198__order-136-v2",
+      "canonical_calls_sha256": "5cedcf4aa14c31ed31408ba0c573e2208afc7a435e74faee462fbfe60c5dc7ce",
+      "intent_sha256": "561cf2c0df047022ab8f52f36c01f772da19e8ee7efa79949be4523f5d052a70",
+      "canonical_action_count": 3
+    },
+    {
+      "task_id": 204,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-204",
+      "canonical_calls_sha256": "3b50b31b06da571f40b0bc27a23c4e896ac51b6314d36410f9869813f7b42cc4",
+      "intent_sha256": "d7460c7441d80f646291f76fe7a4fa3cedd596e9ea43f8de612db215b5b2cba0",
+      "canonical_action_count": 7
+    },
+    {
+      "task_id": 225,
+      "canonical_candidate_id": "expert-repair-a__task-225",
+      "canonical_calls_sha256": "7f98391d517646ffa3d828afedc69b9aa95d1f345f5a09413884df43f99255cc",
+      "intent_sha256": "91e5a99677b265b187d30cf9c91063e64a485bafd9556f58fcf15a08a5a7f39a",
+      "canonical_action_count": 4
+    },
+    {
+      "task_id": 231,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-231",
+      "canonical_calls_sha256": "c32727206f330b58d54a67c2d132870792e100820db76bfbc742675e8033d7d9",
+      "intent_sha256": "89f53bd43b471a7fbbe096ac5c9944b5f8ffd0170d64ec588e92a0d51959eee1",
+      "canonical_action_count": 5
+    },
+    {
+      "task_id": 243,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-243",
+      "canonical_calls_sha256": "3f45855646193068a64d9e5ec497b0d8b69e4169e044c8a55532f49c7114b14c",
+      "intent_sha256": "6e9d0db02cc4ef1415e6c020664b4b211e842a0a1ce5832f8b63495dd0c0da50",
+      "canonical_action_count": 14
+    },
+    {
+      "task_id": 279,
+      "canonical_candidate_id": "expert-repair-a__task-279",
+      "canonical_calls_sha256": "aee97fafb52375d1f71435d1e0ec961112dfcb51d909c3fd08a2102e32e88b8c",
+      "intent_sha256": "6157be49b4de08a776b46ed9e8f7b818c36558ec5a7631beaae089cc3c36d687",
+      "canonical_action_count": 2
+    },
+    {
+      "task_id": 288,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-288",
+      "canonical_calls_sha256": "5f0f5ecf99c3c393c4d61b164ed63b3cb08723e856714dde0709435286c44dde",
+      "intent_sha256": "e66bf14a81eddff338422fe87b86db46bbe41957a5d9cb4e41ffd0c3dfdc78d8",
+      "canonical_action_count": 10
+    },
+    {
+      "task_id": 303,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-303",
+      "canonical_calls_sha256": "a89d802e46d15b3e58c329108d5b430d20ad04b4c7c44dc3f1cb622967ef6f08",
+      "intent_sha256": "70f26781f870c58362b833e8781fe6ffbed491b40b4ba20ebac4364eaa1697db",
+      "canonical_action_count": 3
+    },
+    {
+      "task_id": 313,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-313",
+      "canonical_calls_sha256": "7daa31ede49e5f0031843d71f4cbe63f0fc15ba2185083f46babf181079850da",
+      "intent_sha256": "da870951505250a9ecabf5b73dc01ab83cbe72f11642cae51959ebf081832f82",
+      "canonical_action_count": 8
+    },
+    {
+      "task_id": 314,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-314",
+      "canonical_calls_sha256": "6841da84c9855b096736474fc42ec8fcf98135292969d3b09a995dad5c0746d1",
+      "intent_sha256": "7e0cee546d04be798858a9b694883310ef463bd8d183cf716b4e0c513717c45f",
+      "canonical_action_count": 7
+    },
+    {
+      "task_id": 320,
+      "canonical_candidate_id": "expert__task-320__february-refunds",
+      "canonical_calls_sha256": "de0c74364402cac6d691ce0589acfcad521b243849ffa973c29c955d1bb4f950",
+      "intent_sha256": "a0ef7f9c5bd9573c968dc9807631d82f6b2fcef52afc379d0dbdb5a9fa52b961",
+      "canonical_action_count": 6
+    },
+    {
+      "task_id": 334,
+      "canonical_candidate_id": "expert__task-334__last-cornbread-order",
+      "canonical_calls_sha256": "1c33b18e1da46cf06a6937148c307c79b5cf1aa89a9a18aa99e4905708b5271d",
+      "intent_sha256": "485022b363427222ce806d8f16309c55a6f4a3755c1efcc43cf44443929a80e3",
+      "canonical_action_count": 3
+    },
+    {
+      "task_id": 349,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-349",
+      "canonical_calls_sha256": "29e4a3c16ac017063d56c1795a9e6cff221d923a2e30d3b462d3e043a732bc26",
+      "intent_sha256": "916bafaa60bf29ddb2eb180bdd387139dcb52b50595fb04d4a48a6919e91f40f",
+      "canonical_action_count": 4
+    },
+    {
+      "task_id": 386,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-386",
+      "canonical_calls_sha256": "33d51f1af9ce36d501d4c63b9ad22fff1c045ccc6bde621c3bc30e4eff7167f1",
+      "intent_sha256": "de65f64bdfdafa236dd6929dd5fa31e6a5f8b7928b8605bf3d2cfa5e92b352d9",
+      "canonical_action_count": 9
+    },
+    {
+      "task_id": 784,
+      "canonical_candidate_id": "gpt-5.6-sol__chromium__task-784",
+      "canonical_calls_sha256": "7ac27e2c9e58406897c07070b8c411e55653361bb82f428cfc94c2f0a78c71d0",
+      "intent_sha256": "9b49257d75f27fabe5c7000ce05c5959bd4682eb173da64cc17c99dd4e8ae9c2",
+      "canonical_action_count": 9
+    }
+  ]
+}

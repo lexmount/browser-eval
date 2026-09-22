@@ -1,0 +1,68 @@
+{
+  "schema": "trajectory_replay_revised_reference/1",
+  "task_id": 225,
+  "observed_at": "2026-09-18",
+  "revised_intent_zh": "查找标题同时包含 Sephora 与 Brush 的商品中，星级不高于 3 星的评论标题。",
+  "selection_rule": {
+    "catalog_filter": "name match Sephora",
+    "product_selection": "title contains Brush",
+    "review_selection": "average_rating <= 60 on Magento's 0–100 rating scale"
+  },
+  "independent_source": {
+    "kind": "public_storefront_graphql",
+    "method": "GET",
+    "path": "/graphql",
+    "query": "{ products(filter: { name: { match: \"Sephora\" } }, pageSize: 100) { total_count items { sku name review_count reviews(pageSize: 100) { items { summary average_rating } page_info { current_page total_pages page_size } } } } }",
+    "response_sha256": "e536c3b553705e71d32d670e9effc9c9028bffdf35c76d3445e191ffc743bc34",
+    "total_count": 6,
+    "returned_items": 6,
+    "page_size": 100,
+    "title_matched_items": [
+      {
+        "sku": "B08YP1ZGNJ",
+        "name": "Sephora Collection Skin Perfecting Brush Set",
+        "review_count": 0,
+        "reviews": {
+          "items": [],
+          "page_info": {"current_page": 1, "total_pages": 0, "page_size": 100}
+        }
+      },
+      {
+        "sku": "B01N77Y4ZH",
+        "name": "SEPHORA COLLECTION PRO Featherweight Powder Brush #91",
+        "review_count": 0,
+        "reviews": {
+          "items": [],
+          "page_info": {"current_page": 1, "total_pages": 0, "page_size": 100}
+        }
+      }
+    ],
+    "other_sephora_title_items": 4
+  },
+  "database_cross_check": {
+    "method": "read_only_sql",
+    "catalog_query_scope": "catalog_product_entity joined to store-0 product-name EAV rows; name contains both Sephora and Brush, case-insensitive",
+    "catalog_match_count": 2,
+    "review_query_scope": "all review rows whose entity_pk_value is either matched product entity ID, without status filtering",
+    "review_row_count": 0,
+    "manufacturer_query_scope": "catalog_product_entity_int rows for the Magento manufacturer attribute",
+    "manufacturer_attribute_rows": 0
+  },
+  "expected_response": {
+    "task_type": "RETRIEVE",
+    "status": "NOT_FOUND_ERROR",
+    "retrieved_data": null,
+    "error_details": null
+  },
+  "candidate_binding": {
+    "path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-225.json",
+    "sha256": "e3b0240f92b441e0aae54d3f87aa2243d9fa9c75330793fc43e8e2554b36c435",
+    "contract_schema": "lex_replay_current_run_retrieval/3",
+    "absence_coverage": "exhaustive_records/1"
+  },
+  "limitations": [
+    "The Magento manufacturer attribute has no product assignments, so this receipt does not assert structured Sephora manufacturer membership.",
+    "The GraphQL Products.review_count and Reviews.items/page_info describe published storefront reviews; the read-only database check covers review rows of every status.",
+    "This observation is a source snapshot, not a measured BrowserTool replay outcome."
+  ]
+}

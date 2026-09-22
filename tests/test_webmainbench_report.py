@@ -197,6 +197,21 @@ class WebMainBenchReportTests(unittest.TestCase):
                 manifests,
                 {"status": "passed", "reviewed_at": "2026-09-14T00:00:00Z", "checks": []},
             )
+            self.assertEqual(
+                (output / "report-languages.json").read_text(encoding="utf-8"),
+                '{"languages": ["zh"], "english_status": "not_generated"}\n',
+            )
+            self.assertIn("英文报告未生成", (output / "en/index.html").read_text(encoding="utf-8"))
+            self.assertFalse((output / "en/analysis").exists())
+            generate_webmainbench(
+                output,
+                dataset,
+                records,
+                summaries,
+                manifests,
+                {"status": "passed", "reviewed_at": "2026-09-14T00:00:00Z", "checks": []},
+                include_english=True,
+            )
             chinese = {path.relative_to(output).as_posix() for path in output.rglob("*.html") if "en" not in path.relative_to(output).parts}
             english = {path.relative_to(output / "en").as_posix() for path in (output / "en").rglob("*.html")}
             self.assertEqual(chinese, english)
@@ -241,7 +256,8 @@ class WebMainBenchReportTests(unittest.TestCase):
                                            for name, summary in summaries.items()}}
             immutable_records = copy.deepcopy(records)
             generate_webmainbench(output, dataset, records, summaries, manifests,
-                                 {'status': 'passed'}, teds_revision=({}, revision_review))
+                                 {'status': 'passed'}, teds_revision=({}, revision_review),
+                                 include_english=True)
             self.assertEqual(records, immutable_records)
             home = (output / 'index.html').read_text()
             self.assertIn('id="wmb-core-results" data-col="2" data-dir="desc"', home)
@@ -271,7 +287,8 @@ class WebMainBenchReportTests(unittest.TestCase):
             # A successful API response containing an error page is not target body text.
             (output / 'artifacts/chromium/case-one.md').write_text('ERR_ACCESS_DENIED')
             generate_webmainbench(output, dataset, records, summaries, manifests,
-                                 {'status': 'passed'}, teds_revision=({}, revision_review))
+                                 {'status': 'passed'}, teds_revision=({}, revision_review),
+                                 include_english=True)
             self.assertEqual(records, immutable_records)
             for prefix, error_label in (('', '错误页，非目标正文'), ('en/', 'Error page, not target content')):
                 analysis = (output / prefix / 'analysis/index.html').read_text()

@@ -1,0 +1,65 @@
+{
+  "schema": "webarena_qualified_trajectory_revision/1",
+  "task_id": 714,
+  "canonical_calls_sha256": "a47928760c9f217136aa133cb7f388dc9ce779a6cbdf9289aad9c822789d49de",
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://webarena-slice-warm-1-195-reddit.dev.lexmount.net"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"/forums\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "navigate",
+      "url": "http://webarena-slice-warm-1-195-reddit.dev.lexmount.net/f/gadgets"
+    },
+    {
+      "action": "click",
+      "selector": "button[aria-label=\"Sort by: Hot\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"/f/gadgets/top?t=day\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "wait",
+      "seconds": 2
+    },
+    {
+      "action": "click",
+      "selector": "button[aria-label=\"From: Past 24 hours\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "click",
+      "selector": "a[href=\"/f/gadgets/top?t=all\"]:visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "snapshot"
+    },
+    {
+      "action": "click",
+      "selector": "article:has(a[href^=\"/f/gadgets/19459/\"]) form button:has(img[alt=\"down\"]):visible",
+      "replay_mode": "snapshot_ref_semantics"
+    },
+    {
+      "action": "wait",
+      "seconds": 2
+    }
+  ]
+}

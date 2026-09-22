@@ -1,0 +1,120 @@
+"""Controls for the diagnostic original-failure cohort runner."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+from webarena_verified.types.task import WebArenaSite
+
+from harness.trajectory_replay.remote_runtime import rebind_remote_calls
+from harness.trajectory_replay.webarena_replay import _json_sha256
+from harness.trajectory_replay.remote_execution import (
+    _browser_command,
+    _read_retrieval_contract,
+    _task_type,
+    _verify_result_evidence,
+)
+
+
+def _sites() -> dict[WebArenaSite, str]:
+    return {
+        WebArenaSite.SHOPPING: "https://shopping.example.test",
+        WebArenaSite.SHOPPING_ADMIN: "https://admin.example.test/admin",
+        WebArenaSite.REDDIT: "https://reddit.example.test",
+        WebArenaSite.GITLAB: "https://gitlab.example.test",
+    }
+
+
+def test_retrieval_contract_is_bound_to_executed_remote_calls() -> None:
+    task_id = 108
+    candidate = json.loads(
+        (
+            Path("evaluation/trajectory-replay/webarena-verified/retrieval-candidates")
+            / f"task-{task_id}.json"
+        ).read_text(encoding="utf-8")
+    )
+    sites = _sites()
+    rebound = rebind_remote_calls(
+        candidate["tool_calls"],
+        sites,
+        {"127.0.0.1", "192.168.5.2", "host.docker.internal"},
+    )
+    row = {"bound_calls_sha256": _json_sha256(rebound)}
+    assert _read_retrieval_contract(task_id, row, sites) == candidate
+    with pytest.raises(ValueError, match="differ from frozen bound calls"):
+        _read_retrieval_contract(task_id, {"bound_calls_sha256": "0" * 64}, sites)
+
+
+def test_retrieval_contract_uses_the_qualified_source_revision() -> None:
+    task_id = 108
+    path = Path(
+        "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/"
+        "task-108-ajax-proposal.json"
+    )
+    candidate = json.loads(path.read_text(encoding="utf-8"))
+    sites = _sites()
+    rebound = rebind_remote_calls(
+        candidate["tool_calls"],
+        sites,
+        {"127.0.0.1", "192.168.5.2", "host.docker.internal"},
+    )
+    row = {
+        "bound_calls_sha256": _json_sha256(rebound),
+        "source_revision": {"path": str(path)},
+    }
+    assert _read_retrieval_contract(task_id, row, sites) == candidate
+
+
+def test_response_type_comes_from_task_contract() -> None:
+    expected = SimpleNamespace(model_dump=lambda **kwargs: {"task_type": "MUTATE"})
+    task = SimpleNamespace(
+        task_id=1,
+        eval=[SimpleNamespace(evaluator="AgentResponseEvaluator", expected=expected)],
+    )
+    assert _task_type(task) == "MUTATE"
+    task.eval[0].expected = SimpleNamespace(model_dump=lambda **kwargs: {"task_type": "RETRIEVE"})
+    with pytest.raises(ValueError, match="response type unavailable"):
+        _task_type(task)
+
+
+def test_chromium_qualification_uses_a_separate_ephemeral_profile() -> None:
+    chrome = _browser_command(
+        SimpleNamespace(engine="chromium", binary=Path("/opt/chrome")),
+        9222,
+        "/tmp/qualification-profile",
+    )
+    moli = _browser_command(
+        SimpleNamespace(engine="moli", binary=Path("/opt/moli")),
+        9222,
+        "/tmp/qualification-profile",
+    )
+    assert chrome[0] == "/opt/chrome"
+    assert "--headless=new" in chrome
+    expected_disabled = "HttpsUpgrades,HttpsFirstBalancedMode,HttpsFirstModeIncognito"
+    assert f"--disable-features={expected_disabled}" in chrome
+    assert not any("disable-web-security" in arg for arg in chrome)
+    assert "--user-data-dir=/tmp/qualification-profile" in chrome
+    assert moli[0:2] == ["/opt/moli", "serve"]
+    assert moli[-2:] == ["--profile-dir", "/tmp/qualification-profile"]
+
+
+def test_formal_evidence_boundary_rejects_missing_or_changed_files(tmp_path: Path) -> None:
+    import hashlib
+
+    directory = tmp_path / "task-29"
+    directory.mkdir()
+    trace = directory / "trace.json"
+    trace.write_text("[]\n", encoding="utf-8")
+    digest = hashlib.sha256(trace.read_bytes()).hexdigest()
+    rows = [{"task_id": 29, "evidence_sha256": {"trace": digest}}]
+    _verify_result_evidence(tmp_path, rows)
+    trace.write_text("[{}]\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="evidence hash changed"):
+        _verify_result_evidence(tmp_path, rows)
+    trace.unlink()
+    trace.symlink_to(tmp_path / "missing.json")
+    with pytest.raises(ValueError, match="evidence hash changed"):
+        _verify_result_evidence(tmp_path, rows)

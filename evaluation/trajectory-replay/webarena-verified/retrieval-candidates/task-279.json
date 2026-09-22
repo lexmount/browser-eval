@@ -1,0 +1,50 @@
+{
+  "task_id": 279,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7770/catalogsearch/result/?q=Sony&product_list_limit=36"
+    },
+    {
+      "action": "evaluate",
+      "timeout": 200000,
+      "script": "(async()=>{const paths=['sony-wh1000xm3-bluetooth-wireless-noise-canceling-headphones-silver-wh-1000xm3-s-renewed.html','sony-wh-ch710n-h-wireless-bluetooth-noise-cancelling-headphones.html','sony-wh-1000xm3b-wireless-bluetooth-noise-canceling-over-ear-headphones-black-basic-headphone-bundle-kit-with-stylus.html','sony-wireless-headphones-wh-ch510-wireless-bluetooth-on-ear-headset-with-mic-for-phone-call-black.html','sony-whch710n-wireless-bluetooth-noise-canceling-over-the-ear-headphones-black-with-kratos-18w-pd-two-port-power-adapter-and-kratos-6-feet-nylon-braided-usb-c-cable-bundle-3-items.html','sony-wi-sp500-wireless-in-ear-sports-headphones-white-wisp500-w.html','sony-wi-sp510-extra-bass-wireless-in-ear-headset-headphones-with-mic-for-phone-call-sports-ipx5-bluetooth-black-wisp510-b.html','sony-mdras600bt-active-sports-bluetooth-headset-black.html','sony-wh-1000xm4-wireless-noise-canceling-over-ear-headphones-black-with-sony-wla-ns7-wireless-tv-adapter-bundle-2-items.html','sony-wi-c300-wireless-in-ear-headphones-red-wic300-r.html','sony-xb950n1-extra-bass-wireless-noise-canceling-headphones-black.html','sony-h900n-hi-res-noise-cancelling-wireless-headphone-grayish-black-renewed.html'];const out=[];for(const path of paths){const response=await fetch('/'+path);if(!response.ok)throw new Error(path+': HTTP '+response.status);const doc=new DOMParser().parseFromString(await response.text(),'text/html');const name=doc.querySelector('h1.page-title')?.textContent.trim();const price=doc.querySelector('[data-price-type=finalPrice] .price, .product-info-price .price')?.textContent.trim();const stock=doc.querySelector('.stock')?.textContent.trim();if(!name||!price)throw new Error(path+': product facts missing');out.push({name,price,stock});}return out;})()"
+    },
+    {
+      "action": "evaluate",
+      "timeout": 200000,
+      "script": "(async()=>{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),120000);try{\nif(!location.pathname.startsWith('/catalogsearch/result')||new URL(location.href).searchParams.get('q')!=='Sony')throw Error('wrong current catalog scope');\nconst rows=[],pages=[],seen=new Set();let total=null;\nfor(let page=1;page<=100;page++){\n const query='query {products(filter:{name:{match:\"Sony\"}},pageSize:100,currentPage:'+page+'){total_count page_info{current_page total_pages} items{sku name url_key description{html} rating_summary price_range{minimum_price{final_price{value currency}}}}}}';\n const url=new URL('/graphql',location.origin);url.searchParams.set('query',query);\n const response=await fetch(url.href,{credentials:'same-origin',redirect:'error',signal:controller.signal,headers:{Accept:'application/json'}});\n if(!response.ok||response.redirected||!/^application\\/json\\b/i.test(response.headers.get('content-type')||''))throw Error('catalog response unavailable');\n const payload=await response.json(),data=payload.data?.products;\n if(payload.errors?.length||!data||!Number.isSafeInteger(data.total_count)||data.total_count<0||!Array.isArray(data.items))throw Error('invalid catalog response');\n if(total===null)total=data.total_count;\n const count=Math.max(1,Math.ceil(total/100));\n if(total!==data.total_count||count>100||data.page_info.current_page!==page||data.page_info.total_pages!==Math.ceil(total/100)||data.items.length!==Math.min(100,Math.max(0,total-(page-1)*100)))throw Error('incomplete or changed catalog');\n for(const row of data.items){\n  if(typeof row.sku!=='string'||!row.sku||seen.has(row.sku)||typeof row.name!=='string'||!row.name||typeof row.url_key!=='string'||!row.url_key||row.url_key.includes('/'))throw Error('catalog identity missing or duplicated');\n  seen.add(row.sku);\n  const doc=new DOMParser().parseFromString(row.description?.html||'','text/html');\n  for(const n of doc.querySelectorAll('script,style,noscript,template'))n.remove();\n  const price=row.price_range?.minimum_price?.final_price;\n  if(price?.currency!=='USD'||typeof price.value!=='number'||!Number.isFinite(price.value)||price.value<0)throw Error('invalid USD catalog price');\n  rows.push({sku:row.sku,name:row.name,url:new URL('/'+row.url_key+'.html',location.origin).href,description:doc.body.textContent.replace(/\\s+/g,' ').trim(),rating:row.rating_summary,cents:Math.round(price.value*100)});\n }\n pages.push({page,rows:data.items.length,total,ids:data.items.map(r=>r.sku)});\n if(page===count)break;\n}\nif(rows.length!==total)throw Error('catalog population incomplete');\nconst details=rows.filter(r=>/^sony\\b/i.test(r.name)&&/headphone|headset|earphone/i.test(r.name)&&!/boombox|carrying case/i.test(r.name));\nconst capabilitySources=[{model:'WI-1000XM2',url:'https://www.sony.com/electronics/support/wireless-headphones-bluetooth-headphones/wi-1000xm2/specifications'},{model:'WH-H900N',url:'https://www.sony.com/electronics/support/wireless-headphones-bluetooth-headphones/wh-h900n/specifications'}];\nconst qualified=details.map(r=>({...r,bluetooth:/bluetooth/i.test(r.name+' '+r.description)||/\\bWI-1000XM2\\b|\\b(?:WH-)?H900N\\b/i.test(r.name)}));\nif(qualified.some(r=>/wireless/i.test(r.name)&&!r.bluetooth))throw Error('wireless model needs independent Bluetooth capability review');\nconst matched=qualified.filter(r=>r.bluetooth);\nif(!matched.length||new Set(matched.map(r=>r.name)).size!==matched.length)throw Error('headphone names absent or duplicated');\nconst prices=matched.map(r=>r.cents);\nreturn {scope:true,complete:true,pages,total,details:qualified,capabilitySources,answer:{names:matched.map(r=>r.name),min:Math.min(...prices)/100,max:Math.max(...prices)/100}};\n}finally{controller.abort();clearTimeout(timer)}})()"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/1",
+    "task_id": 279,
+    "canonical_calls_sha256": "c54bdc5730b9ba0862dc897d1dd6363c666875b4b1a08cf49ef08f432ca83976",
+    "sources": [
+      {
+        "name": "observation",
+        "step": 3,
+        "action_sha256": "0d5f3cb7ddecc8d91f635478fff1adb5b0be138747e0d9c9c64dcf5f5e488969",
+        "decode": "json"
+      }
+    ],
+    "requirements": {
+      "scope": {
+        "source": "observation",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "observation",
+        "pointer": "/complete"
+      }
+    },
+    "projection": {
+      "array": [
+        {
+          "source": "observation",
+          "pointer": "/answer"
+        }
+      ]
+    }
+  }
+}

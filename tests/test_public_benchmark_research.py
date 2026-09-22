@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from harness.web_fetch.report_build import build_public_benchmark_research
+from harness.report_languages import check_language_contract, generated_languages
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -39,7 +40,7 @@ class PublicBenchmarkResearchTest(unittest.TestCase):
     def test_build_has_bilingual_route_parity_and_research_warning(self):
         with tempfile.TemporaryDirectory() as folder:
             output = Path(folder) / "report"
-            index = build_public_benchmark_research(SOURCE, output)
+            index = build_public_benchmark_research(SOURCE, output, include_english=True)
             self.assertEqual(index, output.resolve() / "index.html")
             routes = ["index.html"] + [
                 route
@@ -79,6 +80,16 @@ class PublicBenchmarkResearchTest(unittest.TestCase):
                 page = (output / prefix / "changes/index.html").read_text(encoding="utf-8")
                 self.assertIn(summary, page)
                 self.assertIn('data-release-id="2026-09-14-public-benchmark-research"', page)
+
+    def test_default_build_is_chinese_with_an_english_notice(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / "report"
+            build_public_benchmark_research(SOURCE, output)
+            self.assertEqual(generated_languages(output), ("zh",))
+            check_language_contract(output)
+            self.assertIn("英文报告未生成", (output / "en/index.html").read_text())
+            self.assertTrue((output / "datasets/index.html").is_file())
+            self.assertFalse((output / "en/datasets/index.html").exists())
 
     def test_does_not_replace_unmarked_output(self):
         with tempfile.TemporaryDirectory() as folder:

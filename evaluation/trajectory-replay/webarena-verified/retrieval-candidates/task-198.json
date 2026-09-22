@@ -1,0 +1,40 @@
+{
+  "task_id": 198,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7780/admin/sales/order/"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => {\n  const controller = new AbortController();\n  const deadlineTimer = setTimeout(() => controller.abort(), 60000);\n  try {\n  if (location.pathname.replace(/\\/$/, '') !== '/admin/sales/order') throw new Error('wrong grid page');\nconst readyDeadline=Date.now()+30000;\nlet p=null;\nwhile(Date.now()<readyDeadline){\n if(typeof requirejs==='function'&&requirejs.defined('uiRegistry')){\n  const registry=require('uiRegistry'),providers=[];\n  registry.get(item=>{if(item.component==='Magento_Ui/js/grid/provider'&&item.params?.namespace==='sales_order_grid'&&item.update_url)providers.push(item)});\n  if(providers.length>1)throw Error('ambiguous current grid provider');\n  const candidate=providers[0];\n  if(candidate){\n   if(candidate.lastError===true)throw Error('grid load failed');\n   const completed=registry.get(candidate.storageConfig?.name)?.getRequest(candidate.params);\n   if(completed?.errorMessage)throw Error('grid request failed: '+completed.errorMessage);\n   if(candidate.firstLoad===false&&candidate.lastError===false&&!candidate.triggerDataReload&&completed&&\n    Array.isArray(completed.ids)&&/^\\d+$/.test(String(completed.totalRecords))&&\n    /^\\d+$/.test(String(candidate.data?.totalRecords))&&Number.isSafeInteger(Number(completed.totalRecords))&&\n    Number(completed.totalRecords)===Number(candidate.data?.totalRecords)&&\n    completed.ids.length===candidate.data?.items?.length){p=candidate;break;}\n  }\n }\n await new Promise(resolve=>setTimeout(resolve,100));\n}\nif(!p)throw Error('grid not completely loaded within 30000ms');\nconst registry=require('uiRegistry');\n  const params={...p.params,search:'',filters:{placeholder:true},sorting:{field:'entity_id',direction:'asc'},paging:{current:1,pageSize:200}};\n  const endpoint = new URL(p.update_url,location.href);\n  if(endpoint.origin !== location.origin || endpoint.pathname !== '/admin/mui/index/render/') throw new Error('wrong endpoint');\n  const flatten = (v,prefix='') => Object.entries(v).flatMap(([k,x])=>{\n    const key=prefix?`${prefix}[${k}]`:k;\n    return x!==null&&typeof x==='object'?flatten(x,key):[[key,String(x)]];\n  });\n  for(const [k,v] of flatten(params)) endpoint.searchParams.set(k,v);\n  const size=params.paging.pageSize;\n  if(!Number.isInteger(size)||size<1||size>1000) throw new Error('invalid page size');\n  let total=null;const rows=[],pages=[];\n  for(let page=1;page<=100;page++) {\n    endpoint.searchParams.set('paging[current]',String(page));\n    const response=await fetch(endpoint.href, {credentials:'same-origin',redirect:'error',signal:controller.signal,headers:{Accept:'application/json'}});\n    if(!response.ok||response.redirected) throw new Error('grid request failed');\n    if(!/^application\\/json(?:\\s*;|\\s*$)/i.test(response.headers.get('content-type')||'')) throw new Error('grid response must be application/json');\n    const data=await response.json();\n    if(data===null||typeof data!=='object'||Array.isArray(data)) throw new Error('grid JSON must be an object');\n    if(typeof data.totalRecords==='string'&&/^\\d+$/.test(data.totalRecords))data.totalRecords=Number(data.totalRecords);\n    if(!Number.isInteger(data.totalRecords)||data.totalRecords<0||!Array.isArray(data.items)) throw new Error('invalid response');\n    if(total===null)total=data.totalRecords;\n    if(total!==data.totalRecords||Math.ceil(total/size)>100||data.items.length!==Math.min(size,Math.max(0,total-(page-1)*size))) throw new Error('incomplete page');\n    rows.push(...data.items);pages.push({page,rows:data.items.length,total});\n    if(page>=Math.max(1,Math.ceil(total/size)))break;\n  }\n  if(rows.length!==total||new Set(rows.map(r=>String(r.entity_id))).size!==total) throw new Error('incomplete or duplicate identities');\n  rows.sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))||Number(b.entity_id)-Number(a.entity_id));\n  for(let i=0;i<rows.length;i++) {\n    const r=rows[i];\n    if(r.entity_id==null||typeof r.status!=='string'||!/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$/.test(r.created_at)||\n       (i && rows[i-1].created_at<r.created_at)) throw new Error('invalid identity/date/order');\n  }\n  const canceled=rows.filter(r=>r.status==='canceled');\n  if(!canceled.length||canceled[1]?.created_at===canceled[0].created_at)throw new Error('latest canceled order missing or tied');\n  const chosen=canceled[0],email=chosen.customer_email;\n  if(typeof email!=='string'||!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))throw new Error('customer email absent from complete source');\n  return {scope:true,complete:true,pages,total,selected:{entity_id:String(chosen.entity_id),created_at:chosen.created_at,email},answer:email};\n  } finally { controller.abort(); clearTimeout(deadlineTimer); }\n})()\n"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/1",
+    "task_id": 198,
+    "canonical_calls_sha256": "aaae1dd68fe445ec55ca6184bd95100ff12a55a2b9599f4cdf2fe0890bd63fab",
+    "sources": [
+      {
+        "name": "current",
+        "step": 2,
+        "action_sha256": "827b192aa1689070ce839e5233b62bb6b0fddaaf65e0af5f93a34185f04ac69f",
+        "decode": "json"
+      }
+    ],
+    "requirements": {
+      "scope": {
+        "source": "current",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "current",
+        "pointer": "/complete"
+      }
+    },
+    "projection": {
+      "source": "current",
+      "pointer": "/answer"
+    }
+  }
+}

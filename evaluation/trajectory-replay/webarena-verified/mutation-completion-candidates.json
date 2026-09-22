@@ -1,0 +1,542 @@
+{
+  "schema": "webarena_mutation_completion_candidates/1",
+  "purpose": "Diagnostic qualification only; does not replace frozen actions, official evaluator, or scores",
+  "observation_protocol": {
+    "start_after": "last frozen action",
+    "timeout_ms": 20000,
+    "poll_interval_ms": 100,
+    "method": "GET only, same authenticated origin, HTTP 200, no redirect, no retry of the mutating action",
+    "require_independent_official_evaluation": true,
+    "physical_executions_per_task": 1,
+    "score_effect": "none; diagnostic evidence only"
+  },
+  "official_evaluator": {
+    "package": "webarena-verified",
+    "version": "1.2.3",
+    "invocation": "WebArenaVerified.evaluate_task(task_id, agent_response, network_trace)",
+    "agent_response": {
+      "task_type": "MUTATE",
+      "status": "SUCCESS",
+      "retrieved_data": null,
+      "error_details": null
+    },
+    "network_trace": "fresh same-execution HAR captured from before the trigger action through observer completion",
+    "required_score": 1.0
+  },
+  "rules": [
+    {
+      "task_id": 399,
+      "action_count": 14,
+      "observer": {
+        "kind": "same_origin_get_html",
+        "path": "/user/MarvelsGrantMan136/edit_biography",
+        "selector": "textarea[name=\"user_biography[biography]\"]",
+        "property": "value",
+        "equals": "I am a robot",
+        "require_authenticated_user": "MarvelsGrantMan136"
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/user/MarvelsGrantMan136/edit_biography",
+        "post_data": {"user_biography[biography]": "I am a robot"},
+        "response_status": 302
+      },
+      "qualification": "observer and official evaluator must both pass"
+    },
+    {
+      "task_id": 404,
+      "action_count": 11,
+      "observer": {
+        "kind": "pending_live_dom_contract",
+        "path": "/f/books/new",
+        "target_post_id": 124260,
+        "reason": "The old snapshot omits vote-state attributes. POST JSON netScore=1 is a response, not a read-only persisted-state observation. Inspect the authenticated rendered post under the shared lock before specifying the exact state predicate."
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/sv/124260.json",
+        "post_data": {"choice": "1"}
+      },
+      "qualification": "blocked until observer has a tested persisted-state predicate; official evaluator remains mandatory"
+    },
+    {
+      "task_id": 415,
+      "action_count": 6,
+      "observer": {
+        "kind": "same_origin_get_json_discussions",
+        "path": "/byteblaze/a11y-webring.club/-/merge_requests/40/discussions.json?per_page=20",
+        "page_size": 20,
+        "require_not_full_page": true,
+        "noteable_id": 138783,
+        "noteable_type": "MergeRequest",
+        "noteable_iid": 40,
+        "author_username": "byteblaze",
+        "note_equals": "@davepgreene",
+        "require_exactly_one_matching_note": true
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/byteblaze/a11y-webring.club/notes?target_id=138783&target_type=merge_request",
+        "post_data": {
+          "$.note.noteable_type": "MergeRequest",
+          "$.note.note": "^.*@davepgreene.*$"
+        }
+      },
+      "qualification": "observer and official evaluator must both pass"
+    },
+    {
+      "task_id": 418,
+      "action_count": 8,
+      "observer": {
+        "kind": "same_origin_get_json",
+        "path": "/api/v4/user/status",
+        "json_key": "availability",
+        "equals": "busy",
+        "require_authenticated_user": "byteblaze"
+      },
+      "official_network_event": {
+        "method": "PUT",
+        "url_suffix": "/api/v4/user/status",
+        "post_data": {"availability": "busy", "clear_status_after": null}
+      },
+      "qualification": "observer and official evaluator must both pass"
+    },
+    {
+      "task_id": 441,
+      "action_count": 16,
+      "pre_commit_observer": {
+        "kind": "current_dom_property",
+        "position_before_tool_call_index": 13,
+        "selector": "textarea[aria-label^=\"Editor content\"]",
+        "property": "value",
+        "expected_from_tool_call_index": 10,
+        "expected_text_sha256": "1685f452f0aa0e0430b8454c746ef7496b859121298490b60ce2ef2841d15b6f",
+        "compare": "exact text after CRLF normalization",
+        "read_only": true
+      },
+      "observer": {
+        "kind": "same_origin_get_text",
+        "path": "/api/v4/projects/byteblaze%2Fgimmiethat.space/repository/files/index.html/raw?ref=main",
+        "body_kind": "repository_file_source",
+        "require_html_title": "GIVE ME SPACE",
+        "require_no_other_title": true,
+        "expected_from_tool_call_index": 10,
+        "compare": "exact text after CRLF normalization"
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/byteblaze/gimmiethat.space/-/update/main/index.html",
+        "post_data": {
+          "_method": "put",
+          "file_path": "index.html",
+          "branch_name": "main",
+          "original_branch": "main",
+          "content": "^<\\!doctype html>.*<head>.*<title>GIVE ME SPACE</title>.*</head>.*</html>$"
+        },
+        "response_status": 302
+      },
+      "qualification": "pre-commit observer, post-commit observer and official evaluator must all pass"
+    },
+    {
+      "task_id": 448,
+      "action_count": 8,
+      "observer": {
+        "kind": "same_origin_get_json",
+        "path": "/api/v4/user",
+        "require_authenticated_user": "byteblaze",
+        "json_key": "website_url",
+        "equals": "https://egg.tart.com"
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/-/profile",
+        "post_data": {"user[website_url]": "https://egg.tart.com"},
+        "response_status": 302
+      },
+      "qualification": "observer and official evaluator must both pass"
+    },
+    {
+      "task_id": 465,
+      "action_count": 8,
+      "pre_action_readiness": {
+        "kind": "amd_deferred_ready",
+        "before_original_action": 5,
+        "module": "Magento_Customer/js/customer-data",
+        "deferred_method": "getInitCustomerData",
+        "timeout_ms": 15000
+      },
+      "observer": {
+        "kind": "same_origin_get_html",
+        "path": "/wishlist/index/index/wishlist_id/5/",
+        "href_origin": "response_url_origin",
+        "within": "li",
+        "require_authenticated_sign_out_path": "/customer/account/logout/",
+        "require_same_origin_sign_out_href": true,
+        "product_name": "Tide PODS Spring Meadow Scent HE Turbo Laundry Detergent Pacs, 81 Count",
+        "edit_href_path_pattern": "^/wishlist/index/configure/id/[0-9]+/product_id/71337/?$",
+        "require_same_origin_edit_href": true,
+        "require_product_name_and_edit_link_in_same_item": true,
+        "require_exactly_one_matching_item": true
+      },
+      "observer_compiler": "same_origin_authenticated_item_html/1",
+      "observer_timeout_ms": 20000,
+      "expected_completion": "persisted_wishlist_item_observed",
+      "observer_basis": {
+        "historical_chromium_trace_sha256": "a5ea0a4d6b365ce221dafed1098c0748695c9bde39b1946de47928df36434938",
+        "historical_chromium_har_sha256": "20db92ae2d20944e60e20bf860345b1c3ee8a13d31ac8d2a7edec5cf172a47e5",
+        "historical_moli_har_sha256": "60d59efd6139020711a617bd9f3704034dd8be9d15e9fd94cefda27b0917fe2f",
+        "evidence": "Chromium final authenticated wishlist snapshot shows the named item with an Edit URL under /wishlist/index/configure/id/3/product_id/713..., while the same-run HAR confirms POST product=71337, wishlist GET 200, and a subsequent GET customer-section JSON item with product_id=71337 and the exact name. The snapshot URL is truncated, so the complete Edit URL remains a proposed live GET predicate, not a historical assertion. Formal Moli HAR has no wishlist add or wishlist page request."
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/wishlist/index/add/",
+        "post_data": {"product": "71337", "qty": null},
+        "response_status": 302
+      },
+      "qualification": "same-run authenticated wishlist GET must expose exact product identity and official evaluator must pass; offline observer candidate is not a new result"
+    },
+    {
+      "task_id": 506,
+      "action_count": 18,
+      "observer": {
+        "kind": "same_origin_get_order_history_detail",
+        "order_number_source": "current_success_page_text_only_as_lookup_key",
+        "order_number_pattern": "Your order number is:\\s*([0-9]+)",
+        "require_unique_order_number": true,
+        "history_path": "/sales/order/history/?limit=50",
+        "require_authenticated_sign_out_path": "/customer/account/logout/",
+        "require_same_origin_sign_out_href": true,
+        "history_detail_href_path_pattern": "^/sales/order/view/order_id/[0-9]+/$",
+        "require_same_origin_detail_href": true,
+        "require_exactly_one_history_row_for_order_number": true,
+        "detail_heading_prefix": "Order # ",
+        "ordered_item_name": "Beyond Meat Beef Beefy Crumble, 5 Pound -- 2 per case.",
+        "ordered_item_quantity": 1,
+        "require_exactly_one_matching_order_item": true,
+        "read_only_get_count": 2,
+        "target_product_id_for_official_cart_add_only": 22490
+      },
+      "observer_basis": {
+        "historical_chromium_506_trace_sha256": "1f76d49e8a80d27611ce3b7fc022c4dd53a9d8330f66c6cb65d287ed075b4937",
+        "historical_chromium_506_har_sha256": "3771aad8f66d38e91e2f0cd02ef7f85e0e0efc7efc7925acc9506a9e6e01cfa3",
+        "historical_order_history_trace_sha256": "53c0cc449ea0d4fdff00898ec061628e03d6de63c0404de0ef84c8605bdbec80",
+        "historical_order_detail_trace_sha256": "e7fd92654d552d51dee4e7c3b0fbdd6ea2bfbb237a824742bda7d1a29e191065",
+        "evidence": "Chromium task 506 ends on the purchase success page with order number 000000190; its HAR contains all four official events, including the exact cart item name, but no subsequent order-detail GET. Other authenticated Shopping traces establish that order history lists order numbers with View Order links to /sales/order/view/order_id/<id>/ and detail pages expose an Order # heading and Items Ordered table. The order number is only a lookup key; the new same-run history and detail GETs must independently bind that number to the exact ordered item. This is a predeclared observer, not a historically qualified 506 order-detail result."
+      },
+      "official_network_evaluator_count": 4,
+      "qualification": "current success order number, authenticated history GET, exact order-detail GET item and all four official network evaluators must pass; candidate requires live GET qualification"
+    },
+    {
+      "task_id": 571,
+      "action_count": 13,
+      "observer": {
+        "kind": "same_origin_get_html",
+        "path": "/customer/address/index/",
+        "require_authenticated_customer": "Emma Lopez",
+        "address_selectors": [
+          ".box-address-billing address",
+          ".box-address-shipping address"
+        ],
+        "address_lines": [
+          "Emma Lopez",
+          "231 Willow Way",
+          "Suite 100",
+          "Chicago, Illinois, 60601",
+          "United States"
+        ]
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/customer/address/formPost/id/26/",
+        "post_data": {
+          "firstname": "Emma",
+          "lastname": "Lopez",
+          "street[0]": "231 Willow Way",
+          "street[1]": "Suite 100",
+          "country_id": "US",
+          "city": "Chicago",
+          "postcode": "60601"
+        },
+        "response_status": 302
+      },
+      "qualification": "persisted address-book text and official evaluator must both pass; the edit form's region select is populated by JavaScript and is not a valid static-HTML persistence observer"
+    },
+    {
+      "task_id": 576,
+      "action_count": 13,
+      "observer": {
+        "kind": "same_origin_get_json_pair",
+        "paths": [
+          "/api/v4/projects/179/members/5",
+          "/api/v4/projects/179/members/1842"
+        ],
+        "require_user_ids": [5, 1842],
+        "require_access_level": 30,
+        "require_direct_project_membership": true
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/api/v4/projects/179/invitations",
+        "post_data": {"user_id": "5,1842", "access_level": 30},
+        "response_status": 201
+      },
+      "qualification": "both direct membership records and official evaluator must pass"
+    },
+    {
+      "task_id": 585,
+      "action_count": 11,
+      "observer": {
+        "kind": "pending_read_only_review_contract",
+        "target_product_id": 73063,
+        "reason": "Submitted reviews may await moderation. No stable authenticated read-only review record with product, nickname, title, text and five-star rating has been qualified; the old action-only HAR lacks the required POST."
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/review/product/post/id/73063/",
+        "post_data": {
+          "ratings[4]": "20",
+          "nickname": "Emma Lopez",
+          "title": "Good purchase",
+          "detail": "I like it"
+        },
+        "response_status": 302
+      },
+      "qualification": "blocked until a read-only review-record identity check is qualified; official evaluator remains mandatory"
+    },
+    {
+      "task_id": 590,
+      "action_count": 12,
+      "observer": {
+        "kind": "same_origin_get_json_collection",
+        "path": "/api/v4/projects/primer%2Fdesign/milestones?state=all&per_page=100",
+        "require_single_page": true,
+        "require_exactly_one_match": true,
+        "fields": {
+          "title": "product launch",
+          "start_date": "2023-01-16",
+          "due_date": "2023-01-30"
+        }
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/primer/design/-/milestones",
+        "post_data": {
+          "milestone[title]": "product launch",
+          "milestone[start_date]": "2023-01-16",
+          "milestone[due_date]": "2023-01-30"
+        },
+        "response_status": 302
+      },
+      "qualification": "observer and official evaluator must both pass"
+    },
+    {
+      "task_id": 595,
+      "action_count": 15,
+      "observer": {
+        "kind": "same_origin_get_html",
+        "path": "/f/space/69581/the-moon-saturn-and-jupiter-through-my-4-telescope-and",
+        "selector": "button.subscribe-button.subscribe-button--unsubscribe",
+        "require_exactly_one": true,
+        "require_authenticated_user": "MarvelsGrantMan136"
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": ["/f/space/subscribe.json", "/f/space/unsubscribe.json"],
+        "referer_suffix": "/f/space/69581/the-moon-saturn-and-jupiter-through-my-4-telescope-and",
+        "response_content": {"subscribed": true}
+      },
+      "qualification": "observer and official evaluator must both pass"
+    },
+    {
+      "task_id": 464,
+      "action_count": 7,
+      "pre_action_readiness": {
+        "kind": "same_origin_magento_product_type",
+        "before_original_action": 1,
+        "path": "/admin/catalog/product/edit/id/1796/",
+        "product_id": 1796,
+        "expected_type": "configurable",
+        "timeout_ms": 15000
+      },
+      "observer": {
+        "kind": "same_origin_get_html",
+        "path": "/admin/catalog/product/edit/id/1796/",
+        "selector": "textarea[name=\"product[short_description]\"]",
+        "require_product_id": 1796,
+        "html_value": "<p>1 customer(s) love it!</p>",
+        "require_exactly_one": true
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_pattern": "^__SHOPPING_ADMIN__/catalog/product/save/id/1796/type/configurable/store/0/set/\\d+/back/edit$",
+        "post_data": {"product[short_description]": "<p>1 customer(s) love it!</p>"},
+        "response_status": 302
+      },
+      "qualification": "observer and official evaluator must both pass"
+    },
+    {
+      "task_id": 620,
+      "action_count": 13,
+      "observer": {
+        "kind": "current_redirect_get_html",
+        "path_pattern": "^/f/relationship_advice/[0-9]+/[^/]+$",
+        "forum_href": "/f/relationship_advice",
+        "title": "deal with long-distance relationships",
+        "body": "Please help",
+        "author_href": "/user/MarvelsGrantMan136",
+        "require_unique_numeric_post_id": true
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": ["/submit", "/submit/relationship_advice"],
+        "post_data": {
+          "submission[title]": "deal with long-distance relationships",
+          "submission[body]": "Please help",
+          "submission[forum]": "10075"
+        },
+        "response_status": 302
+      },
+      "qualification": "fresh redirected post page and official evaluator must both pass"
+    },
+    {
+      "task_id": 640,
+      "action_count": 13,
+      "observer": {
+        "kind": "current_redirect_get_html",
+        "path_pattern": "^/f/books/[0-9]+/[^/]+$",
+        "forum_href": "/f/books",
+        "title": "book reading Meet up!",
+        "body": "virtual meetup for book reading on March 15th",
+        "author_href": "/user/MarvelsGrantMan136",
+        "require_unique_numeric_post_id": true
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": ["/submit", "/submit/books"],
+        "post_data": {
+          "submission[title]": "book reading Meet up!",
+          "submission[body]": "virtual meetup for book reading on March 15th",
+          "submission[forum]": "10037"
+        },
+        "response_status": 302
+      },
+      "qualification": "fresh redirected post page and official evaluator must both pass"
+    },
+    {
+      "task_id": 645,
+      "action_count": 12,
+      "observer": {
+        "kind": "current_redirect_get_html",
+        "path_pattern": "^/f/books/[0-9]+/[^/]+$",
+        "forum_href": "/f/books",
+        "title": "What could machine learning help the books field?",
+        "author_href": "/user/MarvelsGrantMan136",
+        "require_unique_numeric_post_id": true
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": ["/submit", "/submit/books"],
+        "post_data": {
+          "submission[title]": "What could machine learning help the books field?",
+          "submission[forum]": "10037"
+        },
+        "response_status": 302
+      },
+      "qualification": "fresh redirected post page and official evaluator must both pass"
+    },
+    {
+      "task_id": 658,
+      "action_count": 13,
+      "observer": {
+        "kind": "same_origin_get_json_collection",
+        "path": "/api/v4/projects/a11yproject%2Fa11yproject.com/issues?search=401%20bad%20gateway&per_page=100",
+        "require_single_page": true,
+        "require_exactly_one_match": true,
+        "fields": {"title": "401 bad gateway", "due_date": "2030-12-31"},
+        "assignee_id": 2264,
+        "require_project_path": "a11yproject/a11yproject.com"
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/a11yproject/a11yproject.com/-/issues",
+        "post_data": {
+          "issue[title]": "401 bad gateway",
+          "issue[assignee_ids][]": "2264",
+          "issue[due_date]": "2030-12-31"
+        },
+        "response_status": 302
+      },
+      "qualification": "observer and official evaluator must both pass"
+    },
+    {
+      "task_id": 666,
+      "action_count": 20,
+      "input_gate": {
+        "kind": "recompiled_seed_differs_from_qualified_trajectory",
+        "tool_call_index": 7,
+        "qualified_selector": ":nth-match(a[href=\"#\"]:visible, 11)",
+        "recompiled_selector": "a[href=\"#\"]:visible:has-text(\"dialog-component\")",
+        "recompiled_seed_sha256": "fd756fa1801d1daa704f851979e29d618e0eebacecc77c6fda5c121bb736f86f"
+      },
+      "observer": {
+        "kind": "pending_requalified_trajectory",
+        "proposed_read_only_path": "/api/v4/projects/180/merge_requests?state=all&source_branch=dialog-component&target_branch=dialog",
+        "proposed_required_reviewer_id": 2367,
+        "reason": "The latest recompiled seed changes frozen click index 7 from positional a[href=#] match 11 to the dialog-component text selector. The original qualified 20-action trajectory therefore is not byte-identical to the current seed and needs new Chromium qualification before a latest-seed Moli run."
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/primer/design/-/merge_requests",
+        "post_data": {
+          "merge_request[target_branch]": "dialog",
+          "merge_request[source_branch]": "dialog-component",
+          "merge_request[target_project_id]": "180",
+          "merge_request[source_project_id]": "180",
+          "merge_request[assignee_ids][]": "0",
+          "merge_request[reviewer_ids][]": "2367"
+        },
+        "response_status": 302
+      },
+      "qualification": "blocked until latest-seed selector is independently Chromium-qualified; official evaluator remains mandatory"
+    },
+    {
+      "task_id": 714,
+      "action_count": 14,
+      "observer": {
+        "kind": "pending_read_only_vote_state_contract",
+        "target_post_id": 19459,
+        "reason": "The old snapshot omits authenticated downvote-state attributes. A successful click or POST response does not independently prove the persisted vote; inspect the rendered state under the shared lock before defining a read-only predicate."
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/sv/19459.json",
+        "post_data": {"choice": "-1"}
+      },
+      "qualification": "blocked until authenticated persisted downvote state can be read; official evaluator remains mandatory"
+    },
+    {
+      "task_id": 731,
+      "action_count": 11,
+      "observer": {
+        "kind": "same_origin_get_html",
+        "path": "/f/MachineLearning/1/nvidia-rtx-4090",
+        "body_selector": "main article p",
+        "exclude_ancestor": "header",
+        "title": "Nvidia RTX 4090",
+        "body_exact_lines": ["Crazy device for ML!", "EDIT: This news aged well"],
+        "author_href": "/user/MarvelsGrantMan136",
+        "require_existing_post_id": 1
+      },
+      "official_network_event": {
+        "method": "POST",
+        "url_suffix": "/f/MachineLearning/1/-/edit",
+        "post_data": {
+          "submission[title]": "Nvidia RTX 4090",
+          "submission[body]": "^\\s*Crazy device for ML!\\s*EDIT: This news aged well\\s*$"
+        },
+        "response_status": 302
+      },
+      "qualification": "observer and official evaluator must both pass"
+    }
+  ]
+}

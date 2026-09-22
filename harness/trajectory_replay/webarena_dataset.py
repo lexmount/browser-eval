@@ -13,6 +13,11 @@ from typing import Any
 
 from webarena_verified.core.utils.checksum import compute_evaluator_checksum
 
+from harness.trajectory_replay.retrieval_acceptance import (
+    digest,
+    require_current_retrieval,
+    verify_attempt,
+)
 from harness.trajectory_replay.webarena_plan import (
     load_replay_plan,
     replay_calls_binding_sha256,
@@ -21,6 +26,29 @@ from harness.trajectory_replay.webarena_plan import (
 
 SCHEMA = "lex_webarena_verified_trajectory_dataset/1"
 RECEIPT_SCHEMA = "lex_webarena_trajectory_replay_suite/1"
+OBSERVATION_PROTOCOL = "lex_replay_valid_snapshot_observations/1"
+
+
+def _validate_observations(trace: list[dict[str, Any]]) -> None:
+    """Task acceptance is not proof that every required observation succeeded."""
+    for row in trace:
+        if row.get("observation_status") == "error":
+            raise ValueError("qualification requires valid observations, not observation errors")
+        action = (row.get("arguments") or {}).get("action")
+        text = row.get("result")
+        if action not in {"snapshot", "navigate"}:
+            continue
+        if not isinstance(text, str) or not text.strip():
+            raise ValueError("qualification requires a materialized snapshot observation")
+        snapshot_text = text
+        if action == "navigate":
+            _, separator, snapshot_text = text.partition("--- Page Snapshot ---\n")
+            if not separator:
+                raise ValueError("qualification requires the navigation's snapshot observation")
+        if not snapshot_text.strip() or snapshot_text.startswith("[Snapshot error:"):
+            raise ValueError(
+                "qualification cannot promote a successful wrapper around snapshot error"
+            )
 
 
 @lru_cache(maxsize=1)
@@ -42,9 +70,7 @@ def _official_evaluator_names() -> dict[int, tuple[str, ...]]:
 
 
 @lru_cache(maxsize=1)
-def _effective_correction_bindings() -> dict[
-    int, tuple[str, str, str, tuple[str, ...]]
-]:
+def _effective_correction_bindings() -> dict[int, tuple[str, str, str, tuple[str, ...]]]:
     from harness.browser_use.runner import _configure_benchmark  # noqa: PLC0415
     from harness.trajectory_replay.webarena_corrections import (  # noqa: PLC0415
         apply_correction,
@@ -57,8 +83,7 @@ def _effective_correction_bindings() -> dict[
     for task_id in catalog.records:
         contract = apply_correction(benchmark.get_task(task_id), catalog)
         evaluators = tuple(
-            str(item["evaluator"])
-            for item in contract.task.model_dump(mode="json")["eval"]
+            str(item["evaluator"]) for item in contract.task.model_dump(mode="json")["eval"]
         )
         bindings[task_id] = (
             contract.correction_id,
@@ -69,6 +94,50 @@ def _effective_correction_bindings() -> dict[
     return bindings
 
 
+def _validate_evaluation_provenance(
+    evaluation: dict[str, Any], attempt: dict[str, Any], expected_data_checksum: str
+) -> None:
+    """One rule identity gate shared by qualification, resume and aggregation."""
+    task_id = int(attempt["task_id"])
+    correction = _effective_correction_bindings().get(task_id)
+    actual_correction = tuple(
+        str(attempt.get(key) or "")
+        for key in (
+            "contract_correction_id",
+            "contract_correction_source_sha256",
+            "corrected_task_sha256",
+        )
+    )
+    expected_correction = correction[:3] if correction else ("", "", "")
+    if actual_correction != expected_correction:
+        raise ValueError("evaluation task correction binding is stale or incomplete")
+    evaluated_correction = evaluation.get("replay_contract_correction")
+    if correction is None:
+        if evaluated_correction is not None:
+            raise ValueError("unexpected evaluated task correction")
+    elif (
+        not isinstance(evaluated_correction, dict)
+        or tuple(
+            str(evaluated_correction.get(key) or "")
+            for key in ("correction_id", "source_sha256", "corrected_task_sha256")
+        )
+        != expected_correction
+    ):
+        raise ValueError("evaluation evidence task correction is stale or incomplete")
+    if (
+        evaluation.get("task_id") != task_id
+        or evaluation.get("webarena_verified_version") != version("webarena-verified")
+        or evaluation.get("webarena_verified_evaluator_checksum") != compute_evaluator_checksum()
+        or not expected_data_checksum
+        or evaluation.get("webarena_verified_data_checksum") != expected_data_checksum
+        or tuple(row.get("evaluator_name") for row in evaluation.get("evaluators_results", []))
+        != _official_evaluator_names().get(task_id)
+    ):
+        raise ValueError(
+            "evaluation rule or official task data provenance differs from current inputs"
+        )
+
+
 def _validate_qualification_receipt(
     receipt: dict[str, Any],
     *,
@@ -76,14 +145,13 @@ def _validate_qualification_receipt(
     seed_task_ids: set[int],
     required_engines: tuple[str, ...],
     expected_resources: dict[str, Any],
+    expected_execution: dict[str, Any],
 ) -> None:
     def required_int(value: Any, field: str) -> int:
         try:
             return int(value)
         except (TypeError, ValueError) as exc:
-            raise ValueError(
-                f"replay receipt has invalid {field}: {receipt_path}"
-            ) from exc
+            raise ValueError(f"replay receipt has invalid {field}: {receipt_path}") from exc
 
     if receipt.get("schema") != RECEIPT_SCHEMA:
         raise ValueError(f"unsupported replay receipt: {receipt_path}")
@@ -122,7 +190,8 @@ def _validate_qualification_receipt(
         "environment_pool_count": 1,
         "method_parallelism": 1,
         "task_parallelism": 1,
-        "reset_before_every_task": True,
+        "reset_before_every_task": expected_execution["reset_before_every_task"],
+        "reset_before_every_method": expected_execution["reset_before_every_method"],
         "teardown_between_methods": True,
     }
     if any(isolation.get(key) != value for key, value in required_isolation.items()):
@@ -170,9 +239,7 @@ def _validate_qualification_receipt(
             (
                 str(item.get("engine")),
                 required_int(item.get("task_id"), "physical task_id"),
-                required_int(
-                    item.get("physical_execution"), "physical execution number"
-                ),
+                required_int(item.get("physical_execution"), "physical execution number"),
             )
         )
     if (
@@ -190,21 +257,16 @@ def _validate_qualification_receipt(
             )
         physical_by_attempt[key].append(item)
     attempts_by_key = {
-        (str(item["engine"]), int(item["task_id"])): item
-        for item in receipt.get("attempts") or []
+        (str(item["engine"]), int(item["task_id"])): item for item in receipt.get("attempts") or []
     }
     if set(physical_by_attempt) != expected_keys:
         raise ValueError(f"replay receipt has unbound physical executions: {receipt_path}")
     for key, attempt in attempts_by_key.items():
         physical = physical_by_attempt[key]
-        if (
-            len(physical) != int(attempt.get("physical_execution_count") or 1)
-            or max(int(item["physical_execution"]) for item in physical)
-            != int(attempt.get("physical_execution") or 0)
-        ):
-            raise ValueError(
-                f"replay receipt has inconsistent physical executions: {receipt_path}"
-            )
+        if len(physical) != int(attempt.get("physical_execution_count") or 1) or max(
+            int(item["physical_execution"]) for item in physical
+        ) != int(attempt.get("physical_execution") or 0):
+            raise ValueError(f"replay receipt has inconsistent physical executions: {receipt_path}")
 
 
 def _validate_passing_attempt_evidence(
@@ -213,6 +275,8 @@ def _validate_passing_attempt_evidence(
     runtime_site_host: str,
     expected_data_checksum: str,
     trusted_source_site_hosts: set[str],
+    retrieval_contract: dict[str, Any] | None = None,
+    state_contract: Any = None,
 ) -> None:
     if attempt.get("process_status") != "pass" or attempt.get("evaluator_status") != "pass":
         return
@@ -241,9 +305,16 @@ def _validate_passing_attempt_evidence(
         )
     ):
         raise ValueError("passing replay attempt differs from the canonical replay actions")
-    if attempt.get("evaluation_input_sha256") != _json_sha256(
-        candidate["recorded_response"]
-    ):
+    if str(candidate["recorded_response"].get("task_type", "")).upper() == "RETRIEVE":
+        if retrieval_contract is None:
+            raise ValueError("retrieval qualification requires current-run answer binding")
+        verify_attempt(
+            attempt,
+            retrieval_contract,
+            candidate["tool_calls"],
+            expected_data_checksum=expected_data_checksum,
+        )
+    elif attempt.get("evaluation_input_sha256") != _json_sha256(candidate["recorded_response"]):
         raise ValueError("passing replay attempt is not bound to the canonical evaluator input")
 
     trace = _read_json(paths["trace"])
@@ -253,11 +324,10 @@ def _validate_passing_attempt_evidence(
         or any(item.get("status") != "success" for item in trace)
         or attempt.get("executed_tool_calls_sha256") != _json_sha256(trace_arguments)
         or attempt.get("replay_calls_binding_sha256")
-        != replay_calls_binding_sha256(
-            trace_arguments, allowed_hosts={runtime_site_host}
-        )
+        != replay_calls_binding_sha256(trace_arguments, allowed_hosts={runtime_site_host})
     ):
         raise ValueError("passing replay trace does not prove every executed action")
+    _validate_observations(trace)
 
     network_har = _read_json(paths["network_har"])
     if not isinstance(network_har, dict) or not isinstance(
@@ -265,6 +335,13 @@ def _validate_passing_attempt_evidence(
     ):
         raise ValueError("passing replay attempt has an invalid network HAR")
 
+    if state_contract is not None:
+        from harness.webarena_state import verify_attempt as verify_state_attempt
+
+        if attempt.get("contract_correction_id"):
+            raise ValueError("observed state cannot also apply a legacy replay correction")
+        verify_state_attempt(attempt, state_contract)
+        return
     evaluation = _read_json(paths["evaluation"])
     task_id = int(attempt["task_id"])
     expected_evaluators = _official_evaluator_names().get(task_id)
@@ -284,8 +361,7 @@ def _validate_passing_attempt_evidence(
         or float(evaluation.get("score") or 0) != 1.0
         or str(evaluation.get("status") or "").lower() not in {"pass", "success"}
         or evaluation.get("webarena_verified_version") != version("webarena-verified")
-        or evaluation.get("webarena_verified_evaluator_checksum")
-        != compute_evaluator_checksum()
+        or evaluation.get("webarena_verified_evaluator_checksum") != compute_evaluator_checksum()
         or not expected_data_checksum
         or evaluation.get("webarena_verified_data_checksum") != expected_data_checksum
     ):
@@ -296,14 +372,12 @@ def _validate_passing_attempt_evidence(
         or tuple(str(row.get("evaluator_name") or "") for row in evaluator_rows)
         != expected_evaluators
         or any(
-        float(row.get("score") or 0) != 1.0
-        or str(row.get("status") or "").lower() not in {"pass", "success"}
-        for row in evaluator_rows
+            float(row.get("score") or 0) != 1.0
+            or str(row.get("status") or "").lower() not in {"pass", "success"}
+            for row in evaluator_rows
         )
     ):
-        actual_evaluators = tuple(
-            str(row.get("evaluator_name") or "") for row in evaluator_rows
-        )
+        actual_evaluators = tuple(str(row.get("evaluator_name") or "") for row in evaluator_rows)
         raise ValueError(
             "passing replay evaluator evidence does not match the canonical input: "
             f"task {attempt['task_id']}, expected evaluators {expected_evaluators}, "
@@ -311,6 +385,7 @@ def _validate_passing_attempt_evidence(
         )
     if any(item.get("status") != "pass" for item in evaluation.get("replay_assertions") or []):
         raise ValueError("passing replay evaluation contains a failed replay assertion")
+    _validate_evaluation_provenance(evaluation, attempt, expected_data_checksum)
 
 
 def _has_stale_correction_binding(attempt: dict[str, Any], task_id: int) -> bool:
@@ -380,6 +455,7 @@ def build_verified_trajectory_dataset(
         raise ValueError("replay seed manifest contains duplicate task IDs")
     seed_task_ids = set(seed_tasks)
     plan = load_replay_plan(profile_path, seed_path)
+    require_current_retrieval(plan)
     profile = plan["profile"]
     qualification_engine = str(plan["qualification_engine"])
     required_engines = (qualification_engine,)
@@ -397,6 +473,7 @@ def build_verified_trajectory_dataset(
             seed_task_ids=seed_task_ids,
             required_engines=required_engines,
             expected_resources=profile["resources"],
+            expected_execution=profile["execution"],
         )
         receipts.append(
             {
@@ -407,8 +484,18 @@ def build_verified_trajectory_dataset(
                 "profile_sha256": str(receipt.get("profile_sha256") or ""),
             }
         )
+        from harness.webarena_state import validate_attempt_identities
+
+        validate_attempt_identities(
+            receipt.get("attempts") or [], set(plan.get("state_contracts", {}))
+        )
         for attempt in receipt.get("attempts") or []:
             task_id = int(attempt["task_id"])
+            if (
+                task_id in plan.get("retrieval_task_ids", [])
+                or task_id in plan.get("state_contracts", {})
+            ) and attempt.get("run_id") != receipt.get("run_id"):
+                raise ValueError("retrieval evidence belongs to another qualification run")
             candidate_id = str(attempt["source_candidate_id"])
             if candidate_id != seed_tasks[task_id].get("canonical_candidate_id"):
                 if receipt.get("source_seed_manifest_sha256") == seed_sha256:
@@ -429,24 +516,24 @@ def build_verified_trajectory_dataset(
                     )
                 continue
             if (
-                receipt.get("source_seed_manifest_sha256") != seed_sha256
+                task_id not in plan.get("state_contracts", {})
+                and receipt.get("source_seed_manifest_sha256") != seed_sha256
                 and _has_stale_correction_binding(attempt, task_id)
             ):
                 continue
-            session = {
-                str(item["id"]): item for item in receipt.get("sessions") or []
-            }[str(attempt["browser_session_id"])]
+            session = {str(item["id"]): item for item in receipt.get("sessions") or []}[
+                str(attempt["browser_session_id"])
+            ]
             _validate_passing_attempt_evidence(
                 attempt,
                 candidate,
                 str(session.get("site_access_host") or ""),
                 str((seeds.get("source") or {}).get("official_data_checksum") or ""),
                 plan["trusted_source_site_hosts"],
+                plan.get("retrieval_contracts", {}).get(task_id),
+                plan.get("state_contracts", {}).get(task_id),
             )
-            if (
-                attempt.get("process_status") != "pass"
-                or attempt.get("evaluator_status") != "pass"
-            ):
+            if attempt.get("process_status") != "pass" or attempt.get("evaluator_status") != "pass":
                 continue
             key = (task_id, candidate_id)
             attempts_by_key[key].append(attempt)
@@ -514,11 +601,29 @@ def build_verified_trajectory_dataset(
                 "evaluation_input": candidate["recorded_response"],
                 "source": _candidate_source(candidate),
                 "verification": {
+                    "state_contract_sha256": plan["state_contracts"][task_id].definition_sha256
+                    if task_id in plan.get("state_contracts", {})
+                    else None,
+                    "retrieval_contract_sha256": (
+                        digest(plan["retrieval_contracts"][task_id])
+                        if task_id in plan.get("retrieval_task_ids", [])
+                        else None
+                    ),
+                    "retrieval_protocol": (
+                        plan["retrieval_contracts"][task_id]["schema"]
+                        if task_id in plan.get("retrieval_task_ids", [])
+                        else None
+                    ),
                     "browsers": list(required_engines),
                     "process_status": "pass",
                     "evaluator_status": "pass",
                     "contract": (
                         {
+                            "kind": "observed_form_state_contract",
+                            "contract_sha256": plan["state_contracts"][task_id].definition_sha256,
+                        }
+                        if task_id in plan.get("state_contracts", {})
+                        else {
                             "kind": "corrected_replay_contract",
                             "correction_id": correction_proof[0],
                             "correction_source_sha256": correction_proof[1],
@@ -545,7 +650,10 @@ def build_verified_trajectory_dataset(
             "browser_use_scoring_authority": "official task outcome contract",
             "browser_use_agent_visibility": "hidden",
             "trajectory_replay_role": "fixed BrowserTool action input",
-            "evaluation_input_role": "official evaluator input only; never an Agent prompt",
+            "evaluation_input_role": (
+                "frozen historical response only; RETRIEVE evaluator input "
+                "comes from current-run observations"
+            ),
         },
         "promotion_policy": {
             "qualification_browser": qualification_engine,
@@ -555,6 +663,26 @@ def build_verified_trajectory_dataset(
             "model_calls": 0,
         },
         "provenance": {
+            **(
+                {
+                    "retrieval_protocol": next(
+                        iter(
+                            {
+                                contract["schema"]
+                                for contract in plan["retrieval_contracts"].values()
+                            }
+                        )
+                    )
+                }
+                if len({contract["schema"] for contract in plan["retrieval_contracts"].values()})
+                == 1
+                else {}
+            ),
+            "retrieval_protocols": {
+                str(task_id): contract["schema"]
+                for task_id, contract in sorted(plan["retrieval_contracts"].items())
+            },
+            "observation_protocol": OBSERVATION_PROTOCOL,
             "seed_manifest_sha256": seed_sha256,
             "profile_sha256": profile_sha256,
             "replay_receipts": receipts,

@@ -1,0 +1,40 @@
+{
+  "task_id": 77,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7780/admin/review/product/pending/"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async()=>{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);try{\nconst gridId=\"reviewGrid\",identity=\"review_id\";\nif(location.pathname.replace(/\\/$/,'')!==\"/admin/review/product/pending\")throw Error('wrong legacy grid page');\nconst number=(text)=>{const s=String(text??'').trim();if(!/^\\d+$/.test(s)||!Number.isSafeInteger(Number(s)))throw Error('invalid grid integer');return Number(s)};\nconst collect=(doc,index)=>{\n const root=doc.getElementById(gridId),table=doc.getElementById(gridId+'_table');\n if(!root||!table||!root.contains(table))throw Error('legacy grid missing');\n const total=number(doc.getElementById(gridId+'-total-count')?.textContent);\n const current=number(root.querySelector('input[name=\"page\"]')?.value),size=number(root.querySelector('select[name=\"limit\"]')?.value);\n if(current!==index||size<1||size>1000||Math.ceil(total/size)>100)throw Error('legacy pagination invalid');\n const active=[...table.querySelectorAll('thead input[name],thead select[name]')].filter(n=>!(n.type==='hidden'&&/\\[locale\\]$/.test(n.name))&&n.value!==''&&!(['store_id','massaction'].includes(n.name)&&n.value==='0')&&!(n.name==='visible_in'&&n.value==='1'));\n if(active.length)throw Error('filtered legacy grid');\n const rows=[...table.querySelectorAll('tbody > tr')].filter(tr=>!tr.querySelector('td.empty')).map(tr=>{\n   const fields=identity==='review_id'?['review_id']:['query_id','query_text','num_results','popularity'];\n   return Object.fromEntries(fields.map(field=>{const cells=tr.querySelectorAll('td.col-'+field);if(cells.length!==1)throw Error('legacy field missing or ambiguous');return [field,cells[0].textContent.replace(/\\s+/g,' ').trim()]}));\n });\n if(rows.length!==Math.min(size,Math.max(0,total-(index-1)*size)))throw Error('incomplete legacy page');\n for(const row of rows)number(row[identity]);\n return {rows,total,size};\n};\nconst first=collect(document,1),total=first.total,rows=[...first.rows],pages=[{page:1,rows:first.rows.length,total}],params={namespace:gridId};\nfor(let page=2;page<=Math.ceil(total/first.size);page++){\n const url=new URL(location.href);url.searchParams.set('page',String(page));url.searchParams.set('limit',String(first.size));\n const response=await fetch(url.href,{credentials:'same-origin',redirect:'error',signal:controller.signal});\n if(!response.ok||response.redirected||!/^text\\/html\\b/i.test(response.headers.get('content-type')||''))throw Error('legacy page fetch failed');\n const data=collect(new DOMParser().parseFromString(await response.text(),'text/html'),page);\n if(data.total!==total||data.size!==first.size)throw Error('legacy grid changed');\n rows.push(...data.rows);pages.push({page,rows:data.rows.length,total});\n}\nif(rows.length!==total||new Set(rows.map(r=>r[identity])).size!==total)throw Error('incomplete or duplicate legacy identities');\nreturn {scope:true,complete:true,namespace:params.namespace,pages,total,answer:total};\n}finally{controller.abort();clearTimeout(timer)}})()"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/1",
+    "task_id": 77,
+    "canonical_calls_sha256": "9249148d16515efe3b3b7fe50368cc004a474d5820cc43526815f9625852819f",
+    "sources": [
+      {
+        "name": "current",
+        "step": 2,
+        "action_sha256": "e46e9a66c7859fda3fc0fa48f3def23efe54113e5dcc088b8d570a373f5500ec",
+        "decode": "json"
+      }
+    ],
+    "requirements": {
+      "scope": {
+        "source": "current",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "current",
+        "pointer": "/complete"
+      }
+    },
+    "projection": {
+      "source": "current",
+      "pointer": "/answer"
+    }
+  }
+}

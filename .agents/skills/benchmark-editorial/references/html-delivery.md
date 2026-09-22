@@ -2,6 +2,8 @@
 
 The dashboard reading page and standalone HTML are two presentations of the same authored article. Use the current report renderer and preserve its integrity, safety and localization contracts.
 
+Generate Chinese by default. English prose, illustrations, rendering and language-specific checks run only on an explicit manual request. An absent English edition gets a not-generated notice and a return link, not stale translated pages. Preserve translation sources without distributing unused English assets. Apply cross-language parity checks only when both editions are generated; always test the notice in a Chinese-only release.
+
 ## Reading layout
 
 Choose a clear hierarchy for title, introduction, sections, body and captions. Align headings and their supporting figures deliberately, keep body lines readable, and check the result at actual display sizes. Do not create an oversized heading from an editing instruction or shrink a necessary qualification into unreadable text.

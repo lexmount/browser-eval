@@ -1,0 +1,188 @@
+{
+  "task_id": 67,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:9999/f/Books"
+    },
+    {
+      "action": "wait",
+      "seconds": 2
+    },
+    {
+      "action": "evaluate",
+      "script": "(async()=>{const links=[...new Set([...document.querySelectorAll('main article a[href*=\"/f/books/\"]')].map(a=>a.getAttribute('href')).filter(Boolean))].slice(0,10);if(links.length!==10)throw new Error('expected ten hot-post links, found '+links.length);return Promise.all(links.map(async href=>{const response=await fetch(href);if(!response.ok)throw new Error('post fetch failed '+response.status+' '+href);const page=new DOMParser().parseFromString(await response.text(),'text/html');return {href,text:page.querySelector('main article')?.textContent?.replace(/\\s+/g,' ').trim()||null};}));})()"
+    },
+    {
+      "action": "evaluate",
+      "script": "(async () => {\n  const controller = new AbortController();\n  const timer = setTimeout(() => controller.abort(), 20000);\n  try {\n    const listing = new URL(location.href);\n    if (listing.origin !== location.origin || listing.pathname.toLowerCase().replace(/\\/$/, '') !== '/f/books' || listing.search) throw new Error('wrong Books listing');\n    const hot = [...document.querySelectorAll('button[aria-label]')].some(node => /^sort by:\\s*hot$/i.test(node.getAttribute('aria-label') || ''));\n    if (!hot) throw new Error('Books listing is not sorted by Hot');\n    const articles = [...document.querySelectorAll('main > article')];\n    if (articles.length < 10) throw new Error('fewer than ten hot posts');\n    const normalize = text => String(text ?? '').replace(/\\s+/g, ' ').trim();\n    const entries = articles.slice(0, 10).map((article, index) => {\n      const links = [...article.querySelectorAll('a[href]')].map(a => a.getAttribute('href')).filter(Boolean);\n      const matches = links.map(href => ({href, match: /^\\/f\\/books\\/(\\d+)(?:\\/|$)/i.exec(href)})).filter(row => row.match);\n      const ids = [...new Set(matches.map(row => row.match[1]))];\n      const title = normalize(article.querySelector('header h1')?.textContent);\n      if (ids.length !== 1 || !title) throw new Error('missing or ambiguous listed post identity');\n      return {rank: index + 1, post_id: ids[0], href: matches[0].href, title};\n    });\n    if (new Set(entries.map(row => row.post_id)).size !== 10) throw new Error('duplicate top-ten post');\n    const posts = [];\n    for (const entry of entries) {\n      const url = new URL(entry.href, location.href);\n      if (url.origin !== location.origin || !new RegExp('^/f/books/' + entry.post_id + '(?:/|$)', 'i').test(url.pathname)) throw new Error('out-of-scope post');\n      const response = await fetch(url.href, {credentials:'same-origin',redirect:'error',signal:controller.signal});\n      if (response.status !== 200 || response.redirected || !/^text\\/html\\b/i.test(response.headers.get('content-type') || '')) throw new Error('post detail unavailable');\n      const page = new DOMParser().parseFromString(await response.text(), 'text/html');\n      const article = page.querySelector('main > article');\n      const detailTitle = normalize(article?.querySelector('header h1')?.textContent);\n      const permalinks = [...(article?.querySelectorAll('a[href]') || [])].map(a => a.getAttribute('href')).filter(Boolean);\n      if (!article || detailTitle !== entry.title || !permalinks.some(href => new RegExp('^/f/books/' + entry.post_id + '(?:/|$)', 'i').test(href))) throw new Error('listing/detail identity mismatch');\n      posts.push({...entry, detail_url:response.url, article_text:normalize(article.textContent), description:article.querySelector('.submission__body')?.textContent ?? ''});\n    }\n    return {schema:'books_hot_top_ten_current_observation/1',scope:true,complete:posts.length===10,listing_url:listing.href,sort:'hot',posts};\n  } finally { controller.abort(); clearTimeout(timer); }\n})()"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/3",
+    "task_id": 67,
+    "canonical_calls_sha256": "c89bfafce5cf4b4804b6ef74a2a9564d7d451417fdfb5257f32b78297c64da67",
+    "sources": [
+      {
+        "name": "books",
+        "step": 4,
+        "action_sha256": "4d92ec7adf014fa04227dd23c965cd4f1351be78354ae8381b3d7920508aa923",
+        "decode": "json"
+      }
+    ],
+    "semantic_reference": {
+      "kind": "reviewed_span_annotation",
+      "browser_semantic_inference": false,
+      "reviewer": {
+        "kind": "agent",
+        "identity": "parent agent, independent source review"
+      },
+      "scope": "Ordered Books Hot top ten: exactly one recommended book with its title in the post description",
+      "evidence_sha256": "170eb27d62de0e9f8c943e89b4ad694413259fe8b0def065648991cb6c24ebf6"
+    },
+    "reviewed_span_projection": {
+      "kind": "reviewed_ordered_spans/1",
+      "source": "books",
+      "collection_pointer": "/posts",
+      "identity_pointer": "/post_id",
+      "semantic_text_pointer": "/description",
+      "output_text_pointer": "/description",
+      "output": "selected_spans",
+      "span_unit": "unicode_code_points",
+      "annotation": {
+        "schema": "lex_replay_reviewed_span_annotation/1",
+        "semantic": "exactly_one_book_recommendation",
+        "items": [
+          {
+            "identity_sha256": "c2f152d486b7f4c22aca89e884a338e7c44e8cde0f14dc2caa4e5c09c92361a3",
+            "semantic_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "output_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "recommendation_count": 0,
+            "spans": []
+          },
+          {
+            "identity_sha256": "75fd57a688ee1139be8d59d299593518bd6f6c3318cc4462c60c49145c240c0f",
+            "semantic_text_sha256": "52bec4be727b86dc39742550830f6cbd54fe07be3712afd55e113a5e65040498",
+            "output_text_sha256": "52bec4be727b86dc39742550830f6cbd54fe07be3712afd55e113a5e65040498",
+            "recommendation_count": 0,
+            "spans": []
+          },
+          {
+            "identity_sha256": "e4ea530a9e7192d38a22cd7e39616e9cff23240f6d71bca3e2ce23404d794828",
+            "semantic_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "output_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "recommendation_count": 0,
+            "spans": []
+          },
+          {
+            "identity_sha256": "a2577600b0089626a300c9bdd613f95a97336f559fa42cdf045978d43459b833",
+            "semantic_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "output_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "recommendation_count": 0,
+            "spans": []
+          },
+          {
+            "identity_sha256": "e7f270e372477c9c2e16c97f7f8e3ffd17ef64939587b89c22b56c9f0c9cd2fc",
+            "semantic_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "output_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "recommendation_count": 0,
+            "spans": []
+          },
+          {
+            "identity_sha256": "84652a06807063cc0672d570ff11aefd5c8aabd888150e87b9222e2d5f2062f9",
+            "semantic_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "output_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "recommendation_count": 0,
+            "spans": []
+          },
+          {
+            "identity_sha256": "66a895fc34d189481c060a627adbf5f208cb6b45e4d2d2627da985546c820887",
+            "semantic_text_sha256": "0db99ff84c30b0aeb6e68ffc6b44f755c5fbb5034521c8c4161f9dafb63a4fd9",
+            "output_text_sha256": "0db99ff84c30b0aeb6e68ffc6b44f755c5fbb5034521c8c4161f9dafb63a4fd9",
+            "recommendation_count": 0,
+            "spans": []
+          },
+          {
+            "identity_sha256": "cde84afcd407f4393eea42c81753c12363d4b600e9475bb3a0c077ff9bb84f67",
+            "semantic_text_sha256": "dfb76690d41dd958ed684323806162013eea0477b0bb0dcb03fc4ec09fc32cd5",
+            "output_text_sha256": "dfb76690d41dd958ed684323806162013eea0477b0bb0dcb03fc4ec09fc32cd5",
+            "recommendation_count": 1,
+            "spans": [
+              {
+                "start": 463,
+                "end": 473
+              }
+            ]
+          },
+          {
+            "identity_sha256": "27589092311867d58a79762b17f6ba77ce79c2a4e0bb2d78703c814dc0acb1b9",
+            "semantic_text_sha256": "73491f046369eeff4976b10a2fafbe183c36ea874867f7c63a441a96b70a625b",
+            "output_text_sha256": "73491f046369eeff4976b10a2fafbe183c36ea874867f7c63a441a96b70a625b",
+            "recommendation_count": 0,
+            "spans": []
+          },
+          {
+            "identity_sha256": "db89597c0d478af089407db4a7d26adc52db46f99e1d0ba35893dd8abd995191",
+            "semantic_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "output_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "recommendation_count": 0,
+            "spans": []
+          }
+        ]
+      }
+    },
+    "requirements": {
+      "scope": {
+        "source": "books",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "books",
+        "pointer": "/complete"
+      }
+    },
+    "review_evidence": {
+      "schema": "lex_replay_review_evidence/1",
+      "reviewer": {
+        "kind": "agent",
+        "identity": "parent agent, independent source review"
+      },
+      "scope": "Ordered Books Hot top ten: exactly one recommended book with its title in the post description",
+      "task_id": 67,
+      "sources_sha256": "20a7a51f8a137175f3b0bea182c375083d3264eaf4bdf2e1c6b3902f3e6ef91b",
+      "projection_sha256": "fd08641aa2aa4a981d341534cf2fe709e18f7d202325719c6c10486b7804a2f0",
+      "source_review": {
+        "reviewer": {
+          "kind": "agent",
+          "identity": "parent agent, independent source review"
+        },
+        "scope": "Ordered Books Hot top ten: exactly one recommended book with its title in the post description",
+        "task_id": 67,
+        "sources_sha256": "20a7a51f8a137175f3b0bea182c375083d3264eaf4bdf2e1c6b3902f3e6ef91b",
+        "projection_sha256": "fd08641aa2aa4a981d341534cf2fe709e18f7d202325719c6c10486b7804a2f0",
+        "decision": "Only the body of post 17445 yields an exact book title; post 59396 names its book only in the header.",
+        "audit_sha256": "7057e6eb5cfd9c49d23d1984b9fce96e8ea13f68a4698dba5cef0eb70739bef2",
+        "predecessor_artifacts": []
+      },
+      "source_review_sha256": "45016f178efd195852e3a673c870e1a6f1c2261328efc17407cd56e440b5ed9b",
+      "source_review_artifact": {
+        "utf8": "{\"audit_sha256\":\"7057e6eb5cfd9c49d23d1984b9fce96e8ea13f68a4698dba5cef0eb70739bef2\",\"decision\":\"Only the body of post 17445 yields an exact book title; post 59396 names its book only in the header.\",\"predecessor_artifacts\":[],\"projection_sha256\":\"fd08641aa2aa4a981d341534cf2fe709e18f7d202325719c6c10486b7804a2f0\",\"reviewer\":{\"identity\":\"parent agent, independent source review\",\"kind\":\"agent\"},\"scope\":\"Ordered Books Hot top ten: exactly one recommended book with its title in the post description\",\"sources_sha256\":\"20a7a51f8a137175f3b0bea182c375083d3264eaf4bdf2e1c6b3902f3e6ef91b\",\"task_id\":67}",
+        "sha256": "45016f178efd195852e3a673c870e1a6f1c2261328efc17407cd56e440b5ed9b",
+        "content": {
+          "reviewer": {
+            "kind": "agent",
+            "identity": "parent agent, independent source review"
+          },
+          "scope": "Ordered Books Hot top ten: exactly one recommended book with its title in the post description",
+          "task_id": 67,
+          "sources_sha256": "20a7a51f8a137175f3b0bea182c375083d3264eaf4bdf2e1c6b3902f3e6ef91b",
+          "projection_sha256": "fd08641aa2aa4a981d341534cf2fe709e18f7d202325719c6c10486b7804a2f0",
+          "decision": "Only the body of post 17445 yields an exact book title; post 59396 names its book only in the header.",
+          "audit_sha256": "7057e6eb5cfd9c49d23d1984b9fce96e8ea13f68a4698dba5cef0eb70739bef2",
+          "predecessor_artifacts": []
+        }
+      }
+    }
+  },
+  "qualification_status": "source_reviewed"
+}

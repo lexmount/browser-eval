@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from harness.web_fetch.reliability import require_reliable
 from harness.web_fetch.reference_lifecycle import validate_resource_source_evidence
+from harness.report_languages import check_language_contract, generated_languages
 from scripts.report_asset_parity import ArticleAssetParity
 
 class Tables(HTMLParser):
@@ -73,6 +74,8 @@ if (root/'sample-manifest.json').is_file() and (root/'certification.json').is_fi
  check(root)
  raise SystemExit(0)
 d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
+check_language_contract(root)
+has_english='en' in generated_languages(root)
 repository=Path(__file__).resolve().parents[1]
 if d.get('comparison',{}).get('kind')=='webmainbench_frozen_html_to_markdown':
  from scripts.check_webmainbench_report import check_report
@@ -123,7 +126,8 @@ for c in d['cases']:
  assert {r['provider'] for r in rs if r['case_id']==c['id']}==set(plan.get(c.get('track','web'),names)),c['id']
 zh_pages={p.relative_to(root) for p in root.rglob('*.html') if 'en' not in p.relative_to(root).parts}
 en_pages={Path(*p.relative_to(root).parts[1:]) for p in (root/'en').rglob('*.html')}
-assert zh_pages==en_pages,('Chinese/English route inventories differ',zh_pages^en_pages)
+if has_english:
+ assert zh_pages==en_pages,('Chinese/English route inventories differ',zh_pages^en_pages)
 def canonical_link(page,value):
  parsed=urlsplit(value)
  if parsed.scheme or parsed.netloc:return value
@@ -136,29 +140,31 @@ def canonical_link(page,value):
 bilingual_issues=[]
 asset_manifest=Path(__file__).resolve().parents[1]/'research/editorial-figures.json'
 article_assets=ArticleAssetParity(root,asset_manifest) if asset_manifest.exists() and (root/'assets/editorial').exists() else None
-for relative in sorted(zh_pages):
- zh_path=root/relative;en_path=root/'en'/relative
- zh=PageShape(zh_path,article_assets);zh.feed(zh_path.read_text());en=PageShape(en_path,article_assets);en.feed(en_path.read_text())
- if zh.tags!=en.tags:bilingual_issues.append((relative,'semantic tag counts differ'))
- if zh.ids!=en.ids:bilingual_issues.append((relative,'element IDs differ'))
- if Counter(zh.data)!=Counter(en.data):bilingual_issues.append((relative,'data attributes differ'))
- zh_numbers=Counter(zh.numbers);en_numbers=Counter(en.numbers)
- if zh_numbers!=en_numbers:
-  bilingual_issues.append((relative,'visible numeric values differ',zh_numbers-en_numbers,en_numbers-zh_numbers))
- zh_links=Counter(canonical_link(zh_path,value) for value in zh.links)
- en_links=Counter(canonical_link(en_path,value) for value in en.links)
- if zh_links!=en_links:bilingual_issues.append((relative,'evidence or navigation links differ'))
- if relative in {Path('guide/index.html'),Path('guide/article.html')}:
-  if Counter(canonical_link(zh_path,value) for value in zh.images)!=Counter(canonical_link(en_path,value) for value in en.images):
-   bilingual_issues.append((relative,'article image sources differ'))
+if has_english:
+ for relative in sorted(zh_pages):
+  zh_path=root/relative;en_path=root/'en'/relative
+  zh=PageShape(zh_path,article_assets);zh.feed(zh_path.read_text());en=PageShape(en_path,article_assets);en.feed(en_path.read_text())
+  if zh.tags!=en.tags:bilingual_issues.append((relative,'semantic tag counts differ'))
+  if zh.ids!=en.ids:bilingual_issues.append((relative,'element IDs differ'))
+  if Counter(zh.data)!=Counter(en.data):bilingual_issues.append((relative,'data attributes differ'))
+  zh_numbers=Counter(zh.numbers);en_numbers=Counter(en.numbers)
+  if zh_numbers!=en_numbers:
+   bilingual_issues.append((relative,'visible numeric values differ',zh_numbers-en_numbers,en_numbers-zh_numbers))
+  zh_links=Counter(canonical_link(zh_path,value) for value in zh.links)
+  en_links=Counter(canonical_link(en_path,value) for value in en.links)
+  if zh_links!=en_links:bilingual_issues.append((relative,'evidence or navigation links differ'))
+  if relative in {Path('guide/index.html'),Path('guide/article.html')}:
+   if Counter(canonical_link(zh_path,value) for value in zh.images)!=Counter(canonical_link(en_path,value) for value in en.images):
+    bilingual_issues.append((relative,'article image sources differ'))
 assert not bilingual_issues,('Chinese/English page parity failed',bilingual_issues[:200],len(bilingual_issues))
 english_primary=[Path(name) for name in ('index.html','methodology/index.html','review/index.html',
  'guide/index.html','adoption/index.html','reproduce/index.html','changes/index.html','accounts/index.html')]
 allowed_english_source_text={'中文'}|{case['name'] for case in d['cases'] if case.get('name')}
-for relative in english_primary:
- if relative not in en_pages:continue
- parser=EnglishNarrative(allowed_english_source_text);parser.feed((root/'en'/relative).read_text())
- assert not parser.untranslated,(relative,'untranslated English report narrative',parser.untranslated[:20])
+if has_english:
+ for relative in english_primary:
+  if relative not in en_pages:continue
+  parser=EnglishNarrative(allowed_english_source_text);parser.feed((root/'en'/relative).read_text())
+  assert not parser.untranslated,(relative,'untranslated English report narrative',parser.untranslated[:20])
 for p in root.rglob('*.html'):
  text=p.read_text();reader=VisibleText();reader.feed(text);visible=' '.join(reader.parts)
  for banned in ['人工复核','人工检查','短参考答案词级','组 · 查看','已确认有效','标准答案漂移候选队列','需辅助','需用户辅助','请自行登录','补采记录','本轮解析修正','内容已合并','build_v8_report','report_v8.py','任务修订','评分 8.2','已执行/总案例','已判分/已调用']:
@@ -194,11 +200,12 @@ if (root/'resource-cohort/resource-comparison.json').is_file():
   assert 'data-resource-winner=' in text,(page_name,'missing resource winner summary')
   assert all(label in text for label in ('CPU 与计算','内存','网络')),(page_name,'missing grouped resource tables')
   assert text.count('data-resource-metric-winner=') >= 9,(page_name,'resource winners are not marked')
- for page_name,text in [('English home',(root/'en/index.html').read_text()),
-                        ('English guide',(root/'en/guide/index.html').read_text())]:
-  assert 'data-resource-winner=' in text,(page_name,'missing resource winner summary')
-  assert all(label in text for label in ('CPU and compute','Memory','Network')),(page_name,'missing grouped resource tables')
-  assert text.count('data-resource-metric-winner=') >= 9,(page_name,'resource winners are not marked')
+ if has_english:
+  for page_name,text in [('English home',(root/'en/index.html').read_text()),
+                         ('English guide',(root/'en/guide/index.html').read_text())]:
+   assert 'data-resource-winner=' in text,(page_name,'missing resource winner summary')
+   assert all(label in text for label in ('CPU and compute','Memory','Network')),(page_name,'missing grouped resource tables')
+   assert text.count('data-resource-metric-winner=') >= 9,(page_name,'resource winners are not marked')
 methodology=(root/'methodology/index.html').read_text()
 for phrase in ['计入耗时','不计入耗时','供应商上报的服务端耗时只作附加证据','形成可送入统一评分器的最终答案']:
  assert phrase in methodology,phrase
