@@ -41,7 +41,7 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
  quality_count=summary['quality_case_count']
  result_count=case_count*len(providers)
  visible_count=quality_count*len(providers)
- review_scope=json.loads((Path(__file__).resolve().parents[2]/'research/wcxb-representative-review.json').read_text())
+ review_scope=json.loads((out/'research/wcxb-representative-review.json').read_text())
  reviewed_cases=review_scope['case_count']
  reviewed_results=review_scope['result_count']
  unreviewed_results=result_count-reviewed_results
@@ -101,11 +101,6 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
  (out/'assets').mkdir(exist_ok=True)
  (out/'assets/style.css').write_text(style,encoding='utf-8')
  (out/'assets/report.js').write_text(script,encoding='utf-8')
- repair_assets=Path(__file__).parent/'assets/wcxb-repair'
- repair_output=out/'assets/wcxb-repair'
- repair_output.mkdir(exist_ok=True)
- for image_name in ('code-block.png','description.png','adjacent-code.png'):
-  shutil.copyfile(repair_assets/image_name,repair_output/image_name)
  def href(lang,path):return ('en/' if lang=='en' else '')+path
  def page(lang,path,title,body):
   x=L[lang]

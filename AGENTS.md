@@ -1,5 +1,8 @@
 # Report maintenance
 
+- Keep report-specific illustrations and review payloads outside Git, alongside frozen evidence. Commit only their compact path/hash bindings. WCXB builds read the profile-bound files from `<evidence>/report-assets/` and preserve the same relative paths in the public package; restore missing files from the profile's pinned Artifact Site version, never from an unversioned latest report. Do not silently fall back to a repository copy.
+- Remove retired report-specific generators and their exclusive tests when no supported entry point calls them. Preserve published reports and historical evidence. Keep behavioral tests for the supported build, package, and publication boundaries; do not replace them with assertions about private helper structure.
+
 ## Common report presentation
 
 These requirements apply to **all** report tracks; browser-specific rules below only add evidence types.

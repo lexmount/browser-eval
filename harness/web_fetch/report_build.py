@@ -4,6 +4,7 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
+from harness.reporting.assets import copy_bound_assets
 from .report import generate, generate_public_benchmark_research, generate_webmainbench, generate_wcxb, succeeded, measured, failure_category, TRACKS
 from .report_changes import webmainbench_history
 from .failure_diagnosis import diagnose
@@ -597,9 +598,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
                      staging / 'research/report-changes.json')
         shutil.copy2(Path(__file__).resolve().parents[2] / 'research/provider-adoption.json',
                      staging / 'research/provider-adoption.json')
-        review_source = Path(__file__).resolve().parents[2] / 'research/wcxb-representative-review.json'
-        if review_source.is_file():
-            shutil.copy2(review_source, staging / 'research/wcxb-representative-review.json')
+        copy_bound_assets(source / 'report-assets', staging, profile['report_assets'])
         (staging / 'references').mkdir()
         (staging / 'inputs').mkdir()
         for case in records:
