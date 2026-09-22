@@ -41,6 +41,10 @@ Shopping, Reddit, and GitLab with independent writable container layers and uniq
 domains. Reset deletes and recreates the whole slice from the pinned baseline; destroy
 removes the application. Read-only Map and Wikipedia services may be shared when
 separately deployed; they are different services, not substitutes for each other.
+Set both shared URLs in `shared_environments` in the pool config. Every newly
+provisioned slice then receives its own four writable-site URLs plus the same
+Map and Wikipedia URLs in its generated runtime config. Scaling the pool does
+not copy the large Map or Wikipedia volumes.
 
 The baseline also contains a small digest-pinned initializer component. It calls the
 Reddit and GitLab `env-ctrl` endpoints only over Rainbond's internal service network,

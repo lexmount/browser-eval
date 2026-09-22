@@ -191,6 +191,31 @@ def _pool(tmp_path: Path, api: FakeAPI) -> RainbondSlicePool:
     return pool
 
 
+def test_new_slice_runtime_config_contains_four_unique_sites_and_two_shared_sites(tmp_path):
+    config_path = _pool_config(tmp_path)
+    config = json.loads(config_path.read_text())
+    shared = {
+        "__MAP__": {"urls": ["http://shared-map.test"]},
+        "__WIKIPEDIA__": {"urls": ["http://shared-wikipedia.test"]},
+    }
+    config["shared_environments"] = shared
+    config_path.write_text(json.dumps(config))
+    pool = RainbondSlicePool(config_path, api=FakeAPI())
+    receipt = {
+        "components": {
+            site: {"site_url": f"http://slice-2-{site}.test"}
+            for site in STATEFUL_SITES
+        }
+    }
+
+    environments = pool.runtime_config(receipt)["environments"]
+
+    assert set(environments) == {f"__{site.upper()}__" for site in STATEFUL_SITES} | set(shared)
+    assert environments["__MAP__"] == shared["__MAP__"]
+    assert environments["__WIKIPEDIA__"] == shared["__WIKIPEDIA__"]
+    assert environments["__GITLAB__"]["urls"] == ["http://slice-2-gitlab.test"]
+
+
 def test_app_deletion_waits_for_service_stop(tmp_path):
     api = FakeAPI()
     pool = _pool(tmp_path, api)

@@ -417,7 +417,10 @@ def serve(root: Path, reserve: int, command: list[str], detail: list[str] | None
             def stop(signum, frame):
                 for child in (process, helper):
                     if child is not None and child.poll() is None:
-                        os.killpg(child.pid, signal.SIGTERM)
+                        try:
+                            os.killpg(child.pid, signal.SIGTERM)
+                        except ProcessLookupError:
+                            pass
 
             previous = {sig: signal.signal(sig, stop) for sig in (signal.SIGTERM, signal.SIGINT)}
             try:
@@ -435,7 +438,10 @@ def serve(root: Path, reserve: int, command: list[str], detail: list[str] | None
                     try:
                         child.wait(timeout=30)
                     except subprocess.TimeoutExpired:
-                        os.killpg(child.pid, signal.SIGKILL)
+                        try:
+                            os.killpg(child.pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
                         child.wait()
                 for sig, handler in previous.items():
                     signal.signal(sig, handler)

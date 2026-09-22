@@ -27,5 +27,8 @@
   "readiness_timeout_seconds": 1800,
   "max_parallel_provisions": 2,
   "reset_strategy": "replace_before_destroy",
-  "shared_environments": {}
+  "shared_environments": {
+    "__MAP__": {"urls": ["http://replace-with-shared-map-domain"]},
+    "__WIKIPEDIA__": {"urls": ["http://replace-with-shared-wikipedia-domain"]}
+  }
 }

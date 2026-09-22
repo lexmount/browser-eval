@@ -4,6 +4,7 @@ import gzip
 import hashlib
 import io
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -287,6 +288,19 @@ def test_service_exit_status_is_preserved(tmp_path):
 
 
 def test_map_stops_if_detail_service_exits(tmp_path):
+    with pytest.raises(RuntimeError, match="Map detail service exited"):
+        serve(tmp_path, 0, [sys.executable, "-c", "import time; time.sleep(60)"],
+              [sys.executable, "-c", "raise SystemExit(7)"])
+
+
+def test_process_group_exit_during_cleanup_preserves_service_failure(tmp_path, monkeypatch):
+    original_killpg = os.killpg
+
+    def exited_after_poll(pid, sig):
+        original_killpg(pid, sig)
+        raise ProcessLookupError(pid)
+
+    monkeypatch.setattr(os, "killpg", exited_after_poll)
     with pytest.raises(RuntimeError, match="Map detail service exited"):
         serve(tmp_path, 0, [sys.executable, "-c", "import time; time.sleep(60)"],
               [sys.executable, "-c", "raise SystemExit(7)"])
