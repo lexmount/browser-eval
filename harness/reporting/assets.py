@@ -1,6 +1,22 @@
 """Materialize bound report assets from a Git-external source tree."""
 import hashlib
+import json
 from pathlib import Path
+
+
+def check_external_asset_boundary(root: Path) -> None:
+    names = set()
+    for manifest in (root / 'research').glob('*-content.json'):
+        names.update(json.loads(manifest.read_text()))
+    for profile in (root / 'evaluation').rglob('current-report.json'):
+        names.update(json.loads(profile.read_text()).get('report_assets', {}))
+    for directory in ('harness', 'research', 'evaluation'):
+        for path in (root / directory).rglob('*'):
+            if not path.is_file():
+                continue
+            relative = path.relative_to(root).as_posix()
+            if any(relative == name or relative.endswith('/' + name) for name in names):
+                raise ValueError(f'External report content duplicated in repository: {relative}')
 
 
 def copy_bound_assets(source: Path, destination: Path, bindings: dict[str, str]) -> None:

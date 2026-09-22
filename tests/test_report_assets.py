@@ -3,10 +3,24 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness.reporting.assets import copy_bound_assets
+from harness.reporting.assets import check_external_asset_boundary, copy_bound_assets
 
 
 class ReportAssetsTest(unittest.TestCase):
+    def test_repository_has_no_copies_of_bound_external_content(self):
+        check_external_asset_boundary(Path(__file__).resolve().parents[1])
+
+    def test_boundary_rejects_reintroduced_content_without_banning_common_assets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            (root / 'research').mkdir()
+            (root / 'research/example-content.json').write_text('{"figure.png": "hash"}')
+            (root / 'research/methodology.png').write_bytes(b'common asset')
+            check_external_asset_boundary(root)
+            (root / 'research/figure.png').write_bytes(b'duplicate report asset')
+            with self.assertRaisesRegex(ValueError, 'duplicated'):
+                check_external_asset_boundary(root)
+
     def test_only_bound_assets_are_copied_byte_exactly(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp).resolve()
