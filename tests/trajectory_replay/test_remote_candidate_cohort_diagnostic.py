@@ -11,7 +11,7 @@ from webarena_verified.types.task import WebArenaSite
 
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls
 from harness.trajectory_replay.webarena_replay import _json_sha256
-from scripts.run_remote_candidate_cohort_diagnostic import (
+from harness.trajectory_replay.remote_execution import (
     _browser_command,
     _read_retrieval_contract,
     _task_type,

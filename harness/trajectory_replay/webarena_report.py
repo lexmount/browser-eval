@@ -1237,6 +1237,7 @@ def build_webarena_replay_report(
     output_dir: str | Path,
     diagnostic_closure_path: str | Path | None = None,
     interpretation_path: str | Path | None = None,
+    interpretation_audit_path: str | Path | None = None,
     include_english: bool = False,
 ) -> dict[str, Any]:
     languages = ("zh", "en") if include_english else ("zh",)
@@ -1797,7 +1798,7 @@ def build_webarena_replay_report(
         css_path.write_text(css, encoding="utf-8")
         for lang in languages:
             language_root = output if lang == "zh" else output / "en"
-            arguments = dict(source=source, contract_audit=source.parent / "trajectory-replay-contract-audit.json",
+            arguments = dict(source=source, contract_audit=Path(interpretation_audit_path) if interpretation_audit_path is not None else source.parent / "trajectory-replay-contract-audit.json",
                              results_sha256=_sha256(results_source), methods=methods, rows=public_rows,
                              lang=lang, image_dir=illustrations,
                              image_prefix=("assets/" if lang == "zh" else "../assets/") + "interpretation/")

@@ -1,7 +1,23 @@
 # WebArena-Verified verified trajectories
 
-`trajectories.json` is the compact, versioned trajectory portion of the benchmark dataset.
-Each trajectory is one verified feasible BrowserTool path, not the task's only correct path.
+`current-run.json.dataset.path` and its SHA-256 identify the authoritative trajectory
+input for a formal build; currently this is `trajectories-corrected.json`.
+`trajectories.json` is the retained predecessor used by qualification and correction
+provenance. It is not a second current dataset. Each trajectory is one verified feasible
+BrowserTool path, not the task's only correct path.
+
+WebArena task definitions and shared evaluator fixes belong in the
+`lexmount/webarena-verified` fork. BrowserTool actions, selector compilation, local
+qualification and method comparisons belong here: the upstream task dataset does not
+define those browser-tool trajectories. Historical correction catalogs in `revisions/`
+are immutable inputs bound by retained cohorts, not copies of report output; removing
+them must not make historical contracts impossible to resolve.
+
+Authored report content and illustrations live outside Git. The report command takes
+`--content` (default `$BROWSER_EVAL_DATA_HOME/report-assets/trajectory-replay`, with the
+data home defaulting to `~/.browser-eval`). `research/trajectory-replay-content.json`
+binds every consumed file. The prior Git revision retains migration recovery copies;
+published report versions and physical execution evidence remain unchanged.
 
 `current-run.json` is the run authority for the next formal replay. It freezes the same 90-task
 selection used by the current Browser Use evaluation, the registered browser methods, resource

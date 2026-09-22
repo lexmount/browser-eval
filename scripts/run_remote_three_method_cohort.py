@@ -41,7 +41,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from scripts.run_remote_candidate_cohort_diagnostic import (  # noqa: E402
+from harness.trajectory_replay.remote_execution import (  # noqa: E402
     _browser_command,
     _run_task,
     _verify_result_evidence,
@@ -181,7 +181,7 @@ def _reference_hashes(args: argparse.Namespace) -> dict[str, str]:
         "task_corrections": ROOT
         / "evaluation/trajectory-replay/webarena-verified/task-corrections.json",
         "runner": Path(__file__).resolve(),
-        "candidate_runner": ROOT / "scripts/run_remote_candidate_cohort_diagnostic.py",
+        "remote_execution": ROOT / "harness/trajectory_replay/remote_execution.py",
         "replay_logic": ROOT / "harness/trajectory_replay/webarena_replay.py",
         "retrieval_acceptance": ROOT / "harness/trajectory_replay/retrieval_acceptance.py",
         "correction_logic": ROOT / "harness/trajectory_replay/webarena_corrections.py",

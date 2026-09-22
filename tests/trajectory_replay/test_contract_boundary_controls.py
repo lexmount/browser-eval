@@ -98,10 +98,19 @@ def test_510_revision_receipt_binds_rules_and_candidate():
     assert receipt['provider_call_count'] == 0
 
 
-def test_quantity_candidate_preserves_every_other_frozen_action():
+def test_assertion_audit_rejects_changes_outside_declared_step(tmp_path):
     from scripts.audit_replay_cart_assertion import bound_scripts
-    before, after = bound_scripts(
-        Path('evaluation/trajectory-replay/webarena-verified/trajectories-corrected.json'),
-        Path('evaluation/trajectory-replay/webarena-verified/trajectory-candidates/task-510.json'))
-    assert 'quantity!==1' not in before
-    assert 'quantity!==1' in after
+    dataset = tmp_path / 'dataset.json'
+    candidate = tmp_path / 'candidate.json'
+    calls = [{'action': 'evaluate', 'script': 'true'}, {'action': 'evaluate', 'script': '1'}]
+    dataset.write_text(json.dumps({'trajectories': [{'task_id': 42, 'tool_calls': calls}]}))
+    revised = json.loads(json.dumps(calls))
+    revised[0]['script'] = 'false'
+    payload = {'task_id': 42, 'tool_calls': revised, 'repair': {
+        'changed_step': 1, 'predecessor_dataset_sha256': hashlib.sha256(dataset.read_bytes()).hexdigest()}}
+    candidate.write_text(json.dumps(payload))
+    assert bound_scripts(dataset, candidate) == ('true', 'false')
+    revised[1]['script'] = '2'
+    candidate.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match='only its declared assertion'):
+        bound_scripts(dataset, candidate)

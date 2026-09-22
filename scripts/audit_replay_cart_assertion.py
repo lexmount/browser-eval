@@ -13,10 +13,7 @@ from pathlib import Path
 from playwright.sync_api import Error, sync_playwright
 
 
-PRODUCT = "Atlantic Technology FS-7.0-GLB 7-channel Surround Bar (Gloss Black) (Discontinued by Manufacturer)"
-
-
-def cart_html(quantity="1", *, rows=1, fields=1, name=PRODUCT):
+def cart_html(quantity="1", *, rows=1, fields=1, name):
     field = f'<input name="cart[1][qty]" value="{html.escape(quantity, quote=True)}">'
     row = '<tbody class="cart item"><tr><td><strong class="product-item-name">' + html.escape(name) + '</strong>' + field * fields + '</td></tr></tbody>'
     return '<!doctype html><table id="shopping-cart-table">' + row * rows + '</table>'
@@ -39,7 +36,7 @@ def bound_scripts(dataset, candidate):
     return before[index]['script'], after[index]['script']
 
 
-def audit(dataset, candidate, browser_binary):
+def audit(dataset, candidate, browser_binary, *, product):
     scripts = bound_scripts(dataset, candidate)
     cases = [('quantity-one', {}, True), ('quantity-two', {'quantity': '2'}, False),
              ('quantity-zero', {'quantity': '0'}, False), ('quantity-empty', {'quantity': ''}, False),
@@ -55,7 +52,7 @@ def audit(dataset, candidate, browser_binary):
             for identity, values, expected in cases:
                 outcomes = {}
                 for label, script in zip(('frozen', 'candidate'), scripts):
-                    page.set_content(cart_html(**values))
+                    page.set_content(cart_html(**{"name": product, **values}))
                     try:
                         result = page.evaluate(script)
                         outcomes[label] = {'passed': True, 'result': result}
@@ -67,7 +64,7 @@ def audit(dataset, candidate, browser_binary):
         finally:
             browser.close()
     return {'schema': 'lex_replay_cart_assertion_controls/1', 'scope': 'isolated_dom_not_task_scores',
-            'network_allowed': False, 'task_id': 510,
+            'network_allowed': False, 'task_id': json.loads(candidate.read_text())['task_id'],
             'dataset_sha256': hashlib.sha256(dataset.read_bytes()).hexdigest(),
             'candidate_sha256': hashlib.sha256(candidate.read_bytes()).hexdigest(),
             'observations': observations}
@@ -75,12 +72,13 @@ def audit(dataset, candidate, browser_binary):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--dataset', type=Path, default=Path('evaluation/trajectory-replay/webarena-verified/trajectories-corrected.json'))
-    parser.add_argument('--candidate', type=Path, default=Path('evaluation/trajectory-replay/webarena-verified/trajectory-candidates/task-510.json'))
+    parser.add_argument('--dataset', type=Path, required=True)
+    parser.add_argument('--candidate', type=Path, required=True)
+    parser.add_argument('--product', required=True, help='Expected product name from the task contract')
     parser.add_argument('--browser', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
-    output = audit(args.dataset, args.candidate, args.browser)
+    output = audit(args.dataset, args.candidate, args.browser, product=args.product)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     # Diagnostic calls have explicit output identities; never overwrite one.
     with args.output.open('x') as stream:

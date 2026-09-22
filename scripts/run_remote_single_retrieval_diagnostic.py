@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.run_remote_candidate_cohort_diagnostic import (  # noqa: E402
+from harness.trajectory_replay.remote_execution import (  # noqa: E402
     _browser_command,
     _run_task,
     _wait_cdp,

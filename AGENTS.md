@@ -1,5 +1,8 @@
 # Report maintenance
 
+- Keep report-specific prose, illustrations and review payloads outside Git, alongside frozen evidence. Commit compact path/hash bindings instead. The replay build reads `research/trajectory-replay-content.json` from the `--content` directory (default: the data home's `report-assets/trajectory-replay/`); restore missing content from the pinned Artifact Site version, not an unversioned latest report. Do not silently fall back to a repository copy. Compact task definitions, acceptance contracts and provenance annotations remain versioned inputs.
+- Remove retired report-specific generators and their exclusive tests when no supported entry point calls them. Preserve published reports and historical evidence. Keep behavioral tests for supported build, package and publication boundaries; do not replace them with assertions about private helper structure.
+
 ## Common report presentation
 
 These requirements apply to **all** report tracks; browser-specific rules below only add evidence types.
