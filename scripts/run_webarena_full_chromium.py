@@ -141,6 +141,7 @@ def main() -> None:
     parser.add_argument("--human-suite", type=Path, required=True)
     parser.add_argument("--template-candidates", type=Path)
     parser.add_argument("--curated-trajectories", type=Path)
+    parser.add_argument("--authored-suite", type=Path)
     parser.add_argument("--site-map", type=Path, required=True)
     parser.add_argument("--binary", type=Path, required=True)
     parser.add_argument("--cowagent", type=Path, required=True)
@@ -163,6 +164,19 @@ def main() -> None:
         raise ValueError("queue does not follow official order")
     suite = load_suite(args.human_suite)
     by_id = {int(task.task_id.removeprefix("webarena-")): task for task in suite.tasks}
+    authored_by_id = {}
+    if args.authored_suite is not None:
+        if queue.get("authored_suite_sha256") != _hash(args.authored_suite):
+            raise ValueError("authored trajectory source changed")
+        authored = load_suite(args.authored_suite)
+        authored_by_id = {
+            int(task.task_id.removeprefix("webarena-")): task for task in authored.tasks
+        }
+        scheduled = {
+            row["task_id"] for row in queue["rows"] if row.get("source") == "authored_trajectory"
+        }
+        if scheduled != set(authored_by_id):
+            raise ValueError("authored suite differs from its scheduled official cases")
     sites = load_remote_sites(args.site_map)
     benchmark = remote_benchmark(sites)
     template_tasks = {}
@@ -227,6 +241,8 @@ def main() -> None:
         ).strip()
     if args.curated_trajectories is not None:
         binding["curated_trajectories_sha256"] = _hash(args.curated_trajectories)
+    if args.authored_suite is not None:
+        binding["authored_suite_sha256"] = _hash(args.authored_suite)
     if args.action_timeout_ms != 30_000:
         binding["action_timeout_ms"] = args.action_timeout_ms
     if binding_path.exists():
@@ -264,6 +280,8 @@ def main() -> None:
                         task = (
                             template_tasks[task_id]
                             if row.get("source") == "template_transfer"
+                            else authored_by_id[task_id]
+                            if row.get("source") == "authored_trajectory"
                             else by_id[task_id]
                         )
                         outcome = _run_candidate(
