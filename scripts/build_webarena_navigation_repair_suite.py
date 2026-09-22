@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from urllib.parse import urlencode, urlsplit, urlunsplit
 
 from harness.trajectory_replay.public_webarena.suite import load_suite
 
@@ -24,6 +25,14 @@ def _bound_url(value: str, sites: dict[str, str]) -> str:
         if value.startswith(placeholder):
             return sites[site].rstrip("/") + value.removeprefix(placeholder)
     raise ValueError(f"navigation URL has no bound WebArena site: {value!r}")
+
+
+def _with_query(url: str, query: dict | None) -> str:
+    if not query:
+        return url
+    split = urlsplit(url)
+    pairs = [(key, item) for key, values in query.items() for item in values]
+    return urlunsplit((split.scheme, split.netloc, split.path, urlencode(pairs), split.fragment))
 
 
 def _navigation_urls(row: dict, sites: dict[str, str]) -> list[str] | None:
@@ -46,7 +55,11 @@ def _navigation_urls(row: dict, sites: dict[str, str]) -> list[str] | None:
             value = value[0]
         if not isinstance(value, str) or any(character in value for character in "^*$"):
             return None
-        urls.append(_bound_url(value, sites))
+        urls.append(
+            _with_query(
+                _bound_url(value, sites), evaluation["expected"].get("query_params")
+            )
+        )
     return urls or None
 
 

@@ -11,7 +11,12 @@ def test_navigation_suite_uses_page_url_and_graphql_referer(tmp_path):
             "revision": 1,
             "eval": [
                 {"expected": {"task_type": "navigate", "status": "SUCCESS"}},
-                {"expected": {"url": "__SHOPPING__/checkout/cart/"}},
+                {
+                    "expected": {
+                        "url": "__SHOPPING__/checkout/cart/",
+                        "query_params": {"sort": ["price"], "direction": ["asc"]},
+                    }
+                },
             ],
         },
         {
@@ -51,7 +56,7 @@ def test_navigation_suite_uses_page_url_and_graphql_referer(tmp_path):
         paths.append(path)
     result = build_navigation_suite(*paths)
     assert [task["trajectory"]["actions"][0]["url"] for task in result["tasks"]] == [
-        "https://shop.test/checkout/cart/",
+        "https://shop.test/checkout/cart/?sort=price&direction=asc",
         "https://git.test/group/project/-/issues/?state=opened",
     ]
 
