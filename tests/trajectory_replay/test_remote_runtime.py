@@ -7,6 +7,7 @@ from harness.trajectory_replay.remote_runtime import (
     file_sha256,
     load_remote_sites,
     rebind_remote_calls,
+    remote_benchmark,
     validate_remote_cohort_reset_receipt,
     validate_remote_reset_receipt,
 )
@@ -28,6 +29,32 @@ def _site_map(tmp_path):
         )
     )
     return path
+
+
+def test_six_site_remote_map_accepts_read_only_sites_and_rebinds_them(tmp_path):
+    site_map = _site_map(tmp_path)
+    payload = json.loads(site_map.read_text())
+    payload["sites"].update({
+        "map": "http://map.example/",
+        "wikipedia": "http://wiki.example/",
+    })
+    site_map.write_text(json.dumps(payload))
+    sites = load_remote_sites(site_map)
+    assert set(sites) == {
+        WebArenaSite.SHOPPING, WebArenaSite.SHOPPING_ADMIN, WebArenaSite.REDDIT,
+        WebArenaSite.GITLAB, WebArenaSite.MAP, WebArenaSite.WIKIPEDIA,
+    }
+    assert remote_benchmark(sites).config.get_environment(WebArenaSite.MAP).active_url == (
+        "http://map.example"
+    )
+    result = rebind_remote_calls(
+        [{"action": "navigate", "url": "http://host.docker.internal:3000/search?q=boston"},
+         {"action": "navigate", "url": "http://host.docker.internal:8888/wiki/Boston"}],
+        sites, {"host.docker.internal"},
+    )
+    assert [row["url"] for row in result] == [
+        "http://map.example/search?q=boston", "http://wiki.example/wiki/Boston",
+    ]
 
 
 def test_rebind_remote_calls_preserves_path_query_and_non_site_urls(tmp_path):
@@ -76,6 +103,25 @@ def test_rebind_url_form_input_without_rewriting_prose_or_external_links(tmp_pat
     assert result[0]["text"] == "http://reddit.example/submission_images/a.jpg?x=1#image"
     assert result[1:] == calls[1:]
     assert calls[0]["text"].startswith("http://192.168.5.2")
+
+
+def test_rebinds_recorded_url_inside_portable_playwright_target(tmp_path):
+    sites = load_remote_sites(_site_map(tmp_path))
+    source = "http://ec2-3-135-39-80.us-east-2.compute.amazonaws.com:7780"
+    calls = [
+        {
+            "action": "click",
+            "target": {
+                "by": "playwright",
+                "value": f'internal:attr=[title="{source}/admin/review/product/"i]',
+            },
+        }
+    ]
+    result = rebind_remote_calls(
+        calls, sites, {"ec2-3-135-39-80.us-east-2.compute.amazonaws.com"}
+    )
+    assert "http://admin.example/admin/review/product/" in result[0]["target"]["value"]
+    assert calls[0]["target"]["value"].startswith('internal:attr=[title="http://ec2-')
 
 
 def test_remote_reset_requires_pod_replacement_and_readiness(tmp_path):

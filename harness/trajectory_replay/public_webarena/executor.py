@@ -96,10 +96,13 @@ def execute_steps(
     outputs: dict[str, str] | None = None,
     page_observer: Callable[[Any], None] | None = None,
     task_timeout_ms: int | None = None,
+    default_action_timeout_ms: int = 30_000,
 ) -> dict[str, str]:
     """Execute declared calls; implicit readiness waits are internal and not calls."""
     if task_timeout_ms is not None and task_timeout_ms < 1:
         raise ValueError("task_timeout_ms must be positive when provided")
+    if default_action_timeout_ms < 1:
+        raise ValueError("default_action_timeout_ms must be positive")
     captured = outputs if outputs is not None else {}
     records = trace if trace is not None else []
     deadline = (
@@ -109,8 +112,7 @@ def execute_steps(
     )
     for index, call in enumerate(tool_calls, start=1):
         action = call["action"]
-        default_timeout = 30_000
-        declared_timeout = int(call.get("timeout_ms", default_timeout))
+        declared_timeout = int(call.get("timeout_ms", default_action_timeout_ms))
         if deadline is None:
             timeout = declared_timeout
         else:

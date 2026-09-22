@@ -216,6 +216,20 @@ def test_task_wall_clock_budget_caps_each_action_timeout(monkeypatch):
     assert page.calls == [("timeout", 4_800)]
 
 
+def test_initial_sweep_can_shorten_only_undeclared_action_waits():
+    page = FakePage()
+    execute_steps(
+        page,
+        (
+            {"action": "click", "selector": "#first"},
+            {"action": "click", "selector": "#second", "timeout_ms": 25_000},
+        ),
+        default_action_timeout_ms=15_000,
+    )
+    timeouts = [call[2]["timeout"] for call in page.calls if call[0] == "click"]
+    assert timeouts == [15_000, 25_000]
+
+
 def test_task_wall_clock_budget_stops_before_next_action(monkeypatch):
     monkeypatch.setattr(
         "harness.trajectory_replay.public_webarena.executor.time.monotonic",

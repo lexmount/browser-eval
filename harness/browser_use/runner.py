@@ -481,6 +481,7 @@ def _browser_tool_config(endpoint: str) -> dict[str, Any]:
         "viewport_width": BENCHMARK_VIEWPORT["width"],
         "viewport_height": BENCHMARK_VIEWPORT["height"],
         "cdp_isolated_context": True,
+        "locale": "en-US",
         "startup_timeout": 90,
     }
 
@@ -600,7 +601,7 @@ def _login_context(
         )
         for site in sites:
             base = benchmark.config.get_environment(site).active_url
-            creds = SITE_CREDENTIALS[site]
+            creds = SITE_CREDENTIALS.get(site)
             page = context.new_page()
             try:
                 if viewport_evidence is not None:
@@ -631,6 +632,8 @@ def _login_context(
                     page.get_by_test_id("password-field").fill(creds["password"])
                     page.get_by_test_id("sign-in-button").click()
                     page.wait_for_url("**/", timeout=90_000)
+                elif site not in {WebArenaSite.MAP, WebArenaSite.WIKIPEDIA}:
+                    raise ValueError(f"unsupported WebArena login site: {site}")
                 page.wait_for_timeout(1_000)
             finally:
                 page.close()

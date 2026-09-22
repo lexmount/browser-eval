@@ -43,6 +43,7 @@ from harness.browser_use.selection import load_pilot
 def test_browser_config_requests_owned_context_and_supported_viewport_keys() -> None:
     config = _browser_tool_config("http://localhost:9222")
     assert config["cdp_isolated_context"] is True
+    assert config["locale"] == "en-US"
     assert (config["viewport_width"], config["viewport_height"]) == (1280, 900)
     assert "viewport" not in config
 

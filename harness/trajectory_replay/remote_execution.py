@@ -1,6 +1,7 @@
 """Shared browser launch, task execution and evidence verification for remote replay."""
 
 from __future__ import annotations
+
 import argparse
 import json
 import subprocess
@@ -9,12 +10,16 @@ import traceback
 import urllib.request
 import uuid
 from pathlib import Path
+
 from harness.browser_use.har import CdpHarRecorder
 from harness.browser_use.runner import (
     _browser_tool_config,
     _login_context,
     _prepare_browser_viewport,
 )
+from harness.trajectory_replay.public_webarena.executor import execute_steps
+from harness.trajectory_replay.public_webarena.response_builder import build_agent_response
+from harness.trajectory_replay.public_webarena.suite import BrowserTask
 from harness.trajectory_replay.remote_runtime import (
     file_sha256,
     rebind_remote_calls,
@@ -39,6 +44,7 @@ def _write(path: Path, value: object) -> str:
     path.chmod(0o600)
     return file_sha256(path)
 
+
 def _verify_result_evidence(output: Path, rows: list[dict]) -> None:
     for row in rows:
         directory = output / f"task-{row['task_id']}"
@@ -54,12 +60,14 @@ def _verify_result_evidence(output: Path, rows: list[dict]) -> None:
                 "trace": "trace.json",
                 "readiness": "readiness.json",
                 "site_reset": "site-reset.json",
+                "outputs": "outputs.json",
             }.get(name)
             if filename is None:
                 raise ValueError(f"task {row['task_id']} has unknown evidence kind {name}")
             path = directory / filename
             if path.is_symlink() or not path.is_file() or file_sha256(path) != expected:
                 raise ValueError(f"task {row['task_id']} evidence hash changed: {filename}")
+
 
 def _wait_cdp(endpoint: str, process: subprocess.Popen) -> None:
     for _ in range(300):
@@ -72,6 +80,7 @@ def _wait_cdp(endpoint: str, process: subprocess.Popen) -> None:
         except OSError:
             time.sleep(0.1)
     raise TimeoutError("browser CDP did not become ready")
+
 
 def _browser_command(args: argparse.Namespace, port: int, profile: str) -> list[str]:
     if args.engine == "chromium":
@@ -101,6 +110,7 @@ def _browser_command(args: argparse.Namespace, port: int, profile: str) -> list[
         profile,
     ]
 
+
 def _task_type(task: object) -> str:
     expected = [
         item.expected.model_dump(mode="json").get("task_type")
@@ -110,6 +120,7 @@ def _task_type(task: object) -> str:
     if len(expected) != 1 or expected[0] not in {"NAVIGATE", "MUTATE"}:
         raise ValueError(f"task {task.task_id}: current-run response type unavailable")
     return expected[0]
+
 
 def _read_retrieval_contract(
     task_id: int, row: dict, sites: dict, candidate_path: Path | None = None
@@ -135,6 +146,7 @@ def _read_retrieval_contract(
         raise ValueError(f"task {task_id}: retrieval actions differ from frozen bound calls")
     return candidate
 
+
 def _evaluate_assertions(service: object, contract: object) -> list[dict]:
     selectors = {
         selector
@@ -158,6 +170,7 @@ def _evaluate_assertions(service: object, contract: object) -> list[dict]:
         )
     )
 
+
 def _run_task(
     *,
     task_id: int,
@@ -170,6 +183,8 @@ def _run_task(
     sites: dict,
     catalog: object,
     candidate_override_path: Path | None = None,
+    portable_task: BrowserTask | None = None,
+    portable_action_timeout_ms: int = 30_000,
 ) -> dict:
     from agent.tools.browser.browser_tool import BrowserTool  # noqa: PLC0415
 
@@ -181,6 +196,7 @@ def _run_task(
     task_dir.mkdir(mode=0o700)
     har_path = task_dir / "network.har"
     records: list[dict] = []
+    portable_outputs: dict[str, str] = {}
     readiness_records: list[dict] = []
     hashes: dict[str, str] = {}
     started = time.perf_counter()
@@ -200,7 +216,18 @@ def _run_task(
         _login_context(service, tuple(official.sites), benchmark, start_urls, viewport)
         service._submit(lambda: recorder.start(service._context))
         recorder_started = True
-        for index, action in enumerate(row["actions"], 1):
+        if portable_task is not None:
+            service._submit(
+                lambda: execute_steps(
+                    service._page,
+                    row["actions"],
+                    trace=records,
+                    outputs=portable_outputs,
+                    task_timeout_ms=300_000,
+                    default_action_timeout_ms=portable_action_timeout_ms,
+                )
+            )
+        for index, action in enumerate(() if portable_task is not None else row["actions"], 1):
             for readiness in row["readiness"]:
                 if readiness["before_action"] == index:
                     ready_status, ready_result = _execute_replay_call(tool, readiness["input"])
@@ -247,7 +274,9 @@ def _run_task(
         service._submit(lambda: recorder.stop(service._context, har_path))
         recorder_started = False
         hashes["network_har"] = file_sha256(har_path)
-        if official.is_retrieve_task:
+        if portable_task is not None:
+            actual = build_agent_response(portable_task, portable_outputs)
+        elif official.is_retrieve_task:
             candidate = _read_retrieval_contract(task_id, row, sites, candidate_override_path)
             # Contract step indices refer to the source calls; recorded results are
             # from the equivalent remote-bound calls executed in this run.
@@ -321,6 +350,8 @@ def _run_task(
             error += f"\nBrowserTool close failed: {exc}"
     hashes["trace"] = _write(task_dir / "trace.json", records)
     hashes["readiness"] = _write(task_dir / "readiness.json", readiness_records)
+    if portable_task is not None:
+        hashes["outputs"] = _write(task_dir / "outputs.json", portable_outputs)
     return {
         "task_id": task_id,
         "status": status,
@@ -328,7 +359,10 @@ def _run_task(
         "action_count": len(row["actions"]),
         "executed_actions_sha256": _json_sha256(row["actions"]),
         "omitted_diagnostic_observer_sha256": row.get("omitted_diagnostic_observer_sha256"),
-        "completed_actions": sum(record["status"] == "success" for record in records),
+        "completed_actions": sum(
+            record["status"] == ("pass" if portable_task is not None else "success")
+            for record in records
+        ),
         "duration_ms": round((time.perf_counter() - started) * 1000, 3),
         "error": error,
         "evidence_sha256": hashes,

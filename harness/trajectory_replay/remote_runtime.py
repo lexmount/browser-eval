@@ -19,16 +19,27 @@ from webarena_verified.types.task import WebArenaSite
 
 from harness.browser_use.runner import SITE_CREDENTIALS, SITE_PORTS
 
+READ_ONLY_PORTS = {8888: WebArenaSite.WIKIPEDIA, 3000: WebArenaSite.MAP}
+SUPPORTED_REMOTE_SITES = frozenset(SITE_PORTS) | frozenset(READ_ONLY_PORTS.values())
+
 
 def load_remote_sites(path: Path) -> dict[WebArenaSite, str]:
     value = json.loads(path.read_text(encoding="utf-8"))
     if value.get("schema") != "lex_webarena_remote_sites/1":
         raise ValueError("unsupported remote site map")
     raw = value.get("sites")
-    if not isinstance(raw, dict) or set(raw) != {site.value for site in SITE_PORTS}:
-        raise ValueError("remote site map must cover exactly the four mutable sites")
+    if (
+        not isinstance(raw, dict)
+        or not {site.value for site in SITE_PORTS} <= set(raw)
+        or not set(raw) <= {site.value for site in SUPPORTED_REMOTE_SITES}
+    ):
+        raise ValueError(
+            "remote site map must cover the four mutable sites and optional read-only sites"
+        )
     sites: dict[WebArenaSite, str] = {}
-    for site in SITE_PORTS:
+    for site in sorted(SUPPORTED_REMOTE_SITES, key=lambda item: item.value):
+        if site.value not in raw:
+            continue
         url = raw[site.value]
         if not isinstance(url, str):
             raise ValueError(f"invalid remote URL for {site.value}")
@@ -57,7 +68,7 @@ def remote_benchmark(sites: dict[WebArenaSite, str]) -> WebArenaVerified:
             environments={
                 site: EnvironmentConfig(
                     urls=[url],
-                    credentials=SITE_CREDENTIALS[site],
+                    credentials=SITE_CREDENTIALS.get(site),
                     use_header_login=site == WebArenaSite.SHOPPING_ADMIN,
                 )
                 for site, url in sites.items()
@@ -78,6 +89,7 @@ def rebind_remote_calls(
     semantics; only the transport scheme becomes an explicit alternative.
     """
     by_port = {port: site for site, ports in SITE_PORTS.items() for port in ports}
+    by_port.update(READ_ONLY_PORTS)
 
     def rebind_url(value: str) -> str:
         parsed = urlsplit(value)
@@ -95,6 +107,10 @@ def rebind_remote_calls(
         r"(?P<before>\[href\s*=\s*)(?P<quote>['\"])(?P<url>https?://[^'\"]+)"
         r"(?P=quote)(?P<after>\])"
     )
+    embedded_url_pattern = re.compile(r"https?://[^\s\"'\])]+")
+
+    def rebind_embedded_urls(value: str) -> str:
+        return embedded_url_pattern.sub(lambda match: rebind_url(match.group()), value)
 
     def rebind_href(match: re.Match[str]) -> str:
         url = match.group("url")
@@ -125,6 +141,14 @@ def rebind_remote_calls(
         selector = call.get("selector")
         if isinstance(selector, str):
             call["selector"] = href_pattern.sub(rebind_href, selector)
+        target = call.get("target")
+        if isinstance(target, dict):
+            rebound_target = dict(target)
+            for key in ("value", "name"):
+                value = rebound_target.get(key)
+                if isinstance(value, str):
+                    rebound_target[key] = rebind_embedded_urls(value)
+            call["target"] = rebound_target
         rebound.append(call)
     return rebound
 
