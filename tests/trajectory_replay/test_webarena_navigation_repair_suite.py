@@ -104,3 +104,42 @@ def test_navigation_suite_excludes_passes_not_found_and_regex_only(tmp_path):
         paths.append(path)
     result = build_navigation_suite(*paths)
     assert [task["id"] for task in result["tasks"]] == ["webarena-0"]
+
+
+def test_navigation_suite_turns_osrm_api_contract_into_route_page(tmp_path):
+    official = [
+        {
+            "task_id": 0,
+            "intent": "show route",
+            "revision": 1,
+            "eval": [
+                {"expected": {"task_type": "navigate", "status": "SUCCESS"}},
+                {
+                    "expected": {
+                        "url": "^.*/route/v1/.*/-75.1,39.9;-79.9,40.4.*$"
+                    }
+                },
+            ],
+        }
+    ]
+    ledger = {"rows": [{"task_id": 0, "status": "fail"}]}
+    sites = {
+        "sites": {
+            "shopping": "https://shop.test/",
+            "shopping_admin": "https://admin.test",
+            "reddit": "https://reddit.test",
+            "gitlab": "https://git.test",
+            "map": "https://map.test",
+            "wikipedia": "https://wiki.test",
+        }
+    }
+    paths = []
+    for name, value in (("official", official), ("ledger", ledger), ("sites", sites)):
+        path = tmp_path / f"{name}.json"
+        path.write_text(json.dumps(value), encoding="utf-8")
+        paths.append(path)
+    result = build_navigation_suite(*paths)
+    assert result["tasks"][0]["trajectory"]["actions"][0]["url"] == (
+        "https://map.test/directions?engine=fossgis_osrm_car&"
+        "route=40.4%2C-79.9%3B39.9%2C-75.1"
+    )

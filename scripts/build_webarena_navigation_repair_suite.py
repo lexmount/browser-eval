@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
@@ -35,6 +36,21 @@ def _with_query(url: str, query: dict | None) -> str:
     return urlunsplit((split.scheme, split.netloc, split.path, urlencode(pairs), split.fragment))
 
 
+def _route_page_from_api_pattern(value: str, sites: dict[str, str]) -> str | None:
+    match = re.search(
+        r"/route/v1/.*/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?);"
+        r"(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)",
+        value,
+    )
+    if match is None:
+        return None
+    destination_lon, destination_lat, origin_lon, origin_lat = match.groups()
+    route = f"{origin_lat},{origin_lon};{destination_lat},{destination_lon}"
+    return sites["map"].rstrip("/") + "/directions?" + urlencode(
+        {"engine": "fossgis_osrm_car", "route": route}
+    )
+
+
 def _navigation_urls(row: dict, sites: dict[str, str]) -> list[str] | None:
     evaluations = row["eval"][1:]
     # GitLab issue filters are rendered by a GraphQL request. Visiting its
@@ -53,8 +69,14 @@ def _navigation_urls(row: dict, sites: dict[str, str]) -> list[str] | None:
         value = evaluation["expected"].get("url")
         if isinstance(value, list):
             value = value[0]
-        if not isinstance(value, str) or any(character in value for character in "^*$"):
+        if not isinstance(value, str):
             return None
+        if any(character in value for character in "^*$"):
+            route_page = _route_page_from_api_pattern(value, sites)
+            if route_page is None:
+                return None
+            urls.append(route_page)
+            continue
         urls.append(
             _with_query(
                 _bound_url(value, sites), evaluation["expected"].get("query_params")
