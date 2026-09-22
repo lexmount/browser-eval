@@ -26,7 +26,11 @@ def verify(base: str) -> dict:
         checks.append({"path": path, "status": "pass"})
     query = urlencode({"q": "Carnegie Mellon University", "format": "jsonv2", "addressdetails": 1})
     places = json.loads(get("/nominatim/search?" + query))
-    cmu = next(place for place in places if place.get("address", {}).get("postcode") == "15213")
+    cmu = next(
+        (place for place in places if place.get("address", {}).get("postcode") == "15213"),
+        None,
+    )
+    assert cmu is not None, "CMU search result missing from the frozen Map snapshot"
     assert "Carnegie Mellon" in cmu["display_name"]
     checks.append({"feature": "search", "result": cmu, "status": "pass"})
     reverse = json.loads(

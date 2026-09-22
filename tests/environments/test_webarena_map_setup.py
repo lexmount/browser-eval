@@ -3,6 +3,7 @@
 import gzip
 import hashlib
 import io
+import json
 import shutil
 import subprocess
 import sys
@@ -20,7 +21,9 @@ from harness.environments.webarena.map_setup import (
     restore_compressed,
     serve,
     setup,
+    transport_size,
     verify_archive,
+    version_browser_assets,
 )
 
 
@@ -48,6 +51,32 @@ def test_remote_browsers_receive_same_origin_urls_with_or_without_gzip(tmp_path)
         configure_browser_assets(tmp_path)
 
 
+def test_patched_browser_script_gets_a_new_url(tmp_path):
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    old = "application-" + "a" * 64 + ".js"
+    content = b'const route="/osrm/";'
+    (assets / old).write_bytes(content)
+    (assets / (old + ".gz")).write_bytes(gzip.compress(content))
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps({
+        "assets": {"application.js": old},
+        "files": {old: {"logical_path": "application.js", "digest": "a" * 64,
+                        "size": 123, "integrity": "old"}},
+    }))
+    version_browser_assets(assets, manifest)
+    updated = json.loads(manifest.read_text())
+    name = updated["assets"]["application.js"]
+    assert name != old
+    assert name == "application-" + hashlib.sha256(content).hexdigest() + ".js"
+    assert (assets / name).read_bytes() == content
+    assert gzip.decompress((assets / (name + ".gz")).read_bytes()) == content
+    assert updated["files"][name]["digest"] == hashlib.sha256(content).hexdigest()
+    before = manifest.read_bytes()
+    version_browser_assets(assets, manifest)
+    assert manifest.read_bytes() == before
+
+
 def test_restores_database_and_sparse_flatnodes_without_changing_bytes(tmp_path):
     data = b"start" + bytes(32 * 1024**2) + b"end"
     archive = archive_at(tmp_path / "data.tar", [("db/PG_VERSION", b"14"), ("flat/flatnode", data)])
@@ -72,6 +101,13 @@ def test_partial_and_corrupted_archives_are_rejected(tmp_path):
     path.write_bytes(b"va")
     with pytest.raises(ValueError, match="size"):
         verify_archive(path, 5, digest)
+
+
+def test_compressed_mirror_without_length_fails_clearly():
+    with patch("harness.environments.webarena.map_setup.urlopen") as opening:
+        opening.return_value.__enter__.return_value.headers = {}
+        with pytest.raises(ValueError, match="No Content-Length"):
+            transport_size("https://example.invalid/map.tar.zst")
 
 
 def test_low_disk_stops_before_any_extraction_write(tmp_path):
@@ -140,6 +176,24 @@ def test_existing_partial_extraction_does_not_count_as_ready(tmp_path):
     for mappings in MAPPINGS.values():
         for target in mappings.values():
             assert (tmp_path / target / "data").read_bytes() == b"verified"
+
+
+def test_receipt_with_only_empty_directories_does_not_count_as_ready(tmp_path):
+    state = tmp_path / ".map-setup"
+    state.mkdir()
+    contract = {"data_urls": [], "data_archive_bytes": {}, "data_archive_sha256": {}}
+    for name, mappings in MAPPINGS.items():
+        contract["data_urls"].append("https://example.invalid/" + name)
+        contract["data_archive_bytes"][name] = 1
+        contract["data_archive_sha256"][name] = "a" * 64
+        for target in mappings.values():
+            (tmp_path / target / "empty").mkdir(parents=True)
+    first = next(iter(MAPPINGS))
+    (state / (first + ".json")).write_text(json.dumps({
+        "sha256": "a" * 64, "bytes": 1, "query_only": False,
+    }))
+    with pytest.raises(ValueError, match="Receipt exists but dataset is missing"):
+        setup(tmp_path, contract, 0)
 
 
 @pytest.mark.skipif(shutil.which("zstd") is None, reason="requires zstd transport tool")
@@ -316,3 +370,21 @@ def test_tile_cache_survives_container_directory_recreation(tmp_path):
     assert apache.read_text().count("ProxyPassMatch") == 1
     assert apache.read_text().index("ProxyPassMatch") < apache.read_text().index("ProxyPass /")
     assert "num_threads=2" in renderd.read_text()
+
+
+def test_tile_configuration_rejects_multiple_virtual_hosts(tmp_path):
+    root = tmp_path / "volume"
+    tiles = root / "tiles"
+    tiles.mkdir(parents=True)
+    cache = tmp_path / "image-cache"
+    cache.symlink_to(tiles, target_is_directory=True)
+    apache = tmp_path / "apache.conf"
+    original = ("<VirtualHost *:8080>\n    ModTileMissingRequestTimeout 30\n"
+                "    ProxyPass / http://localhost:3000/\n</VirtualHost>\n"
+                "<VirtualHost *:80>\n</VirtualHost>\n")
+    apache.write_text(original)
+    renderd = tmp_path / "renderd.conf"
+    renderd.write_text("[renderd]\nnum_threads=4\n")
+    with pytest.raises(ValueError, match="virtual host"):
+        configure_tiles(root, cache, apache, renderd)
+    assert apache.read_text() == original

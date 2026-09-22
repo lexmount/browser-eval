@@ -7,6 +7,7 @@ aria2 supplies resumable parallel downloads; no database starts until all receip
 from __future__ import annotations
 
 import argparse
+import base64
 import gzip
 import hashlib
 import json
@@ -215,7 +216,10 @@ def transport_size(url: str) -> int:
     for attempt in range(61):
         try:
             with urlopen(Request(url, method="HEAD"), timeout=30) as response:
-                return int(response.headers["Content-Length"])
+                length = response.headers.get("Content-Length")
+                if length is None:
+                    raise ValueError(f"No Content-Length from {url}")
+                return int(length)
         except HTTPError as error:
             if error.code != 404 or attempt == 60:
                 raise
@@ -250,7 +254,8 @@ def setup(
                 raise ValueError(f"Dataset revision requires a new volume: {name}")
             if previous.get("query_only", False) != query_only:
                 raise ValueError(f"Dataset mode requires a new volume: {name}")
-            if not all(any((root / p).rglob("*")) for p in mappings.values()):
+            if not all(any(item.is_file() for item in (root / p).rglob("*"))
+                       for p in mappings.values()):
                 raise ValueError(f"Receipt exists but dataset is missing: {name}")
             archive.unlink(missing_ok=True)
             print(f"Already initialized: {name}", flush=True)
@@ -318,6 +323,43 @@ def configure_browser_assets(assets: Path = Path("/app/public/assets")) -> None:
             packed.write_bytes(gzip.compress(content, mtime=0))
 
 
+def version_browser_assets(
+    assets: Path = Path("/app/public/assets"),
+    manifest: Path = Path("/app/tmp/manifest.json"),
+) -> None:
+    """Give patched precompiled assets new URLs so browsers cannot reuse stale JS."""
+    data = json.loads(manifest.read_text())
+    changed = False
+    for logical, filename in data["assets"].items():
+        if not logical.endswith(".js"):
+            continue
+        source = assets / filename
+        content = source.read_bytes()
+        digest = hashlib.sha256(content).hexdigest()
+        if data["files"][filename]["digest"] == digest:
+            continue
+        versioned = str(Path(logical).with_suffix("")) + f"-{digest}.js"
+        target = assets / versioned
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(content)
+        packed = source.with_suffix(".js.gz")
+        if packed.exists():
+            target.with_suffix(".js.gz").write_bytes(gzip.compress(content, mtime=0))
+        metadata = data["files"][filename].copy()
+        metadata.update({
+            "digest": digest,
+            "size": len(content),
+            "integrity": "sha256-" + base64.b64encode(bytes.fromhex(digest)).decode(),
+        })
+        data["files"][versioned] = metadata
+        data["assets"][logical] = versioned
+        changed = True
+    if changed:
+        temporary = manifest.with_suffix(".tmp")
+        temporary.write_text(json.dumps(data))
+        temporary.replace(manifest)
+
+
 def configure_tiles(
     root: Path,
     cache: Path = Path("/var/cache/renderd/tiles"),
@@ -343,6 +385,8 @@ def configure_tiles(
     )
     if count != 1:
         raise ValueError("Unexpected Apache tile timeout configuration")
+    if config.count("</VirtualHost>") != 1:
+        raise ValueError("Unexpected Apache tile virtual host configuration")
     # Host load includes unrelated pods. CPU/memory limits and two render
     # workers bound this service instead of rejecting tiles at host load > 5.
     if "ModTileMaxLoadMissing" not in config:
@@ -368,33 +412,33 @@ def serve(root: Path, reserve: int, command: list[str], detail: list[str] | None
     """Stop only Map if the shared filesystem reaches the protected reserve."""
     require_space(root, reserve)
     with subprocess.Popen(detail, start_new_session=True) if detail else nullcontext() as helper:
-      with subprocess.Popen(command, start_new_session=True) as process:
+        with subprocess.Popen(command, start_new_session=True) as process:
 
-          def stop(signum, frame):
-              for child in (process, helper):
-                  if child is not None and child.poll() is None:
-                      os.killpg(child.pid, signal.SIGTERM)
+            def stop(signum, frame):
+                for child in (process, helper):
+                    if child is not None and child.poll() is None:
+                        os.killpg(child.pid, signal.SIGTERM)
 
-          previous = {sig: signal.signal(sig, stop) for sig in (signal.SIGTERM, signal.SIGINT)}
-          try:
-              while process.poll() is None:
-                  if helper is not None and helper.poll() is not None:
-                      raise RuntimeError(f"Map detail service exited: {helper.returncode}")
-                  require_space(root, reserve)
-                  time.sleep(5)
-              return process.returncode
-          finally:
-              stop(None, None)
-              for child in (process, helper):
-                  if child is None:
-                      continue
-                  try:
-                      child.wait(timeout=30)
-                  except subprocess.TimeoutExpired:
-                      os.killpg(child.pid, signal.SIGKILL)
-                      child.wait()
-              for sig, handler in previous.items():
-                  signal.signal(sig, handler)
+            previous = {sig: signal.signal(sig, stop) for sig in (signal.SIGTERM, signal.SIGINT)}
+            try:
+                while process.poll() is None:
+                    if helper is not None and helper.poll() is not None:
+                        raise RuntimeError(f"Map detail service exited: {helper.returncode}")
+                    require_space(root, reserve)
+                    time.sleep(5)
+                return process.returncode
+            finally:
+                stop(None, None)
+                for child in (process, helper):
+                    if child is None:
+                        continue
+                    try:
+                        child.wait(timeout=30)
+                    except subprocess.TimeoutExpired:
+                        os.killpg(child.pid, signal.SIGKILL)
+                        child.wait()
+                for sig, handler in previous.items():
+                    signal.signal(sig, handler)
 
 
 if __name__ == "__main__":
@@ -418,6 +462,7 @@ if __name__ == "__main__":
     )
     if args.serve:
         configure_browser_assets()
+        version_browser_assets()
         configure_tiles(args.root)
         raise SystemExit(
             serve(

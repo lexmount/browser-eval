@@ -7,7 +7,7 @@ for archive in nominatim_volumes.tar osm_tile_server.tar osrm_routing.tar; do
     if [ ! -f "$root/.map-setup/$archive.json" ]; then needs_data=true; fi
 done
 args=(--root "$root" --contract /opt/map-contract.json --reserve-gib 64 --serve --query-only)
-if "$needs_data"; then
+if [ "$needs_data" = true ]; then
     if ! command -v aria2c >/dev/null || ! command -v zstd >/dev/null; then
         apt-get -o Dir::Etc::sourceparts=- -o Acquire::Retries=2 \
             -o Acquire::http::Timeout=20 update > "$root/apt-update.log" 2>&1
