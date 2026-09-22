@@ -73,7 +73,7 @@ browser-use-release-check: browser-use-report-check
 
 trajectory-replay-report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/build_webarena_replay_report.py --results "$(EVIDENCE)" $(if $(filter 1,$(ENGLISH)),--include-english,) $(if $(DIAGNOSTIC_CLOSURE),--diagnostic-closure "$(DIAGNOSTIC_CLOSURE)",)
+	$(PY) scripts/build_webarena_replay_report.py --results "$(EVIDENCE)" $(if $(filter 1,$(ENGLISH)),--include-english,)
 
 trajectory-replay-report-check: runtime-check
 	$(PY) scripts/check_webarena_replay_report.py reports/trajectory-replay
@@ -86,7 +86,7 @@ trajectory-replay-release-check: trajectory-replay-report-check
 
 trajectory-replay-package: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path/effective-results.json is required' >&2; exit 2)
-	$(PY) scripts/package_webarena_replay_artifact_site.py --evidence "$(EVIDENCE)" $(if $(DIAGNOSTIC_CLOSURE),--diagnostic-closure "$(DIAGNOSTIC_CLOSURE)",)
+	$(PY) scripts/package_webarena_replay_artifact_site.py --evidence "$(EVIDENCE)"
 
 trajectory-replay-publish: runtime-check
 	$(PY) scripts/publish_webarena_replay_artifact_site.py
