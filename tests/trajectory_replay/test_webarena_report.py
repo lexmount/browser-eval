@@ -1,4 +1,5 @@
 import json
+import html
 import re
 import subprocess
 from pathlib import Path
@@ -20,6 +21,16 @@ from harness.trajectory_replay.webarena_report import (
 )
 from scripts.check_webarena_replay_report import _check_english_localization, _check_grouped_metrics
 from bs4 import BeautifulSoup
+
+
+def test_category_filters_preserve_literal_special_characters():
+    from scripts.check_webarena_replay_report import _option_values
+    categories = {'请求 & 响应', '目标 "按钮"', '<布局>'}
+    markup = '<select>' + ''.join(
+        f'<option value="{html.escape(value, quote=True)}">分类</option>'
+        for value in categories
+    ) + '</select>'
+    assert _option_values(markup) == categories
 
 
 @pytest.mark.parametrize("values", [(None, None), (2, 2), (1, 2), (None, 2)])

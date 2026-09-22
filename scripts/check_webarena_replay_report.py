@@ -70,6 +70,10 @@ def _local_target(page: Path, raw: str) -> Path | None:
     return (page.parent / unquote(parsed.path)).resolve()
 
 
+def _option_values(html: str) -> set[str]:
+    return {option["value"] for option in BeautifulSoup(html, "html.parser").select("option[value]")}
+
+
 def _check_grouped_metrics(html: str, *, minimum_groups: int) -> None:
     soup = BeautifulSoup(html, "html.parser")
     groups = soup.select(".metric-groups")
@@ -273,9 +277,7 @@ def check(report_dir: Path) -> dict[str, int]:
     ):
         raise ValueError("result inventory must default to failure and open a diagnosis dialog")
     expected_categories = {item["cause_zh"] for item in failures}
-    rendered_categories = set(
-        re.findall(r'<option value="([^"]+)">[^<]+</option>', results_html)
-    )
+    rendered_categories = _option_values(results_html)
     if not expected_categories.issubset(rendered_categories):
         raise ValueError("result inventory must filter every reviewed failure category")
     for language_root in (root, root / "en"):
