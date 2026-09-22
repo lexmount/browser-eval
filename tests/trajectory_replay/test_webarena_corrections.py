@@ -141,6 +141,66 @@ def test_osrm_route_order_corrections_accept_intent_direction_and_reject_reverse
     assert float(negative.score) == 0.0
 
 
+@pytest.mark.parametrize(
+    ("task_id", "status"),
+    [(677, "processing"), (678, "canceled"), (679, "complete"), (680, "holded")],
+)
+def test_admin_order_filter_corrections_select_xhr_and_reject_stale_search(
+    tmp_path, route_benchmark, catalog, task_id, status
+) -> None:
+    original = route_benchmark.get_task(task_id)
+    contract = apply_correction(original, catalog)
+
+    def write_har(path: Path, search: str) -> Path:
+        route = (
+            "http://admin.test/mui/index/render/?namespace=sales_order_grid&"
+            f"search={search}&keywordUpdated=false&filters%5Bplaceholder%5D=true&"
+            f"filters%5Bstatus%5D={status}&isAjax=true"
+        )
+        payload = {
+            "log": {
+                "entries": [
+                    {
+                        "request": {
+                            "method": "GET",
+                            "url": "http://admin.test/sales/order/",
+                            "headers": [{"name": "accept", "value": "text/html"}],
+                        },
+                        "response": {"status": 200, "headers": [], "content": {}},
+                    },
+                    {
+                        "request": {
+                            "method": "GET",
+                            "url": route,
+                            "headers": [
+                                {"name": "referer", "value": "http://admin.test/sales/order/"}
+                            ],
+                        },
+                        "response": {"status": 200, "headers": [], "content": {}},
+                    },
+                ]
+            }
+        }
+        path.write_text(json.dumps(payload))
+        return path
+
+    response = {"task_type": "navigate", "status": "SUCCESS", "retrieved_data": None}
+    positive = evaluate_corrected_contract(
+        route_benchmark,
+        contract,
+        agent_response=response,
+        network_trace=write_har(tmp_path / "positive.har", ""),
+    )
+    negative = evaluate_corrected_contract(
+        route_benchmark,
+        contract,
+        agent_response=response,
+        network_trace=write_har(tmp_path / "negative.har", "300"),
+    )
+    assert float(positive.score) == 1.0
+    assert float(negative.score) == 0.0
+
+
 def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
     payload = json.loads(catalog.source_path.read_text(encoding="utf-8"))
     assert payload["historical_browser_use_scores_immutable"] is True
@@ -156,6 +216,10 @@ def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
         510,
         528,
         547,
+        677,
+        678,
+        679,
+        680,
         699,
         737,
         738,

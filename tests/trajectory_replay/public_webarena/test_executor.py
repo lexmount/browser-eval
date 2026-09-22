@@ -46,6 +46,9 @@ class FakePage:
             def click(self, **kwargs):
                 page.calls.append(("click", selector, kwargs))
 
+            def wait_for(self, **kwargs):
+                page.calls.append(("wait_for", selector, kwargs))
+
             def dblclick(self, **kwargs):
                 page.calls.append(("double_click", selector, kwargs))
 
@@ -170,6 +173,24 @@ def test_trace_has_one_record_per_declared_tool_call():
     assert len(trace) == 1
     assert trace[0]["action"] == "navigate"
     assert trace[0]["status"] == "pass"
+
+
+def test_action_can_wait_for_loading_mask_to_disappear_before_clicking():
+    page = FakePage()
+    execute_steps(
+        page,
+        (
+            {
+                "action": "click",
+                "selector": "button.filters",
+                "wait_for_selector_hidden": ".loading-mask",
+            },
+        ),
+    )
+    assert page.calls[:2] == [
+        ("wait_for", ".loading-mask", {"state": "hidden", "timeout": 30000}),
+        ("first", "button.filters"),
+    ]
 
 
 def test_default_action_timeout_is_thirty_seconds():

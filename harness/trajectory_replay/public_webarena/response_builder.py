@@ -250,6 +250,12 @@ def build_agent_response(task: BrowserTask, outputs: dict[str, str]) -> dict[str
             raise ValueError("observed_not_found requires a non-empty evidence_regex")
         if re.search(evidence_regex, outputs[output_name], flags=re.IGNORECASE) is None:
             raise ValueError("observed_not_found evidence regex did not match observed output")
+        forbidden_regex = config.get("forbidden_regex")
+        if forbidden_regex is not None:
+            if not isinstance(forbidden_regex, str) or not forbidden_regex:
+                raise ValueError("observed_not_found forbidden_regex must be non-empty")
+            if re.search(forbidden_regex, outputs[output_name], flags=re.IGNORECASE):
+                raise ValueError("observed_not_found forbidden evidence was present")
         retrieved_data = None
         response_status = "NOT_FOUND_ERROR"
     else:

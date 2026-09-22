@@ -140,6 +140,11 @@ def execute_steps(
             action_page = _page_for_tab(page, tab_index, timeout)
             if page_observer is not None:
                 page_observer(action_page)
+            hidden_selector = call.get("wait_for_selector_hidden")
+            if hidden_selector is not None:
+                if not isinstance(hidden_selector, str) or not hidden_selector:
+                    raise ValueError("wait_for_selector_hidden must be a non-empty selector")
+                action_page.locator(hidden_selector).wait_for(state="hidden", timeout=timeout)
             observation = ""
             if action == "navigate":
                 response = action_page.goto(

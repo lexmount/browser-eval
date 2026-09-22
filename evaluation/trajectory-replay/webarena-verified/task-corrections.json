@@ -529,6 +529,118 @@
           "value": false
         }
       ]
+    },
+    {
+      "task_id": 677,
+      "official_revision": 2,
+      "correction_id": "wv-677-select-admin-grid-xhr-20260923",
+      "rationale": "Evaluate the Magento grid XHR named by the official URL, query and Referer contract after the sales-order page navigation.",
+      "root_cause": "The upstream contract expects an XHR while navigation_only restricts evaluation to the preceding HTML document navigation.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task677-navigation-xhr-reference.json",
+        "sha256": "48962726e6306f0a5c8209020790a9d05953792921843c7ac5ce9eb096282d65"
+      },
+      "regression_ids": [
+        "tr-677-accept-empty-search-processing",
+        "tr-677-reject-stale-search"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 678,
+      "official_revision": 2,
+      "correction_id": "wv-678-select-admin-grid-xhr-20260923",
+      "rationale": "Evaluate the Magento grid XHR named by the official URL, query and Referer contract after the sales-order page navigation.",
+      "root_cause": "The upstream contract expects an XHR while navigation_only restricts evaluation to the preceding HTML document navigation.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task678-navigation-xhr-reference.json",
+        "sha256": "a734389ca5fdac97d1eff8565103817cbaa2486183a1bbf65698df1eb8d7fcca"
+      },
+      "regression_ids": [
+        "tr-678-accept-empty-search-canceled",
+        "tr-678-reject-stale-search"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 679,
+      "official_revision": 2,
+      "correction_id": "wv-679-select-admin-grid-xhr-20260923",
+      "rationale": "Evaluate the Magento grid XHR named by the official URL, query and Referer contract after the sales-order page navigation.",
+      "root_cause": "The upstream contract expects an XHR while navigation_only restricts evaluation to the preceding HTML document navigation.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task679-navigation-xhr-reference.json",
+        "sha256": "bed5afd298bd42e558df1424c80c6e9603ec39a2034e6f52db983558677ff1ed"
+      },
+      "regression_ids": [
+        "tr-679-accept-empty-search-complete",
+        "tr-679-reject-stale-search"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 680,
+      "official_revision": 2,
+      "correction_id": "wv-680-select-admin-grid-xhr-20260923",
+      "rationale": "Evaluate the Magento grid XHR named by the official URL, query and Referer contract after the sales-order page navigation.",
+      "root_cause": "The upstream contract expects an XHR while navigation_only restricts evaluation to the preceding HTML document navigation.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task680-navigation-xhr-reference.json",
+        "sha256": "471013573c62fbd491fd9b89651ff219eddb55253543b8087ec98cae1a5059b9"
+      },
+      "regression_ids": [
+        "tr-680-accept-empty-search-holded",
+        "tr-680-reject-stale-search"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        }
+      ]
     }
   ]
 }

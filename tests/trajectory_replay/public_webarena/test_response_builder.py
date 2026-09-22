@@ -359,6 +359,37 @@ def test_response_builder_reports_not_found_only_from_explicit_observed_evidence
     }
 
 
+def test_response_builder_reports_not_found_when_required_page_lacks_target_state():
+    response = build_agent_response(
+        _task(
+            {
+                "kind": "observed_not_found",
+                "task_type": "navigate",
+                "output": "page",
+                "evidence_regex": r"my orders",
+                "forbidden_regex": r"\bprocessing\b",
+            }
+        ),
+        {"page": "My Orders\nOrder #1 Complete"},
+    )
+    assert response is not None
+    assert response["status"] == "NOT_FOUND_ERROR"
+
+    with pytest.raises(ValueError, match="forbidden evidence"):
+        build_agent_response(
+            _task(
+                {
+                    "kind": "observed_not_found",
+                    "task_type": "navigate",
+                    "output": "page",
+                    "evidence_regex": r"my orders",
+                    "forbidden_regex": r"\bprocessing\b",
+                }
+            ),
+            {"page": "My Orders\nOrder #2 Processing"},
+        )
+
+
 @pytest.mark.parametrize(
     ("builder", "outputs"),
     (

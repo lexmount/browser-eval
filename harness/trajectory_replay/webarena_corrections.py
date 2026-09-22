@@ -294,6 +294,21 @@ def apply_correction(
                 or len(str(observation.get("observed_har_sha256") or "")) != 64
             ):
                 raise ValueError(f"task {task.task_id}: incomplete route-order reference")
+        elif observation.get("schema") == "trajectory_replay_navigation_xhr_reference/1":
+            expected_status = original["eval"][1]["expected"]["query_params"][
+                "filters[status]"
+            ][0]
+            if (
+                observation.get("expected_filter_status") != expected_status
+                or observation.get("official_navigation_only")
+                != original["eval"][1]["navigation_only"]
+                or observation.get("corrected_navigation_only")
+                != corrected["eval"][1]["navigation_only"]
+                or observation.get("observed_request_contains")
+                != f"filters%5Bstatus%5D={expected_status}"
+                or len(str(observation.get("observed_har_sha256") or "")) != 64
+            ):
+                raise ValueError(f"task {task.task_id}: incomplete navigation-XHR reference")
         elif observation.get("derivation", {}).get("kind") == "qualified_catalog_price_range/1":
             source = observation.get("independent_source") or {}
             products = source.get("qualified_products") or []
