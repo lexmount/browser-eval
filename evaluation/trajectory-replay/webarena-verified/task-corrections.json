@@ -244,6 +244,34 @@
       ]
     },
     {
+      "task_id": 566,
+      "official_revision": 2,
+      "correction_id": "wv-566-align-readme-project-path-20260923",
+      "rationale": "Evaluate the README commit in the same do-it-myself repository that the task requires and the project-creation evaluator verifies.",
+      "root_cause": "The upstream commit URL contains both a duplicated slash and the stale repository suffix do-it-myself-with, while the intent and project creation contract create byteblaze/do-it-myself. No valid execution can create one repository and commit the README to the other.",
+      "regression_ids": [
+        "tr-566-accept-commit-to-created-project",
+        "tr-566-reject-commit-to-stale-project-path"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/post_data/project[path]",
+          "equals": "do-it-myself"
+        },
+        {
+          "path": "/eval/2/expected/url",
+          "equals": "__GITLAB__//api/v4/projects/byteblaze%2Fdo-it-myself-with/repository/commits"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/2/expected/url",
+          "value": "__GITLAB__/api/v4/projects/byteblaze%2Fdo-it-myself/repository/commits"
+        }
+      ]
+    },
+    {
       "task_id": 699,
       "official_revision": 3,
       "correction_id": "wv-699-all-customer-groups-20260918",

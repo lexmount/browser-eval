@@ -289,6 +289,7 @@ def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
         510,
         528,
         547,
+        566,
         677,
         678,
         679,
@@ -710,6 +711,20 @@ def test_547_removes_redundant_attribute_save_but_keeps_variation_save(benchmark
     assert not any("product_attribute/save" in url for url in network_urls)
     assert any("catalog/product/save/id/1130" in url for url in network_urls)
     assert applied.replay_assertions == ()
+
+
+def test_566_commit_path_matches_the_project_creation_contract(benchmark, catalog) -> None:
+    original = benchmark.get_task(566)
+    corrected = apply_correction(original, catalog)
+    original_project = original.eval[1].model_dump(mode="json")
+    original_commit = original.eval[2].model_dump(mode="json")
+    assert original_project["expected"]["post_data"]["project[path]"] == "do-it-myself"
+    assert original_commit["expected"]["url"].endswith(
+        "byteblaze%2Fdo-it-myself-with/repository/commits"
+    )
+    assert _dump_eval(corrected, 2)["expected"]["url"] == (
+        "__GITLAB__/api/v4/projects/byteblaze%2Fdo-it-myself/repository/commits"
+    )
 
 
 def test_676_uses_upstream_filter_xhr_contract(benchmark, catalog) -> None:

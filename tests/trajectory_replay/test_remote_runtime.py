@@ -1,4 +1,5 @@
 import json
+from urllib.parse import urlencode
 
 import pytest
 from webarena_verified.types.task import WebArenaSite
@@ -122,6 +123,78 @@ def test_rebinds_recorded_url_inside_portable_playwright_target(tmp_path):
     )
     assert "http://admin.example/admin/review/product/" in result[0]["target"]["value"]
     assert calls[0]["target"]["value"].startswith('internal:attr=[title="http://ec2-')
+
+
+@pytest.mark.parametrize(
+    ("reddit_origin", "expected_score"),
+    [("http://reddit.example", 1.0), ("http://wrong.example", 0.0)],
+    ids=["markdown-deployment-url", "markdown-wrong-origin"],
+)
+def test_remote_benchmark_derenders_urls_inside_markdown(
+    tmp_path, reddit_origin, expected_score
+):
+    benchmark = remote_benchmark(load_remote_sites(_site_map(tmp_path)))
+    task = benchmark.get_task(562)
+    project = task.eval[1].expected.post_data
+    expected_content = task.eval[2].expected.post_data["$.actions[0].content"]
+    content = expected_content.replace("__REDDIT__", reddit_origin)
+    commit = {
+        "branch": "main",
+        "actions": [
+            {"action": "create", "file_path": "README.md", "content": content}
+        ],
+    }
+    trace = tmp_path / f"task-562-{expected_score}.har"
+    trace.write_text(
+        json.dumps(
+            {
+                "log": {
+                    "entries": [
+                        {
+                            "request": {
+                                "method": "POST",
+                                "url": "http://gitlab.example/projects",
+                                "headers": [],
+                                "postData": {
+                                    "mimeType": "application/x-www-form-urlencoded",
+                                    "text": urlencode(
+                                        {
+                                            key: value
+                                            for key, value in project.items()
+                                            if value is not None
+                                        }
+                                    ),
+                                },
+                            },
+                            "response": {"status": 302, "headers": [], "content": {}},
+                        },
+                        {
+                            "request": {
+                                "method": "POST",
+                                "url": (
+                                    "http://gitlab.example/api/v4/projects/"
+                                    "byteblaze%2FAwesome_DIY_ideas/repository/commits"
+                                ),
+                                "headers": [],
+                                "postData": {
+                                    "mimeType": "application/json",
+                                    "text": json.dumps(commit),
+                                },
+                            },
+                            "response": {"status": 201, "headers": [], "content": {}},
+                        },
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = benchmark.evaluate_task(
+        task_id=562,
+        agent_response={"task_type": "MUTATE", "status": "SUCCESS", "retrieved_data": None},
+        network_trace=trace,
+    )
+    assert float(result.score) == expected_score, result.model_dump_json(indent=2)
 
 
 def test_remote_reset_requires_pod_replacement_and_readiness(tmp_path):
