@@ -1276,6 +1276,297 @@
   ],
   "releases": [
     {
+      "id": "2026-09-21-moli-seven-linux-release-resources",
+      "date": "2026-09-21",
+      "date_timezone": "Asia/Shanghai",
+      "comparison_kinds": [
+        "moli_historical_failure_retest",
+        "moli_process_tree_resource_profile"
+      ],
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "gdwtSGOel0va",
+        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
+        "version": "ver_460f324bc0c04d53a866517db54edd13"
+      },
+      "title": "七种 Moli 配置统一采用 Linux Release 资源口径",
+      "summary": "四组 1.1.9 Release 资源结果与前三组对齐，统一使用 Mac 主机上 Docker Linux 的进程树 PSS 和 CPU。修复版开启 layout 为 80.83 MiB、21.48 ms，相对 1.1.4 为 +4.68%、+0.36%；372 题功能结果保持不变。",
+      "changes": [
+        [
+          "资源比较",
+          "不同平台内存指标与构建模式不能直接比较。",
+          "四组各测量 557 题 × 5 次，并通过官方 profiler-off 校准；七组以 1.1.4 关闭 layout 为共同基线。",
+          "汇总图使用预先冻结的 209 题 / 1,045 次，完整表保留 557 题；准确率未重测。"
+        ],
+        [
+          "图表与证据",
+          "汇总需要同时清晰展示变化和具体值。",
+          "点旁显示方法及成功率、资源变化；✦ 标识开启 layout，图例集中列出具体值。公开逐次测量与构建身份。",
+          "保留原分享链接，功能构建与资源构建分别绑定。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Align all seven Moli resource configurations to Linux Release measurements",
+          "summary": "Four 1.1.9 Release resource configurations now align with the original three using process-tree PSS and CPU in Docker Linux on the Mac host. Patched layout on measures 80.83 MiB and 21.48 ms, +4.68% and +0.36% relative to 1.1.4. Existing 372-task functional results are unchanged.",
+          "changes": [
+            [
+              "Resource comparison",
+              "Different memory metrics and build profiles do not form a direct comparison.",
+              "Measure 557 tasks × 5 calls for each of four configurations with the official profiler-off calibration. Use 1.1.4 layout off as the common baseline for all seven.",
+              "The chart retains the predeclared 209-task / 1,045-call population; full tables retain 557 tasks. Accuracy was not rerun."
+            ],
+            [
+              "Chart and evidence",
+              "Readers need both changes and exact values.",
+              "Point labels show method and success/resource changes; ✦ identifies layout on. Legends list exact values. Publish individual measurements and build identities.",
+              "The existing share link is retained. Functional and resource builds are identified separately."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "2026-09-21-moli-seven-method-release-resource-calibration",
+      "date": "2026-09-21",
+      "date_timezone": "Asia/Shanghai",
+      "comparison_kinds": [
+        "moli_historical_failure_retest",
+        "moli_process_tree_resource_profile"
+      ],
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "gdwtSGOel0va",
+        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
+        "version": "ver_2f4844c0550241b78f7c80d8614bca87"
+      },
+      "title": "发布七种 Moli 配置与 Release 资源对照",
+      "summary": "七种配置统一展示 372 题成功率。1.1.9 与修复版的四组 Release 资源数据覆盖每组 557 题 × 5 次；修复版相对同布局 1.1.9 的峰值 RSS 中位数变化为 +0.54% / +2.69%，平均 CPU 时间变化为 −1.62% / −0.82%。",
+      "changes": [
+        [
+          "配置与成绩",
+          "比较需要统一配置顺序，并区分功能构建和资源构建。",
+          "表格与图按版本及布局排序，共七种配置；保留已有功能结果，增加已经完成的 1.1.9 关闭布局结果 1/372。",
+          "修复版准确率对应 87c87e95 构建，资源对应 f315ff26 Release；不将已有准确率归为新构建的实测。"
+        ],
+        [
+          "资源口径",
+          "Debug 与 Release、Linux PSS 与 macOS RSS 不可混用为直接涨幅。",
+          "四组 Release 在同一主机按任务轮换顺序、串行调用，每组 2,785 次；全量表使用 557 题，汇总图使用预先冻结的 209 题。",
+          "资源百分比以相同布局的 1.1.9 Release 为参照；PSS 与 RSS 分开标注，不计算跨平台变化。"
+        ],
+        [
+          "公开证据",
+          "资源汇总需要能够回溯并独立重算。",
+          "公开完整调用顺序、逐次资源值、二进制哈希、冻结协议和实际执行脚本；缺失、部分或不一致的资源证据阻止发布。",
+          "站点保留原链接；成功与失败详情均可打开原始证据，并通过键盘关闭后返回。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Publish seven Moli configurations and Release resource comparisons",
+          "summary": "Seven configurations share the 372-task success comparison. Four Release resource configurations cover 557 tasks × 5 calls each. Relative to matching-layout Moli 1.1.9, the patched build changes median peak RSS by +0.54% / +2.69% and mean CPU time by −1.62% / −0.82%.",
+          "changes": [
+            [
+              "Configurations and scores",
+              "Comparisons require consistent ordering and distinct functional and resource build identities.",
+              "Tables and charts list seven configurations by version and layout. Existing functional results are retained, with the completed 1.1.9 layout-off result of 1/372 added.",
+              "Patched success results belong to build 87c87e95; resources belong to f315ff26 Release. Existing accuracy is not attributed to a new-build measurement."
+            ],
+            [
+              "Resource scope",
+              "Debug and Release builds, or Linux PSS and macOS RSS, cannot supply directly comparable growth percentages.",
+              "Four Release configurations run serially on one host with task-level rotating order, 2,785 calls each. Full tables cover 557 tasks; the summary chart uses the 209 tasks frozen before execution.",
+              "Resource percentages use matching-layout Moli 1.1.9 Release as the reference. PSS and RSS are labeled separately without cross-platform percentage changes."
+            ],
+            [
+              "Public evidence",
+              "Resource aggregates must be traceable and independently reproducible.",
+              "Publish complete call order, per-call measurements, binary hashes, frozen protocol and the exact executed script. Missing, partial or inconsistent resource evidence blocks release.",
+              "The share link is unchanged. Success and failure details expose raw evidence with keyboard dismissal and return navigation."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "2026-09-21-moli-six-configuration-report",
+      "date": "2026-09-21",
+      "date_timezone": "Asia/Shanghai",
+      "comparison_kinds": [
+        "moli_historical_failure_retest",
+        "moli_process_tree_resource_profile"
+      ],
+      "title": "统一六配置图表与正式报告结构",
+      "summary": "六种固定配置按同一顺序呈现在总表和一张汇总图中，以 1.1.4 关闭布局为成功率基线。首页保留核心结果和可展开的资源明细；方法、解读与证据页面统一描述完整评测。通过率与资源测量值不变。",
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "gdwtSGOel0va",
+        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
+        "version": "ver_297e78e469d84077a0e95c813b34df91"
+      },
+      "changes": [
+        [
+          "六配置图表",
+          "分开的版本图与六配置总表不对应。",
+          "图表使用同一配置注册表、顺序和编号，统一显示成功率、内存与 CPU；重叠标记用引线区分。",
+          "成功率变化用百分点；Linux PSS 与 macOS RSS 分别标注，跨平台资源变化不计算。"
+        ],
+        [
+          "报告结构",
+          "首页存在重复汇总，解释分散在版本分块中。",
+          "总览、方法、解读和证据页面按读者问题组织；移除过程性叙述，资源明细可展开。",
+          "结果和分母不变。1.1.4 的直接验证与继承范围保留在方法和覆盖说明中。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Unify the six-configuration chart and reader-facing report",
+          "summary": "The same six fixed configurations appear in registry order in one summary table and chart, using 1.1.4 layout off as the success baseline. The home page keeps core results and expandable resources; method, interpretation and evidence pages describe the complete evaluation. Success and resource measurements are unchanged.",
+          "changes": [
+            [
+              "Six-configuration chart",
+              "Separate version charts did not align with the six-method table.",
+              "Use the same registry, order and numbering for success, memory and CPU; leader lines separate overlapping markers.",
+              "Success changes use percentage points. Linux PSS and macOS RSS stay explicitly labeled; cross-platform resource changes are not calculated."
+            ],
+            [
+              "Report structure",
+              "The home page repeated summaries and split interpretation into version additions.",
+              "Organize overview, method, interpretation and evidence by reader questions, remove execution narration and make resources expandable.",
+              "Results and denominators are unchanged. The method and coverage sections retain 1.1.4 direct and inherited evidence scope."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "2026-09-21-moli-119-fixed-layout-comparison",
+      "date_timezone": "Asia/Shanghai",
+      "comparison_kinds": [
+        "moli_historical_failure_retest",
+        "moli_process_tree_resource_profile"
+      ],
+      "date": "2026-09-21",
+      "title": "加入 Moli 1.1.9 固定布局与官方版本对照",
+      "summary": "新增修复版 1.1.9 关闭布局、开启布局及官方 1.1.9 开启布局：372 题分别通过 1、360、255 题。三个方法各完成独立的 557 题 × 5 次资源实验；macOS RSS 与历史 Linux PSS 分开展示，图表和表格给出带正负号的资源变化。",
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "gdwtSGOel0va",
+        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
+        "version": "ver_4d7cfe448a8e4ac98287607dc6a2266a"
+      },
+      "changes": [
+        [
+          "固定布局功能对照",
+          "每个方法需要同一布局状态下的完整三次执行。",
+          "每题三次全部通过才算通过；修复版开启布局比官方版新增通过 105 题，无退步。新增同题结果筛选及三种方法的逐次证据。",
+          "保留历史 1.1.4 / 1.1.8 结果；两个任务合同修正后的 18 次复测均失败，历史通过数不变。"
+        ],
+        [
+          "独立资源实验",
+          "功能通过率与资源采样使用不同任务群体。",
+          "每个方法各采样 2,785 次；同时展示全部 557 题统计和预先冻结的 209 题、1,045 次图表样本，macOS 百分比以官方 1.1.9 开启布局为基准。",
+          "修复版为 debug 构建，官方版为发布资产；资源差异同时包含代码和构建配置差异。"
+        ],
+        [
+          "图表与证据",
+          "报告需要可复现图表及可读的手机端证据。",
+          "保留按 PSS、RSS、CPU 选择面板的代码绘图；完成 112 个页面状态及 6 条证据交互验收，部署的 26 个文件逐一核对。",
+          "分享链接保持不变。功能校验覆盖 372 题、7,830 条历史及当前调用和 41,292 个证据文件。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Add Moli 1.1.9 fixed-layout and official-release comparisons",
+          "summary": "Added patched 1.1.9 with layout off and on, and official 1.1.9 with layout on: 1, 360 and 255 passes out of 372 cases. Each method completes a separate 557-task × 5-call resource experiment. macOS RSS and historical Linux PSS remain separate, with signed resource changes in tables and code-generated charts.",
+          "changes": [
+            [
+              "Fixed-layout functional comparison",
+              "Each method requires three complete attempts under the same layout setting.",
+              "A case passes only when all three attempts pass. Patched layout on gains 105 cases over official layout on and loses none. Same-case filters and individual attempt evidence cover all three methods.",
+              "Historical 1.1.4 / 1.1.8 results remain; all 18 calls after correcting two task contracts fail, leaving historical pass counts unchanged."
+            ],
+            [
+              "Separate resource experiments",
+              "Compatibility and resource sampling use different task populations.",
+              "Each method has 2,785 sampled calls. Tables show all 557 tasks and the pre-frozen 209-task / 1,045-call chart population. macOS percentage changes use official 1.1.9 layout on as the baseline.",
+              "The patched binary is a debug build; the official binary is a release asset. Resource differences include both code and build-configuration differences."
+            ],
+            [
+              "Charts and evidence",
+              "Charts must be reproducible and evidence readable on narrow screens.",
+              "Code-generated charts support PSS, RSS and CPU panels. Verification covers 112 page states and six evidence flows; all 26 deployed files match the submitted package.",
+              "The share link is unchanged. Functional validation covers 372 cases, 7,830 historical and current calls, and 41,292 evidence files."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "2026-09-20-moli-version-layout-resource-summary",
+      "date_timezone": "Asia/Shanghai",
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "gdwtSGOel0va",
+        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
+        "version": "ver_96cd695de0d54d72bc5e7bfe09ac3ba6"
+      },
+      "comparison_kinds": [
+        "moli_historical_failure_retest",
+        "moli_process_tree_resource_profile"
+      ],
+      "date": "2026-09-20",
+      "title": "增加 Moli 1.1.4 / 1.1.8 成功率与资源汇总",
+      "summary": "首页新增三种配置的 372 题成功率、峰值 PSS 和 CPU 时间汇总。成功率与资源实验分别标明分母；表格和图中都给出相对 1.1.4 关闭布局的带正负号变化，代码生成的双面板图共用成功率纵轴，并允许省略 CPU 面板。",
+      "i18n": {
+        "en": {
+          "title": "Add Moli 1.1.4 / 1.1.8 success and resource summary",
+          "summary": "The report home page now compares success on 372 cases, peak PSS, and CPU time for three configurations. Compatibility and resource experiments state separate populations; the table and chart show signed changes relative to Moli 1.1.4 layout off. The code-generated dual-panel chart shares one success-rate axis and can omit the CPU panel.",
+          "changes": [
+            [
+              "Version comparison",
+              "The previous report directly covered only Moli 1.1.8 with layout off and on across all 372 cases.",
+              "Layout-off Moli 1.1.8 passes one case. That sole candidate is rerun three times with layout-off Moli 1.1.4 and fails all three; the other 371 retain the shared-failure relation, and the home page compares all three configurations.",
+              "The success rate describes only the 372 historical Moli 0.1.1 failures and is not extrapolated to the full 1,928-case suite."
+            ],
+            [
+              "Resource comparison",
+              "The compatibility and resource experiments use different task counts and sampling rules, so a single execution cannot be treated as one shared denominator.",
+              "The report separately presents a 557-task × 5-call resource experiment and compares median peak PSS and mean CPU time on the 1,045 task-attempt population frozen before execution.",
+              "Resource values compare versions and layout settings in the same environment; CPU sampling can miss short-lived child processes."
+            ],
+            [
+              "Summary chart",
+              "A single horizontal axis cannot express MiB and milliseconds.",
+              "Two horizontal panels share the 372-case success-rate axis. Each point shows the absolute value and percentage change from Moli 1.1.4, and the plotting script supports PSS, CPU, or both.",
+              "The chart is generated from frozen data by code, with separate Chinese and English output; it is not a generated image."
+            ]
+          ]
+        }
+      },
+      "changes": [
+        [
+          "版本对照",
+          "原报告只完整展示 Moli 1.1.8 关闭与开启布局的 372 题结果。",
+          "1.1.8 关闭布局只通过 1 题；对该唯一候选题用 Moli 1.1.4 关闭布局复测三次，均失败，其余 371 题沿用共同失败关系，并在首页统一比较三个方法。",
+          "通过率仍只描述 Moli 0.1.1 的 372 个历史失败用例，不外推为 1,928 题全量成绩。"
+        ],
+        [
+          "资源对照",
+          "成功率实验和资源实验的任务数与采样规则不同，无法把单次执行直接当成同一分母。",
+          "独立展示 557 题 × 5 次资源实验，并用运行前冻结的 1,045 个任务-执行样本比较峰值 PSS 中位数和平均 CPU 时间。",
+          "资源值用于同环境版本与布局对照；CPU 采样存在短生命周期子进程遗漏风险。"
+        ],
+        [
+          "汇总图",
+          "单一横轴不能同时表达 MiB 与毫秒。",
+          "使用两个水平面板，共用 372 题成功率纵轴；数据点同时标出绝对值和相对 1.1.4 的变化百分比，绘图脚本支持 PSS、CPU 或两者。",
+          "图由冻结数据和代码生成，中文与英文分别输出，不使用生成式图片。"
+        ]
+      ]
+    },
+    {
       "id": "2026-09-18-wcxb-frozen-html-reader-clarification",
       "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
       "date": "2026-09-18",

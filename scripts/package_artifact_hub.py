@@ -20,6 +20,7 @@ from urllib.parse import urlsplit, unquote
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
+from harness.reporting.packs import write_packs
 from harness.web_fetch.publication_privacy import project_file
 from harness.web_fetch.publication_target import HUB
 SOURCE=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/'reports/webfetch'
@@ -265,19 +266,9 @@ def build():
           'detection_limits':'Pattern-based scan; not a guarantee of detecting every secret. Key validity is not tested.',
           'files':redactions}
  add('publication-privacy.json',(json.dumps(privacy,ensure_ascii=False,indent=2)+'\n').encode())
- # Pack raw blocks together then gzip, keeping requests small and all bytes intact.
- batch=bytearray();batch_keys=[];index=0
- def flush():
-  nonlocal batch,batch_keys,index
-  if not batch:return
-  name=f'data/{index:03d}.gz';compressed=gzip.compress(bytes(batch),compresslevel=9,mtime=0)
-  (DEST/name).write_bytes(compressed)
-  for key,offset,size in batch_keys:blocks[key]={'pack':name,'offset':offset,'size':size}
-  batch=bytearray();batch_keys=[];index+=1
- for key,data in raw_blocks.items():
-  if len(batch)+len(data)>4*1024*1024:flush()
-  batch_keys.append((key,len(batch),len(data)));batch.extend(data)
- flush()
+ # Privacy projection and block deduplication remain report-specific.
+ blocks,index=write_packs(raw_blocks.items(),DEST,limit=4*1024*1024,
+                         pattern='data/{index:03d}.gz',compresslevel=9)
  manifest={'schema_version':2,
            'architecture':{'kind':'single_html_shell_with_lazy_virtual_routes',
                            'logical_routes':logical_route_count,'source_files':source_file_count,

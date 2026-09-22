@@ -2789,7 +2789,8 @@ def _register_release_translations() -> None:
     for release in history['releases']:
         if any(kind in release.get('comparison_kinds', []) for kind in (
                 'webmainbench_frozen_html_to_markdown', 'public_benchmark_research',
-                'wcxb_frozen_html_to_markdown')):
+                'wcxb_frozen_html_to_markdown', 'moli_historical_failure_retest',
+                'moli_process_tree_resource_profile')):
             continue
         english = release.get('i18n', {}).get('en', {})
         if (not english.get('title') or not english.get('summary')
