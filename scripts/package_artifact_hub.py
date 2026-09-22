@@ -20,9 +20,11 @@ from urllib.parse import urlsplit, unquote
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
+from harness.reporting.packs import write_packs
 from harness.web_fetch.publication_privacy import project_file
 from harness.web_fetch.publication_target import HUB
 SOURCE=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/'reports/webfetch'
+ARCHIVE=Path(sys.argv[2]).resolve() if len(sys.argv)>2 else ROOT/'publish/webfetch-sites.zip'
 (ROOT/'publish').mkdir(exist_ok=True)
 DEST=Path(tempfile.mkdtemp(prefix='artifact-hub-',dir=ROOT/'publish'))
 
@@ -40,13 +42,13 @@ const LARGE_TEXT_BYTES=256*1024;
 const pageStates=new Map();
 function savePageState(){
  if(!document.querySelector('main'))return;
- pageStates.set(currentPage,{filters:[...document.querySelectorAll('[data-filter]')].map(e=>[e.dataset.filter,e.value]),x:window.scrollX,y:window.scrollY});
+ pageStates.set(currentPage,{filters:[...document.querySelectorAll('[data-filter],[data-wmb-filter],[data-wmb-slice-filter]')].map(e=>[e.dataset.wmbSliceFilter!==undefined?'slice:'+e.id:e.dataset.wmbFilter?'wmb:'+e.dataset.wmbFilter:'old:'+e.dataset.filter,e.value]),x:window.scrollX,y:window.scrollY});
 }
 function restorePageState(path){
  const saved=pageStates.get(path);if(!saved)return null;
  const fields=new Map(saved.filters);
- document.querySelectorAll('[data-filter]').forEach(e=>{if(fields.has(e.dataset.filter))e.value=fields.get(e.dataset.filter)});
- cascadeFilters();return saved;
+ document.querySelectorAll('[data-filter],[data-wmb-filter],[data-wmb-slice-filter]').forEach(e=>{let key=e.dataset.wmbSliceFilter!==undefined?'slice:'+e.id:e.dataset.wmbFilter?'wmb:'+e.dataset.wmbFilter:'old:'+e.dataset.filter;if(fields.has(key))e.value=fields.get(key)});
+ cascadeFilters();wmbFilters();wmbSliceFilters();return saved;
 }
 const packs=new Map();
 async function pack(name){
@@ -161,8 +163,25 @@ document.addEventListener('click',downloadClick);
 '''
 
 def build():
- reliability=json.loads((SOURCE/'reliability.json').read_text())
- assert reliability.get('complete') is True, 'Refusing to package an incomplete or unjudged benchmark report'
+ dataset_path=SOURCE/'dataset.json'
+ dataset=json.loads(dataset_path.read_text()) if dataset_path.exists() else {}
+ webmainbench=dataset.get('id')=='webmainbench-545-preselected-200-six-methods'
+ if webmainbench:
+   review=json.loads((SOURCE/'result-review.json').read_text())
+   assert review.get('status')=='passed' and not review.get('failures'), \
+          'Refusing to package an incomplete or unreviewed benchmark report'
+   records_for_release=[json.loads(x) for x in (SOURCE/'results.jsonl').read_text().splitlines()]
+   case_ids={row['id'] for row in dataset.get('cases',[])}
+   providers=set(review.get('providers',[]))
+   assert len(case_ids)==review.get('sample_case_count')==200, 'Current sample/review size mismatch'
+   assert providers==set(dataset['coverage_plan']['static_html']), 'Review provider scope differs from the declared matrix'
+   assert len(records_for_release)==len(case_ids)*len(providers), 'Current result matrix is incomplete'
+   assert {(row.get('provider'),row.get('case_id')) for row in records_for_release}=={
+       (provider,case_id) for provider in providers for case_id in case_ids}, 'Current result matrix differs from the reviewed scope'
+   assert dataset.get('sample_manifest_sha256')==review.get('sample_manifest_sha256'), 'Current sample/review binding mismatch'
+ else:
+  reliability=json.loads((SOURCE/'reliability.json').read_text())
+  assert reliability.get('complete') is True, 'Refusing to package an incomplete or unjudged benchmark report'
  DEST.mkdir(parents=True,exist_ok=True)
  (DEST/'data').mkdir(exist_ok=True)
  records=[json.loads(x) for x in (SOURCE/'results.jsonl').read_text().splitlines()]
@@ -218,8 +237,9 @@ def build():
     assert len(log_paths)==len(by_kind['call-log']),(name,len(log_paths),len(by_kind['call-log']))
     log_replacements={match.start():f'<pre data-file="{path}" data-readable="1"></pre>'
                       for match,path in zip(by_kind['call-log'],log_paths)}
+    reference_suffix='.md' if (SOURCE/'references'/f'{record["case_id"]}.md').exists() else '.txt'
     replacements={source_kind:(f'<pre data-file="contracts/{record["case_id"]}.json"></pre>' if source_kind=='contract'
-                                else f'<pre data-file="references/{record["case_id"]}.txt"></pre>'),
+                                else f'<pre data-file="references/{record["case_id"]}{reference_suffix}"></pre>'),
                   'output':f'<pre data-file="{record["artifact_path"]}" data-readable="1"></pre>',
                   'call-output':f'<pre data-file="{record["artifact_path"]}" data-readable="1"></pre>',
                   'metadata':f'<pre data-record="{idx+1}"></pre>',
@@ -228,7 +248,10 @@ def build():
      replacement=log_replacements[match.start()] if match[1]=='call-log' else replacements[match[1]]
      text=text[:match.start()]+replacement+text[match.end():]
    elif path.parent.name=='datasets' and path.name!='index.html':
-    text=re.sub(r'<pre>.*?</pre>',f'<pre data-file="references/{path.stem}.txt"></pre>',text,count=1,flags=re.S)
+    suffix='.md' if (SOURCE/'references'/f'{path.stem}.md').exists() else '.txt'
+    reference_file=html.escape(f'references/{path.stem}{suffix}',quote=True)
+    text=re.sub(r'(<h2>(?:官方人工真值|Official human ground truth)</h2>)<pre>.*?</pre>',
+                lambda match:match.group(1)+f'<pre data-file="{reference_file}"></pre>',text,count=1,flags=re.S)
    data=text.encode();pages[name]=text
   else:original[name]=hashlib.sha256(data).hexdigest()
   if redaction:
@@ -243,19 +266,9 @@ def build():
           'detection_limits':'Pattern-based scan; not a guarantee of detecting every secret. Key validity is not tested.',
           'files':redactions}
  add('publication-privacy.json',(json.dumps(privacy,ensure_ascii=False,indent=2)+'\n').encode())
- # Pack raw blocks together then gzip, keeping requests small and all bytes intact.
- batch=bytearray();batch_keys=[];index=0
- def flush():
-  nonlocal batch,batch_keys,index
-  if not batch:return
-  name=f'data/{index:03d}.gz';compressed=gzip.compress(bytes(batch),compresslevel=9,mtime=0)
-  (DEST/name).write_bytes(compressed)
-  for key,offset,size in batch_keys:blocks[key]={'pack':name,'offset':offset,'size':size}
-  batch=bytearray();batch_keys=[];index+=1
- for key,data in raw_blocks.items():
-  if len(batch)+len(data)>4*1024*1024:flush()
-  batch_keys.append((key,len(batch),len(data)));batch.extend(data)
- flush()
+ # Privacy projection and block deduplication remain report-specific.
+ blocks,index=write_packs(raw_blocks.items(),DEST,limit=4*1024*1024,
+                         pattern='data/{index:03d}.gz',compresslevel=9)
  manifest={'schema_version':2,
            'architecture':{'kind':'single_html_shell_with_lazy_virtual_routes',
                            'logical_routes':logical_route_count,'source_files':source_file_count,
@@ -264,11 +277,22 @@ def build():
            'files':files,'blocks':blocks}
  (DEST/'manifest.json').write_text(json.dumps(manifest,separators=(',',':')))
  (DEST/'style.css').write_bytes((SOURCE/'assets/style.css').read_bytes())
- js=(SOURCE/'assets/report.js').read_text().replace("window.addEventListener('DOMContentLoaded',", "window.addEventListener('report-ready',")
+ js=(SOURCE/'assets/report.js').read_text()
+ if not webmainbench:
+  ready_listener="window.addEventListener('report-ready',initReport);"
+  dom_listener="window.addEventListener('DOMContentLoaded',initReport);"
+  if ready_listener in js:
+   js=js.replace(dom_listener,'')
+  else:
+   js=js.replace("window.addEventListener('DOMContentLoaded',", "window.addEventListener('report-ready',")
  js=js.replace("localStorage.getItem('webfetch-theme')",'readTheme()').replace("localStorage.setItem('webfetch-theme',t)",'saveTheme(t)')
  js="function readTheme(){try{return localStorage.getItem('webfetch-theme')}catch{return 'light'}}\nfunction saveTheme(t){try{localStorage.setItem('webfetch-theme',t)}catch{}}\n"+js
  (DEST/'report.js').write_text(js)
  (DEST/'loader.js').write_text(LOADER)
+ # Artifact Site serves each committed version under an immutable signed base URL.
+ # Its signed preview route resolves exact file names but rejects cache-busting
+ # query strings on subresources, so the shell must reference the three physical
+ # assets without ``?v=...``. The versioned base already provides cache isolation.
  (DEST/'index.html').write_text('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Web Fetch 评测</title><link rel="stylesheet" href="style.css"><script defer src="report.js"></script><script defer src="loader.js"></script></head><body><p>正在加载报告…</p></body></html>')
  # Validate every download and every internal page/file link after transformation.
  for name,digest in original.items():
@@ -303,7 +327,8 @@ def build():
  # Artifact Hub publishes large bundles through staged per-file uploads.
  # Its documented total limit is 300 MB, not the former local 50 MB budget.
  assert total<=300_000_000, 'Published package exceeds the 300 MB service limit'
- archive=DEST.parent/'webfetch-sites.zip'
+ archive=ARCHIVE
+ archive.parent.mkdir(parents=True,exist_ok=True)
  with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as z:
   for path in sorted(DEST.rglob('*')):
    if path.is_file():z.write(path,path.relative_to(DEST))

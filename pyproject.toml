@@ -19,6 +19,14 @@ reference-audit = [
   "beautifulsoup4>=4.12,<5",
   "pypdf>=5,<7",
 ]
+webmainbench-eval = [
+  "apted==1.0.3",
+  "beautifulsoup4==4.14.2",
+  "jieba==0.42.1",
+  "openai>=2.8,<4",
+  "python-dotenv==1.1.1",
+  "rapidfuzz==3.14.1",
+]
 browser-use-eval = [
   "docker>=7,<8",
   "json-repair>=0.54,<1",
@@ -47,12 +55,14 @@ oss-eval = [
 testpaths = ["tests"]
 addopts = ["--import-mode=importlib"]
 markers = [
-  "real_smoke: starts real browser containers and accesses a public website",
+  "real_smoke: accesses real containers or live deployment endpoints",
 ]
 
 [tool.ruff]
 line-length = 100
 include = [
+  "harness/environments/**/*.py",
+  "tests/environments/**/*.py",
   "harness/browser_use/**/*.py",
   "harness/trajectory_replay/**/*.py",
   "tests/browser_use/**/*.py",

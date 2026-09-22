@@ -213,7 +213,7 @@ if(at<1||parts[at-1]!=='api')return;
 const node=document.querySelector('base[href]');
 if(!node)return;
 const signedRoot=new URL(node.href,location.href);
-const route=parts.slice(at+2);
+const route=parts.slice(at+2).filter(Boolean);
 if(route.length&&!location.pathname.endsWith('/'))route.pop();
 signedRoot.pathname=signedRoot.pathname.replace(/\/?$/,'/')+(route.length?route.join('/')+'/':'');
 signedRoot.search='';

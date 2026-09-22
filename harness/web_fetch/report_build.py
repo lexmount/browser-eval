@@ -4,13 +4,18 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
-from .report import generate, succeeded, measured, failure_category, TRACKS
+from .report import generate, generate_public_benchmark_research, generate_webmainbench, generate_wcxb, succeeded, measured, failure_category, TRACKS
+from .report_changes import webmainbench_history
 from .failure_diagnosis import diagnose
-from .safety import contained_path, validate_report_ids
+from .safety import contained_path, safe_identifier, validate_report_ids
 from .reference_lifecycle import require_verified_reference_checks
 from .reliability import assess_reliability
-from .storage import require_selection_history
+from .storage import require_selection_history,data_home
+from .wcxb_latency import load_full_paired_latency
 from .scoring import SCORING_SOURCE_SHA256
+from .webmainbench_diagnostics import validate_teds_revision_if_present
+from .webmainbench_latency_correction import prior_results_path
+from .webmainbench_latency_diagnostic import load_diagnostic
 from .artifacts import (
     record_public_call_log_bindings, verify_record_private_artifacts,
     verify_public_call_log, verify_record_public_call_logs,
@@ -34,6 +39,48 @@ def copy_methodology_assets(output, assets=None):
             shutil.copy2(source, target)
 
 
+def build_public_benchmark_research(source: Path, output: Path) -> Path:
+    """Build the research-only companion without measured evidence."""
+    source, output = source.resolve(), output.resolve()
+    marker = '.generated-report'
+    if output.exists() and not (output / marker).is_file():
+        raise ValueError(f'Refusing to replace an unmarked directory: {output}')
+    research = json.loads(source.read_text(encoding='utf-8'))
+    if research.get('schema_version') != 1:
+        raise ValueError('Unsupported public benchmark research schema')
+    sample_path = contained_path(source.parent.parent, research['sampling_contract']['manifest'])
+    sample = None
+    if sample_path.is_file():
+        sample = json.loads(sample_path.read_text(encoding='utf-8'))
+        research['frozen_sample'] = {
+            'parent': sample['parent'],
+            'sampling': sample['sampling'],
+            'quality_audit': sample['quality_audit'],
+            'parent_distribution': sample['parent_distribution'],
+            'sample_distribution': sample['sample_distribution'],
+            'case_count': len(sample['cases']),
+        }
+    output.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix='.research-report-build-', dir=output.parent))
+    try:
+        generate_public_benchmark_research(staging, research)
+        if sample is not None:
+            shutil.copy2(sample_path, staging / 'sample-manifest.json')
+        (staging / marker).write_text('generated\n', encoding='utf-8')
+        backup = output.with_name(output.name + '.previous')
+        if backup.exists():
+            shutil.rmtree(backup)
+        if output.exists():
+            output.rename(backup)
+        staging.rename(output)
+        if backup.exists():
+            shutil.rmtree(backup)
+    except Exception:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+    return output / 'index.html'
+
+
 def build_report(source: Path, output: Path) -> Path:
     source, output = source.resolve(), output.resolve()
     if source == output or output in source.parents:
@@ -41,6 +88,9 @@ def build_report(source: Path, output: Path) -> Path:
     marker = '.generated-report'
     if output.exists() and not (output/marker).is_file():
         raise ValueError(f'Refusing to replace an unmarked directory: {output}')
+    dataset_probe = json.loads(contained_path(source, 'dataset.json').read_text())
+    if dataset_probe.get('comparison', {}).get('kind') == 'webmainbench_frozen_html_to_markdown':
+        return build_webmainbench_report(source, output)
     require_selection_history(source)
     dataset = json.loads(contained_path(source,'dataset.json').read_text())
     records = [json.loads(line) for line in contained_path(source,'results.jsonl').read_text().splitlines()]
@@ -267,3 +317,373 @@ def build_report(source: Path, output: Path) -> Path:
     finally:
         if staging.exists(): shutil.rmtree(staging)
     return output/'index.html'
+
+
+def validate_webmainbench_correction(receipt: dict, dataset: dict) -> None:
+    """Reject receipts outside the frozen case and participant scope."""
+    if not isinstance(receipt, dict):
+        raise ValueError('Invalid fixture correction receipt')
+    scope = receipt.get('providers')
+    effects = receipt.get('effects')
+    if (receipt.get('case_id') not in {case['id'] for case in dataset['cases']}
+            or not isinstance(scope, list) or not scope
+            or any(not isinstance(name, str) for name in scope)
+            or len(set(scope)) != len(scope)
+            or not set(scope).issubset(dataset['coverage_plan']['static_html'])
+            or not isinstance(effects, dict) or set(effects) != set(scope)):
+        raise ValueError('Fixture correction scope does not match the report matrix')
+    if any(receipt.get(key) != dataset[key] for key in
+           ('sample_manifest_sha256', 'source_dataset_sha256')):
+        raise ValueError('Fixture correction is not bound to the current report dataset')
+
+
+def validate_webmainbench_anomaly_review(receipt: dict, source: Path,
+                                         dataset: dict, records: list[dict]) -> None:
+    """Bind the compact anomaly review to this exact report matrix."""
+    if not isinstance(receipt, dict) or receipt.get('kind') != 'webmainbench_anomaly_root_cause_review':
+        raise ValueError('Invalid WebMainBench anomaly review')
+    bindings = receipt.get('bindings', {})
+    expected_files = {
+        'dataset_json_sha256': 'dataset.json',
+        'score_summaries_json_sha256': 'score-summaries.json',
+    }
+    for binding, filename in expected_files.items():
+        actual = hashlib.sha256(contained_path(source, filename).read_bytes()).hexdigest()
+        if bindings.get(binding) != actual:
+            raise ValueError(f'WebMainBench anomaly review {binding} mismatch')
+    if bindings.get('results_jsonl_sha256') != hashlib.sha256(
+            prior_results_path(source).read_bytes()).hexdigest():
+        raise ValueError('WebMainBench anomaly review results_jsonl_sha256 mismatch')
+    if (bindings.get('source_dataset_sha256') != dataset.get('source_dataset_sha256')
+            or bindings.get('sample_manifest_sha256') != dataset.get('sample_manifest_sha256')):
+        raise ValueError('WebMainBench anomaly review dataset binding mismatch')
+    retest_sha = receipt.get('diagnostic_evidence', {}).get('moli_origin_retest_summary_sha256')
+    if retest_sha:
+        retest_path = contained_path(source, 'latency-diagnostic/failure-retest/summary.json')
+        if not retest_path.is_file() or hashlib.sha256(retest_path.read_bytes()).hexdigest() != retest_sha:
+            raise ValueError('Moli origin-failure retest is not bound to the anomaly review')
+    scope = receipt.get('scope', {})
+    triggered = receipt.get('triggered_attempt_ids')
+    attempts = {row['attempt_id'] for row in records}
+    providers = {row['provider'] for row in records}
+    cases = receipt.get('cases')
+    if (scope.get('logical_results') != len(records)
+            or not isinstance(triggered, list)
+            or len(triggered) != scope.get('signal_triggered_results')
+            or len(set(triggered)) != len(triggered)
+            or not set(triggered).issubset(attempts)
+            or not isinstance(cases, list)
+            or len(cases) != scope.get('distinct_cases')
+            or {row.get('case_id') for row in cases} != {
+                attempt.split('__', 2)[1] for attempt in triggered
+            }
+            or any(not isinstance(row.get('affected_providers'), list)
+                   or not row['affected_providers']
+                   or len(set(row['affected_providers'])) != len(row['affected_providers'])
+                   or not set(row['affected_providers']).issubset(providers)
+                   or any(not isinstance(row.get(key), str) or not row[key].strip()
+                          for key in ('classification', 'observed_zh', 'observed_en',
+                                      'cause_zh', 'cause_en'))
+                   for row in cases)
+            or scope.get('unresolved_triggered_results') != 0):
+        raise ValueError('WebMainBench anomaly review scope mismatch')
+    disposition = receipt.get('disposition', {})
+    if any(disposition.get(key) is not False for key in
+           ('score_bearing_results_changed', 'provider_calls_replaced', 'references_changed')):
+        raise ValueError('Diagnostic review must not mutate score-bearing evidence')
+
+
+def build_webmainbench_report(source: Path, output: Path) -> Path:
+    """Build the current public-benchmark report without legacy task predicates."""
+    dataset = json.loads(contained_path(source, 'dataset.json').read_text())
+    records = [json.loads(line) for line in contained_path(source, 'results.jsonl').read_text().splitlines() if line.strip()]
+    teds_revision = validate_teds_revision_if_present(source, records)
+    summaries = json.loads(contained_path(source, 'score-summaries.json').read_text())
+    manifests = json.loads(contained_path(source, 'execution.json').read_text())['batches']
+    latency_diagnostic = load_diagnostic(source, dataset, records, manifests)
+    review_path = source / 'result-review.json'
+    review = json.loads(review_path.read_text()) if review_path.is_file() else None
+    if review is not None and review.get('bindings', {}).get('results_jsonl_sha256') != hashlib.sha256(
+            prior_results_path(source).read_bytes()).hexdigest():
+        raise ValueError('WebMainBench result review is not bound to preserved scored evidence')
+    research_path = Path(__file__).resolve().parents[2] / 'research/public-web-benchmarks.json'
+    research = json.loads(research_path.read_text(encoding='utf-8'))
+    adoption_path = Path(__file__).resolve().parents[2] / 'research/provider-adoption.json'
+    adoption = json.loads(adoption_path.read_text(encoding='utf-8'))
+    corrections_path = Path(__file__).resolve().parents[2] / 'research/webmainbench-corrections.json'
+    corrections = json.loads(corrections_path.read_text(encoding='utf-8'))
+    anomaly_review_path = Path(__file__).resolve().parents[2] / 'research/webmainbench-anomaly-review.json'
+    anomaly_review = json.loads(anomaly_review_path.read_text(encoding='utf-8'))
+    release_path = Path(__file__).resolve().parents[2] / 'research/report-changes.json'
+    release_history = webmainbench_history(json.loads(release_path.read_text(encoding='utf-8')))
+    fixture_correction_path = source / 'fixture-correction.json'
+    fixture_correction = json.loads(fixture_correction_path.read_text(encoding='utf-8')) if fixture_correction_path.is_file() else None
+    providers = dataset['coverage_plan']['static_html']
+    case_ids = {case['id'] for case in dataset['cases']}
+    if fixture_correction is not None:
+        validate_webmainbench_correction(fixture_correction, dataset)
+    validate_webmainbench_anomaly_review(anomaly_review, source, dataset, records)
+    if len(case_ids) != 200 or len(records) != len(case_ids) * len(providers):
+        raise ValueError('WebMainBench report matrix is incomplete')
+    if {(row['provider'], row['case_id']) for row in records} != {
+        (provider, case_id) for provider in providers for case_id in case_ids
+    }:
+        raise ValueError('WebMainBench provider/case matrix mismatch')
+    parent = data_home() / 'public-benchmarks/webmainbench-545/WebMainBench_545.jsonl'
+    if not parent.is_file() or hashlib.sha256(parent.read_bytes()).hexdigest() != dataset['source_dataset_sha256']:
+        raise ValueError('Frozen WebMainBench parent dataset is unavailable or differs from the bound source hash')
+    parent_rows = [json.loads(line) for line in parent.read_text(encoding='utf-8').splitlines() if line.strip()]
+    source_html = {row['track_id']: row['html'] for row in parent_rows if row['track_id'] in case_ids}
+    if set(source_html) != case_ids:
+        raise ValueError('Frozen source HTML does not cover the current 200-page sample')
+    for case in dataset['cases']:
+        if hashlib.sha256(source_html[case['id']].encode('utf-8')).hexdigest() != case['input_html_sha256']:
+            raise ValueError('Frozen source HTML hash mismatch: ' + case['id'])
+    output.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix='.webmainbench-report-build-', dir=output.parent))
+    try:
+        shutil.copytree(source / 'artifacts', staging / 'artifacts')
+        shutil.copytree(source / 'references', staging / 'references')
+        (staging / 'sources').mkdir()
+        for case_id, raw_html in source_html.items():
+            (staging / 'sources' / f'{case_id}.html.txt').write_text(raw_html, encoding='utf-8')
+        shutil.copytree(source / 'fixture-certificates', staging / 'fixture-certificates')
+        shutil.copy2(source / 'sample-manifest.json', staging / 'sample-manifest.json')
+        for name in ('dataset.json', 'results.jsonl', 'score-summaries.json', 'execution.json',
+                     'physical-attempts.jsonl'):
+            shutil.copy2(source / name, staging / name)
+        if (source / 'latency-corrections.json').is_file():
+            for name in ('latency-corrections.json', 'prior-latency-results.jsonl'):
+                shutil.copy2(contained_path(source, name), staging / name)
+        if review_path.is_file():
+            shutil.copy2(review_path, staging / 'result-review.json')
+        shutil.copy2(research_path, staging / 'public-benchmark-research.json')
+        (staging / 'adoption').mkdir(exist_ok=True)
+        shutil.copy2(adoption_path, staging / 'adoption' / 'evidence.json')
+        shutil.copy2(corrections_path, staging / 'webmainbench-corrections.json')
+        shutil.copy2(anomaly_review_path, staging / 'webmainbench-anomaly-review.json')
+        (staging / 'report-changes.json').write_text(
+            json.dumps({'schema_version': 2, 'releases': release_history}, ensure_ascii=False, indent=2) + '\n',
+            encoding='utf-8')
+        if fixture_correction is not None:
+            shutil.copy2(fixture_correction_path, staging / 'fixture-correction.json')
+        if teds_revision is not None:
+            for name in ('teds-correction.json', 'teds-correction-review.json', 'original-results.jsonl'):
+                shutil.copy2(contained_path(source, name), staging / name)
+            for name in teds_revision[0]['source_code_sha256']:
+                target = contained_path(staging / 'correction-source', name)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(contained_path(source / 'correction-source', name), target)
+        for row in records:
+            artifact = contained_path(staging, row['artifact_path'])
+            if hashlib.sha256(artifact.read_bytes()).hexdigest() != row['output_sha256']:
+                raise ValueError('WebMainBench output integrity failure: ' + row['attempt_id'])
+        if latency_diagnostic is not None:
+            (staging / 'latency-diagnostic.json').write_text(
+                json.dumps(latency_diagnostic, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption, fixture_correction, teds_revision, anomaly_review, latency_diagnostic)
+        (staging / '.generated-report').write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
+        if output.exists():
+            backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'
+            output.rename(backup)
+            try:
+                staging.rename(output)
+            except BaseException:
+                backup.rename(output)
+                raise
+            shutil.rmtree(backup.parent)
+        else:
+            staging.rename(output)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
+    return output / 'index.html'
+
+
+def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: dict, output: Path) -> Path:
+    """Build the one current report from a fully certified WCXB matrix."""
+    from scripts.run_webmainbench_benchmark import WCXB_PROVIDERS, load_wcxb_source
+    from scripts.select_wcxb_sample import validate_manifest
+    source, output = source.resolve(), output.resolve()
+    certificate = json.loads((source / 'certification.json').read_text())
+    summary = json.loads((source / 'wcxb-score-summary.json').read_text())
+    records, corpus_hash = load_wcxb_source(corpus)
+    sample_bytes = sample_path.read_bytes()
+    sample_hash = hashlib.sha256(sample_bytes).hexdigest()
+    sample = json.loads(sample_bytes)
+    selected, distribution = validate_manifest(records, corpus_hash, sample)
+    if (sample_hash != profile['sample_manifest_sha256']
+            or sample_hash != certificate.get('sample_sha256_before')
+            or sample_hash != certificate.get('sample_sha256_after')
+            or sample.get('size') != profile['case_count']):
+        raise ValueError('WCXB stratified sample binding failed')
+    records = selected
+    for record in records:
+        safe_identifier(record['track_id'])
+    if (not certificate.get('complete') or corpus_hash != certificate['source_sha256_before']
+            or corpus_hash != certificate['source_sha256_after']
+            or corpus_hash != summary['source_sha256']
+            or corpus_hash != profile['source_dataset_sha256']):
+        raise ValueError('WCXB source, certificate, summary and profile disagree')
+    evaluator_hash = hashlib.sha256(contained_path(corpus, 'evaluate.py').read_bytes()).hexdigest()
+    if evaluator_hash != profile['official_evaluator_sha256'] or summary.get('official_evaluator_sha256') != evaluator_hash:
+        raise ValueError('WCXB official evaluator differs from the certified profile')
+    if [x['provider'] for x in certificate['providers']] != list(WCXB_PROVIDERS) or profile['providers'] != list(WCXB_PROVIDERS):
+        raise ValueError('WCXB participant registry differs from the certificate')
+    candidate = next(x for x in certificate['providers'] if x['provider'] == 'moli-pr643')
+    if candidate['identity'].get('binary_sha256') != profile['candidate_binary_sha256']:
+        raise ValueError('WCXB candidate binary differs from the current report profile')
+    released = next(x for x in certificate['providers'] if x['provider'] == 'moli')
+    if released['identity'].get('binary_sha256') != profile['release_binary_sha256']:
+        raise ValueError('WCXB released Moli binary differs from the current report profile')
+    rows = [json.loads(line) for line in (source / 'wcxb-scores.jsonl').read_text().splitlines() if line]
+    case_ids = {r['track_id'] for r in records}
+    correction_root = source / 'latency-correction'
+    correction_receipt = correction_root / 'receipt.json'
+    if (not correction_receipt.is_file()
+            or hashlib.sha256(correction_receipt.read_bytes()).hexdigest()
+            != profile.get('latency_correction_receipt_sha256')):
+        raise ValueError('WCXB full-scope latency correction is missing or differs from profile')
+    _, corrected_calls = load_full_paired_latency(correction_root, profile, case_ids)
+    correction_certificate = json.loads((correction_root / 'certification.json').read_text())
+    if (correction_certificate.get('kind') != 'certified_wcxb_paired_latency'
+            or correction_certificate.get('complete') is not True
+            or correction_certificate.get('receipt_sha256')
+            != hashlib.sha256(correction_receipt.read_bytes()).hexdigest()):
+        raise ValueError('WCXB corrected timing is not certified')
+    if any(
+        abs(row['total_elapsed_ms'] - corrected_calls[row['case_id'],
+            'release' if row['provider'] == 'moli' else 'pr']['elapsed_ms']) > .01
+        for row in rows if row['provider'] in ('moli', 'moli-pr643')
+    ):
+        raise ValueError('WCXB reported Moli latency differs from the selected paired round')
+    if len(rows) != len(records) * len(WCXB_PROVIDERS) or {(r['provider'], r['case_id']) for r in rows} != {(p,c) for p in WCXB_PROVIDERS for c in case_ids}:
+        raise ValueError('WCXB score matrix is incomplete')
+    if output.exists() and not (output / '.generated-report').is_file():
+        raise ValueError('Refusing to replace an unmarked report')
+    output.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix='.wcxb-report-build-', dir=output.parent))
+    try:
+        for name in ('certification.json', 'wcxb-score-summary.json', 'wcxb-scores.jsonl'):
+            shutil.copy2(source / name, staging / name)
+        shutil.copy2(sample_path, staging / 'sample-manifest.json')
+        (staging / 'research').mkdir()
+        (staging / 'research/wcxb-full-paired-latency').mkdir()
+        for name in ('receipt.json', 'certification.json', 'calls.jsonl'):
+            shutil.copy2(correction_root / name, staging / 'research/wcxb-full-paired-latency' / name)
+        shutil.copy2(Path(__file__).resolve().parents[2] / 'research/report-changes.json',
+                     staging / 'research/report-changes.json')
+        shutil.copy2(Path(__file__).resolve().parents[2] / 'research/provider-adoption.json',
+                     staging / 'research/provider-adoption.json')
+        review_source = Path(__file__).resolve().parents[2] / 'research/wcxb-representative-review.json'
+        if review_source.is_file():
+            shutil.copy2(review_source, staging / 'research/wcxb-representative-review.json')
+        (staging / 'references').mkdir()
+        (staging / 'inputs').mkdir()
+        for case in records:
+            (staging / 'references' / f'{case["track_id"]}.txt').write_text(case['groundtruth_content'], encoding='utf-8')
+            (staging / 'inputs' / f'{case["track_id"]}.txt').write_text(case['html'], encoding='utf-8')
+        identities = {}
+        for batch in certificate['providers']:
+            provider = batch['provider']
+            run_dir = source / provider
+            results_file = run_dir / 'results.jsonl'
+            if hashlib.sha256(results_file.read_bytes()).hexdigest() != batch['results_sha256']:
+                raise ValueError('WCXB results changed: ' + provider)
+            if hashlib.sha256((run_dir / 'physical-attempts.jsonl').read_bytes()).hexdigest() != summary['providers'][provider]['physical_attempts_sha256']:
+                raise ValueError('WCXB physical attempts changed: ' + provider)
+            manifest = json.loads((run_dir / 'execution.json').read_text())
+            if manifest['run_id'] != batch['run_id'] or manifest['source_dataset_sha256'] != corpus_hash:
+                raise ValueError('WCXB run identity changed: ' + provider)
+            identities[provider] = manifest['implementation_identity']
+            raw_rows = [json.loads(line) for line in results_file.read_text().splitlines() if line]
+            if len(raw_rows) != len(records):
+                raise ValueError('WCXB provider results incomplete: ' + provider)
+            for row in raw_rows:
+                artifact = contained_path(run_dir, row['artifact_path'])
+                if artifact.is_symlink() or hashlib.sha256(artifact.read_bytes()).hexdigest() != row['output_sha256']:
+                    raise ValueError('WCXB output changed: ' + row['attempt_id'])
+                target = staging / 'artifacts' / provider / f'{row["track_id"]}.txt'
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(artifact, target)
+            for scored in (r for r in rows if r['provider'] == provider):
+                for retry in scored.get('retry_failures', []):
+                    artifact = contained_path(source, retry['artifact_path'])
+                    if artifact.is_symlink() or hashlib.sha256(artifact.read_bytes()).hexdigest() != retry['output_sha256']:
+                        raise ValueError('WCXB retained retry artifact changed: ' + scored['attempt_id'])
+                    target = contained_path(staging, retry['artifact_path'])
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(artifact, target)
+        ground_truth = {}
+        for record in records:
+            gt_path = contained_path(corpus / 'test' / 'ground-truth', f'{record["track_id"]}.json')
+            gt = json.loads(gt_path.read_text())['ground_truth']
+            ground_truth[record['track_id']] = {
+                'main_content': record['groundtruth_content'],
+                'page_type': record['meta']['page_type'],
+                'with': gt.get('with') or [], 'without': gt.get('without') or [],
+            }
+        generate_wcxb(staging, rows, summary, ground_truth, identities, profile)
+        evidence_root = staging / 'evidence'
+        evidence_root.mkdir()
+        evidence_hashes = {}
+        rows_by_case = {}
+        for row in rows:
+            rows_by_case.setdefault(row['case_id'], {})[row['provider']] = row
+        for record in records:
+            case_id = record['track_id']
+            outputs = {}
+            retries = {}
+            for provider in WCXB_PROVIDERS:
+                outputs[provider] = (staging / 'artifacts' / provider / f'{case_id}.txt').read_text(encoding='utf-8')
+                retries[provider] = [
+                    {**retry, 'output': contained_path(staging, retry['artifact_path']).read_text(encoding='utf-8')}
+                    for retry in rows_by_case[case_id][provider].get('retry_failures', [])
+                ]
+            payload = {
+                'schema_version': 1, 'case_id': case_id,
+                'source_html': record['html'], 'reference': record['groundtruth_content'],
+                'outputs': outputs, 'retry_failures': retries,
+            }
+            target = evidence_root / f'{case_id}.json'
+            target.write_text(json.dumps(payload, ensure_ascii=False), encoding='utf-8')
+            evidence_hashes[case_id] = hashlib.sha256(target.read_bytes()).hexdigest()
+        review_file = staging / 'research/wcxb-representative-review.json'
+        if review_file.is_file():
+            review = json.loads(review_file.read_text())
+            if (review.get('scope') != 'targeted_representative_anomaly_review'
+                    or review.get('total_results') != len(rows)
+                    or review.get('result_count') != sum(len(case['outputs']) for case in review['cases'])
+                    or review.get('unreviewed_results') != len(rows) - review['result_count']):
+                raise ValueError('WCXB representative review scope differs from measured matrix')
+            for case_review in review['cases']:
+                case_id = case_review['case_id']
+                if case_id not in rows_by_case or not set(case_review['outputs']) <= set(WCXB_PROVIDERS):
+                    raise ValueError('WCXB review case or method inventory differs')
+                evidence = json.loads((evidence_root / f'{case_id}.json').read_text())
+                if (hashlib.sha256(evidence['source_html'].encode()).hexdigest() != case_review['source_html_sha256']
+                        or hashlib.sha256(evidence['reference'].encode()).hexdigest() != case_review['reference_sha256']):
+                    raise ValueError('WCXB reviewed input or reference changed: ' + case_id)
+                for provider in case_review['outputs']:
+                    bound = case_review['outputs'][provider]
+                    if (bound['sha256'] != rows_by_case[case_id][provider]['output_sha256']
+                            or bound['attempt_id'] != rows_by_case[case_id][provider]['attempt_id']):
+                        raise ValueError('WCXB reviewed result changed: ' + case_id + '/' + provider)
+        (staging / 'evidence-manifest.json').write_text(json.dumps(evidence_hashes, sort_keys=True, indent=2) + '\n')
+        for folder in ('artifacts', 'references', 'inputs'):
+            shutil.rmtree(staging / folder, ignore_errors=True)
+        (staging / '.generated-report').write_text('generated\n')
+        if output.exists():
+            backup = Path(tempfile.mkdtemp(prefix='.wcxb-report-old-', dir=output.parent)) / 'report'
+            output.rename(backup)
+            try: staging.rename(output)
+            except BaseException:
+                backup.rename(output)
+                raise
+            shutil.rmtree(backup.parent)
+        else:
+            staging.rename(output)
+    except BaseException:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+    return output / 'index.html'

@@ -1,38 +1,66 @@
 {
   "schema_version": 1,
-  "dataset_id": "webfetch",
-  "comparison_kind": "web_fetch_methods",
-  "case_count": 150,
-  "case_ids_sha256": "fe50593a89a9c527dc8eaf9f4b187d6ac27570d3e8fe58cfc372a442ac396647",
+  "dataset_id": "webmainbench-545-preselected-200-six-methods",
+  "comparison_kind": "webmainbench_frozen_html_to_markdown",
+  "case_count": 200,
+  "case_ids_sha256": "2a2ad7b561a33cef1063f2c16d1ddbc6ff57061567c827e772453d8a6562dc8e",
   "providers": [
-    "cloudflare-markdown",
-    "cowagent-built-in",
-    "crawl4ai",
-    "deepseek-harness-built-in",
-    "exa",
-    "firecrawl",
-    "langchain-webbase",
-    "moli-webfetch",
-    "openclaw-built-in",
-    "tavily"
+    "kitesurf",
+    "lightpanda",
+    "obscura",
+    "moli",
+    "moli-1.1.7",
+    "chromium"
   ],
   "timeout_seconds": 45,
   "runs_per_case": 1,
-  "concurrency": 11,
-  "implementation_bindings": {
-    "cowagent-built-in": {"repository_revision": "ed5bb344cfe42cee443c8266ba47ee666d8d7471"},
-    "crawl4ai": {"library_version": "0.9.3"},
-    "deepseek-harness-built-in": {"repository_revision": "dd6322d604e00eec1ba5e0c8541159906a21094a", "node_version": "v24.15.0"},
-    "langchain-webbase": {"library_version": "0.3.30"},
-    "moli-webfetch": {"reported_version": "moli 1.1.4", "binary_sha256": "dbce6cc79b97eeb558416707a642ca20b9b1b8d6731655a695059d334adb6d5b"},
-    "openclaw-built-in": {"repository_revision": "12c4bdf7482f24c85b011e9d858fdec3c245101c", "node_version": "v24.15.0"}
+  "concurrency": 1,
+  "max_failure_retries": 1,
+  "reference_binding_mode": "preselected_webmainbench_545_sample_200_official_frozen_html_and_groundtruth_content",
+  "source_dataset_sha256": "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e",
+  "sample_manifest": "evaluation/public-webmainbench-200.json",
+  "sample_manifest_sha256": "eea643afddd35f3ae4ed85b689b3a89f6a503f8fce878d546fa56c97c26f8044",
+  "official_scorer_commit": "9d991bdc00c57b57521499494d96be85c31317ba",
+  "scoring_revision": {
+    "kind": "webmainbench_teds_tree_adapter_correction",
+    "receipt_sha256": "b2e1aa9218b8fe43cbb18f6ebefd8d606716009d978d897ada10255c6ec31024"
   },
-  "reference_binding_mode": "equivalent_reference_bytes_with_independent_batch_captures",
+  "official_metrics": [
+    "overall",
+    "text_edit",
+    "code_edit",
+    "formula_edit",
+    "table_edit",
+    "table_TEDS"
+  ],
+  "metric_config": {
+    "use_llm": false,
+    "reason": "deterministic official baseline mode; no model-dependent formula refinement"
+  },
+  "input_contract": {
+    "body": "official html field encoded as UTF-8 without mutation",
+    "execution": "inline scripts may run; non-loopback subresources and data access are blocked; local engines receive the same body from an OS-isolated loopback HTTPS fixture with a per-run CA, Kitesurf receives the same body through Cloudflare Browser Rendering html input with external resource types rejected",
+    "original_url": "retained as evidence metadata only"
+  },
   "publication_state": "verified",
   "unverified_reference_cases": [],
   "require_independent_result_review": true,
-  "conversion": "Each method's strongest documented known-URL extraction route; body tasks normalize visible text or Markdown, resource tasks use declared native resource fields, and direct file tasks validate returned bytes without cross-provider fallback",
-  "artifact_hub_base_url": "https://artifact-hub.app.lexmount.com",
-  "artifact_hub_site": "RSdbALdbdNG6",
-  "artifact_hub_expected_version": "ver_4352ebce880149e1ada4a1b97680c364"
+  "conversion": "Native Markdown for Kitesurf, Lightpanda, Obscura and Moli; Chromium whole-DOM HTML via node-html-markdown 2.0.0",
+  "artifact_hub_base_url": "https://artifact-site.lexmount.cn",
+  "artifact_hub_site": "uTWj6VaWPYCh",
+  "artifact_hub_expected_version": "ver_a9336a40214346d7bc541013e449045f",
+  "latency_reporting": {
+    "primary": "final_successful_fetch",
+    "time_field": "elapsed_ms",
+    "eligibility": "final_call_ok_and_nonempty_target_content_not_error_page",
+    "retry_time": "final_attempt_only",
+    "population": "each_method_successful_pages_with_explicit_coverage",
+    "matched_population": "all_method_success_intersection_diagnostic_only_no_ranking",
+    "retained_execution_cost": "total_elapsed_ms_all_200_pages"
+  },
+  "latency_diagnostic": {
+    "kind": "moli_115_117_latency_rerun_v1",
+    "manifest_sha256": "2f3a544b7dd454791037c74954e8f50259ba1b2438356550a5021cf9811a6382",
+    "role": "append_only_latency_diagnostic_not_score_bearing"
+  }
 }

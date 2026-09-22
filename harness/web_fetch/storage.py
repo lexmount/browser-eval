@@ -90,6 +90,8 @@ def require_canonical_inputs(evidence: Path, canonical: Path) -> None:
 def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
     """Reject evidence from another valid cohort when building the current report."""
     profile = json.loads(profile_path.read_text())
+    if profile.get("comparison_kind") == "wcxb_frozen_html_to_markdown":
+        raise ValueError("WCXB evidence uses the certified cohort validator, not the legacy current-report profile validator")
     dataset = json.loads((evidence / "dataset.json").read_text())
     records = [json.loads(line) for line in (evidence / "results.jsonl").read_text().splitlines()]
     comparison = dataset.get("comparison", {})
@@ -117,6 +119,33 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
         failures.append("runs_per_case")
     if comparison.get("conversion") != profile["conversion"]:
         failures.append("conversion")
+    if profile.get("comparison_kind") == "webmainbench_frozen_html_to_markdown":
+        latency_diagnostic = profile.get("latency_diagnostic")
+        if latency_diagnostic:
+            diagnostic_manifest = evidence / "latency-diagnostic/manifest.json"
+            if not diagnostic_manifest.is_file() or diagnostic_manifest.is_symlink():
+                failures.append("latency_diagnostic")
+            else:
+                manifest_data = diagnostic_manifest.read_bytes()
+                if (hashlib.sha256(manifest_data).hexdigest() != latency_diagnostic.get("manifest_sha256")
+                        or json.loads(manifest_data).get("kind") != latency_diagnostic.get("kind")):
+                    failures.append("latency_diagnostic")
+        revision = profile.get("scoring_revision")
+        if revision:
+            receipt_path = evidence / "teds-correction.json"
+            if (not receipt_path.is_file() or receipt_path.is_symlink()
+                    or hashlib.sha256(receipt_path.read_bytes()).hexdigest() != revision.get("receipt_sha256")
+                    or json.loads(receipt_path.read_text()).get("kind") != revision.get("kind")):
+                failures.append("scoring_revision")
+        for key in ("max_failure_retries", "source_dataset_sha256", "official_scorer_commit",
+                    "sample_manifest_sha256", "official_metrics", "metric_config", "input_contract"):
+            if comparison.get(key) != profile.get(key):
+                failures.append(key)
+        sample_path = evidence / "sample-manifest.json"
+        if (not sample_path.is_file()
+                or hashlib.sha256(sample_path.read_bytes()).hexdigest() != profile.get("sample_manifest_sha256")
+                or dataset.get("sample_manifest_sha256") != profile.get("sample_manifest_sha256")):
+            failures.append("sample_manifest_file")
     for key in ("concurrency", "reference_binding_mode", "publication_state",
                 "unverified_reference_cases", "require_independent_result_review"):
         if comparison.get(key) != profile[key]:

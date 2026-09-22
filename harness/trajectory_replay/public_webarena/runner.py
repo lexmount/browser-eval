@@ -946,17 +946,16 @@ def run_evaluation(
 
         for task_index, declared_task in enumerate(runnable_tasks):
             task = _materialize_task(declared_task, fixture_origin)
-            if (task.environment or {}).get("kind") == "webarena_verified":
-                assert webarena_environment is not None
-                task = webarena_environment.materialize_task_actions(task)
             if trajectory_authoring_run:
                 task = _bounded_authoring_task(task)
+            base_task = task
             engine_order = (
                 engines if len(engines) == 1 or task_index % 2 == 0 else tuple(reversed(engines))
             )
             for engine in engine_order:
                 initialized_sites = initialized_sites_by_engine[engine]
                 for attempt in range(1, max_retries + 2):
+                    task = base_task
                     artifact_dir = (
                         output / "tasks" / task.task_id / engine / f"attempt-{attempt}"
                     )
@@ -1003,6 +1002,7 @@ def run_evaluation(
                                     authoring_initialized_sites.update(task_sites)
                                 if "mutate" not in task.tags:
                                     initialized_sites.update(task_sites)
+                            task = webarena_environment.materialize_task_actions(base_task)
                             prepare_budget_ms = _remaining_task_budget_ms(
                                 attempt_deadline, phase="environment prepare"
                             )

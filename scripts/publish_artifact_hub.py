@@ -1,4 +1,5 @@
 """Publish the validated package to the user-specified Artifact Hub service."""
+import hashlib
 import json
 import os
 import sys
@@ -19,16 +20,29 @@ updating='--update' in sys.argv
 creating='--create' in sys.argv
 requested_expected=(sys.argv[sys.argv.index('--expected-version')+1]
                     if '--expected-version' in sys.argv else None)
+archive=(Path(sys.argv[sys.argv.index('--archive')+1]) if '--archive' in sys.argv
+         else ROOT/'publish/webfetch-sites.zip')
+source=(Path(sys.argv[sys.argv.index('--source')+1]) if '--source' in sys.argv
+        else ROOT/'reports/webfetch')
+title=(sys.argv[sys.argv.index('--title')+1] if '--title' in sys.argv else 'Web Fetch 评测')
 if creating and updating:raise ValueError('Choose exactly one of --create or --update')
 if updating and not receipt.exists():
  raise ValueError('--update requires an existing receipt')
 expected=(require_publication_version(ROOT/'evaluation/current-report.json',requested_expected)
           if updating else None)
+archive_sha256=None
+if creating or updating:
+ with archive.open('rb') as stream:archive_sha256=hashlib.file_digest(stream,'sha256').hexdigest()
 
 def request(path,data=None,content_type=None,auth=True,method=None):
  headers={'User-Agent':'WebFetch-Report-Publisher/1.0'}
  if auth:headers['Authorization']='Bearer '+token
  if content_type:headers['Content-Type']=content_type
+ if archive_sha256 and data is not None and method is None and (
+         path.startswith('/api/uploads?') or path.startswith('/api/uploads/') and '/commit' in path):
+  operation='start' if path.startswith('/api/uploads?') else 'commit'
+  seed='|'.join((operation,archive_sha256,expected or '',path))
+  headers['Idempotency-Key']='webfetch-'+operation+'-'+hashlib.sha256(seed.encode()).hexdigest()
  req=urllib.request.Request(BASE+path if path.startswith('/') else path,data=data,headers=headers,method=method)
  with urllib.request.urlopen(req,timeout=90 if method=='PUT' else 240) as response:return response.status,response.read()
 
@@ -41,12 +55,12 @@ if not creating:
  require_publication_site(result,ROOT/'evaluation/current-report.json',BASE)
  print('Using saved publication receipt; not creating a duplicate site.',flush=True)
 if creating or updating:
- archive=ROOT/'publish/webfetch-sites.zip';boundary='----webfetch'+uuid.uuid4().hex
+ boundary='----webfetch'+uuid.uuid4().hex
  from scripts.check_publication_bundle import check
- check(archive,ROOT/'reports/webfetch')
+ check(archive,source)
  large_archive=archive.stat().st_size > 23*1024*1024
  parts=[]
- for key,value in [('mode','zip'),('title','Web Fetch 评测')]:
+ for key,value in [('mode','zip'),('title',title)]:
   parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'.encode())
  if not large_archive:
   parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="webfetch.zip"\r\nContent-Type: application/zip\r\n\r\n'.encode()+archive.read_bytes()+b'\r\n')

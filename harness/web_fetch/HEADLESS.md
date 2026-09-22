@@ -1,5 +1,9 @@
 # Browser task-native Web Fetch comparison
 
+The separate frozen-HTML public-data comparison is documented in
+[WEBMAINBENCH.md](WEBMAINBENCH.md); its fidelity scores are not mixed with
+the live-URL task acceptance or resource profile below.
+
 The cohort reuses all 150 registered Web Fetch task IDs: 100 web cases and 10
 each for document, image, video, challenge and dynamic delivery. Every method
 receives the same URL, task rule and end-to-end deadline and is judged by the

@@ -33,9 +33,7 @@ def test_canonical_qualification_plan_is_an_exact_eighteen_shard_partition():
 
 
 def test_parallel_qualification_waves_never_share_a_site():
-    scope = json.loads(
-        Path("evaluation/browser-use-public/webarena-amd64-scope.json").read_text()
-    )
+    scope = json.loads(Path("evaluation/browser-use-public/webarena-amd64-scope.json").read_text())
     shards = qualification_shards(
         Path("evaluation/browser-use-public/webarena-amd64-scope.json"),
         Path("evaluation/browser-use-public/webarena-human-suite.json"),
@@ -46,9 +44,9 @@ def test_parallel_qualification_waves_never_share_a_site():
 
     assert len(waves) > 1
     assert all(len(wave) <= 3 for wave in waves)
-    assert {
-        shard["id"] for wave in waves for batch in wave for shard in batch
-    } == {shard["id"] for shard in shards}
+    assert {shard["id"] for wave in waves for batch in wave for shard in batch} == {
+        shard["id"] for shard in shards
+    }
     for wave in waves:
         occupied = set()
         for batch in wave:
@@ -60,6 +58,26 @@ def test_parallel_qualification_waves_never_share_a_site():
 def test_parallel_qualification_rejects_non_positive_worker_count():
     with pytest.raises(ValueError, match="positive"):
         qualification_waves((), {"qualification_batches": []}, max_workers=0)
+
+
+def test_independent_slices_allow_overlapping_sites_in_the_same_wave():
+    shards = (
+        {"id": "a-0", "batch_id": "a"},
+        {"id": "b-0", "batch_id": "b"},
+    )
+    scope = {
+        "qualification_batches": [
+            {"id": "a", "sites": ["reddit"]},
+            {"id": "b", "sites": ["reddit"]},
+        ]
+    }
+
+    shared = qualification_waves(shards, scope, max_workers=2)
+    isolated = qualification_waves(shards, scope, max_workers=2, isolated_instances=2)
+
+    assert len(shared) == 2
+    assert len(isolated) == 1
+    assert [batch[0]["id"] for batch in isolated[0]] == ["a-0", "b-0"]
 
 
 def test_completed_shard_validation_binds_manifest_hashes_scope_and_attempts(tmp_path):
@@ -316,9 +334,7 @@ def test_scoped_queue_covers_measured_and_architecture_excluded_tasks(tmp_path):
         ],
     }
 
-    queue = build_scoped_repair_queue(
-        suite, [attempts], scope, scope_sha256="f" * 64
-    )
+    queue = build_scoped_repair_queue(suite, [attempts], scope, scope_sha256="f" * 64)
 
     assert [row["task_id"] for row in queue["tasks"]] == ["included", "excluded"]
     assert queue["tasks"][1]["adjudication"] == {

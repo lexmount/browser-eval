@@ -1253,6 +1253,869 @@
   ],
   "releases": [
     {
+      "id": "2026-09-21-moli-seven-linux-release-resources",
+      "date": "2026-09-21",
+      "date_timezone": "Asia/Shanghai",
+      "comparison_kinds": [
+        "moli_historical_failure_retest",
+        "moli_process_tree_resource_profile"
+      ],
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "gdwtSGOel0va",
+        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
+        "version": "ver_460f324bc0c04d53a866517db54edd13"
+      },
+      "title": "七种 Moli 配置统一采用 Linux Release 资源口径",
+      "summary": "四组 1.1.9 Release 资源结果与前三组对齐，统一使用 Mac 主机上 Docker Linux 的进程树 PSS 和 CPU。修复版开启 layout 为 80.83 MiB、21.48 ms，相对 1.1.4 为 +4.68%、+0.36%；372 题功能结果保持不变。",
+      "changes": [
+        [
+          "资源比较",
+          "不同平台内存指标与构建模式不能直接比较。",
+          "四组各测量 557 题 × 5 次，并通过官方 profiler-off 校准；七组以 1.1.4 关闭 layout 为共同基线。",
+          "汇总图使用预先冻结的 209 题 / 1,045 次，完整表保留 557 题；准确率未重测。"
+        ],
+        [
+          "图表与证据",
+          "汇总需要同时清晰展示变化和具体值。",
+          "点旁显示方法及成功率、资源变化；✦ 标识开启 layout，图例集中列出具体值。公开逐次测量与构建身份。",
+          "保留原分享链接，功能构建与资源构建分别绑定。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Align all seven Moli resource configurations to Linux Release measurements",
+          "summary": "Four 1.1.9 Release resource configurations now align with the original three using process-tree PSS and CPU in Docker Linux on the Mac host. Patched layout on measures 80.83 MiB and 21.48 ms, +4.68% and +0.36% relative to 1.1.4. Existing 372-task functional results are unchanged.",
+          "changes": [
+            [
+              "Resource comparison",
+              "Different memory metrics and build profiles do not form a direct comparison.",
+              "Measure 557 tasks × 5 calls for each of four configurations with the official profiler-off calibration. Use 1.1.4 layout off as the common baseline for all seven.",
+              "The chart retains the predeclared 209-task / 1,045-call population; full tables retain 557 tasks. Accuracy was not rerun."
+            ],
+            [
+              "Chart and evidence",
+              "Readers need both changes and exact values.",
+              "Point labels show method and success/resource changes; ✦ identifies layout on. Legends list exact values. Publish individual measurements and build identities.",
+              "The existing share link is retained. Functional and resource builds are identified separately."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "2026-09-21-moli-seven-method-release-resource-calibration",
+      "date": "2026-09-21",
+      "date_timezone": "Asia/Shanghai",
+      "comparison_kinds": [
+        "moli_historical_failure_retest",
+        "moli_process_tree_resource_profile"
+      ],
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "gdwtSGOel0va",
+        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
+        "version": "ver_2f4844c0550241b78f7c80d8614bca87"
+      },
+      "title": "发布七种 Moli 配置与 Release 资源对照",
+      "summary": "七种配置统一展示 372 题成功率。1.1.9 与修复版的四组 Release 资源数据覆盖每组 557 题 × 5 次；修复版相对同布局 1.1.9 的峰值 RSS 中位数变化为 +0.54% / +2.69%，平均 CPU 时间变化为 −1.62% / −0.82%。",
+      "changes": [
+        [
+          "配置与成绩",
+          "比较需要统一配置顺序，并区分功能构建和资源构建。",
+          "表格与图按版本及布局排序，共七种配置；保留已有功能结果，增加已经完成的 1.1.9 关闭布局结果 1/372。",
+          "修复版准确率对应 87c87e95 构建，资源对应 f315ff26 Release；不将已有准确率归为新构建的实测。"
+        ],
+        [
+          "资源口径",
+          "Debug 与 Release、Linux PSS 与 macOS RSS 不可混用为直接涨幅。",
+          "四组 Release 在同一主机按任务轮换顺序、串行调用，每组 2,785 次；全量表使用 557 题，汇总图使用预先冻结的 209 题。",
+          "资源百分比以相同布局的 1.1.9 Release 为参照；PSS 与 RSS 分开标注，不计算跨平台变化。"
+        ],
+        [
+          "公开证据",
+          "资源汇总需要能够回溯并独立重算。",
+          "公开完整调用顺序、逐次资源值、二进制哈希、冻结协议和实际执行脚本；缺失、部分或不一致的资源证据阻止发布。",
+          "站点保留原链接；成功与失败详情均可打开原始证据，并通过键盘关闭后返回。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Publish seven Moli configurations and Release resource comparisons",
+          "summary": "Seven configurations share the 372-task success comparison. Four Release resource configurations cover 557 tasks × 5 calls each. Relative to matching-layout Moli 1.1.9, the patched build changes median peak RSS by +0.54% / +2.69% and mean CPU time by −1.62% / −0.82%.",
+          "changes": [
+            [
+              "Configurations and scores",
+              "Comparisons require consistent ordering and distinct functional and resource build identities.",
+              "Tables and charts list seven configurations by version and layout. Existing functional results are retained, with the completed 1.1.9 layout-off result of 1/372 added.",
+              "Patched success results belong to build 87c87e95; resources belong to f315ff26 Release. Existing accuracy is not attributed to a new-build measurement."
+            ],
+            [
+              "Resource scope",
+              "Debug and Release builds, or Linux PSS and macOS RSS, cannot supply directly comparable growth percentages.",
+              "Four Release configurations run serially on one host with task-level rotating order, 2,785 calls each. Full tables cover 557 tasks; the summary chart uses the 209 tasks frozen before execution.",
+              "Resource percentages use matching-layout Moli 1.1.9 Release as the reference. PSS and RSS are labeled separately without cross-platform percentage changes."
+            ],
+            [
+              "Public evidence",
+              "Resource aggregates must be traceable and independently reproducible.",
+              "Publish complete call order, per-call measurements, binary hashes, frozen protocol and the exact executed script. Missing, partial or inconsistent resource evidence blocks release.",
+              "The share link is unchanged. Success and failure details expose raw evidence with keyboard dismissal and return navigation."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "2026-09-21-moli-six-configuration-report",
+      "date": "2026-09-21",
+      "date_timezone": "Asia/Shanghai",
+      "comparison_kinds": [
+        "moli_historical_failure_retest",
+        "moli_process_tree_resource_profile"
+      ],
+      "title": "统一六配置图表与正式报告结构",
+      "summary": "六种固定配置按同一顺序呈现在总表和一张汇总图中，以 1.1.4 关闭布局为成功率基线。首页保留核心结果和可展开的资源明细；方法、解读与证据页面统一描述完整评测。通过率与资源测量值不变。",
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "gdwtSGOel0va",
+        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
+        "version": "ver_297e78e469d84077a0e95c813b34df91"
+      },
+      "changes": [
+        [
+          "六配置图表",
+          "分开的版本图与六配置总表不对应。",
+          "图表使用同一配置注册表、顺序和编号，统一显示成功率、内存与 CPU；重叠标记用引线区分。",
+          "成功率变化用百分点；Linux PSS 与 macOS RSS 分别标注，跨平台资源变化不计算。"
+        ],
+        [
+          "报告结构",
+          "首页存在重复汇总，解释分散在版本分块中。",
+          "总览、方法、解读和证据页面按读者问题组织；移除过程性叙述，资源明细可展开。",
+          "结果和分母不变。1.1.4 的直接验证与继承范围保留在方法和覆盖说明中。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Unify the six-configuration chart and reader-facing report",
+          "summary": "The same six fixed configurations appear in registry order in one summary table and chart, using 1.1.4 layout off as the success baseline. The home page keeps core results and expandable resources; method, interpretation and evidence pages describe the complete evaluation. Success and resource measurements are unchanged.",
+          "changes": [
+            [
+              "Six-configuration chart",
+              "Separate version charts did not align with the six-method table.",
+              "Use the same registry, order and numbering for success, memory and CPU; leader lines separate overlapping markers.",
+              "Success changes use percentage points. Linux PSS and macOS RSS stay explicitly labeled; cross-platform resource changes are not calculated."
+            ],
+            [
+              "Report structure",
+              "The home page repeated summaries and split interpretation into version additions.",
+              "Organize overview, method, interpretation and evidence by reader questions, remove execution narration and make resources expandable.",
+              "Results and denominators are unchanged. The method and coverage sections retain 1.1.4 direct and inherited evidence scope."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "2026-09-21-moli-119-fixed-layout-comparison",
+      "date_timezone": "Asia/Shanghai",
+      "comparison_kinds": [
+        "moli_historical_failure_retest",
+        "moli_process_tree_resource_profile"
+      ],
+      "date": "2026-09-21",
+      "title": "加入 Moli 1.1.9 固定布局与官方版本对照",
+      "summary": "新增修复版 1.1.9 关闭布局、开启布局及官方 1.1.9 开启布局：372 题分别通过 1、360、255 题。三个方法各完成独立的 557 题 × 5 次资源实验；macOS RSS 与历史 Linux PSS 分开展示，图表和表格给出带正负号的资源变化。",
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "gdwtSGOel0va",
+        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
+        "version": "ver_4d7cfe448a8e4ac98287607dc6a2266a"
+      },
+      "changes": [
+        [
+          "固定布局功能对照",
+          "每个方法需要同一布局状态下的完整三次执行。",
+          "每题三次全部通过才算通过；修复版开启布局比官方版新增通过 105 题，无退步。新增同题结果筛选及三种方法的逐次证据。",
+          "保留历史 1.1.4 / 1.1.8 结果；两个任务合同修正后的 18 次复测均失败，历史通过数不变。"
+        ],
+        [
+          "独立资源实验",
+          "功能通过率与资源采样使用不同任务群体。",
+          "每个方法各采样 2,785 次；同时展示全部 557 题统计和预先冻结的 209 题、1,045 次图表样本，macOS 百分比以官方 1.1.9 开启布局为基准。",
+          "修复版为 debug 构建，官方版为发布资产；资源差异同时包含代码和构建配置差异。"
+        ],
+        [
+          "图表与证据",
+          "报告需要可复现图表及可读的手机端证据。",
+          "保留按 PSS、RSS、CPU 选择面板的代码绘图；完成 112 个页面状态及 6 条证据交互验收，部署的 26 个文件逐一核对。",
+          "分享链接保持不变。功能校验覆盖 372 题、7,830 条历史及当前调用和 41,292 个证据文件。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Add Moli 1.1.9 fixed-layout and official-release comparisons",
+          "summary": "Added patched 1.1.9 with layout off and on, and official 1.1.9 with layout on: 1, 360 and 255 passes out of 372 cases. Each method completes a separate 557-task × 5-call resource experiment. macOS RSS and historical Linux PSS remain separate, with signed resource changes in tables and code-generated charts.",
+          "changes": [
+            [
+              "Fixed-layout functional comparison",
+              "Each method requires three complete attempts under the same layout setting.",
+              "A case passes only when all three attempts pass. Patched layout on gains 105 cases over official layout on and loses none. Same-case filters and individual attempt evidence cover all three methods.",
+              "Historical 1.1.4 / 1.1.8 results remain; all 18 calls after correcting two task contracts fail, leaving historical pass counts unchanged."
+            ],
+            [
+              "Separate resource experiments",
+              "Compatibility and resource sampling use different task populations.",
+              "Each method has 2,785 sampled calls. Tables show all 557 tasks and the pre-frozen 209-task / 1,045-call chart population. macOS percentage changes use official 1.1.9 layout on as the baseline.",
+              "The patched binary is a debug build; the official binary is a release asset. Resource differences include both code and build-configuration differences."
+            ],
+            [
+              "Charts and evidence",
+              "Charts must be reproducible and evidence readable on narrow screens.",
+              "Code-generated charts support PSS, RSS and CPU panels. Verification covers 112 page states and six evidence flows; all 26 deployed files match the submitted package.",
+              "The share link is unchanged. Functional validation covers 372 cases, 7,830 historical and current calls, and 41,292 evidence files."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "2026-09-20-moli-version-layout-resource-summary",
+      "date_timezone": "Asia/Shanghai",
+      "publication": {
+        "service": "Artifact Site",
+        "site_slug": "gdwtSGOel0va",
+        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
+        "version": "ver_96cd695de0d54d72bc5e7bfe09ac3ba6"
+      },
+      "comparison_kinds": [
+        "moli_historical_failure_retest",
+        "moli_process_tree_resource_profile"
+      ],
+      "date": "2026-09-20",
+      "title": "增加 Moli 1.1.4 / 1.1.8 成功率与资源汇总",
+      "summary": "首页新增三种配置的 372 题成功率、峰值 PSS 和 CPU 时间汇总。成功率与资源实验分别标明分母；表格和图中都给出相对 1.1.4 关闭布局的带正负号变化，代码生成的双面板图共用成功率纵轴，并允许省略 CPU 面板。",
+      "i18n": {
+        "en": {
+          "title": "Add Moli 1.1.4 / 1.1.8 success and resource summary",
+          "summary": "The report home page now compares success on 372 cases, peak PSS, and CPU time for three configurations. Compatibility and resource experiments state separate populations; the table and chart show signed changes relative to Moli 1.1.4 layout off. The code-generated dual-panel chart shares one success-rate axis and can omit the CPU panel.",
+          "changes": [
+            [
+              "Version comparison",
+              "The previous report directly covered only Moli 1.1.8 with layout off and on across all 372 cases.",
+              "Layout-off Moli 1.1.8 passes one case. That sole candidate is rerun three times with layout-off Moli 1.1.4 and fails all three; the other 371 retain the shared-failure relation, and the home page compares all three configurations.",
+              "The success rate describes only the 372 historical Moli 0.1.1 failures and is not extrapolated to the full 1,928-case suite."
+            ],
+            [
+              "Resource comparison",
+              "The compatibility and resource experiments use different task counts and sampling rules, so a single execution cannot be treated as one shared denominator.",
+              "The report separately presents a 557-task × 5-call resource experiment and compares median peak PSS and mean CPU time on the 1,045 task-attempt population frozen before execution.",
+              "Resource values compare versions and layout settings in the same environment; CPU sampling can miss short-lived child processes."
+            ],
+            [
+              "Summary chart",
+              "A single horizontal axis cannot express MiB and milliseconds.",
+              "Two horizontal panels share the 372-case success-rate axis. Each point shows the absolute value and percentage change from Moli 1.1.4, and the plotting script supports PSS, CPU, or both.",
+              "The chart is generated from frozen data by code, with separate Chinese and English output; it is not a generated image."
+            ]
+          ]
+        }
+      },
+      "changes": [
+        [
+          "版本对照",
+          "原报告只完整展示 Moli 1.1.8 关闭与开启布局的 372 题结果。",
+          "1.1.8 关闭布局只通过 1 题；对该唯一候选题用 Moli 1.1.4 关闭布局复测三次，均失败，其余 371 题沿用共同失败关系，并在首页统一比较三个方法。",
+          "通过率仍只描述 Moli 0.1.1 的 372 个历史失败用例，不外推为 1,928 题全量成绩。"
+        ],
+        [
+          "资源对照",
+          "成功率实验和资源实验的任务数与采样规则不同，无法把单次执行直接当成同一分母。",
+          "独立展示 557 题 × 5 次资源实验，并用运行前冻结的 1,045 个任务-执行样本比较峰值 PSS 中位数和平均 CPU 时间。",
+          "资源值用于同环境版本与布局对照；CPU 采样存在短生命周期子进程遗漏风险。"
+        ],
+        [
+          "汇总图",
+          "单一横轴不能同时表达 MiB 与毫秒。",
+          "使用两个水平面板，共用 372 题成功率纵轴；数据点同时标出绝对值和相对 1.1.4 的变化百分比，绘图脚本支持 PSS、CPU 或两者。",
+          "图由冻结数据和代码生成，中文与英文分别输出，不使用生成式图片。"
+        ]
+      ]
+    },
+    {
+      "id": "2026-09-18-wcxb-frozen-html-reader-clarification",
+      "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
+      "date": "2026-09-18",
+      "title": "澄清冻结 HTML 阅读视图",
+      "summary": "逐页入口明确区分冻结 HTML 的静态阅读视图与原站画面，提供完整 HTML 输入。504 页评测结果、评分和耗时均未改变。",
+      "changes": [
+        ["逐页输入", "原入口称作网页预览，容易误认为复现了原站排版。", "标明只按冻结 HTML 的文档顺序阅读；说明未冻结外部样式和图片，添加完整输入链接。", "读者可核对输入内容，不会把未排版视图当作原站截图。"]
+      ]
+    },
+    {
+      "id": "2026-09-18-wcxb-moli-complete-crossover-latency-correction",
+      "comparison_kinds": [
+        "wcxb_frozen_html_to_markdown"
+      ],
+      "date": "2026-09-18",
+      "title": "纠正 Moli 两版跨日期耗时比较",
+      "summary": "在同一批 504 页上完成两轮交叉顺序、共 2,016 次调用，并按预先固定的最终轮纠正两版 Moli 的主表与逐页耗时。正式版均值 155.6 ms，PR 构建版 159.0 ms；原跨日期的 159/188 ms 不能作为源码性能差。两版输出、F1 与判定不变。",
+      "changes": [
+        [
+          "耗时口径",
+          "两版在不同日期运行，主表并列显示均值 159 与 188 ms。",
+          "以完整 504 页交叉复测的最终轮替换两版的逐页耗时及汇总；保留原始调用和全部复测记录。",
+          "新均值为 155.6 与 159.0 ms，P50 为 150.0 与 149.9 ms，P95 为 184.2 与 198.2 ms。"
+        ],
+        [
+          "因果审查",
+          "64 页诊断无法判定完整主表差值是否由源码引起。",
+          "核对两轮、调用顺序和长尾：两轮逐页平均差分别为 -1.7 与 +3.4 ms；两版在同页先调用时都出现长尾。",
+          "旧表 29 ms 的表观差异被纠正；完整复测未证明 PR 源码存在稳定的性能回退。"
+        ],
+        [
+          "发布校验",
+          "此前只要求旁列子集诊断，未阻止分时批次进入主表。",
+          "绑定完整调用、输入和二进制哈希；拒绝缺页、输出变化或错误二进制，检查汇总与逐页选定耗时一致。",
+          "质量分、输出和判定保持原值；耗时修订有独立认证记录。"
+        ]
+      ]
+    },
+    {
+      "id": "2026-09-18-wcxb-standalone-interpretation",
+      "comparison_kinds": [
+        "wcxb_frozen_html_to_markdown"
+      ],
+      "date": "2026-09-18",
+      "title": "重写评测解读入口并澄清 Moli 耗时比较",
+      "summary": "报告解读增加同批结果总览、目录、输入与输出对照及综合结论。首页将两版 Moli 的同窗测速解释放在主表旁，修复说明缩为可读摘要。正式 504 页分数、分母和耗时原值不变。",
+      "changes": [
+        [
+          "报告解读",
+          "原页面按异常分散叙述，缺少独立可读的结果入口。",
+          "增加六种配置的结果表、代码边界实例、方法问题与结论，并保留完整逐页证据链接。",
+          "读者可从解读页理解主要差异、评分边界和典型根因。"
+        ],
+        [
+          "Moli 耗时",
+          "主表只显示分时批次的 159 ms 与 185 ms。",
+          "在主表旁展示 64 页同窗交替诊断和每版 128 次调用的条件。",
+          "正式耗时未改；读者可区分跨批次均值与配对诊断。"
+        ],
+        [
+          "验证",
+          "仅检查少量标题和链接，无法发现解释页缺少结果或证据。",
+          "发布检查绑定六种方法的数值、实例链接、结论及首页相邻测速说明，并注入缺失内容作反向验证。",
+          "分数、分母、逐页响应和认证证据均不变。"
+        ]
+      ]
+    },
+    {
+      "id": "2026-09-18-wcxb-obscura-and-paired-latency",
+      "comparison_kinds": [
+        "wcxb_frozen_html_to_markdown"
+      ],
+      "date": "2026-09-18",
+      "title": "补充 Obscura 内容边界与 Moli 同窗耗时证据",
+      "summary": "报告解读增加 Obscura 与 Moli 的同页精确率、召回率、输出长度及词边界对照；另给出 64 页两轮交替测速，区分跨批次均值与同窗版本差。正式 504 页分数、分母和原始耗时不变。",
+      "changes": [
+        [
+          "Obscura 分数",
+          "原解读只列少数链接案例",
+          "增加全部 504 页的同页统计与 4461 页价格标签拼接证据",
+          "典型审查扩至 11 页、54 条输出；不以更高 F1 推定内容保真"
+        ],
+        [
+          "Moli 耗时",
+          "两个正式批次分时执行，均值差无法单独归因",
+          "公开 64 页、每版 128 次的交替诊断及二进制哈希",
+          "正式耗时保持原值；同窗差值只用于解释版本额外成本"
+        ],
+        [
+          "证据绑定",
+          "诊断批次可能与当前报告二进制混用",
+          "构建与发布检查验证正式版、PR 版及测速证据哈希",
+          "分数和分母无变化"
+        ]
+      ]
+    },
+    {
+      "id": "2026-09-17-wcxb-expanded-representative-review",
+      "comparison_kinds": [
+        "wcxb_frozen_html_to_markdown"
+      ],
+      "date": "2026-09-17",
+      "title": "扩展典型案例审查与内容边界分析",
+      "summary": "审查范围扩展到 9 页、45 条完整响应；增加内嵌占位图、相邻代码值、预格式区块和区块链接的同页证据。五款已测版本、正式分数、504 页分母和耗时均不变。",
+      "changes": [
+        [
+          "典型审查",
+          "原有 5 页未覆盖 Moli 的代码边界与 1×1 图片地址",
+          "增加 4394、5458、5412、4923 四页，核对冻结输入、人工参考与五份输出哈希",
+          "审查范围为 45/2,520 条；未逐项审查部分如实标注"
+        ],
+        [
+          "Moli 内容语义",
+          "已测版合并相邻代码元素和预格式区块，并输出非可见内嵌图像地址",
+          "报告区分候选源码修复与已发布 1.1.7 的实测成绩",
+          "不以未发布候选改写正式排序"
+        ],
+        [
+          "评分边界",
+          "区块链接会在原始 Markdown 词分中重复计入网址词",
+          "展示 4923 页链接与参考召回对照，不将原始分差直接判为转换故障",
+          "没有证据证明链接失效时不删除有效内容"
+        ]
+      ]
+    },
+    {
+      "id": "2026-09-17-wcxb-representative-audit-and-dataset-contract",
+      "comparison_kinds": [
+        "wcxb_frozen_html_to_markdown"
+      ],
+      "date": "2026-09-17",
+      "title": "评测集输入与典型低精度核查",
+      "summary": "评测集改为 504 页冻结输入和人工参考清单；逐页成绩留在结果分析。核查 5 页、25 份完整响应，报告解读说明五种方法的问题、Markdown 链接计分限制、Moli 占位图与详情正文问题及人工标注冲突。正式分数、分母和耗时不变。",
+      "changes": [
+        [
+          "评测集",
+          "逐页成绩与结果分析重复",
+          "展示冻结网页、来源、人工参考和评测结果入口",
+          "结果分析继续承载逐页成绩与筛选；首页打开后可明确区分输入与结果"
+        ],
+        [
+          "典型核查",
+          "低精度只给出程序定位，难以判断输出遗漏、冗余或参考范围问题",
+          "用 5 页、25 份完整响应和源文件哈希核对根因，并在解读中并列五种方法的现存问题",
+          "正式 F1、504 页分母及耗时保持不变；其余结果未逐项人工审查"
+        ],
+        [
+          "Moli 与参考",
+          "空 SVG 占位地址进入 Markdown；UI 清理可连同商品详情正文一起删除；人工参考只包含纯文本主内容",
+          "修复候选源码并明确官方原始 Markdown 计分的边界",
+          "源码改动须经新版完整认证测量后才可改变排名"
+        ]
+      ]
+    },
+    {
+      "id": "2026-09-17-wcxb-qualified-test-results-and-preview",
+      "comparison_kinds": [
+        "wcxb_frozen_html_to_markdown"
+      ],
+      "date": "2026-09-17",
+      "title": "WCXB 逐页结果与冻结网页预览",
+      "summary": "当前评测集固定为 504 页有效输入。五款浏览器的质量、交付和端到端耗时统一按这批网页汇总；评测集改为可筛选的逐页成绩表，结果页默认呈现需要检查的记录，案例页原始网址可直接打开冻结网页预览；首页移除与核心表重复的耗时表。",
+      "changes": [
+        [
+          "评测范围",
+          "部分输入缺少可评分的人工主内容或冻结正文",
+          "当前清单只保留输入与参考均有效的网页",
+          "F1 不变；端到端平均耗时按方法依次为 Kitesurf 2,669、Lightpanda 162、Obscura 384、Moli 159、Chromium 835 ms"
+        ],
+        [
+          "结果阅读",
+          "评测集重复首页类型汇总，逐项结果默认空白",
+          "评测集展示逐页五款成绩，结果分析默认展示诊断线索，并移除重复耗时表",
+          "读者可直接筛选网页并进入完整证据"
+        ],
+        [
+          "冻结网页",
+          "案例页只有源码和压缩源文件链接",
+          "原始网址链接到禁用脚本与外部资源的静态阅读视图",
+          "可在详情页直接阅读本轮冻结输入"
+        ]
+      ]
+    },
+    {
+      "id": "2026-09-18-wcxb-moli-repaired-separate-method",
+      "comparison_kinds": [
+        "wcxb_frozen_html_to_markdown"
+      ],
+      "date": "2026-09-18",
+      "title": "保留 Moli 正式版并独立计分源码修复版",
+      "summary": "在相同 504 页冻结输入上追加 Moli PR #643 源码构建版。正式版 1.1.7 的原始结果和 F1 52.5510% 保留；修复版 F1 52.5526%，3 页提高、1 页降低、500 页不变。",
+      "changes": [
+        [
+          "方法与分母",
+          "原报告只有五种方法，无法直接读取 Moli 修复前后差异。",
+          "把修复版作为第六种配置单独运行、计分和展示；原五种方法复用已认证证据。",
+          "每种配置各 504 页，共 3,024 条逻辑结果；Moli 两版各有完整逐页响应。"
+        ],
+        [
+          "内容质量",
+          "正式版会合并相邻代码值和预格式化区块；UI 清理还会误删详情正文。",
+          "从 PR #643 的固定源码提交构建并在相同输入上测量；图片引用在两版均保留，不按像素透明与否删除。",
+          "Moli 官方词语 F1 从 52.5510% 到 52.5526%；UI 清理缺陷的修复不进入常规调用分数。"
+        ],
+        [
+          "参考边界",
+          "5411 的人工参考把分开的 ts 标签与 function 代码拼成 tsfunction。",
+          "保留官方原始评分，并在解读中展示冻结 HTML、两版输出和参考的差异。",
+          "修复版该页 F1 低 0.92 个百分点，原因是参考文本的块边界错误。"
+        ],
+        [
+          "耗时",
+          "两版在不同时间执行。",
+          "各自报告 504 次完整调用的均值、P50 和 P95。",
+          "正式版均值 159 ms，PR 构建版均值 185 ms；差值不能全部归因于源码变化。"
+        ]
+      ]
+    },
+    {
+      "id": "2026-09-14-public-benchmark-research",
+      "comparison_kinds": ["public_benchmark_research"],
+      "date": "2026-09-14",
+      "title": "完成公开评测集调研与选型",
+      "summary": "核查公开数据、评分器与使用证据，选定 WebMainBench-545，并冻结覆盖官方分类的 200 页抽样规则。调研版没有供应商实测结果。",
+      "changes": [
+        ["评测集", "候选集的真值、评分器和使用范围尚未并列核查。", "核对 WebMainBench-545、WCXB 及相关评测集的一手材料。", "选定 WebMainBench-545 作为后续实测主集；调研结论不构成方法排名。"],
+        ["抽样", "尚无可复现的测量输入范围。", "定义覆盖官方分类的固定 200 页抽样合同。", "只固定未来测量范围，未增加任何供应商调用或分数。"]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Complete public benchmark research and selection",
+          "summary": "Audited public data, scorers, and adoption evidence; selected WebMainBench-545 and froze a 200-page sampling rule covering official categories. The research edition contains no measured provider results.",
+          "changes": [
+            ["Benchmark", "Candidate ground truth, scorers, and use had not been audited side by side.", "Checked primary sources for WebMainBench-545, WCXB, and adjacent benchmarks.", "Selected WebMainBench-545 as the primary set for later measurement; research findings are not a method ranking."],
+            ["Sampling", "There was no reproducible scope for calls.", "Defined a fixed 200-page sampling contract covering official categories.", "Only the future measurement scope was fixed; no provider calls or scores were added."]
+          ]
+        }
+      }
+    },
+    {
+      "id": "2026-09-17-public-webmainbench-moli-balanced-latency-correction",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-17",
+      "title": "纠正 Moli 两版的正式耗时",
+      "summary": "同一预选 200 页在无并行基准进程的窗口串行交叉复测两轮，按测前固定规则采用第二轮。Moli 1.1.5 的成功均值由 153 ms 改为 105 ms，1.1.7 由 285 ms 改为 98 ms；两版各有 199/200 页成功。原始逐页结果、正文、质量分和判定保留。",
+      "changes": [
+        ["正式耗时", "两版来自不同时间的独立批次，1.1.7 表面上更慢。", "200 页两轮交叉顺序、共 800 次物理调用；预先指定第二轮的 400 次作为两版新的逐页耗时。", "1.1.7 的均值、P50、P95 均未高于 1.1.5；旧值可从纠正收据核对。"],
+        ["失败页", "两版在同一页未生成正文。", "保留页面脚本和隔离网络条件，复测各轮及此前重试。", "原站跳转仍被网络隔离阻断；两版继续各计 199/200 页成功。"],
+        ["评分证据", "耗时纠正可能与已审核的原始输出混淆。", "旧结果和原始物理调用不覆盖；逐条仅替换 Moli 的 elapsed_ms，并对其余字段及另外四种方法做相等校验。", "全部质量分、计分分母、正文哈希和结果判定不变。"]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Correct formal timing for both Moli versions",
+          "summary": "Two serial, order-balanced rounds used the same preselected 200 pages without concurrent benchmark processes. Round two was designated before calls as the formal timing source. Successful-fetch means changed from 153 to 105 ms for Moli 1.1.5 and from 285 to 98 ms for 1.1.7; each succeeded on 199/200 pages. Prior per-page results, output text, quality scores, and verdicts are retained.",
+          "changes": [
+            ["Formal timing", "The two versions came from separate batches at different times, making 1.1.7 appear slower.", "Two order-balanced rounds on 200 pages produced 800 physical calls; the 400 calls in the predesignated second round became the formal per-page timings.", "Mean, P50, and P95 for 1.1.7 are no higher than for 1.1.5. Prior values remain in the correction receipt."],
+            ["Failed page", "Neither version produced target content on the same page.", "Preserved the page script and isolated network conditions while checking both new rounds and earlier retries.", "The source-site redirect is still blocked by network isolation; each version remains at 199/200 successful pages."],
+            ["Scoring evidence", "Timing corrections could be confused with the reviewed original output.", "Preserved prior results and physical calls; replaced elapsed_ms only for Moli and checked every other field and the other four methods for equality.", "All quality scores, scored-page counts, output hashes, and verdicts are unchanged."]
+          ]
+        }
+      }
+    },
+    {
+      "id": "2026-09-17-public-webmainbench-moli-latency-rerun",
+      "comparison_kinds": [
+        "webmainbench_frozen_html_to_markdown"
+      ],
+      "date": "2026-09-17",
+      "title": "Moli 两版本交叉顺序复测与逐页诊断",
+      "summary": "同一 200 页每页各测两轮并交换两版调用顺序；两版均成功 398/400 次。1.1.7 的成功调用均值为 98 ms，1.1.5 为 113 ms。最初差距最大的 20 页再各测 15 次，未发现持续的 1.1.7 慢页；正式质量分不变。",
+      "changes": [
+        [
+          "版本耗时",
+          "独立批次中 1.1.7 看似更慢。",
+          "同页两轮交叉顺序复测，200 页、每版 400 次调用；成功调用 398 次。",
+          "1.1.7 均值 98 ms、1.1.5 为 113 ms；旧批次差异不能作为版本变慢结论。"
+        ],
+        [
+          "差异页面",
+          "单次慢调用无法说明是否稳定。",
+          "最初差距最大的 20 页两版各重测 15 次，公开全部 20 页的典型和最慢耗时。",
+          "19/20 页两版中位耗时相差不超过 20 ms；其余一页是 1.1.7 更快，慢调用两版都出现。"
+        ],
+        [
+          "失败页",
+          "同一页两版均未取得正文。",
+          "两版各自重试并在完整交叉测试中再次调用；保留原网页脚本和隔离网络条件。",
+          "原站跳转仍失败；改变脚本条件虽返回正文，但不替代正式结果。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Recheck both Moli versions with balanced call order and per-page diagnosis"
+        }
+      }
+    },
+    {
+      "id": "2026-09-17-public-webmainbench-detail-drilldown",
+      "comparison_kinds": [
+        "webmainbench_frozen_html_to_markdown"
+      ],
+      "date": "2026-09-17",
+      "title": "统一耗时标签、高亮与结果证据入口",
+      "summary": "均值、P50、P95 采用并列耗时标签，恢复每列唯一最低值高亮。结果详情合并重复摘要，评分、输出、接口字段和日志通过弹窗查看，错误日志支持定位。测量结果、分数、分母与计时数值不变。",
+      "changes": [
+        [
+          "数值展示",
+          "耗时最小值未高亮，三列统计范围表达不一致。",
+          "统一标签与统计范围说明，以原始值判断唯一最小值。",
+          "首页与报告解读一致显示高亮；不改变全样本排名含义。"
+        ],
+        [
+          "结果详情",
+          "状态与原因重复铺陈，原始证据占据页面。",
+          "单一摘要、失败定位、逐项评分、证据弹窗；保留原始错误和日志。",
+          "可以从错误类别进入原文、定位日志，再对照人工参考与输出。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Unify latency labels, highlights, and result evidence"
+        }
+      }
+    },
+    {
+      "id": "2026-09-17-public-webmainbench-final-success-latency",
+      "comparison_kinds": [
+        "webmainbench_frozen_html_to_markdown"
+      ],
+      "date": "2026-09-17",
+      "title": "成功耗时采用最终 fetch，并增加同题对照",
+      "summary": "成功均值、P50、P95 只统计最终成功且有目标正文的 fetch，不累计前次失败耗时。成功覆盖单列，六种方法共同成功的 194 页用于同题诊断；全部 200 页和累计执行成本仍保留。质量分、输入和输出不变，无新增调用。",
+      "changes": [
+        [
+          "成功耗时",
+          "全部 200 页的累计耗时，含失败及先前重试。",
+          "各方法最终成功且有目标正文的调用，取最终单次 elapsed_ms；Kitesurf 195 页，Lightpanda 200 页，Obscura 198 页，Moli 两版和 Chromium 各 199 页。",
+          "Kitesurf 均值从累计执行成本 4,151 ms 改为成功 fetch 3,335 ms；两个口径分开保留。"
+        ],
+        [
+          "同题可比性",
+          "各方法成功页面组成不同。",
+          "六种方法共同成功的 194 页同题诊断，列出未进入该子集的 6 页；不按该子集给全样本排速度名次。",
+          "主结果仍保留全部 1,200 条，重试仍只对应一个最终结果。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Use final successful fetch latency and add matched-page comparison"
+        }
+      }
+    },
+    {
+      "id": "2026-09-17-public-webmainbench-whole-report-interpretation",
+      "comparison_kinds": [
+        "webmainbench_frozen_html_to_markdown"
+      ],
+      "date": "2026-09-17",
+      "title": "重写 200 页完整评测解读",
+      "summary": "解读依次呈现六种配置的整体结果、冻结输入、计分规则、内容范围、表格与语法差异，以及完整耗时分布。保留版本对照和逐页证据，增加原始输出并排节选；分数、调用和计分样本不变。",
+      "changes": [
+        [
+          "报告解读",
+          "分散的专题说明缺少全报告的阅读顺序。",
+          "补齐六种配置核心结果、计分页实例、输出对照及均值/P50/P95 耗时比较。",
+          "使用现有 1,200 个结果，无新增调用或改分。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Rewrite the interpretation of the full 200-page evaluation"
+        }
+      }
+    },
+    {
+      "id": "2026-09-17-public-webmainbench-denominators-and-version-examples",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-17",
+      "title": "用公式分实例解释计分页，并核对 Moli 版本差异",
+      "summary": "首页用 Moli 1.1.7 的 200 页公式分流程和四格实例解释计分分母；报告解读增加两版同页对照及正文、代码、公式的五个原始输出案例。所有分数、分母和耗时保持不变。",
+      "changes": [
+        ["计分分母", "表格仅显示 n=xx/200，难以判断哪些页被计入。", "首页展示正文生成、公式识别与计分分支，并按人工答案和输出各有无公式列出真实页数。", "两侧均无公式跳过；仅一侧有公式以 0 分计入；分母不是非空输出数或通过数。"],
+        ["版本差异", "Moli 1.1.7 的其他分项下降缺少逐页解释。", "并列展示两版同页均值及五个可核对案例，区分实际输出差异、计分页变化和评分器误识别。", "固定评分器下的下降成立；新版输出变长、缩进和转义改变了正文与结构项的得分。"]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Explain scored-page counts with formula examples and compare Moli versions"
+        }
+      }
+    },
+    {
+      "id": "2026-09-17-public-webmainbench-moli-1-1-7",
+      "comparison_kinds": [
+        "webmainbench_frozen_html_to_markdown"
+      ],
+      "date": "2026-09-17",
+      "title": "增加 Moli 1.1.7 独立结果",
+      "summary": "同一预选 200 页新增 Moli 1.1.7 的 200 条正式结果；原 Moli 1.1.5 与另外四种配置的 1,000 条结果保留。新版表格结构得分由旧版 0% 提高至 13.9%，综合分由 30.0% 提高至 32.0%，平均耗时由 153 ms 增至 285 ms。",
+      "changes": [
+        [
+          "评测范围",
+          "五种配置各 200 页，共 1,000 条逻辑结果。",
+          "增加 Moli 1.1.7 的 200 条结果，形成六种配置、1,200 条逻辑结果；旧版 Moli 保持独立。",
+          "输入和人工答案沿用同一预选 200 页。"
+        ],
+        [
+          "表格与综合分",
+          "Moli 1.1.5 的 table_TEDS 和 table_edit 均为 0%，表格计分页 40。",
+          "Moli 1.1.7 的 table_TEDS 为 13.9%、table_edit 为 18.5%，各计 73 页；overall 为 32.0%。",
+          "可识别表格改变分母；旧版 40 个表格计分页中，新版 33 页 table_edit 为正。"
+        ],
+        [
+          "其他分项与耗时",
+          "旧版正文、代码和公式分别为 40.3%、79.4%、30.3%，平均耗时 153 ms。",
+          "新版分别为 39.3%、75.3%、12.9%，平均耗时 285 ms。",
+          "版本改善限于本轮冻结 HTML；不是全部维度均改善。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Add separate Moli 1.1.7 results"
+        }
+      }
+    },
+    {
+      "id": "2026-09-16-public-webmainbench-reading-view",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-16",
+      "title": "明确主内容评测范围并提供网页阅读视图",
+      "summary": "首页用输入、目标和分数含义说明低分来源，不再把本轮结果泛化为通用抓取排名。冻结 HTML 可直接阅读，来源网站与原始源码分开查看。分数、分母、耗时和供应商调用不变。",
+      "changes": [
+        ["评测范围", "整页转换输出与主内容参考混在通用抓取能力描述中。", "首页明确主内容提取目标，并提供低分案例入口；解读结论限定于本轮转换。", "不代表实时网站访问、反爬或浏览器综合能力。"],
+        ["网页查看", "HTML 入口只提供原始文件，来源链接藏在折叠区。", "增加隔离的静态阅读视图与完整源码展开入口，来源网站直接可见。", "阅读视图禁用脚本、外部资源和跳转，不冒充实测浏览器截图。"],
+        ["输入路径", "同一 HTML 在远端服务和本地浏览器中的输入方式不直观。", "并列展示 Kitesurf 的 API html 输入与四种本地方法的 HTTPS 路径。", "输入字节相同，不等于执行环境相同。"],
+        ["表格评分", "容易把表格可识别、完整恢复和得满分混为一谈。", "并列展示完整表格、缺行表格和摊平文字的 Markdown 与阅读效果。", "部分恢复仍计分；table_edit 比较规范化表格 HTML，TEDS 比较层级与内容。"]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Clarify main-content scope and add frozen-page reading views"
+        }
+      }
+    },
+    {
+      "id": "2026-09-16-public-webmainbench-decision-guide",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-16",
+      "title": "用真实案例重写评测解读",
+      "summary": "成绩、分母、耗时和正式调用均未改变。报告解读现在从选型结论出发，用一页共同低分案例、一页表格结构案例和六页异常根因解释分数含义与适用边界；旧的重复说明表已删除。",
+      "changes": [
+        ["选型结论", "旧页面罗列测量口径和方法画像，读者仍需自行拼出选择。", "明确区分通用候选、低延迟文字与代码、以及严格按 overall 排名三种目标，并给出对应候选。", "结论只适用于冻结 HTML 转 Markdown；真实 URL 仍需同时间窗复测。"],
+        ["分数含义", "overall、分项分数和变化分母分散说明，容易被误读为逐页通过率。", "用 Kitesurf 的五项实际分数和分母展示 overall 的完整算式，并直达评分流程。", "官方没有统一的逐页及格线；正文生成、内容质量和耗时继续分开报告。"],
+        ["共同低分", "低文字分缺少一页可以直接核对的人工答案与五方法输出。", "加入 Wikipedia 冻结页实例，展示人工正文、方法输出开头、五种长度和 text_edit 分数。", "35 页在五种方法上都低于 10%，说明整页输出与主内容答案存在共同范围偏差。"],
+        ["表格零分", "Moli 和 Obscura 的 0 分容易被误读为空响应。", "加入同一张两列表格的可解析 Markdown 与摊平文字对照，并列出五种方法的 TEDS。", "该例五种方法都有正文；零分来自无法还原表格、行和单元格结构。"],
+        ["异常处理", "九次无正文结果被笼统归为失败，无法决定修复方向。", "按已验证对照分成页面脚本冲突、冻结页主动回原站、服务复杂度边界三类，并链接逐页证据。", "未公开的 Cloudflare 内部阈值仍不猜测，只报告可重复触发的内容类型。"]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Rewrite the interpretation using observed cases"
+        }
+      }
+    },
+    {
+      "id": "2026-09-16-public-webmainbench-score-reading-and-layout",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-16",
+      "title": "澄清计分分支、复算身份与核心表排序",
+      "summary": "成绩、分母、耗时、输出和正式调用均未改变。核心表默认按 overall 从高到低排列；报告明确修正后分数来自报告侧独立复算，不是对官方仓库或官方榜单的修改，并把空内容的跳过与零分条件写成确定规则。",
+      "changes": [
+        ["核心排序", "首页虽然展示 overall，默认排序却落在 text_edit，序号也随错误排序生成。", "默认按修正后 overall 降序排列，读者打开页面即可看到同一口径的主结果顺序。", "各列仍可交互排序；绿色只标记方向明确且唯一的领先值。"],
+        ["复算身份", "“本地修正版”容易被理解为修改了官方代码或官方榜单。", "统一改为“修正后复算”，说明官方仓库和榜单未改；报告侧沿用官方解析和代价规则，对保存输出独立复算。", "官方原始分和修正后复算分继续并列保留，可从核验页和逐页详情核对。"],
+        ["分母规则", "“可能不计分”和“通常跳过”没有说明官方程序的确定分支。", "明确两侧都没有代码、公式或表格时该项返回失败并退出均值；只有一侧有时以 0 分进入均值；两侧都有时计算相似度。", "分母是成功算出逐页分数的页数，不是通过数；官方没有统一逐页及格线。"],
+        ["表格结构", "“节点”和“树编辑距离”缺少用户可见的结构含义。", "用“表格—行—单元格”的还原过程解释 TEDS，并说明仅保留单元格文字、没有 Markdown 表格语法时不能还原结构。", "table_edit 仍比较表格文字；table_TEDS 比较可还原的表格结构。"],
+        ["宽表布局", "通用宽表把前七列写死后只给最后两列各留 36 像素，解读文字逐字换行，把一行撑到约 900–1,050 像素。", "方法画像表为耗时和解读列设置独立宽度，保留横向滚动并恢复正常行高。", "中英文、桌面和窄屏沿用同一语义表格。"]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Clarify scoring branches, recalculation, and core-table order"
+        }
+      }
+    },
+    {
+      "id": "2026-09-16-public-webmainbench-causal-interpretation",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-16",
+      "title": "用全局证据重写公开基准解读",
+      "summary": "成绩、分母、耗时和正式调用均未改变。报告解读改为围绕成功层级、整页范围偏差、结构损失、评分器额外识别、冻结页运行冲突和评分修正展开，并把 35 个共同低分页、分母构成及 6 个异常页面的根因放入同一条分析主线。",
+      "changes": [
+        ["解读主线", "原解读按测量、实例和配置分章，主要承担导航，读者难以回答高交付率为何仍只有中低质量分。", "以 991/1,000 次目标正文与 21.6%–32.4% overall 的反差开篇，依次解释成功层级、低分机制、分母、方法画像和适用边界。", "overall 是五个不同分母分项的平均，不是固定 200 页上的统一通过率。"],
+        ["低文字分", "零散案例能看到多余内容，但没有量化它是不是跨方法的共同问题。", "完整矩阵显示 35 页在五种方法上都低于 10%；这些低分页的输出长度中位数约为人工答案的 17–20 倍。", "该证据支持整页输出与主内容答案的范围错位，不等同于证明所有编辑距离差异都来自模板文字。"],
+        ["分母解释", "只说明分母会不同，没有展示差异由哪一侧的内容触发。", "逐方法列出代码、公式和表格的计分页，以及仅输出侧、仅答案侧数量；例如 Lightpanda 公式 169 页中有 127 页只在输出侧识别出公式。", "评分器按 Markdown 语法识别内容；额外识别不等于页面语义上真的含有该类内容。"],
+        ["异常根因", "正文缺失与低分散落在多个页面，容易被概括为请求或网络失败。", "把 9 次目标正文缺失归并为 6 个页面，展示脚本依赖、防框架循环、回源导航和 DOM / 表格复杂度等已验证原因。", "服务端未公开资源阈值的两例只定位到触发内容类型，不虚构内部阶段。"],
+        ["展示与校验", "长文缺少稳定的分析流程图，首次发布的 Mermaid 在分享页中未绘制。", "增加可见 HTML 流程作为默认内容，Mermaid 只作渐进增强；补充 0–10% 筛选并将结构、链接和回退内容纳入发布检查。", "中英文路由、章节、数据和证据链接保持一一对应。"]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Rework the interpretation around measured causes"
+        }
+      }
+    },
+    {
+      "id": "2026-09-16-public-webmainbench-anomaly-root-causes",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-16",
+      "title": "补齐异常结果根因与对照证据",
+      "summary": "对 1,000 条结果执行确定性异常扫描，30 条触发结果集中在 6 个页面。删减对照定位到页面脚本、原站导航和表格 DOM 复杂度；逐页详情与核验页展示直接观察和证据边界。正式调用、输出、分数、分母和耗时均未改变。",
+      "changes": [
+        ["异常范围", "缺正文、错误页、同页分歧和极低分仅有现象说明，无法判断是页面、方法、网络还是评分问题。", "以固定规则扫描完整 1,000 条矩阵，并把 30 条触发结果归并到 6 个页面逐一复核。", "规则用于发现可疑点，不把未触发结果宣称为逐条人工复核通过。"],
+        ["根因定位", "五条 Kitesurf 异常和一组本地浏览器异常缺少能重复验证的触发条件。", "用不计分的脚本、表格和导航删减对照定位递归错误处理器、错误防框架条件、降级跳转、原站跳转及累计表格复杂度。", "Cloudflare 未公开的内部资源阈值仍不推断为具体内存或转换阶段。"],
+        ["逐页证据", "浏览器错误页虽然有非空文字，容易与目标正文混淆；结果详情对根因覆盖不完整。", "错误页统一归入未生成目标正文；Track ID 与方法详情展示接口状态、最终内容、完整输出、对照观察和证据支持的原因。", "正文存在不是质量通过，官方仍没有统一逐页及格线。"],
+        ["结果处置", "诊断输入经过删减，不能作为正式任务替换原调用。", "发布版只携带绑定哈希的紧凑复核记录，保留原始 1,000 条结果及全部计分数据。", "诊断调用不进入成绩、分母、耗时或供应商成功率。"]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Add root-cause and comparison evidence for anomalous results"
+        }
+      }
+    },
+    {
+      "id": "2026-09-16-public-webmainbench-report-information-architecture",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-16",
+      "title": "重整公开基准报告的信息架构与逐页诊断",
+      "summary": "测量结果、评分值和样本均未改变。首页合并为一张核心比较表并补齐均值、P50、P95；评测集按独立分类维度筛选；方法页增加流程图；结果页把响应、正文状态和证据支持的原因放回逐页详情。",
+      "changes": [
+        ["首页比较", "质量、正文状态、配对耗时和分项分母分散在多张重复表中，排序列又被误当成绿色领先项。", "用一张横向核心表展示分项分数与全部 200 次逻辑结果的均值、P50、P95；分母置于分数下方，绿色只标唯一且方向明确的领先值。", "table_TEDS 与受其影响的 overall 继续只留档，不标领先者。"],
+        ["评测集", "五套独立分类混在同一张长表里，无法看出每套分类的样本数都合计为 200。", "按语言、难度、表格、代码和公式维度筛选分布表，并实时显示母集和样本合计。", "分类维度彼此独立，同一页面同时属于五套分类。"],
+        ["方法说明", "评测流程主要依赖连续长段文字，输入、响应、评分和聚合关系不直观。", "用 Mermaid 流程图先展示冻结输入、方法转换、正文判断、逐页评分和按实际页数聚合；运行细节折叠为按需证据。", "评分公式和已知 TEDS 缺陷仍保留可核对文字与源码链接。"],
+        ["逐页诊断", "“交付”和字符数无法区分正文、错误响应、错误页或无响应，失败原因又集中在重复汇总表。", "结果矩阵改为“是否生成正文”和“响应与正文”；每条失败详情显示直接观察、证据支持的原因范围、完整错误与评分字段。", "没有证据的远端内部根因不推断；原始 URL 仍不参与本轮抓取。"],
+        ["报告结构", "针对单条反馈不断增加模块，造成首页、分析页和解读页职责重叠。", "评测集只讲样本，方法页只讲流程，分析页保留同页比较、分类筛选和逐页矩阵，详情页承接响应与原因。", "中英文路由、数据、筛选和证据入口继续一一对应。"]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Restructure report navigation and per-page diagnosis"
+        }
+      }
+    },
+    {
+      "id": "2026-09-15-public-webmainbench-dataset-and-result-clarity",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-15",
+      "title": "公开基准页面与方法结果分开展示",
+      "summary": "200 页评测集只展示冻结输入、人工参考与官方分类；五方法结果仍在分析和方法页。结果页明确区分输出交付与官方连续质量分，增加逐指标计分页数明细。方法成绩、评分公式、样本范围和耗时均未改变。",
+      "changes": [
+        ["评测集", "案例列表混入方法交付结果，冻结页面与人工参考难以独立查看。", "案例列表只保留页面分类；每个 Track ID 可查看完整参考和冻结 HTML。", "方法成绩在结果分析中继续提供。"],
+        ["评分分母", "分项页数随方法变化但缺少直接的数量拆解。", "逐方法逐指标列出固定页数、成功交付、实际计分和已交付未计分的页数。", "沿用官方 success=true 计入规则，不设置逐页及格线。"],
+        ["结果交互", "请求失败易被误读为原始 URL 请求失败，案例和方法详情入口不够清晰。", "结果筛选使用已交付/未交付；Track ID 指向页面和参考，方法名指向该次评分与完整输出。搜索预处理并延迟触发以减少千行表筛选卡顿。", "原始 URL 在本轮仅为来源元数据。"],
+        ["方法详情", "物理调用、长标识和双栏长文本占据主结果版面。", "主视图只展示最终采用的结果、官方分项评分和完整输出；调用明细、来源哈希可展开核验。", "物理调用证据和累计耗时继续保留。"]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Separate benchmark inputs from method results"
+        }
+      }
+    },
+    {
+      "id": "2026-09-15-public-webmainbench-reading-and-inspection",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-15",
+      "title": "公开网页基准的逐页对照与分类筛选",
+      "summary": "WebMainBench-545 预选 200 页的五方法分数、调用和官方评分未变。评测集可打开每页人工真值、冻结 HTML 与五种实际输出；分类分数改为按分类轴、类别和方法筛选，长表横向展开。",
+      "changes": [
+        ["评测集", "候选基准表和分类表在窄屏拥挤，案例入口埋在页面末尾。", "证据型长表在容器内横向滚动；200 页案例按官方分类筛选，并可继续打开人工真值、逐项评分原因和完整输出。", "只说明已测 200 页，不把样本分数称作 545 页官方总榜。"],
+        ["结果分析", "五个分类轴顺次展开，页面过长。", "按分类轴、类别和方法筛选同一张结果表，保留官方分项分数和各项有效分母。", "分类覆盖不等于比例代表性；无分母显示为未计算。"],
+        ["解读", "单看 overall 容易掩盖正文、代码、公式和表格差异。", "以同页实例连接各分项分榜、方法结果与完整人工真值。", "请求交付、质量和端到端耗时仍分别报告。"]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Add per-page comparison and category filters"
+        }
+      }
+    },
+    {
       "id": "2026-09-15-resource-winner-presentation",
       "comparison_kinds": ["headless_html", "headless_markdown"],
       "date": "2026-09-15",
@@ -1263,6 +2126,18 @@
         ["逐项比较", "表格只突出排序列，没有稳定标记每项最低值。", "按计算、内存、网络分组，逐项标记最低消耗；CPU 利用率和传输速率只描述运行形态，不按低值评选。", "沿用四种本地方法共同通过的 15/20 个普通网页，不产生新的供应商调用。"],
         ["发布门禁", "资源展示要求依赖人工记忆。", "仓库规则和报告检查同时要求首页、解读页及中英文版具备赢家摘要、三类分组和逐项赢家标记。", "以后新增或重建报告时缺失任一部分都会阻断发布。"]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Group resource comparisons and name the leaders",
+          "summary": "The home page and interpretation split CPU, memory, and network into three metric groups, mark each lower-is-better minimum directly, and identify Lightpanda as the resource-efficiency leader in this run. Evaluation evidence, task verdicts, and denominators are unchanged.",
+          "changes": [
+            ["Resource findings", "Resource data was spread across one wide table, requiring readers to find minima themselves.", "Add a resource-efficiency finding card and three key-result cards for CPU, memory, and network, making Lightpanda's lower-use lead explicit.", "Resource leadership and overall task pass rate are judged separately and are not combined into a composite score."],
+            ["Per-metric comparison", "The table highlighted only the sorted column and did not persistently mark each metric's minimum.", "Group metrics into compute, memory, and network and mark the lowest use in each; CPU utilization and transfer rates describe runtime behavior and are not ranked by lower values.", "Retain the 15/20 general pages passed by all four local methods, with no new provider calls."],
+            ["Release gate", "Resource-presentation requirements depended on manual memory.", "Repository rules and report checks now require a winner summary, three grouped sections, and per-metric winner markers on the home and interpretation pages in both languages.", "Future report creation or rebuilding is blocked if any of these elements is missing."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-14-five-method-resource-profile",
@@ -1277,6 +2152,19 @@
         ["隔离与复用", "宿主机进程采样会混入其他任务，旧版成品镜像的 Moli 和 Chromium 版本又与当前口径不一致。", "抽出共享的 Linux/cgroup 资源计量与容器限制组件，Web Fetch 每次使用一次性容器和专用网络；Browser Use 复用相同基础计量。固定资源镜像构建一次并按镜像 ID 复用。", "现有 Docker 下载层可复用；旧 Moli 1.1.3 和 Chromium 151 成品镜像不冒充当前 Moli 1.1.1 与 Chromium 152。"],
         ["适用边界", "远程 Kitesurf 的客户端请求流量不能代表其浏览器服务端的 CPU、内存和上游网络。", "Kitesurf 继续参加正确率和端到端耗时比较，但从资源消耗表中排除并说明原因。", "50 ms 采样可能遗漏更短峰值；本轮只能解释 arm64 Linux 隔离容器中的客户端成本。"]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Add measured CPU, memory, and network use and narrow the Moli version",
+          "summary": "The current primary report retains only Moli 1.1.1 and adds a uniformly isolated CPU, memory, and network comparison for four locally observable methods. Resource results come from 80 formal calls across 20 tasks × 4 methods, aggregated over the 15 shared passes.",
+          "changes": [
+            ["Current method matrix", "Showing three Moli versions would expand every future rerun and review and distract from the current product comparison.", "The primary report retains Kitesurf, Lightpanda, Obscura, Moli 1.1.1, and Chromium. Historical evidence for Moli 1.0.6 and 1.1.3 remains archived but is excluded from current pages, denominators, and rankings.", "The primary matrix reuses 750 completed and reviewed five-method results without new provider calls. Removing the two historical configurations changes the same-window shared-pass denominator from 8 tasks across seven configurations to 9 tasks across the current five."],
+            ["Resource comparison", "The previous report had only end-to-end latency and could not distinguish browser-client CPU, memory, and network use.", "20 general pages were predeclared and run one at a time across four local methods. Each call was limited to 2 CPUs, 2 GiB of memory, and 512 PIDs, with cumulative CPU, sampled memory, and network byte counters retained.", "Aggregates use only the 15 tasks passed by all four methods. Failed results remain in per-attempt evidence but do not enter the resource ranking."],
+            ["Isolation and reuse", "Host-process sampling can include unrelated work, while the existing finished images use Moli and Chromium versions that do not match the current contract.", "Shared Linux/cgroup accounting and container-limit components now serve both evaluations. Web Fetch uses a disposable container and dedicated network per call, while Browser Use reuses the same accounting foundation. The fixed resource image is built once and reused by image ID.", "Existing Docker download layers are reusable, but finished images containing Moli 1.1.3 and Chromium 151 are not presented as the current Moli 1.1.1 and Chromium 152 environment."],
+            ["Scope limits", "Kitesurf's local request traffic cannot represent CPU, memory, or upstream network use in its remote browser service.", "Kitesurf remains in correctness and end-to-end latency comparisons but is excluded from the resource-use table with the reason disclosed.", "Sampling every 50 ms may miss shorter peaks. This run describes only client cost in isolated arm64 Linux containers."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-15-official-route-and-call-drilldown",
@@ -1296,6 +2184,21 @@
         ["核验与资源别名", "缩略图可由同一资产的另一 Wikimedia 域名交付，单看主机名会错判 image-04；反过来，无缩略图标识的同名地址也不能任意放行。", "40 条新结果和 1,460 条旧结果均有逐条独立核验；最后两条 Cloudflare 输出重新盲审，严格复用身份不变的 1,498 条核验。image-04 按同资产缩略图域名迁移裁决，公共资源规则同时拒绝缺少缩略图标识的近似地址。", "当前 1,500/1,500 条权威结果有有效逐条判定核验，未决判定 0。image-04 修正未改变成绩；异常根因调查另有独立门禁。"],
         ["逐次调用日志", "旧详情能看到最终输出，但输出为空时，读者看不到接口状态、最后错误或每次重试的过程。", "新物理调用保存脱敏且哈希绑定的请求摘要、接口/进程状态、最后输出、错误与重试记录；详情页按需打开弹窗。完整原始供应商响应仍留在私有证据，不随公开包发布。", "本轮全部 40 次新调用有可下钻安全日志；历史调用只展示实际留存字段，并明确标示没有保存的日志，不补造历史 stdout、stderr 或原始信封。" ]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Correct official routes by task and add per-call drilldown",
+          "summary": "The ten methods still run the same 150 tasks, with 1,500 authoritative results. Official-route corrections certified 23 Cloudflare and 17 Firecrawl calls, 40 in total, raising passes from 1,024 to 1,029. A shared format-normalization correction added 1 document-05 pass without a provider call. Two Cloudflare video-link tasks then required 4 additional certified adapter-correction calls. The release retains 44 new physical calls and now passes 1,032/1,500 tasks; Moli remains at 1.1.4.",
+          "changes": [
+            ["Cloudflare routes by task", "The former /markdown route suits webpage text. Some direct PDF/DOCX requests returned a successful interface response with empty body text, and page image and video attributes could not be reliably recovered from Markdown.", "Web text and dynamic tasks retain Browser Run /markdown. Direct PDF/DOCX files are uploaded to Workers AI /ai/tomarkdown; page image and video URLs come from Browser Run /scrape DOM attributes. Original-file download and conversion share one end-to-end deadline.", "Only Cloudflare's 7 direct-document, 9 page-image, and 7 page-video results were replaced. /pdf generates a webpage PDF, /links lists ordinary links, and /crawl expands to other pages; none substitutes for the deliverables in these tasks."],
+            ["Cloudflare video-URL adaptation", "/scrape had returned Blender's .mp4.zip download URL and Bilibili BV detail links, but the old adapter discarded them by requiring a bare media extension. A broad relaxation then mislabeled ordinary navigation and utility iframes as video entries.", "The archive route keeps .mp4.zip downloads. Video-detail tasks request only a[href] and filter by video-page URL route, without selecting output against the reference answer. Both affected tasks were certified again under the corrected interface.", "video-blender-release and video-bilibili-current both pass in the final matrix; the Bilibili output contains only on-site BV detail URLs. Intermediate and earlier physical calls remain retained but are not selected by score."],
+            ["Firecrawl routes by task", "A fixed waitFor delay could not enforce the declared top-level selector for dynamic tasks; page-video tasks omitted Scrape's video field.", "Dynamic tasks preselect Scrape Actions selector waits. Video-resource tasks also request the native video format while retaining text and resource URLs. Match-count and iframe-child completion conditions remain disclosed as interface limits.", "Only 10 dynamic and 7 page-video results were replaced. A video download URL is neither original media bytes nor visual understanding. Search, Crawl, and Agent were not used for single-page tasks with a given URL."],
+            ["Results on the same denominator", "Editing only a results table would conceal changes to provider routes and the shared scorer, and blur the distinction between new calls and offline rescoring.", "40 method–task pairs use corrected official routes; two video-link pairs added 4 physical adapter-correction calls. All 44 new calls are retained, while the authoritative matrix contains 40 final replacement results and 1,460 inherited results. document-05's Markdown table-divider row is treated as layout by shared normalization and its saved output was rescored offline.", "Passes moved from 1,024/1,500 to 1,029/1,500 after route corrections, 1,030/1,500 after zero-call normalization, and 1,032/1,500 after video-adapter corrections. The denominator, 150 tasks, ten methods, and Moli 1.1.4 are unchanged."],
+            ["Review and resource aliases", "A thumbnail of the same asset may be served from another Wikimedia host; comparing hostnames alone would misjudge image-04. A similarly named URL without a thumbnail marker must not be accepted indiscriminately.", "All 40 new and 1,460 inherited results have per-attempt independent review. The final two Cloudflare outputs were blindly reviewed again, strictly reusing 1,498 unchanged review identities. image-04 was adjudicated as a same-asset thumbnail-host migration, while the shared resource rule rejects a lookalike URL without the thumbnail path.", "All 1,500/1,500 authoritative results have valid per-attempt verdict review, with 0 unresolved verdicts. The image-04 correction did not change scores; root-cause anomaly investigation has a separate gate."],
+            ["Per-call logs", "Earlier detail pages showed final output, but an empty answer did not reveal interface status, the final error, or each retry.", "New physical calls retain redacted, hash-bound request summaries, interface/process status, final output, errors, and retry records. The detail page opens this evidence on demand in a dialog. Full raw provider responses remain private and are not included in the public bundle.", "All 40 new calls in this release have safe drilldown logs. Older calls show only fields actually retained and explicitly identify unavailable logs; historical stdout, stderr, and raw envelopes are not fabricated."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-11-full-matrix-root-cause-audit",
@@ -1338,6 +2241,27 @@
         ["参考证据一致性", "四个完整正文样本的来源说明曾错误指向其他网站；NOAA 样本已有当日独立 200 响应、main 区域和完整正文哈希，却保留了“全文不可用”的旧备注。", "完整正文来源必须与题目 URL 同站；NOAA 元数据改为明确记录完整参考可用，稳定锚点继续决定二元验收，全文快照只提供诊断指标。新增数据集门禁拒绝有效全文与不可用声明并存。", "来源与备注修正不改变 provider 输出或任务分数；相关结果重新绑定并独立复核。"],
         ["异常根因门禁", "仅比较标准答案与最终判定无法主动发现空输出、跨站相同错误、集中零分、接口误用、参考冲突和公开产物泄漏；按批次序号缓存又会在小修后错配审查结果。", "逐条盲审之后，对确定性异常信号执行七层调查；异常缓存按精确 attempt 范围而不是批次位置复用，范围变化时只重审变化组。", "最终矩阵 1,500/1,500 已核验，309 条异常触发结果全部完成调查，未决 0；缓存范围、参考修订和最终审查均有哈希绑定。"]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Fix root causes across the evaluation chain and require full-matrix review",
+          "summary": "All 1,500 primary results across ten methods were independently reviewed with 0 unresolved decisions. The 309 anomaly-triggered results also completed seven-layer review covering input, reference, request, raw response, adapter, scorer, and final verdict. Shared fixes cover body segmentation, named links, script-state text, document landmarks, request status, dynamic-card boundaries, public path leakage, and reference metadata. Only declared scopes whose interface or artifact identity changed were rerun; all other corrections reused saved outputs offline. Moli remains on 1.1.4.",
+          "changes": [
+            ["Full result review", "The previous release independently reviewed machine failures only. Machine passes had not been checked individually, leaving systematic false positives from permissive rules undetectable.", "Machine passes and failures use the same packets with machine judgments hidden. Prior reviews remain valid only when both the task and reviewer-visible evidence hash are unchanged; only changed results are reviewed again.", "Review covers 1,500/1,500 results in the current ten-method matrix. Before correction, the reviewer raised 56 disagreements with machine judgments; 2 confirmed scoring errors whose root causes were fixed first, and the remainder were adjudicated against actual artifacts, reference answers, and task contracts. There are 0 unresolved items. The same-window cohort remains latency-only and is outside result review."],
+            ["Body, dynamic-task, and challenge-page scoring", "A report could keep reading stale scorer output after code changes; greedy body matching in reference order could let longer returned fragments consume the wrong region first; and serialized script state containing target strings could be mistaken for readable body text.", "Report builds reject stale scorer output; body fragments now use global capacity allocation independent of reference-region order; and script or application-state shells cannot satisfy body tasks.", "Both corrections have positive and negative regressions executed through the shared score_attempt and task-decision paths. Saved output is consistently rescored offline without provider-specific or row-specific exceptions."],
+            ["Exa named-link interface", "The old adapter read only the bare links array, which could not prove name-to-URL ownership and omitted official richLinks with explicit anchor–URL pairs.", "Only named-link tasks request extras.richLinks, and only explicit pairs with nonempty anchors and URLs are accepted. Body headings and bare links are never paired by position.", "The interface-contract change affects only Exa's 10 challenge tasks, so the certified rerun was limited to that scope. 3 pass; 7 still fail because the actual artifacts do not satisfy the contract."],
+            ["Complete DOCX content", "document-05 required only the title and section names, allowing narrative output that omitted table cells, calendar content, and the final notes to pass.", "The task contract now includes table, calendar, and note landmarks from the frozen source document. Markdown table separators are treated as layout so complete tables are not falsely rejected.", "Saved artifacts were consistently rescored offline: CowAgent's incomplete result now fails, while Firecrawl and Tavily retain passes for complete Markdown tables. No provider calls were needed."],
+            ["Image-resource scope", "Image-URL tasks were briefly proposed as target-only output, which could fail a valid page fetch that found the target while retaining logos or recommendation images. Some responsive target aliases also require independent source evidence.", "Resource acceptance requires a declared target or an evidenced valid alias. Additional page images remain a precision diagnostic and do not affect binary acceptance. Target lists, aliases, source observations, and resource contracts are all hash-bound.", "This avoids treating a page-level fetch as if it had to return only one URL, while still rejecting long text or many unrelated images that never match the target. Stale scores cannot be published after a contract change."],
+            ["Recurrence prevention and evidence revision", "Scores, references, datasets, and review receipts can change independently. Partial lifecycle validation could wrongly reuse an old review, while patching only a final verdict cannot prevent recurrence.", "Each root cause has executable controls in both directions. Reference and scoring revisions separately chain complete input and output hashes, root causes, and regression IDs; report builds validate scorer identity, task content, resource contracts, and source evidence.", "Scoring and reference revisions do not resend provider requests. Only predeclared scopes affected by an interface, version, input, or request-contract change are rerun, with traceability preserved between old and new calls."],
+            ["Firecrawl dynamic interface", "The old adapter used actions, which the current account region does not allow. All 10 dynamic tasks failed at the service boundary, incorrectly producing a 0/10 capability result.", "The adapter now uses waitFor, supported by the current public interface. A certified run with references frozen before and after calls reran only these 10 tasks; the other 140 Firecrawl results are unchanged.", "The new results pass 6/10. Codex CLI blindly reviewed all 10 additions with machine judgments hidden, finding 0 disagreements and 0 unresolved items. The remaining 4 fail because their actual output does not satisfy the task contract."],
+            ["Report reading and latency", "The cross-batch latency table for tasks passed by every method was expanded by default and occupied substantial space below the ranking; the overall ranking did not show latency over all 150 calls.", "Shared-success latency is now collapsed on demand. The overall ranking adds mean, P50, and P95 over all 150 calls per method, using the same fixed denominator as coverage.", "Latency columns do not affect coverage ordering or select a successful subset; failed-call elapsed time remains in the all-call distribution."],
+            ["Request status and empty output", "The old adapters conflated a successful provider call with no acceptable body and a provider or target request failure, mixing request-success and task-pass semantics.", "Cloudflare now normalizes saved success, result, and origin-status envelopes; Moli uses the 1.1.4 exit status and whole-response error envelope. An empty successful response remains request success but task failure, while an explicit target non-2xx remains request failure.", "All 14 status corrections were reconstructed offline from hash-bound raw evidence. Task verdicts and scores did not change, and no provider was called."],
+            ["Dynamic extraction and public artifacts", "The Crawl4AI dynamic-cart request declared bounded extraction, but the worker did not pass the configuration and lost card boundaries. OpenClaw error stacks and CowAgent save notices could also expose host-local paths in public evidence.", "The Crawl4AI worker now passes the declared extraction configuration and preserves card boundaries. OpenClaw and DeepSeek error surfaces retain only stable messages, while CowAgent removes only host-local save paths and keeps fetched text.", "The certified Crawl4AI rerun passes and raises its total to 119/150. Certified reruns covered 15 affected OpenClaw artifacts and 11 CowAgent artifacts without changing their task totals; public artifacts no longer contain real host paths."],
+            ["Reference-evidence consistency", "Four complete-body samples had source descriptions pointing to unrelated sites. The NOAA sample had a same-day independent 200 response, main-region extraction, and complete-body hash but retained a stale note saying the full text was unavailable.", "Complete-body evidence must use the task URL's site. NOAA metadata now explicitly records the complete reference as available; stable anchors still drive binary acceptance and the full snapshot supplies diagnostic metrics. A dataset guard rejects valid full text paired with an unavailable declaration.", "Source and note corrections do not change provider output or task scores; affected results were rebound and independently reviewed."],
+            ["Anomaly root-cause gate", "Comparing only a reference and final verdict cannot proactively find empty output, repeated cross-site errors, concentrated zero scores, interface misuse, reference conflicts, or public-artifact leakage. Caching by batch number also misaligns reviews after small revisions.", "After row-level blind review, deterministic anomaly signals receive a seven-layer investigation. Anomaly caches are reused by exact attempt scope rather than batch position, so only changed groups are reviewed again.", "The final matrix is reviewed 1,500/1,500; all 309 anomaly-triggered results completed investigation with 0 unresolved items. Cache scope, reference revisions, and final review are hash-bound."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-10-twelve-method-refresh-contract",
@@ -1360,6 +2284,23 @@
         ["报告与发布隔离", "旧生成器混用了 150 题、六类和七浏览器专属叙述，方法页重复 Exa、Tavily、Firecrawl 配置，通用报告还可能显示 headless 修订史、复现链接和中文延迟加载提示。", "同一 renderer 改由当前 dataset、records 和实际收据生成数量、方法路线、修订说明与链接；十二方法与 headless 历史按 comparison kind 隔离，中英文虚拟路由分别显示对应加载及无障碍文案。当前十二方法构建绑定新的 dev 域站点，旧十二方法站点与 app 域浏览器参考报告保持不变。", "发布器逐文件核验公开文件；服务端允许的 HTML 外壳注入与匿名字节一致性分层披露，不再把两者混称为全站字节相同。"],
         ["环境导入", "托管方法凭据已存在于用户级 ~/.env，但旧流程只读取仓库 .env，导致新会话会误报缺少变量。", "新增显式 import-env：仅将九个允许变量从用户级文件补入仓库 .env，保留已有非空值、隐藏变量内容并强制 0600 权限；文档和测试固定该入口。", "凭据值仍不进入 Git、证据、日志或报告；导入后六个托管方法的前置校验通过。"]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Complete the twelve-method upgrade, impact-scoped reruns, and failure review",
+          "summary": "The twelve-method report is now bound to the current evaluation set, implementation identities, and an independent publication target. The primary matrix adds 432 calls within the predeclared impact scope and the same-window latency cohort adds 240 calls. All 705 machine failures in the primary matrix received independent review; the 1,095 machine passes were not reviewed individually. Every disagreement was adjudicated, with 0 unresolved.",
+          "changes": [
+            ["Evaluation scope", "The default report had temporarily pointed to the seven browser methods, while the old twelve-method site still contained volatile body-text tasks that have since been replaced. Neither could serve as the authoritative twelve-method matrix for this run.", "The current profile restores twelve Web Fetch methods and 150 tasks. Eight volatile full-text tasks are replaced with RFCs, pinned Git commits, final W3C publications, or a fixed Wikipedia revision, with each replacement recorded explicitly.", "The final authoritative matrix remains 1,800 logical method–task results. The replaced tasks and five additional tasks affected by reference or implementation changes must be rerun under the current contract; their old results are not carried forward directly."],
+            ["Implementation identity and preflight gates", "The old evidence did not fully pin the source or dependency identities for CowAgent, OpenClaw, DeepSeek Harness, LangChain, and Crawl4AI. Empty paths or incorrect versions could also fail only after an evidence directory had been created.", "Source-backed methods now pin repository revisions, Node versions, and required files. LangChain WebBaseLoader 0.3.30, Crawl4AI 0.9.3, and document-parsing dependencies are locked in uv.lock. Every method validates its identity, command, and paths before run evidence is created, and an identity summary is written to the manifest.", "LangChain and Crawl4AI each reran all 150 tasks because the previous authoritative evidence did not record their library versions. For source-based methods, only exact, clean, bound implementations entered this run."],
+            ["Direct-document path", "The general Moli adapter treated direct PDF and DOCX body-text tasks as ordinary web Markdown, which could fail before retrieving the original document or serialize a binary response.", "Direct PDF, DOCX, and file tasks now preselect Moli's automatic raw response. Body-text tasks parse text within the same 45-second budget and retain the raw-byte hash; file tasks continue to be accepted by byte validation, with no cross-method download fallback.", "Document results affected by the route change were included in the declared rerun scope; scoring and blind review both use the newly saved outputs."],
+            ["Incidental-download evidence", "When a body fetch also triggered a browser download, the old runner aborted the whole batch because the binary had no file-task evaluation record, leaving later results missing.", "The call boundary now persists and hashes every returned binary. Only file tasks may pass on those bytes; body tasks must still deliver acceptable text. The affected Crawl4AI batch was invalidated in full and rerun.", "This fix preserves evidence and lets execution continue; it neither treats an incidental download as body capability nor reuses the partial pre-crash batch."],
+            ["Impact scope and latency cohort", "Rerunning only old failures or merely rebuilding the pages would mix unknown implementation versions and would not support a fair latency comparison across twelve methods measured in different batches.", "The primary matrix predeclared 13 tasks × 12 methods, the remaining full-method cohorts for LangChain and Crawl4AI, and two deadline-boundary corrections, for 432 new calls in total. A separate provider-blind, domain-deduplicated set of 20 tasks produced 240 same-window latency calls across all twelve methods.", "The primary matrix fixes one authoritative logical result for every method–task pair and never selects the best or fastest result. The latency cohort retains its complete predeclared matrix: all-call latency uses the same 20-task denominator, while successful-call latency is reported separately as a conditional statistic. All twelve methods jointly passed 1/20 tasks; this is diagnostic only and is not used to select samples or rank methods."],
+            ["Evidence and failure review", "The old assembler could pull worker trees and symbolic links into the aggregate while omitting auxiliary files returned by physical retry calls. A review packet that omitted native answer fields could also create systematic false disagreements.", "Aggregation now copies only hash-bound public files, rejects symbolic links and worker-tree paths, and binds the primary response, auxiliary files, and every physical retry. Codex gpt-5.6-sol blindly reviewed the 705 machine failures in the primary matrix, with allowlisted native answer metadata included in the review packet; the 2 disagreements were adjudicated individually.", "The final evidence consists of one 12 × 150 primary matrix and one 12 × 20 latency matrix. Failure review covers 705/705 primary-matrix failures; 1,095 machine passes were not reviewed individually, and latency results were outside this review scope. There are 0 unresolved items. Adjudication determines only the audit conclusion and never rewrites or selectively replaces provider output."],
+            ["Report and publication isolation", "The old generator mixed fixed 150-task and six-family copy with seven-browser-specific explanations. Method pages repeated Exa, Tavily, and Firecrawl configuration, while the general report could also show headless changelog entries, reproduction links, and Chinese lazy-loading messages.", "The shared renderer now derives counts, method paths, revision explanations, and links from the current dataset, records, and available receipts. Twelve-method and headless histories are separated by comparison kind, and Chinese and English virtual routes show localized loading and accessibility copy. The current twelve-method build is bound to a new dev-domain site, while the old twelve-method site and the app-domain browser reference report remain unchanged.", "The publisher verifies public files individually. Server-permitted HTML shell injection and anonymous byte equality are disclosed as separate layers rather than being conflated as site-wide byte identity."],
+            ["Environment import", "Credentials for hosted methods already existed in the user-level ~/.env, but the old workflow read only the repository .env, causing new sessions to report variables as missing incorrectly.", "An explicit import-env command now copies only nine allowlisted variables from the user-level file into the repository .env, preserves existing non-empty values, hides variable contents, and enforces 0600 permissions. Documentation and tests make this the stable entry point.", "Credential values still never enter Git, evidence, logs, or the report. Preflight validation passes for all six hosted methods after import."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-10-editorial-illustrations",
@@ -1370,6 +2311,17 @@
         ["耗时比较", "首屏强调秒数，读者需要自行计算差距。", "用未舍入数据计算相对 Chromium 的耗时减少比例：均值 42.8%、P50 46.7%、P95 44.3%，秒数作为次要依据保留。", "仍为跨批次的 98 道共同成功任务；统计样本与测量边界不变。"],
         ["信息图", "概念流程与总结主要依靠文字。", "增加结果总览、Web Fetch 与 Browser Use 对照、五种交付物流程图；提供完整图片下载，英文版使用对应英文总览。", "流程图为说明性示意，六组案例仍展示原始证据。图片逐项核对并绑定哈希，不参与评分。"]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Emphasize latency reduction and add three explanatory figures",
+          "summary": "The opening compares mean, P50, and P95 latency reductions against Chromium. A result overview and two flow diagrams replace repeated summaries and some process prose, with direct descriptive titles.",
+          "changes": [
+            ["Latency comparison", "The opening emphasized seconds and required readers to calculate the differences themselves.", "Use unrounded values to calculate reductions relative to Chromium: 42.8% for mean latency, 46.7% for P50, and 44.3% for P95, while retaining seconds as secondary context.", "The population remains 98 shared successful tasks collected across batches; the sample and measurement boundary are unchanged."],
+            ["Explanatory figures", "Conceptual flows and summaries relied mostly on prose.", "Add a result overview, a Web Fetch versus Browser Use comparison, and a flow diagram for five deliverable types. Full-size images are downloadable, with a corresponding English overview.", "The diagrams are explanatory. Six case groups still show original evidence; images are reviewed and hash-bound but do not affect scoring."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-10-editorial-reading-order",
@@ -1381,6 +2333,18 @@
         ["耗时展示", "解读同时展开两组不同条件的耗时比较，阅读主线分散。", "解读集中展示全部 98 道共同成功主任务的均值、P50、P95，并保留跨批次条件。", "原报告的同窗测速章节与证据继续保留，未删除或改写调用记录。"],
         ["阅读结构", "章节眉题、副标题和浏览器长段落增加阅读负担。", "统一编号标题和字号层级，以对照表介绍五款浏览器，增加量化总结与有序后续计划。", "保留 Web Fetch、Browser Use 背景、五类流程和六组真实案例。"]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Interpretation opens with overall pass rates and six task groups",
+          "summary": "The five-browser article opens with overall pass rates and results for six task groups, explains the differences in the body, and closes with findings. Browser configurations use a comparison table, with consistently numbered sections.",
+          "changes": [
+            ["Result presentation", "Overall pass rates and group results were spread throughout the article.", "The opening brings together overall pass rates and six group pass counts for the five browsers, followed by explanations of document, media, and web differences.", "The same 150 tasks and Moli 1.1.1 are retained; scores and pass counts are unchanged."],
+            ["Latency presentation", "The article expanded two latency comparisons under different conditions, dividing the reading flow.", "The article focuses on mean latency, P50, and P95 for all 98 shared successful main tasks, retaining the collection-across-batches condition.", "The original report retains its same-window latency section and evidence; call records are neither deleted nor rewritten."],
+            ["Reading structure", "Section eyebrows, subtitles, and long browser paragraphs added reading overhead.", "Use consistently numbered headings and type sizes, introduce the five browsers in a comparison table, and add quantified findings and an ordered follow-up plan.", "Retain Web Fetch and Browser Use background, five workflow types, and real examples from six groups."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-10-five-browser-editorial",
@@ -1414,6 +2378,20 @@
           "明确结构检查不核验商品名称事实、文件长度门槛为 32 字节，以及正文规则经过统一离线修订。"
         ]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Add an illustrated five-browser Web Fetch interpretation",
+          "summary": "The article compares Moli 1.1.1 with four other browsers, states that it passed 135 of 150 tasks, presents mean latency, P50, and P95, and provides selectable examples from six dataset groups pairing references with actual outputs. Original calls, scores, and ranking denominators are unchanged.",
+          "changes": [
+            ["Loading recovery", "After a temporary network failure, cached failures prevented in-page retries from making a new request.", "Clear cached failures and provide reload controls for pages and evidence content.", "Only report loading behavior changes; original outputs and scores are unchanged."],
+            ["Article scope", "Results across versions and scattered case details made it difficult to understand Moli 1.1.1's performance independently.", "Generate five-browser charts, a 120/30-task breakdown, a PDF path, and media examples from the same evidence; disclose that Moli 1.1.1 was selected after seeing version results.", "The article presents 750 results from five methods; all 1,050 records across seven paths remain available, without task-by-task version selection."],
+            ["Basis for conclusions", "The total pass count does not explain which input types contribute to the difference.", "Show that, across 120 web tasks, Moli and Chromium each complete 111; across 30 document and media tasks, they complete 24 and 14 respectively.", "PDF results include the local parser; file checks do not assess media semantics. Latency for the 98 shared successful main tasks spans batches. The five-browser same-window comparison uses all 9 shared successes, without changing the original seven-configuration latency results."],
+            ["Reading format", "Report tables were not convenient for long-form reading.", "The integrated article and standalone HTML share body text, inline graphics, and styles, with mobile and print layouts.", "Presentation and explanation changes only: no new provider calls and no score or latency changes."],
+            ["Acceptance explained", "The five task types previously had only conceptual flows, making the reasons for passing difficult to check.", "One example each from general pages, dynamic pages, popular sites, documents, images, and videos compares independent references with actual outputs check by check. The original PNG is retained and key figures are rendered directly as text.", "Clarify that structural checks do not verify product-name facts, the file-length threshold is 32 bytes, and body rules received shared offline revisions."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-09-publication-architecture-and-privacy",
@@ -1458,6 +2436,21 @@
           "全部通过任务中，1.1.3 的均值由 4,000 降至 3,706 ms、P50 由 3,444 降至 3,340 ms、P95 由 9,833 降至 7,983 ms；1.0.6 与 1.1.1 也按同一规则更新。共保留 36 次物理调用；正文、评分和任务判定未改变。"
         ]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Document on-demand publishing, complete setup guidance, and strengthen the public-release security gate",
+          "summary": "The report now distinguishes logical routes from deployed physical files and adds route-aligned bilingual access, setup instructions for all seven methods, and a stronger public-release security gate. It also corrects 12 anomalous latency values across four tasks and three Moli versions using one fixed final round. Task outputs, verdicts, and scores are unchanged; latency aggregates were recomputed.",
+          "changes": [
+            ["Publishing architecture", "Calling 1,218 auditable routes deployed HTML files suggested duplicated deployment and eager loading.", "Clarified that the local build produces logical routes, while the Sites bundle uses one HTML shell, a shared runtime, and content-addressed compressed blocks; pages and large evidence load on demand.", "The publication manifest records logical routes, source files, compressed blocks, and per-file hashes. Evidence is not reduced and download bytes do not change."],
+            ["Access & setup", "The old page showed only Cloudflare, the sole provider account requirement, making acquisition and binary configuration for local methods appear to be missing.", "Changed the page to an access and installation checklist: Cloudflare lists account and credential variables, while the six local methods list official acquisition sources and binary variables.", "Publish only variable names and official sources; never retain values, local paths, cookies, or personal sessions."],
+            ["Review attribution", "The ranking said only that results were reviewed, without identifying the reviewer.", "Each method's review column now shows 100/100 · reviewed by Codex and continues to link to the shared review record.", "Presentation copy only; review bindings, coverage, and unresolved counts are unchanged."],
+            ["Chinese and English editions", "The former English entry was a one-page summary whose routes, sections, and per-attempt evidence explanations did not align with the Chinese report.", "Generate route-aligned Chinese and English sites from the same report model. Navigation follows dataset, methodology, analysis, review, interpretation, methods, reproduction, changelog, and setup; switching language stays on the current route.", "Validate one-to-one parity for routes, sections, tables, values, filters, and evidence links. UI and explanations are rewritten for natural English, while task names, IDs, URLs, reference answers, and raw outputs remain unchanged and are not rescored."],
+            ["Public-release security gate", "The previous release scan covered common Google, Artifact Hub, GitHub, and OpenAI key patterns, but did not explicitly block Authorization values, local user-directory paths, or AWS and Slack credentials.", "Every rebuilt public file is now scanned uniformly, adding checks for Authorization values, user-directory paths, AWS and Slack credentials, and private-key patterns. Existing redaction of Google-shaped secrets in third-party HTML retains both hashes.", "Pattern scanning cannot prove that every unknown secret is absent. Structured credential values remain prohibited in evidence and reports, and published files still require byte-level verification."],
+            ["Moli latency correction", "A few anomalous legacy latency values made 1.1.3 appear to have an unproven overall performance regression.", "Run three order-rotated rounds for the same four tasks and three versions, use the 12 third-round latency values uniformly, and recompute mean, P50, and P95 without selecting favorable results.", "Across passing tasks, the 1.1.3 mean fell from 4,000 to 3,706 ms, P50 from 3,444 to 3,340 ms, and P95 from 9,833 to 7,983 ms. Versions 1.0.6 and 1.1.1 were updated under the same rule. All 36 physical calls are retained; body text, scores, and task verdicts are unchanged."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-09-unified-method-comparison",
@@ -1490,6 +2483,19 @@
           "当前 1,050 条结果没有启用重试，issue #66 的诊断复测也不替换正式结果；后续协议可按需启用。"
         ]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Unify method-combination comparisons and add Moli latency diagnostics",
+          "summary": "The analysis page now uses one comparator for both two-method and multi-method comparisons, with a clearer task-and-result layout. After rotating request order on the public web and checking against a fixed local page, the regression signal in issue #66 remains a long-tail effect that cannot be attributed to a single cause. Official tasks, scores, and latency values are unchanged.",
+          "changes": [
+            ["Unified comparator", "Two-method and multi-method comparisons were split across two large cards and two result tables, duplicating controls and crowding the page.", "Keep one method A selector, a multi-select for comparison methods, and one shared set of relationship filters; render only one matched-task result table.", "Supports disagreements, A passing or failing, all methods passing or failing, and only the selected methods passing; no new score is produced."],
+            ["Result layout", "The two-column layout squeezed the task-family and method columns, wrapping Chinese family names one character at a time and making horizontal reading difficult.", "The component now uses the full width. Task family appears as a badge inside the task cell, and passing and failing methods appear as wrapping status labels.", "The table can still scroll horizontally on narrow screens, while task names, IDs, and evidence links remain complete."],
+            ["Moli latency signal", "The official single-run results show 1.1.3 markedly slower than earlier versions on a few tasks, but cannot separate version effects from network and page-wait effects.", "Retest four high-difference tasks on distinct paths in three rotating rounds, then use five rounds per version on a fixed local page to measure fixed overhead.", "Per-task medians on the public web move in both directions and have overlapping ranges. Fixed local overhead shows no 1.1.3 regression, so issue #66 is not promoted to a confirmed regression."],
+            ["Corrections and failure retries", "Banning every later call would prevent correction of proven errors; selecting a better response after failure would instead create best-of bias.", "Separate two paths: an incorrect command, version, judge, or reference supersedes the declared scope and is rerun; an ordinary failure may use at most one retry declared before measurement, retaining both physical calls and unconditionally using the final one.", "Retries are not enabled for the current 1,050 results, and the diagnostic reruns for issue #66 do not replace official results; future protocols may enable retries when needed."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-09-method-comparison-and-large-evidence",
@@ -1516,6 +2522,18 @@
           "当前主榜未启用失败重试，也不用诊断调用挑选更好响应；后续可预先声明失败重试，已证实的错误可按完整范围纠正并替换权威逻辑结果。"
         ]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Add matched-task method comparisons and fix stalls on large outputs",
+          "summary": "The analysis page now includes two-method differences and multi-method intersections. Complete evidence larger than 256 KiB is no longer inserted automatically and instead loads on demand or downloads directly. Official tasks, calls, verdicts, scores, and latency values are unchanged.",
+          "changes": [
+            ["Matched-task method comparison", "The old page could only filter 1,050 calls by method or result, making it difficult to find tasks where A passed and B failed, both passed, both failed, or several methods disagreed.", "Add two-method differences and multi-method intersections. Each row reuses the reviewed primary verdict for the same task and links to every reference answer, actual output, and failure reason.", "This is set analysis: it produces no new score and does not mix latency from different passing samples."],
+            ["Large-evidence loading", "Automatically downloading an output of more than a million characters and inserting it into a pre element occupied the main thread for a long time, making the page appear frozen.", "Text larger than 256 KiB first shows an on-demand control. After a click, the complete content is placed in a read-only text box; the original-file download is always retained.", "Only browser presentation timing and controls change; evidence bytes and checksums in the release bundle are unchanged."],
+            ["Version and sample boundaries", "Moli 1.1.3 passing two fewer tasks than 1.1.1 could be read directly as a capability regression, while JD.com occasionally opening could be used to dismiss the official failure.", "Three paired diagnostic rounds separate transient requests and page instability from the current primary ranking. JD.com remains a challenge sample sensitive to network and session state.", "The current primary ranking does not enable failure retries or use diagnostic calls to select better responses. Future runs may predeclare failure retries, while proven errors may be corrected across their complete scope and replace the authoritative logical results."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-09-sites-and-report-skill",
@@ -1542,6 +2560,18 @@
           "这是流程和维护门禁；本轮主结果仍为 1,050 条，同窗测速仍为 140 条，未重新调用 provider。"
         ]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Migrate to Sites and formalize the benchmark-report workflow",
+          "summary": "The report moved to a new Sites domain while retaining the original sites. The repository now includes a report skill spanning benchmark types and covering evaluation design, evidence, independent review, impact-scoped reruns, and publication gates. Tasks, outputs, scores, and latency values are unchanged.",
+          "changes": [
+            ["Publication target", "The old publication script hard-coded the artifact-hub.dev domain, so a new session could continue updating an old site.", "The current report configuration binds both the Sites service address and site ID. Publishing, verification, and body links read the same configuration, and an update is rejected if the targets disagree.", "The new site is UUAhhQMnrGwm; neither old site, bWkRP157EtF6 or UeZE1vfcEOrM, was overwritten."],
+            ["Publishing identity", "An old publication token in the repository .env could take precedence over the new user-level Sites token, causing 401 responses even after authorization.", "Publishing and verification scripts no longer load the evaluation .env; they read only the explicit process environment or user-level token, and device authorization backs up a differing old token.", "Only the source of publication credentials changes; no provider call or report data changes."],
+            ["Cross-benchmark workflow", "The existing benchmark-editorial skill covers only formal interpretation articles and cannot govern evaluation design, score review, selective reruns, or report publication.", "Add the benchmark-report skill and require routing through it from the root AGENTS.md. Its rules apply to Web Fetch, Browser Use, and other system comparisons without depending on this report's page structure.", "This is a workflow and maintenance gate. The run still contains 1,050 primary results and 140 same-window latency results; no provider was called again."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-08-cross-session-rebuild-hardening",
@@ -1569,6 +2599,18 @@
           "页面只展示每轮范围、发现、纠正和未完成项；不增加核验结果下载。"
         ]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Pin the default report evidence and measured routes",
+          "summary": "Default rebuilds now accept only the current evidence for seven methods, 150 tasks, and 1,050 primary calls. Machine-readable routes now reflect the native Markdown, Moli automatic raw responses, and node-html-markdown 2.0.0 actually used in this run. Scores, call outputs, and latency values are unchanged.",
+          "changes": [
+            ["Default rebuild", "The default evidence directory still pointed to the old twelve-method evaluation, so a new session could silently generate a different report.", "Set the reviewed seven-method evidence as current and add a separate current-report configuration file. Build and evidence checks reject evidence whose methods, counts, deadlines, or routes do not match.", "Primary-result review remains 1,050/1,050 and same-window latency review remains 140/140; old evidence is retained under the research directory."],
+            ["Route metadata", "Download data still identified Chromium's converter as the retired pyhtml2md 1.7.0 and did not state how the three Moli versions handled direct documents and media.", "Route descriptions now share the runner's current definitions: ordinary pages use each method's native body capability, Moli uses automatic raw responses for direct documents and media, and Chromium uses node-html-markdown 2.0.0.", "Only non-verdict metadata is corrected; tasks, references, outputs, scores, and latency values are unchanged."],
+            ["Regression-prevention gate", "Review rounds were attached to one release record, so adding a release could empty the review page; the generic Moli file adapter could also still append --dump html to binary responses.", "Review rounds are now independent structured records validated at build time. Moli direct files consistently use bare fetch, and document commands consistently use the locked uv runtime entry point.", "The page shows only each round's scope, findings, corrections, and outstanding items; no review-result download is added."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-08-seven-method-final-audit",
@@ -1626,6 +2668,22 @@
           "正式密钥只从仓库本地 .env 读取，不进入 HTML、Git 或发布包；Kitesurf 的托管后端版本和本地部署不可复现边界单独披露。"
         ]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Complete seven-method measurement, full review, and same-window latency testing",
+          "summary": "All seven methods completed the same 150 tasks for 1,050 primary calls, plus 20 tasks × 7 methods for 140 same-window latency calls. A Codex task agent reviewed 1,190/1,190 outputs without seeing machine verdicts or scores; the final decisions agree with current scoring, with 0 unresolved.",
+          "changes": [
+            ["Complete seven-method matrix", "After Moli 1.0.6 was added, the old six-method denominator and version comparison were incomplete.", "Each of the seven methods runs the same 150 tasks, retaining one authoritative logical result per method-task pair; Moli 1.0.6, 1.1.1, and 1.1.3 are listed separately.", "Pass counts are Moli 1.1.1 135, Moli 1.0.6 134, Moli 1.1.3 133, Chromium 125, Lightpanda 119, Obscura 117, and Kitesurf 112. The totals show coverage of this dataset only and do not replace the six family rankings."],
+            ["Independent-review ledger", "Reviewing only failures would miss false positives, and old detail pages also mistook layout differences for missing content.", "A Codex task agent read every task contract, reference answer, and complete actual output. Primary-result review covers 1,050/1,050 and same-window latency review covers 140/140; machine verdicts and scores were hidden until after the independent decision.", "Current automated false negatives are 0, false positives are 0, and unresolved items are 0. Historical issues including challenge-08, dynamic-quote field boundaries, the Feishu table, and direct-document routes were rescored or rerun under the current shared rules."],
+            ["Same-window latency test", "The primary matrix spans several execution batches, so remote networking, queuing, and local resource contention prevent fair cross-batch latency ranking.", "Use 20 predeclared pages on distinct domains and run all seven methods in parallel within the same window. Latency is compared only on the same 8 tasks passed by every method.", "Moli 1.0.6 has the lowest sample P50. The 8 tasks are a small exploratory sample, and P95 is only a sample diagnostic, not an estimate of stable tail latency or an SLA."],
+            ["Reference and route corrections", "live-025 incorrectly used the initial HTTP bytes as the reference for a dynamic page. For direct PDFs and media, forcing --dump on Moli fails before the artifact is retrieved.", "live-025 now uses visible body text rendered by an independent browser, and all seven methods were rerun. The three Moli versions use bare fetch for direct PDF, DOCX, and media URLs; body tasks include local parsing, while file tasks validate bytes directly.", "References, input-output targets, and the scoring entry point are identical for every method; each method may still use its fastest official native-artifact route."],
+            ["document-03 reference replacement", "The old W3C PDF URL became a Cloudflare verification page during this run; continuing to use it would mistake site blocking for PDF-parsing capability.", "Replace it with a three-page PDF from a pinned Mozilla PDF.js Git commit and call all seven methods again; the unchanged 1,043 primary results and their reviews remain intact.", "Moli 1.0.6 and 1.1.1 retrieved all three pages of text and passed. Moli 1.1.3 had a single request failure, while the other methods did not retrieve readable body text. This single result cannot by itself establish a version regression."],
+            ["Title diagnostics", "The title metric previously showed a definition followed by an empty table, leaving its inputs, alignment, and aggregation process invisible.", "Show four steps: read records, align by detail URL, compare each title, and aggregate comparable results. When no titles can be compared, explicitly show not applicable instead of generating an empty table.", "Title diagnostics still do not determine task acceptance and do not represent ranking recall, freshness, or whole-page body quality."],
+            ["Environment and reproduction", "The old environment page repeated every batch, while the account page could imply that production credentials should be stored in the report.", "Combine environment and reproduction, retaining only versions, binary hashes, deployment boundaries, configuration files, and locked commands. The account page lists only required accounts, variable names, and official acquisition sources.", "Production credentials are read only from the repository-local .env and never enter HTML, Git, or the release bundle. Kitesurf's hosted backend version and the non-reproducibility of local deployment are disclosed separately."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-07-quote-field-boundary-explanation",
@@ -1652,6 +2710,18 @@
           "各方法失败核验覆盖均为 100%，无未裁定结果。"
         ]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Distinguish text presence from intact field boundaries",
+          "summary": "Review two Moli outputs for the asynchronous Quotes list: all 10 quotations and authors were retrieved, but adjacent fields and multiple tags lacked readable separators. The task remains failed, while the detail page now presents quotations, authors, and tags field by field instead of describing lost boundaries broadly as missing text.",
+          "changes": [
+            ["Field-level evidence", "The old detail page marked an entire stable record as unmatched even when its quotation and author appeared in full, obscuring that the actual failure was the tag-list boundary.", "For each record, show the reference, parsed value, and verdict for quotation, author, and tags; when all tag characters are present but separators disappear, explicitly mark the field boundary invalid.", "Only the failure explanation and classification are corrected; the task contract, raw output, latency, and score do not change."],
+            ["Review of two Moli versions", "Looking only at Moli 1.1.3 would miss whether the earlier version had the same problem.", "The outputs from Moli 1.1.1 and 1.1.3 for this task are byte-for-byte identical, each with 10 complete unique records. In 8 records, multiple tags run together, and the last record also includes Loading text.", "Both versions remain failed. Single-tag record 9 matches normally, showing that the rule checks tag boundaries rather than whether the quotation appears."],
+            ["Failure-review coverage", "Readers need to distinguish full review from checks of only selected versions.", "All 900/900 primary results were blindly reviewed, including Moli 1.1.1 and 1.1.3 with 150 each. Every one of the 184 machine failures has nonempty independent review evidence.", "Failure-review coverage is 100% for every method, with no unadjudicated results."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-07-document-reference-and-coverage-explanation",
@@ -1691,6 +2761,20 @@
           "沿用原始输出和耗时离线重评分，不重跑 provider；3 次结果由失败改为通过。"
         ]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Audit document references and correct equivalent-table misclassification",
+          "summary": "Audit all 10 document tasks across their frozen sources, complete body references, body-region contracts, and 60 actual outputs, and recheck the Feishu help-document table verdict. No document reference was truncated. The Feishu task had incorrectly treated Markdown table syntax as a content requirement, causing 3 misclassifications that are now corrected under the same input-output target.",
+          "changes": [
+            ["Coverage presentation", "Region details placed a short inspection snippet beside the long reference body, making it easy to mistake the snippet for the only text used in machine scoring.", "The result page now explains the denominator, numerator, and complete input in place: coverage is computed from the complete actual output above, while the locator snippet only helps readers inspect one match.", "The scoring implementation, saved output, latency, and score are unchanged."],
+            ["Minimal PDF scope", "The source body for document-03 contains only Dummy PDF file; reusing the long-document description would make the reference look incomplete.", "The report explicitly labels this a minimal document-parsing sample: the complete extractable body of the frozen source is 14 characters, and the task checks only whether short PDF text can be obtained.", "This task cannot establish support for multiple pages, tables, or appendices. None of the six methods retrieved these 14 characters in this run, so all results remain failed."],
+            ["Document-reference audit", "When an embedded-document task retains only the surrounding HTML, readers cannot trace which PDF supplied the complete body.", "document-07 records the PDF actually loaded by the viewer, the existing frozen-file path, and two hashes. document-08 records the embedded URL in the frozen HTML, the independent-download hash, and the extracted-body hash.", "All 10 document references and body-region contracts passed review; no score changed because of a truncated reference."],
+            ["Moli DOCX description", "The report said the direct DOCX was obtained as a raw response, but Moli 1.1.3 actually serialized that DOCX as HTML containing package bytes in this run.", "The method page now describes automatic selection accurately: the PDF became a raw response and was parsed, while the DOCX did not become a parseable original file and failed.", "No external fallback such as curl is added, and another downloader's success is not credited to Moli."],
+            ["Equivalent table output", "The original rule for the Feishu help document accepted only a Markdown pipe table or an HTML table. Obscura and two Moli versions returned all three column headings and the complete table content, but expanded it as plain text in reading order and were therefore misclassified as failures.", "Remove the table-syntax restriction, which is unrelated to the target, while retaining acceptance based on 3 stable facts, five-region body coverage, and complete-text quality. The same rule applies to every method.", "Rescore the existing raw outputs and latency offline without rerunning the provider; 3 results change from fail to pass."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-07-six-method-audited-correction",
@@ -1753,6 +2837,23 @@
           "900/900 指标可从保存输出复现；150 个任务和 6 种方法均无缺项。"
         ]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Correct document and resource routes and independently review all 900 results",
+          "summary": "Across 150 tasks × 6 methods, all 900 calls have explicit results. Moli 1.1.3 now uses automatic raw responses for direct documents and media. Codex gpt-5.6-sol blindly reviewed all 900 saved outputs; every disagreement was adjudicated and none remain unresolved. Task detail pages show the reference answer, actual output, and verdict evidence directly.",
+          "changes": [
+            ["Correct route for Moli 1.1.3", "Using --dump html/markdown for a direct PDF errors before body retrieval and cannot measure the raw-response capability of 1.1.3 accurately.", "Ordinary pages continue to use native Markdown. Direct documents and media use bare fetch, allowing the CLI to select a raw response or serialized page automatically. PDF, PNG, WebM, and MP4 returned original bytes in this run; DOCX was serialized as HTML and failed.", "Only the 7 direct-document calls and 3 direct-file calls affected by the implementation are replaced. Moli 1.1.3 ultimately passes 133/150, while the older Moli 1.1.1 passes 123/150."],
+            ["Separate document-body and file tracks", "Downloading a PDF or DOCX is not the same as obtaining its body text; conversely, a body task should not force every method through the same intermediate format.", "Body tasks uniformly require readable text: direct body output is accepted, while an original file is parsed locally with parsing time included. Original-file tasks validate format, length, and target SHA-256 without an unrelated Markdown conversion.", "Current coverage includes PDF, DOCX, TXT, and embedded documents; it does not claim support for legacy DOC, OCR, table semantics, or arbitrary office formats."],
+            ["Independent review of every result", "Reviewing only automated failures would miss false positives. Giving the agent only an empty text placeholder for file tasks would also create false failures.", "Codex gpt-5.6-sol reviewed 900/900 results without seeing machine verdicts or scores. File tasks also supplied real binary evidence, and the 3 batches affected by a protocol defect were reviewed separately.", "Every disagreement has observable evidence and a final adjudication, with 0 unresolved; all 120/120 same-window latency results were reviewed separately."],
+            ["Shared scoring correction", "Markdown link boundaries could make an existing Reddit community description appear missing, and percent-encoded relative download URLs could also be missed.", "Restore visible link text at layout boundaries. Resolve and URL-decode only angle-bracketed relative targets with file extensions against the source page; do not treat ordinary filename prose as a URL.", "False negatives for two Moli versions on challenge-08 are corrected, and Chromium's Blender download-package URL is changed to pass. Raw output, call status, latency, and content hashes remain unchanged."],
+            ["Corrupted-text detection", "A successful request and long output do not establish readable text; run-9b35581eb0fdbbdea4a6 contains many replacement characters.", "Consistently measure the count and share of U+FFFD, classify the body as decode-corrupted at a material threshold, and show the count, ratio, and raw output on the detail page.", "The call remains failed, but its reason changes from generic missing content to verifiable decode corruption; garbled text is not treated as valid body text."],
+            ["Task-detail redesign", "The old page labeled five regions from one answer as body-region, while hiding the reference answer and actual output behind numerous tables and disclosure controls.", "The first screen shows task ID, method, run ID, and conclusion, followed by the complete reference answer and actual output side by side. Region checks retain only a summary table, source evidence expands on demand, and run fields are grouped in a disclosure at the end.", "Only evidence presentation changes; no task, output, score, or latency value is modified."],
+            ["Version traceability", "When the runtime version string is missing, a product name alone cannot establish which build was tested.", "Local implementations are pinned by binary SHA-256: Moli 1.1.1 was matched byte for byte to the official archive afterward; Moli 1.1.3 and Chromium retain runtime versions and hashes; Lightpanda is identified by its exact nightly hash.", "Kitesurf is a hosted service whose server build is unpublished; the report marks it unavailable instead of inventing a version."],
+            ["Evidence packaging", "Changing JSONL row order while reassembling the same records invalidates independent-review hashes.", "The assembler preserves source-evidence order and publishes reference revisions, scoring revisions, and result-review records with the report.", "The 900/900 metric is reproducible from saved outputs; none of the 150 tasks or 6 methods is missing."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-04-five-browser-fastest-markdown",
@@ -1803,6 +2904,22 @@
           "旧站点 UeZE1vfcEOrM 保持不变。"
         ]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Complete 750 measured calls on the fastest Markdown routes of five browsers",
+          "summary": "Kitesurf, Lightpanda, Obscura, and Moli use native Markdown, while Chromium uses a rendered DOM with node-html-markdown 2.0.0. All 150 tasks × 5 methods were executed, and the independent-reference lifecycle and offline rescoring both passed.",
+          "changes": [
+            ["Method contract", "The old draft forced all five methods through the same HTML conversion chain, obscuring the advantage of native interfaces.", "Align URLs, Markdown output, task set, acceptance rules, and the 45-second deadline; each method uses its fastest official or built-in Markdown route.", "Kitesurf uses the account-level Cloudflare /markdown route; three local CLIs use native Markdown; only Chromium, which lacks native Markdown, converts the DOM."],
+            ["Chromium route", "The old pyhtml2md route converted large pages slowly and passed one fewer ordinary web task.", "Rescore candidate converters on the same saved DOM batch, adopt node-html-markdown 2.0.0, and retain the HTML, version, hash, and conversion latency.", "Chromium passes 98/100 ordinary web tasks in this run. Conversion is included in client end-to-end latency and is not presented as a native browser capability."],
+            ["Historical-verdict review", "The old rules missed line breaks across Markdown links, native-interface link layout, layout whitespace, and some dynamic expressions, and had also accepted incomplete body text.", "Compare all 750 saved outputs individually with their reference answers and task contracts, correcting 43 false negatives and 1 false positive under shared rules; run-f4e6f2ee641e8baa9e3d is confirmed as misclassified.", "The corrected rules apply to every method without provider-specific exceptions; raw outputs, call identities, and latency values do not change."],
+            ["Sync with main", "Upstream task-rule and report-defect corrections can affect earlier conclusions.", "After merging the latest main, review the affected scope. Because the Django tutorial reference changed, rerun the matched task for all five methods; reuse other results only when reference bytes and evaluation contracts are equivalent.", "The new Moli call for this task exits the browser, leaving its ordinary-web result at 93/100; the old pass is not retained."],
+            ["Fairness", "Remote Kitesurf, local processes, differing readiness conditions, and conversion time could be misread as pure engine performance.", "Pair speed only on identical URLs passed by both methods and state the client end-to-end boundary explicitly.", "The results cannot establish same-machine CPU/RSS, network-excluded engine speed, sustained throughput, cost, or an SLA."],
+            ["Task identification", "Task detail pages showed only titles, so readers could not confirm task IDs from the page.", "Both task pages and per-call pages now show stable task IDs immediately; run IDs, rules, references, and outputs remain traceable.", "The presentation change does not alter tasks, results, or scores."],
+            ["Publication isolation", "This report serves a different purpose from the old report, and overwriting the old site would break historical links.", "The publication target is pinned to the separate site bWkRP157EtF6.", "The old site UeZE1vfcEOrM remains unchanged."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-04-complete-file-evaluation",
@@ -1847,6 +2964,21 @@
           "不同类别任务要求不同，最高分不能跨类别直接比较。"
         ]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Complete file-task evaluation and establish a report-completeness publication gate",
+          "summary": "All 36 file-task calls were actually made and judged: Moli and Crawl4AI each pass 3, for 6 passes, 30 failures, and 0 unmeasured. Every one of the report's 1,800 planned calls has a unique result and explicit verdict.",
+          "changes": [
+            ["File tasks", "Earlier records did not retain original-file bytes, so retrieval of direct PNG, WebM, and MP4 files could not be judged.", "Each of the twelve methods runs 3 file tasks; all 36 calls in the final configuration are validated by format, length, and target SHA-256.", "Moli and Crawl4AI each pass 3 calls, while the other 30 fail. Failures remain real results, and valid difficult tasks are not removed."],
+            ["Native-interface scope", "Testing only body-text routes would miss publicly offered native file capabilities and mistake a partial configuration for product capability.", "Moli file tasks output original-file bytes. Crawl4AI file tasks preselect its native HTTP crawler, while body tasks retain the browser route.", "Evaluate the public interface fixed before the task begins, without post-failure fallback or presenting an ordinary HTTP download as a provider result."],
+            ["Timing boundary", "Latency did not clearly distinguish server time, downloading, rendering, local processing, and report processing.", "Use one client end-to-end timing boundary: from starting the provider call until a scoreable final answer exists. Downloading, rendering, extraction, input conversion, and file hashing are included.", "Scoring, evidence persistence, rate-limit waits, and report generation are excluded; provider server-side latency is not ranked."],
+            ["Completeness gate", "Using actual calls as the denominator could make 8/8 appear complete despite missing planned calls; two coverage columns were also redundant.", "Change to “judgement coverage = explicitly judged calls / planned calls” and require exactly one current result for every provider × case.", "Any missing, duplicate, or unjudgeable result marks the entire report unreliable; completeness checks, report validation, and release packaging all block publication of incomplete results."],
+            ["Evidence presentation", "Successful files were retained in the bundle but difficult to verify directly from call pages, while the changelog stacked several same-day revisions.", "Successful-call pages provide file downloads, format, byte count, and SHA-256. Same-day revisions are merged into one official release, with earlier releases collapsed.", "Only audit access and reading structure improve; original files, scores, and latency values do not change."],
+            ["Overview structure", "The family overview was hidden after detailed rankings, forcing readers through large tables first.", "Move the six-family overview forward and list sample count, methods with complete judgements, highest task pass rate, and the corresponding methods directly; detailed rankings remain later.", "Task requirements differ by family, so top scores cannot be compared directly across families."]
+          ]
+        }
+      }
     },
     {
       "id": "2026-09-03-fairness-correction",
@@ -1898,6 +3030,22 @@
           "不能从本轮样本外推全网能力、稳定性或生产 SLA。"
         ]
       ]
+    ,
+      "i18n": {
+        "en": {
+          "title": "Unify acceptance criteria and correct references, scores, and report conclusions",
+          "summary": "Retain 150 tasks and 1,800 original calls. Verdicts change for 92 tasks, and 36 historical records lacking file-byte evidence change from incorrectly recorded failures to unmeasured. Raw outputs and latency values are unchanged.",
+          "changes": [
+            ["Body references", "The CSS reference body's table of contents was incorrectly removed, while the Django document included surrounding site content.", "Redetermine body boundaries from independently saved source pages and record provenance and reference hashes.", "Full-text F1 changes with the corrected references; earlier low scores cannot be attributed directly to provider body-text noise."],
+            ["Shared scoring", "Explicit name-link fields and valid Markdown soft line breaks were not handled consistently in acceptance.", "All methods share one answer transformation and scoring entry point, excluding request echoes and diagnostic logs.", "Correct format-induced false failures without scoring branches keyed by provider name."],
+            ["Body coverage", "Checking only opening keywords and minimum length could let a very short excerpt pass a long-document task.", "For tasks with a complete independent reference, add token-coverage checks across up to five contiguous regions.", "This is a minimum content-coverage requirement, not a replacement for full-text F1 or a guarantee of semantic or factual correctness."],
+            ["Dynamic fields", "Required installment and delivery fields in the product task were not fully validated.", "Check field ownership, count, type, and uniqueness against independent references; volatile prices and ordering are not frozen as permanent answers.", "Complete fields do not establish that volatile values are accurate or current."],
+            ["Deadline", "A result exceeding the registered budget could still count as successful.", "New calls use a shared end-to-end deadline; historical records are rejudged only from their registered latency and budget.", "The report does not claim that historical calls were originally controlled by the new hard deadline."],
+            ["Unmeasured files", "36 file records without byte evidence were treated as failures.", "First mark them unmeasured and remove them from the pass-rate denominator, then fill them with real provider calls on 2026-09-04.", "Do not substitute a URL, text, or another method's download for the original method's file evidence."],
+            ["Interpreting results", "Conditional latency from different passing subsets was treated as matched-task speed, and some article conclusions exceeded the evidence.", "Add diagnostics for the jointly passing subset and state single-run, cross-batch, and reference-scope limitations explicitly.", "This sample cannot establish internet-wide capability, stability, or a production SLA."]
+          ]
+        }
+      }
     }
   ]
 }

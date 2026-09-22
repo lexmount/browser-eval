@@ -4,7 +4,7 @@ from __future__ import annotations
 import sys
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import parse_qs,unquote, urlsplit
 
 
 class Links(HTMLParser):
@@ -12,17 +12,31 @@ class Links(HTMLParser):
         super().__init__()
         self.values: list[str] = []
         self.ids: set[str] = set()
+        self.filter_options: dict[str,set[str]] = {}
+        self.text_filters: set[str] = set()
+        self.current_filter: str | None = None
         self.base_href: str | None = None
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attrs_by_name=dict(attrs)
         if tag == "base":
-            self.base_href = next((value for key, value in attrs if key == "href" and value), None)
+            self.base_href = attrs_by_name.get("href")
             return
+        if tag=='select':
+            self.current_filter=attrs_by_name.get('data-wmb-filter')
+            if self.current_filter:self.filter_options.setdefault(self.current_filter,set())
+        elif tag=='input' and attrs_by_name.get('data-wmb-filter'):
+            self.text_filters.add(attrs_by_name['data-wmb-filter'])
+        elif tag=='option' and self.current_filter:
+            self.filter_options[self.current_filter].add(attrs_by_name.get('value') or '')
         for key, value in attrs:
-            if key in {"href", "src"} and value:
+            if key in {"href", "src", "data-src"} and value:
                 self.values.append(value)
             if key == "id" and value:
                 self.ids.add(value)
+
+    def handle_endtag(self,tag:str)->None:
+        if tag=='select':self.current_filter=None
 
 
 def check(root: Path) -> None:
@@ -39,7 +53,7 @@ def check(root: Path) -> None:
 
     for page in pages:
         parser = parse_page(page)
-        base_dir = page.parent
+        base_dir = root if (root / 'sample-manifest.json').is_file() else page.parent
         if parser.base_href:
             parsed_base = urlsplit(parser.base_href)
             if not parsed_base.scheme:
@@ -53,6 +67,14 @@ def check(root: Path) -> None:
                 missing.append(f"{page.relative_to(root)} -> {value}")
                 continue
             if parsed.fragment and target.suffix.lower() in {".html", ".htm"}:
+                if parsed.fragment.startswith('inspect?'):
+                    target_page=parse_page(target)
+                    controls=target_page.filter_options
+                    params=parse_qs(parsed.fragment[8:],keep_blank_values=True)
+                    if not controls or any((key not in controls and key not in target_page.text_filters) or len(values)!=1 or (key in controls and values[0] not in controls[key])
+                                           for key,values in params.items()):
+                        missing.append(f"{page.relative_to(root)} -> {value} (invalid report filter)")
+                    continue
                 fragment = unquote(parsed.fragment)
                 if fragment not in parse_page(target).ids:
                     missing.append(f"{page.relative_to(root)} -> {value} (missing fragment)")

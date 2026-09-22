@@ -1,3 +1,6 @@
+import json
+import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -189,6 +192,46 @@ def test_report_shell_preserves_artifact_site_signed_base() -> None:
     assert "route.pop()" in rendered
     assert "split('~')[0]" not in rendered
     assert "document.createElement('base')" not in rendered
+
+
+@pytest.mark.parametrize(
+    ("route", "lang", "depth"),
+    [("", "zh", 0), ("/", "zh", 0), ("/index.html", "zh", 0),
+     ("/result/moli-29.html", "zh", 1), ("/en/result/moli-29.html", "en", 1)],
+)
+def test_hosted_routes_resolve_assets_and_home_under_signed_root(
+    route: str, lang: str, depth: int,
+) -> None:
+    rendered = _shell(lang, "results", "Result", "", depth=depth)
+    bootstrap = re.search(r"<script>(.*?)</script>", rendered, re.DOTALL)
+    assert bootstrap is not None
+    stylesheet = re.search(r'rel="stylesheet" href="([^"]+)"', rendered)
+    assert stylesheet is not None
+    origin = "https://reports.example"
+    signed_root = origin + "/api/preview/site~signed-capability/"
+    result = subprocess.run(
+        ["node", "--input-type=module", "-e", """
+const input = JSON.parse(process.argv[1]);
+const location = new URL(input.location);
+const node = {href: input.base};
+const document = {querySelector: () => node};
+new Function('location', 'document', input.script)(location, document);
+console.log(JSON.stringify({
+  css: new URL(input.css, node.href).href,
+  home: new URL(input.home, node.href).href
+}));
+""", json.dumps({
+            "location": origin + "/api/preview/site" + route + "?share=permission",
+            "base": signed_root,
+            "script": bootstrap.group(1),
+            "css": stylesheet.group(1),
+            "home": "../" * (depth + (lang == "en")) + "index.html",
+        })],
+        check=True, capture_output=True, text=True,
+    )
+    resolved = json.loads(result.stdout)
+    assert resolved["css"] == signed_root + "assets/report.css"
+    assert resolved["home"] == signed_root + "index.html"
 
 
 def test_replay_task_and_result_have_connected_drilldown() -> None:

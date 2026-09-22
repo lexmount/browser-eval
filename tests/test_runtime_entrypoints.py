@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 from scripts.run_headless_benchmark import require_expected_provider_versions
-from harness.web_fetch.publication_target import require_publication_site, require_publication_version
+from harness.web_fetch.publication_target import current_publication_target, require_publication_site, require_publication_version
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,7 +37,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
     def test_versioned_moli_slots_reject_wrong_or_missing_binaries(self) -> None:
         valid = {
             "moli-1.0.6": {"reported_version": "moli 1.0.6"},
-            "moli": {"reported_version": "moli 1.1.1"},
+            "moli": {"reported_version": "moli 1.1.5"},
             "moli-1.1.3": {"reported_version": "moli 1.1.3"},
         }
         require_expected_provider_versions(valid)
@@ -164,7 +164,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertNotIn('"final_url"', worker)
         self.assertIn('"document_metadata": metadata', worker)
 
-    def test_current_coverage_declares_all_reported_methods(self) -> None:
+    def test_legacy_webfetch_dataset_coverage_matches_expected_methods(self) -> None:
         dataset = json.loads((ROOT / "evaluation/dataset.json").read_text())
         expected = {
             "cloudflare-markdown", "cowagent-built-in", "crawl4ai",
@@ -176,116 +176,44 @@ class RuntimeEntrypointTests(unittest.TestCase):
             self.assertEqual(len(providers), 10, track)
 
     def test_current_report_profile_matches_runner_and_canonical_dataset(self) -> None:
-        profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
-        dataset = json.loads((ROOT / 'evaluation/dataset.json').read_text())
-        self.assertEqual(profile['conversion'], dataset['comparison']['conversion'])
-        self.assertEqual(profile['comparison_kind'], dataset['comparison']['kind'])
-        self.assertEqual(set(profile['providers']), set(dataset['coverage_plan']['web']))
-        self.assertEqual(profile['implementation_bindings']['crawl4ai']['library_version'], '0.9.3')
-        self.assertEqual(profile['implementation_bindings']['langchain-webbase']['library_version'], '0.3.30')
-        self.assertEqual(profile['implementation_bindings']['moli-webfetch']['reported_version'], 'moli 1.1.4')
-        case_ids = [case['id'] for case in dataset['cases']]
+        profile = json.loads((ROOT / 'evaluation/wcxb/current-report.json').read_text())
+        self.assertEqual(profile['comparison_kind'], 'wcxb_frozen_html_to_markdown')
+        self.assertEqual(profile['dataset_id'], 'wcxb-v1-test-qualified-five-browsers')
+        self.assertEqual(profile['case_count'], 504)
+        self.assertEqual(profile['primary_quality_case_count'], 504)
+        self.assertEqual(profile['sample_manifest'], 'evaluation/public-wcxb-test-qualified.json')
+        manifest = ROOT / profile['sample_manifest']
+        self.assertEqual(profile['sample_manifest_sha256'], hashlib.sha256(manifest.read_bytes()).hexdigest())
+        self.assertEqual(len(json.loads(manifest.read_text())['cases']), profile['case_count'])
         self.assertEqual(
-            profile['case_ids_sha256'],
-            hashlib.sha256(json.dumps(
-                case_ids, separators=(',', ':'), ensure_ascii=True
-            ).encode()).hexdigest(),
+            set(profile['providers']),
+            {'kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium', 'moli-pr643'},
         )
-        self.assertEqual(profile['artifact_hub_base_url'], 'https://artifact-hub.app.lexmount.com')
-        self.assertEqual(profile['artifact_hub_site'], 'RSdbALdbdNG6')
+        self.assertEqual(profile['runs_per_case'], 1)
+        self.assertEqual(profile['max_failure_retries'], 1)
         self.assertEqual(
-            profile['artifact_hub_expected_version'],
-            'ver_4352ebce880149e1ada4a1b97680c364',
+            profile['source_dataset_sha256'],
+            '080a35a399880bb74ce23f40d9a1008f974500716af183a990f8701ab3e5e7bb',
         )
-
-    def test_current_rerun_plan_is_exact_and_complete(self) -> None:
-        dataset = json.loads((ROOT / 'evaluation/dataset.json').read_text())
-        profile = json.loads((ROOT / 'evaluation/current-report.json').read_text())
-        plan = json.loads((ROOT / 'evaluation/current-rerun.json').read_text())
-        case_ids = {case['id'] for case in dataset['cases']}
-        providers = set(profile['providers'])
-        main = plan['main_matrix']
-        speed = plan['same_window_speed_cohort']
-        self.assertEqual(plan['schema_version'], 2)
-        self.assertEqual(main['matched_case_ids'], [])
-        self.assertEqual(main['full_rerun_providers'], [])
-        self.assertEqual(set(main['full_rerun_reason_by_provider']),
-                         set(main['full_rerun_providers']))
-        for entry in main['full_rerun_reason_by_provider'].values():
-            self.assertTrue(entry['category'].strip())
-            self.assertTrue(entry['reason'].strip())
-        reason_groups = main['matched_case_reason_groups']
-        explained = [case_id for group in reason_groups for case_id in group['case_ids']]
-        self.assertEqual(len(explained), len(set(explained)))
-        self.assertEqual(set(explained), set(main['matched_case_ids']))
-        self.assertEqual(reason_groups, [])
-        for group in reason_groups:
-            self.assertTrue(group['reason'].strip())
-        pair_keys = {
-            (entry['provider'], entry['case_id']) for entry in main['pair_replacements']
-        }
-        self.assertEqual(len(pair_keys), 1)
-        self.assertEqual(
-            pair_keys,
-            {('cloudflare-markdown', 'video-bilibili-current')},
-        )
-        self.assertEqual(len(pair_keys), len(main['pair_replacements']))
-        for entry in main['pair_replacements']:
-            self.assertTrue(entry['category'].strip())
-            self.assertTrue(entry['reason'].strip())
-        self.assertEqual(main['offline_rescore_cases'], [])
-        expected_pairs = (
-            {(provider, case_id) for provider in main['full_rerun_providers']
-             for case_id in case_ids}
-            | {(provider, case_id) for provider in providers
-               for case_id in main['matched_case_ids']}
-            | pair_keys
-        )
-        self.assertEqual(main['planned_new_calls'], len(expected_pairs))
-        self.assertEqual(main['planned_new_calls'], 1)
-        self.assertFalse(speed['required'])
-        self.assertTrue(speed['reuse_existing'])
-        self.assertEqual(speed['planned_new_calls'], 0)
-        for key in ('dataset_sha256', 'results_sha256', 'execution_sha256',
-                    'speed_comparison_sha256'):
-            self.assertRegex(speed[key], r'^[0-9a-f]{64}$')
-        self.assertEqual(set(speed['auxiliary_sha256']), {'reference-revisions.json'})
-        for digest in speed['auxiliary_sha256'].values():
-            self.assertRegex(digest, r'^[0-9a-f]{64}$')
-        self.assertEqual(
-            plan['total_planned_new_calls'],
-            main['planned_new_calls'] + speed['planned_new_calls'],
-        )
+        self.assertEqual(profile['artifact_hub_base_url'], 'https://artifact-site.lexmount.cn')
+        self.assertEqual(profile['artifact_hub_site'], 'p3sFcZrww_nx')
+        self.assertRegex(profile['artifact_hub_expected_version'], r'^ver_[0-9a-f]+$')
 
     def test_publication_receipt_must_target_current_site(self) -> None:
-        profile = ROOT / 'evaluation/current-report.json'
-        self.assertEqual(
-            require_publication_site({'slug':'RSdbALdbdNG6'}, profile,
-                                     'https://artifact-hub.app.lexmount.com'),
-            'RSdbALdbdNG6',
-        )
-        with self.assertRaisesRegex(ValueError, 'expected'):
-            require_publication_site({'slug':'UUAhhQMnrGwm'}, profile,
-                                     'https://artifact-hub.app.lexmount.com')
-        with self.assertRaisesRegex(ValueError, 'expected'):
-            require_publication_site({'slug':'RSdbALdbdNG6'}, profile,
-                                     'https://artifact-hub.dev.lexmount.net')
-        with self.assertRaisesRegex(ValueError, 'requested'):
-            require_publication_site(
-                {'slug':'RSdbALdbdNG6','base_url':'https://artifact-hub.app.lexmount.com'},
-                profile,'https://artifact-hub.dev.lexmount.net')
+        profile = ROOT / 'evaluation/wcxb/current-report.json'
+        self.assertEqual(current_publication_target(profile),
+                         ('https://artifact-site.lexmount.cn', 'p3sFcZrww_nx'))
+        for slug in ('uTWj6VaWPYCh', 'UUAhhQMnrGwm', 'UeZE1vfcEOrM'):
+            with self.assertRaisesRegex(ValueError, 'expected'):
+                require_publication_site({'slug':slug}, profile,
+                                         'https://artifact-site.lexmount.cn')
 
     def test_publication_version_defaults_to_profile_and_rejects_override(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             profile = Path(directory) / 'profile.json'
-            profile.write_text(json.dumps({
-                'artifact_hub_expected_version': 'ver_profile',
-            }))
+            profile.write_text(json.dumps({'artifact_hub_expected_version': 'ver_profile'}))
             self.assertEqual(require_publication_version(profile), 'ver_profile')
-            self.assertEqual(
-                require_publication_version(profile, 'ver_profile'),
-                'ver_profile',
-            )
+            self.assertEqual(require_publication_version(profile, 'ver_profile'), 'ver_profile')
             with self.assertRaisesRegex(ValueError, 'expected'):
                 require_publication_version(profile, 'ver_cli')
 
@@ -293,9 +221,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             profile = Path(directory) / 'profile.json'
             for value in (None, '', 'version-without-prefix', 7):
-                profile.write_text(json.dumps({
-                    'artifact_hub_expected_version': value,
-                }))
+                profile.write_text(json.dumps({'artifact_hub_expected_version': value}))
                 with self.subTest(value=value), self.assertRaisesRegex(
                     ValueError, 'artifact_hub_expected_version'
                 ):

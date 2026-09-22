@@ -192,7 +192,7 @@ for engine,url in {
             'CLI 自带等待；45 秒外层预算；直接使用原生 Markdown。' if native else
             'DOMContentLoaded；45 秒端到端预算；完整 DOM 经 node-html-markdown 2.0.0 转换。'),
  }
-for provider,version in (('moli-1.0.6','1.0.6'),('moli','1.1.1'),('moli-1.1.3','1.1.3')):
+for provider,version in (('moli-1.0.6','1.0.6'),('moli','1.1.5'),('moli-1.1.3','1.1.3')):
     source='headless-moli-'+version
     SOURCES[source]=(f'Moli {version} · 官方发布',
         f'https://github.com/lexmount/moli/releases/tag/v{version}')
@@ -212,8 +212,23 @@ for provider,version in (('moli-1.0.6','1.0.6'),('moli','1.1.1'),('moli-1.1.3','
       'tested':'普通网页 --dump markdown；直接 PDF、DOCX 和媒体不传 --dump；本轮没有启用失败重试，端到端预算 45 秒。',
     }
 
+SOURCES['headless-moli-1.1.7']=('Moli 1.1.7 · 官方发布','https://github.com/lexmount/moli/releases/tag/v1.1.7')
+CAPABILITIES['moli-1.1.7']={
+    **CAPABILITIES['moli'],
+    'scope':'冻结 HTML 经本地测试服务器 URL 输入，CLI 原生输出 Markdown；不重新抓取原始网站。',
+    'sources':['headless-moli-1.1.7'],
+    'document':c('未声明','本轮只测试 HTML 转 Markdown，未测试直接文档'),
+    'file':c('未声明','本轮未测试原始文件下载'),
+    'image':c('仅链接','仅保留 Markdown 中的图片链接，未测试图片下载'),
+    'av':c('未声明','本轮未测试音视频下载或理解'),
+    'input':'预选 200 页冻结 HTML；本地 HTTPS 地址，外部资源隔离。',
+    'structure':'原生 Markdown，内部使用 moli-html2md。',
+    'notes':'本条声明限于 1.1.7 的冻结 HTML 转换，不继承其他版本的文档或媒体实测结论。',
+    'tested':'fetch --dump markdown --wait-until done；最终结果为准，失败重试链单独保留。',
+}
+
 def render_capabilities(out, names, *, table, cell, link):
-    labels={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.1','moli-1.1.3':'Moli 1.1.3'}
+    labels={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.5','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7'}
     unknown = sorted(set(names) - set(CAPABILITIES))
     evidence = {'checked_at': CHECKED_AT, 'scope': '官方契约/固定源码能力，不是实测成绩',
                 'sources': SOURCES, 'methods': {n: CAPABILITIES[n] for n in names if n in CAPABILITIES}, 'unreviewed': unknown}

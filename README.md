@@ -10,11 +10,14 @@ website accounts, or login state.
 
 ## Published reports
 
+- [Public WebMainBench-545 Web Fetch report](https://artifact-hub.app.lexmount.com/v/vq5RkI1fAkFfx_v3cUEHUbxaRh2nxBJX)
 - [浏览器工具调用轨迹重放微基准](https://artifact-hub.dev.lexmount.net/s/zzzUqvSKjTFB)
 - [公开 WebArena 人工轨迹固定回放](https://artifact-hub.app.lexmount.com/v/EpR29VQ99CAgQsT-xdCSX8yg_O7DlWyL)
 
-These are separate fixed-action datasets and report targets. The public WebArena
-runner and reproduction contract are in
+These are separate datasets and report targets. The Web Fetch report is bound in
+`evaluation/current-report.json`; the
+[five-browser live-URL reference report](https://artifact-hub.app.lexmount.com/api/preview/UUAhhQMnrGwm#page=guide%2Findex.html)
+is not its publication target. The public WebArena runner and reproduction contract are in
 [examples/trajectory_replay/public_webarena/README.md](examples/trajectory_replay/public_webarena/README.md).
 Generated report files are local build outputs and are not committed to Git.
 
@@ -89,21 +92,24 @@ local-site and credential boundary.
 
 ## Web Fetch 评测
 
-独立的浏览器 Markdown 对比覆盖 Kitesurf、Lightpanda、Obscura、
-Moli 1.0.6、Moli 1.1.1、Moli 1.1.3 与 Chromium。完整的参考冻结、调用、
-测后核验、结果独立审查和发布协议见
+当前独立浏览器 Markdown 对比覆盖 Kitesurf、Lightpanda、Obscura、
+Moli 1.1.5 与 Chromium，并在公开 WebMainBench-545 母集中预先冻结的 200 份 HTML
+上使用官方指标。200 页在任何方法结果产生前选定；这是派生子集，不冒充官方
+545 例榜单。完整的输入冻结、调用、评分、结果独立审查和发布协议见
 [运行协议](harness/web_fetch/HEADLESS.md)。实测输出保留在用户目录的持久化证据中，
-不提交到 Git；这组数据不与下面的历史 12 方法混排。
+不提交到 Git；公开冻结 HTML 抽取结果不与历史真实 URL 套件混排。
 
-当前十方法主矩阵为 150 个任务 × 10 种方法：网页正文 100 个，动态网页正文、文档、图片、视频、复杂热门网站各 10 个，共 1,500 条权威逻辑结果。六类任务进入同一个等权综合总榜，并保留各自分榜；动态组的异步接口、前端应用、内嵌数据、延迟呈现和 iframe 子文档仍按独立类别解释，不与静态网页质量混算。`evaluation/dataset.json` 的 `coverage_plan` 显式规定参评范围，未运行或缺少判分证据时禁止发布。
+另有历史十方法矩阵：150 个任务 × 10 种方法，共 1,500 条逻辑结果；它使用 `evaluation/dataset.json`，与本轮 200 页公开集不是同一评测。网页正文、动态正文、文档、图片、视频和复杂热门网站的旧结果保留各自的任务定义与分榜，不混入 WebMainBench 官方指标。
 
-## 唯一当前入口
+## 报告构建入口
 
 ```text
-evaluation/                 # 当前任务、评分契约和发布 authority；不存放实测输出
-harness/web_fetch/          # 接口适配、评分、当前报告生成器
-scripts/build_report.py     # 唯一正式报告构建入口
-reports/webfetch/           # 唯一当前报告，可重复生成
+evaluation/current-report.json # 本轮公开集及发布目标
+evaluation/dataset.json        # 历史十方法矩阵的任务集
+harness/web_fetch/             # 接口适配、评分、报告生成器
+scripts/build_report.py        # 正式报告构建入口
+reports/webfetch/              # 默认构建目录；当前配置构建 WebMainBench 报告
+reports/webfetch-public-benchmarks/ # 本轮独立发布使用的生成目录
 research/provider-adoption.json # 当前已核验采用统计及候选文件目录
 ```
 
@@ -126,7 +132,7 @@ make test
 
 `reports/` 和 `publish/` 是可重建产物及本地发布回执，不提交 Git；发布凭据不得写入仓库。
 
-## 重新实测
+## 十方法 Web Fetch 旧矩阵的补测
 
 把根目录 `.env.example` 复制为 `.env`，只填写需要的方法。若账号集中保存在用户目录 `~/.env`，执行 `make import-env`：它只把本评测声明的 9 个托管方法变量导入仓库 `.env`，保留已有非空值，不复制其他账号，不打印变量值，并把目标权限设为 `0600`；缺少任何目标变量会列出变量名并失败。所有 Web Fetch 入口仍默认只读取仓库根目录 `.env`，绝不隐式读取用户目录或执行 shell 内容；已导出的环境变量优先。只有显式 `--env-file <路径>` 才改用其他文件，文件不存在时报错。`.env` 与本地变体已被 Git 忽略，示例不含凭据。
 
@@ -134,7 +140,7 @@ make test
 
 ```bash
 uv run --frozen python scripts/run_benchmark.py
-# 或仅实测 Moli（当前完整评测集，不调用其他供应商）
+# 或仅实测 Moli（旧十方法任务集，不调用其他供应商）
 uv run --frozen python scripts/run_benchmark.py --providers moli-webfetch --output ~/.browser-eval/runs/moli-webfetch
 # 仅检查新增动态组配置，不创建输出、不调用接口
 uv run --frozen python scripts/run_benchmark.py --track dynamic --validate-only
@@ -144,32 +150,29 @@ uv run --frozen python scripts/run_benchmark.py --dataset ~/.browser-eval/runs/n
 uv run --frozen python scripts/run_benchmark.py --track dynamic --providers lexmount-global,lexmount-cn,firecrawl,tavily,exa,cloudflare-markdown --output ~/.browser-eval/runs/dynamic-hosted
 ```
 
-使用具备当前全部解析依赖的 Python 环境执行。当前 profile 固定 10 种方法，可用 `--providers` 选择；云端方法可能消耗配额。所有选中方法先通过配置检查，再开始调用。不同方法并发，同一方法先完成网页组，再测其他组；正文与资源配置分开。已有输出目录会被拒绝覆盖。新结果核验后才能组装进 Git 外的当前证据，不能把测量输出写入 `evaluation/`，也不自动替换已发布成绩。本次从旧 12 方法证据升级的精确主矩阵与同窗测速范围见 `evaluation/current-rerun.json`；未列入其中的调用只离线重评分，不为改善分数而重跑。
+本节命令针对十方法 Web Fetch 旧矩阵，不针对当前 `evaluation/current-report.json` 绑定的 WebMainBench-545 五浏览器报告。旧矩阵可用 `--providers` 选择方法；云端方法可能消耗配额。所有选中方法先通过配置检查，再开始调用。不同方法并发，同一方法先完成网页组，再测其他组；正文与资源配置分开。已有输出目录会被拒绝覆盖。新结果须独立核验，不能把测量输出写入 `evaluation/`，也不自动替换已发布成绩。`evaluation/current-rerun.json` 记录旧十方法矩阵的修正范围和测速批次，不是当前公开集报告的执行配置。
 
-新增方法完成同一评测集后，可执行 `uv run --frozen python scripts/add_provider_results.py ~/.browser-eval/runs/<完整运行目录> --provider <新方法>`。已有方法补测尚未执行的组时，使用 `--provider <方法> --track dynamic`；输入必须完整覆盖该组，案例与参考须与当前评测集完全一致。此入口拒绝缺失/重复任务、参考变化、输出哈希不符或执行批次不完整；原有 JSONL 行和输出字节不变，禁止覆盖已测任务。补测后同步审查 `configs/evaluation-inventory.json` 的方法覆盖，再重建报告。原始执行组、运行 ID 与时间仍各自保留，不能把不同时间的调用描述成同时测量。
+新增方法完成旧十方法任务集后，可执行 `uv run --frozen python scripts/add_provider_results.py ~/.browser-eval/runs/<完整运行目录> --provider <新方法>`。已有方法补测尚未执行的组时，使用 `--provider <方法> --track dynamic`；输入必须完整覆盖该组，案例与参考须与旧任务集完全一致。此入口拒绝缺失/重复任务、参考变化、输出哈希不符或执行批次不完整；原有 JSONL 行和输出字节不变，禁止覆盖已测任务。补测后同步审查 `configs/evaluation-inventory.json` 的方法覆盖，再重建旧矩阵报告。原始执行组、运行 ID 与时间仍各自保留，不能把不同时间的调用描述成同时测量。
 
 ### Moli WebFetch
 
-当前十方法矩阵按 [Moli 1.1.4 官方 skill](https://github.com/lexmount/moli/tree/v1.1.4/skills/moli-webfetch) 安装并固定 `MOLI_BINARY`（不需要账号/API Key）。普通正文使用 `moli fetch --dump markdown`；挑战题使用一次 `moli fetch --dump json --trace-network`，同时保留最终 DOM、HTTP 状态、最终 URL 和有界网络诊断，DOM 在同一截止预算内本地转为 Markdown；资源页通过一次 `--eval` 从渲染 DOM、已加载同源 iframe 与有界同源模块中返回结构化 URL。动态任务分别使用预声明的完成条件和正文提取范围，避免把等待按钮误当作答案。直接 PDF、图片和视频地址使用裸 `moli fetch URL`；当前 Moli CLI 会把 OOXML 响应误送入 HTML 序列化，因此 DOCX 正文任务在同一次 CLI 运行中预先选择页面运行时 `fetch(location.href)` 取得原始字节，并明确记录第二次 HTTP 请求。冻结的公开测试域名若因 split DNS 映射到私网地址，只对已经实测冲突的精确白名单省略 `--block-private-networks`，其余 URL 仍开启保护。文档正文解析计入同一截止预算；文件任务验收到格式、长度和 SHA-256。工具成功不等于任务通过，仍使用同一套机械评分规则。
+历史十方法矩阵按 [Moli 1.1.4 官方 skill](https://github.com/lexmount/moli/tree/v1.1.4/skills/moli-webfetch) 安装并固定 `MOLI_BINARY`（不需要账号/API Key）。普通正文使用 `moli fetch --dump markdown`；挑战题使用一次 `moli fetch --dump json --trace-network`，同时保留最终 DOM、HTTP 状态、最终 URL 和有界网络诊断，DOM 在同一截止预算内本地转为 Markdown；资源页通过一次 `--eval` 从渲染 DOM、已加载同源 iframe 与有界同源模块中返回结构化 URL。动态任务分别使用预声明的完成条件和正文提取范围，避免把等待按钮误当作答案。直接 PDF、图片和视频地址使用裸 `moli fetch URL`；该版本 Moli CLI 会把 OOXML 响应误送入 HTML 序列化，因此 DOCX 正文任务在同一次 CLI 运行中预先选择页面运行时 `fetch(location.href)` 取得原始字节，并明确记录第二次 HTTP 请求。冻结的公开测试域名若因 split DNS 映射到私网地址，只对已经实测冲突的精确白名单省略 `--block-private-networks`，其余 URL 仍开启保护。文档正文解析计入同一截止预算；文件任务验收到格式、长度和 SHA-256。工具成功不等于任务通过，仍使用同一套机械评分规则。
 
-官方还提供 JSON/HTML/semantic tree、DOM eval、授权会话及需 layout 的截图/PDF 输出。这些能力与正文和原始响应路线分开说明；生成 PDF 不等于解析已有 PDF，媒体链接也不等于取得原文件。当前十方法矩阵对直接非 HTML 响应优先使用自动原始输出；本地文档解析属于正文任务的计时内后处理，不暗中借用其他 provider。上文的独立五浏览器报告和已发布十方法旧版继续保留各自的历史实测身份和成绩，不用新版本倒改旧结果。
+官方还提供 JSON/HTML/semantic tree、DOM eval、授权会话及需 layout 的截图/PDF 输出。这些能力与正文和原始响应路线分开说明；生成 PDF 不等于解析已有 PDF，媒体链接也不等于取得原文件。历史十方法矩阵对直接非 HTML 响应优先使用自动原始输出；本地文档解析属于正文任务的计时内后处理，不暗中借用其他 provider。本轮五浏览器公开集报告和已发布十方法旧版保留各自的实测身份和成绩，不用新版本倒改旧结果。
 
 独立源页检查：`uv run --frozen python scripts/audit_sources.py`，需要 requests、BeautifulSoup4 和文档解析依赖。HTTP 失败只触发进一步检查，不能据此自动删除任务。复杂热门网站的列表按字段结构评分，不耦合当前标题、排序或价格。动态正文参考采集须遵守 `harness/web_fetch/README.md` 的配对证据与有界完成条件；页面分类不是 JS 必要性的证据。
 
 ## 发布
 
 ```bash
-export WEBFETCH_REPORT_PUBLIC_URL=https://artifact-hub.app.lexmount.com/api/preview/RSdbALdbdNG6
-make report EVIDENCE=/absolute/path/to/evidence
-make report-check
-uv run --frozen python scripts/package_artifact_hub.py
-# 上传前先只读确认远端基线版本；不要拿新包和尚未更新的远端比较内容。
-uv run --frozen python scripts/verify_artifact_hub.py --slug RSdbALdbdNG6 --base-url https://artifact-hub.app.lexmount.com
-ARTIFACT_HUB_BASE_URL=https://artifact-hub.app.lexmount.com uv run --frozen python scripts/publish_artifact_hub.py --receipt publish/artifact-hub-app-new-receipt.json --update
-# 发布脚本只确认上传响应、新版本与 share URL；随后在浏览器打开 share_url 做页面冒烟检查。
+make public-benchmark-report EVIDENCE=/absolute/path/to/reviewed-public-benchmark-evidence
+uv run --frozen python scripts/package_artifact_hub.py reports/webfetch-public-benchmarks publish/webfetch-public-benchmarks.zip
+uv run --frozen python scripts/check_publication_bundle.py publish/webfetch-public-benchmarks.zip reports/webfetch-public-benchmarks
+uv run --frozen python scripts/publish_artifact_hub.py --receipt publish/webmainbench-site-receipt.json --archive publish/webfetch-public-benchmarks.zip --source reports/webfetch-public-benchmarks --update --expected-version <站点当前服务端版本标识>
+uv run --frozen python scripts/verify_artifact_hub.py --slug 6jNzpGiPozLW --expected-archive publish/webfetch-public-benchmarks.zip
 ```
 
-打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。Artifact Site 发布令牌优先读取显式进程环境 `ARTIFACT_SITE_TOKEN` 和目标服务的 `~/.config/artifact-site/tokens/<host>`；旧产品名的变量和路径仅作迁移回退，不加载仓库 `.env`。当前十方法 Web Fetch 报告绑定 `https://artifact-hub.app.lexmount.com` 的站点 `RSdbALdbdNG6`；五类浏览器参考报告 `UUAhhQMnrGwm` 及历史站点均保持不变。构建、打包与发布从 `evaluation/current-report.json` 读取目标地址、站点和预期版本，并用服务端版本标识防止覆盖并发更新。例行发布检查提交响应、站点元数据和公开页面；完整导出或逐文件核查只在排障时按需触发。发布令牌与管理回执不得提交或放入站点。
+当前配置的公开集报告绑定独立站点 `6jNzpGiPozLW`；十方法 Web Fetch 参考报告 `RSdbALdbdNG6` 和五类浏览器参考报告 `UUAhhQMnrGwm` 均不作为本报告的发布目标。打包将完整证据去重压缩并按需加载。Artifact Site 令牌优先读取显式进程环境 `ARTIFACT_SITE_TOKEN` 和目标服务的 `~/.config/artifact-site/tokens/<host>`；旧产品名的变量和路径仅作迁移回退，不加载仓库 `.env`。构建、打包与发布从 `evaluation/current-report.json` 读取目标地址、站点和预期版本，并用服务端版本标识防止并发覆盖。发布令牌与管理回执不得提交或放入站点。
 
 ## 内容规范
 

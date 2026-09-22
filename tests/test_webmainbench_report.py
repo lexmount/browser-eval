@@ -1,0 +1,288 @@
+import hashlib
+import copy
+import tempfile
+import unittest
+from pathlib import Path
+
+from bs4 import BeautifulSoup
+
+from harness.web_fetch.report import JS, generate_webmainbench, _wmb_pct, _wmb_body_state, _wmb_row_attrs, _wmb_editorial_guide, _wmb_html_preview, _wmb_table_example, _wmb_latency_summary, _wmb_table_population
+from harness.web_fetch.report_build import validate_webmainbench_correction
+from harness.web_fetch.report_style import STYLE
+
+
+PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "chromium")
+METRICS = ("text_edit", "code_edit", "table_edit", "table_TEDS", "formula_edit")
+
+
+class WebMainBenchReportTests(unittest.TestCase):
+    def test_table_population_separates_reference_presence_from_component_presence(self):
+        rows=[]
+        for name, values in {'a': [(5,0,True),(0,8,True),(0,0,True)], 'b': [(5,5,True),(0,0,True),(0,0,False)]}.items():
+            for i,(gt,pred,ok) in enumerate(values):
+                rows.append({'provider':name,'case_id':str(i),'attempt_id':name+str(i),'ok':ok,'metrics':{'table_edit':{'details':{'groundtruth_table_length':gt,'predicted_table_length':pred}}}})
+        soup=BeautifulSoup(_wmb_table_population(rows,['a','b'],{'a':'A','b':'B'}),'html.parser')
+        actual=[[int(td['data-sort']) for td in row.select('td[data-sort]')] for row in soup.select('tbody tr')]
+        self.assertEqual(actual,[[1,1,2],[1,0,1]])
+        self.assertIn('只有 1 页',soup.get_text())
+
+    def test_success_timing_excludes_failure_and_uses_only_final_call(self):
+        rows = [
+            {'provider': 'a', 'case_id': 'shared', '_body_present': True, 'elapsed_ms': 20, 'total_elapsed_ms': 820},
+            {'provider': 'a', 'case_id': 'extra', '_body_present': True, 'elapsed_ms': 40, 'total_elapsed_ms': 40},
+            {'provider': 'a', 'case_id': 'failed', '_body_present': False, 'elapsed_ms': 1, 'total_elapsed_ms': 2},
+            {'provider': 'b', 'case_id': 'shared', '_body_present': True, 'elapsed_ms': 50, 'total_elapsed_ms': 50},
+            {'provider': 'b', 'case_id': 'extra', '_body_present': False, 'elapsed_ms': 2, 'total_elapsed_ms': 2},
+            {'provider': 'b', 'case_id': 'failed', '_body_present': True, 'elapsed_ms': 80, 'total_elapsed_ms': 80},
+        ]
+        result = _wmb_latency_summary(rows, ['a', 'b'])
+        self.assertEqual(result['successful']['a']['count'], 2)
+        self.assertEqual(result['successful']['a']['mean'], 30)
+        self.assertEqual(result['successful']['a']['p50'], 30)
+        self.assertEqual(result['common_cases'], {'shared'})
+        self.assertEqual(result['matched']['a']['mean'], 20)
+        self.assertEqual(result['matched']['b']['mean'], 50)
+        self.assertEqual(result['cost']['a']['mean'], 862 / 3)
+        self.assertEqual(len(rows), 6)
+
+    def test_frozen_html_reader_is_inert_and_keeps_table_content(self):
+        raw = '<script>alert(1)</script><meta http-equiv="refresh" content="0;url=https://example.test"><table onclick="alert(2)"><tr><td>Kept cell</td></tr></table><img src="https://example.test/x" onerror="alert(3)"><iframe srcdoc="bad"></iframe><a href="https://example.test">Link text</a>'
+        for english in (False, True):
+            outer = BeautifulSoup(_wmb_html_preview(raw, english), 'html.parser')
+            frame = outer.iframe
+            self.assertEqual(frame.get('sandbox'), [])
+            inner = BeautifulSoup(frame['srcdoc'], 'html.parser')
+            self.assertIsNone(inner.select_one('script,iframe,img,link,base'))
+            self.assertEqual(inner.select_one('td').text, 'Kept cell')
+            self.assertIn("default-src 'none'", inner.meta['content'])
+            self.assertNotIn('onclick', frame['srcdoc'])
+            self.assertNotIn('https://example.test', frame['srcdoc'])
+
+    def test_table_explanation_shows_partial_credit_and_unrecognized_text(self):
+        for english in (False, True):
+            example = BeautifulSoup(_wmb_table_example(english), 'html.parser')
+            self.assertEqual(len(example.select('article')), 3)
+            self.assertEqual(len(example.select('article:nth-child(1) tr')), 3)
+            self.assertEqual(len(example.select('article:nth-child(2) tr')), 2)
+            self.assertIsNone(example.select_one('article:nth-child(3) table'))
+
+    def test_guide_missing_example_metrics_are_unavailable_not_zero(self):
+        case_id = 'c42e7f28-f109-459b-8423-2ce20f651ac9'
+        for english in (False, True):
+            with self.subTest(english=english):
+                html = _wmb_editorial_guide(
+                    english=english, names=list(PROVIDERS),
+                    labels={name: name for name in PROVIDERS},
+                    cases={case_id: {}},
+                    bycase={case_id: [{'provider': name, 'metrics': {}} for name in PROVIDERS]},
+                    case_count=1, score=lambda *args: 0,
+                    denom=lambda *args: 0, failures=lambda name: [],
+                )
+                self.assertIn('Length not recorded' if english else '长度未记录', html)
+                self.assertIn('kitesurf: —', html)
+
+    def test_narrow_reliability_banner_wraps_instead_of_clipping(self):
+        self.assertIn(
+            '.reliability strong{white-space:normal;overflow-wrap:anywhere}',
+            STYLE,
+        )
+
+    def test_narrow_flow_keeps_readable_html_fallback(self):
+        self.assertIn("window.innerWidth<=700", JS)
+
+    def test_search_index_bounds_logs_but_keeps_terminal_error(self):
+        message='initial-warning\n'+'x'*50000+'\nterminal-navigation-error'
+        record={'provider':'obscura','ok':False,'error_type':'browser_exit','error_message':message}
+        attrs=_wmb_row_attrs({'id':'case','url':'https://example.test','meta':{}},record)
+        self.assertLess(len(attrs), 2000)
+        self.assertIn('initial-warning',attrs)
+        self.assertIn('terminal-navigation-error',attrs)
+        self.assertEqual(record['error_message'],message)
+
+    def test_body_state_does_not_treat_empty_or_error_output_as_body(self):
+        for english in (False, True):
+            self.assertEqual(_wmb_body_state({'ok': True}, '  ', english),
+                             'No body text' if english else '没有正文')
+            self.assertEqual(_wmb_body_state({'ok': True}, 'ERR_ACCESS_DENIED', english),
+                             'Error page, not target content' if english else '错误页，非目标正文')
+            self.assertEqual(_wmb_body_state({'ok': True}, 'An ordinary article.', english),
+                             'Body text produced' if english else '正文已生成')
+
+    def test_small_nonzero_scores_do_not_round_to_zero(self):
+        self.assertEqual(_wmb_pct(0), '0.0%')
+        self.assertEqual(_wmb_pct(.5), '50.0%')
+        self.assertEqual(_wmb_pct(None), '—')
+        for value in (.00000732233609980177, .000234599901272541):
+            self.assertGreater(float(_wmb_pct(value).rstrip('%')), 0)
+
+    def test_correction_must_match_frozen_scope(self):
+        dataset = {'cases': [{'id': 'case-one'}], 'coverage_plan': {'static_html': ['moli']},
+                   'sample_manifest_sha256': 'a' * 64, 'source_dataset_sha256': 'b' * 64}
+        receipt = {'case_id': 'case-one', 'providers': ['moli'], 'effects': {'moli': {}},
+                   'sample_manifest_sha256': 'a' * 64, 'source_dataset_sha256': 'b' * 64}
+        validate_webmainbench_correction(receipt, dataset)
+        for change in [{'case_id': '../unknown'}, {'providers': ['unknown']},
+                       {'providers': ['moli', 'moli']}, {'effects': {}},
+                       {'source_dataset_sha256': 'c' * 64}]:
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                validate_webmainbench_correction({**receipt, **change}, dataset)
+
+    def test_generates_matching_bilingual_route_inventory(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder)
+            case_id = "case-one"
+            dataset = {
+                "source_dataset_sha256": "a" * 64,
+                "sample_manifest_sha256": "e" * 64,
+                "coverage_plan": {"static_html": list(PROVIDERS)},
+                "cases": [{
+                    "id": case_id,
+                    "url": "https://example.test/article",
+                    "meta": {"language": "en", "level": "simple", "table": [], "code": [], "equation": []},
+                    "input_html_sha256": "b" * 64,
+                    "reference_sha256": hashlib.sha256(b"# Reference").hexdigest(),
+                }],
+            }
+            (output / "references").mkdir()
+            (output / "references" / f"{case_id}.md").write_text("# Reference", encoding="utf-8")
+            (output / "sources").mkdir()
+            (output / "sources" / f"{case_id}.html.txt").write_text("<h1>Frozen input</h1>", encoding="utf-8")
+            records = []
+            summaries = {}
+            manifests = []
+            for index, provider in enumerate(PROVIDERS, 1):
+                score = index / 10
+                records.append({
+                    "provider": provider,
+                    "case_id": case_id,
+                    "attempt_id": f"{provider}__{case_id}__r001",
+                    "run_id": f"run-{provider}",
+                    "ok": True,
+                    "total_elapsed_ms": index * 100,
+                    "elapsed_ms": index * 100,
+                    "artifact_path": f"artifacts/{provider}/{case_id}.md",
+                    "output_sha256": hashlib.sha256(f"output from {provider}".encode()).hexdigest(),
+                    "physical_attempt_count": 1,
+                    "metrics": {"overall": {"score": score}},
+                })
+                artifact = output / f"artifacts/{provider}/{case_id}.md"
+                artifact.parent.mkdir(parents=True, exist_ok=True)
+                artifact.write_text(f"output from {provider}", encoding="utf-8")
+                summaries[provider] = {
+                    "request_successes": 1,
+                    "request_success_rate": 1.0,
+                    "official_aggregate": {
+                        "scores": {"overall": score, **{name: score for name in METRICS}},
+                        "denominators": {name: 1 for name in METRICS},
+                    },
+                }
+                manifests.append({
+                    "provider": provider,
+                    "started_at": "2026-09-14T00:00:00Z",
+                    "completed_at": "2026-09-14T00:01:00Z",
+                    "case_count": 1,
+                    "timeout_seconds": 45,
+                    "runner_sha256": "d" * 64,
+                    "implementation_identity": {
+                        "reported_version": "test",
+                        "binary_sha256": "c" * 64,
+                        "deployment": "fixture",
+                    },
+                })
+            generate_webmainbench(
+                output,
+                dataset,
+                records,
+                summaries,
+                manifests,
+                {"status": "passed", "reviewed_at": "2026-09-14T00:00:00Z", "checks": []},
+            )
+            chinese = {path.relative_to(output).as_posix() for path in output.rglob("*.html") if "en" not in path.relative_to(output).parts}
+            english = {path.relative_to(output / "en").as_posix() for path in (output / "en").rglob("*.html")}
+            self.assertEqual(chinese, english)
+            self.assertEqual(len(chinese), 21)
+            self.assertIn("attempts/kitesurf__case-one__r001.html", chinese)
+            self.assertIn('data-wmb-table', (output / "analysis/index.html").read_text(encoding="utf-8"))
+            analysis = (output / "analysis/index.html").read_text(encoding="utf-8")
+            analysis_en = (output / "en/analysis/index.html").read_text(encoding="utf-8")
+            self.assertIn('id="wmb-compare-rows"', analysis)
+            self.assertIn('id="wmb-compare-rows"', analysis_en)
+            self.assertIn('data-delivered="kitesurf lightpanda obscura moli chromium"', analysis)
+            self.assertIn('data-wmb-filter="request" data-wmb-default="failed"', analysis)
+            self.assertIn('data-wmb-filter="request" data-wmb-default="failed"', analysis_en)
+            self.assertIn('value="failed"', analysis)
+            self.assertIn('value="success"', analysis)
+            guide = (output / "guide/index.html").read_text(encoding="utf-8")
+            guide_en = (output / "en/guide/index.html").read_text(encoding="utf-8")
+            for anchor in ("overall", "scope", "tables", "delivery", "decision"):
+                self.assertIn(f'id="{anchor}"', guide)
+                self.assertIn(f'id="{anchor}"', guide_en)
+            for article in (guide, guide_en):
+                parsed = BeautifulSoup(article, 'html.parser')
+                self.assertEqual(len(parsed.select('.wmb-guide-results tbody tr')), len(PROVIDERS))
+                self.assertEqual(len(parsed.select('.wmb-guide-latency tbody tr')), len(PROVIDERS))
+                self.assertEqual(len(parsed.select('#overall .wmb-score-part')), 5)
+                self.assertIsNotNone(parsed.select_one('#content'))
+                self.assertIn('P95', parsed.select_one('#delivery').get_text())
+            self.assertNotIn("{common_low}", guide_en)
+            self.assertNotIn("{fail_total}", guide_en)
+            self.assertIn('data-kind="reference"', (output / "attempts/kitesurf__case-one__r001.html").read_text(encoding="utf-8"))
+            self.assertIn("WebMainBench-545", (output / "index.html").read_text(encoding="utf-8"))
+            self.assertIn("table-structure score validity did not", (output / "en/index.html").read_text(encoding="utf-8"))
+            self.assertIn("Response and body", analysis_en)
+            self.assertIn("Result summary", (output / "en/attempts/kitesurf__case-one__r001.html").read_text(encoding="utf-8"))
+            for row in records:
+                row['official_metrics'] = copy.deepcopy(row['metrics'])
+                row['official_metrics']['table_TEDS'] = {'score': .024347507646390047, 'success': True}
+                row['metrics']['table_TEDS'] = {'score': .00000732233609980177, 'success': True}
+            revision_review = {'logical_results': 5, 'changed_scores': 5,
+                               'impacts': {name: {'official': summary['official_aggregate'],
+                                                 'corrected': summary['official_aggregate']}
+                                           for name, summary in summaries.items()}}
+            immutable_records = copy.deepcopy(records)
+            generate_webmainbench(output, dataset, records, summaries, manifests,
+                                 {'status': 'passed'}, teds_revision=({}, revision_review))
+            self.assertEqual(records, immutable_records)
+            home = (output / 'index.html').read_text()
+            self.assertIn('id="wmb-core-results" data-col="2" data-dir="desc"', home)
+            home_soup = BeautifulSoup(home, 'html.parser')
+            overall_values = [
+                float(cell['data-sort'])
+                for cell in home_soup.select('#wmb-core-results tbody tr td:nth-of-type(3)')
+            ]
+            self.assertEqual(overall_values, sorted(overall_values, reverse=True))
+            self.assertNotIn('可能不计分', (output / 'methodology/index.html').read_text())
+            self.assertIn('wmb-guide-results', (output / 'guide/index.html').read_text())
+            for prefix, label, original in (('', '修正后复算', '官方原始分'),
+                                            ('en/', 'recomputed after correction', 'Original official score')):
+                for route in ('index.html', 'analysis/index.html', 'providers/kitesurf.html',
+                              'attempts/kitesurf__case-one__r001.html'):
+                    page = (output / prefix / route).read_text()
+                    self.assertIn(label, page)
+                    if prefix == 'en/':
+                        self.assertNotIn('overall（recomputed after correction）', page)
+                        self.assertNotIn('table_TEDS（recomputed after correction）', page)
+                detail = (output / prefix / 'attempts/kitesurf__case-one__r001.html').read_text()
+                self.assertIn(original, detail)
+                self.assertIn('0.000732234%', detail)
+                review_page = (output / prefix / 'review/index.html').read_text()
+                self.assertIn('wmb-correction-effects', review_page)
+                self.assertIn('original-results.jsonl', review_page)
+            # A successful API response containing an error page is not target body text.
+            (output / 'artifacts/chromium/case-one.md').write_text('ERR_ACCESS_DENIED')
+            generate_webmainbench(output, dataset, records, summaries, manifests,
+                                 {'status': 'passed'}, teds_revision=({}, revision_review))
+            self.assertEqual(records, immutable_records)
+            for prefix, error_label in (('', '错误页，非目标正文'), ('en/', 'Error page, not target content')):
+                analysis = (output / prefix / 'analysis/index.html').read_text()
+                provider = (output / prefix / 'providers/chromium.html').read_text()
+                detail = (output / prefix / 'attempts/chromium__case-one__r001.html').read_text()
+                self.assertIn('data-delivered="kitesurf lightpanda obscura moli" data-failed="chromium"', analysis)
+                for page in (analysis, provider):
+                    self.assertIn('data-method="chromium" data-request="failed" data-failure="error_page"', page)
+                    self.assertIn(error_label, page)
+                self.assertIn(error_label, detail)
+
+
+if __name__ == "__main__":
+    unittest.main()
