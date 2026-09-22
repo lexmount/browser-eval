@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 from collections import defaultdict
 from pathlib import Path
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _signature(row: dict | None) -> str:
@@ -70,6 +75,9 @@ def group_failures(official_path: Path, ledger_path: Path, progress_paths: list[
     grouped.sort(key=lambda row: (-row["count"], row["intent_template_id"], row["task_ids"]))
     return {
         "schema": "lex_webarena_verified_failure_groups/1",
+        "official_dataset_sha256": _sha256(official_path),
+        "ledger_sha256": _sha256(ledger_path),
+        "sweep_progress_sha256": [_sha256(path) for path in progress_paths],
         "total": len(ids),
         "unresolved": sum(row["count"] for row in grouped),
         "groups": grouped,
