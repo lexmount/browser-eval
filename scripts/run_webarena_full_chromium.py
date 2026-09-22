@@ -31,6 +31,7 @@ TRUSTED_RECORDED_HOSTS = frozenset(
         "onestopmarket.example.com",
         "gitlab.example.com",
         "openstreetmap.example.com",
+        "wikipedia.example.com",
         "ec2-3-133-227-75.us-east-2.compute.amazonaws.com",
         "ec2-3-135-39-80.us-east-2.compute.amazonaws.com",
         "host.docker.internal",

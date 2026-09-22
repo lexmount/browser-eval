@@ -13,6 +13,7 @@ from harness.trajectory_replay.public_webarena.suite import load_suite
 MAP = "http://openstreetmap.example.com:3000"
 SHOP = "http://onestopmarket.example.com:7770"
 GITLAB = "http://gitlab.example.com:8023"
+WIKI = "http://wikipedia.example.com:8888"
 SOURCE = "https://github.com/lexmount/webarena-verified/blob/7d060ec92b611d66b48d667acb9d92c35cfbdbda/assets/dataset/webarena-verified.json"
 
 
@@ -213,10 +214,42 @@ def group_actions(row):
 
 def nolan_actions(row):
     name = row["instantiation_dict"]["name"]
-    content = (
-        "# " + name + "\n\n" + "\n".join("- " + title for title in NOLAN_READMES[row["task_id"]])
-    )
-    return [
+    task_id = row["task_id"]
+    content = "# " + name + "\n\n" + "\n".join("- " + title for title in NOLAN_READMES[task_id])
+    article = "Christopher_Nolan"
+    if task_id in {560, 561}:
+        article = "List_of_awards_and_nominations_received_by_Christopher_Nolan"
+    wiki_actions = [
+        navigate(
+            WIKI + "/content/wikipedia_en_all_maxi_2022-05/A/" + article,
+            "wiki_article",
+        )
+    ]
+    if task_id == 559:
+        wiki_actions.append(
+            {
+                "action": "get_all_text",
+                "selector": "details:has(#Career) h3",
+                "save_as": "career_headings",
+            }
+        )
+    elif task_id in {560, 561}:
+        wiki_actions.append(
+            {
+                "action": "get_text",
+                "selector": "details:has(#Awards_and_nominations)",
+                "save_as": "awards_source",
+            }
+        )
+    else:
+        wiki_actions.append(
+            {
+                "action": "get_text",
+                "selector": "details:has(#Filmography)",
+                "save_as": "filmography_source",
+            }
+        )
+    return wiki_actions + [
         navigate(GITLAB + "/projects/new", "new_project_start"),
         click(target=role("link", "Create blank project Create a blank project", exact=False)),
         {
