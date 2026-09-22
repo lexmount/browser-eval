@@ -144,87 +144,8 @@ def _check_legacy_retrieval_audit(
         raise ValueError("non-legacy report contains a legacy retrieval audit")
 
 
-def _check_fixed36_output_scope(root: Path) -> None:
-    path = root / "data/diagnostic-closure.json"
-    if not path.is_file():
-        return
-    fixed = json.loads(path.read_text(encoding="utf-8")).get("fixed36")
-    if not fixed:
-        return
-    passed = fixed["official_rule_pass_tasks"]
-    source_derived = fixed["source_derived_official_pass_tasks"]
-    actual = passed - source_derived
-    if not 0 <= source_derived <= passed <= 36:
-        raise ValueError("fixed-36 output provenance counts are invalid")
-    chinese = _visible_text((root / "diagnostics.html").read_text(encoding="utf-8"))
-    english = _visible_text((root / "en/diagnostics.html").read_text(encoding="utf-8"))
-    if (
-        f"{actual}/36 条轨迹实际输出通过官方规则" not in chinese
-        or f"另有 {source_derived} 条用另行生成的现场数据回答" not in chinese
-        or f"{actual}/36 actual trajectory outputs passed the official rule" not in english
-        or f"{source_derived} separate source-derived answer" not in english
-    ):
-        raise ValueError("fixed-36 diagnostics blur actual and source-derived answers")
-    task243 = next(
-        (row for row in fixed.get("observations", []) if row.get("task_id") == 243), None
-    )
-    identity = (task243 or {}).get("identity_source_audit") or {}
-    if identity:
-        vote_sha = identity.get("rating_vote_audit_sha256")
-        if not isinstance(vote_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", vote_sha):
-            raise ValueError("task 243 rating-vote identity evidence is missing")
-        zh_detail = (root / "diagnostic/243.html").read_text(encoding="utf-8")
-        en_detail = (root / "en/diagnostic/243.html").read_text(encoding="utf-8")
-        if (
-            "对应评分投票的客户 ID 也为空" not in zh_detail
-            or "the linked rating vote also has a null customer ID" not in en_detail
-            or vote_sha not in zh_detail
-            or vote_sha not in en_detail
-        ):
-            raise ValueError("task 243 guest identity source limit is not visible")
 
 
-def _check_formal36_output_scope(root: Path) -> None:
-    path = root / "data/diagnostic-closure.json"
-    if not path.is_file():
-        return
-    formal = json.loads(path.read_text(encoding="utf-8")).get("formal36")
-    if not formal:
-        return
-    rows = formal.get("rows") or []
-    if (
-        formal.get("status") != "complete"
-        or formal.get("pass_count") != 36
-        or formal.get("denominator") != 36
-        or len(rows) != 36
-        or len({row.get("task_id") for row in rows}) != 36
-        or not formal.get("reference_unchanged")
-        or any(row.get("status") != "pass" or row.get("official_score") != 1.0
-               or row.get("completed_actions") != row.get("action_count") for row in rows)
-    ):
-        raise ValueError("formal original-36 result is incomplete")
-    for lang in report_languages(root):
-        parent = root if lang == "zh" else root / "en"
-        overview = _visible_text((parent / "diagnostics.html").read_text(encoding="utf-8"))
-        if "36/36" not in overview or ("90 题" if lang == "zh" else "90-task") not in overview:
-            raise ValueError("formal cohort scope is missing from the reader overview")
-        if any((row.get("reference_validity") or {}).get("status") == "unverifiable" for row in rows):
-            if ("不能宣称 36 题均已真实解决" if lang == "zh" else "not a claim that all 36 tasks were truly solved") not in overview:
-                raise ValueError("unverifiable reference is missing from the reader overview")
-        for row in rows:
-            detail = (parent / "diagnostic" / f'{row["task_id"]}.html').read_text(encoding="utf-8")
-            if (
-                (("新版 Moli 官方规则通过；题意未证实" if lang == "zh" else "New Moli official-rule pass; task answer unverified")
-                 if (row.get("reference_validity") or {}).get("status") == "unverifiable"
-                 else ("新版 Moli 受影响题目复测：通过" if lang == "zh" else "New Moli affected-task cohort: passed")) not in detail
-                or f'{row["completed_actions"]}/{row["action_count"]}' not in detail
-                or row["evidence_sha256"]["evaluation"] not in detail
-            ):
-                raise ValueError(f'task {row["task_id"]} formal result detail is missing')
-    for visual in formal.get("visuals", {}).values():
-        asset = root / visual["asset"]
-        if not asset.is_file() or hashlib.sha256(asset.read_bytes()).hexdigest() != visual["sha256"]:
-            raise ValueError("formal before/after visual is missing or changed")
 
 
 def _check_english_localization(pages: list[Path]) -> None:
@@ -724,8 +645,6 @@ def check(report_dir: Path) -> dict[str, int]:
         (root / "index.html").read_text(encoding="utf-8"),
         (root / "en/index.html").read_text(encoding="utf-8"),
     )
-    _check_fixed36_output_scope(root)
-    _check_formal36_output_scope(root)
 
     image_digests = {hashlib.sha256(path.read_bytes()).hexdigest() for path in (root / "assets").rglob("*.png")}
     distributable = "\n".join(

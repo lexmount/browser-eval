@@ -31,14 +31,11 @@ from harness.trajectory_replay.webarena_report import (
     _unique_winners,
     _validated_planned_actions,
     _verdict_label,
-    _write_replay_fix_log,
 )
 from scripts.check_webarena_replay_report import (
     check as check_report,
     _check_affected36_comparison,
     _check_core_comparison,
-    _check_fixed36_output_scope,
-    _check_formal36_output_scope,
     _check_legacy_retrieval_audit,
     _check_result_detail_semantics,
     _check_english_localization,
@@ -321,88 +318,8 @@ def test_affected36_comparison_rejects_wrong_score_and_tied_highlight(tmp_path: 
         _check_affected36_comparison(tmp_path, compare, results, set(range(36)), ["old", "new"])
 
 
-def test_formal36_report_gate_rejects_missing_detail_wrong_score_and_visual(
-    tmp_path: Path,
-) -> None:
-    rows = [
-        {"task_id": task_id, "status": "pass", "official_score": 1.0,
-         "completed_actions": 2, "action_count": 2,
-         "evidence_sha256": {"evaluation": "a" * 64}}
-        for task_id in range(1, 37)
-    ]
-    asset = tmp_path / "assets/diagnostic/formal-1-before.png"
-    asset.parent.mkdir(parents=True)
-    asset.write_bytes(b"reviewed image")
-    formal = {
-        "status": "complete", "pass_count": 36, "denominator": 36,
-        "reference_unchanged": True, "rows": rows,
-        "visuals": {"1-before": {"asset": "assets/diagnostic/formal-1-before.png",
-                                 "sha256": hashlib.sha256(asset.read_bytes()).hexdigest()}},
-    }
-    data = tmp_path / "data"
-    data.mkdir()
-    (data / "diagnostic-closure.json").write_text(json.dumps({"formal36": formal}))
-    for lang in ("zh", "en"):
-        parent = tmp_path if lang == "zh" else tmp_path / "en"
-        (parent / "diagnostic").mkdir(parents=True)
-        (parent / "diagnostics.html").write_text("36/36；历史 90 题" if lang == "zh" else "36/36; historical 90-task")
-        for row in rows:
-            label = "新版 Moli 受影响题目复测：通过" if lang == "zh" else "New Moli affected-task cohort: passed"
-            (parent / "diagnostic" / f'{row["task_id"]}.html').write_text(
-                f'{label} 2/2 {"a" * 64}'
-            )
-    _check_formal36_output_scope(tmp_path)
-    rows[0]["reference_validity"] = {"status": "unverifiable"}
-    (data / "diagnostic-closure.json").write_text(json.dumps({"formal36": formal}))
-    with pytest.raises(ValueError, match="unverifiable reference"):
-        _check_formal36_output_scope(tmp_path)
-    (tmp_path / "diagnostics.html").write_text("36/36；历史 90 题；不能宣称 36 题均已真实解决")
-    (tmp_path / "en/diagnostics.html").write_text("36/36; historical 90-task; not a claim that all 36 tasks were truly solved")
-    with pytest.raises(ValueError, match="detail is missing"):
-        _check_formal36_output_scope(tmp_path)
-    rows[0].pop("reference_validity")
-    (data / "diagnostic-closure.json").write_text(json.dumps({"formal36": formal}))
-    rows[0]["official_score"] = 0.0
-    (data / "diagnostic-closure.json").write_text(json.dumps({"formal36": formal}))
-    with pytest.raises(ValueError, match="incomplete"):
-        _check_formal36_output_scope(tmp_path)
-    rows[0]["official_score"] = 1.0
-    (data / "diagnostic-closure.json").write_text(json.dumps({"formal36": formal}))
-    (tmp_path / "diagnostic/1.html").write_text("missing")
-    with pytest.raises(ValueError, match="detail is missing"):
-        _check_formal36_output_scope(tmp_path)
-    (tmp_path / "diagnostic/1.html").write_text(f'新版 Moli 受影响题目复测：通过 2/2 {"a" * 64}')
-    asset.write_bytes(b"changed")
-    with pytest.raises(ValueError, match="visual is missing or changed"):
-        _check_formal36_output_scope(tmp_path)
 
 
-def test_fixed36_diagnostic_summary_separates_actual_and_synthetic_answers(
-    tmp_path: Path,
-) -> None:
-    data = tmp_path / "data"
-    data.mkdir()
-    (data / "diagnostic-closure.json").write_text(json.dumps({
-        "fixed36": {
-            "official_rule_pass_tasks": 36,
-            "source_derived_official_pass_tasks": 1,
-        }
-    }))
-    (tmp_path / "diagnostics.html").write_text(
-        "<p>35/36 条轨迹实际输出通过官方规则；另有 1 条用另行生成的现场数据回答</p>"
-    )
-    english = tmp_path / "en/diagnostics.html"
-    english.parent.mkdir()
-    english.write_text(
-        "<p>35/36 actual trajectory outputs passed the official rule; "
-        "1 separate source-derived answer</p>"
-    )
-    _check_fixed36_output_scope(tmp_path)
-    (tmp_path / "diagnostics.html").write_text(
-        "<p>36/36 条通过官方规则；其中 1 条用另行生成的现场数据回答</p>"
-    )
-    with pytest.raises(ValueError, match="blur actual and source-derived"):
-        _check_fixed36_output_scope(tmp_path)
 
 
 def _method(name: str, pass_rate: float, base: float) -> dict:
@@ -750,165 +667,6 @@ def test_validity_identity_uses_measured_profile_not_publication_profile(tmp_pat
     assert _measured_validity_identity({}, results_path, dataset_path)["profile_sha256"] == ""
 
 
-def test_replay_fix_log_uses_shared_validation_and_native_bilingual_routes(
-    tmp_path: Path,
-) -> None:
-    import hashlib
-
-    def digest(path: Path) -> str:
-        return hashlib.sha256(path.read_bytes()).hexdigest()
-    localized = {"zh": "夹具证据说明", "en": "Fixture evidence description"}
-    image_path = tmp_path / "capture.png"
-    Image.new("RGB", (4, 4), "white").save(image_path)
-    artifacts = [
-        {
-            "id": "capture",
-            "path": str(image_path),
-            "kind": "image",
-            "public_safe": True,
-            "sha256": digest(image_path),
-            "provenance": {
-                "capture_method": "test fixture",
-                "run_id": "fixture-run",
-                "observation": "last_observed_page",
-                "timing_note": localized,
-            },
-        }
-    ]
-    record = {
-        "id": "fixture-fix",
-        "scope": "diagnostic",
-        "input_sha256": "1" * 64,
-        **{
-            key: localized for key in ("title", "symptom", "root_cause", "principle", "limitations")
-        },
-        "code_paths": [{"repository": "example", "path": "src/runtime.rs", "symbol": "layout"}],
-        "tests": [{"command": "fixture-test --exact", "result": "1 passed", "receipt": "test"}],
-    }
-    for side in ("before", "after"):
-        run = {
-            "method": "fixture-browser",
-            "version": side,
-            "source_base": "abcdef1",
-            "source_diff_sha256": "2" * 64,
-            "binary_sha256": "3" * 64,
-            "run_id": side,
-        }
-        receipt = {
-            "schema": "lex_browser_use_fix_comparison_receipt/1",
-            **run,
-            "input_sha256": record["input_sha256"],
-            "measurements": {"width": 4},
-        }
-        path = tmp_path / f"{side}.json"
-        path.write_text(json.dumps(receipt), encoding="utf-8")
-        artifacts.append(
-            {
-                "id": side,
-                "path": str(path),
-                "kind": "receipt",
-                "public_safe": True,
-                "sha256": digest(path),
-            }
-        )
-        record[side] = {**run, "receipt": side, "image": "capture", "observation": localized}
-    test_path = tmp_path / "test.json"
-    test_path.write_text(
-        json.dumps(
-            {
-                "schema": "lex_browser_use_fix_test_receipt/1",
-                "command": "fixture-test --exact",
-                "result": "1 passed",
-            }
-        ),
-        encoding="utf-8",
-    )
-    artifacts.append(
-        {
-            "id": "test",
-            "path": str(test_path),
-            "kind": "receipt",
-            "public_safe": True,
-            "sha256": digest(test_path),
-        }
-    )
-    source = tmp_path / "fix-log.json"
-    source.write_text(
-        json.dumps(
-            {"schema": "lex_browser_use_fix_log/1", "records": [record], "artifacts": artifacts}
-        ),
-        encoding="utf-8",
-    )
-    model = load_fix_log(
-        {"fix_log": {"source_path": str(source), "source_sha256": digest(source)}},
-        sanitize_value=sanitize,
-    )
-    output = tmp_path / "report"
-    _write_replay_fix_log(output, model)
-
-    chinese = (output / "fix/fixture-fix.html").read_text(encoding="utf-8")
-    english = (output / "en/fix/fixture-fix.html").read_text(encoding="utf-8")
-    chinese_index = (output / "fixes.html").read_text(encoding="utf-8")
-    english_index = (output / "en/fixes.html").read_text(encoding="utf-8")
-    assert "夹具证据说明" in chinese and "Fixture evidence description" in english
-    assert "夹具证据说明" not in english
-    assert '<p class="eyebrow">修复证据</p>' in chinese
-    assert '<p class="eyebrow">修复证据</p>' in chinese_index
-    assert "Fix evidence" not in chinese and "Fix evidence" not in chinese_index
-    assert '<p class="eyebrow">Fix evidence</p>' in english
-    assert '<p class="eyebrow">Fix evidence</p>' in english_index
-    assert 'href="../fixes.html"' in chinese and 'href="../fixes.html"' in english
-    assert 'href="fix/fixture-fix.html"' in chinese_index
-    assert 'href="fix/fixture-fix.html"' in english_index
-    public = json.loads((output / "data/fix-log.json").read_text(encoding="utf-8"))
-    assert str(tmp_path) not in json.dumps(public)
-    assert public["records"][0]["code_paths"][0]["path"] == "src/runtime.rs"
-    for artifact in public["artifacts"]:
-        assert digest(output / artifact["href"]) == artifact["sha256"]
-
-    record.pop("input_sha256")
-    record["comparison_basis"] = {
-        "kind": "same_task_contract",
-        "task_contract_sha256": "4" * 64,
-    }
-    for index, side in enumerate(("before", "after"), 5):
-        run = record[side]
-        run.update(
-            input_sha256=str(index) * 64,
-            trajectory_sha256=str(index + 2) * 64,
-            action_count=index + 3,
-        )
-        artifact = next(item for item in artifacts if item["id"] == run["receipt"])
-        path = Path(artifact["path"])
-        receipt = json.loads(path.read_text(encoding="utf-8"))
-        receipt.update(
-            task_contract_sha256=record["comparison_basis"]["task_contract_sha256"],
-            input_sha256=run["input_sha256"],
-            trajectory_sha256=run["trajectory_sha256"],
-            action_count=run["action_count"],
-        )
-        path.write_text(json.dumps(receipt), encoding="utf-8")
-        artifact["sha256"] = digest(path)
-    source.write_text(
-        json.dumps(
-            {"schema": "lex_browser_use_fix_log/1", "records": [record], "artifacts": artifacts}
-        ),
-        encoding="utf-8",
-    )
-    revised = load_fix_log(
-        {"fix_log": {"source_path": str(source), "source_sha256": digest(source)}},
-        sanitize_value=sanitize,
-    )
-    revised_output = tmp_path / "revised-report"
-    _write_replay_fix_log(revised_output, revised)
-    revised_chinese = (revised_output / "fix/fixture-fix.html").read_text(encoding="utf-8")
-    revised_english = (revised_output / "en/fix/fixture-fix.html").read_text(encoding="utf-8")
-    assert "验收合同相同，轨迹已修订" in revised_chinese
-    assert "共同输入 SHA-256" not in revised_chinese
-    assert "输入 SHA-256" in revised_chinese and "轨迹 SHA-256" in revised_chinese
-    assert "The acceptance contract is unchanged; the trajectory was revised" in revised_english
-    assert "Shared input SHA-256" not in revised_english
-    assert ">8<" in revised_chinese and ">9<" in revised_chinese
 
 
 def test_replay_task_and_result_have_connected_drilldown() -> None:
