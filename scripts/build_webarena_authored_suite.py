@@ -54,7 +54,7 @@ def route_actions(start, end, *, foot=False):
         {
             "action": "select",
             "selector": "select[name=routing_engines]:visible",
-            "value": "2" if foot else "1",
+            "value": "0" if foot else "1",
         },
         click("form:has(#route_from:visible) input[name=commit]:visible"),
         {
