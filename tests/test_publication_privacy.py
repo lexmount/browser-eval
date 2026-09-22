@@ -97,7 +97,7 @@ class PublicationPrivacyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             for relative in ('scripts/package_artifact_hub.py', 'harness/web_fetch/publication_privacy.py',
-                             'harness/web_fetch/publication_target.py'):
+                             'harness/web_fetch/publication_target.py', 'harness/reporting/packs.py'):
                 target = root / relative
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(repository / relative, target)
