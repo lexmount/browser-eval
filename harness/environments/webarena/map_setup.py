@@ -18,6 +18,7 @@ import signal
 import subprocess
 import tarfile
 import time
+import zlib
 from contextlib import nullcontext
 from pathlib import Path, PurePosixPath
 from typing import BinaryIO
@@ -319,8 +320,14 @@ def configure_browser_assets(assets: Path = Path("/app/public/assets")) -> None:
                                            b"http://localhost:8080/osrm/")):
             raise ValueError(f"Browser service URL still uses localhost: {source.name}")
         packed = source.with_suffix(".js.gz")
-        if packed.exists() and gzip.decompress(packed.read_bytes()) != content:
-            packed.write_bytes(gzip.compress(content, mtime=0))
+        if packed.exists():
+            compressed = packed.read_bytes()
+            try:
+                stale = gzip.decompress(compressed) != content
+            except (OSError, EOFError, zlib.error):
+                stale = True
+            if stale:
+                packed.write_bytes(gzip.compress(content, mtime=0))
 
 
 def version_browser_assets(

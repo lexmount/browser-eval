@@ -52,6 +52,17 @@ def test_remote_browsers_receive_same_origin_urls_with_or_without_gzip(tmp_path)
         configure_browser_assets(tmp_path)
 
 
+def test_corrupt_precompressed_script_is_rebuilt_from_valid_script(tmp_path):
+    source = tmp_path / "application.js"
+    source.write_bytes(b'const search="/nominatim/";')
+    packed = tmp_path / "application.js.gz"
+    packed.write_bytes(b"damaged gzip data")
+
+    configure_browser_assets(tmp_path)
+
+    assert gzip.decompress(packed.read_bytes()) == source.read_bytes()
+
+
 def test_patched_browser_script_gets_a_new_url(tmp_path):
     assets = tmp_path / "assets"
     assets.mkdir()
