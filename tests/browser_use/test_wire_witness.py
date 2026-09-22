@@ -93,7 +93,9 @@ def test_site_gateway_alias_recovers_only_unique_matching_request(tmp_path):
 
 
 @pytest.mark.parametrize("scheme,port", [("http", 80), ("https", 443)])
-@pytest.mark.parametrize("alias_explicit,wire_explicit", [(False, False), (True, False), (False, True)])
+@pytest.mark.parametrize(
+    "alias_explicit,wire_explicit", [(False, False), (True, False), (False, True)]
+)
 def test_gateway_alias_matches_default_ports_without_weakening_uniqueness(
     scheme, port, alias_explicit, wire_explicit
 ):
