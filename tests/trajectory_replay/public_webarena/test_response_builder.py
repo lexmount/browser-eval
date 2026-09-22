@@ -416,3 +416,41 @@ def test_response_builder_reports_not_found_when_required_page_lacks_target_stat
 def test_response_builder_not_found_fails_closed_without_matching_evidence(builder, outputs):
     with pytest.raises(ValueError, match="observed_not_found"):
         build_agent_response(_task(builder), outputs)
+
+
+def test_response_builder_reports_action_not_allowed_only_from_complete_empty_scope():
+    builder = {
+        "kind": "observed_action_not_allowed",
+        "task_type": "mutate",
+        "output": "review_scope",
+    }
+
+    response = build_agent_response(
+        _task(builder),
+        {"review_scope": '{"scope_complete": true, "matches": [], "total": 7}'},
+    )
+
+    assert response == {
+        "task_type": "mutate",
+        "status": "ACTION_NOT_ALLOWED_ERROR",
+        "retrieved_data": None,
+    }
+
+
+@pytest.mark.parametrize(
+    "evidence",
+    [
+        '{"scope_complete": false, "matches": []}',
+        '{"scope_complete": true, "matches": ["review 42"]}',
+        '{"scope_complete": true}',
+    ],
+)
+def test_response_builder_action_not_allowed_fails_closed(evidence):
+    builder = {
+        "kind": "observed_action_not_allowed",
+        "task_type": "mutate",
+        "output": "review_scope",
+    }
+
+    with pytest.raises(ValueError):
+        build_agent_response(_task(builder), {"review_scope": evidence})

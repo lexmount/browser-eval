@@ -258,6 +258,22 @@ def build_agent_response(task: BrowserTask, outputs: dict[str, str]) -> dict[str
                 raise ValueError("observed_not_found forbidden evidence was present")
         retrieved_data = None
         response_status = "NOT_FOUND_ERROR"
+    elif kind == "observed_action_not_allowed":
+        output_name = str(config.get("output") or "")
+        if output_name not in outputs:
+            raise ValueError(f"response builder output is missing: {output_name}")
+        evidence = json.loads(outputs[output_name])
+        if not isinstance(evidence, dict):
+            raise ValueError("observed_action_not_allowed output must contain a JSON object")
+        if evidence.get("scope_complete") is not True:
+            raise ValueError("observed_action_not_allowed requires complete observed scope")
+        matches = evidence.get("matches")
+        if not isinstance(matches, list):
+            raise ValueError("observed_action_not_allowed requires an observed matches array")
+        if matches:
+            raise ValueError("observed_action_not_allowed found an actionable match")
+        retrieved_data = None
+        response_status = "ACTION_NOT_ALLOWED_ERROR"
     else:
         raise ValueError(f"unsupported response builder kind: {kind!r}")
     return {

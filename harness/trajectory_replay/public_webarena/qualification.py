@@ -441,6 +441,7 @@ def _apply_material_change(task: dict[str, Any], adjudication: dict[str, Any]) -
             "observed_review_authors_matching",
             "observed_currency_range",
             "observed_not_found",
+            "observed_action_not_allowed",
         }:
             raise ValueError(f"{task['id']}: response builder must use observed outputs")
         task["ground_truth"]["response_builder"] = deepcopy(response_builder)
