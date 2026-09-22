@@ -104,7 +104,7 @@ def fill_missing_referers(
         except ValueError:
             return None
         if port is None:
-            return None
+            port = 80 if parsed.scheme == "http" else 443
         return method, parsed.scheme, port, parsed.path, parsed.query, status
 
     for index, entry in enumerate(entries):

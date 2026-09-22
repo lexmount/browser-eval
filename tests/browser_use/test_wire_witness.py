@@ -92,6 +92,40 @@ def test_site_gateway_alias_recovers_only_unique_matching_request(tmp_path):
     assert not validate_wire_source(raw, evaluated, receipt, source, gateway_host="192.168.5.3")
 
 
+@pytest.mark.parametrize("scheme,port", [("http", 80), ("https", 443)])
+@pytest.mark.parametrize("alias_explicit,wire_explicit", [(False, False), (True, False), (False, True)])
+def test_gateway_alias_matches_default_ports_without_weakening_uniqueness(
+    scheme, port, alias_explicit, wire_explicit
+):
+    alias = f"{scheme}://host.docker.internal" + (f":{port}" if alias_explicit else "")
+    origin = f"{scheme}://192.168.5.2" + (f":{port}" if wire_explicit else "")
+    raw = har(url=alias + TARGET)
+    witnesses = parse_access_log(access_line(), origin=origin)
+    corrected, additions = fill_missing_referers(raw, witnesses, gateway_host="192.168.5.2")
+    assert corrected["log"]["entries"][0]["request"]["headers"] == [
+        {"name": "Referer", "value": REFERER}
+    ]
+    assert len(additions) == 1
+    assert raw["log"]["entries"][0]["request"]["headers"] == []
+
+    equivalent = parse_access_log(access_line(), origin=f"{scheme}://192.168.5.2:{port}")
+    ambiguous, additions = fill_missing_referers(
+        raw, witnesses + equivalent, gateway_host="192.168.5.2"
+    )
+    assert ambiguous == raw
+    assert additions == []
+
+
+@pytest.mark.parametrize("origin", ["http://192.168.5.2:81", "https://192.168.5.2:80"])
+def test_default_port_alias_does_not_match_other_port_or_scheme(origin):
+    raw = har(url="http://host.docker.internal" + TARGET)
+    corrected, additions = fill_missing_referers(
+        raw, parse_access_log(access_line(), origin=origin), gateway_host="192.168.5.2"
+    )
+    assert corrected == raw
+    assert additions == []
+
+
 def test_site_gateway_alias_refuses_ambiguous_or_foreign_matches():
     alias_url = "http://host.docker.internal:9999" + TARGET
     witnesses = parse_access_log(access_line(), origin=ORIGIN)
