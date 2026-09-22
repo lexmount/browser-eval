@@ -17,6 +17,7 @@ import signal
 import subprocess
 import tarfile
 import time
+from contextlib import nullcontext
 from pathlib import Path, PurePosixPath
 from typing import BinaryIO
 from urllib.error import HTTPError
@@ -346,6 +347,15 @@ def configure_tiles(
     # workers bound this service instead of rejecting tiles at host load > 5.
     if "ModTileMaxLoadMissing" not in config:
         config = config.replace("</VirtualHost>", "    ModTileMaxLoadMissing 1000\n</VirtualHost>")
+    if "ProxyPassMatch" not in config:
+        catch_all = "    ProxyPass / http://localhost:3000/"
+        if catch_all not in config:
+            raise ValueError("Unexpected Apache Rails proxy configuration")
+        detail = (
+            '    ProxyPassMatch "^/(node|way|relation)/([1-9][0-9]{0,18})/?$" '
+            '"http://127.0.0.1:8091/$1/$2"\n'
+        )
+        config = config.replace(catch_all, detail + catch_all)
     apache.write_text(config)
     config, count = re.subn(r"(?m)^num_threads[ \t]*=[ \t]*\d+[ \t]*$",
                             "num_threads=2", renderd.read_text())
@@ -354,30 +364,37 @@ def configure_tiles(
     renderd.write_text(config)
 
 
-def serve(root: Path, reserve: int, command: list[str]) -> int:
+def serve(root: Path, reserve: int, command: list[str], detail: list[str] | None = None) -> int:
     """Stop only Map if the shared filesystem reaches the protected reserve."""
     require_space(root, reserve)
-    with subprocess.Popen(command, start_new_session=True) as process:
+    with subprocess.Popen(detail, start_new_session=True) if detail else nullcontext() as helper:
+      with subprocess.Popen(command, start_new_session=True) as process:
 
-        def stop(signum, frame):
-            if process.poll() is None:
-                os.killpg(process.pid, signal.SIGTERM)
+          def stop(signum, frame):
+              for child in (process, helper):
+                  if child is not None and child.poll() is None:
+                      os.killpg(child.pid, signal.SIGTERM)
 
-        previous = {sig: signal.signal(sig, stop) for sig in (signal.SIGTERM, signal.SIGINT)}
-        try:
-            while process.poll() is None:
-                require_space(root, reserve)
-                time.sleep(5)
-            return process.returncode
-        finally:
-            stop(None, None)
-            try:
-                process.wait(timeout=30)
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.wait()
-            for sig, handler in previous.items():
-                signal.signal(sig, handler)
+          previous = {sig: signal.signal(sig, stop) for sig in (signal.SIGTERM, signal.SIGINT)}
+          try:
+              while process.poll() is None:
+                  if helper is not None and helper.poll() is not None:
+                      raise RuntimeError(f"Map detail service exited: {helper.returncode}")
+                  require_space(root, reserve)
+                  time.sleep(5)
+              return process.returncode
+          finally:
+              stop(None, None)
+              for child in (process, helper):
+                  if child is None:
+                      continue
+                  try:
+                      child.wait(timeout=30)
+                  except subprocess.TimeoutExpired:
+                      os.killpg(child.pid, signal.SIGKILL)
+                      child.wait()
+              for sig, handler in previous.items():
+                  signal.signal(sig, handler)
 
 
 if __name__ == "__main__":
@@ -412,5 +429,6 @@ if __name__ == "__main__":
                     "-c",
                     "/etc/supervisor/conf.d/supervisord.conf",
                 ],
+                ["python3", "/opt/map_detail.py"],
             )
         )

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
@@ -53,6 +54,21 @@ def verify(base: str) -> dict:
     tile = get("/tile/0/0/0.png")
     assert tile.startswith(b"\x89PNG\r\n\x1a\n") and len(tile) > 100
     checks.append({"feature": "tile", "bytes": len(tile), "status": "pass"})
+    for path, name in (("/node/1479729158", "Bei Jing"),
+                       ("/way/172206707", "Chatham University"),
+                       ("/relation/2279034", "Carnegie Mellon University")):
+        detail = get(path).decode("utf-8")
+        assert "<!doctype html>" in detail.lower()
+        assert name in detail and path.rsplit("/", 1)[1] in detail
+        assert "Not Found" not in detail
+        checks.append({"feature": "object-detail", "path": path, "status": "pass"})
+    try:
+        get("/relation/5475586")
+    except HTTPError as error:
+        assert error.code == 404
+    else:
+        raise AssertionError("A missing frozen object must not be fabricated")
+    checks.append({"feature": "unavailable-object", "status": "pass"})
     return {"base_url": base, "status": "pass", "checks": checks}
 
 

@@ -46,6 +46,7 @@ Nominatim 的 `flatnode.file` 导入／增量更新缓存。评测使用固定�
 |---|---|
 | `deploy/webarena-rainbond/map-bootstrap.sh` | `/opt/map-bootstrap.sh` |
 | `harness/environments/webarena/map_setup.py` | `/opt/map_setup.py` |
+| `harness/environments/webarena/map_detail.py` | `/opt/map_detail.py` |
 | `deploy/webarena/site-delivery-contract.json` | `/opt/map-contract.json` |
 
 启动入口将实际瓦片缓存 `/var/cache/renderd/tiles` 链接到 `/map-data/tiles`，
@@ -54,6 +55,12 @@ Nominatim 的 `flatnode.file` 导入／增量更新缓存。评测使用固定�
 就绪探针检查 `/tile/0/0/0.png`，确认地图渲染链路可用后再接入流量。
 入口还会同步预编译 JavaScript 的 gzip 副本，避免镜像中的过期压缩资源让远端
 浏览器错误访问 `localhost`；服务请求保持与网站同源。
+
+镜像自带的 Rails OSM 对象库没有节点、道路或关系记录；搜索结果来自已恢复的
+Nominatim 库，直接点击原本会得到 404。对象详情入口从同一份冻结数据按 OSM
+类型和 ID 查询，展示名称、地址、坐标及可用的附加标签，保留原来的 `/node/`、
+`/way/`、`/relation/` 地址。它只展示 Nominatim 收录的对象；缺失对象仍返回 404，
+不会合成不存在的内容或声称提供完整 OSM 版本历史和成员关系。
 
 三个原始归档约 174.5 GiB。初始化逐包下载、校验 SHA-256、稀疏解包并删除归档，
 从最大的 Nominatim 包开始；空间预算应覆盖当前归档、解包后数据和至少 64 GiB

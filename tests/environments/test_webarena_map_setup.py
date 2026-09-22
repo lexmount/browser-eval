@@ -232,6 +232,12 @@ def test_service_exit_status_is_preserved(tmp_path):
     assert serve(tmp_path, 0, [sys.executable, "-c", "raise SystemExit(7)"]) == 7
 
 
+def test_map_stops_if_detail_service_exits(tmp_path):
+    with pytest.raises(RuntimeError, match="Map detail service exited"):
+        serve(tmp_path, 0, [sys.executable, "-c", "import time; time.sleep(60)"],
+              [sys.executable, "-c", "raise SystemExit(7)"])
+
+
 def test_resume_compares_bytes_and_repairs_same_size_corruption_and_stale_tail(tmp_path):
     data = bytes(1024**2) + b"correct"
     archive = archive_at(tmp_path / "data.tar", [("db/file", data)])
@@ -290,7 +296,8 @@ def test_tile_cache_survives_container_directory_recreation(tmp_path):
     (cache / "default").mkdir(parents=True)
     (cache / "default/world.meta").write_bytes(b"rendered world")
     apache = tmp_path / "apache.conf"
-    apache.write_text("<VirtualHost *:8080>\n    ModTileMissingRequestTimeout 30\n</VirtualHost>\n")
+    apache.write_text("<VirtualHost *:8080>\n    ModTileMissingRequestTimeout 30\n"
+                      "    ProxyPass / http://localhost:3000/\n</VirtualHost>\n")
     renderd = tmp_path / "renderd.conf"
     renderd.write_text("[renderd]\nnum_threads=4\n")
     configure_tiles(root, cache, apache, renderd)
@@ -306,4 +313,6 @@ def test_tile_cache_survives_container_directory_recreation(tmp_path):
     assert (cache / "default/city.meta").read_bytes() == b"new city"
     assert apache.read_text().count("ModTileMissingRequestTimeout 120") == 1
     assert apache.read_text().count("ModTileMaxLoadMissing 1000") == 1
+    assert apache.read_text().count("ProxyPassMatch") == 1
+    assert apache.read_text().index("ProxyPassMatch") < apache.read_text().index("ProxyPass /")
     assert "num_threads=2" in renderd.read_text()
