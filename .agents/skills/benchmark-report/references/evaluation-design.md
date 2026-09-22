@@ -32,6 +32,8 @@ Record, and where useful split, these sources of difference:
 
 If these cannot be normalized, disclose them and avoid causal claims the design cannot support. A matched-task latency comparison may still be useful when labeled as end-to-end user-observed latency.
 
+When comparing builds of one implementation, do not infer a code-induced latency change from two complete but time-separated batches. Predeclare the full input scope and selected round, alternate build order within every task, run serially without competing benchmark/build jobs, and retain every call with binary and input hashes. A subset is diagnostic only. If this experiment corrects the authoritative table, supersede the complete declared timing scope, preserve prior physical calls, and make report values and per-task details derive from the same selected calls. Enforce these checks in the release gate.
+
 ## References and volatile sources
 
 Prefer invariant contracts for changing pages: stable labels, required fields, record shape, types, count bounds, uniqueness, and independently observed explanatory text. Do not freeze ranks, prices, member counts, or current titles unless the benchmark is explicitly a time-bound snapshot.
