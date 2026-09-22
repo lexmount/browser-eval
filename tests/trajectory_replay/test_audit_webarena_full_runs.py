@@ -125,3 +125,19 @@ def test_ledger_rejects_changed_evaluation_evidence(tmp_path: Path) -> None:
     (sweep / "task-1" / "evaluation.json").write_text('{"score":0}\n', encoding="utf-8")
     with pytest.raises(ValueError, match="evidence hash changed"):
         build_ledger(scope, queue, inherited, [sweep])
+
+
+def test_ledger_verifies_filename_keyed_first_sweep_evidence(tmp_path: Path) -> None:
+    scope, queue, inherited, sweep = _fixture(tmp_path)
+    task_dir = sweep / "task-1"
+    (task_dir / "actual_response.json").rename(task_dir / "response.json")
+    progress_path = sweep / "progress.jsonl"
+    rows = [json.loads(line) for line in progress_path.read_text(encoding="utf-8").splitlines()]
+    rows[1]["evidence_sha256"] = {
+        name: _hash(task_dir / name)
+        for name in ("evaluation.json", "network.har", "response.json", "trace.json")
+    }
+    progress_path.write_text(
+        "\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8"
+    )
+    assert build_ledger(scope, queue, inherited, [sweep])["counts"]["pass"] == 2

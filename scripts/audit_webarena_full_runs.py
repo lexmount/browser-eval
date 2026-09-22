@@ -9,9 +9,46 @@ from pathlib import Path
 
 from harness.trajectory_replay.remote_execution import _verify_result_evidence
 
+LEGACY_EVIDENCE_FILES = frozenset(
+    {
+        "actions.json",
+        "evaluation.json",
+        "failure.png",
+        "final.png",
+        "network.har",
+        "outputs.json",
+        "response.json",
+        "trace.json",
+    }
+)
+
 
 def _hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _verify_physical_evidence(directory: Path, row: dict) -> Path:
+    task_id = row["task_id"]
+    evidence = row.get("evidence_sha256") or {}
+    task_dir = directory / f"task-{task_id}"
+    if task_dir.is_symlink() or not task_dir.is_dir():
+        raise ValueError(f"task {task_id} evidence directory is missing")
+    if "trace.json" in evidence:
+        if not set(evidence) <= LEGACY_EVIDENCE_FILES:
+            raise ValueError(f"task {task_id} has unknown legacy evidence files")
+        for name, expected in evidence.items():
+            path = task_dir / name
+            if path.is_symlink() or not path.is_file() or _hash(path) != expected:
+                raise ValueError(f"task {task_id} evidence hash changed: {name}")
+        required = {"evaluation.json", "network.har", "response.json", "trace.json"}
+        evaluation_path = task_dir / "evaluation.json"
+    else:
+        _verify_result_evidence(directory, [row])
+        required = {"evaluation", "network_har", "actual_response", "trace"}
+        evaluation_path = task_dir / "evaluation.json"
+    if row["status"] == "pass" and not required <= evidence.keys():
+        raise ValueError(f"task {task_id} pass lacks official evaluation")
+    return evaluation_path
 
 
 def build_ledger(
@@ -70,18 +107,12 @@ def build_ledger(
                 continue
             if state["status"] == "pass":
                 raise ValueError(f"task {row['task_id']} repeated after its first pass")
-            if "evidence_sha256" not in row or "trace" not in row["evidence_sha256"]:
+            evidence = row.get("evidence_sha256") or {}
+            if "trace" not in evidence and "trace.json" not in evidence:
                 raise ValueError(f"task {row['task_id']} lacks physical replay evidence")
-            _verify_result_evidence(directory, [row])
+            evaluation_path = _verify_physical_evidence(directory, row)
             if row["status"] == "pass":
-                required = {"evaluation", "network_har", "actual_response", "trace"}
-                if not required <= row["evidence_sha256"].keys():
-                    raise ValueError(f"task {row['task_id']} pass lacks official evaluation")
-                evaluation = json.loads(
-                    (directory / f"task-{row['task_id']}" / "evaluation.json").read_text(
-                        encoding="utf-8"
-                    )
-                )
+                evaluation = json.loads(evaluation_path.read_text(encoding="utf-8"))
                 if float(evaluation.get("score") or 0) != 1 or any(
                     assertion.get("status") != "pass"
                     for assertion in evaluation.get("replay_assertions") or []

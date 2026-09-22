@@ -22,9 +22,9 @@ from harness.trajectory_replay.remote_runtime import (
     rebind_remote_calls,
     remote_benchmark,
 )
+from harness.trajectory_replay.template_transfer import transfer_values
 from harness.trajectory_replay.webarena_corrections import load_corrections
 from harness.trajectory_replay.webarena_replay import _json_sha256
-from scripts.build_webarena_template_candidates import _transfer
 
 TRUSTED_RECORDED_HOSTS = frozenset(
     {
@@ -118,7 +118,7 @@ def _template_task(source_task, candidate: dict, official):
         task_id=f"webarena-{candidate['task_id']}",
         title=str(official.intent),
         tool_calls=tuple(candidate["actions"]),
-        ground_truth=_transfer(source_task.ground_truth, replacements),
+        ground_truth=transfer_values(source_task.ground_truth, replacements),
         evaluator={
             "kind": "webarena_verified",
             "task_id": candidate["task_id"],

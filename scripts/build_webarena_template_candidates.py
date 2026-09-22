@@ -8,6 +8,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from harness.trajectory_replay.template_transfer import transfer_values
+
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -17,22 +19,6 @@ def _digest(value: Any) -> str:
     return hashlib.sha256(
         json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
-
-
-def _transfer(value: Any, replacements: list[tuple[str, str]]) -> Any:
-    if isinstance(value, list):
-        return [_transfer(item, replacements) for item in value]
-    if isinstance(value, dict):
-        return {key: _transfer(item, replacements) for key, item in value.items()}
-    if not isinstance(value, str):
-        return value
-    result = value
-    for before, after in replacements:
-        if before == result:
-            result = after
-        elif len(before) >= 3 and not before.isdigit():
-            result = result.replace(before, after)
-    return result
 
 
 def build_candidates(
@@ -126,7 +112,7 @@ def build_candidates(
         source_actions = (
             task["trajectory"]["actions"] if kind == "human" else task["tool_calls"]
         )
-        actions = _transfer(source_actions, replacements)
+        actions = transfer_values(source_actions, replacements)
         candidates.append(
             {
                 "task_id": row["task_id"],
