@@ -157,13 +157,18 @@ def _metric_lines(
     winners: dict[str, set[str]],
     *,
     lang: str,
+    audit_direction: str | None = None,
 ) -> str:
     labels = (("mean", "均值"), ("p50", "P50"), ("p95", "P95"))
     if lang == "en":
         labels = (("mean", "Mean"), ("p50", "P50"), ("p95", "P95"))
     return "<br>".join(
-        f'<span class="metric-label">{label}</span> '
+        (f'<span data-stat="{key}" data-direction="{audit_direction}"'
+         + (f' data-value="{metric[key]}"' if isinstance(metric.get(key), (int, float)) else '')
+         + '>' if audit_direction else '')
+        + f'<span class="metric-label">{label}</span> '
         + _winner(formatter(metric.get(key)), method_id in winners[key], lang=lang)
+        + ('</span>' if audit_direction else '')
         for key, label in labels
     )
 
@@ -326,6 +331,7 @@ def _grouped_metric_tables(
                         method["id"],
                         metric_winners,
                         lang=lang,
+                        audit_direction="min" if lower_is_better else "neutral",
                     )
                 )
             rows.append("<tr>" + "".join(f"<td>{cell}</td>" for cell in cells) + "</tr>")

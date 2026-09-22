@@ -5,10 +5,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
+
+from bs4 import BeautifulSoup
 
 from harness.trajectory_replay.webarena_report import LOCAL_PATH_RE
 
@@ -65,6 +68,37 @@ def _local_target(page: Path, raw: str) -> Path | None:
     if parsed.scheme or raw.startswith(("#", "mailto:", "javascript:")):
         return None
     return (page.parent / unquote(parsed.path)).resolve()
+
+
+def _check_grouped_metrics(html: str, *, minimum_groups: int) -> None:
+    soup = BeautifulSoup(html, "html.parser")
+    groups = soup.select(".metric-groups")
+    if len(groups) < minimum_groups or not soup.select_one(".leader-grid"):
+        raise ValueError("missing grouped timing/resource comparisons")
+    for group in groups:
+        rows = group.select("tbody tr")
+        if not rows:
+            raise ValueError("empty metric comparison group")
+        for row in rows:
+            cells = row.select("td")[1:]
+            for stat in ("mean", "p50", "p95"):
+                nodes = [cell.select_one(f'[data-stat="{stat}"]') for cell in cells]
+                if not nodes or any(node is None for node in nodes):
+                    raise ValueError("missing metric comparison values")
+                directions = {node.get("data-direction") for node in nodes}
+                if len(directions) != 1 or not directions <= {"min", "neutral"}:
+                    raise ValueError("invalid metric comparison direction")
+                values = [float(node["data-value"]) if node.has_attr("data-value") else None
+                          for node in nodes]
+                numeric = [value for value in values if value is not None]
+                if any(not math.isfinite(value) for value in numeric):
+                    raise ValueError("non-finite metric comparison value")
+                best = min(numeric) if numeric else None
+                unique = best is not None and numeric.count(best) == 1
+                for node, value in zip(nodes, values):
+                    expected = directions == {"min"} and unique and value == best
+                    if bool(node.select_one(".winner")) != expected:
+                        raise ValueError("metric highlight missing, incorrect, or tied")
 
 
 def check(report_dir: Path) -> dict[str, int]:
@@ -260,18 +294,9 @@ def check(report_dir: Path) -> dict[str, int]:
         if 'class="table-scroll review-table"' not in review_html or review_html.count('<tbody><tr>') != 1:
             raise ValueError("review history must describe review rounds, not enumerate per-result audits")
         interpretation_html = (language_root / "interpretation.html").read_text(encoding="utf-8")
-        if (
-            'class="metric-groups"' not in interpretation_html
-            or 'class="leader-grid"' not in interpretation_html
-            or 'class="winner"' not in interpretation_html
-        ):
-            raise ValueError("interpretation must include grouped timing and resource comparisons")
+        _check_grouped_metrics(interpretation_html, minimum_groups=1)
         home_html = (language_root / "index.html").read_text(encoding="utf-8")
-        if (
-            home_html.count('class="metric-groups"') < 2
-            or home_html.count('class="winner"') < 1
-        ):
-            raise ValueError("home must include complete grouped timing/resource tables and winners")
+        _check_grouped_metrics(home_html, minimum_groups=2)
     js = (root / "assets/app.js").read_text(encoding="utf-8")
     if "const task=params.get('task');" not in js or "row.dataset.task===task" not in js:
         raise ValueError("dataset-to-results drilldown must select an exact task ID")

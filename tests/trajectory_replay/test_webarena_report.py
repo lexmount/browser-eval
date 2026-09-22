@@ -18,7 +18,42 @@ from harness.trajectory_replay.webarena_report import (
     _leader_sentence,
     _metric_leader,
 )
-from scripts.check_webarena_replay_report import _check_english_localization
+from scripts.check_webarena_replay_report import _check_english_localization, _check_grouped_metrics
+from bs4 import BeautifulSoup
+
+
+@pytest.mark.parametrize("values", [(None, None), (2, 2), (1, 2), (None, 2)])
+def test_metric_release_gate_accepts_missing_tied_and_unique_values(values):
+    methods = [
+        {"id": str(index), "label": str(index), "resources": {},
+         "timings": {"trajectory_replay_ms": dict.fromkeys(("mean", "p50", "p95"), value)}}
+        for index, value in enumerate(values)
+    ]
+    html = _timing_comparison(methods, "zh") + _resource_comparison(methods, "zh")
+    _check_grouped_metrics(html, minimum_groups=2)
+    soup = BeautifulSoup(html, "html.parser")
+    ranked = soup.select('[data-value]')
+    if not ranked:
+        ranked = soup.select('[data-stat]')
+    target = next((node for node in ranked if node.select_one('.winner')), ranked[0])
+    winner = target.select_one('.winner')
+    if winner:
+        winner.unwrap()
+    else:
+        forged = soup.new_tag('strong', attrs={"class": "winner"})
+        forged.string = "incorrect highlight"
+        target.append(forged)
+    with pytest.raises(ValueError, match="highlight"):
+        _check_grouped_metrics(str(soup), minimum_groups=2)
+
+
+def test_metric_release_gate_rejects_missing_groups_and_values():
+    with pytest.raises(ValueError, match="missing grouped"):
+        _check_grouped_metrics('<div class="leader-grid"></div>', minimum_groups=2)
+    html = ('<div class="leader-grid"></div><div class="metric-groups">'
+            '<table><tbody><tr><td>Metric</td><td>1</td></tr></tbody></table></div>')
+    with pytest.raises(ValueError, match="missing metric"):
+        _check_grouped_metrics(html, minimum_groups=1)
 
 
 def _method(name: str, pass_rate: float, base: float) -> dict:
