@@ -272,6 +272,246 @@
       ]
     },
     {
+      "task_id": 689,
+      "official_revision": 2,
+      "correction_id": "wv-689-dom-state-without-submit-20260923",
+      "rationale": "The task requires a filled contact form kept ready for review, so the synthetic dummy_bin POST cannot be positive evidence. Final DOM values plus the retained prohibition on the real submit request express the contract.",
+      "root_cause": "The upstream contract requires an artificial POST while also prohibiting the real contact-form POST, contradicting the instruction to leave the form ready for review.",
+      "regression_ids": [
+        "tr-689-accept-filled-unsubmitted-form",
+        "tr-689-reject-wrong-coupon-reason",
+        "tr-689-reject-real-contact-submit"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^http://.*/dummy_bin$"
+        },
+        {
+          "path": "/eval/1/expected/post_data/comment",
+          "equals": "I am a loyal customer, give me a coupon"
+        },
+        {
+          "path": "/eval/2/should_not_exist",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "remove",
+          "path": "/eval/1"
+        }
+      ],
+      "replay_assertions": [
+        {
+          "kind": "final_dom_form_state",
+          "page_url": "__SHOPPING__/contact",
+          "form": "#contact-form",
+          "fields": {
+            "input[name='name']": "Emma Lopez",
+            "input[name='email']": "emma.lopez@gmail.com",
+            "textarea[name='comment']": "I am a loyal customer, give me a coupon"
+          },
+          "forbid_network_event": {
+            "url": "__SHOPPING__/contact/index/post",
+            "http_method": "POST"
+          }
+        }
+      ]
+    },
+    {
+      "task_id": 690,
+      "official_revision": 2,
+      "correction_id": "wv-690-dom-state-without-submit-20260923",
+      "rationale": "The task requires a filled contact form kept ready for review, so the synthetic dummy_bin POST cannot be positive evidence. Final DOM values plus the retained prohibition on the real submit request express the contract.",
+      "root_cause": "The upstream contract requires an artificial POST while also prohibiting the real contact-form POST, contradicting the instruction to leave the form ready for review.",
+      "regression_ids": [
+        "tr-690-accept-filled-unsubmitted-form",
+        "tr-690-reject-wrong-coupon-reason",
+        "tr-690-reject-real-contact-submit"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^http://.*/dummy_bin$"
+        },
+        {
+          "path": "/eval/1/expected/post_data/comment",
+          "equals": "they promised me a coupon last time"
+        },
+        {
+          "path": "/eval/2/should_not_exist",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "remove",
+          "path": "/eval/1"
+        }
+      ],
+      "replay_assertions": [
+        {
+          "kind": "final_dom_form_state",
+          "page_url": "__SHOPPING__/contact",
+          "form": "#contact-form",
+          "fields": {
+            "input[name='name']": "Emma Lopez",
+            "input[name='email']": "emma.lopez@gmail.com",
+            "textarea[name='comment']": "they promised me a coupon last time"
+          },
+          "forbid_network_event": {
+            "url": "__SHOPPING__/contact/index/post",
+            "http_method": "POST"
+          }
+        }
+      ]
+    },
+    {
+      "task_id": 691,
+      "official_revision": 2,
+      "correction_id": "wv-691-dom-state-without-submit-20260923",
+      "rationale": "The task requires a filled contact form kept ready for review, so the synthetic dummy_bin POST cannot be positive evidence. Final DOM values plus the retained prohibition on the real submit request express the contract.",
+      "root_cause": "The upstream contract requires an artificial POST while also prohibiting the real contact-form POST, contradicting the instruction to leave the form ready for review.",
+      "regression_ids": [
+        "tr-691-accept-filled-unsubmitted-form",
+        "tr-691-reject-wrong-coupon-reason",
+        "tr-691-reject-real-contact-submit"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^http://.*/dummy_bin$"
+        },
+        {
+          "path": "/eval/1/expected/post_data/comment",
+          "equals": "I plan to make a bulk purchase"
+        },
+        {
+          "path": "/eval/2/should_not_exist",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "remove",
+          "path": "/eval/1"
+        }
+      ],
+      "replay_assertions": [
+        {
+          "kind": "final_dom_form_state",
+          "page_url": "__SHOPPING__/contact",
+          "form": "#contact-form",
+          "fields": {
+            "input[name='name']": "Emma Lopez",
+            "input[name='email']": "emma.lopez@gmail.com",
+            "textarea[name='comment']": "I plan to make a bulk purchase"
+          },
+          "forbid_network_event": {
+            "url": "__SHOPPING__/contact/index/post",
+            "http_method": "POST"
+          }
+        }
+      ]
+    },
+    {
+      "task_id": 692,
+      "official_revision": 2,
+      "correction_id": "wv-692-dom-state-without-submit-20260923",
+      "rationale": "The task requires a filled contact form kept ready for review, so the synthetic dummy_bin POST cannot be positive evidence. Final DOM values plus the retained prohibition on the real submit request express the contract.",
+      "root_cause": "The upstream contract requires an artificial POST while also prohibiting the real contact-form POST, contradicting the instruction to leave the form ready for review.",
+      "regression_ids": [
+        "tr-692-accept-filled-unsubmitted-form",
+        "tr-692-reject-wrong-coupon-reason",
+        "tr-692-reject-real-contact-submit"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^http://.*/dummy_bin$"
+        },
+        {
+          "path": "/eval/1/expected/post_data/comment",
+          "equals": "I am a student"
+        },
+        {
+          "path": "/eval/2/should_not_exist",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "remove",
+          "path": "/eval/1"
+        }
+      ],
+      "replay_assertions": [
+        {
+          "kind": "final_dom_form_state",
+          "page_url": "__SHOPPING__/contact",
+          "form": "#contact-form",
+          "fields": {
+            "input[name='name']": "Emma Lopez",
+            "input[name='email']": "emma.lopez@gmail.com",
+            "textarea[name='comment']": "I am a student"
+          },
+          "forbid_network_event": {
+            "url": "__SHOPPING__/contact/index/post",
+            "http_method": "POST"
+          }
+        }
+      ]
+    },
+    {
+      "task_id": 693,
+      "official_revision": 2,
+      "correction_id": "wv-693-dom-state-without-submit-20260923",
+      "rationale": "The task requires a filled contact form kept ready for review, so the synthetic dummy_bin POST cannot be positive evidence. Final DOM values plus the retained prohibition on the real submit request express the contract.",
+      "root_cause": "The upstream contract requires an artificial POST while also prohibiting the real contact-form POST, contradicting the instruction to leave the form ready for review.",
+      "regression_ids": [
+        "tr-693-accept-filled-unsubmitted-form",
+        "tr-693-reject-wrong-coupon-reason",
+        "tr-693-reject-real-contact-submit"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^http://.*/dummy_bin$"
+        },
+        {
+          "path": "/eval/1/expected/post_data/comment",
+          "equals": "my refund is supposed to be replaced by a coupon"
+        },
+        {
+          "path": "/eval/2/should_not_exist",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "remove",
+          "path": "/eval/1"
+        }
+      ],
+      "replay_assertions": [
+        {
+          "kind": "final_dom_form_state",
+          "page_url": "__SHOPPING__/contact",
+          "form": "#contact-form",
+          "fields": {
+            "input[name='name']": "Emma Lopez",
+            "input[name='email']": "emma.lopez@gmail.com",
+            "textarea[name='comment']": "my refund is supposed to be replaced by a coupon"
+          },
+          "forbid_network_event": {
+            "url": "__SHOPPING__/contact/index/post",
+            "http_method": "POST"
+          }
+        }
+      ]
+    },
+    {
       "task_id": 699,
       "official_revision": 3,
       "correction_id": "wv-699-all-customer-groups-20260918",

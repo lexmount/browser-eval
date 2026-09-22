@@ -14,6 +14,7 @@ from harness.trajectory_replay.remote_runtime import remote_benchmark
 from harness.trajectory_replay.webarena_corrections import (
     CorrectedReplayContract,
     apply_correction,
+    check_replay_assertions,
     corrected_task_ids,
     evaluate_corrected_contract,
     load_corrections,
@@ -294,6 +295,11 @@ def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
         678,
         679,
         680,
+        689,
+        690,
+        691,
+        692,
+        693,
         699,
         737,
         738,
@@ -700,6 +706,80 @@ def test_528_uses_final_dom_state_and_forbids_real_submission(benchmark, catalog
     assert assertion["kind"] == "final_dom_form_state"
     assert assertion["fields"]["textarea[name='comment']"].startswith("I need a refund")
     assert assertion["forbid_network_event"]["http_method"] == "POST"
+
+
+@pytest.mark.parametrize("task_id", [689, 690, 691, 692, 693])
+def test_coupon_requests_use_exact_final_dom_state_without_submission(
+    benchmark, catalog, tmp_path, task_id
+) -> None:
+    applied = apply_correction(benchmark.get_task(task_id), catalog)
+    network = [_dump_eval(applied, index) for index in range(1, len(applied.task.eval))]
+    assert len(network) == 1
+    assert network[0]["expected"]["url"] == "__SHOPPING__/contact/index/post"
+    assert network[0]["should_not_exist"] is True
+
+    assertion = applied.replay_assertions[0]
+    expected = assertion["fields"]
+    passed = check_replay_assertions(
+        applied,
+        page_url="http://shop.test/contact/",
+        page_text="Contact Us",
+        field_values=expected,
+    )
+    assert passed == (
+        {
+            "kind": "final_dom_form_state",
+            "status": "pass",
+            "expected": expected,
+            "actual": expected,
+        },
+    )
+
+    wrong = dict(expected)
+    wrong["textarea[name='comment']"] = "a different coupon reason"
+    assert check_replay_assertions(
+        applied,
+        page_url="http://shop.test/contact/",
+        page_text="Contact Us",
+        field_values=wrong,
+    )[0]["status"] == "fail"
+
+    empty_har = tmp_path / f"coupon-{task_id}.har"
+    empty_har.write_text(
+        json.dumps(
+            {
+                "log": {
+                    "version": "1.2",
+                    "creator": {"name": "coupon-form-control", "version": "1"},
+                    "entries": [
+                        {
+                            "request": {
+                                "method": "GET",
+                                "url": "http://shop.test/contact/",
+                                "headers": [],
+                            },
+                            "response": {
+                                "status": 200,
+                                "headers": [],
+                                "cookies": [],
+                                "content": {"mimeType": "text/html", "text": ""},
+                            },
+                        }
+                    ],
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    response = {
+        "task_type": "mutate",
+        "status": "SUCCESS",
+        "retrieved_data": None,
+        "error_details": None,
+    }
+    assert evaluate_corrected_contract(
+        benchmark, applied, agent_response=response, network_trace=empty_har
+    ).score == 1
 
 
 def test_547_removes_redundant_attribute_save_but_keeps_variation_save(benchmark, catalog) -> None:
