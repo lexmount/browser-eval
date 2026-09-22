@@ -8,6 +8,7 @@ from harness.trajectory_replay.webarena_replay import _json_sha256
 from scripts import run_webarena_full_chromium as sweep
 from scripts.run_webarena_full_chromium import (
     _append,
+    _attempt_pending_row,
     _completed,
     _template_task,
     _validate_template_candidate,
@@ -126,3 +127,28 @@ def test_curated_transfer_uses_shared_browser_tool_path(monkeypatch, tmp_path: P
     assert outcome["status"] == "pass"
     assert observed["row"]["actions"] == candidate["actions"]
     assert "portable_task" not in observed
+
+
+def test_one_candidate_setup_error_is_recorded_without_stopping_later_cases(
+    monkeypatch, tmp_path: Path
+) -> None:
+    def broken_candidate(*_args, **_kwargs):
+        raise RuntimeError("recorded target is malformed")
+
+    monkeypatch.setattr(sweep, "_run_candidate", broken_candidate)
+    common = {
+        "template_curated": {},
+        "template_tasks": {},
+        "authored_by_id": {},
+        "by_id": {1: object(), 2: object()},
+        "benchmark": object(),
+        "endpoint": "http://localhost:9222",
+        "output": tmp_path,
+        "sites": {},
+        "action_timeout_ms": 15_000,
+    }
+    first = _attempt_pending_row({"task_id": 1, "source": "recorded"}, **common)
+    second = _attempt_pending_row({"task_id": 2, "source": "recorded"}, **common)
+    assert [first["task_id"], second["task_id"]] == [1, 2]
+    assert first["status"] == second["status"] == "candidate_setup_failure"
+    assert "recorded target is malformed" in second["error"]

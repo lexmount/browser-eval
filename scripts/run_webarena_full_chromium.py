@@ -10,6 +10,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import traceback
 from dataclasses import replace
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -133,6 +134,49 @@ def _validate_template_candidate(candidate: dict, source_task, official) -> None
         or candidate["intent_template_id"] != official.intent_template_id
     ):
         raise ValueError(f"template candidate changed for task {candidate['task_id']}")
+
+
+def _attempt_pending_row(
+    row: dict,
+    *,
+    template_curated: dict,
+    template_tasks: dict,
+    authored_by_id: dict,
+    by_id: dict,
+    benchmark,
+    endpoint: str,
+    output: Path,
+    sites: dict,
+    action_timeout_ms: int,
+) -> dict:
+    task_id = row["task_id"]
+    try:
+        if row.get("source") == "template_transfer" and task_id in template_curated:
+            return _run_curated_candidate(
+                template_curated[task_id], benchmark, endpoint, output, sites
+            )
+        task = (
+            template_tasks[task_id]
+            if row.get("source") == "template_transfer"
+            else authored_by_id[task_id]
+            if row.get("source") == "authored_trajectory"
+            else by_id[task_id]
+        )
+        return _run_candidate(
+            task,
+            benchmark,
+            endpoint,
+            output,
+            sites,
+            action_timeout_ms=action_timeout_ms,
+        )
+    except Exception:
+        return {
+            "task_id": task_id,
+            "status": "candidate_setup_failure",
+            "source": row.get("source"),
+            "error": traceback.format_exc(),
+        }
 
 
 def main() -> None:
@@ -272,26 +316,18 @@ def main() -> None:
             for row in pending:
                 task_id = row["task_id"]
                 if row["status"] == "pending_first_sweep":
-                    if row.get("source") == "template_transfer" and task_id in template_curated:
-                        outcome = _run_curated_candidate(
-                            template_curated[task_id], benchmark, endpoint, args.output, sites
-                        )
-                    else:
-                        task = (
-                            template_tasks[task_id]
-                            if row.get("source") == "template_transfer"
-                            else authored_by_id[task_id]
-                            if row.get("source") == "authored_trajectory"
-                            else by_id[task_id]
-                        )
-                        outcome = _run_candidate(
-                            task,
-                            benchmark,
-                            endpoint,
-                            args.output,
-                            sites,
-                            action_timeout_ms=args.action_timeout_ms,
-                        )
+                    outcome = _attempt_pending_row(
+                        row,
+                        template_curated=template_curated,
+                        template_tasks=template_tasks,
+                        authored_by_id=authored_by_id,
+                        by_id=by_id,
+                        benchmark=benchmark,
+                        endpoint=endpoint,
+                        output=args.output,
+                        sites=sites,
+                        action_timeout_ms=args.action_timeout_ms,
+                    )
                 else:
                     outcome = dict(row)
                 _append(progress, outcome)
