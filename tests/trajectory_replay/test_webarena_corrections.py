@@ -201,6 +201,79 @@ def test_admin_order_filter_corrections_select_xhr_and_reject_stale_search(
     assert float(negative.score) == 0.0
 
 
+@pytest.mark.parametrize(
+    ("task_id", "member_ids"),
+    [(742, [5, 278]), (743, [5, 278]), (745, [2367, 43, 5]), (746, [2367, 43, 5])],
+)
+def test_multi_member_project_corrections_match_every_member_event(
+    tmp_path, route_benchmark, catalog, task_id, member_ids
+) -> None:
+    original = route_benchmark.get_task(task_id)
+    contract = apply_correction(original, catalog)
+
+    def write_har(path: Path, included_ids: list[int]) -> Path:
+        entries = [
+            {
+                "request": {
+                    "method": "GET",
+                    "url": "http://git.test/",
+                    "headers": [{"name": "accept", "value": "text/html"}],
+                },
+                "response": {"status": 200, "headers": [], "content": {}},
+            },
+            {
+                "request": {
+                    "method": "POST",
+                    "url": "http://git.test/api/v4/projects",
+                    "headers": [],
+                    "postData": {
+                        "mimeType": "application/json",
+                        "text": json.dumps(
+                            {
+                                "name": original.eval[1].expected.post_data["name"],
+                                "visibility": original.eval[1].expected.post_data["visibility"],
+                            }
+                        ),
+                    },
+                },
+                "response": {"status": 201, "headers": [], "content": {}},
+            }
+        ]
+        entries.extend(
+            {
+                "request": {
+                    "method": "POST",
+                    "url": "http://git.test/api/v4/projects/321/members",
+                    "headers": [],
+                    "postData": {
+                        "mimeType": "application/json",
+                        "text": json.dumps({"user_id": user_id, "access_level": 30}),
+                    },
+                },
+                "response": {"status": 201, "headers": [], "content": {}},
+            }
+            for user_id in included_ids
+        )
+        path.write_text(json.dumps({"log": {"entries": entries}}))
+        return path
+
+    response = {"task_type": "mutate", "status": "SUCCESS", "retrieved_data": None}
+    positive = evaluate_corrected_contract(
+        route_benchmark,
+        contract,
+        agent_response=response,
+        network_trace=write_har(tmp_path / "positive.har", member_ids),
+    )
+    negative = evaluate_corrected_contract(
+        route_benchmark,
+        contract,
+        agent_response=response,
+        network_trace=write_har(tmp_path / "negative.har", member_ids[1:]),
+    )
+    assert float(positive.score) == 1.0
+    assert float(negative.score) == 0.0
+
+
 def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
     payload = json.loads(catalog.source_path.read_text(encoding="utf-8"))
     assert payload["historical_browser_use_scores_immutable"] is True
@@ -226,6 +299,10 @@ def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
         739,
         740,
         741,
+        742,
+        743,
+        745,
+        746,
         759,
         760,
     )

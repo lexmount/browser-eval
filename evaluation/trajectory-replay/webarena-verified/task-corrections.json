@@ -641,6 +641,172 @@
           "value": false
         }
       ]
+    },
+    {
+      "task_id": 742,
+      "official_revision": 2,
+      "correction_id": "wv-742-match-all-member-events-20260923",
+      "rationale": "Match every required project-member POST across the repeated members endpoint.",
+      "root_cause": "The task requires multiple POSTs to one members URL pattern, while the evaluator defaults each assertion to the last matching URL event, so earlier required members are hidden by the final request.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task742-multi-member-reference.json",
+        "sha256": "c77d30f3832243eb4e577c8c361a9a026e1379b76b2aa4f98ae90c7e07d21243"
+      },
+      "regression_ids": [
+        "tr-742-accept-all-required-members",
+        "tr-742-reject-missing-first-member"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/2/last_event_only",
+          "equals": true
+        },
+        {
+          "path": "/eval/3/last_event_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/2/last_event_only",
+          "value": false
+        },
+        {
+          "op": "replace",
+          "path": "/eval/3/last_event_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 743,
+      "official_revision": 2,
+      "correction_id": "wv-743-match-all-member-events-20260923",
+      "rationale": "Match every required project-member POST across the repeated members endpoint.",
+      "root_cause": "The task requires multiple POSTs to one members URL pattern, while the evaluator defaults each assertion to the last matching URL event, so earlier required members are hidden by the final request.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task743-multi-member-reference.json",
+        "sha256": "fe5fb04e4c4c3924ac8a629364e38e9db01a6efe7c6539be6a2191068ae072c0"
+      },
+      "regression_ids": [
+        "tr-743-accept-all-required-members",
+        "tr-743-reject-missing-first-member"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/2/last_event_only",
+          "equals": true
+        },
+        {
+          "path": "/eval/3/last_event_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/2/last_event_only",
+          "value": false
+        },
+        {
+          "op": "replace",
+          "path": "/eval/3/last_event_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 745,
+      "official_revision": 2,
+      "correction_id": "wv-745-match-all-member-events-20260923",
+      "rationale": "Match every required project-member POST across the repeated members endpoint.",
+      "root_cause": "The task requires multiple POSTs to one members URL pattern, while the evaluator defaults each assertion to the last matching URL event, so earlier required members are hidden by the final request.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task745-multi-member-reference.json",
+        "sha256": "e42350947c15991e5a97cbf5b0c1a85f0b69682a18f70f5a44a296ab92f1b854"
+      },
+      "regression_ids": [
+        "tr-745-accept-all-required-members",
+        "tr-745-reject-missing-first-member"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/2/last_event_only",
+          "equals": true
+        },
+        {
+          "path": "/eval/3/last_event_only",
+          "equals": true
+        },
+        {
+          "path": "/eval/4/last_event_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/2/last_event_only",
+          "value": false
+        },
+        {
+          "op": "replace",
+          "path": "/eval/3/last_event_only",
+          "value": false
+        },
+        {
+          "op": "replace",
+          "path": "/eval/4/last_event_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 746,
+      "official_revision": 2,
+      "correction_id": "wv-746-match-all-member-events-20260923",
+      "rationale": "Match every required project-member POST across the repeated members endpoint.",
+      "root_cause": "The task requires multiple POSTs to one members URL pattern, while the evaluator defaults each assertion to the last matching URL event, so earlier required members are hidden by the final request.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task746-multi-member-reference.json",
+        "sha256": "32fd7d855a79d2416c7ac60775ec809b24f774ab9b464d42b9d6051b156f4aa9"
+      },
+      "regression_ids": [
+        "tr-746-accept-all-required-members",
+        "tr-746-reject-missing-first-member"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/2/last_event_only",
+          "equals": true
+        },
+        {
+          "path": "/eval/3/last_event_only",
+          "equals": true
+        },
+        {
+          "path": "/eval/4/last_event_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/2/last_event_only",
+          "value": false
+        },
+        {
+          "op": "replace",
+          "path": "/eval/3/last_event_only",
+          "value": false
+        },
+        {
+          "op": "replace",
+          "path": "/eval/4/last_event_only",
+          "value": false
+        }
+      ]
     }
   ]
 }

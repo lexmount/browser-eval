@@ -37,6 +37,7 @@ SUPPORTED_ACTIONS = frozenset(
         "back",
         "forward",
         "scroll",
+        "evaluate",
     }
 )
 
@@ -146,6 +147,8 @@ def _validate_step(task_id: str, index: int, step: Any) -> dict[str, Any]:
         ("http://", "https://", "{fixture_origin}/")
     ):
         raise ValueError(f"{task_id}: navigate step {index} requires an HTTP(S) URL")
+    if action == "evaluate" and not str(step.get("script") or "").strip():
+        raise ValueError(f"{task_id}: evaluate call {index} requires a non-empty script")
     try:
         validate_selector(step)
     except ValueError as exc:

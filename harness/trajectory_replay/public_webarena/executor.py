@@ -338,6 +338,17 @@ def execute_steps(
                 else:
                     observation = locator.inner_text(timeout=timeout)
                 observation = observation[: int(call.get("max_chars", 40_000))]
+            elif action == "evaluate":
+                script = call.get("script")
+                if not isinstance(script, str) or not script.strip():
+                    raise ValueError("evaluate requires a non-empty script")
+                value = action_page.evaluate(script)
+                observation = (
+                    value
+                    if isinstance(value, str)
+                    else json.dumps(value, ensure_ascii=False)
+                )
+                observation = observation[: int(call.get("max_chars", 40_000))]
             elif action == "back":
                 action_page.go_back(wait_until=call.get("wait_until", "commit"), timeout=timeout)
                 observation = f"Navigated back to: {getattr(action_page, 'url', '')}"

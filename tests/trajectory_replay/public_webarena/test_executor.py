@@ -32,6 +32,9 @@ class FakePage:
         return "Example"
 
     def evaluate(self, script, argument=None):
+        self.calls.append(("evaluate", script, argument))
+        if script == "() => ({ok: true, count: 2})":
+            return {"ok": True, "count": 2}
         return {"found": True, "rect": {"width": 0}}
 
     def locator(self, selector):
@@ -173,6 +176,24 @@ def test_trace_has_one_record_per_declared_tool_call():
     assert len(trace) == 1
     assert trace[0]["action"] == "navigate"
     assert trace[0]["status"] == "pass"
+
+
+def test_evaluate_runs_declared_page_script_and_captures_json():
+    page = FakePage()
+
+    outputs = execute_steps(
+        page,
+        (
+            {
+                "action": "evaluate",
+                "script": "() => ({ok: true, count: 2})",
+                "save_as": "result",
+            },
+        ),
+    )
+
+    assert outputs["result"] == '{"ok": true, "count": 2}'
+    assert page.calls == [("evaluate", "() => ({ok: true, count: 2})", None)]
 
 
 def test_action_can_wait_for_loading_mask_to_disappear_before_clicking():

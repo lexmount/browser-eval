@@ -309,6 +309,31 @@ def apply_correction(
                 or len(str(observation.get("observed_har_sha256") or "")) != 64
             ):
                 raise ValueError(f"task {task.task_id}: incomplete navigation-XHR reference")
+        elif (
+            observation.get("schema")
+            == "trajectory_replay_repeated_network_event_reference/1"
+        ):
+            original_members = original["eval"][2:]
+            corrected_members = corrected["eval"][2:]
+            member_ids = [row["expected"]["post_data"]["user_id"] for row in original_members]
+            if (
+                observation.get("required_member_ids") != member_ids
+                or observation.get("official_last_event_only")
+                != [row["last_event_only"] for row in original_members]
+                or observation.get("corrected_last_event_only")
+                != [row["last_event_only"] for row in corrected_members]
+                or any(
+                    row["expected"]["url"] != observation.get("endpoint_pattern")
+                    for row in original_members
+                )
+                or (
+                    observation.get("observed_har_sha256") is not None
+                    and len(str(observation["observed_har_sha256"])) != 64
+                )
+            ):
+                raise ValueError(
+                    f"task {task.task_id}: incomplete repeated-network-event reference"
+                )
         elif observation.get("derivation", {}).get("kind") == "qualified_catalog_price_range/1":
             source = observation.get("independent_source") or {}
             products = source.get("qualified_products") or []
