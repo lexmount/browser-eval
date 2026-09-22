@@ -123,6 +123,7 @@ def execute_steps(
                 )
             timeout = min(declared_timeout, remaining_ms)
         started = time.perf_counter()
+        locator_call = {**call, "timeout_ms": timeout}
         record = {
             "index": index,
             "action": action,
@@ -165,7 +166,7 @@ def execute_steps(
                 )
                 with navigation:
                     try:
-                        locator_for(action_page, call).click(
+                        locator_for(action_page, locator_call).click(
                             timeout=timeout,
                             no_wait_after=bool(call.get("no_wait_after", False)),
                         )
@@ -181,7 +182,7 @@ def execute_steps(
                         }
                 observation = "Clicked successfully."
             elif action == "double_click":
-                locator_for(action_page, call).dblclick(
+                locator_for(action_page, locator_call).dblclick(
                     timeout=timeout,
                     no_wait_after=bool(call.get("no_wait_after", False)),
                 )
@@ -189,7 +190,9 @@ def execute_steps(
             elif action == "fill":
                 if (call.get("source") or {}).get("unresolved_external_input"):
                     raise ValueError("trajectory contains unresolved external input")
-                locator_for(action_page, call).fill(str(call.get("text", "")), timeout=timeout)
+                locator_for(action_page, locator_call).fill(
+                    str(call.get("text", "")), timeout=timeout
+                )
                 observation = "Filled text successfully."
             elif action == "select":
                 navigation = (
@@ -206,23 +209,23 @@ def execute_steps(
                         if isinstance(selected, list)
                         else str(selected)
                     )
-                    locator_for(action_page, call).select_option(
+                    locator_for(action_page, locator_call).select_option(
                         selected,
                         timeout=timeout,
                         no_wait_after=bool(call.get("no_wait_after", False)),
                     )
                 observation = f"Selected option {call.get('value', '')}."
             elif action == "check":
-                locator_for(action_page, call).check(timeout=timeout)
+                locator_for(action_page, locator_call).check(timeout=timeout)
                 observation = "Checked successfully."
             elif action == "uncheck":
-                locator_for(action_page, call).uncheck(timeout=timeout)
+                locator_for(action_page, locator_call).uncheck(timeout=timeout)
                 observation = "Unchecked successfully."
             elif action == "hover":
-                locator_for(action_page, call).hover(timeout=timeout)
+                locator_for(action_page, locator_call).hover(timeout=timeout)
                 observation = "Hovered successfully."
             elif action == "get_text":
-                locator = locator_for(action_page, call)
+                locator = locator_for(action_page, locator_call)
                 expected_text = call.get("wait_for_text")
                 if isinstance(expected_text, str):
                     wait_timeout = min(timeout, int(call.get("wait_timeout_ms", 5_000)))
@@ -244,14 +247,16 @@ def execute_steps(
                     observation = observation.strip()
                 observation = observation[: int(call.get("max_chars", 40_000))]
             elif action == "get_all_text":
-                values = locator_for(action_page, call, all_matches=True).all_text_contents()
+                values = locator_for(
+                    action_page, locator_call, all_matches=True
+                ).all_text_contents()
                 if call.get("strip"):
                     values = [value.strip() for value in values]
                 max_items = int(call.get("max_items", 1_000))
                 max_chars = int(call.get("max_chars", 40_000))
                 observation = json.dumps(values[:max_items], ensure_ascii=False)[:max_chars]
             elif action == "get_table_column":
-                locator = locator_for(action_page, call)
+                locator = locator_for(action_page, locator_call)
                 options = {
                     "header": str(call["header"]),
                     "maxItems": int(call.get("max_items", 1_000)),
@@ -284,12 +289,12 @@ def execute_steps(
                     call.get("max_chars", 40_000)
                 )]
             elif action == "get_attribute":
-                value = locator_for(action_page, call).get_attribute(
+                value = locator_for(action_page, locator_call).get_attribute(
                     str(call["name"]), timeout=timeout
                 )
                 observation = "" if value is None else str(value)
             elif action == "get_all_attribute":
-                values = locator_for(action_page, call, all_matches=True).evaluate_all(
+                values = locator_for(action_page, locator_call, all_matches=True).evaluate_all(
                     "(elements, name) => elements.map(element => element.getAttribute(name))",
                     str(call["name"]),
                 )
@@ -297,7 +302,7 @@ def execute_steps(
                 max_chars = int(call.get("max_chars", 40_000))
                 observation = json.dumps(values[:max_items], ensure_ascii=False)[:max_chars]
             elif action == "get_property":
-                value = locator_for(action_page, call).evaluate(
+                value = locator_for(action_page, locator_call).evaluate(
                     "(element, name) => element[name]", str(call["name"]), timeout=timeout
                 )
                 if isinstance(value, bool):
@@ -344,7 +349,7 @@ def execute_steps(
             elif action == "press":
                 target = call.get("target") or call.get("selector")
                 if target:
-                    locator_for(action_page, call).press(
+                    locator_for(action_page, locator_call).press(
                         str(call["key"]),
                         timeout=timeout,
                         no_wait_after=bool(call.get("no_wait_after", False)),

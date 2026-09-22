@@ -230,6 +230,31 @@ def test_initial_sweep_can_shorten_only_undeclared_action_waits():
     assert timeouts == [15_000, 25_000]
 
 
+def test_shorter_action_budget_also_caps_missing_structured_target_wait():
+    page = FakePage()
+    observed = {}
+
+    class MissingLocator:
+        @property
+        def first(self):
+            return self
+
+        def count(self):
+            return 0
+
+        def wait_for(self, **kwargs):
+            observed.update(kwargs)
+
+    page.get_by_text = lambda *_args, **_kwargs: MissingLocator()
+    with pytest.raises(ValueError, match="matched 0"):
+        execute_steps(
+            page,
+            ({"action": "click", "target": {"by": "text", "value": "missing"}},),
+            default_action_timeout_ms=15_000,
+        )
+    assert observed["timeout"] == 15_000
+
+
 def test_task_wall_clock_budget_stops_before_next_action(monkeypatch):
     monkeypatch.setattr(
         "harness.trajectory_replay.public_webarena.executor.time.monotonic",
