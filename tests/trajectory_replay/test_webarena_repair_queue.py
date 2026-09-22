@@ -29,6 +29,7 @@ def _inputs(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
         {
             "schema": "lex_webarena_verified_full_ledger/1",
             "scope_sha256": hashlib.sha256(scope.read_bytes()).hexdigest(),
+            "counts": {"total": 3, "pass": 1},
             "rows": [
                 {"task_id": 0, "status": "pass"},
                 {"task_id": 1, "status": "fail"},

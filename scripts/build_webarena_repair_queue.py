@@ -25,6 +25,7 @@ def build_repair_queue(
     suite = load_suite(repair_suite_path)
     ids = scope.get("task_ids")
     rows = ledger.get("rows") or []
+    counts = ledger.get("counts") or {}
     repair_ids = [int(task.task_id.removeprefix("webarena-")) for task in suite.tasks]
     if (
         scope.get("schema") != "lex_webarena_verified_full_scope/1"
@@ -32,6 +33,8 @@ def build_repair_queue(
         or ledger.get("schema") != "lex_webarena_verified_full_ledger/1"
         or ledger.get("scope_sha256") != _sha256(scope_path)
         or [row.get("task_id") for row in rows] != ids
+        or counts.get("total") != len(ids)
+        or counts.get("pass") != sum(row.get("status") == "pass" for row in rows)
         or not repair_ids
         or len(repair_ids) != len(set(repair_ids))
         or not set(repair_ids) <= set(ids)
