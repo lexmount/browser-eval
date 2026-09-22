@@ -2,6 +2,7 @@
 
 - Keep report-specific prose, illustrations and review payloads outside Git, alongside frozen evidence. Commit compact path/hash bindings instead. The replay build reads `research/trajectory-replay-content.json` from the `--content` directory (default: the data home's `report-assets/trajectory-replay/`); restore missing content from the pinned Artifact Site version, not an unversioned latest report. Do not silently fall back to a repository copy. Compact task definitions, acceptance contracts and provenance annotations remain versioned inputs.
 - Remove retired report-specific generators and their exclusive tests when no supported entry point calls them. Preserve published reports and historical evidence. Keep behavioral tests for supported build, package and publication boundaries; do not replace them with assertions about private helper structure.
+- WCXB builds read profile-bound files from `<evidence>/report-assets/` and preserve the same relative paths in the public package; restore missing files from the profile's pinned Artifact Site version, never from an unversioned latest report. Do not silently fall back to a repository copy.
 
 ## Common report presentation
 
