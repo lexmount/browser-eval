@@ -48,6 +48,16 @@ def test_private_preview_fixture_denies_assets_without_version(tmp_path):
         thread.join(timeout=5)
 
 
+def test_hosted_preview_errors_identify_missing_file_and_version():
+    message = _MODULE._hosted_preview_error_message([
+        (404, "/api/preview/replay/assets/report.css"),
+        (404, "/api/preview/replay~fixture/assets/missing.css"),
+    ])
+    assert "asset requested without preview version" in message
+    assert "missing file on versioned preview" in message
+    assert "/api/preview/replay~fixture/assets/missing.css" in message
+
+
 @pytest.mark.parametrize(
     "route,changed_field,wrong_value",
     [

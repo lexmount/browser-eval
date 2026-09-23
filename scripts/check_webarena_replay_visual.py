@@ -52,11 +52,26 @@ def _browser_executable() -> str:
     raise ValueError("visual QA requires Chrome or Chromium")
 
 
+def _hosted_preview_error_message(errors: list[tuple[int, str]]) -> str:
+    details = []
+    for code, path in errors[:3]:
+        if path.startswith("/api/preview/replay~fixture/"):
+            cause = "missing file on versioned preview"
+        elif path.startswith("/api/preview/replay/"):
+            cause = "asset requested without preview version"
+        else:
+            cause = "hosted preview request failed"
+        details.append(f"{code} {path} ({cause})")
+    return "hosted preview HTTP errors: " + "; ".join(details)
+
+
 class _QuietHandler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *_args: object) -> None:
         return
 
     def send_error(self, code: int, *args: object, **kwargs: object) -> None:
+        # Both missing version credentials and missing files on a versioned route
+        # break a hosted report; the final diagnostic identifies which occurred.
         if code >= 400 and self.path.startswith("/api/preview/"):
             getattr(self.server, "preview_errors", []).append((code, self.path))
         super().send_error(code, *args, **kwargs)
@@ -588,7 +603,7 @@ return {
         server.server_close()
         thread.join(timeout=5)
     if server.preview_errors:
-        raise ValueError(f"hosted preview returned HTTP errors: {server.preview_errors[:3]}")
+        raise ValueError(_hosted_preview_error_message(server.preview_errors))
     receipt.parent.mkdir(parents=True, exist_ok=True)
     receipt.write_text(
         json.dumps(
