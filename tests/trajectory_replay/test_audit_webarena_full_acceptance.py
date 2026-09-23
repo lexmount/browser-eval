@@ -5,14 +5,14 @@ import pytest
 from scripts import audit_webarena_full_acceptance as acceptance
 
 
-def _run(tmp_path, name, ids, statuses):
+def _run(tmp_path, name, ids, statuses, *, preparation="same-reset"):
     directory = tmp_path / name
     directory.mkdir()
     (directory / "inputs.json").write_text(json.dumps({
         "schema": "lex_webarena_full_replay_run/1",
         "execution_order": ids,
         "run_count_per_task": 1,
-        "site_reset_receipt_sha256": "same-reset",
+        "site_reset_receipt_sha256": preparation,
         "binary_sha256": "same-chromium",
         "catalog_sha256": "catalog",
         "runner_revision": "revision",
@@ -47,6 +47,30 @@ def test_acceptance_keeps_one_ordered_sweep_and_only_repairs_a_failure(tmp_path,
     }
     assert [attempt["status"] for attempt in ledger["rows"][66]["attempts"]] == ["fail", "pass"]
     assert len(ledger["rows"][67]["attempts"]) == 1
+
+
+def test_acceptance_binds_repair_on_a_fresh_site_without_repeating_passes(tmp_path, monkeypatch):
+    monkeypatch.setattr(acceptance, "_verified_attempt", lambda directory, row: row)
+    scope = _scope(tmp_path)
+    sweep = _run(tmp_path, "sweep", list(range(812)), {496: "fail"})
+    repair = _run(tmp_path, "repair", [496], {}, preparation="spare-slice")
+
+    ledger = acceptance.audit(scope, [sweep], [repair])
+
+    assert ledger["counts"]["pass"] == 812
+    assert ledger["site_preparation_receipt_sha256s"] == ["same-reset", "spare-slice"]
+    assert ledger["runs"][1]["site_reset_receipt_sha256"] == "spare-slice"
+    assert len(ledger["rows"][495]["attempts"]) == 1
+
+
+def test_acceptance_rejects_changing_sites_during_ordered_sweep(tmp_path, monkeypatch):
+    monkeypatch.setattr(acceptance, "_verified_attempt", lambda directory, row: row)
+    scope = _scope(tmp_path)
+    early = _run(tmp_path, "early", list(range(400)), {})
+    late = _run(tmp_path, "late", list(range(400, 812)), {}, preparation="other")
+
+    with pytest.raises(ValueError, match="ordered sweep used different site preparations"):
+        acceptance.audit(scope, [early, late], [])
 
 
 def test_acceptance_rejects_rerunning_a_pass(tmp_path, monkeypatch):

@@ -62,24 +62,27 @@ def audit(scope_path: Path, segment_dirs: list[Path], repair_dirs: list[Path]) -
     states = {task_id: {"task_id": task_id, "attempts": []} for task_id in ids}
     ordered_ids: list[int] = []
     bindings = []
-    reset_sha256 = None
+    sweep_reset_sha256 = None
     binary_sha256 = None
+    preparation_sha256s = set()
     for kind, directories in (("segment", segment_dirs), ("repair", repair_dirs)):
         for directory in directories:
             binding, rows = _read_run(directory)
-            if reset_sha256 is None:
-                reset_sha256 = binding["site_reset_receipt_sha256"]
+            if sweep_reset_sha256 is None:
+                sweep_reset_sha256 = binding["site_reset_receipt_sha256"]
                 binary_sha256 = binding["binary_sha256"]
-            if (
-                binding["site_reset_receipt_sha256"] != reset_sha256
-                or binding["binary_sha256"] != binary_sha256
-            ):
-                raise ValueError("acceptance runs used different reset or Chromium bindings")
+            if binding["binary_sha256"] != binary_sha256:
+                raise ValueError("acceptance runs used different Chromium binaries")
+            if kind == "segment" and binding["site_reset_receipt_sha256"] != sweep_reset_sha256:
+                raise ValueError("ordered sweep used different site preparations")
+            preparation_sha256s.add(binding["site_reset_receipt_sha256"])
             bindings.append({
                 "kind": kind,
                 "inputs_sha256": _sha256(directory / "inputs.json"),
                 "progress_sha256": _sha256(directory / "progress.jsonl"),
                 "catalog_sha256": binding["catalog_sha256"],
+                "site_reset_receipt_sha256": binding["site_reset_receipt_sha256"],
+                "site_map_sha256": binding.get("site_map_sha256"),
                 "runner_revision": binding["runner_revision"],
                 "task_ids": [row["task_id"] for row in rows],
             })
@@ -105,7 +108,8 @@ def audit(scope_path: Path, segment_dirs: list[Path], repair_dirs: list[Path]) -
     return {
         "schema": "lex_webarena_full_acceptance_ledger/1",
         "scope_sha256": _sha256(scope_path),
-        "site_reset_receipt_sha256": reset_sha256,
+        "site_reset_receipt_sha256": sweep_reset_sha256,
+        "site_preparation_receipt_sha256s": sorted(preparation_sha256s),
         "binary_sha256": binary_sha256,
         "runs": bindings,
         "counts": {
