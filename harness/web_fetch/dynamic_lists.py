@@ -60,7 +60,10 @@ def extract_named_entries(content,contract,base_url,links=None):
     from .reference_quality import markdown_links, visible_markdown_links
     items=list(parser.items) + safe_named_links(links, base_url)
     for link in markdown_links(content):
-        if link.is_image or not link.destination.startswith(('http://','https://','/')):
+        destination=link.destination.strip()
+        target=urlsplit(destination)
+        if (link.is_image or not destination or destination.startswith(('#','?'))
+                or (target.scheme and target.scheme not in {'http','https'})):
             continue
         # Explicit balanced link syntax owns a multiline label, including card
         # headings separated by blank layout lines. Text before the opening on

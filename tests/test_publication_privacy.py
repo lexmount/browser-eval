@@ -126,6 +126,27 @@ class PublicationPrivacyTests(unittest.TestCase):
         self.assertNotIn(b'/root/', root_path)
         self.assertIn('local_path', row['kinds'])
 
+    def test_embedded_url_queries_are_redacted_without_losing_diagnostics(self):
+        samples = (
+            b'curl failed: https://example.test/api?access_token=canary-private-123&view=full',
+            b'fetch https://example.test/api?view=full&api_key=canary-private-123#detail failed',
+            b'fetch https://example.test/api?view=full&amp;access%5Ftoken=canary-private-123',
+            b'fetch https://example.test/api?X-Amz-Signature=canary-private-123',
+        )
+        for sample in samples:
+            with self.subTest(sample=sample):
+                self.assertEqual(publication_risk(sample), 'sensitive URL query value')
+                projected, row = project_file('call-logs/x.json', sample)
+                self.assertNotIn(b'canary-private-123', projected)
+                self.assertIn(b'[REDACTED]', projected)
+                self.assertIn('credential', row['kinds'])
+                self.assertIsNone(publication_risk(projected))
+
+        harmless = b'Traceback: RuntimeError at worker.py:42; https://example.test/api?design=grid&view=full'
+        self.assertEqual(project_file('call-logs/x.json', harmless), (harmless, None))
+        placeholder = b'https://example.test/api?access_token=%5BREDACTED%5D'
+        self.assertEqual(project_file('call-logs/x.json', placeholder), (placeholder, None))
+
     def test_packaged_downloads_and_disclosure(self):
         repository = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as directory:

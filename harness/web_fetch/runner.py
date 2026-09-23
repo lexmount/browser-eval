@@ -147,6 +147,8 @@ def _public_text(value: Any, *, limit: int = 4096) -> str | None:
     text = _AUTH_SECRET_VALUE.sub(lambda match: match.group(1) + "[REDACTED]", text)
     text = _JSON_SECRET_VALUE.sub(lambda match: match.group(1) + "[REDACTED]" + match.group(3), text)
     text = _LINE_SECRET_VALUE.sub(lambda match: match.group(1) + match.group(2) + " [REDACTED]", text)
+    from .publication_privacy import redact_url_queries
+    text, _ = redact_url_queries(text)
     text = _POSIX_LOCAL_PATH.sub("[local-path]", text)
     text = _WINDOWS_LOCAL_PATH.sub("[local-path]", text)
     return text[:limit]

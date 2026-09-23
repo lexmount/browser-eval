@@ -2,6 +2,7 @@
 import hashlib
 import re
 from pathlib import PurePosixPath
+from urllib.parse import unquote_plus
 
 
 GOOGLE_KEY = re.compile(rb'AIzaSy[A-Za-z0-9_-]{20,}')
@@ -28,6 +29,12 @@ SENSITIVE_KEY = (
     rb'(?:aws[-_])?secret[-_]?access[-_]?key|client[-_]?secret|secret|credentials?|'
     rb'x[-_]?api[-_]?key|api[-_]?key|password|passwd))'
 )
+EMBEDDED_URL = re.compile(r"(?i)\bhttps?://[^\s<>\"'\x00]+")
+QUERY_SENSITIVE_KEY = re.compile(
+    r'(?i)(?:' + SENSITIVE_KEY.decode('ascii') +
+    r'|(?:[a-z0-9]+[-_])*(?:signature|sig|signed|auth|key)|'
+    r'apiKey|accessToken|refreshToken|idToken)\Z'
+)
 JSON_SENSITIVE_VALUE = re.compile(
     rb'(?i)(["\']' + SENSITIVE_KEY + rb'["\']\s*:\s*["\'])(?!<|\[)'
     rb'((?:\\.|[^"\'\r\n])*)(["\'])'
@@ -45,6 +52,35 @@ REDACTIONS = (
     (JSON_SENSITIVE_VALUE, 'sensitive_field', rb'\1[REDACTED]\3'),
     (LINE_SENSITIVE_VALUE, 'sensitive_field', rb'\1\2 [REDACTED]'),
 )
+
+
+def redact_url_queries(text):
+    """Redact sensitive parameters in URLs embedded in diagnostic prose."""
+    replacements = 0
+
+    def redact_url(match):
+        nonlocal replacements
+        url = match.group()
+        query = url.partition('?')[2].partition('#')[0]
+        if not query:
+            return url
+        parts = []
+        for item in query.split('&'):
+            key, separator, value = item.partition('=')
+            # HTML attributes can spell a separator as &amp;.
+            logical_key = key.removeprefix('amp;')
+            decoded_key = unquote_plus(logical_key).casefold()
+            decoded_value = unquote_plus(value)
+            sensitive = bool(QUERY_SENSITIVE_KEY.fullmatch(decoded_key))
+            placeholder = (decoded_value.startswith('<') and decoded_value.endswith('>')
+                           or decoded_value == '[REDACTED]')
+            if separator and sensitive and value and not placeholder:
+                item = key + '=[REDACTED]'
+                replacements += 1
+            parts.append(item)
+        return url.replace('?' + query, '?' + '&'.join(parts), 1)
+
+    return EMBEDDED_URL.sub(redact_url, text), replacements
 
 
 def auth_matches(data):
@@ -71,6 +107,8 @@ def publication_risk(data):
         return 'credential-shaped value'
     if auth_matches(data):
         return 'sensitive field value'
+    if redact_url_queries(data.decode('utf-8', errors='surrogateescape'))[1]:
+        return 'sensitive URL query value'
     if LOCAL_USER_PATH.search(data):
         return 'machine-local user path'
     return None
@@ -88,15 +126,18 @@ def project_file(name, data):
     google_matches = list(GOOGLE_KEY.finditer(data))
     sensitive_matches = auth_matches(data)
     local_matches = list(LOCAL_USER_PATH.finditer(data))
-    if not google_matches and not sensitive_matches and not local_matches:
+    url_projected, url_replacements = redact_url_queries(
+        data.decode('utf-8', errors='surrogateescape'))
+    if not google_matches and not sensitive_matches and not local_matches and not url_replacements:
         return data, None
-    projected = GOOGLE_KEY.sub(b'[REDACTED_GOOGLE_API_KEY]', data)
+    projected = GOOGLE_KEY.sub(b'[REDACTED_GOOGLE_API_KEY]',
+                               url_projected.encode('utf-8', errors='surrogateescape'))
     for pattern, _, replacement in REDACTIONS:
         projected = pattern.sub(replacement, projected)
     projected = LOCAL_USER_PATH.sub(b'/[REDACTED_USER]/', projected)
     categories = []
     kinds = []
-    if google_matches or sensitive_matches:
+    if google_matches or sensitive_matches or url_replacements:
         categories.append('credential-shaped strings in public source or measured content')
         kinds.append('credential')
     if local_matches:
@@ -106,7 +147,8 @@ def project_file(name, data):
         'path': name,
         'kinds': kinds,
         'reason': '; '.join(categories),
-        'replacements': len(google_matches) + len(sensitive_matches) + len(local_matches),
+        'replacements': len(google_matches) + len(sensitive_matches) + len(local_matches)
+                        + url_replacements,
         'original_sha256': hashlib.sha256(data).hexdigest(),
         'published_sha256': hashlib.sha256(projected).hexdigest(),
         'original_bytes': len(data),

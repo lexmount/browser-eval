@@ -53,6 +53,17 @@ class DynamicListTests(unittest.TestCase):
         )
         self.assertEqual(entries, [{"url": "https://www.example.com/news/item/1", "title": "Story"}])
 
+        markdown = extract_named_entries(
+            '[Story](item/1)', contract, "https://redirect.example.net/start"
+        )
+        self.assertEqual(markdown, entries)
+        self.assertEqual(extract_named_entries(
+            '[Other](https://outside.example/news/item/2)', contract,
+            "https://redirect.example.net/start"), [])
+        self.assertEqual(extract_named_entries(
+            'Read [Story](item/1) for context.', contract,
+            "https://redirect.example.net/start"), [])
+
     def test_dense_flattened_link_collection_is_not_mistaken_for_prose(self):
         content = (
             '- Group - [First](https://example.com/item/1) - '

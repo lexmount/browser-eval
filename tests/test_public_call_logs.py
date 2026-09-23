@@ -48,6 +48,7 @@ class PublicCallLogTests(unittest.TestCase):
             'AWS_SECRET_ACCESS_KEY=aws-secret',
             'X-Api-Key: header-secret',
             '{"client_secret":"json-secret","safe":"visible"}',
+            'curl failed: https://example.test/api?access_token=query-secret&view=full',
         ])
         result = ProviderResult(
             True, "Expected", metadata={"stderr": secret_lines, "exit_code": 0}
@@ -56,9 +57,11 @@ class PublicCallLogTests(unittest.TestCase):
             root = Path(directory)
             record = run(root, ResultProvider(result))
             serialized = (root / record["provider_metadata"]["call_log"]["path"]).read_text()
-            for secret in ("refresh-secret", "aws-secret", "header-secret", "json-secret"):
+            for secret in ("refresh-secret", "aws-secret", "header-secret", "json-secret",
+                           "query-secret"):
                 self.assertNotIn(secret, serialized)
             self.assertIn('\\"safe\\":\\"visible\\"', serialized)
+            self.assertIn('view=full', serialized)
 
     def test_success_has_closed_complete_hash_bound_log(self):
         raw = b'{"private":"Bearer never-publish"}'
