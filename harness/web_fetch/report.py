@@ -952,29 +952,38 @@ def _body_region_evidence(content,contract):
    predicted,expected,floors,targets,contract['minimum_region_passes'])
  else:
   assigned={identifier:predicted & row for identifier,row in expected.items()}
- remaining={identifier:row.copy() for identifier,row in assigned.items()}
- evidence={identifier:[] for identifier in assigned}
  lines=[raw.strip() for raw in content.splitlines() if raw.strip()]
- def assign(line_units,display_lines):
-  shared=line_units.copy()
-  for identifier in sorted(remaining):
-   available=shared if version==3 else line_units
-   contribution=available & remaining[identifier]
-   if not contribution:continue
-   for display in display_lines:
-    if display not in evidence[identifier]:evidence[identifier].append(display)
-   remaining[identifier]-=contribution
-   if version==3:shared-=contribution
- for line in lines:
-  line_units=Counter(tokens(line) if version==1 else compact_ngrams(line,size))
-  assign(line_units,[line])
- if version!=1:
-  for left,right in zip(lines,lines[1:]):
-   boundary=(Counter(compact_ngrams(left+right,size))-
-             Counter(compact_ngrams(left,size))-Counter(compact_ngrams(right,size)))
-   assign(boundary,[left,right])
- if any(remaining.values()):
-  raise ValueError('Body evidence could not locate every allocated scorer unit')
+ evidence_lines={identifier:set() for identifier in assigned}
+ if version==1:
+  occurrences=defaultdict(list);flattened=[]
+  for line_index,line in enumerate(lines):
+   for unit in tokens(line):
+    flattened.append(unit);occurrences[unit].append((line_index,))
+  if flattened!=tokens(content):
+   raise ValueError('Body token evidence differs from scorer normalization')
+  for identifier,row in assigned.items():
+   for unit,count in row.items():
+    for location in occurrences[unit][:count]:evidence_lines[identifier].update(location)
+ else:
+  compact_lines=[compact_ngrams(line,1) for line in lines]
+  flattened=[character for line in compact_lines for character in line]
+  if flattened!=compact_ngrams(content,1):
+   raise ValueError('Body fragment evidence differs from scorer normalization')
+  character_lines=[]
+  for line_index,line in enumerate(compact_lines):character_lines.extend([line_index]*len(line))
+  occurrences=defaultdict(list)
+  for index,unit in enumerate(compact_ngrams(content,size)):
+   occurrences[unit].append(tuple(dict.fromkeys(character_lines[index:index+size])))
+  offsets=Counter()
+  for identifier in sorted(assigned):
+   for unit,count in assigned[identifier].items():
+    start=offsets[unit] if version==3 else 0
+    selected=occurrences[unit][start:start+count]
+    if len(selected)!=count:raise ValueError('Body evidence allocation exceeds scorer units')
+    for location in selected:evidence_lines[identifier].update(location)
+    if version==3:offsets[unit]+=count
+ evidence={identifier:[lines[index] for index in sorted(indices)]
+           for identifier,indices in evidence_lines.items()}
  return evidence,{identifier:sum(row.values()) for identifier,row in assigned.items()}
 
 def _position_label(index,total):

@@ -72,6 +72,14 @@ class ReportBodyScopeTests(unittest.TestCase):
         self.assertEqual(evidence['body'],['abcdef','ghijkl'])
         self.assertEqual(counts['body'],7)
 
+    def test_body_evidence_maps_one_scoring_unit_across_three_short_lines(self):
+        contract={'version':3,'unit':'region_compact_hexagram_recall',
+                  'minimum_coverage':.8,'minimum_floor':.6,'minimum_region_passes':1,
+                  'regions':[{'id':'body','text':'abcdef'}]}
+        evidence,counts=_body_region_evidence('ab\ncd\nef',contract)
+        self.assertEqual(evidence['body'],['ab','cd','ef'])
+        self.assertEqual(counts['body'],1)
+
     def test_long_stable_text_and_record_lists_scroll_only_after_five_items(self):
         anchors=[{'id':f'a-{index}','alternatives':[f'Stable text {index}']} for index in range(6)]
         contract={'minimum_records':6,'maximum_records':6,'stable_text_anchors':anchors}
