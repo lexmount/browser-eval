@@ -109,6 +109,43 @@ def test_remote_benchmark_matches_same_host_network_event_after_transport_change
     assert float(result.score) == 1.0, result.model_dump_json(indent=2)
 
 
+def test_remote_benchmark_matches_distinct_bodies_sent_to_one_endpoint(tmp_path):
+    benchmark = remote_benchmark(load_remote_sites(_site_map(tmp_path)))
+    task = benchmark.get_task(567)
+    expected = [item.expected for item in task.eval if item.evaluator == "NetworkEventEvaluator"]
+    trace = tmp_path / "members.har"
+    trace.write_text(
+        json.dumps(
+            {
+                "log": {
+                    "entries": [
+                        {
+                            "request": {
+                                "method": item.http_method,
+                                "url": item.url.replace("__GITLAB__", "http://gitlab.example"),
+                                "headers": [],
+                                "postData": {
+                                    "mimeType": "application/json",
+                                    "text": json.dumps(dict(item.post_data)),
+                                },
+                            },
+                            "response": {"status": item.response_status, "headers": [], "content": {}},
+                        }
+                        for item in expected
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = benchmark.evaluate_task(
+        task_id=567,
+        agent_response={"task_type": "MUTATE", "status": "SUCCESS", "retrieved_data": None},
+        network_trace=trace,
+    )
+    assert float(result.score) == 1.0, result.model_dump_json(indent=2)
+
+
 def test_rebind_remote_calls_preserves_path_query_and_non_site_urls(tmp_path):
     sites = load_remote_sites(_site_map(tmp_path))
     calls = [

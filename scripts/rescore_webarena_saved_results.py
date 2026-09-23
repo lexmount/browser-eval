@@ -26,6 +26,7 @@ def rescore(
     task_ids: list[int],
     *,
     runtime_correction_id: str | None = None,
+    runtime_correction_source: Path | None = None,
 ) -> dict:
     if output.exists():
         raise ValueError("offline rescore output already exists")
@@ -42,6 +43,14 @@ def rescore(
         raise ValueError("offline rescore task scope contains duplicates")
     catalog = load_corrections()
     benchmark = remote_benchmark(load_remote_sites(site_map))
+    runtime_source = runtime_correction_source or (
+        Path(__file__).resolve().parents[1]
+        / "harness"
+        / "trajectory_replay"
+        / "remote_runtime.py"
+    )
+    if runtime_correction_id is not None and not runtime_source.is_file():
+        raise ValueError("runtime correction source is missing")
     rows = []
     for task_id in task_ids:
         source = progress.get(task_id)
@@ -76,12 +85,7 @@ def rescore(
                 network_trace=task_dir / "network.har",
             ).model_dump(mode="json")
             result["runtime_correction_id"] = runtime_correction_id
-            result["corrected_runtime_sha256"] = _hash(
-                Path(__file__).resolve().parents[1]
-                / "harness"
-                / "trajectory_replay"
-                / "remote_runtime.py"
-            )
+            result["corrected_runtime_sha256"] = _hash(runtime_source)
         prior = json.loads((task_dir / "evaluation.json").read_text(encoding="utf-8"))
         result["replay_assertions"] = prior.get("replay_assertions") or []
         if float(result.get("score") or 0) != 1 or any(
@@ -107,12 +111,7 @@ def rescore(
             if runtime_correction_id is None
             else {
                 "runtime_correction_id": runtime_correction_id,
-                "corrected_runtime_sha256": _hash(
-                    Path(__file__).resolve().parents[1]
-                    / "harness"
-                    / "trajectory_replay"
-                    / "remote_runtime.py"
-                ),
+                "corrected_runtime_sha256": _hash(runtime_source),
             }
         ),
         "provider_call_count": 0,
@@ -131,6 +130,7 @@ def main() -> None:
     parser.add_argument("--site-map", type=Path, required=True)
     parser.add_argument("--task-id", type=int, action="append", required=True)
     parser.add_argument("--runtime-correction-id")
+    parser.add_argument("--runtime-correction-source", type=Path)
     args = parser.parse_args()
     result = rescore(
         args.source_sweep,
@@ -138,6 +138,7 @@ def main() -> None:
         args.site_map,
         args.task_id,
         runtime_correction_id=args.runtime_correction_id,
+        runtime_correction_source=args.runtime_correction_source,
     )
     print(json.dumps({"rescored": len(result["rows"]), "provider_call_count": 0}))
 
