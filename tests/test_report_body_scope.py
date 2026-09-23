@@ -425,6 +425,7 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertIn('下载完整调用日志 JSON',detail)
             english=(out/'en/attempts'/f"{r['attempt_id']}.html").read_text()
             for phrase in ['Final physical call','ERROR challenge page returned',
+                           'Final output',
                            'Download complete call-log JSON',
                            'View and download complete retained evidence']:
                 self.assertIn(phrase,english)

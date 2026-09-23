@@ -2977,6 +2977,7 @@ TEXT.update({
     "这次历史调用没有保存逐行 debug 日志；不会补造不存在的日志。": "This historical call did not retain a line-by-line debug log; no missing log is reconstructed.",
     "运行记录声明了日志文件，但公开证据中没有可读取文件；日志证据不完整。": "The run record declares a log file, but no readable file is present in the public evidence; log evidence is incomplete.",
     "运行日志": "Run logs",
+    "最终输出": "Final output",
     "查看错误与关键日志": "View errors and key log lines",
     "没有可展示的逐行日志。": "No line-by-line log is available to display.",
     "查看并下载完整保存证据": "View and download complete retained evidence",
