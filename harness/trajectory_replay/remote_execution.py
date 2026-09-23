@@ -226,12 +226,20 @@ def _run_task(
     candidate_override_path: Path | None = None,
     portable_task: BrowserTask | None = None,
     portable_action_timeout_ms: int = 30_000,
+    backend: str = "browsertool",
 ) -> dict:
-    from agent.tools.browser.browser_tool import BrowserTool  # noqa: PLC0415
-
     official = benchmark.get_task(task_id)
     correction = apply_correction(official, catalog) if task_id in catalog.records else None
-    tool = BrowserTool(config=_browser_tool_config(endpoint))
+    if backend == "browsertool":
+        from agent.tools.browser.browser_tool import BrowserTool  # noqa: PLC0415
+
+        tool = BrowserTool(config=_browser_tool_config(endpoint))
+    elif backend == "playwright":
+        from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
+
+        tool = PlaywrightReplayTool(endpoint)
+    else:
+        raise ValueError(f"unknown replay backend: {backend}")
     recorder = CdpHarRecorder()
     task_dir = output / f"task-{task_id}"
     task_dir.mkdir(mode=0o700)
@@ -391,7 +399,7 @@ def _run_task(
         try:
             tool.close()
         except Exception as exc:
-            error += f"\nBrowserTool close failed: {exc}"
+            error += f"\n{backend} close failed: {exc}"
     hashes["trace"] = _write(task_dir / "trace.json", records)
     hashes["readiness"] = _write(task_dir / "readiness.json", readiness_records)
     if portable_task is not None:

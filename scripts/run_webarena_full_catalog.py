@@ -134,7 +134,8 @@ def main() -> None:
     parser.add_argument("--site-map", type=Path, required=True)
     parser.add_argument("--site-reset-receipt", type=Path, required=True)
     parser.add_argument("--binary", type=Path, required=True)
-    parser.add_argument("--cowagent", type=Path, required=True)
+    parser.add_argument("--backend", choices=("browsertool", "playwright"), default="browsertool")
+    parser.add_argument("--cowagent", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--action-timeout-ms", type=int, default=30_000)
     parser.add_argument("--task-from", type=int, default=0)
@@ -142,8 +143,11 @@ def main() -> None:
     args = parser.parse_args()
     if args.action_timeout_ms < 1:
         raise ValueError("action timeout must be positive")
-    if str(args.cowagent) not in sys.path:
-        sys.path.insert(0, str(args.cowagent))
+    if args.backend == "browsertool":
+        if args.cowagent is None or not args.cowagent.is_dir():
+            raise ValueError("BrowserTool backend requires --cowagent repository")
+        if str(args.cowagent) not in sys.path:
+            sys.path.insert(0, str(args.cowagent))
     catalog, sites, portable_tasks = _load_inputs(
         args.catalog, args.portable_suite, args.site_map
     )
@@ -160,12 +164,17 @@ def main() -> None:
         "site_map_sha256": _hash(args.site_map),
         "site_reset_receipt_sha256": _hash(args.site_reset_receipt),
         "binary_sha256": _hash(args.binary),
+        "backend": args.backend,
         "runner_revision": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], text=True
         ).strip(),
-        "cowagent_revision": subprocess.check_output(
-            ["git", "-C", str(args.cowagent), "rev-parse", "HEAD"], text=True
-        ).strip(),
+        "cowagent_revision": (
+            subprocess.check_output(
+                ["git", "-C", str(args.cowagent), "rev-parse", "HEAD"], text=True
+            ).strip()
+            if args.backend == "browsertool"
+            else None
+        ),
         "execution_order": ids,
         "site_reset_between_tasks": False,
         "run_count_per_task": 1,
@@ -229,6 +238,7 @@ def main() -> None:
                             else None
                         ),
                         portable_action_timeout_ms=args.action_timeout_ms,
+                        backend=args.backend,
                     )
                 except Exception:
                     outcome = {
