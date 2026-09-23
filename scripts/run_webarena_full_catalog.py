@@ -67,6 +67,12 @@ def _completed(path: Path, ids: list[int]) -> set[int]:
     return seen
 
 
+def _task_ids(task_from: int, task_to: int) -> list[int]:
+    if not 0 <= task_from <= task_to < 812:
+        raise ValueError("task range must be within the official 0..811 order")
+    return list(range(task_from, task_to + 1))
+
+
 def _load_inputs(catalog_path: Path, suite_path: Path, site_map_path: Path):
     catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
     sites = load_remote_sites(site_map_path)
@@ -117,6 +123,8 @@ def main() -> None:
     parser.add_argument("--cowagent", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--action-timeout-ms", type=int, default=30_000)
+    parser.add_argument("--task-from", type=int, default=0)
+    parser.add_argument("--task-to", type=int, default=811)
     args = parser.parse_args()
     if args.action_timeout_ms < 1:
         raise ValueError("action timeout must be positive")
@@ -127,7 +135,7 @@ def main() -> None:
     )
     benchmark = remote_benchmark(sites)
     origins = {f"{urlsplit(url).scheme}://{urlsplit(url).netloc}" for url in sites.values()}
-    ids = catalog["task_ids"]
+    ids = _task_ids(args.task_from, args.task_to)
     os.umask(0o077)
     args.output.mkdir(parents=True, exist_ok=True)
     binding = {
@@ -155,7 +163,9 @@ def main() -> None:
         binding_path.write_text(json.dumps(binding, indent=2) + "\n", encoding="utf-8")
     progress = args.output / "progress.jsonl"
     done = _completed(progress, ids)
-    pending = [row for row in catalog["rows"] if row["task_id"] not in done]
+    pending = [
+        row for row in catalog["rows"] if row["task_id"] in ids and row["task_id"] not in done
+    ]
     if not pending:
         return
     with socket.socket() as sock:

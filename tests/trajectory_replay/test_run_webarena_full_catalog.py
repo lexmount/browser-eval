@@ -7,7 +7,17 @@ from pathlib import Path
 import pytest
 
 from harness.trajectory_replay.webarena_replay import _json_sha256
-from scripts.run_webarena_full_catalog import _load_inputs
+from scripts.run_webarena_full_catalog import _load_inputs, _task_ids
+
+
+def test_task_ids_preserve_requested_official_order():
+    assert _task_ids(7, 11) == [7, 8, 9, 10, 11]
+
+
+@pytest.mark.parametrize("bounds", [(-1, 1), (2, 1), (0, 812)])
+def test_task_ids_reject_out_of_catalog_range(bounds):
+    with pytest.raises(ValueError, match="official 0..811 order"):
+        _task_ids(*bounds)
 
 
 def _write(path: Path, value: object) -> str:

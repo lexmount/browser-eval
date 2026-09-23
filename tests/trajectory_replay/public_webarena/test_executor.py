@@ -31,6 +31,10 @@ class FakePage:
     def title(self):
         return "Example"
 
+    def wait_for_url(self, url, **kwargs):
+        self.calls.append(("wait_for_url", url, kwargs))
+        self.url = "https://example.com/reports/ready"
+
     def evaluate(self, script, argument=None):
         self.calls.append(("evaluate", script, argument))
         if script == "() => ({ok: true, count: 2})":
@@ -230,6 +234,30 @@ def test_default_action_timeout_is_thirty_seconds():
     execute_steps(page, ({"action": "click", "selector": "#target"},))
 
     assert page.calls == [("timeout", 30_000)]
+
+
+def test_wait_for_url_uses_declared_readiness_contract():
+    page = FakePage()
+
+    execute_steps(
+        page,
+        (
+            {
+                "action": "wait_for_url",
+                "url": "**/reports/**",
+                "wait_until": "domcontentloaded",
+                "timeout_ms": 120_000,
+            },
+        ),
+    )
+
+    assert page.calls == [
+        (
+            "wait_for_url",
+            "**/reports/**",
+            {"wait_until": "domcontentloaded", "timeout": 120_000},
+        )
+    ]
 
 
 def test_task_wall_clock_budget_caps_each_action_timeout(monkeypatch):

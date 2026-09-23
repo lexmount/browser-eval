@@ -349,6 +349,13 @@ def execute_steps(
                     else json.dumps(value, ensure_ascii=False)
                 )
                 observation = observation[: int(call.get("max_chars", 40_000))]
+            elif action == "wait_for_url":
+                action_page.wait_for_url(
+                    str(call["url"]),
+                    wait_until=call.get("wait_until", "domcontentloaded"),
+                    timeout=timeout,
+                )
+                observation = f"URL ready: {getattr(action_page, 'url', '')}"
             elif action == "back":
                 action_page.go_back(wait_until=call.get("wait_until", "commit"), timeout=timeout)
                 observation = f"Navigated back to: {getattr(action_page, 'url', '')}"
