@@ -80,9 +80,9 @@ def main():
         raise ValueError('Refusing symlinked correction evidence')
     expected = {(provider, case['id']) for provider in dataset['coverage_plan']['static_html']
                 for case in dataset['cases']}
-    if len(records) != len(expected) or len(expected) != 200 * len(summaries) or {
+    if len(records) != len(expected) or len(expected) != len(dataset['cases']) * len(summaries) or {
             (row['provider'], row['case_id']) for row in records} != expected:
-        raise ValueError(f'Correction requires the complete declared 200-by-{len(summaries)} matrix')
+        raise ValueError(f'Correction requires the complete declared {len(dataset["cases"])}-by-{len(summaries)} matrix')
     # Verify the exact official implementation, not only its Git HEAD.
     for summary in summaries.values():
         for relative, expected in summary['scorer']['metric_source_sha256'].items():
@@ -175,7 +175,7 @@ def main():
                    'input_results_sha256': digest(source / 'results.jsonl'),
                    'output_results_sha256': digest(results_path),
                    'dataset_sha256': digest(source / 'dataset.json'),
-                   'sample_manifest_sha256': dataset['sample_manifest_sha256'],
+                   'sample_manifest_sha256': dataset.get('sample_manifest_sha256'),
                    'inherited_correction_receipt_sha256': inherited_receipt_sha256,
                    'inherited_logical_results': len(inherited),
                    'source_code_sha256': {str(path.relative_to(ROOT)): digest(path) for path in source_files},

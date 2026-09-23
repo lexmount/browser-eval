@@ -2724,3 +2724,321 @@ flowchart LR
    _wmb_write(out,'attempts/'+attempt_id+'.html',labels[r['provider']]+' · '+case_id,attempt_body,english)
  from harness.report_languages import write_language_contract
  write_language_contract(out,include_english=include_english)
+
+
+def webmainbench_full_machine_issue(root: Path, row: dict) -> bool:
+    """Identify request failures and successful calls without usable page text."""
+    if not row["ok"] or not row["output_chars"]:
+        return True
+    return bool(ERROR_PAGE.search(contained_path(root, row["artifact_path"]).read_text(encoding="utf-8")))
+
+
+def generate_webmainbench_full(out: Path, dataset: dict, records: list[dict],
+                               summaries: dict, profile: dict) -> None:
+    """Render the complete frozen WebMainBench cohort inside the shared report module."""
+    content = json.loads((out / "report-content.json").read_text(encoding="utf-8"))
+    failure_analysis = json.loads((out / "failure-analysis.json").read_text(encoding="utf-8"))
+    reviewed_failures = {(row["provider"], row["case_id"]): row for row in failure_analysis["reviewed_failures"]}
+    reviewed_categories = Counter(row["category_label"] for row in failure_analysis["reviewed_failures"])
+    machine_issue_count = sum(webmainbench_full_machine_issue(out, row) for row in records)
+    adoption = json.loads((out / "provider-adoption.json").read_text(encoding="utf-8"))
+    cloudflare_matches = {(entry["repo"], match["path"]) for entry in adoption["included"]
+                          for match in entry["matches"] if match["signature"] == "cloudflare-markdown"}
+    cloudflare_repositories = len({repo for repo, _ in cloudflare_matches})
+    def prose(key):
+        return esc(content[key])
+    providers = profile["providers"]
+    cases = {case["id"]: case for case in dataset["cases"]}
+    grouped = defaultdict(dict)
+    for row in records:
+        grouped[row["case_id"]][row["provider"]] = row
+    labels = {p: (profile["versions"][p] if p == "chromium" else p.capitalize() +
+                  (" " + profile["versions"][p] if p != "kitesurf" else "")) for p in providers}
+    measures = [("overall", "综合分"), ("text_edit", "全文"), ("code_edit", "代码"),
+                ("formula_edit", "公式"), ("table_edit", "表格内容"), ("table_TEDS", "表格结构")]
+
+    def percent(value):
+        return "—" if value is None else f"{value * 100:.1f}%"
+
+    def score(row, metric):
+        return row.get("metrics", {}).get(metric, {}).get("score")
+
+    def classify(row):
+        if not row["ok"]:
+            return "请求失败"
+        if not row["output_chars"]:
+            return "空输出"
+        if ERROR_PAGE.search(contained_path(out, row["artifact_path"]).read_text(encoding="utf-8")):
+            return "错误页"
+        if score(row, "text_edit") is not None and score(row, "text_edit") < .1:
+            return "低全文相似度"
+        return "未触发诊断"
+
+    categories = {row["attempt_id"]: classify(row) for row in records}
+    counts = Counter(categories.values())
+    css = """*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#172637;font:16px/1.55 system-ui,sans-serif}body.dark{background:#101923;color:#edf3fa}a{color:#1859a5}body.dark a{color:#92c7ff}.wrap{width:min(1200px,calc(100% - 32px));margin:auto}header{background:#142d4b;color:white}header .wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:15px 0}header a{color:white;text-decoration:none}header strong{margin-right:auto}nav{display:flex;gap:14px;flex-wrap:wrap}button,input,select{font:inherit;border:1px solid #9aacc0;border-radius:7px;padding:7px 10px;background:white;color:#172637}body.dark button,body.dark input,body.dark select{background:#25384b;color:white;border-color:#61768b}h1{font-size:clamp(30px,4vw,48px);line-height:1.18;margin:0 0 15px}h2{font-size:26px;margin:0 0 14px}.hero{padding:48px 0 22px}.hero p{font-size:18px;max-width:900px;color:#506377}body.dark .hero p,body.dark .note{color:#bfd0e1}section{margin:24px 0 38px}figure{margin:24px 0}.panel{background:white;border:1px solid #d8e1eb;border-radius:12px;padding:20px;margin:14px 0}body.dark .panel{background:#1c2b3b;border-color:#38506a}.scroll{overflow:auto;max-height:66vh;border:1px solid #d8e1eb;border-radius:10px;background:white}body.dark .scroll{background:#1c2b3b;border-color:#38506a}table{border-collapse:collapse;width:100%;min-width:820px}th,td{padding:9px 12px;text-align:left;border-bottom:1px solid #dce5ee;vertical-align:top}th{position:sticky;top:0;background:#e9f0f8;color:#152a40;z-index:1}body.dark th{background:#29435d;color:white}tbody tr:hover{background:#edf4fc}body.dark tbody tr:hover{background:#28445f}td small{display:block;color:#597088}body.dark td small{color:#b8cadb}.number{font-variant-numeric:tabular-nums;white-space:nowrap}.winner{color:#116b3c;font-weight:750}body.dark .winner{color:#82e1a7}.filters{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0}.filters label{display:grid;gap:4px;font-size:13px;font-weight:700}.note{color:#52677b;font-size:14px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0e2032;color:#f1f6fb;padding:17px;border-radius:8px;max-height:65vh;overflow:auto;font:13px/1.5 ui-monospace,monospace}details{border:1px solid #dce5ee;border-radius:8px;padding:10px 14px;margin:10px 0}body.dark details{border-color:#38506a}summary{cursor:pointer;font-weight:700}.actions{display:flex;gap:14px;flex-wrap:wrap}.source{overflow-wrap:anywhere}footer{padding:32px 0;color:#52677b}@media(max-width:650px){.panel{padding:14px}header nav{width:100%}th,td{padding:7px 9px}}"""
+    js = """function theme(){document.body.classList.toggle('dark');try{localStorage.setItem('wmb545-theme',document.body.classList.contains('dark')?'dark':'light')}catch(e){}}try{if(localStorage.getItem('wmb545-theme')==='dark')document.body.classList.add('dark')}catch(e){}function filter(){let q=(document.getElementById('q')?.value||'').toLowerCase(),p=document.getElementById('provider')?.value||'',k=document.getElementById('kind')?.value||'issue',n=0;document.querySelectorAll('tr[data-result]').forEach(r=>{let show=(!q||r.dataset.search.includes(q))&&(!p||r.dataset.provider===p)&&(k==='all'||(k==='issue'?r.dataset.kind!=='未触发诊断':r.dataset.kind===k));r.hidden=!show;if(show)n++});let c=document.getElementById('count');if(c)c.textContent=n;let e=document.getElementById('empty');if(e)e.hidden=n!==0}document.addEventListener('DOMContentLoaded',()=>{for(let id of ['q','provider','kind'])document.getElementById(id)?.addEventListener('input',filter);let params=new URLSearchParams(location.search);for(let id of ['provider','kind']){let select=document.getElementById(id);if(select&&params.has(id))select.value=params.get(id)}filter();let node=document.getElementById('evidence-content');if(node){let path=params.get('path')||'';if(!/^(artifacts|references|sources)\\/[A-Za-z0-9_.\\/-]+$/.test(path)||path.includes('..')){node.textContent='无效证据路径';return}document.getElementById('evidence-path').textContent=path;document.getElementById('evidence-raw').href=path;loadEvidence(path,node)}});"""
+    js += """
+async function loadJson(path){let response=await fetch(path);if(!response.ok)throw Error('HTTP '+response.status);return response.json()}
+async function loadEvidence(path,node){try{let index=await loadJson('artifact-shard-index.json'),shardPath=index[path];if(!shardPath)throw Error('证据索引缺失');let shard=await loadJson(shardPath),hash=shard.artifacts[path],value=shard.blobs[hash];if(typeof value!=='string')throw Error('证据内容缺失');node.textContent=value;let raw=document.getElementById('evidence-raw');raw.href=URL.createObjectURL(new Blob([value],{type:'text/plain;charset=utf-8'}));raw.download=path.split('/').pop()}catch(error){node.textContent='无法读取证据：'+error.message}}
+async function renderResult(){let params=new URLSearchParams(location.search),provider=params.get('provider')||'',id=params.get('id')||'';let title=document.getElementById('result-title');if(!/^[a-z0-9-]+$/.test(provider)||!/^[A-Za-z0-9-]+$/.test(id)){title.textContent='无效结果地址';return}try{let index=await loadJson('result-shard-index.json'),key=provider+'|'+id,shardPath=index[key];if(!shardPath)throw Error('结果索引缺失');let shard=await loadJson(shardPath),row=shard.results[key];if(!row)throw Error('结果内容缺失');let names={moli:'Moli',lightpanda:'Lightpanda',obscura:'Obscura',chromium:'Chrome',kitesurf:'Kitesurf'},name=names[provider]||provider;title.textContent=name+' · '+id;document.title=title.textContent+' · WebMainBench 545';document.getElementById('result-source').textContent=row.original_url;let failure=['请求失败','空输出','错误页'].includes(row.diagnosis),detail=document.querySelector('[data-report-detail]');detail.dataset.reportDetail=failure?'failed':'success';document.getElementById('result-summary').textContent='状态：'+(row.ok?'返回成功':'请求失败')+'；诊断：'+row.diagnosis+'；最终调用 '+row.elapsed_ms.toFixed(0)+' ms；物理调用 '+row.physical_attempt_count+' 次，含重试总耗时 '+row.total_elapsed_ms.toFixed(0)+' ms。';let section=document.getElementById('result-failure');section.hidden=!failure;if(failure){document.getElementById('result-stage').textContent='阶段：'+(row.error_type||row.diagnosis);document.getElementById('result-error').textContent='程序错误：'+(row.error_message||'无');document.getElementById('result-log').textContent=row.provider_metadata?.stderr||row.provider_metadata?.browser_stderr||'无日志';document.getElementById('result-cause').textContent='复核原因：'+(row.review?.cause||'未记录');document.getElementById('result-treatment').textContent='处理：'+(row.review?.treatment||'未记录').replace(/[。；]+$/,'')+'；状态：'+(row.review?.status||'未记录')}let labels=[['text_edit','全文'],['code_edit','代码'],['formula_edit','公式'],['table_edit','表格内容'],['table_TEDS','表格结构']],body=document.getElementById('result-metrics');for(let [metric,label] of labels){let tr=document.createElement('tr'),entry=row.metrics?.[metric]||{};for(let value of [label,(!entry.success||entry.score==null)?'—':(entry.score*100).toFixed(1)+'%',entry.success?'参与计分':'不参与计分']){let td=document.createElement('td');td.textContent=value;tr.append(td)}body.append(tr)}document.getElementById('result-case').href='cases/index.html?id='+id;document.getElementById('result-output').href='viewer/index.html?path='+encodeURIComponent(row.artifact_path);document.getElementById('result-reference').href='viewer/index.html?path=references/'+id+'.md';document.getElementById('result-source-link').href='viewer/index.html?path=sources/'+id+'.html.txt';let physical=shard.physical[id]||[],list=document.getElementById('result-physical-list');for(let [number,attempt] of physical.entries()){let li=document.createElement('li'),a=document.createElement('a');a.href='viewer/index.html?path='+encodeURIComponent(attempt.physical_artifact_path);a.textContent='第 '+(number+1)+' 次调用 · '+attempt.elapsed_ms.toFixed(0)+' ms';li.append(a);list.append(li)}document.getElementById('result-physical').hidden=!physical.length}catch(error){title.textContent='无法载入结果：'+error.message}}
+async function renderCase(){let id=new URLSearchParams(location.search).get('id')||'',slot=document.getElementById('case-id');if(!/^[A-Za-z0-9-]+$/.test(id)){slot.textContent='无效任务地址';return}try{let dataset=await loadJson('dataset.json'),item=dataset.cases.find(x=>x.id===id);if(!item)throw Error('任务不存在');slot.textContent=id;document.getElementById('case-url').textContent=item.url;document.title='同页比较 '+id+' · WebMainBench 545';document.getElementById('case-source').href='viewer/index.html?path=sources/'+id+'.html.txt';document.getElementById('case-reference').href='viewer/index.html?path=references/'+id+'.md';let index=await loadJson('result-shard-index.json'),names={moli:'Moli',lightpanda:'Lightpanda',obscura:'Obscura',chromium:'Chrome',kitesurf:'Kitesurf'},metrics=['overall','text_edit','code_edit','formula_edit','table_edit','table_TEDS'],providers=dataset.coverage_plan.static_html,paths=[...new Set(providers.map(p=>index[p+'|'+id]))];if(paths.some(x=>!x))throw Error('同页结果不完整');let loaded=await Promise.all(paths.map(loadJson)),shards=Object.fromEntries(paths.map((p,i)=>[p,loaded[i]])),body=document.getElementById('case-results');for(let provider of providers){let row=shards[index[provider+'|'+id]].results[provider+'|'+id];if(!row)throw Error('同页方法缺失');let tr=document.createElement('tr'),td=document.createElement('td'),link=document.createElement('a');link.href='results/index.html?provider='+provider+'&id='+id;link.textContent=names[provider]||provider;td.append(link);tr.append(td);td=document.createElement('td');td.textContent=row.diagnosis;tr.append(td);for(let metric of metrics){td=document.createElement('td');let score=row.metrics?.[metric]?.score;td.textContent=(!row.metrics?.[metric]?.success||score==null)?'—':(score*100).toFixed(1)+'%';tr.append(td)}body.append(tr)}}catch(error){slot.textContent='无法载入同页结果：'+error.message}}
+document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('result-title'))renderResult();if(document.getElementById('case-id'))renderCase()});
+"""
+    (out / "assets").mkdir(exist_ok=True)
+    (out / "assets/style.css").write_text(css, encoding="utf-8")
+    (out / "assets/report.js").write_text(js, encoding="utf-8")
+
+    def anchor(path, label):
+        return '<a href="' + esc(safe_href(path)) + '">' + esc(label) + '</a>'
+
+    def table(headers, rows):
+        return '<div class="scroll"><table><thead><tr>' + ''.join("<th>" + esc(x) + "</th>" for x in headers) + '</tr></thead><tbody>' + ''.join(rows) + '</tbody></table></div>'
+
+    navigation = [("总览", "index.html"), ("数据集", "dataset/index.html"),
+                  ("结果分析", "analysis/index.html"), ("解读", "guide/index.html"),
+                  ("方法", "methodology/index.html"), ("复现", "reproduce/index.html")]
+
+    def page(route, title, body):
+        prefix = "../" * route.count("/")
+        links = ''.join(anchor(path, label) for label, path in navigation)
+        markup = ('<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="' +
+                  (prefix or "./") + '"><title>' + esc(title) + ' · WebMainBench 545</title><link rel="stylesheet" href="assets/style.css"><script defer src="assets/report.js"></script></head><body><header><div class="wrap"><strong>' +
+                  anchor("index.html", "WebMainBench · 545") + '</strong><nav>' + links + '</nav>' + anchor("en/index.html", "English") +
+                  '<button onclick="theme()">切换主题</button></div></header><main class="wrap">' + body +
+                  '</main><footer class="wrap">WebMainBench 545 例 · 5 种方法 · ' +
+                  anchor("https://github.com/opendatalab/WebMainBench", "公开数据与评分器") + '</footer></body></html>')
+        target = out / route
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(markup, encoding="utf-8")
+
+    def metric_table():
+        rows = []
+        for provider in providers:
+            summary = summaries[provider]
+            scores = summary["official_aggregate"]["scores"]
+            denominators = summary["official_aggregate"]["denominators"]
+            cells = ["<td>" + anchor("analysis/index.html?provider=" + provider, labels[provider]) + "</td>"]
+            for metric, _ in measures:
+                value = scores[metric]
+                all_values = [summaries[other]["official_aggregate"]["scores"][metric] for other in providers]
+                winner = "winner comparison-winner" if value == max(all_values) and all_values.count(value) == 1 else ""
+                detail = "<small>" + str(denominators[metric]) + " 页计分</small>" if metric != "overall" else ""
+                cells.append('<td class="number" data-metric="' + metric + '" data-metric-direction="max" data-sort="' + str(value) +
+                             '"><span class="' + winner + '">' + percent(value) + "</span>" + detail + "</td>")
+            cells.append('<td class="number">' + str(summary["request_successes"]) + "/545</td>")
+            rows.append("<tr>" + "".join(cells) + "</tr>")
+        return table(["方法"] + [label for _, label in measures] + ["返回成功"], rows)
+
+    def latency_table():
+        rows = []
+        by_provider = {provider: [row for row in records if row["provider"] == provider] for provider in providers}
+        successful_by_provider = {provider: [row["elapsed_ms"] for row in by_provider[provider] if row["ok"]] for provider in providers}
+        values_by_provider = {provider: ([statistics.mean(values), percentile(values, .5), percentile(values, .95)] if values else [None] * 3) +
+                              [sum(row["total_elapsed_ms"] for row in by_provider[provider])]
+                              for provider, values in successful_by_provider.items()}
+        for provider in providers:
+            numbers = []
+            for index, value in enumerate(values_by_provider[provider]):
+                eligible = [values_by_provider[other][index] for other in providers if values_by_provider[other][index] is not None]
+                unique = value is not None and value == min(eligible) and eligible.count(value) == 1
+                marker = '<strong class="comparison-winner winner">' if unique else '<span>'
+                end = '</strong>' if unique else '</span>'
+                numbers.append('<td class="number" data-metric="success-latency-' + str(index) + '" data-metric-direction="min"' +
+                               (' data-sort="' + str(value) + '"' if value is not None else '') + '>' + marker +
+                               (f"{value:,.0f} ms" if value is not None else "—") + end + '</td>')
+            rows.append("<tr><td>" + esc(labels[provider]) + "</td><td>" + str(len(successful_by_provider[provider])) + "/545</td>" + ''.join(numbers) + "</tr>")
+        return table(["方法", "成功页", "均值", "P50", "P95", "含重试总耗时"], rows)
+
+    def all_call_latency_table():
+        distributions = {provider: [row["elapsed_ms"] for row in records if row["provider"] == provider] for provider in providers}
+        values = {provider: [statistics.mean(items), percentile(items, .5), percentile(items, .95)]
+                  for provider, items in distributions.items()}
+        rows = []
+        for provider in providers:
+            cells = []
+            for index, number in enumerate(values[provider]):
+                column = [values[other][index] for other in providers]
+                unique = number == min(column) and column.count(number) == 1
+                marker = '<strong class="comparison-winner winner">' if unique else '<span>'
+                cells.append('<td class="number" data-metric="all-call-latency-' + str(index) + '" data-metric-direction="min" data-sort="' +
+                             str(number) + '">' + marker + f'{number:,.0f} ms' + ('</strong>' if unique else '</span>') + '</td>')
+            rows.append('<tr><td>' + esc(labels[provider]) + '</td><td>545/545</td>' + ''.join(cells) + '</tr>')
+        return table(['方法', '全部逻辑调用', '均值', 'P50', 'P95'], rows)
+
+    home = ('<section class="hero"><h1>' + prose('home_title') + '</h1><p>' + prose('home_lead') + '</p></section>' +
+            '<figure><picture><source media="(max-width:650px)" srcset="assets/infographic-mobile.png"><img src="assets/infographic.png" alt="545 页完整测试：Moli 34.00%，Lightpanda 33.43%，Kitesurf 32.86%，Chrome 23.64%，Obscura 22.35%；机器问题共 28 条，其中请求失败 17、成功却空正文 10、浏览器错误页 1" style="display:block;width:100%;height:auto;border-radius:12px"></picture><figcaption class="note">' + prose('infographic_caption') + '</figcaption></figure>' +
+            '<section><h2>核心结果</h2>' + metric_table() + '<p class="note">' + prose('score_note') + '</p></section>' +
+            '<section><h2>全部页面的调用耗时</h2>' + all_call_latency_table() + '<p class="note">' + prose('all_latency_note') + '</p></section>' +
+            '<section><h2>成功页面的调用耗时与重试成本</h2>' + latency_table() + '<p class="note">' + prose('latency_note') + '</p></section>' +
+            '<section><h2>问题分布</h2>' + table(["自动诊断", "结果数"], ['<tr><td>' + anchor("analysis/index.html?kind=" + kind, kind) + '</td><td>' + str(count) + '</td></tr>' for kind, count in sorted(counts.items())]) +
+            '<p class="note">' + prose('diagnostic_note') + '</p></section>')
+    page("index.html", "完整结果", home)
+    dataset_rows = []
+    for case in dataset["cases"]:
+        case_id = case["id"]
+        meta = case["meta"]
+        dataset_rows.append("<tr><td>" + anchor("cases/index.html?id=" + case_id, case_id) + "</td><td>" +
+                            esc(meta.get("language") or "—") + "</td><td>" + esc(meta.get("level") or "—") +
+                            '</td><td class="source">' + anchor(case["url"], case["url"]) + "</td><td>" +
+                            anchor("viewer/index.html?path=sources/" + case_id + ".html.txt", "冻结网页") + " · " +
+                            anchor("viewer/index.html?path=references/" + case_id + ".md", "人工答案") + "</td></tr>")
+    page("dataset/index.html", "数据集", '<section class="hero"><h1>冻结网页与人工答案</h1><p>' + prose('dataset_lead') + '</p></section>' +
+         table(["任务 ID", "语言", "难度", "来源", "证据"], dataset_rows))
+    options = ["issue", "all", "请求失败", "空输出", "错误页", "低全文相似度", "未触发诊断"]
+    filters = ('<div class="filters"><label>搜索任务或网址<input id="q" type="search"></label><label>方法<select id="provider"><option value="">全部方法</option>' +
+               ''.join('<option value="' + provider + '">' + esc(labels[provider]) + "</option>" for provider in providers) +
+               '</select></label><label>诊断<select id="kind">' +
+               ''.join('<option value="' + esc(kind) + '">' + esc("全部问题" if kind == "issue" else "全部结果" if kind == "all" else kind) + "</option>" for kind in options) +
+               "</select></label></div>")
+    result_rows = []
+    for row in records:
+        case_id, provider = row["case_id"], row["provider"]
+        kind = categories[row["attempt_id"]]
+        result_rows.append('<tr data-result data-provider="' + provider + '" data-kind="' + esc(kind) +
+                           '" data-search="' + esc((case_id + " " + row["original_url"]).lower()) + '"><td>' +
+                           anchor("results/index.html?provider=" + provider + "&id=" + case_id, case_id) + "</td><td>" +
+                           esc(labels[provider]) + "</td><td>" + esc(kind) + "</td><td>" +
+                           percent(score(row, "text_edit")) + "</td><td>" + f'{row["elapsed_ms"]:,.0f} ms' +
+                           "</td><td>" + anchor("cases/index.html?id=" + case_id, "同页") + "</td></tr>")
+    page("analysis/index.html", "结果分析", '<section class="hero"><h1>逐项结果与问题定位</h1><p>' + prose('analysis_lead') + '</p></section>' +
+         filters + '<p>当前显示 <strong id="count"></strong> 条。<span id="empty" hidden>当前条件无结果。</span></p>' +
+         table(["任务", "方法", "诊断", "全文分", "最终调用", "同页"], result_rows))
+    page("cases/index.html", "同页比较",
+         '<section class="hero"><h1>同一网页的五种转换</h1><p id="case-id"></p><p class="source" id="case-url"></p></section>'
+         '<p class="actions"><a id="case-source">冻结网页</a><a id="case-reference">人工答案</a>' + anchor("dataset/index.html", "返回数据集") + '</p>'
+         '<div class="scroll"><table><thead><tr><th>方法</th><th>诊断</th>' + ''.join('<th>' + esc(label) + '</th>' for _, label in measures) +
+         '</tr></thead><tbody id="case-results"></tbody></table></div>')
+    page("results/index.html", "逐项结果",
+         '<div data-report-detail="pending"><section class="hero"><h1 id="result-title">正在载入结果…</h1><p class="source" id="result-source"></p></section>'
+         '<section class="panel" data-result-summary><h2>结果摘要</h2><p id="result-summary"></p></section>'
+         '<section class="panel" data-failure-diagnosis id="result-failure" hidden><h2>错误与诊断</h2><p id="result-stage"></p><p id="result-error"></p><p id="result-cause"></p><p id="result-treatment"></p>'
+         '<details id="result-logs"><summary>原始运行日志</summary><pre data-kind="error" id="result-log"></pre></details></section>'
+         '<section><h2>五项质量指标</h2><div class="scroll"><table><thead><tr><th>指标</th><th>分数</th><th>状态</th></tr></thead><tbody id="result-metrics"></tbody></table></div></section>'
+         '<details id="result-physical" hidden><summary>每次物理调用</summary><ol id="result-physical-list"></ol></details>'
+         '<p class="actions"><a id="result-case">返回同页比较</a><a id="result-output">完整输出</a><a id="result-reference">人工答案</a>'
+         '<a id="result-source-link">冻结网页</a></p></div>')
+    shards = defaultdict(lambda: {"results": {}, "artifacts": {}, "blobs": {}, "physical": {}})
+    result_index = {}
+    artifact_index = {}
+    def shard_name(provider, case_id):
+        bucket = int(hashlib.sha256(case_id.encode()).hexdigest()[:2], 16) % 8
+        return f"shards/{provider}-{bucket}.json"
+    def bound_artifact(path, expected, shard_path):
+        source = contained_path(out, path)
+        raw = source.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != expected:
+            raise ValueError("Public artifact changed: " + path)
+        shards[shard_path]["artifacts"][path] = expected
+        shards[shard_path]["blobs"][expected] = raw.decode("utf-8")
+        artifact_index[path] = shard_path
+    for row in records:
+        key = row["provider"] + "|" + row["case_id"]
+        target = shard_name(row["provider"], row["case_id"])
+        shards[target]["results"][key] = {**row, "diagnosis": categories[row["attempt_id"]],
+                                          "review": reviewed_failures.get((row["provider"], row["case_id"]))}
+        result_index[key] = target
+        bound_artifact(row["artifact_path"], row["output_sha256"], target)
+    physical_path = out / "physical-attempts.jsonl"
+    physical = [json.loads(line) for line in physical_path.read_text(encoding="utf-8").splitlines() if line.strip()] if physical_path.is_file() else []
+    for attempt in physical:
+        case_id = attempt["track_id"]
+        target = shard_name(attempt["provider"], case_id)
+        shards[target]["physical"].setdefault(case_id, []).append(attempt)
+        bound_artifact(attempt["physical_artifact_path"], attempt["output_sha256"], target)
+    for case in dataset["cases"]:
+        case_id = case["id"]
+        target = shard_name("source", case_id)
+        bound_artifact(f"sources/{case_id}.html.txt", case["input_html_sha256"], target)
+        bound_artifact(f"references/{case_id}.md", case["reference_sha256"], target)
+    for relative, data in shards.items():
+        target = out / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    (out / "result-shard-index.json").write_text(json.dumps(result_index, separators=(",", ":")), encoding="utf-8")
+    (out / "artifact-shard-index.json").write_text(json.dumps(artifact_index, separators=(",", ":")), encoding="utf-8")
+    shutil.rmtree(out / "artifacts")
+    shutil.rmtree(out / "sources")
+    shutil.rmtree(out / "references")
+    interface_rows = ['<tr><td>' + esc(labels[provider]) + '</td><td><code>' + esc(content['interfaces'][provider]) + '</code></td></tr>'
+                      for provider in providers]
+    retry_count = sum(row["physical_attempt_count"] - 1 for row in records)
+    recovered_count = sum(row["ok"] and row["physical_attempt_count"] == 2 for row in records)
+    final_request_failures = sum(not row["ok"] for row in records)
+    page("methodology/index.html", "评测方法",
+         '<section class="hero"><h1>测量与评分方法</h1><p>' + prose('method_lead') + '</p></section>' +
+         '<section class="panel"><h2>输入</h2><p>' + prose('method_input') + '</p><p>数据 SHA-256：<code>' +
+         esc(profile["source_dataset_sha256"]) + '</code>。评分器提交：<code>' + esc(profile["official_scorer_commit"]) +
+         '</code>。</p></section><section class="panel"><h2>失败重试</h2><p>本轮共 ' + str(len(records) + retry_count) +
+         ' 次物理调用，包含 ' + str(retry_count) + ' 次失败后的重试；其中 ' + str(recovered_count) +
+         ' 条重试后返回成功，' + str(final_request_failures) +
+         ' 条最终请求失败均调用两次。返回成功但正文为空或为错误页的结果不触发请求失败重试。</p></section>' +
+         '<section class="panel"><h2>评分</h2><p>' + prose('method_scoring') + '</p><p>' + prose('method_correction') + '</p>' +
+         anchor("teds-correction.json", "修正收据") + " · " + anchor("teds-correction-review.json", "修正复核") + "</section>" +
+         '<section><h2>调用接口</h2>' + table(['方法', '本轮调用方式'], interface_rows) + '</section>' +
+         '<p class="note">' + prose('kitesurf_version_note') + '</p>' +
+         '<section class="panel"><h2>公开采用证据</h2><p>' + prose('adoption_lead') + ' 截至 ' + esc(adoption['cutoff'][:10]) +
+         '，Cloudflare Markdown 接口在筛选范围内见于 ' + str(cloudflare_repositories) + ' 个仓库、' + str(len(cloudflare_matches)) +
+         ' 个文件。</p><p>' + prose('adoption_limit') + '</p>' + anchor('provider-adoption.json', '查看检索样本与纳入规则') + '</section>')
+    example_id = dataset["cases"][0]["id"]
+    example_row = grouped[example_id][providers[0]]
+    example_links = " · ".join([
+        anchor("viewer/index.html?path=sources/" + example_id + ".html.txt", "冻结 HTML"),
+        anchor("viewer/index.html?path=references/" + example_id + ".md", "人工答案"),
+        anchor("viewer/index.html?path=" + example_row["artifact_path"], labels[providers[0]] + " 输出"),
+        anchor("cases/index.html?id=" + example_id, "五种方法同页比较"),
+    ])
+    overall_scores = {provider: summaries[provider]["official_aggregate"]["scores"]["overall"]
+                      for provider in providers}
+    highest = max(overall_scores.values())
+    leaders = [provider for provider in providers if overall_scores[provider] == highest]
+    outcome = ("本轮 545 页中，" + labels[leaders[0]] + " 的综合分最高，为 " + percent(highest) + "。"
+               if len(leaders) == 1 else
+               "本轮 545 页的综合分最高值为 " + percent(highest) + "，由 " +
+               "、".join(labels[provider] for provider in leaders) + " 并列取得。")
+    method_rows = []
+    diagnostic_rows = []
+    diagnostic_kinds = ("请求失败", "空输出", "错误页", "低全文相似度")
+    for provider in providers:
+        selected = [row for row in records if row["provider"] == provider]
+        issues = sum(categories[row["attempt_id"]] != "未触发诊断" for row in selected)
+        method_rows.append("<tr><td>" + anchor("analysis/index.html?provider=" + provider, labels[provider]) +
+                           "</td><td>" + str(summaries[provider]["request_successes"]) +
+                           "/545</td><td>" + str(issues) + "</td><td>" +
+                           prose("guide_method_" + provider) + "</td></tr>")
+        diagnostic_rows.append("<tr><td>" + esc(labels[provider]) + "</td>" + "".join(
+            '<td data-diagnostic-provider="' + provider + '" data-kind="' + kind + '">' +
+            anchor("analysis/index.html?provider=" + provider + "&kind=" + kind,
+                   str(sum(categories[row["attempt_id"]] == kind for row in selected))) + "</td>"
+            for kind in diagnostic_kinds) + "</tr>")
+    page("guide/index.html", "结果解读",
+         '<section class="hero"><h1>结果解读</h1><p>' + esc(outcome) + " " + prose('guide_lead') + '</p></section><section><h2>质量与样本</h2>' +
+         metric_table() + '<p class="note">' + prose('guide_scope') + '</p></section><section><h2>核对完整输出</h2><p>' + prose('guide_outputs') + '</p>' +
+         anchor("analysis/index.html?kind=低全文相似度", "查看低全文分案例") +
+         '</section><section><h2>可检查的一页</h2><p>' + prose('guide_example') + '</p><p>' + example_links + '</p>' +
+         '</section><section><h2>各方法的主要问题</h2>' +
+         table(["方法", "返回成功", "自动诊断数", "本轮观察"], method_rows) +
+         '<p class="note">' + prose('guide_method_scope') + '</p>' +
+         table(["方法", *diagnostic_kinds], diagnostic_rows) + '</section><section><h2>错误类别</h2>' +
+         table(["类别", "结果数"], ["<tr><td>" + esc(kind) + "</td><td>" + str(count) + "</td></tr>" for kind, count in sorted(counts.items())]) +
+         '<p class="note">' + prose('guide_diagnosis') + '</p><h3>已复核的机器问题原因</h3>' +
+         table(["原因", "结果数"], ["<tr><td>" + esc(kind) + "</td><td>" + str(count) + "</td></tr>" for kind, count in sorted(reviewed_categories.items())]) +
+         '<p>' + str(len(reviewed_failures)) + '/' + str(machine_issue_count) + ' ' + prose('review_scope_failure') +
+         '；' + str(len(records) - len(reviewed_failures)) + ' ' + prose('review_scope_pass') + '</p>' +
+         anchor('failure-analysis.json', '查看逐条失败原因与处理') +
+         '</section><section><h2>结论</h2><p>' + prose('guide_conclusion') + '</p></section>')
+    evidence_links = ["current-report.json", "cohort-certificate.json", "scoring-certificate.json", "execution.json", "dataset.json",
+                      "results.jsonl", "original-results.jsonl", "physical-attempts.jsonl",
+                      "score-summaries.json", "teds-correction-review.json", "report-content.json", "failure-analysis.json"]
+    page("reproduce/index.html", "复现依据",
+         '<section class="hero"><h1>复现依据</h1><p>' + prose('reproduce_lead') + '</p></section><p>' +
+         " · ".join(anchor(name, name) for name in evidence_links) + "</p>")
+    page("viewer/index.html", "证据查看器",
+         '<section class="hero"><h1>证据查看器</h1><p>按需载入原始证据。</p></section><div class="panel"><p id="evidence-path"></p><p><a id="evidence-raw" href="#">原始文件</a></p><pre id="evidence-content">正在载入…</pre></div>')
+    page("en/index.html", "英文版未生成",
+         '<section class="hero"><h1>英文版未生成</h1><p>本轮报告仅生成中文版。</p></section>' +
+         anchor("index.html", "返回中文报告"))
+    (out / "report-manifest.json").write_text(json.dumps({
+        "schema_version": 1, "report": "webmainbench-545-full", "languages": ["zh"],
+        "case_count": 545, "provider_count": len(providers), "result_count": len(records),
+    }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

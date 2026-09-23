@@ -5,7 +5,7 @@ import shutil
 import tempfile
 from pathlib import Path
 from harness.reporting.assets import copy_bound_assets
-from .report import generate, generate_public_benchmark_research, generate_webmainbench, generate_wcxb, succeeded, measured, failure_category, TRACKS
+from .report import generate, generate_public_benchmark_research, generate_webmainbench, generate_webmainbench_full, webmainbench_full_machine_issue, generate_wcxb, succeeded, measured, failure_category, TRACKS
 from .report_changes import webmainbench_history
 from .failure_diagnosis import diagnose
 from .safety import contained_path, safe_identifier, validate_report_ids
@@ -542,6 +542,108 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
                 json.dumps(latency_diagnostic, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption, fixture_correction, teds_revision, anomaly_review, latency_diagnostic, include_english=include_english)
         (staging / '.generated-report').write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
+        if output.exists():
+            backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'
+            output.rename(backup)
+            try:
+                staging.rename(output)
+            except BaseException:
+                backup.rename(output)
+                raise
+            shutil.rmtree(backup.parent)
+        else:
+            staging.rename(output)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
+    return output / 'index.html'
+
+
+def build_webmainbench_full_report(source: Path, output: Path) -> Path:
+    """Build the separately bound complete 545-case report from certified evidence."""
+    from scripts.run_certified_webmainbench_full import digest, read_jsonl
+    from .webmainbench_diagnostics import validate_teds_revision
+    if source.is_symlink() or any(path.is_symlink() for path in source.rglob('*')):
+        raise ValueError('Symlinked report evidence is forbidden')
+    profile_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/current-report.json'
+    profile = json.loads(profile_path.read_text(encoding='utf-8'))
+    certificate = json.loads((source / 'cohort-certificate.json').read_text(encoding='utf-8'))
+    scoring_certificate = json.loads((source / 'scoring-certificate.json').read_text(encoding='utf-8'))
+    if (certificate.get('kind') != 'certified_webmainbench_545_full_v1'
+            or certificate.get('profile_sha256') != digest(profile_path)
+            or certificate.get('preflight') != certificate.get('postflight')
+            or json.loads((source / 'current-report.json').read_text(encoding='utf-8')) != profile):
+        raise ValueError('Full-cohort certificate or profile mismatch')
+    if (scoring_certificate.get('kind') != 'certified_webmainbench_scoring_v1'
+            or scoring_certificate.get('cohort_certificate_sha256') != digest(source / 'cohort-certificate.json')
+            or scoring_certificate.get('source_binding') != certificate['postflight']):
+        raise ValueError('Complete scoring certificate mismatch')
+    dataset = json.loads((source / 'dataset.json').read_text(encoding='utf-8'))
+    records = read_jsonl(source / 'results.jsonl')
+    providers = profile['providers']
+    cases = {case['id']: case for case in dataset['cases']}
+    if (len(cases) != 545 or len(records) != 545 * len(providers)
+            or {(row['provider'], row['case_id']) for row in records} !=
+            {(provider, case_id) for provider in providers for case_id in cases}):
+        raise ValueError('Full WebMainBench result matrix mismatch')
+    validate_teds_revision(source)
+    content_binding_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/content-binding.json'
+    content_binding = json.loads(content_binding_path.read_text(encoding='utf-8'))
+    content_path = data_home() / 'report-assets/webmainbench-full' / content_binding['relative_path']
+    if digest(content_path) != content_binding['sha256']:
+        raise ValueError('Report prose differs from the compact content binding')
+    illustration_path = data_home() / 'report-assets/webmainbench-full' / content_binding['infographic']
+    if digest(illustration_path) != content_binding['infographic_sha256']:
+        raise ValueError('Report illustration differs from the compact asset binding')
+    mobile_illustration_path = data_home() / 'report-assets/webmainbench-full' / content_binding['infographic_mobile']
+    if digest(mobile_illustration_path) != content_binding['infographic_mobile_sha256']:
+        raise ValueError('Mobile report illustration differs from the compact asset binding')
+    failure_binding_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/failure-analysis-binding.json'
+    failure_binding = json.loads(failure_binding_path.read_text(encoding='utf-8'))
+    failure_path = data_home() / 'report-assets/webmainbench-full' / failure_binding['relative_path']
+    if digest(failure_path) != failure_binding['sha256']:
+        raise ValueError('Failure analysis differs from the compact review binding')
+    failure_analysis = json.loads(failure_path.read_text(encoding='utf-8'))
+    failures = {(row['provider'], row['case_id']) for row in records
+                if webmainbench_full_machine_issue(source, row)}
+    reviewed = {(row['provider'], row['case_id']) for row in failure_analysis['reviewed_failures']}
+    if (failure_analysis.get('kind') != 'webmainbench_full_failure_analysis_v1'
+            or failure_analysis.get('cohort_certificate_sha256') != digest(source / 'cohort-certificate.json')
+            or reviewed != failures or len(reviewed) != len(failure_analysis['reviewed_failures'])
+            or any(not all(isinstance(row.get(key), str) and row[key].strip()
+                           for key in ('category_label', 'cause', 'treatment', 'status'))
+                   for row in failure_analysis['reviewed_failures'])):
+        raise ValueError('Failure analysis does not cover every measured request failure')
+    for case_id, case in cases.items():
+        if digest(contained_path(source, f'references/{case_id}.md')) != case['reference_sha256']:
+            raise ValueError('Reference changed: ' + case_id)
+        if digest(contained_path(source, f'sources/{case_id}.html.txt')) != case['input_html_sha256']:
+            raise ValueError('Frozen page changed: ' + case_id)
+    for row in records:
+        if digest(contained_path(source, row['artifact_path'])) != row['output_sha256']:
+            raise ValueError('Output changed: ' + row['attempt_id'])
+    output.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix='.webmainbench-full-build-', dir=output.parent))
+    try:
+        for name in ('artifacts', 'references', 'sources', 'fixture-certificates', 'correction-source'):
+            shutil.copytree(source / name, staging / name)
+        for name in ('dataset.json', 'results.jsonl', 'original-results.jsonl',
+                     'physical-attempts.jsonl', 'execution.json', 'score-summaries.json',
+                     'cohort-certificate.json', 'current-report.json',
+                     'scoring-certificate.json',
+                     'teds-correction.json', 'teds-correction-review.json'):
+            shutil.copy2(source / name, staging / name)
+        shutil.copy2(content_path, staging / 'report-content.json')
+        shutil.copy2(failure_path, staging / 'failure-analysis.json')
+        shutil.copy2(Path(__file__).resolve().parents[2] / 'research/provider-adoption.json', staging / 'provider-adoption.json')
+        (staging / 'assets').mkdir(exist_ok=True)
+        shutil.copy2(illustration_path, staging / 'assets/infographic.png')
+        shutil.copy2(mobile_illustration_path, staging / 'assets/infographic-mobile.png')
+        generate_webmainbench_full(staging, dataset, records,
+                                   json.loads((source / 'score-summaries.json').read_text(encoding='utf-8')),
+                                   profile)
+        from scripts.check_webmainbench_full_report import check as check_webmainbench_full
+        check_webmainbench_full(staging)
         if output.exists():
             backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'
             output.rename(backup)

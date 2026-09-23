@@ -40,6 +40,8 @@ def review(source, corrected):
     if len({row['attempt_id'] for row in after}) != len(after):
         raise ValueError('Duplicate corrected attempt')
     for name in ('dataset.json', 'sample-manifest.json', 'physical-attempts.jsonl', 'execution.json', 'result-review.json'):
+        if not (source / name).exists() and not (corrected / name).exists():
+            continue
         if digest(source / name) != digest(corrected / name):
             raise ValueError('Unexpected change: ' + name)
     changed = []
@@ -76,7 +78,7 @@ def review(source, corrected):
     impacts = {}
     for provider, summary in summaries.items():
         records = [row for row in after if row['provider'] == provider]
-        if len(records) != 200:
+        if len(records) != len(json.loads((source / 'dataset.json').read_text())['cases']):
             raise ValueError('Provider scope mismatch')
         current = summary['official_aggregate']
         for name in ('text_edit', 'code_edit', 'formula_edit', 'table_edit', 'table_TEDS'):

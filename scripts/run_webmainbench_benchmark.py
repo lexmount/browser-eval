@@ -305,7 +305,9 @@ def run(args: argparse.Namespace) -> None:
     else:
         records = load_source(args.dataset, selected)
         source_digest = DATASET_SHA256
-        expected_versions = EXPECTED_VERSIONS
+        expected_versions = {**EXPECTED_VERSIONS}
+        if args.expected_version:
+            expected_versions[args.provider] = args.expected_version
         dataset_id = "webmainbench-545"
     if args.limit:
         records = records[: args.limit]
@@ -461,6 +463,7 @@ def main() -> None:
     parser.add_argument("--limit", type=int)
     parser.add_argument("--timeout", type=float, default=45.0)
     parser.add_argument("--max-failure-retries", type=int, choices=(0, 1), default=1)
+    parser.add_argument("--expected-version", help="Exact release version required for this provider")
     args = parser.parse_args()
     if args.benchmark == 'wcxb' and args.provider not in WCXB_PROVIDERS:
         parser.error(f'--provider {args.provider} is not in the WCXB method matrix')

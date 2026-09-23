@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "relative_path": "report-content.json",
+  "sha256": "1d0aa4cbd90b52e046062d00ceb97c4f3dd8a19f7c51c0b1547eb826ba9d61e4",
+  "infographic": "infographic.png",
+  "infographic_sha256": "402f90bb2d664b38e9efb697f910d99d142d4e872cc7d1e76b8ed733f8aa9e62",
+  "infographic_mobile": "infographic-mobile.png",
+  "infographic_mobile_sha256": "2c60966e07b88fe5d0c7e966af90f4027e61bd22e439f7a4d408b875c4e18eb7"
+}

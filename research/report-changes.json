@@ -1276,6 +1276,17 @@
   ],
   "releases": [
     {
+      "id": "2026-09-23-webmainbench-complete-545-five-methods",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-23",
+      "title": "发布 WebMainBench 完整 545 题五方法对照",
+      "title_i18n": {"en": "Publish the complete 545-case WebMainBench comparison"},
+      "summary": "以同一批 545 个官方冻结 HTML 和人工参考，实测五种稳定版浏览器方法。新报告提供逐题输入、输出、评分、失败证据和已复核的机器问题分析。",
+      "summary_i18n": {"en": "Five stable browser methods were measured against the same 545 official frozen HTML inputs and human references. The new report exposes case inputs, outputs, scores, failure evidence, and reviewed machine-issue analysis."},
+      "changes": [["完整评测与评分", "先前公开报告只覆盖 200 题，无法代表完整数据集。官方 TEDS 实现还可能高估部分表格相似度。", "认证五种方法各 545 题，并用保留原始输出和官方分数的结构化树比较校正 TEDS；报告同时展示请求重试和失败分类。", "共 2725 个逻辑结果、2747 次实际调用；292 个 TEDS 分数校正。28 个机器问题已逐条复核，其余 2697 个结果未逐条人工复核。"]],
+      "changes_i18n": {"en": [["Full evaluation and scoring", "The earlier public report covered only 200 cases, and the official TEDS implementation could overstate some table similarities.", "Certify 545 cases for each of five methods and correct TEDS with structured tree comparison while preserving raw outputs and official scores; show retries and failure classes.", "There are 2,725 logical results and 2,747 physical calls; 292 TEDS scores were corrected. All 28 machine issues were reviewed individually, while the other 2,697 results were not individually human reviewed."]]}
+    },
+    {
       "id": "2026-09-20-wcxb-measured-mode-labels",
       "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
       "date": "2026-09-20",
