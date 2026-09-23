@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-067-deepseek-com",
+  "url": "https://www.deepseek.com/en/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "233605615307da3fcf2cdc68ec872e7f69ef8c314c29a3bdaf1ea7fb2ed90ed2",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

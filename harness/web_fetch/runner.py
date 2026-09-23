@@ -112,11 +112,26 @@ def classify_exception(error: Exception) -> tuple[str, str]:
     return "provider_exception", f"{type(error).__name__}: {error}"
 
 
-_SECRET_VALUE = re.compile(
-    r"(?i)\b([A-Z0-9_-]*(?:authorization|cookie|api[_-]?key|access[_-]?token|token|secret|password))"
-    r"(\s*[:=]\s*)([^\s,;]+)"
+_SENSITIVE_KEY = (
+    r"(?:(?:[a-z0-9]+[-_])*(?:proxy[-_]?authorization|authorization|(?:set[-_])?cookie|"
+    r"(?:access|refresh|id)[-_]?token|x[-_]?auth[-_]?token|private[-_]?token|token|"
+    r"(?:aws[-_])?secret[-_]?access[-_]?key|client[-_]?secret|secret|credentials?|"
+    r"x[-_]?api[-_]?key|api[-_]?key|password|passwd))"
+)
+_JSON_SECRET_VALUE = re.compile(
+    r"(?i)([\"']" + _SENSITIVE_KEY + r"[\"']\s*:\s*[\"'])(?!<|\[)"
+    r"((?:\\.|[^\"'\r\n])*)([\"'])"
+)
+_LINE_SECRET_VALUE = re.compile(
+    r"(?im)(^|[ \t])(" + _SENSITIVE_KEY + r"[ \t]*[:=])"
+    r"(?![ \t]*(?:<|\[))[ \t]*[^\s,;]+"
 )
 _BEARER = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+")
+_AUTH_SECRET_VALUE = re.compile(
+    r"(?im)((?:proxy[-_]?authorization|authorization)[ \t]*[:=][ \t]*)"
+    r"(?![A-Za-z][A-Za-z0-9_-]*[ \t]+(?:<|\[)|(?:<|\[))"
+    r"(?:[A-Za-z][A-Za-z0-9_-]*[ \t]+)?[^\s,;]+"
+)
 _POSIX_LOCAL_PATH = re.compile(
     r"(?<![A-Za-z0-9])/(?:Users|home|private|tmp|var|opt|etc)/[^\s'\"<>]+"
 )
@@ -129,7 +144,9 @@ def _public_text(value: Any, *, limit: int = 4096) -> str | None:
         return None
     text = str(value).replace("\x00", "")
     text = _BEARER.sub("Bearer [REDACTED]", text)
-    text = _SECRET_VALUE.sub(lambda match: match.group(1) + match.group(2) + "[REDACTED]", text)
+    text = _AUTH_SECRET_VALUE.sub(lambda match: match.group(1) + "[REDACTED]", text)
+    text = _JSON_SECRET_VALUE.sub(lambda match: match.group(1) + "[REDACTED]" + match.group(3), text)
+    text = _LINE_SECRET_VALUE.sub(lambda match: match.group(1) + match.group(2) + " [REDACTED]", text)
     text = _POSIX_LOCAL_PATH.sub("[local-path]", text)
     text = _WINDOWS_LOCAL_PATH.sub("[local-path]", text)
     return text[:limit]

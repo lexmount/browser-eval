@@ -1,0 +1,10 @@
+{
+  "case_id": "china-homepage-073-so-com",
+  "url": "https://so.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "c1a8f1108ff32c418f00e3a1bb50df94e7e3e87a6e315a9c1084f4a039a98f07",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

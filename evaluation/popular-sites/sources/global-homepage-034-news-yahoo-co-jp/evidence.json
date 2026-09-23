@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-034-news-yahoo-co-jp",
+  "url": "https://news.yahoo.co.jp/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "40c216acd4443ca96c9cedb88cbdcf2c87a8f9ba7c794f6539809544575dc0aa",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

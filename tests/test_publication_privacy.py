@@ -70,7 +70,7 @@ class PublicationPrivacyTests(unittest.TestCase):
     def test_public_bundle_rejects_real_auth_values_and_local_user_paths(self):
         self.assertEqual(publication_risk(b'Authorization: Bearer <API_TOKEN>'), None)
         self.assertEqual(publication_risk(b'Authorization: Bearer abcdefghijklmnop'),
-                         'authorization header value')
+                         'sensitive field value')
         self.assertEqual(publication_risk(b'/Users/example/private/file.txt'),
                          'machine-local user path')
         projected_path, path_row = project_file(
@@ -91,6 +91,40 @@ class PublicationPrivacyTests(unittest.TestCase):
             'results.jsonl', b'Authorization: Bearer abcdefghijklmnop')
         self.assertNotIn(b'abcdefghijklmnop', auth_projected)
         self.assertIn('credential', auth_row['kinds'])
+
+    def test_bounded_sensitive_key_family_covers_common_real_credentials(self):
+        samples = (
+            b'access_token=custom-private-token',
+            b'refresh_token: private-refresh-token',
+            b'AWS_SECRET_ACCESS_KEY=private-secret',
+            b'{"access_token":"private-token"}',
+            b'X-Api-Key: private-key',
+            b'X-Auth-Token: private-token',
+            b'Private-Token: private-token',
+            b'credentials=private-credentials',
+        )
+        for sample in samples:
+            with self.subTest(sample=sample):
+                self.assertEqual(publication_risk(sample), 'sensitive field value')
+                projected, row = project_file('call-logs/provider/case.json', sample)
+                self.assertNotIn(b'private', projected)
+                self.assertIn(b'[REDACTED]', projected)
+                self.assertIn('credential', row['kinds'])
+
+        for public in (
+            b'access_token=<REDACTED>',
+            b'{"refresh_token":"[REDACTED]"}',
+            b'Traceback: RuntimeError at worker.py:42',
+        ):
+            with self.subTest(public=public):
+                self.assertIsNone(publication_risk(public))
+                self.assertEqual(project_file('call-logs/provider/case.json', public),
+                                 (public, None))
+
+        root_path, row = project_file(
+            'call-logs/provider/case.json', b'failed at /root/private/session.log')
+        self.assertNotIn(b'/root/', root_path)
+        self.assertIn('local_path', row['kinds'])
 
     def test_packaged_downloads_and_disclosure(self):
         repository = Path(__file__).resolve().parents[1]

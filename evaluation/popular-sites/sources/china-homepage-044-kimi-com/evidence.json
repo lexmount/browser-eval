@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "case_id": "china-homepage-044-kimi-com",
+  "checked_at": "2026-09-18",
+  "provider_output_used": false,
+  "stable_page_sha256": "b4ef0584e4d5e1db68cd95caf2c20d27e02a3162b9cce491a2f3cb4dccb1e473",
+  "url": "https://kimi.com/",
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

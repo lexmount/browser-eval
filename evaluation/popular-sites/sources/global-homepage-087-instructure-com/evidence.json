@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-087-instructure-com",
+  "url": "https://instructure.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "e360081a38a406698504d6b1071bb99bf0d4e9f45fef719158d363e67e355700",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

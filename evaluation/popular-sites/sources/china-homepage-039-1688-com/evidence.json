@@ -1,0 +1,10 @@
+{
+  "case_id": "china-homepage-039-1688-com",
+  "url": "https://1688.com/",
+  "checked_at": "2026-09-18",
+  "source": "6 fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "f1449a6b781b629725722ca86dd6d5bc9145e1663dffa05974a2c98b56599d30",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

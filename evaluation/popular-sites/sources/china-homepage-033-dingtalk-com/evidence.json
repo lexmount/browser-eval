@@ -1,0 +1,10 @@
+{
+  "case_id": "china-homepage-033-dingtalk-com",
+  "url": "https://dingtalk.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "7316417e47fb3c67eb3313d4b4248e3ee286e0c68394119546b386eb4e490e60",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

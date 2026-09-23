@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-049-brave-com",
+  "url": "https://brave.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "96d5f52fa2156e9ed26c66097830a76c26a6a299c30ea8b0fd81c87f9c9ee9bd",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-030-weather-com",
+  "url": "https://weather.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "28f2edf04f22de7d958129f2003b24805e7c823ff1d4495312fce44ea0059cd1",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

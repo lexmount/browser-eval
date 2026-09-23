@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "case_id": "global-homepage-002-youtube-com",
+  "url": "https://www.youtube.com/?hl=en&gl=US&persist_hl=1",
+  "checked_at": "2026-09-20",
+  "source": "Previously recorded independent adjudication; no new page capture",
+  "provider_output_used": false,
+  "stable_page_sha256": "d631d5da5efccfd75f3d1b5d233a12e0b2d012a3e071c5dd1195ff753a26a5ba",
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

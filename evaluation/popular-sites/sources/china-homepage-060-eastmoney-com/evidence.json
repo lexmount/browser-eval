@@ -1,0 +1,10 @@
+{
+  "case_id": "china-homepage-060-eastmoney-com",
+  "url": "https://eastmoney.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "28215f37a2899072b9e9c412e13e7a01de658a6f909406870f0f92c5b3fc35be",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

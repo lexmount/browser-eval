@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-045-nytimes-com",
+  "url": "https://nytimes.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "0f10a77a19a606a1313b53b7d8f2a2697ce26de1f418c19f44c5ce2404470036",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

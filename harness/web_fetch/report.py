@@ -638,12 +638,13 @@ def table(headers,rows,id='',sortable=False,cls='',metrics=None,index_header='�
 EXTRA+='\n.change-log section{padding:24px 0}.change-log h2{font-size:24px}.change-log p{margin:10px 0;line-height:1.75}.change-log summary{font-weight:650;color:var(--accent)}.change-log .table-wrap{overflow-x:auto}\n'
 
 _RELIABILITY_BANNER=''
+_ENGLISH_GENERATED=False
 
 def write(out,path,title,body):
  depth=len(Path(path).parts)-1;base='../'*depth
  nav=[('datasets/index.html','评测集'),('methodology/index.html','评测方法'),('analysis/index.html','结果分析'),('review/index.html','核验记录'),('guide/index.html','报告解读'),('adoption/index.html','方法介绍'),('reproduce/index.html','环境与复现'),('changes/index.html','变更记录'),('accounts/index.html','账号与安装')]
  brand=link(base+'index.html','Web Fetch')
- counterpart=base+'en/'+path
+ counterpart=(base+'en/'+path if _ENGLISH_GENERATED else base+'en/index.html')
  language=f'<a href="{safe_href(counterpart)}" hreflang="en">English</a>'
  footer='所有分数由本轮调用记录计算。网页与服务可能变化；结论仅适用于本轮样本和配置。'
  page=f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}'+''.join(link(base+url,label) for url,label in nav)+f'{language}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main>{_RELIABILITY_BANNER}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
@@ -1329,7 +1330,8 @@ def attempt_row(r,c,base='../'):
  return case_attrs(r,c),values
 
 def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False):
- global _RELIABILITY_BANNER
+ global _RELIABILITY_BANNER,_ENGLISH_GENERATED
+ _ENGLISH_GENERATED=include_english
  from .reliability import assess_reliability
  reliability=assess_reliability(dataset,records)
  if reliability['complete']:

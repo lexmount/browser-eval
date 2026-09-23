@@ -40,6 +40,55 @@ def copy_methodology_assets(output, assets=None):
             shutil.copy2(source, target)
 
 
+def copy_speed_cohort_public_files(source, target, dataset, records, batches):
+    """Copy the exact public speed-cohort evidence set; reject every symlink."""
+    source = Path(source)
+    if source.is_symlink():
+        raise ValueError('Speed cohort root must not be a symlink')
+    source_root = source.resolve()
+    for child in source.rglob('*'):
+        if child.is_symlink():
+            raise ValueError('Speed cohort evidence must not contain symlinks')
+
+    allowed = {'dataset.json', 'results.jsonl', 'speed-comparison.json'}
+    for optional in ('execution.json', 'manifest.json', 'scoring-revisions.json',
+                     'reference-revisions.json'):
+        if (source / optional).is_file():
+            allowed.add(optional)
+    for record in records:
+        relative = record['artifact_path']
+        artifact = contained_path(source, relative)
+        expected = record.get('metrics', {}).get('content_sha256')
+        if (not artifact.is_file() or not expected
+                or hashlib.sha256(artifact.read_bytes()).hexdigest() != expected):
+            raise ValueError('Speed cohort output integrity failure: ' + record['attempt_id'])
+        allowed.add(relative)
+        for binding in record_public_call_log_bindings(record):
+            allowed.add(verify_public_call_log(source, binding).relative_to(source_root).as_posix())
+    for batch in batches:
+        relative = batch.get('reference_checks', {}).get('postcheck', {}).get('evidence_path')
+        if relative:
+            allowed.add(relative)
+    for case in dataset.get('cases', []):
+        case_id = case['id']
+        source_dir = contained_path(source, 'sources/' + case_id)
+        if source_dir.is_dir():
+            allowed.update(child.relative_to(source_root).as_posix()
+                           for child in source_dir.rglob('*') if child.is_file())
+        reference = contained_path(source, 'list-references/' + case_id + '.json')
+        if reference.is_file():
+            allowed.add(reference.relative_to(source_root).as_posix())
+
+    target.mkdir(parents=True)
+    for relative in sorted(allowed):
+        source_file = contained_path(source, relative)
+        if not source_file.is_file():
+            raise ValueError('Speed cohort allowlisted file is missing: ' + relative)
+        target_file = contained_path(target, relative)
+        target_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_file, target_file)
+
+
 def build_public_benchmark_research(source: Path, output: Path, *, include_english: bool = False) -> Path:
     """Build the research-only companion without measured evidence."""
     source, output = source.resolve(), output.resolve()
@@ -99,14 +148,23 @@ def build_report(source: Path, output: Path, *, include_english: bool = False) -
     cases = {c['id']:c for c in dataset['cases']}
     from .result_review import require_result_review
     result_review = require_result_review(source, dataset, records)
-    speed_root=source/'speed-cohort'
+    speed_entry=source/'speed-cohort'
+    if speed_entry.is_symlink():
+        raise ValueError('Speed cohort root must not be a symlink')
+    speed_root=contained_path(source,'speed-cohort')
+    speed_dataset=None
+    speed_batches=[]
     if speed_root.exists():
         speed=json.loads((speed_root/'speed-comparison.json').read_text())
         if speed.get('bindings',{}).get('dataset_sha256') != hashlib.sha256((speed_root/'dataset.json').read_bytes()).hexdigest():
             raise ValueError('Speed comparison dataset binding mismatch')
         if speed.get('bindings',{}).get('results_sha256') != hashlib.sha256((speed_root/'results.jsonl').read_bytes()).hexdigest():
             raise ValueError('Speed comparison result binding mismatch')
+        speed_dataset=json.loads((speed_root/'dataset.json').read_text())
         speed_records=[json.loads(line) for line in (speed_root/'results.jsonl').read_text().splitlines()]
+        speed_execution=speed_root/'execution.json'
+        if speed_execution.is_file():
+            speed_batches=json.loads(speed_execution.read_text()).get('batches', [])
         for row in speed_records:
             verify_record_private_artifacts(speed_root, row)
             verify_record_public_call_logs(speed_root, row)
@@ -237,8 +295,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False) -
         if (source/'reference-checks').exists():
             shutil.copytree(source/'reference-checks', staging/'reference-checks')
         if speed_root.exists():
-            shutil.copytree(speed_root,staging/'speed-cohort',ignore=shutil.ignore_patterns(
-                'result-review.json','review-history','private_artifacts'))
+            copy_speed_cohort_public_files(
+                speed_root, staging/'speed-cohort', speed_dataset, speed_records, speed_batches)
         if resource_root.exists():
             shutil.copytree(resource_root,staging/'resource-cohort',ignore=shutil.ignore_patterns(
                 'result-review.json','review-history','private_artifacts'))

@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-028-microsoft-com",
+  "url": "https://microsoft.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "a156f2ff753755924f3f000c572f4aa75479e7e90850f3d35ad7fa4263570b5a",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

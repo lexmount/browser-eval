@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-082-shein-com",
+  "url": "https://us.shein.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "30efdaf9045a73347f5e3bc87fd9a2a124c2fde49e9a69e97837d0348c0a829d",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

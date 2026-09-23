@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-063-paypal-com",
+  "url": "https://paypal.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "b75caa76c1dec7b440d999da48ad8b36ada40d720ba159400e54219991a05dfe",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

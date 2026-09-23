@@ -1,0 +1,10 @@
+{
+  "case_id": "china-homepage-048-douyu-com",
+  "url": "https://douyu.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "24d412a26c0a7a0d46f4b8edad517d4b2026ed16b534b5771c4f0660eaf645f0",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

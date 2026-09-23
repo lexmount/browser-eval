@@ -1,0 +1,10 @@
+{
+  "case_id": "china-homepage-089-yuque-com",
+  "url": "https://yuque.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "b25d34580413cd6303983e5d4f12cbcdceaee759191b9172f8f5776a448f3809",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

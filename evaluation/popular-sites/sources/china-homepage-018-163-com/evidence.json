@@ -1,0 +1,10 @@
+{
+  "case_id": "china-homepage-018-163-com",
+  "url": "https://163.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "6a93ec708182afe7b9e52cf14c26f93caca8fdeb91ef556c56e678d85fe7e294",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

@@ -3,7 +3,7 @@ PY := $(UV) run --frozen python
 TEST_PY := $(UV) run --frozen --all-extras python
 WEBMAINBENCH_SAMPLE ?= evaluation/public-webmainbench-200.json
 
-.PHONY: setup import-env runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check wcxb-release-check resource-image public-benchmark-report public-benchmark-sample webmainbench-run webmainbench-score webmainbench-review webmainbench-assemble browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check trajectory-replay-report trajectory-replay-report-check trajectory-replay-visual-check trajectory-replay-release-check trajectory-replay-package trajectory-replay-publish public-webarena-report public-webarena-report-audit public-webarena-report-release
+.PHONY: setup import-env runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check popular-sites-report popular-sites-report-check wcxb-release-check resource-image public-benchmark-report public-benchmark-sample webmainbench-run webmainbench-score webmainbench-review webmainbench-assemble browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check trajectory-replay-report trajectory-replay-report-check trajectory-replay-visual-check trajectory-replay-release-check trajectory-replay-package trajectory-replay-publish public-webarena-report public-webarena-report-audit public-webarena-report-release
 
 setup:
 	$(UV) sync --frozen --all-extras
@@ -45,6 +45,14 @@ report-check: runtime-check
 	$(PY) scripts/check_report.py reports/webfetch
 	$(PY) scripts/check_report_links.py reports/webfetch
 	$(PY) scripts/check_report_revision.py reports/webfetch
+
+popular-sites-report: runtime-check
+	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
+	$(PY) scripts/build_report.py --profile evaluation/popular-sites/current-report.json --evidence "$(EVIDENCE)" --output reports/popular-sites $(if $(filter 1,$(ENGLISH)),--include-english,)
+
+popular-sites-report-check: runtime-check
+	$(PY) scripts/check_report.py reports/popular-sites --profile evaluation/popular-sites/current-report.json
+	$(PY) scripts/check_report_links.py reports/popular-sites
 
 wcxb-release-check: runtime-check
 	$(PY) scripts/check_report.py reports/wcxb

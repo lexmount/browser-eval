@@ -259,6 +259,7 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertIn('英文报告未生成',(out/'en/index.html').read_text())
             self.assertFalse((out/'en/attempts').exists())
             detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
+            self.assertIn('href="../en/index.html" hreflang="en"',detail)
             for phrase in ['任务结果','列表任务：通过','— / — / —','全文指标无完整参考','标准答案与验收规则','有效条目数 / 声明最少数量','3 / 3']:
                 self.assertIn(phrase,detail)
             self.assertNotIn('正文未评测',detail)
