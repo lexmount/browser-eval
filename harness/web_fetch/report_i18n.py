@@ -2979,16 +2979,16 @@ TEXT.update({
     "运行日志": "Run logs",
     "查看错误与关键日志": "View errors and key log lines",
     "没有可展示的逐行日志。": "No line-by-line log is available to display.",
-    "查看并下载完整 stdout / stderr / debug 证据": "View and download complete stdout / stderr / debug evidence",
+    "查看并下载完整保存证据": "View and download complete retained evidence",
     "下载完整实际输出": "Download complete actual output",
+    "下载完整调用日志 JSON": "Download complete call-log JSON",
     "没有可下载的逐行日志文件。": "No line-by-line log file is available to download.",
     "查看重试与物理调用": "View retries and physical calls",
-    "查看公开适配器字段与证据边界": "View public adapter fields and evidence boundaries",
     "原始供应商响应信封仅在内部证据中保留，不进入公开报告或发布包。": "The original provider response envelope is retained only in internal evidence and is excluded from the public report and publication bundle.",
     "这一位置的完整标准正文": "Complete reference text for this position",
-    "完整实际返回中的对应文字": "Corresponding text in the complete actual output",
-    "完整实际返回中没有找到属于这一段的可读对应文字。": "No readable corresponding text for this region was found in the complete actual output.",
-    "查看各段完整标准正文和实际对应文字": "View complete reference text and corresponding actual text for each region",
+    "参与本段计分的完整实际返回行": "Complete actual-output lines used to score this region",
+    "评分器没有向这一段分配可展示的实际返回文字。": "The scorer assigned no displayable actual-output text to this region.",
+    "查看各段完整标准正文和计分行": "View complete reference text and scoring lines for each region",
     "正文判定：": "Body-text rule: ",
 })
 
@@ -3007,10 +3007,6 @@ REGEX.insert(0, (
 REGEX.insert(0, (
     re.compile(r"^(\d+) 份真实日志文件可以读取；其中至少一份没有在运行记录中声明 SHA-256。$"),
     r"\1 real log files are readable; at least one has no SHA-256 declared in the run record.",
-))
-REGEX.insert(0, (
-    re.compile(r"^下载(.+)完整文件$"),
-    r"Download the complete \1 file",
 ))
 REGEX.insert(0, (
     re.compile(r"^正文判定：本例分为 (\d+) 段。每段至少达到 ([\d.]+)%，其中至少 (\d+) 段达到 ([\d.]+)%。先看下表；需要核对原文时，再展开下面的左右对照。$"),

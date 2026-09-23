@@ -564,7 +564,6 @@ def empty_output_reason(record,case,output):
 def run_log_section(out,record,output):
  """Render one in-page, progressively disclosed view of retained run evidence."""
  metadata=record.get('provider_metadata') or {}
- public_metadata=public_provider_metadata(metadata)
  logs=[]
  for label,binding in call_log_bindings(record):
   path=contained_path(out,binding['path'])
@@ -577,18 +576,7 @@ def run_log_section(out,record,output):
   except (UnicodeDecodeError,json.JSONDecodeError):payload={}
   logs.append({'label':label,'path':binding['path'],'text':text,'sha256':observed,
                'bytes':len(log_bytes),'bound':bool(binding.get('sha256')),'payload':payload})
- legacy_path=metadata.get('public_stderr_path')
- if str(legacy_path).startswith('private_artifacts/'):legacy_path=None
- if legacy_path and not any(item['path']==legacy_path for item in logs):
-  path=contained_path(out,legacy_path)
-  if path.is_file():
-   log_bytes=path.read_bytes();observed=hashlib.sha256(log_bytes).hexdigest()
-   declared=metadata.get('public_stderr_sha256')
-   if declared and declared!=observed:raise ValueError(f'Public stderr hash mismatch: {record["attempt_id"]}')
-   logs.append({'label':'stderr / debug 日志','path':legacy_path,
-                'text':readable_output(log_bytes.decode('utf-8',errors='replace')),
-                'sha256':observed,'bytes':len(log_bytes),'bound':bool(declared),'payload':{}})
- declared_logs=bool(call_log_bindings(record) or legacy_path)
+ declared_logs=bool(call_log_bindings(record))
  if logs:
   availability=(f'{len(logs)} 份真实日志文件已保存并通过 SHA-256 校验。' if all(item['bound'] for item in logs) else
                 f'{len(logs)} 份真实日志文件可以读取；其中至少一份没有在运行记录中声明 SHA-256。')
@@ -609,20 +597,20 @@ def run_log_section(out,record,output):
  retry=metadata.get('retry')
  retry_count=(len(retry.get('attempts',[])) if isinstance(retry,dict) else record.get('physical_attempt_count') or 1)
  artifact=contained_path(out,record['artifact_path'])
- output_bytes=artifact.stat().st_size if artifact.is_file() else len(output.encode('utf-8'))
- output_sha=hashlib.sha256(artifact.read_bytes()).hexdigest() if artifact.is_file() else hashlib.sha256(output.encode('utf-8')).hexdigest()
+ output_data=artifact.read_bytes() if artifact.is_file() else output.encode('utf-8')
+ output_bytes=len(output_data);output_sha=hashlib.sha256(output_data).hexdigest()
  facts=[('请求路线',route),('请求状态',status),('总耗时',ms(record.get('elapsed_ms'))),
         ('开始时间',record.get('started_at') or '—（未记录）'),('完成时间',record.get('completed_at') or '—（未记录）'),
         ('物理调用',str(retry_count)),('最终输出',f'{output_bytes:,} 字节'),('运行日志',f'{sum(item["bytes"] for item in logs):,} 字节')]
  fact_html=''.join(f'<dt>{esc(label)}</dt><dd>{esc(value)}</dd>' for label,value in facts)
  log_html=''.join(
   f'<article><h3>{esc(item["label"])}</h3><p class="source-note">{item["bytes"]:,} 字节 · SHA-256：<code class="break">{esc(item["sha256"])}</code></p>'
-  f'<pre data-kind="call-log">{esc(_diagnostic_log_excerpt(item["text"]))}</pre>'
-  f'<p><a class="log-download" href="../{esc(item["path"])}" download>下载完整真实日志</a></p></article>'
+  f'<pre data-kind="call-log">{esc(_call_log_excerpt(item))}</pre>'
+  f'<p><a class="log-download" href="../{esc(item["path"])}" download>下载完整调用日志 JSON</a></p></article>'
   for item in logs)
  if not log_html:log_html='<p class="source-note">没有可展示的逐行日志。</p>'
  download_html=''.join(
-  f'<p><a class="log-download" href="../{esc(item["path"])}" download>下载{esc(item["label"])}完整文件</a> · '
+  f'<p><a class="log-download" href="../{esc(item["path"])}" download>下载完整调用日志 JSON</a> · '
   f'{item["bytes"]:,} 字节 · SHA-256：<code class="break">{esc(item["sha256"])}</code></p>'
   for item in logs)
  if not download_html:download_html='<p class="source-note">没有可下载的逐行日志文件。</p>'
@@ -630,18 +618,16 @@ def run_log_section(out,record,output):
              f'<pre data-kind="call-retry">{esc(json.dumps(public_provider_metadata(retry),ensure_ascii=False,indent=2))}</pre>')
  output_link=(f'<a href="../{esc(record["artifact_path"])}" download>下载完整实际输出</a> · '
               f'{output_bytes:,} 字节 · SHA-256：<code class="break">{esc(output_sha)}</code>')
- private_note=('原始供应商响应信封仅在内部证据中保留，不进入公开报告或发布包。'
-               if metadata.get('raw_response_path') or metadata.get('private_artifacts') else
-               '没有登记仅限内部保存的原始响应信封。')
+ private_note=('<p class="source-note">原始供应商响应信封仅在内部证据中保留，不进入公开报告或发布包。</p>'
+               if metadata.get('raw_response_path') or metadata.get('private_artifacts') else '')
  return (f'<section class="section" id="run-log"><div class="wrap"><h2>运行日志与证据</h2>'
          f'<p class="callout call-log-availability"><b>日志可用性：</b>{esc(availability)}</p>'
          f'<dl class="diagnostic-fields">{fact_html}</dl>'
          f'<p class="log-summary"><b>最后报错：</b>{esc(error_type)} · {esc(error_message)}</p>'
          f'<details class="diagnostic-log"><summary>查看错误与关键日志</summary><div class="diagnostic-log-body">{log_html}</div></details>'
-         f'<details class="diagnostic-log"><summary>查看并下载完整 stdout / stderr / debug 证据</summary><div class="diagnostic-log-body"><p>{output_link}</p>{download_html}</div></details>'
+         f'<details class="diagnostic-log"><summary>查看并下载完整保存证据</summary><div class="diagnostic-log-body"><p>{output_link}</p>{download_html}</div></details>'
          f'<details class="diagnostic-log"><summary>查看重试与物理调用</summary><div class="diagnostic-log-body">{retry_html}</div></details>'
-         f'<details class="diagnostic-log"><summary>查看公开适配器字段与证据边界</summary><div class="diagnostic-log-body"><pre data-kind="call-metadata">{esc(json.dumps(public_metadata,ensure_ascii=False,indent=2))}</pre><p class="source-note">{esc(private_note)}</p></div></details>'
-         '</div></section>')
+         f'{private_note}</div></section>')
 def pct(n):return '—' if n is None else f'{n*100:.1f}%'
 def ms(n):return '—' if n is None else f'{n:,.0f} ms'
 def link(url,label):return f'<a href="{esc(safe_href(url))}">{esc(label)}</a>'
@@ -906,11 +892,9 @@ def _best_evidence_excerpt(expected, output):
   if score>best_score:best,best_score=chunk,score
  return best if best_score>=min(.25,3/max(1,sum(wanted.values()))) else ''
 
-def _complete_evidence_lines(expected, output):
- """Return complete readable output lines that materially match one rule region."""
- from .body_coverage import tokens
+def _exact_evidence_lines(expected, output):
+ """Return complete output lines containing the normalized expected text."""
  from .metrics import normalize_for_match
- wanted=Counter(tokens(expected))
  normalized_expected=normalize_for_match(expected)
  selected=[]
  for raw in output.splitlines():
@@ -918,11 +902,6 @@ def _complete_evidence_lines(expected, output):
   if not line:continue
   normalized_line=normalize_for_match(line)
   if normalized_expected and normalized_expected in normalized_line:
-   if line not in selected:selected.append(line)
-   continue
-  found=Counter(tokens(line));denominator=sum(wanted.values())
-  overlap=sum((wanted & found).values())
-  if wanted and (overlap/max(1,denominator)>=.18 or overlap/max(1,sum(found.values()))>=.45):
    if line not in selected:selected.append(line)
  return '\n\n'.join(selected)
 
@@ -936,6 +915,68 @@ def _diagnostic_log_excerpt(text):
  if not selected:selected.update(range(min(12,len(lines))))
  return '\n'.join(f'{index+1:>6}  {lines[index]}' for index in sorted(selected))
 
+def _call_log_excerpt(item):
+ """Prefer exact structured diagnostics while retaining plain legacy logs."""
+ payload=item['payload']
+ if not payload:return _diagnostic_log_excerpt(item['text'])
+ parts=[]
+ error=payload.get('error') if isinstance(payload.get('error'),dict) else {}
+ process=payload.get('process') if isinstance(payload.get('process'),dict) else {}
+ events=payload.get('events') if isinstance(payload.get('events'),list) else []
+ if error.get('type') or error.get('message'):
+  parts.append('error: '+str(error.get('type') or '—')+' · '+str(error.get('message') or '—'))
+ if process.get('stderr'):
+  parts.append('stderr:\n'+str(process['stderr']))
+ elif process.get('stdout'):
+  parts.append('stdout:\n'+str(process['stdout']))
+ for event in events:
+  if isinstance(event,dict) and (event.get('error_type') or event.get('stage')):
+   parts.append('event: '+json.dumps(event,ensure_ascii=False,sort_keys=True))
+ return _diagnostic_log_excerpt('\n'.join(parts) if parts else item['text'])
+
+def _body_region_evidence(content,contract):
+ """Map canonical scorer allocations to complete lines without changing scoring output."""
+ from math import ceil
+ from .body_coverage import _global_region_allocation,compact_ngrams,tokens
+ version=contract['version'];size=6 if version==3 else 3
+ units=tokens(content) if version==1 else compact_ngrams(content,size)
+ predicted=Counter(units);expected={}
+ for region in contract['regions']:
+  values=(region['text'].split() if version==1 else compact_ngrams(region['text'],size))
+  expected[region['id']]=Counter(values)
+ if version==3:
+  floor=contract['minimum_floor'];target=contract['minimum_coverage']
+  floors={identifier:ceil(floor*sum(row.values())-1e-12) for identifier,row in expected.items()}
+  targets={identifier:ceil(target*sum(row.values())-1e-12) for identifier,row in expected.items()}
+  assigned,_=_global_region_allocation(
+   predicted,expected,floors,targets,contract['minimum_region_passes'])
+ else:
+  assigned={identifier:predicted & row for identifier,row in expected.items()}
+ remaining={identifier:row.copy() for identifier,row in assigned.items()}
+ evidence={identifier:[] for identifier in assigned}
+ lines=[raw.strip() for raw in content.splitlines() if raw.strip()]
+ def assign(line_units,display_lines):
+  shared=line_units.copy()
+  for identifier in sorted(remaining):
+   available=shared if version==3 else line_units
+   contribution=available & remaining[identifier]
+   if not contribution:continue
+   for display in display_lines:
+    if display not in evidence[identifier]:evidence[identifier].append(display)
+   remaining[identifier]-=contribution
+   if version==3:shared-=contribution
+ for line in lines:
+  line_units=Counter(tokens(line) if version==1 else compact_ngrams(line,size))
+  assign(line_units,[line])
+ if version!=1:
+  for left,right in zip(lines,lines[1:]):
+   boundary=(Counter(compact_ngrams(left+right,size))-
+             Counter(compact_ngrams(left,size))-Counter(compact_ngrams(right,size)))
+   assign(boundary,[left,right])
+ if any(remaining.values()):
+  raise ValueError('Body evidence could not locate every allocated scorer unit')
+ return evidence,{identifier:sum(row.values()) for identifier,row in assigned.items()}
+
 def _position_label(index,total):
  names=['开头','前部','中部','后部','结尾'] if total==5 else [f'位置 {i+1}' for i in range(total)]
  start=round(index*100/total);end=round((index+1)*100/total)
@@ -946,10 +987,13 @@ def body_region_rows(case, metrics, output):
  contract=case.get('body_requirements') or {}
  if not contract:return [],''
  recalculated={x['id']:x for x in evaluate_body_requirements(output,contract)['body_region_results']}
+ evidence,evidence_counts=_body_region_evidence(output,contract)
  regions={x['id']:x for x in contract['regions']}
  rows=[];cards=[];total=len(regions)
  for index,item in enumerate(metrics.get('body_region_results',[]),1):
   actual={**recalculated.get(item['id'],{}),**item}
+  if evidence_counts.get(item['id'])!=recalculated.get(item['id'],{}).get('matched_units'):
+   raise ValueError('Body evidence allocation differs from scorer: '+item['id'])
   expected=regions.get(item['id'],{}).get('text','')
   expected_count=actual.get('expected_units',actual.get('expected_tokens',len(expected.split())))
   matched=actual.get('matched_units',actual.get('matched_tokens',round(actual['coverage']*expected_count)))
@@ -959,10 +1003,10 @@ def body_region_rows(case, metrics, output):
   css='pass' if passed else 'fail'
   rows.append(('',cell(esc(label))+cell(f'{expected_count:,}')+cell(f'{matched:,}')+
                cell(pct(actual['coverage']))+cell(esc(judgement))))
-  passage=_complete_evidence_lines(expected,output)
+  passage='\n\n'.join(evidence.get(item['id'],[]))
   actual_html=(f'<pre data-kind="region-output">{esc(passage)}</pre>' if passage else
-               '<p class="empty">完整实际返回中没有找到属于这一段的可读对应文字。</p>')
-  cards.append(f'<article class="region-card {css}" id="region-{index}"><div class="region-head"><div><h3>{index}. {esc(label)}</h3><p>本段覆盖率为 {pct(actual["coverage"])}。每段至少达到 {pct(actual.get("floor",actual["minimum"]))}；达到 {pct(actual["minimum"])} 时算作主要完整段落。</p></div><span class="verdict-badge">{esc(judgement)}</span></div><div class="region-pair"><div><b>这一位置的完整标准正文</b><pre data-kind="reference">{esc(expected)}</pre></div><div><b>完整实际返回中的对应文字</b>{actual_html}</div></div></article>')
+               '<p class="empty">评分器没有向这一段分配可展示的实际返回文字。</p>')
+  cards.append(f'<article class="region-card {css}" id="region-{index}"><div class="region-head"><div><h3>{index}. {esc(label)}</h3><p>本段覆盖率为 {pct(actual["coverage"])}。每段至少达到 {pct(actual.get("floor",actual["minimum"]))}；达到 {pct(actual["minimum"])} 时算作主要完整段落。</p></div><span class="verdict-badge">{esc(judgement)}</span></div><div class="region-pair"><div><b>这一位置的完整标准正文</b><pre data-kind="reference">{esc(expected)}</pre></div><div><b>参与本段计分的完整实际返回行</b>{actual_html}</div></div></article>')
  return rows,cards
 
 def stable_answer_panel(contract):
@@ -1028,7 +1072,7 @@ def stable_anchor_evidence(metrics,output):
   alternatives=item.get('alternatives',[]);expected='\n或\n'.join(alternatives)
   excerpt=''
   for alternative in alternatives:
-   candidate=_complete_evidence_lines(alternative,output)
+   candidate=_exact_evidence_lines(alternative,output)
    if candidate:excerpt=candidate;break
   passed=bool(item.get('pass'));css='pass' if passed else 'fail'
   if passed and not excerpt:
@@ -1698,7 +1742,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
                  f'其中至少 {required} 段达到 {pct(rules.get("minimum_coverage"))}。'
                  '先看下表；需要核对原文时，再展开下面的左右对照。</div>')
    body+=section('正文是否抓全',region_intro+table(['标准答案位置','标准片段数','命中片段数','覆盖率','判定'],region_rows,metrics=[])+
-                 '<details class="technical-details"><summary>查看各段完整标准正文和实际对应文字</summary>'+''.join(region_cards)+'</details>','body-coverage')
+                 '<details class="technical-details"><summary>查看各段完整标准正文和计分行</summary>'+''.join(region_cards)+'</details>','body-coverage')
   if title_details:body+=section('标题文字质量',title_details)
   runtime=('<details class="technical-details"><summary>查看完整运行、哈希与评分字段</summary>'
            +metric_legend(detail_metrics)+table(['项目','值'],rows,metrics=[])+

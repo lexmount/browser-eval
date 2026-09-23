@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from harness.web_fetch.report import (
-    TRACKS, attempt_row, case_rate, generate, overview_card, ranking, reason, stable_anchor_evidence,
+    TRACKS, _body_region_evidence, attempt_row, case_rate, generate, overview_card, ranking, reason, stable_anchor_evidence,
     stable_answer_panel, stable_checks, stable_failure_summary, write_support,
 )
 from harness.web_fetch.report_components import (
@@ -49,6 +49,29 @@ def table_cells(rendered, identifier):
 
 
 class ReportBodyScopeTests(unittest.TestCase):
+    def test_body_evidence_uses_the_canonical_global_allocation(self):
+        shared='abcdefghijklmnopqrstuvwx'*3
+        contract={'version':3,'unit':'region_compact_hexagram_recall',
+                  'minimum_coverage':.8,'minimum_floor':.6,'minimum_region_passes':1,
+                  'regions':[{'id':'opening','text':shared+'AAAAAAAABBBBBBBB'},
+                             {'id':'ending','text':shared+'CCCCCCCCDDDDDDDD'}]}
+        content=shared+'\n'+shared[:30]+'AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD'
+        evidence,counts=_body_region_evidence(content,contract)
+        from harness.web_fetch.body_coverage import evaluate_body_requirements
+        scored={row['id']:row['matched_units'] for row in
+                evaluate_body_requirements(content,contract)['body_region_results']}
+        self.assertEqual(counts,scored)
+        self.assertTrue(evidence['opening'])
+        self.assertTrue(evidence['ending'])
+
+    def test_body_evidence_keeps_both_lines_for_cross_line_scoring_units(self):
+        contract={'version':3,'unit':'region_compact_hexagram_recall',
+                  'minimum_coverage':.8,'minimum_floor':.6,'minimum_region_passes':1,
+                  'regions':[{'id':'body','text':'abcdefghijkl'}]}
+        evidence,counts=_body_region_evidence('abcdef\nghijkl',contract)
+        self.assertEqual(evidence['body'],['abcdef','ghijkl'])
+        self.assertEqual(counts['body'],7)
+
     def test_long_stable_text_and_record_lists_scroll_only_after_five_items(self):
         anchors=[{'id':f'a-{index}','alternatives':[f'Stable text {index}']} for index in range(6)]
         contract={'minimum_records':6,'maximum_records':6,'stable_text_anchors':anchors}
@@ -305,8 +328,8 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertLess(detail.index('标准答案与实际返回'),detail.index('为什么这样判'))
             self.assertIn('alpha beta gamma delta',detail)
             for phrase in ['正文判定：', '每段至少达到 60.0%',
-                           '本段覆盖率为 100.0%', '完整实际返回中的对应文字',
-                           '查看各段完整标准正文和实际对应文字',
+                           '本段覆盖率为 100.0%', '参与本段计分的完整实际返回行',
+                           '查看各段完整标准正文和计分行',
                            '查看判定使用的标准答案', '查看本次完整实际返回']:
                 self.assertIn(phrase,detail)
             self.assertNotIn('定位样例（仅供人工查看）',detail)
@@ -317,7 +340,7 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertNotIn('第 1/1 段',detail)
             english=(out/'en/attempts'/f"{r['attempt_id']}.html").read_text()
             for phrase in ['Body-text rule:', 'Every region must reach at least 60.0%',
-                           'Corresponding text in the complete actual output']:
+                           'Complete actual-output lines used to score this region']:
                 self.assertIn(phrase,english)
             dataset=(out/'datasets/article.html').read_text()
             self.assertIn('同一份标准答案',dataset)
@@ -365,27 +388,40 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertIn('1 份真实日志文件已保存并通过 SHA-256 校验',detail)
             self.assertIn('<pre data-kind="call-log">     1  event=request.start',detail)
             self.assertIn('查看错误与关键日志',detail)
-            self.assertIn('查看并下载完整 stdout / stderr / debug 证据',detail)
+            self.assertIn('查看并下载完整保存证据',detail)
             self.assertIn(r['call_log_sha256'],detail)
 
-    def test_attempt_log_drilldown_accepts_hash_bound_public_debug_stderr(self):
+    def test_attempt_log_drilldown_uses_canonical_call_log_stderr_in_both_languages(self):
         c=case('debugged','body','web');r=record(c,passed=False,ok=False)
-        debug=b'INFO request started\nERROR challenge page returned\nINFO request ended\n'
-        debug_path='logs/fixture/debugged/run-001.stderr.log'
+        payload={'request':{'route':'fixture'},
+                 'process':{'stdout':'adapter started','stderr':'ERROR challenge page returned'},
+                 'error':{'type':'challenge','message':'challenge page returned'},
+                 'events':[{'stage':'call_started','error_type':None},
+                           {'stage':'call_completed','error_type':'challenge'}]}
+        debug=json.dumps(payload,ensure_ascii=False).encode()
+        debug_path='call-logs/fixture/debugged/run-001.json'
         r['error_type']='challenge';r['error_message']='challenge page returned'
-        r['provider_metadata']={'public_stderr_path':debug_path,
-                                'public_stderr_sha256':hashlib.sha256(debug).hexdigest()}
+        r['provider_metadata']={'call_log':{'path':debug_path,
+                                            'sha256':hashlib.sha256(debug).hexdigest(),
+                                            'bytes':len(debug)}}
         with tempfile.TemporaryDirectory() as directory:
             out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True)
             artifact.write_text('output')
             log=out/debug_path;log.parent.mkdir(parents=True);log.write_bytes(debug)
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
-                generate(out,{'cases':[c]},[r],[])
+                generate(out,{'cases':[c]},[r],[],include_english=True)
             detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
-            self.assertIn('stderr / debug 日志',detail)
             self.assertIn('ERROR challenge page returned',detail)
             self.assertIn('../'+debug_path,detail)
             self.assertIn(hashlib.sha256(debug).hexdigest(),detail)
+            self.assertIn('下载完整调用日志 JSON',detail)
+            english=(out/'en/attempts'/f"{r['attempt_id']}.html").read_text()
+            for phrase in ['Final physical call','ERROR challenge page returned',
+                           'Download complete call-log JSON',
+                           'View and download complete retained evidence']:
+                self.assertIn(phrase,english)
+            for phrase in ['最终物理调用','下载完整调用日志','查看并下载完整保存证据']:
+                self.assertNotIn(phrase,english)
 
     def test_minimal_document_scope_is_explicit_and_does_not_claim_long_document_coverage(self):
         c=case('minimal','body','document')
