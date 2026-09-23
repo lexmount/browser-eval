@@ -13,6 +13,35 @@ _first_failed_key = _MODULE._first_failed_key
 _first_fix_id = _MODULE._first_fix_id
 
 
+@pytest.mark.parametrize(
+    "route,changed_field,wrong_value",
+    [
+        ("index.html", "base", "https://example.test/api/preview/replay/"),
+        ("index.html", "css", "https://example.test/api/preview/replay/assets/report.css"),
+        ("result/moli-1.html", "base", "https://example.test/api/preview/replay~fixture/"),
+        ("result/moli-1.html", "css", "https://example.test/api/preview/assets/report.css"),
+        ("result/moli-1.html", "script", "https://example.test/api/preview/assets/app.js"),
+        ("result/moli-1.html", "background", "rgba(0, 0, 0, 0)"),
+    ],
+)
+def test_private_preview_gate_rejects_lost_credentials_and_nested_assets(
+    route, changed_field, wrong_value
+):
+    origin = "https://example.test"
+    root = origin + "/api/preview/replay~fixture/"
+    folder = route.rpartition("/")[0]
+    state = {
+        "base": root + (folder + "/" if folder else ""),
+        "css": root + "assets/report.css",
+        "script": root + "assets/app.js",
+        "background": "rgb(246, 248, 251)",
+    }
+    _MODULE._validate_hosted_resource_state(state, origin, route)
+    state[changed_field] = wrong_value
+    with pytest.raises(ValueError, match="hosted"):
+        _MODULE._validate_hosted_resource_state(state, origin, route)
+
+
 def test_header_contrast_rejects_light_panel_with_dark_theme_ink():
     contrast = _MODULE._contrast_ratio
     assert contrast("rgb(238, 245, 251)", "rgb(238, 243, 248)") < 1.1

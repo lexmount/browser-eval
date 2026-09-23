@@ -30,11 +30,8 @@ def write_language_contract(root: Path, *, include_english: bool) -> None:
     (folder / "index.html").write_text(
         '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
-        '<script>(function(){const p=location.pathname.split("/");'
-        'const i=p.indexOf("preview");if(i<1||p[i-1]!=="api")return;'
-        'const b=document.querySelector("base")||document.createElement("base");'
-        'b.href=location.origin+location.pathname;'
-        'if(!b.isConnected)document.head.prepend(b);})();</script>'
+        '<script>(function(){const b=document.querySelector("base[href]");'
+        'if(b)b.href=new URL("en/",b.href).href;})();</script>'
         '<title>英文报告未生成</title></head><body><main data-english-not-generated>'
         '<h1>英文报告未生成</h1><p>English report has not been generated.</p>'
         '<p>当前报告仅提供中文版。英文版需单独生成。</p>'

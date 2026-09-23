@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 import pytest
+from bs4 import BeautifulSoup
 from PIL import Image
 
 from harness.browser_use.publication import sanitize
@@ -161,7 +162,10 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
     assert manifest["languages"] == ["zh"]
     assert manifest["english_status"] == "not_generated"
     assert manifest["routes"] == 11 + extra_methods
-    assert '英文报告未生成' in (output / "en/index.html").read_text()
+    english_notice = (output / "en/index.html").read_text()
+    assert '英文报告未生成' in english_notice
+    assert 'new URL("en/",b.href)' in english_notice
+    assert "location.origin+location.pathname" not in english_notice
     assert not (output / "en/results.html").exists()
     assert 'class="language" href="../en/index.html"' in (output / "result/chromium-29.html").read_text()
     assert check_report(output)["html_pages"] == 11 + extra_methods
@@ -590,6 +594,23 @@ def test_report_shell_localizes_chinese_title_and_footer() -> None:
         "en", "results", "Result", "<p>Content</p>", depth=1, current_route="result/moli-29.html"
     )
     assert 'href="../../result/moli-29.html"' in english
+
+
+def test_report_shell_preserves_private_preview_resource_base() -> None:
+    for depth, route, css, app in (
+        (0, "index.html", "assets/report.css", "assets/app.js"),
+        (1, "result/moli-29.html", "../assets/report.css", "../assets/app.js"),
+    ):
+        rendered = _shell("zh", "results", "结果", "<p>证据</p>", depth=depth, current_route=route)
+        page = BeautifulSoup(rendered, "html.parser")
+        assert page.select_one('link[rel="stylesheet"]')["href"] == css
+        assert page.select_one("script[src]")["src"] == app
+        assert page.select_one("base") is None
+        bootstraps = page.select("head script:not([src])")
+        assert len(bootstraps) == 1
+        bootstrap = bootstraps[0].get_text()
+        assert "new URL(folders.join('/')+'/',base.href)" in bootstrap
+        assert "location.origin+'/api/preview/'" not in bootstrap
 
 
 def test_mobile_header_keeps_language_and_theme_controls_visible(tmp_path: Path) -> None:
