@@ -44,6 +44,7 @@ def check_report(root: Path) -> None:
                 or not contract.get("fixed_actions")):
             raise ValueError(f"task {task_id} acceptance contract or trajectory is missing")
     if ("部署与镜像" not in method or "第 790 题" not in method
+            or "没有数据库恢复到初始种子的证据" not in method
             or "早期" not in home or "evidence/" not in viewer
             or "English edition not generated" not in english
             or '../index.html' not in english):
@@ -91,6 +92,7 @@ def negative_controls(root: Path) -> None:
         ("index.html", "<h2>核心结果</h2>", ""),
         ("case/525.html", "../evidence/525.json", "../evidence/missing.json"),
         ("case/525.html", "查看原始错误", "缺少原始错误"),
+        ("method.html", "没有数据库恢复到初始种子的证据", "数据库已恢复到初始种子"),
     )
     for name, original, changed in edits:
         with tempfile.TemporaryDirectory(prefix="webarena-report-negative-") as directory:

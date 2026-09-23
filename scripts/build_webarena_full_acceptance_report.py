@@ -249,6 +249,7 @@ def build(ledger_path: Path, run_root: Path, site_map: Path, catalog_path: Path,
               '评测答案和通过标准未因浏览器表现而放松。主轮 26 题首次失败均有补跑证据；通过题不因诊断再测。</p>'
               f'<p>验收账本 SHA-256：<code>{_hash(ledger_path)}</code>；官方 scope SHA-256：<code>{_hash(scope_path)}</code>。</p>'
               '<p>此次展示一套 Chromium 配置，不据此推断 Moli、Firefox 或 WebKit 的表现。站点会话与数据库在题间有延续，部分定向补跑使用备用部署；通过率是这些固定轨迹在该部署状态和官方 evaluator 下“至少通过一次”的记录，不能解释为从任意全新状态必然成功。</p>'
+              '<p>轮前 Rainbond 收据记录了组件更新与站点就绪，没有数据库恢复到初始种子的证据。因此这轮结果不能称为数据重置后的验收。</p>'
               '<p>第 790 题目标差评在备用站点已不存在，详情页单独标注该边界。</p></section>')
     method += ('<section class="panel"><h2>部署与镜像</h2>'
                f'<p>Rainbond 主应用 {environment["deployment"]["primary_app_id"]}，备用应用 {environment["deployment"]["repair_app_id"]}；'
