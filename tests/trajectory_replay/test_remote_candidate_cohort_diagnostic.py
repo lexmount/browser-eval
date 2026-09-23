@@ -68,6 +68,31 @@ def test_retrieval_contract_uses_the_qualified_source_revision() -> None:
     assert _read_retrieval_contract(task_id, row, sites) == candidate
 
 
+def test_retrieval_contract_can_be_frozen_inside_a_full_catalog() -> None:
+    task_id = 108
+    candidate = json.loads(
+        (
+            Path("evaluation/trajectory-replay/webarena-verified/retrieval-candidates")
+            / f"task-{task_id}.json"
+        ).read_text(encoding="utf-8")
+    )
+    sites = _sites()
+    rebound = rebind_remote_calls(
+        candidate["tool_calls"],
+        sites,
+        {"127.0.0.1", "192.168.5.2", "host.docker.internal"},
+    )
+    row = {
+        "source_actions": candidate["tool_calls"],
+        "retrieval_contract": candidate["retrieval_contract"],
+        "bound_calls_sha256": _json_sha256(rebound),
+    }
+    assert _read_retrieval_contract(task_id, row, sites) == candidate
+    row["retrieval_contract"] = {**row["retrieval_contract"], "task_id": 109}
+    with pytest.raises(ValueError, match="identity mismatch"):
+        _read_retrieval_contract(task_id, row, sites)
+
+
 def test_response_type_comes_from_task_contract() -> None:
     expected = SimpleNamespace(model_dump=lambda **kwargs: {"task_type": "MUTATE"})
     task = SimpleNamespace(

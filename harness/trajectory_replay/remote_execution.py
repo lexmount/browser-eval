@@ -136,6 +136,36 @@ def _task_type(task: object) -> str:
 def _read_retrieval_contract(
     task_id: int, row: dict, sites: dict, candidate_path: Path | None = None
 ) -> dict:
+    embedded_contract = row.get("retrieval_contract")
+    embedded_calls = row.get("source_actions")
+    if embedded_contract is not None or embedded_calls is not None:
+        if not isinstance(embedded_contract, dict) or not isinstance(embedded_calls, list):
+            raise ValueError(f"task {task_id}: embedded retrieval input is incomplete")
+        candidate = {
+            "task_id": task_id,
+            "tool_calls": embedded_calls,
+            "retrieval_contract": embedded_contract,
+        }
+        if embedded_contract.get("task_id") != task_id:
+            raise ValueError(f"task {task_id}: retrieval contract identity mismatch")
+        rebound = rebind_remote_calls(
+            embedded_calls,
+            sites,
+            {
+                "onestopmarket.example.com",
+                "gitlab.example.com",
+                "openstreetmap.example.com",
+                "wikipedia.example.com",
+                "ec2-3-133-227-75.us-east-2.compute.amazonaws.com",
+                "ec2-3-135-39-80.us-east-2.compute.amazonaws.com",
+                "host.docker.internal",
+                "127.0.0.1",
+                "192.168.5.2",
+            },
+        )
+        if _json_sha256(rebound) != row["bound_calls_sha256"]:
+            raise ValueError(f"task {task_id}: retrieval actions differ from frozen bound calls")
+        return candidate
     source_revision = row.get("source_revision") or {}
     path = candidate_path
     if path is None and source_revision:
