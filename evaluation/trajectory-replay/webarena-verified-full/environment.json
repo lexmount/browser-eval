@@ -1,0 +1,20 @@
+{
+  "schema": "lex_webarena_verified_full_environment/1",
+  "platform": "Rainbond",
+  "region": "rainbond",
+  "team": "ye7izl3p",
+  "deployment": {
+    "primary_app_id": 195,
+    "repair_app_id": 194,
+    "shared_map_app_id": 201,
+    "shared_wikipedia_app_id": 198
+  },
+  "images": {
+    "gitlab": "sha256:673ba94d757c5b3f4bb55751ad8b745a33bad2b987349322403cbc41035a92e0",
+    "reddit": "sha256:0594908059a03e5f610005689440a95c05e776e734006197c7b1eba12734cb46",
+    "shopping": "sha256:3e8cb9b945ea9b1c94ab26dba53e8d12dd0406abbf4bf686fd3bb2b6a5908feb",
+    "shopping_admin": "sha256:d0531dd27ed98d0c459ff9e88118bf2ed8b660b0ed99c38837db46c065a5be13",
+    "map": "sha256:c769aa312c979d68e696dace7049d58eeeb016ce608f0f8779a181bf3714206f",
+    "wikipedia_runtime": "sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce"
+  }
+}

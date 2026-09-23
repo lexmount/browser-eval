@@ -1,0 +1,20 @@
+{
+  "schema": "lex_webarena_verified_full_report_profile/1",
+  "benchmark": "WebArena-Verified",
+  "split": "full-812",
+  "browser": "chromium",
+  "scope_path": "evaluation/trajectory-replay/webarena-verified-full/scope.json",
+  "scope_sha256": "91b93b44603d06cd84fa43e17296b41058a56e3288430fd53ec635ce5c8e81d5",
+  "acceptance_ledger_sha256": "fd7d5190b44c202d0adec77d9a7748136b9ebc19a1723d04f7ae5a0ac96c41ec",
+  "report_manifest_sha256": "d8c01dd782408f76138587b8df21de9254dbe2dc0b50f5ac110ac68593d6d4f5",
+  "report_archive_sha256": "f7b2aae079c41105f9482dede38063e9686c9996b416c696918bea2af44bcc9a",
+  "generated_languages": ["zh"],
+  "publication": {
+    "service": "artifact-site",
+    "host": "https://artifact-site.lexmount.cn",
+    "title": "WebArena-Verified 全量轨迹重放 · Chromium",
+    "slug": null,
+    "version_id": null,
+    "share_url": null
+  }
+}
