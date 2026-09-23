@@ -40,8 +40,12 @@ def review(source, corrected):
     if len({row['attempt_id'] for row in after}) != len(after):
         raise ValueError('Duplicate corrected attempt')
     for name in ('dataset.json', 'sample-manifest.json', 'physical-attempts.jsonl', 'execution.json', 'result-review.json'):
-        if not (source / name).exists() and not (corrected / name).exists():
+        source_exists = (source / name).exists()
+        corrected_exists = (corrected / name).exists()
+        if not source_exists and not corrected_exists:
             continue
+        if source_exists != corrected_exists:
+            raise ValueError('Correction changed evidence file presence: ' + name)
         if digest(source / name) != digest(corrected / name):
             raise ValueError('Unexpected change: ' + name)
     changed = []

@@ -2909,7 +2909,7 @@ document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('re
         return table(['方法', '全部逻辑调用', '均值', 'P50', 'P95'], rows)
 
     home = ('<section class="hero"><h1>' + prose('home_title') + '</h1><p>' + prose('home_lead') + '</p></section>' +
-            '<figure><picture><source media="(max-width:650px)" srcset="assets/infographic-mobile.png"><img src="assets/infographic.png" alt="545 页五方法的机器问题矩阵：Moli 解析器崩溃 2、共 3 条；Lightpanda 0；Obscura 共 3 条；Chrome 错误页 1；Kitesurf 服务错误 6、超时 5、空正文 10，共 21 条；冻结页跳转受阻分别影响 Moli、Obscura、Chrome 各 1 条" style="display:block;width:100%;height:auto;border-radius:12px"></picture><figcaption class="note">' + prose('infographic_caption') + '</figcaption></figure>' +
+            '<figure><picture><source media="(max-width:650px)" srcset="assets/infographic-mobile.png"><img src="assets/infographic.png" alt="错误类型与五种方法的机器问题矩阵；各格数量和归属说明见结果解读页" style="display:block;width:100%;height:auto;border-radius:12px"></picture><figcaption class="note">' + prose('infographic_caption') + '</figcaption></figure>' +
             '<section><h2>核心结果</h2>' + metric_table() + '<p class="note">' + prose('score_note') + '</p></section>' +
             '<section><h2>全部页面的调用耗时</h2>' + all_call_latency_table() + '<p class="note">' + prose('all_latency_note') + '</p></section>' +
             '<section><h2>成功页面的调用耗时与重试成本</h2>' + latency_table() + '<p class="note">' + prose('latency_note') + '</p></section>' +
@@ -3071,6 +3071,9 @@ document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('re
     }
     cause_counts = Counter((row["category_label"], row["provider"])
                            for row in failure_analysis["reviewed_failures"])
+    unknown_causes = {cause for cause, _ in cause_counts} - set(cause_owners)
+    if unknown_causes:
+        raise ValueError("Reviewed failure cause lacks an owner: " + ", ".join(sorted(unknown_causes)))
     cause_rows = []
     for cause in cause_order:
         cells = []

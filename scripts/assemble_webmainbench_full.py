@@ -25,7 +25,9 @@ def public_value(value):
         return [public_value(item) for item in value]
     if isinstance(value, str):
         value = re.sub(r"/Users/[^/\s:]+", "/redacted-home", value)
+        value = re.sub(r"/home/[^/\s:]+", "/redacted-home", value)
         value = re.sub(r"/private/tmp/[^\s:]+", "/redacted-temp", value)
+        value = re.sub(r"/(?:var/)?tmp/[^\s:]+", "/redacted-temp", value)
     return value
 
 

@@ -74,7 +74,7 @@ def test_full_report_renders_five_way_details_and_failure_evidence(tmp_path: Pat
     (tmp_path / "report-content.json").write_text(json.dumps(content), encoding="utf-8")
     (tmp_path / "provider-adoption.json").write_text(json.dumps({"included": [], "cutoff": "2026-08-26"}), encoding="utf-8")
     (tmp_path / "failure-analysis.json").write_text(json.dumps({"reviewed_failures": [
-        {"provider": "moli", "case_id": case_id, "category": "fixture_error", "category_label": "测试环境错误",
+        {"provider": "moli", "case_id": case_id, "category": "browser_exit", "category_label": "Moli 解析器崩溃",
          "cause": "Fixture failed", "treatment": "Investigate", "status": "open"}]}), encoding="utf-8")
     (tmp_path / "physical-attempts.jsonl").write_text("".join(json.dumps(row) + "\n" for row in physical), encoding="utf-8")
     generate_webmainbench_full(tmp_path, dataset, rows, summaries, profile)
@@ -91,7 +91,7 @@ def test_full_report_renders_five_way_details_and_failure_evidence(tmp_path: Pat
     analysis = BeautifulSoup((tmp_path / "analysis/index.html").read_text(encoding="utf-8"), "html.parser")
     assert len(analysis.select("tr[data-result]")) == 5
     assert analysis.select_one("#cause") is not None
-    assert analysis.select_one('tr[data-cause="测试环境错误"]') is not None
+    assert analysis.select_one('tr[data-cause="Moli 解析器崩溃"]') is not None
     assert json.loads((tmp_path / "report-manifest.json").read_text())["languages"] == ["zh"]
     home_html = (tmp_path / "index.html").read_text(encoding="utf-8")
     with pytest.raises(ValueError, match="extremum"):

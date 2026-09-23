@@ -74,10 +74,13 @@ def test_changed_physical_output_cannot_be_certified(tmp_path):
 
 def test_public_evidence_hides_local_build_path_without_losing_error():
     row = {"error_message": "panic at /Users/runner/.cargo/html5ever/mod.rs:254:9",
-           "meta": ["/private/tmp/run-123/output.txt"]}
+           "meta": ["/private/tmp/run-123/output.txt", "/home/runner/.cargo/html5ever/mod.rs:254:9",
+                    "/tmp/run-123/output.txt"]}
     public = public_value(row)
     assert "/Users/" not in json.dumps(public)
     assert "/private/tmp/" not in json.dumps(public)
+    assert "/home/runner/" not in json.dumps(public)
+    assert "/tmp/run-123/" not in json.dumps(public)
     assert "html5ever/mod.rs:254:9" in public["error_message"]
 
 
